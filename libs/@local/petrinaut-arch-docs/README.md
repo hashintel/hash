@@ -94,8 +94,8 @@ comment or docstring the scanner already reads:
 The declaring file's own layer is the edge source, the id before `via` is the
 target, and the text after `via` is required and becomes the edge label. The
 tag is repeatable. Declared edges render dashed with their protocol in every
-diagram that shows the pair, and sit in their own "Declared" table on the
-layer pages, apart from the edges aggregated from imports.
+diagram that shows the pair, and the relations card on a layer page marks them
+with a dashed protocol label, apart from the edges aggregated from imports.
 
 The build fails when the target is not a declared layer, and when the pair is
 already derived from imports; remove the declaration in the second case, since
@@ -119,26 +119,28 @@ Regenerate it whenever you need it; nothing depends on a stored copy.
 The bundle is framework-neutral by design — the Starlight site in
 `apps/petrinaut-docs` and hash.dev are both just consumers.
 
-| File                | What it is                                                       |
-| ------------------- | ---------------------------------------------------------------- |
-| `architecture.json` | The model: layers, edges, enforced rules                         |
-| `architecture.md`   | The whole architecture as one file — the cheapest read for an AI |
-| `manifest.json`     | Page tree for building navigation without crawling `pages/`      |
-| `pages/**.mdx`      | Generated layer pages, plus authored pages merged in             |
-| `components/*.tsx`  | React diagram components imported by authored pages              |
-| `diagrams/**.d2`    | Diagram sources (diffable)                                       |
-| `diagrams/**.svg`   | Rendered diagrams                                                |
+| File                | What it is                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `architecture.json` | The model: layers, edges, enforced rules                                                                      |
+| `architecture.md`   | The whole architecture as one file — the cheapest read for an AI                                              |
+| `manifest.json`     | Page tree for building navigation without crawling `pages/`                                                   |
+| `pages/**.mdx`      | Generated layer pages, plus authored pages merged in                                                          |
+| `components/*.tsx`  | React components: the layer card components every bundle ships, plus diagram components authored pages import |
+| `diagrams/**.d2`    | Diagram sources (diffable)                                                                                    |
+| `diagrams/**.svg`   | Rendered diagrams                                                                                             |
 
-**Generated** MDX is YAML frontmatter plus plain CommonMark — no JSX, no
-imports, no framework components — which is what lets it render in Astro, in
-hash.dev's Next.js MDX pipeline, and as plain text.
+**Generated** MDX is YAML frontmatter plus CommonMark, with one exception: each
+layer page imports the bundle's `LayerFacts` and `LayerRelations` cards and
+passes its facts and edges as structured props, so a host restyles the cards
+rather than re-parsing prose. The same facts stay plain text in
+`architecture.md`, the cheapest read for an agent.
 
-**Authored** pages may additionally import the diagram components below, which is
-where every requirement the bundle places on a host comes from:
+**Authored** pages may additionally import the bundle's diagram components.
+Together that is every requirement the bundle places on a host:
 
-| A host must provide          | For                                                |
-| ---------------------------- | -------------------------------------------------- |
-| A React-capable MDX pipeline | Any authored page that imports a diagram component |
+| A host must provide          | For                                                                           |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| A React-capable MDX pipeline | Generated layer pages, and any authored page that imports a diagram component |
 
 Nothing else — in particular nothing hydrates, so no client-side runtime is
 required. In particular the bundle asks for **no Markdown or Rehype

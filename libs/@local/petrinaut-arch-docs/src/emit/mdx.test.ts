@@ -191,26 +191,94 @@ describe("resolveDiagramImages", () => {
   });
 });
 
-describe("buildPages with a declared edge", () => {
-  const testLayer = (id: string): Layer => ({
-    id,
-    name: id,
-    parent: null,
-    package: "@test/pkg",
-    role: `role of ${id}`,
-    declaredIn: `src/${id}/index.ts`,
-    prose: null,
-    references: [],
-    files: [`src/${id}/index.ts`],
-    fileCount: 1,
-    lineCount: 1,
+const testLayer = (id: string): Layer => ({
+  id,
+  name: id,
+  parent: null,
+  package: "@test/pkg",
+  role: `role of ${id}`,
+  declaredIn: `src/${id}/index.ts`,
+  prose: null,
+  references: [],
+  files: [`src/${id}/index.ts`],
+  fileCount: 1,
+  lineCount: 1,
+});
+
+const buildTestPages = (model: ArchitectureModel) =>
+  buildPages(model, {
+    sourceUrlPrefix: "https://example.com/",
+    overviewDiagram: null,
+    neighbourhoodDiagrams: new Map(),
+    subtreeDiagrams: new Map(),
   });
 
+describe("buildPages layer facts card", () => {
   const model: ArchitectureModel = {
     version: ARCHITECTURE_MODEL_VERSION,
     packages: [],
-    layers: [testLayer("bindings"), testLayer("cli")],
+    layers: [testLayer("core"), testLayer("core.simulation")],
+    edges: [],
+    rules: [],
+  };
+
+  const pages = buildTestPages(model);
+  const nested = pages.find(
+    (page) => page.slug === layerSlug("core.simulation"),
+  );
+  const root = pages.find((page) => page.slug === layerSlug("core"));
+
+  it("imports the component relative to the page file's depth", () => {
+    expect(nested?.contents).toContain(
+      'import { LayerFacts } from "../../../components/layer-facts";',
+    );
+    expect(root?.contents).toContain(
+      'import { LayerFacts } from "../../components/layer-facts";',
+    );
+  });
+
+  it("passes the layer's facts as structured props", () => {
+    expect(nested?.contents).toContain('package={"@test/pkg"}');
+    expect(nested?.contents).toContain('layerId={"core.simulation"}');
+    expect(nested?.contents).toContain("files={1}");
+    expect(nested?.contents).toContain("lines={1}");
+    expect(nested?.contents).toContain(
+      'declaredIn={"src/core.simulation/index.ts"}',
+    );
+    expect(nested?.contents).toContain(
+      'declaredInUrl={"https://example.com/src/core.simulation/index.ts"}',
+    );
+    // The role reads as a plain lead paragraph before the card, not a prop.
+    expect(nested?.contents).not.toContain("role={");
+    expect(nested?.contents).toContain("\nrole of core.simulation\n");
+  });
+
+  it("emits no relations card on a page with no edges", () => {
+    // The import is always emitted (unused ones are tree-shaken); whether the
+    // card renders is decided at the card, so only the element is asserted.
+    expect(nested?.contents).not.toContain("<LayerRelations");
+  });
+
+  it("emits no prose header alongside the card", () => {
+    expect(nested?.contents).not.toContain("**Package**");
+    expect(nested?.contents).not.toContain("Declared in [");
+  });
+});
+
+describe("buildPages layer relations card", () => {
+  const model: ArchitectureModel = {
+    version: ARCHITECTURE_MODEL_VERSION,
+    packages: [],
+    layers: [testLayer("bindings"), testLayer("cli"), testLayer("store")],
     edges: [
+      {
+        from: "bindings",
+        to: "store",
+        provenance: "imports",
+        fileDependencies: 2,
+        examples: [],
+        crossesPackage: false,
+      },
       {
         from: "bindings",
         to: "cli",
@@ -224,26 +292,42 @@ describe("buildPages with a declared edge", () => {
     rules: [],
   };
 
-  const pages = buildPages(model, {
-    sourceUrlPrefix: "https://example.com/",
-    overviewDiagram: null,
-    neighbourhoodDiagrams: new Map(),
-    subtreeDiagrams: new Map(),
+  const pages = buildTestPages(model);
+  const bindings = pages.find((page) => page.slug === layerSlug("bindings"));
+  const cli = pages.find((page) => page.slug === layerSlug("cli"));
+  const store = pages.find((page) => page.slug === layerSlug("store"));
+
+  it("passes each direction as one JSON entry per edge", () => {
+    expect(bindings?.contents).toContain(
+      'import { LayerRelations } from "../../components/layer-relations";',
+    );
+    expect(bindings?.contents).toContain(
+      '{"id":"store","name":"store","href":"store","provenance":"imports","crossesPackage":false,"imports":2},',
+    );
+    expect(bindings?.contents).toContain("dependedOnBy={[]}");
   });
 
-  it("lists the edge in a Declared block with its protocol, both directions", () => {
-    const bindings = pages.find((page) => page.slug === layerSlug("bindings"));
-    expect(bindings?.contents).toContain("## Depends on");
-    expect(bindings?.contents).toContain("### Declared");
-    expect(bindings?.contents).toContain("| JSON lines over stdio |");
+  it("marks a declared edge with its protocol and no import count", () => {
+    expect(bindings?.contents).toContain(
+      '{"id":"cli","name":"cli","href":"cli","provenance":"declared","crossesPackage":true,"protocol":"JSON lines over stdio"},',
+    );
 
-    const cli = pages.find((page) => page.slug === layerSlug("cli"));
-    expect(cli?.contents).toContain("## Depended on by");
-    expect(cli?.contents).toContain("### Declared");
+    // The receiving side sees the same edge under dependedOnBy.
+    expect(cli?.contents).toContain('"id":"bindings"');
+    expect(cli?.contents).toContain('"provenance":"declared"');
+    expect(cli?.contents).toContain("dependsOn={[]}");
   });
 
-  it("keeps the declared edge out of the import table", () => {
-    const bindings = pages.find((page) => page.slug === layerSlug("bindings"));
-    expect(bindings?.contents).not.toContain("| Layer | Imports |");
+  it("replaces the heading-plus-table sections entirely", () => {
+    expect(bindings?.contents).not.toContain("## Depends on");
+    expect(store?.contents).not.toContain("## Depended on by");
+    expect(bindings?.contents).not.toContain("| Layer |");
+  });
+
+  it("orders imports by count before declared edges", () => {
+    const contents = bindings?.contents ?? "";
+    expect(contents.indexOf('"id":"store"')).toBeLessThan(
+      contents.indexOf('"id":"cli"'),
+    );
   });
 });

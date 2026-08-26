@@ -149,8 +149,8 @@ already reads:
 The edge starts at the declaring file's own layer. The word before `via` is the
 target layer id; the text after `via` is required and becomes the edge label.
 The tag is repeatable, one target per tag. Declared edges are drawn dashed in
-the diagrams and listed under "Declared" in the dependency tables, separate
-from the edges aggregated from imports.
+the diagrams, and the relations card on a layer page shows them with a dashed
+protocol label, separate from the edges aggregated from imports.
 
 The check fails when the target is not a declared layer. It also fails when the
 pair is already derived from imports; the import edge is the record in that
