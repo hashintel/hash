@@ -42,7 +42,7 @@ const completedTurn = (
     isError: false,
   });
 
-test("attributes harness signals and unscoped compaction to the active purpose", () => {
+test("attributes post-sweep compaction to the completed harness purpose", () => {
   const recorder = createTurnTimingRecorder();
   recorder.startInterviewerTurn(1);
   recorder.observe(
@@ -64,16 +64,38 @@ test("attributes harness signals and unscoped compaction to the active purpose",
   recorder.observe(completedTurn("interview", "outer", "agent"));
   recorder.observe(
     observation({
-      type: "turn_request",
-      turnId: "sweep",
-      operationId: "outer",
-      purpose: "agent",
-      request: request(
-        '<settlement-check type="state">\nSweep.\n</settlement-check>',
-      ),
+      type: "operation_start",
+      operationId: "sweep-extraction",
+      operationKind: "prompt",
     }),
   );
-  recorder.observe(completedTurn("sweep", "outer", "agent"));
+  recorder.observe(
+    observation({
+      type: "turn_request",
+      turnId: "sweep",
+      operationId: "sweep-extraction",
+      purpose: "agent",
+      request: request("Extract proposals."),
+    }),
+  );
+  recorder.observe(completedTurn("sweep", "sweep-extraction", "agent"));
+  recorder.observe(
+    observation({
+      type: "operation",
+      operationId: "sweep-extraction",
+      operationKind: "prompt",
+    }),
+  );
+  recorder.observe(
+    observation({
+      type: "tool",
+      toolName: "brunch_sweep",
+      toolCallId: "applied-sweep",
+      isError: false,
+      result: { status: "applied" },
+      durationMs: 1,
+    }),
+  );
   recorder.observe(
     observation({
       type: "turn_request",
@@ -83,16 +105,6 @@ test("attributes harness signals and unscoped compaction to the active purpose",
     }),
   );
   recorder.observe(completedTurn("sweep-compaction", undefined, "compaction"));
-  recorder.observe(
-    observation({
-      type: "turn_request",
-      turnId: "repair",
-      operationId: "outer",
-      purpose: "agent",
-      request: request('<sweep-repair type="state">\nRetry.\n</sweep-repair>'),
-    }),
-  );
-  recorder.observe(completedTurn("repair", "outer", "agent"));
 
   expect(
     Object.fromEntries(
@@ -104,7 +116,6 @@ test("attributes harness signals and unscoped compaction to the active purpose",
     interview: "interview",
     sweep: "sweep",
     "sweep-compaction": "sweep",
-    repair: "repair",
   });
 });
 

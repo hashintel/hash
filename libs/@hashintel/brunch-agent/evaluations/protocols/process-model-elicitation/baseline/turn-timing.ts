@@ -91,9 +91,18 @@ export const createTurnTimingRecorder = (): TurnTimingRecorder => {
       if (event.type === "tool" && event.toolName === "brunch_sweep") {
         const activeOperationId = activePromptOperationIds.at(-1);
         if (activeOperationId === undefined) return;
-        if (toolResultStatus(event) === "refused") {
+        const status = toolResultStatus(event);
+        if (status === undefined) return;
+        if (status === "refused") {
           repairingPromptOperationIds.add(activeOperationId);
+          purposeByOperation.set(activeOperationId, "repair");
         } else {
+          purposeByOperation.set(
+            activeOperationId,
+            repairingPromptOperationIds.has(activeOperationId)
+              ? "repair"
+              : "sweep",
+          );
           repairingPromptOperationIds.delete(activeOperationId);
         }
         return;
