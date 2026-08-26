@@ -433,7 +433,18 @@ export {
   validateDisplayName,
 } from "./validation/display-name";
 export { entityNameSchema, validateEntityName } from "./validation/entity-name";
+export {
+  cloneUserKeyedRecord,
+  createUserKeyedRecord,
+  DANGEROUS_RECORD_KEYS,
+  describeDangerousSdcpnKeys,
+  findDangerousSdcpnKeys,
+  getOwn,
+  isDangerousRecordKey,
+  type DangerousSdcpnKey,
+} from "./validation/record-keys";
 export { validateVariableName } from "./validation/variable-name";
+export { runSandboxed, SHADOWED_GLOBALS } from "./simulation/authoring/sandbox";
 
 // --- File, clipboard, and editor protocol helpers ---
 export {

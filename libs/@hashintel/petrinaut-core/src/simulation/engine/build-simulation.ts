@@ -18,6 +18,12 @@ import {
   mergeParameterValues,
 } from "../../parameter-values";
 import {
+  createUserKeyedRecord,
+  describeDangerousSdcpnKeys,
+  findDangerousSdcpnKeys,
+  getOwn,
+} from "../../validation/record-keys";
+import {
   createEngineFrame,
   createEngineFrameLayout,
   type EngineFrameSnapshot,
@@ -90,9 +96,7 @@ function getInitialMarkingValue(
   initialMarking: SimulationInput["initialMarking"],
   placeId: string,
 ): SimulationInput["initialMarking"][string] | undefined {
-  return Object.prototype.hasOwnProperty.call(initialMarking, placeId)
-    ? initialMarking[placeId]
-    : undefined;
+  return getOwn(initialMarking, placeId);
 }
 
 /**
@@ -592,6 +596,16 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   } = input;
   const extensions = input.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
   const sanitizedSdcpn = sanitizeSDCPNForExtensions(input.sdcpn, extensions);
+
+  // Simulation trust boundary: ids, parameter variable names and colour
+  // element names key records and reach compiled code from here on. The
+  // file-import boundary applies the same check; this one also covers nets
+  // supplied programmatically by embedding applications.
+  const dangerousKeys = findDangerousSdcpnKeys(sanitizedSdcpn);
+  if (dangerousKeys.length > 0) {
+    throw new Error(describeDangerousSdcpnKeys(dangerousKeys));
+  }
+
   validateHirArtifacts(input.hirArtifacts, sanitizedSdcpn, extensions);
 
   const defaultParameterValues = deriveDefaultParameterValues(
@@ -684,8 +698,10 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       const placeParameterValues =
         flattened.placeParameterValues.get(place.id) ?? parameterValues;
 
-      const artifact: HirDynamicsArtifact | undefined =
-        input.hirArtifacts?.dynamics[sourceItemId(differentialEquation.id)];
+      const artifact: HirDynamicsArtifact | undefined = getOwn(
+        input.hirArtifacts?.dynamics,
+        sourceItemId(differentialEquation.id),
+      );
       if (!artifact) {
         throw missingArtifactError(
           "dynamics",
@@ -729,10 +745,14 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         parameterValues:
           flattened.transitionParameterValues.get(transition.id) ??
           parameterValues,
-        lambdaArtifact:
-          input.hirArtifacts?.lambdas[sourceItemId(transition.id)],
-        kernelArtifact:
-          input.hirArtifacts?.kernels[sourceItemId(transition.id)],
+        lambdaArtifact: getOwn(
+          input.hirArtifacts?.lambdas,
+          sourceItemId(transition.id),
+        ),
+        kernelArtifact: getOwn(
+          input.hirArtifacts?.kernels,
+          sourceItemId(transition.id),
+        ),
         stringPool,
       }),
     );
@@ -741,7 +761,8 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   // Calculate buffer size and build place states
   let bufferByteSize = 0;
   const frameLayout = createEngineFrameLayout(sdcpn);
-  const placeStates: EngineFrameSnapshot["places"] = {};
+  // Keyed by place/transition id: no prototype (see `createUserKeyedRecord`).
+  const placeStates: EngineFrameSnapshot["places"] = createUserKeyedRecord();
 
   for (const [placeIndex, placeId] of frameLayout.placeIds.entries()) {
     const marking = packedInitialMarking.get(placeId);
@@ -770,7 +791,8 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   }
 
   // Initialize transition states
-  const transitionStates: EngineFrameSnapshot["transitions"] = {};
+  const transitionStates: EngineFrameSnapshot["transitions"] =
+    createUserKeyedRecord();
   for (const transition of sdcpn.transitions) {
     transitionStates[transition.id] = {
       timeSinceLastFiringMs: 0,

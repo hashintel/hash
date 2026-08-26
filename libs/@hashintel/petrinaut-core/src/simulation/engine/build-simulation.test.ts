@@ -944,4 +944,70 @@ describe("buildSimulation", () => {
       "Initial marking for colored place p1 must be an array of token records",
     );
   });
+
+  it("rejects nets whose ids collide with Object.prototype members", () => {
+    const input: SimulationInput = {
+      sdcpn: {
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+        places: [],
+        transitions: [
+          {
+            id: "constructor",
+            name: "Transition 1",
+            inputArcs: [],
+            outputArcs: [],
+            lambdaType: "predicate",
+            lambdaCode: "",
+            transitionKernelCode: "",
+            x: 0,
+            y: 0,
+          },
+        ],
+      },
+      initialMarking: {},
+      parameterValues: {},
+      seed: 42,
+      dt: 0.1,
+      maxTime: null,
+    };
+
+    expect(() => buildSimulation(input)).toThrow(
+      'reserved JavaScript property names as identifiers: transition id "constructor"',
+    );
+  });
+
+  it("keeps initial marking reads off the prototype chain", () => {
+    const input: SimulationInput = {
+      sdcpn: {
+        types: [],
+        differentialEquations: [],
+        parameters: [],
+        places: [
+          {
+            id: "p1",
+            name: "Place 1",
+            colorId: null,
+            dynamicsEnabled: false,
+            differentialEquationId: null,
+            x: 0,
+            y: 0,
+          },
+        ],
+        transitions: [],
+      },
+      // An own `__proto__` key, as JSON.parse would produce it. The place id
+      // "p1" has no entry, and nothing may leak in from the prototype chain.
+      initialMarking: JSON.parse('{"__proto__": 3}') as Record<string, number>,
+      parameterValues: {},
+      seed: 42,
+      dt: 0.1,
+      maxTime: null,
+    };
+
+    expect(() => buildSimulation(input)).toThrow(
+      "Place with ID __proto__ in initialMarking does not exist in SDCPN",
+    );
+  });
 });
