@@ -625,8 +625,8 @@ Bun-workspace monorepo in this repo:
 
 ```text
 packages/core              # the harness; plugin SDK is its public export surface
+packages/core/prompts      # (subpath) the harness's default repertoire; binding/evaluation only
 packages/core/testing      # (subpath) fixtures, arbitraries, replay driver — prod bundles stay clean
-packages/repertoire        # the harness's own filling of every guidance and runbook key (ADR-0007); depends on core only
 packages/binding-flue      # the Flue binding (implements §10; owns the storage port impl)
 packages/transport-aisdk   # validated UI ingress + harness replies → AI SDK wire; no binding/substrate imports
 packages/plugin-gherkin
@@ -648,12 +648,14 @@ it does not wrap or flatten these package boundaries.
 a package-manager root: it carries no package manifest, lockfile, or competing toolchain.
 `apps/brunch-agent` remains at HASH's application root and points back to that context authority.
 
-**ADR-0007 amendment (2026-08-25):** `packages/repertoire` (`@hashintel/brunch-agent-repertoire`)
-carries the harness's default teaching for every guidance and runbook key. It depends on `core`
-only; bindings depend on it to render instructions; plugins never import it.
+**ADR-0007 / ADR-0008 amendment (2026-08-26):** the guarded
+`@hashintel/brunch-agent/prompts` subpath carries the harness's default teaching for every guidance
+and runbook key. Bindings and evaluation composition may import it to render instructions; plugins
+never import it. The root `@hashintel/brunch-agent` export remains the plugin SDK.
 
 **Dependency invariants (spec invariants):** plugins depend on `core` only — never on the binding,
-never on Flue; the harness imports no substrate; a binding imports both. A transport consumes
+never on Flue, and never on the guarded `core/prompts` subpath; the harness imports no substrate; a
+binding imports both. A transport consumes
 harness-level reply parts plus its wire encoder and ingress validator only: `transport-aisdk`
 depends on `core`, `ai`, and `valibot`, never on a binding or Flue. **Role prefixes name what a
 package is architecturally**: plugin

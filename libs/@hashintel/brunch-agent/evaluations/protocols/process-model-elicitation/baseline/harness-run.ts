@@ -81,7 +81,7 @@ import {
   projectFlueHistoryForSweep,
 } from "@hashintel/brunch-agent-binding-flue";
 import { sdcpn, sdcpnDefinition } from "@hashintel/brunch-agent-plugin-sdcpn";
-import { repertoire } from "@hashintel/brunch-agent-repertoire";
+import { repertoire } from "@hashintel/brunch-agent/prompts";
 
 import {
   createTurnTimingRecorder,

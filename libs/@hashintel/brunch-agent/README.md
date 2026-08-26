@@ -10,11 +10,10 @@ This directory is its context and agent-session root, not a package workspace:
 - [`docs/INDEX.md`](./docs/INDEX.md) indexes Brunch documentation.
 - [`docs/control/STEERING.md`](./docs/control/STEERING.md) holds current strategic truth;
   [`STRATEGY-LOG.md`](./docs/control/STRATEGY-LOG.md) records material strategic decisions.
-- [`packages/core/`](./packages/core/) is `@hashintel/brunch-agent`.
+- [`packages/core/`](./packages/core/) is `@hashintel/brunch-agent`; its guarded `./prompts`
+  subpath ships the harness repertoire rendered by bindings and never imported by plugins.
 - [`packages/binding-flue/`](./packages/binding-flue/) is the Flue binding.
 - [`packages/transport-aisdk/`](./packages/transport-aisdk/) is the AI SDK transport.
-- [`packages/repertoire/`](./packages/repertoire/) is the harness repertoire: the default teaching
-  for every guidance and runbook key (ADR-0007), rendered by bindings, never imported by plugins.
 - [`packages/plugin-gherkin/`](./packages/plugin-gherkin/) is the Gherkin target plugin: a
   feature-anchored `plugin.yaml` and the verbatim-floor proposal type.
 - [`packages/plugin-sdcpn/`](./packages/plugin-sdcpn/) is the SDCPN target plugin: an
