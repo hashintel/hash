@@ -40,16 +40,17 @@ A declaration is two lines — an id and a one-line role:
  */
 ```
 
-That is the whole vocabulary. `@layerRoot` names the layer this folder _and its
-descendants_ form; `@role` says what it is for. Between them they place a node in
-the graph and label it, which is the whole of what these docs assert — anything
-more would be a claim the generator cannot check.
+`@layerRoot` names the layer this folder _and its descendants_ form; `@role`
+says what it is for. Between them they place a node in the graph and label it.
+One more tag, `@talksTo`, declares an edge no import produces (see below). That
+is the whole vocabulary, because anything more would be a claim the generator
+cannot check.
 
 Tags are read from any block comment, only at the start of a line, so mentioning
 `@layerRoot` in prose declares nothing. A tag's text wraps across lines until the
 next tag or a blank line. Any other tag is ignored — `@param`, `@deprecated`
 and the rest are someone else's business — except a miscasing of one of these
-two, which is reported as a probable typo.
+three, which is reported as a probable typo.
 
 ### Declaring from a README instead
 
@@ -76,6 +77,31 @@ left alone as an ordinary document, and is linked from its layer page under
 
 Layer ids are dotted and hierarchical, and every ancestor must itself be
 declared — `core.simulation.monte-carlo` requires `core.simulation` and `core`.
+
+### Declaring a protocol edge
+
+Some dependencies cross no import: the Python bindings spawn the CLI and speak
+JSON lines to it over stdio. `@talksTo` records such an edge, in the same doc
+comment or docstring the scanner already reads:
+
+```python
+"""One Petrinaut CLI process, spoken to over JSON lines on stdio.
+
+@talksTo cli via JSON lines over stdio (spawned subprocess)
+"""
+```
+
+The declaring file's own layer is the edge source, the id before `via` is the
+target, and the text after `via` is required and becomes the edge label. The
+tag is repeatable. Declared edges render dashed with their protocol in every
+diagram that shows the pair, and sit in their own "Declared" table on the
+layer pages, apart from the edges aggregated from imports.
+
+The build fails when the target is not a declared layer, and when the pair is
+already derived from imports; remove the declaration in the second case, since
+the imports already prove the edge. A layer rule applies to a declared edge as
+it does to an imported one: a rule states which layers may couple, whatever
+carries the coupling.
 
 ### Inheritance is what keeps this small
 
@@ -150,8 +176,10 @@ A neighbourhood draws only edges _incident to the focus_. Edges among the
 neighbours are real but belong to those layers' own pages; drawing them rebuilds
 the tangle the overview exists to avoid.
 
-Aggregation never invents a dependency: an edge appears because imports exist,
-and its count sums real `fileDependencies`. Neighbours are capped at twelve, and
+Aggregation never invents a dependency: an import edge appears because imports
+exist, and its count sums real `fileDependencies`. A `@talksTo` edge is the one
+annotation-drawn kind, and it is always dashed with its protocol as the label,
+so the two kinds cannot be confused. Neighbours are capped at twelve, and
 the remainder becomes a single dashed "+N further layers" node carrying their
 combined count — elided where it would be unreadable, never dropped where it
 would read as absent.

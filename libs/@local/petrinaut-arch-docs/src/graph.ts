@@ -3,8 +3,10 @@
  *
  * dependency-cruiser supplies the file-level truth; the layer assignment comes
  * from `extract.ts`. Aggregating one against the other is what makes the
- * diagrams trustworthy: an edge appears because imports exist, never because
- * someone drew it.
+ * diagrams trustworthy: an import edge appears because imports exist, never
+ * because someone drew it. The one annotation-drawn kind, a `@talksTo` edge for
+ * a boundary no import crosses, is resolved here after aggregation, and it may
+ * neither restate an import edge nor name a layer that does not exist.
  *
  * Package subpath aliases are derived from each package's `exports` map rather
  * than hand-listed, so a new entry point cannot drop out of the graph unnoticed.
@@ -31,7 +33,8 @@ import {
   sourceRootPattern,
 } from "./scope";
 
-import type { ArchitecturePackage, Edge, Layer } from "./model";
+import type { TalksToDeclaration } from "./extract";
+import type { ArchitecturePackage, DeclaredEdge, Edge, Layer } from "./model";
 
 /** How many representative file pairs to record per edge. */
 const examplesPerEdge = 3;
@@ -137,6 +140,8 @@ export interface GraphOptions {
   /** Repo-relative source file → layer id, from `extract`. */
   fileLayers: Map<string, string>;
   layers: Layer[];
+  /** `@talksTo` declarations from `extract`, from any covered language. */
+  talksTo: TalksToDeclaration[];
 }
 
 export interface GraphResult {
@@ -217,6 +222,110 @@ const checkCoverage = (
       ),
     );
 
+/**
+ * Resolves `@talksTo` declarations into declared edges.
+ *
+ * Separate from `buildGraph` so the error cases are testable without running
+ * dependency-cruiser. Each error names the annotation's file and line: an
+ * unknown target would otherwise draw an edge to a node no page describes, and
+ * a pair the import graph already carries would double an edge whose truth is
+ * the imports, so both refuse the declaration instead.
+ */
+export const resolveDeclaredEdges = (options: {
+  talksTo: TalksToDeclaration[];
+  /** Repo-relative source file → layer id, from `extract`. */
+  fileLayers: Map<string, string>;
+  layers: Layer[];
+  importEdges: Edge[];
+}): { edges: DeclaredEdge[]; diagnostics: Diagnostic[] } => {
+  const diagnostics: Diagnostic[] = [];
+  const edges: DeclaredEdge[] = [];
+
+  const packageOf = new Map(
+    options.layers.map((layer) => [layer.id, layer.package]),
+  );
+  const importPairs = new Set(
+    options.importEdges.map((edge) => `${edge.from}>${edge.to}`),
+  );
+  /** Pair → file that declared it, so a repeat is reported with its rival. */
+  const declaredPairs = new Map<string, string>();
+
+  for (const declaration of options.talksTo) {
+    const from = options.fileLayers.get(declaration.file);
+
+    // A file no layer resolves for is already an error in `extract`.
+    if (from === undefined) {
+      continue;
+    }
+
+    if (!packageOf.has(declaration.target)) {
+      diagnostics.push(
+        error(
+          declaration.file,
+          `@talksTo names \`${declaration.target}\`, which is not a declared layer`,
+          declaration.line,
+        ),
+      );
+      continue;
+    }
+
+    if (declaration.target === from) {
+      diagnostics.push(
+        error(
+          declaration.file,
+          `@talksTo names \`${declaration.target}\`, the declaring file's own layer; declare the edge on the calling side only`,
+          declaration.line,
+        ),
+      );
+      continue;
+    }
+
+    const pair = `${from}>${declaration.target}`;
+
+    if (importPairs.has(pair)) {
+      diagnostics.push(
+        error(
+          declaration.file,
+          `@talksTo declares \`${from}\` → \`${declaration.target}\`, but that edge is already derived from imports; remove the declaration`,
+          declaration.line,
+        ),
+      );
+      continue;
+    }
+
+    const rival = declaredPairs.get(pair);
+    if (rival !== undefined) {
+      diagnostics.push(
+        error(
+          declaration.file,
+          `\`${from}\` → \`${declaration.target}\` is already declared in ${rival}`,
+          declaration.line,
+        ),
+      );
+      continue;
+    }
+    declaredPairs.set(pair, declaration.file);
+
+    const fromPackage = packageOf.get(from);
+    const toPackage = packageOf.get(declaration.target);
+
+    edges.push({
+      from,
+      to: declaration.target,
+      provenance: "declared",
+      protocol: declaration.protocol,
+      declaredIn: declaration.file,
+      line: declaration.line,
+      crossesPackage:
+        fromPackage !== undefined &&
+        toPackage !== undefined &&
+        fromPackage !== toPackage,
+    });
+  }
+
+  return { edges, diagnostics };
+};
+
 export const buildGraph = async (
   options: GraphOptions,
 ): Promise<GraphResult> => {
@@ -278,27 +387,36 @@ export const buildGraph = async (
 
   const packageOf = new Map(layers.map((layer) => [layer.id, layer.package]));
 
-  const edges: Edge[] = [...accumulated.entries()]
-    .map(([key, edge]) => {
-      const [from = "", to = ""] = key.split(">");
-      const fromPackage = packageOf.get(from);
-      const toPackage = packageOf.get(to);
+  const importEdges: Edge[] = [...accumulated.entries()].map(([key, edge]) => {
+    const [from = "", to = ""] = key.split(">");
+    const fromPackage = packageOf.get(from);
+    const toPackage = packageOf.get(to);
 
-      return {
-        from,
-        to,
-        fileDependencies: edge.fileDependencies,
-        examples: edge.examples,
-        crossesPackage:
-          fromPackage !== undefined &&
-          toPackage !== undefined &&
-          fromPackage !== toPackage,
-      };
-    })
-    .sort(
-      (left, right) =>
-        left.from.localeCompare(right.from) || left.to.localeCompare(right.to),
-    );
+    return {
+      from,
+      to,
+      provenance: "imports" as const,
+      fileDependencies: edge.fileDependencies,
+      examples: edge.examples,
+      crossesPackage:
+        fromPackage !== undefined &&
+        toPackage !== undefined &&
+        fromPackage !== toPackage,
+    };
+  });
+
+  const declared = resolveDeclaredEdges({
+    talksTo: options.talksTo,
+    fileLayers,
+    layers,
+    importEdges,
+  });
+  diagnostics.push(...declared.diagnostics);
+
+  const edges: Edge[] = [...importEdges, ...declared.edges].sort(
+    (left, right) =>
+      left.from.localeCompare(right.from) || left.to.localeCompare(right.to),
+  );
 
   return { edges, diagnostics };
 };

@@ -8,7 +8,7 @@
 
 import { z } from "zod";
 
-export const ARCHITECTURE_MODEL_VERSION = 1;
+export const ARCHITECTURE_MODEL_VERSION = 2;
 
 /**
  * A layer: one node in the architecture, and one page in the docs.
@@ -43,14 +43,9 @@ export const layerSchema = z.object({
 
 export type Layer = z.infer<typeof layerSchema>;
 
-/** An aggregated import relationship between two layers. */
-export const edgeSchema = z.object({
+const edgeBaseSchema = z.object({
   from: z.string().min(1),
   to: z.string().min(1),
-  /** How many file-level imports collapse into this edge. */
-  fileDependencies: z.number().int().positive(),
-  /** A few representative imports, so a reader can jump to real code. */
-  examples: z.array(z.object({ from: z.string(), to: z.string() })),
   /**
    * Whether the two layers live in different workspace packages.
    *
@@ -63,7 +58,44 @@ export const edgeSchema = z.object({
   crossesPackage: z.boolean(),
 });
 
+/** An aggregated import relationship between two layers. */
+export const importEdgeSchema = edgeBaseSchema.extend({
+  provenance: z.literal("imports"),
+  /** How many file-level imports collapse into this edge. */
+  fileDependencies: z.number().int().positive(),
+  /** A few representative imports, so a reader can jump to real code. */
+  examples: z.array(z.object({ from: z.string(), to: z.string() })),
+});
+
+/**
+ * A relationship declared with `@talksTo`, for a boundary no import crosses:
+ * a spawned subprocess, a postMessage channel. The protocol text is the
+ * annotation's claim; only the endpoints are checked against the model.
+ */
+export const declaredEdgeSchema = edgeBaseSchema.extend({
+  provenance: z.literal("declared"),
+  /** The `via` text from the annotation, e.g. "JSON lines over stdio". */
+  protocol: z.string().min(1),
+  /** Repo-relative file carrying the annotation. */
+  declaredIn: z.string().min(1),
+  /** Line of the annotation within `declaredIn`. */
+  line: z.number().int().positive(),
+});
+
+export const edgeSchema = z.discriminatedUnion("provenance", [
+  importEdgeSchema,
+  declaredEdgeSchema,
+]);
+
+export type ImportEdge = z.infer<typeof importEdgeSchema>;
+export type DeclaredEdge = z.infer<typeof declaredEdgeSchema>;
 export type Edge = z.infer<typeof edgeSchema>;
+
+export const isImportEdge = (edge: Edge): edge is ImportEdge =>
+  edge.provenance === "imports";
+
+export const isDeclaredEdge = (edge: Edge): edge is DeclaredEdge =>
+  edge.provenance === "declared";
 
 export const packageSchema = z.object({
   name: z.string().min(1),

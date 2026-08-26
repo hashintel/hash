@@ -33,8 +33,8 @@ instead:
 ```
 
 Use one mechanism or the other, never both on the same folder. `layer` and
-`role` are the only frontmatter keys, and `@layerRoot` and `@role` the only
-tags; anything else is either an error or ignored.
+`role` are the only frontmatter keys, and `@layerRoot`, `@role` and `@talksTo`
+the only tags; anything else is either an error or ignored.
 
 ## You do not need to annotate every file
 
@@ -131,3 +131,28 @@ graph:
 Add one only when the code already satisfies it — a rule is a statement of fact
 that CI keeps true, not an aspiration. Check first with a build; if there are
 existing violations, either fix them in the same change or leave the rule out.
+
+## Declaring a protocol edge
+
+Some dependencies cross no import. The Python bindings spawn the CLI and speak
+JSON lines to it over stdio, so the import graph cannot see the pair. Declare
+such an edge with `@talksTo` in the same doc comment or docstring the scanner
+already reads:
+
+```python
+"""One Petrinaut CLI process, spoken to over JSON lines on stdio.
+
+@talksTo cli via JSON lines over stdio (spawned subprocess)
+"""
+```
+
+The edge starts at the declaring file's own layer. The word before `via` is the
+target layer id; the text after `via` is required and becomes the edge label.
+The tag is repeatable, one target per tag. Declared edges are drawn dashed in
+the diagrams and listed under "Declared" in the dependency tables, separate
+from the edges aggregated from imports.
+
+The check fails when the target is not a declared layer. It also fails when the
+pair is already derived from imports; the import edge is the record in that
+case, so remove the declaration. A declared edge is held to the layer rules
+too, so declaring a boundary cannot express a dependency the rules forbid.
