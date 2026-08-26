@@ -16,8 +16,8 @@ import {
   type TransportInspectionEvent,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { GherkinElicitor } from "./agents/gherkin-elicitor.ts";
-import { createGherkinElicitationSession } from "./elicitation-session.ts";
+import { SdcpnElicitor } from "./agents/sdcpn-elicitor.ts";
+import { createSdcpnElicitationSession } from "./elicitation-session.ts";
 import { defaultPanelOrigins } from "./local-dev-origins.ts";
 
 const inspect =
@@ -38,7 +38,7 @@ const streamElicitorTurn = async (
   dispatch: { readonly message: string; readonly idempotencyKey: string },
   emit: (event: HarnessReplyEvent) => void,
 ): Promise<void> => {
-  const agent = init(GherkinElicitor, { id: conversationId });
+  const agent = init(SdcpnElicitor, { id: conversationId });
   const receipt = await agent.dispatch({
     ...dispatch,
     initialData: {
@@ -73,7 +73,7 @@ export const petrinautChatHandler = createAiSdkChatHandler({
     // submission resumes the conversation only when its tool-call id
     // correlates with the one ask still awaiting a reply.
     async admit(input) {
-      const session = createGherkinElicitationSession(
+      const session = createSdcpnElicitationSession(
         input.conversationId,
         targetDocumentIdFor(input.principalKey),
         input.principalKey,

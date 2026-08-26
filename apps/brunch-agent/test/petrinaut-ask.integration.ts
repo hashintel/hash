@@ -19,10 +19,7 @@ import {
 } from "@earendil-works/pi-ai";
 import { start } from "@flue/runtime/node";
 
-import {
-  GHERKIN_MODEL_ID,
-  GherkinElicitor,
-} from "../src/agents/gherkin-elicitor.ts";
+import { SDCPN_MODEL_ID, SdcpnElicitor } from "../src/agents/sdcpn-elicitor.ts";
 
 import type { PetrinautAskResult } from "./petrinaut-ask-result";
 import type { UIMessageChunk } from "ai";
@@ -33,7 +30,7 @@ process.env.BRUNCH_TRANSPORT_AISDK_INSPECT = "1";
 
 const faux = fauxProvider({
   provider: "anthropic",
-  models: [{ id: GHERKIN_MODEL_ID, reasoning: true }],
+  models: [{ id: SDCPN_MODEL_ID, reasoning: true }],
 });
 faux.setResponses([
   fauxAssistantMessage(
@@ -58,7 +55,7 @@ faux.setResponses([
 ]);
 
 const flue = await start({
-  agents: [GherkinElicitor],
+  agents: [SdcpnElicitor],
   providers: [faux.provider],
 });
 
