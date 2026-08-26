@@ -1,5 +1,11 @@
 # @hashintel/petrinaut-core
 
+## 0.0.4
+
+### Patch Changes
+
+- Fix stochastic transition firing statistics: fire with the memoryless per-frame probability `1 - e^(-rate * dt)`, advance the RNG state on every evaluation instead of discarding non-firing draws, and compute the seeded LCG with exact integer arithmetic. Firing counts now match Poisson expectations. Identical seeds produce different sequences than earlier releases. ([@kube](https://github.com/kube), [#9329](https://github.com/hashintel/hash/pull/9329))
+
 ## 0.0.3
 
 ### Patch Changes

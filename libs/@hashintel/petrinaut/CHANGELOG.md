@@ -1,5 +1,14 @@
 # @hashintel/petrinaut
 
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies:
+  - @hashintel/ds-helpers@0.2.2
+  - @hashintel/petrinaut-core@0.0.4
+  - @hashintel/ds-components@0.3.1
+
 ## 0.0.18
 
 ### Patch Changes
