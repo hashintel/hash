@@ -181,6 +181,16 @@ export async function createGpuMonteCarloExperiment(
     events.emit({ type: "error", message, itemId: null });
   };
 
+  // A lost device turns every later GPU call into a silent no-op, so without
+  // this watcher a loss mid-run could surface as a truncated "Complete".
+  // `dispose()` also triggers it, via `destroy()` — that is the one intentional
+  // loss, filtered by the `disposed` flag.
+  void backend.handle.device.lost.then((info) => {
+    if (!disposed) {
+      fail(`GPU device lost: ${info.message || info.reason}`);
+    }
+  });
+
   const run = async () => {
     const outcome = await runGpuExperiment(backend.handle, backend.shader, {
       runCount: config.runCount,
