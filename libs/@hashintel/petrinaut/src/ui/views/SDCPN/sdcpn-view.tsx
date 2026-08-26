@@ -22,6 +22,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../react";
+import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -33,15 +34,26 @@ import { ClassicPlaceNode } from "./components/classic-place-node";
 import { ClassicTransitionNode } from "./components/classic-transition-node";
 import { ComponentInstanceNode } from "./components/component-instance-node";
 import { CursorTooltip } from "./components/cursor-tooltip";
+import { ExpandedComponentInstanceNode } from "./components/expanded-component-instance-node";
 import { MiniMap } from "./components/mini-map";
 import { PlaceNode } from "./components/place-node";
 import { TransitionNode } from "./components/transition-node";
 import { ViewportControls } from "./components/viewport-controls";
 import { useApplyNodeChanges } from "./hooks/use-apply-node-changes";
+import {
+  computeDisplacementSources,
+  computeExpansionShift,
+  isExpandedChildId,
+  useExpandedSubnets,
+} from "./hooks/use-expanded-subnets";
 import { useRecenterOnPanelOpen } from "./hooks/use-recenter-on-panel-open";
 import { useSdcpnToReactFlow } from "./hooks/use-sdcpn-to-react-flow";
 import { useDebounceCallback } from "./hooks/util/use-debounce-callback";
 import { useResizeObserver } from "./hooks/util/use-resize-observer";
+import {
+  classicNodeDimensions,
+  compactNodeDimensions,
+} from "./node-dimensions";
 
 import type { ViewportAction } from "../../types/viewport-action";
 import type { PetrinautReactFlowInstance } from "./reactflow-types";
@@ -83,12 +95,14 @@ const COMPACT_NODE_TYPES = {
   place: PlaceNode,
   transition: TransitionNode,
   componentInstance: ComponentInstanceNode,
+  componentInstanceExpanded: ExpandedComponentInstanceNode,
 };
 
 const CLASSIC_NODE_TYPES = {
   place: ClassicPlaceNode,
   transition: ClassicTransitionNode,
   componentInstance: ComponentInstanceNode,
+  componentInstanceExpanded: ExpandedComponentInstanceNode,
 };
 
 const REACTFLOW_EDGE_TYPES = {
@@ -136,8 +150,25 @@ export const SDCPNView: React.FC<{
 
   // SDCPN store
   const { petriNetId, petriNetDefinition } = use(SDCPNContext);
+  const { activeNet, activeSubnetId } = use(ActiveNetContext);
   const { addPlace, addTransition, addArc, addComponentInstance } =
     usePetrinautMutations();
+
+  // In-place expansion of component instances (FE-874 prototype).
+  const {
+    expandedSubnets,
+    expandInstance,
+    collapseInstance,
+    resetExpandedSubnets,
+  } = useExpandedSubnets();
+
+  // Expansion state is scoped to the net currently displayed on the canvas.
+  const resetExpandedOnNetChange = useEffectEvent(() => {
+    resetExpandedSubnets();
+  });
+  useEffect(() => {
+    resetExpandedOnNetChange();
+  }, [petriNetId, activeSubnetId]);
 
   const {
     editionMode,
@@ -153,11 +184,40 @@ export const SDCPNView: React.FC<{
   } = use(EditorContext);
   const isActualMode = globalMode === "actual";
 
-  // Hook for applying node changes
-  const applyNodeChanges = useApplyNodeChanges();
+  // Hook for applying node changes. While instances are expanded in place,
+  // displayed positions are displaced copies of the stored positions, so
+  // drag commits must map back through the inverse shift.
+  const applyNodeChanges = useApplyNodeChanges({
+    displayedPositionToModelPosition: (nodeId, position) => {
+      const displacementSources = computeDisplacementSources(
+        activeNet.componentInstances,
+        petriNetDefinition.subnets ?? [],
+        expandedSubnets,
+        (compactNodes ? compactNodeDimensions : classicNodeDimensions)
+          .componentInstance,
+      );
+      if (displacementSources.length === 0) {
+        return position;
+      }
+      const modelItem =
+        activeNet.places.find(({ id }) => id === nodeId) ??
+        activeNet.transitions.find(({ id }) => id === nodeId) ??
+        activeNet.componentInstances.find(({ id }) => id === nodeId);
+      if (!modelItem) {
+        return position;
+      }
+      // The shift is derived from the node's pre-drag stored position; for
+      // drags that cross an expanded frame's axis this is an approximation.
+      const { dx, dy } = computeExpansionShift(displacementSources, nodeId, {
+        x: modelItem.x,
+        y: modelItem.y,
+      });
+      return { x: position.x - dx, y: position.y - dy };
+    },
+  });
 
   // Convert SDCPN to ReactFlow format with dragging state
-  const { nodes, edges } = useSdcpnToReactFlow();
+  const { nodes, edges } = useSdcpnToReactFlow(expandedSubnets);
 
   // When a panel opens, recenter the viewport to keep selected nodes visible
   useRecenterOnPanelOpen(canvasContainer, reactFlowInstance, nodes);
@@ -217,6 +277,15 @@ export const SDCPNView: React.FC<{
   const isReadonly = useIsReadOnly();
 
   function isValidConnection(connection: Connection) {
+    // Elements rendered inside an expanded instance are a read-only
+    // projection of the subnet definition — no new arcs can attach to them.
+    if (
+      isExpandedChildId(connection.source) ||
+      isExpandedChildId(connection.target)
+    ) {
+      return false;
+    }
+
     const sourceNode = nodes.find((node) => node.id === connection.source);
     const targetNode = nodes.find((node) => node.id === connection.target);
 
@@ -364,21 +433,58 @@ export const SDCPNView: React.FC<{
   // Edge selection is handled here instead of in applyNodeChanges,
   // because we want edges selectable only by click, not by drag-to-select.
   function onEdgeClick(_event: React.MouseEvent, edge: { id: string }) {
+    if (isExpandedChildId(edge.id)) {
+      return;
+    }
     selectItem({
       type: "arc",
       id: edge.id,
     });
   }
 
+  /**
+   * Double-clicking a component instance expands it in place; double-clicking
+   * the expanded frame collapses it again (FE-874 prototype).
+   */
+  function onNodeDoubleClick(
+    _event: React.MouseEvent,
+    node: { id: string; type?: string },
+  ) {
+    if (isExpandedChildId(node.id)) {
+      return;
+    }
+    if (node.type === "componentInstance") {
+      const instance = activeNet.componentInstances.find(
+        ({ id }) => id === node.id,
+      );
+      const subnet = (petriNetDefinition.subnets ?? []).find(
+        ({ id }) => id === instance?.subnetId,
+      );
+      if (instance && subnet) {
+        void expandInstance(instance.id, subnet);
+      }
+    } else if (node.type === "componentInstanceExpanded") {
+      collapseInstance(node.id);
+    }
+  }
+
   function onNodeMouseEnter(
     _event: React.MouseEvent,
     node: { id: string; type?: string },
   ) {
-    const type = node.type as
-      | "place"
-      | "transition"
-      | "componentInstance"
-      | undefined;
+    // Subnet elements inside an expanded frame don't exist in the active
+    // net, so hovering them must not drive hover-connection highlighting.
+    if (isExpandedChildId(node.id)) {
+      return;
+    }
+    const type =
+      node.type === "componentInstanceExpanded"
+        ? "componentInstance"
+        : (node.type as
+            | "place"
+            | "transition"
+            | "componentInstance"
+            | undefined);
     if (type) setHoveredItem({ type, id: node.id });
   }
 
@@ -387,6 +493,9 @@ export const SDCPNView: React.FC<{
   }
 
   function onEdgeMouseEnter(_event: React.MouseEvent, edge: { id: string }) {
+    if (isExpandedChildId(edge.id)) {
+      return;
+    }
     setHoveredItem({
       type: "arc",
       id: edge.id,
@@ -552,6 +661,7 @@ export const SDCPNView: React.FC<{
         onConnect={isReadonly ? undefined : onConnect}
         onInit={onInit}
         onEdgeClick={onEdgeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
         onEdgeMouseEnter={onEdgeMouseEnter}

@@ -629,6 +629,215 @@ export const StochasticTimingOnly: Story = {
   ),
 };
 
+/**
+ * Fixture for the FE-874 "expand subnets in place" prototype: a root net with
+ * two instances of the same Warehouse subnet, wired through its In/Out ports.
+ * Double-click an instance box on the canvas to expand it in place.
+ */
+const warehouseNetworkNet: SDCPN = {
+  places: [
+    {
+      id: "p_supplier",
+      name: "Supplier",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 100,
+      y: 300,
+      showAsInitialState: true,
+    },
+    {
+      id: "p_customers",
+      name: "Customers",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 1300,
+      y: 300,
+    },
+  ],
+  transitions: [
+    {
+      id: "t_dispatch_north",
+      name: "DispatchNorth",
+      inputArcs: [{ placeId: "p_supplier", weight: 1, type: "standard" }],
+      outputArcs: [
+        {
+          endpoint: {
+            kind: "componentPort",
+            componentInstanceId: "ci_warehouse_north",
+            portPlaceId: "wp_inbound",
+          },
+          weight: 1,
+        },
+      ],
+      lambdaType: "predicate",
+      lambdaCode: "return true;",
+      transitionKernelCode: "",
+      x: 380,
+      y: 160,
+    },
+    {
+      id: "t_dispatch_south",
+      name: "DispatchSouth",
+      inputArcs: [{ placeId: "p_supplier", weight: 1, type: "standard" }],
+      outputArcs: [
+        {
+          endpoint: {
+            kind: "componentPort",
+            componentInstanceId: "ci_warehouse_south",
+            portPlaceId: "wp_inbound",
+          },
+          weight: 1,
+        },
+      ],
+      lambdaType: "predicate",
+      lambdaCode: "return true;",
+      transitionKernelCode: "",
+      x: 380,
+      y: 440,
+    },
+    {
+      id: "t_deliver_north",
+      name: "DeliverNorth",
+      inputArcs: [
+        {
+          endpoint: {
+            kind: "componentPort",
+            componentInstanceId: "ci_warehouse_north",
+            portPlaceId: "wp_outbound",
+          },
+          weight: 1,
+          type: "standard",
+        },
+      ],
+      outputArcs: [{ placeId: "p_customers", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: "return true;",
+      transitionKernelCode: "",
+      x: 1020,
+      y: 160,
+    },
+    {
+      id: "t_deliver_south",
+      name: "DeliverSouth",
+      inputArcs: [
+        {
+          endpoint: {
+            kind: "componentPort",
+            componentInstanceId: "ci_warehouse_south",
+            portPlaceId: "wp_outbound",
+          },
+          weight: 1,
+          type: "standard",
+        },
+      ],
+      outputArcs: [{ placeId: "p_customers", weight: 1 }],
+      lambdaType: "predicate",
+      lambdaCode: "return true;",
+      transitionKernelCode: "",
+      x: 1020,
+      y: 440,
+    },
+  ],
+  componentInstances: [
+    {
+      id: "ci_warehouse_north",
+      name: "WarehouseNorth",
+      subnetId: "subnet_warehouse",
+      parameterValues: {},
+      x: 700,
+      y: 160,
+    },
+    {
+      id: "ci_warehouse_south",
+      name: "WarehouseSouth",
+      subnetId: "subnet_warehouse",
+      parameterValues: {},
+      x: 700,
+      y: 440,
+    },
+  ],
+  subnets: [
+    {
+      id: "subnet_warehouse",
+      name: "Warehouse",
+      places: [
+        {
+          id: "wp_inbound",
+          name: "Inbound",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          isPort: true,
+          x: 100,
+          y: 100,
+        },
+        {
+          id: "wp_storage",
+          name: "Storage",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 420,
+          y: 100,
+        },
+        {
+          id: "wp_outbound",
+          name: "Outbound",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          isPort: true,
+          x: 740,
+          y: 100,
+        },
+      ],
+      transitions: [
+        {
+          id: "wt_store",
+          name: "Store",
+          inputArcs: [{ placeId: "wp_inbound", weight: 1, type: "standard" }],
+          outputArcs: [{ placeId: "wp_storage", weight: 1 }],
+          lambdaType: "predicate",
+          lambdaCode: "return true;",
+          transitionKernelCode: "",
+          x: 260,
+          y: 125,
+        },
+        {
+          id: "wt_ship",
+          name: "Ship",
+          inputArcs: [{ placeId: "wp_storage", weight: 1, type: "standard" }],
+          outputArcs: [{ placeId: "wp_outbound", weight: 1 }],
+          lambdaType: "predicate",
+          lambdaCode: "return true;",
+          transitionKernelCode: "",
+          x: 580,
+          y: 125,
+        },
+      ],
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+    },
+  ],
+  types: [],
+  parameters: [],
+  differentialEquations: [],
+};
+
+export const SubnetsExpandInPlace: Story = {
+  name: "Subnets — expand in place (FE-874 prototype)",
+  render: () => (
+    <HandleSpikeRender
+      capabilities={subnetsWithColorsCapabilities}
+      initial={warehouseNetworkNet}
+      initialTitle="Warehouse network"
+    />
+  ),
+};
+
 export const SubnetsWithColors: Story = {
   name: "Subnets — with colours",
   render: () => (
