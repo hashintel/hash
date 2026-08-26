@@ -1,5 +1,6 @@
 import { fileURLToPath } from "node:url";
 
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { createServerAdapter } from "@whatwg-node/server";
 import { defineConfig, loadEnv, type Plugin } from "vite";
@@ -83,6 +84,12 @@ export default defineConfig(({ mode }) => {
 
     plugins: [
       petrinautApiDevPlugin(),
+      tanstackRouter({
+        autoCodeSplitting: true,
+        quoteStyle: "double",
+        semicolons: true,
+        target: "react",
+      }),
       react({
         // @hashintel/ds-components ships prebuilt jsx() calls; the compiler
         // can't recognize ref forwarding in that form and bails with
