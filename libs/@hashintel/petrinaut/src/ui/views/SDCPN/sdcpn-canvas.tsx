@@ -106,6 +106,7 @@ const fadeBgStyle = css({
  * Remounting it (via a `key`) re-centers on the current net.
  */
 export const SDCPNCanvas: React.FC<{
+  /** Settled size of the canvas container (see `useContainerSize`). */
   containerSize: Size;
   viewportActions?: ViewportAction[];
 }> = ({ containerSize, viewportActions }) => {
@@ -162,10 +163,10 @@ export const SDCPNCanvas: React.FC<{
     state.transform[2] < boundsMinZoom ? state.transform[2] : null,
   );
 
-  // Debounced so the floor holds still during a continuous gesture, node drag
-  // or panel animation, and only commits once the viewport settles — without
-  // this, a zoom-in while below the floor would pin the floor on every tick
-  // and make it impossible to reverse mid-gesture.
+  // Debounced so the floor holds still during a continuous zoom gesture or
+  // node drag, and only commits once the viewport settles — without this, a
+  // zoom-in while below the floor would pin the floor on every tick and make
+  // it impossible to reverse mid-gesture.
   const minZoom = useDebouncedValue(
     Math.min(boundsMinZoom, zoomBelowBoundsMinZoom ?? boundsMinZoom),
     MIN_ZOOM_DEBOUNCE_MS,

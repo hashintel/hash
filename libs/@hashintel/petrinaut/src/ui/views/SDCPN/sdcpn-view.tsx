@@ -17,6 +17,8 @@ import { SDCPNCanvas } from "./sdcpn-canvas";
 
 import type { ViewportAction } from "../../types/viewport-action";
 
+const CONTAINER_SIZE_SETTLE_MS = 100;
+
 const canvasContainerStyle = css({
   width: "[100%]",
   height: "[100%]",
@@ -36,7 +38,10 @@ export const SDCPNView: React.FC<{
   viewportActions?: ViewportAction[];
 }> = ({ viewportActions }) => {
   const canvasContainer = useRef<HTMLDivElement>(null);
-  const containerSize = useContainerSize(canvasContainer);
+  const containerSize = useContainerSize(
+    canvasContainer,
+    CONTAINER_SIZE_SETTLE_MS,
+  );
 
   const { petriNetId } = use(SDCPNContext);
   const { editionMode, cursorMode } = use(EditorContext);
