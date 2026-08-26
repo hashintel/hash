@@ -39,8 +39,4 @@ what stops a completed shard stalling the experiment.
 Progress reports the slowest shard's position, so the bar never runs ahead of
 the results behind it.
 
-```text
-runs 0..k    -> Worker 1 ┐
-runs k..2k   -> Worker 2 ├─ per-frame accumulator state -> merge -> frame N
-runs 2k..N   -> Worker 3 ┘                                  (at slowest shard)
-```
+![One experiment across worker shards](@diagrams/worker-sharding.svg)
