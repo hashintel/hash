@@ -358,3 +358,82 @@ reference because the expert or situation pack changes.
 [condition-4 read-out](../evidence/evaluations/process-model-elicitation/baseline/readout.md),
 [turn latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md),
 FE-1404, FE-1431, FE-1361
+
+### S-011
+
+**Date:** 2026-08-26
+
+**Trigger/evidence:** The first condition-5 run left the harness able to conduct an elicitation
+but not to converge one, at ~145 s per turn, with its only witnesses a transcript and a JSON store.
+Lu's direction after the arc close: the frontier must reach the full end-to-end flow — "the black
+triangle" — before any stream is worked for its own sake, for team visibility, CEO and PM
+confidence, and a stable surface for the voice-mode work (H-6763, which already bridges finalized
+speech turns into `/api/chat` and consumes `brunch_ask`). A wiring sweep the same day found the
+triangle closer on one edge than STEERING implied — the real Petrinaut panel already reaches
+`apps/brunch-agent` locally over `/api/chat` — and further on the others: the handler is hard-wired
+to the Gherkin elicitor, the target document is identified with the conversation, no principal
+exists, and deployment was Linear-gated behind gherkin (FE-1441 ← FE-1423 ← FE-1396 ← FE-1394 ←
+FE-1393). Lu also corrected the objective's framing and named two further design concerns.
+
+**Decision:**
+
+1. **Two jobs, one order.** Construct and review-and-revise are both target jobs; cold-start
+   construction must be possible. This amends S-001's sentence that review-and-revise is *the*
+   current proof: the current proof is the construct job through the panel (Proof 0), with the
+   review-and-revise acceptance run on top of it. The belief that each job needs its own
+   comprehensive runbook is demoted to an assumption under test — early passes over the plugin
+   schema suggest the jobs share most of one runbook.
+2. **The black triangle is the selected frontier (G0, FE-1503):** from a checkout, documented
+   commands bring up the Brunch server and the Petrinaut panel on local dev services; the panel's
+   assistant is the SDCPN elicitor; a human conducts a real elicitation; captures persist to a
+   target document owned by a principal and survive reload; completion accounting is
+   human-readable; every turn records time per purpose. Cut: no deployment, client-side net tools,
+   realization, Postgres, gherkin, voice code, or quality claim. Then a **sequence**: G1 the usable
+   triangle (latency floor R1, identity in the fold, resume), G2 the demo triangle (client tools,
+   deployment, the acceptance run).
+3. **Streams are parallel work.** Inside G0: wiring, persistence modelled, latency floor (R0),
+   legible surface. Beside G0, not blocking it: the plugin design loop (is the plugin API a viable,
+   understandable way to specify a domain plugin, and does it come together as effective
+   prompt- and context-engineering material — conditions 4 and 5 rerun per cycle); and package
+   topology remediation (below).
+4. **Package topology is remediated, by ADR.** Lu's judgment: `repertoire` is a core concern, as
+   are the types and schemas that binding-, transport-, and plugin- packages consume; the envisioned
+   core layout is `loop / prompts (repertoire) / skills? / schemas`. No further package split
+   without an ADR; an ADR amending ADR-0007's package decision is the owner of the accepted shape.
+   Rejected: moving code before the ADR — the last two splits show what unrecorded topology costs.
+5. **Tool inventory is pinned** in STEERING as current truth against intent: today `brunch_ask`
+   and `brunch_sweep` on the server (prefix from `PRODUCT_NAME`), Petrinaut's fine-grained
+   `petrinautAiTools` on the client; intended `ba_sweep`, `ba_check`, `ba_ask` (possibly not yet
+   needed) and `pn_read`, `pn_mutate` with a `pn_infer_slots` post-update to fill TypeScript from
+   injected comments. No tool is added, renamed, or promised in prose outside that table.
+6. **Legibility is defined on the human**: observable interactions with visible state change and
+   data flow, plain-language accounts, recordings; desk evidence, hidden runs, and machine-only
+   artefacts never stand alone as proof. Recorded in `docs/agents/legibility.md`; a stream with
+   only such evidence is not done.
+7. **The voice edge attaches at `/api/chat`.** The AI SDK UI-message stream, the `brunch_ask`
+   schema, and the principal identity are the stable surface; they change with notice. Provider
+   choice (OpenAI Realtime is Kostandin's first choice) is an external gate, not a Brunch decision.
+
+**Consequences/cuts:** FE-1503 created under FE-1476 as G0's projection; the stale FE-1396 → FE-1423
+blocker removed (FE-1394 ← FE-1393 remains, in the build map). The latency targets adopted
+provisionally on 2026-08-26 stay; the isolating spike is no longer "first task of the next arc" —
+R0 lands inside G0, R1 opens G1, and the spike runs when a human at the panel cannot get a question
+within target. The condition-5 read-out stays deferred behind the spike. The epicentre lanes of
+S-007 remain valid context and are subordinated to the triangle. No key, spec, or ADR text
+changes here; the topology ADR and the surface statement in the Petrinaut integration spec are the
+successor writes.
+
+**Revisit when:** the first human run through the panel lands (G0's proof); the topology ADR is
+accepted; the voice-provider decision is recorded; or use-case confirmation from Dora changes the
+demo scenario.
+
+**Supersedes:** none
+
+**Evidence links:** [FE-1503](https://linear.app/hash/issue/FE-1503), [FE-1476](https://linear.app/hash/issue/FE-1476),
+[H-6763 prototype plan](../planning/process-model-elicitation/spikes/h-6763-realtime-audio-prototype-2026-08-24.md)
+(on branch `kostandin/h-6763-support-for-realtime-audio-interviewing-of-domain-experts`),
+[ADR-0004](../adr/0004-in-petrinaut-staging-and-the-monorepo-import.md),
+[Petrinaut integration spec](../specs/petrinaut-integration.md),
+[ledger §9](SPEC-LEDGER.md#sessions--durability-9),
+[turn latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md),
+[legibility protocol](../agents/legibility.md)

@@ -5,12 +5,25 @@ This is Brunch's one mutable current strategic control. Linear owns issue facts;
 
 ## Objective and acceptance proof
 
-Prove a bounded CPS **review-and-revise** loop through the production Brunch and Petrinaut path:
-a reviewer opens an existing source-grounded model and net, traces one element to the source
-utterance, corrects it in three to five turns, and sees a provenance-preserving net delta handed to
-the optimisation flow. This is the current proof, not a permanent product-scope decision.
+Two jobs are in scope — **construct** and **review-and-revise** — and cold-start construction must
+be possible ([S-011](STRATEGY-LOG.md#s-011), amending S-001's framing). The proof order is fixed:
+construct through the production path first, review-and-revise on top of it. Whether each job
+needs its own comprehensive runbook is an assumption under test, not an accepted fact; early
+passes over the plugin schema suggest the jobs share most of one.
 
-Acceptance is one screen-recordable deployed run, surviving reload, through the real HTTP handler,
+**Proof 0 — the black triangle.** From a checkout, documented commands bring up the Brunch server
+and the Petrinaut assistant panel on local dev services; the panel's assistant is the production
+SDCPN elicitor; a human conducts a real construct elicitation; captures persist to a target
+document owned by a principal and survive reload; completion accounting is human-readable; every
+turn records time per purpose. This is the precondition of the acceptance run, the September
+demo's step 1 made real rather than fixtured, and the surface the voice-mode work attaches to.
+Projection: [FE-1503](https://linear.app/hash/issue/FE-1503).
+
+**Proof 2 — the acceptance run.** A bounded CPS review-and-revise loop through the production
+Brunch and Petrinaut path: a reviewer opens an existing source-grounded model and net, traces one
+element to the source utterance, corrects it in three to five turns, and sees a
+provenance-preserving net delta handed to the optimisation flow. Acceptance is one
+screen-recordable deployed run, surviving reload, through the real HTTP handler,
 session binding, sweep, fold, deterministic projection scaffold, model-assisted client-tool
 realization, compilation, and optimisation handoff. The changed element traces to a sweep-produced
 superseding capture while an unrelated region stays stable. Preserve runnable and legibility
@@ -111,18 +124,101 @@ evidence under [proof evidence](../evidence/proofs/).
   from the repository; operative force: until it returns, the case carries no dossier-backed
   provenance claim. Source: [S-007](STRATEGY-LOG.md#s-007). Steering projection: FE-1382
   (truck-fleet dossier).
+- **Legibility is measured on the human** — a proof is an observable interaction with visible
+  state change and data flow, a plain-language account, or a recording of one; operative force:
+  desk evidence, hidden runs, and machine-only artefacts never stand alone, and a stream with only
+  such evidence is not done. Source: [legibility protocol](../agents/legibility.md#what-counts-as-legible).
+  Steering projection: FE-1503 (every stream's proof).
+- **The plugin API is a design in flux** — two questions stay open: is the key schema a viable,
+  understandable way to specify a domain plugin, and does it come together as effective prompt-
+  and context-engineering material; operative force: the conditions 4/5 loop keeps running per
+  cycle in parallel with the triangle and never blocks it; keys change only with run evidence.
+  Source: [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) decision 9,
+  [S-011](STRATEGY-LOG.md#s-011). Steering projection: FE-1431, FE-1406, FE-1393.
+- **Package boundaries are blurred by premature splits** — `repertoire` and the types and schemas
+  that binding-, transport-, and plugin- packages consume are core concerns; operative force: no
+  new package split without an ADR, and the remediation (envisioned core layout `loop / prompts /
+  skills? / schemas`) is owned by an ADR amending ADR-0007 before any code moves. Source:
+  [S-011](STRATEGY-LOG.md#s-011). Steering projection: none yet — the ADR is the next write.
+- **Tools are pinned as current truth against intent** — see [the inventory](#tool-inventory--current-truth-and-intent);
+  operative force: no tool is added, renamed, or promised in prose outside that table. Source:
+  [S-011](STRATEGY-LOG.md#s-011), [Petrinaut integration spec](../specs/petrinaut-integration.md).
+  Steering projection: FE-1477 (routing), FE-1438 (client tools), FE-1480 (realization).
+- **The voice edge attaches at `/api/chat`** — H-6763's prototype bridges finalized speech turns
+  into the existing AI SDK transport and consumes `brunch_ask`, keeping Brunch authoritative for
+  history, questions, captures, and provenance; operative force: the `/api/chat` UI-message stream,
+  the `brunch_ask` schema, and the principal identity are the stable surface and change only with
+  notice; provider code stays in `apps/petrinaut-website`. Source:
+  [ADR-0004](../adr/0004-in-petrinaut-staging-and-the-monorepo-import.md) decision 3, the H-6763
+  prototype plan (branch `kostandin/h-6763-…`). Steering projection: H-6763 (Kostandin).
 
-## Selected frontier: the vertical slice, worked outward from its epicentres
+## Selected frontier: G0 — the black triangle
 
-**Claim:** the shortest route to the acceptance proof is a working elicitation loop in the
-production path with one formalism-level plugin, not further design. Every design question still
-open is answered by what the slice forces, and answered in code. The design-convergence frontier is
-closed: its outputs are test-bed material, and its one durable design result is the plugin file
-[`plugin-sdcpn/plugin.yaml`](../../packages/plugin-sdcpn/plugin.yaml) ratified by ADR-0006.
+**Claim:** the shortest route to both proofs is the full end-to-end flow through every production
+layer, made to work poorly before any layer is made to work well. Reaching it exposes the real
+gaps, fixes the surface the team and the voice-mode work build against, and turns the harness's
+facts into something a human can watch.
 
-The slice has five epicentres, ordered by the size of the gap they close. Work starts at the
-centre of each and moves outward; edges (SDK generality, affordance catalogues, UI breadth,
-evaluation apparatus) are not worked until an epicentre needs them.
+**Contribution:** Proof 0; the September demo's step 1 as a real elicitation; the first
+human-witnessed measurement of per-turn latency; the persistence model (principal → document →
+sessions) exercised from a real surface for the first time.
+
+**Evidence consumed:** the condition-5 run and its [latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md);
+[ledger §9.1](SPEC-LEDGER.md#sessions--durability-9); the wiring gap assessment below; the H-6763
+prototype's attach point.
+
+**Cut:** no deployment, no client-side net tools, no realization, no Postgres, no gherkin, no
+voice code in Brunch packages beyond the transport bridge, no claim about elicitation quality or
+convergence. SQLite and per-document JSON remain the local implementation.
+
+**Projection:** [FE-1503](https://linear.app/hash/issue/FE-1503), child of FE-1476; decomposed by
+`/ds-write-tickets`.
+
+**Streams** — parallel work, inside and beside G0 ([S-011](STRATEGY-LOG.md#s-011) decision 3):
+
+| Stream | Lands as | Joins |
+| --- | --- | --- |
+| **G0.1 Wiring** | `/api/chat` routed to the SDCPN elicitor (minimal FE-1477: Brunch mode only); one `dev` target or compose entry starting Brunch and the panel together; origins and env documented | FE-1503 |
+| **G0.2 Persistence modelled** | principal UID from the ui shell on every request → server resolves principal → document → sessions; opaque owner key at the storage port; reload returns to the same document | FE-1503, FE-1439 |
+| **G0.3 Latency floor** | R0: `durationMs` per purpose and OpenTelemetry spans on every turn; a human-witnessed number replaces the inferred split | FE-1503, FE-1404 |
+| **G0.4 Legible surface** | the document showing what the elicitor sees (prompt sources, merged result, tool definitions); the attach surface stated in the Petrinaut integration spec with a changes-with-notice rule | FE-1503, FE-1431, FE-1406 |
+| **P1 Plugin design loop** (beside G0) | conditions 4 and 5 rerun per authoring cycle; both open questions — viability as a plugin specification, effectiveness as prompt material — answered from runs; keys change with run evidence only | FE-1431, FE-1406, FE-1393 |
+| **P2 Package topology** (beside G0) | an ADR amending ADR-0007's package decision: `repertoire` and shared types/schemas into core (`loop / prompts / skills? / schemas`), hard import rules as architecture tests; code moves only after the ADR | new ADR; then FE-1406 |
+
+**Stop or replan for G0:** a first question takes longer than the provisional 10 s after R0 and
+R1 — the isolating spike becomes blocking; the panel needs Brunch-specific code inside
+`@hashintel/petrinaut` — ADR-0004 boundary, stop; persistence modelling needs a schema the harness
+must know — §9.6 port breach, stop; a stream lands with desk-only evidence — not done.
+
+### Gap assessment (2026-08-26)
+
+| Triangle edge | Today | Gap |
+| --- | --- | --- |
+| **Panel → Brunch** | Exists locally: `yarn dev` (Brunch, :4321) + `yarn petrinaut:dev` (the real website Vite config, :4915) proxies `/api/chat` to `apps/brunch-agent/src/petrinaut-chat.ts`; `brunch_ask` renders in the panel via `brunch-ask-interactive-tool.tsx`. | The handler is hard-wired to the **Gherkin** elicitor. Two processes, no single command, no compose entry (`infra/compose` knows only petrinaut-opt). |
+| **Persistence modelled** | Conversations in SQLite (`.data-wipe-me/conversations.db`); captures and session-log archive as one JSON file per target document (`LocalCaptureStore`, atomic writes). | Document id is `petrinaut-local:${conversationId}` — one document per conversation; no principal, no owner key at the storage port; §9.1 many-sessions-one-document unreachable from any surface. No Postgres, no deployment config anywhere. |
+| **Real elicitation** | The SDCPN elicitor runs live with sweep, fold, and completion (condition 5). | Unreachable from the panel; ~145 s per turn with a human now waiting; completion accounting visible nowhere a human looks (FE-1442). |
+| **Deployment (G2)** | — | Was Linear-gated behind gherkin via FE-1423 ← FE-1396; that blocker was removed 2026-08-26. FE-1440/FE-1441 remain the owners. |
+
+### Tool inventory — current truth and intent
+
+| Side | Current truth | Intent (Lu, 2026-08-26) | Owner of the change |
+| --- | --- | --- | --- |
+| Server (`apps/brunch-agent`, harness-owned via `toolName`) | `brunch_ask` (suspend-for-reply affordance, rendered by the panel's interactive tool), `brunch_sweep` (private extraction into the store; plugin `checks` such as `slot-assertion` run inside it). Prefix from `PRODUCT_NAME = "brunch"`; one edit renames. | `ba_sweep`, `ba_check` (checks as a callable tool), `ba_ask` (possibly not needed yet — questions are plain text so far) | core `naming.ts`; FE-1477 for what the panel sees |
+| Client (Petrinaut, `petrinaut-core`) | ~40 fine-grained `petrinautAiTools` (`addPlace` … `updateSubnet`, `applyAutoLayout`) executed in the panel's `onToolCall`; not reachable from the Brunch elicitor. | `pn_read`, `pn_mutate` (coarse tools over the action schemas), with a `pn_infer_slots` post-update that fills TypeScript from injected comments | FE-1438 (round trip), FE-1480 (realization, ADR-0005 obligations) |
+
+### After G0 — the sequence
+
+- **G1 — the usable triangle.** R1 (sweep off the critical path) first; identity and dedup in the
+  fold so completion can move; resume. Streams A and B of the earlier plan, worked inside the
+  triangle.
+- **G2 — the demo triangle.** Client-tool round trip (FE-1438 → FE-1480 → FE-1479), deployment
+  behind demo.petrinaut.org (FE-1440, FE-1441), then Proof 2.
+
+### Epicentres and lanes (context the streams inherit)
+
+The vertical slice of [S-007](STRATEGY-LOG.md#s-007) remains the map of the code: five epicentres,
+ordered by the size of the gap they close, worked from the centre outward. The triangle
+subordinates them — each is reached as the end-to-end flow needs it.
 
 | Epicentre | Gap | Issue |
 | --- | --- | --- |
@@ -157,36 +253,14 @@ FE-1479, whose "affected slice", "re-evaluate", and "delta" moves consume E1's f
 The authoring lane's sizing is [S-008](STRATEGY-LOG.md#s-008)'s; its co-authoring method is
 [S-009](STRATEGY-LOG.md#s-009)'s.
 
-### Immediate frontier — the black triangle, then the streams
+### Proof bundle
 
-Before the streams below are worked for their own sake, the frontier reaches the **full end-to-end
-flow** — the "black triangle": dev services running, persistence fully modelled, brunch-agent wired
-through the Petrinaut assistant interface, and a real elicitation possible through that surface.
-This is the earliest proof that exposes production gaps while establishing an interface the team
-and the voice-mode consumer can use. Each stream therefore lands as a change exercised by the
-end-to-end flow, not as a separate proof that joins it later. The Petrinaut assistant interface and
-transport contract are the stable surface; everything behind them may churn.
-
-The provisional stream order is B+D, then A, then C. Further next-steps input may change that order;
-latency cuts across A and B and is the first measurement in any selected stream.
-
-- **A — harness mechanics finished and proven.** Persistence of captures and sessions
-  (per-target-document store, many sessions to one document — designed, unreachable from any
-  surface), referential stability of capture and node identity across sessions, resumable
-  elicitation. Owning issues: FE-1439, FE-1420; §9.1 in the ledger.
-- **B — observed runs instead of desk proofs.** Run the app under `herdr`, instrument time per
-  turn purpose ([latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md) R0),
-  and answer from evidence: how fast, whether sweeps succeed, whether typed extraction holds up.
-  Owning issue: FE-1404 (second run).
-- **C — end to end with server- and client-side tools.** The elicitor uses sweep, completion, and
-  next-question on the server and reads or mutates the net on the client. Owning issues: FE-1438,
-  FE-1420, FE-1480.
-- **D — legible topology.** One document that shows what the elicitor sees — the system-prompt
-  sources and the merged result, progressive disclosure, tool definitions — and the source of the
-  baseline prompt. Owning issues: FE-1431, FE-1406; documentation protocol.
-
-### Proof bundle for the selected frontier
-
+- **Proof 0 — the black triangle (FE-1503).** Prospective fields: claim and scenario as in the
+  objective; production entrypoints `apps/brunch-agent/src/petrinaut-chat.ts` over `/api/chat` and
+  the real Petrinaut panel; fixture: none — a human is the expert; runnable procedure: the
+  documented dev commands; run snapshot: per-turn timing and the store under proof evidence;
+  legibility snapshot: a screen recording plus a plain-language account; witness: the human who
+  ran it (required — this is a live-runtime claim). Result-dependent fields open.
 - **Proof 1 — the loop works (skeleton run, FE-1404).** A harness with **no domain knowledge**,
   loaded with the SDCPN plugin file, interviews the existing simulated coatings-plant expert
   through the production capture, fold, completion, and cue path. Scored against conditions 1 and
@@ -234,9 +308,11 @@ The read-only Linear graph supplies mechanical availability, never priority.
 The production run is not viable at its observed ~145 seconds per interviewer turn. The
 [latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md)
 owns the diagnosis and intervention sequence. Operative force here: every next harness run records
-`durationMs` per turn purpose, and the isolating spike precedes the C1/C2 and FE-1407 read-out.
-Provisional targets are 10 seconds to a visible question, 60 seconds to a settled sweep, and fewer
-than 5,000 output tokens per steady-state turn.
+`durationMs` per turn purpose (R0 lands inside G0), R1 opens G1, and the isolating spike runs when
+a human at the panel cannot get a question within target; the C1/C2 and FE-1407 read-out follows
+the spike. Provisional targets (adopted 2026-08-26) are 10 seconds to a visible question, 60
+seconds to a settled sweep, and fewer than 5,000 output tokens per steady-state turn. The triangle
+changes the witness: latency is no longer a number in a transcript but a person waiting.
 
 ## Active gates
 
@@ -246,11 +322,16 @@ than 5,000 output tokens per steady-state turn.
 | Final use case outstanding | Dora; FE-1476 / September Plan | Dora confirms or changes it. | 2026-08-26 | If creation is required, Proof 1 becomes acceptance-relevant rather than a harness proof; reconcile ADR-0004/proof. |
 | Deferral licensing (completion spec rules 17–19) unbuildable | [elicitation-completion](../specs/elicitation-completion.md) rules 17–19; FE-1480 / [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | A durable projection delivery exists for an evaluated revision. | 2026-08-26 | E1 supplies the report and revision; rule 18 makes licensing `false` without a delivered projection, so no issue is opened. When FE-1480 delivers, it is one read-time function beside `evaluateCompletion` plus a binding hook at settlement; no new persistence. |
 | Truck-fleet dossier missing from the repository | FE-1382 (truck-fleet dossier) promised a `docs/reference/research/` artifact that is absent. | Artifact path/branch is supplied or a reviewed replacement is selected. | 2026-08-26 | The generality half of Proof 1 uses a fixture derived from the inbox truck SDCPN and Layer B's worked example; claim no dossier-backed domain provenance. |
+| Voice-edge provider undecided | Kostandin; H-6763 prototype plan (branch `kostandin/h-6763-…`); OpenAI Realtime is the current first choice, ElevenLabs the architectural lean. | Comparison recordings and a recorded team decision. | 2026-08-26 | The attach surface (`/api/chat` stream, `brunch_ask`, principal) is frozen regardless of provider; provider-specific needs arrive as generic host extensions on the website side, never as Brunch code. |
 
 ## Decision-relevant beliefs and unknowns
 
 | Belief or unknown | Confidence / evidence | Cheapest probe |
 | --- | --- | --- |
+| Construct and review-and-revise share most of one runbook. | Medium-low; Lu's reading of the early plugin-schema passes; unrehearsed. | Author both job runbooks against the key schema and diff them; a cycle of the plugin loop. |
+| The panel can host the SDCPN elicitor by a handler switch alone. | High; `petrinaut-chat.ts` composes one elicitor and the SDCPN agent already runs under the same binding. | G0.1: switch the handler and conduct one turn. |
+| The principal → document → sessions model fits the existing storage port without a harness-visible schema. | Medium; ADR-0004 §4 designs an opaque owner key at the port; nothing has exercised it. | G0.2: implement the key and refuse one cross-principal read. |
+| `repertoire` and the shared schemas belong in core. | High (Lu's judgment); the import direction already runs binding-flue → repertoire → core. | The topology ADR's import-direction audit. |
 | Kind-level rows express the coatings case. | High; [condition-5 evidence](../evidence/evaluations/process-model-elicitation/baseline/transcripts/) maps every proposed fact to a kind and slot, but does not yet show that the rows suffice for completion. | The condition-5 read-out on the C1/C2 dimensions; a second run with identity handling. |
 | Typed extraction on the verbatim floor holds up in a live run. | Medium-high; the [latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md) records repaired refusals and leaves cost, not correctness, as the open question. | R0 + the assessment's §6 spike: does a cheaper extraction model keep kind/node/slot agreement? |
 | The shipped loop converges to completion. | Low; [condition-5 evidence](../evidence/evaluations/process-model-elicitation/baseline/transcripts/) exposes unresolved identity and conflict rather than completion. | Give the sweep the node index (R4); rerun condition 5; count objective nodes. |
@@ -282,6 +363,9 @@ than 5,000 output tokens per steady-state turn.
   rescoped without run evidence ([S-008](STRATEGY-LOG.md#s-008), [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md)).
 - The key catalogue is a working set until a cycle changes no key: fix it by writing both plugins
   against it, not by decree ([S-009](STRATEGY-LOG.md#s-009), ADR-0007 decision 9).
+- The triangle first, poorly; no stream is optimised for its own sake before the end-to-end flow
+  exists ([S-011](STRATEGY-LOG.md#s-011)). Providers own audio; Brunch owns history, questions,
+  captures, and provenance; provider conversation history is never authoritative.
 
 ## Stop or replan
 
@@ -300,6 +384,12 @@ than 5,000 output tokens per steady-state turn.
 - Production remains undeployable after FE-1479; seek a demo-surface decision, not test wiring.
 - The teaching layer is rescoped again without run evidence, or `packages/repertoire` grows larger
   than the plugin it teaches.
+- A first question at the panel takes longer than 10 s after R0 and R1 (the spike becomes
+  blocking); the panel needs Brunch-specific code inside `@hashintel/petrinaut`; or persistence
+  modelling needs a schema the harness must know.
+- A G0 stream, or any arc, closes with only desk, hidden-run, or machine-only evidence
+  ([legibility](../agents/legibility.md#what-counts-as-legible)).
+- A package is split or moved without an ADR.
 
 ## Exceptional roots
 
