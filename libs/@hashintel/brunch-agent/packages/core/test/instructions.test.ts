@@ -169,6 +169,18 @@ describe("renderInstructions", () => {
     expect(rendered).not.toContain("objective-relative");
   });
 
+  test("renders alternative demanded precisions as any-of", () => {
+    const withAlternatives = readPluginDefinition(
+      FIXTURE_PLUGIN_YAML.replace(
+        "precision: spread",
+        "precision: [spread, spelled out]",
+      ),
+    );
+    expect(renderInstructions(repertoire, withAlternatives)).toContain(
+      "how long it takes — spread or spelled out",
+    );
+  });
+
   test("contains no template residue", () => {
     expect(text).not.toMatch(/\$\{|undefined|\[object Object\]/u);
   });

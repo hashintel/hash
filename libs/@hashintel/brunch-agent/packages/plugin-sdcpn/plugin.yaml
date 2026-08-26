@@ -136,7 +136,7 @@ schema:
       why: "an objective that depends on nothing is unsupported by the model"
     - kind: objective
       slot: 'what "better" means, and trade-off weights'
-      precision: range
+      precision: [range, spelled out]
       not_applicable: true
       why: "quantified objectives need a metric; some are qualitative"
     - kind: entity-type
@@ -161,7 +161,7 @@ schema:
       why: "scenario initial state"
     - kind: boundary-condition
       slot: "the arrival or availability pattern"
-      precision: spread
+      precision: [spread, spelled out]
       not_applicable: false
       why: "source rates and calendars; a single average hides the shape"
     - kind: activity

@@ -58,6 +58,23 @@ describe("the synthetic fixture definition", () => {
     );
   });
 
+  test("reads a list of alternative demanded precision words", () => {
+    const withAlternatives = readPluginDefinition(
+      FIXTURE_PLUGIN_YAML.replace(
+        "precision: spread",
+        "precision: [spread, spelled out]",
+      ),
+    );
+    expect(
+      mustKnowRowsFor(withAlternatives, "step").find(
+        (row) => row.slot === "how long it takes",
+      )?.precision,
+    ).toEqual({
+      kind: "any-of",
+      words: ["spread", "spelled out"],
+    });
+  });
+
   test("reads the anchor as a declaration, not a convention", () => {
     expect(definition.anchor).toEqual({
       kind: "objective",
@@ -235,6 +252,29 @@ describe.skipIf(!contextRootPresent)("the shipped plugin definitions", () => {
     const gherkin = readShipped("plugin-gherkin");
     expect(sdcpn.anchor.kind).not.toBe(gherkin.anchor.kind);
     expect(sdcpn.proposals.map((p) => p.type)).toEqual(["slot-asserted"]);
+  });
+
+  test("SDCPN accepts structural alternatives to numeric precision where the slot permits either", () => {
+    const sdcpn = readShipped("plugin-sdcpn");
+    expect(
+      sdcpn.mustKnow
+        .filter((row) =>
+          [
+            'what "better" means, and trade-off weights',
+            "the arrival or availability pattern",
+          ].includes(row.slot),
+        )
+        .map((row) => [row.slot, row.precision]),
+    ).toEqual([
+      [
+        'what "better" means, and trade-off weights',
+        { kind: "any-of", words: ["range", "spelled out"] },
+      ],
+      [
+        "the arrival or availability pattern",
+        { kind: "any-of", words: ["spread", "spelled out"] },
+      ],
+    ]);
   });
 
   test("ambiguous kind-indexed patterns declare the slot that keeps them live", () => {

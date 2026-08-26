@@ -68,21 +68,24 @@ Shapes are fixed by the schema; the exemplars are normative for value vocabulari
 | `ontology.attributes` | `name`, `on`, `values?`, `text`                                          | cross-kind attributes (`quantity`, `source-regime`, `rationale`, `status`); a plugin may not scope them to some kinds |
 | `schema.anchor`     | `kind`, `depends_on`                                                       | the completion anchor, declared: the kind whose named slot is the dependency slice (was `objective` by convention) |
 | `schema.floor`      | `kind`, `at_least`                                                         | the static floor as counts                                                                                       |
-| `schema.must_know`  | `kind`, `slot`, `precision`, `not_applicable`, `why`                       | one demand row per (kind, slot); `precision` is a harness precision word or `at least N`                          |
+| `schema.must_know`  | `kind`, `slot`, `precision`, `not_applicable`, `why`                       | one demand row per (kind, slot); `precision` is one harness precision word, a non-empty any-of list, or `at least N` |
 | `schema.proposals`  | `type`, `payload`                                                          | the proposal types the plugin's code declares (`slot-asserted`/`slot-assertion` for a kind-and-slot plugin)        |
-| `patterns.items`    | `id`, `on`, `when`, `ask`                                                  | discretionary interviewing patterns indexed by the kinds in `on`; surfaced when a node matches and a slot is unsatisfied |
+| `patterns.items`    | `id`, `on`, `slot?`, `when`, `ask`                                         | discretionary interviewing patterns indexed by the kinds in `on`; a slot-scoped pattern surfaces only while that slot is unsatisfied |
 
 Rules the reader enforces beyond the schema:
 
 - Every `must_know` row names a kind present in `kinds`; every kind has at least one row.
 - The anchor's `depends_on` is a `must_know` row on the anchor kind demanding `at least N`.
 - `precision` is harness vocabulary (`named`, `number`, `range`, `spread`, `spelled out`,
-  `at least N`; `PRECISION_LADDER` in core), rendered for every plugin. Grade means narrowing of
-  interpretation space, never claim strength. A plugin no longer declares its own precision table.
+  `at least N`; `PRECISION_LADDER` in core), rendered for every plugin. A non-empty list accepts
+  any listed word for one semantic slot. Grade means narrowing of interpretation space, never
+  claim strength. A plugin no longer declares its own precision table.
 - The completion rule itself is fixed by [`elicitation-completion.md`](elicitation-completion.md);
   the plugin supplies only the floor and the anchor.
 - Runbooks may be given only for jobs the identity block declares.
-- Patterns are never mandates. The harness surfaces; the interviewer decides.
+- A pattern's optional `slot` must be demanded by every explicitly indexed kind, or by at least
+  one kind when `on` is empty. Patterns are never mandates. The harness surfaces; the interviewer
+  decides.
 
 ## Version binding
 

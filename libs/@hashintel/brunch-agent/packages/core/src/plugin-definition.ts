@@ -37,9 +37,10 @@ export const PRECISION_WORDS = [
 ] as const;
 export type PrecisionWord = (typeof PRECISION_WORDS)[number];
 
-/** What a row demands: a precision word, or a count of nodes present. */
+/** What a row demands: one or more alternative precision words, or a node count. */
 export type PrecisionDemand =
   | { readonly kind: "word"; readonly word: PrecisionWord }
+  | { readonly kind: "any-of"; readonly words: readonly PrecisionWord[] }
   | { readonly kind: "at-least"; readonly count: number };
 
 /** What each precision word means; harness vocabulary, rendered for every plugin. */
@@ -177,8 +178,10 @@ const version = v.pipe(
     "expected `<id>/<yyyy-mm-dd>.<n>`",
   ),
 );
+const precisionWord = v.picklist(PRECISION_WORDS);
 const precision = v.union([
-  v.picklist(PRECISION_WORDS),
+  precisionWord,
+  v.pipe(v.array(precisionWord), v.minLength(1)),
   v.pipe(v.string(), v.regex(/^at least [1-9]\d*$/u)),
 ]);
 
@@ -288,12 +291,17 @@ export type PluginDefinitionInput = v.InferInput<typeof PluginDefinitionSchema>;
 
 // ── The reader ──────────────────────────────────────────────────────────────
 
-const parsePrecision = (word: string): PrecisionDemand => {
-  const atLeast = /^at least (\d+)$/u.exec(word);
+const parsePrecision = (
+  input: v.InferOutput<typeof precision>,
+): PrecisionDemand => {
+  if (Array.isArray(input)) {
+    return { kind: "any-of", words: input };
+  }
+  const atLeast = /^at least (\d+)$/u.exec(input);
   if (atLeast?.[1] !== undefined) {
     return { kind: "at-least", count: Number(atLeast[1]) };
   }
-  return { kind: "word", word: word as PrecisionWord };
+  return { kind: "word", word: input as PrecisionWord };
 };
 
 const fail = (message: string): never => {

@@ -141,8 +141,16 @@ export const precisionSatisfies = (
   return LADDER[given]! >= LADDER[demanded]!;
 };
 
-const describeDemand = (precision: PrecisionDemand): string =>
-  precision.kind === "word" ? precision.word : `at least ${precision.count}`;
+const describeDemand = (precision: PrecisionDemand): string => {
+  switch (precision.kind) {
+    case "word":
+      return precision.word;
+    case "any-of":
+      return precision.words.join(" or ");
+    case "at-least":
+      return `at least ${precision.count}`;
+  }
+};
 
 const isEmptySelection = (value: JsonValue): boolean =>
   value === null ||
@@ -251,10 +259,17 @@ const evaluateRow = (
           `"${row.slot}" on ${node.id} lists ${count}; at least ${row.precision.count} needed.`,
         );
   }
-  if (!precisionSatisfies(slot.precision, row.precision.word)) {
+  const demandedWords =
+    row.precision.kind === "word" ? [row.precision.word] : row.precision.words;
+  if (
+    !demandedWords.some((demanded) =>
+      precisionSatisfies(slot.precision, demanded),
+    )
+  ) {
+    const requirement = describeDemand(row.precision);
     return fail(
       "below-required-precision",
-      `"${row.slot}" on ${node.id} is known as a ${slot.precision}; the model needs ${row.precision.word}. Smallest delta: move it from ${slot.precision} to ${row.precision.word}.`,
+      `"${row.slot}" on ${node.id} is known as a ${slot.precision}; the model needs ${requirement}. Smallest delta: move it from ${slot.precision} to ${row.precision.kind === "word" ? row.precision.word : `one of ${requirement}`}.`,
     );
   }
   return null;

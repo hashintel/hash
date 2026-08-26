@@ -182,6 +182,20 @@
                     "type": "string"
                   },
                   {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "named",
+                        "number",
+                        "range",
+                        "spread",
+                        "spelled out"
+                      ],
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  },
+                  {
                     "type": "string",
                     "pattern": "^at least [1-9]\\d*$"
                   }

@@ -158,3 +158,9 @@ written against.
   explicitly indexed kind does not demand; the cue surfaces a slot-scoped
   pattern only for a failure on that slot. SDCPN P01/P02 and Gherkin P01/P03
   now declare the predicates identified by the cycle-1 pressure review.
+- Extended `schema.must_know[*].precision` to accept a non-empty list of
+  alternative precision words. Completion accepts a value that satisfies any
+  listed word and renders the alternatives explicitly. SDCPN's objective
+  metric accepts `range` or `spelled out`; its arrival pattern accepts `spread`
+  or `spelled out`, covering numeric distributions and structural rules without
+  splitting either semantic slot.

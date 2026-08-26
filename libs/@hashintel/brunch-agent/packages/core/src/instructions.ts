@@ -47,8 +47,16 @@ const renderItems = (items: readonly GuidanceItem[]): string[] =>
     return `- **${item.name}** — ${item.text.trim()}${signature}`;
   });
 
-const renderDemand = (demand: PrecisionDemand): string =>
-  demand.kind === "word" ? demand.word : `at least ${demand.count}`;
+const renderDemand = (demand: PrecisionDemand): string => {
+  switch (demand.kind) {
+    case "word":
+      return demand.word;
+    case "any-of":
+      return demand.words.join(" or ");
+    case "at-least":
+      return `at least ${demand.count}`;
+  }
+};
 
 const paragraphs = (...parts: (string | undefined)[]): string[] =>
   parts.flatMap((part) =>
