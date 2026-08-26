@@ -80,6 +80,7 @@ try {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-brunch-principal": "principal-fe1449",
           "x-request-id": requestId,
         },
         body: JSON.stringify(body),

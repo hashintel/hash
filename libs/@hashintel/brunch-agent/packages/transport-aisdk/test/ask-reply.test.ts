@@ -42,6 +42,7 @@ const post = (body: unknown): Request =>
     method: "POST",
     headers: {
       "content-type": "application/json",
+      "x-brunch-principal": "principal-fe1449",
       "x-request-id": "request-fe1449",
     },
     body: typeof body === "string" ? body : JSON.stringify(body),
@@ -135,6 +136,37 @@ const resumedTurn: AskReplyHandler["run"] = async (_input, emit) => {
   });
 };
 
+test("refuses a valid turn without the UI shell principal", async () => {
+  let dispatched = false;
+  const handler = createAiSdkChatHandler({
+    async runTurn() {
+      dispatched = true;
+    },
+  });
+
+  const response = await handler(
+    new Request("http://brunch.test/api/petrinaut/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: "conversation-without-principal",
+        trigger: "submit-message",
+        messages: [
+          {
+            id: "user-without-principal",
+            role: "user",
+            parts: [{ type: "text", text: "Help me model checkout." }],
+          },
+        ],
+      }),
+    }),
+  );
+
+  expect(response.status).toBe(400);
+  expect(await response.json()).toEqual({ error: "invalid_principal" });
+  expect(dispatched).toBe(false);
+});
+
 describe("FE-1449 ask suspension on the wire", () => {
   test("translates the ask as an awaiting client tool and withholds the affordance output", async () => {
     const inspections: TransportInspectionEvent[] = [];
@@ -208,6 +240,7 @@ describe("FE-1449 ask return POST", () => {
     expect(admitted).toEqual([
       {
         conversationId: "conversation-fe1449",
+        principalKey: "principal-fe1449",
         assistantMessageId: "assistant-fe1449-1",
         idempotencyKey: "conversation-fe1449:ask:tool-ask-fe1449",
         ask: {

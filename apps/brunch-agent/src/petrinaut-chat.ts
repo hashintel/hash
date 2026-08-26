@@ -29,12 +29,11 @@ const inspect =
       }
     : undefined;
 
-// FE-1439 replaces this local one-conversation/one-document identity
-// with principal-owned private session lookup. Keep it opaque here.
-const targetDocumentIdFor = (conversationId: string): string =>
-  `petrinaut-local:${conversationId}`;
+const targetDocumentIdFor = (principalKey: string): string =>
+  `petrinaut-local:${principalKey}`;
 
 const streamElicitorTurn = async (
+  principalKey: string,
   conversationId: string,
   dispatch: { readonly message: string; readonly idempotencyKey: string },
   emit: (event: HarnessReplyEvent) => void,
@@ -42,7 +41,10 @@ const streamElicitorTurn = async (
   const agent = init(GherkinElicitor, { id: conversationId });
   const receipt = await agent.dispatch({
     ...dispatch,
-    initialData: { targetDocumentId: targetDocumentIdFor(conversationId) },
+    initialData: {
+      ownerKey: principalKey,
+      targetDocumentId: targetDocumentIdFor(principalKey),
+    },
   });
   const projector = createFlueReplyProjector({
     submissionId: receipt.submissionId,
@@ -61,6 +63,7 @@ export const petrinautChatHandler = createAiSdkChatHandler({
   inspect,
   runTurn: (input, emit) =>
     streamElicitorTurn(
+      input.principalKey,
       input.conversationId,
       { message: input.userMessage.text, idempotencyKey: input.idempotencyKey },
       emit,
@@ -72,7 +75,8 @@ export const petrinautChatHandler = createAiSdkChatHandler({
     async admit(input) {
       const session = createGherkinElicitationSession(
         input.conversationId,
-        targetDocumentIdFor(input.conversationId),
+        targetDocumentIdFor(input.principalKey),
+        input.principalKey,
       );
       const entries = projectFlueHistoryForSweep(
         await session.historyReader.peek(input.conversationId),
@@ -86,6 +90,7 @@ export const petrinautChatHandler = createAiSdkChatHandler({
     // binds it to the pending affordance, making it the user-affordance reply.
     run: (input, emit) =>
       streamElicitorTurn(
+        input.principalKey,
         input.conversationId,
         { message: input.ask.answer, idempotencyKey: input.idempotencyKey },
         emit,

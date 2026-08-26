@@ -27,9 +27,11 @@ const createElicitationSession = (
   target: AgentTarget,
   sessionId: string,
   targetDocumentId: string,
+  ownerKey?: string,
 ): ElicitationSession => {
   const captureStore = createLocalCaptureStore(
     targetDocumentPath(targetDocumentId),
+    ownerKey === undefined ? {} : { ownerKey },
   );
   return {
     sessionId,
@@ -46,11 +48,13 @@ const createElicitationSession = (
 export const createGherkinElicitationSession = (
   sessionId: string,
   targetDocumentId: string,
+  ownerKey?: string,
 ): ElicitationSession =>
-  createElicitationSession("gherkin", sessionId, targetDocumentId);
+  createElicitationSession("gherkin", sessionId, targetDocumentId, ownerKey);
 
 export const createSdcpnElicitationSession = (
   sessionId: string,
   targetDocumentId: string,
+  ownerKey?: string,
 ): ElicitationSession =>
-  createElicitationSession("sdcpn", sessionId, targetDocumentId);
+  createElicitationSession("sdcpn", sessionId, targetDocumentId, ownerKey);

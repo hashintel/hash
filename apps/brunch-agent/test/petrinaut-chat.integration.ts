@@ -60,6 +60,7 @@ try {
       method: "POST",
       headers: {
         "content-type": "application/json",
+        "x-brunch-principal": "principal-fe1436-application",
         "x-request-id": "request-fe1436-application",
       },
       body: await readFile(fixturePath, "utf8"),

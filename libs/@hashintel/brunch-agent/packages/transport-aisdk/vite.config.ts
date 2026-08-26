@@ -11,6 +11,7 @@ export default defineConfig({
         "client-tools": fileURLToPath(
           new URL("src/client-tools.ts", import.meta.url),
         ),
+        headers: fileURLToPath(new URL("src/headers.ts", import.meta.url)),
         index: fileURLToPath(new URL("src/index.ts", import.meta.url)),
       },
       fileName: (_format, entryName) => `${entryName}.js`,

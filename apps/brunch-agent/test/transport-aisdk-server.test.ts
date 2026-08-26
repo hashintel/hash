@@ -128,7 +128,10 @@ describe("FE-1436 Petrinaut wire server", () => {
       const response = await handler(
         new Request("http://brunch.test/api/petrinaut/chat", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            "x-brunch-principal": "principal-malformed-request",
+          },
           body: JSON.stringify(body),
         }),
       );
@@ -177,7 +180,10 @@ describe("FE-1436 Petrinaut wire server", () => {
       const response = await handler(
         new Request("http://brunch.test/api/petrinaut/chat", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            "x-brunch-principal": `principal-${terminalState}`,
+          },
           body: JSON.stringify({
             id: `conversation-${terminalState}`,
             trigger: "submit-message",
@@ -254,7 +260,10 @@ describe("FE-1436 Petrinaut wire server", () => {
     const response = await handler(
       new Request("http://brunch.test/api/petrinaut/chat", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "x-brunch-principal": "principal-tool-failed",
+        },
         body: JSON.stringify({
           id: "conversation-tool-failed",
           trigger: "submit-message",
@@ -309,6 +318,9 @@ describe("FE-1436 Petrinaut wire server", () => {
     expect(allowed.headers.get("access-control-allow-methods")).toBe(
       "POST, OPTIONS",
     );
+    expect(allowed.headers.get("access-control-allow-headers")).toContain(
+      "x-brunch-principal",
+    );
 
     const refused = await handler(
       new Request("http://brunch.test/api/petrinaut/chat", {
@@ -328,6 +340,7 @@ describe("FE-1436 Petrinaut wire server", () => {
         expect(input).toEqual({
           conversationId: "m5z0GU9KJPzhOTlx",
           idempotencyKey: "m5z0GU9KJPzhOTlx:6ddgGkjhSxGjOtiv",
+          principalKey: "principal-fe1436",
           userMessage: {
             id: "6ddgGkjhSxGjOtiv",
             text: "Run the FE-1435 transport probe.",
@@ -342,6 +355,7 @@ describe("FE-1436 Petrinaut wire server", () => {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-brunch-principal": "principal-fe1436",
           "x-request-id": "request-fe1436-contract",
         },
         body: fixture("panel-initial.post.json"),
@@ -418,6 +432,7 @@ describe("FE-1436 Petrinaut wire server", () => {
         headers: {
           "content-type": "application/json",
           origin: "http://127.0.0.1:4915",
+          "x-brunch-principal": "principal-fe1436",
         },
         body: fixture("panel-tool-results.post.json"),
       }),
