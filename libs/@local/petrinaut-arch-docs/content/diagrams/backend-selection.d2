@@ -1,0 +1,17 @@
+# Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
+direction: right
+
+registrations: "registrations\n(preference order)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+load: "load\n(deferred import)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+assess: "assess(request)\nno scarce resources" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+blocked: "blockers\n(code, itemId, origin)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+instantiate: "instantiate()\non the eligible result" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+run: "MonteCarloExperiment\nhandle" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+registrations -> load: next backend
+load -> assess
+assess -> blocked: refusal is a value
+blocked -> registrations: record, try next {style.stroke-dash: 4}
+assess -> instantiate: eligible
+instantiate -> blocked: environment or\ncapacity failure {style.stroke-dash: 4}
+instantiate -> run
