@@ -46,10 +46,9 @@ use hash_graph_authentication::provider::AuthenticationProvider;
 use hash_graph_postgres_store::snapshot::SnapshotStore;
 use hash_graph_postgres_store::store::PostgresStorePool;
 use hash_graph_store::{
-    account::AccountStore as _,
     entity::{DeleteEntitiesParams, DeletionSummary, EntityStore as _},
     pool::StorePool as _,
-    user_deletion,
+    user_deletion::{self, UserDeletionError},
 };
 use hash_status::{Status, StatusCode};
 use serde::Deserialize as _;
@@ -67,9 +66,14 @@ use super::{
     status::{BoxedResponse, status_to_response},
 };
 use crate::{
-    email_subscription::MailchimpSubscriptionProvider, identity_provider::KratosIdentityProvider,
-    oauth_provider::HydraOAuthProvider, rest::status::report_to_response,
+    email_subscription::MailchimpSubscriptionProvider,
+    identity_provider::{EmailLookupError, KratosIdentityProvider},
+    oauth_provider::HydraOAuthProvider,
+    rest::status::report_to_response,
 };
+
+/// HTTP timeout for the Kratos admin client.
+const KRATOS_HTTP_TIMEOUT: core::time::Duration = core::time::Duration::from_secs(10);
 
 /// Configuration for external identity services passed to admin routes.
 #[derive(Debug, Clone)]
@@ -106,6 +110,11 @@ where
         .route("/property-types", delete(delete_property_types))
         .route("/entity-types", delete(delete_entity_types));
 
+    let kratos = Arc::new(KratosIdentityProvider::new(
+        external_services.kratos_admin_url.clone(),
+        KRATOS_HTTP_TIMEOUT,
+    ));
+
     probe::router()
         .merge(
             protected.route_layer(axum::middleware::from_fn(move |request, next| {
@@ -124,6 +133,7 @@ where
         .layer(http_tracing_layer::HttpTracingLayer)
         .layer(Extension(store_pool))
         .layer(Extension(Arc::new(external_services)))
+        .layer(Extension(kratos))
         .layer(Extension(Arc::new(reqwest::Client::new())))
 }
 
@@ -302,32 +312,36 @@ async fn delete_user(
     AuthenticatedActorId(actor_id): AuthenticatedActorId,
     pool: Extension<Arc<PostgresStorePool>>,
     external_services: Extension<Arc<ExternalServicesConfig>>,
+    kratos: Extension<Arc<KratosIdentityProvider>>,
     http_client: Extension<Arc<reqwest::Client>>,
     Json(request): Json<DeleteUserRequest>,
 ) -> Result<BoxedResponse, BoxedResponse> {
     let mut store = pool.acquire(None).await.map_err(report_to_response)?;
 
-    let user_id = match request {
-        DeleteUserRequest::ById { user_id } => UserId::new(user_id),
+    let (user_id, kratos_identity_id) = match request {
+        DeleteUserRequest::ById { user_id } => (UserId::new(user_id), None),
         DeleteUserRequest::ByEmail { email } => {
-            tracing::info!(%email, "resolving user by email");
-            store
-                .get_user_id_by_email(&email)
+            let resolved = kratos
+                .find_user_by_email(&email)
                 .await
-                .map_err(report_to_response)?
+                .map_err(|report| {
+                    let code = match report.current_context() {
+                        EmailLookupError::EmptyEmail => StatusCode::InvalidArgument,
+                        EmailLookupError::NotProvisioned { .. }
+                        | EmailLookupError::AmbiguousEmail { .. } => StatusCode::FailedPrecondition,
+                        EmailLookupError::LookupFailed => StatusCode::Unavailable,
+                    };
+                    report_to_response(report.attach(code))
+                })?
                 .ok_or_else(|| {
                     report_to_response(
                         Report::new(AdminError::UserNotFound).attach(StatusCode::NotFound),
                     )
-                })?
+                })?;
+            (resolved.user_id, Some(resolved.kratos_identity_id))
         }
     };
     tracing::info!(%user_id, "user deletion requested");
-
-    let kratos = KratosIdentityProvider::new(
-        Arc::clone(&http_client),
-        external_services.kratos_admin_url.clone(),
-    );
 
     let hydra = HydraOAuthProvider::new(
         Arc::clone(&http_client),
@@ -351,14 +365,30 @@ async fn delete_user(
 
     let outcome = user_deletion::delete_user(
         &mut store,
-        &kratos,
+        kratos.as_ref(),
         &hydra,
         mailchimp.as_ref(),
         actor_id.into(),
         user_id,
+        kratos_identity_id,
     )
     .await
-    .map_err(report_to_response)?;
+    .map_err(|report| {
+        // Only the fatal variants can reach this path; the non-fatal ones are collected into
+        // the outcome.
+        let code = match report.current_context() {
+            UserDeletionError::UserLookup => StatusCode::Unavailable,
+            UserDeletionError::MissingKratosIdentityId => StatusCode::FailedPrecondition,
+            UserDeletionError::EntityDeletion
+            | UserDeletionError::KratosDeletion
+            | UserDeletionError::UnknownIdentity
+            | UserDeletionError::HydraLoginRevocation
+            | UserDeletionError::HydraConsentRevocation
+            | UserDeletionError::EmailSubscription
+            | UserDeletionError::UnknownEmailAddresses => StatusCode::Internal,
+        };
+        report_to_response(report.attach(code))
+    })?;
 
     let message = if outcome.errors.is_ok() {
         "User deleted successfully"
