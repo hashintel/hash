@@ -35,10 +35,22 @@ const signalPurpose = (
   return undefined;
 };
 
+const toolResultStatus = (event: FlueObservation): string | undefined => {
+  if (event.type !== "tool") return undefined;
+  const result = event.effectiveResult ?? event.result;
+  if (typeof result !== "object" || result === null) return undefined;
+  const output = "output" in result ? result.output : result;
+  if (typeof output !== "object" || output === null) return undefined;
+  return "status" in output && typeof output.status === "string"
+    ? output.status
+    : undefined;
+};
+
 export const createTurnTimingRecorder = (): TurnTimingRecorder => {
   let currentInterviewerTurn: number | undefined;
   const activePromptOperationIds: string[] = [];
   const nestedPromptOperationIds = new Set<string>();
+  const repairingPromptOperationIds = new Set<string>();
   const purposeByOperation = new Map<string, TurnTimingPurpose>();
   const purposeByFlueTurn = new Map<string, TurnTimingPurpose>();
   const timingRecords: TurnTimingRecord[] = [];
@@ -57,7 +69,8 @@ export const createTurnTimingRecorder = (): TurnTimingRecorder => {
           nestedPromptOperationIds.add(event.operationId);
           purposeByOperation.set(
             event.operationId,
-            purposeByOperation.get(parentOperationId) === "repair"
+            repairingPromptOperationIds.has(parentOperationId) ||
+              purposeByOperation.get(parentOperationId) === "repair"
               ? "repair"
               : "sweep",
           );
@@ -71,17 +84,29 @@ export const createTurnTimingRecorder = (): TurnTimingRecorder => {
         );
         if (activeIndex !== -1) activePromptOperationIds.splice(activeIndex, 1);
         nestedPromptOperationIds.delete(event.operationId);
+        repairingPromptOperationIds.delete(event.operationId);
         purposeByOperation.delete(event.operationId);
         return;
       }
+      if (event.type === "tool" && event.toolName === "brunch_sweep") {
+        const activeOperationId = activePromptOperationIds.at(-1);
+        if (activeOperationId === undefined) return;
+        if (toolResultStatus(event) === "refused") {
+          repairingPromptOperationIds.add(activeOperationId);
+        } else {
+          repairingPromptOperationIds.delete(activeOperationId);
+        }
+        return;
+      }
       if (event.type === "turn_request") {
+        const operationId =
+          event.operationId ?? activePromptOperationIds.at(-1);
         const operationPurpose =
-          event.operationId === undefined
+          operationId === undefined
             ? undefined
-            : purposeByOperation.get(event.operationId);
+            : purposeByOperation.get(operationId);
         const purpose =
-          event.operationId !== undefined &&
-          nestedPromptOperationIds.has(event.operationId)
+          operationId !== undefined && nestedPromptOperationIds.has(operationId)
             ? (operationPurpose ?? "sweep")
             : event.purpose === "agent"
               ? (signalPurpose(event.request) ?? "interview")
