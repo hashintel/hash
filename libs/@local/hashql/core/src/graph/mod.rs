@@ -39,8 +39,8 @@ use self::algorithms::{
 pub use self::linked::LinkedGraph;
 use crate::id::{HasId, Id, newtype};
 
-newtype!(#[id(crate = crate)] pub struct NodeId(u32 is 0..=u32::MAX));
-newtype!(#[id(crate = crate)] pub struct EdgeId(u32 is 0..=u32::MAX));
+newtype!(#[id(crate = crate, const)] pub struct NodeId(u32 is 0..=u32::MAX));
+newtype!(#[id(crate = crate, const)] pub struct EdgeId(u32 is 0..=u32::MAX));
 
 /// Direction of edge traversal in a directed graph.
 ///

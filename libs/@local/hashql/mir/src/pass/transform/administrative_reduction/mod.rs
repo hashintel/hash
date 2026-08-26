@@ -117,7 +117,7 @@ impl<A: Allocator> Reducable<A> {
         self.inner.contains(id)
     }
 
-    fn is_empty(&self) -> bool {
+    const fn is_empty(&self) -> bool {
         self.inner.is_empty()
     }
 }

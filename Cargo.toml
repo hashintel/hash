@@ -314,6 +314,7 @@ wasm-bindgen                       = { version = "0.2.100", default-features = f
 wasm-bindgen-test                  = { version = "0.3.50", default-features = false }
 winnow                             = { version = "1.0.0", default-features = false }
 xxhash-rust                        = { version = "0.8.15", default-features = false }
+zerocopy                           = { version = "0.8.55" }
 
 [profile.dev]
 # TODO: Use `codegen-backend = "cranelift"`

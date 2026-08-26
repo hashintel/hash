@@ -270,7 +270,7 @@ impl<'heap> SwitchTargets<'heap> {
     /// assert!(multi.as_if().is_none());
     /// ```
     #[must_use]
-    pub fn as_if(&self) -> Option<SwitchIf<'heap>> {
+    pub const fn as_if(&self) -> Option<SwitchIf<'heap>> {
         if let [0, 1] = self.values[..]
             && let [r#else, then] = self.targets[..]
         {
@@ -323,7 +323,7 @@ impl<'heap> SwitchTargets<'heap> {
     /// ```
     #[must_use]
     #[inline]
-    pub fn otherwise(&self) -> Option<Target<'heap>> {
+    pub const fn otherwise(&self) -> Option<Target<'heap>> {
         self.targets.get(self.values.len()).copied()
     }
 

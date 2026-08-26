@@ -26,7 +26,7 @@ id::newtype!(
     /// Each [`Local`] is valid within the scope of a single function body. The MIR
     /// uses explicit storage management through [`StorageLive`] and [`StorageDead`]
     /// statements to track when local variables are active.
-    #[id(derive(Step), display = "%{}")]
+    #[id(derive(Step), display = "%{}", const)]
     pub struct Local(u32 is 0..=u32::MAX)
 );
 
