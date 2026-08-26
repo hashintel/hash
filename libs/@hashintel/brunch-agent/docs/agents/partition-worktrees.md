@@ -76,6 +76,11 @@ that contains them all.
 Do not install dependencies until work is about to start in that checkout. Two worktrees cannot
 hold the same branch.
 
+`git worktree add` carries no git-ignored file. Before an effort's first live run, copy the
+driver's root `.env.local` (the provider credential) into the new checkout and confirm one model
+call succeeds; a 401 from a fresh worktree is this, not the provider. On 2026-08-26 two efforts
+lost a run to it.
+
 ## Refresh
 
 If the partition adds an effort, cut it the same way from current driver HEAD. If it drops one,
