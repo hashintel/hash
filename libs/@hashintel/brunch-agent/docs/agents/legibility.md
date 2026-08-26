@@ -25,9 +25,9 @@ a person can watch it and decide something afterwards. The bar, in order of pref
 Desk evidence, background or headless test runs, and machine-only-readable artefacts (JSON
 stores, raw checkpoints, logs) are kept to a minimum and never stand alone as the proof of a
 claim; they support a proof of kind 1–3. Naming this bar has not been enough to hold it — arcs
-have drifted to desk proofs and hidden runs while calling them legible — so a stream whose only
-evidence is of that kind is **not done**, and the steering supplement's proxy-completion trigger
-fires.
+have drifted to desk proofs and hidden runs while calling them legible — so a move, stream, or arc
+whose only evidence is of that kind is **not done**, and the steering supplement's proxy-completion
+trigger fires.
 
 ## The move: render and read the strain
 

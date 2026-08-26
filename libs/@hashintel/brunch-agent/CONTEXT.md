@@ -185,6 +185,25 @@ The causal strategic change between a map's commission and landing that future n
 needs, excluding operational chronology.
 _Avoid_: history, activity log
 
+**Move**:
+One bounded change within a selected frontier, with its own landing but not necessarily its own
+proof. Several moves are **joined** when they are proven together by one named proof (the
+`ds-steering` join): they may be built in parallel worktrees, but none is done until the joint
+proof runs. G0's wiring, persistence, latency-floor, and legible-surface work are joined moves.
+_Avoid_: stream (for work that shares a proof), phase, task
+
+**Stream**:
+A line of work that runs in parallel with the selected frontier, has its own projection and its
+own proof, and neither blocks nor is blocked by the frontier's joint proof. The plugin design loop
+and the package-topology ADR are streams beside G0. The epicentre map's older word for the same
+thing is "lane"; it is retained there and not used for new writing.
+_Avoid_: lane (new writing), workstream, track
+
+**Sequence**:
+Ordered goals where each goal's proof is the precondition of the next (G0 → G1 → G2). Ordering
+inside a sequence is strategic, not mechanical availability.
+_Avoid_: roadmap, phases, streams
+
 ### September demo
 
 **Demo shell**:

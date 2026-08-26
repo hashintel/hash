@@ -421,7 +421,10 @@ R0 lands inside G0, R1 opens G1, and the spike runs when a human at the panel ca
 within target. The condition-5 read-out stays deferred behind the spike. The epicentre lanes of
 S-007 remain valid context and are subordinated to the triangle. No key, spec, or ADR text
 changes here; the topology ADR and the surface statement in the Petrinaut integration spec are the
-successor writes.
+successor writes. _Addendum 2026-08-26:_ decision 3 misnames the work inside G0 — wiring,
+persistence, latency floor, and legible surface share one proof and are therefore **moves joined
+at Proof 0**, not streams; "stream" is reserved for separately proven parallel work (P1, P2), and
+G0 → G1 → G2 is a **sequence**. Terms defined in `CONTEXT.md` under Strategic control.
 
 **Revisit when:** the first human run through the panel lands (G0's proof); the topology ADR is
 accepted; the voice-provider decision is recorded; or use-case confirmation from Dora changes the

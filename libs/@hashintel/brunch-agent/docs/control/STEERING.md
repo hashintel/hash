@@ -117,7 +117,7 @@ evidence under [proof evidence](../evidence/proofs/).
   [S-009](STRATEGY-LOG.md#s-009). Steering projection:
   FE-1393 (gherkin generality check).
 - **The delivery surface must become visible early** — the watched use case and voice consumer
-  require a stable Petrinaut boundary; operative force: end-to-end visibility precedes stream-local
+  require a stable Petrinaut boundary; operative force: end-to-end visibility precedes layer-local
   optimization, while use-case confirmation may reframe Proof 1. Source: [September Plan](https://www.notion.so/hashintel/Brunch-September-Plan-3b33c81fe02480a5af6bf3089c3ee640).
   Steering projection: FE-1476 (September delivery).
 - **The generality case needs recoverable provenance** — the truck-fleet source artifact is absent
@@ -126,9 +126,9 @@ evidence under [proof evidence](../evidence/proofs/).
   (truck-fleet dossier).
 - **Legibility is measured on the human** — a proof is an observable interaction with visible
   state change and data flow, a plain-language account, or a recording of one; operative force:
-  desk evidence, hidden runs, and machine-only artefacts never stand alone, and a stream with only
-  such evidence is not done. Source: [legibility protocol](../agents/legibility.md#what-counts-as-legible).
-  Steering projection: FE-1503 (every stream's proof).
+  desk evidence, hidden runs, and machine-only artefacts never stand alone, and a move or stream
+  with only such evidence is not done. Source: [legibility protocol](../agents/legibility.md#what-counts-as-legible).
+  Steering projection: FE-1503 (the joint proof).
 - **The plugin API is a design in flux** — two questions stay open: is the key schema a viable,
   understandable way to specify a domain plugin, and does it come together as effective prompt-
   and context-engineering material; operative force: the conditions 4/5 loop keeps running per
@@ -174,21 +174,27 @@ convergence. SQLite and per-document JSON remain the local implementation.
 **Projection:** [FE-1503](https://linear.app/hash/issue/FE-1503), child of FE-1476; decomposed by
 `/ds-write-tickets`.
 
-**Streams** — parallel work, inside and beside G0 ([S-011](STRATEGY-LOG.md#s-011) decision 3):
+**Moves joined at Proof 0** — buildable in parallel worktrees, done only when the one human run
+proves them together ([CONTEXT](../../CONTEXT.md#strategic-control) "Move"; [S-011](STRATEGY-LOG.md#s-011) decision 3):
 
-| Stream | Lands as | Joins |
+| Move | Lands as | Owning issue |
 | --- | --- | --- |
 | **G0.1 Wiring** | `/api/chat` routed to the SDCPN elicitor (minimal FE-1477: Brunch mode only); one `dev` target or compose entry starting Brunch and the panel together; origins and env documented | FE-1503 |
 | **G0.2 Persistence modelled** | principal UID from the ui shell on every request → server resolves principal → document → sessions; opaque owner key at the storage port; reload returns to the same document | FE-1503, FE-1439 |
 | **G0.3 Latency floor** | R0: `durationMs` per purpose and OpenTelemetry spans on every turn; a human-witnessed number replaces the inferred split | FE-1503, FE-1404 |
-| **G0.4 Legible surface** | the document showing what the elicitor sees (prompt sources, merged result, tool definitions); the attach surface stated in the Petrinaut integration spec with a changes-with-notice rule | FE-1503, FE-1431, FE-1406 |
-| **P1 Plugin design loop** (beside G0) | conditions 4 and 5 rerun per authoring cycle; both open questions — viability as a plugin specification, effectiveness as prompt material — answered from runs; keys change with run evidence only | FE-1431, FE-1406, FE-1393 |
-| **P2 Package topology** (beside G0) | an ADR amending ADR-0007's package decision: `repertoire` and shared types/schemas into core (`loop / prompts / skills? / schemas`), hard import rules as architecture tests; code moves only after the ADR | new ADR; then FE-1406 |
+| **G0.4 Legible surface** | the document showing what the elicitor sees (prompt sources, merged result, tool definitions); the attach surface stated in the Petrinaut integration spec with a changes-with-notice rule. Depends on G0.1–G0.3 landing | FE-1503, FE-1431, FE-1406 |
+
+**Streams beside G0** — parallel, separately proven, blocking nothing:
+
+| Stream | Lands as | Owning issue |
+| --- | --- | --- |
+| **P1 Plugin design loop** | conditions 4 and 5 rerun per authoring cycle; both open questions — viability as a plugin specification, effectiveness as prompt material — answered from runs; keys change with run evidence only | FE-1431, FE-1406, FE-1393 |
+| **P2 Package topology** | an ADR amending ADR-0007's package decision: `repertoire` and shared types/schemas into core (`loop / prompts / skills? / schemas`), hard import rules as architecture tests; code moves only after the ADR | new ADR; then FE-1406 |
 
 **Stop or replan for G0:** a first question takes longer than the provisional 10 s after R0 and
 R1 — the isolating spike becomes blocking; the panel needs Brunch-specific code inside
 `@hashintel/petrinaut` — ADR-0004 boundary, stop; persistence modelling needs a schema the harness
-must know — §9.6 port breach, stop; a stream lands with desk-only evidence — not done.
+must know — §9.6 port breach, stop; a move or stream lands with desk-only evidence — not done.
 
 ### Gap assessment (2026-08-26)
 
@@ -209,12 +215,11 @@ must know — §9.6 port breach, stop; a stream lands with desk-only evidence �
 ### After G0 — the sequence
 
 - **G1 — the usable triangle.** R1 (sweep off the critical path) first; identity and dedup in the
-  fold so completion can move; resume. Streams A and B of the earlier plan, worked inside the
-  triangle.
+  fold so completion can move; resume. The earlier plan's A and B, worked inside the triangle.
 - **G2 — the demo triangle.** Client-tool round trip (FE-1438 → FE-1480 → FE-1479), deployment
   behind demo.petrinaut.org (FE-1440, FE-1441), then Proof 2.
 
-### Epicentres and lanes (context the streams inherit)
+### Epicentres and lanes (context the moves and streams inherit)
 
 The vertical slice of [S-007](STRATEGY-LOG.md#s-007) remains the map of the code: five epicentres,
 ordered by the size of the gap they close, worked from the centre outward. The triangle
@@ -363,7 +368,7 @@ changes the witness: latency is no longer a number in a transcript but a person 
   rescoped without run evidence ([S-008](STRATEGY-LOG.md#s-008), [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md)).
 - The key catalogue is a working set until a cycle changes no key: fix it by writing both plugins
   against it, not by decree ([S-009](STRATEGY-LOG.md#s-009), ADR-0007 decision 9).
-- The triangle first, poorly; no stream is optimised for its own sake before the end-to-end flow
+- The triangle first, poorly; no layer is optimised for its own sake before the end-to-end flow
   exists ([S-011](STRATEGY-LOG.md#s-011)). Providers own audio; Brunch owns history, questions,
   captures, and provenance; provider conversation history is never authoritative.
 
@@ -374,7 +379,7 @@ changes the witness: latency is no longer a number in a transcript but a person 
   evaluation-side and no production-path code changed. The next arc must move production code or
   the trigger fires.
 - The next run over the harness reports tokens but not time per turn purpose (the latency concern
-  stays a hypothesis), or a latency target is still unset when a stream A–D is selected.
+  stays a hypothesis), or a latency target is still unset when a move or stream is selected.
 - Proof 1 shows a `Must know` that kind-level rows cannot express, or the truck-fleet case needs a
   new heading (ADR-0006's revisit condition).
 - E1 exceeds the plugin file in size, or needs a persistence surface.
@@ -387,7 +392,7 @@ changes the witness: latency is no longer a number in a transcript but a person 
 - A first question at the panel takes longer than 10 s after R0 and R1 (the spike becomes
   blocking); the panel needs Brunch-specific code inside `@hashintel/petrinaut`; or persistence
   modelling needs a schema the harness must know.
-- A G0 stream, or any arc, closes with only desk, hidden-run, or machine-only evidence
+- A G0 move, a stream, or any arc closes with only desk, hidden-run, or machine-only evidence
   ([legibility](../agents/legibility.md#what-counts-as-legible)).
 - A package is split or moved without an ADR.
 
