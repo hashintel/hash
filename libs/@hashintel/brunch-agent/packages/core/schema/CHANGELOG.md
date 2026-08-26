@@ -164,3 +164,8 @@ written against.
   metric accepts `range` or `spelled out`; its arrival pattern accepts `spread`
   or `spelled out`, covering numeric distributions and structural rules without
   splitting either semantic slot.
+- Added repertoire-item `for_precision`, a non-empty list of precision words.
+  Rendering now omits an annotated default unless the plugin demands at least
+  one listed word. The seven quantity and observed-practice entries identified
+  by the cycle review use the facet, so Gherkin is no longer taught numeric or
+  retrospective elicitation merely because it shares the fixed key catalogue.

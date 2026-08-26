@@ -116,6 +116,37 @@ describe("renderInstructions", () => {
     expect(section).not.toMatch(/\n\n$/u);
   });
 
+  test("renders a repertoire item only when the plugin demands an applicable precision", () => {
+    const conditionalRepertoire = readRepertoire(
+      REPERTOIRE_YAML.replace(
+        item("techniques default"),
+        "      - { name: techniques default, text: default techniques default., source: test, for_precision: [range, spread] }",
+      ).replace(
+        item("kickoff default"),
+        "      - { name: kickoff default, text: default kickoff default., source: test, for_precision: [range, spread] }",
+      ),
+    );
+    const nonNumericDefinition = readPluginDefinition(
+      FIXTURE_PLUGIN_YAML.replace(
+        "precision: range",
+        "precision: named",
+      ).replace("precision: spread", "precision: spelled out"),
+    );
+
+    expect(
+      renderGuidance(conditionalRepertoire, definition).join("\n"),
+    ).toContain("**techniques default**");
+    expect(
+      renderGuidance(conditionalRepertoire, nonNumericDefinition).join("\n"),
+    ).not.toContain("**techniques default**");
+    expect(
+      renderRunbook(conditionalRepertoire, definition, "construct"),
+    ).toContain("**kickoff default**");
+    expect(
+      renderRunbook(conditionalRepertoire, nonNumericDefinition, "construct"),
+    ).not.toContain("**kickoff default**");
+  });
+
   test("splits movements into slice and sweep", () => {
     expect(
       ascending(

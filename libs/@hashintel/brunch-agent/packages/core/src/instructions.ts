@@ -25,6 +25,7 @@ import {
   type GuidanceItem,
   type PluginDefinition,
   type PrecisionDemand,
+  type PrecisionWord,
 } from "./plugin-definition";
 import { type Repertoire } from "./repertoire";
 
@@ -46,6 +47,32 @@ const renderItems = (items: readonly GuidanceItem[]): string[] =>
       item.signature === undefined ? "" : ` _Signature:_ ${item.signature}`;
     return `- **${item.name}** — ${item.text.trim()}${signature}`;
   });
+
+const demandedPrecisions = (
+  definition: PluginDefinition,
+): ReadonlySet<PrecisionWord> => {
+  const words = new Set<PrecisionWord>();
+  for (const row of definition.mustKnow) {
+    if (row.precision.kind === "word") {
+      words.add(row.precision.word);
+    } else if (row.precision.kind === "any-of") {
+      for (const word of row.precision.words) {
+        words.add(word);
+      }
+    }
+  }
+  return words;
+};
+
+const applicableRepertoireItems = (
+  items: readonly GuidanceItem[],
+  precisions: ReadonlySet<PrecisionWord>,
+): GuidanceItem[] =>
+  items.filter(
+    (item) =>
+      item.forPrecision === undefined ||
+      item.forPrecision.some((precision) => precisions.has(precision)),
+  );
 
 const renderDemand = (demand: PrecisionDemand): string => {
   switch (demand.kind) {
@@ -137,21 +164,29 @@ export const renderContract = (definition: PluginDefinition): string[] => {
 export const renderGuidance = (
   repertoire: Repertoire,
   definition: PluginDefinition,
-): string[] =>
-  GUIDANCE_KEYS.map((key) => {
+): string[] => {
+  const precisions = demandedPrecisions(definition);
+  return GUIDANCE_KEYS.map((key) => {
     const description = GUIDANCE_KEY_DESCRIPTIONS[key];
     const body =
       key === "movements"
         ? MOVEMENTS.flatMap((movement) => [
             `### ${movement === "slice" ? "Slice" : "Sweep"}`,
             [
-              ...renderItems(repertoire.guidance.movements[movement]),
+              ...renderItems(
+                applicableRepertoireItems(
+                  repertoire.guidance.movements[movement],
+                  precisions,
+                ),
+              ),
               ...renderItems(definition.guidance.movements[movement]),
             ].join("\n"),
           ])
         : [
             [
-              ...renderItems(repertoire.guidance[key]),
+              ...renderItems(
+                applicableRepertoireItems(repertoire.guidance[key], precisions),
+              ),
               ...renderItems(definition.guidance[key]),
             ].join("\n"),
           ];
@@ -159,6 +194,7 @@ export const renderGuidance = (
       .filter((part) => part !== "")
       .join("\n\n");
   });
+};
 
 /** One job's runbook: each runbook key's definition, default, and plugin cell. */
 export const renderRunbook = (
@@ -167,13 +203,16 @@ export const renderRunbook = (
   job: Job,
 ): string => {
   const cells = definition.runbooks[job];
+  const precisions = demandedPrecisions(definition);
   const sections = RUNBOOK_KEYS.map((key) => {
     const description = RUNBOOK_KEY_DESCRIPTIONS[key];
     return [
       `### ${description.title}`,
       `_${description.definition}_`,
       [
-        ...renderItems(repertoire.runbooks[job][key]),
+        ...renderItems(
+          applicableRepertoireItems(repertoire.runbooks[job][key], precisions),
+        ),
         ...renderItems(cells?.[key] ?? []),
       ].join("\n"),
     ].join("\n\n");

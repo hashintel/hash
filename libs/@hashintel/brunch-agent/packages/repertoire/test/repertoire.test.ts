@@ -66,4 +66,24 @@ describe("the shipped repertoire", () => {
       .join("\n");
     expect(text).not.toMatch(FORMALISM_OR_DOMAIN);
   });
+
+  test("conditions quantity and observed-practice methods on compatible precision demands", () => {
+    const entries = [
+      ...guidanceEntries(repertoire.guidance),
+      ...runbookEntries(repertoire.runbooks),
+    ];
+    expect(
+      entries
+        .filter(({ item }) => item.forPrecision !== undefined)
+        .map(({ item }) => [item.name, item.forPrecision]),
+    ).toEqual([
+      ["Policy versus practice", ["range", "spread"]],
+      ["Mean or tail", ["number", "range", "spread"]],
+      ["Quantiles, never three points", ["spread"]],
+      ["The clairvoyant test", ["number", "range", "spread"]],
+      ["Premortem", ["range", "spread"]],
+      ["One property across one stratum", ["number", "range", "spread"]],
+      ["Objectives first", ["number", "range", "spread"]],
+    ]);
+  });
 });

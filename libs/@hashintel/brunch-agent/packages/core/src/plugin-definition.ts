@@ -96,6 +96,8 @@ export interface Anchor {
 export interface GuidanceItem {
   readonly name: string;
   readonly text: string;
+  /** Repertoire-only applicability; omitted entries apply to every plugin. */
+  readonly forPrecision?: readonly PrecisionWord[];
   /** For failure modes: how the failure is detected. */
   readonly signature?: string;
   /** Where the entry comes from; required of the repertoire, optional for a plugin. */

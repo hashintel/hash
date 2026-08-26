@@ -10,7 +10,7 @@
 # Paths are relative to the Brunch context root.
 
 repertoire:
-  version: repertoire/2026-08-25.1
+  version: repertoire/2026-08-26.1
   purpose: |
     Teach the interviewer how an expert-knowledge interview goes right and
     wrong, independent of what is being modelled: what to attend to, how to
@@ -26,6 +26,7 @@ guidance:
     - name: Policy versus practice
       text: 'An answer in normative language — "we would", "the rule is", "you are supposed to" — reports a policy, not what happens. It is an occasion to ask when that last actually happened and what was done.'
       source: docs/reference/research/elicitation/elicitation-strategy-literature.md §2.3 (policy-vs-practice detector); docs/archive/specs/cps-interview-guidance-2026-08-25.md CPS-Q05
+      for_precision: [range, spread]
     - name: Two answers in tension
       text: When something just said does not fit something said earlier, the tension is evidence — of a distinction not yet drawn, a condition not yet named, or an error. Say so and ask; do not pick one silently.
       source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (check consistency); docs/reference/research/elicitation/elicitation-strategy-literature.md §5.1 (consistency probe)
@@ -45,18 +46,22 @@ guidance:
     - name: Mean or tail
       text: Before eliciting any quantity, ask whether what matters is the typical case or the bad one — a mean or a tail. The answer decides whether a single figure, a range, or a spread is being asked for.
       source: docs/reference/research/elicitation/elicitation-strategy-literature.md §1.3 (mean-or-tail router)
+      for_precision: [number, range, spread]
     - name: Quantiles, never three points
       text: 'For anything that varies, ask "typically?", then "one time in ten, worse than?", then "one time in ten, better than?". Never ask for minimum, most likely, and maximum — the three-point habit yields overconfident answers. If a min/mode/max triple arrives unprompted, ask the confidence question and record whether the middle value is a mode or a mean.'
       source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (category 4); docs/reference/research/elicitation/elicitation-strategy-literature.md §1.4 (IDEA four-step interval, anti-triangular guard)
+      for_precision: [spread]
     - name: The clairvoyant test
       text: A quantity is well enough defined only when someone who could see everything could report it without asking a clarifying question. If the slot's name would need one, ask the clarifying question first.
       source: docs/reference/research/elicitation/elicitation-strategy-literature.md §1.4 (Howard's clairvoyant test)
+      for_precision: [number, range, spread]
     - name: Consistency probe
       text: '"You said earlier that ___, but then you told me ___. How do you explain that?" — stated plainly, without choosing between the two.'
       source: docs/reference/research/elicitation/elicitation-strategy-literature.md §5.1 (consistency probe)
     - name: Premortem
       text: 'For anything rare or catastrophic, ask the expert to imagine it has already gone wrong — "it is a year from now and this has been the worst month on record; what happened?" — and demand mechanism and sequence, not sentiment.'
       source: docs/reference/research/elicitation/elicitation-strategy-literature.md §2.2 (premortem card)
+      for_precision: [range, spread]
     - name: Restate to check
       text: '"So you are saying that ___?" — a restatement in your own words, offered for correction. Use it to fix an answer in its context, never to put words in the expert''s mouth; a correction is a capture, assent to your phrasing is not.'
       source: docs/reference/research/elicitation/elicitation-strategy-literature.md §5.1 (check-reflect / restatement); docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-15
@@ -72,6 +77,7 @@ guidance:
       - name: One property across one stratum
         text: A sweep makes one property hold across one class of node the slice revealed — every step has a duration, every resource has a count. Sweep after the slice, and one property at a time, so the expert can answer from a single frame.
         source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Slice, then sweep); docs/control/SPEC-LEDGER.md §11.5
+        for_precision: [number, range, spread]
       - name: Ask for absences
         text: 'Near the end of each topic ask "is there anything that never happens?" and "what have I not asked about that matters here?". What never happens is a constraint; what was not asked is the coverage the model would otherwise silently lack.'
         source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Ask for absences); docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-08
@@ -161,6 +167,7 @@ runbooks:
       - name: Objectives first
         text: Establish what the model must be able to answer, and for whom, before anything else; then let it prioritise the rest. What "better" means, numerically where possible, is almost never written down — expect to co-construct it.
         source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Objectives first, category 1)
+        for_precision: [number, range, spread]
       - name: The posture
         text: "From the first exchanges, take the expert's time available, what the model is for, how confident it must be, and how far they will tolerate you proposing assumptions. These set the interview's stance; they are not asked as a form."
         source: docs/adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md (decision 4)

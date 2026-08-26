@@ -43,6 +43,11 @@ interviewer reads above each, lives in `packages/core/src/keys.ts`; the catalogu
 until a co-authoring cycle changes no key (ADR-0007 decision 9), with changes recorded in
 `packages/core/schema/CHANGELOG.md`.
 
+The repertoire may additionally give an item `for_precision`, a non-empty list of harness
+precision words. Such an item is rendered only when at least one plugin demand names a listed
+word. This conditions generic teaching on the plugin contract without allowing a plugin to
+override the repertoire.
+
 Domain-neutrality rule: nothing in the definition may name a domain. A new case that seems to
 need a new row is a finding about the abstraction, decided by review, never content added to a
 plugin.

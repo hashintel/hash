@@ -13,11 +13,11 @@ import * as v from "valibot";
 
 import { GUIDANCE_KEYS, JOBS, MOVEMENTS, RUNBOOK_KEYS, type Job } from "./keys";
 import {
-  GuidanceCellsSchema,
+  PRECISION_WORDS,
   PluginDefinitionError,
   readYamlAs,
-  RunbookCellsSchema,
   type GuidanceCells,
+  type GuidanceItem,
   type RunbookCells,
 } from "./plugin-definition";
 
@@ -28,6 +28,36 @@ export interface Repertoire {
   readonly runbooks: Readonly<Record<Job, RunbookCells>>;
 }
 
+const text = v.pipe(v.string(), v.nonEmpty());
+const RepertoireItemSchema = v.strictObject({
+  name: text,
+  text,
+  signature: v.optional(text),
+  source: v.optional(text),
+  for_precision: v.optional(
+    v.pipe(v.array(v.picklist(PRECISION_WORDS)), v.minLength(1)),
+  ),
+});
+const items = v.array(RepertoireItemSchema);
+const RepertoireGuidanceCellsSchema = v.strictObject({
+  lenses: items,
+  techniques: items,
+  movements: v.strictObject({
+    slice: items,
+    sweep: items,
+  }),
+  licenses: items,
+  motifs: items,
+  smells: items,
+  rabbit_holes: items,
+  failure_modes: items,
+});
+const RepertoireRunbookCellsSchema = v.strictObject({
+  kickoff: items,
+  trajectory: items,
+  close: items,
+});
+
 export const RepertoireSchema = v.strictObject({
   repertoire: v.strictObject({
     version: v.pipe(
@@ -36,11 +66,52 @@ export const RepertoireSchema = v.strictObject({
     ),
     purpose: v.pipe(v.string(), v.nonEmpty()),
   }),
-  guidance: GuidanceCellsSchema,
+  guidance: RepertoireGuidanceCellsSchema,
   runbooks: v.strictObject({
-    construct: RunbookCellsSchema,
-    "review-and-revise": RunbookCellsSchema,
+    construct: RepertoireRunbookCellsSchema,
+    "review-and-revise": RepertoireRunbookCellsSchema,
   }),
+});
+
+type RepertoireItemInput = v.InferOutput<typeof RepertoireItemSchema>;
+type RepertoireGuidanceCellsInput = v.InferOutput<
+  typeof RepertoireGuidanceCellsSchema
+>;
+type RepertoireRunbookCellsInput = v.InferOutput<
+  typeof RepertoireRunbookCellsSchema
+>;
+
+const readItem = (input: RepertoireItemInput): GuidanceItem => ({
+  name: input.name,
+  text: input.text,
+  ...(input.for_precision === undefined
+    ? {}
+    : { forPrecision: input.for_precision }),
+  ...(input.signature === undefined ? {} : { signature: input.signature }),
+  ...(input.source === undefined ? {} : { source: input.source }),
+});
+
+const readItems = (inputs: readonly RepertoireItemInput[]): GuidanceItem[] =>
+  inputs.map(readItem);
+
+const readGuidance = (input: RepertoireGuidanceCellsInput): GuidanceCells => ({
+  lenses: readItems(input.lenses),
+  techniques: readItems(input.techniques),
+  movements: {
+    slice: readItems(input.movements.slice),
+    sweep: readItems(input.movements.sweep),
+  },
+  licenses: readItems(input.licenses),
+  motifs: readItems(input.motifs),
+  smells: readItems(input.smells),
+  rabbit_holes: readItems(input.rabbit_holes),
+  failure_modes: readItems(input.failure_modes),
+});
+
+const readRunbook = (input: RepertoireRunbookCellsInput): RunbookCells => ({
+  kickoff: readItems(input.kickoff),
+  trajectory: readItems(input.trajectory),
+  close: readItems(input.close),
 });
 
 const fail = (message: string): never => {
@@ -85,7 +156,10 @@ export function readRepertoire(yamlText: string): Repertoire {
   return {
     version: input.repertoire.version,
     purpose: input.repertoire.purpose,
-    guidance: input.guidance,
-    runbooks: input.runbooks,
+    guidance: readGuidance(input.guidance),
+    runbooks: {
+      construct: readRunbook(input.runbooks.construct),
+      "review-and-revise": readRunbook(input.runbooks["review-and-revise"]),
+    },
   };
 }
