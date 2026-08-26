@@ -18,5 +18,9 @@ rm -f .env
 # Run through Turborepo rather than `yarn workspace ... build`: the package
 # script alone skips `sync:bundle`, and would build whatever content happened to
 # be on disk.
-echo "Building Petrinaut architecture docs"
+#
+# Source links follow the commit being built rather than `main`: the generator
+# reads `VERCEL_GIT_COMMIT_SHA` and `VERCEL_GIT_COMMIT_REF`, declared in
+# `libs/@local/petrinaut-arch-docs/turbo.json`, and logs the prefix it used.
+echo "Building Petrinaut architecture docs from ${VERCEL_GIT_COMMIT_SHA:-a local checkout}"
 turbo build --filter='@apps/petrinaut-docs' --env-mode=loose

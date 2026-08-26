@@ -156,7 +156,12 @@ const main = async (): Promise<number> => {
     return 1;
   }
 
-  process.stdout.write(`Wrote ${config.outputDirectory}\n`);
+  // The prefix is logged because it varies by build: a preview deployment
+  // points its source links at the previewed commit, and a wrong ref is
+  // otherwise only visible by clicking a link on the published page.
+  process.stdout.write(
+    `Wrote ${config.outputDirectory}, source links to ${config.sourceUrlPrefix}\n`,
+  );
   return 0;
 };
 
