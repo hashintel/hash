@@ -25,7 +25,7 @@ const inspect =
     ? (event: TransportInspectionEvent): void => {
         // This is an opt-in shell diagnostic stream. It is never dispatched
         // into Flue and therefore cannot become elicitation evidence.
-        console.log(`TRANSPORT_AISDK ${JSON.stringify(event)}`);
+        process.stdout.write(`TRANSPORT_AISDK ${JSON.stringify(event)}\n`);
       }
     : undefined;
 

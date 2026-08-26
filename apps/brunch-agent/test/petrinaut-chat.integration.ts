@@ -16,6 +16,9 @@ import {
   GherkinElicitor,
 } from "../src/agents/gherkin-elicitor.ts";
 
+import type { PetrinautChatResult } from "./petrinaut-chat-result";
+import type { UIMessageChunk } from "ai";
+
 const targetDirectory = await mkdtemp(join(tmpdir(), "brunch-petrinaut-chat-"));
 process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR = targetDirectory;
 process.env.BRUNCH_TRANSPORT_AISDK_INSPECT = "1";
@@ -67,10 +70,7 @@ try {
     .trim()
     .split("\n\n")
     .slice(0, -1)
-    .map(
-      (frame) =>
-        JSON.parse(frame.slice("data: ".length)) as Record<string, unknown>,
-    );
+    .map((frame) => JSON.parse(frame.slice("data: ".length)) as UIMessageChunk);
   const startChunk = chunks.find((chunk) => chunk.type === "start");
   const partIds = chunks
     .filter(
@@ -79,23 +79,22 @@ try {
     )
     .map((chunk) => chunk.id);
 
-  console.log(
-    `PETRINAUT_CHAT_RESULT ${JSON.stringify({
-      status: response.status,
-      messageId: startChunk?.messageId,
-      partIds,
-      reasoning: chunks
-        .filter((chunk) => chunk.type === "reasoning-delta")
-        .map((chunk) => chunk.delta)
-        .join(""),
-      text: chunks
-        .filter((chunk) => chunk.type === "text-delta")
-        .map((chunk) => chunk.delta)
-        .join(""),
-      finish: chunks.at(-1),
-      chunks,
-    })}`,
-  );
+  const result: PetrinautChatResult = {
+    status: response.status,
+    messageId: startChunk?.messageId,
+    partIds,
+    reasoning: chunks
+      .filter((chunk) => chunk.type === "reasoning-delta")
+      .map((chunk) => chunk.delta)
+      .join(""),
+    text: chunks
+      .filter((chunk) => chunk.type === "text-delta")
+      .map((chunk) => chunk.delta)
+      .join(""),
+    finish: chunks.at(-1),
+    chunks,
+  };
+  process.stdout.write(`PETRINAUT_CHAT_RESULT ${JSON.stringify(result)}\n`);
 } finally {
   await flue.stop();
   await rm(targetDirectory, { recursive: true, force: true });

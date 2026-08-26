@@ -18,7 +18,7 @@ import {
   type HarnessReplyEvent,
 } from "@hashintel/brunch-agent";
 
-import { ASK_TOOL_NAME } from "./client-tools";
+import { ASK_TOOL_NAME, type BrunchAskOutput } from "./client-tools";
 
 export {
   type AskReplyAdmission,
@@ -46,14 +46,27 @@ export type HarnessTurnRunner = (
   emit: (event: HarnessReplyEvent) => void,
 ) => Promise<void>;
 
+type HarnessPartEvent = Extract<
+  HarnessReplyEvent,
+  { type: "part-start" | "part-delta" | "part-end" }
+>;
+type HarnessToolEvent = Extract<
+  HarnessReplyEvent,
+  { type: "tool-input" | "tool-output" | "tool-output-error" }
+>;
+type HarnessResponseFinishEvent = Extract<
+  HarnessReplyEvent,
+  { type: "response-finish" }
+>;
+type AskReplyRefusal = Extract<AskReplyAdmission, { ok: false }>;
+
 export interface HarnessAskReplyInput {
   readonly conversationId: string;
   /** Existing assistant UI message whose pending tool call this continues. */
   readonly assistantMessageId: string;
   readonly idempotencyKey: string;
-  readonly ask: {
+  readonly ask: BrunchAskOutput & {
     readonly toolCallId: string;
-    readonly answer: string;
   };
 }
 
@@ -91,12 +104,7 @@ export type TransportInspectionEvent =
   | {
       readonly type: "part-emitted";
       readonly requestId: string;
-      readonly kind:
-        | "text"
-        | "reasoning"
-        | "tool-input"
-        | "tool-output"
-        | "tool-output-error";
+      readonly kind: HarnessPartEvent["kind"] | HarnessToolEvent["type"];
       readonly partId?: string;
       readonly toolCallId?: string;
     }
@@ -108,8 +116,8 @@ export type TransportInspectionEvent =
   | {
       readonly type: "request-finish";
       readonly requestId: string;
-      readonly terminalState: "completed" | "failed" | "aborted";
-      readonly finishReason: "stop" | "tool-calls" | "error";
+      readonly terminalState: HarnessResponseFinishEvent["terminalState"];
+      readonly finishReason: HarnessResponseFinishEvent["finishReason"];
     }
   | {
       readonly type: "ask-await";
@@ -127,7 +135,7 @@ export type TransportInspectionEvent =
       readonly requestId: string;
       readonly conversationId: string;
       readonly toolCallId: string;
-      readonly reason: "no-pending-ask" | "different-ask-pending";
+      readonly reason: AskReplyRefusal["reason"];
     };
 
 export interface AiSdkChatHandlerOptions {
@@ -169,23 +177,6 @@ const panelPostBodySchema = v.looseObject({
 type PanelMessage = v.InferOutput<typeof panelMessageSchema>;
 type PanelPostBody = v.InferOutput<typeof panelPostBodySchema>;
 
-type TransportRequestRefusal =
-  | {
-      readonly reason: "invalid-chat-request";
-      readonly status: 400;
-      readonly error: "invalid_chat_request";
-    }
-  | {
-      readonly reason: "tool-result-follow-up-not-supported";
-      readonly status: 422;
-      readonly error: "tool_result_follow_up_not_supported";
-    }
-  | {
-      readonly reason: "invalid-ask-submission";
-      readonly status: 400;
-      readonly error: "invalid_ask_submission";
-    };
-
 const transportRequestRefusals = {
   invalidChatRequest: {
     reason: "invalid-chat-request",
@@ -202,7 +193,10 @@ const transportRequestRefusals = {
     status: 400,
     error: "invalid_ask_submission",
   },
-} as const satisfies Record<string, TransportRequestRefusal>;
+} as const;
+
+type TransportRequestRefusal =
+  (typeof transportRequestRefusals)[keyof typeof transportRequestRefusals];
 
 const askReplyRefusalErrors = {
   "no-pending-ask": "ask_not_pending",
@@ -234,7 +228,6 @@ const userTextFrom = (message: PanelMessage): string | undefined => {
     .filter(
       (part): part is { readonly type: "text"; readonly text: string } =>
         typeof part === "object" &&
-        part !== null &&
         "type" in part &&
         part.type === "text" &&
         "text" in part &&

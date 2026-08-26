@@ -26,6 +26,7 @@ import {
   ASK_TOOL_DESCRIPTION,
   AskInput,
   FreeTextAffordance,
+  SWEEP_RESULT_STATUSES,
   advanceSweepHighWater,
   askProtocolInstructionFragments,
   buildSettlementCheckSignal,
@@ -57,7 +58,7 @@ import {
 } from "./history-reader";
 
 const SweepToolOutput = v.looseObject({
-  status: v.picklist(["no-settled-range", "refused", "applied"]),
+  status: v.picklist(SWEEP_RESULT_STATUSES),
 });
 
 export { CAPABILITIES, type Capability, type Provision } from "./capabilities";

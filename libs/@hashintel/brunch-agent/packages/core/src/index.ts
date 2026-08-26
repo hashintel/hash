@@ -36,7 +36,11 @@ export {
   toolPrefix,
   type Operation,
 } from "./naming";
-export { type HarnessReplyEvent } from "./reply-protocol";
+export {
+  type HarnessReplyEvent,
+  type ReplyPartKind,
+  type ToolExecution,
+} from "./reply-protocol";
 export {
   definePlugin,
   PluginDescriptor,
@@ -78,6 +82,8 @@ export {
   type JsonValue,
 } from "./capture-store";
 export {
+  EvidenceQuoteSchema,
+  SESSION_ENTRY_KINDS,
   type ArchivedSessionEntry,
   type ArchivedSessionEntryVersion,
   type EvidenceQuote,
@@ -87,6 +93,7 @@ export {
   type SessionEntryKind,
 } from "./session-log";
 export {
+  SWEEP_RESULT_STATUSES,
   advanceSweepHighWater,
   buildSettlementCheckSignal,
   buildSweepExtractionPrompt,

@@ -70,14 +70,32 @@ describe.skipIf(!contextRootPresent)("strategic control surfaces", () => {
 
   test("supersedes targets resolve backward without cycles", () => {
     const seen = new Set<string>();
+    const invalidTargets: Array<{
+      entry: string;
+      target: string;
+      reason: "malformed" | "not-earlier";
+    }> = [];
     for (const entry of entries) {
       const supersedes = entry.fields.get("Supersedes")!;
       if (supersedes !== "none") {
-        expect(supersedes).toMatch(/^S-\d{3}$/);
-        expect(seen.has(supersedes)).toBe(true);
+        if (!/^S-\d{3}$/.test(supersedes)) {
+          invalidTargets.push({
+            entry: entry.id,
+            target: supersedes,
+            reason: "malformed",
+          });
+        }
+        if (!seen.has(supersedes)) {
+          invalidTargets.push({
+            entry: entry.id,
+            target: supersedes,
+            reason: "not-earlier",
+          });
+        }
       }
       seen.add(entry.id);
     }
+    expect(invalidTargets).toEqual([]);
   });
 
   test("every strategy ID in steering resolves and is unsuperseded", () => {

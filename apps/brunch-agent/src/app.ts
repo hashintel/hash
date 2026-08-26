@@ -42,6 +42,7 @@ app.on(["POST", "OPTIONS"], PETRINAUT_CHAT_ROUTE, (c) =>
 // client build is a second, plain vite build — without it the ui tree would
 // have no build coverage at all.
 const uiRoot = new URL(
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- import.meta.env is absent when Node executes this module directly.
   import.meta.env?.DEV === false ? "./client/" : "../",
   import.meta.url,
 );

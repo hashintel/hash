@@ -12,6 +12,18 @@ guidance always wins where it conflicts with this file.
 - `../../../apps/brunch-agent`: remote server, application composition, and local diagnostics.
 - `evaluations`: cases, protocols, and oracles; see `evaluations/AGENTS.md` before changing them.
 
+## Stack
+
+- Format TypeScript and JSON with HASH-root `oxfmt` (double quotes, 80 columns), not Biome or
+  Prettier. Brunch Markdown remains excluded.
+- `lint:eslint` runs Oxlint with multi-file import analysis, type-aware rules, and compiler
+  diagnostics. Package `.oxlintrc.json` files extend Brunch presets under
+  `.config/oxlint/brunch/`.
+- `lint:tsc` remains the independent `tsgo --noEmit` type-check gate.
+- `test:unit` runs Vitest through `vitest run`; architecture tests remain the topology, Flue
+  placement, and hermetic-runtime gates.
+- Vite 8 builds the libraries and application.
+
 The context root is not a package-manager root. Do not add a `package.json`, lockfile, nested
 workspace configuration, or standalone CI here. Run package tasks through HASH's root Yarn/Turbo
 workspace.

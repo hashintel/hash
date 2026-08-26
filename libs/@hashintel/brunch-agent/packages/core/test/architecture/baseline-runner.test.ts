@@ -6,9 +6,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
+import * as v from "valibot";
 import { afterEach, describe, expect, test } from "vitest";
 
 import { CONTEXT_ROOT, contextRootPresent } from "./workspace";
+
+import type { StubReply } from "./fixtures/baseline-anthropic-stub";
 
 const BASELINE_PROTOCOL_DIR = join(
   CONTEXT_ROOT,
@@ -23,16 +26,27 @@ const STUB_MODULE = pathToFileURL(
 ).href;
 const temporaryDirectories: string[] = [];
 
-interface StubReply {
-  text: string;
-  truncated?: boolean;
-}
-
 interface BaselineCopy {
   outputDirectory: string;
   protocolDirectory: string;
   testDirectory: string;
 }
+
+const BaselineCheckpoint = v.object({
+  stopReason: v.string(),
+  calls: v.array(v.unknown()),
+  interviewerMessages: v.array(
+    v.object({
+      role: v.picklist(["user", "assistant"]),
+      content: v.string(),
+      truncated: v.optional(v.boolean()),
+    }),
+  ),
+});
+
+const BaselineRequest = v.object({
+  messages: v.array(v.record(v.string(), v.unknown())),
+});
 
 async function createBaselineCopy(): Promise<BaselineCopy> {
   const testDirectory = await mkdtemp(join(tmpdir(), "baseline-runner-test-"));
@@ -61,17 +75,9 @@ async function runBaseline(
   replies: StubReply[],
   mode?: "--resume" | "--continue-final",
 ): Promise<{
-  checkpoint: {
-    stopReason: string;
-    calls: unknown[];
-    interviewerMessages: Array<{
-      role: "user" | "assistant";
-      content: string;
-      truncated?: boolean;
-    }>;
-  };
+  checkpoint: v.InferOutput<typeof BaselineCheckpoint>;
   stderr: string;
-  requests: Array<{ messages: Array<Record<string, unknown>> }>;
+  requests: Array<v.InferOutput<typeof BaselineRequest>>;
 }> {
   const requestsPath = join(baselineCopy.testDirectory, "requests.jsonl");
   const subprocess = spawn(
@@ -105,16 +111,19 @@ async function runBaseline(
   });
   expect(exitCode).toBe(0);
 
-  const checkpoint = JSON.parse(
-    await readFile(
-      join(baselineCopy.outputDirectory, "condition-1.raw.json"),
-      "utf8",
-    ),
+  const checkpoint = v.parse(
+    BaselineCheckpoint,
+    JSON.parse(
+      await readFile(
+        join(baselineCopy.outputDirectory, "condition-1.raw.json"),
+        "utf8",
+      ),
+    ) as unknown,
   );
   const requests = (await readFile(requestsPath, "utf8"))
     .trim()
     .split("\n")
-    .map((line) => JSON.parse(line));
+    .map((line) => v.parse(BaselineRequest, JSON.parse(line) as unknown));
   return { checkpoint, stderr, requests };
 }
 

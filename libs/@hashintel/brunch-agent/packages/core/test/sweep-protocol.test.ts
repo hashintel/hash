@@ -14,6 +14,7 @@ import {
   settlementProtocolInstructionFragments,
   sweepableRange,
   unsweptTail,
+  type SweepRefusalFact,
   type SweepSessionEntry,
 } from "../src/sweep-protocol";
 
@@ -45,7 +46,9 @@ describe("settlement and sweep protocol", () => {
       lastCheckedUserEntryId: null,
     });
     expect(parseSweepState(initial)).toEqual(initial);
-    expect(() => parseSweepState({ ...initial, invented: true })).toThrow();
+    expect(() => parseSweepState({ ...initial, invented: true })).toThrow(
+      Error,
+    );
   });
 
   test("computes the unswept range through the latest true-user entry only", () => {
@@ -178,7 +181,7 @@ describe("settlement and sweep protocol", () => {
     const refusal = {
       code: "evidence-quote-not-found",
       message: "Use an exact quote.",
-    };
+    } satisfies SweepRefusalFact;
     expect(buildSweepRepairSignal(refusal)).toEqual({
       type: "sweep-repair",
       tagName: "sweep-repair",

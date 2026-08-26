@@ -25,22 +25,22 @@ const DOCS_ROOT = join(REPO_ROOT, "docs");
 const INDEX_RELPATH = "INDEX.md";
 
 /** Gitignored ephemera — in the tree but not of it, so never indexed. */
-const SKIP_DIRECTORIES = ["drafts"];
+const SKIP_DIRECTORIES = new Set(["drafts"]);
 /** Filesystem and placeholder artefacts: not documents. */
-const SKIP_FILES = [".DS_Store", ".gitkeep"];
+const SKIP_FILES = new Set([".DS_Store", ".gitkeep"]);
 /**
  * `docs/agents/` is deliberately outside the INDEX's remit: those files are
  * pointed at from `AGENTS.md`, which is the pointer an agent actually reads, and
  * the third rule below governs them there. Listing them twice would let the two
  * registries disagree about what the protocol set is.
  */
-const INDEX_EXEMPT = ["agents", INDEX_RELPATH];
+const INDEX_EXEMPT = new Set(["agents", INDEX_RELPATH]);
 /**
  * Preserved external analysis containing links into its source checkout and
  * embedded Markdown examples. Those links are evidence, not context-local
  * navigation.
  */
-const LINK_CHECK_EXEMPT = ["reference/amp-analysis-flue-vs-tilde.md"];
+const LINK_CHECK_EXEMPT = new Set(["reference/amp-analysis-flue-vs-tilde.md"]);
 /** Immutable migration snapshots whose old paths are part of the evidence. */
 const LINK_CHECK_EXEMPT_PREFIXES = [
   "archive/migrations/hash-monorepo-import-plan.md",
@@ -63,11 +63,10 @@ function documentationFiles(): string[] {
   const found: string[] = [];
   const walk = (dir: string): void => {
     for (const entry of readdirSync(dir).sort()) {
-      if (SKIP_DIRECTORIES.includes(entry) || SKIP_FILES.includes(entry))
-        continue;
+      if (SKIP_DIRECTORIES.has(entry) || SKIP_FILES.has(entry)) continue;
       const path = join(dir, entry);
       const rel = relPath(path);
-      if (INDEX_EXEMPT.includes(rel)) continue;
+      if (INDEX_EXEMPT.has(rel)) continue;
       if (statSync(path).isDirectory()) walk(path);
       else found.push(rel);
     }
@@ -180,7 +179,7 @@ test("relative links in context documentation point at existing files", () => {
   for (const file of FILES) {
     if (
       !file.endsWith(".md") ||
-      LINK_CHECK_EXEMPT.includes(file) ||
+      LINK_CHECK_EXEMPT.has(file) ||
       LINK_CHECK_EXEMPT_PREFIXES.some((prefix) => file.startsWith(prefix))
     )
       continue;

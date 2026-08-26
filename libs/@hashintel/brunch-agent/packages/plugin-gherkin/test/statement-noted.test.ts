@@ -61,7 +61,7 @@ describe("the Gherkin verbatim-grade proposal floor", () => {
           },
         ],
       }),
-    ).toThrow();
+    ).toThrow(v.ValiError);
     expect(() =>
       v.parse(schema, {
         proposals: [
@@ -76,6 +76,6 @@ describe("the Gherkin verbatim-grade proposal floor", () => {
           },
         ],
       }),
-    ).toThrow();
+    ).toThrow(v.ValiError);
   });
 });

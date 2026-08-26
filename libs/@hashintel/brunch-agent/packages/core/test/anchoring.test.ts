@@ -9,11 +9,12 @@ import {
 import {
   archiveSessionLogRead,
   createEmptySessionLogArchive,
+  type EvidenceQuote,
 } from "../src/session-log";
 
 type UserCaptureInput = Extract<
   CaptureInputProposal,
-  { readonly evidence: readonly { readonly excerpt: string }[] }
+  { readonly evidence: readonly EvidenceQuote[] }
 >;
 
 const archive = archiveSessionLogRead(createEmptySessionLogArchive(), {

@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 
 import * as v from "valibot";
 
+import { JsonValueSchema } from "./json-value";
 import {
+  EvidenceQuoteSchema,
   resolveEvidenceQuotes,
   type EvidenceQuote,
   type EvidenceResolutionRefusal,
@@ -10,6 +12,11 @@ import {
   type ArchivedSessionEntry,
   type SessionLogArchive,
 } from "./session-log";
+
+import type { JsonValue } from "./json-value";
+import type { ReadonlyDeep } from "./readonly-deep";
+
+export type { JsonValue } from "./json-value";
 
 export const ABSENCE_STATES = [
   "unknown-to-user",
@@ -43,95 +50,29 @@ export type EpistemicStatus = (typeof EPISTEMIC_STATUSES)[number];
 export type IssueType = (typeof ISSUE_TYPES)[number];
 export type CaptureStatus = "active" | "superseded" | "retracted";
 export type IssueStatus = "open" | "closed";
-export type JsonValue =
-  | null
-  | boolean
-  | number
-  | string
-  | JsonValue[]
-  | { readonly [key: string]: JsonValue };
-
-export interface EvidenceSpan {
-  readonly excerpt: string;
-  readonly pointer: {
-    readonly sessionId: string;
-    readonly entryStart: number;
-    readonly entryEnd: number;
-  };
-  readonly source: "user" | "user-affordance-payload";
-}
-
-export type CaptureContent =
-  | { readonly value: JsonValue }
-  | { readonly absence: AbsenceState };
-
-interface CaptureProposalCommon {
-  readonly confidence: string;
-  readonly content: CaptureContent;
-  readonly alternativeGroup?: string;
-  readonly supersedes?: string;
-}
-
-export type CaptureInputProposal = CaptureProposalCommon &
-  (
-    | {
-        readonly evidence: readonly EvidenceQuote[];
-        readonly epistemicStatus: "explicit" | "inferred" | "tentative";
-      }
-    | {
-        readonly basis: {
-          readonly type: "declared-default";
-          readonly description: string;
-        };
-        readonly epistemicStatus: "defaulted";
-      }
-    | {
-        readonly basis: {
-          readonly type: "documented-transformation";
-          readonly description: string;
-        };
-        readonly epistemicStatus: "external-lookup";
-      }
-  );
-
-export type CaptureProposal = CaptureProposalCommon &
-  (
-    | {
-        readonly evidence: readonly EvidenceSpan[];
-        readonly epistemicStatus: "explicit" | "inferred" | "tentative";
-      }
-    | {
-        readonly basis: {
-          readonly type: "declared-default";
-          readonly description: string;
-        };
-        readonly epistemicStatus: "defaulted";
-      }
-    | {
-        readonly basis: {
-          readonly type: "documented-transformation";
-          readonly description: string;
-        };
-        readonly epistemicStatus: "external-lookup";
-      }
-  );
-
-export type CaptureEnvelope = CaptureProposal & {
-  readonly id: string;
-  readonly dedupKey: string;
-};
-
-export type IssueOrigin =
-  | { readonly type: "harness" }
-  | { readonly type: "plugin"; readonly namespace: string };
-
-export interface CaptureIssue {
-  readonly id: string;
-  readonly type: IssueType;
-  readonly origin: IssueOrigin;
-  readonly references: readonly string[];
-  readonly canDefault: boolean;
-}
+export type EvidenceSpan = ReadonlyDeep<
+  v.InferOutput<typeof evidenceSpanSchema>
+>;
+export type CaptureContent = ReadonlyDeep<v.InferOutput<typeof contentSchema>>;
+type ParsedCaptureInputProposal = ReadonlyDeep<
+  v.InferOutput<typeof CaptureInputProposalSchema>
+>;
+export type CaptureInputProposal =
+  ParsedCaptureInputProposal extends infer Proposal
+    ? Proposal extends { readonly evidence: readonly unknown[] }
+      ? Omit<Proposal, "evidence"> & {
+          readonly evidence: readonly EvidenceQuote[];
+        }
+      : Proposal
+    : never;
+export type CaptureProposal = ReadonlyDeep<
+  v.InferOutput<typeof captureProposalSchema>
+>;
+export type CaptureEnvelope = ReadonlyDeep<
+  v.InferOutput<typeof captureEnvelopeSchema>
+>;
+export type CaptureIssue = ReadonlyDeep<v.InferOutput<typeof issueSchema>>;
+export type IssueOrigin = CaptureIssue["origin"];
 
 export type CaptureAdvisory =
   | {
@@ -141,39 +82,21 @@ export type CaptureAdvisory =
     }
   | MultipleEvidenceMatchesAdvisory;
 
-export interface ResolutionRecord {
-  readonly type: "resolution";
-  readonly id: string;
-  readonly issueId: string;
-  readonly decision: string;
-  readonly evidence: readonly EvidenceSpan[];
-  readonly winnerCaptureId: string;
-  readonly loserCaptureIds: readonly string[];
-}
-
-export interface RetractionEvent {
-  readonly type: "retraction";
-  readonly id: string;
-  readonly captureId: string;
-  readonly evidence: readonly EvidenceSpan[];
-}
-
-export interface IssueClosedEvent {
-  readonly type: "issue-closed";
-  readonly id: string;
-  readonly issueId: string;
-}
-
-export type CaptureStoreEvent =
-  | ResolutionRecord
-  | RetractionEvent
-  | IssueClosedEvent;
-
-export interface CaptureStoreSnapshot {
-  readonly captures: readonly CaptureEnvelope[];
-  readonly issues: readonly CaptureIssue[];
-  readonly events: readonly CaptureStoreEvent[];
-}
+export type ResolutionRecord = ReadonlyDeep<
+  v.InferOutput<typeof resolutionSchema>
+>;
+export type RetractionEvent = ReadonlyDeep<
+  v.InferOutput<typeof retractionSchema>
+>;
+export type IssueClosedEvent = ReadonlyDeep<
+  v.InferOutput<typeof issueClosedSchema>
+>;
+export type CaptureStoreEvent = ReadonlyDeep<
+  v.InferOutput<typeof captureStoreEventSchema>
+>;
+export type CaptureStoreSnapshot = ReadonlyDeep<
+  v.InferOutput<typeof snapshotSchema>
+>;
 
 export interface CaptureStore {
   read(): Promise<CaptureStoreSnapshot>;
@@ -310,9 +233,8 @@ const evidenceSpanSchema = v.strictObject({
   ),
   source: v.picklist(["user", "user-affordance-payload"]),
 });
-const evidenceQuoteSchema = v.strictObject({ excerpt: nonEmptyString });
 const contentSchema = v.union([
-  v.strictObject({ value: v.unknown() }),
+  v.strictObject({ value: JsonValueSchema }),
   v.strictObject({ absence: v.picklist(ABSENCE_STATES) }),
 ]);
 const captureCommonFields = {
@@ -350,7 +272,7 @@ const captureProposalSchema = v.union([
 export const CaptureInputProposalSchema = v.union([
   v.strictObject({
     ...captureCommonFields,
-    evidence: v.pipe(v.array(evidenceQuoteSchema), v.minLength(1)),
+    evidence: v.pipe(v.array(EvidenceQuoteSchema), v.minLength(1)),
     epistemicStatus: v.picklist(["explicit", "inferred", "tentative"]),
   }),
   v.strictObject(defaultedCaptureFields),
@@ -414,12 +336,15 @@ const issueClosedSchema = v.strictObject({
   id: nonEmptyString,
   issueId: nonEmptyString,
 });
+const captureStoreEventSchema = v.variant("type", [
+  resolutionSchema,
+  retractionSchema,
+  issueClosedSchema,
+]);
 const snapshotSchema = v.strictObject({
   captures: v.array(captureEnvelopeSchema),
   issues: v.array(issueSchema),
-  events: v.array(
-    v.variant("type", [resolutionSchema, retractionSchema, issueClosedSchema]),
-  ),
+  events: v.array(captureStoreEventSchema),
 });
 
 /**
@@ -450,7 +375,7 @@ export const createEmptyCaptureStoreSnapshot = (): CaptureStoreSnapshot => ({
 export const parseCaptureStoreSnapshot = (
   input: unknown,
 ): CaptureStoreSnapshot => {
-  const snapshot = v.parse(snapshotSchema, input) as CaptureStoreSnapshot;
+  const snapshot = v.parse(snapshotSchema, input);
   for (const records of [snapshot.captures, snapshot.issues, snapshot.events]) {
     if (new Set(records.map((record) => record.id)).size !== records.length) {
       throw new TypeError(
@@ -459,11 +384,6 @@ export const parseCaptureStoreSnapshot = (
     }
   }
   for (const capture of snapshot.captures) {
-    if ("value" in capture.content && !isJsonValue(capture.content.value)) {
-      throw new TypeError(
-        `Capture ${capture.id} contains a value that cannot be stored as JSON`,
-      );
-    }
     if (capture.dedupKey !== captureDedupKey(capture)) {
       throw new TypeError(
         `Capture ${capture.id} has a stale content dedup key.`,
@@ -606,22 +526,6 @@ export const parseCaptureStoreSnapshot = (
   return snapshot;
 };
 
-const isJsonValue = (value: unknown): value is JsonValue => {
-  if (value === null || typeof value === "string" || typeof value === "boolean")
-    return true;
-  // Negative zero is refused alongside the non-finite numbers: JSON.stringify
-  // writes it as "0", so the read path could never reproduce what was accepted.
-  if (typeof value === "number")
-    return Number.isFinite(value) && !Object.is(value, -0);
-  if (Array.isArray(value)) return value.every(isJsonValue);
-  if (typeof value !== "object") return false;
-  const prototype = Object.getPrototypeOf(value);
-  return (
-    (prototype === Object.prototype || prototype === null) &&
-    Object.values(value as Record<string, unknown>).every(isJsonValue)
-  );
-};
-
 const canonicalize = (value: JsonValue): JsonValue => {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (value !== null && typeof value === "object") {
@@ -747,16 +651,7 @@ const validateProposal = (
       // well formed and declare a source, which is not the same as provenance
       // having been resolved against an entry projection.
       message:
-        "A capture must carry the provenance shape its epistemic status names, exactly one of value or absence, and evidence ranges that do not end before they start.",
-    };
-  }
-  if (
-    "value" in parsed.output.content &&
-    !isJsonValue(parsed.output.content.value)
-  ) {
-    return {
-      code: "invalid-envelope",
-      message: "A capture value must be JSON-compatible.",
+        "A capture must carry the provenance shape its epistemic status names, exactly one JSON-compatible value or absence, and evidence ranges that do not end before they start.",
     };
   }
   return undefined;
@@ -770,16 +665,7 @@ const validateInputProposal = (
     return {
       code: "invalid-envelope",
       message:
-        "A capture must carry the provenance shape its epistemic status names, exactly one of value or absence, and non-empty verbatim evidence quotes.",
-    };
-  }
-  if (
-    "value" in parsed.output.content &&
-    !isJsonValue(parsed.output.content.value)
-  ) {
-    return {
-      code: "invalid-envelope",
-      message: "A capture value must be JSON-compatible.",
+        "A capture must carry the provenance shape its epistemic status names, exactly one JSON-compatible value or absence, and non-empty verbatim evidence quotes.",
     };
   }
   return undefined;
@@ -1218,7 +1104,7 @@ export const applyCaptureStoreCommand = (
       }
       if (
         !v.safeParse(
-          v.pipe(v.array(evidenceQuoteSchema), v.minLength(1)),
+          v.pipe(v.array(EvidenceQuoteSchema), v.minLength(1)),
           command.evidence,
         ).success
       ) {
@@ -1301,7 +1187,7 @@ export const applyCaptureStoreCommand = (
       }
       if (
         !v.safeParse(
-          v.pipe(v.array(evidenceQuoteSchema), v.minLength(1)),
+          v.pipe(v.array(EvidenceQuoteSchema), v.minLength(1)),
           command.evidence,
         ).success
       ) {

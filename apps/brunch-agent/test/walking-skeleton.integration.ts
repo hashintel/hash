@@ -18,6 +18,7 @@ import { toolName } from "@hashintel/brunch-agent";
 import {
   createFlueHistoryReader,
   createLocalCaptureStore,
+  type FlueHistoryReaderOptions,
 } from "@hashintel/brunch-agent-binding-flue";
 
 import {
@@ -28,19 +29,21 @@ import app from "../src/app.ts";
 import { GHERKIN_AGENT_ROUTE } from "../src/routes.ts";
 import { targetDocumentPath } from "../src/target-document-path.ts";
 
+import type { StatementNotedProposalInput } from "@hashintel/brunch-agent-plugin-gherkin";
+
 const ask = toolName("ask");
 const sweep = toolName("sweep");
 const omittedQuote = "A shopper completes checkout.";
 const newlyCapturedQuote = "Payment is authorized before fulfillment.";
 const repairedQuote = "Refunds require approval.";
 const missingQuote = "This quote is not in the conversation.";
-const statementNoted = (quote: string) => ({
+const statementNoted = (quote: string): StatementNotedProposalInput => ({
   evidence: [{ excerpt: quote }],
-  epistemicStatus: "explicit" as const,
-  confidence: "firm" as const,
+  epistemicStatus: "explicit",
+  confidence: "firm",
   content: {
     value: {
-      type: "statement-noted" as const,
+      type: "statement-noted",
       interior: { verbatim: quote },
     },
   },
@@ -136,10 +139,10 @@ const targetDirectory = await mkdtemp(
 
 try {
   process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR = targetDirectory;
-  const fetchApp = ((input: RequestInfo | URL, init?: RequestInit) =>
+  const fetchApp: FlueHistoryReaderOptions["transport"] = (input, init) =>
     Promise.resolve(
       app.fetch(input instanceof Request ? input : new Request(input, init)),
-    )) as typeof fetch;
+    );
   const conversationId = `walking-skeleton-${crypto.randomUUID()}`;
   const targetDocumentId = "walking-skeleton-test";
   const captureStore = createLocalCaptureStore(
@@ -273,7 +276,7 @@ try {
   const serializedReplyContext =
     replyContext === undefined ? undefined : JSON.stringify(replyContext);
 
-  console.log(
+  process.stdout.write(
     `WALKING_SKELETON_RESULT ${JSON.stringify({
       affordanceReplyClassified,
       archivePointerResolved,
@@ -325,7 +328,7 @@ try {
       unaccountedAskAdvisory: appliedSweepOutputs.some((output) =>
         JSON.stringify(output.advisories).includes("unaccounted-ask"),
       ),
-    })}`,
+    })}\n`,
   );
 } finally {
   delete process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR;

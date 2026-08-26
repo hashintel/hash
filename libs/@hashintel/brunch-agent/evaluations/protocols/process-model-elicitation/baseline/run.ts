@@ -39,25 +39,24 @@ const FORCED_WRAP_MESSAGE =
 const CONTINUE_MESSAGE =
   "You were cut off mid-document. Continue exactly from where you stopped — no preamble, no repetition.";
 
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
+type ChatMessage = Omit<Anthropic.MessageParam, "content"> & {
+  content: Extract<Anthropic.MessageParam["content"], string>;
   // Present only when the API ended this model-generated message at its token limit.
   // Older checkpoints and human-authored messages legitimately omit it.
   truncated?: true;
-}
+};
 
-interface Usage {
-  input_tokens: number;
-  output_tokens: number;
-  // Absent in checkpoints written before the SDK migration; treated as 0.
-  cache_creation_input_tokens?: number;
-  cache_read_input_tokens?: number;
-}
+type Usage = Pick<Anthropic.Usage, "input_tokens" | "output_tokens"> &
+  Partial<
+    Pick<
+      Anthropic.Usage,
+      "cache_creation_input_tokens" | "cache_read_input_tokens"
+    >
+  >;
 
 interface CallRecord {
   agent: "interviewer" | "expert" | "classifier";
-  model: string;
+  model: Anthropic.Model;
   usage: Usage;
 }
 
@@ -68,7 +67,7 @@ interface CallResult {
 
 interface RawCheckpoint {
   startedAt: string;
-  condition: string;
+  condition: "1" | "2";
   stopReason: string;
   calls: CallRecord[];
   interviewerMessages: ChatMessage[];
@@ -112,8 +111,9 @@ function usage(): never {
 const conditionArg = process.argv[2];
 const mode = process.argv[3] ?? "fresh";
 if (conditionArg !== "1" && conditionArg !== "2") usage();
-if (!["fresh", "--resume", "--continue-final"].includes(mode)) usage();
-const condition: "1" | "2" = conditionArg;
+if (mode !== "fresh" && mode !== "--resume" && mode !== "--continue-final")
+  usage();
+const condition = conditionArg;
 
 const baseDir = fileURLToPath(new URL(".", import.meta.url));
 const caseDir = fileURLToPath(
@@ -135,7 +135,7 @@ const calls: CallRecord[] = [];
 
 async function callClaude(
   agent: CallRecord["agent"],
-  model: string,
+  model: CallRecord["model"],
   system: string | undefined,
   messages: ChatMessage[],
   maxTokens: number,

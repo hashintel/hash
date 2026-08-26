@@ -1,0 +1,49 @@
+{
+  "$schema": "../../../node_modules/oxlint/configuration_schema.json",
+  "extends": ["./base.json"],
+  "plugins": [
+    "eslint",
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import",
+    "jsdoc",
+    "node",
+    "promise",
+    "vitest",
+    "react",
+    "react-perf",
+    "jsx-a11y"
+  ],
+  "rules": {
+    "react/button-has-type": [
+      "error",
+      { "button": true, "submit": true, "reset": false }
+    ],
+    "react/jsx-no-comment-textnodes": "error",
+    "react/jsx-no-target-blank": ["error", { "enforceDynamicLinks": "always" }],
+    "react/jsx-pascal-case": ["error", { "allowAllCaps": true }],
+    "react/no-array-index-key": "error",
+    "react/no-danger": "error",
+    "jsx-a11y/aria-role": ["error", { "ignoreNonDOM": false }],
+    "jsx-a11y/label-has-associated-control": "error",
+    "jsx-a11y/no-noninteractive-tabindex": [
+      "error",
+      { "tags": [], "roles": ["tabpanel"] }
+    ],
+    "jsx-a11y/no-static-element-interactions": [
+      "error",
+      {
+        "handlers": [
+          "onClick",
+          "onMouseDown",
+          "onMouseUp",
+          "onKeyPress",
+          "onKeyDown",
+          "onKeyUp"
+        ]
+      }
+    ],
+    "jsx-a11y/prefer-tag-over-role": "off"
+  }
+}

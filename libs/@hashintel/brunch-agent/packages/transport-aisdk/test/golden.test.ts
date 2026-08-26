@@ -3,49 +3,54 @@ import { join } from "node:path";
 
 import { describe, expect, test } from "vitest";
 
-type MessagePart = {
-  readonly input?: unknown;
-  readonly output?: { readonly applied?: boolean };
-  readonly providerExecuted?: boolean;
-  readonly state?: string;
-  readonly text?: string;
-  readonly toolCallId?: string;
-  readonly toolName?: string;
-  readonly type: string;
-};
+import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
-type PanelMessage = {
-  readonly id: string;
-  readonly parts: MessagePart[];
-  readonly role: string;
-};
+type SendMessagesOptions = Parameters<
+  ChatTransport<UIMessage>["sendMessages"]
+>[0];
+type ToolMessagePart = Extract<
+  UIMessage["parts"][number],
+  { type: `tool-${string}` }
+>;
+type ToolInputChunk = Extract<UIMessageChunk, { type: "tool-input-available" }>;
 
 type PanelPostBody = {
-  readonly id: string;
-  readonly messageId?: string;
-  readonly messages: PanelMessage[];
-  readonly trigger: string;
-};
-
-type StreamChunk = MessagePart & {
-  readonly delta?: string;
-  readonly finishReason?: string;
-  readonly messageId?: string;
+  readonly id: SendMessagesOptions["chatId"];
+  readonly messageId?: SendMessagesOptions["messageId"];
+  readonly messages: SendMessagesOptions["messages"];
+  readonly trigger: SendMessagesOptions["trigger"];
 };
 
 const FIXTURES = join(import.meta.dirname, "fixtures");
 
+const isToolMessagePart = (
+  part: UIMessage["parts"][number],
+): part is ToolMessagePart => part.type.startsWith("tool-");
+
+const isClientToolOutput = (
+  part: UIMessage["parts"][number],
+): part is ToolMessagePart =>
+  isToolMessagePart(part) &&
+  (part.type === "tool-addPlace" || part.type === "tool-addTransition");
+
+const appliedFrom = (part: ToolMessagePart): unknown =>
+  typeof part.output === "object" &&
+  part.output !== null &&
+  "applied" in part.output
+    ? part.output.applied
+    : undefined;
+
 const readPostBody = (name: string): PanelPostBody =>
   JSON.parse(readFileSync(join(FIXTURES, name), "utf8")) as PanelPostBody;
 
-const readSseChunks = (name: string): StreamChunk[] => {
+const readSseChunks = (name: string): UIMessageChunk[] => {
   const frames = readFileSync(join(FIXTURES, name), "utf8")
     .trim()
     .split("\n\n");
   expect(frames.at(-1)).toBe("data: [DONE]");
   return frames.slice(0, -1).map((frame) => {
     expect(frame.startsWith("data: ")).toBe(true);
-    return JSON.parse(frame.slice("data: ".length)) as StreamChunk;
+    return JSON.parse(frame.slice("data: ".length)) as UIMessageChunk;
   });
 };
 
@@ -66,19 +71,13 @@ describe("FE-1435 real-panel wire transcript", () => {
     expect(body.messages).toHaveLength(3);
 
     const assistant = body.messages[1]!;
-    const clientToolOutputs = assistant.parts.filter(
-      (part) =>
-        part.type === "tool-addPlace" || part.type === "tool-addTransition",
-    );
+    const clientToolOutputs = assistant.parts.filter(isClientToolOutput);
     expect(clientToolOutputs).toHaveLength(2);
     expect(clientToolOutputs.map((part) => part.state)).toEqual([
       "output-available",
       "output-available",
     ]);
-    expect(clientToolOutputs.map((part) => part.output?.applied)).toEqual([
-      true,
-      true,
-    ]);
+    expect(clientToolOutputs.map(appliedFrom)).toEqual([true, true]);
 
     const serverTool = assistant.parts.find(
       (part) => part.type === "tool-serverProbe",
@@ -91,8 +90,11 @@ describe("FE-1435 real-panel wire transcript", () => {
 
     const diagnostics = body.messages[2]!;
     expect(diagnostics.id).toBe("petrinaut-diagnostics-context");
+    const diagnosticsText = diagnostics.parts.find(
+      (part) => part.type === "text",
+    );
     expect(
-      diagnostics.parts[0]?.text?.startsWith(
+      diagnosticsText?.text.startsWith(
         "Petrinaut diagnostics context only; this is not a user request.",
       ),
     ).toBe(true);
@@ -113,7 +115,7 @@ describe("FE-1435 real-panel wire transcript", () => {
     expect(
       chunks
         .filter(
-          (chunk) =>
+          (chunk): chunk is ToolInputChunk =>
             chunk.type === "tool-input-available" &&
             chunk.providerExecuted !== true,
         )

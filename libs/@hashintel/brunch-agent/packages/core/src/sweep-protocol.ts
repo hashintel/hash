@@ -2,11 +2,10 @@ import * as v from "valibot";
 
 import { toolName } from "./naming";
 
-import type {
-  CaptureInputProposal,
-  CaptureStoreRefusal,
-} from "./capture-store";
+import type { FreeTextAffordance } from "./affordance";
+import type { CaptureInputProposal } from "./capture-store";
 import type { Plugin } from "./plugin";
+import type { ReadonlyDeep } from "./readonly-deep";
 import type { SessionEntryKind } from "./session-log";
 
 const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
@@ -22,18 +21,22 @@ export const createSweepExtractionResultSchema = (
     proposals: v.array(plugin.proposalCatalog[0].schema),
   });
 
-export interface SweepAffordance {
-  readonly id: string;
-  readonly markdown: string;
-}
+export type SweepAffordance = Pick<FreeTextAffordance, "id" | "markdown">;
 
 export interface SweepRefusalFact {
+  /** Durable history may contain refusal codes from a different harness version. */
   readonly code: string;
   readonly message: string;
 }
 
+export const SWEEP_RESULT_STATUSES = [
+  "no-settled-range",
+  "refused",
+  "applied",
+] as const;
+
 export interface SweepResultFact {
-  readonly status: "no-settled-range" | "refused" | "applied";
+  readonly status: (typeof SWEEP_RESULT_STATUSES)[number];
   readonly refusal?: SweepRefusalFact;
 }
 
@@ -48,15 +51,12 @@ export interface SweepSessionEntry {
   readonly sweepRepairSignal?: true;
 }
 
-export interface SweepState {
-  /** Latest true-user entry included in a successfully applied sweep. */
-  readonly sweptThroughUserEntryId: string | null;
-  /** Loop guard: latest true-user entry offered for settlement judgment. */
-  readonly lastCheckedUserEntryId: string | null;
-}
+export type SweepState = ReadonlyDeep<v.InferOutput<typeof sweepStateSchema>>;
 
 const sweepStateSchema = v.strictObject({
+  /** Latest true-user entry included in a successfully applied sweep. */
   sweptThroughUserEntryId: v.nullable(nonEmptyString),
+  /** Loop guard: latest true-user entry offered for settlement judgment. */
   lastCheckedUserEntryId: v.nullable(nonEmptyString),
 });
 
@@ -237,7 +237,7 @@ export interface SweepRepairSignal {
 }
 
 export const buildSweepRepairSignal = (
-  refusal: Pick<CaptureStoreRefusal, "code" | "message"> | SweepRefusalFact,
+  refusal: SweepRefusalFact,
 ): SweepRepairSignal => ({
   type: "sweep-repair",
   tagName: "sweep-repair",
