@@ -320,7 +320,7 @@ impl TamperFixture {
     }
 }
 
-/// A node identity table short of the code column is refused under `Identities`.
+/// Open refuses a node identity table short of the code column, under `Identities`.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn short_node_identity_table_refuses() {
@@ -339,7 +339,7 @@ async fn short_node_identity_table_refuses() {
     fixture.open().expect("the repaired fixture opens");
 }
 
-/// An edge identity table short of the adjacency's edge domain is refused under
+/// Open refuses an edge identity table short of the adjacency's edge domain, under
 /// `EdgeIdentities`.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
@@ -359,7 +359,7 @@ async fn short_edge_identity_table_refuses() {
     fixture.open().expect("the repaired fixture opens");
 }
 
-/// An ontology identity table short of the postings' type domain is refused under `Types`.
+/// Open refuses an ontology identity table short of the postings' type domain, under `Types`.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn short_ontology_identity_table_refuses() {
@@ -382,7 +382,7 @@ async fn short_ontology_identity_table_refuses() {
     fixture.open().expect("the repaired fixture opens");
 }
 
-/// A base-order column short of the code column is refused under `Columns`.
+/// Open refuses a base-order column short of the code column, under `Columns`.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn short_rank_column_refuses() {
@@ -412,7 +412,7 @@ async fn short_rank_column_refuses() {
     fixture.open().expect("the repaired fixture opens");
 }
 
-/// An adjacency spanning an extra node row is refused under `Nodes`.
+/// Open refuses an adjacency spanning an extra node row, under `Nodes`.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn respanned_adjacency_refuses() {
@@ -437,7 +437,7 @@ async fn respanned_adjacency_refuses() {
     fixture.open().expect("the repaired fixture opens");
 }
 
-/// An endpoint column short of the adjacency's edge domain is refused under `Edges`.
+/// Open refuses an endpoint column short of the adjacency's edge domain, under `Edges`.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn short_endpoint_column_refuses() {
@@ -459,7 +459,8 @@ async fn short_endpoint_column_refuses() {
     fixture.open().expect("the repaired fixture opens");
 }
 
-/// A quadtree root whose subtree count lies below the point count is refused under `Subtree`.
+/// Open refuses a quadtree root whose subtree count lies below the point count, under
+/// `Subtree`.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn retargeted_quad_root_refuses() {
@@ -483,7 +484,7 @@ async fn retargeted_quad_root_refuses() {
     fixture.open().expect("the repaired fixture opens");
 }
 
-/// A postings point domain above the code column's count is refused under `Points`.
+/// Open refuses a postings point domain above the code column's count, under `Points`.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn retargeted_postings_points_refuses() {
