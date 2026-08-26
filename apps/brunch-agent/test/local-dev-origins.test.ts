@@ -28,7 +28,7 @@ test("one documented root command starts the Brunch server and Petrinaut panel",
     "yarn workspace @apps/brunch-agent dev",
   );
   expect(rootPackage.scripts["dev:brunch:panel"]).toBe(
-    "yarn workspace @apps/brunch-agent petrinaut:dev",
+    'PETRINAUT_WEBSITE_ROOT="$PWD/apps/petrinaut-website" yarn workspace @apps/brunch-agent petrinaut:dev',
   );
   expect(readAppFile("README.md")).toContain("yarn dev:brunch");
 });

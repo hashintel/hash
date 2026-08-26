@@ -79,30 +79,30 @@ const storePath = async (): Promise<string> => {
 describe("local capture store", () => {
   test("refuses a different opaque owner before reading or writing a target document", async () => {
     const path = await storePath();
-    const owner = createLocalCaptureStoreAdapter(path, {
+    const ownerStore = createLocalCaptureStoreAdapter(path, {
       ownerKey: "principal-a",
     });
-    await archiveThroughBinding(owner, {
+    await archiveThroughBinding(ownerStore, {
       sessionId: "session-a",
       offset: "0",
       entries: [],
       settlements: [],
     });
-    await archiveThroughBinding(owner, {
+    await archiveThroughBinding(ownerStore, {
       sessionId: "session-c",
       offset: "0",
       entries: [],
       settlements: [],
     });
 
-    const intruder = createLocalCaptureStoreAdapter(path, {
+    const intruderStore = createLocalCaptureStoreAdapter(path, {
       ownerKey: "principal-b",
     });
-    await expect(intruder.read()).rejects.toMatchObject({
+    await expect(intruderStore.read()).rejects.toMatchObject({
       code: "target-document-owner-mismatch",
     });
     await expect(
-      archiveThroughBinding(intruder, {
+      archiveThroughBinding(intruderStore, {
         sessionId: "session-b",
         offset: "0",
         entries: [],

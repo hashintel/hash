@@ -9,9 +9,9 @@ export const getOrCreateBrunchPrincipal = (
   storage: PrincipalStorage = window.localStorage,
   createPrincipal: () => string = () => crypto.randomUUID(),
 ): string => {
-  const existing = storage.getItem(principalStorageKey);
-  if (existing) {
-    return existing;
+  const existingPrincipal = storage.getItem(principalStorageKey);
+  if (existingPrincipal) {
+    return existingPrincipal;
   }
 
   const principal = createPrincipal();

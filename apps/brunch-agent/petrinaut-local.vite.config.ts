@@ -8,7 +8,6 @@
  */
 
 import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 
 import {
   defineConfig,
@@ -40,9 +39,10 @@ const withoutIncumbentChatHandler = (
   });
 
 export default defineConfig(async (environment) => {
-  const websiteRoot =
-    process.env.PETRINAUT_WEBSITE_ROOT ??
-    fileURLToPath(new URL("../petrinaut-website/", import.meta.url));
+  const websiteRoot = process.env.PETRINAUT_WEBSITE_ROOT;
+  if (!websiteRoot) {
+    throw new Error("PETRINAUT_WEBSITE_ROOT is required.");
+  }
   const root = resolve(websiteRoot);
   // Babel resolves the React compiler plugin from the launched project's cwd,
   // not from the imported config file. Match a native hash launch before the

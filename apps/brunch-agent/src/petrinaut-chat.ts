@@ -17,7 +17,10 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { SdcpnElicitor } from "./agents/sdcpn-elicitor.ts";
-import { createSdcpnElicitationSession } from "./elicitation-session.ts";
+import {
+  createSdcpnElicitationSession,
+  resolvePetrinautSessionIdentity,
+} from "./elicitation-session.ts";
 import { defaultPanelOrigins } from "./local-dev-origins.ts";
 
 const inspect =
@@ -29,21 +32,22 @@ const inspect =
       }
     : undefined;
 
-const targetDocumentIdFor = (principalKey: string): string =>
-  `petrinaut-local:${principalKey}`;
-
 const streamElicitorTurn = async (
   principalKey: string,
   conversationId: string,
   dispatch: { readonly message: string; readonly idempotencyKey: string },
   emit: (event: HarnessReplyEvent) => void,
 ): Promise<void> => {
-  const agent = init(SdcpnElicitor, { id: conversationId });
+  const identity = resolvePetrinautSessionIdentity(
+    principalKey,
+    conversationId,
+  );
+  const agent = init(SdcpnElicitor, { id: identity.sessionId });
   const receipt = await agent.dispatch({
     ...dispatch,
     initialData: {
-      ownerKey: principalKey,
-      targetDocumentId: targetDocumentIdFor(principalKey),
+      ownerKey: identity.ownerKey,
+      targetDocumentId: identity.targetDocumentId,
     },
   });
   const projector = createFlueReplyProjector({
@@ -73,13 +77,17 @@ export const petrinautChatHandler = createAiSdkChatHandler({
     // submission resumes the conversation only when its tool-call id
     // correlates with the one ask still awaiting a reply.
     async admit(input) {
-      const session = createSdcpnElicitationSession(
-        input.conversationId,
-        targetDocumentIdFor(input.principalKey),
+      const identity = resolvePetrinautSessionIdentity(
         input.principalKey,
+        input.conversationId,
+      );
+      const session = createSdcpnElicitationSession(
+        identity.sessionId,
+        identity.targetDocumentId,
+        identity.ownerKey,
       );
       const entries = projectFlueHistoryForSweep(
-        await session.historyReader.peek(input.conversationId),
+        await session.historyReader.peek(identity.sessionId),
       );
       return decideAskReplyAdmission(
         pendingAskAffordanceId(entries),

@@ -34,7 +34,7 @@
     "dev:backend": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --",
     "dev:backend:api": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --",
     "dev:brunch": "npm-run-all --parallel dev:brunch:server dev:brunch:panel",
-    "dev:brunch:panel": "yarn workspace @apps/brunch-agent petrinaut:dev",
+    "dev:brunch:panel": "PETRINAUT_WEBSITE_ROOT=\"$PWD/apps/petrinaut-website\" yarn workspace @apps/brunch-agent petrinaut:dev",
     "dev:brunch:server": "yarn workspace @apps/brunch-agent dev",
     "dev:frontend": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-frontend' --",
     "dev:petrinaut-optimization": "yarn workspace @apps/petrinaut-website dev:optimization",
