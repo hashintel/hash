@@ -23,7 +23,7 @@ storage. The problem is connecting the second to the first without rebuilding ei
 The brunch elicitor runs as a **remote server** built on the harness + `binding-flue`. The
 demo site swaps its `aiAssistant.transport` to point at that server; everything else in the
 panel — rendering, the diagnostics decorator, client-side tool execution — is reused as-is.
-The elicitor drives Petrinaut's editor through the **existing client-executed tool surface**
+The elicitor drives Petrinaut's editor through the **existing UI-executed tool surface**
 (schemas imported from `petrinaut-core`), riding the harness's turn-suspension protocol: a
 turn ends with tool calls pending, the panel executes them, and the outputs return on the next
 dispatch. Sessions, captures, and IRs persist server-side, keyed to an opaque principal the
@@ -52,7 +52,7 @@ The panel and the voice edge attach to Brunch through one stable surface:
 
 1. **Chat stream**: the UI sends `POST /api/chat`; a successful response is an AI SDK v6
    UI-message stream over HTTP/SSE.
-2. **Question affordance**: the client-executed tool is named `brunch_ask`. Its input schema is
+2. **Question affordance**: the UI-executed tool is named `brunch_ask`. Its input schema is
    `{ question: non-empty string }`; its submitted output schema is
    `{ answer: non-empty string }`.
 3. **Principal identity**: every request carries one non-empty, opaque principal in the
@@ -156,7 +156,7 @@ or triggers an explicit contract revision.
 - The elicitor's Petrinaut tools are generated from `petrinaut-core`'s exported tool schemas,
   so the tool surface tracks Petrinaut's own contract rather than a hand-copied one.
 - The panel executes only tool names it knows and throws on unknowns; brunch-only tools
-  therefore execute server-side. If a client-executed brunch tool is ever needed, the change
+  therefore execute server-side. If a UI-executed brunch tool is ever needed, the change
   is a generic host-supplied-handlers extension to the `aiAssistant` prop (post-import,
   per ADR-0004's boundary discipline).
 

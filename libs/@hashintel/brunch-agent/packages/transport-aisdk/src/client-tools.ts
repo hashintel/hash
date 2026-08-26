@@ -11,6 +11,7 @@ import {
 } from "@hashintel/brunch-agent/client-tools";
 
 export const ASK_TOOL_NAME = toolName("ask");
+export const SWEEP_TOOL_NAME = toolName("sweep");
 
 export type BrunchAskInput = v.InferOutput<typeof AskInput>;
 export type BrunchAskOutput = v.InferOutput<typeof AskSubmission>;

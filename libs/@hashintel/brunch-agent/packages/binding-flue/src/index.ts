@@ -41,6 +41,7 @@ import {
   createInitialSweepState,
   decidePendingAffordance,
   decideSettlementTrigger,
+  deriveCaptureStatus,
   evaluateCompletion,
   foldElicitedModel,
   mintAskAffordance,
@@ -54,7 +55,6 @@ import {
   toolName,
   type CaptureStore,
   type CaptureStoreSnapshot,
-  type CompletionReport,
   type FreeTextAffordanceValue,
   type Plugin,
   type SweepState,
@@ -69,50 +69,6 @@ import {
 
 const SweepToolOutput = v.looseObject({
   status: v.picklist(SWEEP_RESULT_STATUSES),
-});
-
-const captureSummary = (
-  capture: CaptureStoreSnapshot["captures"][number],
-): string => {
-  const content =
-    "value" in capture.content
-      ? JSON.stringify(capture.content.value)
-      : `absence: ${capture.content.absence}`;
-  const provenance =
-    "evidence" in capture
-      ? capture.evidence.map((evidence) => `“${evidence.excerpt}”`).join("; ")
-      : `${capture.basis.type}: ${capture.basis.description}`;
-  return `Capture ${capture.id}: ${content} — ${provenance}`;
-};
-
-type ReadableCompletionReport = CompletionReport & {
-  readonly cue: string;
-  readonly unmapped: readonly unknown[];
-  readonly unsatisfied: number;
-};
-
-const readableAppliedSweep = ({
-  appliedCaptureIds,
-  completion,
-  snapshot,
-}: {
-  readonly appliedCaptureIds: readonly string[];
-  readonly completion?: ReadableCompletionReport;
-  readonly snapshot: CaptureStoreSnapshot;
-}) => ({
-  title: "Sweep applied",
-  detail: `${appliedCaptureIds.length} new capture${appliedCaptureIds.length === 1 ? "" : "s"} · ${snapshot.captures.length} total · ${completion?.complete === true ? "complete" : "incomplete"}`,
-  items: [
-    ...snapshot.captures.map(captureSummary),
-    ...(completion === undefined
-      ? []
-      : [
-          `Completion: ${completion.complete ? "complete" : `${completion.failures.length} requirements remain`}.`,
-          ...completion.failures.map(
-            (failure) => `Completion gap: ${failure.message}`,
-          ),
-        ]),
-  ],
 });
 
 export { CAPABILITIES, type Capability, type Provision } from "./capabilities";
@@ -308,12 +264,12 @@ export function useElicitation(
             ...("advisories" in applied.value ? applied.value.advisories : []),
             ...computeUnaccountedAskAdvisories(range, accountedEntryIds),
           ],
+          captures: applied.snapshot.captures.map((capture) =>
+            Object.assign({}, capture, {
+              status: deriveCaptureStatus(applied.snapshot, capture.id),
+            }),
+          ),
           ...(completion === undefined ? {} : { completion }),
-          ...readableAppliedSweep({
-            appliedCaptureIds,
-            completion,
-            snapshot: applied.snapshot,
-          }),
         },
       };
     },

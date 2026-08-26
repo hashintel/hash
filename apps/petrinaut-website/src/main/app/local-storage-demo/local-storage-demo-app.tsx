@@ -19,6 +19,7 @@ import {
 
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
+import { createBrunchPanelTransport } from "./brunch-panel-transport";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import {
@@ -83,12 +84,14 @@ const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
   });
 
 const petrinautAiChatTransport: PetrinautAiChatTransport =
-  new DefaultChatTransport({
-    api: "/api/chat",
-    headers: () => ({
-      [BRUNCH_PRINCIPAL_HEADER]: getOrCreateBrunchPrincipal(),
+  createBrunchPanelTransport(
+    new DefaultChatTransport({
+      api: "/api/chat",
+      headers: () => ({
+        [BRUNCH_PRINCIPAL_HEADER]: getOrCreateBrunchPrincipal(),
+      }),
     }),
-  });
+  );
 
 const getStoredSDCPNsForDisplay = (
   storedSDCPNs: Record<string, SDCPNInLocalStorage>,

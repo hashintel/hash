@@ -110,29 +110,21 @@ test("condition 5 drives the shipped elicitor through the binding and reads the 
     appliedSweepPart.state !== "output-available" ||
     !isRecord(appliedSweepPart.output)
   ) {
-    throw new Error("The applied sweep did not expose a readable output.");
+    throw new Error("The applied sweep did not expose its result.");
   }
   expect(appliedSweepPart.output.status).toBe("applied");
-  expect(appliedSweepPart.output.title).toBe("Sweep applied");
-  expect(appliedSweepPart.output.detail).toBe(
-    "1 new capture · 1 total · incomplete",
-  );
-  const { items } = appliedSweepPart.output;
-  expect(Array.isArray(items)).toBe(true);
-  if (!Array.isArray(items)) throw new Error("Sweep items were not a list.");
-  expect(
-    items.some(
-      (item) =>
-        typeof item === "string" && item.includes(EXPERT_OBJECTIVE_QUOTE),
-    ),
-  ).toBe(true);
-  expect(
-    items.some(
-      (item) =>
-        typeof item === "string" &&
-        item.includes("Completion: 5 requirements remain"),
-    ),
-  ).toBe(true);
+  const sweepCaptures = appliedSweepPart.output.captures;
+  if (!Array.isArray(sweepCaptures) || !isRecord(sweepCaptures[0])) {
+    throw new Error("The sweep did not expose its current captures.");
+  }
+  expect(sweepCaptures).toHaveLength(1);
+  expect(sweepCaptures[0].status).toBe("active");
+  const { evidence } = sweepCaptures[0];
+  expect(Array.isArray(evidence)).toBe(true);
+  if (!Array.isArray(evidence) || !isRecord(evidence[0])) {
+    throw new Error("The capture did not expose its evidence.");
+  }
+  expect(evidence[0].excerpt).toBe(EXPERT_OBJECTIVE_QUOTE);
   const { completion } = appliedSweepPart.output;
   if (!isRecord(completion) || !Array.isArray(completion.failures)) {
     throw new Error("The sweep did not expose its completion report.");
