@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -53,6 +53,9 @@ test("condition 5 drives the shipped elicitor through the binding and reads the 
     { text: "Then I'll get back to the floor." },
     { text: "Cheers." },
   ];
+  // The shared expert stub reads its scripted replies from a file, never inline.
+  const expertRepliesPath = join(outputDirectory, "expert-replies.json");
+  await writeFile(expertRepliesPath, JSON.stringify(expertReplies));
 
   const { exitCode, stderr } = await runNodeScript(
     runner,
@@ -61,7 +64,7 @@ test("condition 5 drives the shipped elicitor through the binding and reads the 
       BRUNCH_BASELINE_TEST_OUTPUT_DIR: outputDirectory,
       BRUNCH_BASELINE_ANTHROPIC_MODULE: expertStub,
       BRUNCH_BASELINE_INTERVIEWER_PROVIDER_MODULE: interviewer,
-      BASELINE_STUB_REPLIES: JSON.stringify(expertReplies),
+      BASELINE_STUB_REPLIES_PATH: expertRepliesPath,
       BRUNCH_SDCPN_MODEL: "claude-haiku-4-5",
     },
   );

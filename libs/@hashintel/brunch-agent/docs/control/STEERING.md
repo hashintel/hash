@@ -71,9 +71,11 @@ No hard blocker chain remains from the retired design queue. The authoring lane'
 method — both plugins written together, the catalogue converging — is [S-009](STRATEGY-LOG.md#s-009)'s.
 Linear reflects both as of 2026-08-25. Numbering note: S-007 redefined FE-1404 as "condition 3 as the
 protocol originally defined it"; in the protocol that run is now **condition 5**, and the retired
-prompt-plus-operator instrument keeps the number 3. FE-1404's body still says condition 3 and still
-expects the instrument salvaged and deleted; neither has happened (Linear edit pending approval;
-the instrument is frozen in place with an amendment, not deleted).
+prompt-plus-operator instrument keeps the number 3. FE-1404's body still says condition 3 (Linear
+edit pending approval). Its salvage-and-delete expectation was settled on 2026-08-26: salvage
+assessed as none (the validators encoded the domain-keyed DemandTable S-007 ruled out; the
+kind-level fold and `evaluateCompletion` now do the job), and the instrument, lock, operator
+documents, `run.ts` paths, and test were deleted; the preregistration and prompt remain as record.
 
 ### Next arc — candidate streams awaiting selection (2026-08-26)
 

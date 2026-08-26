@@ -340,7 +340,9 @@ scoring condition 5 with the text classifier, because condition 4 had just shown
 records its result under Proof 1 and its latency as an immediate concern with its own assessment.
 FE-1404 is that run under a different number; its Linear body and its salvage-and-delete
 expectation for the condition-3 instrument are unreconciled (Linear edit pending approval; the
-instrument is frozen in place with an amendment). The runner's `stalled` stop label misnames a
+instrument is frozen in place with an amendment). _Addendum 2026-08-26:_ the instrument was
+deleted the next day on Lu's decision, salvage assessed as none; the preregistration and prompt
+remain. The runner's `stalled` stop label misnames a
 deliberate interviewer self-stop and is renamed when the runner is next touched. No spec, key,
 or sequencing cut changes.
 
@@ -348,7 +350,7 @@ or sequencing cut changes.
 step is added to the protocol, not a classifier); or the frozen conditions 1–2 stop being a fair
 reference because the expert or situation pack changes.
 
-**Supersedes:** none (amends S-007's condition-3 sentence; complements S-009)
+**Supersedes:** none
 
 **Evidence links:** [baseline protocol](../../evaluations/protocols/process-model-elicitation/baseline/protocol.md),
 [condition-3 preregistration (amended)](../../evaluations/protocols/process-model-elicitation/baseline/condition-3-preregistration.md),

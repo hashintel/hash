@@ -6,8 +6,9 @@ completion diagnostics drive the guidance? The read-out lives in the immutable
 
 **Status (2026-08-25).** Conditions 1 and 2 are frozen reference evidence: they are rerun only if
 the instrument itself changes (expert pack, probes, turn budget), never per design cycle. Condition
-3 is retired, never run; its preregistration and lock stay as the record of what was planned (see
-the amendment atop [condition-3-preregistration.md](condition-3-preregistration.md)). Conditions 4
+3 is retired, never run; its preregistration and prompt stay as the record of what was planned (see
+the amendments atop [condition-3-preregistration.md](condition-3-preregistration.md)); its
+instrument code, lock, and operator documents were deleted on 2026-08-26. Conditions 4
 and 5 are the live arms of the ADR-0007 convergence cycles: 4 measures the teaching layer as text,
 5 measures the shipped harness around that text. Each design cycle reruns both.
 
@@ -43,13 +44,14 @@ are tiered: freely given, _(tacit)_ (surfaces only under reaching questions), _(
 (honest perspective error), _(doesn't know)_ (genuine absences the interviewer should record
 rather than fill).
 
-## Mechanics ([run.ts](run.ts) for conditions 1–4; [harness-run.ts](harness-run.ts) for 5)
+## Mechanics ([run.ts](run.ts) for conditions 1, 2, and 4; [harness-run.ts](harness-run.ts) for 5)
 
 - Alternating API calls; each side sees only its own history. The interviewer never sees the
   situation pack; the expert never sees the v0 prompt.
 - In condition 3 (retired), a separate operator would have seen only transcript-visible evidence
   and the frozen FE-1402 DemandTable, emitting a judgment trace after every expert answer while the
-  interviewer received only the selected diagnostic; the code remains in `run.ts`, sealed.
+  interviewer received only the selected diagnostic; that code was deleted on 2026-08-26 and
+  survives only in git history.
 - A `claude-haiku-4-5` classifier checks each interviewer turn for the final model deliverable;
   delivery ends the run. Condition 5 has no classifier: the deliverable is the capture store,
   folded, and the interviewer ends its own turn-taking by replying without a question. The
@@ -73,24 +75,18 @@ rather than fill).
 - **Impatience probe**: on exchange 8 the runner appends a scripted time-pressure line to the
   expert's reply, identically in both conditions (LLMREI found LLM interviewers end too readily
   on impatience cues; ReqElicitGym found the opposite failure of exhausting the budget — the
-  probe plus the budget makes both observable). Conditions 1 and 2 retain that inherited placement;
-  condition 3 triggers it on the first expert reply after the static floor passes and one objective
-  row is active.
-- Condition 3 raises a test-only `NP` advisory after three consecutive non-material expert frames
-  and ends questioning after five, then permits exactly one interviewer response to deliver the best
-  supportable result and explicit gaps. Only a new/replacement demanded evidence quote from the new
-  expert turn resets the streak; regrading, row drift, quote order/duplication, and array length do
-  not. It keeps completion unchanged and logs the intervention.
+  probe plus the budget makes both observable). Conditions 1, 2, and 4 use that inherited
+  placement; condition 3 would have triggered it on the first expert reply after its static floor
+  passed with one objective row active, and would have added a no-progress advisory and hard stop
+  (see its preregistration).
 - **Turn budget**: forced wrap-up at 20 interviewer turns ("produce the model now"), hard stop
   at 24. Delivering only at the forced wrap is itself a stopping-discipline finding. Condition 5
   keeps the same numbers and the same impatience line at turn 8.
 - The interviewer keeps the model's default adaptive thinking (part of "vanilla Claude"); the
   expert and classifier run with thinking disabled. When a final delivery is cut off at the
-  response budget, the legacy runner stitches continuation responses into one message
-  (`--continue-final` repairs an already-finished run the same way). Condition 3 instead preserves
-  each truncation seam and writes seal-bound resume/continuation output to a new numbered segment,
-  leaving its source raw checkpoint and marker unchanged. A checkpoint is written after every
-  exchange.
+  response budget, the runner stitches continuation responses into one message
+  (`--continue-final` repairs an already-finished run the same way). A checkpoint is written after
+  every exchange.
 - Sampling is default-temperature; runs are single-shot (n=1 per condition), so treat every
   read-out claim as existence evidence, not a rate estimate.
 
@@ -104,9 +100,8 @@ Condition 4 otherwise uses conditions 1–2's mechanics: the legacy impatience p
 budget, and delivery classifier. Condition 5 runs from the application package, which owns the
 agent composition: `turbo run baseline:harness --filter '@apps/brunch-agent'` (builds the workspace
 first; writes `condition-5.md`, `condition-5.raw.json`, `condition-5-model.md`,
-`condition-5-captures.json`, and `condition-5-system.md`). Condition 3's `-- 3` entry point remains
-in `run.ts` but is retired; its lock no longer matches `protocol.md`, so it refuses to run.
-Production transcripts land in
+`condition-5-captures.json`, and `condition-5-system.md`). `run.ts` accepts only `1`, `2`, and `4`;
+condition 3 has no entry point. Production transcripts land in
 `docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/`. Tests set
   `BRUNCH_BASELINE_TEST_OUTPUT_DIR` to an isolated directory and never write committed evidence;
   the condition-5 test additionally swaps both models for stand-ins
