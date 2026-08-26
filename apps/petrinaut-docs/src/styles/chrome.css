@@ -1,0 +1,212 @@
+/*
+ * Chrome overrides for the architecture docs site, registered as Starlight's
+ * `customCss`. Custom CSS is unlayered, so these rules win over Starlight's
+ * `@layer starlight.core` without needing extra specificity to fight it. The
+ * exception is `Page.astro`'s inline `<style>` block, which is also unlayered:
+ * `--sl-content-inline-start` and the no-sidebar `--sl-content-width` are set
+ * there, so the `:root[data-has-sidebar]` prefixes below are load-bearing
+ * specificity, not decoration.
+ *
+ * Every sidebar rule is gated on `[data-has-sidebar]`: the 404 page uses the
+ * splash template, which has no sidebar to toggle, resize, or collapse.
+ */
+
+:root {
+  /*
+   * Starlight derives both side panels from `--sl-sidebar-width`. The left nav
+   * takes its own width so collapsing it can zero that one without flattening
+   * the on-this-page column, which keeps this variable for the right panel.
+   */
+  --sl-sidebar-width: 15rem;
+  --sl-content-width: 56rem;
+
+  /* Set inline on `<html>` by the resize handle, then restored on load. */
+  --pnd-sidebar-open-width: 15.5rem;
+  --pnd-sidebar-width: var(--pnd-sidebar-open-width);
+}
+
+/* Collapsing hands the width the nav gives up to the content column. */
+:root[data-has-sidebar][data-pnd-sidebar="collapsed"] {
+  --pnd-sidebar-width: 0rem;
+  --sl-content-width: 64rem;
+}
+
+/* 50rem is where Starlight turns the mobile drawer into a fixed rail. */
+@media (min-width: 50rem) {
+  :root[data-has-sidebar] {
+    --sl-content-inline-start: var(--pnd-sidebar-width);
+  }
+
+  .sidebar-pane {
+    width: var(--pnd-sidebar-width);
+  }
+
+  :root[data-pnd-sidebar="collapsed"] .sidebar-pane {
+    display: none;
+  }
+
+  /* Not zero: below 72rem nothing else insets the column from the edge. */
+  :root[data-has-sidebar][data-pnd-sidebar="collapsed"] {
+    --sl-content-inline-start: 2rem;
+  }
+}
+
+/* Code font -------------------------------------------------------------- */
+
+/* Starlight composes its own system stack after this, so it stays the fallback. */
+:root {
+  --sl-font-mono: var(--pnd-font-mono);
+}
+
+/* Header ---------------------------------------------------------------- */
+
+.site-title {
+  gap: 0.6rem;
+  font-size: var(--sl-text-sm);
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.site-title img {
+  height: 1.5rem;
+}
+
+/* Sidebar controls ------------------------------------------------------ */
+
+/* Both controls belong to the desktop rail; the mobile drawer has its own. */
+.pnd-sidebar-toggle,
+.pnd-sidebar-resize {
+  display: none;
+}
+
+@media (min-width: 50rem) {
+  :root[data-has-sidebar] .pnd-sidebar-toggle {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    /* The wrapper has no gap, so the separation from the logo is set here.
+       The negative start pulls the button in from the header padding — only
+       as far as the title wrapper's own negative margin, since its
+       `overflow: clip` cuts anything past that. */
+    margin-inline: -0.25rem 0.85rem;
+    width: var(--sl-menu-button-size);
+    height: var(--sl-menu-button-size);
+    padding: 0;
+    border: 0;
+    border-radius: 0.25rem;
+    background: none;
+    color: var(--sl-color-gray-3);
+    cursor: pointer;
+  }
+
+  .pnd-sidebar-toggle:hover {
+    /* One step lighter than the header's own background, which in dark mode
+       is `--sl-color-gray-6` itself — that value would make hover invisible. */
+    background: var(--sl-color-gray-5);
+    color: var(--sl-color-white);
+  }
+
+  /*
+   * Rendered in the header but positioned against the viewport, so it sits on
+   * the pane's trailing edge and escapes the title wrapper's `overflow: clip`.
+   */
+  :root[data-has-sidebar] .pnd-sidebar-resize {
+    display: block;
+    position: fixed;
+    z-index: var(--sl-z-index-menu);
+    inset-block: var(--sl-nav-height) 0;
+    inset-inline-start: calc(var(--pnd-sidebar-width) - 3px);
+    width: 6px;
+    cursor: col-resize;
+    touch-action: none;
+  }
+
+  .pnd-sidebar-resize:hover,
+  .pnd-sidebar-resize:focus-visible {
+    background: var(--sl-color-accent);
+    outline: none;
+  }
+
+  :root[data-pnd-sidebar="collapsed"] .pnd-sidebar-resize {
+    display: none;
+  }
+}
+
+/* Sidebar labels -------------------------------------------------------- */
+
+/*
+ * One line per item. A label that outgrows the rail fades out at its trailing
+ * edge rather than wrapping to a second line, so the rail keeps one rhythm and
+ * a narrow sidebar stays readable.
+ */
+.sidebar-content a > span,
+.sidebar-content .group-label > span {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Marked by the header script, so a label that fits keeps its last letters. */
+.sidebar-content [data-pnd-clipped] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 1.25rem), transparent);
+}
+
+/*
+ * The label fills the row rather than shrink-wrapping its text. Left as a flex
+ * item sized to content, the fade landed on the last word of every group
+ * header instead of at the rail's edge. `min-width: 0` is what lets this flex
+ * item shrink below its content at all.
+ */
+.sidebar-content .group-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Sidebar groups -------------------------------------------------------- */
+
+/*
+ * A group grows and shrinks instead of snapping. `::details-content` is the box
+ * to animate, and `interpolate-size` is what makes the `auto` keyword a
+ * transition target; `allow-discrete` keeps the content painted for the whole
+ * collapse rather than dropping it on the first frame. Both features are recent,
+ * so the rule is guarded and older browsers keep the instant toggle.
+ *
+ * The transition waits for `data-pnd-ready`, which lands after the first paint.
+ * Starlight restores group state from `sessionStorage` while the page loads, and
+ * a transition already in effect would replay every restored group on each
+ * navigation instead of showing the saved tree.
+ */
+@supports selector(::details-content) and (interpolate-size: allow-keywords) {
+  @media (prefers-reduced-motion: no-preference) {
+    :root {
+      interpolate-size: allow-keywords;
+    }
+
+    :root[data-pnd-ready] .sidebar-content details::details-content {
+      block-size: 0;
+      overflow: hidden;
+      transition:
+        block-size 220ms ease,
+        content-visibility 220ms allow-discrete;
+    }
+
+    :root[data-pnd-ready] .sidebar-content details[open]::details-content {
+      block-size: auto;
+    }
+  }
+}
+
+/* Content --------------------------------------------------------------- */
+
+/*
+ * Rendered diagrams arrive as plain markdown images with a white background
+ * baked into the SVG, so they read as cards once their edge matches the layer
+ * cards beside them. Radius and border are `.arch-card`'s own values, which is
+ * why the border is a `color-mix` rather than a Starlight hairline token.
+ */
+.sl-markdown-content img {
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: 0.5rem;
+}
