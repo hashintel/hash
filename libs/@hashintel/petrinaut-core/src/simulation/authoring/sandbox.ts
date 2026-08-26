@@ -1,12 +1,12 @@
 /**
  * Shared hardening helpers for evaluating user-authored JavaScript with
  * `new Function`. The place visualizer (`compile-visualizer.ts` in the UI
- * package) is the remaining consumer: every other user-code surface —
- * dynamics, lambdas, kernels, metrics, and scenario code — compiles through
- * the HIR and never executes raw user text.
+ * package) is the only consumer: every other user-code surface — dynamics,
+ * lambdas, kernels, metrics, and scenario code — compiles through the HIR
+ * and never executes raw user text.
  *
  * @layerRoot core.simulation.authoring
- * @role Compiles and sandboxes the code users write inside a net
+ * @role Compiles the code users write inside a net and hardens the surfaces that evaluate it as raw JavaScript
  */
 
 /**

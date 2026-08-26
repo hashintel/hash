@@ -9,9 +9,13 @@ import { createUserKeyedRecord, getOwn } from "../../../validation/record-keys";
 import { coerceTokenRecord } from "../../engine/token-values";
 import { TYPE_POLICIES } from "../../engine/type-policies";
 
-import type { HirValue } from "../../../hir/interpret";
+import type { HirInterpretBindings, HirValue } from "../../../hir/interpret";
 import type { ScenarioHir, ScenarioHirItem } from "../../../hir/scenario";
-import type { HirSurfaceContext } from "../../../hir/surface-context";
+import type {
+  HirScenarioCodeContext,
+  HirScenarioExpressionContext,
+  HirSurfaceContext,
+} from "../../../hir/surface-context";
 import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
 import type {
   InitialMarking,
@@ -65,22 +69,18 @@ export interface CompileScenarioOptions {
 
 // -- HIR evaluation -----------------------------------------------------------
 
-/**
- * Scenario code executes as type-checked, interpreted HIR — there is no
- * `new Function` and no sandbox on this path. Lowering needs the TypeScript
- * compiler, so it happens elsewhere (`lowerScenarioToHir` in `hir/scenario.ts`,
- * run by the LSP worker in the browser and inline in Node) and its result is
- * passed in; this module type-checks each item against the net and
- * interprets it.
- */
 type NetParameterValues = Record<string, number | boolean>;
 
-/** Evaluates one lowered scenario item, or explains why it cannot run. */
+/**
+ * Type-checks one lowered scenario item against the net and interprets it,
+ * or explains why it cannot run. Lowering happens elsewhere
+ * (`lowerScenarioToHir`); this half is pure and free of the TypeScript
+ * compiler.
+ */
 function evaluateScenarioItem(
   item: ScenarioHirItem | undefined,
   context: HirSurfaceContext,
-  parametersObj: NetParameterValues,
-  scenarioObj: NetParameterValues,
+  bindings: HirInterpretBindings,
 ): { ok: true; value: HirValue } | { ok: false; message: string } {
   if (item === undefined) {
     return {
@@ -108,13 +108,7 @@ function evaluateScenarioItem(
     };
   }
   try {
-    return {
-      ok: true,
-      value: interpretHir(item.fn, {
-        parameters: parametersObj,
-        scenario: scenarioObj,
-      }),
-    };
+    return { ok: true, value: interpretHir(item.fn, bindings) };
   } catch (error) {
     return {
       ok: false,
@@ -129,6 +123,34 @@ function evaluateScenarioItem(
 /** Renders an interpreted value for an error message. */
 function describeValue(value: HirValue): string {
   return typeof value === "object" ? JSON.stringify(value) : String(value);
+}
+
+/** Applies a parameter's type rules to an evaluated override value. */
+function coerceOverrideValue(
+  param: Parameter,
+  value: HirValue,
+): { ok: true; value: number | boolean } | { ok: false; message: string } {
+  if (param.type === "boolean") {
+    return typeof value === "boolean"
+      ? { ok: true, value }
+      : {
+          ok: false,
+          message: `expression evaluated to ${describeValue(value)}, expected a boolean.`,
+        };
+  }
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return {
+      ok: false,
+      message: `expression evaluated to ${describeValue(value)}, expected a number.`,
+    };
+  }
+  if (param.type === "integer" && !Number.isInteger(value)) {
+    return {
+      ok: false,
+      message: `expression evaluated to ${describeValue(value)}, expected an integer.`,
+    };
+  }
+  return { ok: true, value };
 }
 
 type MarkingTokenRecord = Record<string, InitialTokenAttributeValue>;
@@ -190,6 +212,180 @@ function normalizeTokenRecords(
   });
 }
 
+// -- Initial state ------------------------------------------------------------
+
+/**
+ * Evaluates a code-mode initial state body: it returns a record keyed by
+ * place NAME (not ID), with numbers for uncoloured places and token-record
+ * arrays for coloured ones. Writes into `initialState`; failures land in
+ * `errors`.
+ */
+function compileCodeModeInitialState(args: {
+  item: ScenarioHirItem | undefined;
+  context: HirScenarioCodeContext;
+  bindings: HirInterpretBindings;
+  placeByName: ReadonlyMap<string, Place>;
+  typeById: ReadonlyMap<string, Color>;
+  initialState: InitialMarking;
+  errors: ScenarioCompilationError[];
+}): void {
+  const {
+    bindings,
+    context,
+    errors,
+    initialState,
+    item,
+    placeByName,
+    typeById,
+  } = args;
+  const evaluated = evaluateScenarioItem(item, context, bindings);
+  if (!evaluated.ok) {
+    errors.push({
+      source: "initialState",
+      itemId: "__code__",
+      message: `Initial state code: ${evaluated.message}`,
+    });
+    return;
+  }
+  if (typeof evaluated.value !== "object" || Array.isArray(evaluated.value)) {
+    errors.push({
+      source: "initialState",
+      itemId: "__code__",
+      message: `Initial state code must return an object, got ${typeof evaluated.value}.`,
+    });
+    return;
+  }
+  for (const [placeName, tokens] of Object.entries(evaluated.value)) {
+    const place = placeByName.get(placeName);
+    if (!place) {
+      continue; // Unknown place name — skip silently
+    }
+
+    if (typeof tokens === "number") {
+      // Uncolored place: just a token count
+      initialState[place.id] = Math.max(0, Math.round(tokens));
+    } else if (Array.isArray(tokens)) {
+      // Colored place: array of token objects.
+      const color = place.colorId ? typeById.get(place.colorId) : undefined;
+      const elements = color?.elements ?? [];
+      initialState[place.id] = normalizeTokenRecords(tokens, elements);
+    }
+  }
+}
+
+/**
+ * Evaluates per-place initial state: coloured places carry literal token
+ * rows, uncoloured places an expression producing a token count. Writes into
+ * `initialState`; failures land in `errors`.
+ */
+function compilePerPlaceInitialState(args: {
+  content: Record<string, string | (number | boolean | string)[][]>;
+  hir: ScenarioHir;
+  context: HirScenarioExpressionContext;
+  bindings: HirInterpretBindings;
+  placeById: ReadonlyMap<string, Place>;
+  typeById: ReadonlyMap<string, Color>;
+  initialState: InitialMarking;
+  errors: ScenarioCompilationError[];
+}): void {
+  const {
+    bindings,
+    content,
+    context,
+    errors,
+    hir,
+    initialState,
+    placeById,
+    typeById,
+  } = args;
+  for (const [placeId, value] of Object.entries(content)) {
+    // Colored places: row data stored directly by the UI.
+    if (Array.isArray(value)) {
+      const place = placeById.get(placeId);
+      const color = place?.colorId ? typeById.get(place.colorId) : undefined;
+      const hasTokenRows = value.length > 0;
+
+      if (hasTokenRows && !place) {
+        errors.push({
+          source: "initialState",
+          itemId: placeId,
+          message: `Initial state for place "${placeId}" uses colored token rows, but the place does not exist.`,
+        });
+        continue;
+      }
+
+      if (hasTokenRows && (!color || color.elements.length === 0)) {
+        errors.push({
+          source: "initialState",
+          itemId: placeId,
+          message: `Initial state for place "${placeId}" uses colored token rows, but the place has no color elements.`,
+        });
+        continue;
+      }
+
+      const elementCount = color?.elements.length ?? 0;
+      const tooWideRow = value.find((row) => row.length > elementCount);
+      if (tooWideRow) {
+        errors.push({
+          source: "initialState",
+          itemId: placeId,
+          message: `Initial state for place "${placeId}" has ${tooWideRow.length} values per token, but the color type has ${elementCount} elements.`,
+        });
+        continue;
+      }
+
+      try {
+        initialState[placeId] = tokenRecordsFromRows(
+          value,
+          color?.elements ?? [],
+        );
+      } catch (error) {
+        // Row coercion throws on invalid typed values (e.g. a non-finite
+        // number); report it like every other compilation failure instead
+        // of letting compileScenario throw.
+        errors.push({
+          source: "initialState",
+          itemId: placeId,
+          message:
+            error instanceof Error
+              ? error.message
+              : `Invalid token rows for place "${placeId}".`,
+        });
+      }
+      continue;
+    }
+
+    // Uncolored places: expression string → evaluate to token count
+    const trimmed = value.trim();
+    if (trimmed === "") {
+      initialState[placeId] = 0;
+      continue;
+    }
+    const evaluated = evaluateScenarioItem(
+      getOwn(hir.placeExpressions, placeId),
+      context,
+      bindings,
+    );
+    if (!evaluated.ok) {
+      errors.push({
+        source: "initialState",
+        itemId: placeId,
+        message: `Initial state for place "${placeId}": ${evaluated.message}`,
+      });
+      continue;
+    }
+    if (typeof evaluated.value !== "number" || Number.isNaN(evaluated.value)) {
+      errors.push({
+        source: "initialState",
+        itemId: placeId,
+        message: `Initial state for place "${placeId}" evaluated to ${describeValue(evaluated.value)}, expected a number.`,
+      });
+      continue;
+    }
+    initialState[placeId] = Math.max(0, Math.round(evaluated.value));
+  }
+}
+
 // -- Compiler -----------------------------------------------------------------
 
 /**
@@ -229,9 +425,7 @@ export function compileScenario(
     }
 
     const value =
-      (options.scenarioParameterValues
-        ? getOwn(options.scenarioParameterValues, sp.identifier)
-        : undefined) ?? sp.default;
+      getOwn(options.scenarioParameterValues, sp.identifier) ?? sp.default;
     if (!Number.isFinite(value)) {
       errors.push({
         source: "scenarioParameter",
@@ -267,6 +461,19 @@ export function compileScenario(
     }
   }
 
+  // One binding pair serves every evaluation: the records are mutated in
+  // place, so later expressions see earlier overrides.
+  const bindings: HirInterpretBindings = {
+    parameters: parametersObj,
+    scenario: scenarioObj,
+  };
+  // Contexts share every model-derived fact; only `expected` varies per item.
+  const expressionContext = buildScenarioExpressionContext(
+    netParameters,
+    scenario.scenarioParameters,
+    "real",
+  );
+
   // Build a lookup: paramId → Parameter
   const paramById = new Map(netParameters.map((p) => [p.id, p]));
 
@@ -283,13 +490,8 @@ export function compileScenario(
     }
     const evaluated = evaluateScenarioItem(
       getOwn(hir.parameterOverrides, paramId),
-      buildScenarioExpressionContext(
-        netParameters,
-        scenario.scenarioParameters,
-        param.type,
-      ),
-      parametersObj,
-      scenarioObj,
+      { ...expressionContext, expected: param.type },
+      bindings,
     );
     if (!evaluated.ok) {
       errors.push({
@@ -299,36 +501,16 @@ export function compileScenario(
       });
       continue;
     }
-    const value = evaluated.value;
-    if (param.type === "boolean") {
-      if (typeof value !== "boolean") {
-        errors.push({
-          source: "parameterOverride",
-          itemId: paramId,
-          message: `Parameter "${param.name}" expression evaluated to ${describeValue(value)}, expected a boolean.`,
-        });
-        continue;
-      }
-      parametersObj[param.variableName] = value;
-    } else {
-      if (typeof value !== "number" || !Number.isFinite(value)) {
-        errors.push({
-          source: "parameterOverride",
-          itemId: paramId,
-          message: `Parameter "${param.name}" expression evaluated to ${describeValue(value)}, expected a number.`,
-        });
-        continue;
-      }
-      if (param.type === "integer" && !Number.isInteger(value)) {
-        errors.push({
-          source: "parameterOverride",
-          itemId: paramId,
-          message: `Parameter "${param.name}" expression evaluated to ${describeValue(value)}, expected an integer.`,
-        });
-        continue;
-      }
-      parametersObj[param.variableName] = value;
+    const coerced = coerceOverrideValue(param, evaluated.value);
+    if (!coerced.ok) {
+      errors.push({
+        source: "parameterOverride",
+        itemId: paramId,
+        message: `Parameter "${param.name}" ${coerced.message}`,
+      });
+      continue;
     }
+    parametersObj[param.variableName] = coerced.value;
   }
 
   // ── Step 3: Evaluate initial state ──
@@ -336,160 +518,36 @@ export function compileScenario(
   // Keyed by place id; in code mode the key set additionally derives from
   // whatever record the user-authored code block returns: no prototype.
   const initialState: InitialMarking = createUserKeyedRecord();
-  const placeById = new Map(places.map((p) => [p.id, p]));
-  const placeByName = new Map(places.map((p) => [p.name, p]));
   const typeById = new Map(types.map((t) => [t.id, t]));
 
   if (scenario.initialState.type === "code") {
-    // Code mode: evaluate the full code block as a function body.
-    // It returns an object keyed by place NAME (not ID) → array of token objects.
-    const code = scenario.initialState.content.trim();
-    if (code !== "") {
-      const evaluated = evaluateScenarioItem(
-        hir.initialStateCode,
-        buildScenarioCodeContext(
+    if (scenario.initialState.content.trim() !== "") {
+      compileCodeModeInitialState({
+        item: hir.initialStateCode,
+        context: buildScenarioCodeContext(
           netParameters,
           scenario.scenarioParameters,
           places,
           types,
         ),
-        parametersObj,
-        scenarioObj,
-      );
-      if (!evaluated.ok) {
-        errors.push({
-          source: "initialState",
-          itemId: "__code__",
-          message: `Initial state code: ${evaluated.message}`,
-        });
-      } else if (
-        typeof evaluated.value !== "object" ||
-        Array.isArray(evaluated.value)
-      ) {
-        errors.push({
-          source: "initialState",
-          itemId: "__code__",
-          message: `Initial state code must return an object, got ${typeof evaluated.value}.`,
-        });
-      } else {
-        for (const [placeName, tokens] of Object.entries(evaluated.value)) {
-          const place = placeByName.get(placeName);
-          if (!place) {
-            continue; // Unknown place name — skip silently
-          }
-
-          if (typeof tokens === "number") {
-            // Uncolored place: just a token count
-            initialState[place.id] = Math.max(0, Math.round(tokens));
-          } else if (Array.isArray(tokens)) {
-            // Colored place: array of token objects.
-            const color = place.colorId
-              ? typeById.get(place.colorId)
-              : undefined;
-            const elements = color?.elements ?? [];
-            initialState[place.id] = normalizeTokenRecords(tokens, elements);
-          }
-        }
-      }
+        bindings,
+        placeByName: new Map(places.map((p) => [p.name, p])),
+        typeById,
+        initialState,
+        errors,
+      });
     }
   } else {
-    // Per-place mode: evaluate each expression individually
-    for (const [placeId, value] of Object.entries(
-      scenario.initialState.content,
-    )) {
-      // Colored places: row data stored directly by the UI.
-      if (Array.isArray(value)) {
-        const place = placeById.get(placeId);
-        const color = place?.colorId ? typeById.get(place.colorId) : undefined;
-        const hasTokenRows = value.length > 0;
-
-        if (hasTokenRows && !place) {
-          errors.push({
-            source: "initialState",
-            itemId: placeId,
-            message: `Initial state for place "${placeId}" uses colored token rows, but the place does not exist.`,
-          });
-          continue;
-        }
-
-        if (hasTokenRows && (!color || color.elements.length === 0)) {
-          errors.push({
-            source: "initialState",
-            itemId: placeId,
-            message: `Initial state for place "${placeId}" uses colored token rows, but the place has no color elements.`,
-          });
-          continue;
-        }
-
-        const elementCount = color?.elements.length ?? 0;
-        const tooWideRow = value.find((row) => row.length > elementCount);
-        if (tooWideRow) {
-          errors.push({
-            source: "initialState",
-            itemId: placeId,
-            message: `Initial state for place "${placeId}" has ${tooWideRow.length} values per token, but the color type has ${elementCount} elements.`,
-          });
-          continue;
-        }
-
-        try {
-          initialState[placeId] = tokenRecordsFromRows(
-            value,
-            color?.elements ?? [],
-          );
-        } catch (error) {
-          // Row coercion throws on invalid typed values (e.g. a non-finite
-          // number); report it like every other compilation failure instead
-          // of letting compileScenario throw.
-          errors.push({
-            source: "initialState",
-            itemId: placeId,
-            message:
-              error instanceof Error
-                ? error.message
-                : `Invalid token rows for place "${placeId}".`,
-          });
-        }
-        continue;
-      }
-
-      // Uncolored places: expression string → evaluate to token count
-      const trimmed = value.trim();
-      if (trimmed === "") {
-        initialState[placeId] = 0;
-        continue;
-      }
-      const evaluated = evaluateScenarioItem(
-        getOwn(hir.placeExpressions, placeId),
-        buildScenarioExpressionContext(
-          netParameters,
-          scenario.scenarioParameters,
-          "real",
-        ),
-        parametersObj,
-        scenarioObj,
-      );
-      if (!evaluated.ok) {
-        errors.push({
-          source: "initialState",
-          itemId: placeId,
-          message: `Initial state for place "${placeId}": ${evaluated.message}`,
-        });
-        continue;
-      }
-      if (
-        typeof evaluated.value !== "number" ||
-        Number.isNaN(evaluated.value)
-      ) {
-        errors.push({
-          source: "initialState",
-          itemId: placeId,
-          message: `Initial state for place "${placeId}" evaluated to ${describeValue(evaluated.value)}, expected a number.`,
-        });
-        continue;
-      }
-      initialState[placeId] = Math.max(0, Math.round(evaluated.value));
-    }
+    compilePerPlaceInitialState({
+      content: scenario.initialState.content,
+      hir,
+      context: expressionContext,
+      bindings,
+      placeById: new Map(places.map((p) => [p.id, p])),
+      typeById,
+      initialState,
+      errors,
+    });
   }
 
   if (errors.length > 0) {

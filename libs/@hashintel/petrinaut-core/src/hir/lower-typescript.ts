@@ -75,6 +75,35 @@ const SCENARIO_CODE_SUFFIX = "\n}";
 const SCENARIO_EXPRESSION_PREFIX = "() => (\n";
 const SCENARIO_EXPRESSION_SUFFIX = "\n)";
 
+/** Bare-body surfaces: wrapped in prefix/suffix for parsing, spans shifted
+ * back onto the raw user text afterwards. */
+const WRAPPED_SURFACES: Partial<
+  Record<
+    HirSurfaceKind,
+    {
+      prefix: string;
+      suffix: string;
+      lower: (lowering: Lowering) => HirFunction;
+    }
+  >
+> = {
+  metric: {
+    prefix: METRIC_PREFIX,
+    suffix: METRIC_SUFFIX,
+    lower: (lowering) => lowering.lowerMetricModule(),
+  },
+  "scenario-code": {
+    prefix: SCENARIO_CODE_PREFIX,
+    suffix: SCENARIO_CODE_SUFFIX,
+    lower: (lowering) => lowering.lowerScenarioModule("scenario-code"),
+  },
+  "scenario-expression": {
+    prefix: SCENARIO_EXPRESSION_PREFIX,
+    suffix: SCENARIO_EXPRESSION_SUFFIX,
+    lower: (lowering) => lowering.lowerScenarioModule("scenario-expression"),
+  },
+};
+
 const DISTRIBUTION_FACTORIES: Record<string, HirDistributionKind> = {
   Gaussian: "gaussian",
   Uniform: "uniform",
@@ -137,6 +166,16 @@ type LowerScope = {
   /** Name of the ambient scenario object (scenario surfaces only). */
   scenarioName: string | null;
 };
+
+/** Introduces `name` as a local, shadowing any distribution marking,
+ * destructured-field routing, or ambient alias it previously had. */
+function shadowAsLocal(scope: LowerScope, name: string): void {
+  scope.locals.add(name);
+  scope.distributionLocals.delete(name);
+  scope.destructuredFields.delete(name);
+  scope.parameterAliases.delete(name);
+  scope.scenarioAliases.delete(name);
+}
 
 function childScope(scope: LowerScope): LowerScope {
   return {
@@ -252,9 +291,24 @@ class Lowering {
     };
   }
 
-  /** Unwraps the synthetic `() => ...` arrow a wrapped scenario surface was
-   * parsed with (see `SCENARIO_CODE_PREFIX` / `SCENARIO_EXPRESSION_PREFIX`). */
-  private unwrapScenarioArrow(failureMessage: string): ts.ArrowFunction {
+  /**
+   * Lowers a wrapped scenario surface (see `SCENARIO_CODE_PREFIX` /
+   * `SCENARIO_EXPRESSION_PREFIX`): `scenario-code` takes a block body ending
+   * in `return`, `scenario-expression` a single expression.
+   */
+  lowerScenarioModule(
+    surface: "scenario-code" | "scenario-expression",
+  ): HirFunction {
+    const fail = (): LowerError =>
+      new LowerError({
+        code: "hir:unsupported-syntax",
+        message:
+          surface === "scenario-code"
+            ? "Scenario initial-state code must be a function body ending in `return`."
+            : "Scenario expressions must be a single expression.",
+        severity: "error",
+        span: { start: 0, length: Math.max(this.sourceFile.text.length, 1) },
+      });
     const [statement, ...rest] = this.sourceFile.statements;
     const arrow =
       rest.length === 0 &&
@@ -264,77 +318,34 @@ class Lowering {
         ? statement.expression
         : null;
     if (!arrow) {
-      throw new LowerError({
-        code: "hir:unsupported-syntax",
-        message: failureMessage,
-        severity: "error",
-        span: { start: 0, length: Math.max(this.sourceFile.text.length, 1) },
-      });
+      throw fail();
     }
-    return arrow;
-  }
-
-  /** Lowers a wrapped scenario code-mode body (`() => { <user body> }`). */
-  lowerScenarioBodyModule(): HirFunction {
-    const arrow = this.unwrapScenarioArrow(
-      "Scenario initial-state code must be a function body ending in `return`.",
-    );
-    if (!ts.isBlock(arrow.body)) {
-      throw new LowerError({
-        code: "hir:unsupported-syntax",
-        message:
-          "Scenario initial-state code must be a function body ending in `return`.",
-        severity: "error",
-        span: { start: 0, length: Math.max(this.sourceFile.text.length, 1) },
-      });
+    if (ts.isBlock(arrow.body) !== (surface === "scenario-code")) {
+      throw fail();
     }
+    const body = ts.isBlock(arrow.body)
+      ? this.lowerBlock(arrow.body, this.scenarioScope())
+      : this.lowerExpr(arrow.body, this.scenarioScope());
     return {
       hirVersion: 1,
-      surface: "scenario-code",
+      surface,
       params: [],
-      body: this.lowerBlock(arrow.body, this.scenarioScope()),
-      span: this.spanOf(arrow),
-    };
-  }
-
-  /** Lowers a wrapped scenario expression (`() => ( <user expression> )`). */
-  lowerScenarioExpressionModule(): HirFunction {
-    const arrow = this.unwrapScenarioArrow(
-      "Scenario expressions must be a single expression.",
-    );
-    if (ts.isBlock(arrow.body)) {
-      throw new LowerError({
-        code: "hir:unsupported-syntax",
-        message: "Scenario expressions must be a single expression.",
-        severity: "error",
-        span: { start: 0, length: Math.max(this.sourceFile.text.length, 1) },
-      });
-    }
-    return {
-      hirVersion: 1,
-      surface: "scenario-expression",
-      params: [],
-      body: this.lowerExpr(arrow.body, this.scenarioScope()),
+      body,
       span: this.spanOf(arrow),
     };
   }
 
   lowerModule(): HirFunction {
-    if (this.surface === "metric") {
-      // Metric code has no module wrapper — see `lowerMetricModule`.
-      return this.lowerMetricModule();
-    }
-    if (
-      this.surface === "scenario-code" ||
-      this.surface === "scenario-expression"
-    ) {
-      // Scenario surfaces have no module wrapper either — dispatched in
-      // `lowerTypeScriptToHir`.
+    // Wrapped bare-body surfaces (metric, scenario) dispatch in
+    // `lowerTypeScriptToHir` and never reach this method.
+    const constructorName = CONSTRUCTOR_NAMES[
+      this.surface as HirModuleSurfaceKind
+    ] as string | undefined;
+    if (!constructorName) {
       throw new Error(
-        "Scenario surfaces are lowered via their wrapped-body entry points.",
+        `Surface "${this.surface}" is lowered via its wrapped-body entry point.`,
       );
     }
-    const constructorName = CONSTRUCTOR_NAMES[this.surface];
     let exportAssignment: ts.ExportAssignment | undefined;
 
     for (const statement of this.sourceFile.statements) {
@@ -660,14 +671,9 @@ class Lowering {
     const pattern = declaration.name;
 
     const registerBinding = (name: string, value: HirExpr): void => {
-      scope.locals.add(name);
-      scope.destructuredFields.delete(name);
-      scope.parameterAliases.delete(name);
-      scope.scenarioAliases.delete(name);
+      shadowAsLocal(scope, name);
       if (this.isDistributionValued(value, scope)) {
         scope.distributionLocals.add(name);
-      } else {
-        scope.distributionLocals.delete(name);
       }
     };
 
@@ -1358,11 +1364,7 @@ class Lowering {
         name: parameter.name.text,
         span: this.spanOf(parameter.name),
       };
-      bodyScope.locals.add(bound.name);
-      bodyScope.distributionLocals.delete(bound.name);
-      bodyScope.destructuredFields.delete(bound.name);
-      bodyScope.parameterAliases.delete(bound.name);
-      bodyScope.scenarioAliases.delete(bound.name);
+      shadowAsLocal(bodyScope, bound.name);
       return bound;
     };
 
@@ -1446,11 +1448,7 @@ class Lowering {
         name: firstParam.name.text,
         span: this.spanOf(firstParam.name),
       };
-      bodyScope.locals.add(param.name);
-      bodyScope.distributionLocals.delete(param.name);
-      bodyScope.destructuredFields.delete(param.name);
-      bodyScope.parameterAliases.delete(param.name);
-      bodyScope.scenarioAliases.delete(param.name);
+      shadowAsLocal(bodyScope, param.name);
     } else if (ts.isObjectBindingPattern(firstParam.name)) {
       param = { name: "__element", span: this.spanOf(firstParam.name) };
       for (const element of firstParam.name.elements) {
@@ -1492,11 +1490,7 @@ class Lowering {
         name: secondParam.name.text,
         span: this.spanOf(secondParam.name),
       };
-      bodyScope.locals.add(indexParam.name);
-      bodyScope.distributionLocals.delete(indexParam.name);
-      bodyScope.destructuredFields.delete(indexParam.name);
-      bodyScope.parameterAliases.delete(indexParam.name);
-      bodyScope.scenarioAliases.delete(indexParam.name);
+      shadowAsLocal(bodyScope, indexParam.name);
     }
 
     const body = ts.isBlock(callback.body)
@@ -1575,11 +1569,7 @@ class Lowering {
 
     const bodyScope = childScope(scope);
     const paramName = parameter.name.text;
-    bodyScope.locals.add(paramName);
-    bodyScope.distributionLocals.delete(paramName);
-    bodyScope.destructuredFields.delete(paramName);
-    bodyScope.parameterAliases.delete(paramName);
-    bodyScope.scenarioAliases.delete(paramName);
+    shadowAsLocal(bodyScope, paramName);
 
     const body = ts.isBlock(callback.body)
       ? this.lowerBlock(callback.body, bodyScope)
@@ -1815,31 +1805,14 @@ export function lowerTypeScriptToHir(
   code: string,
   surface: HirSurfaceKind,
 ): LowerTypeScriptResult {
-  if (surface === "metric") {
+  const wrapped = WRAPPED_SURFACES[surface];
+  if (wrapped) {
     return lowerWrappedBodyToHir(
       code,
       surface,
-      METRIC_PREFIX,
-      METRIC_SUFFIX,
-      (lowering) => lowering.lowerMetricModule(),
-    );
-  }
-  if (surface === "scenario-code") {
-    return lowerWrappedBodyToHir(
-      code,
-      surface,
-      SCENARIO_CODE_PREFIX,
-      SCENARIO_CODE_SUFFIX,
-      (lowering) => lowering.lowerScenarioBodyModule(),
-    );
-  }
-  if (surface === "scenario-expression") {
-    return lowerWrappedBodyToHir(
-      code,
-      surface,
-      SCENARIO_EXPRESSION_PREFIX,
-      SCENARIO_EXPRESSION_SUFFIX,
-      (lowering) => lowering.lowerScenarioExpressionModule(),
+      wrapped.prefix,
+      wrapped.suffix,
+      wrapped.lower,
     );
   }
 

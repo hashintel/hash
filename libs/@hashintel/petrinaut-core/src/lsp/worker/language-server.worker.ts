@@ -35,6 +35,7 @@ import { getHirDiagnosticsForItem } from "../lib/check-hir";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";
+import { parseScenarioCodeFilePath } from "../lib/file-paths";
 import { offsetToPosition, positionToOffset } from "../lib/position-utils";
 import { serializeDiagnostic, toCompletionItemKind } from "../lib/ts-to-lsp";
 
@@ -68,10 +69,9 @@ const scenarioSessions = new Map<string, ScenarioSessionData>();
 const metricSessions = new Map<string, MetricSessionData>();
 
 /**
- * The HIR context for one scenario session file, derived from its virtual
- * path (see `file-paths.ts`): a parameter override or per-place count is a
- * `scenario-expression`, the "Define as code" body a `scenario-code`.
- * Returns null for paths that carry no user code to lint.
+ * The HIR context for one scenario session file: a parameter override or
+ * per-place count is a `scenario-expression`, the "Define as code" body a
+ * `scenario-code`. Returns null for paths that carry no user code to lint.
  */
 function scenarioHirContextForFile(
   filePath: string,
@@ -79,51 +79,40 @@ function scenarioHirContextForFile(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings,
 ): HirSurfaceContext | null {
-  const netParameters = extensions.parameters ? sdcpn.parameters : [];
-
-  // Scenario session files (see `file-paths.ts`) end in
-  // `.../param_overrides/<paramId>/code.ts`,
-  // `.../initial_state/<placeId>/code.ts`, or
-  // `.../initial_state_code/code.ts`.
-  const segments = filePath.split("/");
-  if (segments.at(-1) !== "code.ts") {
+  const parsed = parseScenarioCodeFilePath(filePath);
+  if (!parsed) {
     return null;
   }
-  const parent = segments.at(-2);
-  const grandparent = segments.at(-3);
+  const netParameters = extensions.parameters ? sdcpn.parameters : [];
 
-  if (parent === "initial_state_code") {
-    return buildScenarioCodeContext(
-      netParameters,
-      session.scenarioParameters,
-      sdcpn.places,
-      extensions.colors ? sdcpn.types : [],
-    );
-  }
-
-  if (grandparent === "param_overrides") {
-    const parameter = sdcpn.parameters.find(
-      (candidate) => candidate.id === parent,
-    );
-    if (!parameter) {
-      return null;
+  switch (parsed.fileType) {
+    case "scenario-initial-state-full-code":
+      return buildScenarioCodeContext(
+        netParameters,
+        session.scenarioParameters,
+        sdcpn.places,
+        extensions.colors ? sdcpn.types : [],
+      );
+    case "scenario-param-override-code": {
+      const parameter = sdcpn.parameters.find(
+        (candidate) => candidate.id === parsed.paramId,
+      );
+      if (!parameter) {
+        return null;
+      }
+      return buildScenarioExpressionContext(
+        netParameters,
+        session.scenarioParameters,
+        parameter.type,
+      );
     }
-    return buildScenarioExpressionContext(
-      netParameters,
-      session.scenarioParameters,
-      parameter.type,
-    );
+    case "scenario-initial-state-code":
+      return buildScenarioExpressionContext(
+        netParameters,
+        session.scenarioParameters,
+        "real",
+      );
   }
-
-  if (grandparent === "initial_state") {
-    return buildScenarioExpressionContext(
-      netParameters,
-      session.scenarioParameters,
-      "real",
-    );
-  }
-
-  return null;
 }
 
 function respond(id: number, result: unknown): void {

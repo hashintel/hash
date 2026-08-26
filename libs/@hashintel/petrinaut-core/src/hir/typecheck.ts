@@ -341,7 +341,7 @@ class Typechecker {
           this.report(
             expr.span,
             "hir:range-arity",
-            "`range(...)` takes 1 to 3 numeric arguments (end / start, end / start, end, step).",
+            "`range(...)` takes 1 to 3 numeric arguments: `end`, or `start, end`, or `start, end, step`.",
           );
         }
         for (const argument of expr.args) {
@@ -471,9 +471,9 @@ class Typechecker {
           case "!=":
             // Equality is strict everywhere HIR code runs (the emitters
             // produce `===`, the interpreter compares with `===`), so a
-            // comparison across kinds has a constant result. `1 == true` was
-            // loosely true in the pre-HIR scenario evaluator; report it
-            // instead of silently flipping the value.
+            // comparison across kinds has a constant result. Report it
+            // rather than letting the expression silently evaluate to that
+            // constant.
             if (this.isConstantEquality(leftType, rightType)) {
               this.report(
                 expr.span,

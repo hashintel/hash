@@ -590,10 +590,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   // during render below. React Compiler will memoize based on inputs.
   const scenarioHirState = useScenarioHir(selectedScenario);
 
-  // Build a scenario with user-tweaked parameter values. Also snapshotted by
-  // `initialize`, which compiles the scenario itself so a run started while
-  // the render path's lowering is still in flight cannot fall back to manual
-  // values.
+  // Build a scenario with user-tweaked parameter values.
   const tweakedScenario = selectedScenario
     ? {
         ...selectedScenario,
@@ -654,9 +651,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     };
   }
 
-  // `initialize` compiles the scenario itself (lowering included) from this
-  // snapshot, so runs never depend on whether the render path's async
-  // lowering has finished.
+  // Snapshot for `initialize`, which compiles the scenario itself.
   const tweakedScenarioRef = useLatest(tweakedScenario);
 
   const contextValue: SimulationContextValue = {

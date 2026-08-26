@@ -136,3 +136,60 @@ export const getItemFilePath = <T extends SDCPNFileType>(
       throw new Error(`Unknown file type: ${fileType}`);
   }
 };
+
+/** A scenario session code file, identified back from its path. */
+export type ScenarioCodeFilePath =
+  | {
+      fileType: "scenario-param-override-code";
+      sessionId: string;
+      paramId: string;
+    }
+  | {
+      fileType: "scenario-initial-state-code";
+      sessionId: string;
+      placeId: string;
+    }
+  | { fileType: "scenario-initial-state-full-code"; sessionId: string };
+
+/**
+ * Inverse of `getItemFilePath` for the scenario code files above. Returns
+ * null for every other path (defs files included), so the layout is spelled
+ * only in this module.
+ */
+export const parseScenarioCodeFilePath = (
+  filePath: string,
+): ScenarioCodeFilePath | null => {
+  const segments = filePath.split("/");
+  if (
+    segments[0] !== "" ||
+    segments[1] !== "_temp" ||
+    segments[2] !== "scenarios" ||
+    segments.at(-1) !== "code.ts"
+  ) {
+    return null;
+  }
+  const sessionId = segments[3];
+  if (sessionId === undefined) {
+    return null;
+  }
+  if (segments.length === 6 && segments[4] === "initial_state_code") {
+    return { fileType: "scenario-initial-state-full-code", sessionId };
+  }
+  if (segments.length === 7 && segments[5] !== undefined) {
+    if (segments[4] === "param_overrides") {
+      return {
+        fileType: "scenario-param-override-code",
+        sessionId,
+        paramId: segments[5],
+      };
+    }
+    if (segments[4] === "initial_state") {
+      return {
+        fileType: "scenario-initial-state-code",
+        sessionId,
+        placeId: segments[5],
+      };
+    }
+  }
+  return null;
+};

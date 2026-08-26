@@ -2,7 +2,7 @@
  * Lowering of a scenario's user code into serializable HIR.
  *
  * This module (transitively) imports `typescript`, so it stays out of
- * browser main bundles: the LSP worker lowers scenarios for the editor
+ * browser main bundles: browser callers lower through the language worker
  * (`sdcpn/lowerScenario`), Node callers (the CLI) lower inline. The pure
  * side — type checking and interpretation — lives in `compileScenario`,
  * which takes the result of this function as an argument.

@@ -82,7 +82,8 @@ silently dropped at evaluation, and the type checker reports them
 In per-place mode an uncoloured place takes an expression evaluated with
 parameters in scope, rounded and clamped at zero; a coloured place takes row
 arrays in colour-element order, each coerced with typed defaults for missing
-columns, and extra columns throw.
+columns. Extra columns and invalid typed values are reported as compilation
+errors.
 
 ## What the sandbox is for
 
