@@ -190,30 +190,31 @@ One bounded change within a selected frontier, with its own landing but not nece
 proof. Several moves are **joined** when they are proven together by one named proof (the
 `ds-steering` join): they may be built in parallel worktrees, but none is done until the joint
 proof runs. G0's wiring, persistence, latency-floor, and legible-surface work are joined moves.
-_Avoid_: stream (for work that shares a proof), phase, task
+_Avoid_: stream (for work that shares a proof), phase, task, effort (an effort is a checkout)
 
 **Stream**:
 A line of work that runs in parallel with the selected frontier, has its own projection and its
 own proof, and neither blocks nor is blocked by the frontier's joint proof. The plugin design loop
 and the package-topology ADR are streams beside G0. The epicentre map's older word for the same
 thing is "lane"; it is retained there and not used for new writing.
-_Avoid_: lane (new writing), workstream, track
+_Avoid_: lane (new writing), workstream, track, effort
 
 **Partition**:
-The planning move, made after the proof frontier is selected, that divides the mechanically
-available work into efforts that can run concurrently in separate worktrees, naming each effort's
-proof, projection, write set, join points, and base. The partition is recorded as a table in
+Brunch execution layout, made after the proof frontier is selected: which **efforts** get
+worktrees, their write sets, join points, re-braid points, and base. Moves and streams do not map
+one-to-one onto efforts (W1 carries G0.1 and G0.2; the driver retains G0.4). Recorded in
 `docs/control/STEERING.md` and revised at every steering pass; it never changes which frontier is
-selected. Brunch extension of `/ds-steer` step 5 (`docs/agents/steering.md`).
+selected. Brunch extension of `/ds-steer` step 5 (`docs/agents/steering.md`). Not Dogsled
+vocabulary.
 _Avoid_: plan (the partition is one section of the strategic control, not a plan document),
 breakdown (that is ticket decomposition, `/ds-write-tickets`), parallelisation
 
 **Effort**:
-The unit of the parallel partition: work that can run in its own worktree because it has its own
-proof or a named share of a joint proof, its own projection, and a write set disjoint from other
-efforts' except at named join points. A stream is an effort; joined moves may also be efforts,
-done only at the joint proof. The partition is recorded in `docs/control/STEERING.md`.
-_Avoid_: stream (when the work shares a proof), branch (the effort is the work, not its Git ref)
+The checkout unit of a partition: a worktree with a disjoint write set except at named join
+points. It may carry one or more joined moves, or a stream; those remain proof and strategy, not
+the effort. Deferred work is not an effort. The partition is recorded in
+`docs/control/STEERING.md`.
+_Avoid_: stream, move, branch (the effort is the worktree, not its Git ref)
 
 **Driver**:
 The worktree that owns control documents and Linear. Other efforts deposit through issue comments,
@@ -225,6 +226,15 @@ _Avoid_: main worktree, primary, orchestrator
 A file, package, or manifest two efforts both write, with the order in which they land. Control
 documents and Linear are written only from the driver worktree and are therefore never join points.
 _Avoid_: conflict (a join point is planned; a conflict is what happens when it was not)
+
+**Re-braid**:
+The planned moment when diverging effort branches are restacked onto a shared base and conflicts
+resolved, before they diverge again. Brunch-local; not a Dogsled term. How long a line may run
+unbraided follows how fine the tickets are, not a ticket count. Three relationships stay distinct:
+the **proof join** (moves demonstrated together), the **join point** (shared file, landing order),
+and the **re-braid** (git-line meeting).
+_Avoid_: rebase (the git verb a re-braid uses), sync, integrate, restack checkpoint (the generic
+gloss; keep re-braid here)
 
 **Sequence**:
 Ordered goals where each goal's proof is the precondition of the next (G0 → G1 → G2). Ordering

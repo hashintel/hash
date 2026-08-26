@@ -131,15 +131,17 @@ evidence under [proof evidence](../evidence/proofs/).
   Steering projection: FE-1503 (the joint proof).
 - **The plugin API is a design in flux** — two questions stay open: is the key schema a viable,
   understandable way to specify a domain plugin, and does it come together as effective prompt-
-  and context-engineering material; operative force: the conditions 4/5 loop keeps running per
-  cycle in parallel with the triangle and never blocks it; keys change only with run evidence.
-  Source: [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) decision 9,
-  [S-011](STRATEGY-LOG.md#s-011). Steering projection: FE-1431, FE-1406, FE-1393.
-- **Package boundaries are blurred by premature splits** — `repertoire` and the types and schemas
-  that binding-, transport-, and plugin- packages consume are core concerns; operative force: no
-  new package split without an ADR, and the remediation (envisioned core layout `loop / prompts /
-  skills? / schemas`) is owned by an ADR amending ADR-0007 before any code moves. Source:
-  [S-011](STRATEGY-LOG.md#s-011). Steering projection: none yet — the ADR is the next write.
+  and context-engineering material; operative force: keys change only with run evidence, and the
+  answers are not assumed. Source:
+  [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) decision 9,
+  [S-011](STRATEGY-LOG.md#s-011). Steering projection: the P1 stream.
+- **Package boundaries are blurred by premature splits** — the standalone repertoire package
+  carries no independent runtime, deployment, versioning, or consumer role; operative force:
+  ADR-0008 moves its data behind core's guarded `./prompts` subpath, prohibits plugin imports of
+  that subpath, and permits no broader core reorganisation. Source: ADR-0008 on W4
+  (`docs/adr/0008-repertoire-and-plugin-contract-live-in-core.md`; its draft records acceptance by
+  Lu on 2026-08-26, unconfirmed by the driver and not yet committed) and
+  [S-011](STRATEGY-LOG.md#s-011). Steering projection: the P2 stream.
 - **Tools are pinned as current truth against intent** — see [the inventory](#tool-inventory--current-truth-and-intent);
   operative force: no tool is added, renamed, or promised in prose outside that table. Source:
   [S-011](STRATEGY-LOG.md#s-011), [Petrinaut integration spec](../specs/petrinaut-integration.md).
@@ -179,17 +181,23 @@ proves them together ([CONTEXT](../../CONTEXT.md#strategic-control) "Move"; [S-0
 
 | Move | Lands as | Owning issue |
 | --- | --- | --- |
-| **G0.1 Wiring** | `/api/chat` routed to the SDCPN elicitor (minimal FE-1477: Brunch mode only); one `dev` target or compose entry starting Brunch and the panel together; origins and env documented | FE-1503 |
-| **G0.2 Persistence modelled** | principal UID from the ui shell on every request → server resolves principal → document → sessions; opaque owner key at the storage port; reload returns to the same document | FE-1503, FE-1439 |
-| **G0.3 Latency floor** | R0: `durationMs` per purpose and OpenTelemetry spans on every turn; a human-witnessed number replaces the inferred split | FE-1503, FE-1404 |
-| **G0.4 Legible surface** | the document showing what the elicitor sees (prompt sources, merged result, tool definitions); the attach surface stated in the Petrinaut integration spec with a changes-with-notice rule. Depends on G0.1–G0.3 landing | FE-1503, FE-1431, FE-1406 |
+| **G0.1 Wiring** | Implemented on W1: `/api/chat` routes to the SDCPN elicitor and `yarn dev:brunch` starts Brunch with the real panel. The Proof 0 re-braid and human run remain. | FE-1504 (Done) |
+| **G0.2 Persistence modelled** | Implemented on W1: the ui-shell principal resolves to one target document and principal-scoped sessions; the store refuses another owner. The live reload witness remains in Proof 0. | FE-1504 (Done), FE-1439 |
+| **G0.3 Latency floor** | R0: `durationMs` per purpose and OpenTelemetry spans on every turn; a human-witnessed number replaces the inferred split | FE-1505, FE-1404 |
+| **G0.4 Legible surface** | captures, sweep results, and completion readable during a live panel session; the attach contract stated in the Petrinaut integration spec with a changes-with-notice rule. Depends on G0.1–G0.2 landing; built on W1, stacked on FE-1504's branch (reassigned from the driver this pass: it consumes W1's code and write set, and the driver branch is the tip of the plugin PR) | FE-1506 |
+
+**Current move:** FE-1506 completes the production-path surface required for the Proof 0 witness.
+It outranks other mechanically available work because W2's live figure and P1's fresh runs wait on
+the rejected Anthropic credential, while P2 remains a separately proved stream. FE-1504 is closed
+as a ticket; G0.1 and G0.2 are not done as moves until the joint human run.
 
 **Streams beside G0** — parallel, separately proven, blocking nothing:
 
-| Stream | Lands as | Owning issue |
-| --- | --- | --- |
-| **P1 Plugin design loop** | conditions 4 and 5 rerun per authoring cycle; both open questions — viability as a plugin specification, effectiveness as prompt material — answered from runs; keys change with run evidence only | FE-1431, FE-1406, FE-1393 |
-| **P2 Package topology** | an ADR amending ADR-0007's package decision: `repertoire` and shared types/schemas into core (`loop / prompts / skills? / schemas`), hard import rules as architecture tests; code moves only after the ADR | new ADR; then FE-1406 |
+| Stream | Strategic warrant, claim, and proof | Projection / owner | Material coordination | Stop or replan |
+| --- | --- | --- | --- | --- |
+| **P1 Plugin design loop** | ADR-0007 and S-009 require the key catalogue to be earned through both plugins and live runs. Cycle-two code and review are complete; conditions 4 and 5 must rerun before a no-key-change cycle can freeze it. | FE-1431, FE-1406, FE-1393 / Lu | Waits on a valid Anthropic credential. P2's package move lands before another content cycle; no G0 coordination. | A run needs a new heading, domain content, or another prose-only rescope: reconcile ADR-0006/0007 before continuing. |
+| **P2 Package topology** | Package direction must express harness ownership without exposing defaults to plugins. ADR-0008 accepts a guarded `@hashintel/brunch-agent/prompts` subpath; the proof is an architecture test red on the standalone package and green after the move. | ADR-0008; Linear issue to create on approval / Lu | W4 re-braids onto W3 before moving its cycle-two content; the driver later reconciles `CONTEXT.md` and `docs/INDEX.md`. | A plugin must import the prompts subpath, or the move needs broader core restructuring: stop and replan the boundary. |
+| **Voice edge** | H-6763 is an external September commitment: a provider-owned voice session must feed finalized turns into Brunch and resume a real `brunch_ask` without making provider history authoritative. | H-6763 / Kostandin | The `/api/chat` stream, `brunch_ask`, and principal are the join surface; FE-1506 records their changes-with-notice contract. | Provider needs leak into Brunch packages or require a Petrinaut-library-specific elicitor path: stop at ADR-0004. |
 
 **Stop or replan for G0:** a first question takes longer than the provisional 10 s after R0 and
 R1 — the isolating spike becomes blocking; the panel needs Brunch-specific code inside
@@ -198,39 +206,39 @@ must know — §9.6 port breach, stop; a move or stream lands with desk-only evi
 
 ### Parallel partition (2026-08-26)
 
-What can run in separate worktrees now, per the [steering supplement](../agents/steering.md#parallel-partition-brunch-extension-of-ds-steer-step-5).
-The driver worktree owns control documents, Linear, and G0.4 (the legible surface, written after
-W1 and W2 land).
+Execution layout, per the [steering supplement](../agents/steering.md#parallel-partition-brunch-extension-of-ds-steer-step-5)
+and [`partition-worktrees.md`](../agents/partition-worktrees.md). The driver owns control
+documents and Linear and carries no move. Kostandin's H-6763 is not an effort here; W1's join
+points name it. The latency spike is deferred and is not an effort; G0's stop condition still
+names it. An effort blocked on a gate stays an effort; only the driver drops a row, at a pass.
 
-| Effort | Proof | Projection | Write set | Join points (who lands first) | Base |
-| --- | --- | --- | --- | --- | --- |
-| **W1 Triangle wiring + persistence** (G0.1, G0.2) | the one human run at the panel, jointly with W2 | FE-1503 | `apps/brunch-agent/src` (`petrinaut-chat`, `elicitation-session`, `db`, `target-document-path`, dev scripts); `binding-flue` store owner key; `transport-aisdk` principal header; the website ui shell's principal; a Turbo or compose `dev` target | with **Voice**: `petrinaut-chat.ts`, `local-dev-origins.ts`, `local-storage-demo-app.tsx`, the website `vite.config.ts`, three `package.json` — voice lands first or W1 rebases onto it | `main` after the stack merges; until then the driver branch |
-| **W2 Latency floor** (G0.3) | per-purpose `durationMs` in the next run, jointly with W1 | FE-1503, FE-1404 | `binding-flue` turn observation, `harness-run.ts` `observe()`, OpenTelemetry setup in `apps/brunch-agent` | with W1: `apps/brunch-agent/package.json` (dependencies) | as W1 |
-| **W3 Plugin design and testing loop** (P1) | conditions 4 and 5 rerun and reviewed per cycle; a changelog entry or none | FE-1431, FE-1406, FE-1393 | core plugin schema and its `CHANGELOG`; `plugin-sdcpn/plugin.yaml`; `plugin-gherkin/plugin.yaml`; repertoire content; the baseline protocol and its transcripts | with W4: the repertoire's location — W3 keeps the current layout until W4's ADR is accepted, then one mechanical move lands between cycles; with W1: none (the elicitor reads the plugin at runtime) | cut now |
-| **W4 Package topology** (P2) | the ADR accepted; an import-direction architecture test that fails on the current layout and passes after the move | new ADR (issue to create) | `docs/adr/0008-*`; later `packages/core` and `packages/repertoire` and the architecture tests | with W3 as above; with the driver: `CONTEXT.md`, `docs/INDEX.md` | docs first, cut now |
-| **W5 Latency spike** (assessment §6) | frozen turn tails replayed under R1–R3 alternatives | FE-1404 | `evaluations/…/spikes`, evidence | none | available; deferred by Lu |
-| **Voice** (Kostandin, H-6763) | provider comparison; a real `brunch_ask` suspend-and-resume over speech | H-6763 | website `voice-experiment` and `api/voice-experiment`; `transport-aisdk` voice bridge; `apps/brunch-agent` voice diagnostics | with W1 as listed; the attach surface is the contract between them | his branch |
+| Effort | Carries | Projection | Write set | Join points (who lands first) | Base | Worktree |
+| --- | --- | --- | --- | --- | --- | --- |
+| **W1** | G0.1, G0.2 (implemented; FE-1504 Done), G0.4 | FE-1506, stacked on the FE-1504 branch | as before plus the panel or dev-diagnostics read of captures, sweep results, and completion; `docs/specs/petrinaut-integration.md` (attach contract) | with **Voice**: `petrinaut-chat.ts`, `local-dev-origins.ts`, `local-storage-demo-app.tsx`, the website `vite.config.ts`, three `package.json` — voice lands first or W1 rebases onto it; with W2: `apps/brunch-agent/package.json` (W2 already touched it) | driver branch until the stack merges | panel |
+| **W2** | G0.3 (implemented; live figure blocked on the credential gate) | FE-1505 (`ready-for-human`) | `binding-flue` turn observation, `harness-run.ts` `observe()`, OpenTelemetry setup in `apps/brunch-agent`; `condition-5.timings.jsonl` under evidence | with W1: `apps/brunch-agent/package.json`, `yarn.lock` | as W1 | timing |
+| **W3** | P1 (cycle two in progress; runs blocked on the credential gate) | FE-1431, FE-1406, FE-1393 | core plugin schema and its `CHANGELOG`; `plugin-sdcpn/plugin.yaml`; `plugin-gherkin/plugin.yaml`; repertoire content; the baseline protocol and its transcripts | with W4: the repertoire's location — W3 keeps the current layout until the mechanical move lands between cycles; with W1: none | driver branch | plugins |
+| **W4** | P2 | ADR-0008 (drafted on W4, status recorded as accepted by Lu, not yet committed); Linear issue to create on approval | `docs/adr/0008-*`; then `packages/core`, `packages/repertoire`, manifests, and architecture tests | with W3: land the topology move before another plugin-content cycle; with the driver: `CONTEXT.md`, `docs/INDEX.md` | current W4 branch; re-braid before the mechanical move | topology |
 
-Worktrees, cut 2026-08-26 per [`partition-worktrees.md`](../agents/partition-worktrees.md). The
-driver is this clone (`hash`).
+Live path and branch: `git worktree list`, `gt ls`. Driver checkout is this clone.
 
-| Effort | Name | Path | Branch |
-| --- | --- | --- | --- |
-| driver | — | `~/Code/hashintel/hash` | `ln/fe-1431-plugin-authoring-cycle` until the stack merges |
-| W1 | panel | `~/Code/hashintel/hash-panel` | `ln/fe-1504-panel` |
-| W2 | timing | `~/Code/hashintel/hash-timing` | `ln/fe-1505-timing` |
-| W3 | plugins | `~/Code/hashintel/hash-plugins` | `ln/fe-1431-plugins` |
-| W4 | topology | `~/Code/hashintel/hash-topology` | `ln/w4-topology` (holding; no issue yet) |
-| W5 | — | not cut (deferred) | — |
-| Voice | — | not cut (Kostandin's branch) | — |
+Re-braid (restack and resolve, then diverge again). Length follows how fine the tickets are.
+
+| When | Who | Onto |
+| --- | --- | --- |
+| Before the Proof 0 human run | panel (after FE-1506) and timing | one branch containing both — all four G0 moves; FE-1503's proof runs from it |
+| Now: #9320 and #9321 merged under the driver | driver first, then every effort | driver `gt restack` onto the moved stack; efforts restack onto the driver |
+| A join point is about to be written from a second effort | the efforts that share it | the line that already landed, else driver then `main` |
+| Voice lands | panel | Voice (join: voice first) |
+| Before the P2 mechanical move | topology | plugins, so the cycle-two content lands before its package moves |
+| The pending plugin stack merges | every cut effort | `main` |
 
 ### Gap assessment (2026-08-26)
 
 | Triangle edge | Today | Gap |
 | --- | --- | --- |
-| **Panel → Brunch** | Exists locally: `yarn dev` (Brunch, :4321) + `yarn petrinaut:dev` (the real website Vite config, :4915) proxies `/api/chat` to `apps/brunch-agent/src/petrinaut-chat.ts`; `brunch_ask` renders in the panel via `brunch-ask-interactive-tool.tsx`. | The handler is hard-wired to the **Gherkin** elicitor. Two processes, no single command, no compose entry (`infra/compose` knows only petrinaut-opt). |
-| **Persistence modelled** | Conversations in SQLite (`.data-wipe-me/conversations.db`); captures and session-log archive as one JSON file per target document (`LocalCaptureStore`, atomic writes). | Document id is `petrinaut-local:${conversationId}` — one document per conversation; no principal, no owner key at the storage port; §9.1 many-sessions-one-document unreachable from any surface. No Postgres, no deployment config anywhere. |
-| **Real elicitation** | The SDCPN elicitor runs live with sweep, fold, and completion (condition 5). | Unreachable from the panel; ~145 s per turn with a human now waiting; completion accounting visible nowhere a human looks (FE-1442). |
+| **Panel → Brunch** | W1 routes the real panel's `/api/chat` to the SDCPN elicitor; `yarn dev:brunch` starts both services; `brunch_ask` round-trips. | Re-braid W1 with W2, then conduct the human Proof 0 run. |
+| **Persistence modelled** | W1 sends one stable ui-shell principal on every request, resolves it to one target document and namespaced sessions, and stamps an opaque owner key that refuses cross-principal reads and writes. SQLite and per-document JSON remain. | Witness reload against the re-braided live surface; no persistence design gap remains for G0. |
+| **Real elicitation** | The production SDCPN elicitor is reachable from the panel on W1, with sweep, fold, and completion running server-side. | Captures and completion are still invisible to the person; FE-1506 supplies the legible surface before the eight-turn run. |
 | **Deployment (G2)** | — | Was Linear-gated behind gherkin via FE-1423 ← FE-1396; that blocker was removed 2026-08-26. FE-1440/FE-1441 remain the owners. |
 
 ### Tool inventory — current truth and intent
@@ -351,7 +359,8 @@ changes the witness: latency is no longer a number in a transcript but a person 
 
 | Gate | Owner / source | Watch trigger | Last checked | Consequence |
 | --- | --- | --- | --- | --- |
-| G0's baseline lives on an unmerged stack | Lu; Graphite stack 9312→9327 (approved) and #9337 (draft), all carrying `ln/fe-1431-plugin-authoring-cycle` | The stack merges to `main`. | 2026-08-26 | Until then W1 and W2 cannot be cut from `main`; a cold reader of `main` finds neither the SDCPN plugin surface, the controller read path, nor conditions 4/5. Cut from the driver branch and rebase at merge, or wait. |
+| G0's baseline lives on a partly merged stack | Lu; #9320 and #9321 merged 2026-08-26; #9322, #9325, #9327 (approved) and #9337 (draft) remain, carrying `ln/fe-1431-plugin-authoring-cycle` | The rest of the stack merges to `main`. | 2026-08-26 | The driver and every effort need a restack now (`gt ls` flags it). All efforts stay based on the driver; the Proof 0 line re-braids panel and timing; every line restacks onto `main` when #9337 merges. |
+| Anthropic credential is rejected | Lu's environment; FE-1505 and FE-1431 live-run attempts returned HTTP 401 `invalid x-api-key`. `timing` and `plugins` carry a root `.env.local`; `panel` and `topology` do not. | A credential succeeds against Anthropic's models endpoint from an effort checkout. | 2026-08-26 | W2 cannot produce the live purpose split and P1 cannot rerun conditions 4 and 5. FE-1506 and the P2 mechanical move may proceed. Git-ignored env files are not carried by `git worktree add`; the partition protocol should say so. |
 | FE-1480 executable realization unavailable | FE-1438; [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | Client tools return code diagnostics to the elicitor. | 2026-08-26 | Scaffold work may proceed; no runnable FE-1480 proof until the gate opens. |
 | Final use case outstanding | Dora; FE-1476 / September Plan | Dora confirms or changes it. | 2026-08-26 | If creation is required, Proof 1 becomes acceptance-relevant rather than a harness proof; reconcile ADR-0004/proof. |
 | Deferral licensing (completion spec rules 17–19) unbuildable | [elicitation-completion](../specs/elicitation-completion.md) rules 17–19; FE-1480 / [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | A durable projection delivery exists for an evaluated revision. | 2026-08-26 | E1 supplies the report and revision; rule 18 makes licensing `false` without a delivered projection, so no issue is opened. When FE-1480 delivers, it is one read-time function beside `evaluateCompletion` plus a binding hook at settlement; no new persistence. |
@@ -363,9 +372,6 @@ changes the witness: latency is no longer a number in a transcript but a person 
 | Belief or unknown | Confidence / evidence | Cheapest probe |
 | --- | --- | --- |
 | Construct and review-and-revise share most of one runbook. | Medium-low; Lu's reading of the early plugin-schema passes; unrehearsed. | Author both job runbooks against the key schema and diff them; a cycle of the plugin loop. |
-| The panel can host the SDCPN elicitor by a handler switch alone. | High; `petrinaut-chat.ts` composes one elicitor and the SDCPN agent already runs under the same binding. | G0.1: switch the handler and conduct one turn. |
-| The principal → document → sessions model fits the existing storage port without a harness-visible schema. | Medium; ADR-0004 §4 designs an opaque owner key at the port; nothing has exercised it. | G0.2: implement the key and refuse one cross-principal read. |
-| `repertoire` and the shared schemas belong in core. | High (Lu's judgment); the import direction already runs binding-flue → repertoire → core. | The topology ADR's import-direction audit. |
 | Kind-level rows express the coatings case. | High; [condition-5 evidence](../evidence/evaluations/process-model-elicitation/baseline/transcripts/) maps every proposed fact to a kind and slot, but does not yet show that the rows suffice for completion. | The condition-5 read-out on the C1/C2 dimensions; a second run with identity handling. |
 | Typed extraction on the verbatim floor holds up in a live run. | Medium-high; the [latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md) records repaired refusals and leaves cost, not correctness, as the open question. | R0 + the assessment's §6 spike: does a cheaper extraction model keep kind/node/slot agreement? |
 | The shipped loop converges to completion. | Low; [condition-5 evidence](../evidence/evaluations/process-model-elicitation/baseline/transcripts/) exposes unresolved identity and conflict rather than completion. | Give the sweep the node index (R4); rerun condition 5; count objective nodes. |

@@ -35,14 +35,16 @@ Linear writes require explicit approval before creation or mutation.
 ## Parallel partition (Brunch extension of `/ds-steer` step 5)
 
 `ds-steer` selects one proof frontier and leaves other available work as "separate work". Brunch
-adds a partition step after that choice, because slicing a plan into efforts that run in separate
-worktrees is a planning move this context must be able to make. The single frontier stays; the
-partition says what else runs concurrently and how it rejoins.
+adds a partition step after that choice: execution layout, not a second frontier. Moves (proof)
+and streams (strategy) do not map one-to-one onto **efforts** (checkouts). The single frontier
+stays; the partition says which checkouts run concurrently and how they rejoin. These terms are
+Brunch-local and are not Dogsled vocabulary.
 
-An **effort** is worktree-separable when it has its own proof (or a named share of a joint proof),
-its own projection, and a **write set** disjoint from every other effort's except at named **join
-points**. For each effort record: proof, projection, write set, join points and who lands first,
-and the base it is cut from. Rules:
+An **effort** is a worktree with a write set disjoint from every other effort's except at named
+**join points**. Record only efforts that can run now — not deferred work, not someone else's
+branch. For each: write set, join points and who lands first, base, and a 1–2 word worktree name.
+Live path and branch come from `git worktree list` and `gt ls`, not from this table. A separate
+**re-braid** table names when diverging lines restack (when, who, onto what). Rules:
 
 - Control documents (`STEERING`, the ledger, the strategy log, `INDEX`, `CONTEXT`) and Linear are
   written only from the **driver** worktree. Efforts deposit through issue comments, commit and PR
@@ -54,9 +56,11 @@ and the base it is cut from. Rules:
   runs from one branch that contains them all.
 - Cut effort branches from `main` once the pending stack has merged; until then cut from the
   driver branch and rebase at merge. Use Graphite for the stacks. Materialize the table with
-  [`partition-worktrees.md`](partition-worktrees.md) when the user asks for the checkouts.
-- Record the partition in `STEERING.md` as a table and revise it at every steering pass; an effort
-  that has no proof of its own and no share of a joint proof is not an effort but a task inside one.
+  [`partition-worktrees.md`](partition-worktrees.md) when the user asks for the checkouts. Skip a
+  declared re-braid only when restacking now would cost more than restacking later; do not invent
+  a ticket-count gate.
+- Record the partition in `STEERING.md` and revise it at every steering pass. An effort that has
+  no checkout of its own is a task inside one. Deferred work is not an effort.
 
 ## Guidance for procedures that execute the frontier
 

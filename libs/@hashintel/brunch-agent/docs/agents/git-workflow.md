@@ -29,7 +29,8 @@ A recorded **partition** gets one reusable worktree per effort; see
 [`partition-worktrees.md`](partition-worktrees.md). Those directories outlive a single ticket.
 The unit of branching is still the Linear issue: `gt create` inside the effort's worktree when
 work on an issue starts. A holding branch is allowed only so a cut-now effort without an issue
-yet can occupy a worktree; it is not submitted.
+yet can occupy a worktree; it is not submitted. Re-braid when the partition declares it, not at
+a fixed ticket depth ([`partition-worktrees.md`](partition-worktrees.md)).
 
 ## Naming
 
