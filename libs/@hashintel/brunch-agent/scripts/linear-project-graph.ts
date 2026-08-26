@@ -7,6 +7,8 @@ export interface ProjectIssue {
   readonly title: string;
   readonly stateName: string;
   readonly parentIdentifier?: string;
+  readonly assigneeName?: string;
+  readonly assignedToViewer: boolean;
   readonly external: boolean;
 }
 
@@ -17,6 +19,8 @@ export interface HardEdge {
 
 export interface ProjectGraph {
   readonly projectName: string;
+  readonly viewerName: string;
+  readonly includeClosed: boolean;
   readonly issues: readonly ProjectIssue[];
   readonly hardEdges: readonly HardEdge[];
 }
@@ -31,6 +35,7 @@ interface LinearIssueRef {
   readonly title: string;
   readonly state: LinearState;
   readonly project: { readonly name: string } | null;
+  readonly assignee?: { readonly id: string; readonly name: string } | null;
 }
 
 interface LinearRelation {
@@ -53,6 +58,7 @@ interface LinearIssueRecord extends LinearIssueRef {
 
 interface ProjectIssuePage {
   readonly projectName: string;
+  readonly viewer: { readonly id: string; readonly name: string };
   readonly issues: readonly LinearIssueRecord[];
   readonly hasNextPage: boolean;
   readonly endCursor: string | null;
@@ -60,6 +66,7 @@ interface ProjectIssuePage {
 
 const PROJECT_QUERY = `
 query ProjectGraph($project: String!, $after: String) {
+  viewer { id name }
   projects(filter: { name: { eq: $project } }, first: 2) {
     nodes {
       name
@@ -71,6 +78,7 @@ query ProjectGraph($project: String!, $after: String) {
           state { name type }
           parent { identifier }
           project { name }
+          assignee { id name }
           relations(first: 15) {
             pageInfo { hasNextPage }
             nodes {
@@ -196,10 +204,14 @@ export function renderProjectGraph(graph: ProjectGraph): string {
   );
   const externalCount = graph.issues.filter((issue) => issue.external).length;
   const projectIssueCount = graph.issues.length - externalCount;
+  const assigneeMismatchCount = graph.issues.filter(
+    (issue) => !issue.external && !issue.assignedToViewer,
+  ).length;
   const header = [
     `project ${graph.projectName}`,
-    `open=${projectIssueCount}`,
+    `${graph.includeClosed ? "issues" : "open"}=${projectIssueCount}`,
     `hard=${hardEdges.length}`,
+    `assignee-mismatches=${assigneeMismatchCount}`,
     ...(externalCount > 0 ? [`external=${externalCount}`] : []),
   ].join(" ");
   const issueLines = [...graph.issues]
@@ -218,7 +230,13 @@ export function renderProjectGraph(graph: ProjectGraph): string {
       const tags = [
         issue.stateName,
         issue.parentIdentifier ? `p:${issue.parentIdentifier}` : "root",
-        ...(issue.external ? ["*"] : []),
+        ...(issue.external
+          ? ["*"]
+          : [
+              issue.assignedToViewer
+                ? "a:self"
+                : `a:${issue.assigneeName ?? "unassigned"}`,
+            ]),
       ].join(" ");
       const blockers = incoming.get(issue.identifier);
       const blocks = outgoing.get(issue.identifier);
@@ -235,7 +253,8 @@ export function renderProjectGraph(graph: ProjectGraph): string {
 
   return [
     header,
-    "legend: L=hard-dependency layer; p=parent; <=blocked by; =>blocks; *=outside project",
+    `viewer: ${graph.viewerName}`,
+    "legend: L=hard-dependency layer; p=parent; a=assignee; <=blocked by; =>blocks; *=outside project",
     ...issueLines,
     `cycles: ${cycles.length > 0 ? cycles.join(",") : "none"}`,
   ].join("\n");
@@ -252,9 +271,14 @@ const isLinearIssueRef = (value: unknown): value is LinearIssueRef =>
   typeof value.state.name === "string" &&
   typeof value.state.type === "string" &&
   (value.project === null ||
-    (isRecord(value.project) && typeof value.project.name === "string"));
+    (isRecord(value.project) && typeof value.project.name === "string")) &&
+  (value.assignee === undefined ||
+    value.assignee === null ||
+    (isRecord(value.assignee) &&
+      typeof value.assignee.id === "string" &&
+      typeof value.assignee.name === "string"));
 
-const readProjectIssuePage = (value: unknown): ProjectIssuePage => {
+export const readProjectIssuePage = (value: unknown): ProjectIssuePage => {
   if (!isRecord(value))
     throw new Error("Linear returned a non-object response.");
   if (Array.isArray(value.errors) && value.errors.length > 0) {
@@ -270,6 +294,18 @@ const readProjectIssuePage = (value: unknown): ProjectIssuePage => {
     );
   }
   const data = value.data;
+  const viewer = isRecord(data) ? data.viewer : undefined;
+  if (
+    !isRecord(viewer) ||
+    typeof viewer.id !== "string" ||
+    viewer.id.length === 0 ||
+    typeof viewer.name !== "string" ||
+    viewer.name.length === 0
+  ) {
+    throw new Error(
+      "Linear returned a missing or malformed authenticated viewer (expected non-empty id and name).",
+    );
+  }
   const projects =
     isRecord(data) && isRecord(data.projects) ? data.projects.nodes : undefined;
   if (
@@ -303,6 +339,11 @@ const readProjectIssuePage = (value: unknown): ProjectIssuePage => {
       !isRecord(issue.state) ||
       typeof issue.state.name !== "string" ||
       typeof issue.state.type !== "string" ||
+      (issue.assignee !== undefined &&
+        issue.assignee !== null &&
+        (!isRecord(issue.assignee) ||
+          typeof issue.assignee.id !== "string" ||
+          typeof issue.assignee.name !== "string")) ||
       !isRecord(issue.relations) ||
       !isRecord(issue.inverseRelations) ||
       !Array.isArray(issue.relations.nodes) ||
@@ -357,6 +398,7 @@ const readProjectIssuePage = (value: unknown): ProjectIssuePage => {
   }
   return {
     projectName: project.name,
+    viewer: { id: viewer.id, name: viewer.name },
     issues,
     hasNextPage: issuesConnection.pageInfo.hasNextPage,
     endCursor,
@@ -392,26 +434,35 @@ const queryProjectPage = (
 const asProjectIssue = (
   issue: LinearIssueRef,
   projectName: string,
+  viewerId: string,
   parentIdentifier?: string,
 ): ProjectIssue => ({
   identifier: issue.identifier,
   title: issue.title,
   stateName: issue.state.name,
   ...(parentIdentifier ? { parentIdentifier } : {}),
+  ...(issue.assignee ? { assigneeName: issue.assignee.name } : {}),
+  assignedToViewer: issue.assignee?.id === viewerId,
   external: issue.project?.name !== projectName,
 });
 
 export const fetchProjectGraph = (
   projectName: string,
   includeClosed = false,
+  queryPage: (
+    projectName: string,
+    after: string | null,
+  ) => ProjectIssuePage = queryProjectPage,
 ): ProjectGraph => {
   const projectIssues = new Map<string, LinearIssueRecord>();
   let after: string | null = null;
   let resolvedProjectName = projectName;
+  let viewer = { id: "", name: "unknown" };
 
   do {
-    const page = queryProjectPage(projectName, after);
+    const page = queryPage(projectName, after);
     resolvedProjectName = page.projectName;
+    viewer = page.viewer;
     for (const issue of page.issues) projectIssues.set(issue.identifier, issue);
     after = page.hasNextPage ? page.endCursor : null;
     if (page.hasNextPage && after === null) {
@@ -428,7 +479,12 @@ export const fetchProjectGraph = (
     if (!selected(issue)) continue;
     issues.set(
       issue.identifier,
-      asProjectIssue(issue, resolvedProjectName, issue.parent?.identifier),
+      asProjectIssue(
+        issue,
+        resolvedProjectName,
+        viewer.id,
+        issue.parent?.identifier,
+      ),
     );
 
     for (const relation of issue.relations.nodes) {
@@ -442,7 +498,7 @@ export const fetchProjectGraph = (
       issues.set(
         relatedIssue.identifier,
         issues.get(relatedIssue.identifier) ??
-          asProjectIssue(relatedIssue, resolvedProjectName),
+          asProjectIssue(relatedIssue, resolvedProjectName, viewer.id),
       );
       const edge = { from: issue.identifier, to: relatedIssue.identifier };
       hardEdges.set(`${edge.from}>${edge.to}`, edge);
@@ -454,7 +510,7 @@ export const fetchProjectGraph = (
       issues.set(
         sourceIssue.identifier,
         issues.get(sourceIssue.identifier) ??
-          asProjectIssue(sourceIssue, resolvedProjectName),
+          asProjectIssue(sourceIssue, resolvedProjectName, viewer.id),
       );
       const edge = { from: sourceIssue.identifier, to: issue.identifier };
       hardEdges.set(`${edge.from}>${edge.to}`, edge);
@@ -463,6 +519,8 @@ export const fetchProjectGraph = (
 
   return {
     projectName: resolvedProjectName,
+    viewerName: viewer.name,
+    includeClosed,
     issues: [...issues.values()],
     hardEdges: [...hardEdges.values()],
   };
@@ -474,7 +532,7 @@ Print a compact, read-only hard-dependency projection for agent sequencing.
 Defaults to open issues in the brunch-agent project. The output is factual input;
 it does not infer priority, soft dependencies, or a sequencing recommendation.`;
 
-const parseArguments = (
+export const parseArguments = (
   arguments_: readonly string[],
 ): {
   readonly projectName: string;

@@ -1,0 +1,2235 @@
+{
+  "places": [
+    {
+      "id": "place__load_board",
+      "name": "LoadBoard",
+      "colorId": "type__load",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__waiting_load",
+      "showAsInitialState": false,
+      "x": 540,
+      "y": 1530
+    },
+    {
+      "id": "place__available",
+      "name": "Available",
+      "colorId": "type__truck",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__stopped",
+      "showAsInitialState": true,
+      "x": 3660,
+      "y": 675
+    },
+    {
+      "id": "place__drivers",
+      "name": "Drivers",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 2685,
+      "y": 1575
+    },
+    {
+      "id": "place__on_route",
+      "name": "OnRoute",
+      "colorId": "type__truck",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__driving",
+      "showAsInitialState": false,
+      "x": 1035,
+      "y": 1290
+    },
+    {
+      "id": "place__stranded",
+      "name": "Stranded",
+      "colorId": "type__truck",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__stopped",
+      "showAsInitialState": false,
+      "x": 1605,
+      "y": 1395
+    },
+    {
+      "id": "place__recovery",
+      "name": "RecoveryUnits",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 2145,
+      "y": 1620
+    },
+    {
+      "id": "place__under_recovery",
+      "name": "UnderRecovery",
+      "colorId": "type__truck",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__stopped",
+      "showAsInitialState": false,
+      "x": 2160,
+      "y": 1395
+    },
+    {
+      "id": "place__returning",
+      "name": "Returning",
+      "colorId": "type__truck",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__returning",
+      "showAsInitialState": false,
+      "x": 1605,
+      "y": 870
+    },
+    {
+      "id": "place__depot_queue",
+      "name": "DepotQueue",
+      "colorId": "type__truck",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__stopped",
+      "showAsInitialState": false,
+      "x": 2115,
+      "y": 645
+    },
+    {
+      "id": "place__bays",
+      "name": "Bays",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 2115,
+      "y": 480
+    },
+    {
+      "id": "place__technicians",
+      "name": "Technicians",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 2115,
+      "y": 285
+    },
+    {
+      "id": "place__spares",
+      "name": "Spares",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 2115,
+      "y": 135
+    },
+    {
+      "id": "place__in_bay",
+      "name": "InBay",
+      "colorId": "type__truck",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__in_bay",
+      "showAsInitialState": false,
+      "x": 3135,
+      "y": 150
+    },
+    {
+      "id": "place__needs_repair",
+      "name": "NeedsRepair",
+      "colorId": "type__truck",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__stopped",
+      "showAsInitialState": false,
+      "x": 2115,
+      "y": -15
+    },
+    {
+      "id": "place__awaiting_parts",
+      "name": "AwaitingParts",
+      "colorId": "type__truck",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__stopped",
+      "showAsInitialState": false,
+      "x": 2670,
+      "y": 150
+    },
+    {
+      "id": "place__parts_on_order",
+      "name": "PartsOnOrder",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2670,
+      "y": 375
+    },
+    {
+      "id": "place__delivered",
+      "name": "DeliveredLoads",
+      "colorId": "type__load",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1605,
+      "y": 1170
+    },
+    {
+      "id": "place__late_loads",
+      "name": "LateLoads",
+      "colorId": "type__load",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1605,
+      "y": 1020
+    },
+    {
+      "id": "place__dropped_loads",
+      "name": "DroppedLoads",
+      "colorId": "type__load",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1605,
+      "y": 1785
+    },
+    {
+      "id": "place__roadside_events",
+      "name": "RoadsideEvents",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1605,
+      "y": 1620
+    },
+    {
+      "id": "place__services_done",
+      "name": "ServicesDone",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 3645,
+      "y": 0
+    },
+    {
+      "id": "place__repairs_done",
+      "name": "RepairsDone",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 3660,
+      "y": 285
+    },
+    {
+      "id": "place__deferred",
+      "name": "DeferredServices",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2670,
+      "y": 570
+    },
+    {
+      "id": "place__conditions",
+      "name": "Conditions",
+      "colorId": "type__conditions",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__conditions",
+      "showAsInitialState": true,
+      "x": 750,
+      "y": 1080
+    },
+    {
+      "id": "place__rest",
+      "name": "Rest",
+      "colorId": "type__truck",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__resting",
+      "showAsInitialState": false,
+      "x": 2670,
+      "y": 915
+    },
+    {
+      "id": "place__rest_events",
+      "name": "RestEvents",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2670,
+      "y": 1065
+    }
+  ],
+  "transitions": [
+    {
+      "id": "transition__load_motorway",
+      "name": "A motorway load is offered",
+      "inputArcs": [],
+      "outputArcs": [
+        {
+          "placeId": "place__load_board",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.motorway_rate;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  return {\n    LoadBoard: [\n      {\n        route_class: 0,\n        distance: 420,\n        due: 420 / parameters.average_speed * parameters.due_allowance,\n        revenue: 420 * parameters.revenue_per_km,\n        age: 0,\n      },\n    ],\n  };\n});",
+      "x": 300,
+      "y": 1425
+    },
+    {
+      "id": "transition__load_urban",
+      "name": "A urban load is offered",
+      "inputArcs": [],
+      "outputArcs": [
+        {
+          "placeId": "place__load_board",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.urban_rate;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  return {\n    LoadBoard: [\n      {\n        route_class: 1,\n        distance: 180,\n        due: 180 / parameters.average_speed * parameters.due_allowance,\n        revenue: 180 * parameters.revenue_per_km,\n        age: 0,\n      },\n    ],\n  };\n});",
+      "x": 300,
+      "y": 1530
+    },
+    {
+      "id": "transition__load_mountain",
+      "name": "A mountain load is offered",
+      "inputArcs": [],
+      "outputArcs": [
+        {
+          "placeId": "place__load_board",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.mountain_rate;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  return {\n    LoadBoard: [\n      {\n        route_class: 2,\n        distance: 260,\n        due: 260 / parameters.average_speed * parameters.due_allowance,\n        revenue: 260 * parameters.revenue_per_km,\n        age: 0,\n      },\n    ],\n  };\n});",
+      "x": 300,
+      "y": 1635
+    },
+    {
+      "id": "transition__dispatch",
+      "name": "Dispatch a truck",
+      "inputArcs": [
+        {
+          "placeId": "place__load_board",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__available",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__drivers",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__conditions",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__on_route",
+          "weight": 1
+        },
+        {
+          "placeId": "place__conditions",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const truck = input.Available[0];\n  const load = input.LoadBoard[0];\n  const limit = load.route_class === 2\n    ? parameters.severe_route_wear_limit\n    : parameters.wear_limit;\n  const maxWear = Math.max(truck.brake_wear, truck.engine_wear, truck.tyre_wear);\n  const estimatedHours = load.distance / (parameters.average_speed * 0.9);\n  return maxWear < limit\n    && truck.hours_driven + estimatedHours < parameters.max_driving_hours * 1.5;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const truck = input.Available[0];\n  const load = input.LoadBoard[0];\n  const cond = input.Conditions[0];\n  return {\n    OnRoute: [{\n      brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: load.distance, route_distance: load.distance, service_remaining: truck.service_remaining, route_class: load.route_class, load_due: truck.age + load.due - load.age, load_revenue: load.revenue, age: truck.age, loads_done: truck.loads_done, unplanned: truck.unplanned, road_severity: cond.severity_mean, speed_factor: cond.speed_mean, conditions_clock: parameters.conditions_step, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: parameters.fuel_per_km\n    }],\n    Conditions: [{ severity_mean: cond.severity_mean, speed_mean: cond.speed_mean, clock: cond.clock }],\n  };\n});",
+      "x": 765,
+      "y": 1290
+    },
+    {
+      "id": "transition__deliver_on_time",
+      "name": "Load delivered on time",
+      "inputArcs": [
+        {
+          "placeId": "place__on_route",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__returning",
+          "weight": 1
+        },
+        {
+          "placeId": "place__delivered",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  const truck = input.OnRoute[0];\n  return truck.km_remaining <= 0 && truck.age <= truck.load_due;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const truck = input.OnRoute[0];\n  return {\n    Returning: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.route_distance, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done + 1, unplanned: truck.unplanned, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: parameters.conditions_step, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }],\n    DeliveredLoads: [{ route_class: truck.route_class, distance: truck.route_distance, due: truck.load_due, revenue: truck.load_revenue, age: truck.age }],\n  };\n});",
+      "x": 1305,
+      "y": 1170
+    },
+    {
+      "id": "transition__deliver_late",
+      "name": "Load delivered late",
+      "inputArcs": [
+        {
+          "placeId": "place__on_route",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__returning",
+          "weight": 1
+        },
+        {
+          "placeId": "place__late_loads",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  const truck = input.OnRoute[0];\n  return truck.km_remaining <= 0 && truck.age > truck.load_due;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const truck = input.OnRoute[0];\n  return {\n    Returning: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.route_distance, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done + 1, unplanned: truck.unplanned, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: parameters.conditions_step, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }],\n    LateLoads: [{ route_class: truck.route_class, distance: truck.route_distance, due: truck.load_due, revenue: truck.load_revenue, age: truck.age }],\n  };\n});",
+      "x": 1305,
+      "y": 960
+    },
+    {
+      "id": "transition__breakdown",
+      "name": "Truck fails at the roadside",
+      "inputArcs": [
+        {
+          "placeId": "place__on_route",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__stranded",
+          "weight": 1
+        },
+        {
+          "placeId": "place__roadside_events",
+          "weight": 1
+        },
+        {
+          "placeId": "place__dropped_loads",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const truck = input.OnRoute[0];\n  const routeSeverity = truck.route_class === 0 ? 1.0\n    : truck.route_class === 1 ? 1.8 : 3.2;\n  const brakeHazard = 1 + parameters.brake_sensitivity * truck.brake_wear;\n  const engineHazard = 1 + parameters.engine_sensitivity * truck.engine_wear;\n  const tyreHazard = 1 + parameters.tyre_sensitivity * truck.tyre_wear;\n  return parameters.failure_rate * routeSeverity\n    * Math.max(brakeHazard, engineHazard, tyreHazard);\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const truck = input.OnRoute[0];\n  return {\n    Stranded: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: truck.unplanned, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }],\n    DroppedLoads: [{ route_class: truck.route_class, distance: truck.route_distance, due: truck.load_due, revenue: truck.load_revenue, age: truck.age }],\n  };\n});",
+      "x": 1305,
+      "y": 1395
+    },
+    {
+      "id": "transition__recover",
+      "name": "Recovery unit reaches the truck",
+      "inputArcs": [
+        {
+          "placeId": "place__stranded",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__recovery",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__under_recovery",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return 1 / parameters.recovery_response;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const truck = input.Stranded[0];\n  return { UnderRecovery: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: truck.unplanned, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }] };\n});",
+      "x": 1890,
+      "y": 1395
+    },
+    {
+      "id": "transition__tow_home",
+      "name": "Truck towed back to the depot",
+      "inputArcs": [
+        {
+          "placeId": "place__under_recovery",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__needs_repair",
+          "weight": 1
+        },
+        {
+          "placeId": "place__recovery",
+          "weight": 1
+        },
+        {
+          "placeId": "place__drivers",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return 1 / parameters.tow_time;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const truck = input.UnderRecovery[0];\n  return { NeedsRepair: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: 0, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: truck.unplanned, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }] };\n});",
+      "x": 2430,
+      "y": 1395
+    },
+    {
+      "id": "transition__start_repair",
+      "name": "Repair after a breakdown starts",
+      "inputArcs": [
+        {
+          "placeId": "place__needs_repair",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__bays",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__technicians",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__spares",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__in_bay",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda(() => true);",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const truck = input.NeedsRepair[0];\n  return { InBay: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: Distribution.Lognormal(Math.log(parameters.repair_time), 0.4), route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: 1, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }] };\n});",
+      "x": 2415,
+      "y": -165
+    },
+    {
+      "id": "transition__repair_waits_for_parts",
+      "name": "Repair waits for a part",
+      "inputArcs": [
+        {
+          "placeId": "place__needs_repair",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__bays",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__technicians",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__spares",
+          "weight": 1,
+          "type": "inhibitor"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__awaiting_parts",
+          "weight": 1
+        },
+        {
+          "placeId": "place__parts_on_order",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda(() => true);",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const truck = input.NeedsRepair[0];\n  return { AwaitingParts: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: 1, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }] };\n});",
+      "x": 2415,
+      "y": 45
+    },
+    {
+      "id": "transition__arrive_depot",
+      "name": "Truck arrives back at the depot",
+      "inputArcs": [
+        {
+          "placeId": "place__returning",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__depot_queue",
+          "weight": 1
+        },
+        {
+          "placeId": "place__drivers",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.Returning[0].km_remaining <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const truck = input.Returning[0];\n  return { DepotQueue: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: 0, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: truck.unplanned, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }] };\n});",
+      "x": 1875,
+      "y": 870
+    },
+    {
+      "id": "transition__park",
+      "name": "Truck parks up, no service due",
+      "inputArcs": [
+        {
+          "placeId": "place__depot_queue",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__available",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const truck = input.DepotQueue[0];\n  const maxWear = Math.max(truck.brake_wear, truck.engine_wear, truck.tyre_wear);\n  return maxWear < parameters.service_wear_limit\n    && truck.hours_driven < parameters.max_driving_hours;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const truck = input.DepotQueue[0];\n  return { Available: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: truck.unplanned, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }] };\n});",
+      "x": 2415,
+      "y": 795
+    },
+    {
+      "id": "transition__park_workshop_full",
+      "name": "Service deferred, workshop full",
+      "inputArcs": [
+        {
+          "placeId": "place__depot_queue",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__bays",
+          "weight": 1,
+          "type": "inhibitor"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__available",
+          "weight": 1
+        },
+        {
+          "placeId": "place__deferred",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const truck = input.DepotQueue[0];\n  const maxWear = Math.max(truck.brake_wear, truck.engine_wear, truck.tyre_wear);\n  return maxWear >= parameters.service_wear_limit;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const truck = input.DepotQueue[0];\n  return { Available: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: truck.unplanned, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }] };\n});",
+      "x": 2415,
+      "y": 645
+    },
+    {
+      "id": "transition__into_bay",
+      "name": "Truck goes into a bay",
+      "inputArcs": [
+        {
+          "placeId": "place__depot_queue",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__bays",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__technicians",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__spares",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__in_bay",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const truck = input.DepotQueue[0];\n  const maxWear = Math.max(truck.brake_wear, truck.engine_wear, truck.tyre_wear);\n  return maxWear >= parameters.service_wear_limit;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const truck = input.DepotQueue[0];\n  return { InBay: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: Distribution.Lognormal(Math.log(parameters.service_time), 0.3), route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: 0, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }] };\n});",
+      "x": 2400,
+      "y": 435
+    },
+    {
+      "id": "transition__wait_for_parts",
+      "name": "Truck waits for a part",
+      "inputArcs": [
+        {
+          "placeId": "place__depot_queue",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__bays",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__technicians",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__spares",
+          "weight": 1,
+          "type": "inhibitor"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__awaiting_parts",
+          "weight": 1
+        },
+        {
+          "placeId": "place__parts_on_order",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const truck = input.DepotQueue[0];\n  const maxWear = Math.max(truck.brake_wear, truck.engine_wear, truck.tyre_wear);\n  return maxWear >= parameters.service_wear_limit;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const truck = input.DepotQueue[0];\n  return { AwaitingParts: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: 0, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }] };\n});",
+      "x": 2415,
+      "y": 270
+    },
+    {
+      "id": "transition__parts_arrive",
+      "name": "Ordered part arrives",
+      "inputArcs": [
+        {
+          "placeId": "place__parts_on_order",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__spares",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return 1 / parameters.parts_lead_time;\n});",
+      "transitionKernelCode": "",
+      "x": 2895,
+      "y": 375
+    },
+    {
+      "id": "transition__fit_part",
+      "name": "Part fitted",
+      "inputArcs": [
+        {
+          "placeId": "place__awaiting_parts",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__spares",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__in_bay",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda(() => true);",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const truck = input.AwaitingParts[0];\n  const duration = truck.unplanned === 1\n    ? Distribution.Lognormal(Math.log(parameters.repair_time), 0.4)\n    : Distribution.Lognormal(Math.log(parameters.service_time), 0.3);\n  return { InBay: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: duration, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: truck.unplanned, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }] };\n});",
+      "x": 2895,
+      "y": -90
+    },
+    {
+      "id": "transition__service_complete",
+      "name": "Planned service finished",
+      "inputArcs": [
+        {
+          "placeId": "place__in_bay",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__available",
+          "weight": 1
+        },
+        {
+          "placeId": "place__bays",
+          "weight": 1
+        },
+        {
+          "placeId": "place__technicians",
+          "weight": 1
+        },
+        {
+          "placeId": "place__services_done",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  const truck = input.InBay[0];\n  return truck.service_remaining <= 0 && truck.unplanned === 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const truck = input.InBay[0];\n  return { Available: [{ brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: 0, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }] };\n});",
+      "x": 3375,
+      "y": 0
+    },
+    {
+      "id": "transition__repair_complete",
+      "name": "Breakdown repair finished",
+      "inputArcs": [
+        {
+          "placeId": "place__in_bay",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__available",
+          "weight": 1
+        },
+        {
+          "placeId": "place__bays",
+          "weight": 1
+        },
+        {
+          "placeId": "place__technicians",
+          "weight": 1
+        },
+        {
+          "placeId": "place__repairs_done",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  const truck = input.InBay[0];\n  return truck.service_remaining <= 0 && truck.unplanned === 1;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const truck = input.InBay[0];\n  return { Available: [{ brake_wear: truck.brake_wear * 0.5, engine_wear: truck.engine_wear * 0.5, tyre_wear: truck.tyre_wear * 0.5, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: 0, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }] };\n});",
+      "x": 3375,
+      "y": 285
+    },
+    {
+      "id": "transition__load_expires",
+      "name": "Load goes to another haulier",
+      "inputArcs": [
+        {
+          "placeId": "place__load_board",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__dropped_loads",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input.LoadBoard[0].age > parameters.board_patience;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const load = input.LoadBoard[0];\n  return { DroppedLoads: [{ route_class: load.route_class, distance: load.distance, due: load.due, revenue: load.revenue, age: load.age }] };\n});",
+      "x": 915,
+      "y": 1785
+    },
+    {
+      "id": "transition__conditions_on_route",
+      "name": "Road noise injection (OnRoute)",
+      "inputArcs": [
+        {
+          "placeId": "place__on_route",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__on_route",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.OnRoute[0].conditions_clock <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const truck = input.OnRoute[0];\n  const step = parameters.conditions_step;\n  return {\n    OnRoute: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: truck.unplanned, road_severity: Distribution.Gaussian(truck.road_severity, parameters.severity_volatility * Math.sqrt(step)), speed_factor: Distribution.Gaussian(truck.speed_factor, parameters.speed_volatility * Math.sqrt(step)), conditions_clock: parameters.conditions_step, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }],\n  };\n});",
+      "x": 1305,
+      "y": 1620
+    },
+    {
+      "id": "transition__conditions_returning",
+      "name": "Road noise injection (Returning)",
+      "inputArcs": [
+        {
+          "placeId": "place__returning",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__returning",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.Returning[0].conditions_clock <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const truck = input.Returning[0];\n  const step = parameters.conditions_step;\n  return {\n    Returning: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: truck.unplanned, road_severity: Distribution.Gaussian(truck.road_severity, parameters.severity_volatility * Math.sqrt(step)), speed_factor: Distribution.Gaussian(truck.speed_factor, parameters.speed_volatility * Math.sqrt(step)), conditions_clock: parameters.conditions_step, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }],\n  };\n});",
+      "x": 1620,
+      "y": 705
+    },
+    {
+      "id": "transition__env_shift",
+      "name": "Weather noise injection",
+      "inputArcs": [
+        {
+          "placeId": "place__conditions",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__conditions",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.Conditions[0].clock <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const cond = input.Conditions[0];\n  const step = parameters.env_step;\n  return {\n    Conditions: [{ severity_mean: Distribution.Gaussian(cond.severity_mean, parameters.env_volatility * Math.sqrt(step)), speed_mean: Distribution.Gaussian(cond.speed_mean, parameters.env_volatility * Math.sqrt(step)), clock: parameters.env_step }],\n  };\n});",
+      "x": 765,
+      "y": 885
+    },
+    {
+      "id": "transition__mandatory_rest",
+      "name": "Mandatory rest",
+      "inputArcs": [
+        {
+          "placeId": "place__depot_queue",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__rest",
+          "weight": 1
+        },
+        {
+          "placeId": "place__rest_events",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return input.DepotQueue[0].hours_driven >= parameters.max_driving_hours;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const truck = input.DepotQueue[0];\n  return {\n    Rest: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: truck.unplanned, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: truck.hours_driven, rest_remaining: Distribution.Lognormal(Math.log(11), 0.15), fuel_rate: truck.fuel_rate }],\n  };\n});",
+      "x": 2415,
+      "y": 915
+    },
+    {
+      "id": "transition__rest_complete",
+      "name": "Rest complete",
+      "inputArcs": [
+        {
+          "placeId": "place__rest",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__available",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.Rest[0].rest_remaining <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const truck = input.Rest[0];\n  return { Available: [{ brake_wear: truck.brake_wear, engine_wear: truck.engine_wear, tyre_wear: truck.tyre_wear, km_remaining: truck.km_remaining, route_distance: truck.route_distance, service_remaining: truck.service_remaining, route_class: truck.route_class, load_due: truck.load_due, load_revenue: truck.load_revenue, age: truck.age, loads_done: truck.loads_done, unplanned: truck.unplanned, road_severity: truck.road_severity, speed_factor: truck.speed_factor, conditions_clock: truck.conditions_clock, fuel_burned: truck.fuel_burned, hours_driven: 0, rest_remaining: truck.rest_remaining, fuel_rate: truck.fuel_rate }] };\n});",
+      "x": 2895,
+      "y": 915
+    }
+  ],
+  "types": [
+    {
+      "id": "type__truck",
+      "name": "Truck",
+      "iconSlug": "circle",
+      "displayColor": "#3b82f6",
+      "elements": [
+        {
+          "elementId": "type__truck__brake_wear",
+          "name": "brake_wear",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__engine_wear",
+          "name": "engine_wear",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__tyre_wear",
+          "name": "tyre_wear",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__km_remaining",
+          "name": "km_remaining",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__route_distance",
+          "name": "route_distance",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__service_remaining",
+          "name": "service_remaining",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__route_class",
+          "name": "route_class",
+          "type": "integer"
+        },
+        {
+          "elementId": "type__truck__load_due",
+          "name": "load_due",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__load_revenue",
+          "name": "load_revenue",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__age",
+          "name": "age",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__loads_done",
+          "name": "loads_done",
+          "type": "integer"
+        },
+        {
+          "elementId": "type__truck__unplanned",
+          "name": "unplanned",
+          "type": "integer"
+        },
+        {
+          "elementId": "type__truck__road_severity",
+          "name": "road_severity",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__speed_factor",
+          "name": "speed_factor",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__conditions_clock",
+          "name": "conditions_clock",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__fuel_burned",
+          "name": "fuel_burned",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__hours_driven",
+          "name": "hours_driven",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__rest_remaining",
+          "name": "rest_remaining",
+          "type": "real"
+        },
+        {
+          "elementId": "type__truck__fuel_rate",
+          "name": "fuel_rate",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "id": "type__load",
+      "name": "Load",
+      "iconSlug": "circle",
+      "displayColor": "#f97316",
+      "elements": [
+        {
+          "elementId": "type__load__route_class",
+          "name": "route_class",
+          "type": "integer"
+        },
+        {
+          "elementId": "type__load__distance",
+          "name": "distance",
+          "type": "real"
+        },
+        {
+          "elementId": "type__load__due",
+          "name": "due",
+          "type": "real"
+        },
+        {
+          "elementId": "type__load__revenue",
+          "name": "revenue",
+          "type": "real"
+        },
+        {
+          "elementId": "type__load__age",
+          "name": "age",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "id": "type__conditions",
+      "name": "Conditions",
+      "iconSlug": "circle",
+      "displayColor": "#10b981",
+      "elements": [
+        {
+          "elementId": "type__conditions__severity_mean",
+          "name": "severity_mean",
+          "type": "real"
+        },
+        {
+          "elementId": "type__conditions__speed_mean",
+          "name": "speed_mean",
+          "type": "real"
+        },
+        {
+          "elementId": "type__conditions__clock",
+          "name": "clock",
+          "type": "real"
+        }
+      ]
+    }
+  ],
+  "differentialEquations": [
+    {
+      "id": "de__driving",
+      "name": "Wear, fuel and road conditions (loaded)",
+      "colorId": "type__truck",
+      "code": "export default Dynamics((tokens, parameters) => {\n  return tokens.map((truck) => {\n    const speed = parameters.average_speed * truck.speed_factor;\n    const severity = truck.road_severity;\n    const brakeRoute = truck.route_class === 2 ? 2.5 : truck.route_class === 1 ? 1.4 : 1.0;\n    const tyreRoute = truck.route_class === 2 ? 1.6 : 1.0;\n    return {\n      brake_wear: parameters.brake_wear_per_km * speed * severity * brakeRoute\n        * (1 + parameters.wear_feedback * truck.brake_wear),\n      engine_wear: parameters.engine_wear_per_km * speed * severity * 1.2\n        * (1 + parameters.wear_feedback * truck.engine_wear),\n      tyre_wear: parameters.tyre_wear_per_km * speed * severity * tyreRoute\n        * (1 + parameters.wear_feedback * truck.tyre_wear),\n      km_remaining: -speed,\n      route_distance: 0, service_remaining: 0, load_due: 0, load_revenue: 0, age: 1,\n      road_severity: parameters.severity_reversion\n        * (parameters.base_severity_mean - truck.road_severity),\n      speed_factor: parameters.speed_reversion\n        * (parameters.base_speed_mean - truck.speed_factor),\n      conditions_clock: -1,\n      fuel_burned: parameters.fuel_per_km * speed * severity\n        * (truck.route_class === 2 ? 1.4 : 1.0),\n      hours_driven: 1, rest_remaining: 0, fuel_rate: 0\n    };\n  });\n});"
+    },
+    {
+      "id": "de__returning",
+      "name": "Wear, fuel and road conditions (running back empty)",
+      "colorId": "type__truck",
+      "code": "export default Dynamics((tokens, parameters) => {\n  return tokens.map((truck) => {\n    const speed = parameters.average_speed * truck.speed_factor;\n    const severity = truck.road_severity;\n    const brakeRoute = truck.route_class === 2 ? 2.5 : truck.route_class === 1 ? 1.4 : 1.0;\n    const tyreRoute = truck.route_class === 2 ? 1.6 : 1.0;\n    return {\n      brake_wear: parameters.brake_wear_per_km * speed * severity * brakeRoute * 0.7\n        * (1 + parameters.wear_feedback * truck.brake_wear),\n      engine_wear: parameters.engine_wear_per_km * speed * severity * 0.7\n        * (1 + parameters.wear_feedback * truck.engine_wear),\n      tyre_wear: parameters.tyre_wear_per_km * speed * severity * tyreRoute * 0.7\n        * (1 + parameters.wear_feedback * truck.tyre_wear),\n      km_remaining: -speed,\n      route_distance: 0, service_remaining: 0, load_due: 0, load_revenue: 0, age: 1,\n      road_severity: parameters.severity_reversion\n        * (parameters.base_severity_mean - truck.road_severity),\n      speed_factor: parameters.speed_reversion\n        * (parameters.base_speed_mean - truck.speed_factor),\n      conditions_clock: -1,\n      fuel_burned: parameters.fuel_per_km * speed * severity\n        * (truck.route_class === 2 ? 1.4 : 1.0) * 0.8,\n      hours_driven: 1, rest_remaining: 0, fuel_rate: 0\n    };\n  });\n});"
+    },
+    {
+      "id": "de__stopped",
+      "name": "Clock: standing at the depot (age only)",
+      "colorId": "type__truck",
+      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({ brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: 0, load_due: 0, load_revenue: 0, age: 1, road_severity: 0, speed_factor: 0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: 0, fuel_rate: 0 }));\n});"
+    },
+    {
+      "id": "de__in_bay",
+      "name": "Clock: service countdown",
+      "colorId": "type__truck",
+      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({ brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: -1, load_due: 0, load_revenue: 0, age: 1, road_severity: 0, speed_factor: 0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: 0, fuel_rate: 0 }));\n});"
+    },
+    {
+      "id": "de__resting",
+      "name": "Clock: driver rest countdown",
+      "colorId": "type__truck",
+      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({ brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: 0, load_due: 0, load_revenue: 0, age: 1, road_severity: 0, speed_factor: 0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: -1, fuel_rate: 0 }));\n});"
+    },
+    {
+      "id": "de__waiting_load",
+      "name": "Clock: load ageing on the board",
+      "colorId": "type__load",
+      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({ distance: 0, due: 0, revenue: 0, age: 1 }));\n});"
+    },
+    {
+      "id": "de__conditions",
+      "name": "Regional weather drift (+ resample clock)",
+      "colorId": "type__conditions",
+      "code": "export default Dynamics((tokens, parameters) => {\n  return tokens.map((cond) => ({\n    severity_mean: parameters.env_reversion\n      * (parameters.base_severity_mean - cond.severity_mean),\n    speed_mean: parameters.env_reversion\n      * (parameters.base_speed_mean - cond.speed_mean),\n    clock: -1\n  }));\n});"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "param__average_speed",
+      "name": "Average speed (km per hour)",
+      "variableName": "average_speed",
+      "type": "real",
+      "defaultValue": "62"
+    },
+    {
+      "id": "param__motorway_rate",
+      "name": "Motorway loads offered (per hour)",
+      "variableName": "motorway_rate",
+      "type": "real",
+      "defaultValue": "0.07"
+    },
+    {
+      "id": "param__urban_rate",
+      "name": "Urban loads offered (per hour)",
+      "variableName": "urban_rate",
+      "type": "real",
+      "defaultValue": "0.095"
+    },
+    {
+      "id": "param__mountain_rate",
+      "name": "Mountain loads offered (per hour)",
+      "variableName": "mountain_rate",
+      "type": "real",
+      "defaultValue": "0.048"
+    },
+    {
+      "id": "param__due_allowance",
+      "name": "Delivery window as a multiple of driving time",
+      "variableName": "due_allowance",
+      "type": "real",
+      "defaultValue": "2.2"
+    },
+    {
+      "id": "param__revenue_per_km",
+      "name": "Revenue per km",
+      "variableName": "revenue_per_km",
+      "type": "real",
+      "defaultValue": "1.4"
+    },
+    {
+      "id": "param__board_patience",
+      "name": "Hours a load stays on the board",
+      "variableName": "board_patience",
+      "type": "real",
+      "defaultValue": "10"
+    },
+    {
+      "id": "param__brake_wear_per_km",
+      "name": "Brake wear per km",
+      "variableName": "brake_wear_per_km",
+      "type": "real",
+      "defaultValue": "0.000015"
+    },
+    {
+      "id": "param__engine_wear_per_km",
+      "name": "Engine wear per km",
+      "variableName": "engine_wear_per_km",
+      "type": "real",
+      "defaultValue": "0.000012"
+    },
+    {
+      "id": "param__tyre_wear_per_km",
+      "name": "Tyre wear per km",
+      "variableName": "tyre_wear_per_km",
+      "type": "real",
+      "defaultValue": "0.000018"
+    },
+    {
+      "id": "param__failure_rate",
+      "name": "Roadside failure rate for a new truck (per hour)",
+      "variableName": "failure_rate",
+      "type": "real",
+      "defaultValue": "0.00035"
+    },
+    {
+      "id": "param__brake_sensitivity",
+      "name": "How much brake wear multiplies the failure rate",
+      "variableName": "brake_sensitivity",
+      "type": "real",
+      "defaultValue": "50"
+    },
+    {
+      "id": "param__engine_sensitivity",
+      "name": "How much engine wear multiplies the failure rate",
+      "variableName": "engine_sensitivity",
+      "type": "real",
+      "defaultValue": "70"
+    },
+    {
+      "id": "param__tyre_sensitivity",
+      "name": "How much tyre wear multiplies the failure rate",
+      "variableName": "tyre_sensitivity",
+      "type": "real",
+      "defaultValue": "40"
+    },
+    {
+      "id": "param__service_wear_limit",
+      "name": "Wear level that sends a truck into a bay",
+      "variableName": "service_wear_limit",
+      "type": "real",
+      "defaultValue": "0.5"
+    },
+    {
+      "id": "param__wear_limit",
+      "name": "Wear a truck may carry onto an ordinary route",
+      "variableName": "wear_limit",
+      "type": "real",
+      "defaultValue": "9"
+    },
+    {
+      "id": "param__severe_route_wear_limit",
+      "name": "Wear a truck may carry onto a mountain route",
+      "variableName": "severe_route_wear_limit",
+      "type": "real",
+      "defaultValue": "9"
+    },
+    {
+      "id": "param__service_time",
+      "name": "Service duration (hours)",
+      "variableName": "service_time",
+      "type": "real",
+      "defaultValue": "5"
+    },
+    {
+      "id": "param__parts_lead_time",
+      "name": "Parts lead time (hours)",
+      "variableName": "parts_lead_time",
+      "type": "real",
+      "defaultValue": "20"
+    },
+    {
+      "id": "param__recovery_response",
+      "name": "Recovery response time (hours)",
+      "variableName": "recovery_response",
+      "type": "real",
+      "defaultValue": "2.5"
+    },
+    {
+      "id": "param__tow_time",
+      "name": "Tow time (hours)",
+      "variableName": "tow_time",
+      "type": "real",
+      "defaultValue": "3"
+    },
+    {
+      "id": "param__repair_time",
+      "name": "Repair after a breakdown (hours)",
+      "variableName": "repair_time",
+      "type": "real",
+      "defaultValue": "12"
+    },
+    {
+      "id": "param__fuel_per_km",
+      "name": "Base fuel consumption (litres per km)",
+      "variableName": "fuel_per_km",
+      "type": "real",
+      "defaultValue": "0.35"
+    },
+    {
+      "id": "param__max_driving_hours",
+      "name": "Maximum driving hours before rest",
+      "variableName": "max_driving_hours",
+      "type": "real",
+      "defaultValue": "9"
+    },
+    {
+      "id": "param__conditions_step",
+      "name": "Per-truck diffusion step (hours)",
+      "variableName": "conditions_step",
+      "type": "real",
+      "defaultValue": "0.5"
+    },
+    {
+      "id": "param__severity_reversion",
+      "name": "Road severity OU reversion rate",
+      "variableName": "severity_reversion",
+      "type": "real",
+      "defaultValue": "0.8"
+    },
+    {
+      "id": "param__severity_volatility",
+      "name": "Road severity OU volatility",
+      "variableName": "severity_volatility",
+      "type": "real",
+      "defaultValue": "0.15"
+    },
+    {
+      "id": "param__speed_reversion",
+      "name": "Speed factor OU reversion rate",
+      "variableName": "speed_reversion",
+      "type": "real",
+      "defaultValue": "0.6"
+    },
+    {
+      "id": "param__speed_volatility",
+      "name": "Speed factor OU volatility",
+      "variableName": "speed_volatility",
+      "type": "real",
+      "defaultValue": "0.08"
+    },
+    {
+      "id": "param__env_step",
+      "name": "Global environment shift interval (hours)",
+      "variableName": "env_step",
+      "type": "real",
+      "defaultValue": "4"
+    },
+    {
+      "id": "param__env_reversion",
+      "name": "Global environment OU reversion rate",
+      "variableName": "env_reversion",
+      "type": "real",
+      "defaultValue": "0.1"
+    },
+    {
+      "id": "param__env_volatility",
+      "name": "Global environment OU volatility",
+      "variableName": "env_volatility",
+      "type": "real",
+      "defaultValue": "0.05"
+    },
+    {
+      "id": "param__base_severity_mean",
+      "name": "Long-run severity mean",
+      "variableName": "base_severity_mean",
+      "type": "real",
+      "defaultValue": "1.0"
+    },
+    {
+      "id": "param__base_speed_mean",
+      "name": "Long-run speed mean",
+      "variableName": "base_speed_mean",
+      "type": "real",
+      "defaultValue": "1.0"
+    },
+    {
+      "id": "param__fuel_cost_per_unit",
+      "name": "Fuel cost per litre",
+      "variableName": "fuel_cost_per_unit",
+      "type": "real",
+      "defaultValue": "1.5"
+    },
+    {
+      "id": "param__repair_cost",
+      "name": "Cost per breakdown repair",
+      "variableName": "repair_cost",
+      "type": "real",
+      "defaultValue": "3500"
+    },
+    {
+      "id": "param__service_cost",
+      "name": "Cost per planned service",
+      "variableName": "service_cost",
+      "type": "real",
+      "defaultValue": "800"
+    },
+    {
+      "id": "param__rest_penalty",
+      "name": "Penalty per mandatory rest event",
+      "variableName": "rest_penalty",
+      "type": "real",
+      "defaultValue": "150"
+    },
+    {
+      "id": "param__late_penalty_fraction",
+      "name": "Revenue lost on late delivery",
+      "variableName": "late_penalty_fraction",
+      "type": "real",
+      "defaultValue": "0.3"
+    },
+    {
+      "id": "param__wear_feedback",
+      "name": "How much wear already carried accelerates further wear",
+      "variableName": "wear_feedback",
+      "type": "real",
+      "defaultValue": "0.6"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "scenario__run_to_failure",
+      "name": "Run to failure",
+      "description": "Nothing is serviced on condition: trucks are only ever repaired after they fail.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "trucks",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "drivers",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "bays",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "technicians",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "spares",
+          "default": 10
+        },
+        {
+          "type": "integer",
+          "identifier": "recovery_units",
+          "default": 2
+        },
+        {
+          "type": "real",
+          "identifier": "service_wear_limit",
+          "default": 9
+        }
+      ],
+      "parameterOverrides": {
+        "param__service_wear_limit": "scenario.service_wear_limit"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "const newTruck = {\n    brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: 0, route_class: 0, load_due: 0, load_revenue: 0, age: 0, loads_done: 0, unplanned: 0, road_severity: 1.0, speed_factor: 1.0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: 0, fuel_rate: 0\n  };\n  const fleet = [];\n  for (let index = 0; index < scenario.trucks; index += 1) {\n    fleet.push({ ...newTruck,\n      brake_wear: (index / scenario.trucks) * 0.1,\n      engine_wear: (index / scenario.trucks) * 0.08,\n      tyre_wear: (index / scenario.trucks) * 0.12,\n      road_severity: parameters.base_severity_mean,\n      speed_factor: parameters.base_speed_mean,\n    });\n  }\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n    FuelSpent: 0,\n  };"
+      }
+    },
+    {
+      "id": "scenario__condition_based",
+      "name": "Condition-based servicing",
+      "description": "Trucks come in when any component's wear reaches the threshold. Everything else is identical to the baseline.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "trucks",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "drivers",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "bays",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "technicians",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "spares",
+          "default": 10
+        },
+        {
+          "type": "integer",
+          "identifier": "recovery_units",
+          "default": 2
+        },
+        {
+          "type": "real",
+          "identifier": "service_wear_limit",
+          "default": 0.5
+        }
+      ],
+      "parameterOverrides": {
+        "param__service_wear_limit": "scenario.service_wear_limit"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "const newTruck = {\n    brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: 0, route_class: 0, load_due: 0, load_revenue: 0, age: 0, loads_done: 0, unplanned: 0, road_severity: 1.0, speed_factor: 1.0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: 0, fuel_rate: 0\n  };\n  const fleet = [];\n  for (let index = 0; index < scenario.trucks; index += 1) {\n    fleet.push({ ...newTruck,\n      brake_wear: (index / scenario.trucks) * 0.1,\n      engine_wear: (index / scenario.trucks) * 0.08,\n      tyre_wear: (index / scenario.trucks) * 0.12,\n      road_severity: parameters.base_severity_mean,\n      speed_factor: parameters.base_speed_mean,\n    });\n  }\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n    FuelSpent: 0,\n  };"
+      }
+    },
+    {
+      "id": "scenario__early_servicing",
+      "name": "Servicing too early",
+      "description": "The same rule at a quarter of full wear. Fewer breakdowns, but the fleet spends its life in the workshop.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "trucks",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "drivers",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "bays",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "technicians",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "spares",
+          "default": 10
+        },
+        {
+          "type": "integer",
+          "identifier": "recovery_units",
+          "default": 2
+        },
+        {
+          "type": "real",
+          "identifier": "service_wear_limit",
+          "default": 0.25
+        }
+      ],
+      "parameterOverrides": {
+        "param__service_wear_limit": "scenario.service_wear_limit"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "const newTruck = {\n    brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: 0, route_class: 0, load_due: 0, load_revenue: 0, age: 0, loads_done: 0, unplanned: 0, road_severity: 1.0, speed_factor: 1.0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: 0, fuel_rate: 0\n  };\n  const fleet = [];\n  for (let index = 0; index < scenario.trucks; index += 1) {\n    fleet.push({ ...newTruck,\n      brake_wear: (index / scenario.trucks) * 0.1,\n      engine_wear: (index / scenario.trucks) * 0.08,\n      tyre_wear: (index / scenario.trucks) * 0.12,\n      road_severity: parameters.base_severity_mean,\n      speed_factor: parameters.base_speed_mean,\n    });\n  }\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n    FuelSpent: 0,\n  };"
+      }
+    },
+    {
+      "id": "scenario__route_restriction",
+      "name": "Condition-based, worn trucks off mountain work",
+      "description": "Condition-based servicing plus a dispatch rule: a truck past a third of full wear is not sent on mountain routes.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "trucks",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "drivers",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "bays",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "technicians",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "spares",
+          "default": 10
+        },
+        {
+          "type": "integer",
+          "identifier": "recovery_units",
+          "default": 2
+        },
+        {
+          "type": "real",
+          "identifier": "service_wear_limit",
+          "default": 0.5
+        },
+        {
+          "type": "real",
+          "identifier": "severe_route_wear_limit",
+          "default": 0.35
+        }
+      ],
+      "parameterOverrides": {
+        "param__service_wear_limit": "scenario.service_wear_limit",
+        "param__severe_route_wear_limit": "scenario.severe_route_wear_limit"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "const newTruck = {\n    brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: 0, route_class: 0, load_due: 0, load_revenue: 0, age: 0, loads_done: 0, unplanned: 0, road_severity: 1.0, speed_factor: 1.0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: 0, fuel_rate: 0\n  };\n  const fleet = [];\n  for (let index = 0; index < scenario.trucks; index += 1) {\n    fleet.push({ ...newTruck,\n      brake_wear: (index / scenario.trucks) * 0.1,\n      engine_wear: (index / scenario.trucks) * 0.08,\n      tyre_wear: (index / scenario.trucks) * 0.12,\n      road_severity: parameters.base_severity_mean,\n      speed_factor: parameters.base_speed_mean,\n    });\n  }\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n    FuelSpent: 0,\n  };"
+      }
+    },
+    {
+      "id": "scenario__single_bay",
+      "name": "Condition-based, one bay",
+      "description": "Condition-based servicing with the second bay closed. Planned services and breakdown repairs compete for one bay.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "trucks",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "drivers",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "bays",
+          "default": 1
+        },
+        {
+          "type": "integer",
+          "identifier": "technicians",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "spares",
+          "default": 10
+        },
+        {
+          "type": "integer",
+          "identifier": "recovery_units",
+          "default": 2
+        },
+        {
+          "type": "real",
+          "identifier": "service_wear_limit",
+          "default": 0.5
+        }
+      ],
+      "parameterOverrides": {
+        "param__service_wear_limit": "scenario.service_wear_limit"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "const newTruck = {\n    brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: 0, route_class: 0, load_due: 0, load_revenue: 0, age: 0, loads_done: 0, unplanned: 0, road_severity: 1.0, speed_factor: 1.0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: 0, fuel_rate: 0\n  };\n  const fleet = [];\n  for (let index = 0; index < scenario.trucks; index += 1) {\n    fleet.push({ ...newTruck,\n      brake_wear: (index / scenario.trucks) * 0.1,\n      engine_wear: (index / scenario.trucks) * 0.08,\n      tyre_wear: (index / scenario.trucks) * 0.12,\n      road_severity: parameters.base_severity_mean,\n      speed_factor: parameters.base_speed_mean,\n    });\n  }\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n    FuelSpent: 0,\n  };"
+      }
+    },
+    {
+      "id": "scenario__thin_spares",
+      "name": "Condition-based, one part on the shelf",
+      "description": "Condition-based servicing with a single spare and a long parts lead time.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "trucks",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "drivers",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "bays",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "technicians",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "spares",
+          "default": 1
+        },
+        {
+          "type": "integer",
+          "identifier": "recovery_units",
+          "default": 2
+        },
+        {
+          "type": "real",
+          "identifier": "service_wear_limit",
+          "default": 0.5
+        },
+        {
+          "type": "real",
+          "identifier": "parts_lead_time",
+          "default": 72
+        }
+      ],
+      "parameterOverrides": {
+        "param__service_wear_limit": "scenario.service_wear_limit",
+        "param__parts_lead_time": "scenario.parts_lead_time"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "const newTruck = {\n    brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: 0, route_class: 0, load_due: 0, load_revenue: 0, age: 0, loads_done: 0, unplanned: 0, road_severity: 1.0, speed_factor: 1.0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: 0, fuel_rate: 0\n  };\n  const fleet = [];\n  for (let index = 0; index < scenario.trucks; index += 1) {\n    fleet.push({ ...newTruck,\n      brake_wear: (index / scenario.trucks) * 0.1,\n      engine_wear: (index / scenario.trucks) * 0.08,\n      tyre_wear: (index / scenario.trucks) * 0.12,\n      road_severity: parameters.base_severity_mean,\n      speed_factor: parameters.base_speed_mean,\n    });\n  }\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n    FuelSpent: 0,\n  };"
+      }
+    },
+    {
+      "id": "scenario__winter",
+      "name": "Winter conditions",
+      "description": "Icy roads, slower speeds, more wear. Severity mean 1.4, speed mean 0.8.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "trucks",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "drivers",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "bays",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "technicians",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "spares",
+          "default": 10
+        },
+        {
+          "type": "integer",
+          "identifier": "recovery_units",
+          "default": 2
+        },
+        {
+          "type": "real",
+          "identifier": "service_wear_limit",
+          "default": 0.5
+        },
+        {
+          "type": "real",
+          "identifier": "base_severity_mean",
+          "default": 1.4
+        },
+        {
+          "type": "real",
+          "identifier": "base_speed_mean",
+          "default": 0.8
+        }
+      ],
+      "parameterOverrides": {
+        "param__service_wear_limit": "scenario.service_wear_limit",
+        "param__base_severity_mean": "scenario.base_severity_mean",
+        "param__base_speed_mean": "scenario.base_speed_mean"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "const newTruck = {\n    brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: 0, route_class: 0, load_due: 0, load_revenue: 0, age: 0, loads_done: 0, unplanned: 0, road_severity: 1.0, speed_factor: 1.0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: 0, fuel_rate: 0\n  };\n  const fleet = [];\n  for (let index = 0; index < scenario.trucks; index += 1) {\n    fleet.push({ ...newTruck,\n      brake_wear: (index / scenario.trucks) * 0.1,\n      engine_wear: (index / scenario.trucks) * 0.08,\n      tyre_wear: (index / scenario.trucks) * 0.12,\n      road_severity: scenario.base_severity_mean,\n      speed_factor: scenario.base_speed_mean,\n    });\n  }\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: scenario.base_severity_mean, speed_mean: scenario.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n    FuelSpent: 0,\n  };"
+      }
+    },
+    {
+      "id": "scenario__summer",
+      "name": "Summer baseline",
+      "description": "Dry roads, faster speeds. Severity mean 0.9, speed mean 1.1.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "trucks",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "drivers",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "bays",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "technicians",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "spares",
+          "default": 10
+        },
+        {
+          "type": "integer",
+          "identifier": "recovery_units",
+          "default": 2
+        },
+        {
+          "type": "real",
+          "identifier": "service_wear_limit",
+          "default": 0.5
+        },
+        {
+          "type": "real",
+          "identifier": "base_severity_mean",
+          "default": 0.9
+        },
+        {
+          "type": "real",
+          "identifier": "base_speed_mean",
+          "default": 1.1
+        }
+      ],
+      "parameterOverrides": {
+        "param__service_wear_limit": "scenario.service_wear_limit",
+        "param__base_severity_mean": "scenario.base_severity_mean",
+        "param__base_speed_mean": "scenario.base_speed_mean"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "const newTruck = {\n    brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: 0, route_class: 0, load_due: 0, load_revenue: 0, age: 0, loads_done: 0, unplanned: 0, road_severity: 1.0, speed_factor: 1.0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: 0, fuel_rate: 0\n  };\n  const fleet = [];\n  for (let index = 0; index < scenario.trucks; index += 1) {\n    fleet.push({ ...newTruck,\n      brake_wear: (index / scenario.trucks) * 0.1,\n      engine_wear: (index / scenario.trucks) * 0.08,\n      tyre_wear: (index / scenario.trucks) * 0.12,\n      road_severity: scenario.base_severity_mean,\n      speed_factor: scenario.base_speed_mean,\n    });\n  }\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: scenario.base_severity_mean, speed_mean: scenario.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n    FuelSpent: 0,\n  };"
+      }
+    },
+    {
+      "id": "scenario__demand_surge",
+      "name": "Demand surge",
+      "description": "Load arrival rates multiplied by 1.5.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "trucks",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "drivers",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "bays",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "technicians",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "spares",
+          "default": 10
+        },
+        {
+          "type": "integer",
+          "identifier": "recovery_units",
+          "default": 2
+        },
+        {
+          "type": "real",
+          "identifier": "service_wear_limit",
+          "default": 0.5
+        },
+        {
+          "type": "real",
+          "identifier": "motorway_rate",
+          "default": 0.105
+        },
+        {
+          "type": "real",
+          "identifier": "urban_rate",
+          "default": 0.1425
+        },
+        {
+          "type": "real",
+          "identifier": "mountain_rate",
+          "default": 0.072
+        }
+      ],
+      "parameterOverrides": {
+        "param__service_wear_limit": "scenario.service_wear_limit",
+        "param__motorway_rate": "scenario.motorway_rate",
+        "param__urban_rate": "scenario.urban_rate",
+        "param__mountain_rate": "scenario.mountain_rate"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "const newTruck = {\n    brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: 0, route_class: 0, load_due: 0, load_revenue: 0, age: 0, loads_done: 0, unplanned: 0, road_severity: 1.0, speed_factor: 1.0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: 0, fuel_rate: 0\n  };\n  const fleet = [];\n  for (let index = 0; index < scenario.trucks; index += 1) {\n    fleet.push({ ...newTruck,\n      brake_wear: (index / scenario.trucks) * 0.1,\n      engine_wear: (index / scenario.trucks) * 0.08,\n      tyre_wear: (index / scenario.trucks) * 0.12,\n      road_severity: parameters.base_severity_mean,\n      speed_factor: parameters.base_speed_mean,\n    });\n  }\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: parameters.base_severity_mean, speed_mean: parameters.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n    FuelSpent: 0,\n  };"
+      }
+    },
+    {
+      "id": "scenario__winter_surge",
+      "name": "Winter + demand surge",
+      "description": "The compound scenario: bad weather and high demand together.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "trucks",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "drivers",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "bays",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "technicians",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "spares",
+          "default": 10
+        },
+        {
+          "type": "integer",
+          "identifier": "recovery_units",
+          "default": 2
+        },
+        {
+          "type": "real",
+          "identifier": "service_wear_limit",
+          "default": 0.5
+        },
+        {
+          "type": "real",
+          "identifier": "base_severity_mean",
+          "default": 1.4
+        },
+        {
+          "type": "real",
+          "identifier": "base_speed_mean",
+          "default": 0.8
+        },
+        {
+          "type": "real",
+          "identifier": "motorway_rate",
+          "default": 0.105
+        },
+        {
+          "type": "real",
+          "identifier": "urban_rate",
+          "default": 0.1425
+        },
+        {
+          "type": "real",
+          "identifier": "mountain_rate",
+          "default": 0.072
+        }
+      ],
+      "parameterOverrides": {
+        "param__service_wear_limit": "scenario.service_wear_limit",
+        "param__base_severity_mean": "scenario.base_severity_mean",
+        "param__base_speed_mean": "scenario.base_speed_mean",
+        "param__motorway_rate": "scenario.motorway_rate",
+        "param__urban_rate": "scenario.urban_rate",
+        "param__mountain_rate": "scenario.mountain_rate"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "const newTruck = {\n    brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: 0, route_class: 0, load_due: 0, load_revenue: 0, age: 0, loads_done: 0, unplanned: 0, road_severity: 1.0, speed_factor: 1.0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: 0, fuel_rate: 0\n  };\n  const fleet = [];\n  for (let index = 0; index < scenario.trucks; index += 1) {\n    fleet.push({ ...newTruck,\n      brake_wear: (index / scenario.trucks) * 0.1,\n      engine_wear: (index / scenario.trucks) * 0.08,\n      tyre_wear: (index / scenario.trucks) * 0.12,\n      road_severity: scenario.base_severity_mean,\n      speed_factor: scenario.base_speed_mean,\n    });\n  }\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: scenario.base_severity_mean, speed_mean: scenario.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n    FuelSpent: 0,\n  };"
+      }
+    },
+    {
+      "id": "scenario__route_aware_winter",
+      "name": "Route-aware dispatch + winter",
+      "description": "Tests whether the route restriction rule becomes more valuable in bad weather. Mountain wear limit 0.35, winter conditions.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "trucks",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "drivers",
+          "default": 8
+        },
+        {
+          "type": "integer",
+          "identifier": "bays",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "technicians",
+          "default": 2
+        },
+        {
+          "type": "integer",
+          "identifier": "spares",
+          "default": 10
+        },
+        {
+          "type": "integer",
+          "identifier": "recovery_units",
+          "default": 2
+        },
+        {
+          "type": "real",
+          "identifier": "service_wear_limit",
+          "default": 0.5
+        },
+        {
+          "type": "real",
+          "identifier": "severe_route_wear_limit",
+          "default": 0.35
+        },
+        {
+          "type": "real",
+          "identifier": "base_severity_mean",
+          "default": 1.4
+        },
+        {
+          "type": "real",
+          "identifier": "base_speed_mean",
+          "default": 0.8
+        }
+      ],
+      "parameterOverrides": {
+        "param__service_wear_limit": "scenario.service_wear_limit",
+        "param__severe_route_wear_limit": "scenario.severe_route_wear_limit",
+        "param__base_severity_mean": "scenario.base_severity_mean",
+        "param__base_speed_mean": "scenario.base_speed_mean"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "const newTruck = {\n    brake_wear: 0, engine_wear: 0, tyre_wear: 0, km_remaining: 0, route_distance: 0, service_remaining: 0, route_class: 0, load_due: 0, load_revenue: 0, age: 0, loads_done: 0, unplanned: 0, road_severity: 1.0, speed_factor: 1.0, conditions_clock: 0, fuel_burned: 0, hours_driven: 0, rest_remaining: 0, fuel_rate: 0\n  };\n  const fleet = [];\n  for (let index = 0; index < scenario.trucks; index += 1) {\n    fleet.push({ ...newTruck,\n      brake_wear: (index / scenario.trucks) * 0.1,\n      engine_wear: (index / scenario.trucks) * 0.08,\n      tyre_wear: (index / scenario.trucks) * 0.12,\n      road_severity: scenario.base_severity_mean,\n      speed_factor: scenario.base_speed_mean,\n    });\n  }\n  return {\n    Available: fleet,\n    LoadBoard: [],\n    Drivers: scenario.drivers,\n    Bays: scenario.bays,\n    Technicians: scenario.technicians,\n    Spares: scenario.spares,\n    RecoveryUnits: scenario.recovery_units,\n    Conditions: [{ severity_mean: scenario.base_severity_mean, speed_mean: scenario.base_speed_mean, clock: 0 }],\n    Rest: [],\n    RestEvents: 0,\n    FuelSpent: 0,\n  };"
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "id": "metric__loads_delivered",
+      "name": "Loads delivered on time",
+      "description": "Loads that reached the customer inside the window.",
+      "code": "return state.places.DeliveredLoads.count;"
+    },
+    {
+      "id": "metric__loads_late",
+      "name": "Loads delivered late",
+      "description": "Loads that arrived outside the window.",
+      "code": "return state.places.LateLoads.count;"
+    },
+    {
+      "id": "metric__loads_dropped",
+      "name": "Loads dropped",
+      "description": "Loads nobody collected plus loads lost to a breakdown.",
+      "code": "return state.places.DroppedLoads.count;"
+    },
+    {
+      "id": "metric__service_level",
+      "name": "Service level",
+      "description": "Share of offered loads delivered on time.",
+      "code": "const delivered = state.places.DeliveredLoads.count;\nconst late = state.places.LateLoads.count;\nconst dropped = state.places.DroppedLoads.count;\nconst offered = delivered + late + dropped;\nreturn offered === 0 ? 1 : delivered / offered;"
+    },
+    {
+      "id": "metric__revenue",
+      "name": "Revenue",
+      "description": "Revenue from delivered loads. Late loads are paid at a discount.",
+      "code": "const onTime = state.places.DeliveredLoads.tokens.reduce(\n  (total, load) => total + load.revenue, 0);\nconst late = state.places.LateLoads.tokens.reduce(\n  (total, load) => total + load.revenue * (1 - parameters.late_penalty_fraction), 0);\nreturn onTime + late;"
+    },
+    {
+      "id": "metric__total_fuel",
+      "name": "Total fuel burned",
+      "description": "Litres consumed across the fleet.",
+      "code": "const fleet = state.places.Available.tokens.concat(state.places.OnRoute.tokens.concat(state.places.Returning.tokens.concat(state.places.DepotQueue.tokens.concat(state.places.InBay.tokens.concat(state.places.AwaitingParts.tokens.concat(state.places.Stranded.tokens.concat(state.places.UnderRecovery.tokens.concat(state.places.Rest.tokens))))))));\nreturn fleet.reduce((total, truck) => total + truck.fuel_burned, 0);"
+    },
+    {
+      "id": "metric__operating_cost",
+      "name": "Operating cost",
+      "description": "Fuel cost plus repairs and services.",
+      "code": "const fleet = state.places.Available.tokens.concat(state.places.OnRoute.tokens.concat(state.places.Returning.tokens.concat(state.places.DepotQueue.tokens.concat(state.places.InBay.tokens.concat(state.places.AwaitingParts.tokens.concat(state.places.Stranded.tokens.concat(state.places.UnderRecovery.tokens.concat(state.places.Rest.tokens))))))));\nconst fuel = fleet.reduce((total, truck) => total + truck.fuel_burned, 0) * parameters.fuel_cost_per_unit;\nconst repairs = state.places.RepairsDone.count * parameters.repair_cost;\nconst services = state.places.ServicesDone.count * parameters.service_cost;\nconst rest = state.places.RestEvents.count * parameters.rest_penalty;\nreturn fuel + repairs + services + rest;"
+    },
+    {
+      "id": "metric__profit",
+      "name": "Profit",
+      "description": "Revenue minus operating cost minus late delivery penalties.",
+      "code": "const onTime = state.places.DeliveredLoads.tokens.reduce(\n  (total, load) => total + load.revenue, 0);\nconst late = state.places.LateLoads.tokens.reduce(\n  (total, load) => total + load.revenue * (1 - parameters.late_penalty_fraction), 0);\nconst revenue = onTime + late;\nconst fleet = state.places.Available.tokens.concat(state.places.OnRoute.tokens.concat(state.places.Returning.tokens.concat(state.places.DepotQueue.tokens.concat(state.places.InBay.tokens.concat(state.places.AwaitingParts.tokens.concat(state.places.Stranded.tokens.concat(state.places.UnderRecovery.tokens.concat(state.places.Rest.tokens))))))));\nconst fuel = fleet.reduce((total, truck) => total + truck.fuel_burned, 0) * parameters.fuel_cost_per_unit;\nconst repairs = state.places.RepairsDone.count * parameters.repair_cost;\nconst services = state.places.ServicesDone.count * parameters.service_cost;\nconst rest = state.places.RestEvents.count * parameters.rest_penalty;\nreturn revenue - fuel - repairs - services - rest;"
+    },
+    {
+      "id": "metric__roadside_failures",
+      "name": "Roadside failures",
+      "description": "Breakdowns away from the depot.",
+      "code": "return state.places.RoadsideEvents.count;"
+    },
+    {
+      "id": "metric__services",
+      "name": "Planned services",
+      "description": "Trucks brought in on the wear rule and returned to as-new condition.",
+      "code": "return state.places.ServicesDone.count;"
+    },
+    {
+      "id": "metric__repairs",
+      "name": "Unplanned repairs",
+      "description": "Trucks repaired after a breakdown.",
+      "code": "return state.places.RepairsDone.count;"
+    },
+    {
+      "id": "metric__deferred_services",
+      "name": "Services deferred",
+      "description": "Times a truck was due for a service, found the workshop full.",
+      "code": "return state.places.DeferredServices.count;"
+    },
+    {
+      "id": "metric__rest_events",
+      "name": "Driver rest events",
+      "description": "Times a truck was sent to mandatory rest.",
+      "code": "return state.places.RestEvents.count;"
+    },
+    {
+      "id": "metric__trucks_earning",
+      "name": "Trucks earning",
+      "description": "Trucks on a route right now.",
+      "code": "return state.places.OnRoute.count;"
+    },
+    {
+      "id": "metric__trucks_off_road",
+      "name": "Trucks off the road",
+      "description": "Trucks in a bay, waiting for a part, under recovery, or resting.",
+      "code": "return state.places.InBay.count + state.places.AwaitingParts.count + state.places.Stranded.count + state.places.UnderRecovery.count + state.places.Rest.count;"
+    },
+    {
+      "id": "metric__fleet_utilisation",
+      "name": "Fleet utilisation",
+      "description": "Fraction of trucks on route or returning vs the total fleet.",
+      "code": "const fleet = state.places.Available.tokens.concat(state.places.OnRoute.tokens.concat(state.places.Returning.tokens.concat(state.places.DepotQueue.tokens.concat(state.places.InBay.tokens.concat(state.places.AwaitingParts.tokens.concat(state.places.Stranded.tokens.concat(state.places.UnderRecovery.tokens.concat(state.places.Rest.tokens))))))));\nif (fleet.length === 0) return 0;\nconst earning = state.places.OnRoute.count + state.places.Returning.count;\nreturn earning / fleet.length;"
+    },
+    {
+      "id": "metric__avg_brake_wear",
+      "name": "Average brake wear",
+      "description": "Mean brake wear across the fleet.",
+      "code": "const fleet = state.places.Available.tokens.concat(state.places.OnRoute.tokens.concat(state.places.Returning.tokens.concat(state.places.DepotQueue.tokens.concat(state.places.InBay.tokens.concat(state.places.AwaitingParts.tokens.concat(state.places.Stranded.tokens.concat(state.places.UnderRecovery.tokens.concat(state.places.Rest.tokens))))))));\nif (fleet.length === 0) return 0;\nreturn fleet.reduce((t, tr) => t + tr.brake_wear, 0) / fleet.length;"
+    },
+    {
+      "id": "metric__avg_engine_wear",
+      "name": "Average engine wear",
+      "description": "Mean engine wear across the fleet.",
+      "code": "const fleet = state.places.Available.tokens.concat(state.places.OnRoute.tokens.concat(state.places.Returning.tokens.concat(state.places.DepotQueue.tokens.concat(state.places.InBay.tokens.concat(state.places.AwaitingParts.tokens.concat(state.places.Stranded.tokens.concat(state.places.UnderRecovery.tokens.concat(state.places.Rest.tokens))))))));\nif (fleet.length === 0) return 0;\nreturn fleet.reduce((t, tr) => t + tr.engine_wear, 0) / fleet.length;"
+    },
+    {
+      "id": "metric__avg_tyre_wear",
+      "name": "Average tyre wear",
+      "description": "Mean tyre wear across the fleet.",
+      "code": "const fleet = state.places.Available.tokens.concat(state.places.OnRoute.tokens.concat(state.places.Returning.tokens.concat(state.places.DepotQueue.tokens.concat(state.places.InBay.tokens.concat(state.places.AwaitingParts.tokens.concat(state.places.Stranded.tokens.concat(state.places.UnderRecovery.tokens.concat(state.places.Rest.tokens))))))));\nif (fleet.length === 0) return 0;\nreturn fleet.reduce((t, tr) => t + tr.tyre_wear, 0) / fleet.length;"
+    }
+  ],
+  "subnets": [],
+  "componentInstances": [],
+  "version": 1,
+  "meta": {
+    "generator": "Petrinaut"
+  },
+  "title": "Truck fleet with condition-based maintenance (v2)"
+}

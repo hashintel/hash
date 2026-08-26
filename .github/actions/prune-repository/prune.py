@@ -57,6 +57,7 @@ REQUESTED_PATHS: dict[str, list[str]] = {
         "libs/@hashintel/brunch-agent/AGENTS.md",
         "libs/@hashintel/brunch-agent/CONTEXT.md",
         "libs/@hashintel/brunch-agent/docs",
+        "libs/@hashintel/brunch-agent/evaluations",
         "libs/@hashintel/brunch-agent/scripts",
     ],
 }

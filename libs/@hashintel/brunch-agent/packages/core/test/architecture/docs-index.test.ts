@@ -2,8 +2,8 @@
  * Documentation coverage, as tests rather than as a habit.
  *
  * `docs/agents/documentation.md` states the placement rules as obligations —
- * every document is indexed, living cross-effort docs go in
- * `docs/planning/_shared/`, agent protocols are reachable from `AGENTS.md`. An
+ * every document is indexed, documents occupy their role-based authority zone,
+ * and agent protocols are reachable from `AGENTS.md`. An
  * obligation nobody can run is a wish, and this one decays in the quietest way
  * available: a file lands, the INDEX pass is skipped once, and nothing ever says
  * so. These are the mechanical checks — they walk the real `docs/` tree, so a
@@ -41,6 +41,11 @@ const INDEX_EXEMPT = ["agents", INDEX_RELPATH];
  * navigation.
  */
 const LINK_CHECK_EXEMPT = ["reference/amp-analysis-flue-vs-tilde.md"];
+/** Immutable migration snapshots whose old paths are part of the evidence. */
+const LINK_CHECK_EXEMPT_PREFIXES = [
+  "archive/migrations/hash-monorepo-import-plan.md",
+  "archive/migrations/issue-pr-legibility-2026-08-20/",
+];
 
 /** Posix-shaped, because that is how a markdown link target is written. */
 const relPath = (path: string): string =>
@@ -173,7 +178,12 @@ describe.skipIf(!contextRootPresent)(
 
 test("relative links in context documentation point at existing files", () => {
   for (const file of FILES) {
-    if (!file.endsWith(".md") || LINK_CHECK_EXEMPT.includes(file)) continue;
+    if (
+      !file.endsWith(".md") ||
+      LINK_CHECK_EXEMPT.includes(file) ||
+      LINK_CHECK_EXEMPT_PREFIXES.some((prefix) => file.startsWith(prefix))
+    )
+      continue;
 
     const sourcePath = join(DOCS_ROOT, file);
     const lines = readFileSync(sourcePath, "utf8").split("\n");
@@ -209,17 +219,14 @@ test("relative links in context documentation point at existing files", () => {
   }
 });
 
-test("docs/planning/ holds only effort directories", () => {
-  // Placement rule: a cross-effort living document goes in `_shared/`, and a
-  // record of one effort goes in that effort's directory. A file loose at the
-  // top level is the state both of those replaced — it belongs to everything and
-  // so to nothing, and it is where the last round of drift accumulated.
-  const planning = join(DOCS_ROOT, "planning");
-  const loose = readdirSync(planning)
-    .filter((entry) => !SKIP_FILES.includes(entry))
-    .filter((entry) => !statSync(join(planning, entry)).isDirectory())
-    .sort();
-  expect(loose).toEqual([]);
+test("retired planning and history paths contain no documents", () => {
+  expect(
+    FILES.filter(
+      (file) => file.startsWith("planning/") || file.startsWith("history/"),
+    ),
+  ).toEqual([]);
+  expect(existsSync(join(DOCS_ROOT, "planning"))).toBe(false);
+  expect(existsSync(join(DOCS_ROOT, "history"))).toBe(false);
 });
 
 describe.skipIf(!contextRootPresent)(

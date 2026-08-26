@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { cp, mkdtemp, readFile, rm } from "node:fs/promises";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -8,9 +10,13 @@ import { afterEach, describe, expect, test } from "vitest";
 
 import { CONTEXT_ROOT, contextRootPresent } from "./workspace";
 
-const BASELINE_DIR = join(
+const BASELINE_PROTOCOL_DIR = join(
   CONTEXT_ROOT,
-  "docs/planning/process-model-elicitation/baseline",
+  "evaluations/protocols/process-model-elicitation/baseline",
+);
+const BASELINE_CASE_DIR = join(
+  CONTEXT_ROOT,
+  "evaluations/cases/process-model-elicitation/baseline",
 );
 const STUB_MODULE = pathToFileURL(
   join(import.meta.dirname, "fixtures/baseline-anthropic-stub.ts"),
@@ -22,19 +28,36 @@ interface StubReply {
   truncated?: boolean;
 }
 
-async function createBaselineCopy(): Promise<string> {
+interface BaselineCopy {
+  outputDirectory: string;
+  protocolDirectory: string;
+  testDirectory: string;
+}
+
+async function createBaselineCopy(): Promise<BaselineCopy> {
   const testDirectory = await mkdtemp(join(tmpdir(), "baseline-runner-test-"));
   temporaryDirectories.push(testDirectory);
-  await cp(BASELINE_DIR, testDirectory, { recursive: true });
-  await rm(join(testDirectory, "transcripts"), {
-    recursive: true,
-    force: true,
-  });
-  return testDirectory;
+  const protocolDirectory = join(
+    testDirectory,
+    "evaluations/protocols/process-model-elicitation/baseline",
+  );
+  const caseDirectory = join(
+    testDirectory,
+    "evaluations/cases/process-model-elicitation/baseline",
+  );
+  await Promise.all([
+    cp(BASELINE_PROTOCOL_DIR, protocolDirectory, { recursive: true }),
+    cp(BASELINE_CASE_DIR, caseDirectory, { recursive: true }),
+  ]);
+  return {
+    outputDirectory: join(testDirectory, "test-output"),
+    protocolDirectory,
+    testDirectory,
+  };
 }
 
 async function runBaseline(
-  testDirectory: string,
+  baselineCopy: BaselineCopy,
   replies: StubReply[],
   mode?: "--resume" | "--continue-final",
 ): Promise<{
@@ -50,15 +73,21 @@ async function runBaseline(
   stderr: string;
   requests: Array<{ messages: Array<Record<string, unknown>> }>;
 }> {
-  const requestsPath = join(testDirectory, "requests.jsonl");
+  const requestsPath = join(baselineCopy.testDirectory, "requests.jsonl");
   const subprocess = spawn(
     process.execPath,
-    ["--experimental-strip-types", "run.ts", "1", ...(mode ? [mode] : [])],
+    [
+      "--experimental-strip-types",
+      join(baselineCopy.protocolDirectory, "run.ts"),
+      "1",
+      ...(mode ? [mode] : []),
+    ],
     {
-      cwd: testDirectory,
+      cwd: baselineCopy.testDirectory,
       env: {
         ...process.env,
         BRUNCH_BASELINE_ANTHROPIC_MODULE: STUB_MODULE,
+        BRUNCH_BASELINE_TEST_OUTPUT_DIR: baselineCopy.outputDirectory,
         BASELINE_STUB_REPLIES: JSON.stringify(replies),
         BASELINE_STUB_REQUESTS_PATH: requestsPath,
       },
@@ -78,7 +107,7 @@ async function runBaseline(
 
   const checkpoint = JSON.parse(
     await readFile(
-      join(testDirectory, "transcripts/condition-1.raw.json"),
+      join(baselineCopy.outputDirectory, "condition-1.raw.json"),
       "utf8",
     ),
   );
@@ -100,6 +129,61 @@ afterEach(async () => {
 describe.skipIf(!contextRootPresent)(
   "baseline runner completion metadata",
   () => {
+    test("rejects an output override without the stub module before API calls or output", async () => {
+      const baselineCopy = await createBaselineCopy();
+      let apiCalls = 0;
+      const server = createServer((_request, response) => {
+        apiCalls += 1;
+        response.writeHead(500).end();
+      });
+      await new Promise<void>((resolve) => {
+        server.listen(0, "127.0.0.1", resolve);
+      });
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        throw new Error("Expected the test API server to listen on a TCP port");
+      }
+
+      const { BRUNCH_BASELINE_ANTHROPIC_MODULE: _stubModule, ...env } =
+        process.env;
+      const subprocess = spawn(
+        process.execPath,
+        [
+          "--experimental-strip-types",
+          join(baselineCopy.protocolDirectory, "run.ts"),
+          "1",
+        ],
+        {
+          cwd: baselineCopy.testDirectory,
+          env: {
+            ...env,
+            ANTHROPIC_BASE_URL: `http://127.0.0.1:${address.port}`,
+            BRUNCH_BASELINE_TEST_OUTPUT_DIR: baselineCopy.outputDirectory,
+          },
+          stdio: ["ignore", "ignore", "pipe"],
+        },
+      );
+      subprocess.stderr.setEncoding("utf8");
+      let stderr = "";
+      subprocess.stderr.on("data", (chunk: string) => {
+        stderr += chunk;
+      });
+      const exitCode = await new Promise<number | null>((resolve, reject) => {
+        subprocess.once("error", reject);
+        subprocess.once("close", resolve);
+      });
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain(
+        "BRUNCH_BASELINE_TEST_OUTPUT_DIR requires BRUNCH_BASELINE_ANTHROPIC_MODULE",
+      );
+      expect(apiCalls).toBe(0);
+      expect(existsSync(baselineCopy.outputDirectory)).toBe(false);
+    });
+
     test("checkpoints a truncated expert reply and stops before another interviewer call", async () => {
       const testDirectory = await createBaselineCopy();
       const result = await runBaseline(testDirectory, [
@@ -179,7 +263,7 @@ describe.skipIf(!contextRootPresent)(
         { text: "part-5", truncated: true },
         { text: "YES" },
       ]);
-      await rm(join(testDirectory, "requests.jsonl"));
+      await rm(join(testDirectory.testDirectory, "requests.jsonl"));
 
       const continued = await runBaseline(
         testDirectory,

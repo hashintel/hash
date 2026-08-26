@@ -1,71 +1,90 @@
-# Documentation protocol: ingest, settle, index
+# Documentation protocol: ingest, promote, index
 
-How documents enter the Brunch context, where they end up, and how we prove nothing is lost. Companion
-to `issue-tracker.md` (which governs issues; this file governs documents).
+This protocol assigns one authority to each kind of durable knowledge. It complements
+`issue-tracker.md`, which governs issue facts. `docs/agents/` remains the operating-guidance set,
+and `docs/INDEX.md` remains the registry described below.
 
-## Zones
+## Authoritative topology
 
-| Zone                      | Role                                                                                                                                | Lifetime                                           |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `docs/inbox/`             | Untriaged arrivals: PDFs, exports, transcripts, pasted research. Timestamped filenames where the arrival date matters.              | Temporary — everything here is awaiting settlement |
-| `docs/planning/<effort>/` | All artifacts of an effort, active or complete: notes, research findings, maps, specs — nested by effort name.                      | Permanent (dispositioned at effort close)          |
-| `docs/planning/_shared/`  | Cross-effort control documents: current coordination, obligation ledgers, topology, and consolidations that outlive any one effort. | Permanent; lifecycle declared by each document     |
-| `docs/reference/`         | Settled documents of lasting value: external reports, transcripts, digested research.                                               | Permanent                                          |
-| `docs/INDEX.md`           | The TOC: one line per settled or in-flight document — title, date, one-line digest, provenance, where used.                         | Permanent, always current                          |
-| `CONTEXT.md`              | Glossary only (see domain-modeling discipline).                                                                                     | Permanent                                          |
+| Location | Role |
+| --- | --- |
+| `docs/control/` | Current steering, append-only strategy rationale, and the separate obligation ledger |
+| `docs/specs/` | Required behavior |
+| `docs/adr/` | Accepted decisions |
+| `docs/evidence/proofs/` | Immutable observed proof, witness, and implementation snapshots |
+| `docs/evidence/evaluations/` | Immutable evaluation runs and readouts |
+| `docs/reference/` | Stable explanatory and source material |
+| `docs/archive/` | Historical, superseded, or settled material with no current authority |
+| `docs/inbox/` | Transient, untriaged intake |
+| `evaluations/cases/` | Executable evaluation cases and corpora |
+| `evaluations/protocols/` | Executable evaluation procedures |
+| `evaluations/oracles/` | Executable checks for validated categorical claims |
 
-**Ephemera** live outside all zones: any directory named `drafts/` is git-ignored (root
-`.gitignore`), for documents whose delivered form is the record — outbound comment and message
-drafts, one-off prep. Place one directly inside the effort it serves
-(`docs/planning/<effort>/drafts/` — no deeper nesting). Never register drafts in `INDEX.md`, and never link a
-`drafts/` path from Linear or a committed document — once delivered, link the destination
-(the posted comment, the sent message) instead.
+Effort is metadata recorded in the index or document, not a placement rule. Do not create an
+effort-shaped documentation tree.
 
-**Control surface vs record.** A _record_ is arc-scoped, carries its date in the filename, and
-eventually stops changing — it lives inside the effort directory that produced it. A
-cross-effort _control surface_ is never dated in the filename and lives in
-`docs/planning/_shared/`. Most remain current; a bounded ledger may declare its own terminal
-condition and settle when that condition is met. The planning top level contains only
-directories; this rule and `INDEX.md` coverage (every file has a row, every row's path resolves)
-are enforced by `packages/core/test/architecture/docs-index.test.ts`. Freshness — whether statuses and digests are still
-_true_ — cannot be mechanized without building a dead gate; it belongs to the arc-close sweep.
+The role topology is physically authoritative. No document may remain under the retired
+`docs/planning/` or `docs/history/` paths.
 
-External stores (Linear, Notion) hold _pointers and mirrors_, never the only copy: Linear issue
-descriptions gist and link; Notion pages that originate content (e.g. team-facing question docs)
-are listed in `INDEX.md` with their URL.
+External stores hold pointers or tracker facts, never the only repo-owned document. Before moving
+or deleting a path referenced from Linear, Notion, or another external store, repair every pointer;
+external writes require their own approval. Nothing is deleted until its `INDEX.md` entry records
+the disposition.
 
-## The ingest protocol
+## Evidence vocabulary
 
-1. **Arrive**: new material lands in `docs/inbox/` (timestamped name if the date matters).
-2. **Register**: the first time a document is _used_ (read into an effort, cited by a ticket),
-   add its line to `docs/INDEX.md` with status `inbox`.
-3. **Settle**: move it to its permanent home (`docs/reference/` for external/source material;
-   `docs/planning/<effort>/` if it is a working artifact of that effort), update its `INDEX.md`
-   line (new path, status `settled`), and fix any links that pointed at the inbox path.
-4. **Sweep**: at every effort boundary (map charted, map closed), empty the inbox — everything
-   either settles or is deleted _with its INDEX line recording the deletion and reason_. This
-   runs as step 1 of the arc-close sweep (`arc-close.md`).
+- **Case / corpus**: bounded evaluation input, or a reviewed collection from which cases are
+  selected. It defines what may be presented, not the expected answer.
+- **Fixture**: reviewed, versioned setup derived from a case and suitable for a production-path
+  run. It may provide domain state, never missing product wiring.
+- **Run snapshot**: immutable capture of inputs, environment identity, production entrypoint,
+  outputs, and result for one execution.
+- **Oracle**: executable check promoted from a validated categorical claim. Hidden answer keys and
+  oracles stay behind the information wall and are not interviewee or elicitor inputs.
 
-## Referencing ephemera (issues, external state)
+An **immutable legibility snapshot** renders the proof in another register and records the strain
+found during translation. A **witness record** identifies the claim observed, scenario and build,
+witness, date, observation, and verdict. UX, interpretation, live-runtime, and
+demo-comprehension claims require one unless explicitly inapplicable. See `legibility.md` for the
+render-and-read mechanics.
 
-Long-lived documents outlive the trackers they cite. Three rules:
+## Intake, promotion, and disposition
 
-- **Gloss at first mention**: an issue ID in a living document is introduced with its gist —
-  "FE-1423 (the pre-remote gates)" — so the document degrades gracefully for a reader who
-  cannot resolve Linear.
-- **Load-bearing only in the tracking layer**: coordination and obligation/remediation ledgers
-  may depend on issue resolution — tracking is their job. Everywhere else an issue ID is a
-  parenthetical citation the sentence must survive without.
-- **Tense repair at arc close**: prophecy becomes history when the issue lands ("will
-  extract" → "extracted (FE-1422)") — step 5 of `arc-close.md`.
+1. **Arrive:** transient material enters `docs/inbox/`, timestamped when arrival time matters.
+2. **Register:** when first used, add it to `docs/INDEX.md` with status `inbox`.
+3. **Review:** identify provenance, consumer, information-wall boundary, and intended authority.
+4. **Promote:**
+   - required behavior goes to `docs/specs/`;
+   - accepted decisions go to `docs/adr/`;
+   - observed proof and witness snapshots go to `docs/evidence/proofs/`;
+   - evaluation run readouts go to `docs/evidence/evaluations/`;
+   - stable explanations and source material go to `docs/reference/`;
+   - executable cases, protocols, and oracles go outside docs under `evaluations/`;
+   - superseded or settled context with no present authority goes to `docs/archive/`.
+5. **Reconcile:** update the index and all internal and approved external pointers atomically.
 
-## Effort completion
+Promote a validated categorical claim to an oracle when recurrence is plausible, the claim is
+mechanizable, and silent regression matters. Keep judgment that cannot be mechanized in protocol
+or review guidance. A run snapshot never becomes a mutable control, and a control surface never
+accumulates run history.
 
-When an effort closes, its `docs/planning/<effort>/` directory is reviewed file-by-file and
-the review recorded in `INDEX.md`: tracker records (map, tickets) are mirrored to Linear if
-not already there; everything else stays in place with status `settled`. (`.scratch/` was
-retired 2026-08-12 — efforts live under `docs/planning/` from birth.)
+## Mutable controls
 
-**Nothing is deleted until its `INDEX.md` line records the disposition.** Linear mirrors gist
-and link; the repo copy is canonical, so a repo path referenced from Linear must never be
-deleted without updating the Linear reference.
+`STEERING.md` is the one compact mutable strategic control: current objective, proof frontier, soft
+edges, choices, gates, beliefs, exceptional roots, and stop conditions. `STRATEGY-LOG.md` is
+immutable append-only rationale for material strategic choices; it is distinct from ADRs, which own
+accepted architecture. `SPEC-LEDGER.md` remains a separate conditional obligation control. Link
+evidence and history instead of copying chronology: Git is the mutable-control history. Do not add
+diary or status entries to either strategic control. Linear owns issue state, hierarchy, assignment,
+and hard blockers.
+
+## Index and link rules
+
+- Every document under `docs/` except `docs/INDEX.md` and `docs/agents/**` has exactly one covering
+  `docs/INDEX.md` row, and every row resolves. Every agent protocol is reachable from `AGENTS.md`.
+- Introduce an issue ID with a gist so prose survives loss of tracker access. Outside control and
+  tracking surfaces, issue IDs are citations rather than load-bearing facts.
+- Reconcile stale tense, status, provenance, and links when an arc changes their truth.
+- Drafts are git-ignored ephemera, never indexed or linked from durable records.
+
+Arc close performs inbox, index, pointer, and control reconciliation; see `arc-close.md`.

@@ -3,7 +3,7 @@
 Date: 2026-08-13
 Status: accepted
 Amended: 2026-08-20 by ADR-0004 / FE-1437 (HASH package namespace)
-Supersedes: spec [§12.3](../spec.md#123-naming--tool-namespacing) in part
+Supersedes: spec [§12.3](../specs/elicitation-kernel.md#123-naming--tool-namespacing) in part
 Decided on: FE-1388
 
 ## Context
