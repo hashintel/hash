@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 
 import { createSweepExtractionResultSchema } from "@hashintel/brunch-agent";
 
-import { gherkin } from "../src/index";
+import { gherkin, gherkinDefinition } from "../src/index";
 
 const quote = "Payment is authorized before fulfillment.";
 const statementNoted = {
@@ -19,6 +19,14 @@ const statementNoted = {
 };
 
 describe("the Gherkin verbatim-grade proposal floor", () => {
+  test("leaves rule coverage to the sweep, pattern, and check without a duplicate failure mode", () => {
+    expect(
+      gherkinDefinition.guidance.failure_modes.map(
+        (failureMode) => failureMode.name,
+      ),
+    ).not.toContain("Rule without example");
+  });
+
   test("declares exactly one statement proposal and compiles it into sweep extraction", () => {
     expect(gherkin.proposalCatalog.map((proposal) => proposal.name)).toEqual([
       "statement-noted",

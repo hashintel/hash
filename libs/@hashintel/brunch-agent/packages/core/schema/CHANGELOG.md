@@ -169,3 +169,13 @@ written against.
   one listed word. The seven quantity and observed-practice entries identified
   by the cycle review use the facet, so Gherkin is no longer taught numeric or
   retrospective elicitation merely because it shares the fixed key catalogue.
+- Completed the cycle-two content pass without adding or removing a key. The
+  repertoire now consumes posture in trajectory selection; fills the ADR's
+  missing licenses, smells, rabbit holes, kickoff scope, and stopping outcomes;
+  and states its choices on clearinghouse probes, quantile order, batching,
+  hypotheticals, confirmed restatements, and structure after kickoff. SDCPN
+  motifs now name their variant axes, its cells no longer repeat generic
+  quantile teaching, and its demand rows, sweep, and anti-guidance cover
+  dynamics noise and the missed edge material. Gherkin's duplicate
+  rule-without-example failure mode was removed. A gate now rejects exact
+  sentence repetition between repertoire defaults and plugin cells.

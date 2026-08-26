@@ -10,7 +10,7 @@
 
 plugin:
   id: gherkin
-  version: gherkin/2026-08-26.1
+  version: gherkin/2026-08-26.2
   formalism: Gherkin — executable specifications as features, rules, and examples
   jobs: [construct, review-and-revise]
   purpose: |
@@ -114,7 +114,7 @@ schema:
       slot: the known step it binds to
       precision: named
       not_applicable: true
-      why: A phrase the team already automates needs no new code; a new phrase is a cost the person should know about.
+      why: Ask the person to name the known team step; without an available lexicon, record the phrase as new rather than inventing a binding.
   proposals:
     - { type: statement-noted, payload: statement }
 
@@ -183,9 +183,6 @@ guidance:
     - name: Organising the suite
       text: Tags, file layout, and naming conventions are not behaviour.
   failure_modes:
-    - name: Rule without example
-      text: A general statement is recorded as if it were checkable.
-      signature: A rule node whose examples slot is unsatisfied at close.
     - name: Untethered example
       text: An example illustrates no stated rule and no one knows what it proves.
       signature: An example whose rule slot is neither named nor marked not applicable.

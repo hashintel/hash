@@ -36,8 +36,9 @@ The keys fall in four groups (ADR-0007 decision 2), under an identity block `plu
 | machinery   | `checks` · `tools`                                                                                | identifiers of harness or plugin machinery; unconsumed in cycle one |
 
 Every guidance and runbook cell is a list of `{name, text, signature?, source?}` items. A cell
-adds to the default; it never overrides it and never restates what the harness enforces. A plugin
-may leave any cell blank — the default is then the whole of the key — and may add no key: an
+adds to the default; it never overrides or repeats it and never restates what the harness
+enforces. A plugin may leave any cell blank — the default is then the whole of the key — and may
+add no key: an
 unknown key anywhere fails to load. The catalogue of keys, and the one-paragraph definition the
 interviewer reads above each, lives in `packages/core/src/keys.ts`; the catalogue is a working set
 until a co-authoring cycle changes no key (ADR-0007 decision 9), with changes recorded in
