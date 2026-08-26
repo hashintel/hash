@@ -24,7 +24,7 @@ use hash_graph_store::{
         EntityTableSummary, EntityTableWebScope, QueryEntitiesTableParams,
         QueryEntitiesTableResponse, TYPE_UNIVERSE_LIMIT,
     },
-    entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
+    entity_type::{EntityTypeQueryPath, IncludeEntityTypeOption},
     error::QueryError,
     filter::{
         Filter, FilterExpression, FilterExpressionList, JsonPath, Parameter, ParameterList,
@@ -33,10 +33,7 @@ use hash_graph_store::{
     query::CursorField,
     subgraph::{
         edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        temporal_axes::{
-            PinnedTemporalAxis, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-            VariableTemporalAxis,
-        },
+        temporal_axes::{PinnedTemporalAxis, QueryTemporalAxes, VariableTemporalAxis},
     },
 };
 use hash_graph_temporal_versioning::{
@@ -366,14 +363,15 @@ where
             .change_context(QueryError)?;
 
         // The sort shapes the keyset, so a continuation reads it from its
-        // token instead of trusting the re-sent request. The snapshot instants
-        // are minted here for a first page — a shade after the transaction's
-        // own snapshot, so a writer committing in between stays out of this
-        // page's aggregates but can still surface on a later page.
+        // token instead of trusting the re-sent request. A first page takes its
+        // snapshot instants from the operation's database clock reading — a
+        // shade after the transaction's own snapshot, so a writer committing in
+        // between stays out of this page's aggregates but can still surface on
+        // a later page.
         let (transaction_time, decision_time, mut type_universe, sort, position) =
             match &params.cursor {
                 None => {
-                    let now: Timestamp<()> = Timestamp::now();
+                    let now = policy_components.timestamp();
                     (now.cast(), now.cast(), None, params.sort, None)
                 }
                 Some(cursor) => (
@@ -642,7 +640,7 @@ where
                     .map(|endpoint| endpoint.entity_type_ids.clone())
             };
             Some(
-                self.get_closed_multi_entity_types(
+                self.get_closed_multi_entity_types_impl(
                     actor_id,
                     rows.iter()
                         .map(|row| row.entity_type_ids.clone())
@@ -654,7 +652,9 @@ where
                             rows.iter()
                                 .filter_map(|row| endpoint_types(&row.target_entity)),
                         ),
-                    QueryTemporalAxesUnresolved::live_only(),
+                    // The types are read at the page's instant rather than at a clock reading of
+                    // their own, so the chips describe the rows the page actually returned.
+                    &temporal_axes,
                     None,
                 )
                 .await?
@@ -1029,7 +1029,9 @@ mod tests {
     use core::str::FromStr as _;
 
     use hash_codec::numeric::Real;
-    use hash_graph_store::entity::EntityTableFilter;
+    use hash_graph_store::{
+        entity::EntityTableFilter, subgraph::temporal_axes::QueryTemporalAxesUnresolved,
+    };
     use type_system::{ontology::BaseUrl, principal::actor_group::WebId};
     use uuid::Uuid;
 
@@ -1134,7 +1136,7 @@ mod tests {
     // out.
     #[test]
     fn table_exclusion_scopes_statement() {
-        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
         let mut params = params(None);
         params.filter.webs = EntityTableWebScope::Exclude {
             webs: vec![WebId::new(Uuid::nil())],
@@ -1231,7 +1233,7 @@ mod tests {
         let filter =
             property_filters_filter(&property_filters).expect("the filters should build a filter");
 
-        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
         let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), INCLUDE_DRAFTS);
         compiler
             .add_filter(&filter)
@@ -1276,7 +1278,7 @@ mod tests {
             EntityTableSortKey::Archived,
         ]
         .map(|key| {
-            let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+            let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
             let mut compiler = SelectCompiler::<Entity>::new(Some(&temporal_axes), INCLUDE_DRAFTS);
             compiler.set_limit(10);
             compiler.set_statement_shape(StatementShape::KeysFirst);
@@ -1319,7 +1321,7 @@ mod tests {
 
     #[test]
     fn table_page_statement() {
-        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve();
+        let temporal_axes = QueryTemporalAxesUnresolved::all().resolve_with(Timestamp::now());
         let params = params(Some(vec![WebId::new(Uuid::nil())]));
 
         let scope = scope_filter(&params);

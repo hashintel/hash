@@ -8,8 +8,9 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
-error-stack = { workspace = true, public = true, features = ["unstable"] }
-type-system = { workspace = true, public = true }
+error-stack                    = { workspace = true, public = true, features = ["unstable"] }
+hash-graph-temporal-versioning = { workspace = true, public = true }
+type-system                    = { workspace = true, public = true }
 
 # Public third-party dependencies
 postgres-types = { workspace = true, public = true, features = ["derive", "with-uuid-1"], optional = true }

@@ -293,16 +293,6 @@ impl QueryTemporalAxesUnresolved {
             },
         }
     }
-
-    /// Resolves temporal axes using the current timestamp.
-    ///
-    /// Convenience method that resolves temporal axes against the current time.
-    /// Equivalent to calling `resolve_relative_to(Timestamp::now())`.
-    #[must_use]
-    pub fn resolve(self) -> QueryTemporalAxes {
-        let now = Timestamp::now();
-        self.resolve_with(now)
-    }
 }
 
 /// A representation of a "pinned" temporal axis, used to project another temporal axis along the

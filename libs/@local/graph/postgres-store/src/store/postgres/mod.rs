@@ -29,9 +29,9 @@ use hash_graph_authorization::policies::{
         error::{
             BuildDataTypeContextError, BuildEntityContextError, BuildEntityTypeContextError,
             BuildPrincipalContextError, BuildPropertyTypeContextError, CreatePolicyError,
-            DetermineActorError, EnsureSystemPoliciesError, GetPoliciesError,
-            GetSystemAccountError, RemovePolicyError, RoleAssignmentError, TeamRoleError,
-            UpdatePolicyError, WebCreationError, WebRoleError,
+            CurrentTimestampError, DetermineActorError, EnsureSystemPoliciesError,
+            GetPoliciesError, GetSystemAccountError, RemovePolicyError, RoleAssignmentError,
+            TeamRoleError, UpdatePolicyError, WebCreationError, WebRoleError,
         },
     },
 };
@@ -47,7 +47,7 @@ use hash_graph_store::{
     filter::protection::PropertyProtectionFilterConfig,
     query::ConflictBehavior,
 };
-use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
+use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use hash_status::StatusCode;
 use hash_temporal_client::TemporalClient;
 use postgres_types::{Json, ToSql};
@@ -809,6 +809,23 @@ where
     }
 }
 
+fn actor_id_from_principal_type(
+    principal_type: PrincipalType,
+    actor_entity_uuid: ActorEntityUuid,
+) -> ActorId {
+    match principal_type {
+        PrincipalType::User => ActorId::User(UserId::new(actor_entity_uuid)),
+        PrincipalType::Machine => ActorId::Machine(MachineId::new(actor_entity_uuid)),
+        PrincipalType::Ai => ActorId::Ai(AiId::new(actor_entity_uuid)),
+        principal_type @ (PrincipalType::Web
+        | PrincipalType::Team
+        | PrincipalType::WebRole
+        | PrincipalType::TeamRole) => {
+            unreachable!("Unexpected actor type: {principal_type:?}")
+        }
+    }
+}
+
 impl<C, S> PrincipalStore for PostgresStore<C, S>
 where
     C: AsClient,
@@ -1251,17 +1268,65 @@ where
             .change_context(DetermineActorError::StoreError)?
             .ok_or(DetermineActorError::ActorNotFound { actor_entity_uuid })?;
 
-        Ok(Some(match row.get(0) {
-            PrincipalType::User => ActorId::User(UserId::new(actor_entity_uuid)),
-            PrincipalType::Machine => ActorId::Machine(MachineId::new(actor_entity_uuid)),
-            PrincipalType::Ai => ActorId::Ai(AiId::new(actor_entity_uuid)),
-            principal_type @ (PrincipalType::Web
-            | PrincipalType::Team
-            | PrincipalType::WebRole
-            | PrincipalType::TeamRole) => {
-                unreachable!("Unexpected actor type: {principal_type:?}")
-            }
-        }))
+        Ok(Some(actor_id_from_principal_type(
+            row.get(0),
+            actor_entity_uuid,
+        )))
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn determine_actor_with_timestamp(
+        &self,
+        actor_entity_uuid: ActorEntityUuid,
+    ) -> Result<(Option<ActorId>, Timestamp<()>), Report<DetermineActorError>> {
+        if actor_entity_uuid.is_public_actor() {
+            let timestamp = self
+                .current_timestamp()
+                .await
+                .change_context(DetermineActorError::StoreError)?;
+            return Ok((None, timestamp));
+        }
+
+        let row = self
+            .as_client()
+            .query_opt(
+                "SELECT principal_type, statement_timestamp() FROM actor WHERE id = $1",
+                &[&actor_entity_uuid],
+            )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(DetermineActorError::StoreError)?
+            .ok_or(DetermineActorError::ActorNotFound { actor_entity_uuid })?;
+
+        Ok((
+            Some(actor_id_from_principal_type(row.get(0), actor_entity_uuid)),
+            row.get(1),
+        ))
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn current_timestamp(&self) -> Result<Timestamp<()>, Report<CurrentTimestampError>> {
+        // `statement_timestamp()` rather than `now()`: it advances per statement even inside a
+        // transaction, so operations sharing one transaction still observe distinct timestamps,
+        // while a transaction's first statement yields a reading aligned with the transaction's
+        // snapshot.
+        Ok(self
+            .as_client()
+            .query_one("SELECT statement_timestamp()", &[])
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
+            .await
+            .change_context(CurrentTimestampError)?
+            .get(0))
     }
 
     #[tracing::instrument(level = "info", skip(self, context_builder))]
@@ -2681,18 +2746,19 @@ where
         &self,
         ontology_id: OntologyTypeUuid,
         provenance: &OntologyEditionProvenance,
+        transaction_time: Timestamp<TransactionTime>,
     ) -> Result<LeftClosedTemporalInterval<TransactionTime>, Report<InsertionError>> {
         let query = "
               INSERT INTO ontology_temporal_metadata (
                 ontology_id,
                 transaction_time,
                 provenance
-              ) VALUES ($1, tstzrange(now(), NULL, '[)'), $2)
+              ) VALUES ($1, tstzrange($3, NULL, '[)'), $2)
               RETURNING transaction_time;
             ";
 
         self.as_client()
-            .query_one(query, &[&ontology_id, &provenance])
+            .query_one(query, &[&ontology_id, &provenance, &transaction_time])
             .instrument(tracing::info_span!(
                 "INSERT",
                 otel.kind = "client",
@@ -2708,11 +2774,12 @@ where
         &self,
         id: &VersionedUrl,
         archived_by_id: ActorEntityUuid,
+        transaction_time: Timestamp<TransactionTime>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         let query = "
           UPDATE ontology_temporal_metadata
           SET
-            transaction_time = tstzrange(lower(transaction_time), now(), '[)'),
+            transaction_time = tstzrange(lower(transaction_time), $4, '[)'),
             provenance = provenance || JSONB_BUILD_OBJECT(
                 'archivedById', $3::UUID
             )
@@ -2720,13 +2787,22 @@ where
             SELECT ontology_id
             FROM ontology_ids
             WHERE base_url = $1 AND version = $2
-          ) AND transaction_time @> now()
+          ) AND upper(transaction_time) IS NULL
+            AND transaction_time @> $4::timestamptz
           RETURNING transaction_time;
         ";
 
         let optional = self
             .as_client()
-            .query_opt(query, &[&id.base_url, &id.version, &archived_by_id])
+            .query_opt(
+                query,
+                &[
+                    &id.base_url,
+                    &id.version,
+                    &archived_by_id,
+                    &transaction_time,
+                ],
+            )
             .instrument(tracing::info_span!(
                 "UPDATE",
                 otel.kind = "client",
@@ -2778,6 +2854,7 @@ where
         &self,
         id: &VersionedUrl,
         provenance: &OntologyEditionProvenance,
+        transaction_time: Timestamp<TransactionTime>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
         let query = "
           INSERT INTO ontology_temporal_metadata (
@@ -2786,7 +2863,7 @@ where
             provenance
           ) VALUES (
             (SELECT ontology_id FROM ontology_ids WHERE base_url = $1 AND version = $2),
-            tstzrange(now(), NULL, '[)'),
+            tstzrange($4, NULL, '[)'),
             $3
           )
           RETURNING transaction_time;
@@ -2795,7 +2872,10 @@ where
         Ok(OntologyTemporalMetadata {
             transaction_time: self
                 .as_client()
-                .query_one(query, &[&id.base_url, &id.version, &provenance])
+                .query_one(
+                    query,
+                    &[&id.base_url, &id.version, &provenance, &transaction_time],
+                )
                 .instrument(tracing::info_span!(
                     "INSERT",
                     otel.kind = "client",
@@ -3391,6 +3471,7 @@ where
         ownership: &OntologyOwnership,
         on_conflict: ConflictBehavior,
         provenance: &OntologyProvenance,
+        transaction_time: Timestamp<TransactionTime>,
     ) -> Result<Option<(OntologyTypeUuid, OntologyTemporalMetadata)>, Report<InsertionError>> {
         match ownership {
             OntologyOwnership::Local { web_id } => {
@@ -3399,7 +3480,11 @@ where
                 let ontology_id = self.create_ontology_id(ontology_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(ontology_id, &provenance.edition)
+                        .create_ontology_temporal_metadata(
+                            ontology_id,
+                            &provenance.edition,
+                            transaction_time,
+                        )
                         .await?;
                     self.create_ontology_owned_metadata(ontology_id, *web_id)
                         .await?;
@@ -3421,7 +3506,11 @@ where
                 let ontology_id = self.create_ontology_id(ontology_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
-                        .create_ontology_temporal_metadata(ontology_id, &provenance.edition)
+                        .create_ontology_temporal_metadata(
+                            ontology_id,
+                            &provenance.edition,
+                            transaction_time,
+                        )
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
@@ -3449,6 +3538,7 @@ where
         &self,
         url: &VersionedUrl,
         provenance: &OntologyEditionProvenance,
+        transaction_time: Timestamp<TransactionTime>,
     ) -> Result<(OntologyTypeUuid, WebId, OntologyTemporalMetadata), Report<UpdateError>> {
         let previous_version =
             OntologyTypeVersion {
@@ -3520,7 +3610,7 @@ where
             .expect("ontology id should have been created");
 
         let transaction_time = self
-            .create_ontology_temporal_metadata(ontology_id, provenance)
+            .create_ontology_temporal_metadata(ontology_id, provenance, transaction_time)
             .await
             .change_context(UpdateError)?;
         self.create_ontology_owned_metadata(ontology_id, web_id)

@@ -26,7 +26,8 @@
   "dependencies": {
     "@blockprotocol/type-system-rs": "workspace:*",
     "@rust/error-stack": "workspace:*",
-    "@rust/hash-codec": "workspace:*"
+    "@rust/hash-codec": "workspace:*",
+    "@rust/hash-graph-temporal-versioning": "workspace:*"
   },
   "devDependencies": {
     "@local/tsconfig": "workspace:*",

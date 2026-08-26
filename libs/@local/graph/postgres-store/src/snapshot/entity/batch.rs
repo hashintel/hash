@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
+use hash_graph_authorization::policies::store::PrincipalStore as _;
 use hash_graph_store::{
     entity::{EntityValidationReport, ValidateEntityComponents},
     error::InsertionError,
@@ -278,10 +279,15 @@ where
             .await
             .change_context(InsertionError)?;
 
+        let timestamp = postgres_client
+            .current_timestamp()
+            .await
+            .change_context(InsertionError)?;
         let validator_provider = StoreProvider {
             store: postgres_client,
             cache: Box::new(StoreCache::default()),
             policy_components: None,
+            timestamp,
         };
 
         let mut edition_ids_updates = Vec::new();

@@ -273,6 +273,12 @@ pub enum DetermineActorError {
 impl Error for DetermineActorError {}
 
 #[derive(Debug, derive_more::Display)]
+#[display("Could not read the current timestamp from the store")]
+pub struct CurrentTimestampError;
+
+impl Error for CurrentTimestampError {}
+
+#[derive(Debug, derive_more::Display)]
 #[display("Could not build principal context for actor with ID `{actor_id}`")]
 pub enum BuildPrincipalContextError {
     #[display("Actor with ID `{actor_id}` does not exist")]
