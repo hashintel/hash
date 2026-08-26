@@ -296,16 +296,6 @@ impl Expression {
         })
     }
 
-    /// Cosine distance between two `vector` expressions of equal dimension count.
-    #[must_use]
-    pub fn cosine_distance(self, rhs: impl Into<Self>) -> Self {
-        Self::Binary(BinaryExpression {
-            op: BinaryOperator::CosineDistance,
-            left: Box::new(self),
-            right: Box::new(rhs.into()),
-        })
-    }
-
     /// Hamming distance between two `bit` expressions of equal width.
     #[must_use]
     pub fn hamming_distance(lhs: Self, rhs: Self) -> Self {

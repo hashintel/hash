@@ -88,10 +88,6 @@ pub trait Transpile {
     fn transpile(&self, fmt: &mut Formatter) -> fmt::Result;
 
     /// Adapts the value into a [`Display`] that renders the transpiled SQL.
-    ///
-    /// The adapter borrows the value and writes through the surrounding formatter, so
-    /// interpolating a transpiled name into a larger `format!` or `write!` costs no intermediate
-    /// allocation.
     fn display(&self) -> impl Display {
         struct Transpiler<'a, T: ?Sized>(&'a T);
         impl<T: Transpile + ?Sized> Display for Transpiler<'_, T> {

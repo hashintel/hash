@@ -59,8 +59,6 @@ pub enum BinaryOperator {
     ArrayContains,
     /// `<lhs> && <rhs>`
     Overlap,
-    /// `<lhs> <=> <rhs>`
-    CosineDistance,
     /// `<lhs> <~> <rhs>`
     HammingDistance,
 }
@@ -87,7 +85,6 @@ impl BinaryOperator {
             Self::JsonAccessAsText => " ->> ",
             Self::TimeIntervalContainsTimestamp | Self::ArrayContains => " @> ",
             Self::Overlap => " && ",
-            Self::CosineDistance => " <=> ",
             Self::HammingDistance => " <~> ",
         };
         fmt.write_str(string)
@@ -116,7 +113,6 @@ impl BinaryOperator {
             | Self::ArrayContains
             | Self::Overlap
             | Self::RegexMatch
-            | Self::CosineDistance
             | Self::HammingDistance => Ok(()),
         }
     }
