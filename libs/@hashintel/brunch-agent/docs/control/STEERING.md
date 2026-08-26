@@ -230,11 +230,9 @@ Re-braid (restack and resolve, then diverge again). Length follows how fine the 
 
 | When | Who | Onto |
 | --- | --- | --- |
-| **Due now** — before the Proof 0 human run | timing, once W2's current step is committed | first `gt restack` onto the driver, then `gt move --onto ln/fe-1506-legible-panel-status`, giving driver → 1504 → 1506 → 1505. The one file both lines touch, `apps/brunch-agent/src/agents/sdcpn-elicitor.ts`, resolves to W1's version (`ownerKey`); `apps/brunch-agent/package.json` auto-merges. FE-1503's run happens from the `timing` checkout, which then holds all four moves |
-| Now: #9320 and #9321 merged under the driver | driver first, then every effort | driver `gt restack` onto the moved stack; efforts restack onto the driver |
+| Done 2026-08-26 (Lu) — the braid before Proof 0 | timing, then plugins and topology | The five effort branches now form one line above the driver: 1504 → 1506 → 1505 → 1431-plugins → w4-topology. The `timing` checkout holds all four G0 moves and is where FE-1503's run happens; FE-1393 starts above `ln/w4-topology`, so it edits prompt data at its guarded core location |
 | A join point is about to be written from a second effort | the efforts that share it | the line that already landed, else driver then `main` |
 | Voice lands | panel | Voice (join: voice first) |
-| Now: W4's mechanical move is complete | driver first, then plugins | `ln/w4-topology`; reconcile current authorities, then FE-1393 starts from a line containing guarded prompts |
 | The pending plugin stack merges | every cut effort | `main` |
 
 ### Gap assessment (2026-08-26)
@@ -366,7 +364,7 @@ changes the witness: latency is no longer a number in a transcript but a person 
 
 | Gate | Owner / source | Watch trigger | Last checked | Consequence |
 | --- | --- | --- | --- | --- |
-| G0's baseline lives on a partly merged stack | Lu; #9320 and #9321 merged 2026-08-26; #9322, #9325, #9327 (approved) and #9337 (draft) remain, carrying `ln/fe-1431-plugin-authoring-cycle` | The rest of the stack merges to `main`. | 2026-08-26 | #9337 (draft) is now the bottleneck: two fans hang on it — the G0 line (1504 → 1506 → 1505) and the plugin line (1431-plugins → w4-topology → FE-1393). Nothing from either reaches `main` until it merges. Cycle two and ADR-0008 have superseded its draft scope; take it out of draft and merge the four remaining PRs, then every line restacks onto `main`. |
+| G0's baseline lives on a partly merged stack | Lu; #9320 and #9321 merged 2026-08-26; #9322, #9325, #9327 (approved) and #9337 (draft) remain, carrying `ln/fe-1431-plugin-authoring-cycle` | The rest of the stack merges to `main`. | 2026-08-26 | #9337 (draft) is the bottleneck: the whole effort line (1504 → 1506 → 1505 → 1431-plugins → w4-topology) sits above it, and only #9345 (1504, draft) has a PR so far. Nothing reaches `main` until it merges. Cycle two and ADR-0008 have superseded its draft scope; take it out of draft and merge the four remaining PRs, then the line restacks onto `main`. `ln/w4-topology` needs an issue before it is submitted (a branch carries at least one). |
 | FE-1480 executable realization unavailable | FE-1438; [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | Client tools return code diagnostics to the elicitor. | 2026-08-26 | Scaffold work may proceed; no runnable FE-1480 proof until the gate opens. |
 | Final use case outstanding | Dora; FE-1476 / September Plan | Dora confirms or changes it. | 2026-08-26 | If creation is required, Proof 1 becomes acceptance-relevant rather than a harness proof; reconcile ADR-0004/proof. |
 | Deferral licensing (completion spec rules 17–19) unbuildable | [elicitation-completion](../specs/elicitation-completion.md) rules 17–19; FE-1480 / [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | A durable projection delivery exists for an evaluated revision. | 2026-08-26 | E1 supplies the report and revision; rule 18 makes licensing `false` without a delivered projection, so no issue is opened. When FE-1480 delivers, it is one read-time function beside `evaluateCompletion` plus a binding hook at settlement; no new persistence. |
