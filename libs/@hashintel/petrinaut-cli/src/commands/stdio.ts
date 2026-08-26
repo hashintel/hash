@@ -4,6 +4,7 @@ import { createInterface } from "node:readline";
 import { compilePetrinautModel } from "@hashintel/petrinaut-core/compiled-model";
 
 import { loadSdcpnModel, parseSdcpnModel } from "../runtime/load-model";
+import { createNodeSimulationWorkerFactory } from "../runtime/node-simulation-worker";
 import {
   createOptimizationProtocol,
   loadOptimizationManifest,
@@ -118,7 +119,11 @@ export async function serveStdio(options: ServeStdioOptions): Promise<void> {
 
   const model = compilePetrinautModel({ sdcpn });
   const optimization = optimizationManifest
-    ? createOptimizationProtocol({ manifest: optimizationManifest, model })
+    ? createOptimizationProtocol({
+        manifest: optimizationManifest,
+        model,
+        createWorker: createNodeSimulationWorkerFactory({ errorOutput }),
+      })
     : undefined;
 
   errorOutput.write(
