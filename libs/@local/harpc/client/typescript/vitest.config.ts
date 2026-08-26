@@ -7,6 +7,7 @@ export default defineConfig({
     target: "esnext",
   },
   test: {
+    dir: "tests",
     coverage: {
       enabled: process.env.TEST_COVERAGE === "true",
       provider: "istanbul",
