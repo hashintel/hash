@@ -95,9 +95,22 @@ Two concrete failures this caused before the guards existed:
 />
 
 The shared vocabulary lives in [`core.validation`](layer:core.validation)
-(`record-keys.ts`): the `DANGEROUS_RECORD_KEYS` list, the two container
-helpers, and `findDangerousSdcpnKeys`, which walks a net and returns every
-identity string on the list.
+(`record-keys.ts`): the `DANGEROUS_RECORD_KEYS` list, the container helpers,
+and `findDangerousSdcpnKeys`, which walks a net and returns every identity
+string on the list.
+
+:::danger[Interim design]
+Plain JavaScript objects are the wrong container for user-keyed data; the
+three defences make them safe rather than right. The reserved-name ban exists
+because plain objects inherit from `Object.prototype`, and because the
+`__proto__` / `constructor` / `prototype` triple is the sanitizer set CodeQL
+and Semgrep recognise, which keeps the scanners quiet without suppressions.
+Its cost: users cannot name a parameter `constructor` or a token attribute
+`toString`. The durable fix is `Map`s (or interned ids, as the engine frame
+layout already uses) behind codecs at the JSON edges, which lifts the ban and
+deletes the guard discipline. Tracked in
+[FE-1502](https://linear.app/hash/issue/FE-1502/replace-user-keyed-records-with-maps-and-lift-the-reserved-name-ban).
+:::
 
 ## Why one layer is not enough
 
