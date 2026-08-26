@@ -611,9 +611,11 @@ export const AiAssistantPanel = ({
   const submitText = useCallback(
     async ({
       id,
+      target = "auto",
       text,
     }: {
       id?: string;
+      target?: "auto" | "message";
       text: string;
     }): Promise<PetrinautAiComposerSubmitTextResult> => {
       const trimmed = text.trim();
@@ -646,7 +648,7 @@ export const AiAssistantPanel = ({
         toolCallId: string;
         toolName: string;
       }[] = [];
-      for (const message of currentMessages) {
+      for (const message of target === "auto" ? currentMessages : []) {
         for (const part of message.parts) {
           if (
             part.type !== "dynamic-tool" ||

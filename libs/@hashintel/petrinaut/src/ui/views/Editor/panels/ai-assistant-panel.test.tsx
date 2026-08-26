@@ -406,6 +406,87 @@ describe("AiAssistantPanel composer submissions", () => {
     ]);
   });
 
+  test("can force a separate message while an interactive tool is pending", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "question-1",
+                    toolName: "answerQuestion",
+                    input: { question: "Which environment?" },
+                  },
+                ]
+              : textChunks("correction-response", "Correction accepted"),
+          ),
+        );
+      }),
+    };
+    const results: unknown[] = [];
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      fromComposerText: ({ text }) => ({ answer: text }),
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        renderComposerControl: ({ submitText }) => (
+          <button
+            type="button"
+            onClick={() => {
+              void submitText({
+                id: "correction-1",
+                target: "message",
+                text: "Correction: staging, not production.",
+              }).then((result) => results.push(result));
+            }}
+          >
+            Submit correction
+          </button>
+        ),
+        transport,
+      },
+      initialMessage: "Start questions",
+    });
+    await screen.findByText("Which environment?");
+
+    fireEvent.click(screen.getByRole("button", { name: "Submit correction" }));
+    await screen.findByText("Correction accepted");
+
+    expect(requestMessages[1]?.at(-1)).toMatchObject({
+      id: "correction-1",
+      parts: [{ text: "Correction: staging, not production.", type: "text" }],
+      role: "user",
+    });
+    expect(
+      requestMessages[1]?.some((message) =>
+        message.parts.some(
+          (part) =>
+            part.type === "dynamic-tool" &&
+            part.toolCallId === "question-1" &&
+            part.state === "output-available",
+        ),
+      ),
+    ).toBe(false);
+    expect(results).toEqual([{ kind: "message", messageId: "correction-1" }]);
+  });
+
   test("falls back to a normal message when a pending tool has no text mapper", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const transport: PetrinautAiTransport = {

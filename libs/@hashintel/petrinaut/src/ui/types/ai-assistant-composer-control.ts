@@ -23,6 +23,8 @@ export type PetrinautAiComposerControlContext = {
   /** Call from an event handler or effect, never while rendering. */
   submitText: (params: {
     id?: string;
+    /** Defaults to `auto`; use `message` for text that must not answer a pending tool. */
+    target?: "auto" | "message";
     text: string;
   }) => Promise<PetrinautAiComposerSubmitTextResult>;
 };

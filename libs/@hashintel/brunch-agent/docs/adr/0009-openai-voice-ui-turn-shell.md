@@ -40,6 +40,8 @@ production recovery or public availability.
    Completed items are keyed by connection epoch, provider item ID, and content index, then enter
    the existing Petrinaut composer and AI SDK transport once. A pending `brunch_ask` uses its
    existing correlated tool-output path; otherwise the final becomes a stable-ID user message.
+   A user-initiated correction is a new explicit message and opts out of pending-tool mapping
+   rather than being silently inferred from its wording.
 5. **The interaction is half-duplex.** The microphone is closed while Brunch is handling a turn
    and while speech is synthesized or playing. Barge-in and simultaneous listening and playback
    are out of scope.
@@ -58,7 +60,7 @@ production recovery or public availability.
 - Petrinaut's public API gains a generic host control with stable `submitText`, `stop`, messages,
   status, and optional conversation identity. Interactive tools may opt into a schema-validated
   text-to-output mapper. Keyboard and alternate finalized text therefore cannot bypass ask
-  correlation.
+  correlation by default; the host may explicitly target a separate message for a correction.
 - OpenAI implementation names and policy stay in `apps/petrinaut-website`. The existing
   `transport-aisdk` package remains the sole browser-to-Brunch conversation transport.
 - Preview PRs may demonstrate transcription and exact canonical speech before production

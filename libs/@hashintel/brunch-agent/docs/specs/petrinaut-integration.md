@@ -49,7 +49,8 @@ which the design needs anyway:
    receive stable `submitText` and `stop` callbacks plus conversation state. Finalized alternate
    text uses the same AI SDK `useChat` instance as keyboard input. When exactly one unresolved
    interactive tool registers a schema-validated text mapper, `submitText` completes that tool;
-   otherwise it submits a stable-ID user message. Ambiguous mapped tools are refused.
+   otherwise it submits a stable-ID user message. Ambiguous mapped tools are refused. A host may
+   explicitly target an ordinary message for a correction that must not answer the pending tool.
 
 ## Attach Contract
 
@@ -68,6 +69,8 @@ The panel and the voice edge attach to Brunch through one stable surface:
    control. Keyboard and alternate finalized text both enter the same `submitText` function. A
    pending `brunch_ask` is answered only through the existing correlated tool-output path; text is
    not silently downgraded to an ordinary user message when more than one mapped ask is pending.
+   Explicit corrections target new messages rather than silently mutating or answering another
+   pending ask.
 
 These four parts change only with notice to the panel and voice-edge owners. A provider-specific
 voice requirement does not silently alter this surface; provider code and policy remain in the
@@ -178,7 +181,8 @@ host application under ADR-0009, while reusable Petrinaut and Brunch packages st
 - A host interactive tool may define `fromComposerText({ input, text })`. Petrinaut parses the
   pending input, invokes the mapper, and parses its output before submitting the correlated tool
   result. Unknown or unmapped tools preserve ordinary message submission; multiple eligible tools
-  fail visibly rather than guessing.
+  fail visibly rather than guessing. The host may explicitly target a separate message for a
+  correction or follow-up that must not resolve a pending tool.
 - The seam is provider- and elicitor-agnostic. OpenAI WebRTC, transcription policy, speech, and
   half-duplex state belong to `apps/petrinaut-website`; Brunch remains behind the existing
   transport. See [ADR-0009](../adr/0009-openai-voice-ui-turn-shell.md).
