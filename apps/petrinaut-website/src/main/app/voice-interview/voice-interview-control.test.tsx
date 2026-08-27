@@ -525,6 +525,16 @@ describe("voice interview stage", () => {
     expect(html).toContain('aria-label="Type an interview answer"');
     expect(html).toContain(">Pause<");
     expect(html).toContain('aria-label="End interview"');
+
+    render(
+      <VoiceInterviewControlView
+        {...viewProps({ placement: "detached", presentation: "mini" })}
+      />,
+    );
+    const endButton = screen.getByRole("button", { name: "End interview" });
+    expect(endButton.querySelector("svg")).not.toBeNull();
+    expect(endButton.parentElement?.getAttribute("data-part")).toBe("trigger");
+    expect(endButton.parentElement?.getAttribute("data-scope")).toBe("tooltip");
   });
 
   test("shows authoritative covered and still-exploring facts without a question count", () => {

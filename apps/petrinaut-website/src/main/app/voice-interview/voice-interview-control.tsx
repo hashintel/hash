@@ -645,13 +645,14 @@ export const VoiceInterviewControlView = ({
           />
           <Button
             aria-label="End interview"
+            prefix={<FaXmark aria-hidden="true" />}
+            shape="round"
             size="xs"
+            tooltip="End interview"
             type="button"
             variant="ghost"
             onClick={onEnd}
-          >
-            End
-          </Button>
+          />
         </div>
         <span className={liveRegionStyle} role="status" aria-live="polite">
           {status}
