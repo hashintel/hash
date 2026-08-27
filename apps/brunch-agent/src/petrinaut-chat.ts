@@ -10,15 +10,13 @@ import {
   type TransportInspectionEvent,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
-import {
-  ChatAgent,
-  READ_PETRINAUT_DOC_TOOL_NAME,
-} from "./agents/chat-agent.ts";
+import { ChatAgent } from "./agents/chat-agent.ts";
 import { flueConversationId } from "./conversation-identity.ts";
 import { snapshotToUiMessages } from "./flue-transcript.ts";
 import { createFlueUiStream } from "./flue-ui-stream.ts";
 import { defaultPanelOrigins } from "./local-dev-origins.ts";
 import { CHAT_AGENT_ROUTE } from "./routes.ts";
+import { READ_PETRINAUT_DOC_TOOL_NAME } from "./tools/read-petrinaut-doc.ts";
 
 import type { UIMessageChunk } from "ai";
 

@@ -7,38 +7,17 @@
  */
 
 import { useModel, useTool } from "@flue/runtime";
-import * as v from "valibot";
+
+import { ping } from "../tools/ping.ts";
+import { readPetrinautDoc } from "../tools/read-petrinaut-doc.ts";
 
 export const CHAT_MODEL_ID =
   process.env["BRUNCH_CHAT_MODEL"] || "claude-haiku-4-5";
 
-export const PING_TOOL_NAME = "ping";
-export const READ_PETRINAUT_DOC_TOOL_NAME = "readPetrinautDoc";
-
 export function ChatAgent() {
   useModel(`anthropic/${CHAT_MODEL_ID}`);
-  useTool({
-    name: PING_TOOL_NAME,
-    description:
-      "Return a short server-side acknowledgement. Call this when you need to confirm the server is in the loop.",
-    input: v.object({
-      note: v.optional(v.pipe(v.string(), v.nonEmpty())),
-    }),
-    run({ data }) {
-      return { output: { ok: true as const, note: data.note ?? "pong" } };
-    },
-  });
-  useTool({
-    name: READ_PETRINAUT_DOC_TOOL_NAME,
-    description:
-      "Read one page of the Petrinaut user guide. The browser executes this tool. After you call it, wait for a client-tool-result signal carrying the page text, then continue from that text.",
-    input: v.object({
-      doc: v.pipe(v.string(), v.nonEmpty()),
-    }),
-    run() {
-      return { output: { awaiting: "client" as const }, terminate: true };
-    },
-  });
+  useTool(ping);
+  useTool(readPetrinautDoc);
   return [
     "You are a concise assistant inside the Petrinaut editor.",
     "Call ping when you need to confirm the server tool path.",

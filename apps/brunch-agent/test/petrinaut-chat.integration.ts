@@ -13,15 +13,12 @@ import {
 import { sqlite, start } from "@flue/runtime/node";
 import { createFlueClient } from "@flue/sdk";
 
-import {
-  CHAT_MODEL_ID,
-  ChatAgent,
-  PING_TOOL_NAME,
-  READ_PETRINAUT_DOC_TOOL_NAME,
-} from "../src/agents/chat-agent.ts";
+import { CHAT_MODEL_ID, ChatAgent } from "../src/agents/chat-agent.ts";
 import { flueConversationId } from "../src/conversation-identity.ts";
 import { formatFlueTranscript } from "../src/flue-transcript.ts";
 import { CHAT_AGENT_ROUTE } from "../src/routes.ts";
+import { PING_TOOL_NAME } from "../src/tools/ping.ts";
+import { READ_PETRINAUT_DOC_TOOL_NAME } from "../src/tools/read-petrinaut-doc.ts";
 
 import type {
   PetrinautChatResult,
