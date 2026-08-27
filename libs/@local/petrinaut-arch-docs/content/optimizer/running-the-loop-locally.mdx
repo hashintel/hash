@@ -33,9 +33,12 @@ does five things in order:
    `PETRINAUT_OPT_ORIGIN=http://127.0.0.1:4004`.
 5. Stops and removes the container when you stop the command.
 
-Docker must be running; nothing else is required. Extra arguments are
-forwarded to Vite, so `yarn dev:petrinaut-optimization --port 5175
---strictPort` pins the website port for tooling that needs to know it.
+Docker must be running; nothing else is required. An optimizer already
+serving on `127.0.0.1:4004` (the compose stack's, for example) is reused
+instead of starting a second container — note a long-lived one can be too
+old for the current protocol. Extra arguments are forwarded to Vite, so
+`yarn dev:petrinaut-optimization --port 5175 --strictPort` pins the website
+port for tooling that needs to know it.
 
 ## Why plain `yarn dev` shows no Optimizations view
 
