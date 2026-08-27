@@ -156,6 +156,12 @@ export class OpenAIRealtimeSession {
     }, this.#dependencies.connectionTimeoutMs);
 
     try {
+      const audioContext = this.#dependencies.createAudioContext();
+      this.#audioContext = audioContext;
+      if (audioContext.state === "suspended") {
+        void audioContext.resume().catch(() => undefined);
+      }
+
       let mediaStream: MediaStream;
       try {
         const mediaStreamPromise = this.#dependencies.getUserMedia({
@@ -218,7 +224,7 @@ export class OpenAIRealtimeSession {
       }
       microphoneTrack.enabled = false;
       this.#microphoneTrack = microphoneTrack;
-      this.#initializeMeter(mediaStream);
+      this.#initializeMeter(audioContext, mediaStream);
 
       const peerConnection = this.#dependencies.createPeerConnection();
       this.#peerConnection = peerConnection;
@@ -369,25 +375,6 @@ export class OpenAIRealtimeSession {
     }
   }
 
-  public commitInput(): void {
-    this.setMicrophoneEnabled(false);
-    if (
-      !this.#connected ||
-      !this.#dataChannel ||
-      this.#dataChannel.readyState !== "open"
-    ) {
-      this.#handleConnectionFailure("network", "transcription");
-      return;
-    }
-    try {
-      this.#dataChannel.send(
-        JSON.stringify({ type: "input_audio_buffer.commit" }),
-      );
-    } catch {
-      this.#handleConnectionFailure("network", "transcription");
-    }
-  }
-
   public async disconnect(): Promise<void> {
     this.#releaseResources();
   }
@@ -451,12 +438,10 @@ export class OpenAIRealtimeSession {
     });
   }
 
-  #initializeMeter(mediaStream: MediaStream): void {
-    const audioContext = this.#dependencies.createAudioContext();
+  #initializeMeter(audioContext: AudioContext, mediaStream: MediaStream): void {
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 256;
     audioContext.createMediaStreamSource(mediaStream).connect(analyser);
-    this.#audioContext = audioContext;
     this.#analyser = analyser;
     this.#meterSamples = new Uint8Array(analyser.fftSize);
   }

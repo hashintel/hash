@@ -16,6 +16,7 @@ import {
 import type { PetrinautAiInterviewStageContext } from "@hashintel/petrinaut/ui";
 
 const snapshot = {
+  canReviseLastAnswer: false,
   currentQuestion: "What happens after approval?",
   errorCode: null,
   errorMessage: "",
@@ -182,6 +183,14 @@ describe("voice interview stage", () => {
         Response.json({ available: true, connectionTimeoutMs: 15_000 }),
       ),
     );
+    vi.stubGlobal(
+      "AudioContext",
+      class {
+        public readonly state = "suspended";
+        public readonly close = vi.fn(async () => undefined);
+        public readonly resume = vi.fn(async () => undefined);
+      },
+    );
     vi.stubGlobal("navigator", {
       mediaDevices: { getUserMedia },
     });
@@ -253,6 +262,59 @@ describe("voice interview stage", () => {
     ]) {
       expect(html).toContain(name);
     }
+  });
+
+  test("enables repair actions only while the last answer can be revised", () => {
+    const rendered = render(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            canReviseLastAnswer: false,
+            lastCommittedText: "The shift lead approves it.",
+            microphoneEnabled: false,
+            microphoneLevel: 0,
+            partialText: "",
+            phase: "waiting",
+          },
+        })}
+      />,
+    );
+
+    expect(
+      screen
+        .getByRole("button", { name: "Redo answer" })
+        .hasAttribute("disabled"),
+    ).toBe(true);
+    expect(
+      screen
+        .getByRole("button", { name: "Edit text" })
+        .hasAttribute("disabled"),
+    ).toBe(true);
+
+    rendered.rerender(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            canReviseLastAnswer: true,
+            lastCommittedText: "The shift lead approves it.",
+            partialText: "",
+          },
+        })}
+      />,
+    );
+
+    expect(
+      screen
+        .getByRole("button", { name: "Redo answer" })
+        .hasAttribute("disabled"),
+    ).toBe(false);
+    expect(
+      screen
+        .getByRole("button", { name: "Edit text" })
+        .hasAttribute("disabled"),
+    ).toBe(false);
   });
 
   test("offers deterministic interrupt instead of listening during playback", () => {

@@ -629,13 +629,18 @@ export const VoiceInterviewControlView = ({
             </label>
             <input
               className={inputStyle}
+              disabled={!snapshot.canReviseLastAnswer}
               id="voice-answer-correction"
               value={correction}
               onChange={(event) =>
                 onCorrectionChange(event.currentTarget.value)
               }
             />
-            <Button disabled={!correction.trim()} size="xs" type="submit">
+            <Button
+              disabled={!snapshot.canReviseLastAnswer || !correction.trim()}
+              size="xs"
+              type="submit"
+            >
               Send correction
             </Button>
           </form>
@@ -669,10 +674,20 @@ export const VoiceInterviewControlView = ({
           )}
           {snapshot.lastCommittedText && !snapshot.partialText && (
             <>
-              <Button type="button" variant="subtle" onClick={onRedo}>
+              <Button
+                disabled={!snapshot.canReviseLastAnswer}
+                type="button"
+                variant="subtle"
+                onClick={onRedo}
+              >
                 Redo answer
               </Button>
-              <Button type="button" variant="ghost" onClick={onEdit}>
+              <Button
+                disabled={!snapshot.canReviseLastAnswer}
+                type="button"
+                variant="ghost"
+                onClick={onEdit}
+              >
                 Edit text
               </Button>
             </>
@@ -854,9 +869,12 @@ const AvailableVoiceInterviewControl = ({
       }}
       onSubmitCorrection={() => {
         const value = correction;
-        setCorrection("");
-        setEditing(false);
-        void store.controller.submitCorrection(value);
+        void store.controller.submitCorrection(value).then((accepted) => {
+          if (accepted) {
+            setCorrection("");
+            setEditing(false);
+          }
+        });
       }}
       onTypeInstead={() => {
         if (snapshot.phase === "idle") setPresentation("trigger");

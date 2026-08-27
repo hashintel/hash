@@ -19,6 +19,7 @@ export type VoiceTurnPhase =
   | "recoverable-error";
 
 export interface VoiceTurnSnapshot {
+  readonly canReviseLastAnswer: boolean;
   readonly currentQuestion: string;
   readonly errorCode: VoiceErrorCode | null;
   readonly errorMessage: string;
@@ -43,7 +44,6 @@ export interface VoiceLatencyEvent {
 type ChatStatus = "ready" | "submitted" | "streaming" | "error";
 
 interface RealtimeSession {
-  commitInput(): void;
   connect(): Promise<number>;
   disconnect(): Promise<void>;
   setMicrophoneEnabled(enabled: boolean): void;
@@ -97,6 +97,7 @@ export const createVoiceMessageId = (
   ].join(":");
 
 const initialSnapshot: VoiceTurnSnapshot = {
+  canReviseLastAnswer: false,
   currentQuestion: "",
   errorCode: null,
   errorMessage: "",
@@ -248,6 +249,7 @@ export class VoiceTurnController {
     this.#update({
       errorMessage: "",
       currentQuestion: "",
+      lastCommittedText: "",
       microphoneLevel: 0,
       partialText: "",
       phase: "idle",
@@ -269,25 +271,17 @@ export class VoiceTurnController {
     await this.start();
   }
 
-  public async submitCorrection(correction: string): Promise<void> {
+  public async submitCorrection(correction: string): Promise<boolean> {
     const correctedText = correction.trim();
     const previousText = this.#snapshot.lastCommittedText;
-    if (
-      !correctedText ||
-      !previousText ||
-      this.#activeEpoch === null ||
-      this.#snapshot.phase !== "listening" ||
-      this.#awaitingChatCycle ||
-      !this.#canAcceptInterviewAnswer ||
-      this.#speechLoopGeneration !== null
-    ) {
-      return;
+    if (!correctedText || !this.#canReviseLastAnswer()) {
+      return false;
     }
 
     this.#questionAnswered = true;
     this.#setMicrophoneEnabled(false);
     this.#update({ errorMessage: "", phase: "delivering" });
-    await this.#deliver({
+    return this.#deliver({
       target: "message",
       text: `Correction to my previous voice answer "${previousText}": ${correctedText}`,
     });
@@ -318,7 +312,6 @@ export class VoiceTurnController {
     }
     this.#setMicrophoneEnabled(false);
     this.#update({ phase: "transcribing" });
-    this.#session.commitInput();
   }
 
   public pause(): void {
@@ -340,14 +333,7 @@ export class VoiceTurnController {
   }
 
   public redoAnswer(): void {
-    if (
-      this.#activeEpoch === null ||
-      !this.#snapshot.lastCommittedText ||
-      this.#snapshot.phase !== "listening" ||
-      this.#awaitingChatCycle ||
-      this.#speechLoopGeneration !== null ||
-      !this.#canAcceptInterviewAnswer
-    ) {
+    if (!this.#canReviseLastAnswer()) {
       return;
     }
     this.#redoing = true;
@@ -442,12 +428,12 @@ export class VoiceTurnController {
     this.#settleListeningIfReady();
   }
 
-  async #deliver(input: SubmitTextInput): Promise<void> {
+  async #deliver(input: SubmitTextInput): Promise<boolean> {
     if (!this.#isChatReady()) {
       this.#pendingDelivery = input;
-      this.#session.setMicrophoneEnabled(false);
+      this.#setMicrophoneEnabled(false);
       this.#update({ phase: "waiting" });
-      return;
+      return false;
     }
 
     const generation = this.#generation;
@@ -459,25 +445,26 @@ export class VoiceTurnController {
         generation !== this.#generation ||
         !this.#isAwaitingCurrentChatCycle()
       ) {
-        return;
+        return false;
       }
       if (this.#snapshot.phase === "delivering") {
         this.#update({ phase: "waiting" });
       }
       this.#settleListeningIfReady();
+      return true;
     } catch {
       if (
         generation !== this.#generation ||
         this.#snapshot.phase === "recoverable-error"
       ) {
-        return;
+        return false;
       }
       if (!this.#isChatReady()) {
         this.#pendingDelivery = input;
         this.#awaitingChatCycle = false;
-        this.#session.setMicrophoneEnabled(false);
+        this.#setMicrophoneEnabled(false);
         this.#update({ phase: "waiting" });
-        return;
+        return false;
       }
       this.#awaitingChatCycle = false;
       this.#setMicrophoneEnabled(false);
@@ -486,6 +473,7 @@ export class VoiceTurnController {
           "The interview could not accept that answer. Use the composer to retry.",
         phase: "recoverable-error",
       });
+      return false;
     }
   }
 
@@ -790,6 +778,17 @@ export class VoiceTurnController {
     );
   }
 
+  #canReviseLastAnswer(snapshot = this.#snapshot): boolean {
+    return (
+      Boolean(snapshot.lastCommittedText) &&
+      this.#activeEpoch !== null &&
+      snapshot.phase === "listening" &&
+      !this.#awaitingChatCycle &&
+      this.#speechLoopGeneration === null &&
+      this.#canAcceptInterviewAnswer
+    );
+  }
+
   #queueAvailableSegments(): void {
     for (const segment of this.#availableSegments) {
       if (!this.#seenSpeechSegmentIds.has(segment.id)) {
@@ -846,7 +845,11 @@ export class VoiceTurnController {
       update.errorMessage !== undefined && !("errorCode" in update)
         ? { errorCode: null, errorRequestId: "" }
         : {};
-    this.#snapshot = { ...this.#snapshot, ...clearedError, ...update };
+    const snapshot = { ...this.#snapshot, ...clearedError, ...update };
+    this.#snapshot = {
+      ...snapshot,
+      canReviseLastAnswer: this.#canReviseLastAnswer(snapshot),
+    };
     for (const listener of this.#listeners) {
       listener(this.#snapshot);
     }

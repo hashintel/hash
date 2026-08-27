@@ -13,7 +13,6 @@ const createHarness = () => {
   let epoch = 0;
   let listener: ((event: OpenAIRealtimeSessionEvent) => void) | undefined;
   const session = {
-    commitInput: vi.fn(),
     connect: vi.fn(async () => ++epoch),
     disconnect: vi.fn(async () => undefined),
     setMicrophoneEnabled: vi.fn(),
@@ -167,19 +166,18 @@ describe("VoiceTurnController", () => {
     });
   });
 
-  test("closes the microphone before committing when the expert is done speaking", async () => {
+  test("relies on server VAD after the expert is done speaking", async () => {
     const order: string[] = [];
     const harness = createHarness();
     harness.session.setMicrophoneEnabled.mockImplementation((enabled) => {
       if (!enabled) order.push("microphone-off");
     });
-    harness.session.commitInput.mockImplementation(() => order.push("commit"));
     await harness.controller.start();
     order.length = 0;
 
     harness.controller.doneSpeaking();
 
-    expect(order).toEqual(["microphone-off", "commit"]);
+    expect(order).toEqual(["microphone-off"]);
     expect(harness.controller.getSnapshot()).toMatchObject({
       microphoneEnabled: false,
       phase: "transcribing",
@@ -968,7 +966,8 @@ describe("VoiceTurnController", () => {
       expect.objectContaining({ text: "Accepted final" }),
     );
     expect(harness.controller.getSnapshot()).toMatchObject({
-      lastCommittedText: "Accepted final",
+      canReviseLastAnswer: false,
+      lastCommittedText: "",
       phase: "idle",
     });
   });
@@ -1119,6 +1118,29 @@ describe("VoiceTurnController", () => {
     );
   });
 
+  test("reports a rejected correction so the caller can preserve its draft", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emit({
+      key: key(1, "item-a"),
+      text: "The support lead closes it.",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+    updateChatStatus(harness.controller, "streaming");
+    updateChatStatus(harness.controller, "ready");
+    harness.submitText.mockRejectedValueOnce(
+      new Error("A queued answer already exists"),
+    );
+
+    const accepted = await harness.controller.submitCorrection(
+      "The incident manager closes it.",
+    );
+
+    expect(accepted).toBe(false);
+    expect(harness.controller.getSnapshot().phase).toBe("recoverable-error");
+  });
+
   test("ignores a typed correction while the previous answer is still pending", async () => {
     const harness = createHarness();
     let finishDelivery: (() => void) | undefined;
@@ -1137,12 +1159,16 @@ describe("VoiceTurnController", () => {
       type: "completed",
     });
     await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
-    expect(harness.controller.getSnapshot().phase).toBe("delivering");
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReviseLastAnswer: false,
+      phase: "delivering",
+    });
 
-    await harness.controller.submitCorrection(
+    const accepted = await harness.controller.submitCorrection(
       "The incident manager closes it.",
     );
 
+    expect(accepted).toBe(false);
     expect(harness.submitText).toHaveBeenCalledOnce();
     expect(harness.controller.getSnapshot().phase).toBe("delivering");
     finishDelivery?.();

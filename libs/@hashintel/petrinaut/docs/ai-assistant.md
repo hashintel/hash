@@ -38,10 +38,12 @@ also the exact words spoken by the AI-generated OpenAI voice.
 The stage names the microphone state and shows input activity only while the microphone is really
 on. During interviewer playback, **Interrupt and speak** first stops playback and then opens the
 microphone; it does not listen and play at the same time. While listening, choose **Done speaking**
-to finalize immediately or **Pause** to turn the microphone off temporarily. **Pause**,
-**Minimize**, **End interview**, and **Interrupt and speak** are separate actions. After an answer
-is recorded, use **Redo answer** to say an explicit correction or **Edit text** to type one. The
-normal message composer remains available as a keyboard fallback.
+to close the microphone and let voice detection finish the answer, or **Pause** to turn the
+microphone off temporarily. **Pause**, **Minimize**, **End interview**, and **Interrupt and speak**
+are separate actions. After an answer is recorded and the interviewer is ready, use **Redo answer**
+to say an explicit correction or **Edit text** to type one. These correction controls remain
+unavailable while the previous answer is still being written down. The normal message composer
+remains available as a keyboard fallback.
 
 Minimizing produces a compact bar above the composer. Closing the AI sidebar during an active
 interview moves that same session to a bottom bar over the canvas; reopening the sidebar docks it
