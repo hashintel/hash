@@ -177,7 +177,12 @@ const fetchSparseTree = (options: {
     "origin",
     options.ref,
   ]);
-  const sha = git(root, ["rev-parse", "--verify", "--quiet", "FETCH_HEAD^{commit}"]);
+  const sha = git(root, [
+    "rev-parse",
+    "--verify",
+    "--quiet",
+    "FETCH_HEAD^{commit}",
+  ]);
 
   // Sparse patterns are set before the checkout so only the covered
   // directories materialize — the checkout is also what batch-fetches their
@@ -229,7 +234,12 @@ export const materializeBaseTree = async (options: {
     }
 
     const url = remoteRepoUrl(process.env);
-    const sha = fetchSparseTree({ url, ref: options.ref, paths: options.paths, root });
+    const sha = fetchSparseTree({
+      url,
+      ref: options.ref,
+      paths: options.paths,
+      root,
+    });
     return {
       root,
       ref: options.ref,
