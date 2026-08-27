@@ -56,7 +56,13 @@ try {
     },
   );
   const baseRef = response.ok ? (await response.json()).base?.ref : undefined;
-  out(typeof baseRef === "string" && baseRef !== "" ? baseRef : "main");
+  // Branch-name shaped only: the value becomes an environment variable that
+  // ends up on a git command line, so anything surprising falls back.
+  out(
+    typeof baseRef === "string" && /^[\w][\w.@+/-]*$/u.test(baseRef)
+      ? baseRef
+      : "main",
+  );
 } catch {
   // Rate limiting or a network failure: `main` still gives a useful diff.
   out("main");

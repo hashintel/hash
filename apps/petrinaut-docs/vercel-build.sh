@@ -21,7 +21,8 @@ rm -f .env
 # the deployment layer — the generator only ever receives a ref. Production
 # builds print nothing and never diff. An already-set variable wins, so the
 # Vercel project can pin a different base.
-diff_base="$(node apps/petrinaut-docs/scripts/resolve-diff-base.mjs)"
+# `|| true`: a crash in the resolver must cost the highlighting, not the deploy.
+diff_base="$(node apps/petrinaut-docs/scripts/resolve-diff-base.mjs || true)"
 if [[ -n "${diff_base}" ]]; then
   export PETRINAUT_ARCH_DOCS_DIFF_BASE="${diff_base}"
   echo "Preview build: highlighting changes against ${diff_base}"

@@ -4,14 +4,13 @@
  * Two strategies, tried in order:
  *
  * 1. The local clone: resolve the ref and `git archive` the covered
- *    directories out of it. This is what a developer machine and a GitHub
- *    Actions checkout take.
- * 2. An anonymous fetch from the public repository: a Vercel build gets a
- *    snapshot of the sources with no usable git clone behind it, so the ref
- *    is fetched into a scratch repository instead — blobless
- *    (`--filter=blob:none`) with a sparse checkout of only the covered
- *    directories, which keeps the transfer to the trees plus the blobs the
- *    generator actually scans.
+ *    directories out of it. This is what a developer machine takes.
+ * 2. An anonymous fetch from the public repository: a CI build often cannot
+ *    resolve the ref locally — Vercel provides a snapshot of the sources with
+ *    no usable clone at all — so the ref is fetched into a scratch repository
+ *    instead: blobless (`--filter=blob:none`) with a sparse checkout of only
+ *    the covered directories, which keeps the transfer to the trees plus the
+ *    blobs the generator actually scans.
  *
  * Either way the extracted tree needs no `node_modules` and no install step:
  * dependency-cruiser resolves workspace imports through aliases derived from
@@ -47,6 +46,17 @@ const git = (cwd: string, args: string[]): string =>
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 
+/**
+ * Whether a ref can safely appear on a git command line: a leading dash
+ * parses as an option, and whitespace or control characters split arguments.
+ * Checked at every entry point that takes a ref, so no call order lets an
+ * unvalidated ref reach a subprocess.
+ */
+const isUsableRef = (ref: string): boolean =>
+  ref !== "" && !ref.startsWith("-") && !/[\s\u0000-\u001f]/u.test(ref);
+
+const isCommitSha = (text: string): boolean => /^[0-9a-f]{40}$/u.test(text);
+
 /** The ref's commit per the local clone alone — no fetch, no side effects. */
 const localShaOf = (repoRoot: string, ref: string): string | null => {
   for (const candidate of [ref, `origin/${ref}`]) {
@@ -68,13 +78,20 @@ const localShaOf = (repoRoot: string, ref: string): string | null => {
  * Resolves a ref to its commit without materializing anything, so a cache can
  * be consulted before any tree is fetched or extracted. Null when only a full
  * materialization could resolve it (say, `main~3` on a clone-less build).
+ *
+ * Tags are peeled: the `^{}` line names the commit an annotated tag points
+ * at, which is also what a later materialization resolves — reporting the tag
+ * object instead would key the cache under a sha no other step produces.
  */
 export const resolveBaseSha = (
   repoRoot: string,
   ref: string,
   url: string,
 ): string | null => {
-  if (/^[0-9a-f]{40}$/u.test(ref)) {
+  if (!isUsableRef(ref)) {
+    return null;
+  }
+  if (isCommitSha(ref)) {
     return ref;
   }
 
@@ -84,42 +101,26 @@ export const resolveBaseSha = (
   }
 
   try {
-    const listed = git(repoRoot, [
+    const lines = git(repoRoot, [
       "ls-remote",
       url,
       `refs/heads/${ref}`,
       `refs/tags/${ref}`,
-    ]);
-    const sha = listed.split(/\s/u)[0] ?? "";
-    return /^[0-9a-f]{40}$/u.test(sha) ? sha : null;
-  } catch {
-    return null;
-  }
-};
+      `refs/tags/${ref}^{}`,
+    ])
+      .split("\n")
+      .filter((line) => line !== "")
+      .map((line) => line.split(/\s+/u));
 
-/**
- * Resolves a ref against the local clone, or null when it cannot.
- *
- * A CI clone is typically shallow and checked out at the head commit only, so
- * the base branch resolves neither bare nor as `origin/<ref>`; the fetch
- * still succeeds where the clone has a credentialed remote (a developer
- * machine, a GitHub Actions checkout). Null covers the rest — most notably a
- * Vercel build, whose sources come as a snapshot with no fetchable clone.
- */
-const resolveLocalCommit = (repoRoot: string, ref: string): string | null => {
-  const local = localShaOf(repoRoot, ref);
-  if (local !== null) {
-    return local;
-  }
+    const shaOf = (name: string): string | undefined =>
+      lines.find(([, refName]) => refName === name)?.[0];
 
-  try {
-    git(repoRoot, ["fetch", "--quiet", "--depth=1", "origin", ref]);
-    return git(repoRoot, [
-      "rev-parse",
-      "--verify",
-      "--quiet",
-      "FETCH_HEAD^{commit}",
-    ]);
+    const sha =
+      shaOf(`refs/heads/${ref}`) ??
+      shaOf(`refs/tags/${ref}^{}`) ??
+      shaOf(`refs/tags/${ref}`) ??
+      "";
+    return isCommitSha(sha) ? sha : null;
   } catch {
     return null;
   }
@@ -245,9 +246,7 @@ export const materializeBaseTree = async (options: {
   /** Repo-relative directories to extract; ones absent at the ref are skipped. */
   paths: string[];
 }): Promise<BaseTree> => {
-  // Refused rather than escaped: git would parse a leading dash as an option,
-  // in `rev-parse`, `fetch` and `archive` alike.
-  if (options.ref.startsWith("-")) {
+  if (!isUsableRef(options.ref)) {
     throw new Error(`\`${options.ref}\` is not a usable ref`);
   }
 
@@ -258,7 +257,7 @@ export const materializeBaseTree = async (options: {
   const root = await realpath(await mkdtemp(join(tmpdir(), "arch-docs-base-")));
 
   try {
-    const localSha = resolveLocalCommit(options.repoRoot, options.ref);
+    const localSha = localShaOf(options.repoRoot, options.ref);
 
     if (localSha !== null) {
       extractFromLocalClone({

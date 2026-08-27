@@ -88,7 +88,10 @@ const chip = (options: {
     href:
       options.prNumber !== null
         ? `${options.repoUrl}/pull/${options.prNumber}`
-        : `${options.repoUrl}/tree/${options.branch ?? ""}`,
+        : `${options.repoUrl}/tree/${(options.branch ?? "")
+            .split("/")
+            .map(encodeURIComponent)
+            .join("/")}`,
     title: `${options.role}: ${where}${at}`,
   };
 };

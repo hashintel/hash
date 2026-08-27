@@ -6,8 +6,6 @@
  * violated rule — so the map cannot quietly stop matching the code.
  */
 
-import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import { chmod, mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,18 +13,8 @@ import { fileURLToPath } from "node:url";
 import { config } from "../architecture.config";
 import { buildBundle, bundleTextFiles, type BuiltBundle } from "./build";
 import { countErrors, type Diagnostic } from "./diagnostics";
-import {
-  generatorInputsHash,
-  readCachedBaseSide,
-  writeCachedBaseSide,
-} from "./diff/base-cache";
-import {
-  materializeBaseTree,
-  remoteRepoUrl,
-  resolveBaseSha,
-  type BaseTree,
-} from "./diff/base-tree";
-import { applyBundleDiff, diffSideOfBundle } from "./diff/bundle-diff";
+import { obtainBaseSide, seedBaseCacheWithSelf } from "./diff/base-side";
+import { applyBundleDiff } from "./diff/bundle-diff";
 import { canRenderDiagrams, renderD2 } from "./emit/d2";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -109,136 +97,37 @@ const resolveDiffBase = (args: string[]): string | null => {
     : fromEnvironment;
 };
 
-const cacheDir = join(repoRoot, "node_modules/.cache/petrinaut-arch-docs");
-
-/** Repo-relative directories whose content the generator reads. */
-const coveredPaths = (): string[] => [
-  ...new Set([
-    ...config.packages.map((pkg) => pkg.path),
-    "libs/@local/petrinaut-arch-docs",
-  ]),
-];
-
 /**
- * Stores this build's own side as a future diff base.
+ * Applies the diff against the base ref to the head bundle.
  *
- * This is what shares the cache across branches: the CI cache is restored per
- * branch with a fallback to the production deployment, so the entry a `main`
- * build writes here is what every PR targeting `main` finds on its first
- * build — no PR recomputes the base the production build already produced.
- * It also means only protected-branch builds ever write the entries other
- * branches read.
- *
- * Skipped when the checkout's commit is unknown, and locally when the covered
- * sources have uncommitted changes — an entry must describe its commit, not a
- * dirty tree.
- */
-const seedBaseCache = (bundle: BuiltBundle, includeDiagrams: boolean): void => {
-  let sha = process.env.VERCEL_GIT_COMMIT_SHA ?? "";
-
-  if (!/^[0-9a-f]{40}$/u.test(sha)) {
-    try {
-      sha = execFileSync("git", ["rev-parse", "HEAD"], {
-        cwd: repoRoot,
-        encoding: "utf8",
-      }).trim();
-      const dirty = execFileSync(
-        "git",
-        ["status", "--porcelain", "--", ...coveredPaths()],
-        { cwd: repoRoot, encoding: "utf8" },
-      ).trim();
-      if (!/^[0-9a-f]{40}$/u.test(sha) || dirty !== "") {
-        return;
-      }
-    } catch {
-      return;
-    }
-  }
-
-  writeCachedBaseSide({
-    cacheDir,
-    sha,
-    inputsHash: generatorInputsHash({
-      packageRoot: join(repoRoot, "libs/@local/petrinaut-arch-docs"),
-      includeDiagrams,
-    }),
-    side: diffSideOfBundle(bundle, config.sourceUrlPrefix),
-  });
-};
-
-/**
- * Builds the base ref's bundle and applies the diff to the head one.
- *
- * The base build runs the current generator over the base sources, with the
- * current config and source-URL prefix, so the comparison never sees emitter
- * or prefix drift. Any failure — an unfetchable ref, a base tree the
- * generator cannot process — degrades to the plain bundle with a warning: a
- * broken diff must not take the docs down with it.
+ * The base side comes from `obtainBaseSide` — the cache, the local clone, or
+ * an anonymous fetch — always built by the current generator with the current
+ * config, so the comparison never sees emitter or prefix drift. Any failure
+ * degrades to the plain bundle with a warning: a broken diff must not take
+ * the docs down with it.
  */
 const withDiffAgainst = async (
   bundle: BuiltBundle,
   ref: string,
   includeDiagrams: boolean,
 ): Promise<BuiltBundle> => {
-  let baseTree: BaseTree | null = null;
   try {
-    const url = remoteRepoUrl(process.env);
-    const inputsHash = generatorInputsHash({
-      packageRoot: join(repoRoot, "libs/@local/petrinaut-arch-docs"),
-      includeDiagrams,
-    });
+    const base = await obtainBaseSide({ repoRoot, ref, includeDiagrams });
 
-    // The base side is deterministic in (base commit, generator inputs), so a
-    // build against an unmoved base reuses the last one instead of extracting
-    // and building the base tree again.
-    const knownSha = resolveBaseSha(repoRoot, ref, url);
-    let base =
-      knownSha === null
-        ? null
-        : readCachedBaseSide({ cacheDir, sha: knownSha, inputsHash });
-    let baseSha = knownSha ?? "";
-
-    if (base !== null) {
+    if (base.fromCache) {
       process.stdout.write(
-        dim(`base bundle from cache (${baseSha.slice(0, 10)})\n`),
+        dim(`base bundle from cache (${base.sha.slice(0, 10)})\n`),
       );
-    } else {
-      // The list includes the arch-docs package for the base tree's authored
-      // content and dependency-cruiser tsconfig; the generator itself still
-      // runs from this checkout.
-      const tree = await materializeBaseTree({
-        repoRoot,
-        ref,
-        paths: coveredPaths(),
-      });
-      baseTree = tree;
-      baseSha = tree.sha;
-
-      // Logged because it names the strategy: a Vercel build has no usable
-      // clone, and this line is how its logs show the fallback fetch worked.
-      if (tree.fetchedFrom !== undefined) {
-        process.stdout.write(
-          dim(`base tree fetched from ${tree.fetchedFrom}\n`),
-        );
-      }
-
-      const baseBundle = await buildBundle({
-        repoRoot: tree.root,
-        includeDiagrams,
-        overrides: {
-          // A package added since the base ref has no directory to scan there.
-          packages: config.packages.filter((pkg) =>
-            existsSync(join(tree.root, pkg.path)),
-          ),
-        },
-      });
-      base = diffSideOfBundle(baseBundle, config.sourceUrlPrefix);
-      writeCachedBaseSide({ cacheDir, sha: baseSha, inputsHash, side: base });
+    }
+    // Logged because it names the strategy: a Vercel build has no usable
+    // clone, and this line is how its logs show the fallback fetch worked.
+    if (base.fetchedFrom !== undefined) {
+      process.stdout.write(dim(`base tree fetched from ${base.fetchedFrom}\n`));
     }
 
-    const diffed = applyBundleDiff(bundle, base, {
+    const diffed = applyBundleDiff(bundle, base.side, {
       baseRef: ref,
-      baseSha,
+      baseSha: base.sha,
       sourceUrlPrefix: config.sourceUrlPrefix,
     });
 
@@ -247,7 +136,7 @@ const withDiffAgainst = async (
       statuses.filter((entry) => entry === status).length;
     process.stdout.write(
       dim(
-        `changes vs ${ref} (${baseSha.slice(0, 10)}): ${count("added")} added · ${count("changed")} changed · ${count("removed")} removed\n`,
+        `changes vs ${ref} (${base.sha.slice(0, 10)}): ${count("added")} added · ${count("changed")} changed · ${count("removed")} removed\n`,
       ),
     );
 
@@ -257,9 +146,6 @@ const withDiffAgainst = async (
       `${yellow("warning")} building without change highlighting: could not compare against \`${ref}\`\n  ${cause instanceof Error ? cause.message : String(cause)}\n`,
     );
     return bundle;
-  } finally {
-    // A failed cleanup must not reject out of the build the diff decorates.
-    await baseTree?.dispose().catch(() => {});
   }
 };
 
@@ -356,7 +242,11 @@ const main = async (): Promise<number> => {
 
   // Every clean build stores its own side as a future diff base — a `main`
   // build's entry is what spares each PR from rebuilding the base itself.
-  seedBaseCache(bundle, diagramsAvailable);
+  seedBaseCacheWithSelf({
+    repoRoot,
+    bundle,
+    includeDiagrams: diagramsAvailable,
+  });
 
   // Applied only to a bundle that already passed the checks: the diff decorates
   // the output, it never gates it.
