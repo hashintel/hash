@@ -331,9 +331,7 @@ describe("createSweepSession", () => {
     await expect(session.sampleCell({ x: 0, y: 10 }, 8)).resolves.toMatchObject(
       { runsCompleted: 8 },
     );
-    expect(
-      batches.filter((batch) => batch.request.background).length,
-    ).toBe(0);
+    expect(batches.filter((batch) => batch.request.background).length).toBe(0);
     session.dispose();
   });
 

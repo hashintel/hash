@@ -149,6 +149,15 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
     name: "SIR transmission sweep",
     status: "running",
     runCount: 100,
+    metricSpecs: [
+      {
+        kind: "placeTokenCountMean",
+        id: "infected",
+        label: "Infected",
+        placeId: "place__infected",
+        runOutput: { type: "distribution", binning: "exact" },
+      },
+    ],
     parameterAxes: [
       { identifier: "transmission_rate", values: [0.1, 0.2, 0.3, 0.4, 0.5] },
       {
@@ -290,6 +299,36 @@ export function FakeExperimentsProvider({
               : experiment,
           ),
         );
+      },
+      sampleSweepCell: (_experimentId, parameterValues) => {
+        // A synthetic objective surface — a smooth bump — so the story's
+        // contour fills in the way a real sweep's would, walk delay included.
+        const coordinates = Object.values(parameterValues);
+        const x = coordinates[0] ?? 0;
+        const y = coordinates[1] ?? 0;
+        const objective =
+          100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
+          6 * Math.sin(x * 9) +
+          y / 4;
+        const frame = {
+          metricId: "infected",
+          label: "Infected",
+          outputType: "distribution" as const,
+          frameNumber: 45,
+          time: 45,
+          bins: [[Math.round(objective), 8]] as (readonly [number, number])[],
+          value: null,
+          frameValue: null,
+          timeValue: null,
+          runSampleCount: 8,
+          timeSampleCount: 8,
+        };
+        return new Promise((resolve) => {
+          setTimeout(
+            () => resolve({ runsCompleted: 8, metricFrames: [frame] }),
+            120,
+          );
+        });
       },
     }),
     [experiments, selectedExperiment, selectedExperimentId],
