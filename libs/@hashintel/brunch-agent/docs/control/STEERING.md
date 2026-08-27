@@ -43,8 +43,8 @@ evidence under [proof evidence](../evidence/proofs/).
 - [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) — harness-owned
   fixed keys join defaults to plugin cells; operative force: cycle two froze the catalogue, which
   reopens only when run evidence forces a key change, while FE-1393 tests gherkin generality.
-- [ADR-0008](../adr/0008-repertoire-and-plugin-contract-live-in-core.md) — repertoire defaults are
-  core-owned prompt data behind a guarded subpath; operative force: plugins never import
+- ADR-0008 — repertoire defaults are core-owned prompt data behind a guarded
+  subpath; operative force: plugins never import
   `@hashintel/brunch-agent/prompts`, the root remains the plugin SDK, and no broader core
   reorganisation follows from this package correction.
 - [S-001](STRATEGY-LOG.md#s-001) — review-and-revise is the current proof, not permanent scope;
@@ -114,7 +114,7 @@ evidence under [proof evidence](../evidence/proofs/).
   FE-1431 (plugin authoring surface).
 - **Harness teaching has one owner** — repertoire defaults fill every guidance and runbook key;
   operative force: plugins specialize those keys without importing harness method. Source:
-  [ADR-0008](../adr/0008-repertoire-and-plugin-contract-live-in-core.md) and
+  ADR-0008 and
   [S-008](STRATEGY-LOG.md#s-008). Steering projection:
   FE-1406 (harness repertoire).
 - **A second formalism tests generality after the tracer** — gherkin pressures the settled SDCPN
@@ -378,7 +378,7 @@ changes the witness: latency is no longer a number in a transcript but a person 
 | Construct and review-and-revise share most of one runbook. | Medium-low; Lu's reading of the early plugin-schema passes; unrehearsed. | Author both job runbooks against the key schema and diff them; a cycle of the plugin loop. |
 | Kind-level rows express the coatings case. | High; cycle-two [condition-5 evidence](../evidence/evaluations/process-model-elicitation/baseline/transcripts/) folds 166 captures into 51 nodes with 0 unmapped, and the 93 unsatisfied rows are declared demands, not missing vocabulary. Sufficiency for completion is still unshown. | A run with identity handling; count objective nodes. |
 | Typed extraction on the verbatim floor holds up in a live run. | Medium-high; the [latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md) records repaired refusals and leaves cost, not correctness, as the open question. | R0 + the assessment's §6 spike: does a cheaper extraction model keep kind/node/slot agreement? |
-| The shipped loop converges to completion. | Low; both condition-5 runs ([cycle one](../evidence/evaluations/process-model-elicitation/baseline/transcripts/cycle-1/), [cycle two](../evidence/evaluations/process-model-elicitation/baseline/transcripts/)) end with node identity the dominant defect and no terminal act for an expert-stopped engagement; the cycle-two readout routes both to FE-1383 as harness work, not catalogue gaps. | Give the sweep the node index (R4); rerun condition 5; count objective nodes. |
+| The shipped loop converges to completion. | Low; both condition-5 runs (cycle one, [cycle two](../evidence/evaluations/process-model-elicitation/baseline/transcripts/)) end with node identity the dominant defect and no terminal act for an expert-stopped engagement; the cycle-two readout routes both to FE-1383 as harness work, not catalogue gaps. | Give the sweep the node index (R4); rerun condition 5; count objective nodes. |
 | Per-turn latency is dominated by extraction, and removable from the critical path. | Medium; the [latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md) infers the split from output volume because per-call timing is absent. | R0, then the assessment's §6 spike on frozen turn tails. |
 | The condition-5 instrument is too expensive to iterate on. | High; a full run is 12–24 turns at ~145 s each (30–60 min), `harness-run.ts` writes every artefact only at the end, `HARD_STOP_AT = 24` is hard-coded with no short-run knob, and W2's afternoon (2026-08-26, ~3 h after the credential fix) produced attribution fixes and no completed figure. The instrument's cost is now a bound on the P1 cycle and on every harness fix. | A `BRUNCH_BASELINE_HARD_STOP` env (a 3-turn run yields the purpose split in under 10 min); the §6 frozen-tail replay; and taking the first split from the Proof 0 panel run, which FE-1505 already accepts ("harness **or** panel run"). |
 | The baseline and the panel measure the same interviewer. | Low; `harness-run.ts` defaults `BRUNCH_SDCPN_MODEL` to `claude-opus-5`, `sdcpn-elicitor.ts` defaults it to `claude-haiku-4-5`. The 145 s figure is opus in the baseline; the panel's production default is unmeasured and undecided. | Lu names the Proof 0 interviewer model before the run; the run records it in the proof bundle. |
@@ -408,7 +408,7 @@ changes the witness: latency is no longer a number in a transcript but a person 
   subpath, fixed keys, a schema, and gates — never as spec prose alone; its content is not rescoped
   without run evidence ([S-008](STRATEGY-LOG.md#s-008),
   [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md),
-  [ADR-0008](../adr/0008-repertoire-and-plugin-contract-live-in-core.md)).
+  ADR-0008).
 - The key catalogue is a working set until a cycle changes no key: fix it by writing both plugins
   against it, not by decree ([S-009](STRATEGY-LOG.md#s-009), ADR-0007 decision 9).
 - The triangle first, poorly; no layer is optimised for its own sake before the end-to-end flow

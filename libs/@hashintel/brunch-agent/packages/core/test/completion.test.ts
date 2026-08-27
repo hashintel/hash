@@ -204,6 +204,35 @@ describe("the rule (3–7)", () => {
     expect(report.sliceNodeIds).toEqual(["objective:throughput"]);
   });
 
+  test("6. a single kind:node string in the dependency slot still forms a slice", () => {
+    const report = evaluateCompletion(
+      modelOf(
+        replacing(
+          "c-objective-deps",
+          assertionCapture(
+            "c-objective-deps",
+            value(
+              "objective",
+              "throughput",
+              "the nodes it depends on",
+              "named",
+              "step:stamp",
+            ),
+          ),
+        ),
+      ),
+      demands,
+    );
+    expect(
+      report.failures.filter(
+        (failure) => failure.diagnostic === "unsupported-active-objective",
+      ),
+    ).toEqual([]);
+    expect(report.sliceNodeIds).toEqual(
+      expect.arrayContaining(["objective:throughput", "step:stamp"]),
+    );
+  });
+
   test("6. an objective with no dependency slot at all is unsupported; the floor does not substitute", () => {
     expect(diagnosticsOf(without("c-objective-deps"))).toEqual([
       [

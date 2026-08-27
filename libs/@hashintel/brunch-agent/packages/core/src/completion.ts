@@ -260,10 +260,19 @@ const evaluateRow = (
   return null;
 };
 
-const dependencyIds = (slot: SlotState | undefined): readonly string[] =>
-  slot?.state === "value" && Array.isArray(slot.value)
-    ? slot.value.filter((entry): entry is string => typeof entry === "string")
+const dependencyIds = (slot: SlotState | undefined): readonly string[] => {
+  if (slot?.state !== "value") {
+    return [];
+  }
+  if (Array.isArray(slot.value)) {
+    return slot.value.filter(
+      (entry): entry is string => typeof entry === "string",
+    );
+  }
+  return typeof slot.value === "string" && slot.value !== ""
+    ? [slot.value]
     : [];
+};
 
 export function evaluateCompletion(
   model: ElicitedModel,

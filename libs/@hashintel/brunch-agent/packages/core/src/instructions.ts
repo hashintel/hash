@@ -109,7 +109,7 @@ export const renderContract = (definition: PluginDefinition): string[] => {
       "## Must know",
       ...paragraphs(definition.schemaPreamble),
       rows.join("\n"),
-      `Static floor — before anything objective-relative counts, the model must contain at least ${floor}. Presence is a count; the floor assigns no precision.`,
+      `Static floor — before anything \`${definition.anchor.kind}\`-relative counts, the model must contain at least ${floor}. Presence is a count; the floor assigns no precision.`,
       `Anchor — completion is relative to \`${definition.anchor.kind}\` nodes: the model is complete when the floor holds and every node named in each active anchor's "${definition.anchor.dependencySlot}" satisfies its kind's rows. Nodes outside every slice are recorded, not demanded.`,
       `Precision words:\n\n${ladder.join("\n")}\n\nPrecision says how much a value narrows what it could mean, not where it came from; an honest value at the wrong precision and an invented value at the right one are tracked separately and neither substitutes for the other.`,
     ].join("\n\n"),

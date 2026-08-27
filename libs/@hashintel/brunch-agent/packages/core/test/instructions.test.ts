@@ -12,8 +12,9 @@ import {
   RUNBOOK_KEY_DESCRIPTIONS,
   RUNBOOK_KEYS,
 } from "../src/keys";
+import { readPluginDefinition } from "../src/plugin-definition";
 import { readRepertoire, type Repertoire } from "../src/repertoire";
-import { fixturePluginDefinition } from "./slot-fixtures";
+import { FIXTURE_PLUGIN_YAML, fixturePluginDefinition } from "./slot-fixtures";
 
 const item = (name: string) =>
   `      - { name: ${name}, text: default ${name}., source: test }`;
@@ -151,10 +152,21 @@ describe("renderInstructions", () => {
     expect(text).toContain("the nodes it depends on — at least 1");
     expect(text).toContain('how many — range; "not applicable" is accepted');
     expect(text).toContain("at least 1 `objective`, 2 `thing`, 1 `step`");
+    expect(text).toContain("before anything `objective`-relative counts");
     expect(text).toContain("completion is relative to `objective` nodes");
     expect(text).toContain("`spelled out` —");
     expect(text).toContain("**P02** — _when_ more than one thing competes");
     expect(text).toContain("_Signature:_ it says so");
+  });
+
+  test("does not hardcode objective-relative completion when the anchor is another kind", () => {
+    const featureAnchored = readPluginDefinition(
+      FIXTURE_PLUGIN_YAML.replaceAll("objective", "feature"),
+    );
+    const rendered = renderInstructions(repertoire, featureAnchored);
+    expect(rendered).toContain("before anything `feature`-relative counts");
+    expect(rendered).toContain("completion is relative to `feature` nodes");
+    expect(rendered).not.toContain("objective-relative");
   });
 
   test("contains no template residue", () => {
