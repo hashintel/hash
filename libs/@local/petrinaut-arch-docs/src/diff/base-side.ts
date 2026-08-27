@@ -31,11 +31,17 @@ const GENERATOR_PACKAGE = "libs/@local/petrinaut-arch-docs";
 
 /**
  * Repo-relative directories whose content the generator reads: the covered
- * packages, plus this package for the authored content and the
- * dependency-cruiser tsconfig.
+ * packages, the authored content, and this package for the dependency-cruiser
+ * tsconfig. The content directory is listed from config even though it sits
+ * inside this package today — were it moved, the base side would otherwise
+ * silently lose every authored page.
  */
 export const coveredPaths = (): string[] => [
-  ...new Set([...config.packages.map((pkg) => pkg.path), GENERATOR_PACKAGE]),
+  ...new Set([
+    ...config.packages.map((pkg) => pkg.path),
+    config.contentDirectory,
+    GENERATOR_PACKAGE,
+  ]),
 ];
 
 /**
@@ -145,11 +151,14 @@ export const seedBaseCacheWithSelf = (options: {
   bundle: BuiltBundle;
   includeDiagrams: boolean;
 }): void => {
-  const { repoRoot } = options;
-  let sha = process.env.VERCEL_GIT_COMMIT_SHA ?? "";
+  // One try around everything: seeding is a bonus, and no failure in it — a
+  // git oddity, a file swapped out mid-hash — may fail a build that already
+  // passed its checks.
+  try {
+    const { repoRoot } = options;
+    let sha = process.env.VERCEL_GIT_COMMIT_SHA ?? "";
 
-  if (!/^[0-9a-f]{40}$/u.test(sha)) {
-    try {
+    if (!/^[0-9a-f]{40}$/u.test(sha)) {
       sha = execFileSync("git", ["rev-parse", "HEAD"], {
         cwd: repoRoot,
         encoding: "utf8",
@@ -162,15 +171,15 @@ export const seedBaseCacheWithSelf = (options: {
       if (!/^[0-9a-f]{40}$/u.test(sha) || dirty !== "") {
         return;
       }
-    } catch {
-      return;
     }
-  }
 
-  writeCachedBaseSide({
-    cacheDir: baseCacheDir(repoRoot),
-    sha,
-    inputsHash: inputsHashFor(repoRoot, options.includeDiagrams),
-    side: diffSideOfBundle(options.bundle, config.sourceUrlPrefix),
-  });
+    writeCachedBaseSide({
+      cacheDir: baseCacheDir(repoRoot),
+      sha,
+      inputsHash: inputsHashFor(repoRoot, options.includeDiagrams),
+      side: diffSideOfBundle(options.bundle, config.sourceUrlPrefix),
+    });
+  } catch {
+    return;
+  }
 };

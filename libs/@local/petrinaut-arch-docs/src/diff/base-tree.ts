@@ -44,16 +44,21 @@ const git = (cwd: string, args: string[]): string =>
     cwd,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
+    // A hung network call must degrade the diff, not stall the build until
+    // the CI-wide timeout; suppressing the prompt keeps a credential dialog
+    // from ever holding a connection open.
+    timeout: 120_000,
+    env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
   }).trim();
 
 /**
- * Whether a ref can safely appear on a git command line: a leading dash
- * parses as an option, and whitespace or control characters split arguments.
- * Checked at every entry point that takes a ref, so no call order lets an
- * unvalidated ref reach a subprocess.
+ * Whether a ref can safely appear on a git command line. An allow-list of
+ * word characters plus the separators and rev syntax refs use (`origin/main`,
+ * `v1.2.3`, `main~3`, `HEAD^`, `v1^{}`), anchored on a word character so
+ * nothing option-shaped passes. Checked at every entry point that takes a
+ * ref, so no call order lets an unvalidated ref reach a subprocess.
  */
-const isUsableRef = (ref: string): boolean =>
-  ref !== "" && !ref.startsWith("-") && !/[\s\u0000-\u001f]/u.test(ref);
+const isUsableRef = (ref: string): boolean => /^[\w][\w.@+/~^{}-]*$/u.test(ref);
 
 const isCommitSha = (text: string): boolean => /^[0-9a-f]{40}$/u.test(text);
 

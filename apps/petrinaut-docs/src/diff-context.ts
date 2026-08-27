@@ -13,7 +13,7 @@
  * pull requests is GitHub knowledge the generator deliberately does not have.
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 
 import type { BundleManifest } from "@local/petrinaut-arch-docs";
 
@@ -33,12 +33,18 @@ export interface DiffCompareContext {
 
 const wellFormed = /^[\w.-]+$/u;
 
-const gitFallback = (args: string): string | null => {
+const gitFallback = (args: string[]): string | null => {
   try {
-    return execSync(`git ${args}`, { encoding: "utf8" }).trim() || null;
+    return execFileSync("git", args, { encoding: "utf8" }).trim() || null;
   } catch {
     return null;
   }
+};
+
+/** A trimmed, non-empty environment value, or null. */
+const envString = (value: string | undefined): string | null => {
+  const trimmed = value?.trim() ?? "";
+  return trimmed === "" ? null : trimmed;
 };
 
 /** The one open PR whose head is `branch`, or null (anonymous API, best effort). */
@@ -114,8 +120,10 @@ export const resolveDiffCompareContext = async (
   const repoUrl = `https://github.com/${owner}/${slug}`;
 
   const headBranch =
-    env.VERCEL_GIT_COMMIT_REF ?? gitFallback("rev-parse --abbrev-ref HEAD");
-  const headSha = env.VERCEL_GIT_COMMIT_SHA ?? gitFallback("rev-parse HEAD");
+    envString(env.VERCEL_GIT_COMMIT_REF) ??
+    gitFallback(["rev-parse", "--abbrev-ref", "HEAD"]);
+  const headSha =
+    envString(env.VERCEL_GIT_COMMIT_SHA) ?? gitFallback(["rev-parse", "HEAD"]);
   const headPr = /^\d+$/u.test(env.VERCEL_GIT_PULL_REQUEST_ID ?? "")
     ? env.VERCEL_GIT_PULL_REQUEST_ID!
     : null;

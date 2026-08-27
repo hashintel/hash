@@ -240,14 +240,6 @@ const main = async (): Promise<number> => {
     return 1;
   }
 
-  // Every clean build stores its own side as a future diff base — a `main`
-  // build's entry is what spares each PR from rebuilding the base itself.
-  seedBaseCacheWithSelf({
-    repoRoot,
-    bundle,
-    includeDiagrams: diagramsAvailable,
-  });
-
   // Applied only to a bundle that already passed the checks: the diff decorates
   // the output, it never gates it.
   const diffBase = resolveDiffBase(process.argv.slice(3));
@@ -255,6 +247,16 @@ const main = async (): Promise<number> => {
     diffBase === null
       ? bundle
       : await withDiffAgainst(bundle, diffBase, diagramsAvailable);
+
+  // Every clean build stores its own side as a future diff base — a `main`
+  // build's entry is what spares each PR from rebuilding the base itself.
+  // Seeded after the diff has read its base, so at the cache's capacity this
+  // write can never evict the entry the diff was about to use.
+  seedBaseCacheWithSelf({
+    repoRoot,
+    bundle,
+    includeDiagrams: diagramsAvailable,
+  });
 
   if (!(await writeBundle(written, diagramsAvailable))) {
     return 1;
