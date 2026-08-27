@@ -1,5 +1,5 @@
 import { useStore } from "@tanstack/react-form";
-import { use } from "react";
+import { use, useState } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -132,6 +132,9 @@ const CreateAdHocScenarioContent = ({
   onClose: () => void;
 }) => {
   const { addScenario } = usePetrinautMutations();
+  // A schema rejection after a passing form would otherwise be a silent
+  // no-op click; surface it in the footer instead.
+  const [saveError, setSaveError] = useState<string | null>(null);
   const authoring = useAdHocScenarioAuthoring({ existingScenarioNames });
 
   const save = () => {
@@ -142,6 +145,9 @@ const CreateAdHocScenarioContent = ({
     // Final structural validation against the persistence schema.
     const result = scenarioSchema.safeParse(scenario);
     if (!result.success) {
+      setSaveError(
+        result.error.issues[0]?.message ?? "The scenario failed validation.",
+      );
       return;
     }
     addScenario(result.data);
@@ -158,8 +164,8 @@ const CreateAdHocScenarioContent = ({
       <Drawer.Footer
         secondaryActions={
           <DrawerErrorDisplay
-            count={authoring.errorCount}
-            firstMessage={authoring.firstError}
+            count={authoring.errorCount + (saveError ? 1 : 0)}
+            firstMessage={authoring.firstError ?? saveError ?? undefined}
           />
         }
         actions={

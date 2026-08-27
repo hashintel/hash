@@ -442,23 +442,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       ? currentState.parameterValues
       : {};
     // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-    const namedScenarioToCompile = tweakedScenarioRef.current;
-    // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-    const adHocRunState = adHocRunScenarioRef.current;
-    if (namedScenarioToCompile === null && adHocRunState?.ok === false) {
-      const refusal = new Error(
-        `The inline scenario definition has errors:\n${adHocRunState.messages.join("\n")}`,
-      );
-      setError(refusal.message);
-      setErrorItemId(null);
-      throw refusal;
-    }
-    const adHocScenarioToCompile = adHocRunState?.ok
-      ? adHocRunState.scenario
-      : null;
-    const scenarioToCompile = namedScenarioToCompile ?? adHocScenarioToCompile;
-    const adHocRun =
-      namedScenarioToCompile === null && adHocScenarioToCompile !== null;
+    const scenarioToCompile = scenarioToCompileRef.current;
 
     // Dispose any active simulation before starting a new one. Update both
     // the ref and React state so same-tick callers see the cleared handle.
@@ -479,8 +463,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       if (scenarioToCompile) {
         const scenarioHir = await requestScenarioHir(
           {
-            parameterOverrides: scenarioToCompile.parameterOverrides,
-            initialState: scenarioToCompile.initialState,
+            parameterOverrides: scenarioToCompile.scenario.parameterOverrides,
+            initialState: scenarioToCompile.scenario.initialState,
           },
           // A persisted ad-hoc scenario synthesizes against the net inside
           // the worker; other kinds ignore the context.
@@ -495,23 +479,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         if (initializationGenerationRef.current !== generation) {
           return;
         }
-        // The ad-hoc definition reads net parameters at the panel's current
-        // values (the render path compiles it the same way); a named
-        // scenario keeps the parameters' own defaults, its overrides rule.
-        const compileParameters = simulationExtensions.parameters
-          ? adHocRun
-            ? sdcpn.parameters.map((parameter) => ({
-                ...parameter,
-                defaultValue:
-                  manualParameterValues[parameter.variableName] ??
-                  parameter.defaultValue,
-              }))
-            : sdcpn.parameters
-          : [];
         const outcome = compileScenario(
-          scenarioToCompile,
+          scenarioToCompile.scenario,
           scenarioHir,
-          compileParameters,
+          scenarioToCompile.netParameters,
           sdcpn.places,
           sdcpn.types,
         );
@@ -825,25 +796,25 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     };
   }
 
-  // Snapshot for `initialize`, which compiles the scenario itself.
-  const tweakedScenarioRef = useLatest(tweakedScenario);
-  // The quick-sim ad-hoc definition, synthesized to an ordinary scenario:
-  // Play compiles it exactly like a selected scenario, so the run starts
-  // from the defined tokens rather than the manual marking. A failed
-  // synthesis is carried too — a run must refuse a broken definition, the
-  // way a broken named scenario refuses, never silently fall back to the
-  // manual marking behind the error banner.
-  const adHocRunScenarioRef = useLatest(
-    adHocSynthesized
-      ? adHocSynthesized.ok
-        ? { ok: true as const, scenario: adHocSynthesized.scenario }
-        : {
-            ok: false as const,
-            messages: adHocSynthesized.errors.map(
-              (synthesisError) => synthesisError.message,
-            ),
+  // Snapshot for `initialize`, which compiles the scenario itself: the
+  // saved (tweaked) scenario, or the quick-sim ad-hoc definition already
+  // synthesized above — a run must consume the same definition AND the
+  // same net parameters the render preview compiled with (the ad-hoc
+  // preview overlays the panel's values onto the defaults).
+  const scenarioToCompileRef = useLatest(
+    tweakedScenario
+      ? {
+          scenario: tweakedScenario,
+          netParameters: extensions.parameters
+            ? petriNetDefinition.parameters
+            : [],
+        }
+      : adHocSynthesized?.ok
+        ? {
+            scenario: adHocSynthesized.scenario,
+            netParameters: adHocNetParameters,
           }
-      : null,
+        : null,
   );
 
   const contextValue: SimulationContextValue = {
