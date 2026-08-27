@@ -59,6 +59,7 @@ import type {
   PetrinautAiComposerControlContext,
   PetrinautAiComposerSubmitText,
   PetrinautAiComposerSubmitTextResult,
+  PetrinautAiInteractionMode,
 } from "../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
 
@@ -248,6 +249,8 @@ export const AiAssistantPanel = ({
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
   const [interviewActive, setInterviewActive] = useState(false);
   const [interviewAnswerQueued, setInterviewAnswerQueued] = useState(false);
+  const [interactionMode, setInteractionMode] =
+    useState<PetrinautAiInteractionMode>("chat");
   const queuedInterviewAnswerRef = useRef<QueuedInterviewAnswer | null>(null);
   const submittedInitialMessageRef = useRef<string | null>(null);
 
@@ -949,9 +952,11 @@ export const AiAssistantPanel = ({
       setAiAssistantOpen(true);
       setComposerFocusRequest((request) => request + 1);
     },
+    interactionMode,
     openSidebar: () => setAiAssistantOpen(true),
     placement: isAiAssistantOpen ? "sidebar" : "detached",
     setActive: setInterviewActive,
+    setInteractionMode,
     submitInterviewAnswer,
   });
   /* eslint-enable react-hooks-js/refs */
