@@ -20,7 +20,7 @@ are the point.
 | [Worker sharding](#worker-sharding)                   | Shipped. ~4× on 8 shards, byte-identical results at every shard count.          |
 | [Per-place token capacity](#per-place-token-capacity) | Shipped. Its fixed-size-frame follow-ons are not built.                         |
 | [WebGPU backend](#the-webgpu-backend)                 | Shipped. ~1780× on the SIR net, for a restricted subset of nets.                |
-| [Weighted-arc enumeration](#weighted-arc-enumeration) | **Needed refactor** — quadratic cost on weighted coloured arcs (FE-1526).       |
+| [Weighted-arc enumeration](#weighted-arc-enumeration) | Fixed (FE-1526). Lazy and allocation-free; 305× measured on firing transitions. |
 | [Hot-path fixes](#hot-path-fixes)                     | Open. Estimated 5–15× combined, behaviour-preserving.                           |
 | [Whole-loop codegen](#whole-loop-codegen)             | Proposed. Where the largest single-thread win is.                               |
 | [WASM and native](#wasm-and-native)                   | Proposed. A second codegen backend once whole-loop codegen exists.              |
@@ -127,41 +127,42 @@ The largest cost in the engine does not show on the profile above, because the
 SIR net has no weighted coloured arcs. On nets that do, it dwarfs everything
 else.
 
-:::danger[Needed refactor]
-`enumerateWeightedMarkingIndicesGenerator` is a generator, but it is only lazy
-over the Cartesian product _across_ arcs. Per arc it eagerly materialises the
-full combination list: `indexCombinations(n, k)` backtracks and pushes every
-k-combination into an array before a single one is yielded. A transition with
-a coloured input arc of weight `w` over a place holding `n` tokens therefore
-allocates `C(n, w)` arrays on every evaluation, every frame — and
-`computeTransitionEffect` returns on the first accepted combination, so nearly
-all of it is discarded.
+`enumerateWeightedMarkingIndicesGenerator` was only lazy over the Cartesian
+product _across_ arcs: per arc it eagerly materialised the full combination
+list, so a transition with a coloured input arc of weight `w` over a place
+holding `n` tokens allocated `C(n, w)` arrays on every evaluation, every frame
+— and the engine fires the first accepted combination, so nearly all of it was
+discarded. Measured before the fix, one weight-2 arc, transition never firing:
+13.4 ms per run-frame at 400 tokens (~170 ns per enumerated combination,
+quadratic in the token count); a 1000-run × 1800-frame experiment at that size
+would have taken ~6.7 hours. Weight 3 made it cubic. The general bound for one
+transition is `∏ᵢ C(nᵢ, wᵢ)` over its coloured non-inhibitor input arcs.
 
-Measured, one coloured place, one weight-2 input arc, transition never fires:
+Fixed in
+[FE-1526](https://linear.app/hash/issue/FE-1526/enumerate-weighted-arc-token-combinations-lazily-in-the-engine):
+enumeration is an in-place lexicographic successor per arc under an odometer
+over arcs, allocating nothing per combination and yielding a reused buffer
+(consumers copy on accept — the contract is in the module doc comment). The
+enumeration order is unchanged, which matters twice over: the engine fires the
+first passing combination, so an order change would diverge seeded
+trajectories, and the GPU backend reproduces the same order by unranking.
 
-| Tokens in place | `C(n,2)` | ns / run-frame |
-| --------------- | -------- | -------------- |
-| 10              | 45       | 17 892         |
-| 25              | 300      | 58 276         |
-| 50              | 1 225    | 214 988        |
-| 100             | 4 950    | 870 518        |
-| 200             | 19 900   | 3 318 793      |
-| 400             | 79 800   | **13 406 833** |
+Measured on the same harness (`benchmarks/coloured-enumeration.mjs`), before →
+after:
 
-Clean quadratic, ~170 ns per enumerated combination. At 400 tokens that is
-13.4 ms for one run-frame; a 1000-run × 1800-frame experiment would take ~6.7
-hours. Weight 3 makes it cubic. The general bound for one transition is
-`∏ᵢ C(nᵢ, wᵢ)` over its coloured non-inhibitor input arcs.
+| Tokens | `C(n,2)` | Never fires (all examined)  | Always fires (one examined) |
+| ------ | -------- | --------------------------- | --------------------------- |
+| 50     | 1 225    | 221 µs → 40 µs (5.6×)       | 45 µs → 3.2 µs (14×)        |
+| 100    | 4 950    | 1 002 µs → 159 µs (6.3×)    | 207 µs → 4.7 µs (44×)       |
+| 400    | 79 800   | 13 771 µs → 2 463 µs (5.6×) | 3 858 µs → 12.6 µs (305×)   |
 
-The fix is contained and changes no architecture: iterate combinations without
-materialising them — an in-place lexicographic successor per arc, and an
-odometer over arcs for the cross-arc product. Cost becomes proportional to
-combinations actually _examined_ (often 1 for a firing transition), with no
-allocation per combination. Enumeration order must not change: the engine
-fires the first passing combination, and the GPU backend's pair scan
-reproduces that order by unranking. Tracked in
-[FE-1526](https://linear.app/hash/issue/FE-1526/enumerate-weighted-arc-token-combinations-lazily-in-the-engine).
-:::
+A firing transition's cost is now flat in the token count (the residual growth
+is the firing's own token compaction). A never-firing transition still
+examines every combination — each one's rate must be evaluated — so that case
+keeps its `C(n, w)` lambda evaluations, at ~31 ns each instead of ~170 ns. The
+static enumeration-bound lint
+([FE-948](https://linear.app/hash/issue/FE-948/show-and-kill-combinatorial-explosion))
+remains the guard against nets where even that is too much.
 
 ### Metric aggregation
 
@@ -479,22 +480,21 @@ codegen is what makes WASM worth emitting.
 Ordered by measured value per unit of risk. None require a new toolchain, a
 new ABI, or user-visible change.
 
-| #   | Change                                                                                                                                                      | Expected                                                   |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 1   | Lazy, index-based combination enumeration ([FE-1526](https://linear.app/hash/issue/FE-1526/enumerate-weighted-arc-token-combinations-lazily-in-the-engine)) | up to ~1000× on affected nets; nothing on weight-1 nets    |
-| 2   | Share one compiled `SimulationDefinition` across a shard's runs                                                                                             | removes 80–230 µs/run and improves inlining                |
-| 3   | Skip the frame copy when no place has dynamics; otherwise copy only dynamic places                                                                          | ~20%                                                       |
-| 4   | Replace `Record<PlaceID, …>` removals/additions with dense per-place-index typed arrays                                                                     | ~10% + most GC                                             |
-| 5   | Resolve place/transition indices at build time; delete `getPlaceIndex` from the hot loop                                                                    | ~3%                                                        |
-| 6   | Mutable-in-place metric accumulators + reusable frame cursor                                                                                                | ~30–50% of metric overhead                                 |
-| 7   | Single RNG draw per frame reused across transitions where semantics allow                                                                                   | up to 9% — changes RNG streams, permitted but user-visible |
+| #   | Change                                                                                   | Expected                                                   |
+| --- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 1   | Share one compiled `SimulationDefinition` across a shard's runs                          | removes 80–230 µs/run and improves inlining                |
+| 2   | Skip the frame copy when no place has dynamics; otherwise copy only dynamic places       | ~20%                                                       |
+| 3   | Replace `Record<PlaceID, …>` removals/additions with dense per-place-index typed arrays  | ~10% + most GC                                             |
+| 4   | Resolve place/transition indices at build time; delete `getPlaceIndex` from the hot loop | ~3%                                                        |
+| 5   | Mutable-in-place metric accumulators + reusable frame cursor                             | ~30–50% of metric overhead                                 |
+| 6   | Single RNG draw per frame reused across transitions where semantics allow                | up to 9% — changes RNG streams, permitted but user-visible |
 
-Items 1–6 are behaviour-preserving. Item 7 changes RNG streams — the
+Items 1–5 are behaviour-preserving. Item 6 changes RNG streams — the
 reproducibility decision below permits that across engine versions, but
 existing seeds would produce different (equally valid) trajectories, which is
-a product-visible change. Estimated for items 1–6 combined on a typical
-coloured net: **5–15×** before any threading, **20–60×** combined with
-sharding on 8 cores.
+a product-visible change. Estimated for items 1–5 plus the landed enumeration
+fix, on a typical coloured net: **5–15×** before any threading, **20–60×**
+combined with sharding on 8 cores.
 
 ### Whole-loop codegen
 

@@ -2,9 +2,12 @@
  * Measures how per-frame cost scales with token count for a transition whose
  * coloured input arc has weight 2.
  *
- * `enumerateWeightedMarkingIndicesGenerator` materialises the full per-place
- * combination list up front, so the expectation is O(C(n, 2)) = O(n^2) work and
- * allocation per transition evaluation per frame.
+ * Two cases bound the enumeration cost: a transition that never fires
+ * examines every combination each frame (O(C(n, 2)) lambda evaluations —
+ * irreducible), and a transition that always fires examines one. Lazy
+ * enumeration makes both allocation-free; the eager implementation it
+ * replaced also materialised the full C(n, 2) combination list per
+ * evaluation, which made even the always-fires case quadratic.
  */
 import { performance } from "node:perf_hooks";
 
@@ -64,16 +67,28 @@ const sdcpn = {
   parameters: [],
 };
 
-const artifacts = compileHirArtifacts(sdcpn).artifacts;
+/**
+ * The always-fires variant: a self loop that consumes two pool tokens and
+ * produces two, so the marking size stays constant while the transition fires
+ * on the first combination every frame.
+ */
+const selfLoopSdcpn = {
+  ...sdcpn,
+  transitions: [
+    {
+      ...sdcpn.transitions[0],
+      inputArcs: [{ placeId: "pool", weight: 2, type: "standard" }],
+      outputArcs: [{ placeId: "pool", weight: 2 }],
+      lambdaCode: "export default Lambda(() => true);",
+      transitionKernelCode:
+        "export default TransitionKernel(() => ({ Pool: [{ v: 1 }, { v: 2 }] }));",
+    },
+  ],
+};
 
-process.stdout.write(
-  "coloured place, input arc weight 2, transition never fires\n" +
-    "tokens   C(n,2)      ns/run-frame\n",
-);
-
-for (const tokens of [10, 25, 50, 100, 200, 400]) {
+function measure(net, artifacts, tokens) {
   const simulator = createMonteCarloSimulator({
-    sdcpn,
+    sdcpn: net,
     initialMarking: {
       pool: Array.from({ length: tokens }, (_, index) => ({ v: index })),
       sink: [],
@@ -95,10 +110,26 @@ for (const tokens of [10, 25, 50, 100, 200, 400]) {
   for (const summary of simulator.getSummaries()) {
     frames += summary.frameNumber;
   }
+  return (ms / frames) * 1e6;
+}
 
-  const combinations = (tokens * (tokens - 1)) / 2;
+const cases = [
+  ["transition never fires (examines every combination)", sdcpn],
+  ["transition always fires (examines one combination)", selfLoopSdcpn],
+];
+
+for (const [label, net] of cases) {
+  const artifacts = compileHirArtifacts(net).artifacts;
   process.stdout.write(
-    `${String(tokens).padStart(6)}   ${String(combinations).padStart(7)}   ` +
-      `${((ms / frames) * 1e6).toFixed(0).padStart(12)}\n`,
+    `coloured place, input arc weight 2, ${label}\n` +
+      "tokens   C(n,2)      ns/run-frame\n",
   );
+  for (const tokens of [10, 25, 50, 100, 200, 400]) {
+    const combinations = (tokens * (tokens - 1)) / 2;
+    process.stdout.write(
+      `${String(tokens).padStart(6)}   ${String(combinations).padStart(7)}   ` +
+        `${measure(net, artifacts, tokens).toFixed(0).padStart(12)}\n`,
+    );
+  }
+  process.stdout.write("\n");
 }
