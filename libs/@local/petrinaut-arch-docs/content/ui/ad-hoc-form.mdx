@@ -236,6 +236,12 @@ its tooltip.
 | bare identifier     | a per-place Variable, in its place's rows                                      |
 | `i`, `count`        | per row: position and row count (fixed rows: `i` = list position, `count` = 1) |
 
+A dynamic row's count also reads the place's Variables by bare name: it
+evaluates once, before any row exists, so synthesis inlines the Variables it
+references and rejects — with an error at the count's slot — any whose value
+uses `i` or `count`. The count's LSP document declares the place's Variables
+but not `i`/`count`.
+
 In generated code the compiler's `scenario` object (which carries the
 generated `adhoc_*` values during optimization) is captured as
 `__adhocParams` before the Variables shadow `scenario`, in both the
