@@ -422,8 +422,8 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       if (scenarioToCompile) {
         const scenarioHir = await requestScenarioHir(
           {
-            parameterOverrides: scenarioToCompile.parameterOverrides,
-            initialState: scenarioToCompile.initialState,
+            parameterOverrides: scenarioToCompile.scenario.parameterOverrides,
+            initialState: scenarioToCompile.scenario.initialState,
           },
           // A persisted ad-hoc scenario synthesizes against the net inside
           // the worker; other kinds ignore the context.
@@ -439,9 +439,9 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
           return;
         }
         const outcome = compileScenario(
-          scenarioToCompile,
+          scenarioToCompile.scenario,
           scenarioHir,
-          simulationExtensions.parameters ? sdcpn.parameters : [],
+          scenarioToCompile.netParameters,
           sdcpn.places,
           sdcpn.types,
         );
@@ -749,11 +749,20 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   // Snapshot for `initialize`, which compiles the scenario itself: the
   // saved (tweaked) scenario, or the quick-sim ad-hoc definition already
-  // synthesized above — a run must consume the same definition the render
-  // preview compiled.
+  // synthesized above — a run must consume the same definition AND the
+  // same net parameters the render preview compiled with (the ad-hoc
+  // preview overlays the panel's values onto the defaults).
   const scenarioToCompileRef = useLatest(
-    tweakedScenario ??
-      (adHocSynthesized?.ok ? adHocSynthesized.scenario : null),
+    tweakedScenario
+      ? {
+          scenario: tweakedScenario,
+          netParameters: extensions.parameters
+            ? petriNetDefinition.parameters
+            : [],
+        }
+      : adHocSynthesized?.ok
+        ? { scenario: adHocSynthesized.scenario, netParameters: adHocNetParameters }
+        : null,
   );
 
   const contextValue: SimulationContextValue = {

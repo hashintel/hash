@@ -27,6 +27,33 @@ type LoweringPayload = {
   adHocContext?: AdHocSynthesisContext;
 };
 
+/**
+ * Synthesis reads only a place's id, name, and colour, and only a type's
+ * identity and elements — geometry and dynamics fields must not churn the
+ * key (dragging a node would re-lower otherwise).
+ */
+const projectAdHocContext = (
+  context: AdHocSynthesisContext,
+): AdHocSynthesisContext => ({
+  netParameters: context.netParameters,
+  places: context.places.map((place) => ({
+    id: place.id,
+    name: place.name,
+    colorId: place.colorId,
+    dynamicsEnabled: false,
+    differentialEquationId: null,
+    x: 0,
+    y: 0,
+  })),
+  types: context.types.map((type) => ({
+    id: type.id,
+    name: type.name,
+    iconSlug: type.iconSlug,
+    displayColor: type.displayColor,
+    elements: type.elements,
+  })),
+});
+
 const loweringKey = (
   scenario: Scenario,
   adHocContext: AdHocSynthesisContext | undefined,
@@ -50,7 +77,7 @@ const loweringKey = (
       initialState,
     },
     ...(scenario.initialState.type === "adhoc" && adHocContext
-      ? { adHocContext }
+      ? { adHocContext: projectAdHocContext(adHocContext) }
       : {}),
   } satisfies LoweringPayload);
 };

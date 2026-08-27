@@ -1,5 +1,5 @@
 import { useStore } from "@tanstack/react-form";
-import { use } from "react";
+import { use, useState } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -152,6 +152,9 @@ const ViewAdHocScenarioContent = ({
       .filter((candidate) => candidate.id !== scenario.id)
       .map((candidate) => candidate.name),
   );
+  // A schema rejection after a passing form would otherwise be a silent
+  // no-op click; surface it in the footer instead.
+  const [saveError, setSaveError] = useState<string | null>(null);
   const authoring = useAdHocScenarioAuthoring({
     initial: {
       name: scenario.name,
@@ -168,6 +171,9 @@ const ViewAdHocScenarioContent = ({
     }
     const result = scenarioSchema.safeParse(updated);
     if (!result.success) {
+      setSaveError(
+        result.error.issues[0]?.message ?? "The scenario failed validation.",
+      );
       return;
     }
     updateScenario({
@@ -190,8 +196,8 @@ const ViewAdHocScenarioContent = ({
       <Drawer.Footer
         secondaryActions={
           <DrawerErrorDisplay
-            count={authoring.errorCount}
-            firstMessage={authoring.firstError}
+            count={authoring.errorCount + (saveError ? 1 : 0)}
+            firstMessage={authoring.firstError ?? saveError ?? undefined}
           />
         }
         actions={

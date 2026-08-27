@@ -171,8 +171,8 @@ const LanguageClientOverride = ({
             Promise.resolve(compileHirArtifacts(sdcpn, extensions))),
         // Lower for real (inline instead of in a worker), so scenarios the
         // provider synthesizes — the ad-hoc path — actually compile.
-        requestScenarioHir: (scenario) =>
-          Promise.resolve(lowerScenarioToHir(scenario)),
+        requestScenarioHir: (scenario, adHocContext) =>
+          Promise.resolve(lowerScenarioToHir(scenario, { adHocContext })),
       }}
     >
       {children}
