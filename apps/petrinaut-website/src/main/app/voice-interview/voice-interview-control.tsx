@@ -56,8 +56,10 @@ const getVoiceInterviewDisclosureStorage = (): Storage | null => {
 };
 
 export const isVoiceInterviewDisclosureAcknowledged = (
-  storage: Pick<Storage, "getItem"> | null =
-    getVoiceInterviewDisclosureStorage(),
+  storage: Pick<
+    Storage,
+    "getItem"
+  > | null = getVoiceInterviewDisclosureStorage(),
 ): boolean => {
   try {
     return (
@@ -70,8 +72,10 @@ export const isVoiceInterviewDisclosureAcknowledged = (
 };
 
 export const acknowledgeVoiceInterviewDisclosure = (
-  storage: Pick<Storage, "setItem"> | null =
-    getVoiceInterviewDisclosureStorage(),
+  storage: Pick<
+    Storage,
+    "setItem"
+  > | null = getVoiceInterviewDisclosureStorage(),
 ): void => {
   try {
     storage?.setItem(
@@ -549,7 +553,12 @@ export const VoiceInterviewControlView = ({
                 Talk through your process with AI
               </span>
             </div>
-            <Button size="xs" type="button" variant="ghost" onClick={onTypeInstead}>
+            <Button
+              size="xs"
+              type="button"
+              variant="ghost"
+              onClick={onTypeInstead}
+            >
               Use text
             </Button>
           </header>

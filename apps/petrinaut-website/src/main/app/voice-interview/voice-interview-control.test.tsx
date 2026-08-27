@@ -293,9 +293,7 @@ describe("voice interview stage", () => {
   test("records acknowledgement only when the interview starts", async () => {
     window.localStorage.clear();
     stubUnavailableMicrophone();
-    render(
-      <StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />,
-    );
+    render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
 
     fireEvent.click(
       await screen.findByRole("button", { name: "Start voice interview" }),
@@ -320,9 +318,7 @@ describe("voice interview stage", () => {
         Response.json({ available: true, connectionTimeoutMs: 15_000 }),
       ),
     );
-    render(
-      <StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />,
-    );
+    render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
 
     fireEvent.click(
       await screen.findByRole("button", { name: "Start voice interview" }),
@@ -339,9 +335,7 @@ describe("voice interview stage", () => {
       VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
       "acknowledged",
     );
-    render(
-      <StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />,
-    );
+    render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
 
     fireEvent.click(
       await screen.findByRole("button", { name: "Start voice interview" }),
