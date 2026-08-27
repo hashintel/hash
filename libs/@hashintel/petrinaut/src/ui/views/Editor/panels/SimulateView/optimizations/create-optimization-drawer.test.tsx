@@ -41,6 +41,7 @@ import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-cont
 import type { OptimizationParameterDraft } from "./optimization-parameter-row";
 import type {
   AdHocScenarioState,
+  LowerOptimizationConstraintResult,
   Metric,
   PetrinautOptimizationInput,
   Scenario,
@@ -282,11 +283,28 @@ function makeSuccessfulLanguageClient(): LanguageClientContextValue {
     ),
     requestHover: vi.fn(() => Promise.resolve(null)),
     requestSignatureHelp: vi.fn(() => Promise.resolve(null)),
-    requestConstraintHir: vi.fn(() =>
+    requestConstraintHir: vi.fn((_code: string, space: string) =>
       Promise.resolve({
-        ok: false as const,
-        diagnostics: [],
-      }),
+        ok: true,
+        hir: {
+          hirVersion: 1,
+          surface:
+            space === "parameterSpace" ? "scenario-expression" : "metric",
+          params: [
+            {
+              name: space === "parameterSpace" ? "scenario" : "state",
+              span: { start: 0, length: 0 },
+            },
+          ],
+          body: {
+            kind: "boolLit",
+            id: 0,
+            span: { start: 0, length: 0 },
+            value: true,
+          },
+          span: { start: 0, length: 0 },
+        },
+      } as LowerOptimizationConstraintResult),
     ),
     requestScenarioHir: vi.fn(() =>
       Promise.resolve({
@@ -516,6 +534,48 @@ describe("CreateOptimizationDrawer", () => {
       dt: 0.1,
       maxTime: 180,
     });
+  });
+
+  it("lowers authored constraints and embeds them in the manifest", async () => {
+    const languageClient = makeSuccessfulLanguageClient();
+    const createOptimization = vi.fn(
+      async (_input: PetrinautOptimizationInput) => "optimization-constrained",
+    );
+    const savedMetric = sirSdcpnContextValue.petriNetDefinition.metrics?.[0];
+    openConfiguration({ createOptimization, languageClient });
+
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: { value: `${MODEL_METRIC_VALUE_PREFIX}${savedMetric!.id}` },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Optimize infected_ratio" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Maximize" }));
+
+    // Author one parameter constraint.
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add parameter constraint" }),
+    );
+    fireEvent.change(screen.getByRole("textbox", { name: "Metric code" }), {
+      target: { value: "scenario.infected_ratio < 0.9" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Run/ }));
+    await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
+
+    expect(
+      vi.mocked(languageClient.requestConstraintHir).mock.calls[0]?.slice(0, 2),
+    ).toEqual(["scenario.infected_ratio < 0.9", "parameterSpace"]);
+    const submittedInput = createOptimization.mock.calls[0]![0];
+    expect(submittedInput.constraints?.parameterSpace).toHaveLength(1);
+    expect(submittedInput.constraints?.parameterSpace[0]).toMatchObject({
+      code: "scenario.infected_ratio < 0.9",
+      hir: { surface: "scenario-expression" },
+    });
+    expect(submittedInput.constraints?.stateSpace).toEqual([]);
   });
 
   it("submits a transient custom metric without persisting it", async () => {
