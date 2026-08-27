@@ -36,6 +36,15 @@ const run = (command, args, options = {}) =>
     });
   });
 
+const isOptimizerHealthy = async () => {
+  try {
+    const response = await fetch(`${optimizerOrigin}/status`);
+    return response.ok;
+  } catch {
+    return false;
+  }
+};
+
 const waitForOptimizer = async () => {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     try {
@@ -65,37 +74,43 @@ const stopContainer = async () => {
 };
 
 try {
-  await run("docker", ["info"], { stdio: "ignore" }).catch(() => {
-    throw new Error(
-      "Docker is not running. Start Docker Desktop and run the command again.",
-    );
-  });
+  // An optimizer already serving on the port (e.g. the compose stack's) is
+  // reused as-is; starting a second container would fail on the port bind.
+  if (await isOptimizerHealthy()) {
+    console.log(`Reusing the optimizer already serving on ${optimizerOrigin}.`);
+  } else {
+    await run("docker", ["info"], { stdio: "ignore" }).catch(() => {
+      throw new Error(
+        "Docker is not running. Start Docker Desktop and run the command again.",
+      );
+    });
 
-  console.log("Building Petrinaut Opt...");
-  await run("docker", [
-    "build",
-    "--file",
-    "apps/petrinaut-opt/docker/Dockerfile",
-    "--tag",
-    image,
-    ".",
-  ]);
+    console.log("Building Petrinaut Opt...");
+    await run("docker", [
+      "build",
+      "--file",
+      "apps/petrinaut-opt/docker/Dockerfile",
+      "--tag",
+      image,
+      ".",
+    ]);
 
-  console.log("Starting Petrinaut Opt on http://127.0.0.1:4004...");
-  await run("docker", [
-    "run",
-    "--detach",
-    "--init",
-    "--read-only",
-    "--rm",
-    "--name",
-    container,
-    "--publish",
-    "127.0.0.1:4004:4004",
-    image,
-  ]);
-  containerStarted = true;
-  await waitForOptimizer();
+    console.log("Starting Petrinaut Opt on http://127.0.0.1:4004...");
+    await run("docker", [
+      "run",
+      "--detach",
+      "--init",
+      "--read-only",
+      "--rm",
+      "--name",
+      container,
+      "--publish",
+      "127.0.0.1:4004:4004",
+      image,
+    ]);
+    containerStarted = true;
+    await waitForOptimizer();
+  }
 
   console.log("Building Petrinaut for the demo website...");
   await run("turbo", ["build", "--filter", "@hashintel/petrinaut"]);
