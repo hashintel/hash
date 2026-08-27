@@ -4040,6 +4040,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "hash-middleware"
+version = "0.0.0"
+dependencies = [
+ "simple-mermaid",
+]
+
+[[package]]
 name = "hash-repo-chores"
 version = "0.0.0"
 dependencies = [

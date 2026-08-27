@@ -15067,6 +15067,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hash-middleware@workspace:libs/@local/middleware":
+  version: 0.0.0-use.local
+  resolution: "@rust/hash-middleware@workspace:libs/@local/middleware"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hash-repo-chores@workspace:*, @rust/hash-repo-chores@workspace:libs/@local/repo-chores/rust":
   version: 0.0.0-use.local
   resolution: "@rust/hash-repo-chores@workspace:libs/@local/repo-chores/rust"
