@@ -4,9 +4,9 @@ Scratchpad, not a mission. [`MISSION.md`](MISSION.md) remains execution authorit
 implement from this file. Clusters are ordered; they are not a second concurrent mission.
 When a focus is cut into a new `MISSION.md`, leave everything that did not make the cut here.
 
-Capture (live Mission 2) and the runbook/IR path below are **independent**. Whether they
-converge, and if so where, when, and in what form, is an open later question. Do not wire them
-in order to tidy the list.
+Capture (archived Mission 2) and the live runbook/IR path (Mission 3) are **independent**.
+Whether they converge, and if so where, when, and in what form, is an open later question. Do
+not wire them in order to tidy the list.
 
 ## Host trunk
 
@@ -31,23 +31,9 @@ stolen vs configured `/api/chat` on that stack. Brunch owns no provider audio.
 
 ## Elicitation ladder
 
-After Mission 2's pipe. Order is the reintegration sequence: prompting experiment, then typed
-map plus canvas I/O, then capture improvement. Watch for the strain threshold (condition 5:
-typed mapping, in-loop LLM judgment, ~2 min question turns).
-
-### Runbook, template, headless drive, off-canvas PN
-
-Comprehensive runbook + IR template (system prompt, skill body, supporting file — placement is
-fog; bundling in the skill is allowed). Iterate teaching without the GUI: restore the JS-API
-loop (`createFlueClient` → `send` → `wait` → `history()`). Condition 5's runner is broken on
-this app (deleted elicitor imports); restore the drive pattern, not a TUI.
-
-Generate a Petri net from the filled template **without** canvas mutation tools: structured but
-not strictly typed IR; inference to PN JSON; petrinaut validate; manual load into the app is
-enough. That scores whether the template contains enough to draw a net.
-
-Template fill is not a sweep. Sweep means capture-store apply. Do not join this path to Mission
-2's ledger unless a later cut says so.
+Mission 3 holds the prompting experiment (runbook, template, headless drive, off-canvas PN).
+Remaining order after that: typed map plus canvas I/O, then capture improvement. Watch for the
+strain threshold (condition 5: typed mapping, in-loop LLM judgment, ~2 min question turns).
 
 ### Typed map and Petrinaut read/write
 
