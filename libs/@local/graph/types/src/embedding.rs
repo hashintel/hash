@@ -44,6 +44,11 @@ impl Embedding<'_> {
             Cow::Owned(ref vec) => Embedding(Cow::Owned(vec.clone())),
         }
     }
+
+    #[must_use]
+    pub fn into_vec(self) -> Vec<f32> {
+        self.0.into_owned()
+    }
 }
 
 impl FromIterator<f32> for Embedding<'_> {
