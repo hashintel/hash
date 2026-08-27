@@ -305,7 +305,9 @@ export class VoiceTurnController {
       ) {
         return;
       }
-      this.#update({ phase: "waiting" });
+      if (this.#snapshot.phase === "delivering") {
+        this.#update({ phase: "waiting" });
+      }
       this.#settleListeningIfReady();
     } catch {
       if (generation !== this.#generation) {

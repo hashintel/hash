@@ -810,6 +810,53 @@ describe("VoiceTurnController", () => {
     );
   });
 
+  test("does not overwrite a speech failure when delivery resolves later", async () => {
+    const harness = createHarness();
+    let finishDelivery: (() => void) | undefined;
+    const delivery = new Promise<{ kind: "message" }>((resolve) => {
+      finishDelivery = () => resolve({ kind: "message" });
+    });
+    harness.submitText.mockImplementationOnce(() => delivery);
+    harness.playback.play.mockRejectedValueOnce(
+      new Error(
+        "The response could not be spoken. Read the visible text instead.",
+      ),
+    );
+    await harness.controller.start();
+    harness.emit({
+      key: key(1, "answer"),
+      text: "A finalized answer",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+    harness.controller.updateChat({
+      canonicalSegments: [],
+      status: "streaming",
+    });
+    harness.controller.updateChat({
+      canonicalSegments: [
+        canonicalSegment("canonical-speech:failed:text%3A0:fnv1a32:12345678"),
+      ],
+      status: "ready",
+    });
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().phase).toBe("recoverable-error"),
+    );
+
+    finishDelivery?.();
+    await delivery;
+    await Promise.resolve();
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      errorMessage:
+        "The response could not be spoken. Read the visible text instead.",
+      phase: "recoverable-error",
+    });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+  });
+
   test("cancels speech synchronously and rejects stale playback events when voice ends", async () => {
     const harness = createHarness();
     let playbackEvents: { onPlaying?: () => void } | undefined;
