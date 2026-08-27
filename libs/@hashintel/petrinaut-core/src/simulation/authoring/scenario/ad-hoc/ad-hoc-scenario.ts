@@ -1,9 +1,11 @@
 /**
  * @layerRoot core.simulation.authoring.adhoc
- * @role The ad-hoc scenario model: serializable form state, pure edit actions, and synthesis to a generated, never-persisted scenario
+ * @role The ad-hoc scenario model: serializable form state, pure edit actions, and synthesis to a generated scenario
  *
  * Ad-hoc scenarios: an inline initial-state + parameters definition compiled
- * into a `Scenario` value at run time and never persisted into the net file.
+ * into a `Scenario` value at run time. The definition itself may persist on
+ * a saved scenario (`initialState.type: "adhoc"`); the synthesized scenario
+ * never persists.
  *
  * Three shapes cross this module, in pipeline order:
  *
@@ -47,6 +49,11 @@ import type {
   PetrinautOptimizationDomain,
 } from "../../../../optimization";
 import type {
+  AdHocColouredPlace,
+  AdHocOptimizeSettings,
+  AdHocRow,
+  AdHocScenarioState,
+  AdHocValue,
   Color,
   Parameter,
   Place,
@@ -55,99 +62,22 @@ import type {
 } from "../../../../types/sdcpn";
 
 // -- Form state ---------------------------------------------------------------
+//
+// The state shapes live in `types/sdcpn` — a persisted scenario may carry an
+// ad-hoc definition, which makes them document types. They are re-exported
+// here so the ad-hoc modules stay the one import surface for the feature.
 
-/** Optimization settings for one Optimize toggle, kept while toggled off. */
-export interface AdHocOptimizeSettings {
-  /** Lower bound; an expression that must resolve to a constant. */
-  min: string;
-  /** Upper bound; an expression that must resolve to a constant. */
-  max: string;
-  scale: "linear" | "log";
-  /** Integer domains only; an expression resolving to a positive integer. */
-  step?: string;
-}
-
-/**
- * One value-carrying slot. `expression` is always kept, so toggling Optimize
- * on and off never destroys what the user typed.
- */
-export interface AdHocValue {
-  expression: string;
-  /** Non-null while the Optimize toggle is on. */
-  optimize: AdHocOptimizeSettings | null;
-  /**
-   * The settings from the last time Optimize was on, kept while it is off so
-   * toggling it back restores the previous bounds. Ignored by synthesis.
-   */
-  retainedOptimize?: AdHocOptimizeSettings;
-}
-
-export interface AdHocVariable extends AdHocValue {
-  /**
-   * A bare JavaScript identifier. Top-level Variables are referenced as
-   * `scenario.<name>`; per-place Variables by the bare name.
-   */
-  name: string;
-  type: "real" | "integer" | "boolean";
-}
-
-/**
- * One spreadsheet row. A fixed row emits one token. A dynamic ("template")
- * row emits its count's worth of tokens, the cells evaluated once per `i`;
- * the count may itself be optimized. The kinds mix freely within a place and
- * cycle from the row gutter: Fixed → Dynamic → count-Optimized → Fixed.
- */
-export type AdHocRow =
-  | {
-      kind: "fixed";
-      cells: AdHocValue[];
-      /** The count from the row's last dynamic stint, restored on cycling. */
-      retainedCount?: AdHocValue;
-    }
-  | { kind: "template"; count: AdHocValue; cells: AdHocValue[] };
-
-export interface AdHocColouredPlace {
-  kind: "coloured";
-  variables: AdHocVariable[];
-  rows: AdHocRow[];
-  /**
-   * Shared column values, keyed by colour element name. A shared column's
-   * value supersedes every cell in that column: the cells' own states are
-   * kept (so un-sharing restores them exactly) but not evaluated and not
-   * emitted as parameters while the share is in place.
-   */
-  sharedColumns: Record<string, AdHocValue>;
-  /**
-   * Shared values from columns that were un-shared, kept so re-sharing
-   * restores the most recent shared value. Ignored by synthesis.
-   */
-  retainedSharedColumns?: Record<string, AdHocValue>;
-}
-
-export interface AdHocUncolouredPlace {
-  kind: "uncoloured";
-  /** Token count for the place. */
-  count: AdHocValue;
-}
-
-export type AdHocPlaceState = AdHocColouredPlace | AdHocUncolouredPlace;
-
-export interface AdHocNetParameter extends AdHocValue {
-  /** `Parameter.id` of the net parameter this entry overrides. */
-  parameterId: string;
-}
-
-export interface AdHocScenarioState {
-  /**
-   * Top-level Variables, referenced as `scenario.<name>`; they stand in for
-   * scenario parameters in this form.
-   */
-  variables: AdHocVariable[];
-  /** Overrides for net parameters; empty expression keeps the default. */
-  netParameters: AdHocNetParameter[];
-  /** Keyed by `Place.id`; places absent here keep an empty initial state. */
-  places: Record<string, AdHocPlaceState>;
-}
+export type {
+  AdHocColouredPlace,
+  AdHocNetParameter,
+  AdHocOptimizeSettings,
+  AdHocPlaceState,
+  AdHocRow,
+  AdHocScenarioState,
+  AdHocUncolouredPlace,
+  AdHocValue,
+  AdHocVariable,
+} from "../../../../types/sdcpn";
 
 /** Everything from the net that synthesis resolves names and types against. */
 export interface AdHocSynthesisContext {
@@ -1384,6 +1314,105 @@ function resolveOptimized(
   return { scenarioParameters, optimizedFields };
 }
 
+/**
+ * The parameter identifier an exposed Variable maps to. Scenario parameter
+ * identifiers are snake_case by convention (and by schema), while Variable
+ * names are arbitrary JS identifiers, so the mapping snakifies:
+ * `basePressure` → `base_pressure`. A name that cannot map (or that
+ * collides with another exposed Variable's mapping) is a synthesis error.
+ */
+export const adHocExposedParameterIdentifier = (name: string): string =>
+  name
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replaceAll("$", "_")
+    .toLowerCase()
+    .replace(/^_+/, "");
+
+const SNAKE_CASE_IDENTIFIER = /^[a-z][a-z0-9_]*$/;
+
+/**
+ * The scenario parameters for the exposed Variables: one per exposed
+ * top-level Variable, named after it (snakified), defaulting to its
+ * expression's value. The expression must resolve to a constant — a
+ * parameter's default is a plain number. A Variable an optimization
+ * synthesis resolves as optimized is skipped: Optimize wins, and its
+ * generated parameter already carries the value.
+ */
+function resolveExposed(
+  plan: SynthesisPlan,
+  state: AdHocScenarioState,
+  context: AdHocSynthesisContext,
+  includeOptimize: boolean,
+): ScenarioParameter[] {
+  const scenarioParameters: ScenarioParameter[] = [];
+  const parameterDefaults = netParameterDefaults(context);
+  const constants = constantVariables(state);
+
+  const takenIdentifiers = new Set<string>();
+  for (const [index, variable] of state.variables.entries()) {
+    if (!variable.exposed || (includeOptimize && variable.optimize)) {
+      continue;
+    }
+    const target: AdHocValueTarget = { kind: "variable", placeId: null, index };
+    const identifier = adHocExposedParameterIdentifier(variable.name);
+    if (!SNAKE_CASE_IDENTIFIER.test(identifier)) {
+      plan.errors.push({
+        source: "variable",
+        itemId: variable.name,
+        slot: { target, part: "name" },
+        message: `Variable "${variable.name}" cannot be exposed: its name does not map to a snake_case parameter identifier. Rename it.`,
+      });
+      continue;
+    }
+    if (takenIdentifiers.has(identifier)) {
+      plan.errors.push({
+        source: "variable",
+        itemId: variable.name,
+        slot: { target, part: "name" },
+        message: `Variable "${variable.name}" cannot be exposed: another exposed Variable already maps to the parameter identifier "${identifier}".`,
+      });
+      continue;
+    }
+    takenIdentifiers.add(identifier);
+    let defaultValue: number;
+    try {
+      const value = evaluateConstant(
+        variable.expression,
+        parameterDefaults,
+        constants,
+      );
+      if (typeof value === "boolean") {
+        defaultValue = value ? 1 : 0;
+      } else if (typeof value === "number" && Number.isFinite(value)) {
+        defaultValue = variable.type === "integer" ? Math.round(value) : value;
+      } else {
+        plan.errors.push({
+          source: "variable",
+          itemId: variable.name,
+          slot: { target, part: "expression" },
+          message: `Variable "${variable.name}" is exposed as a scenario parameter, but its expression evaluated to ${String(value)}, expected a finite number.`,
+        });
+        continue;
+      }
+    } catch (error) {
+      plan.errors.push({
+        source: "variable",
+        itemId: variable.name,
+        slot: { target, part: "expression" },
+        message: `Variable "${variable.name}" is exposed as a scenario parameter, so its expression must resolve to a constant: ${error instanceof Error ? error.message : String(error)}`,
+      });
+      continue;
+    }
+    scenarioParameters.push({
+      type: variable.type,
+      identifier,
+      default: defaultValue,
+    });
+  }
+
+  return scenarioParameters;
+}
+
 // -- Code generation --------------------------------------------------------------
 //
 // Inside generated initial-state code, `scenario` is rebound to the ad-hoc
@@ -1418,12 +1447,17 @@ function variableAssignments(
   reference: (parameterName: string) => string,
 ): string[] {
   return state.variables.map((variable) => {
-    const source = valueSource(
-      variable,
-      adHocParameterName.variable(AD_HOC_TOP_LEVEL_SCOPE, variable.name),
-      includeOptimize,
-      reference,
-    );
+    // Source precedence: an optimized Variable reads its generated
+    // parameter, an exposed one reads the scenario parameter named after
+    // it, and a plain one is its expression inlined.
+    const source =
+      includeOptimize && variable.optimize
+        ? reference(
+            adHocParameterName.variable(AD_HOC_TOP_LEVEL_SCOPE, variable.name),
+          )
+        : variable.exposed
+          ? reference(adHocExposedParameterIdentifier(variable.name))
+          : `(${variable.expression})`;
     return `__adhocVars[${JSON.stringify(variable.name)}] = ${source};`;
   });
 }
@@ -1596,9 +1630,17 @@ function synthesize(
   | { ok: true; output: AdHocSynthesisOutput }
   | { ok: false; errors: AdHocSynthesisError[] } {
   const plan = collectPlan(state, context, includeOptimize);
-  const { scenarioParameters, optimizedFields } = includeOptimize
-    ? resolveOptimized(plan, state, context)
-    : { scenarioParameters: [], optimizedFields: [] };
+  const exposedParameters = resolveExposed(
+    plan,
+    state,
+    context,
+    includeOptimize,
+  );
+  const { scenarioParameters: optimizedParameters, optimizedFields } =
+    includeOptimize
+      ? resolveOptimized(plan, state, context)
+      : { scenarioParameters: [], optimizedFields: [] };
+  const scenarioParameters = [...exposedParameters, ...optimizedParameters];
 
   if (plan.errors.length > 0) {
     return { ok: false, errors: plan.errors };

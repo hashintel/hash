@@ -111,6 +111,15 @@ export const adHocActionInputSchemas = {
       variableType: variableTypeSchema,
     })
     .meta({ description: "Set a Variable's declared type." }),
+  setVariableExposed: z
+    .strictObject({
+      index: indexSchema,
+      exposed: z.boolean(),
+    })
+    .meta({
+      description:
+        "Expose a top-level Variable as a scenario parameter, or withdraw it. The synthesized scenario declares a parameter named after the Variable, defaulting to its (constant) expression.",
+    }),
   deleteVariable: z
     .strictObject({ placeId: placeIdSchema.nullable(), index: indexSchema })
     .meta({ description: "Delete a Variable." }),
@@ -329,6 +338,43 @@ const cloneRow = (row: AdHocRow): AdHocRow =>
           ? { retainedCount: cloneValue(row.retainedCount) }
           : {}),
       };
+
+const cloneValueRecord = (
+  record: Record<string, AdHocValue>,
+): Record<string, AdHocValue> =>
+  Object.fromEntries(
+    Object.entries(record).map(([key, value]) => [key, cloneValue(value)]),
+  );
+
+/** A deep copy of an ad-hoc definition (plain JSON data throughout). */
+export function cloneAdHocScenarioState(
+  state: AdHocScenarioState,
+): AdHocScenarioState {
+  return {
+    variables: state.variables.map(cloneValue),
+    netParameters: state.netParameters.map(cloneValue),
+    places: Object.fromEntries(
+      Object.entries(state.places).map(([placeId, place]) => [
+        placeId,
+        place.kind === "uncoloured"
+          ? { ...place, count: cloneValue(place.count) }
+          : {
+              ...place,
+              variables: place.variables.map(cloneValue),
+              rows: place.rows.map(cloneRow),
+              sharedColumns: cloneValueRecord(place.sharedColumns),
+              ...(place.retainedSharedColumns
+                ? {
+                    retainedSharedColumns: cloneValueRecord(
+                      place.retainedSharedColumns,
+                    ),
+                  }
+                : {}),
+            },
+      ]),
+    ),
+  };
+}
 
 /** `name` unchanged if free, else `name2`, `name3`, … */
 const dedupedName = (
@@ -783,6 +829,16 @@ export function applyAdHocAction(
           ? replaceAt(variables, action.index, {
               ...variable,
               type: action.variableType,
+            })
+          : variables;
+      });
+    case "setVariableExposed":
+      return updateVariableList(state, context, null, (variables) => {
+        const variable = variables[action.index];
+        return variable && (variable.exposed ?? false) !== action.exposed
+          ? replaceAt(variables, action.index, {
+              ...variable,
+              exposed: action.exposed,
             })
           : variables;
       });

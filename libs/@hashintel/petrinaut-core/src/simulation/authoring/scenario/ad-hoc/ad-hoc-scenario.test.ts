@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { scenarioSchema } from "../../../../schemas/scenario-schema";
 import { compileScenario } from "../compile-scenario";
 import {
   adHocOptimizationBindings,
@@ -971,5 +972,135 @@ describe("adHocPlaceKey", () => {
     expect(adHocParameterName.column("Queue", "size")).toBe(
       "adhoc.Queue.col.size",
     );
+  });
+});
+
+describe("exposed variables", () => {
+  it("emits a scenario parameter the run can override", () => {
+    const state = baseState();
+    state.variables = [{ ...state.variables[0]!, exposed: true }];
+    const outcome = synthesizeAdHocScenario(state, context);
+    expect(scenarioOf(outcome).scenarioParameters).toEqual([
+      { type: "real", identifier: "base_pressure", default: 3 },
+    ]);
+    const byDefault = compiled(outcome);
+    expect(byDefault.initialState["place-pumps"]).toEqual([
+      { pressure: 3, worn: false },
+      { pressure: 4, worn: true },
+    ]);
+    const overridden = compiled(outcome, { base_pressure: 10 });
+    expect(overridden.initialState["place-pumps"]).toEqual([
+      { pressure: 10, worn: false },
+      { pressure: 11, worn: true },
+    ]);
+  });
+
+  it("requires a constant expression", () => {
+    const state = baseState();
+    state.variables = [
+      {
+        name: "basePressure",
+        type: "real",
+        expression: "wear + 1",
+        optimize: null,
+        exposed: true,
+      },
+    ];
+    const outcome = synthesizeAdHocScenario(state, context);
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.errors[0]?.message).toContain("must resolve to a constant");
+  });
+
+  it("optimize wins over exposed in an optimization synthesis", () => {
+    const state = baseState();
+    state.variables = [
+      {
+        ...state.variables[0]!,
+        exposed: true,
+        optimize: { min: "0", max: "10", scale: "linear" },
+      },
+    ];
+    const optimization = synthesizeAdHocOptimization(state, context);
+    if (!optimization.ok) {
+      throw new Error(JSON.stringify(optimization.errors));
+    }
+    expect(
+      optimization.output.scenario.scenarioParameters.map(
+        (parameter) => parameter.identifier,
+      ),
+    ).toEqual(["adhoc.var.net.basePressure"]);
+    const plain = synthesizeAdHocScenario(state, context);
+    expect(
+      scenarioOf(plain).scenarioParameters.map(
+        (parameter) => parameter.identifier,
+      ),
+    ).toEqual(["base_pressure"]);
+  });
+});
+
+describe("persisted ad-hoc scenarios", () => {
+  const persistedFrom = (state: AdHocScenarioState): Scenario => {
+    const synthesized = synthesizeAdHocScenario(state, context);
+    if (!synthesized.ok) {
+      throw new Error(JSON.stringify(synthesized.errors));
+    }
+    return {
+      id: "scenario-adhoc",
+      name: "Persisted ad-hoc",
+      scenarioParameters: synthesized.scenario.scenarioParameters,
+      parameterOverrides: synthesized.scenario.parameterOverrides,
+      initialState: { type: "adhoc", content: state },
+    };
+  };
+
+  it("round-trips the schema and compiles through synthesis", () => {
+    const state = baseState();
+    state.variables = [{ ...state.variables[0]!, exposed: true }];
+    const persisted = persistedFrom(state);
+    expect(scenarioSchema.safeParse(persisted).success).toBe(true);
+
+    const result = compileScenario(
+      persisted,
+      context.netParameters,
+      context.places,
+      context.types,
+      { scenarioParameterValues: { base_pressure: 7 } },
+    );
+    if (!result.ok) {
+      throw new Error(JSON.stringify(result.errors));
+    }
+    expect(result.result.initialState["place-pumps"]).toEqual([
+      { pressure: 7, worn: false },
+      { pressure: 8, worn: true },
+    ]);
+  });
+
+  it("surfaces synthesis failures as initialState compilation errors", () => {
+    const state = baseState();
+    state.variables = [
+      state.variables[0]!,
+      { ...state.variables[0]! }, // duplicate name
+    ];
+    const result = compileScenario(
+      {
+        id: "scenario-broken",
+        name: "Broken",
+        scenarioParameters: [],
+        parameterOverrides: {},
+        initialState: { type: "adhoc", content: state },
+      },
+      context.netParameters,
+      context.places,
+      context.types,
+    );
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.errors[0]?.source).toBe("initialState");
+    expect(result.errors[0]?.message).toContain("declared twice");
   });
 });

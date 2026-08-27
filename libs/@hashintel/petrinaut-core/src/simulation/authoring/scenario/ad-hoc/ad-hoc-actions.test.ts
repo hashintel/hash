@@ -615,6 +615,28 @@ describe("variable actions", () => {
     expect(pumps(withTopLevelClash).variables[1]!.name).toBe("wear3");
   });
 
+  it("exposes and withdraws a top-level variable, identity on no-ops", () => {
+    const exposed = apply(baseState(), {
+      type: "setVariableExposed",
+      index: 0,
+      exposed: true,
+    });
+    expect(exposed.variables[0]!.exposed).toBe(true);
+    expect(
+      apply(exposed, { type: "setVariableExposed", index: 0, exposed: true }),
+    ).toBe(exposed);
+    const withdrawn = apply(exposed, {
+      type: "setVariableExposed",
+      index: 0,
+      exposed: false,
+    });
+    expect(withdrawn.variables[0]!.exposed).toBe(false);
+    const before = baseState();
+    expect(
+      apply(before, { type: "setVariableExposed", index: 9, exposed: true }),
+    ).toBe(before);
+  });
+
   it("sets types, deletes, and duplicates with a deduplicated name", () => {
     const typed = apply(baseState(), {
       type: "setVariableType",

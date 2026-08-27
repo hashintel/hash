@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { adHocScenarioStateSchema } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-state-schema";
 import { displayNameSchema } from "../validation/display-name";
 import { isDangerousRecordKey } from "../validation/record-keys";
 import { idSchema } from "./entity-schemas";
@@ -85,10 +86,19 @@ const initialStateSchema = z
         description:
           "Initial state specified by code. Use only when per_place expressions cannot express the setup (e.g. constructing many coloured tokens from a scenario parameter).",
       }),
+    z
+      .strictObject({
+        type: z.literal("adhoc"),
+        content: adHocScenarioStateSchema,
+      })
+      .meta({
+        description:
+          "Initial state authored with the in-app ad-hoc form. The scenario's scenarioParameters (from exposed Variables) and parameterOverrides are derived from this state on save; compilation synthesizes it to code. Do not author this variant programmatically — prefer per_place or code.",
+      }),
   ])
   .meta({
     description:
-      'Initial token state for a scenario. Prefer type "per_place" (content keyed by place ID); use type "code" (content keyed by place NAME) only for advanced custom setup.',
+      'Initial token state for a scenario. Prefer type "per_place" (content keyed by place ID); use type "code" (content keyed by place NAME) only for advanced custom setup. Type "adhoc" is authored by the in-app form.',
   });
 
 export const scenarioSchema = z
