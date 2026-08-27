@@ -206,19 +206,19 @@ describe("dependency direction (spec §4, §12.2)", () => {
     }
   });
 
-  test("transports consume harness parts and their wire encoder only", () => {
+  test("transports consume their wire encoder only — never core, a binding, or Flue", () => {
     const transports = byRole("transport");
     expect(transports.length).toBeGreaterThan(0);
     for (const transport of transports) {
       expect(runtimeDependencies(transport).sort()).toEqual(
-        [CORE, "ai", "valibot"].sort(),
+        ["ai", "valibot"].sort(),
       );
       for (const file of sourceFiles(transport).filter((file) =>
         file.path.startsWith(join(transport.path, "src")),
       )) {
         for (const specifier of importedPackages(file)) {
           if (specifier.startsWith("node:")) continue;
-          expect([CORE, "ai", "valibot"]).toContain(packageOf(specifier));
+          expect(["ai", "valibot"]).toContain(packageOf(specifier));
         }
       }
     }
@@ -486,16 +486,10 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
    * path enters here by review only.
    */
   const SUBSTRATE_INTEGRATION_ENTRY_POINTS: Readonly<Record<string, string>> = {
-    "apps/brunch-agent/test/fixtures/baseline-harness-interviewer.ts":
-      "A pi-ai faux provider whose scripted responses stand in for the interviewer model when baseline-harness.test.ts runs the condition-5 evaluation runner as a child process; it exports the provider and decides each response from the model-visible context — no provider key, no socket, no model call.",
-    "apps/brunch-agent/test/petrinaut-ask.integration.ts":
-      "Boots the real Gherkin elicitor on Flue's node runtime with pi-ai's faux provider and drives the committed application route over app.fetch through a full ask suspend/return/resume cycle plus a refused duplicate — no provider key, no socket, no external checkout mutation.",
     "apps/brunch-agent/test/petrinaut-chat.integration.ts":
-      "Boots the real Gherkin elicitor on Flue's node runtime with pi-ai's faux provider, drives the committed application AI SDK route over app.fetch, and proves live reasoning/text plus inspection events without a provider key, socket, or external checkout mutation.",
+      "Boots the plain Flue chat agent on Flue's node runtime with pi-ai's faux provider, drives the committed /api/chat door over app.fetch, and proves streamed reasoning/text, one server tool, one read-only client-tool resume, GET history ownership, and SQLite restart — no provider key, no socket, no model call. Run as a child process by petrinaut-chat.test.ts.",
     "apps/brunch-agent/test/turn-timing.test.ts":
       "Types recorded Flue observations and model requests so the condition-5 purpose splitter can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
-    "apps/brunch-agent/test/walking-skeleton.integration.ts":
-      "Boots the dev app on Flue's node runtime with pi-ai's faux provider and drives it over app.fetch — no provider key, no socket, no model call. Run as a child process by walking-skeleton.test.ts, which is what makes the node runtime drivable from this suite at all.",
   };
 
   test("no test file carries a live model credential", () => {

@@ -1,10 +1,9 @@
 /**
- * The dev app's route map — the "mount" half of the thin host (spec §12.1).
+ * The app's route map — one plain Flue chat agent plus Petrinaut's /api/chat door.
  *
- * The dev app is chartered with three roles, none of them "the product"
- * (spec §12.5): the local dev loop against every plugin, the colleague-facing
- * target-gallery demo, and the diagnostic probe surface. Milestone one keeps
- * affordance renderers here rather than in a ui package.
+ * `/api/chat` requires `x-brunch-principal` and hashes principal + conversation
+ * id into the Flue instance id, so `/agents/chat/:id` is unguessable without
+ * both. The stock Flue UI at `/` uses a random UUID on the same router.
  */
 
 import { readFile } from "node:fs/promises";
@@ -14,45 +13,21 @@ import { instrument } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
-import { GherkinElicitor } from "./agents/gherkin-elicitor.ts";
-import { SdcpnElicitor } from "./agents/sdcpn-elicitor.ts";
+import { ChatAgent } from "./agents/chat-agent.ts";
 import { assetHandler } from "./assets.ts";
 import { petrinautChatHandler } from "./petrinaut-chat.ts";
-import {
-  GHERKIN_AGENT_ROUTE,
-  PETRINAUT_CHAT_ROUTE,
-  SDCPN_AGENT_ROUTE,
-} from "./routes.ts";
+import { CHAT_AGENT_ROUTE, PETRINAUT_CHAT_ROUTE } from "./routes.ts";
 
 instrument(createOpenTelemetryInstrumentation({ content: false }));
 
 const app = new Hono();
 
-// One route per target agent. The gallery grows an entry per plugin; gherkin
-// is the tracer that wires end-to-end first (spec §13). The browser and mount
-// share the route constant; Flue still keys storage on the agent's independent,
-// pinned identity.
-app.route(`/agents/${GHERKIN_AGENT_ROUTE}`, createAgentRouter(GherkinElicitor));
-// The SDCPN elicitor is the process-model target (ADR-0006): the plugin file
-// is code the harness loads, and this mount is what FE-1404's run talks to.
-app.route(`/agents/${SDCPN_AGENT_ROUTE}`, createAgentRouter(SdcpnElicitor));
+app.route(`/agents/${CHAT_AGENT_ROUTE}`, createAgentRouter(ChatAgent));
 
-// The application owns the HTTP mount; transport-aisdk owns only request validation
-// and AI SDK stream encoding. No parallel conversation renderer is introduced.
-app.on(["POST", "OPTIONS"], PETRINAUT_CHAT_ROUTE, (c) =>
+app.on(["GET", "POST", "OPTIONS"], PETRINAUT_CHAT_ROUTE, (c) =>
   petrinautChatHandler(c.req.raw),
 );
 
-// The flue dev controller owns the whole request space — no fall-through to
-// vite's html serving — so the ui is app-served, in dev and in production
-// alike (spec §10, recorded facts).
-//
-// Two different files, because two different builds produce them: in dev, the
-// source `index.html` whose script tag vite resolves live; in production, the
-// client build's emitted `index.html`, whose script tag points at a real
-// bundled asset. `@flue/vite` emits the server environment only, so that
-// client build is a second, plain vite build — without it the ui tree would
-// have no build coverage at all.
 const uiRoot = new URL(
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- import.meta.env is absent when Node executes this module directly.
   import.meta.env?.DEV === false ? "./client/" : "../",
@@ -63,8 +38,6 @@ app.get("/", async (c) =>
   c.html(await readFile(new URL("index.html", uiRoot), "utf8")),
 );
 
-// Production only: in dev, vite serves the module graph under /src. A
-// wildcard, not `:file` — bundlers may emit nested asset paths.
 app.get("/assets/*", assetHandler(uiRoot));
 
 export default app;

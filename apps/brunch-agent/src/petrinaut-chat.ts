@@ -1,60 +1,112 @@
 /** Application composition for Petrinaut's stock AI SDK chat transport. */
 
 import { init } from "@flue/runtime";
+import { createFlueClient, type FlueConversationSnapshot } from "@flue/sdk";
 
 import {
-  decideAskReplyAdmission,
-  pendingAskAffordanceId,
-} from "@hashintel/brunch-agent";
-import {
-  createFlueReplyProjector,
-  projectFlueHistoryForSweep,
-} from "@hashintel/brunch-agent-binding-flue";
-import {
   createAiSdkChatHandler,
-  type HarnessReplyEvent,
+  type ChatResumeInput,
+  type ChatTurnInput,
   type TransportInspectionEvent,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { SdcpnElicitor } from "./agents/sdcpn-elicitor.ts";
 import {
-  createSdcpnElicitationSession,
-  resolvePetrinautSessionIdentity,
-} from "./elicitation-session.ts";
+  ChatAgent,
+  READ_PETRINAUT_DOC_TOOL_NAME,
+} from "./agents/chat-agent.ts";
+import { flueConversationId } from "./conversation-identity.ts";
+import { snapshotToUiMessages } from "./flue-transcript.ts";
+import { createFlueUiStream } from "./flue-ui-stream.ts";
 import { defaultPanelOrigins } from "./local-dev-origins.ts";
+import { CHAT_AGENT_ROUTE } from "./routes.ts";
+
+import type { UIMessageChunk } from "ai";
 
 const inspect =
   process.env.BRUNCH_TRANSPORT_AISDK_INSPECT === "1"
     ? (event: TransportInspectionEvent): void => {
-        // This is an opt-in shell diagnostic stream. It is never dispatched
-        // into Flue and therefore cannot become elicitation evidence.
         process.stdout.write(`TRANSPORT_AISDK ${JSON.stringify(event)}\n`);
       }
     : undefined;
 
-const streamElicitorTurn = async (
-  principalKey: string,
-  conversationId: string,
-  dispatch: { readonly message: string; readonly idempotencyKey: string },
-  emit: (event: HarnessReplyEvent) => void,
-): Promise<void> => {
-  const identity = resolvePetrinautSessionIdentity(
-    principalKey,
-    conversationId,
-  );
-  const agent = init(SdcpnElicitor, { id: identity.sessionId });
-  const receipt = await agent.dispatch({
-    ...dispatch,
-    initialData: {
-      ownerKey: identity.ownerKey,
-      targetDocumentId: identity.targetDocumentId,
-    },
+const clientToolNames = new Set([READ_PETRINAUT_DOC_TOOL_NAME]);
+
+const appTransport: typeof fetch = async (input, init) => {
+  const { default: app } = await import("./app.ts");
+  return app.fetch(input instanceof Request ? input : new Request(input, init));
+};
+
+const conversationUrl = (instanceId: string): string =>
+  `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`;
+
+const historyClient = (instanceId: string) =>
+  createFlueClient({
+    url: conversationUrl(instanceId),
+    fetch: appTransport,
   });
-  const projector = createFlueReplyProjector({
+
+const streamTurn = async (
+  instanceId: string,
+  dispatch: Parameters<ReturnType<typeof init>["dispatch"]>[0],
+  write: (chunk: UIMessageChunk) => void,
+): Promise<void> => {
+  const agent = init(ChatAgent, { id: instanceId });
+  const receipt = await agent.dispatch(dispatch);
+  const projector = createFlueUiStream({
     submissionId: receipt.submissionId,
-    emit,
+    clientToolNames,
+    write,
   });
   await agent.read(receipt, { onEvent: (chunk) => projector.accept(chunk) });
+};
+
+const runUserTurn = (
+  input: ChatTurnInput,
+  write: (chunk: UIMessageChunk) => void,
+): Promise<void> =>
+  streamTurn(
+    flueConversationId(input.principalKey, input.conversationId),
+    { message: input.userMessage.text },
+    write,
+  );
+
+const runClientToolResume = (
+  input: ChatResumeInput,
+  write: (chunk: UIMessageChunk) => void,
+): Promise<void> =>
+  streamTurn(
+    flueConversationId(input.principalKey, input.conversationId),
+    {
+      message: {
+        kind: "signal",
+        type: "client-tool-result",
+        tagName: "client-tool-result",
+        body: JSON.stringify(input.toolResults),
+        attributes: {
+          toolCallIds: input.toolResults
+            .map((result) => result.toolCallId)
+            .join(","),
+        },
+      },
+    },
+    write,
+  );
+
+const loadHistory = async (input: {
+  readonly conversationId: string;
+  readonly principalKey: string;
+}): Promise<{ readonly messages: readonly unknown[] }> => {
+  const instanceId = flueConversationId(
+    input.principalKey,
+    input.conversationId,
+  );
+  let snapshot: FlueConversationSnapshot;
+  try {
+    snapshot = await historyClient(instanceId).history();
+  } catch {
+    return { messages: [] };
+  }
+  return { messages: snapshotToUiMessages(snapshot) };
 };
 
 export const petrinautChatHandler = createAiSdkChatHandler({
@@ -65,43 +117,7 @@ export const petrinautChatHandler = createAiSdkChatHandler({
     .map((origin) => origin.trim())
     .filter((origin) => origin.length > 0),
   inspect,
-  runTurn: (input, emit) =>
-    streamElicitorTurn(
-      input.principalKey,
-      input.conversationId,
-      { message: input.userMessage.text, idempotencyKey: input.idempotencyKey },
-      emit,
-    ),
-  askReply: {
-    // Admission consults durable Flue history, not request-shaped claims: the
-    // submission resumes the conversation only when its tool-call id
-    // correlates with the one ask still awaiting a reply.
-    async admit(input) {
-      const identity = resolvePetrinautSessionIdentity(
-        input.principalKey,
-        input.conversationId,
-      );
-      const session = createSdcpnElicitationSession(
-        identity.sessionId,
-        identity.targetDocumentId,
-        identity.ownerKey,
-      );
-      const entries = projectFlueHistoryForSweep(
-        await session.historyReader.peek(identity.sessionId),
-      );
-      return decideAskReplyAdmission(
-        pendingAskAffordanceId(entries),
-        input.ask.toolCallId,
-      );
-    },
-    // The admitted answer is a fresh user dispatch (spec §7.4); the binding
-    // binds it to the pending affordance, making it the user-affordance reply.
-    run: (input, emit) =>
-      streamElicitorTurn(
-        input.principalKey,
-        input.conversationId,
-        { message: input.ask.answer, idempotencyKey: input.idempotencyKey },
-        emit,
-      ),
-  },
+  runTurn: runUserTurn,
+  resumeTurn: runClientToolResume,
+  loadHistory,
 });

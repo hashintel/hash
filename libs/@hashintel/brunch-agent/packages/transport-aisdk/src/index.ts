@@ -1,8 +1,9 @@
 /**
- * AI SDK transport for the harness reply protocol.
+ * AI SDK UI-message-stream transport for a Flue-backed chat.
  *
- * This package owns only the UI-message-stream wire. An application supplies a
- * substrate-backed `runTurn`; the transport never imports a binding or Flue.
+ * This package owns the HTTP door: principal, CORS, POST validation, and SSE
+ * encoding. An application supplies the Flue turn. The transport never imports
+ * Brunch core, a binding, or Flue.
  */
 
 import {
@@ -12,29 +13,11 @@ import {
 } from "ai";
 import * as v from "valibot";
 
-import {
-  AskSubmission,
-  type AskReplyAdmission,
-  type HarnessReplyEvent,
-} from "@hashintel/brunch-agent";
-
-import { ASK_TOOL_NAME, type BrunchAskOutput } from "./client-tools";
 import { BRUNCH_PRINCIPAL_HEADER } from "./headers";
 
-export {
-  type AskReplyAdmission,
-  type HarnessReplyEvent,
-} from "@hashintel/brunch-agent";
 export { BRUNCH_PRINCIPAL_HEADER } from "./headers";
-export {
-  ASK_TOOL_NAME,
-  type BrunchAskInput,
-  type BrunchAskOutput,
-  parseBrunchAskInput,
-  parseBrunchAskOutput,
-} from "./client-tools";
 
-export interface HarnessTurnInput {
+export interface ChatTurnInput {
   readonly conversationId: string;
   readonly idempotencyKey: string;
   readonly principalKey: string;
@@ -44,48 +27,31 @@ export interface HarnessTurnInput {
   };
 }
 
-export type HarnessTurnRunner = (
-  input: HarnessTurnInput,
-  emit: (event: HarnessReplyEvent) => void,
-) => Promise<void>;
+export interface ClientToolResult {
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly output: unknown;
+}
 
-type HarnessPartEvent = Extract<
-  HarnessReplyEvent,
-  { type: "part-start" | "part-delta" | "part-end" }
->;
-type HarnessToolEvent = Extract<
-  HarnessReplyEvent,
-  { type: "tool-input" | "tool-output" | "tool-output-error" }
->;
-type HarnessResponseFinishEvent = Extract<
-  HarnessReplyEvent,
-  { type: "response-finish" }
->;
-type AskReplyRefusal = Extract<AskReplyAdmission, { ok: false }>;
-
-export interface HarnessAskReplyInput {
+export interface ChatResumeInput {
   readonly conversationId: string;
-  /** Existing assistant UI message whose pending tool call this continues. */
   readonly assistantMessageId: string;
   readonly idempotencyKey: string;
   readonly principalKey: string;
-  readonly ask: BrunchAskOutput & {
-    readonly toolCallId: string;
-  };
+  readonly toolResults: readonly ClientToolResult[];
 }
 
-/**
- * The application's ask-return seam. `admit` consults durable pending-ask
- * state before anything is dispatched; `run` projects the admitted answer
- * into the harness's user-affordance reply path and streams the resumed turn.
- */
-export interface AskReplyHandler {
-  admit(input: HarnessAskReplyInput): Promise<AskReplyAdmission>;
-  run(
-    input: HarnessAskReplyInput,
-    emit: (event: HarnessReplyEvent) => void,
-  ): Promise<void>;
-}
+export type ChatChunkWriter = (chunk: UIMessageChunk) => void;
+
+export type ChatTurnRunner = (
+  input: ChatTurnInput,
+  write: ChatChunkWriter,
+) => Promise<void>;
+
+export type ChatResumeRunner = (
+  input: ChatResumeInput,
+  write: ChatChunkWriter,
+) => Promise<void>;
 
 export type TransportInspectionEvent =
   | {
@@ -95,64 +61,37 @@ export type TransportInspectionEvent =
       readonly userMessageId: string;
     }
   | {
-      readonly type: "response-start";
+      readonly type: "resume-start";
       readonly requestId: string;
-      readonly messageId: string;
+      readonly conversationId: string;
+      readonly assistantMessageId: string;
+      readonly toolCallIds: readonly string[];
     }
   | {
-      readonly type: "turn-start";
+      readonly type: "history-read";
       readonly requestId: string;
-      readonly turnId: string;
-      readonly messageId: string;
-    }
-  | {
-      readonly type: "part-emitted";
-      readonly requestId: string;
-      readonly kind: HarnessPartEvent["kind"] | HarnessToolEvent["type"];
-      readonly partId?: string;
-      readonly toolCallId?: string;
-    }
-  | {
-      readonly type: "turn-finish";
-      readonly requestId: string;
-      readonly turnId: string;
+      readonly conversationId: string;
     }
   | {
       readonly type: "request-finish";
       readonly requestId: string;
-      readonly terminalState: HarnessResponseFinishEvent["terminalState"];
-      readonly finishReason: HarnessResponseFinishEvent["finishReason"];
-    }
-  | {
-      readonly type: "ask-await";
-      readonly requestId: string;
-      readonly toolCallId: string;
-    }
-  | {
-      readonly type: "ask-reply-admitted";
-      readonly requestId: string;
-      readonly conversationId: string;
-      readonly toolCallId: string;
-    }
-  | {
-      readonly type: "ask-reply-refused";
-      readonly requestId: string;
-      readonly conversationId: string;
-      readonly toolCallId: string;
-      readonly reason: AskReplyRefusal["reason"];
+      readonly terminal: "completed" | "failed";
     };
 
 export interface AiSdkChatHandlerOptions {
-  readonly runTurn: HarnessTurnRunner;
+  readonly runTurn: ChatTurnRunner;
   /**
-   * Ask-return support. Absent, every tool-result follow-up stays refused
-   * (the FE-1436 negative contract); present, exactly the pending ask's
-   * correlated submission resumes the conversation.
+   * Client-tool return. Absent, a tool-result follow-up is refused. Present,
+   * completed client-tool parts on the referenced assistant message resume
+   * the same conversation.
    */
-  readonly askReply?: AskReplyHandler;
-  /** Exact browser origins allowed to call this endpoint across origins. */
+  readonly resumeTurn?: ChatResumeRunner;
+  /** Snapshot used to hydrate the panel from Flue history after reload. */
+  readonly loadHistory?: (input: {
+    readonly conversationId: string;
+    readonly principalKey: string;
+  }) => Promise<{ readonly messages: readonly unknown[] }>;
   readonly allowedOrigins?: readonly string[];
-  /** Opt-in diagnostic sink. Events are metadata only and never re-enter the conversation. */
   readonly inspect?: (event: TransportInspectionEvent) => void;
 }
 
@@ -163,6 +102,7 @@ const panelPartSchema = v.looseObject({
   toolCallId: v.optional(v.unknown()),
   state: v.optional(v.unknown()),
   output: v.optional(v.unknown()),
+  providerExecuted: v.optional(v.unknown()),
 });
 
 const panelMessageSchema = v.looseObject({
@@ -180,37 +120,25 @@ const panelPostBodySchema = v.looseObject({
 
 type PanelMessage = v.InferOutput<typeof panelMessageSchema>;
 type PanelPostBody = v.InferOutput<typeof panelPostBodySchema>;
+type PanelPart = NonNullable<PanelMessage["parts"]>[number];
 
 const transportRequestRefusals = {
   invalidChatRequest: {
-    reason: "invalid-chat-request",
     status: 400,
     error: "invalid_chat_request",
   },
   invalidPrincipal: {
-    reason: "invalid-principal",
     status: 400,
     error: "invalid_principal",
   },
   toolResultFollowUpNotSupported: {
-    reason: "tool-result-follow-up-not-supported",
     status: 422,
     error: "tool_result_follow_up_not_supported",
-  },
-  invalidAskSubmission: {
-    reason: "invalid-ask-submission",
-    status: 400,
-    error: "invalid_ask_submission",
   },
 } as const;
 
 type TransportRequestRefusal =
   (typeof transportRequestRefusals)[keyof typeof transportRequestRefusals];
-
-const askReplyRefusalErrors = {
-  "no-pending-ask": "ask_not_pending",
-  "different-ask-pending": "ask_mismatch",
-} as const;
 
 const jsonResponse = (
   body: unknown,
@@ -221,7 +149,7 @@ const jsonResponse = (
 const corsHeaders = (origin: string): Headers =>
   new Headers({
     "access-control-allow-origin": origin,
-    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-methods": "GET, POST, OPTIONS",
     "access-control-allow-headers": `content-type, x-request-id, ${BRUNCH_PRINCIPAL_HEADER}`,
     vary: "Origin",
   });
@@ -247,27 +175,30 @@ const userTextFrom = (message: PanelMessage): string | undefined => {
   return text.length > 0 ? text : undefined;
 };
 
+const toolNameFrom = (part: PanelPart): string | undefined => {
+  if (part.type === "dynamic-tool" && typeof part.toolName === "string") {
+    return part.toolName.length > 0 ? part.toolName : undefined;
+  }
+  if (typeof part.type === "string" && part.type.startsWith("tool-")) {
+    const toolName = part.type.slice("tool-".length);
+    return toolName.length > 0 ? toolName : undefined;
+  }
+  return undefined;
+};
+
+const isCompletedClientToolPart = (part: PanelPart): boolean =>
+  part.state === "output-available" &&
+  part.providerExecuted !== true &&
+  typeof part.toolCallId === "string" &&
+  part.toolCallId.length > 0 &&
+  toolNameFrom(part) !== undefined;
+
 type ParsedTransportRequest =
-  | { readonly kind: "initial"; readonly value: HarnessTurnInput }
-  | { readonly kind: "ask-reply"; readonly value: HarnessAskReplyInput }
+  | { readonly kind: "initial"; readonly value: ChatTurnInput }
+  | { readonly kind: "resume"; readonly value: ChatResumeInput }
   | { readonly kind: "refused"; readonly refusal: TransportRequestRefusal };
 
-const isAnsweredAskPart = (
-  part: NonNullable<PanelMessage["parts"]>[number],
-): boolean =>
-  ((part.type === "dynamic-tool" && part.toolName === ASK_TOOL_NAME) ||
-    part.type === `tool-${ASK_TOOL_NAME}`) &&
-  part.state === "output-available";
-
-/**
- * Classify one tool-result follow-up POST. A human answer submitted through
- * the registered ask component travels tool-output-shaped but is not a
- * machine tool result: exactly one submitted `brunch_ask` output on the
- * referenced assistant message is a candidate reply. Everything else —
- * Petrinaut mutation outputs, the synthetic diagnostics message — remains
- * the machine-input protocol this transport still refuses (FE-1438 owns it).
- */
-const parseAskReplyTurn = (
+const parseResumeTurn = (
   body: PanelPostBody,
   principalKey: string,
 ): ParsedTransportRequest => {
@@ -285,41 +216,34 @@ const parseAskReplyTurn = (
     };
   }
 
-  const message = body.messages.find(
+  const assistantMessage = body.messages.find(
     (candidate) =>
       candidate.id === body.messageId && candidate.role === "assistant",
   );
-  const askParts = (message?.parts ?? []).filter(isAnsweredAskPart);
-  if (askParts.length === 0) {
+  const toolResults = (assistantMessage?.parts ?? [])
+    .filter(isCompletedClientToolPart)
+    .map((part) => ({
+      toolCallId: part.toolCallId as string,
+      toolName: toolNameFrom(part)!,
+      output: part.output,
+    }));
+  if (toolResults.length === 0) {
     return {
       kind: "refused",
       refusal: transportRequestRefusals.toolResultFollowUpNotSupported,
     };
   }
-  const askPart = askParts[0]!;
-  const submission = v.safeParse(AskSubmission, askPart.output);
-  if (
-    askParts.length !== 1 ||
-    typeof askPart.toolCallId !== "string" ||
-    askPart.toolCallId.length === 0 ||
-    !submission.success
-  ) {
-    return {
-      kind: "refused",
-      refusal: transportRequestRefusals.invalidAskSubmission,
-    };
-  }
 
   return {
-    kind: "ask-reply",
+    kind: "resume",
     value: {
       conversationId: body.id,
       assistantMessageId: body.messageId,
-      // Keyed by the ask itself: concurrent duplicate submissions of the same
-      // pending ask collapse to one dispatch at the substrate.
-      idempotencyKey: `${body.id}:ask:${askPart.toolCallId}`,
+      idempotencyKey: `${body.id}:tools:${toolResults
+        .map((result) => result.toolCallId)
+        .join(",")}`,
       principalKey,
-      ask: { toolCallId: askPart.toolCallId, answer: submission.output.answer },
+      toolResults,
     },
   };
 };
@@ -376,115 +300,16 @@ const parseInitialTurn = (
   };
 };
 
-const toUiChunk = (event: HarnessReplyEvent): UIMessageChunk => {
-  switch (event.type) {
-    case "response-start":
-      return { type: "start", messageId: event.messageId };
-    case "turn-start":
-      return { type: "start-step" };
-    case "part-start":
-      return { type: `${event.kind}-start`, id: event.partId };
-    case "part-delta":
-      return {
-        type: `${event.kind}-delta`,
-        id: event.partId,
-        delta: event.delta,
-      };
-    case "part-end":
-      return { type: `${event.kind}-end`, id: event.partId };
-    case "tool-input":
-      return {
-        type: "tool-input-available",
-        toolCallId: event.toolCallId,
-        toolName: event.toolName,
-        input: event.input,
-        ...(event.execution === "server" ? { providerExecuted: true } : {}),
-      };
-    case "tool-output":
-      return {
-        type: "tool-output-available",
-        toolCallId: event.toolCallId,
-        output: event.output,
-        ...(event.execution === "server" ? { providerExecuted: true } : {}),
-      };
-    case "tool-output-error":
-      return {
-        type: "tool-output-error",
-        toolCallId: event.toolCallId,
-        errorText: event.errorText,
-        ...(event.execution === "server" ? { providerExecuted: true } : {}),
-      };
-    case "turn-finish":
-      return { type: "finish-step" };
-    case "response-finish":
-      switch (event.terminalState) {
-        case "completed":
-          return { type: "finish", finishReason: event.finishReason };
-        case "failed":
-          return { type: "error", errorText: "The elicitor turn failed." };
-        case "aborted":
-          return { type: "abort", reason: "Harness response aborted." };
-      }
+const readPrincipal = (request: Request): string | TransportRequestRefusal => {
+  const principalKey = request.headers.get(BRUNCH_PRINCIPAL_HEADER)?.trim();
+  if (
+    principalKey === undefined ||
+    principalKey.length === 0 ||
+    principalKey.length > 256
+  ) {
+    return transportRequestRefusals.invalidPrincipal;
   }
-};
-
-const inspectionFor = (
-  event: HarnessReplyEvent,
-  requestId: string,
-  messageId: string | undefined,
-): TransportInspectionEvent | undefined => {
-  switch (event.type) {
-    case "response-start":
-      return { type: "response-start", requestId, messageId: event.messageId };
-    case "turn-start":
-      return messageId === undefined
-        ? undefined
-        : { type: "turn-start", requestId, turnId: event.turnId, messageId };
-    case "part-start":
-      return {
-        type: "part-emitted",
-        requestId,
-        kind: event.kind,
-        partId: event.partId,
-      };
-    case "tool-input":
-      return {
-        type: "part-emitted",
-        requestId,
-        kind: "tool-input",
-        toolCallId: event.toolCallId,
-      };
-    case "tool-output":
-      return {
-        type: "part-emitted",
-        requestId,
-        kind: "tool-output",
-        toolCallId: event.toolCallId,
-      };
-    case "tool-output-error":
-      return {
-        type: "part-emitted",
-        requestId,
-        kind: "tool-output-error",
-        toolCallId: event.toolCallId,
-      };
-    case "turn-finish":
-      return {
-        type: "turn-finish",
-        requestId,
-        turnId: event.turnId,
-      };
-    case "response-finish":
-      return {
-        type: "request-finish",
-        requestId,
-        terminalState: event.terminalState,
-        finishReason: event.finishReason,
-      };
-    case "part-delta":
-    case "part-end":
-      return undefined;
-  }
+  return principalKey;
 };
 
 export const createAiSdkChatHandler =
@@ -501,6 +326,48 @@ export const createAiSdkChatHandler =
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: crossOriginHeaders });
     }
+
+    const principal = readPrincipal(request);
+    if (typeof principal !== "string") {
+      return jsonResponse(
+        { error: principal.error },
+        principal.status,
+        crossOriginHeaders,
+      );
+    }
+
+    if (request.method === "GET") {
+      const conversationId = new URL(request.url).searchParams
+        .get("id")
+        ?.trim();
+      if (conversationId === undefined || conversationId.length === 0) {
+        return jsonResponse(
+          { error: transportRequestRefusals.invalidChatRequest.error },
+          transportRequestRefusals.invalidChatRequest.status,
+          crossOriginHeaders,
+        );
+      }
+      if (options.loadHistory === undefined) {
+        return jsonResponse(
+          { error: "method_not_allowed" },
+          405,
+          crossOriginHeaders,
+        );
+      }
+      const requestId =
+        request.headers.get("x-request-id") || crypto.randomUUID();
+      options.inspect?.({
+        type: "history-read",
+        requestId,
+        conversationId,
+      });
+      const history = await options.loadHistory({
+        conversationId,
+        principalKey: principal,
+      });
+      return jsonResponse(history, 200, crossOriginHeaders);
+    }
+
     if (request.method !== "POST") {
       return jsonResponse(
         { error: "method_not_allowed" },
@@ -529,30 +396,15 @@ export const createAiSdkChatHandler =
       );
     }
     const postBody = validatedBody.output;
-    const principalKey = request.headers.get(BRUNCH_PRINCIPAL_HEADER)?.trim();
-    if (
-      principalKey === undefined ||
-      principalKey.length === 0 ||
-      principalKey.length > 256
-    ) {
-      const refusal = transportRequestRefusals.invalidPrincipal;
-      return jsonResponse(
-        { error: refusal.error },
-        refusal.status,
-        crossOriginHeaders,
-      );
-    }
-    // The follow-up admits exactly the pending ask's correlated human answer;
-    // absent an application ask-reply seam, every follow-up stays refused.
     const parsed =
-      postBody.messageId !== undefined && options.askReply !== undefined
-        ? parseAskReplyTurn(postBody, principalKey)
+      postBody.messageId !== undefined && options.resumeTurn !== undefined
+        ? parseResumeTurn(postBody, principal)
         : postBody.messageId !== undefined
           ? ({
               kind: "refused",
               refusal: transportRequestRefusals.toolResultFollowUpNotSupported,
             } as const)
-          : parseInitialTurn(postBody, principalKey);
+          : parseInitialTurn(postBody, principal);
     if (parsed.kind === "refused") {
       return jsonResponse(
         { error: parsed.refusal.error },
@@ -563,33 +415,19 @@ export const createAiSdkChatHandler =
 
     const requestId =
       request.headers.get("x-request-id") || crypto.randomUUID();
+    const continuationMessageId =
+      parsed.kind === "resume" ? parsed.value.assistantMessageId : undefined;
 
-    let run: (emit: (event: HarnessReplyEvent) => void) => Promise<void>;
-    if (parsed.kind === "ask-reply") {
-      const askReply = options.askReply!;
-      const admission = await askReply.admit(parsed.value);
-      if (!admission.ok) {
-        options.inspect?.({
-          type: "ask-reply-refused",
-          requestId,
-          conversationId: parsed.value.conversationId,
-          toolCallId: parsed.value.ask.toolCallId,
-          reason: admission.reason,
-        });
-        return jsonResponse(
-          { error: askReplyRefusalErrors[admission.reason] },
-          409,
-          crossOriginHeaders,
-        );
-      }
+    if (parsed.kind === "resume") {
       options.inspect?.({
-        type: "ask-reply-admitted",
+        type: "resume-start",
         requestId,
         conversationId: parsed.value.conversationId,
-        toolCallId: parsed.value.ask.toolCallId,
+        assistantMessageId: parsed.value.assistantMessageId,
+        toolCallIds: parsed.value.toolResults.map(
+          (result) => result.toolCallId,
+        ),
       });
-      const input = parsed.value;
-      run = (emit) => askReply.run(input, emit);
     } else {
       options.inspect?.({
         type: "request-start",
@@ -597,75 +435,47 @@ export const createAiSdkChatHandler =
         conversationId: parsed.value.conversationId,
         userMessageId: parsed.value.userMessage.id,
       });
-      const input = parsed.value;
-      run = (emit) => options.runTurn(input, emit);
     }
 
-    let messageId: string | undefined;
-    const continuationMessageId =
-      parsed.kind === "ask-reply" ? parsed.value.assistantMessageId : undefined;
-    let terminalEventEmitted = false;
-    const awaitingAskToolCallIds = new Set<string>();
+    const run =
+      parsed.kind === "resume"
+        ? (write: ChatChunkWriter) => options.resumeTurn!(parsed.value, write)
+        : (write: ChatChunkWriter) => options.runTurn(parsed.value, write);
+
+    let terminalEmitted = false;
     const stream = createUIMessageStream({
       execute: async ({ writer }) => {
         try {
-          await run((event) => {
-            if (event.type === "response-start") messageId = event.messageId;
-            // An ask suspends the turn for a human answer: its call goes to the
-            // panel as an awaiting client tool, and the harness's own output
-            // record (the minted affordance) never reaches the wire — the
-            // registered component supplies the output when the person submits.
-            if (
-              event.type === "tool-input" &&
-              event.toolName === ASK_TOOL_NAME
-            ) {
-              awaitingAskToolCallIds.add(event.toolCallId);
-              writer.write({
-                type: "tool-input-available",
-                toolCallId: event.toolCallId,
-                toolName: event.toolName,
-                input: event.input,
-              });
-              const inspection = inspectionFor(event, requestId, messageId);
-              if (inspection) options.inspect?.(inspection);
-              return;
+          await run((chunk) => {
+            if (chunk.type === "start" && continuationMessageId !== undefined) {
+              writer.write({ ...chunk, messageId: continuationMessageId });
+            } else {
+              writer.write(chunk);
             }
             if (
-              event.type === "tool-output" &&
-              awaitingAskToolCallIds.has(event.toolCallId)
+              chunk.type === "finish" ||
+              chunk.type === "error" ||
+              chunk.type === "abort"
             ) {
-              options.inspect?.({
-                type: "ask-await",
-                requestId,
-                toolCallId: event.toolCallId,
-              });
-              return;
+              terminalEmitted = true;
             }
-            const wireEvent =
-              event.type === "response-start" &&
-              continuationMessageId !== undefined
-                ? { ...event, messageId: continuationMessageId }
-                : event;
-            writer.write(toUiChunk(wireEvent));
-            if (event.type === "response-finish") terminalEventEmitted = true;
-            const inspection = inspectionFor(event, requestId, messageId);
-            if (inspection) options.inspect?.(inspection);
           });
-        } catch (error) {
-          // Flue delivers a failed/aborted settlement to the projector and then
-          // rejects read(). Once that terminal event is on the wire, the
-          // rejection carries no new state and must not create a second ending.
-          if (terminalEventEmitted) return;
           options.inspect?.({
             type: "request-finish",
             requestId,
-            terminalState: "failed",
-            finishReason: "error",
+            terminal: "completed",
+          });
+        } catch (error) {
+          if (terminalEmitted) return;
+          options.inspect?.({
+            type: "request-finish",
+            requestId,
+            terminal: "failed",
           });
           throw error;
         }
       },
-      onError: () => "The elicitor turn failed.",
+      onError: () => "The chat turn failed.",
     });
 
     const response = createUIMessageStreamResponse({ stream });

@@ -1,0 +1,160 @@
+/** Project Flue live conversation chunks into AI SDK UI-message-stream chunks. */
+
+import { type ConversationStreamChunk } from "@flue/sdk";
+
+import type { UIMessageChunk } from "ai";
+
+export interface FlueUiStreamOptions {
+  readonly submissionId: string;
+  readonly clientToolNames: ReadonlySet<string>;
+  readonly write: (chunk: UIMessageChunk) => void;
+}
+
+type StreamingPart = {
+  readonly kind: "text" | "reasoning";
+  readonly partId: string;
+};
+
+export const createFlueUiStream = (
+  options: FlueUiStreamOptions,
+): { accept: (chunk: ConversationStreamChunk) => void } => {
+  let accepting = false;
+  let messageId: string | undefined;
+  let turnId: string | undefined;
+  let partOrdinal = 0;
+  let streamingPart: StreamingPart | undefined;
+  const pendingClientToolCallIds = new Set<string>();
+
+  const finishPart = (): void => {
+    if (!streamingPart) return;
+    options.write({
+      type: `${streamingPart.kind}-end`,
+      id: streamingPart.partId,
+    });
+    streamingPart = undefined;
+  };
+
+  const finishTurn = (): void => {
+    finishPart();
+    if (!turnId) return;
+    options.write({ type: "finish-step" });
+    turnId = undefined;
+  };
+
+  const startPart = (kind: StreamingPart["kind"]): StreamingPart => {
+    finishPart();
+    partOrdinal += 1;
+    const part = {
+      kind,
+      partId: `${messageId}:${kind}:${partOrdinal}`,
+    } as const;
+    options.write({ type: `${kind}-start`, id: part.partId });
+    streamingPart = part;
+    return part;
+  };
+
+  return {
+    accept(chunk) {
+      if (chunk.type === "message-started") {
+        accepting = chunk.submissionId === options.submissionId;
+        if (!accepting) return;
+
+        if (messageId === undefined) {
+          messageId = chunk.messageId;
+          options.write({ type: "start", messageId });
+        }
+        finishTurn();
+        turnId = chunk.turnId ?? `${messageId}:turn`;
+        options.write({ type: "start-step" });
+        return;
+      }
+
+      if (chunk.type === "submission-settled") {
+        if (chunk.submissionId !== options.submissionId) return;
+        finishTurn();
+        switch (chunk.outcome) {
+          case "completed":
+            options.write({
+              type: "finish",
+              finishReason:
+                pendingClientToolCallIds.size > 0 ? "tool-calls" : "stop",
+            });
+            break;
+          case "failed":
+            options.write({
+              type: "error",
+              errorText: "The chat turn failed.",
+            });
+            break;
+          case "aborted":
+            options.write({ type: "abort", reason: "The chat turn aborted." });
+            break;
+        }
+        accepting = false;
+        return;
+      }
+
+      if (!accepting || messageId === undefined) return;
+
+      switch (chunk.type) {
+        case "message-delta": {
+          if (chunk.messageId !== messageId) return;
+          const part =
+            streamingPart?.kind === chunk.kind
+              ? streamingPart
+              : startPart(chunk.kind);
+          options.write({
+            type: `${part.kind}-delta`,
+            id: part.partId,
+            delta: chunk.delta,
+          });
+          return;
+        }
+        case "tool-input": {
+          if (chunk.messageId !== messageId) return;
+          finishPart();
+          const isClientTool = options.clientToolNames.has(chunk.toolName);
+          if (isClientTool) pendingClientToolCallIds.add(chunk.toolCallId);
+          options.write({
+            type: "tool-input-available",
+            toolCallId: chunk.toolCallId,
+            toolName: chunk.toolName,
+            input: chunk.input,
+            ...(isClientTool ? {} : { providerExecuted: true }),
+          });
+          return;
+        }
+        case "tool-output": {
+          if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
+          options.write({
+            type: "tool-output-available",
+            toolCallId: chunk.toolCallId,
+            output: chunk.output,
+            providerExecuted: true,
+          });
+          return;
+        }
+        case "tool-output-error": {
+          if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
+          options.write({
+            type: "tool-output-error",
+            toolCallId: chunk.toolCallId,
+            errorText: chunk.errorText,
+            providerExecuted: true,
+          });
+          return;
+        }
+        case "message-completed": {
+          if (chunk.messageId === messageId) finishTurn();
+          return;
+        }
+        case "conversation-reset":
+        case "message-appended":
+        case "message-metadata":
+        case "data-part":
+        case "stream-checkpoint":
+          return;
+      }
+    },
+  };
+};
