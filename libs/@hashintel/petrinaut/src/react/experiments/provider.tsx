@@ -88,7 +88,7 @@ type PendingExperimentRegistration = {
  * sweep axes. Ranged inputs on parameters the scenario does not declare are
  * ignored, matching how fixed values have always behaved.
  */
-function buildSweepAxes(
+export function buildSweepAxes(
   scenario: Scenario | null,
   inputs: CreateExperimentInput["scenarioParameterValues"],
 ): { fixedValues: Record<string, string>; axes: ExperimentParameterAxis[] } {
@@ -575,9 +575,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       selectedScenario ?? null,
       input.scenarioParameterValues,
     );
-    if (axes.length > 0 && !selectedScenario) {
-      throw new Error("Parameter ranges require a scenario");
-    }
 
     let parameterValues: Record<string, string> = {};
     let initialMarking: InitialMarking = {};

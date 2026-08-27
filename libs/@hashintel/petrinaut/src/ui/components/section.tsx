@@ -60,9 +60,6 @@ const fillHeightSectionStyle = css({
 });
 
 const headerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
   position: "sticky",
   top: "[0]",
   zIndex: "[2]",
@@ -84,6 +81,16 @@ const headerStyle = css({
       "[linear-gradient(to bottom, var(--colors-neutral-s00), transparent)]",
     pointerEvents: "none",
   },
+});
+
+const headerRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+});
+
+const stickyBandStyle = css({
+  paddingTop: "2",
 });
 
 const contentPaddingStyle = css({
@@ -170,6 +177,13 @@ interface SectionProps {
   /** Registers the collapse trigger, e.g. for keyboard navigation. */
   triggerRef?: (element: HTMLButtonElement | null) => void;
   onTriggerKeyDown?: React.KeyboardEventHandler;
+  /**
+   * Rendered inside the sticky header block, under the title row, so it stays
+   * pinned while the section's content scrolls beneath it — a control strip
+   * whose effect the user watches further down (e.g. sweep parameter
+   * controls above streaming charts). Sticks with the title as one unit.
+   */
+  renderStickyBand?: () => ReactNode;
   children: ReactNode;
   className?: string;
 }
@@ -187,6 +201,7 @@ export const Section = ({
   renderHeaderAction,
   triggerRef,
   onTriggerKeyDown,
+  renderStickyBand,
   children,
   className,
 }: SectionProps) => {
@@ -213,19 +228,24 @@ export const Section = ({
         className={cx(sectionStyle, className)}
       >
         <div className={headerStyle}>
-          {headerLeft}
-          {renderHeaderAction && <div>{renderHeaderAction()}</div>}
-          <Collapsible.Trigger className={triggerButtonStyle} asChild>
-            <TriggerButton
-              ref={triggerRef}
-              size="xs"
-              variant="ghost"
-              aria-label={`Toggle ${title} section`}
-              iconName="chevronUp"
-              tooltip="Toggle section"
-              onKeyDown={onTriggerKeyDown}
-            />
-          </Collapsible.Trigger>
+          <div className={headerRowStyle}>
+            {headerLeft}
+            {renderHeaderAction && <div>{renderHeaderAction()}</div>}
+            <Collapsible.Trigger className={triggerButtonStyle} asChild>
+              <TriggerButton
+                ref={triggerRef}
+                size="xs"
+                variant="ghost"
+                aria-label={`Toggle ${title} section`}
+                iconName="chevronUp"
+                tooltip="Toggle section"
+                onKeyDown={onTriggerKeyDown}
+              />
+            </Collapsible.Trigger>
+          </div>
+          {renderStickyBand && (
+            <div className={stickyBandStyle}>{renderStickyBand()}</div>
+          )}
         </div>
         <Collapsible.Content
           className={cx(
@@ -249,8 +269,13 @@ export const Section = ({
       )}
     >
       <div className={headerStyle}>
-        {headerLeft}
-        {renderHeaderAction && <div>{renderHeaderAction()}</div>}
+        <div className={headerRowStyle}>
+          {headerLeft}
+          {renderHeaderAction && <div>{renderHeaderAction()}</div>}
+        </div>
+        {renderStickyBand && (
+          <div className={stickyBandStyle}>{renderStickyBand()}</div>
+        )}
       </div>
       <div
         className={cx(
