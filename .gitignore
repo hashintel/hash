@@ -132,7 +132,8 @@ libs/@local/graph/store/typescript/src/generated
 
 # generated files
 *.gen.*
-!apps/petrinaut-website/src/routeTree.gen.ts
+# TanStack Router plugin scratch output.
+.tanstack/
 *.tsbuildinfo
 feed.atom
 feed.rss

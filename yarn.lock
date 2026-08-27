@@ -928,6 +928,7 @@ __metadata:
     "@pandacss/dev": "npm:1.11.1"
     "@sentry/react": "npm:10.64.0"
     "@tanstack/react-router": "npm:1.170.31"
+    "@tanstack/router-generator": "npm:1.167.32"
     "@tanstack/router-plugin": "npm:1.168.34"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
