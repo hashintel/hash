@@ -79,6 +79,12 @@ export {
   type HirValue,
 } from "./hir/interpret";
 export {
+  lowerOptimizationConstraint,
+  type LowerOptimizationConstraintContext,
+  type LowerOptimizationConstraintResult,
+  type OptimizationConstraintSpace,
+} from "./hir/constraint";
+export {
   lowerTypeScriptToHir,
   type LowerTypeScriptResult,
 } from "./hir/lower-typescript";

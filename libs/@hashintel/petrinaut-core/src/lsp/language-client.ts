@@ -9,6 +9,11 @@ import {
 import type { PetrinautExtensionSettings } from "../extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
 import type { HirCompileResult, ScenarioHir } from "../hir";
+import type {
+  LowerOptimizationConstraintContext,
+  LowerOptimizationConstraintResult,
+  OptimizationConstraintSpace,
+} from "../hir/constraint";
 import type { AdHocSynthesisContext } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import type { ReadableStore } from "../store";
 import type { Scenario, SDCPN } from "../types/sdcpn";
@@ -113,6 +118,18 @@ export interface LanguageClient {
     scenario: Pick<Scenario, "parameterOverrides" | "initialState">,
     adHocContext?: AdHocSynthesisContext,
   ): Promise<ScenarioHir>;
+
+  /**
+   * Lowers one optimization constraint's TypeScript source to HIR (in the
+   * worker) and checks it produces a boolean. The result embeds in an
+   * optimization manifest.
+   */
+  requestConstraintHir(
+    this: void,
+    code: string,
+    space: OptimizationConstraintSpace,
+    context: LowerOptimizationConstraintContext,
+  ): Promise<LowerOptimizationConstraintResult>;
 
   /**
    * Tear down the transport. Pending requests reject with "Worker terminated".
@@ -366,6 +383,12 @@ export function createLanguageClient(
         scenario,
         adHocContext,
       });
+    },
+    requestConstraintHir(code, space, context) {
+      return sendRequest<LowerOptimizationConstraintResult>(
+        "sdcpn/lowerConstraint",
+        { code, space, context },
+      );
     },
 
     dispose() {

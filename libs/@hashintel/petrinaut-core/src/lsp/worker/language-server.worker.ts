@@ -29,6 +29,7 @@ import {
   buildScenarioCodeContext,
   buildScenarioExpressionContext,
   compileHirArtifacts,
+  lowerOptimizationConstraint,
   lowerScenarioToHir,
 } from "../../hir";
 import { getHirDiagnosticsForItem } from "../lib/check-hir";
@@ -577,6 +578,19 @@ workerRuntime.onMessage((data) => {
           lowerScenarioToHir(data.params.scenario, {
             adHocContext: data.params.adHocContext,
           }),
+        );
+        break;
+      }
+
+      case "sdcpn/lowerConstraint": {
+        const { id } = data;
+        respond(
+          id,
+          lowerOptimizationConstraint(
+            data.params.code,
+            data.params.space,
+            data.params.context,
+          ),
         );
         break;
       }

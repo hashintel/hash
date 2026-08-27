@@ -110,6 +110,98 @@
         }
       ]
     },
+    "OptimizationConstraint": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "description": "Optional display name shown wherever the constraint is reported.",
+          "type": "string",
+          "minLength": 1
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The authored TypeScript source — the editable text of record. `hir` is its lowered form; regenerating `hir` from `code` must be a no-op."
+        },
+        "hir": {
+          "type": "object",
+          "properties": {
+            "hirVersion": {
+              "type": "number",
+              "const": 1
+            },
+            "surface": {
+              "type": "string",
+              "enum": [
+                "dynamics",
+                "lambda",
+                "kernel",
+                "metric",
+                "scenario-expression",
+                "scenario-code"
+              ]
+            },
+            "params": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": ["name"],
+                "additionalProperties": {}
+              }
+            },
+            "body": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string"
+                }
+              },
+              "required": ["kind"],
+              "additionalProperties": {}
+            }
+          },
+          "required": ["hirVersion", "surface", "params", "body"],
+          "additionalProperties": {},
+          "description": "A serialized HIR function (see hir/hir.ts for the full grammar). Carried verbatim; evaluators must reject unknown node kinds."
+        }
+      },
+      "required": ["id", "code", "hir"],
+      "additionalProperties": false,
+      "description": "One boolean condition. Parameter-space constraints are expressions over `scenario.*` (and `parameters.*`); state-space constraints are metric-like bodies over the simulation `state`, returning boolean."
+    },
+    "OptimizationConstraints": {
+      "type": "object",
+      "properties": {
+        "parameterSpace": {
+          "default": [],
+          "description": "Conditions over the sampled scenario parameters (`scenario.*`), e.g. `scenario.min_altitude < scenario.max_altitude`. Intended to let samplers avoid infeasible suggestions; not enforced yet.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OptimizationConstraint"
+          }
+        },
+        "stateSpace": {
+          "default": [],
+          "description": "Conditions over the simulation state, authored like a metric body but returning boolean. Intended for safe-region margins later; not evaluated yet.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OptimizationConstraint"
+          }
+        }
+      },
+      "required": ["parameterSpace", "stateSpace"],
+      "additionalProperties": false,
+      "description": "The study's boolean conditions, split by what they range over. Declarative in this version: carried, displayed, and readable from the Python binding, but not yet enforced."
+    },
     "OptimizationReplicate": {
       "type": "object",
       "properties": {
@@ -165,11 +257,14 @@
           "items": {
             "$ref": "#/$defs/OptimizationDescribeParameter"
           }
+        },
+        "constraints": {
+          "$ref": "#/$defs/OptimizationConstraints"
         }
       },
       "required": ["direction", "study", "parameters"],
       "additionalProperties": false,
-      "description": "The `optimization.describe` result: direction, study settings, and the parameters that are not fixed."
+      "description": "The `optimization.describe` result: direction, study settings, the parameters that are not fixed, and the study's constraints."
     },
     "OptimizationEvaluateResult": {
       "type": "object",
