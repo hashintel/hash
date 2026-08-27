@@ -7,6 +7,7 @@ import {
   describeDangerousSdcpnKeys,
   findDangerousSdcpnKeys,
 } from "../validation/record-keys";
+import { parseDocumentText } from "./document-text";
 import {
   legacySdcpnFileSchema,
   SDCPN_FILE_FORMAT_VERSION,
@@ -196,4 +197,16 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
     ok: false,
     error: `Invalid SDCPN file: ${legacy.error.issues.map((i) => i.message).join(", ")}`,
   };
+};
+
+/**
+ * Parses SDCPN document text — YAML or JSON, detected from the content — into
+ * an SDCPN. The text-level counterpart to {@link parseSDCPNFile} for callers
+ * that hold a file's raw text (the `/ui` file picker, the CLI's `--model`).
+ */
+export const parseSDCPNDocument = (text: string): ImportResult => {
+  const document = parseDocumentText(text);
+  return document.ok
+    ? parseSDCPNFile(document.data)
+    : { ok: false, error: `Invalid SDCPN file: ${document.error}` };
 };

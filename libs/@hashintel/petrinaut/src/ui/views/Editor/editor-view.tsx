@@ -10,6 +10,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   calculateGraphLayout,
   layoutNodeDimensions,
+  type DocumentFormat,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
@@ -195,12 +196,12 @@ export const EditorView = ({
     handleCreateEmpty();
   }
 
-  function handleExport() {
-    exportSDCPN({ petriNetDefinition, title });
+  function handleExport(format: DocumentFormat) {
+    exportSDCPN({ petriNetDefinition, title, format });
   }
 
-  function handleExportWithoutVisualInfo() {
-    exportSDCPN({ petriNetDefinition, title, removeVisualInfo: true });
+  function handleExportWithoutVisualInfo(format: DocumentFormat) {
+    exportSDCPN({ petriNetDefinition, title, removeVisualInfo: true, format });
   }
 
   function handleExportTikZ() {
@@ -294,14 +295,24 @@ export const EditorView = ({
       text: "Export",
       subItems: [
         {
-          id: "export-json",
-          text: "JSON",
-          onClick: handleExport,
+          id: "export-yaml",
+          text: "YAML",
+          onClick: () => handleExport("yaml"),
         },
         {
-          id: "export-without-visuals",
+          id: "export-yaml-without-visuals",
+          text: "YAML without visual info",
+          onClick: () => handleExportWithoutVisualInfo("yaml"),
+        },
+        {
+          id: "export-json",
+          text: "JSON",
+          onClick: () => handleExport("json"),
+        },
+        {
+          id: "export-json-without-visuals",
           text: "JSON without visual info",
-          onClick: handleExportWithoutVisualInfo,
+          onClick: () => handleExportWithoutVisualInfo("json"),
         },
         {
           id: "export-tikz",

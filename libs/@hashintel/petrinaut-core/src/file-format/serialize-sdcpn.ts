@@ -1,10 +1,14 @@
+import { serializeDocument } from "./document-text";
 import { removeVisualInformation } from "./remove-visual-info";
 import { SDCPN_FILE_FORMAT_VERSION } from "./types";
 
 import type { SDCPN } from "../types/sdcpn";
+import type { DocumentFormat } from "./document-text";
 
 /**
- * Serialize an SDCPN to the canonical JSON file format string.
+ * Serialize an SDCPN to the canonical file format string — YAML by default,
+ * JSON on request. Both encodings carry the same structure and re-import
+ * identically.
  *
  * The output includes format metadata (`version`, `meta.generator`) and the
  * editor-supplied `title`. When `removeVisualInfo` is true, places/transitions
@@ -19,10 +23,12 @@ export function serializeSDCPN({
   petriNetDefinition,
   title,
   removeVisualInfo,
+  format = "yaml",
 }: {
   petriNetDefinition: SDCPN;
   title: string;
   removeVisualInfo?: boolean;
+  format?: DocumentFormat;
 }): string {
   const sdcpnToExport = removeVisualInfo
     ? removeVisualInformation(petriNetDefinition)
@@ -37,5 +43,5 @@ export function serializeSDCPN({
     title,
   };
 
-  return JSON.stringify(payload, null, 2);
+  return serializeDocument(payload, format);
 }

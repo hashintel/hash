@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import {
   compileScenario,
   deriveRunSeed,
+  parseDocumentText,
   petrinautOptimizationEvaluateParamsSchema,
   petrinautOptimizationManifestSchema,
 } from "@hashintel/petrinaut-core";
@@ -55,13 +56,11 @@ export async function loadOptimizationManifest(
   path: string,
 ): Promise<PetrinautOptimizationManifest> {
   const text = await readFile(path, "utf8");
-  let data: unknown;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error("Optimization manifest must be valid JSON");
+  const document = parseDocumentText(text);
+  if (!document.ok) {
+    throw new Error(`Invalid optimization manifest: ${document.error}`);
   }
-  return parseOptimizationManifest(data);
+  return parseOptimizationManifest(document.data);
 }
 
 function describeParameter(
