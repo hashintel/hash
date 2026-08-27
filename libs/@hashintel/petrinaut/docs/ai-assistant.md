@@ -29,21 +29,26 @@ If the host offers voice input, a finalized spoken turn is held while an existin
 finishes and is submitted when the conversation is ready.
 
 When the Brunch voice preview is enabled by the host, select **Start voice interview** beside the
-composer. Review the transcription, retention, and AI-voice disclosure, optionally check your
-microphone, confirm that you understand it, then select **Start interview**. The full interview
-stage opens above the composer. It keeps the current question visible, labels live words **Not sent
-yet**, and shows **Answer recorded** only after finalization. The words shown as the question are
-also the exact words spoken by the AI-generated OpenAI voice.
+composer. The first time, review the transcription, retention, and AI-voice disclosure, optionally
+check your microphone, confirm that you understand it, then select **Start interview**. Petrinaut
+remembers that acknowledgement in this browser for the current disclosure version, so later
+sessions start directly. If browser storage is unavailable or the disclosure changes, Petrinaut asks
+again.
+
+The full interview stage opens above the composer. It keeps the current question visible, labels
+live words **Not sent yet**, and shows **Answer recorded** only after finalization. The words shown
+as the question are also the exact words spoken by the AI-generated OpenAI voice.
 
 The stage names the microphone state and shows input activity only while the microphone is really
 on. During interviewer playback, **Interrupt and speak** first stops playback and then opens the
 microphone; it does not listen and play at the same time. While listening, choose **Done speaking**
-to close the microphone and let voice detection finish the answer, or **Pause** to turn the
-microphone off temporarily. **Pause**, **Minimize**, **End interview**, and **Interrupt and speak**
-are separate actions. After an answer is recorded and the interviewer is ready, use **Redo answer**
-to say an explicit correction or **Edit text** to type one. These correction controls remain
-unavailable while the previous answer is still being written down. The normal message composer
-remains available as a keyboard fallback.
+or **Pause** — each keeps a visible label with a supporting icon — to close the microphone and let
+voice detection finish the answer, or to turn the microphone off temporarily. **Pause**,
+**Minimize**, **End interview**, and **Interrupt and speak** are separate actions. The header uses
+icon-only controls with tooltips **Minimize** and **End interview**. After an answer is recorded
+and the interviewer is ready, use **Redo answer** to say an explicit correction or **Edit text** to
+type one. These correction controls remain unavailable while the previous answer is still being
+written down. The normal message composer remains available as a keyboard fallback.
 
 Minimizing produces a compact bar above the composer. Closing the AI sidebar during an active
 interview moves that same session to a bottom bar over the canvas; reopening the sidebar docks it
@@ -59,9 +64,10 @@ Petrinaut canvas remains the model surface.
 If voice cannot continue, the status panel identifies the kind of problem. For microphone
 permission or device errors, allow access or connect/select a microphone before reconnecting. For
 an interrupted request, network error, or timeout, check the connection and choose **Reconnect**.
-If the preview is unavailable, continue with the text composer. An invalid service response
-includes a diagnostic reference you can give to an operator; that reference and its diagnostic
-record do not contain your transcript or the response being spoken.
+If the preview is unavailable, continue with the text composer. Error codes and diagnostic
+references sit under collapsed **Technical details** so you can share them with an operator without
+them dominating the interview; that reference and its diagnostic record do not contain your
+transcript or the response being spoken.
 
 When no interview is active, **Clear AI chat** via the delete button in the top right of the panel
 wipes the conversation, stops any in-flight stream, and tells the host app to forget the messages
