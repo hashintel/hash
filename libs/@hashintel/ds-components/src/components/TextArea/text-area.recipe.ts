@@ -72,7 +72,6 @@ export const textAreaRecipe = sva({
       fontSize: "[inherit]",
       fontWeight: "[inherit]",
       lineHeight: "[inherit]",
-      scrollbarWidth: "[thin]",
       _placeholder: { color: "neutral.s80" },
       _disabled: { cursor: "auto" },
     },
