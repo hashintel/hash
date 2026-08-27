@@ -38,7 +38,9 @@
  * from 0 to that row's count minus one and `count` is that row's count; a
  * fixed row sees its position in the place's row list as `i` and `1` as
  * `count`. A shared column's expression evaluates per row in the same scope,
- * so it may read `i`.
+ * so it may read `i`. A dynamic row's count may read the place's Variables
+ * too — it evaluates once, before any row exists, so only Variables whose
+ * values don't use `i`/`count` are legal there.
  */
 
 import { isDangerousRecordKey } from "../../../../validation/record-keys";
@@ -639,6 +641,96 @@ export type AdHocPlaceTotal =
   | { resolved: true; total: number }
   | { resolved: false; text: string };
 
+const escapeForPattern = (name: string): string =>
+  name.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
+/** A bare reference to a per-place Variable (`weight`, not `scenario.weight`). */
+const bareReferencePattern = (name: string): RegExp =>
+  new RegExp(
+    String.raw`(?<![.\w$])${escapeForPattern(name)}(?![A-Za-z0-9_$])`,
+    "g",
+  );
+
+/**
+ * How a per-place Variable's value is produced when read OUTSIDE a row's
+ * scope. A dynamic row's count evaluates once, before any token exists, so
+ * a Variable it reads must not vary per token.
+ */
+interface PlaceVariableProduction {
+  name: string;
+  /** The generated parameter an optimized Variable reads (optimization synthesis). */
+  parameterName: string | null;
+  /**
+   * Expression with earlier plain siblings fully inlined; references to
+   * optimized siblings stay bare for the consumer pass to resolve.
+   */
+  inlinedExpression: string;
+  /** Whether the value (transitively) reads `i` or `count`. */
+  rowDependent: boolean;
+}
+
+function placeVariableProductions(
+  placeState: AdHocColouredPlace,
+  placeKey: string,
+  includeOptimize: boolean,
+): PlaceVariableProduction[] {
+  const productions: PlaceVariableProduction[] = [];
+  for (const variable of placeState.variables) {
+    const parameterName =
+      includeOptimize && variable.optimize
+        ? adHocParameterName.variable(placeKey, variable.name)
+        : null;
+    let inlinedExpression = variable.expression;
+    let rowDependent = false;
+    if (parameterName === null) {
+      const references = referencedNames(variable.expression);
+      rowDependent = references.has("i") || references.has("count");
+      for (const earlier of productions) {
+        if (earlier.parameterName !== null || !references.has(earlier.name)) {
+          continue;
+        }
+        rowDependent ||= earlier.rowDependent;
+        inlinedExpression = inlinedExpression.replace(
+          bareReferencePattern(earlier.name),
+          () => `(${earlier.inlinedExpression})`,
+        );
+      }
+    }
+    productions.push({
+      name: variable.name,
+      parameterName,
+      inlinedExpression,
+      rowDependent,
+    });
+  }
+  return productions;
+}
+
+/**
+ * Inlines a place's Variables into an expression evaluated outside the row
+ * scope (a dynamic row's count): plain Variables become their expanded
+ * expressions, optimized ones read their generated parameter through
+ * `parameterReference`.
+ */
+function inlinePlaceVariables(
+  expression: string,
+  productions: readonly PlaceVariableProduction[],
+  parameterReference: (parameterName: string) => string,
+): string {
+  let out = expression;
+  // Reverse declaration order: substituting a later Variable may surface
+  // bare references to earlier OPTIMIZED siblings (plain ones are already
+  // expanded), which the later passes then resolve.
+  for (const production of [...productions].reverse()) {
+    out = out.replace(bareReferencePattern(production.name), () =>
+      production.parameterName !== null
+        ? parameterReference(production.parameterName)
+        : `(${production.inlinedExpression})`,
+    );
+  }
+  return out;
+}
+
 /**
  * The token total a place's table shows at its bottom: the sum of every
  * row's count (1 per fixed row). It resolves to a number unless a count is
@@ -671,7 +763,10 @@ export function resolveAdHocPlaceTotal(
     }
   }
 
-  const resolveCount = (count: AdHocValue): number | string => {
+  const resolveCount = (
+    count: AdHocValue,
+    inline: (expression: string) => string = (expression) => expression,
+  ): number | string => {
     if (count.optimize) {
       return `${count.optimize.min} … ${count.optimize.max}`;
     }
@@ -681,7 +776,11 @@ export function resolveAdHocPlaceTotal(
       }
     }
     try {
-      const value = evaluateConstant(count.expression, parameters, constants);
+      const value = evaluateConstant(
+        inline(count.expression),
+        parameters,
+        constants,
+      );
       if (typeof value === "number" && Number.isFinite(value)) {
         return Math.max(0, Math.round(value));
       }
@@ -705,12 +804,28 @@ export function resolveAdHocPlaceTotal(
     return { resolved: false, text: term };
   }
 
+  // Counts may read the place's Variables; expand them so a count over
+  // constant Variables still totals. An optimized or `i`-dependent Variable
+  // makes the expansion non-constant, which falls through to printing the
+  // count as written.
+  const placeProductions = placeVariableProductions(
+    placeState,
+    adHocPlaceKey(context.places, placeId),
+    true,
+  );
+  const inlineCount = (expression: string): string =>
+    inlinePlaceVariables(
+      expression,
+      placeProductions,
+      (parameterName) => `(scenario[${JSON.stringify(parameterName)}])`,
+    );
+
   for (const row of placeState.rows) {
     if (row.kind === "fixed") {
       resolvedSum += 1;
       continue;
     }
-    const term = resolveCount(row.count);
+    const term = resolveCount(row.count, inlineCount);
     if (typeof term === "number") {
       resolvedSum += term;
     } else {
@@ -1465,9 +1580,6 @@ function resolveExposed(
 // shadow `scenario` with a local record so user expressions keep reading
 // `scenario.<variable>` exactly as scenario code reads scenario parameters.
 
-const escapeForPattern = (name: string): string =>
-  name.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-
 /** A reference to `scenario.<name>` that another Variable's expression holds. */
 const variableReferencePattern = (name: string): RegExp =>
   new RegExp(
@@ -1547,6 +1659,71 @@ function inlineVariablesIntoOverride(
   return out;
 }
 
+/**
+ * A dynamic row's count may read the place's Variables, but only ones whose
+ * values don't vary per token — the count runs once, before any row exists,
+ * with no `i` or `count` in scope. Violations error at the count's slot.
+ */
+function collectCountErrors(
+  plan: SynthesisPlan,
+  state: AdHocScenarioState,
+  context: AdHocSynthesisContext,
+  includeOptimize: boolean,
+): void {
+  for (const [placeId, placeState] of Object.entries(state.places)) {
+    if (placeState.kind !== "coloured") {
+      continue;
+    }
+    const place = context.places.find((candidate) => candidate.id === placeId);
+    if (!place) {
+      continue;
+    }
+    const placeKey = adHocPlaceKey(context.places, placeId);
+    const productions = placeVariableProductions(
+      placeState,
+      placeKey,
+      includeOptimize,
+    );
+    for (const [rowIndex, row] of placeState.rows.entries()) {
+      if (row.kind !== "template") {
+        continue;
+      }
+      if (includeOptimize && row.count.optimize) {
+        // The count is a generated parameter; its expression is retained
+        // text, not evaluated.
+        continue;
+      }
+      const target: AdHocValueTarget = {
+        kind: "count",
+        placeId,
+        row: rowIndex,
+      };
+      const references = referencedNames(row.count.expression);
+      if (references.has("i") || references.has("count")) {
+        plan.errors.push({
+          source: "count",
+          itemId: adHocParameterName.count(placeKey, rowIndex),
+          slot: { target, part: "expression" },
+          message: `The count of item ${rowIndex + 1} in "${place.name}" cannot read \`i\` or \`count\` — the count is what defines them.`,
+        });
+        continue;
+      }
+      const rowDependent = productions.find(
+        (production) =>
+          production.rowDependent && references.has(production.name),
+      );
+      if (rowDependent) {
+        plan.errors.push({
+          source: "count",
+          itemId: adHocParameterName.count(placeKey, rowIndex),
+          slot: { target, part: "expression" },
+          message: `The count of item ${rowIndex + 1} in "${place.name}" reads "${rowDependent.name}", whose value uses \`i\` or \`count\` — a count cannot vary per token.`,
+        });
+      }
+    }
+  }
+}
+
 function generateInitialStateCode(
   state: AdHocScenarioState,
   context: AdHocSynthesisContext,
@@ -1609,6 +1786,12 @@ function generateInitialStateCode(
       ? (typeById.get(place.colorId)?.elements ?? [])
       : [];
 
+    const placeProductions = placeVariableProductions(
+      placeState,
+      placeKey,
+      includeOptimize,
+    );
+
     // Per-place Variables are per-row intermediates: they may read `i` (the
     // design deliberately allows it), so they are declared inside each row's
     // scope, after `i` and `count` exist, not once per place.
@@ -1639,11 +1822,20 @@ function generateInitialStateCode(
         // alike ("Bay A" / "Bay-A") must not share an alias — sequential
         // let-bindings would silently make both read the last one.
         const countAlias = `__adhocCount${countLines.length}`;
+        // Counts run once, at the top level (after the scenario shadow):
+        // references to the place's Variables are inlined — they only exist
+        // inside each row's scope — with optimized ones reading their
+        // generated parameter through a pre-shadow capture.
+        const countSource =
+          includeOptimize && row.count.optimize
+            ? captureParameter(adHocParameterName.count(placeKey, rowIndex))
+            : `(${inlinePlaceVariables(
+                row.count.expression,
+                placeProductions,
+                captureParameter,
+              )})`;
         countLines.push(
-          `const ${countAlias} = Math.max(0, Math.round(${source(
-            row.count,
-            adHocParameterName.count(placeKey, rowIndex),
-          )}));`,
+          `const ${countAlias} = Math.max(0, Math.round(${countSource}));`,
         );
         return [
           `range(${countAlias}).map((i) => {`,
@@ -1697,6 +1889,7 @@ function synthesize(
   | { ok: true; output: AdHocSynthesisOutput }
   | { ok: false; errors: AdHocSynthesisError[] } {
   const plan = collectPlan(state, context, includeOptimize);
+  collectCountErrors(plan, state, context, includeOptimize);
   const exposedParameters = resolveExposed(
     plan,
     state,

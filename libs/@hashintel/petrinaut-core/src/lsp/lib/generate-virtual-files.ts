@@ -786,7 +786,8 @@ export type AdHocSessionData = {
  * type-checked as the slot's type. Scope mirrors the generated code: net
  * parameters as `parameters.<name>`, top-level Variables as
  * `scenario.<name>`, and inside a place's rows the per-place Variables plus
- * `i` and `count`. Bounds must be constants, so they see only the top-level
+ * `i` and `count`. A dynamic row's count sees the place's Variables but not
+ * `i`/`count`. Bounds must be constants, so they see only the top-level
  * scope.
  */
 export function generateAdHocSessionFiles(
@@ -925,6 +926,18 @@ export function generateAdHocSessionFiles(
           ),
       ].join("\n")}\n`;
     const fullRowScope = rowScopeDeclarations(placeState.variables.length);
+    // A dynamic row's count runs once, outside any row: the place's
+    // Variables are in scope (the generated code inlines them), but `i` and
+    // `count` are not — the count is what defines them. A Variable whose
+    // value uses `i`/`count` type-checks here and is rejected by synthesis
+    // with an error at the count's slot.
+    const countScope = `${placeState.variables
+      .filter((variable) => isValidAdHocVariableName(variable.name))
+      .map(
+        (variable) =>
+          `declare const ${variable.name}: ${toTsType(variable.type)};`,
+      )
+      .join("\n")}\n`;
 
     for (const [index, variable] of placeState.variables.entries()) {
       addValue(
@@ -954,7 +967,7 @@ export function generateAdHocSessionFiles(
           { kind: "count", placeId, row: rowIndex },
           row.count,
           "number",
-          "",
+          countScope,
         );
       }
       for (const [column, cell] of row.cells.entries()) {
