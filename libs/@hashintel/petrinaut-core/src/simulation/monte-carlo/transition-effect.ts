@@ -5,7 +5,10 @@ import {
   fillTokenIndices,
 } from "../engine/buffer-transition";
 import { hasCapacityHeadroom } from "../engine/capacity";
-import { enumerateWeightedMarkingIndicesGenerator } from "../engine/enumerate-weighted-markings";
+import {
+  enumerateWeightedMarkingIndicesGenerator,
+  firstWeightedMarkingIndices,
+} from "../engine/enumerate-weighted-markings";
 import { nextRandom } from "../engine/seeded-rng";
 import { getPlaceIndex } from "./layout";
 
@@ -82,9 +85,12 @@ export function computeTransitionEffect(
     (place) => place.strideBytes === 0 && place.arcType === "standard",
   );
 
-  const tokenCombinations = enumerateWeightedMarkingIndicesGenerator(
-    inputPlacesWithValues,
-  );
+  // A token-independent lambda returns the same value for every combination,
+  // so either the first combination fires or none does: test only the first
+  // (structural enablement above guarantees it exists).
+  const tokenCombinations = transition.lambdaReadsNoInputTokens
+    ? [firstWeightedMarkingIndices(inputPlacesWithValues)]
+    : enumerateWeightedMarkingIndicesGenerator(inputPlacesWithValues);
 
   // The compiled buffer-ABI lambda/kernel read token attributes at
   // packed-struct byte offsets straight from the frame's shared views (see

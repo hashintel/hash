@@ -20,6 +20,7 @@ export function makeCompiledTransition({
   places,
   types,
   lambdaFn,
+  lambdaReadsNoInputTokens = false,
   kernelFn = null,
 }: {
   transition: Transition;
@@ -27,6 +28,8 @@ export function makeCompiledTransition({
   types: Color[];
   /** Buffer-ABI mock: `(f64, u64, u8, placeBases, indices) => value`. */
   lambdaFn: HirCompiledBufferLambda;
+  /** Marks the mock lambda as token-independent (first-combination path). */
+  lambdaReadsNoInputTokens?: boolean;
   /** Buffer-ABI mock writing into the staging views, or null when the
    * transition has no colored output places. */
   kernelFn?: HirCompiledBufferKernel | null;
@@ -93,6 +96,7 @@ export function makeCompiledTransition({
     // Capacity is exercised through `buildSimulation`; these hand-built
     // transitions are unconstrained.
     capacityConstraints: [],
+    lambdaReadsNoInputTokens,
     inputPlaces,
     outputPlaces,
     lambdaFn,

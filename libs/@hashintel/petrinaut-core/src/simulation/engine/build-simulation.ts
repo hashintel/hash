@@ -338,7 +338,7 @@ function createLambdaFn({
   artifact: HirLambdaArtifact | undefined;
   expectedSlotCount: number;
   stringPool: StringPool;
-}): HirCompiledBufferLambda {
+}): { lambdaFn: HirCompiledBufferLambda; readsNoInputTokens: boolean } {
   const availability = getTransitionLogicAvailability(
     transition,
     sdcpn,
@@ -348,7 +348,10 @@ function createLambdaFn({
 
   if (!availability.lambda || transition.lambdaCode.trim() === "") {
     // Buffer-ABI-shaped constants — the arguments are ignored.
-    return lambdaType === "stochastic" ? () => Infinity : () => true;
+    return {
+      lambdaFn: lambdaType === "stochastic" ? () => Infinity : () => true,
+      readsNoInputTokens: true,
+    };
   }
 
   if (!artifact) {
@@ -363,11 +366,14 @@ function createLambdaFn({
   }
 
   try {
-    return instantiateHirBufferLambda(
-      artifact.source,
-      parameterValues,
-      stringPool,
-    );
+    return {
+      lambdaFn: instantiateHirBufferLambda(
+        artifact.source,
+        parameterValues,
+        stringPool,
+      ),
+      readsNoInputTokens: artifact.readsNoInputTokens === true,
+    };
   } catch (error) {
     throw new SDCPNItemError(
       `Failed to instantiate the compiled Lambda for transition \`${
@@ -479,7 +485,7 @@ function createCompiledTransition({
     typesMap,
   );
   const stagingSize = computeKernelStagingSize(transition, placesMap, typesMap);
-  const lambdaFn = createLambdaFn({
+  const { lambdaFn, readsNoInputTokens } = createLambdaFn({
     transition,
     sdcpn,
     extensions,
@@ -573,6 +579,7 @@ function createCompiledTransition({
       };
     }),
     lambdaFn,
+    lambdaReadsNoInputTokens: readsNoInputTokens,
     kernelFn,
     placeBases: new Int32Array(coloredInputArcCount),
     indices: new Int32Array(expectedSlotCount),
