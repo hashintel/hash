@@ -113,6 +113,7 @@ describe("VoiceTurnController", () => {
 
     const starting = harness.controller.start();
     updateChatStatus(harness.controller, "streaming");
+    expect(harness.controller.getSnapshot().phase).toBe("connecting");
     await starting;
 
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
@@ -124,6 +125,29 @@ describe("VoiceTurnController", () => {
 
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
     expect(harness.controller.getSnapshot().phase).toBe("listening");
+  });
+
+  test("preserves a Brunch error that occurs while voice is connecting", async () => {
+    const harness = createHarness();
+    let finishConnection: (() => void) | undefined;
+    harness.session.connect.mockImplementationOnce(
+      () =>
+        new Promise<number>((resolve) => {
+          finishConnection = () => resolve(1);
+        }),
+    );
+
+    const starting = harness.controller.start();
+    updateChatStatus(harness.controller, "error");
+    finishConnection?.();
+    await starting;
+
+    expect(harness.session.disconnect).toHaveBeenCalledOnce();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      errorMessage:
+        "Brunch could not complete the current turn. Use the composer to retry.",
+      phase: "recoverable-error",
+    });
   });
 
   test("pauses an open microphone for a non-voice Brunch turn", async () => {
@@ -438,6 +462,34 @@ describe("VoiceTurnController", () => {
     updateChatStatus(harness.controller, "ready");
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
     expect(harness.controller.getSnapshot().phase).toBe("listening");
+  });
+
+  test("finishes an in-flight transcript when Brunch becomes busy", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emit({
+      connectionEpoch: 1,
+      itemId: "item-a",
+      type: "input-committed",
+    });
+    harness.emit({
+      key: key(1, "item-a"),
+      text: "The support",
+      type: "partial",
+    });
+
+    updateChatStatus(harness.controller, "streaming");
+
+    expect(harness.controller.getSnapshot().phase).toBe("transcribing");
+    harness.emit({
+      key: key(1, "item-a"),
+      text: "The support lead triages it.",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+    expect(harness.submitText).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "The support lead triages it." }),
+    );
   });
 
   test("rejects events from a stopped epoch after reconnect", async () => {

@@ -251,6 +251,10 @@ export class VoiceTurnController {
       const errorMessage = this.#awaitingChatCycle
         ? "Brunch could not accept the voice turn. Use the composer to retry."
         : "Brunch could not complete the current turn. Use the composer to retry.";
+      ++this.#generation;
+      this.#activeEpoch = null;
+      this.#activeItemId = null;
+      this.#activeKey = null;
       this.#awaitingChatCycle = false;
       this.#sawBusyChatStatus = false;
       this.#speechQueue.length = 0;
@@ -258,6 +262,7 @@ export class VoiceTurnController {
       this.#speechLoopGeneration = null;
       this.#playback.cancel();
       this.#session.setMicrophoneEnabled(false);
+      void this.#session.disconnect();
       this.#update({ errorMessage, phase: "recoverable-error" });
       return;
     }
@@ -270,8 +275,9 @@ export class VoiceTurnController {
       this.#session.setMicrophoneEnabled(false);
       if (
         this.#speechLoopGeneration === null &&
-        this.#snapshot.phase !== "idle" &&
-        this.#snapshot.phase !== "recoverable-error"
+        (this.#snapshot.phase === "listening" ||
+          this.#snapshot.phase === "delivering" ||
+          this.#snapshot.phase === "waiting")
       ) {
         this.#update({ phase: "waiting" });
       }
