@@ -862,6 +862,7 @@ export const AiAssistantPanel = ({
         new Error("The interview conversation changed."),
       );
       queuedInterviewAnswerRef.current = null;
+      setInterviewAnswerQueued(false);
     },
     [conversationId],
   );

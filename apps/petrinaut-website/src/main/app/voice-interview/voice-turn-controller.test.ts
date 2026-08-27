@@ -246,6 +246,8 @@ describe("VoiceTurnController", () => {
       type: "completed",
     });
     await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+    updateChatStatus(harness.controller, "streaming");
+    updateChatStatus(harness.controller, "ready");
     harness.controller.redoAnswer();
     expect(harness.controller.getSnapshot().phase).toBe("listening");
     harness.emit({
@@ -257,6 +259,141 @@ describe("VoiceTurnController", () => {
     expect(harness.submitText).toHaveBeenLastCalledWith({
       target: "message",
       text: 'Correction to my previous voice answer "The operator approves it.": The shift lead approves it.',
+    });
+  });
+
+  test("keeps redo disabled while the previous answer is pending", async () => {
+    const harness = createHarness();
+    let finishDelivery: (() => void) | undefined;
+    harness.submitText.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishDelivery = () => resolve({ kind: "message" as const });
+        }),
+    );
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [
+        {
+          ...canonicalSegment("ask-pending-redo"),
+          source: "brunch-ask" as const,
+        },
+      ],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emit({
+      key: key(1, "answer-pending-redo"),
+      text: "The operator approves it.",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+
+    harness.controller.redoAnswer();
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      microphoneEnabled: false,
+      phase: "delivering",
+    });
+    finishDelivery?.();
+  });
+
+  test("holds queued question speech while paused and starts it on resume", async () => {
+    const harness = createHarness();
+    let finishPlayback: (() => void) | undefined;
+    harness.playback.play.mockImplementationOnce(
+      async (_segment, events = {}) => {
+        events.onPlaying?.();
+        await new Promise<void>((resolve) => {
+          finishPlayback = resolve;
+        });
+      },
+    );
+    await harness.controller.start();
+    harness.controller.pause();
+    const question = {
+      ...canonicalSegment("ask-paused"),
+      source: "brunch-ask" as const,
+    };
+
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question],
+      status: "streaming",
+    });
+
+    expect(harness.playback.play).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      microphoneEnabled: false,
+      phase: "paused",
+    });
+
+    harness.controller.resume();
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().phase).toBe("playing"),
+    );
+    expect(harness.playback.play).toHaveBeenCalledWith(
+      question,
+      expect.any(Object),
+    );
+
+    finishPlayback?.();
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        microphoneEnabled: true,
+        phase: "listening",
+      }),
+    );
+  });
+
+  test("answers a new question normally after redo was armed", async () => {
+    const harness = createHarness();
+    const firstQuestion = {
+      ...canonicalSegment("ask-first"),
+      source: "brunch-ask" as const,
+    };
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [firstQuestion],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emit({
+      key: key(1, "answer-first"),
+      text: "The operator approves it.",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+    updateChatStatus(harness.controller, "streaming");
+    updateChatStatus(harness.controller, "ready");
+    harness.controller.redoAnswer();
+
+    const nextQuestion = {
+      ...canonicalSegment("ask-next"),
+      source: "brunch-ask" as const,
+    };
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [firstQuestion, nextQuestion],
+      status: "ready",
+    });
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        currentQuestion: nextQuestion.text,
+        phase: "listening",
+      }),
+    );
+    const nextAnswerKey = key(1, "answer-next");
+    harness.emit({
+      key: nextAnswerKey,
+      text: "The supervisor dispatches it.",
+      type: "completed",
+    });
+
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledTimes(2));
+    expect(harness.submitText).toHaveBeenLastCalledWith({
+      id: createVoiceMessageId("preview/net 1", nextAnswerKey),
+      text: "The supervisor dispatches it.",
     });
   });
 
@@ -895,6 +1032,35 @@ describe("VoiceTurnController", () => {
     expect(harness.session.connect).toHaveBeenCalledTimes(2);
   });
 
+  test("replays a pending question after ending and restarting", async () => {
+    const harness = createHarness();
+    const question = {
+      ...canonicalSegment("ask-restart", "What happens after approval?"),
+      source: "brunch-ask" as const,
+    };
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question],
+      status: "ready",
+    });
+    await harness.controller.start();
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().phase).toBe("listening"),
+    );
+
+    await harness.controller.end();
+    await harness.controller.start();
+
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        currentQuestion: "What happens after approval?",
+        microphoneEnabled: true,
+        phase: "listening",
+      }),
+    );
+    expect(harness.playback.play).toHaveBeenCalledTimes(2);
+  });
+
   test("does not let a late delivery overwrite a connection failure", async () => {
     const harness = createHarness();
     let finishDelivery: (() => void) | undefined;
@@ -951,6 +1117,61 @@ describe("VoiceTurnController", () => {
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
       false,
     );
+  });
+
+  test("ignores a typed correction while the previous answer is still pending", async () => {
+    const harness = createHarness();
+    let finishDelivery: (() => void) | undefined;
+    harness.submitText
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finishDelivery = () => resolve({ kind: "message" as const });
+          }),
+      )
+      .mockRejectedValueOnce(new Error("A queued answer already exists"));
+    await harness.controller.start();
+    harness.emit({
+      key: key(1, "answer-pending"),
+      text: "The support lead closes it.",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+    expect(harness.controller.getSnapshot().phase).toBe("delivering");
+
+    await harness.controller.submitCorrection(
+      "The incident manager closes it.",
+    );
+
+    expect(harness.submitText).toHaveBeenCalledOnce();
+    expect(harness.controller.getSnapshot().phase).toBe("delivering");
+    finishDelivery?.();
+  });
+
+  test("ignores a typed correction while answer capacity is unavailable", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emit({
+      key: key(1, "answer-before-capacity-closes"),
+      text: "The support lead closes it.",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+    updateChatStatus(harness.controller, "streaming");
+    updateChatStatus(harness.controller, "ready");
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "ready",
+    });
+    expect(harness.controller.getSnapshot().phase).toBe("listening");
+
+    await harness.controller.submitCorrection(
+      "The incident manager closes it.",
+    );
+
+    expect(harness.submitText).toHaveBeenCalledOnce();
+    expect(harness.controller.getSnapshot().phase).toBe("listening");
   });
 
   test("seeds finalized history without replaying it when voice starts or reconnects", async () => {

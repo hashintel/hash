@@ -222,6 +222,9 @@ export class VoiceTurnController {
   }
 
   public async end(): Promise<void> {
+    if (!this.#questionAnswered && this.#currentQuestionId !== null) {
+      this.#seenSpeechSegmentIds.delete(this.#currentQuestionId);
+    }
     ++this.#generation;
     this.#activeEpoch = null;
     this.#activeItemId = null;
@@ -273,6 +276,9 @@ export class VoiceTurnController {
       !correctedText ||
       !previousText ||
       this.#activeEpoch === null ||
+      this.#snapshot.phase !== "listening" ||
+      this.#awaitingChatCycle ||
+      !this.#canAcceptInterviewAnswer ||
       this.#speechLoopGeneration !== null
     ) {
       return;
@@ -329,6 +335,7 @@ export class VoiceTurnController {
       return;
     }
     this.#paused = false;
+    this.#startSpeechQueueIfNeeded();
     this.#settleListeningIfReady();
   }
 
@@ -336,6 +343,8 @@ export class VoiceTurnController {
     if (
       this.#activeEpoch === null ||
       !this.#snapshot.lastCommittedText ||
+      this.#snapshot.phase !== "listening" ||
+      this.#awaitingChatCycle ||
       this.#speechLoopGeneration !== null ||
       !this.#canAcceptInterviewAnswer
     ) {
@@ -613,7 +622,8 @@ export class VoiceTurnController {
       this.#speechLoopGeneration !== null ||
       this.#speechQueue.length === 0 ||
       this.#activeEpoch === null ||
-      this.#snapshot.phase === "transcribing"
+      this.#snapshot.phase === "transcribing" ||
+      this.#paused
     ) {
       return;
     }
@@ -795,6 +805,7 @@ export class VoiceTurnController {
       this.#currentQuestionId = segment.id;
       this.#questionPlaybackComplete = false;
       this.#questionAnswered = false;
+      this.#redoing = false;
       this.#answerReadyQuestionId = null;
       this.#awaitingChatCycle = false;
       this.#sawBusyChatStatus = false;

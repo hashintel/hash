@@ -356,6 +356,68 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(requests).toHaveLength(3);
   });
 
+  test("reopens the interview answer buffer when the conversation changes", async () => {
+    let streamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() =>
+        Promise.resolve(
+          new ReadableStream({
+            start(controller) {
+              streamController = controller;
+              for (const chunk of textChunks("question", "Question ready")) {
+                controller.enqueue(chunk);
+              }
+            },
+          }),
+        ),
+      ),
+    };
+    let latestStageContext: PetrinautAiInterviewStageContext | undefined;
+    const createAiAssistant = (
+      conversationId: string,
+    ): PetrinautAiAssistant => ({
+      conversationId,
+      renderInterviewStage: (context) => {
+        latestStageContext = context;
+        return null;
+      },
+      transport,
+    });
+    const rendered = renderTestPanel({
+      aiAssistant: createAiAssistant("conversation-1"),
+    });
+    let initialSubmission: Promise<unknown> | undefined;
+    act(() => {
+      initialSubmission = latestStageContext?.submitText({ text: "Begin" });
+    });
+    void initialSubmission?.catch(() => undefined);
+    await waitFor(() => expect(latestStageContext?.status).toBe("streaming"));
+    let queuedAnswer: Promise<unknown> | undefined;
+    act(() => {
+      queuedAnswer = latestStageContext?.submitInterviewAnswer({
+        target: "message",
+        text: "Queued interview answer",
+      });
+    });
+    const queuedAnswerRejection = expect(queuedAnswer).rejects.toThrow(
+      "The interview conversation changed.",
+    );
+    await waitFor(() =>
+      expect(latestStageContext?.canAcceptInterviewAnswer).toBe(false),
+    );
+
+    rendered.rerenderPanel(createAiAssistant("conversation-2"));
+
+    await queuedAnswerRejection;
+    await waitFor(() =>
+      expect(latestStageContext?.canAcceptInterviewAnswer).toBe(true),
+    );
+    await act(async () => streamController?.close());
+  });
+
   test("exposes the generated useChat conversation identity to host controls", async () => {
     const chatIds: string[] = [];
     const observedConversationIds = new Set<string>();
