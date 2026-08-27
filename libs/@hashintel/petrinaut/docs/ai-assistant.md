@@ -64,10 +64,11 @@ Petrinaut canvas remains the model surface.
 If voice cannot continue, the status panel identifies the kind of problem. For microphone
 permission or device errors, allow access or connect/select a microphone before reconnecting. For
 an interrupted request, network error, or timeout, check the connection and choose **Reconnect**.
-If the preview is unavailable, continue with the text composer. Error codes and diagnostic
-references sit under collapsed **Technical details** so you can share them with an operator without
-them dominating the interview; that reference and its diagnostic record do not contain your
-transcript or the response being spoken.
+If the preview is unavailable, continue with the text composer. An invalid service response
+includes a diagnostic reference you can give to an operator; error codes and that reference sit
+under collapsed **Technical details** so you can share them without them dominating the interview.
+That reference and its diagnostic record do not contain your transcript or the response being
+spoken.
 
 When no interview is active, **Clear AI chat** via the delete button in the top right of the panel
 wipes the conversation, stops any in-flight stream, and tells the host app to forget the messages
