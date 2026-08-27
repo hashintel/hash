@@ -40,9 +40,9 @@ An experiment fans out over several workers ([Worker
 sharding](doc:simulation/worker-sharding)), each running its own
 `MonteCarloSimulator` over a slice of the runs.
 
-User code — dynamics, lambdas, kernels, expression metrics — is compiled by the
-HIR pipeline into buffer-ABI JS programs (`hir/emit-buffer-js.ts`) that read
-packed token bytes directly. That part is fast; the profile below shows it
+User code — dynamics, lambdas, kernels, expression metrics — is compiled by
+the HIR pipeline in the LSP worker into buffer-ABI JS programs
+(`hir/emit-buffer-js.ts`) that read packed token bytes directly. That part is fast; the profile below shows it
 barely registers. The engine _around_ it is the expensive part.
 
 ## Where the time goes
@@ -231,7 +231,9 @@ Two design points worth keeping in mind when touching this:
 
 - **Scalar frames carry `runAggregate`**, the pre-reduction accumulator state,
   because `frameValue` cannot be merged — a mean of means is not a mean. Time
-  aggregation is recomputed on the main thread from merged frame values.
+  aggregation is recomputed on the main thread from merged frame values, while
+  distribution metrics aggregate per _run_ over time and so are already
+  correct shard-locally.
 - **Frames are released on a watermark**: a frame number finalises only once
   every still-running shard has reported it, with finished shards dropped from
   the watermark rather than blocking it. That is why merged output matches an
@@ -304,8 +306,8 @@ feeds into codegen, that has to change.
 
 ### The WebGPU backend
 
-The GPU question was scoped as a spike with a kill bar: is a GPU path ≥10× the
-threaded CPU, or not worth having? Measured on SIR, 4096 runs × 600 frames, one
+The GPU question was scoped as a spike with a kill bar: is a GPU path ≥10×
+the CPU, or not worth having? Measured on SIR, 4096 runs × 600 frames, one
 distribution metric, Apple metal-3:
 
 |                | Wall clock | ns / run-frame |
@@ -313,8 +315,9 @@ distribution metric, Apple metal-3:
 | CPU engine     | 6060 ms    | 2466           |
 | WebGPU backend | 3.4 ms     | 1.87           |
 
-**~1780×**, so it shipped: [GPU backend](doc:simulation/gpu-backend) describes
-the design — one invocation per run, WGSL generated from the same HIR the CPU
+**~1780×**, so it shipped: uncoloured discrete nets are the sweet spot — a
+run's whole state is 36 bytes of integers that live in registers for a whole
+dispatch. [GPU backend](doc:simulation/gpu-backend) describes the design — one invocation per run, WGSL generated from the same HIR the CPU
 compiles, whole-experiment dispatch, on-device histogram reduction, and a
 compact summary readback. It is selected by a **Compute backend** setting; a
 net the backend cannot run falls back to the CPU with the reason recorded on
@@ -380,7 +383,7 @@ reason: two of its metrics reduce over token attributes, which only an
 expression metric can express, and the GPU serves only place-token-count
 metrics.)
 
-Bring-up left four records worth keeping:
+Bring-up left five records worth keeping:
 
 - **Kernel writes must be hoisted before compaction.** A kernel reads the
   attributes of the tokens the firing consumes, and compaction overwrites
@@ -411,6 +414,21 @@ Bring-up left four records worth keeping:
   mappable buffer allocates; 2.90 GiB does not, on a 4 GiB adapter), so the
   code attempts the allocation and explains a failure rather than guessing a
   threshold.
+- **The browser cannot lower HIR; carry it on the artifacts.** WGSL is
+  generated from HIR, and lowering needs the TypeScript compiler, whose
+  `require("module")` webpack cannot resolve for a browser target. The import
+  chain is valid TypeScript, so `lint:tsc`, `lint:eslint` and `test:unit` are
+  all blind to it — only bundling a consumer surfaces it, and it broke the
+  `@apps/hash-frontend` build twice. The fix is to carry HIR on the compiled
+  artifacts, produced in the LSP worker where the compiler legitimately lives,
+  and have `webgpu/hir-from-artifacts.ts` read it back. HIR roughly triples
+  artifact size (15.3 KB → 45.5 KB on `supplyChainWithDisruption`) and
+  artifacts are structured-cloned to every shard worker, so it is opt-in:
+  `compileHirArtifacts(sdcpn, extensions, { includeHir })`, requested only
+  when the chosen backend is WebGPU. `scripts/check-browser-safe-entries.mjs`
+  walks the built entry graphs for Node-only specifiers as part of
+  `yarn build` — about a second, against roughly nine minutes for a frontend
+  build.
 - **Dawn signals out-of-memory by returning an error buffer**, not by
   throwing, so allocation looks successful and every later use reports being
   "invalid due to a previous error". Buffer creation is wrapped in an
@@ -426,7 +444,7 @@ the CPU engine on identical configuration:
 | ----- | ----------------- | ------ | ---- |
 | 60    | 9.950             | 9.960  | 0.1% |
 | 240   | 24.039            | 23.997 | 0.2% |
-| 480   | 42.760            | 42.675 | 0.3% |
+| 480   | 42.760            | 42.675 | 0.2% |
 | 599   | 52.027            | 51.873 | 0.3% |
 
 Matching the two backends' firing statistics was itself instructive: an early
