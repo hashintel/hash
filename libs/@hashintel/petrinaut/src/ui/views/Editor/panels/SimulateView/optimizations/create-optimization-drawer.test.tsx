@@ -8,7 +8,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { useRef } from "react";
+import { use, useRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
@@ -20,6 +20,7 @@ import {
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { UserSettingsProvider } from "../../../../../../react/state/user-settings-provider";
 import { sirSdcpnContextValue } from "../experiments/experiments-story-fixtures";
 import {
@@ -197,12 +198,32 @@ type TestProviderProps = {
   createOptimization?: OptimizationsContextValue["createOptimization"];
   languageClient?: LanguageClientContextValue;
   sdcpnContextValue?: SDCPNContextValue;
+  /** Turns the Ad-hoc scenarios user setting on for this render. */
+  enableAdHocScenarios?: boolean;
+};
+
+/** Overrides one user setting below the provider (localStorage is not
+ * writable in this environment). */
+const AdHocSettingOverride = ({
+  enabled,
+  children,
+}: {
+  enabled: boolean;
+  children: ReactNode;
+}) => {
+  const value = use(UserSettingsContext);
+  return (
+    <UserSettingsContext value={{ ...value, enableAdHocScenarios: enabled }}>
+      {children}
+    </UserSettingsContext>
+  );
 };
 
 const TestProviders = ({
   createOptimization = async () => "optimization-test",
   languageClient,
   sdcpnContextValue = sirSdcpnContextValue,
+  enableAdHocScenarios = false,
 }: TestProviderProps) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const optimizations: OptimizationsContextValue = {
@@ -219,8 +240,10 @@ const TestProviders = ({
     <OptimizationsContext value={optimizations}>
       <SDCPNContext value={sdcpnContextValue}>
         <UserSettingsProvider>
-          <div ref={portalContainerRef} />
-          <CreateOptimizationDrawer open onClose={() => {}} />
+          <AdHocSettingOverride enabled={enableAdHocScenarios}>
+            <div ref={portalContainerRef} />
+            <CreateOptimizationDrawer open onClose={() => {}} />
+          </AdHocSettingOverride>
         </UserSettingsProvider>
       </SDCPNContext>
     </OptimizationsContext>
@@ -641,8 +664,8 @@ describe("CreateOptimizationDrawer", () => {
     expect(input.study).toEqual({ trials: 20, sampler: "tpe" });
   });
 
-  it("offers the ad-hoc option and requires an optimize selection", () => {
-    render(<TestProviders />);
+  it("offers No scenario behind the setting and requires an optimize selection", () => {
+    render(<TestProviders enableAdHocScenarios />);
 
     fireEvent.change(
       screen.getByRole("combobox", { name: "Select a scenario" }),
@@ -718,7 +741,7 @@ describe("CreateOptimizationDrawer", () => {
 
     expect(input.scenario.id).toBe(generatedScenario.id);
     expect(input.scenario.parameterBindings).toEqual({
-      "adhoc_count_Queue": {
+      adhoc_count_Queue: {
         kind: "optimize",
         domain: {
           kind: "integer",
