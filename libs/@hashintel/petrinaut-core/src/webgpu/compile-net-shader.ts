@@ -4,8 +4,9 @@
  * The unit of work is an *experiment*, not a frame. One invocation owns one run
  * and advances it through many frames inside the shader, so per-run state stays
  * in registers and the host is not involved until a chunk finishes. This is the
- * only shape that pays: `../../docs/simulation-performance.md` §8.3 measures a
- * per-frame host round-trip at hundreds of microseconds against ~1 µs of
+ * only shape that pays:
+ * `libs/@local/petrinaut-arch-docs/content/simulation/performance.mdx` §8.3
+ * measures a per-frame host round-trip at hundreds of microseconds against ~1 µs of
  * per-frame work, so any design that reads back each frame is slower than doing
  * nothing. That is also why this deliberately does **not** implement
  * `MonteCarloSimulator`, whose synchronous per-frame `advanceAll()` would force
