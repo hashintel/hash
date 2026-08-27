@@ -227,6 +227,133 @@ describe("synthesizeAdHocScenario", () => {
     ]);
   });
 
+  it("a dynamic row's count may read the place's Variables", () => {
+    const state = baseState();
+    state.variables = [];
+    state.places["place-pumps"] = {
+      kind: "coloured",
+      variables: [
+        { name: "base", type: "integer", expression: "1 + 1", optimize: null },
+        {
+          name: "doubled",
+          type: "integer",
+          expression: "base * 2",
+          optimize: null,
+        },
+      ],
+      rows: [template("doubled - 1", "i", "false")],
+      sharedColumns: {},
+    };
+
+    const result = compiled(synthesizeAdHocScenario(state, context));
+    // doubled = (1 + 1) * 2 = 4 → three tokens; inside each row the same
+    // Variables stay per-row values.
+    expect(result.initialState["place-pumps"]).toEqual([
+      { pressure: 0, worn: false },
+      { pressure: 1, worn: false },
+      { pressure: 2, worn: false },
+    ]);
+  });
+
+  it("resolves the place total through count-referenced Variables", () => {
+    const state = baseState();
+    state.variables = [];
+    state.places["place-pumps"] = {
+      kind: "coloured",
+      variables: [
+        { name: "base", type: "integer", expression: "3", optimize: null },
+      ],
+      rows: [fixed("1", "false"), template("base + 1", "i", "false")],
+      sharedColumns: {},
+    };
+    expect(resolveAdHocPlaceTotal(state, context, "place-pumps")).toEqual({
+      resolved: true,
+      total: 5,
+    });
+  });
+
+  it("rejects a count reading a Variable whose value uses i", () => {
+    const state = baseState();
+    state.variables = [];
+    state.places["place-pumps"] = {
+      kind: "coloured",
+      variables: [
+        { name: "wear", type: "real", expression: "i * 2", optimize: null },
+        {
+          name: "viaWear",
+          type: "real",
+          expression: "wear + 1",
+          optimize: null,
+        },
+      ],
+      rows: [template("viaWear", "0", "false")],
+      sharedColumns: {},
+    };
+
+    const outcome = synthesizeAdHocScenario(state, context);
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.errors[0]?.message).toContain("cannot vary per token");
+    expect(outcome.errors[0]?.slot).toEqual({
+      target: { kind: "count", placeId: "place-pumps", row: 0 },
+      part: "expression",
+    });
+  });
+
+  it("rejects a count reading i directly", () => {
+    const state = baseState();
+    state.variables = [];
+    state.places["place-pumps"] = {
+      kind: "coloured",
+      variables: [],
+      rows: [template("i + 1", "0", "false")],
+      sharedColumns: {},
+    };
+
+    const outcome = synthesizeAdHocScenario(state, context);
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.errors[0]?.message).toContain("the count is what defines");
+  });
+
+  it("a count may read an optimized place Variable through its parameter", () => {
+    const state = baseState();
+    state.variables = [];
+    state.places["place-pumps"] = {
+      kind: "coloured",
+      variables: [
+        {
+          name: "batch",
+          type: "integer",
+          expression: "2",
+          optimize: { min: "1", max: "5", scale: "linear", step: "1" },
+        },
+      ],
+      rows: [template("batch", "i", "false")],
+      sharedColumns: {},
+    };
+
+    const outcome = synthesizeAdHocOptimization(state, context);
+    if (!outcome.ok) {
+      throw new Error(JSON.stringify(outcome.errors));
+    }
+    // Preview default: batch = 2 → two tokens.
+    expect(compiled(outcome).initialState["place-pumps"]).toEqual([
+      { pressure: 0, worn: false },
+      { pressure: 1, worn: false },
+    ]);
+    // The optimizer's suggestion drives the count through the generated
+    // parameter.
+    const overridden = compiled(outcome, {
+      adhoc_var_Pumps_batch: 4,
+    });
+    expect(overridden.initialState["place-pumps"]).toHaveLength(4);
+  });
+
   it("a shared column supersedes every cell in the column", () => {
     const state = baseState();
     state.places["place-pumps"] = {
@@ -1050,7 +1177,13 @@ describe("exposed variables", () => {
     // error keeps the failure at the form, on the name, with a rename hint.
     const state = baseState();
     state.variables = [
-      { name: "prototype", type: "real", expression: "1", optimize: null, exposed: true },
+      {
+        name: "prototype",
+        type: "real",
+        expression: "1",
+        optimize: null,
+        exposed: true,
+      },
     ];
     state.places = {};
     const outcome = synthesizeAdHocScenario(state, context);
@@ -1058,7 +1191,9 @@ describe("exposed variables", () => {
     if (outcome.ok) {
       return;
     }
-    expect(outcome.errors[0]?.message).toContain("reserved JavaScript property");
+    expect(outcome.errors[0]?.message).toContain(
+      "reserved JavaScript property",
+    );
     expect(outcome.errors[0]?.slot.part).toBe("name");
   });
 

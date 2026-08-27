@@ -116,6 +116,33 @@ describe("ad-hoc session diagnostics", () => {
     ).toEqual([]);
   });
 
+  it("a dynamic row's count sees the place's Variables but not i or count", () => {
+    const state = makeState();
+    const place = state.places["pl1"];
+    if (place?.kind !== "coloured") {
+      throw new Error("fixture should be coloured");
+    }
+    const row = place.rows[0];
+    if (row?.kind !== "template") {
+      throw new Error("fixture row should be a template");
+    }
+    row.count = { expression: "angle + 1", optimize: null };
+
+    expect(
+      slotDiagnostics(makeServer(state), {
+        target: { kind: "count", placeId: "pl1", row: 0 },
+        part: "expression",
+      }),
+    ).toEqual([]);
+
+    row.count = { expression: "i + 1", optimize: null };
+    const diagnostics = slotDiagnostics(makeServer(state), {
+      target: { kind: "count", placeId: "pl1", row: 0 },
+      part: "expression",
+    });
+    expect(diagnostics.join("\n")).toContain("Cannot find name 'i'");
+  });
+
   it("rejects a numeric expression in a boolean cell", () => {
     const state = makeState();
     const place = state.places["pl1"];
