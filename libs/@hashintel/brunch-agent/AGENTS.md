@@ -20,8 +20,8 @@ from this file.
 
 ## Mission contract
 
-When work starts on a branch, state these six things in the branch/PR description (no separate
-document):
+When work starts on a branch, state these six things in [`MISSION.md`](MISSION.md) and copy them
+into the branch/PR description. Do not create additional planning or control documents.
 
 - **Imperative** — what must become true, and why now.
 - **Throughline** — the real entrypoint or boundary being changed.
