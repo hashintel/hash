@@ -74,6 +74,7 @@ import type {
   AdHocScenarioState,
   AdHocSynthesisError,
   Metric,
+  PetrinautOptimizationConstraints,
   PetrinautOptimizationInput,
   PetrinautOptimizationParameterBinding,
   Scenario,
@@ -185,6 +186,9 @@ const errorsStyle = css({
 });
 
 type Direction = "maximize" | "minimize";
+
+/** One constraint being authored: stable id + editable source. */
+type ConstraintDraft = { id: string; code: string };
 type MetricSource = "saved" | "custom";
 type ParameterDrafts = Record<string, OptimizationParameterDraft>;
 
@@ -226,6 +230,86 @@ const ScenarioSelectLabel = ({
     </span>
   );
 };
+
+const constraintRowStyle = css({
+  display: "flex",
+  alignItems: "flex-start",
+  gap: "2",
+  "& > :first-child": {
+    flex: "[1]",
+    minWidth: "0",
+  },
+});
+
+const constraintListStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "2",
+});
+
+/**
+ * One editable list of constraints: an expression editor per row, a remove
+ * button, and a quiet add button. Parameter constraints edit as one-line
+ * expressions; state constraints as small code bodies.
+ */
+const ConstraintDraftList = ({
+  drafts,
+  onChange,
+  multiline,
+  addLabel,
+  ariaPrefix,
+}: {
+  drafts: ConstraintDraft[];
+  onChange: (drafts: ConstraintDraft[]) => void;
+  multiline: boolean;
+  addLabel: string;
+  ariaPrefix: string;
+}) => (
+  <div className={constraintListStyle}>
+    {drafts.map((draft, index) => (
+      <div key={draft.id} className={constraintRowStyle}>
+        <CodeEditor
+          language="typescript"
+          singleLine={!multiline}
+          value={draft.code}
+          height={multiline ? "96px" : undefined}
+          onChange={(code) =>
+            onChange(
+              drafts.map((candidate) =>
+                candidate.id === draft.id
+                  ? { ...candidate, code: code ?? "" }
+                  : candidate,
+              ),
+            )
+          }
+        />
+        <Button
+          size="xs"
+          variant="ghost"
+          tone="neutral"
+          aria-label={`Remove ${ariaPrefix} ${index + 1}`}
+          onClick={() =>
+            onChange(drafts.filter((candidate) => candidate.id !== draft.id))
+          }
+        >
+          Remove
+        </Button>
+      </div>
+    ))}
+    <div>
+      <Button
+        size="sm"
+        variant="subtle"
+        tone="neutral"
+        onClick={() =>
+          onChange([...drafts, { id: crypto.randomUUID(), code: "" }])
+        }
+      >
+        {addLabel}
+      </Button>
+    </div>
+  </div>
+);
 
 const InlineObjectiveMetricForm = ({ form }: { form: MetricFormInstance }) => {
   const values = useStore(form.store, (state) => state.values);
@@ -501,6 +585,7 @@ export function buildPetrinautOptimizationInput({
   seed,
   dt,
   maxTime,
+  constraints,
 }: {
   name: string;
   title: string;
@@ -514,6 +599,7 @@ export function buildPetrinautOptimizationInput({
   seed: number;
   dt: number;
   maxTime: number;
+  constraints?: PetrinautOptimizationConstraints;
 }): PetrinautOptimizationInput {
   // Keyed by scenario parameter identifiers from the net definition: no
   // prototype.
@@ -573,6 +659,7 @@ export function buildPetrinautOptimizationInput({
     },
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
+    ...(constraints ? { constraints } : {}),
     execution: { seed, dt, maxTime, seedsPerTrial },
     study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
@@ -597,6 +684,7 @@ export function buildAdHocPetrinautOptimizationInput({
   seed,
   dt,
   maxTime,
+  constraints,
 }: {
   name: string;
   title: string;
@@ -610,6 +698,7 @@ export function buildAdHocPetrinautOptimizationInput({
   seed: number;
   dt: number;
   maxTime: number;
+  constraints?: PetrinautOptimizationConstraints;
 }): PetrinautOptimizationInput {
   return petrinautOptimizationInputSchema.parse({
     kind: "petrinaut-optimization",
@@ -625,6 +714,7 @@ export function buildAdHocPetrinautOptimizationInput({
     },
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
+    ...(constraints ? { constraints } : {}),
     execution: { seed, dt, maxTime, seedsPerTrial },
     study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
@@ -638,7 +728,9 @@ export const CreateOptimizationDrawer = ({
   onClose: () => void;
 }) => {
   const { extensions, petriNetDefinition, title } = use(SDCPNContext);
-  const { requestHirArtifacts } = use(LanguageClientContext);
+  const { requestHirArtifacts, requestConstraintHir } = use(
+    LanguageClientContext,
+  );
   const { createOptimization } = use(OptimizationsContext);
   const { enableAdHocScenarios, webGpuEnabled } = use(UserSettingsContext);
   const source = useOptimizationSource();
@@ -674,6 +766,15 @@ export const CreateOptimizationDrawer = ({
   const [maxTime, setMaxTime] = useState<number | null>(180);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Boolean conditions embedded in the manifest as source + lowered HIR.
+  // Declarative for now: carried and readable (Python included), not
+  // enforced by the study.
+  const [parameterConstraintDrafts, setParameterConstraintDrafts] = useState<
+    ConstraintDraft[]
+  >([]);
+  const [stateConstraintDrafts, setStateConstraintDrafts] = useState<
+    ConstraintDraft[]
+  >([]);
 
   const isAdHoc =
     enableAdHocScenarios && selectedScenarioId === AD_HOC_SCENARIO_VALUE;
@@ -782,6 +883,8 @@ export const CreateOptimizationDrawer = ({
     setMaxTime(180);
     setError(null);
     setIsSubmitting(false);
+    setParameterConstraintDrafts([]);
+    setStateConstraintDrafts([]);
   };
 
   const resetState = () => {
@@ -883,6 +986,53 @@ export const CreateOptimizationDrawer = ({
         }
       }
 
+      // Lower each authored constraint against the study's parameters; a
+      // failing one blocks submission with its first diagnostic.
+      const constraintContext = {
+        netParameters: extensions.parameters
+          ? petriNetDefinition.parameters
+          : [],
+        scenarioParameters: scenarioForRun.scenarioParameters,
+        sdcpn: petriNetDefinition,
+        extensions,
+      };
+      const constraints: PetrinautOptimizationConstraints = {
+        parameterSpace: [],
+        stateSpace: [],
+      };
+      for (const [space, drafts_] of [
+        ["parameterSpace", parameterConstraintDrafts],
+        ["stateSpace", stateConstraintDrafts],
+      ] as const) {
+        for (const [index, draft] of drafts_.entries()) {
+          if (draft.code.trim() === "") {
+            continue;
+          }
+          const lowered = await requestConstraintHir(
+            draft.code,
+            space,
+            constraintContext,
+          );
+          if (!lowered.ok) {
+            setIsSubmitting(false);
+            setError(
+              `${space === "parameterSpace" ? "Parameter" : "State"} constraint ${index + 1}: ${lowered.diagnostics[0]?.message ?? "does not compile"}`,
+            );
+            return;
+          }
+          constraints[space].push({
+            id: draft.id,
+            code: draft.code,
+            hir: lowered.hir,
+          });
+        }
+      }
+      const manifestConstraints =
+        constraints.parameterSpace.length > 0 ||
+        constraints.stateSpace.length > 0
+          ? constraints
+          : undefined;
+
       const input = adHocBindings
         ? buildAdHocPetrinautOptimizationInput({
             name,
@@ -897,6 +1047,7 @@ export const CreateOptimizationDrawer = ({
             seed,
             dt,
             maxTime,
+            constraints: manifestConstraints,
           })
         : buildPetrinautOptimizationInput({
             name,
@@ -911,6 +1062,7 @@ export const CreateOptimizationDrawer = ({
             seed,
             dt,
             maxTime,
+            constraints: manifestConstraints,
           });
       await createOptimization(input, { computeBackend, parallelism });
       resetState();
@@ -1275,6 +1427,38 @@ export const CreateOptimizationDrawer = ({
                   />
                 </Section>
               )}
+
+              <Section
+                title="Constraints"
+                tooltip="Boolean conditions carried with the study. They are recorded in the manifest and readable by every consumer; nothing enforces them yet."
+                collapsible
+                defaultOpen
+              >
+                <span className={hintStyle}>
+                  Parameter constraints are expressions over the study's
+                  parameters (scenario.*, parameters.*), e.g. scenario.min_load
+                  &lt; scenario.max_load.
+                </span>
+                <ConstraintDraftList
+                  drafts={parameterConstraintDrafts}
+                  onChange={setParameterConstraintDrafts}
+                  multiline={false}
+                  addLabel="Add parameter constraint"
+                  ariaPrefix="parameter constraint"
+                />
+                <span className={hintStyle}>
+                  State constraints read the simulation state like a metric body
+                  and must return a boolean, e.g. return
+                  state.places.Queue.count &lt;= 10;
+                </span>
+                <ConstraintDraftList
+                  drafts={stateConstraintDrafts}
+                  onChange={setStateConstraintDrafts}
+                  multiline
+                  addLabel="Add state constraint"
+                  ariaPrefix="state constraint"
+                />
+              </Section>
 
               <Section title="Objective" collapsible defaultOpen>
                 <span className={hintStyle}>
