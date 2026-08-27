@@ -422,6 +422,7 @@ export {
   AD_HOC_DEFAULT_OPTIMIZE,
   AD_HOC_DEFAULT_COUNT_OPTIMIZE,
   adHocOptimizationBindings,
+  adHocExposedParameterIdentifier,
   adHocParameterName,
   adHocPlaceKey,
   adHocSlotKey,
@@ -462,6 +463,7 @@ export {
   adHocPlaceStateFor,
   adHocValueTargetSchema,
   applyAdHocAction,
+  cloneAdHocScenarioState,
   defaultAdHocCellsFor,
   EMPTY_AD_HOC_STATE,
   emptyAdHocValue,
@@ -471,6 +473,7 @@ export {
   type AdHocActionInput,
   type AdHocActionName,
 } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-actions";
+export { adHocScenarioStateSchema } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-state-schema";
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {
   coerceTokenAttributeValue,

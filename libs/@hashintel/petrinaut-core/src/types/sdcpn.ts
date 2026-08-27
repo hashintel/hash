@@ -128,6 +128,116 @@ export type DifferentialEquation = {
   code: string;
 };
 
+// -- Ad-hoc scenario definitions ---------------------------------------------
+//
+// The editing state of the ad-hoc scenario form. A persisted scenario may
+// carry one of these as its initial state, which makes the shapes document
+// types; the behaviour around them (transitions, actions, synthesis) lives
+// in `simulation/authoring/scenario/ad-hoc/`.
+
+/** Optimization settings for one Optimize toggle, kept while toggled off. */
+export interface AdHocOptimizeSettings {
+  /** Lower bound; an expression that must resolve to a constant. */
+  min: string;
+  /** Upper bound; an expression that must resolve to a constant. */
+  max: string;
+  scale: "linear" | "log";
+  /** Integer domains only; an expression resolving to a positive integer. */
+  step?: string;
+}
+
+/**
+ * One value-carrying slot. `expression` is always kept, so toggling Optimize
+ * on and off never destroys what the user typed.
+ */
+export interface AdHocValue {
+  expression: string;
+  /** Non-null while the Optimize toggle is on. */
+  optimize: AdHocOptimizeSettings | null;
+  /**
+   * The settings from the last time Optimize was on, kept while it is off so
+   * toggling it back restores the previous bounds. Ignored by synthesis.
+   */
+  retainedOptimize?: AdHocOptimizeSettings;
+}
+
+export interface AdHocVariable extends AdHocValue {
+  /**
+   * A bare JavaScript identifier. Top-level Variables are referenced as
+   * `scenario.<name>`; per-place Variables by the bare name.
+   */
+  name: string;
+  type: "real" | "integer" | "boolean";
+  /**
+   * Exposed as a scenario parameter (top-level Variables only): the
+   * synthesized scenario declares a parameter named after the Variable,
+   * defaulting to the expression's value — which must resolve to a
+   * constant — and the Variable reads that parameter at run time, so
+   * consumers adjust it per run. When the same Variable is also optimized
+   * in an optimization synthesis, Optimize wins and no exposed parameter
+   * is emitted.
+   */
+  exposed?: boolean;
+}
+
+/**
+ * One spreadsheet row. A fixed row emits one token. A dynamic ("template")
+ * row emits its count's worth of tokens, the cells evaluated once per `i`;
+ * the count may itself be optimized. The kinds mix freely within a place and
+ * cycle from the row gutter: Fixed → Dynamic → count-Optimized → Fixed.
+ */
+export type AdHocRow =
+  | {
+      kind: "fixed";
+      cells: AdHocValue[];
+      /** The count from the row's last dynamic stint, restored on cycling. */
+      retainedCount?: AdHocValue;
+    }
+  | { kind: "template"; count: AdHocValue; cells: AdHocValue[] };
+
+export interface AdHocColouredPlace {
+  kind: "coloured";
+  variables: AdHocVariable[];
+  rows: AdHocRow[];
+  /**
+   * Shared column values, keyed by colour element name. A shared column's
+   * value supersedes every cell in that column: the cells' own states are
+   * kept (so un-sharing restores them exactly) but not evaluated and not
+   * emitted as parameters while the share is in place.
+   */
+  sharedColumns: Record<string, AdHocValue>;
+  /**
+   * Shared values from columns that were un-shared, kept so re-sharing
+   * restores the most recent shared value. Ignored by synthesis.
+   */
+  retainedSharedColumns?: Record<string, AdHocValue>;
+}
+
+export interface AdHocUncolouredPlace {
+  kind: "uncoloured";
+  /** Token count for the place. */
+  count: AdHocValue;
+}
+
+export type AdHocPlaceState = AdHocColouredPlace | AdHocUncolouredPlace;
+
+export interface AdHocNetParameter extends AdHocValue {
+  /** `Parameter.id` of the net parameter this entry overrides. */
+  parameterId: string;
+}
+
+export interface AdHocScenarioState {
+  /**
+   * Top-level Variables, referenced as `scenario.<name>`; they stand in for
+   * scenario parameters in this form.
+   */
+  variables: AdHocVariable[];
+  /** Overrides for net parameters; empty expression keeps the default. */
+  netParameters: AdHocNetParameter[];
+  /** Keyed by `Place.id`; places absent here keep an empty initial state. */
+  places: Record<string, AdHocPlaceState>;
+}
+
 /**
  * A parameter scoped to a specific scenario (distinct from net-level Parameters).
  */
@@ -175,6 +285,19 @@ export type Scenario = {
         /** Single code block that returns the full initial state object. */
         type: "code";
         content: string;
+      }
+    | {
+        /**
+         * An ad-hoc definition authored with the in-app form: expressions per
+         * cell, Variables at two scopes, dynamic rows, shared columns. The
+         * scenario's `scenarioParameters` (from exposed Variables) and
+         * `parameterOverrides` (from the definition's parameter entries) are
+         * DERIVED from this state on save and stay authoritative for
+         * compilation; the stored state is the editable source. Compilation
+         * synthesizes the initial state to code-mode source.
+         */
+        type: "adhoc";
+        content: AdHocScenarioState;
       };
 };
 
