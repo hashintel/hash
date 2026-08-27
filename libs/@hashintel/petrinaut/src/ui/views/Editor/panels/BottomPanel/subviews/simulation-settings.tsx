@@ -15,6 +15,7 @@ import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
 import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { Slider } from "../../../../../components/slider";
 import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
@@ -42,9 +43,13 @@ const scenarioRowStyle = css({
   alignItems: "center",
   gap: "2",
   flexShrink: 0,
+  // The picker sits above the columns; capped so it reads as one control,
+  // not a full-panel bar.
+  maxWidth: "[420px]",
   // Small right inset so the action buttons don't hug the column edge,
   // matching the parameters list below.
   paddingRight: "2",
+  marginBottom: "3",
 });
 
 const scenarioLabelStyle = css({
@@ -82,14 +87,26 @@ const containerStyle = css({
   minHeight: "[0]",
 });
 
-// Two columns with a saved scenario; a third, widest, carries the inline
-// initial-state form when no scenario is selected.
+// Two columns normally; a third, widest, carries the inline initial-state
+// form when the ad-hoc setting is on and no scenario is selected. The
+// scenario picker sits above the grid, so each column starts with its
+// section header and the three headers align.
 const twoColumnContainerStyle = css({
   gridTemplateColumns: "[1fr 1fr]",
 });
 
 const threeColumnContainerStyle = css({
   gridTemplateColumns: "[1fr 1.4fr 0.7fr]",
+});
+
+// The form wraps the whole grid when the ad-hoc embedding is live, so its
+// keyboard handling covers both form columns; it must fill the panel like
+// the grid it contains.
+const adHocFormRootStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  flex: "[1]",
+  minHeight: "[0]",
 });
 
 const initialStateTitleRowStyle = css({
@@ -106,14 +123,6 @@ const initialStateSpacerStyle = css({
 // matching the panel's disabled inputs.
 const lockedFormStyle = css({
   opacity: "[0.5]",
-});
-
-// Left column: the scenario picker and the parameters list share one width.
-const scenarioColumnStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "5",
-  minHeight: "[0]",
 });
 
 const sectionStyle = css({
@@ -354,6 +363,8 @@ const SimulationSettingsContent: React.FC = () => {
     setAdHocScenario,
   } = use(SimulationContext);
 
+  const { enableAdHocScenarios } = use(UserSettingsContext);
+
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
   const [isCreateScenarioOpen, setIsCreateScenarioOpen] = useState(false);
   const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
@@ -362,6 +373,11 @@ const SimulationSettingsContent: React.FC = () => {
     simulationState === "Running" || simulationState === "Paused";
 
   const selectedScenario = scenarios?.find((s) => s.id === selectedScenarioId);
+
+  // The inline ad-hoc embedding: only behind the user setting, and only
+  // with no scenario selected. Off, the panel renders exactly as before
+  // the feature.
+  const adHocActive = enableAdHocScenarios && !selectedScenario;
 
   // When a scenario is selected, show its scenario parameters + overridden net params.
   // When no scenario, show net-level parameters.
@@ -392,6 +408,36 @@ const SimulationSettingsContent: React.FC = () => {
     { value: NO_SCENARIO, text: "No scenario" },
   ];
 
+  const computationSection = (
+    <div className={sectionStyle}>
+      <div className={sectionTitleStyle}>Computation</div>
+      <div className={settingsRowStyle}>
+        {/* Time Step Input */}
+        <div className={settingGroupStyle}>
+          <label htmlFor="time-step-input" className={labelStyle}>
+            Time Step <span className={smallLabelStyle}>(sec/frame)</span>
+            <HelpTooltip content="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
+          </label>
+          <NumberInput
+            htmlForId="time-step-input"
+            size="xs"
+            width="xs"
+            min={0.001}
+            step={0.001}
+            hideStepper
+            value={dt}
+            onChange={(nextDt) => {
+              if (nextDt !== null && nextDt > 0) {
+                setDt(nextDt);
+              }
+            }}
+            disabled={isSimulationActive}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className={rootStyle}>
       <CreateScenarioDrawer
@@ -404,118 +450,181 @@ const SimulationSettingsContent: React.FC = () => {
         scenario={selectedScenario}
       />
 
-      <div
-        className={cx(
-          containerStyle,
-          selectedScenario
-            ? twoColumnContainerStyle
-            : threeColumnContainerStyle,
-        )}
-      >
-        {/* Scenario & Parameters Column */}
-        <div className={scenarioColumnStyle}>
-          {/* Scenario Picker */}
-          <div className={scenarioRowStyle}>
-            <span className={scenarioLabelStyle}>Scenario</span>
-            <div className={scenarioSelectWrapperStyle}>
-              <Select
-                required
-                value={selectedScenarioId}
-                onChange={(scenarioId) =>
-                  setContextScenarioId(
-                    scenarioId === NO_SCENARIO ? null : scenarioId,
-                  )
-                }
-                items={scenarioOptions}
-                size="xs"
-                disabled={isSimulationActive}
-                renderItem={(value) => {
-                  const option = scenarioOptions.find(
-                    (opt) => opt.value === value,
-                  );
-                  return (
-                    <span
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        minWidth: 0,
-                      }}
-                    >
-                      {value === NO_SCENARIO && (
-                        <Icon
-                          name="dash"
-                          size="xs"
-                          className={css({ opacity: "[0.4]" })}
-                        />
-                      )}
-                      <span
-                        style={{
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {option?.text}
-                      </span>
-                    </span>
-                  );
-                }}
-              />
-            </div>
-            <div style={{ display: "flex" }}>
-              {selectedScenario && (
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  aria-label="Edit scenario"
-                  tooltip="Edit Scenario"
-                  iconName="pencil"
-                  onClick={() => setIsViewScenarioOpen(true)}
-                />
-              )}
-              <Button
-                size="xs"
-                variant="ghost"
-                aria-label="Create scenario"
-                tooltip="Create Scenario"
-                iconName="plus"
-                onClick={() => setIsCreateScenarioOpen(true)}
-              />
-              <Button
-                size="xs"
-                variant="ghost"
-                aria-label="Manage scenarios"
-                tooltip="Manage Scenarios"
-                iconName="list"
-                onClick={() => setGlobalMode("simulate")}
-              />
-            </div>
-          </div>
-
-          {scenarioCompilationErrors && (
-            <Banner
-              tone="error"
-              icon={false}
-              role="alert"
-              className={scenarioBannerStyle}
-            >
-              <Banner.Title as="h3">
-                Scenario failed to compile — its parameter overrides and initial
-                state are not applied.
-              </Banner.Title>
-              <Banner.Description className={scenarioMessagesStyle}>
-                {scenarioCompilationErrors.map((compilationError) => (
+      {/* The scenario picker sits above the columns, so the PARAMETERS,
+          INITIAL STATE, and COMPUTATION headers all start their columns at
+          the same height. */}
+      <div className={scenarioRowStyle}>
+        <span className={scenarioLabelStyle}>Scenario</span>
+        <div className={scenarioSelectWrapperStyle}>
+          <Select
+            required
+            value={selectedScenarioId}
+            onChange={(scenarioId) =>
+              setContextScenarioId(
+                scenarioId === NO_SCENARIO ? null : scenarioId,
+              )
+            }
+            items={scenarioOptions}
+            size="xs"
+            disabled={isSimulationActive}
+            renderItem={(value) => {
+              const option = scenarioOptions.find((opt) => opt.value === value);
+              return (
+                <span
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    minWidth: 0,
+                  }}
+                >
+                  {value === NO_SCENARIO && (
+                    <Icon
+                      name="dash"
+                      size="xs"
+                      className={css({ opacity: "[0.4]" })}
+                    />
+                  )}
                   <span
-                    key={`${compilationError.source}:${compilationError.itemId}:${compilationError.message}`}
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
                   >
-                    {compilationError.message}
+                    {option?.text}
                   </span>
-                ))}
-              </Banner.Description>
-            </Banner>
+                </span>
+              );
+            }}
+          />
+        </div>
+        <div style={{ display: "flex" }}>
+          {selectedScenario && (
+            <Button
+              size="xs"
+              variant="ghost"
+              aria-label="Edit scenario"
+              tooltip="Edit Scenario"
+              iconName="pencil"
+              onClick={() => setIsViewScenarioOpen(true)}
+            />
           )}
+          <Button
+            size="xs"
+            variant="ghost"
+            aria-label="Create scenario"
+            tooltip="Create Scenario"
+            iconName="plus"
+            onClick={() => setIsCreateScenarioOpen(true)}
+          />
+          <Button
+            size="xs"
+            variant="ghost"
+            aria-label="Manage scenarios"
+            tooltip="Manage Scenarios"
+            iconName="list"
+            onClick={() => setGlobalMode("simulate")}
+          />
+        </div>
+      </div>
 
+      {scenarioCompilationErrors && (
+        <Banner
+          tone="error"
+          icon={false}
+          role="alert"
+          className={scenarioBannerStyle}
+        >
+          <Banner.Title as="h3">
+            Scenario failed to compile — its parameter overrides and initial
+            state are not applied.
+          </Banner.Title>
+          <Banner.Description className={scenarioMessagesStyle}>
+            {scenarioCompilationErrors.map((compilationError) => (
+              <span
+                key={`${compilationError.source}:${compilationError.itemId}:${compilationError.message}`}
+              >
+                {compilationError.message}
+              </span>
+            ))}
+          </Banner.Description>
+        </Banner>
+      )}
+
+      {adHocActive ? (
+        /* The ad-hoc embedding: Parameters become the form's override
+           spreadsheet and Initial state its places, laid out as panel
+           columns through renderLayout — the form's keyboard handling
+           wraps the whole grid. This embedding still offers no scenario
+           Variables and no Optimize/expose toggles. */
+        <AdHocScenarioForm
+          state={adHocScenario ?? EMPTY_AD_HOC_STATE}
+          onChange={setAdHocScenario}
+          context={{
+            netParameters: globalParameters,
+            places,
+            types: extensions.colors ? types : [],
+          }}
+          selection="none"
+          withVariables={false}
+          className={adHocFormRootStyle}
+          renderLayout={({ parameters: parameterRows, places: placesList }) => (
+            <div className={cx(containerStyle, threeColumnContainerStyle)}>
+              <div className={cx(sectionStyle, fillSectionStyle)}>
+                <div className={initialStateTitleRowStyle}>
+                  <div className={sectionTitleStyle}>Parameters</div>
+                  <HelpTooltip content="Override a parameter's value for this run with an expression. Empty keeps the default. Expressions may read parameters.<name>." />
+                </div>
+                {parameterRows ? (
+                  <ParametersScrollArea>
+                    <div
+                      inert={isSimulationActive}
+                      className={cx(isSimulationActive && lockedFormStyle)}
+                    >
+                      {parameterRows}
+                    </div>
+                  </ParametersScrollArea>
+                ) : (
+                  <div className={emptyMessageStyle}>No parameters defined</div>
+                )}
+              </div>
+
+              <div className={cx(sectionStyle, fillSectionStyle)}>
+                <div className={initialStateTitleRowStyle}>
+                  <div className={sectionTitleStyle}>Initial state</div>
+                  <HelpTooltip content="Token counts and values for this run, without saving a scenario. Every value is an expression and may read parameters.<name>." />
+                  <span className={initialStateSpacerStyle} />
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    tone="neutral"
+                    disabled={adHocScenario === null || isSimulationActive}
+                    onClick={() => setAdHocScenario(null)}
+                  >
+                    Clear
+                  </Button>
+                </div>
+                <ParametersScrollArea>
+                  {/* Like every input in this panel, the definition locks
+                      while a simulation is live — an edit would dispose the
+                      run. The scroll container stays interactive so the
+                      content can still be reviewed mid-run. */}
+                  <div
+                    inert={isSimulationActive}
+                    className={cx(isSimulationActive && lockedFormStyle)}
+                  >
+                    {placesList}
+                  </div>
+                </ParametersScrollArea>
+              </div>
+
+              {computationSection}
+            </div>
+          )}
+        />
+      ) : (
+        <div className={cx(containerStyle, twoColumnContainerStyle)}>
           {/* Parameters Section */}
           <div className={cx(sectionStyle, fillSectionStyle)}>
             <div className={sectionTitleStyle}>Parameters</div>
@@ -640,84 +749,10 @@ const SimulationSettingsContent: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Initial state: with no scenario selected, the ad-hoc form edits
-            token counts and values for this run directly here — no drawer,
-            no separate edition step. The panel's parameter inputs stay the
-            single owner of parameter values (the form gets no netParameters)
-            and this embedding offers no scenario Variables. */}
-        {!selectedScenario && (
-          <div className={cx(sectionStyle, fillSectionStyle)}>
-            <div className={initialStateTitleRowStyle}>
-              <div className={sectionTitleStyle}>Initial state</div>
-              <HelpTooltip content="Token counts and values for this run, without saving a scenario. Every value is an expression and may read parameters.<name>." />
-              <span className={initialStateSpacerStyle} />
-              <Button
-                size="xs"
-                variant="ghost"
-                tone="neutral"
-                disabled={adHocScenario === null || isSimulationActive}
-                onClick={() => setAdHocScenario(null)}
-              >
-                Clear
-              </Button>
-            </div>
-            <ParametersScrollArea>
-              {/* Like every input in this panel, the definition locks while
-                  a simulation is live — an edit would dispose the run. The
-                  scroll container stays interactive so the content can still
-                  be reviewed mid-run. */}
-              <div
-                inert={isSimulationActive}
-                className={cx(isSimulationActive && lockedFormStyle)}
-              >
-                <AdHocScenarioForm
-                  state={adHocScenario ?? EMPTY_AD_HOC_STATE}
-                  onChange={setAdHocScenario}
-                  context={{
-                    netParameters: [],
-                    places,
-                    types: extensions.colors ? types : [],
-                  }}
-                  selection="none"
-                  withVariables={false}
-                  bare
-                />
-              </div>
-            </ParametersScrollArea>
-          </div>
-        )}
-
-        {/* Computation Section */}
-        <div className={sectionStyle}>
-          <div className={sectionTitleStyle}>Computation</div>
-          <div className={settingsRowStyle}>
-            {/* Time Step Input */}
-            <div className={settingGroupStyle}>
-              <label htmlFor="time-step-input" className={labelStyle}>
-                Time Step <span className={smallLabelStyle}>(sec/frame)</span>
-                <HelpTooltip content="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
-              </label>
-              <NumberInput
-                htmlForId="time-step-input"
-                size="xs"
-                width="xs"
-                min={0.001}
-                step={0.001}
-                hideStepper
-                value={dt}
-                onChange={(nextDt) => {
-                  if (nextDt !== null && nextDt > 0) {
-                    setDt(nextDt);
-                  }
-                }}
-                disabled={isSimulationActive}
-              />
-            </div>
-          </div>
+          {computationSection}
         </div>
-      </div>
+      )}
     </div>
   );
 };

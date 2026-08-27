@@ -93,6 +93,22 @@ export interface AdHocScenarioFormProps {
    * already has a heading grammar (Simulation Settings).
    */
   bare?: boolean;
+  /**
+   * Custom arrangement: the host receives each group — already wired to the
+   * form's contexts — and lays them out itself (e.g. Simulation Settings
+   * places Parameters and Initial state in separate panel columns). The
+   * groups render without section chrome, as with `bare`; a group the props
+   * withhold (`withVariables`, an empty `netParameters`) is `null`. The
+   * host's own chrome may render inside too — the wrapper only carries the
+   * form's keyboard handling.
+   */
+  renderLayout?: (groups: {
+    variables: React.ReactNode;
+    parameters: React.ReactNode;
+    places: React.ReactNode;
+  }) => React.ReactNode;
+  /** Classname for the form's root element (the keyboard-handling div). */
+  className?: string;
 }
 
 /**
@@ -132,6 +148,8 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   selection,
   withVariables = true,
   bare = false,
+  renderLayout,
+  className,
 }) => {
   const sessionId = useAdHocLspSession(state);
   const { diagnosticsByUri } = use(LanguageClientContext);
@@ -233,7 +251,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     },
     highlight,
     setFocusedValue,
-    dense: bare,
+    dense: bare || renderLayout !== undefined,
   };
 
   const parameterRows =
@@ -286,8 +304,18 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
       <FormNavigationContext value={navigation}>
         {/* Undo/redo listens in the capture phase, so it sees keys before any
           cell handler; open text fields and Monaco pass through untouched. */}
-        <div ref={rootRef} onKeyDownCapture={handleKeyDown}>
-          {bare ? (
+        <div
+          ref={rootRef}
+          className={className}
+          onKeyDownCapture={handleKeyDown}
+        >
+          {renderLayout ? (
+            renderLayout({
+              variables: variableRows,
+              parameters: parameterRows,
+              places: placesList,
+            })
+          ) : bare ? (
             // The host owns the headings; the groups stack plainly.
             // Variables lead: net parameter overrides may read them.
             <div className={bareListStyle}>

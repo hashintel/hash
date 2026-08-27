@@ -80,6 +80,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, useEntitiesTreeView: value })),
     setEnableNetComponents: (value: boolean) =>
       setState((prev) => ({ ...prev, enableNetComponents: value })),
+    setEnableAdHocScenarios: (value: boolean) =>
+      setState((prev) => ({ ...prev, enableAdHocScenarios: value })),
     setShowWalkthroughOnInit: (value: boolean) =>
       setState((prev) => ({ ...prev, showWalkthroughOnInit: value })),
     updateSubViewSection: (

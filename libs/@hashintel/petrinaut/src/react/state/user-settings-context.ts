@@ -45,6 +45,12 @@ export type UserSettings = {
   useEntitiesTreeView: boolean;
   enableNetComponents: boolean;
   /**
+   * Experimental: offer the ad-hoc scenario form — inline Initial State +
+   * Parameters — in Simulation Settings, experiments, optimizations, and
+   * scenario creation. Off, every surface renders as before the feature.
+   */
+  enableAdHocScenarios: boolean;
+  /**
    * Persisted preference controlling whether the product walkthrough opens
    * automatically the next time the app initializes. The live open state is
    * held as component state seeded from this value, so toggling the preference
@@ -72,6 +78,7 @@ export type UserSettingsActions = {
   setPartialSelection: (value: boolean) => void;
   setUseEntitiesTreeView: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
+  setEnableAdHocScenarios: (value: boolean) => void;
   setShowWalkthroughOnInit: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
@@ -100,6 +107,7 @@ export const defaultUserSettings: UserSettings = {
   partialSelection: true,
   useEntitiesTreeView: false,
   enableNetComponents: false,
+  enableAdHocScenarios: false,
   showWalkthroughOnInit: true,
   subViewPanels: {},
 };
@@ -123,6 +131,7 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setPartialSelection: () => {},
   setUseEntitiesTreeView: () => {},
   setEnableNetComponents: () => {},
+  setEnableAdHocScenarios: () => {},
   setShowWalkthroughOnInit: () => {},
   updateSubViewSection: () => {},
 };
