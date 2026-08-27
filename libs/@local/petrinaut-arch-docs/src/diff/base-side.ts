@@ -10,7 +10,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 
 import { config } from "../../architecture.config";
 import { buildBundle, type BuiltBundle } from "../build";
@@ -38,9 +38,21 @@ export const coveredPaths = (): string[] => [
   ...new Set([...config.packages.map((pkg) => pkg.path), GENERATOR_PACKAGE]),
 ];
 
-/** Where cache entries live; `node_modules/.cache` is what CI persists. */
-const baseCacheDir = (repoRoot: string): string =>
-  join(repoRoot, "node_modules/.cache/petrinaut-arch-docs");
+/**
+ * Where cache entries live. The default is `node_modules/.cache`, which CI
+ * providers persist without configuration and local builds can always write;
+ * a CI whose persisted location differs sets `PETRINAUT_ARCH_DOCS_CACHE_DIR`
+ * rather than the code guessing its layout. A relative override resolves
+ * against the repository root. Whoever controls the variable controls what
+ * the diff trusts as its base, which is the standing for any CI-set variable.
+ */
+const baseCacheDir = (repoRoot: string): string => {
+  const override = process.env.PETRINAUT_ARCH_DOCS_CACHE_DIR?.trim();
+  if (override === undefined || override === "") {
+    return join(repoRoot, "node_modules/.cache/petrinaut-arch-docs");
+  }
+  return isAbsolute(override) ? override : join(repoRoot, override);
+};
 
 const inputsHashFor = (repoRoot: string, includeDiagrams: boolean): string =>
   generatorInputsHash({

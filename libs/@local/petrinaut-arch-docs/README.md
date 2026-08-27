@@ -231,7 +231,9 @@ otherwise) into a scratch repository: a blobless fetch plus a sparse checkout
 of only the covered directories, so the transfer stays small. The build log
 says `base tree fetched from …` when this path ran.
 
-The built base side is cached under `node_modules/.cache/petrinaut-arch-docs`,
+The built base side is cached under `node_modules/.cache/petrinaut-arch-docs`
+(`PETRINAUT_ARCH_DOCS_CACHE_DIR` relocates it, for a CI whose persisted
+location differs),
 keyed in the entry's file name by a hash of the generator's own sources,
 config and pinned dependencies, then the base commit — CI providers persist
 that directory between builds, so any later commit whose base has not moved
