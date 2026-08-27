@@ -211,11 +211,15 @@ const applyPetrinautAiCommand = async ({
 
 export const AiAssistantPanel = ({
   aiAssistant,
+  initialInteractionMode,
   initialMessage,
+  onInitialInteractionModeConsumed,
   onInitialMessageConsumed,
 }: {
   aiAssistant: PetrinautAiAssistant;
+  initialInteractionMode?: PetrinautAiInteractionMode | null;
   initialMessage?: string | null;
+  onInitialInteractionModeConsumed?: () => void;
   onInitialMessageConsumed?: () => void;
 }) => {
   // The wrapped AI transport closes over several refs (diagnostics version,
@@ -251,6 +255,15 @@ export const AiAssistantPanel = ({
   const [interviewAnswerQueued, setInterviewAnswerQueued] = useState(false);
   const [interactionMode, setInteractionMode] =
     useState<PetrinautAiInteractionMode>("chat");
+  const selectInteractionMode = useCallback(
+    (nextMode: PetrinautAiInteractionMode) => {
+      setInteractionMode(nextMode);
+      if (nextMode === "chat") {
+        setComposerFocusRequest((request) => request + 1);
+      }
+    },
+    [],
+  );
   const queuedInterviewAnswerRef = useRef<QueuedInterviewAnswer | null>(null);
   const submittedInitialMessageRef = useRef<string | null>(null);
 
@@ -883,6 +896,39 @@ export const AiAssistantPanel = ({
   }, [stopStateRef]);
 
   useEffect(() => {
+    if (
+      !isAiAssistantOpen ||
+      initialInteractionMode === undefined ||
+      initialInteractionMode === null
+    ) {
+      return;
+    }
+
+    selectInteractionMode(
+      initialInteractionMode === "interview" &&
+        aiAssistant.renderInterviewStage === undefined
+        ? "chat"
+        : initialInteractionMode,
+    );
+    onInitialInteractionModeConsumed?.();
+  }, [
+    aiAssistant.renderInterviewStage,
+    initialInteractionMode,
+    isAiAssistantOpen,
+    onInitialInteractionModeConsumed,
+    selectInteractionMode,
+  ]);
+
+  useEffect(() => {
+    if (
+      interactionMode === "interview" &&
+      aiAssistant.renderInterviewStage === undefined
+    ) {
+      selectInteractionMode("chat");
+    }
+  }, [aiAssistant.renderInterviewStage, interactionMode, selectInteractionMode]);
+
+  useEffect(() => {
     const trimmedInitialMessage = initialMessage?.trim();
     if (!trimmedInitialMessage) {
       submittedInitialMessageRef.current = null;
@@ -949,14 +995,14 @@ export const AiAssistantPanel = ({
     ...composerControlContext,
     canAcceptInterviewAnswer: !interviewAnswerQueued,
     focusComposer: () => {
+      selectInteractionMode("chat");
       setAiAssistantOpen(true);
-      setComposerFocusRequest((request) => request + 1);
     },
     interactionMode,
     openSidebar: () => setAiAssistantOpen(true),
     placement: isAiAssistantOpen ? "sidebar" : "detached",
     setActive: setInterviewActive,
-    setInteractionMode,
+    setInteractionMode: selectInteractionMode,
     submitInterviewAnswer,
   });
   /* eslint-enable react-hooks-js/refs */
@@ -968,6 +1014,8 @@ export const AiAssistantPanel = ({
       composerFocusRequest={composerFocusRequest}
       error={streamError ?? error}
       input={input}
+      interactionMode={interactionMode}
+      interviewAvailable={aiAssistant.renderInterviewStage !== undefined}
       interviewStage={interviewStage}
       interactiveTools={aiAssistant.interactiveTools}
       isOpen={isAiAssistantOpen}
@@ -990,6 +1038,7 @@ export const AiAssistantPanel = ({
       }}
       onClose={() => setAiAssistantOpen(false)}
       onInputChange={setInput}
+      onInteractionModeChange={selectInteractionMode}
       onInteractiveToolSubmit={({ toolCallId, toolName, output }) => {
         if (!isPetrinautAiCommandToolName(toolName)) {
           if (

@@ -121,6 +121,38 @@ describe("AiAssistantContents", () => {
     ).toBe(true);
   });
 
+  test("switches the panel between Chat composer and Interview stage", () => {
+    const onInteractionModeChange = vi.fn();
+    const props = {
+      input: "",
+      interactionMode: "chat" as const,
+      interviewAvailable: true,
+      interviewStage: <div>Interview stage</div>,
+      messages: [] as PetrinautAiMessage[],
+      onClose: noop,
+      onInputChange: noop,
+      onInteractionModeChange,
+      onStop: noop,
+      onSubmit: noop,
+      status: "ready" as const,
+    };
+    const rendered = render(<AiAssistantContents {...props} />);
+
+    expect(
+      screen.getByPlaceholderText("Describe the process you want to create"),
+    ).not.toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "Interview" }));
+    expect(onInteractionModeChange).toHaveBeenCalledWith("interview");
+
+    rendered.rerender(
+      <AiAssistantContents {...props} interactionMode="interview" />,
+    );
+    expect(
+      screen.queryByRole("textbox", { name: "Message AI assistant" }),
+    ).toBeNull();
+    expect(screen.getByText("Interview stage")).not.toBeNull();
+  });
+
   test("keeps completed messages memoized when interactive tools are omitted", () => {
     const messages: PetrinautAiMessage[] = [
       {

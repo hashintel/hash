@@ -13,6 +13,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { ResizeHandle } from "../../../../resize/resize-handle";
+import { AiInteractionModeTabs } from "../../components/ai-interaction-mode-tabs";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
   PromptChips,
@@ -26,6 +27,7 @@ import {
 } from "./ai-assistant-contents/tool-list";
 
 import type { PetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
+import type { PetrinautAiInteractionMode } from "../../../../types/ai-assistant-composer-control";
 import type { AiToolTarget } from "./tool-summaries";
 import type { PetrinautAiMessage } from "./types";
 
@@ -39,6 +41,8 @@ export type AiAssistantContentsProps = {
   composerFocusRequest?: number;
   error?: Error;
   input: string;
+  interactionMode?: PetrinautAiInteractionMode;
+  interviewAvailable?: boolean;
   interviewStage?: ReactNode;
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
   isOpen?: boolean;
@@ -46,6 +50,7 @@ export type AiAssistantContentsProps = {
   onClearMessages?: () => void;
   onClose: () => void;
   onInputChange: (value: string) => void;
+  onInteractionModeChange?: (mode: PetrinautAiInteractionMode) => void;
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   onSendPrompt?: (prompt: string) => void;
@@ -443,6 +448,8 @@ export const AiAssistantContents = ({
   composerFocusRequest = 0,
   error,
   input,
+  interactionMode = "chat",
+  interviewAvailable = false,
   interviewStage,
   interactiveTools = EMPTY_INTERACTIVE_TOOLS,
   isOpen = true,
@@ -450,6 +457,7 @@ export const AiAssistantContents = ({
   onClearMessages,
   onClose,
   onInputChange,
+  onInteractionModeChange,
   onInteractiveToolSubmit,
   onSelectToolTarget,
   onSendPrompt,
@@ -560,7 +568,14 @@ export const AiAssistantContents = ({
         <div
           className={`${headerStyle} ${panelContentStyle({ visible: isOpen })}`}
         >
-          <div className={tabStyle({ active: true })}>AI</div>
+          {interviewAvailable ? (
+            <AiInteractionModeTabs
+              mode={interactionMode}
+              onModeChange={onInteractionModeChange ?? (() => {})}
+            />
+          ) : (
+            <div className={tabStyle({ active: true })}>AI</div>
+          )}
           <div style={{ flex: 1 }} />
           <Button
             size="xs"
@@ -621,9 +636,10 @@ export const AiAssistantContents = ({
           </div>
         )}
 
-        <div
-          className={`${composerWrapStyle} ${panelContentStyle({ visible: isOpen })}`}
-        >
+        {interactionMode === "chat" && (
+          <div
+            className={`${composerWrapStyle} ${panelContentStyle({ visible: isOpen })}`}
+          >
           {showChips && (
             <PromptChips
               chips={promptChips}
@@ -669,7 +685,7 @@ export const AiAssistantContents = ({
                 }}
                 placeholder={
                   messages.length === 0
-                    ? "Get creating..."
+                    ? "Describe the process you want to create"
                     : "Continue iterating..."
                 }
                 aria-label="Message AI assistant"
@@ -693,7 +709,8 @@ export const AiAssistantContents = ({
               />
             </div>
           </form>
-        </div>
+          </div>
+        )}
       </div>
     </aside>
   );

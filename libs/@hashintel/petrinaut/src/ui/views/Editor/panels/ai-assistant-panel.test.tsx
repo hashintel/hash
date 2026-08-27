@@ -252,6 +252,44 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(interviewStageUnmounts).toBe(0);
   });
 
+  test("switches modes without unmounting the interview stage", () => {
+    interviewStageMounts = 0;
+    interviewStageUnmounts = 0;
+    const Stage = (context: PetrinautAiInterviewStageContext) => {
+      useEffect(() => {
+        interviewStageMounts += 1;
+        return () => {
+          interviewStageUnmounts += 1;
+        };
+      }, []);
+      return (
+        <button
+          type="button"
+          onClick={() => context.setInteractionMode("chat")}
+        >
+          {`Stage ${context.interactionMode}`}
+        </button>
+      );
+    };
+    const aiAssistant: PetrinautAiAssistant = {
+      renderInterviewStage: (context) => <Stage {...context} />,
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    };
+
+    renderTestPanel({ aiAssistant });
+
+    fireEvent.click(screen.getByRole("tab", { name: "Interview" }));
+    expect(screen.getByText("Stage interview")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Stage interview" }));
+
+    expect(screen.getByPlaceholderText("Describe the process you want to create")).not.toBeNull();
+    expect(interviewStageMounts).toBe(1);
+    expect(interviewStageUnmounts).toBe(0);
+  });
+
   test("accepts one interview answer while generic chat is streaming and submits it after settlement", async () => {
     let firstStreamController:
       | ReadableStreamDefaultController<UIMessageChunk>

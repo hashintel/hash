@@ -54,6 +54,7 @@ import { SimulateView } from "./panels/SimulateView/simulate-view";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
+import type { PetrinautAiInteractionMode } from "../../types/ai-assistant-composer-control";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
 import type { ViewportAction } from "../../types/viewport-action";
 
@@ -159,6 +160,8 @@ export const EditorView = ({
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
     string | null
   >(null);
+  const [pendingAiInteractionMode, setPendingAiInteractionMode] =
+    useState<PetrinautAiInteractionMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
 
   const {
@@ -487,9 +490,15 @@ export const EditorView = ({
             {showEmptyAiHero && (
               <AiCtaModal
                 bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
+                interviewAvailable={aiAssistant.renderInterviewStage !== undefined}
                 onDismiss={() => setIsAiCtaDismissed(true)}
+                onStartInterview={() => {
+                  setPendingAiInteractionMode("interview");
+                  setAiAssistantOpen(true);
+                }}
                 onSubmit={(message) => {
                   setPendingAiAssistantMessage(message);
+                  setPendingAiInteractionMode("chat");
                   setAiAssistantOpen(true);
                 }}
               />
@@ -513,8 +522,12 @@ export const EditorView = ({
                 key={petriNetId ?? "no-net"}
                 aiAssistant={aiAssistant}
                 initialMessage={pendingAiAssistantMessage}
+                initialInteractionMode={pendingAiInteractionMode}
                 onInitialMessageConsumed={() =>
                   setPendingAiAssistantMessage(null)
+                }
+                onInitialInteractionModeConsumed={() =>
+                  setPendingAiInteractionMode(null)
                 }
               />
             )}
