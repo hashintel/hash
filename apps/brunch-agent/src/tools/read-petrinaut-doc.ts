@@ -6,6 +6,8 @@ import {
   readPetrinautDocToolName,
 } from "@hashintel/petrinaut-core/ai";
 
+import { AWAITING_CLIENT } from "../client-tool.ts";
+
 export const READ_PETRINAUT_DOC_TOOL_NAME = readPetrinautDocToolName;
 
 export const readPetrinautDoc = defineTool({
@@ -16,9 +18,9 @@ export const readPetrinautDoc = defineTool({
     doc: v.picklist(petrinautDocNames),
   }),
   output: v.object({
-    awaiting: v.literal("client"),
+    awaiting: v.literal(AWAITING_CLIENT),
   }),
   run() {
-    return { output: { awaiting: "client" as const }, terminate: true };
+    return { output: { awaiting: AWAITING_CLIENT }, terminate: true };
   },
 });

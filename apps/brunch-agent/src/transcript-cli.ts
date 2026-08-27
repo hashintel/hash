@@ -6,12 +6,16 @@
  *   yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversationId>
  *
  * Identity matches POST /api/chat: principal + conversation id hash to the
- * Flue instance. This is a read of canonical Flue history, not a second log.
+ * Flue instance. The mounted URL requires those same values as headers. This
+ * is a read of canonical Flue history, not a second log.
  */
 
 import { createFlueClient } from "@flue/sdk";
 
-import { flueConversationId } from "./conversation-identity.ts";
+import {
+  agentOwnershipHeaders,
+  flueConversationIdFrom,
+} from "./conversation-identity.ts";
 import { formatFlueTranscript } from "./flue-transcript.ts";
 import { defaultChatOrigin } from "./local-dev-origins.ts";
 import { CHAT_AGENT_ROUTE } from "./routes.ts";
@@ -38,9 +42,11 @@ if (principalKey === undefined || conversationId === undefined) {
   process.exit(1);
 }
 
-const instanceId = flueConversationId(principalKey, conversationId);
+const identity = { principalKey, conversationId };
+const instanceId = flueConversationIdFrom(identity);
 const snapshot = await createFlueClient({
   url: `${origin}/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
+  headers: agentOwnershipHeaders(identity),
 }).history();
 
 process.stdout.write(`${formatFlueTranscript(snapshot)}\n`);

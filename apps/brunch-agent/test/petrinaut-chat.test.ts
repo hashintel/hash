@@ -87,6 +87,8 @@ test("the committed /api/chat door streams a plain Flue agent through server and
       "Run the FE-1435 transport probe.",
     );
     expect(result.foreignHistoryMessages).toBe(0);
+    expect(result.unauthenticatedHistoryStatus).toBe(401);
+    expect(result.foreignAgentHistoryStatus).toBe(403);
     expect(result.transcript).toContain("Run the FE-1435 transport probe.");
     expect(result.transcript).toContain("Checking the server, then the docs.");
     expect(result.transcript).toContain("tool ping");

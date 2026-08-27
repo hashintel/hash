@@ -2,6 +2,8 @@
 
 import { type ConversationStreamChunk } from "@flue/sdk";
 
+import { providerExecutedFor } from "./client-tool.ts";
+
 import type { UIMessageChunk } from "ai";
 
 export interface FlueUiStreamOptions {
@@ -131,12 +133,13 @@ export const createFlueUiStream = (
           finishPart();
           const isClientTool = options.clientToolNames.has(chunk.toolName);
           if (isClientTool) pendingClientToolCallIds.add(chunk.toolCallId);
+          const providerExecuted = providerExecutedFor(isClientTool);
           options.write({
             type: "tool-input-available",
             toolCallId: chunk.toolCallId,
             toolName: chunk.toolName,
             input: chunk.input,
-            ...(isClientTool ? {} : { providerExecuted: true }),
+            ...(providerExecuted === undefined ? {} : { providerExecuted }),
           });
           return;
         }

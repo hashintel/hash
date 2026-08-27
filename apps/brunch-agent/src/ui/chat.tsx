@@ -1,10 +1,18 @@
 import { useFlueAgent } from "@flue/react";
-import { createFlueClient, type FlueConversationMessage } from "@flue/sdk";
-import { useMemo, useState, type FormEvent } from "react";
+import {
+  createFlueClient,
+  type FlueClient,
+  type FlueConversationMessage,
+} from "@flue/sdk";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
+import { flueConversationIdWeb } from "../conversation-identity-web.ts";
+import {
+  BRUNCH_CONVERSATION_HEADER,
+  BRUNCH_PRINCIPAL_HEADER,
+  LOCAL_UI_PRINCIPAL,
+} from "../conversation-payload.ts";
 import { CHAT_AGENT_ROUTE } from "../routes.ts";
-
-const conversationId = crypto.randomUUID();
 
 function VisibleMessage({ message }: { message: FlueConversationMessage }) {
   if (
@@ -34,15 +42,8 @@ function VisibleMessage({ message }: { message: FlueConversationMessage }) {
   );
 }
 
-export function Chat() {
+function ChatConversation({ client }: { client: FlueClient }) {
   const [input, setInput] = useState("");
-  const client = useMemo(
-    () =>
-      createFlueClient({
-        url: `/agents/${CHAT_AGENT_ROUTE}/${conversationId}`,
-      }),
-    [],
-  );
   const agent = useFlueAgent({ client });
 
   const busy =
@@ -92,4 +93,46 @@ export function Chat() {
       </form>
     </main>
   );
+}
+
+export function Chat() {
+  const conversationId = useMemo(() => crypto.randomUUID(), []);
+  const [client, setClient] = useState<FlueClient>();
+
+  useEffect(() => {
+    let cancelled = false;
+    void flueConversationIdWeb(LOCAL_UI_PRINCIPAL, conversationId).then(
+      (instanceId) => {
+        if (cancelled) return;
+        setClient(
+          createFlueClient({
+            url: `/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
+            headers: {
+              [BRUNCH_PRINCIPAL_HEADER]: LOCAL_UI_PRINCIPAL,
+              [BRUNCH_CONVERSATION_HEADER]: conversationId,
+            },
+          }),
+        );
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [conversationId]);
+
+  if (client === undefined) {
+    return (
+      <main className="shell">
+        <header className="masthead">
+          <div>
+            <p className="eyebrow">Brunch / Flue chat</p>
+            <h1>Plain Flue conversation</h1>
+          </div>
+          <span className="status status--connecting">connecting</span>
+        </header>
+      </main>
+    );
+  }
+
+  return <ChatConversation client={client} />;
 }

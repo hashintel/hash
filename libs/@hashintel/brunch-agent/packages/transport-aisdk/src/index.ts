@@ -17,10 +17,13 @@ import { BRUNCH_PRINCIPAL_HEADER } from "./headers";
 
 export { BRUNCH_PRINCIPAL_HEADER } from "./headers";
 
-export interface ChatTurnInput {
+export interface ConversationIdentity {
   readonly conversationId: string;
-  readonly idempotencyKey: string;
   readonly principalKey: string;
+}
+
+export interface ChatTurnInput extends ConversationIdentity {
+  readonly idempotencyKey: string;
   readonly userMessage: {
     readonly id: string;
     readonly text: string;
@@ -33,11 +36,9 @@ export interface ClientToolResult {
   readonly output: unknown;
 }
 
-export interface ChatResumeInput {
-  readonly conversationId: string;
+export interface ChatResumeInput extends ConversationIdentity {
   readonly assistantMessageId: string;
   readonly idempotencyKey: string;
-  readonly principalKey: string;
   readonly toolResults: readonly ClientToolResult[];
 }
 
@@ -87,10 +88,9 @@ export interface AiSdkChatHandlerOptions {
    */
   readonly resumeTurn?: ChatResumeRunner;
   /** Snapshot used to hydrate the panel from Flue history after reload. */
-  readonly loadHistory?: (input: {
-    readonly conversationId: string;
-    readonly principalKey: string;
-  }) => Promise<{ readonly messages: readonly unknown[] }>;
+  readonly loadHistory?: (
+    input: ConversationIdentity,
+  ) => Promise<{ readonly messages: readonly unknown[] }>;
   readonly allowedOrigins?: readonly string[];
   readonly inspect?: (event: TransportInspectionEvent) => void;
 }
@@ -186,9 +186,13 @@ const toolNameFrom = (part: PanelPart): string | undefined => {
   return undefined;
 };
 
+/** Panel parts the browser executed. Server tools set `providerExecuted: true`. */
+const isProviderExecutedPanelPart = (part: PanelPart): boolean =>
+  part.providerExecuted === true;
+
 const isCompletedClientToolPart = (part: PanelPart): boolean =>
   part.state === "output-available" &&
-  part.providerExecuted !== true &&
+  !isProviderExecutedPanelPart(part) &&
   typeof part.toolCallId === "string" &&
   part.toolCallId.length > 0 &&
   toolNameFrom(part) !== undefined;

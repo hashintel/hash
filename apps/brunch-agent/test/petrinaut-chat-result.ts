@@ -23,6 +23,8 @@ export interface PetrinautChatResult {
   readonly historyGetStatus: number;
   readonly historyUserText: string;
   readonly foreignHistoryMessages: number;
+  readonly unauthenticatedHistoryStatus: number;
+  readonly foreignAgentHistoryStatus: number;
   readonly transcript: string;
   readonly instanceId: string;
   readonly dbPath: string;

@@ -1,9 +1,10 @@
 /**
  * The app's route map — one plain Flue chat agent plus Petrinaut's /api/chat door.
  *
- * `/api/chat` requires `x-brunch-principal` and hashes principal + conversation
- * id into the Flue instance id, so `/agents/chat/:id` is unguessable without
- * both. The stock Flue UI at `/` uses a random UUID on the same router.
+ * Both doors require principal + conversation id. `/api/chat` takes the principal
+ * header and body `id`; `/agents/chat/:id` takes the same principal plus
+ * `x-brunch-conversation` and admits the request only when those re-derive the
+ * path id. The Flue instance id is derived, not a bearer token.
  */
 
 import { readFile } from "node:fs/promises";
@@ -13,6 +14,7 @@ import { instrument } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
+import { agentOwnershipGuard } from "./agent-ownership.ts";
 import { ChatAgent } from "./agents/chat-agent.ts";
 import { assetHandler } from "./assets.ts";
 import { petrinautChatHandler } from "./petrinaut-chat.ts";
@@ -22,7 +24,9 @@ instrument(createOpenTelemetryInstrumentation({ content: false }));
 
 const app = new Hono();
 
-app.route(`/agents/${CHAT_AGENT_ROUTE}`, createAgentRouter(ChatAgent));
+const chatAgentMount = `/agents/${CHAT_AGENT_ROUTE}`;
+app.use(`${chatAgentMount}/*`, agentOwnershipGuard(`${chatAgentMount}/`));
+app.route(chatAgentMount, createAgentRouter(ChatAgent));
 
 app.on(["GET", "POST", "OPTIONS"], PETRINAUT_CHAT_ROUTE, (c) =>
   petrinautChatHandler(c.req.raw),

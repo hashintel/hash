@@ -2,7 +2,8 @@
 
 This application belongs to the Brunch context rooted at
 `../../libs/@hashintel/brunch-agent/`. Read that context's `AGENTS.md` and current `MISSION.md`
-before changing this application. Consult `CONTEXT.md` or historical design documents only when a
+before changing this application. If `MISSION.next.md` exists, it is a scratchpad for later
+concerns and is not execution authority. Consult `CONTEXT.md` or historical design documents only when a
 concrete question requires them; ADRs and specs are hypotheses, not implementation obligations.
 HASH root guidance takes precedence.
 

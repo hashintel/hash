@@ -6,8 +6,11 @@ import {
   type FlueConversationSnapshot,
 } from "@flue/sdk";
 
-const CLIENT_TOOL_RESULT_SIGNAL = "client-tool-result";
-const AWAITING_CLIENT = "awaiting";
+import {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  isAwaitingClient,
+  providerExecutedFor,
+} from "./client-tool.ts";
 
 type UiMessagePart =
   | { readonly type: "text"; readonly text: string; readonly state: "done" }
@@ -91,23 +94,28 @@ const clientToolResultsFrom = (
   return outputsByCallId;
 };
 
-const isAwaitingClient = (output: unknown): boolean =>
-  isRecord(output) && output[AWAITING_CLIENT] === "client";
+const resolveToolOutput = (
+  part: Extract<FlueConversationPart, { type: "dynamic-tool" }>,
+  clientOutputs: ReadonlyMap<string, unknown>,
+): unknown => {
+  const clientOutput = clientOutputs.get(part.toolCallId);
+  if (part.state === "output-available" && isAwaitingClient(part.output)) {
+    return clientOutput ?? part.output;
+  }
+  if (part.state === "output-available") {
+    return part.output;
+  }
+  return clientOutput;
+};
 
 const toolPartFrom = (
   part: Extract<FlueConversationPart, { type: "dynamic-tool" }>,
   clientOutputs: ReadonlyMap<string, unknown>,
 ): UiMessagePart => {
-  const clientOutput = clientOutputs.get(part.toolCallId);
-  const output =
-    part.state === "output-available" && isAwaitingClient(part.output)
-      ? (clientOutput ?? part.output)
-      : part.state === "output-available"
-        ? part.output
-        : clientOutput;
+  const output = resolveToolOutput(part, clientOutputs);
   const providerExecuted =
-    part.state === "output-available" && !isAwaitingClient(part.output)
-      ? true
+    part.state === "output-available"
+      ? providerExecutedFor(isAwaitingClient(part.output))
       : undefined;
   if (part.state === "output-error") {
     return {
@@ -202,12 +210,7 @@ const formatToolPart = (
   part: Extract<FlueConversationPart, { type: "dynamic-tool" }>,
   clientOutputs: ReadonlyMap<string, unknown>,
 ): string => {
-  const output =
-    part.state === "output-available" && isAwaitingClient(part.output)
-      ? (clientOutputs.get(part.toolCallId) ?? part.output)
-      : part.state === "output-available"
-        ? part.output
-        : clientOutputs.get(part.toolCallId);
+  const output = resolveToolOutput(part, clientOutputs);
   const result =
     part.state === "output-error"
       ? `error: ${part.errorText}`

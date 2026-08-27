@@ -11,10 +11,13 @@ import {
   fauxToolCall,
 } from "@earendil-works/pi-ai";
 import { sqlite, start } from "@flue/runtime/node";
-import { createFlueClient } from "@flue/sdk";
+import { createFlueClient, FlueApiError } from "@flue/sdk";
 
 import { CHAT_MODEL_ID, ChatAgent } from "../src/agents/chat-agent.ts";
-import { flueConversationId } from "../src/conversation-identity.ts";
+import {
+  agentOwnershipHeaders,
+  flueConversationIdFrom,
+} from "../src/conversation-identity.ts";
 import { formatFlueTranscript } from "../src/flue-transcript.ts";
 import { CHAT_AGENT_ROUTE } from "../src/routes.ts";
 import { PING_TOOL_NAME } from "../src/tools/ping.ts";
@@ -28,7 +31,8 @@ import type { UIMessageChunk } from "ai";
 
 const principalKey = "principal-mission-1";
 const conversationId = "conversation-mission-1";
-const instanceId = flueConversationId(principalKey, conversationId);
+const identity = { principalKey, conversationId };
+const instanceId = flueConversationIdFrom(identity);
 const dbPath =
   process.env.BRUNCH_CHAT_DB_PATH ??
   (await mkdtemp(join(tmpdir(), "brunch-chat-")));
@@ -76,6 +80,7 @@ try {
   const historyClient = createFlueClient({
     url: `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
     fetch: appTransport,
+    headers: agentOwnershipHeaders(identity),
   });
 
   if (process.env.BRUNCH_RESUME_PHASE === "1") {
@@ -220,6 +225,30 @@ try {
     );
     const resumedChunks = chunksFrom(await resumeResponse.text());
     const snapshot = await historyClient.history();
+    let unauthenticatedHistoryStatus = 0;
+    try {
+      await createFlueClient({
+        url: `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
+        fetch: appTransport,
+      }).history();
+    } catch (error) {
+      unauthenticatedHistoryStatus =
+        error instanceof FlueApiError ? error.status : -1;
+    }
+    let foreignAgentHistoryStatus = 0;
+    try {
+      await createFlueClient({
+        url: `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
+        fetch: appTransport,
+        headers: agentOwnershipHeaders({
+          principalKey: "principal-other",
+          conversationId,
+        }),
+      }).history();
+    } catch (error) {
+      foreignAgentHistoryStatus =
+        error instanceof FlueApiError ? error.status : -1;
+    }
     const historyGet = await app.fetch(
       new Request(
         `http://brunch.test/api/chat?id=${encodeURIComponent(conversationId)}`,
@@ -286,6 +315,8 @@ try {
       historyGetStatus: historyGet.status,
       historyUserText: userTextFromHistory(historyBody.messages ?? []),
       foreignHistoryMessages: foreignBody.messages?.length ?? -1,
+      unauthenticatedHistoryStatus,
+      foreignAgentHistoryStatus,
       transcript: formatFlueTranscript(snapshot),
       instanceId,
       dbPath: dbFile,

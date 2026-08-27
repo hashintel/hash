@@ -18,6 +18,8 @@ Conversations persist in `apps/brunch-agent/.data-wipe-me/conversations.db`. `BR
 overrides that local path. Flue history is the conversation log; the browser may cache messages
 but reload hydrates from `GET /api/chat?id=`.
 
+The mounted Flue URL `/agents/chat/:id` requires the same principal and conversation identity (`x-brunch-principal` and `x-brunch-conversation`) as `/api/chat`; the path id is the hash of those, not a bearer token.
+
 Print a human-readable transcript of one conversation from that same Flue history (server already
 running):
 

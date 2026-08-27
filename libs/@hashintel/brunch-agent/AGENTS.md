@@ -25,7 +25,8 @@ from this file.
 ## Mission contract
 
 When work starts on a branch, state these six things in [`MISSION.md`](MISSION.md) and copy them
-into the branch/PR description. Do not create additional planning or control documents.
+into the branch/PR description. Do not create additional planning or control documents, except the
+next-concerns scratchpad below.
 
 - **Imperative** — what must become true, and why now.
 - **Throughline** — the real entrypoint or boundary being changed.
@@ -37,6 +38,27 @@ into the branch/PR description. Do not create additional planning or control doc
   unresolved flags here: why they matter, what they constrain, and what would re-enter them.
   Running the path may lengthen this list; that is calibration, not regression.
 - **Stop or reorient** — evidence that invalidates or changes the route.
+
+### One live mission, next-concerns scratchpad
+
+[`MISSION.md`](MISSION.md) is the only execution authority. Agents and humans implement against it.
+
+[`MISSION.next.md`](MISSION.next.md) is the scratchpad for discussing all next concerns. It may
+hold a longer horizon than a single mission. It is not a mission: do not implement it, do not
+treat it as a second concurrent mission, and do not declare its focus until planning is resolved.
+
+A current mission's **Deferred** items belong in that scratchpad as well. Do not silently drop or
+supersede them when adding other concerns.
+
+When the current mission is accepted and the next focus is resolved:
+
+1. Move `MISSION.md` to `docs/mission-archive/{n}-{slug}.md`.
+2. Cut a single focused `MISSION.md` from the scratchpad (the six-section contract above).
+3. Leave everything that did not make the cut in `MISSION.next.md`.
+
+Do not promote `MISSION.next.md` wholesale. Do not keep two live missions. Do not delete a closed
+mission; the archive is evidence of what was proven, not marching orders. Re-earn before building
+on it, same as an ADR.
 
 ## Correctives
 
@@ -55,8 +77,8 @@ into the branch/PR description. Do not create additional planning or control doc
 - Low confidence must change the next move — build the smallest real path that reveals more,
   inspect, choose the reversible option, or flag it — or go unsaid.
 - At close, update the PR description: what each proof item established, the observed answer to
-  each fog-line question, and the flags that carry into the next mission. The PR description is
-  the only record that survives the squash.
+  each fog-line question, and the flags that carry into the next mission. Archive the closed
+  `MISSION.md` as above; the PR description remains the GitHub-facing close report.
 
 ## Retained facts
 

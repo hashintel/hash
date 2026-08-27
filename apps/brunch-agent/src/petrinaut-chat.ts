@@ -7,16 +7,20 @@ import {
   createAiSdkChatHandler,
   type ChatResumeInput,
   type ChatTurnInput,
+  type ConversationIdentity,
   type TransportInspectionEvent,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
 import { ChatAgent } from "./agents/chat-agent.ts";
-import { flueConversationId } from "./conversation-identity.ts";
+import { clientToolNames, CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool.ts";
+import {
+  agentOwnershipHeaders,
+  flueConversationIdFrom,
+} from "./conversation-identity.ts";
 import { snapshotToUiMessages } from "./flue-transcript.ts";
 import { createFlueUiStream } from "./flue-ui-stream.ts";
 import { defaultPanelOrigins } from "./local-dev-origins.ts";
 import { CHAT_AGENT_ROUTE } from "./routes.ts";
-import { READ_PETRINAUT_DOC_TOOL_NAME } from "./tools/read-petrinaut-doc.ts";
 
 import type { UIMessageChunk } from "ai";
 
@@ -27,8 +31,6 @@ const inspect =
       }
     : undefined;
 
-const clientToolNames = new Set([READ_PETRINAUT_DOC_TOOL_NAME]);
-
 const appTransport: typeof fetch = async (input, init) => {
   const { default: app } = await import("./app.ts");
   return app.fetch(input instanceof Request ? input : new Request(input, init));
@@ -37,10 +39,11 @@ const appTransport: typeof fetch = async (input, init) => {
 const conversationUrl = (instanceId: string): string =>
   `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`;
 
-const historyClient = (instanceId: string) =>
+const historyClient = (identity: ConversationIdentity) =>
   createFlueClient({
-    url: conversationUrl(instanceId),
+    url: conversationUrl(flueConversationIdFrom(identity)),
     fetch: appTransport,
+    headers: agentOwnershipHeaders(identity),
   });
 
 const streamTurn = async (
@@ -63,7 +66,7 @@ const runUserTurn = (
   write: (chunk: UIMessageChunk) => void,
 ): Promise<void> =>
   streamTurn(
-    flueConversationId(input.principalKey, input.conversationId),
+    flueConversationIdFrom(input),
     { message: input.userMessage.text },
     write,
   );
@@ -73,12 +76,12 @@ const runClientToolResume = (
   write: (chunk: UIMessageChunk) => void,
 ): Promise<void> =>
   streamTurn(
-    flueConversationId(input.principalKey, input.conversationId),
+    flueConversationIdFrom(input),
     {
       message: {
         kind: "signal",
-        type: "client-tool-result",
-        tagName: "client-tool-result",
+        type: CLIENT_TOOL_RESULT_SIGNAL,
+        tagName: CLIENT_TOOL_RESULT_SIGNAL,
         body: JSON.stringify(input.toolResults),
         attributes: {
           toolCallIds: input.toolResults
@@ -90,17 +93,12 @@ const runClientToolResume = (
     write,
   );
 
-const loadHistory = async (input: {
-  readonly conversationId: string;
-  readonly principalKey: string;
-}): Promise<{ readonly messages: readonly unknown[] }> => {
-  const instanceId = flueConversationId(
-    input.principalKey,
-    input.conversationId,
-  );
+const loadHistory = async (
+  identity: ConversationIdentity,
+): Promise<{ readonly messages: readonly unknown[] }> => {
   let snapshot: FlueConversationSnapshot;
   try {
-    snapshot = await historyClient(instanceId).history();
+    snapshot = await historyClient(identity).history();
   } catch {
     return { messages: [] };
   }

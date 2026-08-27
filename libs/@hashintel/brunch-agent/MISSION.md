@@ -1,5 +1,12 @@
 # Mission 1 — bare Petrinaut ↔ Flue chat
 
+## Status
+
+Nominally complete; still under verification. This file remains execution authority.
+
+Later concerns are collected in [`MISSION.next.md`](MISSION.next.md). That file is a scratchpad,
+not a mission; do not implement it, and do not treat any item in it as the declared next focus.
+
 ## Imperative
 
 Prove the real Petrinaut demo can hold a durable, observable conversation with a plain Flue agent
@@ -114,3 +121,6 @@ Mission 2 may add the first Brunch-owned behavior only after this proof is compl
 sweep one explicit settled transcript range into durable, source-linked capture and prove idempotent
 reapplication. Extraction quality, plugin/repertoire machinery, IR, completion, and review/revise
 remain out of scope until separately earned.
+
+These items, and other successor concerns, are also recorded in [`MISSION.next.md`](MISSION.next.md)
+until a next focus is cut. That scratchpad does not supersede this section.
