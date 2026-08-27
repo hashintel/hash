@@ -42,7 +42,12 @@
  */
 
 import { runSandboxed, SHADOWED_GLOBALS } from "../../sandbox";
-import { SCENARIO_HELPERS } from "../helpers";
+import { range } from "../helpers";
+
+// The helpers in scope for the module's own constant evaluation (bounds,
+// exposed defaults, place totals). The synthesized scenario itself runs
+// through the HIR interpreter, which binds `range` natively.
+const SCENARIO_HELPERS: Record<string, unknown> = { range };
 
 import type {
   PetrinautOptimizationManifest,
@@ -228,7 +233,7 @@ export interface AdHocSynthesisError {
 
 /** One enabled Optimize toggle, resolved to a generated scenario parameter. */
 export interface AdHocOptimizedField {
-  /** The generated parameter's deterministic `adhoc.*` name. */
+  /** The generated parameter's deterministic `adhoc_*` name. */
   parameterName: string;
   /** The user-facing path of the source, e.g. `Space › item 0 › x`. */
   label: string;
@@ -290,14 +295,17 @@ export function adHocPlaceKey(places: Place[], placeId: string): string {
   return ordinal > 0 ? `${place.name}~${ordinal + 1}` : place.name;
 }
 
+const identifierSegment = (value: string): string =>
+  value.replace(/[^A-Za-z0-9]+/gu, "_");
+
 export const adHocParameterName = {
   cell: (placeKey: string, row: number, field: string): string =>
-    `adhoc.${placeKey}.r${row}.${field}`,
+    `adhoc_${identifierSegment(placeKey)}_r${row}_${identifierSegment(field)}`,
   /** A shared column: `col` stands where a row ordinal would. */
   column: (placeKey: string, field: string): string =>
-    `adhoc.${placeKey}.col.${field}`,
+    `adhoc_${identifierSegment(placeKey)}_col_${identifierSegment(field)}`,
   variable: (scope: string, name: string): string =>
-    `adhoc.var.${scope}.${name}`,
+    `adhoc_var_${identifierSegment(scope)}_${identifierSegment(name)}`,
   /**
    * A count: the whole place's for an uncoloured place, one dynamic row's
    * otherwise. Kept under its own prefix so a colour element named `count`
@@ -305,9 +313,10 @@ export const adHocParameterName = {
    */
   count: (placeKey: string, row?: number): string =>
     row === undefined
-      ? `adhoc.count.${placeKey}`
-      : `adhoc.count.${placeKey}.r${row}`,
-  netParameter: (variableName: string): string => `adhoc.param.${variableName}`,
+      ? `adhoc_count_${identifierSegment(placeKey)}`
+      : `adhoc_count_${identifierSegment(placeKey)}_r${row}`,
+  netParameter: (variableName: string): string =>
+    `adhoc_param_${identifierSegment(variableName)}`,
 } as const;
 
 /** The scope segment for top-level Variables in generated parameter names. */
@@ -1168,7 +1177,24 @@ function resolveOptimized(
     }
   };
 
+  // Parameter names embed sanitized user text (place names, Variable
+  // names), so distinct sources can collapse onto one identifier — e.g.
+  // places named `Pumps 2` and `Pumps~2`. Silent collision would fuse two
+  // optimized fields into one parameter.
+  const seenParameterNames = new Map<string, OptimizedEntity>();
   for (const entity of plan.optimized) {
+    const holder = seenParameterNames.get(entity.parameterName);
+    if (holder) {
+      plan.errors.push({
+        source: "bounds",
+        itemId: entity.parameterName,
+        slot: { target: entity.target, part: "min" },
+        message: `"${entity.itemId}" and "${holder.itemId}" both map to the generated parameter "${entity.parameterName}"; rename one so they stay distinct.`,
+      });
+      continue;
+    }
+    seenParameterNames.set(entity.parameterName, entity);
+
     let domain: PetrinautOptimizationDomain;
     let fallbackDefault = 0;
 
@@ -1415,88 +1441,90 @@ function resolveExposed(
 
 // -- Code generation --------------------------------------------------------------
 //
-// Inside generated initial-state code, `scenario` is rebound to the ad-hoc
-// Variables object so user expressions read `scenario.<variable>` exactly as
-// the scenario code editor's expressions read scenario parameters. The
-// compiler-provided parameters object (which carries the generated `adhoc.*`
-// values during optimization) stays reachable as `__adhocParams`.
+// The generated code targets the HIR scenario subset (`lowerScenarioToHir`):
+// const bindings, `range(...).map(...)`, `.concat(...)`, ternaries, record
+// and array literals — no loops, no mutation, no helper closures. The
+// ambient `scenario` object (which carries the generated and exposed
+// parameters) may only be read as literal property accesses, so parameter
+// reads are captured into locals FIRST, and the top-level Variables then
+// shadow `scenario` with a local record so user expressions keep reading
+// `scenario.<variable>` exactly as scenario code reads scenario parameters.
 
-/** A generated-parameter reference inside generated initial-state code. */
-const initialStateReference = (parameterName: string): string =>
-  `__adhocParams[${JSON.stringify(parameterName)}]`;
+const escapeForPattern = (name: string): string =>
+  name.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
-/** A generated-parameter reference inside a parameter-override expression. */
-const overrideReference = (parameterName: string): string =>
-  `scenario[${JSON.stringify(parameterName)}]`;
-
-function valueSource(
-  value: AdHocValue,
-  parameterName: string,
-  includeOptimize: boolean,
-  reference: (parameterName: string) => string,
-): string {
-  return includeOptimize && value.optimize
-    ? reference(parameterName)
-    : `(${value.expression})`;
-}
-
-/** The `__adhocVars` assignment lines for the top-level Variables. */
-function variableAssignments(
-  state: AdHocScenarioState,
-  includeOptimize: boolean,
-  reference: (parameterName: string) => string,
-): string[] {
-  return state.variables.map((variable) => {
-    // Source precedence: an optimized Variable reads its generated
-    // parameter, an exposed one reads the scenario parameter named after
-    // it, and a plain one is its expression inlined.
-    const source =
-      includeOptimize && variable.optimize
-        ? reference(
-            adHocParameterName.variable(AD_HOC_TOP_LEVEL_SCOPE, variable.name),
-          )
-        : variable.exposed
-          ? reference(adHocExposedParameterIdentifier(variable.name))
-          : `(${variable.expression})`;
-    return `__adhocVars[${JSON.stringify(variable.name)}] = ${source};`;
-  });
-}
-
-/** A generated-parameter reference inside a wrapped override's variables. */
-const wrappedOverrideReference = (parameterName: string): string =>
-  `__adhocParams[${JSON.stringify(parameterName)}]`;
+/** A reference to `scenario.<name>` that another Variable's expression holds. */
+const variableReferencePattern = (name: string): RegExp =>
+  new RegExp(
+    String.raw`(?<![.\w$])scenario\s*\.\s*${escapeForPattern(name)}(?![A-Za-z0-9_$])`,
+    "g",
+  );
 
 /**
- * Wraps a net-parameter override expression so it may read the top-level
- * Variables as `scenario.<name>`. Override expressions are evaluated by
- * `compileScenario` with `scenario` bound to the scenario parameters; the
- * wrapper captures that object as `__adhocParams` before the Variables shadow
- * it, so an optimized Variable's generated parameter stays readable.
+ * How each top-level Variable's value is produced, in declaration order:
+ * an ambient parameter read (optimized/exposed) or its expression with
+ * references to EARLIER Variables replaced by their productions. A
+ * reference to itself or a later sibling is left as `scenario.<name>` and
+ * fails type checking as an unknown scenario parameter — the same contract
+ * the form's LSP scoping teaches.
  */
-function wrapOverrideExpression(
+interface VariableProduction {
+  name: string;
+  /** The ambient parameter this Variable reads, if optimized/exposed. */
+  parameterName: string | null;
+  /** Expression with earlier-Variable references inlined (plain Variables). */
+  inlinedExpression: string;
+}
+
+function variableProductions(
+  state: AdHocScenarioState,
+  includeOptimize: boolean,
+): VariableProduction[] {
+  const productions: VariableProduction[] = [];
+  for (const variable of state.variables) {
+    const parameterName =
+      includeOptimize && variable.optimize
+        ? adHocParameterName.variable(AD_HOC_TOP_LEVEL_SCOPE, variable.name)
+        : variable.exposed
+          ? adHocExposedParameterIdentifier(variable.name)
+          : null;
+    let inlinedExpression = variable.expression;
+    if (parameterName === null) {
+      for (const earlier of productions) {
+        inlinedExpression = inlinedExpression.replace(
+          variableReferencePattern(earlier.name),
+          () =>
+            earlier.parameterName
+              ? `scenario.${earlier.parameterName}`
+              : `(${earlier.inlinedExpression})`,
+        );
+      }
+    }
+    productions.push({ name: variable.name, parameterName, inlinedExpression });
+  }
+  return productions;
+}
+
+/**
+ * Rewrites a net-parameter override expression so it may read the top-level
+ * Variables as `scenario.<name>`. Override expressions are single
+ * expressions (no statement scope to shadow in), so each Variable reference
+ * is substituted with its production.
+ */
+function inlineVariablesIntoOverride(
   expression: string,
   state: AdHocScenarioState,
   includeOptimize: boolean,
 ): string {
-  if (state.variables.length === 0) {
-    return expression;
+  let out = expression;
+  for (const production of variableProductions(state, includeOptimize)) {
+    out = out.replace(variableReferencePattern(production.name), () =>
+      production.parameterName
+        ? `scenario.${production.parameterName}`
+        : `(${production.inlinedExpression})`,
+    );
   }
-  const assignments = variableAssignments(
-    state,
-    includeOptimize,
-    wrappedOverrideReference,
-  );
-  return [
-    `(() => {`,
-    `  const __adhocParams = scenario;`,
-    `  const __adhocVars = {};`,
-    `  {`,
-    `    const scenario = __adhocVars;`,
-    ...assignments.map((line) => `    ${line}`),
-    `  }`,
-    `  return (function (scenario) { return (${expression}); })(__adhocVars);`,
-    `})()`,
-  ].join("\n");
+  return out;
 }
 
 function generateInitialStateCode(
@@ -1505,23 +1533,42 @@ function generateInitialStateCode(
   includeOptimize: boolean,
 ): string {
   const typeById = new Map(context.types.map((type) => [type.id, type]));
-  const lines: string[] = [];
 
-  lines.push("const __adhocParams = scenario;");
-  lines.push("const __adhocVars = {};");
-  lines.push("{");
-  lines.push("  const scenario = __adhocVars;");
-  for (const assignment of variableAssignments(
-    state,
-    includeOptimize,
-    initialStateReference,
-  )) {
-    lines.push(`  ${assignment}`);
-  }
-  lines.push("}");
-  lines.push("const __adhocOut = {};");
-  lines.push("{");
-  lines.push("  const scenario = __adhocVars;");
+  // Ambient parameter reads happen before the Variables shadow `scenario`:
+  // each needed parameter is captured into a local once.
+  const parameterCaptures = new Map<string, string>();
+  const captureParameter = (parameterName: string): string => {
+    let alias = parameterCaptures.get(parameterName);
+    if (!alias) {
+      alias = `__adhocParam${parameterCaptures.size}`;
+      parameterCaptures.set(parameterName, alias);
+    }
+    return alias;
+  };
+  const source = (value: AdHocValue, parameterName: string): string =>
+    includeOptimize && value.optimize
+      ? captureParameter(parameterName)
+      : `(${value.expression})`;
+
+  const productions = variableProductions(state, includeOptimize);
+  const variableLines = productions.map((production, index) => {
+    const valueSource = production.parameterName
+      ? captureParameter(production.parameterName)
+      : `(${production.inlinedExpression})`;
+    return `const __adhocVar${index} = ${valueSource};`;
+  });
+  const shadowLine =
+    productions.length > 0
+      ? `const scenario = { ${productions
+          .map(
+            (production, index) =>
+              `${JSON.stringify(production.name)}: __adhocVar${index}`,
+          )
+          .join(", ")} };`
+      : null;
+
+  const countLines: string[] = [];
+  const placeEntries: string[] = [];
 
   for (const [placeId, placeState] of Object.entries(state.places)) {
     const place = context.places.find((candidate) => candidate.id === placeId);
@@ -1532,13 +1579,9 @@ function generateInitialStateCode(
     const outKey = JSON.stringify(place.name);
 
     if (placeState.kind === "uncoloured") {
-      const source = valueSource(
-        placeState.count,
-        adHocParameterName.count(placeKey),
-        includeOptimize,
-        initialStateReference,
+      placeEntries.push(
+        `  ${outKey}: ${source(placeState.count, adHocParameterName.count(placeKey))},`,
       );
-      lines.push(`  __adhocOut[${outKey}] = ${source};`);
       continue;
     }
 
@@ -1549,77 +1592,78 @@ function generateInitialStateCode(
     // Per-place Variables are per-row intermediates: they may read `i` (the
     // design deliberately allows it), so they are declared inside each row's
     // scope, after `i` and `count` exist, not once per place.
-    const variableDeclarations = placeState.variables.map((variable) => {
-      const source = valueSource(
-        variable,
-        adHocParameterName.variable(placeKey, variable.name),
-        includeOptimize,
-        initialStateReference,
-      );
-      return `const ${variable.name} = ${source};`;
-    });
+    const variableDeclarations = placeState.variables.map(
+      (variable) =>
+        `const ${variable.name} = ${source(
+          variable,
+          adHocParameterName.variable(placeKey, variable.name),
+        )};`,
+    );
 
     const rowObject = (row: AdHocRow, rowIndex: number): string => {
       const fields = row.cells.map((cell, columnIndex) => {
         const element = elements[columnIndex];
         const name = element ? element.name : `__column${columnIndex}`;
         const shared = placeState.sharedColumns[name];
-        const source = shared
-          ? valueSource(
-              shared,
-              adHocParameterName.column(placeKey, name),
-              includeOptimize,
-              initialStateReference,
-            )
-          : valueSource(
-              cell,
-              adHocParameterName.cell(placeKey, rowIndex, name),
-              includeOptimize,
-              initialStateReference,
-            );
-        return `${JSON.stringify(name)}: ${source}`;
+        const cellSource = shared
+          ? source(shared, adHocParameterName.column(placeKey, name))
+          : source(cell, adHocParameterName.cell(placeKey, rowIndex, name));
+        return `${JSON.stringify(name)}: ${cellSource}`;
       });
       return `{ ${fields.join(", ")} }`;
     };
 
-    lines.push(`  __adhocOut[${outKey}] = (() => {`);
-    lines.push("    const __adhocRows = [];");
-    for (const [rowIndex, row] of placeState.rows.entries()) {
+    const rowArrays = placeState.rows.map((row, rowIndex) => {
       if (row.kind === "template") {
-        const countSource = valueSource(
-          row.count,
-          adHocParameterName.count(placeKey, rowIndex),
-          includeOptimize,
-          initialStateReference,
+        const countAlias = `__adhocCount_${identifierSegment(placeKey)}_${rowIndex}`;
+        countLines.push(
+          `const ${countAlias} = Math.max(0, Math.round(${source(
+            row.count,
+            adHocParameterName.count(placeKey, rowIndex),
+          )}));`,
         );
-        lines.push(
-          `    {`,
-          `      const count = Math.max(0, Math.round(${countSource}));`,
-          `      for (let i = 0; i < count; i++) {`,
-          ...variableDeclarations.map(
-            (declaration) => `        ${declaration}`,
-          ),
-          `        __adhocRows.push(${rowObject(row, rowIndex)});`,
-          `      }`,
-          `    }`,
-        );
-      } else {
-        lines.push(
-          `    {`,
-          `      const i = ${rowIndex};`,
-          `      const count = 1;`,
+        return [
+          `range(${countAlias}).map((i) => {`,
+          `      const count = ${countAlias};`,
           ...variableDeclarations.map((declaration) => `      ${declaration}`),
-          `      __adhocRows.push(${rowObject(row, rowIndex)});`,
-          `    }`,
-        );
+          `      return ${rowObject(row, rowIndex)};`,
+          `    })`,
+        ].join("\n");
       }
-    }
-    lines.push("    return __adhocRows;", "  })();");
+      return [
+        `range(${rowIndex}, ${rowIndex + 1}).map((i) => {`,
+        `      const count = 1;`,
+        ...variableDeclarations.map((declaration) => `      ${declaration}`),
+        `      return ${rowObject(row, rowIndex)};`,
+        `    })`,
+      ].join("\n");
+    });
+
+    const rowsSource =
+      rowArrays.length === 0
+        ? "[]"
+        : rowArrays.length === 1
+          ? rowArrays[0]!
+          : `${rowArrays[0]!}${rowArrays
+              .slice(1)
+              .map((part) => `.concat(${part})`)
+              .join("")}`;
+    placeEntries.push(`  ${outKey}: ${rowsSource},`);
   }
 
-  lines.push("}");
-  lines.push("return __adhocOut;");
-  return lines.join("\n");
+  const captureLines = [...parameterCaptures.entries()].map(
+    ([parameterName, alias]) => `const ${alias} = scenario.${parameterName};`,
+  );
+
+  return [
+    ...captureLines,
+    ...variableLines,
+    ...(shadowLine ? [shadowLine] : []),
+    ...countLines,
+    "return {",
+    ...placeEntries,
+    "};",
+  ].join("\n");
 }
 
 function synthesize(
@@ -1641,6 +1685,22 @@ function synthesize(
       ? resolveOptimized(plan, state, context)
       : { scenarioParameters: [], optimizedFields: [] };
   const scenarioParameters = [...exposedParameters, ...optimizedParameters];
+  // Exposed identifiers are user-derived, generated ones sanitize user text
+  // under the `adhoc_` prefix — an exposed Variable named e.g.
+  // `adhocParamRate` can still collide with a generated parameter.
+  const exposedIdentifiers = new Set(
+    exposedParameters.map((parameter) => parameter.identifier),
+  );
+  for (const field of optimizedFields) {
+    if (exposedIdentifiers.has(field.parameterName)) {
+      plan.errors.push({
+        source: "variable",
+        itemId: field.parameterName,
+        slot: { target: field.target, part: "name" },
+        message: `An exposed Variable and "${field.label}" both map to the parameter identifier "${field.parameterName}"; rename one.`,
+      });
+    }
+  }
 
   if (plan.errors.length > 0) {
     return { ok: false, errors: plan.errors };
@@ -1656,11 +1716,10 @@ function synthesize(
       continue;
     }
     if (includeOptimize && entry.optimize) {
-      parameterOverrides[entry.parameterId] = overrideReference(
-        adHocParameterName.netParameter(parameter.variableName),
-      );
+      parameterOverrides[entry.parameterId] =
+        `scenario.${adHocParameterName.netParameter(parameter.variableName)}`;
     } else if (entry.expression.trim() !== "") {
-      parameterOverrides[entry.parameterId] = wrapOverrideExpression(
+      parameterOverrides[entry.parameterId] = inlineVariablesIntoOverride(
         entry.expression,
         state,
         includeOptimize,

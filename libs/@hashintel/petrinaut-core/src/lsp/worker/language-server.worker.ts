@@ -572,7 +572,12 @@ workerRuntime.onMessage((data) => {
 
       case "sdcpn/lowerScenario": {
         const { id } = data;
-        respond(id, lowerScenarioToHir(data.params.scenario));
+        respond(
+          id,
+          lowerScenarioToHir(data.params.scenario, {
+            adHocContext: data.params.adHocContext,
+          }),
+        );
         break;
       }
 

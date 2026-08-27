@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { lowerScenarioToHir } from "../../../../hir/scenario";
 import { scenarioSchema } from "../../../../schemas/scenario-schema";
 import { compileScenario } from "../compile-scenario";
 import {
@@ -148,8 +149,10 @@ const compiled = (
     | ReturnType<typeof synthesizeAdHocOptimization>,
   scenarioParameterValues?: Record<string, number>,
 ) => {
+  const scenario = scenarioOf(outcome);
   const result = compileScenario(
-    scenarioOf(outcome),
+    scenario,
+    lowerScenarioToHir(scenario, { adHocContext: context }),
     context.netParameters,
     context.places,
     context.types,
@@ -413,15 +416,15 @@ describe("synthesizeAdHocOptimization", () => {
       .map((parameter) => parameter.identifier)
       .sort();
     expect(identifiers).toEqual([
-      "adhoc.Pumps.r0.pressure",
-      "adhoc.count.Pumps.r2",
-      "adhoc.count.Queue",
-      "adhoc.param.rate",
-      "adhoc.var.net.basePressure",
+      "adhoc_Pumps_r0_pressure",
+      "adhoc_count_Pumps_r2",
+      "adhoc_count_Queue",
+      "adhoc_param_rate",
+      "adhoc_var_net_basePressure",
     ]);
 
     const bindings = adHocOptimizationBindings(outcome.output.optimizedFields);
-    expect(bindings["adhoc.count.Pumps.r2"]).toEqual({
+    expect(bindings["adhoc_count_Pumps_r2"]).toEqual({
       kind: "optimize",
       domain: {
         kind: "integer",
@@ -431,7 +434,7 @@ describe("synthesizeAdHocOptimization", () => {
         scale: "linear",
       },
     });
-    expect(bindings["adhoc.Pumps.r0.pressure"]).toEqual({
+    expect(bindings["adhoc_Pumps_r0_pressure"]).toEqual({
       kind: "optimize",
       domain: { kind: "continuous", minimum: 0.5, maximum: 8, scale: "linear" },
     });
@@ -443,17 +446,17 @@ describe("synthesizeAdHocOptimization", () => {
         field.label,
       ]),
     );
-    expect(labels.get("adhoc.Pumps.r0.pressure")).toBe(
+    expect(labels.get("adhoc_Pumps_r0_pressure")).toBe(
       "Pumps › item 0 › pressure",
     );
-    expect(labels.get("adhoc.count.Pumps.r2")).toBe("Pumps › item 2 › count");
-    expect(labels.get("adhoc.count.Queue")).toBe("Queue › count");
-    expect(labels.get("adhoc.var.net.basePressure")).toBe("basePressure");
-    expect(labels.get("adhoc.param.rate")).toBe("Rate");
+    expect(labels.get("adhoc_count_Pumps_r2")).toBe("Pumps › item 2 › count");
+    expect(labels.get("adhoc_count_Queue")).toBe("Queue › count");
+    expect(labels.get("adhoc_var_net_basePressure")).toBe("basePressure");
+    expect(labels.get("adhoc_param_rate")).toBe("Rate");
 
     // The optimized net parameter's override routes through the reference.
     expect(outcome.output.scenario.parameterOverrides["param-rate"]).toBe(
-      'scenario["adhoc.param.rate"]',
+      "scenario.adhoc_param_rate",
     );
   });
 
@@ -461,11 +464,11 @@ describe("synthesizeAdHocOptimization", () => {
     const result = compiled(
       synthesizeAdHocOptimization(optimizedState(), context),
       {
-        "adhoc.Pumps.r0.pressure": 5.5,
-        "adhoc.count.Pumps.r2": 3,
-        "adhoc.count.Queue": 12,
-        "adhoc.param.rate": 0.25,
-        "adhoc.var.net.basePressure": 7,
+        adhoc_Pumps_r0_pressure: 5.5,
+        adhoc_count_Pumps_r2: 3,
+        adhoc_count_Queue: 12,
+        adhoc_param_rate: 0.25,
+        adhoc_var_net_basePressure: 7,
       },
     );
     expect(result.parameterValues["rate"]).toBe("0.25");
@@ -500,10 +503,10 @@ describe("synthesizeAdHocOptimization", () => {
     );
     // Constant expressions preview as typed: basePressure = 2 * 1.5, the
     // queue count = 4 * 2, the template count = 2, rate's default = 1.5.
-    expect(byName.get("adhoc.var.net.basePressure")).toBe(3);
-    expect(byName.get("adhoc.count.Queue")).toBe(8);
-    expect(byName.get("adhoc.count.Pumps.r2")).toBe(2);
-    expect(byName.get("adhoc.param.rate")).toBe(1.5);
+    expect(byName.get("adhoc_var_net_basePressure")).toBe(3);
+    expect(byName.get("adhoc_count_Queue")).toBe(8);
+    expect(byName.get("adhoc_count_Pumps_r2")).toBe(2);
+    expect(byName.get("adhoc_param_rate")).toBe(1.5);
   });
 
   it("an optimized shared column emits one parameter and mutes its cells", () => {
@@ -530,14 +533,14 @@ describe("synthesizeAdHocOptimization", () => {
     const identifiers = outcome.output.scenario.scenarioParameters.map(
       (parameter) => parameter.identifier,
     );
-    expect(identifiers).toContain("adhoc.Pumps.col.pressure");
-    expect(identifiers).not.toContain("adhoc.Pumps.r0.pressure");
+    expect(identifiers).toContain("adhoc_Pumps_col_pressure");
+    expect(identifiers).not.toContain("adhoc_Pumps_r0_pressure");
     const columnField = outcome.output.optimizedFields.find(
-      (field) => field.parameterName === "adhoc.Pumps.col.pressure",
+      (field) => field.parameterName === "adhoc_Pumps_col_pressure",
     );
     expect(columnField?.label).toBe("Pumps › pressure");
 
-    const result = compiled(outcome, { "adhoc.Pumps.col.pressure": 6 });
+    const result = compiled(outcome, { adhoc_Pumps_col_pressure: 6 });
     const pumpTokens = result.initialState["place-pumps"];
     if (!Array.isArray(pumpTokens)) {
       throw new Error("expected token rows");
@@ -601,7 +604,7 @@ describe("synthesizeAdHocOptimization", () => {
     ];
 
     const result = compiled(synthesizeAdHocOptimization(state, context), {
-      "adhoc.var.net.basePressure": 4,
+      adhoc_var_net_basePressure: 4,
     });
     expect(result.parameterValues["rate"]).toBe("8");
   });
@@ -653,7 +656,7 @@ describe("synthesizeAdHocOptimization", () => {
     }
     // rate defaults to 1.5, so the expression evaluates to 4.5.
     const parameter = outcome.output.scenario.scenarioParameters.find(
-      (candidate) => candidate.identifier === "adhoc.count.Queue",
+      (candidate) => candidate.identifier === "adhoc_count_Queue",
     );
     expect(parameter?.default).toBe(5);
   });
@@ -967,10 +970,10 @@ describe("adHocPlaceKey", () => {
     expect(adHocPlaceKey(places, "queue-a")).toBe("Queue");
     expect(adHocPlaceKey(places, "queue-b")).toBe("Queue~2");
     expect(adHocParameterName.count("Queue~2", 3)).toBe(
-      "adhoc.count.Queue~2.r3",
+      "adhoc_count_Queue_2_r3",
     );
     expect(adHocParameterName.column("Queue", "size")).toBe(
-      "adhoc.Queue.col.size",
+      "adhoc_Queue_col_size",
     );
   });
 });
@@ -1031,7 +1034,7 @@ describe("exposed variables", () => {
       optimization.output.scenario.scenarioParameters.map(
         (parameter) => parameter.identifier,
       ),
-    ).toEqual(["adhoc.var.net.basePressure"]);
+    ).toEqual(["adhoc_var_net_basePressure"]);
     const plain = synthesizeAdHocScenario(state, context);
     expect(
       scenarioOf(plain).scenarioParameters.map(
@@ -1064,6 +1067,7 @@ describe("persisted ad-hoc scenarios", () => {
 
     const result = compileScenario(
       persisted,
+      lowerScenarioToHir(persisted, { adHocContext: context }),
       context.netParameters,
       context.places,
       context.types,
@@ -1084,14 +1088,16 @@ describe("persisted ad-hoc scenarios", () => {
       state.variables[0]!,
       { ...state.variables[0]! }, // duplicate name
     ];
+    const broken: Scenario = {
+      id: "scenario-broken",
+      name: "Broken",
+      scenarioParameters: [],
+      parameterOverrides: {},
+      initialState: { type: "adhoc", content: state },
+    };
     const result = compileScenario(
-      {
-        id: "scenario-broken",
-        name: "Broken",
-        scenarioParameters: [],
-        parameterOverrides: {},
-        initialState: { type: "adhoc", content: state },
-      },
+      broken,
+      lowerScenarioToHir(broken, { adHocContext: context }),
       context.netParameters,
       context.places,
       context.types,
