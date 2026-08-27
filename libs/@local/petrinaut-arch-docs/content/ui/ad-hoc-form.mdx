@@ -15,12 +15,12 @@ what they enter through a scenario **generated at run time and never
 persisted**. Three consumers mount the same component, differing only in
 what selecting a value means (`selection` prop): quick simulation and plain
 experiment creation pass `"none"` (no toggles), and the optimization drawer
-passes `"optimize"` (a value is selected for the optimizer). A third mode,
-`"controls"`, relabels the same selection as a control over the state for a
-future classical scenario editor — no consumer mounts it yet; a story
-exercises it. The toggle column, the pill on every open editor, and the
-strings all follow the mode; the underlying state field is the same
-`optimize` settings object in every mode.
+passes `"optimize"` (a value is selected for the optimizer, with bounds). A
+third mode, `"expose"`, is the scenario creation form's: it offers no value
+toggles at all, and instead each top-level Variable row grows a "Scenario
+Parameter" toggle (`AdHocVariable.exposed`) — the saved scenario exposes
+those Variables as its tunable parameters. Optimize selections write the
+`optimize` settings object; expose writes the boolean `exposed` flag.
 
 The design is the scenario **code editor's model, constrained**: everything
 the form can express synthesizes to code-mode scenario source that the
@@ -57,7 +57,7 @@ Everything flows through three types declared in the
 `synthesizeAdHocScenario` is the plain-run entry (Optimize ignored, scenario
 only); `synthesizeAdHocOptimization` is the optimization entry (full output).
 Each `AdHocOptimizedField` carries the generated parameter's deterministic
-`adhoc.*` name, its typed domain, its target path, and an attribution label
+`adhoc_*` name, its typed domain, its target path, and an attribution label
 (`Space › item 0 › x`) — the join key from optimization results back to the
 thing the user selected.
 
@@ -158,8 +158,17 @@ headers, the shared-values line, each dynamic row's count strip, the rows,
 the phantom line — and returns to the column a vertical move started from
 after crossing a full-width stop. The type select and the bounds Scale
 select join the grid: arrows navigate while closed, Enter opens, and the
-open list owns its keys. Escape on a selected (not editing) cell is a
-no-op.
+open list owns its keys.
+
+**Escape never reaches the host.** The form's embeddings (drawers, dialogs)
+close on Escape via a document-capture listener, so the form root and the
+value-editor slab intercept Escape on `window` capture — above document —
+and peel exactly one layer: a Monaco suggestion list, then an open bound
+edit, then the slab itself (back to the selected cell), and on a plain
+selected cell Escape is swallowed as a no-op. Closing a drawer from inside
+the form is the close button's job. Ark's own layers (the type select's
+dropdown, the gutter menu) are left to their layer stack, which already
+spares the host.
 
 ## Slots: one join key for errors, diagnostics, and cells
 
@@ -228,7 +237,7 @@ its tooltip.
 | `i`, `count`        | per row: position and row count (fixed rows: `i` = list position, `count` = 1) |
 
 In generated code the compiler's `scenario` object (which carries the
-generated `adhoc.*` values during optimization) is captured as
+generated `adhoc_*` values during optimization) is captured as
 `__adhocParams` before the Variables shadow `scenario`, in both the
 initial-state body and wrapped override expressions.
 
@@ -339,9 +348,13 @@ const [state, setState] = useState<AdHocScenarioState>(EMPTY_AD_HOC_STATE);
   state={state}
   onChange={setState}
   context={{ netParameters, places, types }} // from the SDCPN
-  selection="none" // "optimize" | "controls" where the toggles apply
+  selection="none" // "optimize" | "expose" where the toggles apply
 />;
 ```
+
+The sections render Variables first, then Parameters, then Initial state —
+a net-parameter override may read the Variables, so the reading order
+matches the data flow.
 
 Two props shape an **embedding**: `withVariables={false}` removes the
 Variables section (an expression referencing `scenario.<name>` then fails as

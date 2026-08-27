@@ -1,11 +1,14 @@
 /**
- * One place's section of the ad-hoc form: a header carrying the place name
- * (a collapse toggle, keyboard-navigable: Left collapses, Right expands),
- * the per-place Variables block, and the token spreadsheet (coloured
- * places). Collapsing animates with a grid-track transition and makes the
- * content inert; collapsed, the place is one line: its name and a summary
- * of its rows and token total. An uncoloured place is always one line: its
- * name and its count slot.
+ * One place's section of the ad-hoc form: a header carrying the place's
+ * token colour and name (for coloured places a collapse toggle,
+ * keyboard-navigable: Left collapses, Right expands), the per-place
+ * Variables block, and the token spreadsheet. Collapsing animates with a
+ * grid-track transition and makes the content inert; collapsed, the place
+ * is one line: its name and a summary of its rows and token total. An
+ * uncoloured place is a header plus one full-width count cell.
+ *
+ * The collapse chevron hangs in the left margin, so every place name —
+ * coloured or not — starts at the same x as the blocks beneath it.
  */
 
 import { use, useState } from "react";
@@ -19,6 +22,7 @@ import {
   useNavigationHeader,
   useNavigationZone,
 } from "./navigation/use-form-navigation";
+import { tableContainerStyle } from "./spreadsheet/form-table";
 import { TokenTable } from "./token-table";
 import { ValueEditor } from "./value-editor";
 import { VariableRows } from "./variable-rows";
@@ -36,12 +40,19 @@ const blockStyle = css({
   gap: "1.5",
 });
 
+const denseBlockStyle = css({
+  gap: "1",
+});
+
 const headerStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
 });
 
+// The place-name trigger pulls itself left by its padding plus the chevron
+// slot, so the dot + name align with the un-chevroned headers and the
+// tables below.
 const placeNameButtonStyle = css({
   display: "flex",
   alignItems: "center",
@@ -49,7 +60,7 @@ const placeNameButtonStyle = css({
   border: "none",
   background: "[transparent]",
   padding: "[2px 4px]",
-  marginLeft: "[-4px]",
+  marginLeft: "[-18px]",
   borderRadius: "xs",
   fontSize: "sm",
   fontWeight: "semibold",
@@ -72,6 +83,14 @@ const chevronStyle = css({
 
 const collapsedChevronStyle = css({
   transform: "[rotate(-90deg)]",
+});
+
+/** The token colour, the same dot the classical scenario form shows. */
+const colourDotStyle = css({
+  width: "[8px]",
+  height: "[8px]",
+  borderRadius: "full",
+  flexShrink: "0",
 });
 
 const summaryStyle = css({
@@ -102,28 +121,31 @@ const collapseInnerStyle = css({
 });
 
 const placeNameStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+  padding: "[2px 0]",
   fontSize: "sm",
   fontWeight: "semibold",
   color: "neutral.s120",
+});
+
+// The embedded (dense) rendering shrinks the titles a step and tightens
+// their padding, so a long place list stays scannable in a panel.
+const densePlaceNameStyle = css({
+  fontSize: "xs",
+  fontWeight: "medium",
 });
 
 const headerSpacerStyle = css({
   flex: "1",
 });
 
-const inlineCountStyle = css({
+// An uncoloured place's count is one full-width cell in the same bordered
+// shell as the spreadsheets, so it reads as part of the same grammar
+// instead of an inline aside.
+const countBoxStyle = css({
   display: "flex",
-  alignItems: "center",
-  gap: "1",
-  fontFamily: "mono",
-  fontSize: "xs",
-  color: "neutral.s80",
-});
-
-const inlineCountEditorStyle = css({
-  minWidth: "[64px]",
-  width: "auto",
-  borderRadius: "xs",
 });
 
 export interface ColouredPlaceBlockProps {
@@ -137,7 +159,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   colour,
   state,
 }) => {
-  const { formState, synthesisContext } = use(AdHocFormContext);
+  const { formState, synthesisContext, dense } = use(AdHocFormContext);
   const [collapsed, setCollapsed] = useState(false);
   const { attach: attachHeader, onHeaderKeyDown } = useNavigationHeader({
     collapse: () => setCollapsed(true),
@@ -147,7 +169,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   const totalText = total.resolved ? `${total.total}` : total.text;
 
   return (
-    <div className={blockStyle}>
+    <div className={cx(blockStyle, dense && denseBlockStyle)}>
       <div className={headerStyle}>
         <button
           ref={attachHeader}
@@ -164,7 +186,12 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
           >
             ▼
           </span>
-          {place.name}
+          <span
+            aria-hidden="true"
+            className={colourDotStyle}
+            style={{ backgroundColor: colour.displayColor }}
+          />
+          <span className={cx(dense && densePlaceNameStyle)}>{place.name}</span>
         </button>
         {collapsed ? (
           <span className={summaryStyle}>
@@ -200,6 +227,7 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
   place,
   state,
 }) => {
+  const { dense } = use(AdHocFormContext);
   const target = { kind: "count" as const, placeId: place.id, row: null };
   const [trigger, setTrigger] = useState<HTMLButtonElement | null>(null);
   const { attach: attachZone, exit: exitZone } = useNavigationZone(() =>
@@ -207,16 +235,24 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
   );
 
   return (
-    <div ref={attachZone} className={headerStyle}>
-      <span className={placeNameStyle}>{place.name}</span>
-      <div className={inlineCountStyle}>
-        <span>×</span>
+    <div ref={attachZone} className={cx(blockStyle, dense && denseBlockStyle)}>
+      <div className={headerStyle}>
+        <span className={placeNameStyle}>
+          <span
+            aria-hidden="true"
+            className={colourDotStyle}
+            style={{ backgroundColor: "#ccc" }}
+          />
+          <span className={cx(dense && densePlaceNameStyle)}>{place.name}</span>
+        </span>
+      </div>
+      <div className={cx(tableContainerStyle, countBoxStyle)}>
         <ValueEditor
           value={state.count}
           target={target}
           integer
           withStep={false}
-          className={inlineCountEditorStyle}
+          placeholder="0 tokens"
           triggerRef={setTrigger}
           onTriggerKeyDown={(event) => {
             if (event.key === "ArrowUp" || event.key === "ArrowDown") {

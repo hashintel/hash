@@ -23,14 +23,15 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 /**
- * What selecting a value means in this consumer: nothing, marking it for
- * the optimizer, or exposing it as a control over the scenario's state.
+ * What selecting a value means in this consumer: nothing, marking a value
+ * for the optimizer (with bounds), or exposing a top-level Variable as a
+ * scenario parameter the saved scenario's users can tune.
  */
-export type AdHocFormSelection = "none" | "optimize" | "controls";
+export type AdHocFormSelection = "none" | "optimize" | "expose";
 
-/** The visible name of the selection toggle ("Optimize" / "Control"). */
+/** The visible name of the selection toggle. */
 export const adHocSelectionText = (selection: AdHocFormSelection): string =>
-  selection === "controls" ? "Control" : "Optimize";
+  selection === "expose" ? "Scenario Parameter" : "Optimize";
 
 export interface AdHocFormServices {
   /** The whole form state, as currently edited. */
@@ -54,6 +55,11 @@ export interface AdHocFormServices {
   highlight: AdHocHighlight;
   /** Reports which value or row holds focus, driving the highlight. */
   setFocusedValue: (target: AdHocFocusTarget | null) => void;
+  /**
+   * The embedded rendering (`bare`): smaller place titles, tighter
+   * spacing — for hosts that show the form inside an already-dense panel.
+   */
+  dense: boolean;
 }
 
 export const AdHocFormContext = createContext<AdHocFormServices>({
@@ -66,4 +72,5 @@ export const AdHocFormContext = createContext<AdHocFormServices>({
   uriFor: () => "",
   highlight: EMPTY_AD_HOC_HIGHLIGHT,
   setFocusedValue: () => {},
+  dense: false,
 });
