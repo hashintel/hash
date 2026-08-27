@@ -248,7 +248,6 @@ function getCustomArcPath({
   targetPosition: Position;
 }): [path: string, labelX: number, labelY: number] {
   const dx = targetX - sourceX;
-  const dy = targetY - sourceY;
 
   // Control point offset scales with horizontal distance, with a minimum
   const offset = Math.max(Math.abs(dx) * 0.7, 80);
@@ -260,9 +259,9 @@ function getCustomArcPath({
 
   const path = `M ${sourceX},${sourceY} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${targetX},${targetY}`;
 
-  // Label at the midpoint of the cubic bezier (t=0.5)
-  const labelX = sourceX + dx / 2;
-  const labelY = sourceY + dy / 2;
+  // Label at the midpoint of the cubic bezier: B(0.5) = (P0 + 3·CP1 + 3·CP2 + P3) / 8
+  const labelX = (sourceX + 3 * cp1x + 3 * cp2x + targetX) / 8;
+  const labelY = (sourceY + 3 * cp1y + 3 * cp2y + targetY) / 8;
 
   return [path, labelX, labelY];
 }
