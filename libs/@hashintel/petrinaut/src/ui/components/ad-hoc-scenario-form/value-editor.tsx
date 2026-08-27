@@ -550,14 +550,17 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       event.preventDefault();
       event.stopPropagation();
       // Innermost first: a visible Monaco widget (suggestions, signature
-      // help) closes without leaving the expression editor.
+      // help) closes without leaving the expression editor. Falls through
+      // when no editor instance is registered — Escape must never be
+      // swallowed with no effect.
       if (
+        monacoRef.current &&
         overlay?.querySelector(
           ".suggest-widget.visible, .parameter-hints-widget.visible",
         )
       ) {
-        monacoRef.current?.trigger("keyboard", "hideSuggestWidget", {});
-        monacoRef.current?.trigger("keyboard", "closeParameterHints", {});
+        monacoRef.current.trigger("keyboard", "hideSuggestWidget", {});
+        monacoRef.current.trigger("keyboard", "closeParameterHints", {});
         return;
       }
       if (editingBound !== null) {
