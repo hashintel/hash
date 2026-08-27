@@ -288,11 +288,13 @@ describe("AiAssistantPanel composer submissions", () => {
 
     renderTestPanel({ aiAssistant });
 
-    fireEvent.click(screen.getByRole("tab", { name: "Interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Interview" }));
     expect(screen.getByText("Stage interview")).not.toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Stage interview" }));
 
-    expect(screen.getByPlaceholderText("Describe the process you want to create")).not.toBeNull();
+    expect(
+      screen.getByPlaceholderText("Describe the process you want to create"),
+    ).not.toBeNull();
     expect(interviewStageMounts).toBe(1);
     expect(interviewStageUnmounts).toBe(0);
   });

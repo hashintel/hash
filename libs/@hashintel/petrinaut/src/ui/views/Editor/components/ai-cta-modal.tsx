@@ -135,7 +135,9 @@ export const AiCtaModal = ({
     };
   }, [onDismiss]);
 
-  const effectiveInteractionMode = interviewAvailable ? interactionMode : "chat";
+  const effectiveInteractionMode = interviewAvailable
+    ? interactionMode
+    : "chat";
 
   return (
     <div className={aiCtaModalLayerStyle} style={{ bottom: bottomClearance }}>
@@ -172,9 +174,11 @@ export const AiCtaModal = ({
             <div className={aiCtaModalIconStyle}>
               <AiAssistantIcon size={32} />
             </div>
-            <h2 className={aiCtaModalTitleStyle}>
-              Describe the process you want to create
-            </h2>
+            <div className={aiCtaModalCopyStyle}>
+              <h2 className={aiCtaModalTitleStyle}>
+                Describe the process you want to create
+              </h2>
+            </div>
             <TextInput
               inputRef={inputRef}
               value={promptInput}

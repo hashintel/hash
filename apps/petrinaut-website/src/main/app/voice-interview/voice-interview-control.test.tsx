@@ -403,6 +403,35 @@ describe("voice interview stage", () => {
     expect(focusComposer).toHaveBeenCalledOnce();
   });
 
+  test("uses text from an active interview without ending the session", async () => {
+    window.localStorage.setItem(
+      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      "acknowledged",
+    );
+    const focusComposer = vi.fn();
+    stubUnavailableMicrophone();
+    render(
+      <StatefulVoiceInterviewHarness
+        onFocusComposer={focusComposer}
+        onOpenSidebar={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
+    expect(
+      await screen.findByRole("region", { name: "Voice interview stage" }),
+    ).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Use text instead" }));
+
+    expect(screen.getByText("Chat mode")).not.toBeNull();
+    expect(screen.getByText("Interview active")).not.toBeNull();
+    expect(
+      screen.getByRole("region", { name: "Voice interview mini bar" }),
+    ).not.toBeNull();
+    expect(focusComposer).toHaveBeenCalledOnce();
+  });
+
   test("skips the disclosure after it has been acknowledged", async () => {
     stubUnavailableMicrophone();
     window.localStorage.setItem(

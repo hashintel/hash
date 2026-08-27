@@ -26,8 +26,8 @@ import {
   type OnInteractiveToolSubmit,
 } from "./ai-assistant-contents/tool-list";
 
-import type { PetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
 import type { PetrinautAiInteractionMode } from "../../../../types/ai-assistant-composer-control";
+import type { PetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
 import type { AiToolTarget } from "./tool-summaries";
 import type { PetrinautAiMessage } from "./types";
 
@@ -541,12 +541,13 @@ export const AiAssistantContents = ({
 
   return (
     <aside
+      aria-hidden={!isOpen && !interviewStage ? true : undefined}
+      aria-label="AI assistant"
       className={shellStyle({ open: isOpen })}
       style={{
         right: isOpen ? rightOffset : 0,
         ...(isOpen ? { width: assistantWidth } : {}),
       }}
-      aria-label="AI assistant"
     >
       {/* Zero-width anchor on the card's left edge: the handle must straddle
           the visible card border, but the card clips overflow and the shell's

@@ -4,7 +4,7 @@ import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
 
 import type { PetrinautAiInteractionMode } from "../../../types/ai-assistant-composer-control";
 
-const tabListStyle = css({
+const modeGroupStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "1",
@@ -68,11 +68,10 @@ export const AiInteractionModeTabs = ({
   mode: PetrinautAiInteractionMode;
   onModeChange: (mode: PetrinautAiInteractionMode) => void;
 }) => (
-  <div aria-label="AI interaction mode" className={tabListStyle} role="tablist">
+  <div aria-label="AI interaction mode" className={modeGroupStyle} role="group">
     <button
-      aria-selected={mode === "chat"}
+      aria-pressed={mode === "chat"}
       className={tabStyle({ selected: mode === "chat" })}
-      role="tab"
       type="button"
       onClick={() => onModeChange("chat")}
     >
@@ -80,9 +79,8 @@ export const AiInteractionModeTabs = ({
       Chat
     </button>
     <button
-      aria-selected={mode === "interview"}
+      aria-pressed={mode === "interview"}
       className={tabStyle({ selected: mode === "interview" })}
-      role="tab"
       type="button"
       onClick={() => onModeChange("interview")}
     >

@@ -26,7 +26,7 @@ describe("AiCtaModal", () => {
         name: "Describe the process you want to create",
       }),
     ).not.toBeNull();
-    fireEvent.click(screen.getByRole("tab", { name: "Interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Interview" }));
     expect(
       screen.getByRole("heading", {
         name: "Talk through your process with AI",
@@ -48,7 +48,9 @@ describe("AiCtaModal", () => {
       />,
     );
 
-    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(
+      screen.queryByRole("group", { name: "AI interaction mode" }),
+    ).toBeNull();
     expect(
       screen.getByLabelText("Describe the process you want to create"),
     ).not.toBeNull();
@@ -65,7 +67,7 @@ describe("AiCtaModal", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: "Interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Interview" }));
     expect(
       screen.getByRole("heading", {
         name: "Talk through your process with AI",
@@ -82,7 +84,9 @@ describe("AiCtaModal", () => {
       />,
     );
 
-    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(
+      screen.queryByRole("group", { name: "AI interaction mode" }),
+    ).toBeNull();
     expect(
       screen.getByRole("heading", {
         name: "Describe the process you want to create",

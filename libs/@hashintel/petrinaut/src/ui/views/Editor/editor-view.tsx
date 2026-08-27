@@ -490,7 +490,9 @@ export const EditorView = ({
             {showEmptyAiHero && (
               <AiCtaModal
                 bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
-                interviewAvailable={aiAssistant.renderInterviewStage !== undefined}
+                interviewAvailable={
+                  aiAssistant.renderInterviewStage !== undefined
+                }
                 onDismiss={() => setIsAiCtaDismissed(true)}
                 onStartInterview={() => {
                   setPendingAiInteractionMode("interview");

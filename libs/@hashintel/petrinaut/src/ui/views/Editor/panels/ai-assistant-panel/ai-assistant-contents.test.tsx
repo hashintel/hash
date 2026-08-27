@@ -79,8 +79,34 @@ describe("AiAssistantContents", () => {
     expect(screen.getByTestId("ai-interview-stage").dataset.placement).toBe(
       "detached",
     );
+    expect(
+      screen
+        .getByRole("complementary", { name: "AI assistant" })
+        .getAttribute("aria-hidden"),
+    ).toBeNull();
     expect(interviewStageMounts).toBe(1);
     expect(interviewStageUnmounts).toBe(0);
+  });
+
+  test("hides a closed chat-only panel from the accessibility tree", () => {
+    const { container } = render(
+      <AiAssistantContents
+        input=""
+        isOpen={false}
+        messages={[]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    expect(
+      container
+        .querySelector('aside[aria-label="AI assistant"]')
+        ?.getAttribute("aria-hidden"),
+    ).toBe("true");
   });
 
   test("keeps keyboard drafting available and protects clear-chat during an active interview", () => {
@@ -141,7 +167,7 @@ describe("AiAssistantContents", () => {
     expect(
       screen.getByPlaceholderText("Describe the process you want to create"),
     ).not.toBeNull();
-    fireEvent.click(screen.getByRole("tab", { name: "Interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Interview" }));
     expect(onInteractionModeChange).toHaveBeenCalledWith("interview");
 
     rendered.rerender(

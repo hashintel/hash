@@ -841,11 +841,15 @@ export const VoiceInterviewControlView = ({
 };
 
 const recordLatency = (event: VoiceLatencyEvent): void => {
-  performance.measure(`voice-interview:${event.name}`, {
-    detail: { questionId: event.questionId },
-    duration: event.elapsedMs,
-    start: 0,
-  });
+  try {
+    performance.measure(`voice-interview:${event.name}`, {
+      detail: { questionId: event.questionId },
+      duration: event.elapsedMs,
+      start: 0,
+    });
+  } catch {
+    // Performance measurement is optional and must not interrupt the interview.
+  }
 };
 
 const AvailableVoiceInterviewControl = ({
@@ -894,7 +898,7 @@ const AvailableVoiceInterviewControl = ({
     store.getSnapshot,
     store.getSnapshot,
   );
-  const [presentation, setPresentation] = useState<Presentation>("full");
+  const [presentation, setPresentation] = useState<Presentation>("start");
   const [consented, setConsented] = useState(false);
   const [microphoneCheck, setMicrophoneCheck] = useState("");
   const [correction, setCorrection] = useState("");

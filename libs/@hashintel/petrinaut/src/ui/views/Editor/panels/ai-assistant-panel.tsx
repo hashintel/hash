@@ -936,7 +936,11 @@ export const AiAssistantPanel = ({
     ) {
       selectInteractionMode("chat");
     }
-  }, [aiAssistant.renderInterviewStage, interactionMode, selectInteractionMode]);
+  }, [
+    aiAssistant.renderInterviewStage,
+    interactionMode,
+    selectInteractionMode,
+  ]);
 
   useEffect(() => {
     const trimmedInitialMessage = initialMessage?.trim();
