@@ -63,14 +63,17 @@ into the branch/PR description. Do not create additional planning or control doc
 - **Toolchain:** format TS/JSON with root `oxfmt`; lint via `lint:eslint` (Oxlint) and
   `lint:tsc` (`tsgo --noEmit`); unit tests via `vitest run`; build with Vite 8. Run tasks through
   the HASH root Yarn/Turbo workspace — add no `package.json` or lockfile here.
-- **Git vs Graphite:** plain `git` for status/diff/add/commit; `gt` for
-  `create`/`submit`/`restack`/`sync`/`checkout`. Never `gh stack`. Before switching the branch of
-  a shared worktree, check for in-flight work; use a separate worktree rather than stashing,
-  resetting, or cleaning anything you did not create.
-- **Linear and GitHub records:** follow
+- **Issue, branch, and PR lifecycle:** one Linear issue = one Graphite branch = one GitHub PR; the
+  branch mission remains the execution authority. Follow
+  [`docs/agents/git-workflow.md`](docs/agents/git-workflow.md) when creating, restacking, or
+  submitting a branch or connecting it to an issue or PR.
+- **Linear project posture:** Brunch issues live on team `FE`, project `brunch-agent`, whose mixed
+  inherited issue history is evidence and inbox rather than an authoritative plan. Follow
+  [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) before creating, reusing, relating,
+  or changing an issue. Reading is fine; get explicit approval before every Linear write.
+- **Linear and GitHub writing:** follow
   [`docs/agents/issue-writing.md`](docs/agents/issue-writing.md) whenever creating or editing an
-  issue, pull request, or comment. Linear uses team `FE`, project `brunch-agent`; reading is fine,
-  but get explicit approval before any Linear write (create, edit, comment, state change).
+  issue, pull request, or comment.
 - **Topology gates** (enforced by tests): plugins never import
   `@hashintel/brunch-agent/prompts`; transport packages never depend on a binding; bindings
   depend inward on core; plugins depend only on core. Evaluation answer keys stay on the
