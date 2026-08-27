@@ -60,6 +60,8 @@ Click a column header to give the whole column **one shared value**: the column 
 
 Each place block can declare its own variables from its **Add a variable** line, scoped to that place's rows and referenced by bare name. They are evaluated per row, so they may read `i` -- use one for a per-token intermediate value such as an angle.
 
+A dynamic row's **count** may read the place's variables too, as long as their values don't use `i` or `count` -- the count runs once, before any token exists. A count that reads an `i`-dependent variable shows an error on the count itself.
+
 ## Type checking
 
 Every expression is type-checked as you work. The open editor marks problems inline; a closed value with a problem underlines in red and shows the message when you hover it. Cells inherit their type from the token type's field; declared types exist on Variables and counts only. Structural rules (duplicate names, bounds that do not resolve, optimizing a text field) surface the same way, on the value they belong to.
