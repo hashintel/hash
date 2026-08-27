@@ -1,0 +1,51 @@
+---
+title: Parameter sweeps
+description: Why a sweep computes one combination at a time, and how the refinement ladder, the cache, and common random numbers fit together.
+sidebar_order: 20
+attachTo: react.experiments
+---
+
+A sweep experiment defines a grid — evenly spaced values per swept scenario
+parameter, capped at 200 combinations — but never computes the grid. It
+computes the combination the navigator points at, and moves compute the moment
+the navigator does. The model is a raytracer's: rays for the current camera,
+dropped on movement, never precomputed for cameras nobody is looking through.
+
+![One combination refining](@diagrams/sweep-refinement.svg)
+
+## The refinement ladder
+
+Runs for a combination accumulate in escalating batches — 8, 25, 100, 500,
+1000, then ×5/×2 — capped by the experiment's per-combination run budget
+(`parameter-grid.ts`). The first rung is small so a fresh selection paints in
+under a second; each later rung sharpens the same distributions. A batch that
+finishes folds into the combination's cache entry; a batch cancelled by a
+selection change is discarded whole. Revisiting a combination resumes from its
+cached rung rather than starting over.
+
+## Determinism
+
+Batch *b* covering runs `[from, target)` seeds itself with
+`deriveRunSeed(seed, from)` (the first batch keeps the base seed verbatim).
+The ladder is the same for every combination, so the same rung draws the same
+seeds everywhere — common random numbers across the grid — and a re-run of a
+cancelled rung repeats it exactly. Cached results never go stale: the same
+combination always means the same runs.
+
+## Where the pieces live
+
+`createSweepSession` (`react/experiments/sweep-session.ts`) owns the loop:
+selection, ladder, cache, cancellation. It is backend-agnostic — it consumes
+an injected `instantiateBatch` returning a `MonteCarloExperiment`, so the CPU
+worker pool and the WebGPU backend behave identically. The provider wires that
+seam: a sweep's first batch runs the same
+[backend-selection walk](doc:experiments/backend-selection) as a plain
+experiment, and later batches re-assess the chosen backend with each batch's
+request — which is where the GPU backend regenerates its shader for the new
+parameter values. Scenario compilation also happens per batch, because a
+combination's swept values change the compiled initial state.
+
+The navigator (`sweep-navigator.tsx`) renders in the drawer section's sticky
+band, so the controls stay pinned while the charts stream beneath them. Its
+updates go through one context call, `setSweepSelection`; everything else the
+UI shows is plain record state the session streams out.
