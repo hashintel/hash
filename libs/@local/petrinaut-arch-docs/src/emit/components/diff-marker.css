@@ -1,0 +1,58 @@
+/*
+ * Styling for diff markers on pages built against a base ref.
+ *
+ * Self-contained plain CSS like the layer cards: the three status hues are
+ * fixed because green/blue/red must stay green/blue/red on any theme, while
+ * everything structural derives from `currentColor`. The marker itself is
+ * invisible; the adjacent-sibling selector paints the block it precedes, so
+ * the marked markdown needs no wrapper of its own.
+ */
+
+.arch-diff-marker {
+  display: none;
+
+  --arch-diff-added: #2f9e44;
+  --arch-diff-changed: #3676b8;
+}
+
+.arch-diff-marker[data-status="added"] + * {
+  border-inline-start: 3px solid var(--arch-diff-added, #2f9e44);
+  padding-block: 0.25rem;
+  padding-inline-start: 0.75rem;
+  background: color-mix(in srgb, #2f9e44 7%, transparent);
+}
+
+.arch-diff-marker[data-status="changed"] + * {
+  border-inline-start: 3px solid var(--arch-diff-changed, #3676b8);
+  padding-block: 0.25rem;
+  padding-inline-start: 0.75rem;
+  background: color-mix(in srgb, #3676b8 7%, transparent);
+}
+
+.arch-diff-removed {
+  --arch-diff-removed: #c92a2a;
+
+  margin: 1rem 0;
+  padding: 0.25rem 0.75rem;
+  border-inline-start: 3px solid var(--arch-diff-removed);
+  background: color-mix(in srgb, #c92a2a 7%, transparent);
+  font-size: 0.85rem;
+}
+
+.arch-diff-removed > summary {
+  cursor: pointer;
+  color: var(--arch-diff-removed);
+  font-weight: 600;
+}
+
+/* Two classes outrank Starlight's sibling-margin rule, as in the cards. */
+.arch-diff-removed .arch-diff-removed-source {
+  margin: 0.5rem 0 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+  border-radius: 0.4rem;
+  overflow-x: auto;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre;
+}

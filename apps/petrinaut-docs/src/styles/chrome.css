@@ -210,3 +210,42 @@
   border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
   border-radius: 0.5rem;
 }
+
+/* Diff badges ------------------------------------------------------------ */
+
+/*
+ * On a diff build (a preview built against a base ref) the sidebar carries
+ * change badges from `manifest.diff`; see astro.config.mjs. The classes come
+ * in through the sidebar links' `attrs`. Removed pages link to tombstone
+ * stubs, and the strike-through is what says "gone" before the reader clicks.
+ */
+.pnd-diff-removed {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+/*
+ * A row that carries a badge lays out as a flex row so the badge sits beside
+ * the label instead of under it — the label rule above makes every span a
+ * block for clipping, which would otherwise push the badge to its own line.
+ * The label keeps `min-width: 0` so it still clips instead of the badge.
+ */
+.sidebar-content a:has(> .sl-badge),
+.sidebar-content .group-label:has(> .sl-badge) {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sidebar-content a:has(> .sl-badge) > span:first-child,
+.sidebar-content .group-label:has(> .sl-badge) > span:first-child {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.sidebar-content .sl-badge {
+  flex: none;
+  padding: 0 0.3rem;
+  font-size: 0.6rem;
+  line-height: 1.4;
+}

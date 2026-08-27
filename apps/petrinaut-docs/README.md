@@ -47,6 +47,20 @@ Copying sidesteps that, and matches what an embedding host does anyway.
 The copied directories (`src/content/docs`, `src/content/diagrams`) are
 gitignored, as is the bundle they come from. Nothing generated is versioned.
 
+## Preview deployments highlight changes
+
+On a Vercel preview, [`vercel-build.sh`](vercel-build.sh) sets
+`PETRINAUT_ARCH_DOCS_DIFF_BASE=main`, so the generator builds the bundle in
+diff mode: the sidebar badges pages as `new`, `changed` or `removed` (with
+roll-up counts on collapsed groups, so a change deep in a subtree is visible
+from the top), and changed pages mark their differing blocks — green for
+added, blue for edited, red collapsed blocks for removed content. Removed
+pages keep a struck-through entry linking to a stub that carries the removed
+source. Set the variable in the Vercel project to compare against a different
+ref; production builds of `main` never diff. What counts as a change (and what
+noise is filtered out) is the generator's contract — see its README section
+"Highlighting changes against a base ref".
+
 ## Notes on configuration
 
 Authored pages are optional. When `content/` in the generator package is empty

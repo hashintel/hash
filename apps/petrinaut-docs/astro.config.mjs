@@ -26,10 +26,70 @@ const manifestPath = fileURLToPath(
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 
 /**
- * @typedef {{ label: string, link: string }} SidebarLink
- * @typedef {{ label: string, collapsed?: boolean, items: SidebarItem[] }} SidebarGroup
+ * @typedef {{ text: string, variant: "success" | "note" | "danger" }} SidebarBadge
+ * @typedef {{ label: string, link: string, badge?: SidebarBadge, attrs?: Record<string, string> }} SidebarLink
+ * @typedef {{ label: string, collapsed?: boolean, items: SidebarItem[], badge?: SidebarBadge }} SidebarGroup
  * @typedef {SidebarLink | SidebarGroup} SidebarItem
  */
+
+/**
+ * Change statuses from a diff build (a preview built against a base ref).
+ * Empty on a plain build, so everything below renders as before.
+ *
+ * @type {Record<string, "added" | "changed" | "removed">}
+ */
+const diffPages = manifest.diff?.pages ?? {};
+
+const DIFF_BADGES = /** @type {const} */ ({
+  added: { text: "new", variant: "success" },
+  changed: { text: "changed", variant: "note" },
+  removed: { text: "removed", variant: "danger" },
+});
+
+/**
+ * Badge and class for one page's link.
+ *
+ * @param {string} slug
+ */
+const diffLinkProps = (slug) => {
+  const status = diffPages[slug];
+  return status === undefined
+    ? {}
+    : {
+        badge: DIFF_BADGES[status],
+        attrs: { class: `pnd-diff-${status}` },
+      };
+};
+
+/**
+ * Roll-up badge for a group: how many pages at or beneath `slug` changed, so
+ * a collapsed group still shows that something inside it did. Colored by the
+ * one status when they all match, neutral when mixed.
+ *
+ * @param {string} slug
+ */
+const diffGroupProps = (slug) => {
+  const statuses = Object.entries(diffPages)
+    .filter(
+      ([pageSlug]) => pageSlug === slug || pageSlug.startsWith(`${slug}/`),
+    )
+    .map(([, status]) => status);
+
+  if (statuses.length === 0) {
+    return {};
+  }
+
+  const uniform = statuses.every((status) => status === statuses[0])
+    ? statuses[0]
+    : null;
+
+  return {
+    badge: {
+      text: String(statuses.length),
+      variant: uniform === null ? "note" : DIFF_BADGES[uniform].variant,
+    },
+  };
+};
 
 /**
  * Builds Starlight's nested sidebar from the manifest.
@@ -154,14 +214,19 @@ const buildSidebar = () => {
                 // Named "Overview" rather than "<title> overview", matching the
                 // Architecture group and avoiding a label that repeats the
                 // group it sits directly beneath.
-                items: [{ label: "Overview", link }, ...itemsUnder(page.slug)],
+                items: [
+                  { label: "Overview", link, ...diffLinkProps(page.slug) },
+                  ...itemsUnder(page.slug),
+                ],
+                ...diffGroupProps(page.slug),
               }
-            : { label: page.title, link };
+            : { label: page.title, link, ...diffLinkProps(page.slug) };
         }),
         ...implied.map((slug) => ({
           label: labelFromSlug(slug),
           collapsed: true,
           items: itemsUnder(slug),
+          ...diffGroupProps(slug),
         })),
       ];
     };
@@ -180,9 +245,14 @@ const buildSidebar = () => {
             label: "Architecture",
             collapsed: false,
             items: [
-              { label: "Overview", link: `/${architectureRoot.slug}` },
+              {
+                label: "Overview",
+                link: `/${architectureRoot.slug}`,
+                ...diffLinkProps(architectureRoot.slug),
+              },
               ...itemsFrom(pages)(architectureRoot.slug),
             ],
+            ...diffGroupProps(architectureRoot.slug),
           },
         ]
       : []),

@@ -6,6 +6,7 @@
  * violated rule — so the map cannot quietly stop matching the code.
  */
 
+import { existsSync } from "node:fs";
 import { chmod, mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +14,8 @@ import { fileURLToPath } from "node:url";
 import { config } from "../architecture.config";
 import { buildBundle, bundleTextFiles, type BuiltBundle } from "./build";
 import { countErrors, type Diagnostic } from "./diagnostics";
+import { materializeBaseTree, type BaseTree } from "./diff/base-tree";
+import { applyBundleDiff } from "./diff/bundle-diff";
 import { canRenderDiagrams, renderD2 } from "./emit/d2";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -59,6 +62,98 @@ const summarise = (bundle: BuiltBundle): void => {
       `${bundle.model.layers.length} layers \u00b7 ${bundle.model.edges.length} edges \u00b7 ${files} files \u00b7 ${bundle.generated.length} generated pages \u00b7 ${bundle.authored.length} authored pages\n`,
     ),
   );
+};
+
+/**
+ * The ref to diff the bundle against, or null for a plain build.
+ *
+ * `--diff-base <ref>` (or `--diff-base=<ref>`) wins over the
+ * `PETRINAUT_ARCH_DOCS_DIFF_BASE` environment variable, which is how CI turns
+ * the diff on for preview builds without touching the command line.
+ */
+const resolveDiffBase = (args: string[]): string | null => {
+  const flagIndex = args.findIndex(
+    (arg) => arg === "--diff-base" || arg.startsWith("--diff-base="),
+  );
+
+  if (flagIndex !== -1) {
+    const flag = args[flagIndex] ?? "";
+    const value = flag.includes("=")
+      ? flag.slice(flag.indexOf("=") + 1)
+      : (args[flagIndex + 1] ?? "");
+    return value.trim() === "" ? null : value.trim();
+  }
+
+  const fromEnvironment = process.env.PETRINAUT_ARCH_DOCS_DIFF_BASE?.trim();
+  return fromEnvironment === undefined || fromEnvironment === ""
+    ? null
+    : fromEnvironment;
+};
+
+/**
+ * Builds the base ref's bundle and applies the diff to the head one.
+ *
+ * The base build runs the current generator over the base sources, with the
+ * current config and source-URL prefix, so the comparison never sees emitter
+ * or prefix drift. Any failure — an unfetchable ref, a base tree the
+ * generator cannot process — degrades to the plain bundle with a warning: a
+ * broken diff must not take the docs down with it.
+ */
+const withDiffAgainst = async (
+  bundle: BuiltBundle,
+  ref: string,
+  includeDiagrams: boolean,
+): Promise<BuiltBundle> => {
+  let baseTree: BaseTree | null = null;
+  try {
+    const tree = await materializeBaseTree({
+      repoRoot,
+      ref,
+      paths: [
+        ...new Set([
+          ...config.packages.map((pkg) => pkg.path),
+          // For the base tree's authored content and dependency-cruiser
+          // tsconfig; the generator itself still runs from this checkout.
+          "libs/@local/petrinaut-arch-docs",
+        ]),
+      ],
+    });
+    baseTree = tree;
+
+    const baseBundle = await buildBundle({
+      repoRoot: tree.root,
+      includeDiagrams,
+      overrides: {
+        // A package added since the base ref has no directory to scan there.
+        packages: config.packages.filter((pkg) =>
+          existsSync(join(tree.root, pkg.path)),
+        ),
+      },
+    });
+
+    const diffed = applyBundleDiff(bundle, baseBundle, {
+      baseRef: ref,
+      baseSha: tree.sha,
+    });
+
+    const statuses = Object.values(diffed.manifest.diff?.pages ?? {});
+    const count = (status: string) =>
+      statuses.filter((entry) => entry === status).length;
+    process.stdout.write(
+      dim(
+        `changes vs ${ref} (${tree.sha.slice(0, 10)}): ${count("added")} added · ${count("changed")} changed · ${count("removed")} removed\n`,
+      ),
+    );
+
+    return diffed;
+  } catch (cause) {
+    process.stderr.write(
+      `${yellow("warning")} building without change highlighting: could not compare against \`${ref}\`\n  ${cause instanceof Error ? cause.message : String(cause)}\n`,
+    );
+    return bundle;
+  } finally {
+    await baseTree?.dispose();
+  }
 };
 
 /** Returns false when a diagram the pages already reference failed to render. */
@@ -152,7 +247,15 @@ const main = async (): Promise<number> => {
     return 1;
   }
 
-  if (!(await writeBundle(bundle, diagramsAvailable))) {
+  // Applied only to a bundle that already passed the checks: the diff decorates
+  // the output, it never gates it.
+  const diffBase = resolveDiffBase(process.argv.slice(3));
+  const written =
+    diffBase === null
+      ? bundle
+      : await withDiffAgainst(bundle, diffBase, diagramsAvailable);
+
+  if (!(await writeBundle(written, diagramsAvailable))) {
     return 1;
   }
 

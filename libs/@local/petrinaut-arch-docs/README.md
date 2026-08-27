@@ -173,6 +173,53 @@ local build at another ref. A preview deployment of `apps/petrinaut-docs`
 reads Vercel's variables, so its links point at the commit it was built from
 instead of at a file `main` may not have yet.
 
+### Highlighting changes against a base ref
+
+A build can compare itself against another version of the repository and mark
+what differs, which is how a PR preview shows a reviewer where to look:
+
+```sh
+# Locally
+yarn workspace @local/petrinaut-arch-docs doc:architecture --diff-base main
+
+# In CI (what vercel-build.sh sets on preview deployments)
+PETRINAUT_ARCH_DOCS_DIFF_BASE=main turbo build --filter '@apps/petrinaut-docs'
+```
+
+The build extracts the covered package trees at the base ref with `git archive`
+and runs the _same_ generator over them — same config, same emitter, same
+source-URL prefix — so nothing but a real change can differ between the two
+sides. No install and no `node_modules` are needed for the base tree: workspace
+imports resolve through aliases derived from each package's `exports` map.
+
+What it produces:
+
+- `manifest.json` gains a `diff` section mapping page slugs to `added`,
+  `changed` or `removed`, for a host to build navigation badges from.
+- Changed pages carry `<DiffMarker>` elements between blocks; the shipped
+  `diff-marker` component and its stylesheet render a green bar on added
+  blocks, a blue bar on edited ones, and removed content as a red, collapsed
+  block in place.
+- A removed page becomes a tombstone stub at its old slug, carrying the
+  removed source, so navigation can show it (struck through) instead of it
+  silently disappearing.
+
+**What counts as a change** is deliberately narrower than a byte diff, because
+a generated page embeds facts that shift whenever _neighbouring_ code moves.
+Masked before comparison: import counts, file and line totals, sidebar
+positions, and the whole "depended on by" list — an incoming edge is the
+importing layer's change and is flagged there, on its `dependsOn` side. A page
+is `changed` when anything else differs: its role, prose, name, declaring
+file, outgoing edges, sub-layers, attached guides — or when the layer's file
+membership moved, the one structural change the masked content cannot show.
+Editing code inside a layer without moving files or edges changes nothing the
+architecture describes, and flags nothing.
+
+The diff decorates the bundle, it never gates it: when the base ref cannot be
+resolved (say, a shallow clone with no way to fetch it) the build warns and
+writes a plain bundle. Production builds of `main` never set the variable, so
+they never diff.
+
 ### Embedding the bundle elsewhere
 
 A host reads `manifest.json`, maps each page's `slug` onto its own URL space, and

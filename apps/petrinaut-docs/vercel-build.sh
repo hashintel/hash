@@ -15,6 +15,15 @@ cd ../..
 # See: https://linear.app/hash/issue/H-3212/clean-up-env-files
 rm -f .env
 
+# Preview deployments highlight what the branch changes against main: pages and
+# blocks that differ get badges and markers, driven by the generator's diff
+# mode. Production builds (main itself) never diff. An already-set variable
+# wins, so the Vercel project can point previews at a different base.
+if [[ "${VERCEL_ENV:-}" == "preview" && -z "${PETRINAUT_ARCH_DOCS_DIFF_BASE:-}" ]]; then
+  export PETRINAUT_ARCH_DOCS_DIFF_BASE="main"
+  echo "Preview build: highlighting changes against main"
+fi
+
 # Run through Turborepo rather than `yarn workspace ... build`: the package
 # script alone skips `sync:bundle`, and would build whatever content happened to
 # be on disk.

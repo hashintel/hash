@@ -17,8 +17,12 @@
       // env mode hides anything unlisted, which would leave a preview build
       // emitting `main` links. Mirrors REF_VARIABLES in `src/source-url.ts`;
       // keep the two lists identical.
+      //
+      // PETRINAUT_ARCH_DOCS_DIFF_BASE is separate: when set, the build
+      // compares against that git ref and annotates what changed.
       "env": [
         "PETRINAUT_ARCH_DOCS_SOURCE_REF",
+        "PETRINAUT_ARCH_DOCS_DIFF_BASE",
         "VERCEL_GIT_COMMIT_SHA",
         "GITHUB_SHA",
         "VERCEL_GIT_COMMIT_REF",
