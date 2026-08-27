@@ -401,7 +401,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       ? currentState.parameterValues
       : {};
     // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-    const scenarioToCompile = tweakedScenarioRef.current;
+    const scenarioToCompile = scenarioToCompileRef.current;
 
     // Dispose any active simulation before starting a new one. Update both
     // the ref and React state so same-tick callers see the cleared handle.
@@ -420,10 +420,21 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       let initialMarking = manualInitialMarking;
       let parameterValues: Record<string, string> = manualParameterValues;
       if (scenarioToCompile) {
-        const scenarioHir = await requestScenarioHir({
-          parameterOverrides: scenarioToCompile.parameterOverrides,
-          initialState: scenarioToCompile.initialState,
-        });
+        const scenarioHir = await requestScenarioHir(
+          {
+            parameterOverrides: scenarioToCompile.parameterOverrides,
+            initialState: scenarioToCompile.initialState,
+          },
+          // A persisted ad-hoc scenario synthesizes against the net inside
+          // the worker; other kinds ignore the context.
+          {
+            netParameters: simulationExtensions.parameters
+              ? sdcpn.parameters
+              : [],
+            places: sdcpn.places,
+            types: sdcpn.types,
+          },
+        );
         if (initializationGenerationRef.current !== generation) {
           return;
         }
@@ -736,8 +747,14 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     };
   }
 
-  // Snapshot for `initialize`, which compiles the scenario itself.
-  const tweakedScenarioRef = useLatest(tweakedScenario);
+  // Snapshot for `initialize`, which compiles the scenario itself: the
+  // saved (tweaked) scenario, or the quick-sim ad-hoc definition already
+  // synthesized above — a run must consume the same definition the render
+  // preview compiled.
+  const scenarioToCompileRef = useLatest(
+    tweakedScenario ??
+      (adHocSynthesized?.ok ? adHocSynthesized.scenario : null),
+  );
 
   const contextValue: SimulationContextValue = {
     state: simulationState,
