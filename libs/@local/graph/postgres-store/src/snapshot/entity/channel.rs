@@ -79,6 +79,18 @@ impl Sink<Entity> for EntitySender {
                 created_by_id: stored_provenance.created_by_id,
                 created_at_transaction_time: stored_provenance.created_at_transaction_time,
                 created_at_decision_time: stored_provenance.created_at_decision_time,
+                deleted_by_id: stored_provenance
+                    .deletion
+                    .as_ref()
+                    .map(|deletion| deletion.deleted_by_id),
+                deleted_at_transaction_time: stored_provenance
+                    .deletion
+                    .as_ref()
+                    .map(|deletion| deletion.deleted_at_transaction_time),
+                deleted_at_decision_time: stored_provenance
+                    .deletion
+                    .as_ref()
+                    .map(|deletion| deletion.deleted_at_decision_time),
                 provenance: stored_provenance.json,
                 read_only: entity.metadata.read_only,
             })

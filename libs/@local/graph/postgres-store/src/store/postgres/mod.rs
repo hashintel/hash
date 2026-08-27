@@ -77,6 +77,9 @@ use type_system::{
 use uuid::Uuid;
 
 pub use self::{
+    knowledge::entity::feed::{
+        EntityDeletion, EntityEnd, EntityEvent, EntityEventStream, EntityUpdate,
+    },
     pool::{
         AsClient, GenericClientIter, InTransaction, NoTransaction, PostgresStorePool,
         TransactionOptions, TransactionState,

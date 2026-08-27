@@ -21,9 +21,9 @@ use crate::{
 /// Erases the `entity_ids` row entirely, leaving no tombstone.
 ///
 /// After erase, `entity_ids` has zero rows for the `(web_id, entity_uuid)` pair. Unlike purge
-/// (which calls `update_entity_ids_provenance` to stamp a tombstone), erase calls
-/// `delete_entity_ids` to remove the row completely. `count_incoming_links` always runs for erase
-/// scope to prevent FK violations from `entity_edge.target → entity_ids`.
+/// (which calls `update_entity_ids_provenance` to write a tombstone), erase calls
+/// `delete_entity_ids` to remove the row completely. `count_incoming_link_edges` always runs
+/// for erase scope to prevent FK violations from `entity_edge.target` to `entity_ids`.
 #[tokio::test]
 async fn removes_entity_ids_row() {
     let mut database = DatabaseTestWrapper::new().await;

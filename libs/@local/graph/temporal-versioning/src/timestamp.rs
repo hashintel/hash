@@ -109,6 +109,24 @@ impl<T> Sub for Timestamp<T> {
     }
 }
 
+impl<T> Sub<time::Duration> for Timestamp<T> {
+    type Output = Self;
+
+    /// Moves the point in time back by `rhs`.
+    ///
+    /// A negative duration moves it forward.
+    ///
+    /// # Panics
+    ///
+    /// This panics when the result falls outside the range [`OffsetDateTime`] represents.
+    fn sub(self, rhs: time::Duration) -> Self::Output {
+        Self {
+            axis: PhantomData,
+            time: self.time - rhs,
+        }
+    }
+}
+
 impl<A> FromStr for Timestamp<A> {
     type Err = time::error::Parse;
 

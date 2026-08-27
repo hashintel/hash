@@ -10,12 +10,20 @@ use type_system::{
     principal::actor::ActorEntityUuid,
 };
 
-use crate::{TemporalClient, WorkflowError};
+use crate::{TemporalClient, WorkflowError, WorkflowStart};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct AuthenticationContext {
     actor_id: ActorEntityUuid,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateEntityEmbeddingsParams<'a> {
+    authentication: AuthenticationContext,
+    entity_ids: &'a [EntityId],
+    embedding_exclusions: &'a HashMap<BaseUrl, Vec<BaseUrl>>,
 }
 
 impl TemporalClient {
@@ -133,14 +141,6 @@ impl TemporalClient {
         entity_ids: &[EntityId],
         embedding_exclusions: &HashMap<BaseUrl, Vec<BaseUrl>>,
     ) -> Result<Vec<String>, Report<WorkflowError>> {
-        #[derive(Serialize)]
-        #[serde(rename_all = "camelCase")]
-        struct UpdateEntityEmbeddingsParams<'a> {
-            authentication: AuthenticationContext,
-            entity_ids: &'a [EntityId],
-            embedding_exclusions: &'a HashMap<BaseUrl, Vec<BaseUrl>>,
-        }
-
         // EntityIDs are small (~100 bytes each), but we still chunk to avoid hitting
         // Temporal's payload size limits when dealing with very large batches.
         const CHUNK_SIZE: usize = 10_000;
@@ -166,5 +166,36 @@ impl TemporalClient {
         }
 
         Ok(workflow_ids)
+    }
+
+    /// Starts a caller-identified `updateEntityEmbeddings` workflow for one entity.
+    ///
+    /// The supplied workflow ID is the deduplication key. While an execution with this ID runs,
+    /// the server refuses a second start and the call returns
+    /// [`WorkflowStart::AlreadyStarted`], and the refusal counts as a successful ensure.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the workflow fails to start for any reason other than an execution
+    /// already running under the supplied ID.
+    pub async fn ensure_update_entity_embeddings_workflow(
+        &self,
+        workflow_id: String,
+        actor_id: ActorEntityUuid,
+        entity_id: EntityId,
+        embedding_exclusions: &HashMap<BaseUrl, Vec<BaseUrl>>,
+    ) -> Result<WorkflowStart, Report<WorkflowError>> {
+        self.start_workflow_with_id(
+            workflow_id,
+            "ai",
+            "updateEntityEmbeddings",
+            &UpdateEntityEmbeddingsParams {
+                authentication: AuthenticationContext { actor_id },
+                entity_ids: &[entity_id],
+                embedding_exclusions,
+            },
+            None,
+        )
+        .await
     }
 }
