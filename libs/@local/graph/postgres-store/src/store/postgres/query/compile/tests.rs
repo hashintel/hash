@@ -2117,7 +2117,7 @@ mod property_masking {
             &compiler,
             r#"
             SELECT ("entity_editions_0_1_0"."properties" - (CASE WHEN
-                ("entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$1]::text[])
+                "entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$1]::text[]
                 THEN ARRAY[$2]::text[]
                 ELSE ARRAY[]::text[] END))
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
