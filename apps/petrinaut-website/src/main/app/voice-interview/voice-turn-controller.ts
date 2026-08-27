@@ -556,10 +556,8 @@ export class VoiceTurnController {
     this.#activeKey = key;
 
     if (event.type === "partial") {
-      this.#setMicrophoneEnabled(false);
       this.#update({
         partialText: `${this.#snapshot.partialText}${event.text}`,
-        phase: "transcribing",
       });
       return;
     }

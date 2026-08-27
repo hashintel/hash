@@ -546,7 +546,7 @@ describe("VoiceTurnController", () => {
     });
     expect(harness.controller.getSnapshot()).toMatchObject({
       partialText: "The support",
-      phase: "transcribing",
+      phase: "listening",
     });
     expect(harness.submitText).not.toHaveBeenCalled();
 
@@ -674,7 +674,7 @@ describe("VoiceTurnController", () => {
     );
   });
 
-  test("closes the microphone when a partial transcript arrives", async () => {
+  test("keeps listening when a partial transcript arrives", async () => {
     const harness = createHarness();
     await harness.controller.start();
 
@@ -685,9 +685,13 @@ describe("VoiceTurnController", () => {
     });
 
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
-      false,
+      true,
     );
-    expect(harness.controller.getSnapshot().phase).toBe("transcribing");
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      microphoneEnabled: true,
+      partialText: "The support",
+      phase: "listening",
+    });
   });
 
   test("ignores duplicate, stale, and out-of-order completed items", async () => {

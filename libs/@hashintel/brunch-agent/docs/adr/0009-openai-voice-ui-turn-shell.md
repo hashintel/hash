@@ -36,9 +36,9 @@ recovery or public availability.
    transcription policy and calls OpenAI's unified WebRTC initialization endpoint. The fixed
    model is `gpt-live-transcribe`. Turn detection uses that model's default server VAD because the
    unified endpoint currently times out when either VAD mode is configured during initialization;
-   semantic VAD remains a tunable evaluation setting once initialization supports it. Provider
-   keys, prompts, vocabulary, language policy, and model selection remain server-side. Realtime
-   never generates assistant responses.
+   semantic VAD remains a tunable evaluation setting once initialization supports it. Partial
+   transcription events do not disable capture. Provider keys, prompts, vocabulary, language
+   policy, and model selection remain server-side. Realtime never generates assistant responses.
 4. **Completed provider items are the only admitted audio input.** Partials are display-only.
    Completed items are keyed by connection epoch, provider item ID, and content index, then enter
    the existing Petrinaut composer and AI SDK transport once. A pending `brunch_ask` uses its
