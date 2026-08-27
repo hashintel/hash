@@ -101,7 +101,9 @@ try {
   await run("turbo", ["build", "--filter", "@hashintel/petrinaut"]);
 
   console.log("Starting the Petrinaut optimization demo...");
-  websiteProcess = spawn("yarn", ["vite"], {
+  // Extra arguments go to Vite, so a caller can pin the port:
+  // `yarn dev:petrinaut-optimization --port 5175 --strictPort`.
+  websiteProcess = spawn("yarn", ["vite", ...process.argv.slice(2)], {
     cwd: appDirectory,
     env: {
       ...process.env,
