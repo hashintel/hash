@@ -54,8 +54,9 @@ export const parseDocumentText = (text: string): ParseDocumentTextResult => {
  * Encodes a Petrinaut document as text in the given format. YAML output
  * favours hand-readability: multi-line strings (code fields) become literal
  * block scalars, long lines are never folded, and repeated objects are
- * written in full rather than as anchor/alias references. `undefined` values
- * are dropped, matching `JSON.stringify`.
+ * written in full rather than as anchor/alias references. `undefined` object
+ * properties are dropped, matching `JSON.stringify`; a value YAML cannot
+ * represent (a `Date`, a function) throws rather than being dropped silently.
  */
 export const serializeDocument = (
   value: unknown,
@@ -67,5 +68,4 @@ export const serializeDocument = (
         schema: CORE_SCHEMA,
         lineWidth: -1,
         noRefs: true,
-        skipInvalid: true,
       });

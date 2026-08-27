@@ -201,8 +201,8 @@ export const parseSDCPNFile = (data: unknown): ImportResult => {
 
 /**
  * Parses SDCPN document text — YAML or JSON, detected from the content — into
- * an SDCPN. The text-level counterpart to {@link parseSDCPNFile} for callers
- * that hold a file's raw text (the `/ui` file picker, the CLI's `--model`).
+ * an SDCPN. The text-level counterpart to {@link parseSDCPNFile}, for use
+ * when the caller holds a file's raw text rather than parsed data.
  */
 export const parseSDCPNDocument = (text: string): ImportResult => {
   const document = parseDocumentText(text);

@@ -118,4 +118,8 @@ describe("serializeDocument", () => {
 
     expect(parseDocumentText(text)).toEqual({ ok: true, data: { a: 1 } });
   });
+
+  it("throws on values YAML cannot represent instead of dropping them", () => {
+    expect(() => serializeDocument({ a: new Date(0) }, "yaml")).toThrow();
+  });
 });

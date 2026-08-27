@@ -163,8 +163,8 @@ When enabled, node positions snap to a grid when placing or dragging. Toggle thi
 From the top-bar menu (hamburger icon), under **Export**:
 
 - **YAML** -- the full SDCPN: places, transitions, arcs, types, dynamics, parameters, scenarios, metrics, **and** canvas positions / display colours. This is the default format, and the one other Petrinaut instances re-import faithfully. It is easier to read and hand-edit than JSON: multi-line code fields (transition kernels, metrics) appear as indented blocks rather than escaped one-line strings.
-- **JSON** -- the same payload encoded as JSON, for tools that expect it.
-- **YAML without visual info** / **JSON without visual info** -- the same payload minus node positions and type display colours. Useful when only the logical structure matters (sharing for review, embedding in another tool, comparing two nets without layout noise). On import, the receiving editor applies auto-layout to fill in positions.
+- **YAML without visual info** -- the same payload minus node positions and type display colours. Useful when only the logical structure matters (sharing for review, embedding in another tool, comparing two nets without layout noise). On import, the receiving editor applies auto-layout to fill in positions.
+- **JSON** / **JSON without visual info** -- the same two payloads encoded as JSON, for tools that expect it.
 - **TikZ** -- a `.tex` file with a structural diagram. This is a simplified view: only the place / transition / arc structure is included. Token types, dynamics, read/inhibitor arcs, scenarios, and metrics are **not** encoded. Intended for papers and presentations.
 
 **Import**: loads a net from a `.yaml`, `.yml`, or `.json` file -- the format is detected from the content, so files exported by any Petrinaut version load the same way. If node positions are missing, an automatic layout is applied on load.

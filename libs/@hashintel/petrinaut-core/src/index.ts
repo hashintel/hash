@@ -468,6 +468,7 @@ export {
   parseDocumentText,
   serializeDocument,
   type DocumentFormat,
+  type ParseDocumentTextResult,
 } from "./file-format/document-text";
 export {
   parseSDCPNDocument,

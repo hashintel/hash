@@ -87,8 +87,8 @@ describe("serializeSDCPN", () => {
       removeVisualInfo: true,
     });
 
-    expect(text).not.toContain("x:");
-    expect(text).not.toContain("y:");
+    expect(text).not.toMatch(/^\s*'?x'?:/m);
+    expect(text).not.toMatch(/^\s*'?y'?:/m);
 
     const reimported = parseSDCPNDocument(text);
     expect(reimported.ok).toBe(true);
