@@ -47,16 +47,8 @@ const git = (cwd: string, args: string[]): string =>
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 
-/**
- * Resolves a ref against the local clone, or null when it cannot.
- *
- * A CI clone is typically shallow and checked out at the head commit only, so
- * the base branch resolves neither bare nor as `origin/<ref>`; the fetch
- * still succeeds where the clone has a credentialed remote (a developer
- * machine, a GitHub Actions checkout). Null covers the rest — most notably a
- * Vercel build, whose sources come as a snapshot with no fetchable clone.
- */
-const resolveLocalCommit = (repoRoot: string, ref: string): string | null => {
+/** The ref's commit per the local clone alone — no fetch, no side effects. */
+const localShaOf = (repoRoot: string, ref: string): string | null => {
   for (const candidate of [ref, `origin/${ref}`]) {
     try {
       return git(repoRoot, [
@@ -68,6 +60,56 @@ const resolveLocalCommit = (repoRoot: string, ref: string): string | null => {
     } catch {
       // Try the next form.
     }
+  }
+  return null;
+};
+
+/**
+ * Resolves a ref to its commit without materializing anything, so a cache can
+ * be consulted before any tree is fetched or extracted. Null when only a full
+ * materialization could resolve it (say, `main~3` on a clone-less build).
+ */
+export const resolveBaseSha = (
+  repoRoot: string,
+  ref: string,
+  url: string,
+): string | null => {
+  if (/^[0-9a-f]{40}$/u.test(ref)) {
+    return ref;
+  }
+
+  const local = localShaOf(repoRoot, ref);
+  if (local !== null) {
+    return local;
+  }
+
+  try {
+    const listed = git(repoRoot, [
+      "ls-remote",
+      url,
+      `refs/heads/${ref}`,
+      `refs/tags/${ref}`,
+    ]);
+    const sha = listed.split(/\s/u)[0] ?? "";
+    return /^[0-9a-f]{40}$/u.test(sha) ? sha : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Resolves a ref against the local clone, or null when it cannot.
+ *
+ * A CI clone is typically shallow and checked out at the head commit only, so
+ * the base branch resolves neither bare nor as `origin/<ref>`; the fetch
+ * still succeeds where the clone has a credentialed remote (a developer
+ * machine, a GitHub Actions checkout). Null covers the rest — most notably a
+ * Vercel build, whose sources come as a snapshot with no fetchable clone.
+ */
+const resolveLocalCommit = (repoRoot: string, ref: string): string | null => {
+  const local = localShaOf(repoRoot, ref);
+  if (local !== null) {
+    return local;
   }
 
   try {
@@ -139,7 +181,7 @@ const extractFromLocalClone = (options: {
  * fallback is the same repository `source-url.ts` already assumes for source
  * links. The values are validated because they end up on a git command line.
  */
-const remoteRepoUrl = (env: NodeJS.ProcessEnv): string => {
+export const remoteRepoUrl = (env: NodeJS.ProcessEnv): string => {
   const owner = env.VERCEL_GIT_REPO_OWNER;
   const slug = env.VERCEL_GIT_REPO_SLUG;
   const wellFormed = /^[\w.-]+$/u;

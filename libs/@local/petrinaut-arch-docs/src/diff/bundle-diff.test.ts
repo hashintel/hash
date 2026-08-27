@@ -91,9 +91,14 @@ const authoredPage = (slug: string, body: string): DiffPage => ({
   contents: `---\ntitle: "Guide"\n---\n\n${body}\n`,
 });
 
-const side = (pages: DiffPage[], layers: Layer[] = []): DiffSide => ({
+const side = (
+  pages: DiffPage[],
+  layers: Layer[] = [],
+  sourceUrlPrefix = "",
+): DiffSide => ({
   pages,
   layers,
+  sourceUrlPrefix,
 });
 
 describe("diffBundlePages", () => {
@@ -155,6 +160,42 @@ describe("diffBundlePages", () => {
     const result = diffBundlePages({
       base: side([base]),
       head: side([head]),
+      baseRef: "main",
+    });
+
+    expect(result.statuses).toEqual({});
+  });
+
+  it("ignores each side's own source-URL prefix in generated pages", () => {
+    const pageWithPrefix = (prefix: string): DiffPage => ({
+      slug: "architecture/core",
+      title: "Core",
+      description: "Headless engine.",
+      order: 1001,
+      kind: "generated",
+      contents: [
+        "---",
+        'title: "Core"',
+        "---",
+        "",
+        "<LayerFacts",
+        `  declaredInUrl={${JSON.stringify(`${prefix}libs/core/README.md`)}}`,
+        "/>",
+        "",
+      ].join("\n"),
+    });
+
+    const result = diffBundlePages({
+      base: side(
+        [pageWithPrefix("https://github.com/x/y/blob/aaaa/")],
+        [],
+        "https://github.com/x/y/blob/aaaa/",
+      ),
+      head: side(
+        [pageWithPrefix("https://github.com/x/y/blob/bbbb/")],
+        [],
+        "https://github.com/x/y/blob/bbbb/",
+      ),
       baseRef: "main",
     });
 

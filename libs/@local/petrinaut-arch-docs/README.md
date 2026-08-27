@@ -183,8 +183,15 @@ what differs, which is how a PR preview shows a reviewer where to look:
 yarn workspace @local/petrinaut-arch-docs doc:architecture --diff-base main
 
 # In CI (what vercel-build.sh sets on preview deployments)
-PETRINAUT_ARCH_DOCS_DIFF_BASE=main turbo build --filter '@apps/petrinaut-docs'
+PETRINAUT_ARCH_DOCS_DIFF_BASE=<ref> turbo build --filter '@apps/petrinaut-docs'
 ```
+
+Which ref to compare against is the caller's decision, not this package's: the
+generator takes any ref and never knows about pull requests. On Vercel
+previews, `apps/petrinaut-docs/scripts/resolve-diff-base.mjs` resolves the
+PR's _target branch_ (via the GitHub API, anonymously) and sets the variable —
+so a stacked PR is compared against the PR below it and shows only its own
+delta, and a PR targeting `main` is compared against `main`.
 
 The build extracts the covered package trees at the base ref with `git archive`
 and runs the _same_ generator over them — same config, same emitter, same
@@ -223,6 +230,14 @@ behind it — it fetches the ref anonymously from the public repository
 otherwise) into a scratch repository: a blobless fetch plus a sparse checkout
 of only the covered directories, so the transfer stays small. The build log
 says `base tree fetched from …` when this path ran.
+
+The built base side is cached under `node_modules/.cache/petrinaut-arch-docs`,
+keyed by the base commit and a hash of the generator's own sources, config and
+pinned dependencies — CI providers persist that directory between builds, so
+pushing to a PR whose base has not moved skips the base build entirely (the
+log says `base bundle from cache (…)`). Source-link URLs carry the built
+commit and are masked per side before comparison, which is what makes a base
+side built by an earlier build comparable at all.
 
 The diff decorates the bundle, it never gates it: when the base ref cannot be
 resolved either way (no network, a repository that is not public) the build

@@ -14,8 +14,18 @@ import { fileURLToPath } from "node:url";
 import { config } from "../architecture.config";
 import { buildBundle, bundleTextFiles, type BuiltBundle } from "./build";
 import { countErrors, type Diagnostic } from "./diagnostics";
-import { materializeBaseTree, type BaseTree } from "./diff/base-tree";
-import { applyBundleDiff } from "./diff/bundle-diff";
+import {
+  generatorInputsHash,
+  readCachedBaseSide,
+  writeCachedBaseSide,
+} from "./diff/base-cache";
+import {
+  materializeBaseTree,
+  remoteRepoUrl,
+  resolveBaseSha,
+  type BaseTree,
+} from "./diff/base-tree";
+import { applyBundleDiff, diffSideOfBundle } from "./diff/bundle-diff";
 import { canRenderDiagrams, renderD2 } from "./emit/d2";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -114,40 +124,69 @@ const withDiffAgainst = async (
 ): Promise<BuiltBundle> => {
   let baseTree: BaseTree | null = null;
   try {
-    const tree = await materializeBaseTree({
-      repoRoot,
-      ref,
-      paths: [
-        ...new Set([
-          ...config.packages.map((pkg) => pkg.path),
-          // For the base tree's authored content and dependency-cruiser
-          // tsconfig; the generator itself still runs from this checkout.
-          "libs/@local/petrinaut-arch-docs",
-        ]),
-      ],
+    const url = remoteRepoUrl(process.env);
+    const cacheDir = join(repoRoot, "node_modules/.cache/petrinaut-arch-docs");
+    const inputsHash = generatorInputsHash({
+      packageRoot: join(repoRoot, "libs/@local/petrinaut-arch-docs"),
+      includeDiagrams,
     });
-    baseTree = tree;
 
-    // Logged because it names the strategy: a Vercel build has no usable
-    // clone, and this line is how its logs show the fallback fetch worked.
-    if (tree.fetchedFrom !== undefined) {
-      process.stdout.write(dim(`base tree fetched from ${tree.fetchedFrom}\n`));
+    // The base side is deterministic in (base commit, generator inputs), so a
+    // build against an unmoved base reuses the last one instead of extracting
+    // and building the base tree again.
+    const knownSha = resolveBaseSha(repoRoot, ref, url);
+    let base =
+      knownSha === null
+        ? null
+        : readCachedBaseSide({ cacheDir, sha: knownSha, inputsHash });
+    let baseSha = knownSha ?? "";
+
+    if (base !== null) {
+      process.stdout.write(
+        dim(`base bundle from cache (${baseSha.slice(0, 10)})\n`),
+      );
+    } else {
+      const tree = await materializeBaseTree({
+        repoRoot,
+        ref,
+        paths: [
+          ...new Set([
+            ...config.packages.map((pkg) => pkg.path),
+            // For the base tree's authored content and dependency-cruiser
+            // tsconfig; the generator itself still runs from this checkout.
+            "libs/@local/petrinaut-arch-docs",
+          ]),
+        ],
+      });
+      baseTree = tree;
+      baseSha = tree.sha;
+
+      // Logged because it names the strategy: a Vercel build has no usable
+      // clone, and this line is how its logs show the fallback fetch worked.
+      if (tree.fetchedFrom !== undefined) {
+        process.stdout.write(
+          dim(`base tree fetched from ${tree.fetchedFrom}\n`),
+        );
+      }
+
+      const baseBundle = await buildBundle({
+        repoRoot: tree.root,
+        includeDiagrams,
+        overrides: {
+          // A package added since the base ref has no directory to scan there.
+          packages: config.packages.filter((pkg) =>
+            existsSync(join(tree.root, pkg.path)),
+          ),
+        },
+      });
+      base = diffSideOfBundle(baseBundle, config.sourceUrlPrefix);
+      writeCachedBaseSide({ cacheDir, sha: baseSha, inputsHash, side: base });
     }
 
-    const baseBundle = await buildBundle({
-      repoRoot: tree.root,
-      includeDiagrams,
-      overrides: {
-        // A package added since the base ref has no directory to scan there.
-        packages: config.packages.filter((pkg) =>
-          existsSync(join(tree.root, pkg.path)),
-        ),
-      },
-    });
-
-    const diffed = applyBundleDiff(bundle, baseBundle, {
+    const diffed = applyBundleDiff(bundle, base, {
       baseRef: ref,
-      baseSha: tree.sha,
+      baseSha,
+      sourceUrlPrefix: config.sourceUrlPrefix,
     });
 
     const statuses = Object.values(diffed.manifest.diff?.pages ?? {});
@@ -155,7 +194,7 @@ const withDiffAgainst = async (
       statuses.filter((entry) => entry === status).length;
     process.stdout.write(
       dim(
-        `changes vs ${ref} (${tree.sha.slice(0, 10)}): ${count("added")} added · ${count("changed")} changed · ${count("removed")} removed\n`,
+        `changes vs ${ref} (${baseSha.slice(0, 10)}): ${count("added")} added · ${count("changed")} changed · ${count("removed")} removed\n`,
       ),
     );
 

@@ -35,7 +35,20 @@ export interface DiffPage {
 export interface DiffSide {
   pages: DiffPage[];
   layers: Layer[];
+  /**
+   * The source-URL prefix this side's generated pages embed. Each side's own
+   * prefix is replaced with one placeholder before comparison: the prefix
+   * carries the built commit, so it legitimately differs between a head build
+   * and a base side built earlier (a cached one), without a single page
+   * having changed.
+   */
+  sourceUrlPrefix: string;
 }
+
+const SOURCE_PREFIX_PLACEHOLDER = "https://source.invalid/";
+
+const stripSourcePrefix = (text: string, prefix: string): string =>
+  prefix === "" ? text : text.split(prefix).join(SOURCE_PREFIX_PLACEHOLDER);
 
 export interface PageDiffResult {
   /** Page slug → how it differs from the base. Unchanged slugs are absent. */
@@ -130,16 +143,26 @@ export const diffBundlePages = (options: {
       continue;
     }
 
-    const normalize =
-      page.kind === "generated" ? normalizeGeneratedBlock : identity;
+    const generated = page.kind === "generated";
+    const normalize = generated ? normalizeGeneratedBlock : identity;
 
-    const head = splitFrontmatter(page.contents);
-    const base = splitFrontmatter(basePage.contents);
-    const headBlocks = splitBlocks(head.body);
+    // Compared on prefix-stripped copies; the raw head text is what gets
+    // annotated. The prefix holds no newline, so both split identically and
+    // block statuses map across by index.
+    const head = splitFrontmatter(
+      generated
+        ? stripSourcePrefix(page.contents, options.head.sourceUrlPrefix)
+        : page.contents,
+    );
+    const base = splitFrontmatter(
+      generated
+        ? stripSourcePrefix(basePage.contents, options.base.sourceUrlPrefix)
+        : basePage.contents,
+    );
 
     const diff = diffBlocks({
       baseBlocks: splitBlocks(base.body),
-      headBlocks,
+      headBlocks: splitBlocks(head.body),
       normalize,
     });
 
@@ -156,12 +179,13 @@ export const diffBundlePages = (options: {
     statuses[page.slug] = "changed";
 
     if (bodyChanged) {
+      const raw = splitFrontmatter(page.contents);
       annotated.set(
         page.slug,
         annotatePageBlocks({
           slug: page.slug,
-          frontmatter: head.frontmatter,
-          blocks: headBlocks,
+          frontmatter: raw.frontmatter,
+          blocks: splitBlocks(raw.body),
           diff,
         }),
       );
@@ -179,24 +203,32 @@ export const diffBundlePages = (options: {
   return { statuses, annotated, tombstones };
 };
 
-const toDiffPages = (bundle: BuiltBundle): DiffPage[] => [
-  ...bundle.generated.map((page) => ({
-    slug: page.slug,
-    title: page.title,
-    description: page.description,
-    order: page.order,
-    kind: "generated" as const,
-    contents: page.contents,
-  })),
-  ...bundle.authored.map((page) => ({
-    slug: page.slug,
-    title: page.title,
-    description: page.description,
-    order: page.order,
-    kind: "authored" as const,
-    contents: page.contents,
-  })),
-];
+/** The slice of a built bundle the diff consumes — also what a cache stores. */
+export const diffSideOfBundle = (
+  bundle: BuiltBundle,
+  sourceUrlPrefix: string,
+): DiffSide => ({
+  layers: bundle.model.layers,
+  sourceUrlPrefix,
+  pages: [
+    ...bundle.generated.map((page) => ({
+      slug: page.slug,
+      title: page.title,
+      description: page.description,
+      order: page.order,
+      kind: "generated" as const,
+      contents: page.contents,
+    })),
+    ...bundle.authored.map((page) => ({
+      slug: page.slug,
+      title: page.title,
+      description: page.description,
+      order: page.order,
+      kind: "authored" as const,
+      contents: page.contents,
+    })),
+  ],
+});
 
 /**
  * Returns the head bundle with the diff applied: changed pages carry block
@@ -205,12 +237,12 @@ const toDiffPages = (bundle: BuiltBundle): DiffPage[] => [
  */
 export const applyBundleDiff = (
   head: BuiltBundle,
-  base: BuiltBundle,
-  info: { baseRef: string; baseSha: string },
+  base: DiffSide,
+  info: { baseRef: string; baseSha: string; sourceUrlPrefix: string },
 ): BuiltBundle => {
   const { statuses, annotated, tombstones } = diffBundlePages({
-    base: { pages: toDiffPages(base), layers: base.model.layers },
-    head: { pages: toDiffPages(head), layers: head.model.layers },
+    base,
+    head: diffSideOfBundle(head, info.sourceUrlPrefix),
     baseRef: info.baseRef,
   });
 

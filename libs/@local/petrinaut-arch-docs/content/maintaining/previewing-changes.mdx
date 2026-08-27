@@ -15,8 +15,10 @@ A preview deployment of these docs highlights what the branch changed:
 - A removed page keeps a struck-through sidebar entry, linking to a stub that
   carries the removed source.
 
-Production builds of `main` never highlight anything: the comparison runs only
-where a base to compare against exists, which is a preview.
+The base of the comparison is the PR's _target branch_: a PR against `main`
+is compared with `main`, and a PR stacked on another PR is compared with the
+branch below it, so each PR in a stack shows only its own delta. Production
+builds of `main` never highlight anything.
 
 ## How the comparison is built
 
@@ -47,6 +49,10 @@ file, outgoing edges, sub-layers, attached guides — or when the layer's file
 membership moved, the one structural change the masked content cannot show.
 Editing code inside a layer without moving files or edges changes nothing the
 architecture describes, and flags nothing.
+
+The base side is cached between builds, keyed by the base commit and the
+generator's own sources, so pushing again while the base has not moved skips
+the base build.
 
 The result is written into the bundle itself: the manifest records each page's
 status for the sidebar, changed pages carry markers between their blocks, and
