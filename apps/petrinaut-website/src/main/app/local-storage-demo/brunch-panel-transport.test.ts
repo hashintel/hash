@@ -96,9 +96,20 @@ const sweepChunks: UIMessageChunk[] = [
         sliceNodeIds: ["activity:line-a"],
         outsideSlice: [
           {
-            nodeId: "activity:line-b",
+            nodeId: "activity:Line-B",
             kind: "activity",
-            open: [],
+            open: [
+              {
+                diagnostic: "unaddressed",
+                nodeId: "activity:Line-B",
+                kind: "activity",
+                slot: "Owner",
+                requirement: "named",
+                actual: "not mentioned",
+                message: "The owner is missing.",
+                captureIds: ["Capture-2"],
+              },
+            ],
           },
         ],
       },
@@ -202,9 +213,20 @@ test("makes every Brunch sweep outcome readable in the panel", async () => {
         sliceNodeIds: ["activity:line-a"],
         outsideSlice: [
           {
-            nodeId: "activity:line-b",
+            nodeId: "activity:Line-B",
             kind: "activity",
-            open: [],
+            open: [
+              {
+                diagnostic: "unaddressed",
+                nodeId: "activity:Line-B",
+                kind: "activity",
+                slot: "Owner",
+                requirement: "named",
+                actual: "not mentioned",
+                message: "The owner is missing.",
+                captureIds: ["Capture-2"],
+              },
+            ],
           },
         ],
       },
@@ -217,7 +239,8 @@ test("makes every Brunch sweep outcome readable in the panel", async () => {
         "Completion: incomplete · plugin 1.0.0 · revision revision-1",
         "Completion slice: activity:line-a",
         "Completion gap [unaddressed] at activity:line-a.owner: needs named; actual not mentioned. The owner is missing. Captures: capture-1",
-        "Outside completion slice: activity:line-b (activity); 0 open requirements",
+        "Outside completion slice: activity:Line-B (activity); 1 open requirement",
+        "Outside-slice Completion gap [unaddressed] at activity:Line-B.Owner: needs named; actual not mentioned. The owner is missing. Captures: Capture-2",
       ],
     },
   ]);

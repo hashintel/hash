@@ -112,9 +112,7 @@ const formatCompletion = (report: CompletionReport): string[] => [
   ...report.failures.map(formatFailure),
   ...report.outsideSlice.flatMap((node) => [
     `Outside completion slice: ${node.nodeId} (${node.kind}); ${node.open.length} open requirement${node.open.length === 1 ? "" : "s"}`,
-    ...node.open.map(
-      (failure) => `Outside-slice ${formatFailure(failure).toLowerCase()}`,
-    ),
+    ...node.open.map((failure) => `Outside-slice ${formatFailure(failure)}`),
   ]),
 ];
 
