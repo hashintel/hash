@@ -4,8 +4,9 @@
  * The API is deliberately whole-experiment rather than per-frame. Implementing
  * `MonteCarloSimulator.advanceAll()` — synchronous, one frame at a time — would
  * force a `mapAsync` readback per frame, and
- * `../../docs/simulation-performance.md` §8.3 measures that round-trip at
- * hundreds of microseconds against roughly a microsecond of per-frame work. A
+ * `libs/@local/petrinaut-arch-docs/content/simulation/performance.mdx` §8.3
+ * measures that round-trip at hundreds of microseconds against roughly a
+ * microsecond of per-frame work. A
  * GPU path shaped like the CPU interface would therefore be slower than the CPU.
  *
  * Instead the host dispatches a chunk of frames, and results come back as
