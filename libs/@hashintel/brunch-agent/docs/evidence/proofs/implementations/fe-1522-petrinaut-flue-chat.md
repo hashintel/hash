@@ -58,3 +58,12 @@ yarn workspace @apps/brunch-agent transcript -- --principal <key> --id <conversa
 
 Until that run is recorded, `MISSION.md` stays *Nominally complete; still under
 verification.*
+
+## Human run (later the same day)
+
+Items 1–4 were witnessed in the Petrinaut panel by the driver. Items 5–8 were
+witnessed against the live service: reload hydration, process bounce with the
+same SQLite snapshot and panel conversation, `history()` transcript (and
+`@flue/sdk` bonus), voice dock documented and checked against KA's `submitText`
+path. Mission 1 is accepted; close report is
+[`docs/mission-archive/1-bare-petrinaut-flue-chat.md`](../../../mission-archive/1-bare-petrinaut-flue-chat.md).
