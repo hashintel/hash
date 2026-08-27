@@ -1,4 +1,5 @@
 mod delete;
+pub(crate) mod feed;
 pub(crate) mod provenance;
 mod query;
 mod read;
@@ -1420,6 +1421,9 @@ where
                 created_by_id: stored_provenance.created_by_id,
                 created_at_transaction_time: stored_provenance.created_at_transaction_time,
                 created_at_decision_time: stored_provenance.created_at_decision_time,
+                deleted_by_id: None,
+                deleted_at_transaction_time: None,
+                deleted_at_decision_time: None,
                 provenance: stored_provenance.json.clone(),
             });
             if let Some(draft_id) = entity_id.draft_id {

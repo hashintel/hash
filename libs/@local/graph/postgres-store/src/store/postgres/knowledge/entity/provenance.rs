@@ -1,9 +1,9 @@
 //! Storage representation of entity provenance, split from the interface types.
 //!
-//! `created_by_id` and the creation timestamps live in dedicated columns rather than the provenance
-//! JSONB, so each datum is stored exactly once. [`SqlEntityProvenance`] and
-//! [`SqlEntityEditionProvenance`] mirror that storage layout: column-backed fields directly on the
-//! struct, the JSONB remainder in the `json` half. The exhaustive destructures in the [`From`]
+//! `created_by_id`, the creation timestamps, and the deletion tombstone live in dedicated columns
+//! rather than the provenance JSONB, so each datum is stored exactly once. [`SqlEntityProvenance`]
+//! and [`SqlEntityEditionProvenance`] mirror that storage layout: column-backed fields directly on
+//! the struct, the JSONB remainder in the `json` half. The exhaustive destructures in the [`From`]
 //! impls turn a new interface field into a compile error until it is routed to either side.
 
 use core::error::Error;
@@ -28,8 +28,6 @@ pub(crate) struct SqlEntityProvenanceJson {
     pub first_non_draft_created_at_transaction_time: Option<Timestamp<TransactionTime>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub first_non_draft_created_at_decision_time: Option<Timestamp<DecisionTime>>,
-    #[serde(default, flatten, skip_serializing_if = "Option::is_none")]
-    pub deletion: Option<EntityDeletionProvenance>,
 }
 
 impl<'a> FromSql<'a> for SqlEntityProvenanceJson {
@@ -142,6 +140,7 @@ pub(crate) struct SqlEntityProvenance {
     pub created_by_id: ActorEntityUuid,
     pub created_at_transaction_time: Timestamp<TransactionTime>,
     pub created_at_decision_time: Timestamp<DecisionTime>,
+    pub deletion: Option<EntityDeletionProvenance>,
     pub json: SqlEntityProvenanceJson,
     pub edition: SqlEntityEditionProvenance,
 }
@@ -161,10 +160,10 @@ impl From<EntityProvenance> for SqlEntityProvenance {
             created_by_id,
             created_at_transaction_time,
             created_at_decision_time,
+            deletion,
             json: SqlEntityProvenanceJson {
                 first_non_draft_created_at_transaction_time,
                 first_non_draft_created_at_decision_time,
-                deletion,
             },
             edition: edition.into(),
         }
@@ -177,11 +176,11 @@ impl From<SqlEntityProvenance> for EntityProvenance {
             created_by_id,
             created_at_transaction_time,
             created_at_decision_time,
+            deletion,
             json:
                 SqlEntityProvenanceJson {
                     first_non_draft_created_at_transaction_time,
                     first_non_draft_created_at_decision_time,
-                    deletion,
                 },
             edition,
         } = stored;
