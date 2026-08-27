@@ -136,6 +136,31 @@ describe("diffBundlePages", () => {
     expect(result.statuses).toEqual({});
   });
 
+  it("ignores dependencies reordering when only their counts moved", () => {
+    const base = generatedPage({
+      slug: "architecture/core",
+      dependsOn: [
+        { id: "core.hir", imports: 9 },
+        { id: "core.types", imports: 2 },
+      ],
+    });
+    const head = generatedPage({
+      slug: "architecture/core",
+      dependsOn: [
+        { id: "core.types", imports: 8 },
+        { id: "core.hir", imports: 3 },
+      ],
+    });
+
+    const result = diffBundlePages({
+      base: side([base]),
+      head: side([head]),
+      baseRef: "main",
+    });
+
+    expect(result.statuses).toEqual({});
+  });
+
   it("flags a role change and marks the changed block", () => {
     const result = diffBundlePages({
       base: side([generatedPage({ slug: "architecture/core" })]),

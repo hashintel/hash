@@ -206,8 +206,9 @@ What it produces:
 
 **What counts as a change** is deliberately narrower than a byte diff, because
 a generated page embeds facts that shift whenever _neighbouring_ code moves.
-Masked before comparison: import counts, file and line totals, sidebar
-positions, and the whole "depended on by" list — an incoming edge is the
+Masked before comparison: import counts and the count-driven ordering of the
+depends-on list, file and line totals, sidebar positions, and the whole
+"depended on by" list — an incoming edge is the
 importing layer's change and is flagged there, on its `dependsOn` side. A page
 is `changed` when anything else differs: its role, prose, name, declaring
 file, outgoing edges, sub-layers, attached guides — or when the layer's file

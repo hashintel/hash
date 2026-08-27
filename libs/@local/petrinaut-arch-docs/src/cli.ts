@@ -81,7 +81,15 @@ const resolveDiffBase = (args: string[]): string | null => {
     const value = flag.includes("=")
       ? flag.slice(flag.indexOf("=") + 1)
       : (args[flagIndex + 1] ?? "");
-    return value.trim() === "" ? null : value.trim();
+    if (value.trim() === "") {
+      // The flag was typed deliberately, so an empty value gets a message
+      // rather than a silent plain build.
+      process.stderr.write(
+        `${yellow("warning")} --diff-base given without a ref; building without change highlighting\n`,
+      );
+      return null;
+    }
+    return value.trim();
   }
 
   const fromEnvironment = process.env.PETRINAUT_ARCH_DOCS_DIFF_BASE?.trim();
@@ -152,7 +160,8 @@ const withDiffAgainst = async (
     );
     return bundle;
   } finally {
-    await baseTree?.dispose();
+    // A failed cleanup must not reject out of the build the diff decorates.
+    await baseTree?.dispose().catch(() => {});
   }
 };
 

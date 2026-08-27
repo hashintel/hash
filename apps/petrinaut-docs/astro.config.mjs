@@ -57,7 +57,10 @@ const diffLinkProps = (slug) => {
     ? {}
     : {
         badge: DIFF_BADGES[status],
-        attrs: { class: `pnd-diff-${status}` },
+        // A data attribute rather than `class`: Starlight already merges
+        // `attrs.class` into the link's computed class and then re-spreads
+        // `attrs`, which would emit a second `class` attribute.
+        attrs: { "data-pnd-diff": status },
       };
 };
 

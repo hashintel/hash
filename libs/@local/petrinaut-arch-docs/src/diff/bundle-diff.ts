@@ -135,10 +135,11 @@ export const diffBundlePages = (options: {
 
     const head = splitFrontmatter(page.contents);
     const base = splitFrontmatter(basePage.contents);
+    const headBlocks = splitBlocks(head.body);
 
     const diff = diffBlocks({
       baseBlocks: splitBlocks(base.body),
-      headBlocks: splitBlocks(head.body),
+      headBlocks,
       normalize,
     });
 
@@ -160,7 +161,7 @@ export const diffBundlePages = (options: {
         annotatePageBlocks({
           slug: page.slug,
           frontmatter: head.frontmatter,
-          blocks: splitBlocks(head.body),
+          blocks: headBlocks,
           diff,
         }),
       );

@@ -215,11 +215,12 @@
 
 /*
  * On a diff build (a preview built against a base ref) the sidebar carries
- * change badges from `manifest.diff`; see astro.config.mjs. The classes come
- * in through the sidebar links' `attrs`. Removed pages link to tombstone
- * stubs, and the strike-through is what says "gone" before the reader clicks.
+ * change badges from `manifest.diff`; see astro.config.mjs. Each link's
+ * status comes in through its `attrs` as a data attribute. Removed pages
+ * link to tombstone stubs, and the strike-through is what says "gone" before
+ * the reader clicks.
  */
-.pnd-diff-removed {
+.sidebar-content [data-pnd-diff="removed"] {
   text-decoration: line-through;
   opacity: 0.75;
 }

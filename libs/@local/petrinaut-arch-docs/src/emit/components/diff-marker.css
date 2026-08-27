@@ -8,11 +8,10 @@
  * the marked markdown needs no wrapper of its own.
  */
 
+/* The status hues are read with a fallback so a host may re-theme them by
+   defining the custom properties on an ancestor (e.g. `:root`). */
 .arch-diff-marker {
   display: none;
-
-  --arch-diff-added: #2f9e44;
-  --arch-diff-changed: #3676b8;
 }
 
 .arch-diff-marker[data-status="added"] + * {
