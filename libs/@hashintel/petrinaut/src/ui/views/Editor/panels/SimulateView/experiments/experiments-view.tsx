@@ -17,6 +17,8 @@ function formatExperimentStatus(status: ExperimentRecord["status"]): string {
       return "Initializing";
     case "running":
       return "Running";
+    case "idle":
+      return "Idle";
     case "complete":
       return "Complete";
     case "error":
@@ -37,7 +39,13 @@ const ExperimentStatusBadge = ({
   return (
     <Chip
       variant="soft"
-      color={isActive ? "blue" : status === "complete" ? "green" : "red"}
+      color={
+        isActive || status === "idle"
+          ? "blue"
+          : status === "complete"
+            ? "green"
+            : "red"
+      }
       prefix={
         isActive
           ? { variant: "naked", loading: true }

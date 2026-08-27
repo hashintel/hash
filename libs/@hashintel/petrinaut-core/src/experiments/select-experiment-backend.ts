@@ -50,6 +50,12 @@ export type SelectExperimentBackendResult =
   | {
       readonly ok: true;
       readonly backendId: string;
+      /**
+       * The backend that ran, for callers that will instantiate again — a
+       * parameter sweep assesses this same backend per batch instead of
+       * re-walking the registrations.
+       */
+      readonly backend: ExperimentBackend;
       readonly handle: MonteCarloExperiment;
       readonly runtimeInfo?: string;
       readonly notes: readonly ExperimentNote[];
@@ -210,6 +216,7 @@ export async function selectExperimentBackend({
     return {
       ok: true,
       backendId: backend.id,
+      backend,
       handle: instantiated.handle,
       ...(instantiated.runtimeInfo === undefined
         ? {}

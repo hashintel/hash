@@ -111,6 +111,8 @@ export function makeExperiment(
             frameNumber: status === "complete" ? 180 : 45,
           }),
     latestMetricFramesById: {},
+    parameterAxes: [],
+    sweep: null,
     metricFrames: [],
     ...overrides,
   };
@@ -183,6 +185,8 @@ const createFakeExperiment = (
   progress: null,
   latestMetricFramesById: {},
   metricFrames: [],
+  parameterAxes: [],
+  sweep: null,
 });
 
 export function FakeExperimentsProvider({
@@ -225,6 +229,15 @@ export function FakeExperimentsProvider({
       removeExperiment: (experimentId) => {
         setExperiments((current) =>
           current.filter((experiment) => experiment.id !== experimentId),
+        );
+      },
+      setSweepSelection: (experimentId, selection) => {
+        setExperiments((current) =>
+          current.map((experiment) =>
+            experiment.id === experimentId && experiment.sweep
+              ? { ...experiment, sweep: { ...experiment.sweep, selection } }
+              : experiment,
+          ),
         );
       },
     }),
