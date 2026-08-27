@@ -13,12 +13,13 @@ const PORT_OFFSET = PORT_SIZE / 2;
 
 const containerStyle = css({
   position: "relative",
+  height: "full",
 });
 
 const cardStyle = cva({
   base: {
-    width: "[180px]",
-    minHeight: "[96px]",
+    width: "full",
+    height: "full",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",

@@ -16,6 +16,7 @@ import type { PlaceNodeType } from "../reactflow-types";
 
 const containerStyle = css({
   position: "relative",
+  height: "full",
 });
 
 const placeCircleStyle = cva({
@@ -23,8 +24,8 @@ const placeCircleStyle = cva({
     paddingY: "4",
     paddingX: "2",
     borderRadius: "[50%]",
-    width: "[130px]",
-    height: "[130px]",
+    width: "full",
+    height: "full",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
