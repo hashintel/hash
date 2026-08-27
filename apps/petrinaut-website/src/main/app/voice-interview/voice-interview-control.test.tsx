@@ -7,7 +7,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
+  acknowledgeVoiceInterviewDisclosure,
+  isVoiceInterviewDisclosureAcknowledged,
   loadOpenAIVoiceConfig,
+  VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
   VoiceInterviewControl,
   VoiceInterviewControlView,
   type VoiceInterviewControlViewProps,
@@ -100,12 +103,70 @@ const StatefulVoiceInterviewHarness = ({
   );
 };
 
+const stubUnavailableMicrophone = () => {
+  const getUserMedia = vi.fn(async () => {
+    throw new DOMException("Permission denied", "NotAllowedError");
+  });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json({ available: true, connectionTimeoutMs: 15_000 }),
+    ),
+  );
+  vi.stubGlobal(
+    "AudioContext",
+    class {
+      public readonly state = "suspended";
+      public readonly close = vi.fn(async () => undefined);
+      public readonly resume = vi.fn(async () => undefined);
+    },
+  );
+  vi.stubGlobal("navigator", {
+    mediaDevices: { getUserMedia },
+  });
+  return getUserMedia;
+};
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  window.localStorage.clear();
 });
 
 describe("voice interview stage", () => {
+  test("stores and reads the current disclosure acknowledgement", () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+    };
+
+    expect(isVoiceInterviewDisclosureAcknowledged(storage)).toBe(false);
+    acknowledgeVoiceInterviewDisclosure(storage);
+    expect(values.get(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY)).toBe(
+      "acknowledged",
+    );
+    expect(isVoiceInterviewDisclosureAcknowledged(storage)).toBe(true);
+  });
+
+  test("fails safe when disclosure storage is unavailable", () => {
+    const unavailableStorage = {
+      getItem: () => {
+        throw new DOMException("Blocked", "SecurityError");
+      },
+      setItem: () => {
+        throw new DOMException("Blocked", "SecurityError");
+      },
+    };
+
+    expect(isVoiceInterviewDisclosureAcknowledged(unavailableStorage)).toBe(
+      false,
+    );
+    expect(() =>
+      acknowledgeVoiceInterviewDisclosure(unavailableStorage),
+    ).not.toThrow();
+  });
+
   test("loads only a schema-valid available server configuration", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json({ available: true, connectionTimeoutMs: 15_000 }),
@@ -219,6 +280,50 @@ describe("voice interview stage", () => {
     expect(screen.getByText("Interview active")).not.toBeNull();
     expect(screen.getByText("1 sidebar open requests")).not.toBeNull();
     expect(openSidebar).toHaveBeenCalledOnce();
+  });
+
+  test("records acknowledgement only when the interview starts", async () => {
+    window.localStorage.clear();
+    stubUnavailableMicrophone();
+    render(
+      <StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Start voice interview" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Check microphone" }));
+    expect(
+      window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Start interview" }));
+    expect(
+      window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
+    ).toBe("acknowledged");
+  });
+
+  test("skips the disclosure after it has been acknowledged", async () => {
+    stubUnavailableMicrophone();
+    window.localStorage.setItem(
+      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      "acknowledged",
+    );
+    render(
+      <StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Start voice interview" }),
+    );
+
+    expect(
+      screen.queryByRole("region", { name: "Start voice interview" }),
+    ).toBeNull();
+    expect(
+      await screen.findByRole("region", { name: "Voice interview stage" }),
+    ).not.toBeNull();
   });
 
   test("keeps the question visible, distinguishes provisional text, and names microphone level", () => {

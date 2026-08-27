@@ -32,6 +32,49 @@ export interface OpenAIVoiceConfig {
   readonly connectionTimeoutMs: number;
 }
 
+export const VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
+  "petrinaut:voice-interview-disclosure:v1";
+const VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED = "acknowledged";
+
+const getVoiceInterviewDisclosureStorage = (): Storage | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+};
+
+export const isVoiceInterviewDisclosureAcknowledged = (
+  storage: Pick<Storage, "getItem"> | null =
+    getVoiceInterviewDisclosureStorage(),
+): boolean => {
+  try {
+    return (
+      storage?.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY) ===
+      VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED
+    );
+  } catch {
+    return false;
+  }
+};
+
+export const acknowledgeVoiceInterviewDisclosure = (
+  storage: Pick<Storage, "setItem"> | null =
+    getVoiceInterviewDisclosureStorage(),
+): void => {
+  try {
+    storage?.setItem(
+      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED,
+    );
+  } catch {
+    // Storage is optional; the disclosure will appear again next time.
+  }
+};
+
 type Presentation = "trigger" | "start" | "full" | "mini";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -826,6 +869,12 @@ const AvailableVoiceInterviewControl = ({
     void store.controller.end();
   };
 
+  const startInterview = () => {
+    setPresentation("full");
+    context.setActive(true);
+    void store.controller.start();
+  };
+
   return (
     <VoiceInterviewControlView
       consented={consented}
@@ -861,11 +910,16 @@ const AvailableVoiceInterviewControl = ({
       }}
       onRedo={() => store.controller.redoAnswer()}
       onResume={() => store.controller.resume()}
-      onShowStart={() => setPresentation("start")}
+      onShowStart={() => {
+        if (isVoiceInterviewDisclosureAcknowledged()) {
+          startInterview();
+        } else {
+          setPresentation("start");
+        }
+      }}
       onStart={() => {
-        setPresentation("full");
-        context.setActive(true);
-        void store.controller.start();
+        acknowledgeVoiceInterviewDisclosure();
+        startInterview();
       }}
       onSubmitCorrection={() => {
         const value = correction;
