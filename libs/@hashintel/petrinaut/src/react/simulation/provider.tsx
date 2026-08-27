@@ -477,10 +477,21 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       let initialMarking = manualInitialMarking;
       let parameterValues: Record<string, string> = manualParameterValues;
       if (scenarioToCompile) {
-        const scenarioHir = await requestScenarioHir({
-          parameterOverrides: scenarioToCompile.parameterOverrides,
-          initialState: scenarioToCompile.initialState,
-        });
+        const scenarioHir = await requestScenarioHir(
+          {
+            parameterOverrides: scenarioToCompile.parameterOverrides,
+            initialState: scenarioToCompile.initialState,
+          },
+          // A persisted ad-hoc scenario synthesizes against the net inside
+          // the worker; other kinds ignore the context.
+          {
+            netParameters: simulationExtensions.parameters
+              ? sdcpn.parameters
+              : [],
+            places: sdcpn.places,
+            types: sdcpn.types,
+          },
+        );
         if (initializationGenerationRef.current !== generation) {
           return;
         }
