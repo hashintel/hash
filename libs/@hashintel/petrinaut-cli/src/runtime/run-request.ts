@@ -352,7 +352,13 @@ function compileRunScenario(
 
   const outcome = compileScenario(
     scenario,
-    lowerScenarioToHir(scenario),
+    lowerScenarioToHir(scenario, {
+      adHocContext: {
+        netParameters: sdcpn.parameters,
+        places: sdcpn.places,
+        types: sdcpn.types,
+      },
+    }),
     sdcpn.parameters,
     sdcpn.places,
     sdcpn.types,

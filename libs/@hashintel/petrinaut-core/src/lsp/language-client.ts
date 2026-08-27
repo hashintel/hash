@@ -9,6 +9,7 @@ import {
 import type { PetrinautExtensionSettings } from "../extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
 import type { HirCompileResult, ScenarioHir } from "../hir";
+import type { AdHocSynthesisContext } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import type { ReadableStore } from "../store";
 import type { Scenario, SDCPN } from "../types/sdcpn";
 import type {
@@ -103,11 +104,14 @@ export interface LanguageClient {
   /**
    * Lowers a scenario's expressions and code-mode body to HIR (in the
    * worker, where the TypeScript frontend lives). Pass the result to
-   * `compileScenario`, which type-checks and interprets it.
+   * `compileScenario`, which type-checks and interprets it. A scenario
+   * whose initial state is `adhoc` synthesizes against `adHocContext`
+   * first — without it, lowering that scenario reports an error item.
    */
   requestScenarioHir(
     this: void,
     scenario: Pick<Scenario, "parameterOverrides" | "initialState">,
+    adHocContext?: AdHocSynthesisContext,
   ): Promise<ScenarioHir>;
 
   /**
@@ -357,8 +361,11 @@ export function createLanguageClient(
         extensions,
       });
     },
-    requestScenarioHir(scenario) {
-      return sendRequest<ScenarioHir>("sdcpn/lowerScenario", { scenario });
+    requestScenarioHir(scenario, adHocContext) {
+      return sendRequest<ScenarioHir>("sdcpn/lowerScenario", {
+        scenario,
+        adHocContext,
+      });
     },
 
     dispose() {
