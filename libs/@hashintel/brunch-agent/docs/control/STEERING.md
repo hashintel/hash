@@ -43,8 +43,8 @@ evidence under [proof evidence](../evidence/proofs/).
 - [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) — harness-owned
   fixed keys join defaults to plugin cells; operative force: cycle two froze the catalogue, which
   reopens only when run evidence forces a key change, while FE-1393 tests gherkin generality.
-- ADR-0008 — repertoire defaults are core-owned prompt data behind a guarded
-  subpath; operative force: plugins never import
+- [ADR-0008](../adr/0008-repertoire-and-plugin-contract-live-in-core.md) — repertoire defaults are
+  core-owned prompt data behind a guarded subpath; operative force: plugins never import
   `@hashintel/brunch-agent/prompts`, the root remains the plugin SDK, and no broader core
   reorganisation follows from this package correction.
 - [S-001](STRATEGY-LOG.md#s-001) — review-and-revise is the current proof, not permanent scope;
@@ -114,7 +114,7 @@ evidence under [proof evidence](../evidence/proofs/).
   FE-1431 (plugin authoring surface).
 - **Harness teaching has one owner** — repertoire defaults fill every guidance and runbook key;
   operative force: plugins specialize those keys without importing harness method. Source:
-  ADR-0008 and
+  [ADR-0008](../adr/0008-repertoire-and-plugin-contract-live-in-core.md) and
   [S-008](STRATEGY-LOG.md#s-008). Steering projection:
   FE-1406 (harness repertoire).
 - **A second formalism tests generality after the tracer** — gherkin pressures the settled SDCPN
@@ -408,7 +408,7 @@ changes the witness: latency is no longer a number in a transcript but a person 
   subpath, fixed keys, a schema, and gates — never as spec prose alone; its content is not rescoped
   without run evidence ([S-008](STRATEGY-LOG.md#s-008),
   [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md),
-  ADR-0008).
+  [ADR-0008](../adr/0008-repertoire-and-plugin-contract-live-in-core.md)).
 - The key catalogue is a working set until a cycle changes no key: fix it by writing both plugins
   against it, not by decree ([S-009](STRATEGY-LOG.md#s-009), ADR-0007 decision 9).
 - The triangle first, poorly; no layer is optimised for its own sake before the end-to-end flow
