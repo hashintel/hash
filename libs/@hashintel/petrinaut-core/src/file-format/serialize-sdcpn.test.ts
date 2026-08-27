@@ -31,6 +31,10 @@ const sourceDocument = {
       y: 200,
     },
   ],
+  subnets: [{ id: "subnet1", name: "Subnet 1", places: [], transitions: [] }],
+  componentInstances: [
+    { id: "instance1", name: "Instance 1", subnetId: "subnet1", x: 0, y: 0 },
+  ],
 };
 
 const parseFixture = () => {
@@ -94,6 +98,50 @@ describe("serializeSDCPN", () => {
     expect(reimported.ok).toBe(true);
     if (!reimported.ok) return;
     expect(reimported.hadMissingPositions).toBe(true);
+  });
+
+  it("writes format metadata first, then the sections in dependency order", () => {
+    const sdcpn = parseFixture();
+
+    const yamlText = serializeSDCPN({
+      petriNetDefinition: sdcpn,
+      title: "Test Net",
+    });
+    expect(yamlText.startsWith("version: 1\n")).toBe(true);
+
+    const jsonText = serializeSDCPN({
+      petriNetDefinition: sdcpn,
+      title: "Test Net",
+      format: "json",
+    });
+    const document = JSON.parse(jsonText) as Record<
+      string,
+      Record<string, unknown>[]
+    >;
+    expect(Object.keys(document)).toEqual([
+      "version",
+      "meta",
+      "title",
+      "parameters",
+      "types",
+      "differentialEquations",
+      "subnets",
+      "places",
+      "componentInstances",
+      "transitions",
+      "metrics",
+      "scenarios",
+    ]);
+    expect(Object.keys(document.subnets![0]!)).toEqual([
+      "id",
+      "name",
+      "parameters",
+      "types",
+      "differentialEquations",
+      "places",
+      "componentInstances",
+      "transitions",
+    ]);
   });
 
   it("rejects text that is neither YAML nor JSON via parseSDCPNDocument", () => {
