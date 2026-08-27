@@ -46,6 +46,9 @@ function makeScalarFrame(
     timeValue: null,
     runSampleCount: 0,
     timeSampleCount: 0,
+    runAggregate: { count: 0, sum: 0, min: null, max: null, last: null },
+    aggregateRuns: "mean",
+    aggregateTime: "none",
     ...overrides,
   };
 }
@@ -299,10 +302,24 @@ describe("mergeMetricFramesAcrossCells", () => {
     ]);
   });
 
-  it("merges scalar frames with a run-sample-weighted mean", () => {
+  it("merges scalar frames exactly through the run-aggregate monoid", () => {
     const merged = mergeMetricFramesAcrossCells([
-      [makeScalarFrame({ value: 10, frameValue: 10, runSampleCount: 1 })],
-      [makeScalarFrame({ value: 40, frameValue: 40, runSampleCount: 3 })],
+      [
+        makeScalarFrame({
+          value: 10,
+          frameValue: 10,
+          runSampleCount: 1,
+          runAggregate: { count: 1, sum: 10, min: 10, max: 10, last: 10 },
+        }),
+      ],
+      [
+        makeScalarFrame({
+          value: 40,
+          frameValue: 40,
+          runSampleCount: 3,
+          runAggregate: { count: 3, sum: 120, min: 30, max: 50, last: 50 },
+        }),
+      ],
     ]);
 
     expect(merged).toHaveLength(1);
@@ -310,6 +327,7 @@ describe("mergeMetricFramesAcrossCells", () => {
       value: 32.5,
       frameValue: 32.5,
       runSampleCount: 4,
+      runAggregate: { count: 4, sum: 130, min: 10, max: 50, last: 50 },
     });
   });
 
