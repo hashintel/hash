@@ -25,7 +25,7 @@ cached rung rather than starting over.
 
 ## Determinism
 
-Batch *b* covering runs `[from, target)` seeds itself with
+Batch _b_ covering runs `[from, target)` seeds itself with
 `deriveRunSeed(seed, from)` (the first batch keeps the base seed verbatim).
 The ladder is the same for every combination, so the same rung draws the same
 seeds everywhere — common random numbers across the grid — and a re-run of a

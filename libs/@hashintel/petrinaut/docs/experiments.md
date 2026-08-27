@@ -13,15 +13,15 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 
 ### Configuration
 
-| Setting                 | Default                           | Notes                                                                                                                                                                                                              |
-| ----------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Name**                | `Experiment`                      | Free text.                                                                                                                                                                                                         |
-| **Scenario**            | `(Default)`                       | Either `(Default)` (no scenario; uses each place's manually-set initial marking and net-level parameter defaults) or one of your saved [scenarios](scenarios.md). An experiment runs against exactly one scenario. |
-| **Scenario parameters** | each scenario parameter's default | When a scenario is selected, you can override its scenario parameters per experiment. Expressions are evaluated once at start. Each numeric parameter also has a **Sweep** toggle — see [Parameter sweeps](#parameter-sweeps).  |
-| **Runs**                | `1000`                            | Positive integer; how many independent simulations to run. For a sweep, this is the run budget **per combination**.                                                                                                |
-| **Time step (dt)**      | `0.1`                             | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)).                                                                                                                          |
-| **Max time (seconds)**  | `180`                             | Each run advances until simulation time reaches this value, then completes.                                                                                                                                        |
-| **Run on GPU**          | off                               | Only shown when **WebGPU** is on under **Settings → Simulation**. Greyed out with the reason on hover when this model cannot run on the GPU. See [Compute backend](#compute-backend-experimental).                 |
+| Setting                 | Default                           | Notes                                                                                                                                                                                                                          |
+| ----------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Name**                | `Experiment`                      | Free text.                                                                                                                                                                                                                     |
+| **Scenario**            | `(Default)`                       | Either `(Default)` (no scenario; uses each place's manually-set initial marking and net-level parameter defaults) or one of your saved [scenarios](scenarios.md). An experiment runs against exactly one scenario.             |
+| **Scenario parameters** | each scenario parameter's default | When a scenario is selected, you can override its scenario parameters per experiment. Expressions are evaluated once at start. Each numeric parameter also has a **Sweep** toggle — see [Parameter sweeps](#parameter-sweeps). |
+| **Runs**                | `1000`                            | Positive integer; how many independent simulations to run. For a sweep, this is the run budget **per combination**.                                                                                                            |
+| **Time step (dt)**      | `0.1`                             | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)).                                                                                                                                      |
+| **Max time (seconds)**  | `180`                             | Each run advances until simulation time reaches this value, then completes.                                                                                                                                                    |
+| **Run on GPU**          | off                               | Only shown when **WebGPU** is on under **Settings → Simulation**. Greyed out with the reason on hover when this model cannot run on the GPU. See [Compute backend](#compute-backend-experimental).                             |
 
 The model used is a snapshot of the current net at the time you press **Run**. Editing the net afterwards does not change runs that have already started.
 
@@ -60,6 +60,10 @@ Flip **Sweep** on any numeric scenario parameter to explore a range of values in
 A sweep never computes its whole grid up front. It computes **the combination you are looking at**: the results drawer grows a **Parameters** strip — pinned while you scroll — with one control per swept parameter. Runs for the selected combination accumulate in escalating batches (8, 25, 100, … up to your run budget), and the metric charts below sharpen as they stream in. Move a control and compute immediately restarts on the new combination, like a raytracer dropping its rays when the camera moves. Combinations you have visited keep their results, so stepping back is instant and refinement resumes where it left off.
 
 Every combination samples the same seed sequence (common random numbers), so differences you see between combinations come from the parameters, not from sampling luck. The GPU backend works for sweeps the same way it does for a plain experiment: the choice is made on the first batch and each later combination reuses it.
+
+#### The surface view
+
+A sweep with two or more swept parameters grows a **Surface** section under the metrics: a contour plot of one metric's final value over two parameters you pick, with every other parameter held at its navigator value. The plot fills in live — combinations are sampled a few at a time (8 runs each), coarse shape first — and **clicking the surface moves the navigator** to the nearest combination, which then refines it with more runs. Changing the fixed parameters, the axes, or the metric restarts the fill for the new slice.
 
 ### Compute backend (experimental)
 
