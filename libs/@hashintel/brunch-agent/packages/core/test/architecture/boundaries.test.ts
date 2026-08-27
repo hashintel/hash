@@ -486,8 +486,12 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
    * path enters here by review only.
    */
   const SUBSTRATE_INTEGRATION_ENTRY_POINTS: Readonly<Record<string, string>> = {
+    "apps/brunch-agent/test/flue-transcript.test.ts":
+      "Types Flue's public conversation snapshot so the transcript projector can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
+    "apps/brunch-agent/test/flue-ui-stream.test.ts":
+      "Types Flue conversation-stream chunks so the AI SDK projector can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
     "apps/brunch-agent/test/petrinaut-chat.integration.ts":
-      "Boots the plain Flue chat agent on Flue's node runtime with pi-ai's faux provider, drives the committed /api/chat door over app.fetch, and proves streamed reasoning/text, one server tool, one read-only client-tool resume, GET history ownership, and SQLite restart — no provider key, no socket, no model call. Run as a child process by petrinaut-chat.test.ts.",
+      "Boots the plain Flue chat agent on Flue's node runtime with pi-ai's faux provider, drives the committed /api/chat door over app.fetch, and proves streamed reasoning/text, one server tool, one stub skill activation, one read-only client-tool resume, GET history ownership, SQLite restart, and harness-side idempotent apply-sweep into a capture store keyed by Flue conversation identity — no provider key, no socket, no extraction model call. Run as a child process by petrinaut-chat.test.ts.",
     "apps/brunch-agent/test/turn-timing.test.ts":
       "Types recorded Flue observations and model requests so the condition-5 purpose splitter can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
   };

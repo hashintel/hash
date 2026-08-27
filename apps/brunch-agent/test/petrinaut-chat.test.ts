@@ -93,8 +93,29 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     expect(result.transcript).toContain("Checking the server, then the docs.");
     expect(result.transcript).toContain("tool ping");
     expect(result.transcript).toContain("tool readPetrinautDoc");
+    expect(result.transcript).toContain("tool activate_skill");
     expect(result.transcript).toContain(
       "The assistant can read its own documentation pages.",
+    );
+    expect(result.activateSkillCall).toMatchObject({
+      type: "tool-input-available",
+      toolName: "activate_skill",
+      input: { name: "confirm-path" },
+    });
+    expect(result.interviewerToolNames).toContain("activate_skill");
+    expect(result.interviewerToolNames).toContain("ping");
+    expect(result.interviewerToolNames).toContain("readPetrinautDoc");
+    expect(result.interviewerToolNames).not.toContain("sweep");
+    expect(result.interviewerToolNames).not.toContain("brunch_sweep");
+    expect(result.captureIds.length).toBe(1);
+    expect(result.captureExcerpts).toEqual([
+      "Run the FE-1435 transport probe.",
+    ]);
+    expect(result.capturePayloads).toEqual([{}]);
+    expect(result.recaptureIds).toEqual(result.captureIds);
+    expect(result.skippedDedupKeys.length).toBeGreaterThan(0);
+    expect(result.captureUserText).toContain(
+      "Run the FE-1435 transport probe.",
     );
 
     expect(inspectionLines[0]).toMatchObject({
@@ -144,6 +165,7 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     );
     expect(resumeResult.transcript).toContain("tool ping");
     expect(resumeResult.transcript).toContain("tool readPetrinautDoc");
+    expect(resumeResult.transcript).toContain("tool activate_skill");
   } finally {
     await rm(dbDirectory, { recursive: true, force: true });
   }

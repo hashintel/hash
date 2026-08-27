@@ -440,6 +440,7 @@ __metadata:
     "@flue/runtime": "npm:2.0.3"
     "@flue/sdk": "npm:2.0.3"
     "@flue/vite": "npm:2.0.3"
+    "@hashintel/brunch-agent-binding-flue": "workspace:*"
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
     "@opentelemetry/api": "npm:1.9.1"
@@ -7545,7 +7546,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/brunch-agent-binding-flue@workspace:libs/@hashintel/brunch-agent/packages/binding-flue":
+"@hashintel/brunch-agent-binding-flue@workspace:*, @hashintel/brunch-agent-binding-flue@workspace:libs/@hashintel/brunch-agent/packages/binding-flue":
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-binding-flue@workspace:libs/@hashintel/brunch-agent/packages/binding-flue"
   dependencies:
