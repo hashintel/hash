@@ -48,12 +48,15 @@ const controlsStyle = css({
   alignItems: "center",
   gap: "2",
   flexWrap: "wrap",
+  // Compact inline controls; the ds Select otherwise stretches to the row.
+  "& [data-scope='select']": { width: "[170px]" },
 });
 
 const controlLabelStyle = css({
   fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.s120",
+  flexShrink: 0,
 });
 
 const canvasFrameStyle = css({
