@@ -25,7 +25,11 @@ import {
 
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
-import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
+import {
+  loadOpenAIVoiceConfig,
+  type OpenAIVoiceConfig,
+  VoiceInterviewControl,
+} from "../voice-interview/voice-interview-control";
 import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
 import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
 import { createBrunchPanelTransport } from "./brunch-panel-transport";
@@ -91,18 +95,14 @@ const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
 );
 
-const renderBrunchVoiceInterviewStage = (
-  context: PetrinautAiInterviewStageContext,
-) => <VoiceInterviewControl {...context} />;
-
 export const getBrunchVoiceInterviewStage = (
-  isBrunchConfigured: boolean,
+  config: OpenAIVoiceConfig | null | undefined,
 ): PetrinautAiInterviewStage | undefined =>
-  isBrunchConfigured ? renderBrunchVoiceInterviewStage : undefined;
-
-const brunchVoiceInterviewStage = getBrunchVoiceInterviewStage(
-  brunchPreviewConfig.isBrunchConfigured,
-);
+  config
+    ? (context: PetrinautAiInterviewStageContext) => (
+        <VoiceInterviewControl {...context} config={config} />
+      )
+    : undefined;
 
 const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
   createJsonDocHandle({
@@ -154,10 +154,37 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
  */
 export const LocalStorageDemoApp = () => {
   const sentryFeedbackAction = useSentryFeedbackAction();
+  const [openAIVoiceConfig, setOpenAIVoiceConfig] =
+    useState<OpenAIVoiceConfig | null>();
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
   const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(storedSDCPNs);
+
+  useEffect(() => {
+    if (!brunchPreviewConfig.isBrunchConfigured) {
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Resolve the loading sentinel when voice is not configured.
+      setOpenAIVoiceConfig(null);
+      return;
+    }
+
+    const abortController = new AbortController();
+    void loadOpenAIVoiceConfig(
+      globalThis.fetch.bind(globalThis),
+      abortController.signal,
+    ).then((config) => {
+      if (!abortController.signal.aborted) {
+        setOpenAIVoiceConfig(config);
+      }
+    });
+
+    return () => abortController.abort();
+  }, []);
+
+  const brunchVoiceInterviewStage = useMemo(
+    () => getBrunchVoiceInterviewStage(openAIVoiceConfig),
+    [openAIVoiceConfig],
+  );
 
   // Pick the most recently modified net
   const mostRecentlyModifiedNet =
@@ -342,6 +369,7 @@ export const LocalStorageDemoApp = () => {
     }),
     [
       aiMessagesByNetId,
+      brunchVoiceInterviewStage,
       conversationId,
       currentNetId,
       flueHistory.messages,

@@ -87,7 +87,7 @@ export const acknowledgeVoiceInterviewDisclosure = (
   }
 };
 
-type Presentation = "trigger" | "start" | "full" | "mini";
+type Presentation = "start" | "full" | "mini";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -129,11 +129,6 @@ const rootStyle = cva({
   },
   variants: {
     presentation: {
-      trigger: {
-        position: "absolute",
-        right: "[44px]",
-        bottom: "[-44px]",
-      },
       start: {
         position: "absolute",
         right: "0",
@@ -485,7 +480,6 @@ export interface VoiceInterviewControlViewProps {
   readonly onReconnect: () => void;
   readonly onRedo: () => void;
   readonly onResume: () => void;
-  readonly onShowStart: () => void;
   readonly onStart: () => void;
   readonly onSubmitCorrection: () => void;
   readonly onTypeInstead: () => void;
@@ -513,7 +507,6 @@ export const VoiceInterviewControlView = ({
   onReconnect,
   onRedo,
   onResume,
-  onShowStart,
   onStart,
   onSubmitCorrection,
   onTypeInstead,
@@ -521,23 +514,6 @@ export const VoiceInterviewControlView = ({
   presentation,
   snapshot,
 }: VoiceInterviewControlViewProps) => {
-  if (presentation === "trigger") {
-    return placement === "sidebar" ? (
-      <div className={rootStyle({ presentation: "trigger" })}>
-        <Button
-          aria-label="Start voice interview"
-          prefix={<FaMicrophone aria-hidden="true" />}
-          shape="round"
-          size="sm"
-          tooltip="Start voice interview"
-          type="button"
-          variant="subtle"
-          onClick={onShowStart}
-        />
-      </div>
-    ) : null;
-  }
-
   if (presentation === "start") {
     if (placement === "detached") return null;
     return (
@@ -559,7 +535,7 @@ export const VoiceInterviewControlView = ({
               variant="ghost"
               onClick={onTypeInstead}
             >
-              Use text
+              Use text instead
             </Button>
           </header>
           <p className={statusStyle}>
@@ -649,11 +625,11 @@ export const VoiceInterviewControlView = ({
             </Button>
           )}
           <Button
-            aria-label="Type an interview answer"
+            aria-label="Use text instead"
             prefix={<FaKeyboard aria-hidden="true" />}
             shape="round"
             size="xs"
-            tooltip="Type an interview answer"
+            tooltip="Use text instead"
             type="button"
             variant="ghost"
             onClick={onTypeInstead}
@@ -845,9 +821,7 @@ export const VoiceInterviewControlView = ({
             </>
           )}
           <Button type="button" variant="ghost" onClick={onTypeInstead}>
-            {snapshot.phase === "recoverable-error"
-              ? "Use text instead"
-              : "Type instead"}
+            Use text instead
           </Button>
         </div>
 
@@ -920,14 +894,15 @@ const AvailableVoiceInterviewControl = ({
     store.getSnapshot,
     store.getSnapshot,
   );
-  const [presentation, setPresentation] = useState<Presentation>("trigger");
-  const [previousPlacement, setPreviousPlacement] = useState(context.placement);
+  const [presentation, setPresentation] = useState<Presentation>("full");
   const [consented, setConsented] = useState(false);
   const [microphoneCheck, setMicrophoneCheck] = useState("");
   const [correction, setCorrection] = useState("");
   const [editing, setEditing] = useState(false);
-  const { openSidebar, setActive } = context;
+  const { interactionMode, openSidebar, setActive, setInteractionMode } =
+    context;
   const openSidebarRef = useRef(openSidebar);
+  const handledInterviewSelectionRef = useRef(false);
   const coverage = selectInterviewCoverage(context.messages);
 
   if (previousPlacement !== context.placement) {
@@ -961,10 +936,32 @@ const AvailableVoiceInterviewControl = ({
   }, [openSidebar]);
 
   useEffect(() => {
+    if (interactionMode === "chat") {
+      handledInterviewSelectionRef.current = false;
+      return;
+    }
+    if (handledInterviewSelectionRef.current || active) {
+      handledInterviewSelectionRef.current = true;
+      return;
+    }
+
+    handledInterviewSelectionRef.current = true;
+    if (isVoiceInterviewDisclosureAcknowledged()) {
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Mode selection intentionally drives the host presentation.
+      setPresentation("full");
+      setActive(true);
+      void store.controller.start();
+    } else {
+      setPresentation("start");
+    }
+  }, [active, interactionMode, setActive, store]);
+
+  useEffect(() => {
     if (snapshot.phase === "recoverable-error") {
+      setInteractionMode("interview");
       openSidebarRef.current();
     }
-  }, [snapshot.phase]);
+  }, [setInteractionMode, snapshot.phase]);
 
   useEffect(
     () => () => {
@@ -974,10 +971,22 @@ const AvailableVoiceInterviewControl = ({
   );
 
   const end = () => {
-    setPresentation("trigger");
     setEditing(false);
     context.setActive(false);
+    context.setInteractionMode("chat");
     void store.controller.end();
+  };
+
+  const minimize = () => context.setInteractionMode("chat");
+
+  const expand = () => {
+    context.openSidebar();
+    context.setInteractionMode("interview");
+  };
+
+  const useTextInstead = () => {
+    context.setInteractionMode("chat");
+    context.focusComposer();
   };
 
   const startInterview = () => {
@@ -985,6 +994,25 @@ const AvailableVoiceInterviewControl = ({
     context.setActive(true);
     void store.controller.start();
   };
+
+  const visiblePresentation =
+    snapshot.phase === "recoverable-error"
+      ? context.interactionMode === "chat"
+        ? "mini"
+        : "full"
+      : context.placement === "detached"
+        ? active
+          ? "mini"
+          : null
+        : context.interactionMode === "chat"
+          ? active
+            ? "mini"
+            : null
+          : presentation;
+
+  if (visiblePresentation === null) {
+    return null;
+  }
 
   return (
     <VoiceInterviewControlView
@@ -1008,12 +1036,9 @@ const AvailableVoiceInterviewControl = ({
       onDoneSpeaking={() => store.controller.doneSpeaking()}
       onEdit={() => setEditing(true)}
       onEnd={end}
-      onExpand={() => {
-        context.openSidebar();
-        setPresentation("full");
-      }}
+      onExpand={expand}
       onInterrupt={() => store.controller.interruptAndSpeak()}
-      onMinimize={() => setPresentation("mini")}
+      onMinimize={minimize}
       onPause={() => store.controller.pause()}
       onReconnect={() => {
         setPresentation("full");
@@ -1021,13 +1046,6 @@ const AvailableVoiceInterviewControl = ({
       }}
       onRedo={() => store.controller.redoAnswer()}
       onResume={() => store.controller.resume()}
-      onShowStart={() => {
-        if (isVoiceInterviewDisclosureAcknowledged()) {
-          startInterview();
-        } else {
-          setPresentation("start");
-        }
-      }}
       onStart={() => {
         acknowledgeVoiceInterviewDisclosure();
         startInterview();
@@ -1041,41 +1059,25 @@ const AvailableVoiceInterviewControl = ({
           }
         });
       }}
-      onTypeInstead={() => {
-        if (snapshot.phase === "idle") setPresentation("trigger");
-        context.focusComposer();
-      }}
+      onTypeInstead={useTextInstead}
       placement={context.placement}
-      presentation={
-        snapshot.phase === "recoverable-error" ? "full" : presentation
-      }
+      presentation={visiblePresentation}
       snapshot={snapshot}
     />
   );
 };
 
-export const VoiceInterviewControl = (
-  context: PetrinautAiInterviewStageContext,
-) => {
-  const [config, setConfig] = useState<OpenAIVoiceConfig | null>();
-
-  useEffect(() => {
-    const abortController = new AbortController();
-    void loadOpenAIVoiceConfig(
-      globalThis.fetch.bind(globalThis),
-      abortController.signal,
-    ).then((loadedConfig) => {
-      if (!abortController.signal.aborted) setConfig(loadedConfig);
-    });
-    return () => abortController.abort();
-  }, []);
-
-  if (!config || !context.conversationId) return null;
+export const VoiceInterviewControl = ({
+  config,
+  ...context
+}: PetrinautAiInterviewStageContext & {
+  readonly config: OpenAIVoiceConfig;
+}) => {
   return (
     <AvailableVoiceInterviewControl
       key={context.conversationId}
       config={config}
-      context={{ ...context, conversationId: context.conversationId }}
+      context={context}
     />
   );
 };

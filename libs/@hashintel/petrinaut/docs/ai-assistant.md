@@ -28,16 +28,21 @@ other follow-up that must not answer the pending question.
 If the host offers voice input, a finalized spoken turn is held while an existing response
 finishes and is submitted when the conversation is ready.
 
-When the Brunch voice preview is enabled by the host, select **Start voice interview** beside the
-composer. The first time, review the disclosure that OpenAI transcribes your speech and Petrinaut
-keeps finalized answers in the conversation rather than the audio, optionally check your microphone,
-confirm that you understand it, then select **Start interview**. Petrinaut remembers that
-acknowledgement in this browser for the current disclosure version, so later sessions start directly.
-If browser storage is unavailable or the disclosure changes, Petrinaut asks again.
+When the Brunch voice preview is enabled and available, **Chat** and **Interview** tabs appear on
+the first-run card and in the assistant panel header. If voice is unavailable, **Interview** is not
+shown. On the first-run card, select **Interview** and then **Start interview** to open the panel at
+the existing one-time disclosure. Review that OpenAI transcribes your speech and Petrinaut keeps
+finalized answers in the conversation rather than the audio, optionally check your microphone,
+confirm that you understand it, then select **Start interview** in the disclosure. Petrinaut
+remembers that acknowledgement in this browser for the current disclosure version, so later
+selections of **Interview** start directly. If browser storage is unavailable or the disclosure
+changes, Petrinaut asks again.
 
-The full interview stage opens above the composer. It keeps the current question visible, labels
-live words **Not sent yet**, and shows **Answer recorded** only after finalization. The words shown
-as the question are also the exact words spoken by the AI-generated OpenAI voice.
+While **Interview** is selected, the full interview stage replaces the generic message composer. It
+keeps the current question visible, labels live words **Not sent yet**, and shows **Answer
+recorded** only after finalization. The words shown as the question are also the exact words spoken
+by the AI-generated OpenAI voice. Choose **Use text instead** to select **Chat** and return focus to
+the composer.
 
 The stage names the microphone state and shows input activity only while the microphone is really
 on. During interviewer playback, **Interrupt and speak** first stops playback and then opens the
@@ -48,13 +53,16 @@ voice detection finish the answer, or to turn the microphone off temporarily. **
 icon-only controls with tooltips **Minimize** and **End interview**. After an answer is recorded
 and the interviewer is ready, use **Redo answer** to say an explicit correction or **Edit text** to
 type one. These correction controls remain unavailable while the previous answer is still being
-written down. The normal message composer remains available as a keyboard fallback.
+written down. Choose **Use text instead** to switch to the generic message composer as a keyboard
+fallback.
 
-Minimizing produces a compact bar above the composer. Closing the AI sidebar during an active
-interview moves that same session to a bottom bar over the canvas; reopening the sidebar docks it
-again. These presentation changes do not reconnect or end the voice session. On narrow screens the
-compact presentation remains a bottom bar. If the session fails, the sidebar reopens to the full
-recovery view. **Clear AI chat** is unavailable while an interview is active.
+Selecting **Chat** or **Minimize** hides the full stage. If the interview is active, the same session
+continues in a compact bar above the composer; expanding the bar reopens the sidebar and selects
+**Interview**. Closing the AI sidebar during an active interview moves the compact bar over the
+canvas; reopening the sidebar docks it again. These presentation changes do not reconnect or end
+the voice session. On narrow screens the compact presentation remains a bottom bar. If the session
+fails, the sidebar reopens to the full recovery view once; selecting **Chat** after that keeps the
+recovery controls compact. **Clear AI chat** is unavailable while an interview is active.
 
 When Brunch has produced authoritative completion information, the stage can expand **Covered** and
 **Still exploring** topics. It does not show a question count or a speculative model preview; the

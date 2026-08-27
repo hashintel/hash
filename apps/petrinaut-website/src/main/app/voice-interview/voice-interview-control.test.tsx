@@ -1,7 +1,13 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { StrictMode, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -31,6 +37,8 @@ const snapshot = {
   phase: "listening" as const,
 };
 
+const config = { available: true as const, connectionTimeoutMs: 15_000 };
+
 const viewProps = (
   overrides: Partial<VoiceInterviewControlViewProps> = {},
 ): VoiceInterviewControlViewProps => ({
@@ -52,7 +60,6 @@ const viewProps = (
   onReconnect: vi.fn(),
   onRedo: vi.fn(),
   onResume: vi.fn(),
-  onShowStart: vi.fn(),
   onStart: vi.fn(),
   onSubmitCorrection: vi.fn(),
   onTypeInstead: vi.fn(),
@@ -63,18 +70,23 @@ const viewProps = (
 });
 
 const StatefulVoiceInterviewHarness = ({
+  onFocusComposer = vi.fn(),
   onOpenSidebar,
 }: {
+  onFocusComposer?: () => void;
   onOpenSidebar: () => void;
 }) => {
   "use no memo";
 
   const [active, setActive] = useState(false);
+  const [interactionMode, setInteractionMode] =
+    useState<PetrinautAiInterviewStageContext["interactionMode"]>("chat");
   const [sidebarOpenRequests, setSidebarOpenRequests] = useState(0);
   const context: PetrinautAiInterviewStageContext = {
     canAcceptInterviewAnswer: true,
     conversationId: "interview-test",
-    focusComposer: vi.fn(),
+    focusComposer: onFocusComposer,
+    interactionMode,
     messages: [],
     openSidebar: () => {
       onOpenSidebar();
@@ -82,6 +94,7 @@ const StatefulVoiceInterviewHarness = ({
     },
     placement: "sidebar",
     setActive,
+    setInteractionMode,
     status: "ready",
     stop: vi.fn(async () => undefined),
     submitInterviewAnswer: vi.fn(async () => ({
@@ -96,9 +109,18 @@ const StatefulVoiceInterviewHarness = ({
 
   return (
     <>
+      <button type="button" onClick={() => setInteractionMode("chat")}>
+        Select Chat
+      </button>
+      <button type="button" onClick={() => setInteractionMode("interview")}>
+        Select Interview
+      </button>
       <output>{active ? "Interview active" : "Interview inactive"}</output>
+      <output>
+        {interactionMode === "chat" ? "Chat mode" : "Interview mode"}
+      </output>
       <output>{sidebarOpenRequests} sidebar open requests</output>
-      <VoiceInterviewControl {...context} />
+      <VoiceInterviewControl {...context} config={config} />
     </>
   );
 };
@@ -206,7 +228,7 @@ describe("voice interview stage", () => {
       html.indexOf("Check microphone"),
     );
     expect(html).toMatch(/<button[^>]*disabled[^>]*>Start interview/u);
-    expect(html).toContain("Use text");
+    expect(html).toContain(">Use text instead<");
     expect(html).toContain("Check microphone");
     expect(html).toContain("pos_absolute");
     expect(html).not.toContain("pos_fixed");
@@ -244,27 +266,8 @@ describe("voice interview stage", () => {
   });
 
   test("starts in the full stage and keeps recovery visible under Strict Mode", async () => {
-    const getUserMedia = vi.fn(async () => {
-      throw new DOMException("Permission denied", "NotAllowedError");
-    });
+    const getUserMedia = stubUnavailableMicrophone();
     const openSidebar = vi.fn();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof globalThis.fetch>(async () =>
-        Response.json({ available: true, connectionTimeoutMs: 15_000 }),
-      ),
-    );
-    vi.stubGlobal(
-      "AudioContext",
-      class {
-        public readonly state = "suspended";
-        public readonly close = vi.fn(async () => undefined);
-        public readonly resume = vi.fn(async () => undefined);
-      },
-    );
-    vi.stubGlobal("navigator", {
-      mediaDevices: { getUserMedia },
-    });
 
     render(
       <StrictMode>
@@ -272,9 +275,7 @@ describe("voice interview stage", () => {
       </StrictMode>,
     );
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Start voice interview" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: "Start interview" }));
 
@@ -288,8 +289,75 @@ describe("voice interview stage", () => {
     ).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Reconnect" })).not.toBeNull();
     expect(screen.getByText("Interview active")).not.toBeNull();
+    expect(screen.getByText("Interview mode")).not.toBeNull();
     expect(screen.getByText("1 sidebar open requests")).not.toBeNull();
     expect(openSidebar).toHaveBeenCalledOnce();
+    expect(getUserMedia).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Chat" }));
+    expect(
+      screen.getByRole("region", { name: "Voice interview mini bar" }),
+    ).not.toBeNull();
+    expect(screen.getByText("Chat mode")).not.toBeNull();
+    expect(openSidebar).toHaveBeenCalledOnce();
+  });
+
+  test("uses full Interview and compact Chat presentations without ending", async () => {
+    window.localStorage.setItem(
+      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      "acknowledged",
+    );
+    const getUserMedia = stubUnavailableMicrophone();
+    render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
+    expect(
+      await screen.findByRole("region", { name: "Voice interview stage" }),
+    ).not.toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Minimize voice interview" }),
+    );
+    expect(
+      screen.getByRole("region", { name: "Voice interview mini bar" }),
+    ).not.toBeNull();
+    expect(screen.getByText("Interview active")).not.toBeNull();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Expand voice interview/u }),
+    );
+    expect(
+      screen.getByRole("region", { name: "Voice interview stage" }),
+    ).not.toBeNull();
+    expect(screen.getByText("Interview mode")).not.toBeNull();
+    expect(getUserMedia).toHaveBeenCalledOnce();
+  });
+
+  test("ends the interview and returns to Chat", async () => {
+    window.localStorage.setItem(
+      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      "acknowledged",
+    );
+    stubUnavailableMicrophone();
+    render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
+    expect(
+      await screen.findByRole("region", { name: "Voice interview stage" }),
+    ).not.toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "End interview" }));
+
+    expect(screen.getByText("Chat mode")).not.toBeNull();
+    expect(screen.getByText("Interview inactive")).not.toBeNull();
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("region", { name: "Voice interview stage" }),
+      ).toBeNull();
+      expect(
+        screen.queryByRole("region", { name: "Voice interview mini bar" }),
+      ).toBeNull();
+    });
   });
 
   test("records acknowledgement only when the interview starts", async () => {
@@ -297,9 +365,7 @@ describe("voice interview stage", () => {
     stubUnavailableMicrophone();
     render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Start voice interview" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
     fireEvent.click(screen.getByRole("button", { name: "Check microphone" }));
     expect(
       window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
@@ -314,21 +380,27 @@ describe("voice interview stage", () => {
 
   test("does not record acknowledgement when choosing text instead", async () => {
     window.localStorage.clear();
+    const focusComposer = vi.fn();
     vi.stubGlobal(
       "fetch",
       vi.fn<typeof globalThis.fetch>(async () =>
         Response.json({ available: true, connectionTimeoutMs: 15_000 }),
       ),
     );
-    render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
-
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Start voice interview" }),
+    render(
+      <StatefulVoiceInterviewHarness
+        onFocusComposer={focusComposer}
+        onOpenSidebar={vi.fn()}
+      />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Use text" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use text instead" }));
     expect(
       window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
     ).toBeNull();
+    expect(screen.getByText("Chat mode")).not.toBeNull();
+    expect(focusComposer).toHaveBeenCalledOnce();
   });
 
   test("skips the disclosure after it has been acknowledged", async () => {
@@ -339,9 +411,7 @@ describe("voice interview stage", () => {
     );
     render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Start voice interview" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
 
     expect(
       screen.queryByRole("region", { name: "Start voice interview" }),
@@ -423,7 +493,7 @@ describe("voice interview stage", () => {
       "End interview",
       "Redo answer",
       "Edit text",
-      "Type instead",
+      "Use text instead",
     ]) {
       expect(html).toContain(name);
     }
@@ -518,7 +588,7 @@ describe("voice interview stage", () => {
     expect(html).toContain("--voice-interview-right");
     expect(html).toContain("[@media_(min-width:_768px)]");
     expect(html).not.toContain("md:right_4");
-    expect(html).toContain('aria-label="Type an interview answer"');
+    expect(html).toContain('aria-label="Use text instead"');
     expect(html).toContain(">Pause<");
     expect(html).toContain('aria-label="End interview"');
 
