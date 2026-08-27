@@ -717,7 +717,7 @@ describe("CreateOptimizationDrawer", () => {
 
     expect(input.scenario.id).toBe(generatedScenario.id);
     expect(input.scenario.parameterBindings).toEqual({
-      "adhoc.count.Queue": {
+      "adhoc_count_Queue": {
         kind: "optimize",
         domain: {
           kind: "integer",
@@ -733,7 +733,7 @@ describe("CreateOptimizationDrawer", () => {
       generatedScenario.scenarioParameters.map(
         (parameter) => parameter.identifier,
       ),
-    ).toEqual(["adhoc.count.Queue"]);
+    ).toEqual(["adhoc_count_Queue"]);
     expect(optimizedFields[0]?.label).toBe("Queue › count");
     expect(input.model.definition.metrics).toEqual([metric]);
   });
