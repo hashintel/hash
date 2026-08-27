@@ -153,12 +153,13 @@ const NameCell: React.FC<NameCellProps> = ({
     }
     const onEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && event.target === inputRef.current) {
-        closeEdit();
+        setEditing(false);
+        setTimeout(() => buttonRef.current?.focus(), 0);
       }
     };
     window.addEventListener("keydown", onEscape, true);
     return () => window.removeEventListener("keydown", onEscape, true);
-  });
+  }, [editing]);
 
   if (editing) {
     return (

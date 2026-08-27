@@ -168,9 +168,16 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
       ) {
         return;
       }
-      // An open Ark disclosure (the type select) dismisses itself through
-      // the Zag layer stack, which already spares the host drawer.
-      if (event.target.closest('[aria-expanded="true"]')) {
+      // An open Ark select (the type column) dismisses itself through the
+      // Zag layer stack, which already spares the host drawer. Scoped to
+      // select triggers: plain expanded disclosures (place headers, section
+      // headers) are NOT layers — letting their Escape through would reach
+      // the host.
+      if (
+        event.target.closest(
+          '[data-scope="select"][data-part="trigger"][aria-expanded="true"]',
+        )
+      ) {
         return;
       }
       event.preventDefault();
