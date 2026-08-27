@@ -10,7 +10,7 @@
  * form zone past the edges.
  */
 
-import { use, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -53,6 +53,12 @@ const typeCellStyle = css({
 
 const optimizeCellStyle = css({
   width: "[92px]",
+  paddingX: "1",
+  textAlign: "center",
+});
+
+const exposeCellStyle = css({
+  width: "[150px]",
   paddingX: "1",
   textAlign: "center",
 });
@@ -136,10 +142,31 @@ const NameCell: React.FC<NameCellProps> = ({
     setTimeout(() => buttonRef.current?.focus(), 0);
   };
 
+  // Escape leaves the edit. Handled natively at window capture, because the
+  // form root swallows in-form Escapes there (to spare the host drawer)
+  // before React's delegated handlers would run; registered while editing —
+  // after the root's listener — so it still sees the swallowed event.
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    if (!editing) {
+      return;
+    }
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && event.target === inputRef.current) {
+        closeEdit();
+      }
+    };
+    window.addEventListener("keydown", onEscape, true);
+    return () => window.removeEventListener("keydown", onEscape, true);
+  });
+
   if (editing) {
     return (
       <input
-        ref={cellRef}
+        ref={(element) => {
+          inputRef.current = element;
+          cellRef(element);
+        }}
         className={cellInputStyle}
         aria-label={ariaLabel}
         title={error}
@@ -216,6 +243,13 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
 }) => {
   const { errorFor, selection, highlight, setFocusedValue, dispatch } =
     use(AdHocFormContext);
+  // The trailing toggle column: Optimize on every Variable in optimize
+  // mode; "Scenario Parameter" on top-level Variables only in expose mode
+  // (a per-place Variable is a per-row intermediate — nothing to expose).
+  const toggleColumn =
+    selection === "optimize" || (selection === "expose" && placeId === null)
+      ? selection
+      : null;
   const { register, onKeyDown, attach } = useNavigationGrid();
   const gutterRefs = useRef(new Map<number, HTMLButtonElement>());
   const phantomRef = useRef<HTMLButtonElement | null>(null);
@@ -404,20 +438,34 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                   onTriggerKeyDown={onKeyDown(index, 3)}
                 />
               </td>
-              {selection !== "none" ? (
+              {toggleColumn ? (
                 <td
-                  className={cx(cellStyle, optimizeCellStyle, rowHighlight)}
+                  className={cx(
+                    cellStyle,
+                    toggleColumn === "expose"
+                      ? exposeCellStyle
+                      : optimizeCellStyle,
+                    rowHighlight,
+                  )}
                   onFocus={() => setFocusedValue(target)}
                   onBlur={() => setFocusedValue(null)}
                 >
                   <OptimizeToggle
-                    text={adHocSelectionText(selection)}
-                    label={`${adHocSelectionText(selection)} ${variable.name}`}
-                    value={variable.optimize !== null}
+                    text={adHocSelectionText(toggleColumn)}
+                    label={`${adHocSelectionText(toggleColumn)} ${variable.name}`}
+                    value={
+                      toggleColumn === "expose"
+                        ? (variable.exposed ?? false)
+                        : variable.optimize !== null
+                    }
                     buttonRef={register(index, 4)}
                     onKeyDown={onKeyDown(index, 4)}
                     onChange={(on) =>
-                      dispatch({ type: "toggleSelection", target, on })
+                      dispatch(
+                        toggleColumn === "expose"
+                          ? { type: "setVariableExposed", index, exposed: on }
+                          : { type: "toggleSelection", target, on },
+                      )
                     }
                   />
                 </td>
@@ -434,7 +482,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
           gutterClassName={gutterColumnStyle}
         >
           <td
-            colSpan={selection !== "none" ? 3 : 2}
+            colSpan={toggleColumn ? 3 : 2}
             className={cx(cellStyle, phantomRowCellStyle)}
           >
             <button

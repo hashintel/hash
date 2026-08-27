@@ -300,6 +300,12 @@ interface BoundCellProps {
   onChange: (next: string) => void;
   registerTrigger: (element: HTMLButtonElement | null) => void;
   onNavigate: (delta: -1 | 1) => void;
+  /** Reports the mounted Monaco instance to the slab's Escape handling. */
+  onEditorMount: (
+    editorInstance: Parameters<
+      NonNullable<React.ComponentProps<typeof CodeEditor>["onMount"]>
+    >[0],
+  ) => void;
 }
 
 /**
@@ -319,6 +325,7 @@ const BoundCell: React.FC<BoundCellProps> = ({
   onChange,
   registerTrigger,
   onNavigate,
+  onEditorMount,
 }) => {
   const wasFocusedOnPointerDownRef = useRef(false);
   const selfRef = useRef<HTMLButtonElement | null>(null);
@@ -333,6 +340,7 @@ const BoundCell: React.FC<BoundCellProps> = ({
           path={uri}
           value={bound}
           onMount={(editorInstance) => {
+            onEditorMount(editorInstance);
             editorInstance.focus();
           }}
           onChange={(next) => onChange(next ?? "")}
@@ -410,6 +418,14 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const editorId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  // The one Monaco instance open inside the slab (the expression editor or
+  // one bound cell's), so Escape can dismiss its widgets without closing it.
+  const monacoRef = useRef<
+    | Parameters<
+        NonNullable<React.ComponentProps<typeof CodeEditor>["onMount"]>
+      >[0]
+    | null
+  >(null);
   // Whether the pointer landed on an already-selected cell: the first click
   // selects, the second (or a double-click, or Enter) edits.
   const wasFocusedOnPointerDownRef = useRef(false);
@@ -502,22 +518,61 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
         }
       }
     };
+    // Escape peels exactly one layer and never reaches the host: the form
+    // may sit in a drawer/dialog whose own Escape handler listens at
+    // document capture (Zag's dismissable), so this listener sits on
+    // `window` capture — above document — and consumes the event before
+    // the host can act on it.
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        if (editingBound !== null) {
-          const key = editingBound;
-          setEditingBound(null);
-          setTimeout(() => boundRefs.current.get(key)?.focus(), 0);
-          return;
-        }
-        setOpenState(false);
-        buttonRef.current?.focus();
+      if (event.key !== "Escape") {
+        return;
       }
+      const overlay = overlayRef.current;
+      // Only an Escape from inside the slab (or its trigger cell) is the
+      // slab's to consume — one aimed at another open layer (a gutter menu)
+      // stays that layer's.
+      if (
+        !(event.target instanceof Node) ||
+        !(
+          overlay?.contains(event.target) ||
+          buttonRef.current?.contains(event.target)
+        )
+      ) {
+        return;
+      }
+      // An open Ark layer inside the slab (the Scale select) is above the
+      // slab: its own dismissal handles this Escape.
+      if (
+        overlay?.querySelector('[data-part="trigger"][aria-expanded="true"]')
+      ) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      // Innermost first: a visible Monaco widget (suggestions, signature
+      // help) closes without leaving the expression editor.
+      if (
+        overlay?.querySelector(
+          ".suggest-widget.visible, .parameter-hints-widget.visible",
+        )
+      ) {
+        monacoRef.current?.trigger("keyboard", "hideSuggestWidget", {});
+        monacoRef.current?.trigger("keyboard", "closeParameterHints", {});
+        return;
+      }
+      if (editingBound !== null) {
+        const key = editingBound;
+        setEditingBound(null);
+        setTimeout(() => boundRefs.current.get(key)?.focus(), 0);
+        return;
+      }
+      setOpenState(false);
+      buttonRef.current?.focus();
     };
     window.addEventListener("scroll", onScrollOrResize, true);
     window.addEventListener("resize", onScrollOrResize);
     document.addEventListener("pointerdown", onPointerDown, true);
-    document.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("keydown", onKeyDown, true);
     // The fixed overlay tracks the cell, but a cell scrolled out of its
     // clipped container must not leave the slab floating detached over
     // unrelated UI — close when the trigger stops being visible.
@@ -541,12 +596,14 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       window.removeEventListener("scroll", onScrollOrResize, true);
       window.removeEventListener("resize", onScrollOrResize);
       document.removeEventListener("pointerdown", onPointerDown, true);
-      document.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("keydown", onKeyDown, true);
       visibility?.disconnect();
     };
   }, [open, editorId, editingBound]);
 
-  const selectable = selection !== "none";
+  // Value slots carry Optimize toggles only in optimize mode; expose mode
+  // marks whole top-level Variables (in their own rows), never value slots.
+  const selectable = selection === "optimize";
   const optimized = selectable && value.optimize !== null;
   const isEmpty = !display && !optimized && value.expression.trim() === "";
   const text =
@@ -675,9 +732,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
             <div className={overlayBodyStyle}>
               {optimized && booleanDomain ? (
                 <div className={booleanNoteStyle}>
-                  {selection === "controls"
-                    ? "The control chooses true or false."
-                    : "The optimizer tries true and false."}
+                  The optimizer tries true and false.
                 </div>
               ) : optimized ? (
                 <div className={boundsGridStyle}>
@@ -706,6 +761,9 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                           fieldIndex === 0,
                         )}
                         onNavigate={(delta) => navigateBound(field.key, delta)}
+                        onEditorMount={(editorInstance) => {
+                          monacoRef.current = editorInstance;
+                        }}
                       />
                     </div>
                   ))}
@@ -771,6 +829,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                     value={value.expression}
                     placeholder={placeholder}
                     onMount={(editorInstance) => {
+                      monacoRef.current = editorInstance;
                       editorInstance.focus();
                     }}
                     onChange={(expression) =>

@@ -169,12 +169,14 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
     if (singleLine) {
       // Reactively strip newlines — this handles Enter key, paste, and any
       // other source of newlines without blocking Enter from being used by
-      // the suggest widget to accept completions.
+      // the suggest widget to accept completions. Removed, not replaced
+      // with spaces: Enter-to-validate must not edit the text under the
+      // cursor.
       editorInstance.onDidChangeModelContent(() => {
         const model = editorInstance.getModel();
         if (model && model.getLineCount() > 1) {
           const fullText = model.getValue();
-          const flat = fullText.replace(/[\n\r]/g, " ");
+          const flat = fullText.replace(/[\n\r]/g, "");
           model.setValue(flat);
           const endCol = model.getLineMaxColumn(1);
           editorInstance.setPosition({ lineNumber: 1, column: endCol });
