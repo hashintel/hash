@@ -1,58 +1,71 @@
 # Brunch agent
 
-This directory is the Brunch context and agent-session root inside `hashintel/hash`. HASH root
-guidance always wins where it conflicts with this file.
+Brunch is the elicitation harness and package family at `libs/@hashintel/brunch-agent`. This
+directory is its context root, not a package workspace. HASH root guidance wins where it differs
+from this file.
 
-## Scope
+## The three laws
 
-- `packages/core`: substrate- and renderer-independent harness and plugin SDK.
-- `packages/binding-*`: substrate bindings; each depends inward on the harness.
-- `packages/transport-*`: wire transports; none may depend on a binding.
-- `packages/plugin-*`: target plugins; each depends only on the harness.
-- `../../../apps/brunch-agent`: remote server, application composition, and local diagnostics.
-- `evaluations`: cases, protocols, and oracles; see `evaluations/AGENTS.md` before changing them.
+1. **Dumbest real implementation first.** Cross the real production boundary end-to-end before
+   improving anything: use the real entrypoint and wiring, inline what can stay local, and pin
+   only the invariants and constraints the working path actually exposes. Then re-decide at the
+   new fog-line instead of running an inherited plan.
+2. **Deepen only under observed strain.** An intended design is a hypothesis, not a destination.
+   Admit the next piece of complexity when the current implementation strains under a present
+   requirement (duplication diverging, a boundary leaking, an invariant that will not hold
+   locally), and cut the design when the design itself is what is straining progress.
+3. **A branch is a mission, not a ticket.** Every mission carries an imperative that guides and
+   bounds its work; its evidence-gathering and decisions are judged against that imperative, not
+   against a plan graph.
 
-## Stack
+## Mission contract
 
-- Format TypeScript and JSON with HASH-root `oxfmt` (double quotes, 80 columns), not Biome or
-  Prettier. Brunch Markdown remains excluded.
-- `lint:eslint` runs Oxlint with multi-file import analysis, type-aware rules, and compiler
-  diagnostics. Package `.oxlintrc.json` files extend Brunch presets under
-  `.config/oxlint/brunch/`.
-- `lint:tsc` remains the independent `tsgo --noEmit` type-check gate.
-- `test:unit` runs Vitest through `vitest run`; architecture tests remain the topology, Flue
-  placement, and hermetic-runtime gates.
-- Vite 8 builds the libraries and application.
+When work starts on a branch, state these six things in the branch/PR description (no separate
+document):
 
-The context root is not a package-manager root. Do not add a `package.json`, lockfile, nested
-workspace configuration, or standalone CI here. Run package tasks through HASH's root Yarn/Turbo
-workspace.
+- **Imperative** — what must become true, and why now.
+- **Throughline** — the real entrypoint or boundary being changed.
+- **Proof** — the observable evidence that would establish progress.
+- **Constraints** — the few already-earned truths that must stay true.
+- **Fog-line** — what is unknown and must not be designed past.
+- **Stop or reorient** — evidence that invalidates or changes the route.
 
-## Before changing Brunch
+## Correctives
 
-1. Read `CONTEXT.md` and the relevant decision under `docs/adr/`.
-2. Read the protocol under `docs/agents/` that corresponds to the operation.
-3. Preserve the executable package-direction, Flue entrypoint, bundle, and hermetic-runtime gates.
+- Before adding structure, name the production pressure that requires it.
+- Work the first unproven boundary; do not build toward the imagined end.
+- Real entrypoint or it did not happen; a proof is legible when a human can watch it and decide.
+- A ticket is a projection; the mission is the authority. If the ticket stops serving the
+  imperative, stop and surface the divergence instead of finishing the ticket.
+- When evidence changes the route, stop; do not finish the planned neighbourhood.
+- When unsure, build the smallest real path that reveals more.
+- When things accumulate, subtract before you extend.
+- No imperative and proof means it is not a mission yet — do not start it.
 
-## Working methods
+## Retained facts
 
-- Use Graphite (`gt`) for stack operations; do not use `gh stack` in HASH.
-- Issues live in Linear team `FE`, project `brunch-agent`.
-- Brunch Markdown is created and maintained by agents; exclude it from `oxfmt` and `markdownlint`.
+- **Toolchain:** format TS/JSON with root `oxfmt`; lint via `lint:eslint` (Oxlint) and
+  `lint:tsc` (`tsgo --noEmit`); unit tests via `vitest run`; build with Vite 8. Run tasks through
+  the HASH root Yarn/Turbo workspace — add no `package.json` or lockfile here.
+- **Git vs Graphite:** plain `git` for status/diff/add/commit; `gt` for
+  `create`/`submit`/`restack`/`sync`/`checkout`. Never `gh stack`. Before switching the branch of
+  a shared worktree, check for in-flight work; use a separate worktree rather than stashing,
+  resetting, or cleaning anything you did not create.
+- **Linear:** team `FE`, project `brunch-agent`. Reading is fine; get explicit approval before
+  any write (create, edit, comment, state change).
+- **Topology gates** (enforced by tests): plugins never import
+  `@hashintel/brunch-agent/prompts`; transport packages never depend on a binding; bindings
+  depend inward on core; plugins depend only on core. Evaluation answer keys stay on the
+  evaluation side, never inside interviewee or elicitor inputs.
+- **Posture:** prototype · stakes high — persisted capture data and merge gates must fail loudly,
+  never corrupt silently · horizon: current milestone.
+- **Flue design moments:** see
+  [`docs/reference/architecture/flue-routing.md`](docs/reference/architecture/flue-routing.md).
 
-Route by trigger; load only the applicable compact protocol:
+## Authorities vs obligations
 
-- Start or resume without a proof target, or when objectives, pressure, proof, authority, external
-  gates, frontier value, or arc-close findings change: invoke `/ds-steer`, which consults the Brunch
-  supplement at `docs/agents/steering.md`.
-- Create, mutate, triage, or structure issues: `docs/agents/issue-tracker.md`,
-  `docs/agents/issue-writing.md`, and `docs/agents/triage-labels.md`.
-- Add, move, settle, or index documents: `docs/agents/documentation.md`.
-- Change domain terms or accepted context decisions: `docs/agents/domain.md`.
-- Make a Flue design choice: `docs/agents/flue-routing.md`.
-- Produce a significant agent-authored artifact or proof: `docs/agents/legibility.md`.
-- Make an architecture-sensitive move: `docs/agents/posture.md`.
-- Operate on branches, stacks, commits, or PRs: `docs/agents/git-workflow.md`.
-- Create or refresh worktrees for a recorded partition: `docs/agents/partition-worktrees.md`.
-- Close a work arc: run the context-local `arc-close` skill and
-  `docs/agents/arc-close.md`.
+[`docs/specs/`](docs/specs), [`docs/adr/`](docs/adr) (see its [README](docs/adr/README.md)), and
+[`docs/evidence/`](docs/evidence) are history and reference: prior design hypotheses and observed
+results. They are not marching orders. Re-earn any design you build to; an implemented decision is
+evidence, unimplemented design is a hypothesis. A branch may depart from a recorded decision by
+noting the divergence in its commit.
