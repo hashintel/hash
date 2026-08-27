@@ -13,11 +13,11 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 
 ### Configuration
 
-| Setting                 | Default                           | Notes                                                                                                                                                                                                              |
-| ----------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Name**                | `Experiment`                      | Free text.                                                                                                                                                                                                         |
-| **Scenario**            | `(Default)`                       | Either `(Default)` (no scenario; uses each place's manually-set initial marking and net-level parameter defaults) or one of your saved [scenarios](scenarios.md). An experiment runs against exactly one scenario. |
-| **Scenario parameters** | each scenario parameter's default | When a scenario is selected, you can override its scenario parameters per experiment. Expressions are evaluated once at start. Each numeric parameter also has a **Sweep** toggle — see [Parameter sweeps](#parameter-sweeps).  |
+| Setting                 | Default                           | Notes                                                                                                                                                                                                                          |
+| ----------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Name**                | `Experiment`                      | Free text.                                                                                                                                                                                                                     |
+| **Scenario**            | `(Default)`                       | Either `(Default)` (no scenario; uses each place's manually-set initial marking and net-level parameter defaults) or one of your saved [scenarios](scenarios.md). An experiment runs against exactly one scenario.             |
+| **Scenario parameters** | each scenario parameter's default | When a scenario is selected, you can override its scenario parameters per experiment. Expressions are evaluated once at start. Each numeric parameter also has a **Sweep** toggle — see [Parameter sweeps](#parameter-sweeps). |
 
 With "No scenario" selected, the Scenario section shows the [ad-hoc scenario form](ad-hoc-scenarios.md): define the initial state and parameter values inline for this experiment, without saving a scenario. Left untouched, the experiment runs from the manually-set markings and defaults as before. The experiments table shows "Ad-hoc scenario" in its Scenario column for such runs.
 
