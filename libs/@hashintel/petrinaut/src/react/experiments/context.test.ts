@@ -28,6 +28,8 @@ function makeRecord(overrides: Partial<ExperimentRecord>): ExperimentRecord {
     finishedAt: null,
     progress: null,
     metricFrames: [],
+    parameterAxes: [],
+    sweep: null,
     latestMetricFramesById: {},
     ...overrides,
   };
