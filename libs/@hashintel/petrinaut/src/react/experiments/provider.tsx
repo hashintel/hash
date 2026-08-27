@@ -944,6 +944,15 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     sweepSessionsRef.current.get(experimentId)?.setSelection(selection);
   };
 
+  const sampleSweepCell: ExperimentsContextValue["sampleSweepCell"] = (
+    experimentId,
+    parameterValues,
+    minRuns,
+  ) =>
+    sweepSessionsRef.current
+      .get(experimentId)
+      ?.sampleCell(parameterValues, minRuns) ?? Promise.resolve(null);
+
   const selectedExperiment =
     experiments.find((experiment) => experiment.id === selectedExperimentId) ??
     null;
@@ -957,6 +966,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     cancelExperiment: useStableCallback(cancelExperiment),
     removeExperiment: useStableCallback(removeExperiment),
     setSweepSelection: useStableCallback(setSweepSelection),
+    sampleSweepCell: useStableCallback(sampleSweepCell),
   };
 
   return (

@@ -16,6 +16,7 @@ import {
 } from "./experiment-metric-timeline";
 import { formatDurationMs } from "./format-duration";
 import { SweepNavigator } from "./sweep-navigator";
+import { SweepSurface } from "./sweep-surface";
 
 /**
  * Which backend ran an experiment.
@@ -392,6 +393,16 @@ export const ViewExperimentDrawer = ({
           {experiment.metricFrames.length > 0 ? (
             <Section title="Metrics" collapsible defaultOpen>
               <ExperimentMetrics experiment={experiment} />
+            </Section>
+          ) : null}
+          {experiment.sweep && experiment.parameterAxes.length >= 2 ? (
+            <Section
+              title="Surface"
+              tooltip="One metric's final value over two swept parameters, sampled progressively at 8 runs per combination. Click to move the navigator."
+              collapsible
+              defaultOpen
+            >
+              <SweepSurface experiment={experiment} />
             </Section>
           ) : null}
         </SectionList>
