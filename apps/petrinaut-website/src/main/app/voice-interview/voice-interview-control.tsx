@@ -6,7 +6,15 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { FaKeyboard, FaMicrophone, FaMicrophoneSlash } from "react-icons/fa6";
+import {
+  FaCheck,
+  FaKeyboard,
+  FaMicrophone,
+  FaMicrophoneSlash,
+  FaMinus,
+  FaPause,
+  FaXmark,
+} from "react-icons/fa6";
 
 import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -180,8 +188,7 @@ const stageStyle = css({
   gap: "3",
   padding: "3",
   overflowY: "auto",
-  borderTopWidth: "thin",
-  borderBottomWidth: "thin",
+  borderWidth: "thin",
   borderStyle: "solid",
   borderColor: "neutral.a20",
   backgroundColor: "neutral.s00",
@@ -195,6 +202,12 @@ const headerStyle = css({
   gap: "2",
 });
 
+const startHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+});
+
 const titleStyle = css({
   flex: "1",
   color: "neutral.s100",
@@ -202,11 +215,33 @@ const titleStyle = css({
   fontWeight: "semibold",
 });
 
+const subtitleStyle = css({
+  color: "neutral.s80",
+  fontSize: "xs",
+  lineHeight: "snug",
+});
+
 const questionStyle = css({
   color: "neutral.s110",
   fontSize: "lg",
   fontWeight: "semibold",
   lineHeight: "snug",
+});
+
+const contextStyle = css({
+  display: "block",
+  overflow: "hidden",
+  color: "neutral.s80",
+  fontSize: "xs",
+  lineHeight: "snug",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const miniTextStyle = css({
+  display: "flex",
+  minWidth: "0",
+  flexDirection: "column",
 });
 
 const listeningStyle = css({
@@ -258,6 +293,18 @@ const labelStyle = css({
   color: "neutral.s80",
   fontSize: "xs",
   fontWeight: "semibold",
+});
+
+const phaseStyle = css({
+  color: "blue.s80",
+  fontSize: "xs",
+  fontWeight: "semibold",
+});
+
+const technicalDetailsStyle = css({
+  color: "neutral.s80",
+  fontSize: "xs",
+  _open: { color: "neutral.s90" },
 });
 
 const actionsStyle = css({
@@ -350,15 +397,7 @@ const statusText = (snapshot: VoiceTurnSnapshot): string => {
     case "playing":
       return "Microphone off · Interviewer speaking";
     case "recoverable-error": {
-      const diagnostic =
-        snapshot.errorCode === null
-          ? ""
-          : ` Error code: ${snapshot.errorCode}.${
-              snapshot.errorRequestId
-                ? ` Diagnostic reference: ${snapshot.errorRequestId}.`
-                : ""
-            }`;
-      return `Microphone off · ${snapshot.errorMessage}${diagnostic}`;
+      return `Microphone off · ${snapshot.errorMessage}`;
     }
   }
 };
@@ -373,7 +412,7 @@ const inputLevelText = (level: number): string =>
         : "Quiet";
 
 const Meter = ({ snapshot }: { snapshot: VoiceTurnSnapshot }) => {
-  const level = snapshot.microphoneEnabled ? snapshot.microphoneLevel : 0;
+  const level = snapshot.microphoneLevel;
   return (
     <>
       <div className={meterStyle} aria-hidden="true">
@@ -386,9 +425,7 @@ const Meter = ({ snapshot }: { snapshot: VoiceTurnSnapshot }) => {
         ))}
       </div>
       <span className={labelStyle}>
-        {snapshot.microphoneEnabled
-          ? `Microphone input level: ${inputLevelText(level)}`
-          : "Microphone input level unavailable while microphone is off"}
+        {`Microphone input level: ${inputLevelText(level)}`}
       </span>
     </>
   );
@@ -505,15 +542,20 @@ export const VoiceInterviewControlView = ({
         className={rootStyle({ presentation: "start" })}
       >
         <div className={cardStyle}>
-          <h2 className={questionStyle}>Talk with the AI interviewer</h2>
+          <header className={startHeaderStyle}>
+            <div className={titleStyle}>
+              <strong>Voice interview</strong>
+              <span className={subtitleStyle}>
+                Talk through your process with AI
+              </span>
+            </div>
+            <Button size="xs" type="button" variant="ghost" onClick={onTypeInstead}>
+              Use text
+            </Button>
+          </header>
           <p className={statusStyle}>
-            Your speech is sent to OpenAI for transcription. Petrinaut keeps
-            finalized answers in this conversation; this app does not retain the
-            audio.
-          </p>
-          <p className={statusStyle}>
-            Questions are spoken by an AI-generated OpenAI voice. You can pause,
-            type, correct an answer, or end the interview at any time.
+            Your speech is transcribed by OpenAI. Petrinaut keeps finalized
+            answers in this conversation, not the audio.
           </p>
           <label className={statusStyle}>
             <input
@@ -525,14 +567,11 @@ export const VoiceInterviewControlView = ({
           </label>
           {microphoneCheck && <p className={labelStyle}>{microphoneCheck}</p>}
           <div className={actionsStyle}>
-            <Button type="button" variant="subtle" onClick={onCheckMicrophone}>
-              Check microphone
-            </Button>
             <Button disabled={!consented} type="button" onClick={onStart}>
               Start interview
             </Button>
-            <Button type="button" variant="ghost" onClick={onTypeInstead}>
-              Use text instead
+            <Button type="button" variant="subtle" onClick={onCheckMicrophone}>
+              Check microphone
             </Button>
           </div>
         </div>
@@ -567,7 +606,12 @@ export const VoiceInterviewControlView = ({
             ) : (
               <FaMicrophoneSlash aria-hidden="true" />
             )}
-            <span>{status}</span>
+            <span className={miniTextStyle}>
+              <span>{status}</span>
+              {snapshot.currentQuestion && (
+                <span className={contextStyle}>{snapshot.currentQuestion}</span>
+              )}
+            </span>
           </button>
           {isSpeaking ? (
             <Button size="xs" type="button" onClick={onInterrupt}>
@@ -580,6 +624,7 @@ export const VoiceInterviewControlView = ({
           ) : (
             <Button
               disabled={!snapshot.microphoneEnabled}
+              prefix={<FaPause aria-hidden="true" />}
               size="xs"
               type="button"
               variant="subtle"
@@ -627,13 +672,27 @@ export const VoiceInterviewControlView = ({
     >
       <div className={stageStyle}>
         <header className={headerStyle}>
-          <span className={titleStyle}>AI · Voice interview</span>
-          <Button size="xs" type="button" variant="ghost" onClick={onMinimize}>
-            Minimize
-          </Button>
-          <Button size="xs" type="button" variant="ghost" onClick={onEnd}>
-            End interview
-          </Button>
+          <span className={titleStyle}>Voice interview</span>
+          <Button
+            aria-label="Minimize voice interview"
+            prefix={<FaMinus aria-hidden="true" />}
+            shape="round"
+            size="xs"
+            tooltip="Minimize"
+            type="button"
+            variant="ghost"
+            onClick={onMinimize}
+          />
+          <Button
+            aria-label="End interview"
+            prefix={<FaXmark aria-hidden="true" />}
+            shape="round"
+            size="xs"
+            tooltip="End interview"
+            type="button"
+            variant="ghost"
+            onClick={onEnd}
+          />
         </header>
 
         <p className={questionStyle}>
@@ -646,9 +705,27 @@ export const VoiceInterviewControlView = ({
           ) : (
             <FaMicrophoneSlash aria-hidden="true" />
           )}
-          <Meter snapshot={snapshot} />
-          <span className={statusStyle}>{status}</span>
+          {snapshot.microphoneEnabled && <Meter snapshot={snapshot} />}
+          <span className={phaseStyle}>{status}</span>
         </div>
+
+        {snapshot.phase === "recoverable-error" && (
+          <div className={transcriptStyle}>
+            <strong>We couldn’t connect</strong>
+            <span>{snapshot.errorMessage}</span>
+            {(snapshot.errorCode || snapshot.errorRequestId) && (
+              <details className={technicalDetailsStyle}>
+                <summary>Technical details</summary>
+                {snapshot.errorCode && (
+                  <div>Error code: {snapshot.errorCode}</div>
+                )}
+                {snapshot.errorRequestId && (
+                  <div>Diagnostic reference: {snapshot.errorRequestId}</div>
+                )}
+              </details>
+            )}
+          </div>
+        )}
 
         {snapshot.partialText && (
           <div className={transcriptStyle}>
@@ -697,10 +774,21 @@ export const VoiceInterviewControlView = ({
           )}
           {snapshot.phase === "listening" && (
             <>
-              <Button type="button" onClick={onDoneSpeaking}>
+              <Button
+                aria-label="Done speaking"
+                prefix={<FaCheck aria-hidden="true" />}
+                type="button"
+                onClick={onDoneSpeaking}
+              >
                 Done speaking
               </Button>
-              <Button type="button" variant="subtle" onClick={onPause}>
+              <Button
+                aria-label="Pause"
+                prefix={<FaPause aria-hidden="true" />}
+                type="button"
+                variant="subtle"
+                onClick={onPause}
+              >
                 Pause
               </Button>
             </>

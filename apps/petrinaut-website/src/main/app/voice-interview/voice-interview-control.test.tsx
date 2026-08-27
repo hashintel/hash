@@ -197,10 +197,16 @@ describe("voice interview stage", () => {
       />,
     );
 
-    expect(html).toContain("sent to OpenAI for transcription");
-    expect(html).toContain("does not retain the audio");
+    expect(html).toContain("Voice interview");
+    expect(html).toContain("Talk through your process with AI");
+    expect(html).toContain("transcribed by OpenAI");
+    expect(html).toContain("keeps finalized answers");
+    expect(html).toContain("not the audio");
+    expect(html.indexOf("Start interview")).toBeLessThan(
+      html.indexOf("Check microphone"),
+    );
     expect(html).toMatch(/<button[^>]*disabled[^>]*>Start interview/u);
-    expect(html).toContain("Use text instead");
+    expect(html).toContain("Use text");
     expect(html).toContain("Check microphone");
     expect(html).toContain("pos_absolute");
     expect(html).not.toContain("pos_fixed");
@@ -225,11 +231,13 @@ describe("voice interview stage", () => {
       />,
     );
 
+    expect(html).toContain("We couldn’t connect");
     expect(html).toContain(
-      "Microphone off · Allow microphone access in your browser settings, then reconnect voice input.",
+      "Allow microphone access in your browser settings, then reconnect voice input.",
     );
-    expect(html).toContain("Error code: microphone-permission.");
-    expect(html).toContain("Diagnostic reference: voice-request-permission.");
+    expect(html).toContain("<summary>Technical details</summary>");
+    expect(html).toContain("microphone-permission");
+    expect(html).toContain("voice-request-permission");
     expect(html).toContain(">Reconnect<");
   });
 
@@ -273,7 +281,7 @@ describe("voice interview stage", () => {
     ).not.toBeNull();
     expect(
       await screen.findAllByText(
-        /Microphone off · Allow microphone access in your browser settings, then reconnect voice input\. Error code: microphone-permission\./u,
+        /Microphone off · Allow microphone access in your browser settings, then reconnect voice input\./u,
       ),
     ).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Reconnect" })).not.toBeNull();
@@ -319,7 +327,7 @@ describe("voice interview stage", () => {
     fireEvent.click(
       await screen.findByRole("button", { name: "Start voice interview" }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Use text instead" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use text" }));
     expect(
       window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
     ).toBeNull();
@@ -363,6 +371,41 @@ describe("voice interview stage", () => {
     expect(html).toContain('aria-live="polite"');
   });
 
+  test("renders icons for the listening controls", () => {
+    render(<VoiceInterviewControlView {...viewProps()} />);
+
+    for (const name of [
+      "Minimize voice interview",
+      "End interview",
+      "Done speaking",
+      "Pause",
+    ]) {
+      expect(
+        screen.getByRole("button", { name }).querySelector("svg"),
+      ).not.toBeNull();
+    }
+  });
+
+  test("does not describe an unavailable meter while the microphone is off", () => {
+    const waitingHtml = renderToStaticMarkup(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            microphoneEnabled: false,
+            microphoneLevel: 0,
+            partialText: "",
+            phase: "waiting",
+          },
+        })}
+      />,
+    );
+
+    expect(waitingHtml).not.toContain(
+      "Microphone input level unavailable while microphone is off",
+    );
+  });
+
   test("renders committed repair actions separately from pause, minimize, and end", () => {
     const html = renderToStaticMarkup(
       <VoiceInterviewControlView
@@ -380,7 +423,7 @@ describe("voice interview stage", () => {
     );
 
     for (const name of [
-      "Minimize",
+      "Minimize voice interview",
       "End interview",
       "Redo answer",
       "Edit text",
@@ -475,6 +518,7 @@ describe("voice interview stage", () => {
       'aria-label="Expand voice interview. Microphone on · Listening"',
     );
     expect(html).toContain("Microphone on · Listening");
+    expect(html).toContain("What happens after approval?");
     expect(html).toContain("--voice-interview-right");
     expect(html).toContain("[@media_(min-width:_768px)]");
     expect(html).not.toContain("md:right_4");
