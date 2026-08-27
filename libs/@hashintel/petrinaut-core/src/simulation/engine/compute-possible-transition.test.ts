@@ -112,12 +112,15 @@ function makeSimulation({
   types = [],
   lambdaFns,
   kernelFns,
+  tokenIndependentLambdas,
 }: {
   places?: Place[];
   transitions: Transition[];
   types?: Color[];
   lambdaFns: ReadonlyMap<string, HirCompiledBufferLambda>;
   kernelFns?: ReadonlyMap<string, HirCompiledBufferKernel | null>;
+  /** Transitions whose mock lambda is marked token-independent. */
+  tokenIndependentLambdas?: ReadonlySet<string>;
 }): SimulationInstance {
   const frameLayout = createEngineFrameLayout({
     places,
@@ -145,6 +148,8 @@ function makeSimulation({
             places,
             types,
             lambdaFn,
+            lambdaReadsNoInputTokens:
+              tokenIndependentLambdas?.has(transition.id) ?? false,
             kernelFn: kernelFns?.get(transition.id) ?? null,
           }),
         ];
@@ -970,5 +975,101 @@ describe("computePossibleTransition", () => {
         expect.arrayContaining([expect.stringMatching(/discrete \(string\)/)]),
       );
     });
+  });
+});
+
+describe("token-independent lambdas", () => {
+  const pool: Place = makePlace("p1", "Pool", "type1");
+  const fourTokens = {
+    p1: {
+      elements: type1.elements,
+      tokens: [{ x: 10 }, { x: 20 }, { x: 30 }, { x: 40 }],
+    },
+  };
+  const pairTransition = makeTransition({
+    id: "t1",
+    inputArcs: [{ placeId: "p1", weight: 2, type: "standard" }],
+    outputArcs: [],
+  });
+
+  function makePairSimulation(
+    lambdaFn: HirCompiledBufferLambda,
+    tokenIndependent: boolean,
+  ): SimulationInstance {
+    return makeSimulation({
+      places: [pool],
+      types: [type1],
+      transitions: [pairTransition],
+      lambdaFns: new Map([["t1", lambdaFn]]),
+      tokenIndependentLambdas: tokenIndependent
+        ? new Set(["t1"])
+        : new Set<string>(),
+    });
+  }
+
+  it("evaluates the lambda once and consumes the first tokens", () => {
+    let calls = 0;
+    const simulation = makePairSimulation(() => {
+      calls += 1;
+      return CERTAIN_FIRING_RATE;
+    }, true);
+    const frame = makeTestFrame({
+      places: fourTokens,
+      transitions: { t1: transitionState() },
+    });
+
+    const result = computePossibleTransition(frame, simulation, "t1", 42);
+
+    expect(calls).toBe(1);
+    expect(result?.remove).toEqual({ p1: new Set([0, 1]) });
+  });
+
+  it("skips the other five combinations a flagless lambda would examine", () => {
+    // Rate 0 never fires: exp(0) = 1 > U1 for every draw, so the flagless
+    // path examines all C(4,2) = 6 combinations while the flagged path
+    // examines one — with identical outcomes.
+    const runWith = (tokenIndependent: boolean) => {
+      let calls = 0;
+      const simulation = makePairSimulation(() => {
+        calls += 1;
+        return 0;
+      }, tokenIndependent);
+      const frame = makeTestFrame({
+        places: fourTokens,
+        transitions: { t1: transitionState() },
+      });
+      const { firing, newRngState } = computePossibleTransitionImpl(
+        frame,
+        { ...simulation, frameLayout: frame.layout },
+        "t1",
+        42,
+      );
+      return { calls, firing, newRngState };
+    };
+
+    const flagged = runWith(true);
+    const flagless = runWith(false);
+
+    expect(flagged.calls).toBe(1);
+    expect(flagless.calls).toBe(6);
+    expect(flagged.firing).toBeNull();
+    expect(flagless.firing).toBeNull();
+    expect(flagged.newRngState).toBe(flagless.newRngState);
+  });
+
+  it("fires identically to the enumerating path when the rate is certain", () => {
+    const runWith = (tokenIndependent: boolean) => {
+      const simulation = makePairSimulation(
+        () => CERTAIN_FIRING_RATE,
+        tokenIndependent,
+      );
+      const frame = makeTestFrame({
+        places: fourTokens,
+        transitions: { t1: transitionState() },
+      });
+      return computePossibleTransition(frame, simulation, "t1", 42);
+    };
+
+    expect(runWith(true)).toEqual(runWith(false));
   });
 });
