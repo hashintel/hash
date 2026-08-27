@@ -17,12 +17,12 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 | ----------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Name**                | `Experiment`                      | Free text.                                                                                                                                                                                                         |
 | **Scenario**            | `(Default)`                       | Either `(Default)` (no scenario; uses each place's manually-set initial marking and net-level parameter defaults) or one of your saved [scenarios](scenarios.md). An experiment runs against exactly one scenario. |
-| **Scenario parameters** | each scenario parameter's default | When a scenario is selected, you can override its scenario parameters per experiment. Expressions are evaluated once at start.                                                                                     |
+| **Scenario parameters** | each scenario parameter's default | When a scenario is selected, you can override its scenario parameters per experiment. Expressions are evaluated once at start. Each numeric parameter also has a **Sweep** toggle — see [Parameter sweeps](#parameter-sweeps).  |
 
 With "No scenario" selected, the Scenario section shows the [ad-hoc scenario form](ad-hoc-scenarios.md): define the initial state and parameter values inline for this experiment, without saving a scenario. Left untouched, the experiment runs from the manually-set markings and defaults as before. The experiments table shows "Ad-hoc scenario" in its Scenario column for such runs.
 
 With a scenario selected (and ad-hoc scenarios enabled), the Scenario section shows it through the same form: the scenario parameters take value edits in worksheet style, and a collapsed **Computed state** sub-section underneath previews the exact parameter values and initial tokens each run will start with -- computed only when you open it, and recomputed as you change the values above. The preview sits in its own tinted panel and scrolls as one, so a net with many places leaves the rest of the drawer in reach.
-| **Runs** | `1000` | Positive integer; how many independent simulations to run. |
+| **Runs** | `1000` | Positive integer; how many independent simulations to run. For a sweep, this is the run budget **per combination**. |
 | **Time step (dt)** | `0.1` | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)). |
 | **Max time (seconds)** | `180` | Each run advances until simulation time reaches this value, then completes. |
 | **Run on GPU** | off | Only shown when **WebGPU** is on under **Settings → Simulation**. Greyed out with the reason on hover when this model cannot run on the GPU. See [Compute backend](#compute-backend-experimental). |
@@ -33,12 +33,13 @@ The model used is a snapshot of the current net at the time you press **Run**. E
 
 ## Lifecycle and statuses
 
-Experiments progress through five status labels:
+Experiments progress through these status labels:
 
 | Status           | Meaning                                                                                           |
 | ---------------- | ------------------------------------------------------------------------------------------------- |
 | **Initializing** | The experiment has been created and its workers are starting up.                                  |
 | **Running**      | Runs are in progress.                                                                             |
+| **Idle**         | A sweep whose selected combination is fully sampled. Moving a parameter control resumes running.  |
 | **Complete**     | All runs finished without error.                                                                  |
 | **Error**        | The experiment failed to start or hit an unrecoverable error. The drawer shows the error message. |
 | **Cancelled**    | You clicked **Cancel**, or the experiment was cancelled.                                          |
@@ -55,6 +56,14 @@ Two consequences worth knowing:
 
 - Progress reports the slowest worker's position, so the progress bar never runs ahead of the results behind it.
 - Several experiments running at once each use the same number of workers, so they compete for cores and all of them slow down. Run them one at a time if you want any single one to finish as fast as possible.
+
+### Parameter sweeps
+
+Flip **Sweep** on any numeric scenario parameter to explore a range of values instead of one. Set the minimum, the maximum, and how many evenly spaced values to take; several swept parameters form a grid of combinations (capped at 200), and the form shows the grid size before you run.
+
+A sweep never computes its whole grid up front. It computes **the combination you are looking at**: the results drawer grows a **Parameters** strip — pinned while you scroll — with one control per swept parameter. Runs for the selected combination accumulate in escalating batches (8, 25, 100, … up to your run budget), and the metric charts below sharpen as they stream in. Move a control and compute immediately restarts on the new combination, like a raytracer dropping its rays when the camera moves. Combinations you have visited keep their results, so stepping back is instant and refinement resumes where it left off.
+
+Every combination samples the same seed sequence (common random numbers), so differences you see between combinations come from the parameters, not from sampling luck. The GPU backend works for sweeps the same way it does for a plain experiment: the choice is made on the first batch and each later combination reuses it.
 
 ### Compute backend (experimental)
 
