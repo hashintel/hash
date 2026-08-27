@@ -29,6 +29,7 @@ import {
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
@@ -177,7 +178,7 @@ const directionOptions = [
 
 const OPTIMIZATION_SAMPLER = "tpe" as const;
 const AD_HOC_SCENARIO_VALUE = "__adhoc__";
-const AD_HOC_SCENARIO_LABEL = "Ad-hoc (define inline)";
+const AD_HOC_SCENARIO_LABEL = "No scenario";
 const DEFAULT_DT = 0.1;
 const CUSTOM_OBJECTIVE_METRIC_NAME = "Custom objective";
 const CUSTOM_OBJECTIVE_METRIC_FORM_STATE = {
@@ -589,6 +590,7 @@ export const CreateOptimizationDrawer = ({
   const { extensions, petriNetDefinition, title } = use(SDCPNContext);
   const { requestHirArtifacts } = use(LanguageClientContext);
   const { createOptimization } = use(OptimizationsContext);
+  const { enableAdHocScenarios } = use(UserSettingsContext);
   const scenarios = petriNetDefinition.scenarios ?? [];
   const metrics = petriNetDefinition.metrics ?? [];
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -611,7 +613,8 @@ export const CreateOptimizationDrawer = ({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isAdHoc = selectedScenarioId === AD_HOC_SCENARIO_VALUE;
+  const isAdHoc =
+    enableAdHocScenarios && selectedScenarioId === AD_HOC_SCENARIO_VALUE;
   const selectedScenario = scenarios.find(
     (scenario) => scenario.id === selectedScenarioId,
   );
@@ -623,7 +626,12 @@ export const CreateOptimizationDrawer = ({
       value: scenario.id,
       text: scenario.name,
     })),
-    { value: AD_HOC_SCENARIO_VALUE, text: AD_HOC_SCENARIO_LABEL },
+    // "No scenario" runs the inline ad-hoc definition; only behind the
+    // Ad-hoc scenarios setting — off, the drawer requires a saved scenario,
+    // as before the feature.
+    ...(enableAdHocScenarios
+      ? [{ value: AD_HOC_SCENARIO_VALUE, text: AD_HOC_SCENARIO_LABEL }]
+      : []),
   ];
   const metricKindGroups = createMetricKindGroups(petriNetDefinition, {
     includeBuiltIn: false,
@@ -981,8 +989,9 @@ export const CreateOptimizationDrawer = ({
               ) : null
             ) : scenarios.length === 0 && !isAdHoc ? (
               <span className={emptyStyle}>
-                Pick "{AD_HOC_SCENARIO_LABEL}" or create a scenario with
-                configurable parameters first.
+                {enableAdHocScenarios
+                  ? `Pick "${AD_HOC_SCENARIO_LABEL}" to define the run inline, or create a scenario with configurable parameters first.`
+                  : "Create a scenario with configurable parameters first."}
               </span>
             ) : null}
           </Section>
