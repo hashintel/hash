@@ -1044,6 +1044,24 @@ describe("exposed variables", () => {
     ).toEqual(["base_pressure"]);
   });
 
+  it("rejects exposing a variable whose identifier is a reserved property name", () => {
+    // `prototype` passes the snake_case rule and every LSP check, but keys
+    // a scenario-parameter record — the schema rejects it at save. The plan
+    // error keeps the failure at the form, on the name, with a rename hint.
+    const state = baseState();
+    state.variables = [
+      { name: "prototype", type: "real", expression: "1", optimize: null, exposed: true },
+    ];
+    state.places = {};
+    const outcome = synthesizeAdHocScenario(state, context);
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) {
+      return;
+    }
+    expect(outcome.errors[0]?.message).toContain("reserved JavaScript property");
+    expect(outcome.errors[0]?.slot.part).toBe("name");
+  });
+
   it("captures generated parameters from the ambient before shadowing scenario", () => {
     // Pins a lowering precondition the generated code depends on: the
     // lowerer resolves identifiers sequentially with no hoisting or TDZ, so

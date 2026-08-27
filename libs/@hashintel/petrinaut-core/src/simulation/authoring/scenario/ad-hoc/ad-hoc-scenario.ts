@@ -41,6 +41,7 @@
  * so it may read `i`.
  */
 
+import { isDangerousRecordKey } from "../../../../validation/record-keys";
 import { runSandboxed, SHADOWED_GLOBALS } from "../../sandbox";
 import { range } from "../helpers";
 
@@ -1387,6 +1388,20 @@ function resolveExposed(
         itemId: variable.name,
         slot: { target, part: "name" },
         message: `Variable "${variable.name}" cannot be exposed: its name does not map to a snake_case parameter identifier. Rename it.`,
+      });
+      continue;
+    }
+    // Mirrors the scenario schema's refinement: identifiers key
+    // scenario-parameter records, and `prototype`/`constructor` are the
+    // all-lowercase Object.prototype members the snake_case rule admits.
+    // Without this the form validates clean and only the save-time schema
+    // parse rejects.
+    if (isDangerousRecordKey(identifier)) {
+      plan.errors.push({
+        source: "variable",
+        itemId: variable.name,
+        slot: { target, part: "name" },
+        message: `Variable "${variable.name}" cannot be exposed: "${identifier}" is a reserved JavaScript property name. Rename it.`,
       });
       continue;
     }
