@@ -459,6 +459,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       options;
     const experimentId = experiment.id;
     let chosenBackend: ExperimentBackend | null = null;
+    /**
+     * Surface-sampling batches are 8 tiny runs; on the CPU they get one
+     * worker so the navigator's sharded batch keeps the cores. Built lazily —
+     * a sweep whose surface view is never opened spawns nothing extra.
+     */
+    let backgroundCpuBackend: ExperimentBackend | null = null;
 
     const onNote = (note: { message: string }) => {
       addNotification({
@@ -475,7 +481,13 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       axes,
       runCount: experiment.runCount,
       seed: experiment.seed,
-      instantiateBatch: async ({ parameterValues, seed, runCount, signal }) => {
+      instantiateBatch: async ({
+        parameterValues,
+        seed,
+        runCount,
+        background,
+        signal,
+      }) => {
         const compiled = compileForValues(parameterValues);
         const override = {
           parameterValues: compiled.result.parameterValues,
@@ -514,11 +526,20 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           return selection.handle;
         }
 
+        let batchBackend = chosenBackend;
+        if (background && chosenBackend.id === WORKER_POOL_BACKEND_ID) {
+          backgroundCpuBackend ??= createWorkerPoolExperimentBackend({
+            createWorker: workerFactoryRef.current,
+            shardCount: 1,
+          });
+          batchBackend = backgroundCpuBackend;
+        }
+
         const request = await buildRequest({
-          needsHirTrees: chosenBackend.needsHirTrees,
+          needsHirTrees: batchBackend.needsHirTrees,
           override,
         });
-        const assessment = await chosenBackend.assess(request);
+        const assessment = await batchBackend.assess(request);
         if (!assessment.eligible) {
           throw new Error(describeBlockers(assessment.blockers));
         }
