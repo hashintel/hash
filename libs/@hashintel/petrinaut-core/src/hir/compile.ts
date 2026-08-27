@@ -22,6 +22,7 @@ import {
   type PetrinautExtensionSettings,
 } from "../extensions";
 import { createUserKeyedRecord } from "../validation/record-keys";
+import { analyzeHir } from "./analyze";
 import { fingerprintHirCompilationInput } from "./artifact-fingerprint";
 import {
   emitBufferDynamicsJs,
@@ -219,10 +220,16 @@ export function compileHirArtifacts(
               diagnostics: [notCompilableDiagnostic(item.fn)],
             });
           } else {
+            const { dependencies } = analyzeHir(item.fn);
+            const readsNoInputTokens =
+              dependencies.tokenReads.length === 0 &&
+              !dependencies.readsTokenCounts &&
+              dependencies.isDeterministic;
             artifacts.lambdas[transition.id] = {
               ...(options.includeHir ? { hir: item.fn } : {}),
               source: program.source,
               inputSlotCount: program.inputSlotCount,
+              ...(readsNoInputTokens ? { readsNoInputTokens: true } : {}),
             };
           }
         }

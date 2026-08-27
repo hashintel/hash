@@ -235,3 +235,35 @@ describe("compileHirArtifacts", () => {
     }
   });
 });
+
+describe("readsNoInputTokens", () => {
+  function lambdaArtifactFor(lambdaCode: string) {
+    const { artifacts, failures } = compileHirArtifacts({
+      ...sdcpn,
+      transitions: [{ ...sdcpn.transitions[0]!, lambdaCode }],
+    });
+    expect(failures).toEqual([]);
+    return artifacts.lambdas.ship!;
+  }
+
+  it("is absent when the lambda reads token attributes", () => {
+    expect(
+      lambdaArtifactFor(sdcpn.transitions[0]!.lambdaCode).readsNoInputTokens,
+    ).toBeUndefined();
+  });
+
+  it("is set for a constant lambda", () => {
+    expect(
+      lambdaArtifactFor("export default Lambda(() => true);")
+        .readsNoInputTokens,
+    ).toBe(true);
+  });
+
+  it("is set for a parameters-only lambda", () => {
+    expect(
+      lambdaArtifactFor(
+        "export default Lambda((input, parameters) => parameters.threshold > 1);",
+      ).readsNoInputTokens,
+    ).toBe(true);
+  });
+});

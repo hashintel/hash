@@ -81,6 +81,14 @@ export type CompiledTransition = {
   /** Buffer-ABI lambda `(f64, u64, u8, placeBases, indices) => number |
    * boolean` (token format v2 packed structs); parameters/pool pre-bound. */
   lambdaFn: HirCompiledBufferLambda;
+  /**
+   * The lambda's result cannot depend on which tokens a combination selects —
+   * proved by the HIR analysis, or the lambda is an engine-supplied constant.
+   * Both engines then evaluate the first combination only, which is
+   * equivalent to enumerating all of them (one shared acceptance draw, first
+   * passing combination fires).
+   */
+  lambdaReadsNoInputTokens: boolean;
   /** Buffer-ABI kernel writing into `kernelStaging`, or null when the
    * transition has no colored output places. */
   kernelFn: HirCompiledBufferKernel | null;
