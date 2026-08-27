@@ -6,6 +6,8 @@ import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import { defineConfig, fontProviders } from "astro/config";
 
+import { resolveDiffCompareContext } from "./src/diff-context";
+
 /**
  * Renders the architecture bundle produced by `@local/petrinaut-arch-docs`.
  *
@@ -273,8 +275,22 @@ const hasAuthoredIndex = manifest.pages.some(
   (page) => page.kind === "authored" && page.slug === "index",
 );
 
+/**
+ * Resolved here rather than in the component that renders it: this file
+ * already owns reading the manifest, and after bundling a component has no
+ * stable relative path to the bundle. Injected as a compile-time constant
+ * below (`vite.define`).
+ */
+const diffCompareContext = await resolveDiffCompareContext(manifest);
+
 export default defineConfig({
   site: "https://docs.petrinaut.org",
+
+  vite: {
+    define: {
+      __PND_DIFF_COMPARE__: JSON.stringify(diffCompareContext),
+    },
+  },
 
   ...(hasAuthoredIndex ? {} : { redirects: { "/": "/architecture" } }),
 

@@ -13,6 +13,7 @@
  * non-preview build prints nothing at all.
  */
 
+/** @param {string} ref */
 const out = (ref) => process.stdout.write(`${ref}\n`);
 
 const preset = process.env.PETRINAUT_ARCH_DOCS_DIFF_BASE?.trim();

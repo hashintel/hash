@@ -250,3 +250,60 @@
   font-size: 0.6rem;
   line-height: 1.4;
 }
+
+/* Compare badges (diff builds) ------------------------------------------- */
+
+/*
+ * What this preview is compared against, next to the title: the deployed PR
+ * (or branch) and its base, each linking to GitHub. Desktop only — the mobile
+ * header has no room, and the information is a nicety, not navigation.
+ */
+.pnd-diff-compare {
+  display: none;
+}
+
+@media (min-width: 50rem) {
+  .pnd-diff-compare {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.4rem;
+    margin-inline-start: 1rem;
+    font-size: var(--sl-text-xs);
+    white-space: nowrap;
+  }
+}
+
+.pnd-diff-compare .pnd-diff-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.05rem 0.55rem;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 999px;
+  color: var(--sl-color-gray-2);
+  text-decoration: none;
+}
+
+.pnd-diff-compare .pnd-diff-chip:hover {
+  border-color: var(--sl-color-gray-3);
+  color: var(--sl-color-white);
+}
+
+.pnd-diff-compare .pnd-diff-chip-name {
+  max-width: 10rem;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.pnd-diff-compare .pnd-diff-chip > code {
+  padding: 0;
+  background: none;
+  font-size: 0.9em;
+  color: var(--sl-color-gray-3);
+}
+
+.pnd-diff-compare .pnd-diff-compare-arrow {
+  color: var(--sl-color-gray-4);
+}

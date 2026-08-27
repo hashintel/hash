@@ -50,15 +50,24 @@ gitignored, as is the bundle they come from. Nothing generated is versioned.
 ## Preview deployments highlight changes
 
 On a Vercel preview, [`vercel-build.sh`](vercel-build.sh) sets
-`PETRINAUT_ARCH_DOCS_DIFF_BASE=main`, so the generator builds the bundle in
-diff mode: the sidebar badges pages as `new`, `changed` or `removed` (with
-roll-up counts on collapsed groups, so a change deep in a subtree is visible
-from the top), and changed pages mark their differing blocks — green for
-added, blue for edited, red collapsed blocks for removed content. Removed
-pages keep a struck-through entry linking to a stub that carries the removed
-source. Set the variable in the Vercel project to compare against a different
-ref; production builds of `main` never diff. What counts as a change (and what
-noise is filtered out) is the generator's contract — see its README section
+`PETRINAUT_ARCH_DOCS_DIFF_BASE` to the PR's target branch — resolved by
+[`scripts/resolve-diff-base.mjs`](scripts/resolve-diff-base.mjs) via the
+GitHub API, falling back to `main` — so the generator builds the bundle in
+diff mode against the right base, and a stacked PR shows only its own delta.
+
+The sidebar badges pages as `new`, `changed` or `removed` (with roll-up counts
+on collapsed groups, so a change deep in a subtree is visible from the top),
+and changed pages mark their differing blocks — green for added, blue for
+edited, red collapsed blocks for removed content. Removed pages keep a
+struck-through entry linking to a stub that carries the removed source. The
+header carries two linked chips saying what is being compared — the deployed
+PR and its base, each with the commit built
+(`src/components/DiffBadges.astro`, resolved at config time and injected as a
+compile-time constant).
+
+Set the variable in the Vercel project to pin a different base; production
+builds of `main` never diff. What counts as a change (and what noise is
+filtered out) is the generator's contract — see its README section
 "Highlighting changes against a base ref".
 
 ## Notes on configuration
