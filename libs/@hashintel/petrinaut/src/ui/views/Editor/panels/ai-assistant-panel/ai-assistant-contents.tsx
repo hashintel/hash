@@ -559,7 +559,11 @@ export const AiAssistantContents = ({
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              if (canSubmit) {
+              const submitter = (event.nativeEvent as SubmitEvent).submitter;
+              if (
+                canSubmit &&
+                submitter?.hasAttribute("data-ai-assistant-submit")
+              ) {
                 onSubmit();
               }
             }}
@@ -599,6 +603,7 @@ export const AiAssistantContents = ({
               />
               {composerControl}
               <Button
+                data-ai-assistant-submit
                 type={isBusy ? "button" : "submit"}
                 size="sm"
                 variant={isBusy ? "subtle" : "solid"}
