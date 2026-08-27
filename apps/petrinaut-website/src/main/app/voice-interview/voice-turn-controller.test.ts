@@ -545,9 +545,11 @@ describe("VoiceTurnController", () => {
       type: "partial",
     });
     expect(harness.controller.getSnapshot()).toMatchObject({
+      microphoneEnabled: true,
       partialText: "The support",
       phase: "listening",
     });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
     expect(harness.submitText).not.toHaveBeenCalled();
 
     harness.emit({
@@ -672,26 +674,6 @@ describe("VoiceTurnController", () => {
     expect(harness.submitText).toHaveBeenLastCalledWith(
       expect.objectContaining({ text: "The incident manager owns it." }),
     );
-  });
-
-  test("keeps listening when a partial transcript arrives", async () => {
-    const harness = createHarness();
-    await harness.controller.start();
-
-    harness.emit({
-      key: key(1, "item-a"),
-      text: "The support",
-      type: "partial",
-    });
-
-    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
-      true,
-    );
-    expect(harness.controller.getSnapshot()).toMatchObject({
-      microphoneEnabled: true,
-      partialText: "The support",
-      phase: "listening",
-    });
   });
 
   test("ignores duplicate, stale, and out-of-order completed items", async () => {

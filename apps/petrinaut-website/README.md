@@ -84,7 +84,6 @@ the server initializes an OpenAI transcription-only Realtime session and keeps
 the provider key, model, language, and vocabulary policy private. The session
 uses `gpt-live-transcribe`'s default server VAD because OpenAI's unified call
 currently times out when explicit turn detection is included during setup.
-Partial transcript updates do not close the microphone.
 
 Only finalized transcripts enter the existing Petrinaut composer and Brunch AI
 SDK transport. Partial transcripts remain display-only. The preview derives a

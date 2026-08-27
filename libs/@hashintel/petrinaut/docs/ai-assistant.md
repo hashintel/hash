@@ -46,10 +46,10 @@ the composer.
 
 The stage names the microphone state and shows input activity only while the microphone is really
 on. During interviewer playback, **Interrupt and speak** first stops playback and then opens the
-microphone; it does not listen and play at the same time. While listening, choose **Done speaking**
-or **Pause** — each keeps a visible label with a supporting icon — to close the microphone and let
-voice detection finish the answer, or to turn the microphone off temporarily. Provisional
-transcript updates do not turn off the microphone. **Pause**,
+microphone; it does not listen and play at the same time. While listening, a natural pause lets
+voice detection finish the answer automatically. Choose **Done speaking** to close capture so it
+can finish sooner, or **Pause** to turn the microphone off temporarily without submitting.
+Provisional transcript updates do not turn off the microphone. **Pause**,
 **Minimize**, **End interview**, and **Interrupt and speak** are separate actions. The header uses
 icon-only controls with tooltips **Minimize** and **End interview**. After an answer is recorded
 and the interviewer is ready, use **Redo answer** to say an explicit correction or **Edit text** to
