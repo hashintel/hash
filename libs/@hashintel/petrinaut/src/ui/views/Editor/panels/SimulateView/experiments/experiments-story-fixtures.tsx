@@ -117,6 +117,57 @@ export function makeExperiment(
   };
 }
 
+/**
+ * A sweep over two SIR scenario parameters, mid-refinement on its selected
+ * combination. The frames are a small synthetic infected-count distribution so
+ * the navigator has a chart to sit above.
+ */
+export function makeParameterSweepExperiment(): ExperimentRecord {
+  const frames = Array.from({ length: 46 }, (_, frameNumber) => {
+    const peak = 60 + 30 * Math.sin(frameNumber / 7);
+    return {
+      metricId: "infected",
+      label: "Infected",
+      outputType: "distribution" as const,
+      frameNumber,
+      time: frameNumber,
+      bins: [
+        [Math.round(peak - 8), 5],
+        [Math.round(peak), 14],
+        [Math.round(peak + 9), 6],
+      ] as (readonly [number, number])[],
+      value: null,
+      frameValue: null,
+      timeValue: null,
+      runSampleCount: 25,
+      timeSampleCount: 25,
+    };
+  });
+
+  return makeExperiment(4, {
+    name: "SIR transmission sweep",
+    status: "running",
+    runCount: 100,
+    parameterAxes: [
+      { identifier: "transmission_rate", values: [0.1, 0.2, 0.3, 0.4, 0.5] },
+      {
+        identifier: "recovery_days",
+        values: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
+      },
+    ],
+    sweep: {
+      selection: { transmission_rate: 2, recovery_days: 3 },
+      parameterValues: { transmission_rate: 0.3, recovery_days: 8 },
+      runsCompleted: 25,
+      runsSampled: 61,
+      runTarget: 100,
+      computing: true,
+    },
+    metricFrames: frames,
+    latestMetricFramesById: { infected: frames.at(-1)! },
+  });
+}
+
 export const oneExperiment = makeExperiment(1);
 
 export const multipleExperiments: ExperimentRecord[] = [
