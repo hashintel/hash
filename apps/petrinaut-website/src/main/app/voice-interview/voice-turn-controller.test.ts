@@ -152,6 +152,22 @@ describe("VoiceTurnController", () => {
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
   });
 
+  test("closes the microphone when a partial transcript arrives", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+
+    harness.emit({
+      key: key(1, "item-a"),
+      text: "The support",
+      type: "partial",
+    });
+
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+    expect(harness.controller.getSnapshot().phase).toBe("transcribing");
+  });
+
   test("ignores duplicate, stale, and out-of-order completed items", async () => {
     const harness = createHarness();
     await harness.controller.start();
@@ -371,6 +387,36 @@ describe("VoiceTurnController", () => {
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
       false,
     );
+  });
+
+  test("does not let a late delivery overwrite a connection failure", async () => {
+    const harness = createHarness();
+    let finishDelivery: (() => void) | undefined;
+    harness.submitText.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishDelivery = () => resolve({ kind: "message" as const });
+        }),
+    );
+    await harness.controller.start();
+    harness.emit({
+      key: key(1, "item-a"),
+      text: "The support lead triages it.",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+
+    harness.emit({
+      message: "The voice connection failed. Try reconnecting.",
+      type: "error",
+    });
+    finishDelivery?.();
+    await Promise.resolve();
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      errorMessage: "The voice connection failed. Try reconnecting.",
+      phase: "recoverable-error",
+    });
   });
 
   test("submits corrections as new explicit text turns", async () => {

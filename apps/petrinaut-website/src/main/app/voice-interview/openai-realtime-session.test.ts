@@ -166,6 +166,54 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.tracks[0]!.enabled).toBe(false);
   });
 
+  test("surfaces failed input transcription as a recoverable error", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+
+    harness.channels[0]!.receive({
+      type: "conversation.item.input_audio_transcription.failed",
+      item_id: "item-a",
+      content_index: 0,
+      error: { message: "private provider diagnostic" },
+    });
+
+    expect(harness.events).toEqual([
+      {
+        message: "Voice transcription failed. Try reconnecting.",
+        type: "error",
+      },
+    ]);
+    expect(JSON.stringify(harness.events)).not.toContain(
+      "private provider diagnostic",
+    );
+    expect(harness.tracks[0]!.stop).toHaveBeenCalledOnce();
+    expect(harness.channels[0]!.close).toHaveBeenCalledOnce();
+    expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
+  });
+
+  test("surfaces OpenAI data-channel errors without exposing diagnostics", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+
+    harness.channels[0]!.receive({
+      type: "error",
+      error: { message: "private provider diagnostic" },
+    });
+
+    expect(harness.events).toEqual([
+      {
+        message: "The voice service reported an error. Try reconnecting.",
+        type: "error",
+      },
+    ]);
+    expect(JSON.stringify(harness.events)).not.toContain(
+      "private provider diagnostic",
+    );
+    expect(harness.tracks[0]!.stop).toHaveBeenCalledOnce();
+    expect(harness.channels[0]!.close).toHaveBeenCalledOnce();
+    expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
+  });
+
   test("closes the microphone when VAD commits an input item", async () => {
     const harness = createHarness();
     await harness.session.connect();
@@ -238,6 +286,37 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.tracks[0]!.stop).toHaveBeenCalledOnce();
     expect(harness.channels[0]!.close).toHaveBeenCalledOnce();
     expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
+  });
+
+  test("times out when abort occurs before waiting for the data channel", async () => {
+    vi.useFakeTimers();
+    const harness = createHarness();
+    let resolveAnswer: ((answer: string) => void) | undefined;
+    harness.fetch.mockResolvedValueOnce({
+      ok: true,
+      text: () =>
+        new Promise<string>((resolve) => {
+          resolveAnswer = resolve;
+        }),
+    } as Response);
+    let settled = false;
+    const connection = harness.session.connect().then(
+      () => new Error("Connection unexpectedly succeeded."),
+      (error: unknown) => {
+        settled = true;
+        return error;
+      },
+    );
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+    harness.peers[0]!.setRemoteDescription.mockResolvedValueOnce(undefined);
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    resolveAnswer?.("v=0\r\no=late OpenAI answer");
+
+    await vi.waitFor(() => expect(settled).toBe(true));
+    await expect(connection).resolves.toEqual(
+      new Error("The voice connection timed out. Try reconnecting."),
+    );
   });
 
   test("times out a stalled permission prompt and stops a late media stream", async () => {

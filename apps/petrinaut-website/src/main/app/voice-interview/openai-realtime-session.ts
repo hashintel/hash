@@ -286,6 +286,24 @@ export class OpenAIRealtimeSession {
       return;
     }
 
+    if (parsed.type === "error") {
+      this.#releaseResources();
+      this.#emit({
+        message: "The voice service reported an error. Try reconnecting.",
+        type: "error",
+      });
+      return;
+    }
+
+    if (parsed.type === "conversation.item.input_audio_transcription.failed") {
+      this.#releaseResources();
+      this.#emit({
+        message: "Voice transcription failed. Try reconnecting.",
+        type: "error",
+      });
+      return;
+    }
+
     const transcriptEventType =
       parsed.type === "conversation.item.input_audio_transcription.delta"
         ? "partial"
@@ -361,6 +379,9 @@ export class OpenAIRealtimeSession {
     dataChannel: RTCDataChannel,
     signal: AbortSignal,
   ): Promise<void> {
+    if (signal.aborted) {
+      return Promise.reject(signal.reason);
+    }
     if (dataChannel.readyState === "open") {
       return Promise.resolve();
     }

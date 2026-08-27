@@ -267,6 +267,12 @@ export class VoiceTurnController {
 
   #handleSessionEvent(event: OpenAIRealtimeSessionEvent): void {
     if (event.type === "error") {
+      ++this.#generation;
+      this.#activeEpoch = null;
+      this.#activeItemId = null;
+      this.#activeKey = null;
+      this.#awaitingChatCycle = false;
+      this.#sawBusyChatStatus = false;
       this.#session.setMicrophoneEnabled(false);
       this.#update({ errorMessage: event.message, phase: "recoverable-error" });
       return;
@@ -308,6 +314,7 @@ export class VoiceTurnController {
     this.#activeKey = key;
 
     if (event.type === "partial") {
+      this.#session.setMicrophoneEnabled(false);
       this.#update({
         partialText: `${this.#snapshot.partialText}${event.text}`,
         phase: "transcribing",
