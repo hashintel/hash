@@ -1,3 +1,5 @@
+import { createMonteCarloMetricNumericAccumulator } from "@hashintel/petrinaut-core";
+
 import type {
   MonteCarloUserDefinedMetricDistributionBin,
   MonteCarloUserDefinedMetricFrame,
@@ -210,27 +212,6 @@ function mergeDistributionBins(
     .map(([value, frequency]) => [value, frequency]);
 }
 
-function mergeWeightedScalar(
-  leftValue: number | null,
-  leftWeight: number,
-  rightValue: number | null,
-  rightWeight: number,
-): number | null {
-  if (leftValue === null) {
-    return rightValue;
-  }
-  if (rightValue === null) {
-    return leftValue;
-  }
-
-  const totalWeight = leftWeight + rightWeight;
-  if (totalWeight === 0) {
-    return (leftValue + rightValue) / 2;
-  }
-
-  return (leftValue * leftWeight + rightValue * rightWeight) / totalWeight;
-}
-
 function mergeTwoFrames(
   left: MonteCarloUserDefinedMetricFrame,
   right: MonteCarloUserDefinedMetricFrame,
@@ -255,29 +236,24 @@ function mergeTwoFrames(
   }
 
   if (left.outputType === "scalar" && right.outputType === "scalar") {
-    // Approximation: a run-sample-weighted mean is exact for "mean"
-    // aggregations and a reasonable stand-in for the rest. Experiment metrics
-    // always use distribution output, so this path only serves API users.
+    // Exact: scalar frames carry their across-runs accumulator state, and the
+    // accumulator monoid recombines it — the same mechanism a sharded
+    // experiment uses (`metrics/merge.ts`).
+    const accumulator = createMonteCarloMetricNumericAccumulator(
+      left.aggregateRuns,
+    );
+    const runAggregate = accumulator.merge(
+      left.runAggregate,
+      right.runAggregate,
+    );
+    const frameValue = accumulator.read(runAggregate);
+
     return {
       ...left,
-      value: mergeWeightedScalar(
-        left.value,
-        left.runSampleCount,
-        right.value,
-        right.runSampleCount,
-      ),
-      frameValue: mergeWeightedScalar(
-        left.frameValue,
-        left.runSampleCount,
-        right.frameValue,
-        right.runSampleCount,
-      ),
-      timeValue: mergeWeightedScalar(
-        left.timeValue,
-        left.runSampleCount,
-        right.timeValue,
-        right.runSampleCount,
-      ),
+      frameValue,
+      value: frameValue,
+      timeValue: null,
+      runAggregate,
       runSampleCount: left.runSampleCount + right.runSampleCount,
       timeSampleCount: left.timeSampleCount + right.timeSampleCount,
     };
