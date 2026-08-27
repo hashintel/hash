@@ -8,7 +8,12 @@ import { scenarioSchema, type Color } from "@hashintel/petrinaut-core";
 import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { DrawerErrorDisplay } from "../drawer-error-display";
+import {
+  AdHocScenarioAuthoringBody,
+  useAdHocScenarioAuthoring,
+} from "./ad-hoc-scenario-authoring";
 import {
   ScenarioFormBody,
   type ScenarioFormInstance,
@@ -113,6 +118,72 @@ const CreateScenarioBody = ({ form }: { form: ScenarioFormInstance }) => {
   );
 };
 
+// -- Ad-hoc creation (behind the Ad-hoc scenarios setting) --------------------
+
+/**
+ * The ad-hoc creation drawer: the expose-mode ad-hoc form is the one
+ * authoring surface — no "Define as code" toggle in this mode.
+ */
+const CreateAdHocScenarioContent = ({
+  existingScenarioNames,
+  onClose,
+}: {
+  existingScenarioNames: ReadonlySet<string>;
+  onClose: () => void;
+}) => {
+  const { addScenario } = usePetrinautMutations();
+  const authoring = useAdHocScenarioAuthoring({ existingScenarioNames });
+
+  const save = () => {
+    const scenario = authoring.buildScenario(crypto.randomUUID());
+    if (!scenario) {
+      return;
+    }
+    // Final structural validation against the persistence schema.
+    const result = scenarioSchema.safeParse(scenario);
+    if (!result.success) {
+      return;
+    }
+    addScenario(result.data);
+    onClose();
+  };
+
+  return (
+    <Drawer showBackdrop={false} onClose={onClose} swapKey="scenario">
+      <Drawer.Header
+        title="Create a scenario"
+        description="Initial configurations of tokens that can be quickly loaded in to 'Model' or 'Simulate' mode"
+      />
+      <AdHocScenarioAuthoringBody authoring={authoring} />
+      <Drawer.Footer
+        secondaryActions={
+          <DrawerErrorDisplay
+            count={authoring.errorCount}
+            firstMessage={authoring.firstError}
+          />
+        }
+        actions={
+          <>
+            <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              variant="solid"
+              tone="neutral"
+              size="sm"
+              disabled={!authoring.canSave}
+              tooltip={authoring.firstError}
+              onClick={save}
+            >
+              Create
+            </Button>
+          </>
+        }
+      />
+    </Drawer>
+  );
+};
+
 // -- Drawer wrapper -----------------------------------------------------------
 
 interface CreateScenarioDrawerProps {
@@ -126,6 +197,7 @@ export const CreateScenarioDrawer = ({
 }: CreateScenarioDrawerProps) => {
   const { petriNetDefinition } = use(SDCPNContext);
   const { addScenario } = usePetrinautMutations();
+  const { enableAdHocScenarios } = use(UserSettingsContext);
 
   const existingScenarioNames = new Set(
     (petriNetDefinition.scenarios ?? []).map((s) => s.name),
@@ -161,6 +233,15 @@ export const CreateScenarioDrawer = ({
 
   if (!open) {
     return null;
+  }
+
+  if (enableAdHocScenarios) {
+    return (
+      <CreateAdHocScenarioContent
+        existingScenarioNames={existingScenarioNames}
+        onClose={onClose}
+      />
+    );
   }
 
   return (

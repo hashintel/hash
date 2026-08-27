@@ -331,7 +331,7 @@ function validateScenarioParams(
  * Validate the scenario name: must be non-empty and unique among existing
  * scenarios (excluding the one being edited, when `editingScenarioId` is set).
  */
-function validateScenarioName(
+export function validateScenarioName(
   name: string,
   existingNames: ReadonlySet<string>,
 ): string | undefined {
