@@ -11,14 +11,17 @@ import {
 
 /** The engine's own pair order for one place, as the CPU would walk it. */
 function cpuPairs(tokenCount: number): [number, number][] {
-  return [
-    ...enumerateWeightedMarkingIndicesGenerator([
+  // The generator reuses its yielded arrays between iterations, so copy each
+  // pair as it arrives.
+  return Array.from(
+    enumerateWeightedMarkingIndicesGenerator([
       { count: tokenCount, weight: 2 },
     ]),
-  ].map((combination) => {
-    const [pair] = combination;
-    return [pair![0]!, pair![1]!] as [number, number];
-  });
+    (combination) => {
+      const [pair] = combination;
+      return [pair![0]!, pair![1]!] as [number, number];
+    },
+  );
 }
 
 /**
