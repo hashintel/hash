@@ -490,11 +490,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                       rowIndex + 1
                     } — one token. Enter chooses the row's kind, Delete removes it.`
                   : `Row ${rowIndex + 1} — dynamic${
-                      kind === "optimized"
-                        ? selection === "controls"
-                          ? ", count controlled"
-                          : ", count optimized"
-                        : ""
+                      kind === "optimized" ? ", count optimized" : ""
                     }. Enter chooses the row's kind, Delete removes it.`
               }
               label={`Row ${rowIndex + 1} kind`}
@@ -510,14 +506,11 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   label: "Dynamic count",
                   checked: kind === "dynamic",
                 },
-                ...(selection !== "none"
+                ...(selection === "optimize"
                   ? [
                       {
                         id: "optimized",
-                        label:
-                          selection === "controls"
-                            ? "Controlled count"
-                            : "Optimized count",
+                        label: "Optimized count",
                         checked: kind === "optimized",
                       },
                     ]
@@ -634,7 +627,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
 
   return (
     <>
-      <FormSpreadsheet attach={attachZone}>
+      <FormSpreadsheet attach={attachZone} tone="raised">
         <thead>
           <tr>
             <th aria-label="Row kind" className={gutterHeaderStyle} />

@@ -311,13 +311,13 @@ export const SatellitesOptimization: Story = {
   ),
 };
 
-/** Classical scenario: select which values are exposed as controls. */
-export const SatellitesScenarioControls: Story = {
+/** Scenario authoring: expose top-level Variables as scenario parameters. */
+export const SatellitesScenarioParameters: Story = {
   render: () => (
     <Demo
       context={satellitesContext}
       initial={optimizedSatellitesState}
-      selection="controls"
+      selection="expose"
     />
   ),
 };

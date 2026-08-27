@@ -326,7 +326,8 @@ describe("AdHocScenarioForm", () => {
     expect(screen.queryByRole("switch", { name: /Optimize/ })).toBeNull();
   });
 
-  it("labels the selection toggle Control in controls mode", () => {
+  it("offers Scenario Parameter on top-level Variables in expose mode", () => {
+    let latest: AdHocScenarioState | undefined;
     const initial: AdHocScenarioState = {
       variables: [
         { name: "n", type: "integer", expression: "2", optimize: null },
@@ -334,14 +335,22 @@ describe("AdHocScenarioForm", () => {
       netParameters: [],
       places: {},
     };
-    render(<Harness selection="controls" initial={initial} />);
-    expect(screen.getAllByText("Control").length).toBeGreaterThan(0);
-    expect(
-      screen
-        .getByRole("button", { name: "Control n" })
-        .getAttribute("aria-pressed"),
-    ).toBe("false");
+    render(
+      <Harness
+        selection="expose"
+        initial={initial}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+    // Expose mode marks whole Variables: no Optimize anywhere, and no
+    // toggle on value slots.
     expect(screen.queryByText("Optimize")).toBe(null);
+    const toggle = screen.getByRole("button", { name: "Scenario Parameter n" });
+    expect(toggle.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(toggle);
+    expect(latest?.variables[0]?.exposed).toBe(true);
   });
 
   it("edits the uncoloured count as an expression", async () => {
@@ -596,25 +605,34 @@ describe("AdHocScenarioForm", () => {
   it("walks between zones and toggles sections from their headers", async () => {
     render(<Harness />);
 
-    // Down from the parameters grid lands on the Variables section header.
+    // Variables lead the form; down from the parameters grid (one row)
+    // lands on the Initial state section header.
     const rateValue = screen.getByRole("button", { name: "Rate" });
     rateValue.focus();
     fireEvent.keyDown(rateValue, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Toggle Initial state section" }),
+    );
+
+    // Up from the parameters grid reaches its header, then the variables
+    // grid, then the Variables header.
+    rateValue.focus();
+    fireEvent.keyDown(rateValue, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Toggle Parameters section" }),
+    );
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Add a variable (Top-level variables)",
+    );
+    fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
     const variablesTrigger = screen.getByRole("button", {
       name: "Toggle Variables section",
     });
     expect(document.activeElement).toBe(variablesTrigger);
 
-    // Down enters the variables grid; Up returns to the header.
-    fireEvent.keyDown(variablesTrigger, { key: "ArrowDown" });
-    expect(document.activeElement?.getAttribute("aria-label")).toBe(
-      "Add a variable (Top-level variables)",
-    );
-    fireEvent.keyDown(document.activeElement!, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(variablesTrigger);
-
     // Left collapses the section; its grid leaves the accessibility tree,
-    // and Down now skips it, landing on the Initial state header.
+    // and Down now skips it, landing on the Parameters header.
     fireEvent.keyDown(variablesTrigger, { key: "ArrowLeft" });
     await waitFor(() => {
       expect(
@@ -625,7 +643,7 @@ describe("AdHocScenarioForm", () => {
     });
     fireEvent.keyDown(variablesTrigger, { key: "ArrowDown" });
     expect(document.activeElement).toBe(
-      screen.getByRole("button", { name: "Toggle Initial state section" }),
+      screen.getByRole("button", { name: "Toggle Parameters section" }),
     );
 
     // Right expands it again.
