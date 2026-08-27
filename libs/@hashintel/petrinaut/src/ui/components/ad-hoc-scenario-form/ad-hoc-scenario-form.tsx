@@ -89,6 +89,22 @@ export interface AdHocScenarioFormProps {
    * when the context carries no net parameters.
    */
   withVariables?: boolean;
+  /**
+   * Custom arrangement: the host receives each group — already wired to the
+   * form's contexts — and lays them out itself (e.g. Simulation Settings
+   * places Parameters and Initial state in separate panel columns). The
+   * groups render without section chrome; a group the props
+   * withhold (`withVariables`, an empty `netParameters`) is `null`. The
+   * host's own chrome may render inside too — the wrapper only carries the
+   * form's keyboard handling.
+   */
+  renderLayout?: (groups: {
+    variables: React.ReactNode;
+    parameters: React.ReactNode;
+    places: React.ReactNode;
+  }) => React.ReactNode;
+  /** Classname for the form's root element (the keyboard-handling div). */
+  className?: string;
 }
 
 /**
@@ -127,6 +143,8 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   context,
   selection,
   withVariables = true,
+  renderLayout,
+  className,
 }) => {
   const sessionId = useAdHocLspSession(state);
   const { diagnosticsByUri, requestFormatExpression } = use(
@@ -239,7 +257,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     highlight,
     setFocusedValue,
     formatExpression: requestFormatExpression,
-    dense: false,
+    dense: renderLayout !== undefined,
     overlayKeyDown: { capture: handleKeyDown, bubble: stopDeleteKeys },
   };
 
@@ -295,6 +313,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
           cell handler; open text fields and Monaco pass through untouched. */}
         <div
           ref={rootRef}
+          className={className}
           role="group"
           aria-label="Ad-hoc scenario definition"
           className={focusClearanceStyle}
@@ -303,34 +322,42 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
           onFocusCapture={clearance.onFocusCapture}
           onKeyDown={stopDeleteKeys}
         >
-          <FocusStack axis="vertical">
-            <SectionList>
-              {variableRows ? (
-                <NavigableSection
-                  title="Variables"
-                  tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
-                >
-                  {variableRows}
-                </NavigableSection>
-              ) : null}
+          {renderLayout ? (
+            renderLayout({
+              variables: variableRows,
+              parameters: parameterRows,
+              places: placesList,
+            })
+          ) : (
+            <FocusStack axis="vertical">
+              <SectionList>
+                {variableRows ? (
+                  <NavigableSection
+                    title="Variables"
+                    tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
+                  >
+                    {variableRows}
+                  </NavigableSection>
+                ) : null}
 
-              {parameterRows ? (
-                <NavigableSection
-                  title="Parameters"
-                  tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
-                >
-                  {parameterRows}
-                </NavigableSection>
-              ) : null}
+                {parameterRows ? (
+                  <NavigableSection
+                    title="Parameters"
+                    tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
+                  >
+                    {parameterRows}
+                  </NavigableSection>
+                ) : null}
 
-              <NavigableSection
-                title="Initial state"
-                tooltip="Token counts and values per place. Every value is an expression."
-              >
-                {placesList}
-              </NavigableSection>
-            </SectionList>
-          </FocusStack>
+                <NavigableSection
+                  title="Initial state"
+                  tooltip="Token counts and values per place. Every value is an expression."
+                >
+                  {placesList}
+                </NavigableSection>
+              </SectionList>
+            </FocusStack>
+          )}
         </div>
       </FocusRoot>
     </AdHocFormContext>

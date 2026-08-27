@@ -105,6 +105,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setEnableNetComponents,
     enableNotebookView,
     setEnableNotebookView,
+    enableAdHocScenarios,
+    setEnableAdHocScenarios,
   } = use(UserSettingsContext);
   const { extensions } = use(SDCPNContext);
 
@@ -235,6 +237,23 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             />
           </SettingRow>
         )}
+        <SettingRow
+          label={
+            <>
+              Ad-hoc scenarios{" "}
+              <Chip size="xs" color="orange" variant="outline" shape="round">
+                Experimental
+              </Chip>
+            </>
+          }
+          description="Define initial state and parameters inline in simulation, experiment, and scenario forms"
+        >
+          <Toggle
+            value={enableAdHocScenarios}
+            onChange={setEnableAdHocScenarios}
+            size="sm"
+          />
+        </SettingRow>
       </Dialog.Body>
       <Dialog.Footer
         actions={
