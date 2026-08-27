@@ -8,7 +8,7 @@ backend: "chosen backend\n(CPU worker pool\nor WebGPU)" {style.fill: "#dcecff"; 
 charts: "metric charts\n(stream while batches run)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
 
 navigator -> session: selection change\n(cancel + restart) {style.stroke-dash: 4}
-session -> backend: batch: runs\n[completed, next rung)
+session -> backend: "batch: runs\n[completed, next rung)"
 backend -> session: frames stream
 session -> cache: fold finished batch
 cache -> session: resume mid-ladder\non revisit {style.stroke-dash: 4}
