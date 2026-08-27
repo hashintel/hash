@@ -15,16 +15,16 @@ are the point.
 
 ## State of play
 
-| Area                                                  | Status                                                                          |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------- |
-| [Worker sharding](#worker-sharding)                   | Shipped. ~4× on 8 shards, byte-identical results at every shard count.          |
-| [Per-place token capacity](#per-place-token-capacity) | Shipped. Its fixed-size-frame follow-ons are not built.                         |
-| [WebGPU backend](#the-webgpu-backend)                 | Shipped. ~1780× on the SIR net, for a restricted subset of nets.                |
-| [Weighted-arc enumeration](#weighted-arc-enumeration) | Fixed (FE-1526). Lazy and allocation-free; 305× measured on firing transitions. |
-| [Hot-path fixes](#hot-path-fixes)                     | Open. Estimated 5–15× combined, behaviour-preserving.                           |
-| [Whole-loop codegen](#whole-loop-codegen)             | Proposed. Where the largest single-thread win is.                               |
-| [WASM and native](#wasm-and-native)                   | Proposed. A second codegen backend once whole-loop codegen exists.              |
-| [Event-driven stepping](#event-driven-stepping)       | Proposed. A semantics change; potentially a bigger lever than everything above. |
+| Area                                                  | Status                                                                                               |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [Worker sharding](#worker-sharding)                   | Shipped. ~4× on 8 shards, byte-identical results at every shard count.                               |
+| [Per-place token capacity](#per-place-token-capacity) | Shipped. Its fixed-size-frame follow-ons are not built.                                              |
+| [WebGPU backend](#the-webgpu-backend)                 | Shipped. ~1780× on the SIR net, for a restricted subset of nets.                                     |
+| [Weighted-arc enumeration](#weighted-arc-enumeration) | Fixed (FE-1526, FE-1528). Lazy, allocation-free, and skipped outright for token-independent lambdas. |
+| [Hot-path fixes](#hot-path-fixes)                     | Open. Estimated 5–15× combined, behaviour-preserving.                                                |
+| [Whole-loop codegen](#whole-loop-codegen)             | Proposed. Where the largest single-thread win is.                                                    |
+| [WASM and native](#wasm-and-native)                   | Proposed. A second codegen backend once whole-loop codegen exists.                                   |
+| [Event-driven stepping](#event-driven-stepping)       | Proposed. A semantics change; potentially a bigger lever than everything above.                      |
 
 ## The two stepping paths
 
@@ -159,10 +159,24 @@ after:
 A firing transition's cost is now flat in the token count (the residual growth
 is the firing's own token compaction). A never-firing transition still
 examines every combination — each one's rate must be evaluated — so that case
-keeps its `C(n, w)` lambda evaluations, at ~31 ns each instead of ~170 ns. The
-static enumeration-bound lint
+keeps its `C(n, w)` lambda evaluations, at ~31 ns each instead of ~170 ns.
+
+That remaining `C(n, w)` term only applies to lambdas whose rate depends on
+which tokens are selected. When the HIR analysis proves a lambda reads no
+token attributes or counts
+([FE-1528](https://linear.app/hash/issue/FE-1528/skip-combination-enumeration-for-lambdas-that-read-no-input-tokens)),
+the compiler marks its artifact `readsNoInputTokens` and both engines test
+only the first combination — indices `0..w-1` per arc, the first tokens in
+place order. This is exact rather than approximate: the acceptance draw is
+shared across combinations, so with a combination-independent rate either the
+first combination fires or none does — same RNG stream, same consumed tokens,
+same trajectories. Engine-supplied constant lambdas (a transition with no
+lambda code) take the same path. Measured, never-firing weight-2 arc at 400
+tokens: 2 543 µs per run-frame with a token-reading lambda against **0.9 µs**
+token-independent — flat in the token count. The static enumeration-bound lint
 ([FE-948](https://linear.app/hash/issue/FE-948/show-and-kill-combinatorial-explosion))
-remains the guard against nets where even that is too much.
+remains the guard for nets whose token-reading lambdas make even lazy
+enumeration too much.
 
 ### Metric aggregation
 

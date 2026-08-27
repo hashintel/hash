@@ -9,7 +9,10 @@ import {
   fillTokenIndices,
 } from "./buffer-transition";
 import { hasCapacityHeadroom } from "./capacity";
-import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
+import {
+  enumerateWeightedMarkingIndicesGenerator,
+  firstWeightedMarkingIndices,
+} from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
 import { createTokenRegionViews } from "./token-layout";
 
@@ -127,9 +130,12 @@ export function computePossibleTransition(
     (place) => place.strideBytes === 0 && place.arcType === "standard",
   );
 
-  const tokensCombinations = enumerateWeightedMarkingIndicesGenerator(
-    inputPlacesWithTokenValues,
-  );
+  // A token-independent lambda returns the same value for every combination,
+  // so either the first combination fires or none does: test only the first
+  // (structural enablement above guarantees it exists).
+  const tokensCombinations = transition.lambdaReadsNoInputTokens
+    ? [firstWeightedMarkingIndices(inputPlacesWithTokenValues)]
+    : enumerateWeightedMarkingIndicesGenerator(inputPlacesWithTokenValues);
 
   // The compiled buffer-ABI lambda reads token attributes at packed-struct
   // byte offsets straight from the shared views — no per-combination record

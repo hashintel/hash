@@ -90,6 +90,15 @@ export type HirLambdaArtifact = {
   /** Expected `indices.length` — engine-side sanity check. */
   inputSlotCount: number;
   /**
+   * Set when the HIR analysis proves the lambda's result cannot depend on
+   * which tokens a combination selects: it reads no token attributes or
+   * counts and is a pure function of its inputs. The engines then evaluate
+   * the first combination instead of enumerating all of them. Absent means
+   * "assume it reads tokens" — artifacts compiled before this field existed
+   * keep enumerating.
+   */
+  readsNoInputTokens?: boolean;
+  /**
    * The lowered HIR the program was emitted from.
    *
    * Carried so a second backend can compile the same code without re-running the

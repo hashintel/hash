@@ -100,6 +100,21 @@ export function* enumerateWeightedMarkingIndicesGenerator(
 }
 
 /**
+ * The first weighted marking without enumeration: the lexicographically first
+ * combination per place — indices `[0..weight-1]`, the first tokens in place
+ * order. Callers must have established structural enablement
+ * (`count >= weight` per place). For a lambda whose result cannot depend on
+ * which tokens are selected, testing this marking alone is equivalent to
+ * enumerating all of them: the acceptance draw is shared across combinations,
+ * so either the first combination fires or none does.
+ */
+export function firstWeightedMarkingIndices(places: PlaceSpec[]): number[][] {
+  return places.map((place) =>
+    Array.from({ length: place.weight }, (_, index) => index),
+  );
+}
+
+/**
  * Enumerate all weighted combinations eagerly, returning indices only.
  *
  * Each marking is a flat array of indices, concatenated per place.
