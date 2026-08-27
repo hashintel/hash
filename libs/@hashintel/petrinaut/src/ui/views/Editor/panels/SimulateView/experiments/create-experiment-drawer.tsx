@@ -813,6 +813,7 @@ export const CreateExperimentDrawer = ({
 }: CreateExperimentDrawerProps) => {
   const { petriNetDefinition, extensions } = use(SDCPNContext);
   const { createExperiment } = use(ExperimentsContext);
+  const { enableAdHocScenarios } = use(UserSettingsContext);
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -956,7 +957,10 @@ export const CreateExperimentDrawer = ({
             : effectiveSelectedScenarioId,
         scenarioParameterValues: paramValues,
         adHocScenario:
-          effectiveSelectedScenarioId === NO_SCENARIO_VALUE ? adHocState : null,
+          enableAdHocScenarios &&
+          effectiveSelectedScenarioId === NO_SCENARIO_VALUE
+            ? adHocState
+            : null,
         runCount: Number(runCount),
         seed: Number(seed),
         dt: Number(dt),
@@ -1084,11 +1088,13 @@ export const CreateExperimentDrawer = ({
                   />
                 ))
               )
-            ) : (
+            ) : enableAdHocScenarios ? (
               // With no scenario, the experiment's Initial State + Parameters
               // are defined inline and compile through a scenario generated
               // at experiment start, never persisted. Left untouched, the
-              // experiment runs exactly as before.
+              // experiment runs exactly as before. Behind the Ad-hoc
+              // scenarios setting; off, no scenario means the model's own
+              // initial marking, as before the feature.
               <AdHocScenarioForm
                 state={adHocState ?? EMPTY_AD_HOC_STATE}
                 onChange={setAdHocState}
@@ -1101,7 +1107,7 @@ export const CreateExperimentDrawer = ({
                 }}
                 selection="none"
               />
-            )}
+            ) : null}
           </Section>
 
           <Section title="Metrics" collapsible defaultOpen>
