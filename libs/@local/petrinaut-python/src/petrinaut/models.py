@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -46,6 +46,83 @@ class OptimizationBooleanParameter(BaseModel):
     identifier: str
     type: Literal["boolean"]
     default: bool
+
+
+class Surface(Enum):
+    dynamics = "dynamics"
+    lambda_ = "lambda"
+    kernel = "kernel"
+    metric = "metric"
+    scenario_expression = "scenario-expression"
+    scenario_code = "scenario-code"
+
+
+class Param(BaseModel):
+    model_config = ConfigDict(
+        extra="allow",
+    )
+    __annotations__ = {
+        "__pydantic_extra__": dict[str, Any],
+    }
+    name: str
+
+
+class Body(BaseModel):
+    model_config = ConfigDict(
+        extra="allow",
+    )
+    __annotations__ = {
+        "__pydantic_extra__": dict[str, Any],
+    }
+    kind: str
+
+
+class Hir(BaseModel):
+    model_config = ConfigDict(
+        extra="allow",
+    )
+    __annotations__ = {
+        "__pydantic_extra__": dict[str, Any],
+    }
+    hirVersion: Literal[1]
+    surface: Surface
+    params: list[Param]
+    body: Body
+
+
+class OptimizationConstraint(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    id: str = Field(..., min_length=1)
+    name: str | None = Field(
+        None,
+        description="Optional display name shown wherever the constraint is reported.",
+        min_length=1,
+    )
+    code: str = Field(
+        ...,
+        description="The authored TypeScript source — the editable text of record. `hir` is its lowered form; regenerating `hir` from `code` must be a no-op.",
+        min_length=1,
+    )
+    hir: Hir = Field(
+        ...,
+        description="A serialized HIR function (see hir/hir.ts for the full grammar). Carried verbatim; evaluators must reject unknown node kinds.",
+    )
+
+
+class OptimizationConstraints(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+    )
+    parameterSpace: list[OptimizationConstraint] = Field(
+        ...,
+        description="Conditions over the sampled scenario parameters (`scenario.*`), e.g. `scenario.min_altitude < scenario.max_altitude`. Intended to let samplers avoid infeasible suggestions; not enforced yet.",
+    )
+    stateSpace: list[OptimizationConstraint] = Field(
+        ...,
+        description="Conditions over the simulation state, authored like a metric body but returning boolean. Intended for safe-region margins later; not evaluated yet.",
+    )
 
 
 class OptimizationReplicate(BaseModel):
@@ -90,6 +167,7 @@ class OptimizationDescribeResult(BaseModel):
         | OptimizationIntParameter
         | OptimizationBooleanParameter
     ]
+    constraints: OptimizationConstraints | None = None
 
 
 class OptimizationEvaluateResult(BaseModel):

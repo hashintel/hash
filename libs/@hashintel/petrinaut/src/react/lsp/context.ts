@@ -3,6 +3,9 @@ import { createContext } from "react";
 import type {
   AdHocSynthesisContext,
   CompletionList,
+  LowerOptimizationConstraintContext,
+  LowerOptimizationConstraintResult,
+  OptimizationConstraintSpace,
   Diagnostic,
   DocumentUri,
   HirCompileResult,
@@ -71,6 +74,15 @@ export interface LanguageClientContextValue {
    * code does not lower — keep the user's text in that case.
    */
   requestFormatExpression: (code: string) => Promise<string | null>;
+  /**
+   * Lower one optimization constraint's source to HIR (in the language
+   * worker) and check it produces a boolean.
+   */
+  requestConstraintHir: (
+    code: string,
+    space: OptimizationConstraintSpace,
+    context: LowerOptimizationConstraintContext,
+  ) => Promise<LowerOptimizationConstraintResult>;
   /** Initialize a temporary scenario editing session. */
   initializeScenarioSession: (params: ScenarioSessionParams) => void;
   /** Update a scenario editing session. */
@@ -119,6 +131,18 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
       placeExpressions: {},
     }),
   requestFormatExpression: () => Promise.resolve(null),
+  requestConstraintHir: () =>
+    Promise.resolve({
+      ok: false as const,
+      diagnostics: [
+        {
+          code: "hir:no-language-client",
+          message: "No language client is wired; constraints cannot compile.",
+          severity: "error" as const,
+          span: { start: 0, length: 0 },
+        },
+      ],
+    }),
   initializeScenarioSession: () => {},
   updateScenarioSession: () => {},
   killScenarioSession: () => {},

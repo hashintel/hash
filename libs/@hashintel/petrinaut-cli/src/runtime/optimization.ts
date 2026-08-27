@@ -201,6 +201,9 @@ export function createOptimizationProtocol(args: {
         parameters: optimizedParameters.map(({ parameter, domain }) =>
           describeParameter(parameter, domain),
         ),
+        // Verbatim pass-through: protocol clients (the Python binding)
+        // evaluate the embedded HIR themselves.
+        ...(manifest.constraints ? { constraints: manifest.constraints } : {}),
       };
     },
     async evaluate(params) {

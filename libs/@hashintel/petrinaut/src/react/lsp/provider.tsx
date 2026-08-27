@@ -112,6 +112,7 @@ export const LanguageClientProvider: React.FC<{
     requestHirArtifacts: client.requestHirArtifacts,
     requestScenarioHir: client.requestScenarioHir,
     requestFormatExpression: client.requestFormatExpression,
+    requestConstraintHir: client.requestConstraintHir,
     initializeScenarioSession: client.initializeScenarioSession,
     updateScenarioSession: client.updateScenarioSession,
     killScenarioSession: client.killScenarioSession,

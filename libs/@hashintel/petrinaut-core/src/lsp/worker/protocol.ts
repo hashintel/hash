@@ -14,6 +14,10 @@
  */
 import type { PetrinautExtensionSettings } from "../../extensions";
 import type {
+  LowerOptimizationConstraintContext,
+  OptimizationConstraintSpace,
+} from "../../hir/constraint";
+import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
 } from "../../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
@@ -191,6 +195,16 @@ type ClientRequest =
       params: {
         /** A single scenario-expression to re-print canonically. */
         code: string;
+      };
+    }
+  | {
+      jsonrpc: "2.0";
+      id: number;
+      method: "sdcpn/lowerConstraint";
+      params: {
+        code: string;
+        space: OptimizationConstraintSpace;
+        context: LowerOptimizationConstraintContext;
       };
     };
 
