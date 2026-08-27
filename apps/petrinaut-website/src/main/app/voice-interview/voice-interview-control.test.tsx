@@ -304,6 +304,27 @@ describe("voice interview stage", () => {
     ).toBe("acknowledged");
   });
 
+  test("does not record acknowledgement when choosing text instead", async () => {
+    window.localStorage.clear();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ available: true, connectionTimeoutMs: 15_000 }),
+      ),
+    );
+    render(
+      <StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Start voice interview" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Use text instead" }));
+    expect(
+      window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
+    ).toBeNull();
+  });
+
   test("skips the disclosure after it has been acknowledged", async () => {
     stubUnavailableMicrophone();
     window.localStorage.setItem(
