@@ -1,7 +1,8 @@
 import { CODE_FONT_FAMILY } from "./ui/constants/fonts";
 
 /**
- * Petrinaut's Panda CSS theme extension, shared between:
+ * Petrinaut's Panda CSS preset — theme extension and `.petrinaut-root`-scoped
+ * global styles — shared between:
  *
  * - Petrinaut's own Panda config (`panda.config.shared.ts`), which generates
  *   the package's standalone stylesheet (`dist/main.css`), and
@@ -29,6 +30,56 @@ import { CODE_FONT_FAMILY } from "./ui/constants/fonts";
  */
 export const petrinautPandaPreset = {
   name: "@hashintel/petrinaut/panda-preset",
+
+  /**
+   * Native scrollbars inside `.petrinaut-root` render as a quiet rounded
+   * thumb on an invisible track. Emitted in Panda's `base` layer, so a
+   * component utility (`scrollbarWidth: "[none]"`, a `display` override on
+   * the pseudo-element, ...) still wins where a scrollable opts out.
+   *
+   * Chromium and Safari take the `::-webkit-scrollbar` path. An element
+   * whose computed `scrollbar-width`/`scrollbar-color` is not `auto`
+   * ignores `::-webkit-scrollbar-*` styling in those engines, so the
+   * standard-property fallback for Firefox must not reach them. It is
+   * gated on `-moz-appearance` support rather than
+   * `@supports not selector(::-webkit-scrollbar)`, because Firefox parses
+   * `::-webkit-*` pseudo-elements as valid selectors and that check would
+   * exclude Firefox too.
+   */
+  globalCss: {
+    ".petrinaut-root ::-webkit-scrollbar": {
+      width: "10px",
+      height: "10px",
+      background: "transparent",
+    },
+    ".petrinaut-root ::-webkit-scrollbar-track": {
+      background: "transparent",
+    },
+    ".petrinaut-root ::-webkit-scrollbar-corner": {
+      background: "transparent",
+    },
+    ".petrinaut-root ::-webkit-scrollbar-button": {
+      display: "none",
+    },
+    ".petrinaut-root ::-webkit-scrollbar-thumb": {
+      backgroundColor: "neutral.a70",
+      // A transparent border shrinks the visible thumb to a 6px pill
+      // floating in the 10px gutter; `padding-box` keeps the fill from
+      // painting under the border.
+      backgroundClip: "padding-box",
+      border: "2px solid transparent",
+      borderRadius: "9999px",
+    },
+    ".petrinaut-root ::-webkit-scrollbar-thumb:hover": {
+      backgroundColor: "neutral.a90",
+    },
+    ".petrinaut-root, .petrinaut-root *": {
+      "@supports (-moz-appearance: none)": {
+        scrollbarWidth: "thin",
+        scrollbarColor: "token(colors.neutral.a70) transparent",
+      },
+    },
+  },
 
   theme: {
     extend: {
