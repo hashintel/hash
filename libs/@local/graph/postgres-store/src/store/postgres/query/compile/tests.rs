@@ -2769,30 +2769,30 @@ mod scalar_properties {
             r#"
             SELECT
                 (SELECT jsonb_object_agg("scalar_property"."key", "scalar_property"."value")
-                FROM jsonb_each(("entity_editions_0_1_0"."properties" - (CASE WHEN
-                    ("entity_temporal_metadata_0_0_0"."entity_uuid" != $2)
-                    AND ("entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$3]::text[])
-                    THEN ARRAY[$4]::text[]
-                    ELSE ARRAY[]::text[] END))) AS "scalar_property"("key", "value")
-                WHERE jsonb_typeof("scalar_property"."value") = ANY(($1::text[]))),
+                   FROM jsonb_each(("entity_editions_0_1_0"."properties" -
+                        (CASE WHEN
+                            "entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$2]::text[]
+                            THEN ARRAY[$3]::text[]
+                            ELSE ARRAY[]::text[]
+                        END)))
+                        AS "scalar_property"("key", "value")
+                  WHERE jsonb_typeof("scalar_property"."value") = ANY(($1::text[]))),
                 ((SELECT count(*)
-                FROM jsonb_each(("entity_editions_0_1_0"."properties" - (CASE WHEN
-                    ("entity_temporal_metadata_0_0_0"."entity_uuid" != $2)
-                    AND ("entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$3]::text[])
-                    THEN ARRAY[$4]::text[]
-                    ELSE ARRAY[]::text[] END))) AS "scalar_property"("key", "value"))::int4)
+                    FROM jsonb_each(("entity_editions_0_1_0"."properties" -
+                        (CASE WHEN "entity_edition_cache_0_1_0"."base_urls" @> ARRAY[$2]::text[]
+                            THEN ARRAY[$3]::text[]
+                            ELSE ARRAY[]::text[]
+                        END)))
+                        AS "scalar_property"("key", "value"))::int4)
             FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
             INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
-                ON "entity_editions_0_1_0"."entity_edition_id" =
-                    "entity_temporal_metadata_0_0_0"."entity_edition_id"
+                ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
             INNER JOIN "entity_edition_cache" AS "entity_edition_cache_0_1_0"
-                ON "entity_edition_cache_0_1_0"."entity_edition_id" =
-                    "entity_temporal_metadata_0_0_0"."entity_edition_id"
+                ON "entity_edition_cache_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
             "#,
             &[
                 &SCALAR_TYPES,
-                &Uuid::nil(),
                 &"https://hash.ai/@h/types/entity-type/user/",
                 &"https://hash.ai/@h/types/property-type/email/",
             ],
