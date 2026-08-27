@@ -15,6 +15,6 @@
     "@rust/error-stack": "workspace:*",
     "@rust/hash-graph-authorization": "workspace:*",
     "@rust/hash-graph-store": "workspace:*",
-    "@rust/hash-status": "workspace:*"
+    "@rust/hash-middleware": "workspace:*"
   }
 }

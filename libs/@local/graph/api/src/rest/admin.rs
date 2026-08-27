@@ -41,7 +41,6 @@ use error_stack::Report;
 use futures::TryStreamExt as _;
 #[cfg(feature = "unsafe-dev-endpoints")]
 use hash_codec::bytes::JsonLinesDecoder;
-use hash_graph_authentication::provider::AuthenticationProvider;
 #[cfg(feature = "unsafe-dev-endpoints")]
 use hash_graph_postgres_store::snapshot::SnapshotStore;
 use hash_graph_postgres_store::store::PostgresStorePool;
@@ -50,6 +49,7 @@ use hash_graph_store::{
     pool::StorePool as _,
     user_deletion::{self, UserDeletionError},
 };
+use hash_middleware::authentication::provider::AuthenticationProvider;
 use hash_status::{Status, StatusCode};
 use serde::Deserialize as _;
 #[cfg(feature = "unsafe-dev-endpoints")]
@@ -60,8 +60,9 @@ use type_system::principal::actor::{ActorId, UserId};
 use uuid::Uuid;
 
 use super::{
-    AuthenticatedActorId, auth, http_tracing_layer, probe,
+    AuthenticatedActorId, auth, probe,
     status::{BoxedResponse, status_to_response},
+    telemetry,
 };
 use crate::{
     email_subscription::MailchimpSubscriptionProvider,
@@ -117,7 +118,13 @@ where
         move |request, next| {
             let provider = Arc::clone(&authentication_provider);
             let service_secret = Arc::clone(&service_secret);
-            auth::authentication_middleware::<_, ActorId>(provider, service_secret, request, next)
+            auth::authentication_middleware::<_, ActorId>(
+                provider,
+                service_secret,
+                auth::is_bootstrap_route,
+                request,
+                next,
+            )
         },
     )));
 
@@ -144,7 +151,7 @@ where
                 vec![],
             ))
         })
-        .layer(http_tracing_layer::HttpTracingLayer)
+        .layer(telemetry::layer())
         .layer(Extension(store_pool))
         .layer(Extension(Arc::new(external_services)))
         .layer(Extension(kratos))

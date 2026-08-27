@@ -5,9 +5,8 @@ use alloc::sync::Arc;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::policies::store::{PrincipalStore, error::DetermineActorError};
 use hash_graph_store::pool::StorePool;
+use hash_middleware::authentication::request::AuthenticationError;
 use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
-
-use crate::request::AuthenticationError;
 
 /// Resolves an [`ActorEntityUuid`] to the [`ActorId`] stored in the principal store.
 ///

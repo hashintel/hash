@@ -4,17 +4,17 @@ use core::{ops::ControlFlow, time::Duration};
 
 use cookie::Cookie;
 use error_stack::{Report, ResultExt as _};
+use hash_middleware::authentication::{
+    provider::{AuthenticationProvider, Caller},
+    request::AuthenticationError,
+};
 use http::{HeaderMap, header};
 use reqwest::{Client, Url, redirect};
 use serde::Deserialize;
 use type_system::principal::actor::{ActorEntityUuid, ActorId};
 
 use super::{MetadataPublic, provider_response, read_response_body};
-use crate::{
-    actor::{ResolveActor, resolve_user_actor},
-    provider::{AuthenticationProvider, Caller},
-    request::AuthenticationError,
-};
+use crate::actor::{ResolveActor, resolve_user_actor};
 
 /// Name of the header carrying a Kratos session token.
 pub const SESSION_TOKEN_HEADER: &str = "X-Session-Token";
@@ -231,6 +231,11 @@ mod tests {
     use std::collections::HashMap;
 
     use axum::{Json, Router, response::IntoResponse as _, routing::get};
+    use hash_middleware::authentication::{
+        provider::{AuthenticationProvider as _, expect_rejection},
+        request::{ACTOR_ID_HEADER, AuthenticationError},
+        service_secret::SERVICE_AUTH_SCHEME,
+    };
     use http::{HeaderMap, HeaderValue, StatusCode};
     use reqwest::Url;
     use rstest::rstest;
@@ -241,10 +246,8 @@ mod tests {
     use super::{KratosSessionConfig, KratosSessionProvider, SESSION_COOKIE_NAME};
     use crate::{
         actor::tests::{FixedActorResolver, known_user, random_actor},
-        delegation::{SERVICE_AUTH_SCHEME, ServiceDelegationProvider},
+        delegation::ServiceDelegationProvider,
         kratos::tests::spawn_fake_kratos,
-        provider::{AuthenticationProvider as _, tests::expect_rejection},
-        request::{ACTOR_ID_HEADER, AuthenticationError},
     };
 
     const SESSION_TOKEN: &str = "test-session-token";

@@ -14,9 +14,9 @@ pub mod status;
 
 pub mod admin;
 pub mod auth;
-pub mod http_tracing_layer;
 pub mod probe;
 pub mod rate_limit;
+pub mod telemetry;
 
 pub mod hashql;
 mod json;
@@ -39,7 +39,6 @@ use axum::{
 use error_stack::{Report, ResultExt as _};
 use futures::{SinkExt as _, channel::mpsc::Sender};
 use hash_codec::numeric::Real;
-use hash_graph_authentication::provider::{AuthenticationProvider, Caller};
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::{EmbeddingError, EmbeddingGenerator as _, OpenAiEmbeddingClient};
 use hash_graph_postgres_store::store::{PostgresStorePool, error::VersionedUrlAlreadyExists};
@@ -72,6 +71,7 @@ use hash_graph_temporal_versioning::{
 };
 use hash_graph_type_fetcher::TypeFetcher;
 use hash_graph_types::Embedding;
+use hash_middleware::authentication::provider::{AuthenticationProvider, Caller};
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
@@ -598,6 +598,7 @@ where
             auth::authentication_middleware::<_, C>(
                 Arc::clone(&provider),
                 Arc::clone(&auth_secret),
+                auth::is_bootstrap_route,
                 request,
                 next,
             )
@@ -631,8 +632,10 @@ where
     ));
     let service_secret: Arc<str> = Arc::from(dependencies.service_secret);
 
-    let rate_limiters = Arc::new(rate_limit::RateLimiters::new(&dependencies.rate_limit));
-    rate_limit::spawn_maintenance(Arc::downgrade(&rate_limiters));
+    let rate_limiters = Arc::new(rate_limit::RateLimiters::new(
+        &(&dependencies.rate_limit).into(),
+    ));
+    rate_limiters.spawn_maintenance();
 
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S>()
@@ -658,7 +661,7 @@ where
             .layer(NewSentryLayer::new_from_top())
             .layer(SentryHttpLayer::default().enable_transaction()),
     )
-    .layer(http_tracing_layer::HttpTracingLayer)
+    .layer(telemetry::layer())
     .layer(Extension(dependencies.store))
     .layer(Extension(Arc::new(dependencies.postgres)))
     .layer(Extension(dependencies.temporal_client))

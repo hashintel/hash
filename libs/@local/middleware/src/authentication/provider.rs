@@ -6,7 +6,7 @@ use error_stack::Report;
 use http::HeaderMap;
 use type_system::principal::actor::ActorId;
 
-use crate::request::AuthenticationError;
+use crate::authentication::request::AuthenticationError;
 
 mod sealed {
     use type_system::principal::actor::ActorId;
@@ -147,30 +147,34 @@ where
     }
 }
 
+/// Returns the report of a rejected decision, panicking on any other outcome.
+///
+/// # Panics
+///
+/// Panics when the decision verified a caller or recognized no credential.
+#[cfg(any(test, feature = "test-utils"))]
+#[track_caller]
+pub fn expect_rejection<C: core::fmt::Debug>(
+    authentication: ControlFlow<Result<C, Report<AuthenticationError>>>,
+) -> Report<AuthenticationError> {
+    match authentication {
+        ControlFlow::Break(Err(report)) => report,
+        ControlFlow::Break(Ok(_)) | ControlFlow::Continue(()) => {
+            panic!("the credential should be rejected, got {authentication:?}")
+        }
+    }
+}
+
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use core::ops::ControlFlow;
 
-    use error_stack::Report;
     use http::HeaderMap;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
     use super::{AuthenticationProvider as _, Caller, StaticAuthenticationProvider};
-    use crate::request::AuthenticationError;
-
-    /// Returns the report of a rejected decision, panicking on any other outcome.
-    #[track_caller]
-    pub(crate) fn expect_rejection<C: core::fmt::Debug>(
-        authentication: ControlFlow<Result<C, Report<AuthenticationError>>>,
-    ) -> Report<AuthenticationError> {
-        match authentication {
-            ControlFlow::Break(Err(report)) => report,
-            ControlFlow::Break(Ok(_)) | ControlFlow::Continue(()) => {
-                panic!("the credential should be rejected, got {authentication:?}")
-            }
-        }
-    }
+    use crate::authentication::request::AuthenticationError;
 
     fn random_user() -> ActorId {
         ActorId::User(UserId::new(ActorEntityUuid::new(Uuid::new_v4())))
