@@ -24,11 +24,15 @@ export const LAYER_SOURCE_MODULE = "layer-source";
 /** Module name generated pages import the links card from. */
 export const LAYER_LINKS_MODULE = "layer-links";
 
+/** Module name diff-annotated pages import the block marker from. */
+export const DIFF_MARKER_MODULE = "diff-marker";
+
 const shippedComponentFiles = [
   `${LAYER_FACTS_MODULE}.tsx`,
   `${LAYER_RELATIONS_MODULE}.tsx`,
   `${LAYER_SOURCE_MODULE}.tsx`,
   `${LAYER_LINKS_MODULE}.tsx`,
+  `${DIFF_MARKER_MODULE}.tsx`,
   // Styling the cards share, imported by the components above.
   //
   // Resolution via `import.meta.url` works because this package always runs
@@ -36,6 +40,7 @@ const shippedComponentFiles = [
   // from compilation, so no build ever places these files next to a compiled
   // output. If the package ever ships compiled, copy them into the output.
   "layer-cards.css",
+  `${DIFF_MARKER_MODULE}.css`,
 ];
 
 export const readShippedComponents = async (): Promise<AuthoredComponent[]> =>

@@ -6,6 +6,8 @@ import react from "@astrojs/react";
 import starlight from "@astrojs/starlight";
 import { defineConfig, fontProviders } from "astro/config";
 
+import { resolveDiffCompareContext } from "./src/diff-context";
+
 /**
  * Renders the architecture bundle produced by `@local/petrinaut-arch-docs`.
  *
@@ -26,10 +28,73 @@ const manifestPath = fileURLToPath(
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 
 /**
- * @typedef {{ label: string, link: string }} SidebarLink
- * @typedef {{ label: string, collapsed?: boolean, items: SidebarItem[] }} SidebarGroup
+ * @typedef {{ text: string, variant: "success" | "note" | "danger" }} SidebarBadge
+ * @typedef {{ label: string, link: string, badge?: SidebarBadge, attrs?: Record<string, string> }} SidebarLink
+ * @typedef {{ label: string, collapsed?: boolean, items: SidebarItem[], badge?: SidebarBadge }} SidebarGroup
  * @typedef {SidebarLink | SidebarGroup} SidebarItem
  */
+
+/**
+ * Change statuses from a diff build (a preview built against a base ref).
+ * Empty on a plain build, so everything below renders as before.
+ *
+ * @type {Record<string, "added" | "changed" | "removed">}
+ */
+const diffPages = manifest.diff?.pages ?? {};
+
+const DIFF_BADGES = /** @type {const} */ ({
+  added: { text: "new", variant: "success" },
+  changed: { text: "changed", variant: "note" },
+  removed: { text: "removed", variant: "danger" },
+});
+
+/**
+ * Badge and class for one page's link.
+ *
+ * @param {string} slug
+ */
+const diffLinkProps = (slug) => {
+  const status = diffPages[slug];
+  return status === undefined
+    ? {}
+    : {
+        badge: DIFF_BADGES[status],
+        // A data attribute rather than `class`: Starlight already merges
+        // `attrs.class` into the link's computed class and then re-spreads
+        // `attrs`, which would emit a second `class` attribute.
+        attrs: { "data-pnd-diff": status },
+      };
+};
+
+/**
+ * Roll-up badge for a group: how many pages at or beneath `slug` changed, so
+ * a collapsed group still shows that something inside it did. Colored by the
+ * one status when they all match, neutral when mixed.
+ *
+ * @param {string} slug
+ */
+const diffGroupProps = (slug) => {
+  const statuses = Object.entries(diffPages)
+    .filter(
+      ([pageSlug]) => pageSlug === slug || pageSlug.startsWith(`${slug}/`),
+    )
+    .map(([, status]) => status);
+
+  if (statuses.length === 0) {
+    return {};
+  }
+
+  const uniform = statuses.every((status) => status === statuses[0])
+    ? statuses[0]
+    : null;
+
+  return {
+    badge: {
+      text: String(statuses.length),
+      variant: uniform === null ? "note" : DIFF_BADGES[uniform].variant,
+    },
+  };
+};
 
 /**
  * Builds Starlight's nested sidebar from the manifest.
@@ -154,14 +219,19 @@ const buildSidebar = () => {
                 // Named "Overview" rather than "<title> overview", matching the
                 // Architecture group and avoiding a label that repeats the
                 // group it sits directly beneath.
-                items: [{ label: "Overview", link }, ...itemsUnder(page.slug)],
+                items: [
+                  { label: "Overview", link, ...diffLinkProps(page.slug) },
+                  ...itemsUnder(page.slug),
+                ],
+                ...diffGroupProps(page.slug),
               }
-            : { label: page.title, link };
+            : { label: page.title, link, ...diffLinkProps(page.slug) };
         }),
         ...implied.map((slug) => ({
           label: labelFromSlug(slug),
           collapsed: true,
           items: itemsUnder(slug),
+          ...diffGroupProps(slug),
         })),
       ];
     };
@@ -180,9 +250,14 @@ const buildSidebar = () => {
             label: "Architecture",
             collapsed: false,
             items: [
-              { label: "Overview", link: `/${architectureRoot.slug}` },
+              {
+                label: "Overview",
+                link: `/${architectureRoot.slug}`,
+                ...diffLinkProps(architectureRoot.slug),
+              },
               ...itemsFrom(pages)(architectureRoot.slug),
             ],
+            ...diffGroupProps(architectureRoot.slug),
           },
         ]
       : []),
@@ -200,8 +275,22 @@ const hasAuthoredIndex = manifest.pages.some(
   (page) => page.kind === "authored" && page.slug === "index",
 );
 
+/**
+ * Resolved here rather than in the component that renders it: this file
+ * already owns reading the manifest, and after bundling a component has no
+ * stable relative path to the bundle. Injected as a compile-time constant
+ * below (`vite.define`).
+ */
+const diffCompareContext = await resolveDiffCompareContext(manifest);
+
 export default defineConfig({
   site: "https://docs.petrinaut.org",
+
+  vite: {
+    define: {
+      __PND_DIFF_COMPARE__: JSON.stringify(diffCompareContext),
+    },
+  },
 
   ...(hasAuthoredIndex ? {} : { redirects: { "/": "/architecture" } }),
 

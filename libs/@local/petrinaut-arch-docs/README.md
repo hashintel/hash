@@ -173,6 +173,87 @@ local build at another ref. A preview deployment of `apps/petrinaut-docs`
 reads Vercel's variables, so its links point at the commit it was built from
 instead of at a file `main` may not have yet.
 
+### Highlighting changes against a base ref
+
+A build can compare itself against another version of the repository and mark
+what differs, which is how a PR preview shows a reviewer where to look:
+
+```sh
+# Locally
+yarn workspace @local/petrinaut-arch-docs doc:architecture --diff-base main
+
+# In CI (what vercel-build.sh sets on preview deployments)
+PETRINAUT_ARCH_DOCS_DIFF_BASE=<ref> turbo build --filter '@apps/petrinaut-docs'
+```
+
+Which ref to compare against is the caller's decision, not this package's: the
+generator takes any ref and never knows about pull requests. On Vercel
+previews, `apps/petrinaut-docs/scripts/resolve-diff-base.mjs` resolves the
+PR's _target branch_ (via the GitHub API, anonymously) and sets the variable —
+so a stacked PR is compared against the PR below it and shows only its own
+delta, and a PR targeting `main` is compared against `main`.
+
+The build extracts the covered package trees at the base ref with `git archive`
+and runs the _same_ generator over them — same config, same emitter, same
+source-URL prefix — so nothing but a real change can differ between the two
+sides. No install and no `node_modules` are needed for the base tree: workspace
+imports resolve through aliases derived from each package's `exports` map.
+
+What it produces:
+
+- `manifest.json` gains a `diff` section mapping page slugs to `added`,
+  `changed` or `removed`, for a host to build navigation badges from.
+- Changed pages carry `<DiffMarker>` elements between blocks; the shipped
+  `diff-marker` component and its stylesheet render a green bar on added
+  blocks, a blue bar on edited ones, and removed content as a red, collapsed
+  block in place.
+- A removed page becomes a tombstone stub at its old slug, carrying the
+  removed source, so navigation can show it (struck through) instead of it
+  silently disappearing.
+
+**What counts as a change** is deliberately narrower than a byte diff, because
+a generated page embeds facts that shift whenever _neighbouring_ code moves.
+Masked before comparison: import counts and the count-driven ordering of the
+depends-on list, file and line totals, sidebar positions, and the whole
+"depended on by" list — an incoming edge is the
+importing layer's change and is flagged there, on its `dependsOn` side. A page
+is `changed` when anything else differs: its role, prose, name, declaring
+file, outgoing edges, sub-layers, attached guides — or when the layer's file
+membership moved, the one structural change the masked content cannot show.
+Editing code inside a layer without moving files or edges changes nothing the
+architecture describes, and flags nothing.
+
+The build extracts the base tree from the local clone when it can. When it
+cannot — a Vercel build gets a snapshot of the sources with no usable clone
+behind it — it fetches the ref anonymously from the public repository
+(`VERCEL_GIT_REPO_OWNER`/`VERCEL_GIT_REPO_SLUG` when set, `hashintel/hash`
+otherwise) into a scratch repository: a blobless fetch plus a sparse checkout
+of only the covered directories, so the transfer stays small. The build log
+says `base tree fetched from …` when this path ran.
+
+The built base side is cached under `node_modules/.cache/petrinaut-arch-docs`
+(`PETRINAUT_ARCH_DOCS_CACHE_DIR` relocates it, for a CI whose persisted
+location differs),
+keyed in the entry's file name by a hash of the generator's own sources,
+config and pinned dependencies, then the base commit — CI providers persist
+that directory between builds, so any later commit whose base has not moved
+skips the base build entirely (the log says `base bundle from cache (…)`),
+and builds running different generator versions against one base keep
+separate entries. Every clean build also stores its _own_ side as a future
+base: the CI cache is restored per branch with a fallback to the production
+deployment, so the entry a `main` build writes is what a PR targeting `main`
+finds on its first build — the common case computes no base at all. A cached entry is trusted exactly as far as the build that
+wrote it — its pages are compiled as MDX — which is sound while only this
+project's own builds write the directory; a shared remote cache would need
+this analysis redone. Source-link URLs carry the built
+commit and are masked per side before comparison, which is what makes a base
+side built by an earlier build comparable at all.
+
+The diff decorates the bundle, it never gates it: when the base ref cannot be
+resolved either way (no network, a repository that is not public) the build
+warns and writes a plain bundle. Production builds of `main` never set the
+variable, so they never diff.
+
 ### Embedding the bundle elsewhere
 
 A host reads `manifest.json`, maps each page's `slug` onto its own URL space, and
