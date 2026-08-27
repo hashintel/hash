@@ -280,7 +280,10 @@ export class OpenAIRealtimeSession {
       let answerSdp: string;
       try {
         answerSdp = await response.text();
-      } catch {
+      } catch (error) {
+        if (abortController.signal.aborted) {
+          throw error;
+        }
         throw new VoiceError("connection", "network", requestId);
       }
       if (!answerSdp.trim() || !answerSdp.trimStart().startsWith("v=0")) {
@@ -292,7 +295,10 @@ export class OpenAIRealtimeSession {
           sdp: answerSdp,
           type: "answer",
         });
-      } catch {
+      } catch (error) {
+        if (abortController.signal.aborted) {
+          throw error;
+        }
         throw new VoiceError("connection", "invalid-response", requestId);
       }
       await this.#waitForDataChannelOpen(

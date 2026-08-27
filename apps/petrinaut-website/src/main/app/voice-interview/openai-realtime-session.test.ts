@@ -465,6 +465,81 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
   });
 
+  test("classifies disconnect while reading the SDP answer as aborted", async () => {
+    const harness = createHarness();
+    let rejectAnswerRead: ((reason?: unknown) => void) | undefined;
+    harness.fetch.mockResolvedValueOnce({
+      headers: new Headers({ "content-type": "application/sdp" }),
+      ok: true,
+      text: () =>
+        new Promise<string>((_resolve, reject) => {
+          rejectAnswerRead = reject;
+        }),
+    } as Response);
+    const connection = harness.session
+      .connect()
+      .catch((error: unknown) => error);
+    await vi.waitFor(() => expect(rejectAnswerRead).toBeTypeOf("function"));
+
+    await harness.session.disconnect();
+    rejectAnswerRead?.(new Error("private response read failure"));
+
+    await expect(connection).resolves.toMatchObject({
+      code: "request-aborted",
+      requestId: "voice-request-1",
+    });
+    expect(harness.reportDiagnostic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorCode: "request-aborted",
+        outcome: "aborted",
+      }),
+    );
+  });
+
+  test("classifies disconnect while applying the SDP answer as aborted", async () => {
+    const harness = createHarness();
+    let resolveFetch: ((response: Response) => void) | undefined;
+    let rejectRemoteDescription: ((reason?: unknown) => void) | undefined;
+    harness.fetch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    const connection = harness.session
+      .connect()
+      .catch((error: unknown) => error);
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+    const remoteDescription = new Promise<void>((_resolve, reject) => {
+      rejectRemoteDescription = reject;
+    });
+    harness.peers[0]!.setRemoteDescription.mockReturnValueOnce(
+      remoteDescription,
+    );
+    resolveFetch?.(
+      new Response("v=0\r\no=OpenAI answer", {
+        headers: { "content-type": "application/sdp" },
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(harness.peers[0]!.setRemoteDescription).toHaveBeenCalledOnce(),
+    );
+
+    await harness.session.disconnect();
+    rejectRemoteDescription?.(new Error("private SDP application failure"));
+
+    await expect(connection).resolves.toMatchObject({
+      code: "request-aborted",
+      requestId: "voice-request-1",
+    });
+    expect(harness.reportDiagnostic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorCode: "request-aborted",
+        outcome: "aborted",
+      }),
+    );
+  });
+
   test("times out startup and cleans up resources", async () => {
     vi.useFakeTimers();
     const harness = createHarness();
