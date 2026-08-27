@@ -17,6 +17,16 @@ type UiMessagePart =
       readonly state: "done";
     }
   | {
+      readonly type: `data-${string}`;
+      readonly data: unknown;
+    }
+  | {
+      readonly type: "file";
+      readonly mediaType: string;
+      readonly url: string;
+      readonly filename?: string;
+    }
+  | {
       readonly type: `tool-${string}`;
       readonly toolCallId: string;
       readonly state: "output-available" | "output-error" | "input-available";
@@ -25,6 +35,15 @@ type UiMessagePart =
       readonly errorText?: string;
       readonly providerExecuted?: boolean;
     };
+
+const unhandledConversationPart = (part: never): never => {
+  throw new Error(`Unhandled Flue conversation part: ${JSON.stringify(part)}`);
+};
+
+const isFlueDataPart = (
+  part: FlueConversationPart,
+): part is Extract<FlueConversationPart, { type: `data-${string}` }> =>
+  part.type.startsWith("data-");
 
 export interface UiHistoryMessage {
   readonly id: string;
@@ -134,7 +153,22 @@ const partsFrom = (
     }
     if (part.type === "dynamic-tool") {
       parts.push(toolPartFrom(part, clientOutputs));
+      continue;
     }
+    if (part.type === "file") {
+      parts.push({
+        type: "file",
+        mediaType: part.mediaType,
+        url: part.url ?? "",
+        ...(part.filename === undefined ? {} : { filename: part.filename }),
+      });
+      continue;
+    }
+    if (isFlueDataPart(part)) {
+      parts.push({ type: part.type, data: part.data });
+      continue;
+    }
+    unhandledConversationPart(part);
   }
   return parts;
 };
@@ -208,9 +242,22 @@ export const formatFlueTranscript = (
     const text = textOf(message);
     if (text.length > 0) lines.push(text);
     for (const part of message.parts) {
+      if (part.type === "text" || part.type === "reasoning") continue;
       if (part.type === "dynamic-tool") {
         lines.push(formatToolPart(part, clientOutputs));
+        continue;
       }
+      if (part.type === "file") {
+        lines.push(`- file ${part.filename ?? part.mediaType}`);
+        continue;
+      }
+      if (isFlueDataPart(part)) {
+        lines.push(
+          `- data ${part.type.slice("data-".length)}: ${JSON.stringify(part.data)}`,
+        );
+        continue;
+      }
+      unhandledConversationPart(part);
     }
     if (lines.length === 0) continue;
     sections.push(`## ${speaker}\n${lines.join("\n")}`);

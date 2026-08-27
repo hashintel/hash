@@ -15,6 +15,12 @@ type StreamingPart = {
   readonly partId: string;
 };
 
+const unhandledConversationChunk = (chunk: never): never => {
+  throw new Error(
+    `Unhandled Flue conversation chunk: ${JSON.stringify(chunk)}`,
+  );
+};
+
 export const createFlueUiStream = (
   options: FlueUiStreamOptions,
 ): { accept: (chunk: ConversationStreamChunk) => void } => {
@@ -55,49 +61,58 @@ export const createFlueUiStream = (
 
   return {
     accept(chunk) {
-      if (chunk.type === "message-started") {
-        accepting = chunk.submissionId === options.submissionId;
-        if (!accepting) return;
-
-        if (messageId === undefined) {
-          messageId = chunk.messageId;
-          options.write({ type: "start", messageId });
-        }
-        finishTurn();
-        turnId = chunk.turnId ?? `${messageId}:turn`;
-        options.write({ type: "start-step" });
-        return;
-      }
-
-      if (chunk.type === "submission-settled") {
-        if (chunk.submissionId !== options.submissionId) return;
-        finishTurn();
-        switch (chunk.outcome) {
-          case "completed":
-            options.write({
-              type: "finish",
-              finishReason:
-                pendingClientToolCallIds.size > 0 ? "tool-calls" : "stop",
-            });
-            break;
-          case "failed":
-            options.write({
-              type: "error",
-              errorText: "The chat turn failed.",
-            });
-            break;
-          case "aborted":
-            options.write({ type: "abort", reason: "The chat turn aborted." });
-            break;
-        }
-        accepting = false;
-        return;
-      }
-
-      if (!accepting || messageId === undefined) return;
-
       switch (chunk.type) {
+        case "message-started": {
+          accepting = chunk.submissionId === options.submissionId;
+          if (!accepting) return;
+
+          if (messageId === undefined) {
+            messageId = chunk.messageId;
+            options.write({ type: "start", messageId });
+          }
+          finishTurn();
+          turnId = chunk.turnId ?? `${messageId}:turn`;
+          options.write({ type: "start-step" });
+          return;
+        }
+        case "submission-settled": {
+          if (chunk.submissionId !== options.submissionId) return;
+          finishTurn();
+          switch (chunk.outcome) {
+            case "completed":
+              options.write({
+                type: "finish",
+                finishReason:
+                  pendingClientToolCallIds.size > 0 ? "tool-calls" : "stop",
+              });
+              break;
+            case "failed":
+              options.write({
+                type: "error",
+                errorText: "The chat turn failed.",
+              });
+              break;
+            case "aborted":
+              options.write({
+                type: "abort",
+                reason: "The chat turn aborted.",
+              });
+              break;
+            default:
+              unhandledConversationChunk(chunk.outcome);
+          }
+          accepting = false;
+          return;
+        }
+        case "conversation-reset":
+        case "message-appended":
+        case "stream-checkpoint":
+          // Observe/reconnect machinery, not assistant-message content. This
+          // projector emits one AI SDK assistant message for one Flue
+          // submission; these chunks are not parts of that message.
+          return;
         case "message-delta": {
+          if (!accepting || messageId === undefined) return;
           if (chunk.messageId !== messageId) return;
           const part =
             streamingPart?.kind === chunk.kind
@@ -111,6 +126,7 @@ export const createFlueUiStream = (
           return;
         }
         case "tool-input": {
+          if (!accepting || messageId === undefined) return;
           if (chunk.messageId !== messageId) return;
           finishPart();
           const isClientTool = options.clientToolNames.has(chunk.toolName);
@@ -125,6 +141,7 @@ export const createFlueUiStream = (
           return;
         }
         case "tool-output": {
+          if (!accepting || messageId === undefined) return;
           if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
           options.write({
             type: "tool-output-available",
@@ -135,6 +152,7 @@ export const createFlueUiStream = (
           return;
         }
         case "tool-output-error": {
+          if (!accepting || messageId === undefined) return;
           if (pendingClientToolCallIds.has(chunk.toolCallId)) return;
           options.write({
             type: "tool-output-error",
@@ -145,15 +163,30 @@ export const createFlueUiStream = (
           return;
         }
         case "message-completed": {
+          if (!accepting || messageId === undefined) return;
           if (chunk.messageId === messageId) finishTurn();
           return;
         }
-        case "conversation-reset":
-        case "message-appended":
-        case "message-metadata":
-        case "data-part":
-        case "stream-checkpoint":
+        case "message-metadata": {
+          if (!accepting || messageId === undefined) return;
+          if (chunk.messageId !== messageId) return;
+          options.write({
+            type: "message-metadata",
+            messageMetadata: chunk.metadata,
+          });
           return;
+        }
+        case "data-part": {
+          if (!accepting || messageId === undefined) return;
+          if (chunk.messageId !== messageId) return;
+          options.write({
+            type: `data-${chunk.name}`,
+            data: chunk.data,
+          });
+          return;
+        }
+        default:
+          unhandledConversationChunk(chunk);
       }
     },
   };
