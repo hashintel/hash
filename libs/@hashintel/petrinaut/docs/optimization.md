@@ -67,6 +67,15 @@ The controls depend on the scenario parameter type:
 Parameters are fixed by default. Search ranges belong to this optimization run,
 not to the saved scenario.
 
+## Constraints
+
+The **Constraints** section of the create-optimization drawer records boolean conditions with the study. They are carried in the study's manifest and readable by every consumer (the Python tooling included), but **nothing enforces them yet** -- they do not prune trials or stop runs. Two kinds:
+
+- **Parameter constraints** -- one-line expressions over the study's parameters (`scenario.*` for scenario parameters, `parameters.*` for net parameters) that must produce a boolean, for example `scenario.min_load < scenario.max_load`. In a later iteration these will let the optimizer avoid infeasible parameter combinations.
+- **State constraints** -- small code bodies that read the simulation `state` exactly like a [metric](experiments.md#metrics) and `return` a boolean, for example `return state.places.Queue.count <= 10;`. In a later iteration these will measure how close a run comes to leaving the safe region, not just whether it did.
+
+Add a condition with its **Add ... constraint** button, edit it in place, and remove it with **Remove**. Conditions are checked when you press Run: one that does not compile, or does not produce a boolean, blocks the submission with its error message. Empty rows are ignored.
+
 ## Watching results
 
 Open an optimization row to follow it while it runs. The drawer updates as
