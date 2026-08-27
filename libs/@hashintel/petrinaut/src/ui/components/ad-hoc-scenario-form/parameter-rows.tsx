@@ -105,7 +105,9 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
                   onTriggerKeyDown={onKeyDown(parameterIndex, 0)}
                 />
               </td>
-              {selection !== "none" ? (
+              {/* Optimize only: a net parameter cannot be exposed — the
+                  Scenario Parameter toggle belongs to Variables alone. */}
+              {selection === "optimize" ? (
                 <td
                   className={cx(
                     cellStyle,
