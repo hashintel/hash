@@ -12,9 +12,9 @@
  * experiment drawer applies. Everything else in `webgpu/` is internal; tests
  * import it by relative path.
  *
- * See `../docs/simulation-performance.md` §8 for why this shape (whole-experiment
- * dispatch, on-GPU metric reduction) is the only GPU design that is faster than
- * the CPU rather than slower.
+ * See `libs/@local/petrinaut-arch-docs/content/simulation/performance.mdx` §8
+ * for why this shape (whole-experiment dispatch, on-GPU metric reduction) is
+ * the only GPU design that is faster than the CPU rather than slower.
  */
 export {
   createWebGpuExperimentBackend,

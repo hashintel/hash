@@ -19,9 +19,10 @@
  * number system gives that: pair index `x` maps to the `x`-th lexicographic
  * `i < j`, so scanning `x` ascending *is* the CPU's order.
  *
- * See `docs/simulation-performance.md` §8 for why this is a flat scan rather than
- * a nested loop: dynamic trip counts cost the maximum across a SIMT subgroup, and
- * unranking removes the nesting entirely.
+ * See `libs/@local/petrinaut-arch-docs/content/simulation/performance.mdx` §8
+ * for why this is a flat scan rather than a nested loop: dynamic trip counts
+ * cost the maximum across a SIMT subgroup, and unranking removes the nesting
+ * entirely.
  */
 
 /** Number of unordered pairs over `n` tokens. */
