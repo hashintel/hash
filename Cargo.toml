@@ -34,6 +34,7 @@ members = [
     "libs/@local/harpc/types",
     "libs/@local/harpc/wire-protocol",
     "libs/@local/hashql/*",
+    "libs/@local/middleware",
     "libs/@local/repo-chores/rust",
     "libs/@local/status/rust",
     "libs/@local/telemetry",
@@ -91,6 +92,7 @@ hash-graph-type-defs.path           = "libs/@local/graph/type-defs"
 hash-graph-type-fetcher.path        = "libs/@local/graph/type-fetcher"
 hash-graph-types.path               = "libs/@local/graph/types"
 hash-graph-validation.path          = "libs/@local/graph/validation"
+hash-middleware.path                = "libs/@local/middleware"
 hash-repo-chores.path               = "libs/@local/repo-chores/rust"
 hash-status.path                    = "libs/@local/status/rust"
 hash-telemetry.path                 = "libs/@local/telemetry"
