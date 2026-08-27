@@ -14,6 +14,8 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
 import {
+  petrinautOptimizationConstraintSchema,
+  petrinautOptimizationConstraintsSchema,
   petrinautOptimizationDescribeParameterSchema,
   petrinautOptimizationDescribeResultSchema,
   petrinautOptimizationEvaluateResultSchema,
@@ -45,6 +47,16 @@ const describeResult = convert(petrinautOptimizationDescribeResultSchema);
     .parameters as { items: unknown }
 ).items = { $ref: "#/$defs/OptimizationDescribeParameter" };
 
+// Constraints become a named definition too, shared between the manifest
+// and the describe result.
+const describeProperties = describeResult.properties as Record<
+  string,
+  Record<string, unknown>
+>;
+describeProperties.constraints = {
+  $ref: "#/$defs/OptimizationConstraints",
+};
+
 const evaluateResult = convert(petrinautOptimizationEvaluateResultSchema);
 (
   (evaluateResult.properties as Record<string, Record<string, unknown>>)
@@ -67,6 +79,18 @@ const document = {
         { $ref: "#/$defs/OptimizationBooleanParameter" },
       ],
     },
+    OptimizationConstraint: convert(petrinautOptimizationConstraintSchema),
+    OptimizationConstraints: (() => {
+      const constraints = convert(petrinautOptimizationConstraintsSchema);
+      for (const list of ["parameterSpace", "stateSpace"]) {
+        (
+          (constraints.properties as Record<string, Record<string, unknown>>)[
+            list
+          ] as { items: unknown }
+        ).items = { $ref: "#/$defs/OptimizationConstraint" };
+      }
+      return constraints;
+    })(),
     OptimizationReplicate: convert(petrinautOptimizationReplicateSchema),
     OptimizationDescribeResult: describeResult,
     OptimizationEvaluateResult: evaluateResult,

@@ -24,13 +24,9 @@ import {
 } from "./surface-context";
 import { typecheckHir } from "./typecheck";
 
-import type {
-  Parameter,
-  ScenarioParameter,
-  SDCPN,
-} from "../types/sdcpn";
-import type { HirDiagnostic, HirFunction } from "./hir";
 import type { PetrinautExtensionSettings } from "../extensions";
+import type { Parameter, ScenarioParameter, SDCPN } from "../types/sdcpn";
+import type { HirDiagnostic, HirFunction } from "./hir";
 
 export type OptimizationConstraintSpace = "parameterSpace" | "stateSpace";
 

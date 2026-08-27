@@ -83,6 +83,12 @@ function makeLanguageClient(): LanguageClientContextValue {
     ),
     requestHover: vi.fn(() => Promise.resolve(null)),
     requestSignatureHelp: vi.fn(() => Promise.resolve(null)),
+    requestConstraint: vi.fn(() =>
+      Promise.resolve({
+        ok: false as const,
+        diagnostics: [],
+      }),
+    ),
     requestScenarioHir: vi.fn(() =>
       Promise.resolve({
         version: 1 as const,

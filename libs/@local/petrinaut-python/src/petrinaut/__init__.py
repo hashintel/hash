@@ -17,8 +17,11 @@ from .errors import (
     PetrinautProtocolError,
     PetrinautRunError,
 )
+from .hir import Constraint, HirEvaluationError, evaluate_hir
 from .models import (
     OptimizationBooleanParameter,
+    OptimizationConstraint,
+    OptimizationConstraints,
     OptimizationDescribeResult,
     OptimizationEvaluateResult,
     OptimizationFloatParameter,
@@ -29,7 +32,11 @@ from .optimization import OptimizationSession
 from .session import PetrinautSession
 
 __all__ = [
+    "Constraint",
+    "HirEvaluationError",
     "OptimizationBooleanParameter",
+    "OptimizationConstraint",
+    "OptimizationConstraints",
     "OptimizationDescribeResult",
     "OptimizationEvaluateResult",
     "OptimizationFloatParameter",
@@ -40,4 +47,5 @@ __all__ = [
     "PetrinautProtocolError",
     "PetrinautRunError",
     "PetrinautSession",
+    "evaluate_hir",
 ]

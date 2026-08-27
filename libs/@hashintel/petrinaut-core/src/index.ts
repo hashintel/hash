@@ -114,6 +114,8 @@ export {
   petrinautOptimizationExecutionSchema,
   petrinautOptimizationFixedBindingSchema,
   petrinautOptimizationEventSchema,
+  petrinautOptimizationConstraintSchema,
+  petrinautOptimizationConstraintsSchema,
   petrinautOptimizationInputSchema,
   petrinautOptimizationManifestSchema,
   petrinautOptimizationObjectiveSchema,
@@ -134,6 +136,8 @@ export type {
   PetrinautOptimizationEvaluateResult,
   PetrinautOptimizationEvent,
   PetrinautOptimizationExecution,
+  PetrinautOptimizationConstraint,
+  PetrinautOptimizationConstraints,
   PetrinautOptimizationInput,
   PetrinautOptimizationManifest,
   PetrinautOptimizationObjective,
@@ -439,6 +443,12 @@ export type {
   ScenarioHirItem,
   ScenarioLoweringInput,
 } from "./hir/scenario";
+// Type-only: lowering itself stays in ./hir (worker/Node).
+export type {
+  LowerOptimizationConstraintContext,
+  LowerOptimizationConstraintResult,
+  OptimizationConstraintSpace,
+} from "./hir/constraint";
 export {
   AD_HOC_DEFAULT_OPTIMIZE,
   AD_HOC_DEFAULT_COUNT_OPTIMIZE,
