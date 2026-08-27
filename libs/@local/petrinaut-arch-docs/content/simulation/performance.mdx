@@ -1,4 +1,9 @@
-# Simulation performance: threads, WASM, and GPU
+---
+title: "Simulation performance: threads, WASM, and GPU"
+description: Measured cost centres of the Monte Carlo engine, and the sequenced plan across sharding, hot-path fixes, codegen, WASM, and GPU.
+sidebar_order: 20
+attachTo: core.simulation
+---
 
 Status: §3 (worker sharding) is implemented. §2 and §4 measurements still stand
 and are unaddressed. §5–§9 remain proposals.
@@ -8,8 +13,9 @@ per-seed parallelism across threads/workers, and decide whether WASM (browser),
 native (server), and WebGPU are worth their cost.
 
 Everything labelled _measured_ below comes from harnesses in
-[`../benchmarks/`](../benchmarks/README.md), run on a 10-core Apple Silicon
-laptop, Node 25.6, against the built `dist` of this package.
+[`libs/@hashintel/petrinaut-core/benchmarks/`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/benchmarks/README.md),
+run on a 10-core Apple Silicon laptop, Node 25.6, against the built `dist` of
+`@hashintel/petrinaut-core`.
 
 ---
 
@@ -248,7 +254,7 @@ toward WASM threading.
 
 ### 3.2 Prototype and results
 
-[`../benchmarks/shard-main.mjs`](../benchmarks/README.md) shards 4000 SIR runs
+[`benchmarks/shard-main.mjs`](https://github.com/hashintel/hash/blob/main/libs/@hashintel/petrinaut-core/benchmarks/README.md) shards 4000 SIR runs
 across Node `worker_threads`, using the **shipped, unmodified**
 `MonteCarloSimulator`, with one distribution metric merged on the main thread:
 
