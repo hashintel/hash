@@ -27,7 +27,13 @@ class FakeDataChannel extends EventTarget {
   }
 }
 
-const createHarness = (connectionTimeoutMs = 15_000) => {
+const createHarness = ({
+  connectionTimeoutMs = 15_000,
+  createAudioContext,
+}: {
+  readonly connectionTimeoutMs?: number;
+  readonly createAudioContext?: () => AudioContext;
+} = {}) => {
   let requestNumber = 0;
   const animationFrames: FrameRequestCallback[] = [];
   const analyser = {
@@ -101,10 +107,8 @@ const createHarness = (connectionTimeoutMs = 15_000) => {
   const session = new OpenAIRealtimeSession({
     cancelAnimationFrame,
     connectionTimeoutMs,
-    createAudioContext: () => {
-      trackEnabledWhenMeterCreated.push(tracks.at(-1)?.enabled ?? true);
-      return audioContext as unknown as AudioContext;
-    },
+    createAudioContext:
+      createAudioContext ?? (() => audioContext as unknown as AudioContext),
     createRequestId: () => `voice-request-${++requestNumber}`,
     createPeerConnection,
     fetch,
@@ -238,6 +242,40 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.audioContext.createMediaStreamSource).toHaveBeenCalledWith(
       stream,
     );
+  });
+
+  test("connects without metering when audio context construction throws", async () => {
+    const harness = createHarness({
+      createAudioContext: () => {
+        throw new Error("AudioContext unavailable");
+      },
+    });
+
+    await expect(harness.session.connect()).resolves.toBe(1);
+    harness.session.setMicrophoneEnabled(true);
+
+    expect(harness.fetch).toHaveBeenCalledOnce();
+    expect(harness.peers[0]!.addTrack).toHaveBeenCalledOnce();
+    expect(harness.tracks[0]!.enabled).toBe(true);
+    expect(harness.animationFrames).toHaveLength(0);
+    expect(harness.events).toEqual([]);
+  });
+
+  test("connects without metering when meter initialization throws", async () => {
+    const harness = createHarness();
+    harness.audioContext.createMediaStreamSource.mockImplementationOnce(() => {
+      throw new Error("Media stream source unavailable");
+    });
+
+    await expect(harness.session.connect()).resolves.toBe(1);
+    harness.session.setMicrophoneEnabled(true);
+
+    expect(harness.fetch).toHaveBeenCalledOnce();
+    expect(harness.peers[0]!.addTrack).toHaveBeenCalledOnce();
+    expect(harness.tracks[0]!.enabled).toBe(true);
+    expect(harness.audioContext.close).toHaveBeenCalledOnce();
+    expect(harness.animationFrames).toHaveLength(0);
+    expect(harness.events).toEqual([]);
   });
 
   test("emits only strict input transcription events with stable source identity", async () => {
@@ -579,7 +617,7 @@ describe("OpenAIRealtimeSession", () => {
   });
 
   test("rejects a data channel already closed after negotiation", async () => {
-    const harness = createHarness(1_000);
+    const harness = createHarness({ connectionTimeoutMs: 1_000 });
     let resolveFetch: ((response: Response) => void) | undefined;
     harness.fetch.mockImplementationOnce(
       () =>

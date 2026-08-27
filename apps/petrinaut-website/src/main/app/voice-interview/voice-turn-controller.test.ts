@@ -448,6 +448,38 @@ describe("VoiceTurnController", () => {
     expect(harness.controller.getSnapshot().phase).toBe("listening");
   });
 
+  test("waits for answer capacity before opening the microphone after connection", async () => {
+    const harness = createHarness();
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "ready",
+    });
+
+    await harness.controller.start();
+
+    expect(harness.session.connect).toHaveBeenCalledOnce();
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      microphoneEnabled: false,
+      phase: "waiting",
+    });
+
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      status: "ready",
+    });
+
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      microphoneEnabled: true,
+      phase: "listening",
+    });
+  });
+
   test("preserves a Brunch error that occurs while voice is connecting", async () => {
     const harness = createHarness();
     let finishConnection: (() => void) | undefined;
@@ -1174,7 +1206,7 @@ describe("VoiceTurnController", () => {
     finishDelivery?.();
   });
 
-  test("ignores a typed correction while answer capacity is unavailable", async () => {
+  test("closes capture and ignores correction while answer capacity is unavailable", async () => {
     const harness = createHarness();
     await harness.controller.start();
     harness.emit({
@@ -1190,14 +1222,34 @@ describe("VoiceTurnController", () => {
       canonicalSegments: [],
       status: "ready",
     });
-    expect(harness.controller.getSnapshot().phase).toBe("listening");
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      microphoneEnabled: false,
+      phase: "waiting",
+    });
 
     await harness.controller.submitCorrection(
       "The incident manager closes it.",
     );
 
     expect(harness.submitText).toHaveBeenCalledOnce();
-    expect(harness.controller.getSnapshot().phase).toBe("listening");
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      microphoneEnabled: false,
+      phase: "waiting",
+    });
+
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      status: "ready",
+    });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      microphoneEnabled: true,
+      phase: "listening",
+    });
   });
 
   test("seeds finalized history without replaying it when voice starts or reconnects", async () => {

@@ -156,10 +156,19 @@ export class OpenAIRealtimeSession {
     }, this.#dependencies.connectionTimeoutMs);
 
     try {
-      const audioContext = this.#dependencies.createAudioContext();
-      this.#audioContext = audioContext;
-      if (audioContext.state === "suspended") {
-        void audioContext.resume().catch(() => undefined);
+      let audioContext: AudioContext | null = null;
+      try {
+        audioContext = this.#dependencies.createAudioContext();
+        this.#audioContext = audioContext;
+        if (audioContext.state === "suspended") {
+          try {
+            void audioContext.resume().catch(() => undefined);
+          } catch {
+            // Input metering is optional and must not block voice connection.
+          }
+        }
+      } catch {
+        // Input metering is optional and must not block voice connection.
       }
 
       let mediaStream: MediaStream;
@@ -224,7 +233,13 @@ export class OpenAIRealtimeSession {
       }
       microphoneTrack.enabled = false;
       this.#microphoneTrack = microphoneTrack;
-      this.#initializeMeter(audioContext, mediaStream);
+      if (audioContext) {
+        try {
+          this.#initializeMeter(audioContext, mediaStream);
+        } catch {
+          this.#releaseMeterResources();
+        }
+      }
 
       const peerConnection = this.#dependencies.createPeerConnection();
       this.#peerConnection = peerConnection;
@@ -489,6 +504,21 @@ export class OpenAIRealtimeSession {
     }
   }
 
+  #releaseMeterResources(): void {
+    this.#stopMeter();
+    this.#analyser = null;
+    this.#meterSamples = null;
+    const audioContext = this.#audioContext;
+    this.#audioContext = null;
+    if (audioContext) {
+      try {
+        void audioContext.close().catch(() => undefined);
+      } catch {
+        // Input metering cleanup is best-effort.
+      }
+    }
+  }
+
   #handleMessage(event: MessageEvent<unknown>, connectionEpoch: number): void {
     const parsed = parseRealtimeEvent(event.data);
     if (!parsed || typeof parsed.type !== "string") {
@@ -618,7 +648,7 @@ export class OpenAIRealtimeSession {
     this.#connectionRequestId = null;
     this.#abortController?.abort();
     this.#abortController = null;
-    this.#stopMeter();
+    this.#releaseMeterResources();
 
     if (this.#dataChannel && this.#messageListener) {
       this.#dataChannel.removeEventListener("message", this.#messageListener);
@@ -651,12 +681,6 @@ export class OpenAIRealtimeSession {
       this.#mediaStream = null;
     }
     this.#microphoneTrack = null;
-    this.#analyser = null;
-    this.#meterSamples = null;
-    if (this.#audioContext) {
-      void this.#audioContext.close();
-      this.#audioContext = null;
-    }
   }
 
   #waitForDataChannelOpen(

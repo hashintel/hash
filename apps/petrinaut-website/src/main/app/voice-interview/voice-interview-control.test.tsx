@@ -239,6 +239,8 @@ describe("voice interview stage", () => {
     expect(html).toContain("microphone-permission");
     expect(html).toContain("voice-request-permission");
     expect(html).toContain(">Reconnect<");
+    expect(html).toContain(">Use text instead<");
+    expect(html).not.toContain(">Type instead<");
   });
 
   test("starts in the full stage and keeps recovery visible under Strict Mode", async () => {
@@ -509,7 +511,7 @@ describe("voice interview stage", () => {
 
     expect(html).toContain('aria-label="Voice interview mini bar"');
     expect(html).toContain(
-      'aria-label="Expand voice interview. Microphone on · Listening"',
+      'aria-label="Expand voice interview. Microphone on · Listening. Question: What happens after approval?"',
     );
     expect(html).toContain("Microphone on · Listening");
     expect(html).toContain("What happens after approval?");
@@ -529,6 +531,23 @@ describe("voice interview stage", () => {
     expect(endButton.querySelector("svg")).not.toBeNull();
     expect(endButton.parentElement?.getAttribute("data-part")).toBe("trigger");
     expect(endButton.parentElement?.getAttribute("data-scope")).toBe("tooltip");
+  });
+
+  test("announces compact question and provisional transcript context", () => {
+    render(
+      <VoiceInterviewControlView
+        {...viewProps({ placement: "detached", presentation: "mini" })}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "Expand voice interview. Microphone on · Listening. Question: What happens after approval?",
+      }),
+    ).not.toBeNull();
+    expect(screen.getByRole("status").textContent).toBe(
+      "Microphone on · Listening. Question: What happens after approval? Not sent yet: The request goes to",
+    );
   });
 
   test("shows authoritative covered and still-exploring facts without a question count", () => {

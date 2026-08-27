@@ -195,6 +195,7 @@ export class VoiceTurnController {
       this.#completedKeys.clear();
       this.#paused = false;
       const canListen =
+        this.#canAcceptInterviewAnswer &&
         this.#isChatReady() &&
         this.#speechQueue.length === 0 &&
         !this.#hasAnswerableQuestion();
@@ -713,6 +714,17 @@ export class VoiceTurnController {
       return;
     }
 
+    if (!this.#canAcceptInterviewAnswer) {
+      this.#setMicrophoneEnabled(false);
+      if (
+        this.#snapshot.phase !== "transcribing" &&
+        this.#snapshot.phase !== "delivering"
+      ) {
+        this.#update({ phase: "waiting" });
+      }
+      return;
+    }
+
     if (this.#hasAnswerableQuestion()) {
       this.#awaitingChatCycle = false;
       this.#sawBusyChatStatus = false;
@@ -828,14 +840,15 @@ export class VoiceTurnController {
   }
 
   #setMicrophoneEnabled(enabled: boolean): void {
-    this.#session.setMicrophoneEnabled(enabled);
+    const microphoneEnabled = enabled && this.#canAcceptInterviewAnswer;
+    this.#session.setMicrophoneEnabled(microphoneEnabled);
     if (
-      this.#snapshot.microphoneEnabled !== enabled ||
-      (!enabled && this.#snapshot.microphoneLevel !== 0)
+      this.#snapshot.microphoneEnabled !== microphoneEnabled ||
+      (!microphoneEnabled && this.#snapshot.microphoneLevel !== 0)
     ) {
       this.#update({
-        microphoneEnabled: enabled,
-        ...(enabled ? {} : { microphoneLevel: 0 }),
+        microphoneEnabled,
+        ...(microphoneEnabled ? {} : { microphoneLevel: 0 }),
       });
     }
   }

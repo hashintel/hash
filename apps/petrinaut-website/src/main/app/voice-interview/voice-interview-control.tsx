@@ -593,6 +593,12 @@ export const VoiceInterviewControlView = ({
   const status = statusText(snapshot);
   const isSpeaking =
     snapshot.phase === "playing" || snapshot.phase === "synthesizing";
+  const compactQuestionContext = snapshot.currentQuestion
+    ? ` Question: ${snapshot.currentQuestion}`
+    : "";
+  const compactLiveOutput = `${status}.${compactQuestionContext}${
+    snapshot.partialText ? ` Not sent yet: ${snapshot.partialText}` : ""
+  }`;
 
   if (
     effectivePresentation === "mini" ||
@@ -605,7 +611,7 @@ export const VoiceInterviewControlView = ({
       >
         <div className={miniStyle}>
           <button
-            aria-label={`Expand voice interview. ${status}`}
+            aria-label={`Expand voice interview. ${status}.${compactQuestionContext}`}
             className={miniExpandStyle}
             type="button"
             onClick={onExpand}
@@ -663,8 +669,13 @@ export const VoiceInterviewControlView = ({
             onClick={onEnd}
           />
         </div>
-        <span className={liveRegionStyle} role="status" aria-live="polite">
-          {status}
+        <span
+          className={liveRegionStyle}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {compactLiveOutput}
         </span>
       </section>
     );
@@ -834,7 +845,9 @@ export const VoiceInterviewControlView = ({
             </>
           )}
           <Button type="button" variant="ghost" onClick={onTypeInstead}>
-            Type instead
+            {snapshot.phase === "recoverable-error"
+              ? "Use text instead"
+              : "Type instead"}
           </Button>
         </div>
 

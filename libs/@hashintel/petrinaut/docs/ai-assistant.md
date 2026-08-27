@@ -29,11 +29,11 @@ If the host offers voice input, a finalized spoken turn is held while an existin
 finishes and is submitted when the conversation is ready.
 
 When the Brunch voice preview is enabled by the host, select **Start voice interview** beside the
-composer. The first time, review the transcription, retention, and AI-voice disclosure, optionally
-check your microphone, confirm that you understand it, then select **Start interview**. Petrinaut
-remembers that acknowledgement in this browser for the current disclosure version, so later
-sessions start directly. If browser storage is unavailable or the disclosure changes, Petrinaut asks
-again.
+composer. The first time, review the disclosure that OpenAI transcribes your speech and Petrinaut
+keeps finalized answers in the conversation rather than the audio, optionally check your microphone,
+confirm that you understand it, then select **Start interview**. Petrinaut remembers that
+acknowledgement in this browser for the current disclosure version, so later sessions start directly.
+If browser storage is unavailable or the disclosure changes, Petrinaut asks again.
 
 The full interview stage opens above the composer. It keeps the current question visible, labels
 live words **Not sent yet**, and shows **Answer recorded** only after finalization. The words shown
@@ -53,9 +53,8 @@ written down. The normal message composer remains available as a keyboard fallba
 Minimizing produces a compact bar above the composer. Closing the AI sidebar during an active
 interview moves that same session to a bottom bar over the canvas; reopening the sidebar docks it
 again. These presentation changes do not reconnect or end the voice session. On narrow screens the
-full stage is a bottom sheet and the compact presentation is a bottom bar. If the session fails,
-the sidebar reopens to the full recovery view. **Clear AI chat** is unavailable while an interview
-is active.
+compact presentation remains a bottom bar. If the session fails, the sidebar reopens to the full
+recovery view. **Clear AI chat** is unavailable while an interview is active.
 
 When Brunch has produced authoritative completion information, the stage can expand **Covered** and
 **Still exploring** topics. It does not show a question count or a speculative model preview; the
