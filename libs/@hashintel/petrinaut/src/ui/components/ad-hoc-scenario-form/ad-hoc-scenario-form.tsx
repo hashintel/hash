@@ -9,10 +9,10 @@
  *
  * Three consumers share it: Quick Simulation and plain experiment creation
  * render it with `selection` "none"; optimization experiments render it
- * with "optimize", which grows an Optimize toggle on every value slot. A
- * third mode, "controls", relabels the same toggle as Control for a future
- * classical scenario editor exposing values as controls over the state —
- * today only a story exercises it.
+ * with "optimize", which grows an Optimize toggle on every value slot; the
+ * scenario creation form renders it with "expose", which offers a
+ * "Scenario Parameter" toggle on each top-level Variable — the saved
+ * scenario exposes those Variables as its tunable parameters.
  *
  * The form runs its own ad-hoc LSP session, so every expression is
  * type-checked live: open editors are Monaco documents with inline markers,
@@ -27,7 +27,7 @@
  * the cells that read it (`dependency-highlight`).
  */
 
-import { use, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import {
@@ -149,6 +149,40 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   // past a zone's edge continue into the next one in document order.
   const navigation = useFormNavigationRegistry();
 
+  // Escape pressed while focus is inside the form never reaches the host:
+  // the drawers/dialogs the form embeds in close on Escape via a document
+  // capture listener (Zag's dismissable), so a cell-focused Escape after
+  // closing an editor would close the whole drawer. The listener sits on
+  // `window` capture — above document — and swallows Escape when the event
+  // originates inside the form. Inner editors and menus portal outside the
+  // form root, so their own Escape handling is untouched.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const root = rootRef.current;
+      if (
+        event.key !== "Escape" ||
+        !root ||
+        !(event.target instanceof Element) ||
+        !root.contains(event.target)
+      ) {
+        return;
+      }
+      // An open Ark disclosure (the type select) dismisses itself through
+      // the Zag layer stack, which already spares the host drawer.
+      if (event.target.closest('[aria-expanded="true"]')) {
+        return;
+      }
+      event.preventDefault();
+      // Not stopImmediatePropagation: in-form editors (the name cell) and
+      // the value-editor overlay listen on window capture too — registered
+      // after this one, they still see the event and peel their own layer.
+      event.stopPropagation();
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, []);
+
   // The focused value drives the dependency highlight: the rows it reads,
   // and — for a Variable or Parameter — the cells that read it.
   const [focusedValue, setFocusedValue] = useState<AdHocFocusTarget | null>(
@@ -192,6 +226,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     },
     highlight,
     setFocusedValue,
+    dense: bare,
   };
 
   const parameterRows =
@@ -244,31 +279,32 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
       <FormNavigationContext value={navigation}>
         {/* Undo/redo listens in the capture phase, so it sees keys before any
           cell handler; open text fields and Monaco pass through untouched. */}
-        <div onKeyDownCapture={handleKeyDown}>
+        <div ref={rootRef} onKeyDownCapture={handleKeyDown}>
           {bare ? (
             // The host owns the headings; the groups stack plainly.
+            // Variables lead: net parameter overrides may read them.
             <div className={bareListStyle}>
-              {parameterRows}
               {variableRows}
+              {parameterRows}
               {placesList}
             </div>
           ) : (
             <SectionList>
-              {parameterRows ? (
-                <NavigableSection
-                  title="Parameters"
-                  tooltip="Override a net parameter's value for this run. Empty keeps its default."
-                >
-                  {parameterRows}
-                </NavigableSection>
-              ) : null}
-
               {variableRows ? (
                 <NavigableSection
                   title="Variables"
                   tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
                 >
                   {variableRows}
+                </NavigableSection>
+              ) : null}
+
+              {parameterRows ? (
+                <NavigableSection
+                  title="Parameters"
+                  tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
+                >
+                  {parameterRows}
                 </NavigableSection>
               ) : null}
 
