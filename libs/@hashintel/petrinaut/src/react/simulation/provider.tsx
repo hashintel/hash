@@ -460,6 +460,11 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     try {
       let initialMarking = manualInitialMarking;
       let parameterValues: Record<string, string> = manualParameterValues;
+      if (scenarioToCompile?.kind === "invalid") {
+        throw new Error(
+          `The inline initial state does not compile:\n${scenarioToCompile.messages.join("\n")}`,
+        );
+      }
       if (scenarioToCompile) {
         const scenarioHir = await requestScenarioHir(
           {
@@ -804,16 +809,27 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const scenarioToCompileRef = useLatest(
     tweakedScenario
       ? {
+          kind: "scenario" as const,
           scenario: tweakedScenario,
           netParameters: extensions.parameters
             ? petriNetDefinition.parameters
             : [],
         }
-      : adHocSynthesized?.ok
-        ? {
-            scenario: adHocSynthesized.scenario,
-            netParameters: adHocNetParameters,
-          }
+      : adHocSynthesized
+        ? adHocSynthesized.ok
+          ? {
+              kind: "scenario" as const,
+              scenario: adHocSynthesized.scenario,
+              netParameters: adHocNetParameters,
+            }
+          : // A broken inline definition must refuse to run — falling back
+            // to the manual marking would silently ignore what was typed.
+            {
+              kind: "invalid" as const,
+              messages: adHocSynthesized.errors.map(
+                (synthesisError) => synthesisError.message,
+              ),
+            }
         : null,
   );
 
