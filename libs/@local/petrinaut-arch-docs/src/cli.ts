@@ -128,6 +128,14 @@ const withDiffAgainst = async (
     });
     baseTree = tree;
 
+    // Logged because it names the strategy: a Vercel build has no usable
+    // clone, and this line is how its logs show the fallback fetch worked.
+    if (tree.fetchedFrom !== undefined) {
+      process.stdout.write(
+        dim(`base tree fetched from ${tree.fetchedFrom}\n`),
+      );
+    }
+
     const baseBundle = await buildBundle({
       repoRoot: tree.root,
       includeDiagrams,

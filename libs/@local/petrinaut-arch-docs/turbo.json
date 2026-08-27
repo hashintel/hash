@@ -19,7 +19,9 @@
       // keep the two lists identical.
       //
       // PETRINAUT_ARCH_DOCS_DIFF_BASE is separate: when set, the build
-      // compares against that git ref and annotates what changed.
+      // compares against that git ref and annotates what changed. The
+      // VERCEL_GIT_REPO_* pair names the repository the base ref is fetched
+      // from when the local clone cannot supply it.
       "env": [
         "PETRINAUT_ARCH_DOCS_SOURCE_REF",
         "PETRINAUT_ARCH_DOCS_DIFF_BASE",
@@ -27,7 +29,9 @@
         "GITHUB_SHA",
         "VERCEL_GIT_COMMIT_REF",
         "GITHUB_HEAD_REF",
-        "GITHUB_REF_NAME"
+        "GITHUB_REF_NAME",
+        "VERCEL_GIT_REPO_OWNER",
+        "VERCEL_GIT_REPO_SLUG"
       ]
     },
     "lint:arch-docs": {

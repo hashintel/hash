@@ -216,10 +216,18 @@ membership moved, the one structural change the masked content cannot show.
 Editing code inside a layer without moving files or edges changes nothing the
 architecture describes, and flags nothing.
 
+The build extracts the base tree from the local clone when it can. When it
+cannot — a Vercel build gets a snapshot of the sources with no usable clone
+behind it — it fetches the ref anonymously from the public repository
+(`VERCEL_GIT_REPO_OWNER`/`VERCEL_GIT_REPO_SLUG` when set, `hashintel/hash`
+otherwise) into a scratch repository: a blobless fetch plus a sparse checkout
+of only the covered directories, so the transfer stays small. The build log
+says `base tree fetched from …` when this path ran.
+
 The diff decorates the bundle, it never gates it: when the base ref cannot be
-resolved (say, a shallow clone with no way to fetch it) the build warns and
-writes a plain bundle. Production builds of `main` never set the variable, so
-they never diff.
+resolved either way (no network, a repository that is not public) the build
+warns and writes a plain bundle. Production builds of `main` never set the
+variable, so they never diff.
 
 ### Embedding the bundle elsewhere
 
