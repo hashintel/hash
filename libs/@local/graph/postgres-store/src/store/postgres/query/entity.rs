@@ -46,6 +46,8 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 vec![Relation::EntityEditions]
             }
             Self::DirectTypeCount
+            | Self::FirstTypeTitle
+            | Self::FirstLabel
             | Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path:
@@ -102,7 +104,6 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             })
             .chain(path.relations())
             .collect(),
-            Self::FirstTypeTitle | Self::FirstLabel => vec![Relation::EntityEditionCache],
         }
     }
 

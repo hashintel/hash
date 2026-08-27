@@ -2,10 +2,13 @@ import { MarkerType } from "@xyflow/react";
 import { use } from "react";
 
 import {
+  classicNodeDimensions,
+  compactNodeDimensions,
   generateArcId,
   getArcEndpoint,
   getArcEndpointKey,
   getArcEndpointNodeId,
+  getComponentInstanceHeight,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
@@ -16,10 +19,6 @@ import { EditorContext } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { hexToHsl } from "../../../lib/hsl-color";
-import {
-  classicNodeDimensions,
-  compactNodeDimensions,
-} from "../node-dimensions";
 import { NOT_SELECTED_CONNECTION_OVERLAY_OPACITY } from "../styles/styling";
 
 import type {
@@ -125,8 +124,10 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
     const ports = (subnet?.places ?? [])
       .filter((place) => place.isPort)
       .map((place) => ({ id: place.id, name: place.name }));
-    const minHeight = dimensions.componentInstance.height;
-    const portBasedHeight = Math.max(minHeight, ports.length * 28 + 28);
+    const portBasedHeight = getComponentInstanceHeight(
+      dimensions,
+      ports.length,
+    );
 
     nodes.push({
       id: instance.id,

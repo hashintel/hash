@@ -1,3 +1,4 @@
+mod peephole;
 #[cfg(test)]
 mod tests;
 
@@ -19,18 +20,19 @@ use postgres_types::ToSql;
 use tracing::instrument;
 use type_system::knowledge::Entity;
 
+use self::peephole::PeepholeOptimizer;
 use super::ast::{
     ColumnName, ColumnReference, JoinType, Materialization, TableName, TableReference,
 };
 use crate::store::postgres::query::{
-    Alias, Column, CommonTableExpression, EqualityOperator, Expression, FromItem, Function,
-    Identifier, NonEmptyVec, NullsOrder, OrderByClause, PostgresQueryPath, PostgresRecord,
-    SelectExpression, SelectQuantifier, SelectStatement, SimpleSelect, SortBy, SortDirection,
-    Table, Transpile as _, WindowDefinition, WithClause,
+    Alias, Column, CommonTableExpression, Correlation, Expression, FromItem, Function, Identifier,
+    NonEmptyVec, NullsOrder, OrderByClause, PostgresQueryPath, PostgresRecord, SelectExpression,
+    SelectQuantifier, SelectStatement, SimpleSelect, SortBy, SortDirection, Table, Transpile as _,
+    WithClause,
     postgres_type::PostgresType,
     table::{
-        EntityEditions, EntityEmbeddings, EntityTemporalMetadata, EntityTypeEmbeddings,
-        EntityTypes, FilterColumn as _, JsonField, OntologyIds, OntologyTemporalMetadata,
+        DatabaseColumn, EntityEditions, EntityEmbeddings, EntityTemporalMetadata,
+        EntityTypeEmbeddings, EntityTypes, FilterColumn as _, JsonField, OntologyTemporalMetadata,
     },
 };
 
@@ -50,8 +52,13 @@ pub struct TableInfo<'p> {
     variable_interval_index: Option<usize>,
 }
 
+pub enum SqlParameter<'param> {
+    Owned(Box<dyn ToSql + Sync + Send>),
+    Borrowed(&'param (dyn ToSql + Sync)),
+}
+
 pub struct CompilerArtifacts<'p> {
-    parameters: Vec<&'p (dyn ToSql + Sync)>,
+    parameters: Vec<SqlParameter<'p>>,
     condition_index: usize,
     joins: Vec<CompiledJoin>,
     table_info: TableInfo<'p>,
@@ -259,7 +266,7 @@ fn collect_referenced_tables(
     tables: &mut HashSet<TableName<'static>>,
 ) -> ControlFlow<Opaque> {
     expression.visit(&mut |node| {
-        if matches!(node, Expression::Select(_)) {
+        if matches!(node, Expression::Select(_) | Expression::Exists(_)) {
             return ControlFlow::Break(Opaque);
         }
         if let Expression::ColumnReference(column) = node
@@ -286,7 +293,7 @@ impl KeyColumns {
         key_tables: &HashSet<TableName<'static>>,
     ) -> ControlFlow<Opaque> {
         expression.visit(&mut |node| {
-            if matches!(node, Expression::Select(_)) {
+            if matches!(node, Expression::Select(_) | Expression::Exists(_)) {
                 return ControlFlow::Break(Opaque);
             }
             if let Expression::ColumnReference(column) = node
@@ -300,6 +307,45 @@ impl KeyColumns {
             }
             ControlFlow::Continue(())
         })
+    }
+}
+
+#[cfg(test)]
+mod collector_tests {
+    use std::collections::HashSet;
+
+    use super::{KeyColumns, collect_referenced_tables};
+    use crate::store::postgres::query::{
+        Expression, SelectExpression, SelectStatement, SimpleSelect,
+    };
+
+    fn subquery() -> SelectStatement {
+        SimpleSelect::builder()
+            .selects(vec![SelectExpression::new(Expression::Parameter(1))])
+            .build()
+            .into()
+    }
+
+    fn subqueries() -> [Expression; 2] {
+        [
+            Expression::Select(Box::new(subquery())),
+            Expression::exists(subquery()),
+        ]
+    }
+
+    #[test]
+    fn table_collector_rejects_subqueries() {
+        for expression in subqueries() {
+            assert!(collect_referenced_tables(&expression, &mut HashSet::new()).is_break());
+        }
+    }
+
+    #[test]
+    fn key_column_collector_rejects_subqueries() {
+        for expression in subqueries() {
+            let mut columns = KeyColumns::default();
+            assert!(columns.collect(&expression, &HashSet::new()).is_break());
+        }
     }
 }
 
@@ -389,6 +435,45 @@ impl<'r> KeyColumnRewriter<'r> {
 
 type TableHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Alias) -> Vec<Expression>;
 type ColumnHook<'p, 'q, T> = fn(&mut SelectCompiler<'p, 'q, T>, Expression) -> Expression;
+
+/// The columns of one unnested property inside a scalar-entries or entry-count subquery.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum ScalarProperty {
+    /// The property's base URL.
+    Key,
+    /// The property's value.
+    Value,
+}
+
+impl DatabaseColumn<'_> for ScalarProperty {
+    fn name(&self) -> ColumnName<'static> {
+        match self {
+            Self::Key => "key".into(),
+            Self::Value => "value".into(),
+        }
+    }
+
+    fn postgres_type(&self) -> PostgresType {
+        match self {
+            Self::Key => PostgresType::Text,
+            Self::Value => PostgresType::JsonB,
+        }
+    }
+}
+
+/// One unnested property inside a scalar-entries or entry-count subquery.
+const SCALAR_PROPERTY: Correlation<ScalarProperty> = Correlation::new("scalar_property");
+
+/// One `jsonb_each` unnest of a properties object, standing as `"scalar_property"("key", "value")`.
+fn scalar_property_each(properties: Expression) -> FromItem<'static> {
+    FromItem::function(Function::JsonEach(Box::new(properties)))
+        .alias(SCALAR_PROPERTY)
+        .column_aliases(vec![
+            ScalarProperty::Key.name(),
+            ScalarProperty::Value.name(),
+        ])
+        .build()
+}
 
 pub struct SelectCompiler<'p, 'q: 'p, T: QueryRecord> {
     shape: StatementShape,
@@ -501,7 +586,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 .table_info
                 .pinned_timestamp_index
                 .get_or_insert_with(|| {
-                    self.artifacts.parameters.push(&pinned.timestamp);
+                    self.artifacts
+                        .parameters
+                        .push(SqlParameter::Borrowed(&pinned.timestamp));
                     self.artifacts.parameters.len()
                 }),
             (QueryTemporalAxes::DecisionTime { pinned, .. }, TimeAxis::TransactionTime) => *self
@@ -509,7 +596,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 .table_info
                 .pinned_timestamp_index
                 .get_or_insert_with(|| {
-                    self.artifacts.parameters.push(&pinned.timestamp);
+                    self.artifacts
+                        .parameters
+                        .push(SqlParameter::Borrowed(&pinned.timestamp));
                     self.artifacts.parameters.len()
                 }),
             (QueryTemporalAxes::TransactionTime { variable, .. }, TimeAxis::TransactionTime) => {
@@ -518,7 +607,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     .table_info
                     .variable_interval_index
                     .get_or_insert_with(|| {
-                        self.artifacts.parameters.push(&variable.interval);
+                        self.artifacts
+                            .parameters
+                            .push(SqlParameter::Borrowed(&variable.interval));
                         self.artifacts.parameters.len()
                     })
             }
@@ -527,7 +618,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 .table_info
                 .variable_interval_index
                 .get_or_insert_with(|| {
-                    self.artifacts.parameters.push(&variable.interval);
+                    self.artifacts
+                        .parameters
+                        .push(SqlParameter::Borrowed(&variable.interval));
                     self.artifacts.parameters.len()
                 }),
         }
@@ -781,7 +874,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         tracing::Span::current().record("statement.shape", shape.as_str());
         (
             statement.transpile_to_string(),
-            self.artifacts.parameters.iter().copied(),
+            self.artifacts
+                .parameters
+                .iter()
+                .map(|parameter| match parameter {
+                    SqlParameter::Owned(boxed) => boxed.as_ref(),
+                    &SqlParameter::Borrowed(borrowed) => borrowed,
+                }),
         )
     }
 
@@ -1240,16 +1339,32 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     where
         R::QueryPath<'f>: PostgresQueryPath,
     {
-        if let Some(condition) = self.compile_special_filter(filter) {
+        if let Some(condition) = PeepholeOptimizer::new(self).try_filter(filter) {
             return Ok(condition);
         }
 
         Ok(match filter {
+            // A group compiling to one expression is that expression: `All([x])`, `Any([x])`
+            // and `x` decide alike, and the connective wraps only where a connective remains.
             Filter::All(filters) => {
-                Expression::all(self.compile_filter_group(filters, FilterGroup::All)?)
+                let mut expressions =
+                    PeepholeOptimizer::new(self).compile_group(filters, FilterGroup::All)?;
+
+                if expressions.len() == 1 {
+                    expressions.remove(0)
+                } else {
+                    Expression::all(expressions)
+                }
             }
             Filter::Any(filters) => {
-                Expression::any(self.compile_filter_group(filters, FilterGroup::Any)?)
+                let mut expressions =
+                    PeepholeOptimizer::new(self).compile_group(filters, FilterGroup::Any)?;
+
+                if expressions.len() == 1 {
+                    expressions.remove(0)
+                } else {
+                    Expression::any(expressions)
+                }
             }
             Filter::Not(filter) => self.compile_filter(filter)?.not(),
             Filter::Equal(lhs, rhs) => Expression::equal(
@@ -1284,57 +1399,26 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             Filter::StartsWith(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
-                let left_filter = if left_parameter == ParameterType::Any {
-                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
-                } else {
-                    left_filter
-                };
 
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
-                let right_filter = if right_parameter == ParameterType::Any {
-                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
-                } else {
-                    right_filter
-                };
+                let left_filter = self.compile_filter_expression_json(lhs)?;
+                let right_filter = self.compile_filter_expression_json(rhs)?;
 
                 Expression::starts_with(left_filter, right_filter)
             }
             Filter::EndsWith(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
-                let left_filter = if left_parameter == ParameterType::Any {
-                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
-                } else {
-                    left_filter
-                };
 
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
-                let right_filter = if right_parameter == ParameterType::Any {
-                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
-                } else {
-                    right_filter
-                };
+                let left_filter = self.compile_filter_expression_json(lhs)?;
+                let right_filter = self.compile_filter_expression_json(rhs)?;
 
                 Expression::ends_with(left_filter, right_filter)
             }
             Filter::ContainsSegment(lhs, rhs) => {
                 Self::ensure_scalar_text_operand(lhs)?;
                 Self::ensure_scalar_text_operand(rhs)?;
-                let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
-                let left_filter = if left_parameter == ParameterType::Any {
-                    Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
-                } else {
-                    left_filter
-                };
-
-                let (right_filter, right_parameter) = self.compile_filter_expression(rhs)?;
-                let right_filter = if right_parameter == ParameterType::Any {
-                    Expression::Function(Function::JsonExtractText(Box::new(right_filter)))
-                } else {
-                    right_filter
-                };
+                let left_filter = self.compile_filter_expression_json(lhs)?;
+                let right_filter = self.compile_filter_expression_json(rhs)?;
 
                 Expression::contains_segment(left_filter, right_filter)
             }
@@ -1354,352 +1438,33 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         if let FilterExpression::Path { path } = operand {
             let (column, json_field) = path.terminating_column();
             ensure!(
-                json_field.is_some() || !Self::is_text_array_column(column),
+                json_field.is_some() || !column.is_text_array(),
                 SelectCompilerError::UnsupportedTextArrayOperation
             );
         }
         Ok(())
     }
 
-    /// Whether the column holds an array of textual values ([`BaseUrl`] and
-    /// [`VersionedUrl`] columns transpile to `text[]`).
-    ///
-    /// [`BaseUrl`]: ParameterType::BaseUrl
-    /// [`VersionedUrl`]: ParameterType::VersionedUrl
-    fn is_text_array_column(column: Column) -> bool {
-        matches!(
-            column.parameter_type(),
-            ParameterType::Vector(inner) if matches!(
-                *inner,
-                ParameterType::Text | ParameterType::BaseUrl | ParameterType::VersionedUrl
-            )
-        )
-    }
-
-    /// Decomposes an equality (`Equal`/`NotEqual`) or membership (`In(parameter, path)`)
-    /// filter on a path terminating in a materialized text-array column.
-    ///
-    /// Returns the path, the text parameter, and whether the filter tests for containment
-    /// (`true`) or its absence (`false`).
-    fn cached_array_equality<'f: 'q>(
-        filter: &'p Filter<'f, R>,
-    ) -> Option<(&'p R::QueryPath<'f>, &'p Parameter<'f>, bool)>
-    where
-        R::QueryPath<'f>: PostgresQueryPath,
-    {
-        let (lhs, rhs, equals) = match filter {
-            Filter::Equal(lhs, rhs) => (lhs, rhs, true),
-            Filter::NotEqual(lhs, rhs) => (lhs, rhs, false),
-            Filter::In(
-                FilterExpression::Parameter {
-                    parameter: parameter @ Parameter::Text(_),
-                    convert: None,
-                },
-                FilterExpressionList::Path { path },
-            ) => {
-                let (column, json_field) = path.terminating_column();
-                return (json_field.is_none() && Self::is_text_array_column(column))
-                    .then_some((path, parameter, true));
-            }
-            Filter::All(_)
-            | Filter::Any(_)
-            | Filter::Not(_)
-            | Filter::Exists { .. }
-            | Filter::Greater(..)
-            | Filter::GreaterOrEqual(..)
-            | Filter::Less(..)
-            | Filter::LessOrEqual(..)
-            | Filter::In(..)
-            | Filter::StartsWith(..)
-            | Filter::EndsWith(..)
-            | Filter::ContainsSegment(..) => return None,
-        };
-        match (lhs, rhs) {
-            (
-                FilterExpression::Path { path },
-                FilterExpression::Parameter {
-                    parameter: parameter @ Parameter::Text(_),
-                    convert: None,
-                },
-            )
-            | (
-                FilterExpression::Parameter {
-                    parameter: parameter @ Parameter::Text(_),
-                    convert: None,
-                },
-                FilterExpression::Path { path },
-            ) => {
-                let (column, json_field) = path.terminating_column();
-                (json_field.is_none() && Self::is_text_array_column(column))
-                    .then_some((path, parameter, equals))
-            }
-            _ => None,
-        }
-    }
-
-    /// Compiles equality filters on a path backed by a materialized array column into a
-    /// single array predicate on that column.
-    ///
-    /// A single parameter compiles to a containment check (`<column> @> ARRAY[$n]::text[]`,
-    /// negated for inequalities). Multiple parameters gathered from one `All`/`Any` group
-    /// bundle into one predicate over the whole value set:
-    ///
-    /// | group | equalities          | inequalities              |
-    /// |-------|---------------------|---------------------------|
-    /// | `All` | `@>` (contains all) | `NOT(&&)` (contains none) |
-    /// | `Any` | `&&` (contains any) | `NOT(@>)` (misses one)    |
-    ///
-    /// A single array predicate replaces per-value joins through the type tables and lets
-    /// a GIN index on the materialized column serve the positive forms.
-    fn compile_cached_array_predicate<'f: 'q>(
-        &mut self,
-        column: ColumnReference<'static>,
-        parameters: &[&'p Parameter<'f>],
-        equals: bool,
-        group: FilterGroup,
-    ) -> Expression
-    where
-        R::QueryPath<'f>: PostgresQueryPath,
-    {
-        let column_reference = Expression::ColumnReference(column);
-        let array = Expression::Function(Function::ArrayLiteral {
-            elements: parameters
-                .iter()
-                .map(|parameter| self.compile_parameter(parameter).0)
-                .collect(),
-            element_type: PostgresType::Text,
-        });
-        // For a single value `@>` and `&&` coincide, so the group connective is irrelevant.
-        if parameters.len() == 1 {
-            let contains = Expression::array_contains(column_reference, array);
-            return if equals { contains } else { contains.not() };
-        }
-        match (group, equals) {
-            (FilterGroup::All, true) => Expression::array_contains(column_reference, array),
-            (FilterGroup::All, false) => Expression::overlap(column_reference, array).not(),
-            (FilterGroup::Any, true) => Expression::overlap(column_reference, array),
-            (FilterGroup::Any, false) => Expression::array_contains(column_reference, array).not(),
-        }
-    }
-
-    /// Compiles the filters of an `All`/`Any` group, bundling equality filters backed by
-    /// the same materialized array column into a single array predicate.
-    ///
-    /// Bundles are keyed on the *aliased* column: paths terminating in the same column
-    /// through different join chains (e.g. an entity's own types vs. a linked entity's
-    /// types) resolve to different aliases and stay separate predicates.
-    fn compile_filter_group<'f: 'q>(
-        &mut self,
-        filters: &'p [Filter<'f, R>],
-        group: FilterGroup,
-    ) -> Result<Vec<Expression>, Report<SelectCompilerError>>
-    where
-        R::QueryPath<'f>: PostgresQueryPath,
-    {
-        struct ArrayPredicateGroup<'c, 'p> {
-            column: ColumnReference<'static>,
-            equals: bool,
-            parameters: Vec<&'c Parameter<'p>>,
-        }
-
-        let mut bundles: Vec<ArrayPredicateGroup<'p, 'f>> = Vec::new();
-        let mut expressions = Vec::new();
-        for filter in filters {
-            if let Some((array_path, parameter, equals)) = Self::cached_array_equality(filter) {
-                let alias = self.add_join_statements(array_path);
-                let column = array_path.terminating_column().0.aliased(alias);
-                if let Some(bundle) = bundles
-                    .iter_mut()
-                    .find(|bundle| bundle.column == column && bundle.equals == equals)
-                {
-                    bundle.parameters.push(parameter);
-                } else {
-                    bundles.push(ArrayPredicateGroup {
-                        column,
-                        equals,
-                        parameters: vec![parameter],
-                    });
-                }
-            } else {
-                expressions.push(self.compile_filter(filter)?);
-            }
-        }
-        for bundle in &bundles {
-            expressions.push(self.compile_cached_array_predicate(
-                bundle.column.clone(),
-                &bundle.parameters,
-                bundle.equals,
-                group,
-            ));
-        }
-        Ok(expressions)
-    }
-
-    /// Compiles the `path` to a condition, which is searching for the latest version.
-    // Warning: This adds a CTE to the statement, which is overwriting the `ontology_ids` table.
-    //          When more CTEs are needed, a test should be added to cover both CTEs in one
-    //          statement to ensure compatibility
-    // TODO: Remove CTE to allow limit or cursor selection
-    //   see https://linear.app/hash/issue/H-1442
-    #[instrument(level = "info", skip_all)]
-    fn compile_latest_ontology_version_filter<'f: 'q>(
-        &mut self,
-        path: &R::QueryPath<'f>,
-        operator: EqualityOperator,
-    ) -> Expression
-    where
-        R::QueryPath<'f>: PostgresQueryPath,
-    {
-        self.artifacts.cursor_disallowed_reason =
-            Some("Cannot use latest version filter with cursor");
-
-        let version_column = Column::OntologyIds(OntologyIds::Version);
-        let alias = Alias {
-            condition_index: 0,
-            chain_depth: 0,
-            number: 0,
-        };
-
-        // Add a WITH expression selecting the partitioned version
-        let latest_version_cte = CommonTableExpression::builder()
-            .name(Table::OntologyIds)
-            .statement(
-                SimpleSelect::builder()
-                    .selects(vec![
-                        SelectExpression::Asterisk(None),
-                        SelectExpression::Expression {
-                            expression: Expression::window(
-                                Expression::Function(Function::Max(Box::new(
-                                    Expression::ColumnReference(version_column.aliased(alias)),
-                                ))),
-                                WindowDefinition::builder().partition_by(
-                                    Expression::ColumnReference(
-                                        Column::OntologyIds(OntologyIds::BaseUrl).aliased(alias),
-                                    ),
-                                ),
-                            ),
-                            output_name: Some(Identifier::from("latest_version")),
-                        },
-                    ])
-                    .from(
-                        FromItem::table(version_column.table())
-                            .alias(version_column.table().aliased_name(alias))
-                            .build(),
-                    ),
-            );
-        match &mut self.with {
-            Some(with) => with.push(latest_version_cte),
-            with @ None => {
-                *with = Some(
-                    WithClause::builder()
-                        .common_table_expressions(latest_version_cte)
-                        .build(),
-                );
-            }
-        }
-
-        let alias = self.add_join_statements(path);
-        // Join the table of `path` and compare the version to the latest version
-        let latest_version_expression = Expression::ColumnReference(
-            Column::OntologyIds(OntologyIds::LatestVersion).aliased(alias),
-        );
-        let version_expression = Expression::ColumnReference(version_column.aliased(alias));
-
-        match operator {
-            EqualityOperator::Equal => {
-                Expression::equal(version_expression, latest_version_expression)
-            }
-            EqualityOperator::NotEqual => {
-                Expression::not_equal(version_expression, latest_version_expression)
-            }
-        }
-    }
-
-    /// Searches for [`Filter`]s, which requires special treatment and returns the corresponding
-    /// condition if any.
-    ///
-    /// The following [`Filter`]s will be special cased:
-    /// - Comparing the `"version"` field on [`Table::OntologyIds`] with `"latest"` for equality.
-    /// - Equality and membership filters on paths terminating in materialized text-array columns,
-    ///   compiled to array predicates (see [`Self::compile_cached_array_predicate`]).
-    fn compile_special_filter<'f: 'q>(&mut self, filter: &'p Filter<'f, R>) -> Option<Expression>
-    where
-        R::QueryPath<'f>: PostgresQueryPath,
-    {
-        if let Some((array_path, parameter, equals)) = Self::cached_array_equality(filter) {
-            let alias = self.add_join_statements(array_path);
-            let column = array_path.terminating_column().0.aliased(alias);
-            // A lone filter has a single parameter, so the group connective is irrelevant.
-            return Some(self.compile_cached_array_predicate(
-                column,
-                &[parameter],
-                equals,
-                FilterGroup::All,
-            ));
-        }
-
-        match filter {
-            Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
-                (
-                    FilterExpression::Path { path },
-                    FilterExpression::Parameter {
-                        parameter: Parameter::Text(parameter),
-                        convert: None,
-                    },
-                )
-                | (
-                    FilterExpression::Parameter {
-                        parameter: Parameter::Text(parameter),
-                        convert: None,
-                    },
-                    FilterExpression::Path { path },
-                ) => match (path.terminating_column().0, filter, parameter.as_ref()) {
-                    (Column::OntologyIds(OntologyIds::Version), Filter::Equal(..), "latest") => {
-                        Some(
-                            self.compile_latest_ontology_version_filter(
-                                path,
-                                EqualityOperator::Equal,
-                            ),
-                        )
-                    }
-                    (Column::OntologyIds(OntologyIds::Version), Filter::NotEqual(..), "latest") => {
-                        Some(self.compile_latest_ontology_version_filter(
-                            path,
-                            EqualityOperator::NotEqual,
-                        ))
-                    }
-                    _ => None,
-                },
-                _ => None,
-            },
-            Filter::All(_)
-            | Filter::Any(_)
-            | Filter::Not(_)
-            | Filter::Exists { .. }
-            | Filter::Greater(..)
-            | Filter::GreaterOrEqual(..)
-            | Filter::Less(..)
-            | Filter::LessOrEqual(..)
-            | Filter::In(..)
-            | Filter::StartsWith(..)
-            | Filter::EndsWith(..)
-            | Filter::ContainsSegment(..) => None,
-        }
-    }
-
     #[instrument(level = "debug", skip_all)]
+    /// Owns the JSON field, binding the parameter a [`JsonField::JsonPath`] carries.
+    fn bind_json_field(&mut self, field: JsonField<'p>) -> JsonField<'static> {
+        let (field, parameter) = field.into_owned(self.artifacts.parameters.len() + 1);
+
+        if let Some(parameter) = parameter {
+            self.artifacts
+                .parameters
+                .push(SqlParameter::Borrowed(parameter));
+        }
+
+        field
+    }
+
     pub fn compile_path_column<'f: 'q>(&mut self, path: &'p R::QueryPath<'f>) -> Expression
     where
         R::QueryPath<'f>: PostgresQueryPath,
     {
         let (column, json_field) = path.terminating_column();
-        let parameter = json_field.map(|field| {
-            let (field, parameter) = field.into_owned(self.artifacts.parameters.len() + 1);
-            if let Some(parameter) = parameter {
-                self.artifacts.parameters.push(parameter);
-            }
-            field
-        });
+        let parameter = json_field.map(|field| self.bind_json_field(field));
 
         let alias = self.add_join_statements(path);
 
@@ -1740,6 +1505,47 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 expr: Box::new(column_expression),
                 index,
             },
+            Some(JsonField::ScalarEntries) => {
+                unreachable!("`ScalarEntries` should be handled by now")
+            }
+            Some(JsonField::ScalarEntriesParameter(index)) => {
+                // (SELECT jsonb_object_agg("scalar_property"."key", "scalar_property"."value")
+                //  FROM jsonb_each(<column>) AS "scalar_property"("key", "value")
+                //  WHERE jsonb_typeof("scalar_property"."value") = ANY($n::text[]))
+                Expression::Select(Box::new(
+                    SimpleSelect::builder()
+                        .selects(vec![SelectExpression::new(Function::JsonObjectAgg {
+                            key: Box::new(SCALAR_PROPERTY.column(&ScalarProperty::Key)),
+                            value: Box::new(SCALAR_PROPERTY.column(&ScalarProperty::Value)),
+                        })])
+                        .from(scalar_property_each(column_expression))
+                        .where_clause(
+                            Expression::from(Function::JsonTypeof(Box::new(
+                                SCALAR_PROPERTY.column(&ScalarProperty::Value),
+                            )))
+                            .r#in(
+                                Expression::Parameter(index)
+                                    .cast(PostgresType::Array(Box::new(PostgresType::Text))),
+                            ),
+                        )
+                        .build()
+                        .into(),
+                ))
+                .grouped()
+            }
+            Some(JsonField::EntryCount) => {
+                // ((SELECT count(*) FROM jsonb_each(<column>) AS "scalar_property"("key",
+                // "value"))::int4)
+                Expression::Select(Box::new(
+                    SimpleSelect::builder()
+                        .selects(vec![SelectExpression::new(Function::Count(None))])
+                        .from(scalar_property_each(column_expression))
+                        .build()
+                        .into(),
+                ))
+                .grouped()
+                .cast(PostgresType::Int4)
+            }
             Some(JsonField::Label { inheritance_depth }) => {
                 if let Some(label_path) =
                     <R as QueryRecord>::QueryPath::label_property_path(inheritance_depth)
@@ -1762,7 +1568,20 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     pub fn add_parameter(&mut self, parameter: &'p (dyn ToSql + Sync)) -> Expression {
-        self.artifacts.parameters.push(parameter);
+        self.artifacts
+            .parameters
+            .push(SqlParameter::Borrowed(parameter));
+        Expression::Parameter(self.artifacts.parameters.len())
+    }
+
+    /// Binds one owned value, typically a whole array, as a single statement parameter.
+    ///
+    /// The borrowed twin is [`Self::add_parameter`]. The owned form exists for values built
+    /// during compilation itself, which have no caller-owned home to borrow from.
+    pub fn add_owned_parameter(&mut self, parameter: Box<dyn ToSql + Sync + Send>) -> Expression {
+        self.artifacts
+            .parameters
+            .push(SqlParameter::Owned(parameter));
         Expression::Parameter(self.artifacts.parameters.len())
     }
 
@@ -1773,35 +1592,43 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ) -> (Expression, ParameterType) {
         let parameter_type = match parameter {
             Parameter::Decimal(number) => {
-                self.artifacts.parameters.push(number);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(number));
                 ParameterType::Decimal
             }
             Parameter::Text(text) => {
-                self.artifacts.parameters.push(text);
+                self.artifacts.parameters.push(SqlParameter::Borrowed(text));
                 ParameterType::Text
             }
             Parameter::Boolean(bool) => {
-                self.artifacts.parameters.push(bool);
+                self.artifacts.parameters.push(SqlParameter::Borrowed(bool));
                 ParameterType::Boolean
             }
             Parameter::Vector(vector) => {
-                self.artifacts.parameters.push(vector);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(vector));
                 ParameterType::Vector(Box::new(ParameterType::Decimal))
             }
             Parameter::Any(json) => {
-                self.artifacts.parameters.push(json);
+                self.artifacts.parameters.push(SqlParameter::Borrowed(json));
                 ParameterType::Any
             }
             Parameter::Uuid(uuid) => {
-                self.artifacts.parameters.push(uuid);
+                self.artifacts.parameters.push(SqlParameter::Borrowed(uuid));
                 ParameterType::Uuid
             }
             Parameter::OntologyTypeVersion(version) => {
-                self.artifacts.parameters.push(&**version);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(&**version));
                 ParameterType::OntologyTypeVersion
             }
             Parameter::Timestamp(timestamp) => {
-                self.artifacts.parameters.push(timestamp);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(timestamp));
                 ParameterType::Timestamp
             }
         };
@@ -1812,13 +1639,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         )
     }
 
-    #[instrument(level = "debug", skip_all)]
     /// Compiles a [`FilterExpression`] to an [`Expression`] and its parameter type.
     ///
     /// # Errors
     ///
     /// Returns [`SelectCompilerError::PendingParameterConversion`] when the parameter still
     /// carries a conversion; conversions have to be resolved before compilation.
+    #[instrument(level = "debug", skip_all)]
     pub fn compile_filter_expression<'f: 'q>(
         &mut self,
         expression: &'p FilterExpression<'f, R>,
@@ -1846,6 +1673,24 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 self.compile_parameter(parameter)
             }
         })
+    }
+
+    /// Compiles a filter expression that extracts text from a JSON column.
+    #[instrument(level = "debug", skip_all)]
+    fn compile_filter_expression_json<'f: 'q>(
+        &mut self,
+        lhs: &'p FilterExpression<'f, R>,
+    ) -> Result<Expression, Report<SelectCompilerError>>
+    where
+        R::QueryPath<'f>: PostgresQueryPath,
+    {
+        let (left_filter, left_parameter) = self.compile_filter_expression(lhs)?;
+        let left_filter = if left_parameter == ParameterType::Any {
+            Expression::Function(Function::JsonExtractText(Box::new(left_filter)))
+        } else {
+            left_filter
+        };
+        Ok(left_filter)
     }
 
     #[instrument(level = "debug", skip_all)]
@@ -1881,27 +1726,39 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ) -> (Expression, ParameterType) {
         let parameter_type = match parameters {
             ParameterList::DataTypeIds(uuids) => {
-                self.artifacts.parameters.push(uuids);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(uuids));
                 ParameterType::Uuid
             }
             ParameterList::PropertyTypeIds(uuids) => {
-                self.artifacts.parameters.push(uuids);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(uuids));
                 ParameterType::Uuid
             }
             ParameterList::EntityTypeIds(uuids) => {
-                self.artifacts.parameters.push(uuids);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(uuids));
                 ParameterType::Uuid
             }
             ParameterList::EntityEditionIds(uuids) => {
-                self.artifacts.parameters.push(uuids);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(uuids));
                 ParameterType::Uuid
             }
             ParameterList::EntityUuids(uuids) => {
-                self.artifacts.parameters.push(uuids);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(uuids));
                 ParameterType::Uuid
             }
             ParameterList::WebIds(web_ids) => {
-                self.artifacts.parameters.push(web_ids);
+                self.artifacts
+                    .parameters
+                    .push(SqlParameter::Borrowed(web_ids));
                 ParameterType::Uuid
             }
         };

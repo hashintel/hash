@@ -52,22 +52,15 @@ const listItemRowStyle = cva({
       true: {
         cursor: "pointer",
 
-        /* Reveal the action button on hover or when its menu is open */
+        /* Reveal the action button on hover or when its menu is open. Hidden
+           with `display` rather than `opacity` so it takes no space and the
+           label keeps the full row width until the button is shown. */
         "& [data-row-action]": {
-          opacity: "[0]",
-          transition: "[opacity 150ms ease-out]",
-        },
-        "& [data-row-action] svg": {
-          transform: "[translateX(2px)]",
-          transition: "[transform 150ms ease-out]",
+          display: "none",
         },
         "&:hover [data-row-action], & [data-row-action][data-state=open]": {
-          opacity: "[1]",
+          display: "flex",
         },
-        "&:hover [data-row-action] svg, & [data-row-action][data-state=open] svg":
-          {
-            transform: "none",
-          },
       },
     },
     isSelected: {
@@ -118,6 +111,7 @@ const listItemContentStyle = css({
 
 const listItemNameStyle = css({
   flex: "[1]",
+  minWidth: "[0]",
   fontSize: "sm",
   fontWeight: "medium",
   lineHeight: "snug",
@@ -125,6 +119,13 @@ const listItemNameStyle = css({
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+  /* renderItem may nest its own lines (e.g. a name with a subtitle); each
+     line truncates the same way plain-text items do. */
+  "& *": {
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
 });
 
 const LIST_ITEM_ICON_SIZE = 12;

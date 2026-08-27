@@ -15,14 +15,15 @@ const FIRING_ANIMATION_DURATION_MS = 300;
 const containerStyle = css({
   position: "relative",
   background: "[transparent]",
+  height: "full",
 });
 
 const transitionBoxStyle = cva({
   base: {
     padding: "2",
     borderRadius: "xl",
-    width: "[160px]",
-    height: "[80px]",
+    width: "full",
+    height: "full",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",

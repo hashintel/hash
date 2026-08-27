@@ -29,6 +29,19 @@ export interface ManifestPage {
   order: number;
 }
 
+/**
+ * How this bundle differs from the one a base ref would produce. Present only
+ * on diff builds; a host without diff styling can ignore it entirely.
+ */
+export interface ManifestDiff {
+  /** The ref the build compared against, e.g. `main`. */
+  baseRef: string;
+  /** The commit that ref resolved to at build time. */
+  baseSha: string;
+  /** Page slug → change. Unchanged pages are absent. */
+  pages: Record<string, "added" | "changed" | "removed">;
+}
+
 export interface BundleManifest {
   manifestVersion: number;
   modelVersion: number;
@@ -36,12 +49,14 @@ export interface BundleManifest {
   /** Relative path to the machine-readable model. */
   model: string;
   pages: ManifestPage[];
+  diff?: ManifestDiff;
 }
 
 export const buildManifest = (options: {
   generator: string;
   generated: GeneratedPage[];
   authored: AuthoredPage[];
+  diff?: ManifestDiff;
 }): BundleManifest => {
   const pages: ManifestPage[] = [
     ...options.generated.map((page) => ({
@@ -71,6 +86,7 @@ export const buildManifest = (options: {
     generator: options.generator,
     model: "architecture.json",
     pages,
+    ...(options.diff === undefined ? {} : { diff: options.diff }),
   };
 };
 

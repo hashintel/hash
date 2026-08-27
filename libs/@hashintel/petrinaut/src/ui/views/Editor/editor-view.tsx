@@ -7,7 +7,11 @@ import { use, useState } from "react";
 
 import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { calculateGraphLayout, type SDCPN } from "@hashintel/petrinaut-core";
+import {
+  calculateGraphLayout,
+  layoutNodeDimensions,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 import {
   deploymentPipelineSDCPN,
   probabilisticSatellitesSDCPN,
@@ -34,10 +38,6 @@ import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dial
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
-import {
-  classicNodeDimensions,
-  compactNodeDimensions,
-} from "../SDCPN/node-dimensions";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
@@ -151,10 +151,9 @@ export const EditorView = ({
   >(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
 
-  const { compactNodes, showWalkthroughOnInit, setShowWalkthroughOnInit } =
+  const { showWalkthroughOnInit, setShowWalkthroughOnInit } =
     use(UserSettingsContext);
   const walkthrough = use(WalkthroughContext);
-  const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
 
   // Live open state for the walkthrough. Seeded once from the persisted
   // "show on init" preference, so toggling that preference only takes effect
@@ -232,7 +231,10 @@ export const EditorView = ({
     // We must do this before createNewNet because after createNewNet triggers a
     // re-render, the mutatePetriNetDefinition closure would be stale.
     if (hadMissingPositions) {
-      const positions = await calculateGraphLayout(sdcpnToLoad, dims);
+      const positions = await calculateGraphLayout(
+        sdcpnToLoad,
+        layoutNodeDimensions,
+      );
 
       if (Object.keys(positions).length > 0) {
         sdcpnToLoad = {

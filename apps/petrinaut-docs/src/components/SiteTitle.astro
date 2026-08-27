@@ -1,14 +1,18 @@
 ---
 import Default from "@astrojs/starlight/components/SiteTitle.astro";
 
+import DiffBadges from "./DiffBadges.astro";
+
 /**
- * Adds the desktop sidebar collapse toggle and resize handle beside the title.
+ * Adds the desktop sidebar collapse toggle and resize handle beside the title,
+ * and — on diff builds — the badges saying what is being compared.
  *
  * They hang off `SiteTitle` because it is the header's leftmost slot, next to
  * the rail's edge where the controls act, and the fixed header is the only
  * chrome still on screen once the sidebar pane itself is collapsed away. Both
- * are display: none unless the page has a sidebar (see `chrome.css`), so the
- * splash-template 404 page does not grow controls with nothing to control.
+ * controls are display: none unless the page has a sidebar (see `chrome.css`),
+ * so the splash-template 404 page does not grow controls with nothing to
+ * control.
  */
 ---
 
@@ -35,6 +39,8 @@ import Default from "@astrojs/starlight/components/SiteTitle.astro";
 </button>
 
 <Default><slot /></Default>
+
+<DiffBadges />
 
 <div
   class="pnd-sidebar-resize"

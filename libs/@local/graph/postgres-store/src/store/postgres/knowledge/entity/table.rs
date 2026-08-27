@@ -1368,7 +1368,7 @@ mod tests {
                   AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
                   AND (("entity_temporal_metadata_0_0_0"."web_id" = ANY($3))
                   AND ("entity_editions_0_1_0"."archived" != $4))
-                  AND (("entity_edition_cache_1_1_0"."versioned_urls" @> ARRAY[$5]::text[]))),
+                  AND ("entity_edition_cache_1_1_0"."versioned_urls" @> ARRAY[$5]::text[])),
                 "limited" AS (SELECT *
                 FROM "roots"
                 ORDER BY "created_at_decision_time" DESC, "entity_uuid" DESC LIMIT 500)

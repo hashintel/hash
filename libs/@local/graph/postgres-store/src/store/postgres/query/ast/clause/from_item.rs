@@ -354,6 +354,42 @@ impl<'id> FromItem<'id> {
         }
     }
 
+    /// Joins with ON conditions: `self INNER JOIN <from> ON <conditions>`.
+    ///
+    /// An empty condition list transpiles to `ON TRUE`, the cartesian product.
+    #[must_use]
+    pub fn inner_join_on(
+        self,
+        from: impl Into<Self>,
+        conditions: impl IntoIterator<Item: Into<Expression>>,
+    ) -> Self {
+        Self::JoinOn {
+            left: Box::new(self),
+            join_type: JoinType::Inner,
+            right: Box::new(from.into()),
+            condition: conditions.into_iter().map(Into::into).collect(),
+        }
+    }
+
+    /// Joins with ON conditions, keeping every left row: `self LEFT OUTER JOIN <from> ON
+    /// <conditions>`.
+    ///
+    /// An empty condition list transpiles to `ON TRUE`, which keeps exactly one right row per
+    /// left row when the right side delivers one, as a `LATERAL` subquery does.
+    #[must_use]
+    pub fn left_join_on(
+        self,
+        from: impl Into<Self>,
+        conditions: impl IntoIterator<Item: Into<Expression>>,
+    ) -> Self {
+        Self::JoinOn {
+            left: Box::new(self),
+            join_type: JoinType::LeftOuter,
+            right: Box::new(from.into()),
+            condition: conditions.into_iter().map(Into::into).collect(),
+        }
+    }
+
     /// Creates a NATURAL JOIN using matching column names.
     #[must_use]
     pub fn natural_join(self, r#type: JoinType, from: impl Into<Self>) -> Self {

@@ -93,7 +93,7 @@
     "openai-chat-tokens": "0.2.8",
     "papaparse": "5.5.3",
     "pdf2json": "3.2.0",
-    "puppeteer-core": "22.15.0",
+    "puppeteer-core": "25.8.0",
     "sanitize-html": "2.17.5",
     "tsconfig-paths-webpack-plugin": "4.2.0",
     "tsx": "4.20.6",
