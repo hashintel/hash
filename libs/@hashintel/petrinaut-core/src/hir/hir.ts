@@ -31,12 +31,16 @@ export type HirNodeId = number;
 /**
  * The user-code surfaces the HIR can currently represent.
  *
- * `dynamics` — differential equations (`Dynamics(...)`)
- * `lambda` — transition firing predicates / stochastic rates (`Lambda(...)`)
- * `kernel` — transition kernels (`TransitionKernel(...)`)
- * `metric` — Monte-Carlo/timeline metrics: a bare function *body* over a
- *   `state` object (statements ending in `return <number>`), not an
- *   `export default` module.
+ * `dynamics`, `lambda`, and `kernel` code comes in two source forms (see
+ * `user-code-form.ts`): a bare function *body* with the input object and
+ * `parameters` ambient, or the legacy `export default <Ctor>(...)` module.
+ *
+ * `dynamics` — differential equations (input object `tokens`)
+ * `lambda` — transition firing predicates / stochastic rates (input object
+ *   `tokensByPlace`)
+ * `kernel` — transition kernels (input object `tokensByPlace`)
+ * `metric` — Monte-Carlo/timeline metrics: always a bare function *body*
+ *   over a `state` object (statements ending in `return <number>`).
  * `scenario-expression` — one scenario expression (a parameter override or
  *   an uncoloured place's initial token count), with `parameters` and
  *   `scenario` ambient.

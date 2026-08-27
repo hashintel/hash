@@ -386,26 +386,22 @@ export default Visualization(({ tokens, parameters }) => {
         lambdaType: "stochastic",
         lambdaCode: `// Supplier A places orders at a constant configured rate (only while
 // Supplier A is in the Available place, which gates this transition).
-export default Lambda((input, parameters) => {
-  return parameters.supplier_a_order_rate;
-});`,
+return parameters.supplier_a_order_rate;`,
         transitionKernelCode: `// Create one inbound Shipment token from Supplier A.
-export default TransitionKernel((input, parameters) => {
-  // Lead time is sampled from a Gaussian whose spread scales with the mean
-  // (a coefficient of variation), then clamped so the ETA is always positive.
-  const mean = Math.max(0.1, parameters.supplier_a_lead_time);
-  const sd = Math.max(0.01, mean * parameters.lead_time_cv);
-  const eta = Distribution.Gaussian(mean, sd).map(v => Math.max(0.1, v));
-  return {
-    InboundShipments: [{
-      eta,
-      // risk_score in [0,1]; the multiplier makes A more or less reliable.
-      risk_score: Distribution.Uniform(0, 1).map(v => Math.min(1, v * parameters.supplier_a_risk_multiplier)),
-      source: 1, // 1 = Supplier A (used by the inbound visualizer for colour).
-      cost: parameters.supplier_a_cost,
-    }],
-  };
-});`,
+// Lead time is sampled from a Gaussian whose spread scales with the mean
+// (a coefficient of variation), then clamped so the ETA is always positive.
+const mean = Math.max(0.1, parameters.supplier_a_lead_time);
+const sd = Math.max(0.01, mean * parameters.lead_time_cv);
+const eta = Distribution.Gaussian(mean, sd).map(v => Math.max(0.1, v));
+return {
+  InboundShipments: [{
+    eta,
+    // risk_score in [0,1]; the multiplier makes A more or less reliable.
+    risk_score: Distribution.Uniform(0, 1).map(v => Math.min(1, v * parameters.supplier_a_risk_multiplier)),
+    source: 1, // 1 = Supplier A (used by the inbound visualizer for colour).
+    cost: parameters.supplier_a_cost,
+  }],
+};`,
         x: 120,
         y: 180,
       },
@@ -431,24 +427,20 @@ export default TransitionKernel((input, parameters) => {
         ],
         lambdaType: "stochastic",
         lambdaCode: `// Low-cost Supplier B orders at its own rate while it is Available.
-export default Lambda((input, parameters) => {
-  return parameters.supplier_b_order_rate;
-});`,
+return parameters.supplier_b_order_rate;`,
         transitionKernelCode: `// Same shipment-creation logic as Supplier A, but with B's lead time,
 // risk multiplier, and cost — typically cheaper but slower and riskier.
-export default TransitionKernel((input, parameters) => {
-  const mean = Math.max(0.1, parameters.supplier_b_lead_time);
-  const sd = Math.max(0.01, mean * parameters.lead_time_cv);
-  const eta = Distribution.Gaussian(mean, sd).map(v => Math.max(0.1, v));
-  return {
-    InboundShipments: [{
-      eta,
-      risk_score: Distribution.Uniform(0, 1).map(v => Math.min(1, v * parameters.supplier_b_risk_multiplier)),
-      source: 2, // 2 = Supplier B.
-      cost: parameters.supplier_b_cost,
-    }],
-  };
-});`,
+const mean = Math.max(0.1, parameters.supplier_b_lead_time);
+const sd = Math.max(0.01, mean * parameters.lead_time_cv);
+const eta = Distribution.Gaussian(mean, sd).map(v => Math.max(0.1, v));
+return {
+  InboundShipments: [{
+    eta,
+    risk_score: Distribution.Uniform(0, 1).map(v => Math.min(1, v * parameters.supplier_b_risk_multiplier)),
+    source: 2, // 2 = Supplier B.
+    cost: parameters.supplier_b_cost,
+  }],
+};`,
         x: 120,
         y: 525,
       },
@@ -472,12 +464,10 @@ export default TransitionKernel((input, parameters) => {
         lambdaCode: `// Supplier A randomly becomes disrupted: this moves the Supplier A token
 // from Available to Down, which then stops new Supplier A orders until it
 // recovers. The rate is constant (a memoryless time-to-failure).
-export default Lambda((input, parameters) => {
-  return parameters.supplier_a_disruption_rate;
-});`,
+return parameters.supplier_a_disruption_rate;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 675,
         y: 150,
       },
@@ -499,12 +489,10 @@ export default TransitionKernel(() => ({}));`,
         ],
         lambdaType: "stochastic",
         lambdaCode: `// A disrupted Supplier A recovers at this rate, returning to Available.
-export default Lambda((input, parameters) => {
-  return parameters.supplier_a_repair_rate;
-});`,
+return parameters.supplier_a_repair_rate;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 120,
         y: 90,
       },
@@ -526,12 +514,10 @@ export default TransitionKernel(() => ({}));`,
         ],
         lambdaType: "stochastic",
         lambdaCode: `// Supplier B disruption — same Available -> Down mechanism as Supplier A.
-export default Lambda((input, parameters) => {
-  return parameters.supplier_b_disruption_rate;
-});`,
+return parameters.supplier_b_disruption_rate;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 675,
         y: 585,
       },
@@ -553,12 +539,10 @@ export default TransitionKernel(() => ({}));`,
         ],
         lambdaType: "stochastic",
         lambdaCode: `// A disrupted Supplier B recovers at this rate, returning to Available.
-export default Lambda((input, parameters) => {
-  return parameters.supplier_b_repair_rate;
-});`,
+return parameters.supplier_b_repair_rate;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 1245,
         y: 195,
       },
@@ -582,13 +566,11 @@ export default TransitionKernel(() => ({}));`,
         lambdaCode: `// An inbound shipment is received cleanly once it has arrived (eta counted
 // down to 0) AND its risk score is below the damage threshold. Higher-risk
 // shipments instead fire the competing "damaged" transition below.
-export default Lambda((input, parameters) => {
-  const shipment = input.InboundShipments[0];
-  return shipment.eta <= 0 && shipment.risk_score < parameters.inbound_damage_threshold;
-});`,
+const shipment = tokensByPlace.InboundShipments[0];
+return shipment.eta <= 0 && shipment.risk_score < parameters.inbound_damage_threshold;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 675,
         y: 285,
       },
@@ -611,13 +593,11 @@ export default TransitionKernel(() => ({}));`,
         lambdaType: "predicate",
         lambdaCode: `// The mutually-exclusive partner of "received": an arrived shipment whose
 // risk score is at or above the threshold is scrapped as damaged inbound.
-export default Lambda((input, parameters) => {
-  const shipment = input.InboundShipments[0];
-  return shipment.eta <= 0 && shipment.risk_score >= parameters.inbound_damage_threshold;
-});`,
+const shipment = tokensByPlace.InboundShipments[0];
+return shipment.eta <= 0 && shipment.risk_score >= parameters.inbound_damage_threshold;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 675,
         y: 435,
       },
@@ -650,30 +630,26 @@ export default TransitionKernel(() => ({}));`,
         lambdaCode: `// Production only starts when the machine is healthy enough; below the
 // minimum-health threshold the rate is 0, so a worn machine effectively
 // stalls the line until it is repaired or maintained.
-export default Lambda((input, parameters) => {
-  const machine = input.MachineUp[0];
-  return machine.health >= parameters.min_machine_health ? parameters.production_rate : 0;
-});`,
+const machine = tokensByPlace.MachineUp[0];
+return machine.health >= parameters.min_machine_health ? parameters.production_rate : 0;`,
         transitionKernelCode: `// Consume raw material + the machine, and emit a new WorkInProcess batch
 // while returning the (now slightly more worn) machine to MachineUp.
-export default TransitionKernel((input, parameters) => {
-  const machine = input.MachineUp[0];
-  // Remaining processing time for the batch, sampled and floored at 0.25.
-  const processing = Distribution.Gaussian(parameters.production_time_mean, parameters.production_time_sd).map(v => Math.max(0.25, v));
-  // Each batch adds wear and removes a little health from the machine.
-  const wear = Math.min(1, machine.wear + parameters.wear_per_pallet);
-  const health = Math.max(0, machine.health - parameters.wear_per_pallet * 0.5);
-  return {
-    MachineUp: [{ health, wear }],
-    WorkInProcess: [{
-      processing_left: processing,
-      // Starting quality degrades as the machine wears; clamped to [0, 1].
-      quality: Distribution.Gaussian(0.96 - wear * parameters.wear_quality_penalty, 0.06).map(q => Math.max(0, Math.min(1, q))),
-      source_mix: 0.5,
-      cost: parameters.production_unit_cost + wear * parameters.wear_cost_penalty,
-    }],
-  };
-});`,
+const machine = tokensByPlace.MachineUp[0];
+// Remaining processing time for the batch, sampled and floored at 0.25.
+const processing = Distribution.Gaussian(parameters.production_time_mean, parameters.production_time_sd).map(v => Math.max(0.25, v));
+// Each batch adds wear and removes a little health from the machine.
+const wear = Math.min(1, machine.wear + parameters.wear_per_pallet);
+const health = Math.max(0, machine.health - parameters.wear_per_pallet * 0.5);
+return {
+  MachineUp: [{ health, wear }],
+  WorkInProcess: [{
+    processing_left: processing,
+    // Starting quality degrades as the machine wears; clamped to [0, 1].
+    quality: Distribution.Gaussian(0.96 - wear * parameters.wear_quality_penalty, 0.06).map(q => Math.max(0, Math.min(1, q))),
+    source_mix: 0.5,
+    cost: parameters.production_unit_cost + wear * parameters.wear_cost_penalty,
+  }],
+};`,
         x: 1245,
         y: 300,
       },
@@ -696,13 +672,11 @@ export default TransitionKernel((input, parameters) => {
         lambdaType: "predicate",
         lambdaCode: `// A batch becomes a finished good once processing is complete AND its
 // (wear- and decay-affected) quality still meets the minimum standard.
-export default Lambda((input, parameters) => {
-  const batch = input.WorkInProcess[0];
-  return batch.processing_left <= 0 && batch.quality >= parameters.min_quality;
-});`,
+const batch = tokensByPlace.WorkInProcess[0];
+return batch.processing_left <= 0 && batch.quality >= parameters.min_quality;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 1800,
         y: 435,
       },
@@ -725,13 +699,11 @@ export default TransitionKernel(() => ({}));`,
         lambdaType: "predicate",
         lambdaCode: `// The competing outcome to "passes quality": a finished batch below the
 // minimum quality is sent to Scrap instead of FinishedGoods.
-export default Lambda((input, parameters) => {
-  const batch = input.WorkInProcess[0];
-  return batch.processing_left <= 0 && batch.quality < parameters.min_quality;
-});`,
+const batch = tokensByPlace.WorkInProcess[0];
+return batch.processing_left <= 0 && batch.quality < parameters.min_quality;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 1800,
         y: 285,
       },
@@ -755,15 +727,11 @@ export default TransitionKernel(() => ({}));`,
         lambdaCode: `// Breakdown hazard rises with wear and with poor health: a worn or unhealthy
 // machine fails far more often than the base rate. This is what makes
 // preventive maintenance worthwhile.
-export default Lambda((input, parameters) => {
-  const machine = input.MachineUp[0];
-  return parameters.machine_breakdown_rate * (1 + machine.wear * 3 + Math.max(0, 0.5 - machine.health));
-});`,
+const machine = tokensByPlace.MachineUp[0];
+return parameters.machine_breakdown_rate * (1 + machine.wear * 3 + Math.max(0, 0.5 - machine.health));`,
         transitionKernelCode: `// Move the machine to the Down place, knocking off a chunk of health.
-export default TransitionKernel((input) => {
-  const machine = input.MachineUp[0];
-  return { MachineDown: [{ health: Math.max(0, machine.health - 0.15), wear: machine.wear }] };
-});`,
+const machine = tokensByPlace.MachineUp[0];
+return { MachineDown: [{ health: Math.max(0, machine.health - 0.15), wear: machine.wear }] };`,
         x: 120,
         y: 720,
       },
@@ -785,15 +753,11 @@ export default TransitionKernel((input) => {
         ],
         lambdaType: "stochastic",
         lambdaCode: `// A broken machine is repaired at a constant rate (mean time-to-repair).
-export default Lambda((input, parameters) => {
-  return parameters.machine_repair_rate;
-});`,
+return parameters.machine_repair_rate;`,
         transitionKernelCode: `// Repair restores most health and removes most wear, returning the machine
 // to the Up place — a large but incomplete reset compared with maintenance.
-export default TransitionKernel((input) => {
-  const machine = input.MachineDown[0];
-  return { MachineUp: [{ health: Math.min(1, machine.health + 0.55), wear: Math.max(0, machine.wear * 0.45) }] };
-});`,
+const machine = tokensByPlace.MachineDown[0];
+return { MachineUp: [{ health: Math.min(1, machine.health + 0.55), wear: Math.max(0, machine.wear * 0.45) }] };`,
         x: 675,
         y: 705,
       },
@@ -817,16 +781,12 @@ export default TransitionKernel((input) => {
         lambdaCode: `// Preventive maintenance happens on the running machine (Up -> Up). It is
 // performed much more eagerly once wear passes 25%, and only occasionally
 // otherwise, so the strategy is "service it before it breaks".
-export default Lambda((input, parameters) => {
-  const machine = input.MachineUp[0];
-  return machine.wear > 0.25 ? parameters.maintenance_rate * (1 + machine.wear) : parameters.maintenance_rate * 0.2;
-});`,
+const machine = tokensByPlace.MachineUp[0];
+return machine.wear > 0.25 ? parameters.maintenance_rate * (1 + machine.wear) : parameters.maintenance_rate * 0.2;`,
         transitionKernelCode: `// Maintenance boosts health and shaves off some wear without taking the
 // machine offline — cheaper and less disruptive than a full repair.
-export default TransitionKernel((input, parameters) => {
-  const machine = input.MachineUp[0];
-  return { MachineUp: [{ health: Math.min(1, machine.health + parameters.maintenance_health_boost), wear: Math.max(0, machine.wear * 0.65) }] };
-});`,
+const machine = tokensByPlace.MachineUp[0];
+return { MachineUp: [{ health: Math.min(1, machine.health + parameters.maintenance_health_boost), wear: Math.max(0, machine.wear * 0.65) }] };`,
         x: 1245,
         y: 765,
       },
@@ -843,23 +803,19 @@ export default TransitionKernel((input, parameters) => {
         lambdaType: "stochastic",
         lambdaCode: `// Customers arrive at a constant rate. This transition has no input arcs,
 // so it acts as an external (Poisson) arrival source for new orders.
-export default Lambda((input, parameters) => {
-  return parameters.demand_rate;
-});`,
+return parameters.demand_rate;`,
         transitionKernelCode: `// Create one new open order, classified as VIP or standard.
-export default TransitionKernel((input, parameters) => {
-  // Draw ONE uniform sample and reuse it via .map() so that priority and the
-  // promised lead time stay consistent (a VIP both has priority 1 AND the
-  // shorter promise). Sampling twice could give contradictory results.
-  const priorityDraw = Distribution.Uniform(0, 1);
-  return {
-    OpenOrders: [{
-      age: 0,
-      priority: priorityDraw.map(v => v < parameters.vip_fraction ? 1 : 0),
-      promised_lead_time: priorityDraw.map(v => v < parameters.vip_fraction ? 1.5 : 3.5),
-    }],
-  };
-});`,
+// Draw ONE uniform sample and reuse it via .map() so that priority and the
+// promised lead time stay consistent (a VIP both has priority 1 AND the
+// shorter promise). Sampling twice could give contradictory results.
+const priorityDraw = Distribution.Uniform(0, 1);
+return {
+  OpenOrders: [{
+    age: 0,
+    priority: priorityDraw.map(v => v < parameters.vip_fraction ? 1 : 0),
+    promised_lead_time: priorityDraw.map(v => v < parameters.vip_fraction ? 1.5 : 3.5),
+  }],
+};`,
         x: 1800,
         y: 585,
       },
@@ -888,24 +844,20 @@ export default TransitionKernel((input, parameters) => {
         lambdaCode: `// Fulfil an order directly from stock. This transition needs both an open
 // order AND a finished good (two standard input arcs), so it only fires when
 // inventory is available. VIP orders are served faster via a rate boost.
-export default Lambda((input, parameters) => {
-  const order = input.OpenOrders[0];
-  const priorityBoost = order.priority > 0.5 ? 1.6 : 1;
-  return parameters.fulfillment_rate * priorityBoost;
-});`,
+const order = tokensByPlace.OpenOrders[0];
+const priorityBoost = order.priority > 0.5 ? 1.6 : 1;
+return parameters.fulfillment_rate * priorityBoost;`,
         transitionKernelCode: `// Turn the fulfilled order into an outbound shipment.
-export default TransitionKernel((input, parameters) => {
-  const order = input.OpenOrders[0];
-  const eta = Distribution.Gaussian(parameters.outbound_lead_time, parameters.outbound_lead_time * 0.25).map(v => Math.max(0.05, v));
-  return {
-    OutboundShipments: [{
-      eta,
-      risk_score: Distribution.Uniform(0, 1),
-      source: order.priority > 0.5 ? 9 : 8, // 8/9 mark standard/VIP from-stock shipments.
-      cost: parameters.outbound_cost + (order.priority > 0.5 ? 3 : 0),
-    }],
-  };
-});`,
+const order = tokensByPlace.OpenOrders[0];
+const eta = Distribution.Gaussian(parameters.outbound_lead_time, parameters.outbound_lead_time * 0.25).map(v => Math.max(0.05, v));
+return {
+  OutboundShipments: [{
+    eta,
+    risk_score: Distribution.Uniform(0, 1),
+    source: order.priority > 0.5 ? 9 : 8, // 8/9 mark standard/VIP from-stock shipments.
+    cost: parameters.outbound_cost + (order.priority > 0.5 ? 3 : 0),
+  }],
+};`,
         x: 2355,
         y: 450,
       },
@@ -935,16 +887,12 @@ export default TransitionKernel((input, parameters) => {
 // arc from FinishedGoods means this can ONLY fire when stock is empty, and we
 // also wait until the order has exceeded its promised lead time (rate 0 until
 // then). VIP orders are escalated to backorder sooner.
-export default Lambda((input, parameters) => {
-  const order = input.OpenOrders[0];
-  if (order.age < order.promised_lead_time) return 0;
-  return parameters.backorder_conversion_rate * (order.priority > 0.5 ? 1.8 : 1);
-});`,
+const order = tokensByPlace.OpenOrders[0];
+if (order.age < order.promised_lead_time) return 0;
+return parameters.backorder_conversion_rate * (order.priority > 0.5 ? 1.8 : 1);`,
         transitionKernelCode: `// Carry the order's age, priority, and promise across to the Backorders place.
-export default TransitionKernel((input) => {
-  const order = input.OpenOrders[0];
-  return { Backorders: [{ age: order.age, priority: order.priority, promised_lead_time: order.promised_lead_time }] };
-});`,
+const order = tokensByPlace.OpenOrders[0];
+return { Backorders: [{ age: order.age, priority: order.priority, promised_lead_time: order.promised_lead_time }] };`,
         x: 2355,
         y: 585,
       },
@@ -973,23 +921,19 @@ export default TransitionKernel((input) => {
         lambdaCode: `// Once stock is replenished, backorders are cleared (again favouring VIPs).
 // Requires both a backorder and a finished good, so it competes with new
 // open-order fulfilment for the same inventory.
-export default Lambda((input, parameters) => {
-  const order = input.Backorders[0];
-  return parameters.backorder_fulfillment_rate * (order.priority > 0.5 ? 1.7 : 1);
-});`,
+const order = tokensByPlace.Backorders[0];
+return parameters.backorder_fulfillment_rate * (order.priority > 0.5 ? 1.7 : 1);`,
         transitionKernelCode: `// Ship the backordered item. Late backorders cost more (the age surcharge),
 // reflecting expediting and goodwill costs.
-export default TransitionKernel((input, parameters) => {
-  const order = input.Backorders[0];
-  return {
-    OutboundShipments: [{
-      eta: Distribution.Gaussian(parameters.outbound_lead_time, parameters.outbound_lead_time * 0.35).map(v => Math.max(0.05, v)),
-      risk_score: Distribution.Uniform(0, 1),
-      source: order.priority > 0.5 ? 7 : 6, // 6/7 mark standard/VIP backorder shipments.
-      cost: parameters.outbound_cost + 2 + order.age * 0.1,
-    }],
-  };
-});`,
+const order = tokensByPlace.Backorders[0];
+return {
+  OutboundShipments: [{
+    eta: Distribution.Gaussian(parameters.outbound_lead_time, parameters.outbound_lead_time * 0.35).map(v => Math.max(0.05, v)),
+    risk_score: Distribution.Uniform(0, 1),
+    source: order.priority > 0.5 ? 7 : 6, // 6/7 mark standard/VIP backorder shipments.
+    cost: parameters.outbound_cost + 2 + order.age * 0.1,
+  }],
+};`,
         x: 2925,
         y: 390,
       },
@@ -1013,14 +957,12 @@ export default TransitionKernel((input, parameters) => {
         lambdaCode: `// Waiting customers may give up. The cancellation hazard grows with the
 // order's age, so long-unfilled backorders are increasingly likely to be
 // lost. VIPs are modelled as slightly more patient (lower multiplier).
-export default Lambda((input, parameters) => {
-  const order = input.Backorders[0];
-  const vipPatience = order.priority > 0.5 ? 0.6 : 1;
-  return vipPatience * (parameters.cancel_base_rate + order.age * parameters.cancel_age_factor);
-});`,
+const order = tokensByPlace.Backorders[0];
+const vipPatience = order.priority > 0.5 ? 0.6 : 1;
+return vipPatience * (parameters.cancel_base_rate + order.age * parameters.cancel_age_factor);`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 2925,
         y: 615,
       },
@@ -1044,13 +986,11 @@ export default TransitionKernel(() => ({}));`,
         lambdaCode: `// Last-mile delivery succeeds when the outbound shipment has arrived and its
 // risk score is below the loss threshold — the demand-side mirror of the
 // inbound received/damaged split.
-export default Lambda((input, parameters) => {
-  const shipment = input.OutboundShipments[0];
-  return shipment.eta <= 0 && shipment.risk_score < parameters.outbound_loss_threshold;
-});`,
+const shipment = tokensByPlace.OutboundShipments[0];
+return shipment.eta <= 0 && shipment.risk_score < parameters.outbound_loss_threshold;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 3480,
         y: 540,
       },
@@ -1073,13 +1013,11 @@ export default TransitionKernel(() => ({}));`,
         lambdaType: "predicate",
         lambdaCode: `// The competing outcome to delivery: an arrived shipment at or above the
 // loss threshold is lost in transit and never reaches the customer.
-export default Lambda((input, parameters) => {
-  const shipment = input.OutboundShipments[0];
-  return shipment.eta <= 0 && shipment.risk_score >= parameters.outbound_loss_threshold;
-});`,
+const shipment = tokensByPlace.OutboundShipments[0];
+return shipment.eta <= 0 && shipment.risk_score >= parameters.outbound_loss_threshold;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 3480,
         y: 390,
       },
@@ -1192,13 +1130,11 @@ export default TransitionKernel(() => ({}));`,
 // return DERIVATIVES, so eta: -1 means "decrease eta at rate 1"; once it
 // reaches 0 the derivative becomes 0 (it holds, ready for arrival predicates).
 // All other attributes are constant during transit (derivative 0).
-export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ eta }) => ({
-    eta: eta > 0 ? -1 : 0,
-    risk_score: 0,
-    cost: 0,
-  }));
-});`,
+return tokens.map(({ eta }) => ({
+  eta: eta > 0 ? -1 : 0,
+  risk_score: 0,
+  cost: 0,
+}));`,
       },
       {
         id: "dyn_order_age",
@@ -1206,13 +1142,11 @@ export default Dynamics((tokens, parameters) => {
         colorId: "type_order",
         code: `// Every waiting order ages at a constant rate (age derivative = 1), driving
 // the backorder-conversion and cancellation hazards that depend on age.
-export default Dynamics((tokens, parameters) => {
-  return tokens.map(() => ({
-    age: 1,
-    priority: 0,
-    promised_lead_time: 0,
-  }));
-});`,
+return tokens.map(() => ({
+  age: 1,
+  priority: 0,
+  promised_lead_time: 0,
+}));`,
       },
       {
         id: "dyn_batch_processing",
@@ -1221,16 +1155,14 @@ export default Dynamics((tokens, parameters) => {
         code: `// While a batch is in process, processing_left counts down toward 0 and its
 // quality slowly decays. So a batch that sits in WIP too long can drift below
 // the minimum quality and end up scrapped rather than finished.
-export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ processing_left, quality, source_mix, cost }) => ({
-    processing_left: processing_left > 0 ? -parameters.production_progress_rate : 0,
-    // Decay stops at 0 so quality stays within its implied [0, 1] range
-    // (a batch is scrapped once it falls below the minimum quality anyway).
-    quality: quality > 0 ? -parameters.quality_decay_rate : 0,
-    source_mix: 0,
-    cost: 0,
-  }));
-});`,
+return tokens.map(({ processing_left, quality, source_mix, cost }) => ({
+  processing_left: processing_left > 0 ? -parameters.production_progress_rate : 0,
+  // Decay stops at 0 so quality stays within its implied [0, 1] range
+  // (a batch is scrapped once it falls below the minimum quality anyway).
+  quality: quality > 0 ? -parameters.quality_decay_rate : 0,
+  source_mix: 0,
+  cost: 0,
+}));`,
       },
       {
         id: "dyn_machine_health",
@@ -1239,13 +1171,11 @@ export default Dynamics((tokens, parameters) => {
         code: `// The running machine continuously loses a little health and gains a little
 // wear even between batches. Combined with the per-batch wear in production,
 // this is the slow degradation that maintenance and repair counteract.
-export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ health, wear }) => ({
-    health: health > 0 ? -parameters.machine_health_decay : 0,
-    // Wear accrues only up to 1 so it stays within its implied [0, 1] range.
-    wear: wear < 1 ? parameters.machine_wear_rate : 0,
-  }));
-});`,
+return tokens.map(({ health, wear }) => ({
+  health: health > 0 ? -parameters.machine_health_decay : 0,
+  // Wear accrues only up to 1 so it stays within its implied [0, 1] range.
+  wear: wear < 1 ? parameters.machine_wear_rate : 0,
+}));`,
       },
     ],
     parameters: [

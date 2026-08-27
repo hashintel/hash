@@ -263,9 +263,7 @@ export default Visualization(({ tokens }) => {
  * places, so it behaves like an external arrival process feeding the
  * DeploymentReady queue.
  */
-export default Lambda((input, parameters) => {
-  return parameters.deployment_creation_rate;
-});`,
+return parameters.deployment_creation_rate;`,
         transitionKernelCode: `/**
  * Create one coloured Deployment token.
  *
@@ -276,19 +274,17 @@ export default Lambda((input, parameters) => {
  * - age starts at zero and is advanced by the Deployment Age dynamics while the
  *   token waits or runs.
  */
-export default TransitionKernel((input, parameters) => {
-  const size = Distribution.Lognormal(Math.log(Math.max(0.1, parameters.mean_deployment_size)), 0.35);
-  const rawRisk = Distribution.Gaussian(0.28 * parameters.deployment_risk_multiplier, 0.16);
-  return {
-    DeploymentReady: [
-      {
-        size,
-        risk: rawRisk.map(r => Math.max(0.02, Math.min(0.95, r))),
-        age: 0,
-      },
-    ],
-  };
-});`,
+const size = Distribution.Lognormal(Math.log(Math.max(0.1, parameters.mean_deployment_size)), 0.35);
+const rawRisk = Distribution.Gaussian(0.28 * parameters.deployment_risk_multiplier, 0.16);
+return {
+  DeploymentReady: [
+    {
+      size,
+      risk: rawRisk.map(r => Math.max(0.02, Math.min(0.95, r))),
+      age: 0,
+    },
+  ],
+};`,
         x: -90,
         y: 0,
       },
@@ -311,9 +307,7 @@ export default TransitionKernel((input, parameters) => {
  * creates one IncidentBeingInvestigated token, which then blocks the deployment
  * start gate via the inhibitor arc.
  */
-export default Lambda((input, parameters) => {
-  return parameters.incident_rate;
-});`,
+return parameters.incident_rate;`,
         transitionKernelCode: `/**
  * Create one coloured Incident token.
  *
@@ -321,17 +315,15 @@ export default Lambda((input, parameters) => {
  * clamped to [0.05, 1]. Higher-severity incidents resolve more slowly in the
  * Close Incident transition, so this sampled attribute affects later dynamics.
  */
-export default TransitionKernel((input, parameters) => {
-  const rawSeverity = Distribution.Gaussian(0.45 * parameters.incident_severity_multiplier, 0.2);
-  return {
-    IncidentBeingInvestigated: [
-      {
-        severity: rawSeverity.map(s => Math.max(0.05, Math.min(1, s))),
-        age: 0,
-      },
-    ],
-  };
-});`,
+const rawSeverity = Distribution.Gaussian(0.45 * parameters.incident_severity_multiplier, 0.2);
+return {
+  IncidentBeingInvestigated: [
+    {
+      severity: rawSeverity.map(s => Math.max(0.05, Math.min(1, s))),
+      age: 0,
+    },
+  ],
+};`,
         x: 450,
         y: 585,
       },
@@ -371,7 +363,7 @@ export default TransitionKernel((input, parameters) => {
  * - IncidentBeingInvestigated is an inhibitor arc, so any active incident blocks firing.
  * - DeploymentInProgress is an inhibitor arc, so only one deployment may run at a time.
  */
-export default Lambda(() => true);`,
+return true;`,
         transitionKernelCode: `/**
  * Move a deployment from the ready queue into the in-progress lane.
  *
@@ -379,18 +371,16 @@ export default Lambda(() => true);`,
  * in-progress visualizer and downstream completion/failure logic can interpret
  * age as time spent running rather than time spent waiting in the queue.
  */
-export default TransitionKernel((input) => {
-  const deployment = input.DeploymentReady[0];
-  return {
-    DeploymentInProgress: [
-      {
-        size: deployment.size,
-        risk: deployment.risk,
-        age: 0,
-      },
-    ],
-  };
-});`,
+const deployment = tokensByPlace.DeploymentReady[0];
+return {
+  DeploymentInProgress: [
+    {
+      size: deployment.size,
+      risk: deployment.risk,
+      age: 0,
+    },
+  ],
+};`,
         x: 480,
         y: 0,
       },
@@ -419,12 +409,10 @@ export default TransitionKernel((input) => {
  * complete more slowly, and risky deployments get a modest slowdown to represent
  * extra validation, caution, or late-stage friction.
  */
-export default Lambda((input, parameters) => {
-  const deployment = input.DeploymentInProgress[0];
-  const sizePenalty = Math.max(0.25, deployment.size);
-  const riskPenalty = Math.max(0.15, 1 - deployment.risk * 0.45);
-  return parameters.deployment_finish_base_rate * riskPenalty / sizePenalty;
-});`,
+const deployment = tokensByPlace.DeploymentInProgress[0];
+const sizePenalty = Math.max(0.25, deployment.size);
+const riskPenalty = Math.max(0.15, 1 - deployment.risk * 0.45);
+return parameters.deployment_finish_base_rate * riskPenalty / sizePenalty;`,
         transitionKernelCode: `/**
  * Record a successful deployment.
  *
@@ -432,18 +420,16 @@ export default Lambda((input, parameters) => {
  * metrics can still inspect the size, risk, and elapsed run age of releases that
  * made it through the pipeline.
  */
-export default TransitionKernel((input) => {
-  const deployment = input.DeploymentInProgress[0];
-  return {
-    CompletedDeployments: [
-      {
-        size: deployment.size,
-        risk: deployment.risk,
-        age: deployment.age,
-      },
-    ],
-  };
-});`,
+const deployment = tokensByPlace.DeploymentInProgress[0];
+return {
+  CompletedDeployments: [
+    {
+      size: deployment.size,
+      risk: deployment.risk,
+      age: deployment.age,
+    },
+  ],
+};`,
         x: 480,
         y: 165,
       },
@@ -472,10 +458,8 @@ export default TransitionKernel((input) => {
  * incident leaves IncidentBeingInvestigated, the inhibitor arc on Start
  * Deployment no longer blocks the release gate.
  */
-export default Lambda((input, parameters) => {
-  const incident = input.IncidentBeingInvestigated[0];
-  return parameters.incident_resolution_rate / Math.max(0.2, incident.severity);
-});`,
+const incident = tokensByPlace.IncidentBeingInvestigated[0];
+return parameters.incident_resolution_rate / Math.max(0.2, incident.severity);`,
         transitionKernelCode: `/**
  * Move an incident to the resolved archive.
  *
@@ -483,17 +467,15 @@ export default Lambda((input, parameters) => {
  * history of operational load, even though resolved incidents no longer block
  * deployments.
  */
-export default TransitionKernel((input) => {
-  const incident = input.IncidentBeingInvestigated[0];
-  return {
-    ResolvedIncidents: [
-      {
-        severity: incident.severity,
-        age: incident.age,
-      },
-    ],
-  };
-});`,
+const incident = tokensByPlace.IncidentBeingInvestigated[0];
+return {
+  ResolvedIncidents: [
+    {
+      severity: incident.severity,
+      age: incident.age,
+    },
+  ],
+};`,
         x: 930,
         y: 510,
       },
@@ -527,12 +509,10 @@ export default TransitionKernel((input) => {
  * When this fires, the in-progress deployment is consumed and an incident is
  * opened, which then blocks future starts through the inhibitor arc.
  */
-export default Lambda((input, parameters) => {
-  const deployment = input.DeploymentInProgress[0];
-  const risk = Math.max(0, Math.min(1, deployment.risk));
-  const size = Math.max(0.25, deployment.size);
-  return parameters.deployment_failure_base_rate * parameters.deployment_risk_multiplier * risk * size;
-});`,
+const deployment = tokensByPlace.DeploymentInProgress[0];
+const risk = Math.max(0, Math.min(1, deployment.risk));
+const size = Math.max(0.25, deployment.size);
+return parameters.deployment_failure_base_rate * parameters.deployment_risk_multiplier * risk * size;`,
         transitionKernelCode: `/**
  * Turn a failed deployment into both an audit record and an active incident.
  *
@@ -541,28 +521,26 @@ export default Lambda((input, parameters) => {
  * plus Gaussian noise. The severity is clamped to [0.05, 1] so incident handling
  * remains numerically stable and visually interpretable.
  */
-export default TransitionKernel((input, parameters) => {
-  const deployment = input.DeploymentInProgress[0];
-  const rawSeverity = Distribution.Gaussian(
-    Math.min(1, 0.25 + deployment.risk * 0.65 * parameters.incident_severity_multiplier),
-    0.12
-  );
-  return {
-    FailedDeployments: [
-      {
-        size: deployment.size,
-        risk: deployment.risk,
-        age: deployment.age,
-      },
-    ],
-    IncidentBeingInvestigated: [
-      {
-        severity: rawSeverity.map(s => Math.max(0.05, Math.min(1, s))),
-        age: 0,
-      },
-    ],
-  };
-});`,
+const deployment = tokensByPlace.DeploymentInProgress[0];
+const rawSeverity = Distribution.Gaussian(
+  Math.min(1, 0.25 + deployment.risk * 0.65 * parameters.incident_severity_multiplier),
+  0.12
+);
+return {
+  FailedDeployments: [
+    {
+      size: deployment.size,
+      risk: deployment.risk,
+      age: deployment.age,
+    },
+  ],
+  IncidentBeingInvestigated: [
+    {
+      severity: rawSeverity.map(s => Math.max(0.05, Math.min(1, s))),
+      age: 0,
+    },
+  ],
+};`,
         x: 450,
         y: 405,
       },
@@ -618,13 +596,11 @@ export default TransitionKernel((input, parameters) => {
         code: `// A simple clock: every deployment's age increases at rate 1 (size and risk
 // are fixed at creation, so their derivatives are 0). Age is used to estimate
 // progress in the deployment-lane visualizer.
-export default Dynamics((tokens) => {
-  return tokens.map(() => ({
-    size: 0,
-    risk: 0,
-    age: 1,
-  }));
-});`,
+return tokens.map(() => ({
+  size: 0,
+  risk: 0,
+  age: 1,
+}));`,
       },
       {
         id: "dynamics__incident_age",
@@ -632,12 +608,10 @@ export default Dynamics((tokens) => {
         colorId: "type__incident",
         code: `// Clock for incidents: age rises at rate 1 while severity stays fixed. Older,
 // higher-severity incidents take longer to resolve in the Close Incident rate.
-export default Dynamics((tokens) => {
-  return tokens.map(() => ({
-    severity: 0,
-    age: 1,
-  }));
-});`,
+return tokens.map(() => ({
+  severity: 0,
+  age: 1,
+}));`,
       },
     ],
     parameters: [

@@ -59,17 +59,15 @@ Differential equations define how token data evolves continuously over time. The
 2. Give it a name and associate it with a **type** (the equation applies to tokens of that type).
 3. Select a place, enable **Dynamics**, and choose an equation that matches the type assigned to the place.
 
-**Function signature:**
+**Function body:**
 
 ```ts
-export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ x, y }) => {
-    return { x: /* dx/dt */, y: /* dy/dt */ };
-  });
+return tokens.map(({ x, y }) => {
+  return { x: /* dx/dt */, y: /* dy/dt */ };
 });
 ```
 
-The function receives the current token values and global parameters. It must return an array of derivative objects -- one per token, with entries for the type's **Real** dimensions only. Integer, Boolean, UUID, and String dimensions are discrete: dynamics leave them unchanged (they can be read from the input tokens, but returning a derivative for them is a type error). A type with no Real dimensions has no dynamics to run.
+The code is a plain function body ending in `return`, with `tokens` (the current token values) and `parameters` (the global parameters) in scope. Older documents may wrap the same code as `export default Dynamics((tokens, parameters) => { ... })`; that form still works. It must return an array of derivative objects -- one per token, with entries for the type's **Real** dimensions only. Integer, Boolean, UUID, and String dimensions are discrete: dynamics leave them unchanged (they can be read from the input tokens, but returning a derivative for them is a type error). A type with no Real dimensions has no dynamics to run.
 
 <img width="1707" height="1055" alt="diff-equations" src="https://github.com/user-attachments/assets/bb18dc15-e43c-4233-974a-70ff9a0c1978" />
 
@@ -112,12 +110,12 @@ The **Transition Results** editor is shown only when the transition has at least
 When a coloured output arc first makes a kernel available, Petrinaut inserts a starter template based on the transition's typed output places. You can replace or edit that code directly.
 
 ```ts
-export default TransitionKernel((tokensByPlace, parameters) => {
-  return {
-    OutputPlace: [{ x: tokensByPlace.InputPlace[0].x + 1 }],
-  };
-});
+return {
+  OutputPlace: [{ x: tokensByPlace.InputPlace[0].x + 1 }],
+};
 ```
+
+The code is a plain function body ending in `return`, with `tokensByPlace` and `parameters` in scope. Older documents may wrap the same code as `export default TransitionKernel((tokensByPlace, parameters) => { ... })`; that form still works.
 
 `tokensByPlace` is keyed by **place name**. Each value is a tuple of token objects -- one entry per token consumed from that arc, sized to the arc weight. The return value is keyed by **output place name**, each containing an array of token objects to produce sized to the output arc weight. Output values must match each dimension's type: numbers for Real and Integer dimensions (Integer values are rounded), `true`/`false` for Boolean dimensions, plain text for String dimensions (the editor requires the field; a value that is missing at runtime falls back to the empty string), and for UUID dimensions either nothing at all (omit the field to auto-generate a fresh identifier from the simulation seed), `Uuid.generate()`, `Uuid.from(value)`, a UUID string, or a forwarded input token's UUID. Transition kernels are the only place discrete (Integer/Boolean/UUID/String) dimensions get new values.
 
@@ -172,10 +170,10 @@ If neither condition applies, the transition has no lambda editor. It fires when
 The function returns a **boolean**. The transition fires immediately when it returns `true`.
 
 ```ts
-export default Lambda((tokensByPlace, parameters) => {
-  return tokensByPlace.MyPlace[0].progress >= 1.0;
-});
+return tokensByPlace.MyPlace[0].progress >= 1.0;
 ```
+
+Like kernels, lambda code is a plain function body with `tokensByPlace` and `parameters` in scope (the older `export default Lambda((tokensByPlace, parameters) => { ... })` form still works).
 
 Use predicates for deterministic guards based on token state.
 
@@ -188,9 +186,7 @@ The function returns a **number** representing the average firing rate per secon
 - `Infinity` -- fires immediately when enabled.
 
 ```ts
-export default Lambda((tokensByPlace, parameters) => {
-  return parameters.rate;
-});
+return parameters.rate;
 ```
 
 The same `tokensByPlace` rules from the [Transition kernel](#transition-kernel) section apply: only typed input places appear, and only for normal arcs. A transition with **no input arcs** therefore sees an empty `tokensByPlace` and is always structurally enabled -- this is how you model exogenous arrivals (see [Source transitions](useful-patterns.md#source-transitions-exogenous-arrivals)).

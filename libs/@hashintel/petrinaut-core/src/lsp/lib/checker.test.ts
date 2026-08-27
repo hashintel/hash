@@ -1493,4 +1493,156 @@ describe("checkSDCPN", () => {
       ).toContain("restricted TypeScript subset");
     });
   });
+
+  describe("Bare-body form", () => {
+    const bareBodySdcpn = (transition: {
+      lambdaCode?: string;
+      transitionKernelCode?: string;
+      lambdaType?: "predicate" | "stochastic";
+    }) =>
+      createSDCPN({
+        types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
+        places: [
+          { id: "place1", name: "Source", colorId: "color1" },
+          { id: "place2", name: "Target", colorId: "color1" },
+        ],
+        parameters: [
+          {
+            id: "param1",
+            name: "Rate",
+            variableName: "rate",
+            type: "real",
+            defaultValue: "1",
+          },
+        ],
+        transitions: [
+          {
+            id: "t1",
+            lambdaType: transition.lambdaType ?? "predicate",
+            inputArcs: [{ placeId: "place1", weight: 1, type: "standard" }],
+            outputArcs: [{ placeId: "place2", weight: 1 }],
+            lambdaCode: transition.lambdaCode ?? "",
+            transitionKernelCode: transition.transitionKernelCode ?? "",
+          },
+        ],
+      });
+
+    it("accepts bare bodies for lambda and kernel", () => {
+      const sdcpn = bareBodySdcpn({
+        lambdaCode: `return tokensByPlace.Source[0].x > parameters.rate;`,
+        transitionKernelCode: `const source = tokensByPlace.Source[0];
+return { Target: [{ x: source.x + parameters.rate }] };`,
+      });
+
+      const result = check(sdcpn);
+
+      expect(result.itemDiagnostics).toHaveLength(0);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("accepts a bare body for a differential equation", () => {
+      const sdcpn = createSDCPN({
+        types: [{ id: "color1", elements: [{ name: "x", type: "real" }] }],
+        differentialEquations: [
+          {
+            colorId: "color1",
+            code: `return tokens.map(({ x }) => {
+  return { x: -x * parameters.rate };
+});`,
+          },
+        ],
+        parameters: [
+          {
+            id: "param1",
+            name: "Rate",
+            variableName: "rate",
+            type: "real",
+            defaultValue: "1",
+          },
+        ],
+      });
+
+      const result = check(sdcpn);
+
+      expect(result.itemDiagnostics).toHaveLength(0);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("positions type errors on the offending identifier in a bare body", () => {
+      const code = `return tokensByPlace.Missing[0].x > 0;`;
+      const sdcpn = bareBodySdcpn({ lambdaCode: code });
+
+      const result = check(sdcpn);
+
+      expect(result.isValid).toBe(false);
+      const lambdaItem = result.itemDiagnostics.find(
+        (item) => item.itemType === "transition-lambda",
+      )!;
+      const diagnostic = lambdaItem.diagnostics[0]!;
+      expect(
+        ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"),
+      ).toContain("Missing");
+      expect(diagnostic.start).toBe(code.indexOf("Missing"));
+    });
+
+    it("rejects a predicate lambda body returning a number", () => {
+      const sdcpn = bareBodySdcpn({
+        lambdaCode: `return parameters.rate;`,
+        lambdaType: "predicate",
+      });
+
+      const result = check(sdcpn);
+
+      expect(result.isValid).toBe(false);
+      const lambdaItem = result.itemDiagnostics.find(
+        (item) => item.itemType === "transition-lambda",
+      )!;
+      expect(lambdaItem.diagnostics.length).toBeGreaterThan(0);
+    });
+
+    it("accepts a stochastic lambda body returning a number", () => {
+      const sdcpn = bareBodySdcpn({
+        lambdaCode: `return parameters.rate;`,
+        lambdaType: "stochastic",
+      });
+
+      const result = check(sdcpn);
+
+      const lambdaItems = result.itemDiagnostics.filter(
+        (item) => item.itemType === "transition-lambda",
+      );
+      expect(lambdaItems).toHaveLength(0);
+    });
+
+    it("treats an empty lambda as valid (runtime default applies)", () => {
+      const sdcpn = bareBodySdcpn({
+        lambdaCode: "",
+        transitionKernelCode: `return { Target: [{ x: 1 }] };`,
+      });
+
+      const result = check(sdcpn);
+
+      expect(result.itemDiagnostics).toHaveLength(0);
+      expect(result.isValid).toBe(true);
+    });
+
+    it("reports a missing return in a kernel body via the HIR lint", () => {
+      const sdcpn = bareBodySdcpn({
+        transitionKernelCode: `const x = 1;`,
+      });
+
+      const result = check(sdcpn);
+
+      expect(result.isValid).toBe(false);
+      const kernelItem = result.itemDiagnostics.find(
+        (item) => item.itemType === "transition-kernel",
+      )!;
+      const hirDiagnostic = kernelItem.diagnostics.find(
+        (diag) => diag.source === "hir",
+      )!;
+      expect(
+        ts.flattenDiagnosticMessageText(hirDiagnostic.messageText, "\n"),
+      ).toContain("return");
+    });
+  });
 });

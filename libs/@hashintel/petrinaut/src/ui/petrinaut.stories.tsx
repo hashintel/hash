@@ -288,14 +288,10 @@ const colouredTokenFlowNet: SDCPN = {
       inputArcs: [{ placeId: "p_queued", weight: 1, type: "standard" }],
       outputArcs: [{ placeId: "p_processed", weight: 1 }],
       lambdaType: "predicate",
-      lambdaCode: `export default Lambda((tokensByPlace) => {
-  return tokensByPlace.Queued[0].age >= 0;
-});`,
-      transitionKernelCode: `export default TransitionKernel((tokensByPlace) => {
-  return {
-    Processed: [{ age: tokensByPlace.Queued[0].age + 1 }],
-  };
-});`,
+      lambdaCode: `return tokensByPlace.Queued[0].age >= 0;`,
+      transitionKernelCode: `return {
+  Processed: [{ age: tokensByPlace.Queued[0].age + 1 }],
+};`,
       x: 320,
       y: 205,
     },
@@ -342,14 +338,10 @@ const colouredDynamicsNet: SDCPN = {
       inputArcs: [{ placeId: "p_heating", weight: 1, type: "standard" }],
       outputArcs: [{ placeId: "p_ready", weight: 1 }],
       lambdaType: "predicate",
-      lambdaCode: `export default Lambda((tokensByPlace) => {
-  return tokensByPlace.Heating[0].temperature >= 80;
-});`,
-      transitionKernelCode: `export default TransitionKernel((tokensByPlace) => {
-  return {
-    Ready: [{ temperature: tokensByPlace.Heating[0].temperature }],
-  };
-});`,
+      lambdaCode: `return tokensByPlace.Heating[0].temperature >= 80;`,
+      transitionKernelCode: `return {
+  Ready: [{ temperature: tokensByPlace.Heating[0].temperature }],
+};`,
       x: 320,
       y: 205,
     },
@@ -371,9 +363,7 @@ const colouredDynamicsNet: SDCPN = {
       id: "de_heat_up",
       name: "Heat up",
       colorId: "type_batch",
-      code: `export default Dynamics((tokens) => {
-  return tokens.map(() => ({ temperature: 5 }));
-});`,
+      code: `return tokens.map(() => ({ temperature: 5 }));`,
     },
   ],
 };
@@ -407,9 +397,7 @@ const stochasticTimingNet: SDCPN = {
       inputArcs: [],
       outputArcs: [{ placeId: "p_queue", weight: 1 }],
       lambdaType: "stochastic",
-      lambdaCode: `export default Lambda(() => {
-  return 0.5;
-});`,
+      lambdaCode: `return 0.5;`,
       transitionKernelCode: "",
       x: 80,
       y: 205,
@@ -420,9 +408,7 @@ const stochasticTimingNet: SDCPN = {
       inputArcs: [{ placeId: "p_queue", weight: 1, type: "standard" }],
       outputArcs: [{ placeId: "p_served", weight: 1 }],
       lambdaType: "predicate",
-      lambdaCode: `export default Lambda(() => {
-  return true;
-});`,
+      lambdaCode: `return true;`,
       transitionKernelCode: "",
       x: 460,
       y: 205,

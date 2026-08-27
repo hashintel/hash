@@ -1,15 +1,18 @@
 /**
- * Lowers user-authored TypeScript modules into the HIR.
+ * Lowers user-authored TypeScript into the HIR.
  *
  * The lowering accepts the analyzable subset of TypeScript that Petrinaut
- * user code is written in: a module of the form
+ * user code is written in. Dynamics/lambda/kernel code comes in two forms
+ * (see `user-code-form.ts`): a module of the form
  *
  *   export default <Ctor>((tokens, parameters) => <expression or block>)
  *
- * where the body is a pure expression tree — `const` bindings (with object
- * and array destructuring), guard-clause `if`/early returns, ternaries,
- * arithmetic/logic, `Math.*` calls, token/parameter access, `.map(...)`
- * comprehensions and `Distribution.*` constructors.
+ * or a bare function body ending in `return`, with the input object and
+ * `parameters` ambient. Either way the body is a pure expression tree —
+ * `const` bindings (with object and array destructuring), guard-clause
+ * `if`/early returns, ternaries, arithmetic/logic, `Math.*` calls,
+ * token/parameter access, `.map(...)` comprehensions and `Distribution.*`
+ * constructors.
  *
  * Anything outside that subset short-circuits lowering and produces a single
  * `HirDiagnostic` whose span points at the offending syntax in the
@@ -20,6 +23,11 @@
 import ts from "typescript";
 
 import { HIR_MATH_FNS, HIR_STRING_FNS, walkHir } from "./hir";
+import {
+  AMBIENT_INPUT_NAMES,
+  detectUserCodeForm,
+  type DualFormSurfaceKind,
+} from "./user-code-form";
 
 import type {
   HirBinaryOp,
@@ -37,17 +45,17 @@ export type LowerTypeScriptResult =
   | { ok: true; fn: HirFunction; diagnostics: HirDiagnostic[] }
   | { ok: false; diagnostics: HirDiagnostic[] };
 
-/** Bare-body surfaces are wrapped for parsing instead of expecting an
- * `export default <Ctor>(...)` module. */
-type HirModuleSurfaceKind = Exclude<
-  HirSurfaceKind,
-  "metric" | "scenario-expression" | "scenario-code"
->;
-
-const CONSTRUCTOR_NAMES: Record<HirModuleSurfaceKind, string> = {
+const CONSTRUCTOR_NAMES: Record<DualFormSurfaceKind, string> = {
   dynamics: "Dynamics",
   lambda: "Lambda",
   kernel: "TransitionKernel",
+};
+
+/** User-facing surface names for bare-body diagnostics. */
+const SURFACE_LABELS: Record<DualFormSurfaceKind, string> = {
+  dynamics: "Differential equation",
+  lambda: "Lambda",
+  kernel: "Transition kernel",
 };
 
 /**
@@ -275,6 +283,61 @@ class Lowering {
     };
   }
 
+  /**
+   * Lowers a wrapped dynamics/lambda/kernel bare body (see
+   * `bareBodyPrefix`): `(tokens, parameters) => { <user body> }` with the
+   * surface's ambient names as the wrapper's parameters. Spans are still
+   * relative to the wrapped text — the caller shifts them back onto the raw
+   * user body.
+   */
+  lowerDualFormBareBody(surface: DualFormSurfaceKind): HirFunction {
+    const [statement, ...rest] = this.sourceFile.statements;
+    if (rest.length > 0) {
+      this.fail(
+        rest[0]!,
+        "hir:unsupported-statement",
+        `${SURFACE_LABELS[surface]} code must be a single function body ending in \`return\`.`,
+      );
+    }
+    const arrow =
+      statement &&
+      ts.isExpressionStatement(statement) &&
+      ts.isArrowFunction(statement.expression)
+        ? statement.expression
+        : null;
+    const arrowBody = arrow && ts.isBlock(arrow.body) ? arrow.body : null;
+    if (!arrow || !arrowBody) {
+      throw new LowerError({
+        code: "hir:unsupported-syntax",
+        message: `${SURFACE_LABELS[surface]} code must be a function body ending in \`return\`.`,
+        severity: "error",
+        span: { start: 0, length: Math.max(this.sourceFile.text.length, 1) },
+      });
+    }
+    const inputName = AMBIENT_INPUT_NAMES[surface];
+    const [inputParam, parametersParam] = arrow.parameters;
+    const scope: LowerScope = {
+      locals: new Set([inputName]),
+      distributionLocals: new Set(),
+      destructuredFields: new Map(),
+      parameterAliases: new Map(),
+      parametersName: "parameters",
+      scenarioAliases: new Map(),
+      scenarioName: null,
+    };
+    const body = this.lowerBlock(arrowBody, scope);
+    return {
+      hirVersion: 1,
+      surface,
+      params: [
+        { name: inputName, span: this.spanOf(inputParam!.name) },
+        { name: "parameters", span: this.spanOf(parametersParam!.name) },
+      ],
+      body,
+      span: this.spanOf(arrow),
+    };
+  }
+
   /** The scope scenario code starts in: no locals, both ambient objects. */
   private scenarioScope(): LowerScope {
     return {
@@ -336,10 +399,11 @@ class Lowering {
   }
 
   lowerModule(): HirFunction {
-    // Wrapped bare-body surfaces (metric, scenario) dispatch in
-    // `lowerTypeScriptToHir` and never reach this method.
+    // Wrapped bare-body code (metric and scenario surfaces, and the bare-body
+    // form of dynamics/lambda/kernel) dispatches in `lowerTypeScriptToHir`
+    // and never reaches this method.
     const constructorName = CONSTRUCTOR_NAMES[
-      this.surface as HirModuleSurfaceKind
+      this.surface as DualFormSurfaceKind
     ] as string | undefined;
     if (!constructorName) {
       throw new Error(
@@ -1800,13 +1864,22 @@ function lowerWrappedBodyToHir(
   }
 }
 
+/** Parsing wrapper for the bare-body form of a dynamics/lambda/kernel
+ * surface: the ambient names become the wrapper arrow's parameters. */
+function bareBodyPrefix(surface: DualFormSurfaceKind): string {
+  return `(${AMBIENT_INPUT_NAMES[surface]}, parameters) => {\n`;
+}
+
+const BARE_BODY_SUFFIX = "\n}";
+
 /**
  * Lowers user-authored TypeScript to an `HirFunction`.
  *
- * For module surfaces (dynamics/lambda/kernel), `code` must be the
- * user-visible `export default Ctor(...)` module. For the `metric` and
- * `scenario-code` surfaces it is a bare function body ending in `return`;
- * for `scenario-expression` a single expression. All spans in the result are
+ * For dynamics/lambda/kernel surfaces, `code` is either the user-visible
+ * `export default Ctor(...)` module or a bare function body ending in
+ * `return` (see `user-code-form.ts`). For the `metric` and `scenario-code`
+ * surfaces it is always a bare function body ending in `return`; for
+ * `scenario-expression` a single expression. All spans in the result are
  * relative to `code`. Returns `ok: false` with a positioned diagnostic when
  * the code is syntactically invalid or falls outside the analyzable subset.
  */
@@ -1822,6 +1895,17 @@ export function lowerTypeScriptToHir(
       wrapped.prefix,
       wrapped.suffix,
       wrapped.lower,
+    );
+  }
+
+  const dualFormSurface = surface as DualFormSurfaceKind;
+  if (detectUserCodeForm(code) === "body") {
+    return lowerWrappedBodyToHir(
+      code,
+      surface,
+      bareBodyPrefix(dualFormSurface),
+      BARE_BODY_SUFFIX,
+      (lowering) => lowering.lowerDualFormBareBody(dualFormSurface),
     );
   }
 

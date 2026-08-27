@@ -6,8 +6,10 @@ import {
   getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../../extensions";
+import { AMBIENT_INPUT_NAMES } from "../../hir";
 import { SCENARIO_HELPER_TYPE_DECLARATIONS } from "../../simulation/authoring/scenario/helpers";
 import { TYPE_POLICIES } from "../../simulation/engine/type-policies";
+import { applyFormWrapper } from "./create-language-service-host";
 import { getItemFilePath } from "./file-paths";
 
 import type {
@@ -91,6 +93,50 @@ function toKernelOutputTokenType(
   return properties.length > 0
     ? `{\n${properties}\n}`
     : "Record<string, never>";
+}
+
+/**
+ * Builds a dual-form code file for a dynamics/lambda/kernel item. The module
+ * wrapper declares the constructor for `export default <Ctor>(...)` code; the
+ * body wrapper types the code as a bare function body whose parameters are
+ * the surface's ambient input object and `parameters`. The body wrapper's
+ * return type is widened with `| void` so an empty or unfinished body is not
+ * a TypeScript error — the HIR lint reports a missing `return` with a
+ * friendlier, correctly-positioned message, and an empty lambda is valid
+ * (the runtime default applies).
+ */
+function dualFormCodeFile(options: {
+  content: string;
+  surface: keyof typeof AMBIENT_INPUT_NAMES;
+  /** Lines injected before module-form code (constructor import + declare). */
+  modulePrefixLines: string[];
+  /** Import lines for the types the body wrapper's signature references. */
+  bodyImportLines: string[];
+  /** TypeScript type of the ambient input object. */
+  inputType: string;
+  /** Declared return type of the body (before `| void` widening). */
+  returnType: string;
+  parametersDefsPath: string;
+}): VirtualFile {
+  const inputName = AMBIENT_INPUT_NAMES[options.surface];
+  return applyFormWrapper({
+    content: options.content,
+    formWrappers: {
+      module: {
+        prefix: `${options.modulePrefixLines.join("\n")}\n`,
+        suffix: "",
+      },
+      body: {
+        prefix: [
+          `import type { Parameters } from "${options.parametersDefsPath}";`,
+          ...options.bodyImportLines,
+          `function __${options.surface}(${inputName}: ${options.inputType}, parameters: Parameters): ${options.returnType} | void {`,
+          "",
+        ].join("\n"),
+        suffix: "\n}",
+      },
+    },
+  });
 }
 
 /**
@@ -230,25 +276,33 @@ export function generateVirtualFiles(
           : "",
         ``,
         sanitizedColorId
-          ? `type Tokens = Array<Color_${sanitizedColorId}>;`
-          : `type Tokens = Array<number>;`,
+          ? `export type Tokens = Array<Color_${sanitizedColorId}>;`
+          : `export type Tokens = Array<number>;`,
         color
-          ? `type Derivative = ${toDynamicsDerivativeType(color)};`
-          : `type Derivative = Record<string, never>;`,
+          ? `export type Derivative = ${toDynamicsDerivativeType(color)};`
+          : `export type Derivative = Record<string, never>;`,
         `export type Dynamics = (fn: (tokens: Tokens, parameters: Parameters) => Derivative[]) => void;`,
       ].join("\n"),
     });
 
-    // User code file with injected declarations
-    files.set(deCodePath, {
-      prefix: [
-        `import type { Dynamics } from "${deDefsPath}";`,
-        // TODO: Directly wrap user code in Dynamics call to remove need for user to write it.
-        `declare const Dynamics: Dynamics;`,
-        "",
-      ].join("\n"),
-      content: de.code,
-    });
+    // User code file, wrapped according to its authoring form
+    files.set(
+      deCodePath,
+      dualFormCodeFile({
+        content: de.code,
+        surface: "dynamics",
+        modulePrefixLines: [
+          `import type { Dynamics } from "${deDefsPath}";`,
+          `declare const Dynamics: Dynamics;`,
+        ],
+        bodyImportLines: [
+          `import type { Derivative, Tokens } from "${deDefsPath}";`,
+        ],
+        inputType: "Tokens",
+        returnType: "Derivative[]",
+        parametersDefsPath,
+      }),
+    );
   }
 
   // Generate files for each transition
@@ -382,15 +436,22 @@ export function generateVirtualFiles(
         ].join("\n"),
       });
 
-      // Lambda code file
-      files.set(lambdaCodePath, {
-        prefix: [
-          `import type { Lambda } from "${lambdaDefsPath}";`,
-          `declare const Lambda: Lambda;`,
-          "",
-        ].join("\n"),
-        content: transition.lambdaCode,
-      });
+      // Lambda code file, wrapped according to its authoring form
+      files.set(
+        lambdaCodePath,
+        dualFormCodeFile({
+          content: transition.lambdaCode,
+          surface: "lambda",
+          modulePrefixLines: [
+            `import type { Lambda } from "${lambdaDefsPath}";`,
+            `declare const Lambda: Lambda;`,
+          ],
+          bodyImportLines: [`import type { Input } from "${lambdaDefsPath}";`],
+          inputType: "Input",
+          returnType: lambdaReturnType,
+          parametersDefsPath,
+        }),
+      );
     }
 
     if (availability.transitionKernel) {
@@ -407,15 +468,24 @@ export function generateVirtualFiles(
         ].join("\n"),
       });
 
-      // TransitionKernel code file
-      files.set(kernelCodePath, {
-        prefix: [
-          `import type { TransitionKernel } from "${kernelDefsPath}";`,
-          `declare const TransitionKernel: TransitionKernel;`,
-          "",
-        ].join("\n"),
-        content: transition.transitionKernelCode,
-      });
+      // TransitionKernel code file, wrapped according to its authoring form
+      files.set(
+        kernelCodePath,
+        dualFormCodeFile({
+          content: transition.transitionKernelCode,
+          surface: "kernel",
+          modulePrefixLines: [
+            `import type { TransitionKernel } from "${kernelDefsPath}";`,
+            `declare const TransitionKernel: TransitionKernel;`,
+          ],
+          bodyImportLines: [
+            `import type { Input, Output } from "${kernelDefsPath}";`,
+          ],
+          inputType: "Input",
+          returnType: "Output",
+          parametersDefsPath,
+        }),
+      );
     }
   }
 

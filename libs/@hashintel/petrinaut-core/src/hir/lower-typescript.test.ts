@@ -50,8 +50,17 @@ describe("lowerTypeScriptToHir", () => {
       expect(fn.body.kind).toBe("arrayMap");
     });
 
-    it("rejects a missing default export with a full-file span", () => {
-      const [diagnostic] = lowerErr(`const x = 1;`, "lambda");
+    it("rejects non-default exports on the module path", () => {
+      const [diagnostic] = lowerErr(`export const x = 1;`, "lambda");
+      expect(diagnostic!.code).toBe("hir:unsupported-statement");
+    });
+
+    it("rejects extra statements alongside the default export", () => {
+      const [diagnostic] = lowerErr(
+        `const x = 1;
+export default Lambda((input, parameters) => x);`,
+        "lambda",
+      );
       expect(diagnostic!.code).toBe("hir:unsupported-statement");
     });
 
@@ -556,6 +565,120 @@ describe("lowerTypeScriptToHir", () => {
         "lambda",
       );
       expect(diagnostic!.code).toBe("hir:concat-arity");
+    });
+  });
+
+  describe("bare-body form (dynamics/lambda/kernel)", () => {
+    it("lowers a kernel body with ambient tokensByPlace and parameters", () => {
+      const fn = lowerOk(
+        `return { Target: [{ x: tokensByPlace.Source[0].x + parameters.step }] };`,
+        "kernel",
+      );
+      expect(fn.surface).toBe("kernel");
+      expect(fn.params.map((parameter) => parameter.name)).toEqual([
+        "tokensByPlace",
+        "parameters",
+      ]);
+      expect(fn.body.kind).toBe("recordLit");
+    });
+
+    it("lowers a dynamics body with ambient tokens", () => {
+      const fn = lowerOk(
+        `return tokens.map(({ x }) => {
+  return { x: -x * parameters.decay };
+});`,
+        "dynamics",
+      );
+      expect(fn.surface).toBe("dynamics");
+      expect(fn.params.map((parameter) => parameter.name)).toEqual([
+        "tokens",
+        "parameters",
+      ]);
+      expect(fn.body.kind).toBe("arrayMap");
+    });
+
+    it("lowers the same HIR body as the equivalent module form", () => {
+      const bodyFn = lowerOk(`return parameters.rate * 2;`, "lambda");
+      const moduleFn = lowerOk(
+        `export default Lambda((tokensByPlace, parameters) => parameters.rate * 2);`,
+        "lambda",
+      );
+      expect(bodyFn.params.map((parameter) => parameter.name)).toEqual(
+        moduleFn.params.map((parameter) => parameter.name),
+      );
+      expect(bodyFn.body).toMatchObject({
+        kind: "binary",
+        op: "*",
+        left: { kind: "paramRef", name: "rate" },
+        right: { kind: "numberLit", value: 2 },
+      });
+      expect(moduleFn.body).toMatchObject({
+        kind: "binary",
+        op: "*",
+        left: { kind: "paramRef", name: "rate" },
+        right: { kind: "numberLit", value: 2 },
+      });
+    });
+
+    it("lowers destructuring from the ambient objects", () => {
+      const fn = lowerOk(
+        `const { rate } = parameters;
+const { Source } = tokensByPlace;
+return Source.length * rate;`,
+        "lambda",
+      );
+      const paramRefs: string[] = [];
+      walkHir(fn.body, (node) => {
+        if (node.kind === "paramRef") {
+          paramRefs.push(node.name);
+        }
+      });
+      expect(paramRefs).toEqual(["rate"]);
+    });
+
+    it("requires the body to end in a return", () => {
+      const [diagnostic] = lowerErr(`const x = 1;`, "lambda");
+      expect(diagnostic!.code).toBe("hir:missing-return");
+    });
+
+    it("treats comments mentioning exports as body form", () => {
+      const fn = lowerOk(
+        `// export default Lambda used to be required here
+return 1;`,
+        "lambda",
+      );
+      expect(fn.body).toMatchObject({ kind: "numberLit", value: 1 });
+    });
+
+    it("maps node and diagnostic spans onto the raw body", () => {
+      const code = `const total = tokensByPlace.Source.length;
+return total;`;
+      const fn = lowerOk(code, "lambda");
+      const letExpr = fn.body as Extract<HirExpr, { kind: "let" }>;
+      const binding = letExpr.bindings[0]!;
+      expect(
+        code.slice(
+          binding.nameSpan.start,
+          binding.nameSpan.start + binding.nameSpan.length,
+        ),
+      ).toBe("total");
+
+      const errCode = `return missing;`;
+      const [diagnostic] = lowerErr(errCode, "kernel");
+      expect(diagnostic!.code).toBe("hir:unknown-identifier");
+      expect(
+        errCode.slice(
+          diagnostic!.span.start,
+          diagnostic!.span.start + diagnostic!.span.length,
+        ),
+      ).toBe("missing");
+    });
+
+    it("shifts parse-error spans onto the raw body", () => {
+      const code = `return 1 +;`;
+      const [diagnostic] = lowerErr(code, "kernel");
+      expect(diagnostic!.code).toBe("hir:parse-error");
+      expect(diagnostic!.span.start).toBeLessThanOrEqual(code.length);
     });
   });
 

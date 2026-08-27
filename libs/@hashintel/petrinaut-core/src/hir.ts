@@ -83,6 +83,12 @@ export {
   type LowerTypeScriptResult,
 } from "./hir/lower-typescript";
 export {
+  AMBIENT_INPUT_NAMES,
+  detectUserCodeForm,
+  type DualFormSurfaceKind,
+  type UserCodeForm,
+} from "./hir/user-code-form";
+export {
   lowerScenarioToHir,
   type ScenarioHir,
   type ScenarioHirItem,

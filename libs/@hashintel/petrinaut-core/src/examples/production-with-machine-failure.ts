@@ -139,19 +139,15 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
           lambdaType: "predicate",
           lambdaCode: `// Production finishes when the batch's transformation progress (advanced by
 // the Production Dynamics) reaches 100%.
-export default Lambda((tokens) => {
-  return tokens.MachinesProducing[0].transformation_progress >= 1;
-})`,
+return tokensByPlace.MachinesProducing[0].transformation_progress >= 1;`,
           transitionKernelCode: `// On success the machine returns to the AvailableMachines pool, carrying its
 // accumulated damage with it. The GoodProduct output place is uncoloured, so
 // it simply gains a token (no attributes to set here).
-export default TransitionKernel((tokensByPlace) => {
-  return {
-    AvailableMachines: [
-      { machine_damage_ratio: tokensByPlace.MachinesProducing[0].machine_damage_ratio }
-    ],
-  };
-});`,
+return {
+  AvailableMachines: [
+    { machine_damage_ratio: tokensByPlace.MachinesProducing[0].machine_damage_ratio }
+  ],
+};`,
           x: 48 * GRID_SIZE,
           y: -15 * GRID_SIZE,
         },
@@ -180,20 +176,16 @@ export default TransitionKernel((tokensByPlace) => {
 // Raising the damage ratio (in [0,1]) to the 100th power keeps the hazard
 // almost zero for healthy machines and only spikes as damage approaches 1,
 // so machines mostly fail when they are already badly worn.
-export default Lambda((tokens) => {
-  return tokens.MachinesProducing[0].machine_damage_ratio ** 100;
-})`,
+return tokensByPlace.MachinesProducing[0].machine_damage_ratio ** 100;`,
           transitionKernelCode: `// A failed machine moves to BrokenMachines, keeping its damage ratio so the
 // downstream repair flow knows how much damage to undo.
-export default TransitionKernel((tokens) => {
-  return {
-    BrokenMachines: [
-      {
-        machine_damage_ratio: tokens.MachinesProducing[0].machine_damage_ratio
-      }
-    ],
-  };
-});`,
+return {
+  BrokenMachines: [
+    {
+      machine_damage_ratio: tokensByPlace.MachinesProducing[0].machine_damage_ratio
+    }
+  ],
+};`,
           x: 48 * GRID_SIZE,
           y: -7 * GRID_SIZE,
         },
@@ -221,19 +213,17 @@ export default TransitionKernel((tokens) => {
           lambdaType: "predicate",
           lambdaCode: `// Always enabled: production starts as soon as the input arcs are satisfied
 // (one RawMaterial token and one AvailableMachine token).
-export default Lambda(() => true)`,
+return true;`,
           transitionKernelCode: `// Move the chosen machine into MachinesProducing with progress reset to 0,
 // preserving whatever damage it has already accumulated.
-export default TransitionKernel((tokensByPlace) => {
-  return {
-    MachinesProducing: [
-      {
-        machine_damage_ratio: tokensByPlace.AvailableMachines[0].machine_damage_ratio,
-        transformation_progress: 0
-      }
-    ],
-  };
-});`,
+return {
+  MachinesProducing: [
+    {
+      machine_damage_ratio: tokensByPlace.AvailableMachines[0].machine_damage_ratio,
+      transformation_progress: 0
+    }
+  ],
+};`,
           x: 6 * GRID_SIZE,
           y: -15 * GRID_SIZE,
         },
@@ -256,18 +246,14 @@ export default TransitionKernel((tokensByPlace) => {
           lambdaType: "predicate",
           lambdaCode: `// Repair is complete once the Reparation Dynamics have driven the machine's
 // damage ratio down to 0 (or below).
-export default Lambda((tokens) => {
-  return tokens.MachinesBeingRepaired[0].machine_damage_ratio <= 0;
-})`,
+return tokensByPlace.MachinesBeingRepaired[0].machine_damage_ratio <= 0;`,
           transitionKernelCode: `// Return the fully-repaired machine to the AvailableMachines pool with its
 // damage reset to 0, ready to start producing again.
-export default TransitionKernel((tokensByPlace, parameters) => {
-  return {
-    AvailableMachines: [
-      { machine_damage_ratio: 0 }
-    ],
-  };
-});`,
+return {
+  AvailableMachines: [
+    { machine_damage_ratio: 0 }
+  ],
+};`,
           x: -22 * GRID_SIZE,
           y: 27 * GRID_SIZE,
         },
@@ -293,18 +279,16 @@ export default TransitionKernel((tokensByPlace, parameters) => {
           ],
           lambdaType: "predicate",
           lambdaCode: `// Always enabled: as soon as a machine is broken we dispatch a technician.
-export default Lambda(() => true)`,
+return true;`,
           transitionKernelCode: `// Park the broken machine in MachinesToRepair (passing the token straight
 // through) and dispatch a technician who starts 10 units away; the Technician
 // Travel Dynamics then count that distance down to 0.
-export default TransitionKernel((tokens, parameters) => {
-  return {
-    MachinesToRepair: tokens.BrokenMachines,
-    TechniciansComing: [
-      { distance_to_site: 10 }
-    ],
-  };
-});`,
+return {
+  MachinesToRepair: tokensByPlace.BrokenMachines,
+  TechniciansComing: [
+    { distance_to_site: 10 }
+  ],
+};`,
           x: 38 * GRID_SIZE,
           y: 49 * GRID_SIZE,
         },
@@ -326,18 +310,14 @@ export default TransitionKernel((tokens, parameters) => {
           ],
           lambdaType: "predicate",
           lambdaCode: `// The technician has arrived once their remaining travel distance hits 0.
-export default Lambda((tokens) => {
-  return tokens.TechniciansComing[0].distance_to_site <= 0;
-})`,
+return tokensByPlace.TechniciansComing[0].distance_to_site <= 0;`,
           transitionKernelCode: `// The arrived technician joins the AvailableTechnicians pool, ready to be
 // paired with a machine in the Start Repair transition.
-export default TransitionKernel((tokensByPlace, parameters) => {
-  return {
-    AvailableTechnicians: [
-      { distance_to_site: 0 }
-    ],
-  };
-});`,
+return {
+  AvailableTechnicians: [
+    { distance_to_site: 0 }
+  ],
+};`,
           x: 75 * GRID_SIZE,
           y: 53 * GRID_SIZE,
         },
@@ -365,17 +345,15 @@ export default TransitionKernel((tokensByPlace, parameters) => {
           lambdaType: "predicate",
           lambdaCode: `// Always enabled: repair begins as soon as both input arcs are satisfied,
 // i.e. an available technician AND a machine waiting to be repaired.
-export default Lambda(() => true)`,
+return true;`,
           transitionKernelCode: `// Pair the technician with the waiting machine: move it into
 // MachinesBeingRepaired (carrying its current damage), where the Reparation
 // Dynamics will steadily reduce the damage until Finish Repair fires.
-export default TransitionKernel((tokens) => {
-  return {
-    MachinesBeingRepaired: [
-      { machine_damage_ratio: tokens.MachinesToRepair[0].machine_damage_ratio }
-    ],
-  };
-});`,
+return {
+  MachinesBeingRepaired: [
+    { machine_damage_ratio: tokensByPlace.MachinesToRepair[0].machine_damage_ratio }
+  ],
+};`,
           x: 109 * GRID_SIZE,
           y: 32 * GRID_SIZE,
         },
@@ -434,12 +412,10 @@ export default TransitionKernel((tokens) => {
           code: `// Applies to machines in the MachinesBeingRepaired place. Dynamics return the
 // DERIVATIVE of each attribute, so a negative value means the damage ratio
 // falls steadily at the repair rate until Finish Repair fires at 0.
-export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ machine_damage_ratio }) => {
-    return {
-      machine_damage_ratio: -parameters.damage_reparation_per_second
-    };
-  });
+return tokens.map(({ machine_damage_ratio }) => {
+  return {
+    machine_damage_ratio: -parameters.damage_reparation_per_second
+  };
 });`,
         },
         {
@@ -451,13 +427,11 @@ export default Dynamics((tokens, parameters) => {
 // its transformation_progress advances at 0.5/sec (so a batch takes ~2 sec to
 // reach the progress >= 1 completion threshold). More time producing means
 // more accumulated damage, which feeds the Machine Fail hazard.
-export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ machine_damage_ratio, transformation_progress }) => {
-    return {
-      machine_damage_ratio: parameters.damage_per_second,
-      transformation_progress: 1 / 2
-    };
-  });
+return tokens.map(({ machine_damage_ratio, transformation_progress }) => {
+  return {
+    machine_damage_ratio: parameters.damage_per_second,
+    transformation_progress: 1 / 2
+  };
 });`,
         },
         {
@@ -467,12 +441,10 @@ export default Dynamics((tokens, parameters) => {
           code: `// Applies to technicians in the TechniciansComing place. They close the gap
 // to the site at a constant 2 units/sec; once distance_to_site reaches 0 the
 // Technician Ready transition can fire. (Dynamics return derivatives.)
-export default Dynamics((tokens, parameters) => {
-  return tokens.map(({ distance_to_site }) => {
-    return {
-      distance_to_site: -2
-    };
-  });
+return tokens.map(({ distance_to_site }) => {
+  return {
+    distance_to_site: -2
+  };
 });`,
         },
       ],

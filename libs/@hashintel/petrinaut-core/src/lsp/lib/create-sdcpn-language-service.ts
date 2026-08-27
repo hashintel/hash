@@ -2,6 +2,7 @@ import ts from "typescript";
 
 import {
   createLanguageServiceHost,
+  virtualFileEquals,
   type LanguageServiceHostController,
   type VirtualFile,
 } from "./create-language-service-host";
@@ -18,7 +19,8 @@ import type { SDCPN } from "../../types/sdcpn";
 
 /**
  * Adjusts diagnostic positions to account for injected prefix and suffix.
- * Diagnostics in the suffix area are clamped to the end of user content.
+ * Diagnostics in the prefix area are clamped to the start of user content;
+ * diagnostics in the suffix area are clamped to its end.
  */
 function adjustDiagnostics<T extends ts.Diagnostic>(
   diagnostics: readonly T[],
@@ -29,6 +31,11 @@ function adjustDiagnostics<T extends ts.Diagnostic>(
     let start =
       diag.start !== undefined ? diag.start - prefixLength : undefined;
     let { length } = diag;
+
+    if (start !== undefined && start < 0) {
+      length = Math.max((length ?? 1) + start, 1);
+      start = 0;
+    }
 
     if (start !== undefined && contentLength !== undefined) {
       if (start >= contentLength) {
@@ -83,10 +90,7 @@ export class SDCPNLanguageServer {
         this.controller.addFile(name, newFile);
       } else {
         const existing = this.controller.getFile(name)!;
-        if (
-          existing.content !== newFile.content ||
-          existing.prefix !== newFile.prefix
-        ) {
+        if (!virtualFileEquals(existing, newFile)) {
           this.controller.updateFile(name, newFile);
         }
       }
@@ -117,11 +121,7 @@ export class SDCPNLanguageServer {
         this.controller.addFile(name, newFile);
       } else {
         const existing = this.controller.getFile(name)!;
-        if (
-          existing.content !== newFile.content ||
-          existing.prefix !== newFile.prefix ||
-          existing.suffix !== newFile.suffix
-        ) {
+        if (!virtualFileEquals(existing, newFile)) {
           this.controller.updateFile(name, newFile);
         }
       }
@@ -170,11 +170,7 @@ export class SDCPNLanguageServer {
         this.controller.addFile(name, newFile);
       } else {
         const existing = this.controller.getFile(name)!;
-        if (
-          existing.content !== newFile.content ||
-          existing.prefix !== newFile.prefix ||
-          existing.suffix !== newFile.suffix
-        ) {
+        if (!virtualFileEquals(existing, newFile)) {
           this.controller.updateFile(name, newFile);
         }
       }

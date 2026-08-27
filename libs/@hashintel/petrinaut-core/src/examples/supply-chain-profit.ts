@@ -99,15 +99,13 @@ export const supplyChainProfit: {
 // an external source). The rate rises with the reorder threshold above a
 // baseline of 80, with the batch size relative to 180, and with the expedited-
 // shipping fraction. Each firing adds a batch of 10 raw tokens (output weight).
-export default Lambda((input, parameters) => {
-  const reorderGap = Math.max(0, parameters.replenishment_aggressiveness - 80);
-  const batchEffect = Math.max(10, parameters.batch_size) / 180;
-  const expediteBoost = 1 + Math.max(0, Math.min(1, parameters.expedite_fraction)) * 0.6;
-  return Math.max(0, 0.015 * reorderGap * batchEffect * expediteBoost);
-});`,
+const reorderGap = Math.max(0, parameters.replenishment_aggressiveness - 80);
+const batchEffect = Math.max(10, parameters.batch_size) / 180;
+const expediteBoost = 1 + Math.max(0, Math.min(1, parameters.expedite_fraction)) * 0.6;
+return Math.max(0, 0.015 * reorderGap * batchEffect * expediteBoost);`,
         transitionKernelCode: `// This transition only creates/routes tokens — the destination place is
 // uncolored, so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 120,
         y: 253,
       },
@@ -131,12 +129,10 @@ export default TransitionKernel(() => ({}));`,
         lambdaCode: `// Convert raw materials into finished goods at the configured production rate
 // (clamped non-negative). Each firing consumes one raw-material token and
 // produces one finished good.
-export default Lambda((input, parameters) => {
-  return Math.max(0, parameters.production_rate);
-});`,
+return Math.max(0, parameters.production_rate);`,
         transitionKernelCode: `// This transition only creates/routes tokens — the destination place is
 // uncolored, so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 680,
         y: 253,
       },
@@ -154,15 +150,13 @@ export default TransitionKernel(() => ({}));`,
         lambdaCode: `// External customer-demand arrival source (no input arcs). Base demand scales
 // with the market demand multiplier, decreases as the selling price rises above
 // its 34 baseline, and increases with marketing spend.
-export default Lambda((input, parameters) => {
-  const baseDemand = 100 * parameters.demand_multiplier;
-  const priceEffect = Math.max(0.1, 1 - 0.018 * (parameters.selling_price - 34));
-  const marketingEffect = 1 + 0.015 * parameters.marketing_spend;
-  return Math.max(0, baseDemand * priceEffect * marketingEffect);
-});`,
+const baseDemand = 100 * parameters.demand_multiplier;
+const priceEffect = Math.max(0.1, 1 - 0.018 * (parameters.selling_price - 34));
+const marketingEffect = 1 + 0.015 * parameters.marketing_spend;
+return Math.max(0, baseDemand * priceEffect * marketingEffect);`,
         transitionKernelCode: `// This transition only creates/routes tokens — the destination place is
 // uncolored, so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 680,
         y: 103,
       },
@@ -192,12 +186,10 @@ export default TransitionKernel(() => ({}));`,
 // demand token (two standard input arcs), so it can only fire while stock
 // lasts. The high constant rate makes selling win the race against the lost-
 // sale transition whenever inventory is available.
-export default Lambda(() => {
-  return 250;
-});`,
+return 250;`,
         transitionKernelCode: `// This transition only creates/routes tokens — the destination place is
 // uncolored, so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 1240,
         y: 262,
       },
@@ -226,12 +218,10 @@ export default TransitionKernel(() => ({}));`,
         lambdaCode: `// The competing outcome when the shelf is empty: the inhibitor arc from
 // FinishedGoods lets this fire ONLY when finished-goods stock is zero, turning
 // otherwise-unmet demand into a lost sale.
-export default Lambda(() => {
-  return 40;
-});`,
+return 40;`,
         transitionKernelCode: `// This transition only creates/routes tokens — the destination place is
 // uncolored, so the kernel returns no token data.
-export default TransitionKernel(() => ({}));`,
+return ({});`,
         x: 1240,
         y: 95,
       },
