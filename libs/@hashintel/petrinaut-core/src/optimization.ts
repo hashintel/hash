@@ -120,6 +120,14 @@ export const petrinautOptimizationParameterBindingSchema = z
   ])
   .meta({ description: "The per-study treatment of one scenario parameter." });
 
+function addIssue(
+  context: z.core.$RefinementCtx<unknown>,
+  path: PropertyKey[],
+  message: string,
+): void {
+  context.addIssue({ code: "custom", path, message });
+}
+
 // -- Constraints --------------------------------------------------------------
 //
 // Boolean conditions authored as TypeScript and carried as serialized HIR,
@@ -156,7 +164,8 @@ export const petrinautOptimizationConstraintSchema = z
   .strictObject({
     id: z.string().min(1),
     name: z.string().trim().min(1).optional().meta({
-      description: "Optional display name shown wherever the constraint is reported.",
+      description:
+        "Optional display name shown wherever the constraint is reported.",
     }),
     code: z.string().trim().min(1).meta({
       description:
@@ -284,14 +293,6 @@ const optimizationScenarioSchema = z
     description:
       "The sole scenario and the exhaustive, transient treatment of its parameters.",
   });
-
-function addIssue(
-  context: z.core.$RefinementCtx<unknown>,
-  path: PropertyKey[],
-  message: string,
-): void {
-  context.addIssue({ code: "custom", path, message });
-}
 
 function validateScenarioParameterDefault(
   parameter: {
