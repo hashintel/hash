@@ -21,6 +21,7 @@ export type {
   PetrinautAiComposerControlContext,
   PetrinautAiComposerStatus,
   PetrinautAiComposerSubmitTextResult,
+  PetrinautAiInteractionMode,
   PetrinautAiInterviewStage,
   PetrinautAiInterviewStageContext,
   PetrinautAiInterviewStagePlacement,

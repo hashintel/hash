@@ -1,6 +1,9 @@
 import type { PetrinautAiMessage } from "../views/Editor/panels/ai-assistant-panel/types";
 import type { ReactNode } from "react";
 
+/** The active way a user is providing input to the AI assistant. */
+export type PetrinautAiInteractionMode = "chat" | "interview";
+
 /** Current lifecycle state of Petrinaut's AI SDK conversation. */
 export type PetrinautAiComposerStatus =
   | "submitted"
@@ -52,11 +55,13 @@ export type PetrinautAiInterviewStageContext =
     canAcceptInterviewAnswer: boolean;
     /** Bring back the sidebar and place keyboard focus in its composer. */
     focusComposer: () => void;
+    interactionMode: PetrinautAiInteractionMode;
     /** Open the AI sidebar without changing the interview session. */
     openSidebar: () => void;
     placement: PetrinautAiInterviewStagePlacement;
     /** Tell Petrinaut to protect the active conversation from accidental clearing. */
     setActive: (active: boolean) => void;
+    setInteractionMode: (mode: PetrinautAiInteractionMode) => void;
     /**
      * Accept one finalized answer immediately. If generic chat is still busy,
      * Petrinaut retains it and submits it through the canonical composer path
