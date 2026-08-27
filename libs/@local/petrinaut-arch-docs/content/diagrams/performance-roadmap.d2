@@ -1,0 +1,16 @@
+# Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
+direction: right
+
+hotpath: "hot-path fixes\n(allocation, copies,\nlookups)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+capacity: "place capacity\n(shipped)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+frames: "fixed-size frames\n(SoA layout)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+codegen: "whole-loop codegen\n(one stepper per net)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+wasm: "WASM backend\n(browser, and Wasmtime\non the server)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+gpu: "WebGPU backend\n(shipped)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+hotpath -> codegen: "fix the shapes codegen\nwould otherwise bake in"
+capacity -> frames: "static frame size"
+frames -> codegen
+frames -> wasm: "linear-memory ABI"
+codegen -> wasm: "same emitter,\nWASM instead of JS"
+capacity -> gpu: "buffer sizes known\nup front"
