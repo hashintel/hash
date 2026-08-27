@@ -54,8 +54,8 @@ guidance:
       source: docs/reference/research/elicitation/elicitation-strategy-literature.md §1.3 (mean-or-tail router)
       for_precision: [number, range, spread]
     - name: Quantiles, never three points
-      text: Ask first for a lower and upper plausible value, then a typical value, then how confident the expert is that reality falls inside the interval. Never ask for minimum, most likely, and maximum — the three-point habit yields overconfident answers. Record which protocol was used rather than silently mixing interval-first and typical-first answers.
-      source: docs/reference/research/elicitation/elicitation-strategy-literature.md §1.4 (IDEA four-step interval, anti-triangular guard); docs/archive/specs/cps-interview-guidance-2026-08-25.md CPS-Q01
+      text: 'A `spread` is typical plus one-in-ten worse and one-in-ten better (or median and quartiles). Ask "typically?", then "one time in ten, worse than?", then "one time in ten, better than?". Never ask for minimum, most likely, and maximum — the three-point habit yields overconfident answers. If a min/mode/max triple arrives unprompted, ask the confidence question and record whether the middle value is a mode or a mean.'
+      source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (typical then tails); docs/reference/research/elicitation/elicitation-strategy-literature.md §1.4 (SHELF / anti-triangular guard)
       for_precision: [spread]
     - name: The clairvoyant test
       text: A quantity is well enough defined only when someone who could see everything could report it without asking a clarifying question. If the slot's name would need one, ask the clarifying question first.
