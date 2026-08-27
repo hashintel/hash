@@ -566,7 +566,7 @@ return {};`,
         lambdaCode: `// An inbound shipment is received cleanly once it has arrived (eta counted
 // down to 0) AND its risk score is below the damage threshold. Higher-risk
 // shipments instead fire the competing "damaged" transition below.
-const shipment = tokensByPlace.InboundShipments[0];
+const shipment = input.InboundShipments[0];
 return shipment.eta <= 0 && shipment.risk_score < parameters.inbound_damage_threshold;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
@@ -593,7 +593,7 @@ return {};`,
         lambdaType: "predicate",
         lambdaCode: `// The mutually-exclusive partner of "received": an arrived shipment whose
 // risk score is at or above the threshold is scrapped as damaged inbound.
-const shipment = tokensByPlace.InboundShipments[0];
+const shipment = input.InboundShipments[0];
 return shipment.eta <= 0 && shipment.risk_score >= parameters.inbound_damage_threshold;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
@@ -630,11 +630,11 @@ return {};`,
         lambdaCode: `// Production only starts when the machine is healthy enough; below the
 // minimum-health threshold the rate is 0, so a worn machine effectively
 // stalls the line until it is repaired or maintained.
-const machine = tokensByPlace.MachineUp[0];
+const machine = input.MachineUp[0];
 return machine.health >= parameters.min_machine_health ? parameters.production_rate : 0;`,
         transitionKernelCode: `// Consume raw material + the machine, and emit a new WorkInProcess batch
 // while returning the (now slightly more worn) machine to MachineUp.
-const machine = tokensByPlace.MachineUp[0];
+const machine = input.MachineUp[0];
 // Remaining processing time for the batch, sampled and floored at 0.25.
 const processing = Distribution.Gaussian(parameters.production_time_mean, parameters.production_time_sd).map(v => Math.max(0.25, v));
 // Each batch adds wear and removes a little health from the machine.
@@ -672,7 +672,7 @@ return {
         lambdaType: "predicate",
         lambdaCode: `// A batch becomes a finished good once processing is complete AND its
 // (wear- and decay-affected) quality still meets the minimum standard.
-const batch = tokensByPlace.WorkInProcess[0];
+const batch = input.WorkInProcess[0];
 return batch.processing_left <= 0 && batch.quality >= parameters.min_quality;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
@@ -699,7 +699,7 @@ return {};`,
         lambdaType: "predicate",
         lambdaCode: `// The competing outcome to "passes quality": a finished batch below the
 // minimum quality is sent to Scrap instead of FinishedGoods.
-const batch = tokensByPlace.WorkInProcess[0];
+const batch = input.WorkInProcess[0];
 return batch.processing_left <= 0 && batch.quality < parameters.min_quality;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
@@ -727,10 +727,10 @@ return {};`,
         lambdaCode: `// Breakdown hazard rises with wear and with poor health: a worn or unhealthy
 // machine fails far more often than the base rate. This is what makes
 // preventive maintenance worthwhile.
-const machine = tokensByPlace.MachineUp[0];
+const machine = input.MachineUp[0];
 return parameters.machine_breakdown_rate * (1 + machine.wear * 3 + Math.max(0, 0.5 - machine.health));`,
         transitionKernelCode: `// Move the machine to the Down place, knocking off a chunk of health.
-const machine = tokensByPlace.MachineUp[0];
+const machine = input.MachineUp[0];
 return { MachineDown: [{ health: Math.max(0, machine.health - 0.15), wear: machine.wear }] };`,
         x: 120,
         y: 720,
@@ -756,7 +756,7 @@ return { MachineDown: [{ health: Math.max(0, machine.health - 0.15), wear: machi
 return parameters.machine_repair_rate;`,
         transitionKernelCode: `// Repair restores most health and removes most wear, returning the machine
 // to the Up place — a large but incomplete reset compared with maintenance.
-const machine = tokensByPlace.MachineDown[0];
+const machine = input.MachineDown[0];
 return { MachineUp: [{ health: Math.min(1, machine.health + 0.55), wear: Math.max(0, machine.wear * 0.45) }] };`,
         x: 675,
         y: 705,
@@ -781,11 +781,11 @@ return { MachineUp: [{ health: Math.min(1, machine.health + 0.55), wear: Math.ma
         lambdaCode: `// Preventive maintenance happens on the running machine (Up -> Up). It is
 // performed much more eagerly once wear passes 25%, and only occasionally
 // otherwise, so the strategy is "service it before it breaks".
-const machine = tokensByPlace.MachineUp[0];
+const machine = input.MachineUp[0];
 return machine.wear > 0.25 ? parameters.maintenance_rate * (1 + machine.wear) : parameters.maintenance_rate * 0.2;`,
         transitionKernelCode: `// Maintenance boosts health and shaves off some wear without taking the
 // machine offline — cheaper and less disruptive than a full repair.
-const machine = tokensByPlace.MachineUp[0];
+const machine = input.MachineUp[0];
 return { MachineUp: [{ health: Math.min(1, machine.health + parameters.maintenance_health_boost), wear: Math.max(0, machine.wear * 0.65) }] };`,
         x: 1245,
         y: 765,
@@ -844,11 +844,11 @@ return {
         lambdaCode: `// Fulfil an order directly from stock. This transition needs both an open
 // order AND a finished good (two standard input arcs), so it only fires when
 // inventory is available. VIP orders are served faster via a rate boost.
-const order = tokensByPlace.OpenOrders[0];
+const order = input.OpenOrders[0];
 const priorityBoost = order.priority > 0.5 ? 1.6 : 1;
 return parameters.fulfillment_rate * priorityBoost;`,
         transitionKernelCode: `// Turn the fulfilled order into an outbound shipment.
-const order = tokensByPlace.OpenOrders[0];
+const order = input.OpenOrders[0];
 const eta = Distribution.Gaussian(parameters.outbound_lead_time, parameters.outbound_lead_time * 0.25).map(v => Math.max(0.05, v));
 return {
   OutboundShipments: [{
@@ -887,11 +887,11 @@ return {
 // arc from FinishedGoods means this can ONLY fire when stock is empty, and we
 // also wait until the order has exceeded its promised lead time (rate 0 until
 // then). VIP orders are escalated to backorder sooner.
-const order = tokensByPlace.OpenOrders[0];
+const order = input.OpenOrders[0];
 if (order.age < order.promised_lead_time) return 0;
 return parameters.backorder_conversion_rate * (order.priority > 0.5 ? 1.8 : 1);`,
         transitionKernelCode: `// Carry the order's age, priority, and promise across to the Backorders place.
-const order = tokensByPlace.OpenOrders[0];
+const order = input.OpenOrders[0];
 return { Backorders: [{ age: order.age, priority: order.priority, promised_lead_time: order.promised_lead_time }] };`,
         x: 2355,
         y: 585,
@@ -921,11 +921,11 @@ return { Backorders: [{ age: order.age, priority: order.priority, promised_lead_
         lambdaCode: `// Once stock is replenished, backorders are cleared (again favouring VIPs).
 // Requires both a backorder and a finished good, so it competes with new
 // open-order fulfilment for the same inventory.
-const order = tokensByPlace.Backorders[0];
+const order = input.Backorders[0];
 return parameters.backorder_fulfillment_rate * (order.priority > 0.5 ? 1.7 : 1);`,
         transitionKernelCode: `// Ship the backordered item. Late backorders cost more (the age surcharge),
 // reflecting expediting and goodwill costs.
-const order = tokensByPlace.Backorders[0];
+const order = input.Backorders[0];
 return {
   OutboundShipments: [{
     eta: Distribution.Gaussian(parameters.outbound_lead_time, parameters.outbound_lead_time * 0.35).map(v => Math.max(0.05, v)),
@@ -957,7 +957,7 @@ return {
         lambdaCode: `// Waiting customers may give up. The cancellation hazard grows with the
 // order's age, so long-unfilled backorders are increasingly likely to be
 // lost. VIPs are modelled as slightly more patient (lower multiplier).
-const order = tokensByPlace.Backorders[0];
+const order = input.Backorders[0];
 const vipPatience = order.priority > 0.5 ? 0.6 : 1;
 return vipPatience * (parameters.cancel_base_rate + order.age * parameters.cancel_age_factor);`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
@@ -986,7 +986,7 @@ return {};`,
         lambdaCode: `// Last-mile delivery succeeds when the outbound shipment has arrived and its
 // risk score is below the loss threshold — the demand-side mirror of the
 // inbound received/damaged split.
-const shipment = tokensByPlace.OutboundShipments[0];
+const shipment = input.OutboundShipments[0];
 return shipment.eta <= 0 && shipment.risk_score < parameters.outbound_loss_threshold;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
@@ -1013,7 +1013,7 @@ return {};`,
         lambdaType: "predicate",
         lambdaCode: `// The competing outcome to delivery: an arrived shipment at or above the
 // loss threshold is lost in transit and never reaches the customer.
-const shipment = tokensByPlace.OutboundShipments[0];
+const shipment = input.OutboundShipments[0];
 return shipment.eta <= 0 && shipment.risk_score >= parameters.outbound_loss_threshold;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.

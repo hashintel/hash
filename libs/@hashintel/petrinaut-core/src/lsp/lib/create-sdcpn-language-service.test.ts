@@ -216,7 +216,7 @@ describe("SDCPNLanguageServer completions", () => {
 
       // Should include user-defined identifiers and the ambient inputs
       expect(names).toContain("a");
-      expect(names).toContain("tokensByPlace");
+      expect(names).toContain("input");
       expect(names).toContain("parameters");
       // The module-form constructor is not in scope in a bare body
       expect(names).not.toContain("Lambda");
@@ -286,7 +286,7 @@ describe("SDCPNLanguageServer completions", () => {
       });
 
       // Switch to a bare body: the ambient input object must now resolve
-      const body = parseCursor(`return tokensByPlace.${CURSOR};`);
+      const body = parseCursor(`return input.${CURSOR};`);
       server.updateDocumentContent(filePath, body.code);
       const bodyCompletions = server.getCompletionsAtPosition(
         filePath,

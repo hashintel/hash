@@ -6,7 +6,7 @@
  * - **module** — `export default <Ctor>((tokens, parameters) => …)`, the
  *   original authoring style;
  * - **body** — a bare function body ending in `return`, with the input
- *   (`tokens` / `tokensByPlace`) and `parameters` available ambiently, like
+ *   (`tokens` / `input`) and `parameters` available ambiently, like
  *   metric and scenario code.
  *
  * The HIR lowering and the LSP's virtual-file wrapping must agree on which
@@ -32,14 +32,14 @@ export type DualFormSurfaceKind = Extract<
 export type UserCodeForm = "module" | "body";
 
 /**
- * Ambient input-object names for the bare-body form, matching the parameter
- * names the docs and default templates use in the module form. `parameters`
- * is ambient in every bare body.
+ * Ambient input-object names for the bare-body form — the names the docs
+ * teach and the LSP's body wrapper declares. `parameters` is ambient in
+ * every bare body.
  */
 export const AMBIENT_INPUT_NAMES: Record<DualFormSurfaceKind, string> = {
   dynamics: "tokens",
-  lambda: "tokensByPlace",
-  kernel: "tokensByPlace",
+  lambda: "input",
+  kernel: "input",
 };
 
 function isExportStatement(statement: ts.Statement): boolean {

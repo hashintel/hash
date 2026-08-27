@@ -569,14 +569,14 @@ export default Lambda((input, parameters) => x);`,
   });
 
   describe("bare-body form (dynamics/lambda/kernel)", () => {
-    it("lowers a kernel body with ambient tokensByPlace and parameters", () => {
+    it("lowers a kernel body with ambient input and parameters", () => {
       const fn = lowerOk(
-        `return { Target: [{ x: tokensByPlace.Source[0].x + parameters.step }] };`,
+        `return { Target: [{ x: input.Source[0].x + parameters.step }] };`,
         "kernel",
       );
       expect(fn.surface).toBe("kernel");
       expect(fn.params.map((parameter) => parameter.name)).toEqual([
-        "tokensByPlace",
+        "input",
         "parameters",
       ]);
       expect(fn.body.kind).toBe("recordLit");
@@ -600,7 +600,7 @@ export default Lambda((input, parameters) => x);`,
     it("lowers the same HIR body as the equivalent module form", () => {
       const bodyFn = lowerOk(`return parameters.rate * 2;`, "lambda");
       const moduleFn = lowerOk(
-        `export default Lambda((tokensByPlace, parameters) => parameters.rate * 2);`,
+        `export default Lambda((input, parameters) => parameters.rate * 2);`,
         "lambda",
       );
       expect(bodyFn.params.map((parameter) => parameter.name)).toEqual(
@@ -623,7 +623,7 @@ export default Lambda((input, parameters) => x);`,
     it("lowers destructuring from the ambient objects", () => {
       const fn = lowerOk(
         `const { rate } = parameters;
-const { Source } = tokensByPlace;
+const { Source } = input;
 return Source.length * rate;`,
         "lambda",
       );
@@ -651,7 +651,7 @@ return 1;`,
     });
 
     it("maps node and diagnostic spans onto the raw body", () => {
-      const code = `const total = tokensByPlace.Source.length;
+      const code = `const total = input.Source.length;
 return total;`;
       const fn = lowerOk(code, "lambda");
       const letExpr = fn.body as Extract<HirExpr, { kind: "let" }>;

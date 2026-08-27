@@ -244,11 +244,11 @@ export const transitionSchema = z
     }),
     lambdaCode: z.string().meta({
       description: [
-        "Optional function body ending in `return`, with `tokensByPlace` and `parameters` ambient (the legacy `export default Lambda((tokensByPlace, parameters) => …)` module form is also accepted).",
+        "Optional function body ending in `return`, with `input` and `parameters` ambient (the legacy `export default Lambda((input, parameters) => …)` module form is also accepted).",
         "Lambda code is meaningful only when stochasticity is enabled OR when colours are enabled and the transition has at least one standard or read input arc from a coloured place.",
-        "`tokensByPlace` is keyed by INPUT PLACE NAME (PascalCase) for coloured standard and read arcs, and the value is a tuple sized to that arc's weight (weight 2 means a 2-token array).",
-        "Read arc tokens are present in `tokensByPlace` but are not consumed when the transition fires.",
-        "Inhibitor arcs and uncoloured input places are NOT present in `tokensByPlace`.",
+        "`input` is keyed by INPUT PLACE NAME (PascalCase) for coloured standard and read arcs, and the value is a tuple sized to that arc's weight (weight 2 means a 2-token array).",
+        "Read arc tokens are present in `input` but are not consumed when the transition fires.",
+        "Inhibitor arcs and uncoloured input places are NOT present in `input`.",
         "Each token is an object keyed by the colour type's element names (e.g. `{ x, y, velocity }`).",
         "`parameters` is keyed by each parameter's `variableName` value (lower_snake_case, e.g. `parameters.infection_rate`).",
         "Predicate lambdas MUST return a boolean (true = enabled given these tokens, false = disabled).",
@@ -259,9 +259,9 @@ export const transitionSchema = z
     }),
     transitionKernelCode: z.string().meta({
       description: [
-        "Optional function body ending in `return`, with `tokensByPlace` and `parameters` ambient (the legacy `export default TransitionKernel((tokensByPlace, parameters) => …)` module form is also accepted).",
+        "Optional function body ending in `return`, with `input` and `parameters` ambient (the legacy `export default TransitionKernel((input, parameters) => …)` module form is also accepted).",
         "Transition kernel code is meaningful only when colours are enabled and the transition has at least one coloured output place.",
-        "`tokensByPlace` and `parameters` have the same shape as the transition's lambda.",
+        "`input` and `parameters` have the same shape as the transition's lambda.",
         "MUST return an object keyed by OUTPUT PLACE NAME with a tuple sized to that arc's weight. Coloured output places MUST be present; uncoloured output places MUST be omitted (they are auto-populated with empty tokens).",
         "Token attribute values must match the output type: real/integer use numbers, boolean uses booleans. When stochasticity is enabled, `real` attributes may also use `Distribution.Gaussian(mean, sd)` / `Distribution.Uniform(min, max)` / `Distribution.Lognormal(mu, sigma)` (discrete attributes always take plain values); each distribution is sampled once per token, and chained `.map(fn)` calls on the same distribution share that single sample.",
         "Leave empty when no coloured outputs exist.",

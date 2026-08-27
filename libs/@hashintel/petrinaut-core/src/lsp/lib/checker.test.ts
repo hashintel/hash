@@ -1529,8 +1529,8 @@ describe("checkSDCPN", () => {
 
     it("accepts bare bodies for lambda and kernel", () => {
       const sdcpn = bareBodySdcpn({
-        lambdaCode: `return tokensByPlace.Source[0].x > parameters.rate;`,
-        transitionKernelCode: `const source = tokensByPlace.Source[0];
+        lambdaCode: `return input.Source[0].x > parameters.rate;`,
+        transitionKernelCode: `const source = input.Source[0];
 return { Target: [{ x: source.x + parameters.rate }] };`,
       });
 
@@ -1569,7 +1569,7 @@ return { Target: [{ x: source.x + parameters.rate }] };`,
     });
 
     it("positions type errors on the offending identifier in a bare body", () => {
-      const code = `return tokensByPlace.Missing[0].x > 0;`;
+      const code = `return input.Missing[0].x > 0;`;
       const sdcpn = bareBodySdcpn({ lambdaCode: code });
 
       const result = check(sdcpn);

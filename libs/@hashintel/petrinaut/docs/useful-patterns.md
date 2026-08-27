@@ -41,7 +41,7 @@ return tokens.map(() => ({ remaining_time: -1 }));
 1. **Guard the completion transition** with a predicate:
 
 ```ts
-return tokensByPlace.InProgress[0].remaining_time <= 0;
+return input.InProgress[0].remaining_time <= 0;
 ```
 
 **Alternative approach:** use two dimensions -- a fixed `sampled_duration` that doesn't change and a `counter` that increments via dynamics. Guard on `counter >= sampled_duration`. This preserves the original sampled value for inspection.
@@ -70,7 +70,7 @@ Use a [read arc](petri-net-extensions.md#read-arcs) when a transition needs a to
 (SensorState) ---> [ReactToReading]    (read arc, weight 1)
 ```
 
-The transition can read `tokensByPlace.SensorState[0]` while the sensor-state token remains available for future transitions.
+The transition can read `input.SensorState[0]` while the sensor-state token remains available for future transitions.
 
 ## Mutual exclusion with inhibitor arcs
 
@@ -125,12 +125,12 @@ Multiple transitions consuming from the **same place** with **complementary pred
 
 ```ts
 // Pass transition
-return tokensByPlace.QAQueue[0].quality >= parameters.quality_threshold;
+return input.QAQueue[0].quality >= parameters.quality_threshold;
 ```
 
 ```ts
 // Fail transition
-return tokensByPlace.QAQueue[0].quality < parameters.quality_threshold;
+return input.QAQueue[0].quality < parameters.quality_threshold;
 ```
 
 **Example:** the [Supply Chain with Disruption](examples.md#supply-chain-with-disruption) example routes production batches to finished goods or scrap based on a quality threshold, and inbound/outbound shipments to received-or-damaged and delivered-or-lost.

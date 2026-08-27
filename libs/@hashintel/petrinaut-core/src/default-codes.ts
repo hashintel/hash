@@ -69,11 +69,11 @@ export const generateDefaultLambdaCode = (
 ): string => `/**
 * This code controls when the transition will fire,
 * once enabled by sufficient tokens in its input places.
-* \`tokensByPlace\` holds tokens from coloured standard/read input places
+* \`input\` holds tokens from coloured standard/read input places
 * keyed by place name, and \`parameters\` any global parameters defined.
 */
 
-// tokensByPlace is an object which looks like:
+// input is an object which looks like:
 //   { PlaceA: [{ x: 0, y: 0 }], PlaceB: [...] }
 // where 'x' and 'y' are examples of dimensions (properties)
 // of the token's type.
@@ -98,12 +98,12 @@ export function generateDefaultTransitionKernelCode(
 ): string {
   return `/**
 * This code defines the kernel for the transition.
-* \`tokensByPlace\` holds tokens from coloured standard/read input places
+* \`input\` holds tokens from coloured standard/read input places
 * keyed by place name, and \`parameters\` any global parameters defined.
 * Return tokens for output places keyed by place name.
 */
 
-// tokensByPlace is an object which looks like:
+// input is an object which looks like:
 //   { PlaceA: [{ x: 0, y: 0 }], PlaceB: [...] }
 // where 'x' and 'y' are examples of dimensions (properties)
 // of the token's type.
@@ -129,7 +129,7 @@ return {
 
 export const DEFAULT_TRANSITION_KERNEL_CODE = `/**
 * This code defines the kernel for the transition.
-* \`tokensByPlace\` holds tokens from coloured standard/read input places
+* \`input\` holds tokens from coloured standard/read input places
 * keyed by place name, and \`parameters\` any global parameters defined.
 * Return tokens for output places keyed by place name.
 */

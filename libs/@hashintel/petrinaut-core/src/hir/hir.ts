@@ -37,8 +37,8 @@ export type HirNodeId = number;
  *
  * `dynamics` — differential equations (input object `tokens`)
  * `lambda` — transition firing predicates / stochastic rates (input object
- *   `tokensByPlace`)
- * `kernel` — transition kernels (input object `tokensByPlace`)
+ *   `input`, keyed by place name)
+ * `kernel` — transition kernels (input object `input`, keyed by place name)
  * `metric` — Monte-Carlo/timeline metrics: always a bare function *body*
  *   over a `state` object (statements ending in `return <number>`).
  * `scenario-expression` — one scenario expression (a parameter override or

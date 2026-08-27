@@ -5,7 +5,7 @@ import { detectUserCodeForm } from "./user-code-form";
 describe("detectUserCodeForm", () => {
   it.each([
     ["export default TransitionKernel(() => ({}));", "module"],
-    ["export default Lambda((tokensByPlace, parameters) => true);", "module"],
+    ["export default Lambda((input, parameters) => true);", "module"],
     ["export = 1;", "module"],
     ["export {};", "module"],
     ["export const x = 1;", "module"],

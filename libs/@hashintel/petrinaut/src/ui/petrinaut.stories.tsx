@@ -288,9 +288,9 @@ const colouredTokenFlowNet: SDCPN = {
       inputArcs: [{ placeId: "p_queued", weight: 1, type: "standard" }],
       outputArcs: [{ placeId: "p_processed", weight: 1 }],
       lambdaType: "predicate",
-      lambdaCode: `return tokensByPlace.Queued[0].age >= 0;`,
+      lambdaCode: `return input.Queued[0].age >= 0;`,
       transitionKernelCode: `return {
-  Processed: [{ age: tokensByPlace.Queued[0].age + 1 }],
+  Processed: [{ age: input.Queued[0].age + 1 }],
 };`,
       x: 320,
       y: 205,
@@ -338,9 +338,9 @@ const colouredDynamicsNet: SDCPN = {
       inputArcs: [{ placeId: "p_heating", weight: 1, type: "standard" }],
       outputArcs: [{ placeId: "p_ready", weight: 1 }],
       lambdaType: "predicate",
-      lambdaCode: `return tokensByPlace.Heating[0].temperature >= 80;`,
+      lambdaCode: `return input.Heating[0].temperature >= 80;`,
       transitionKernelCode: `return {
-  Ready: [{ temperature: tokensByPlace.Heating[0].temperature }],
+  Ready: [{ temperature: input.Heating[0].temperature }],
 };`,
       x: 320,
       y: 205,

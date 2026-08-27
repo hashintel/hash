@@ -35,7 +35,7 @@ Once a place has a type, its tokens are accessible in code as structured objects
 
 ## Global parameters
 
-Parameters are named values available in all user-authored code: dynamics, firing rate, kernels, and visualizers. They are accessed via the `parameters` argument. In metric code they are available ambiently as `parameters.<variable name>` (there is no `parameters` argument to declare — see the [supported code subset](#supported-code-subset) below). Note that metrics can read these **net parameters** but not scenario parameters.
+Parameters are named values available in all user-authored code: dynamics, firing rate, kernels, metrics, scenarios, and visualizers. Read them as `parameters.<variable name>` — the `parameters` object is in scope without declaring it (see [Code surfaces and their variables](#code-surfaces-and-their-variables) below; in a visualizer it arrives as part of the component's props). Note that metrics can read these **net parameters** but not scenario parameters.
 
 **To create a parameter:**
 
@@ -48,6 +48,22 @@ Parameters are named values available in all user-authored code: dynamics, firin
 Override parameter values before running a simulation in the **Simulation Settings** panel (see [Simulation](simulation.md#simulation-settings)). This lets you experiment with different values without editing code.
 
 **Example:** the [SIR Epidemic Model](examples.md#sir-epidemic-model) defines `infection_rate` and `recovery_rate` as parameters, used in its transition lambdas.
+
+## Code surfaces and their variables
+
+Kernel, firing rate/predicate, differential equation, metric, and scenario code is a plain function body ending in `return`. The variables each surface needs are in scope without declaring them:
+
+| Code surface                                              | Variables in scope                | Must return                                             |
+| --------------------------------------------------------- | --------------------------------- | ------------------------------------------------------- |
+| [Transition kernel](#transition-kernel)                   | `input`, `parameters`             | tokens for each typed output place, keyed by place name |
+| [Firing rate / predicate](#firing-rate--predicate)        | `input`, `parameters`             | `true`/`false` (predicate) or a rate (stochastic)       |
+| [Differential equation](#differential-equations-dynamics) | `tokens`, `parameters`            | one derivative object per token                         |
+| Metric (see [Optimization](optimization.md))              | `state`, `parameters`             | a finite number                                         |
+| Scenario initial state (see [Scenarios](scenarios.md))    | `parameters`, `scenario`, `range` | tokens or counts, keyed by place name                   |
+
+`input` is the tokens from the transition's typed input places, keyed by place name; `tokens` is the current tokens of the place a differential equation runs on; `state` exposes every place's tokens and counts to a metric.
+
+Kernel, firing rate, and differential equation code written in the older module style — `export default TransitionKernel((input, parameters) => { ... })` and the `Lambda(...)` / `Dynamics(...)` equivalents — still works. The [visualizer](#visualizer) is the exception to all of the above: it stays a module, `export default Visualization(({ tokens, parameters }) => ...)`.
 
 ## Differential equations (dynamics)
 
@@ -111,20 +127,20 @@ When a coloured output arc first makes a kernel available, Petrinaut inserts a s
 
 ```ts
 return {
-  OutputPlace: [{ x: tokensByPlace.InputPlace[0].x + 1 }],
+  OutputPlace: [{ x: input.InputPlace[0].x + 1 }],
 };
 ```
 
-The code is a plain function body ending in `return`, with `tokensByPlace` and `parameters` in scope. Older documents may wrap the same code as `export default TransitionKernel((tokensByPlace, parameters) => { ... })`; that form still works.
+The code is a plain function body ending in `return`, with `input` and `parameters` in scope. Older documents may wrap the same code as `export default TransitionKernel((input, parameters) => { ... })`; that form still works.
 
-`tokensByPlace` is keyed by **place name**. Each value is a tuple of token objects -- one entry per token consumed from that arc, sized to the arc weight. The return value is keyed by **output place name**, each containing an array of token objects to produce sized to the output arc weight. Output values must match each dimension's type: numbers for Real and Integer dimensions (Integer values are rounded), `true`/`false` for Boolean dimensions, plain text for String dimensions (the editor requires the field; a value that is missing at runtime falls back to the empty string), and for UUID dimensions either nothing at all (omit the field to auto-generate a fresh identifier from the simulation seed), `Uuid.generate()`, `Uuid.from(value)`, a UUID string, or a forwarded input token's UUID. Transition kernels are the only place discrete (Integer/Boolean/UUID/String) dimensions get new values.
+`input` is keyed by **place name**. Each value is a tuple of token objects -- one entry per token consumed from that arc, sized to the arc weight. The return value is keyed by **output place name**, each containing an array of token objects to produce sized to the output arc weight. Output values must match each dimension's type: numbers for Real and Integer dimensions (Integer values are rounded), `true`/`false` for Boolean dimensions, plain text for String dimensions (the editor requires the field; a value that is missing at runtime falls back to the empty string), and for UUID dimensions either nothing at all (omit the field to auto-generate a fresh identifier from the simulation seed), `Uuid.generate()`, `Uuid.from(value)`, a UUID string, or a forwarded input token's UUID. Transition kernels are the only place discrete (Integer/Boolean/UUID/String) dimensions get new values.
 
 Two important asymmetries:
 
-- **Uncoloured input places and inhibitor arcs are not included in `tokensByPlace`**. Only typed input places appear, and only for normal (non-inhibitor) arcs.
+- **Uncoloured input places and inhibitor arcs are not included in `input`**. Only typed input places appear, and only for normal (non-inhibitor) arcs.
 - **Uncoloured output places do not need to appear in the return value** -- the engine generates the correct number of plain tokens automatically based on the output arc weight. Coloured output places must appear with one token object per token produced.
 
-Tokens from **read arcs** are included in `tokensByPlace` like standard input arcs, but are not consumed when the transition fires. Tokens from inhibitor arcs are not included.
+Tokens from **read arcs** are included in `input` like standard input arcs, but are not consumed when the transition fires. Tokens from inhibitor arcs are not included.
 
 Use the menu in the code editor header to **Load default template** for a starting point.
 
@@ -170,10 +186,10 @@ If neither condition applies, the transition has no lambda editor. It fires when
 The function returns a **boolean**. The transition fires immediately when it returns `true`.
 
 ```ts
-return tokensByPlace.MyPlace[0].progress >= 1.0;
+return input.MyPlace[0].progress >= 1.0;
 ```
 
-Like kernels, lambda code is a plain function body with `tokensByPlace` and `parameters` in scope (the older `export default Lambda((tokensByPlace, parameters) => { ... })` form still works).
+Like kernels, lambda code is a plain function body with `input` and `parameters` in scope (the older `export default Lambda((input, parameters) => { ... })` form still works).
 
 Use predicates for deterministic guards based on token state.
 
@@ -189,7 +205,7 @@ The function returns a **number** representing the average firing rate per secon
 return parameters.rate;
 ```
 
-The same `tokensByPlace` rules from the [Transition kernel](#transition-kernel) section apply: only typed input places appear, and only for normal arcs. A transition with **no input arcs** therefore sees an empty `tokensByPlace` and is always structurally enabled -- this is how you model exogenous arrivals (see [Source transitions](useful-patterns.md#source-transitions-exogenous-arrivals)).
+The same `input` rules from the [Transition kernel](#transition-kernel) section apply: only typed input places appear, and only for normal arcs. A transition with **no input arcs** therefore sees an empty `input` and is always structurally enabled -- this is how you model exogenous arrivals (see [Source transitions](useful-patterns.md#source-transitions-exogenous-arrivals)).
 
 ## Inhibitor arcs
 
@@ -211,7 +227,7 @@ A read arc is a special input arc that **requires** tokens to be present and exp
 
 **To set:** select an input arc (place to transition) and switch its **Type** to **Read** in the properties panel. Only input arcs can be read arcs.
 
-**Semantics:** the transition is enabled (on this arc) when the source place has **at least the arc weight** in tokens. For coloured places, the lambda and transition kernel receive a tuple of tokens under `tokensByPlace.SourcePlaceName`, sized to the arc weight. If the transition fires, those read tokens remain in the source place.
+**Semantics:** the transition is enabled (on this arc) when the source place has **at least the arc weight** in tokens. For coloured places, the lambda and transition kernel receive a tuple of tokens under `input.SourcePlaceName`, sized to the arc weight. If the transition fires, those read tokens remain in the source place.
 
 Use read arcs when a transition needs to inspect shared state, permission tokens, sensor readings, or another entity's attributes without moving that token through the transition.
 

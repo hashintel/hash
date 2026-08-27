@@ -152,7 +152,7 @@ export const probabilisticSatellitesSDCPN: {
 const { collision_threshold, satellite_radius } = parameters;
 
 // Get the two satellites
-const [a, b] = tokensByPlace.Space;
+const [a, b] = input.Space;
 
 // Calculate distance between satellites
 const distance = Math.hypot(b.x - a.x, b.y - a.y);
@@ -165,14 +165,14 @@ return {
   Debris: [
     // Position preserved, direction and velocity zeroed
     {
-      x: tokensByPlace.Space[0].x,
-      y: tokensByPlace.Space[0].y,
+      x: input.Space[0].x,
+      y: input.Space[0].y,
       velocity: 0,
       direction: 0
     },
     {
-      x: tokensByPlace.Space[1].x,
-      y: tokensByPlace.Space[1].y,
+      x: input.Space[1].x,
+      y: input.Space[1].y,
       velocity: 0,
       direction: 0
     },
@@ -202,7 +202,7 @@ return {
 const { planet_radius, crash_threshold, satellite_radius } = parameters;
 
 // Get satellite position
-const { x, y } = tokensByPlace.Space[0];
+const { x, y } = input.Space[0];
 
 // Calculate distance from planet center (origin)
 const distance = Math.hypot(x, y);
@@ -214,8 +214,8 @@ return {
   Debris: [
     {
       // Position preserved, direction and velocity zeroed
-      x: tokensByPlace.Space[0].x,
-      y: tokensByPlace.Space[0].y,
+      x: input.Space[0].x,
+      y: input.Space[0].y,
       direction: 0,
       velocity: 0
     },

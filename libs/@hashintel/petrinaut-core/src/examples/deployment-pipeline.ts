@@ -371,7 +371,7 @@ return true;`,
  * in-progress visualizer and downstream completion/failure logic can interpret
  * age as time spent running rather than time spent waiting in the queue.
  */
-const deployment = tokensByPlace.DeploymentReady[0];
+const deployment = input.DeploymentReady[0];
 return {
   DeploymentInProgress: [
     {
@@ -409,7 +409,7 @@ return {
  * complete more slowly, and risky deployments get a modest slowdown to represent
  * extra validation, caution, or late-stage friction.
  */
-const deployment = tokensByPlace.DeploymentInProgress[0];
+const deployment = input.DeploymentInProgress[0];
 const sizePenalty = Math.max(0.25, deployment.size);
 const riskPenalty = Math.max(0.15, 1 - deployment.risk * 0.45);
 return parameters.deployment_finish_base_rate * riskPenalty / sizePenalty;`,
@@ -420,7 +420,7 @@ return parameters.deployment_finish_base_rate * riskPenalty / sizePenalty;`,
  * metrics can still inspect the size, risk, and elapsed run age of releases that
  * made it through the pipeline.
  */
-const deployment = tokensByPlace.DeploymentInProgress[0];
+const deployment = input.DeploymentInProgress[0];
 return {
   CompletedDeployments: [
     {
@@ -458,7 +458,7 @@ return {
  * incident leaves IncidentBeingInvestigated, the inhibitor arc on Start
  * Deployment no longer blocks the release gate.
  */
-const incident = tokensByPlace.IncidentBeingInvestigated[0];
+const incident = input.IncidentBeingInvestigated[0];
 return parameters.incident_resolution_rate / Math.max(0.2, incident.severity);`,
         transitionKernelCode: `/**
  * Move an incident to the resolved archive.
@@ -467,7 +467,7 @@ return parameters.incident_resolution_rate / Math.max(0.2, incident.severity);`,
  * history of operational load, even though resolved incidents no longer block
  * deployments.
  */
-const incident = tokensByPlace.IncidentBeingInvestigated[0];
+const incident = input.IncidentBeingInvestigated[0];
 return {
   ResolvedIncidents: [
     {
@@ -509,7 +509,7 @@ return {
  * When this fires, the in-progress deployment is consumed and an incident is
  * opened, which then blocks future starts through the inhibitor arc.
  */
-const deployment = tokensByPlace.DeploymentInProgress[0];
+const deployment = input.DeploymentInProgress[0];
 const risk = Math.max(0, Math.min(1, deployment.risk));
 const size = Math.max(0.25, deployment.size);
 return parameters.deployment_failure_base_rate * parameters.deployment_risk_multiplier * risk * size;`,
@@ -521,7 +521,7 @@ return parameters.deployment_failure_base_rate * parameters.deployment_risk_mult
  * plus Gaussian noise. The severity is clamped to [0.05, 1] so incident handling
  * remains numerically stable and visually interpretable.
  */
-const deployment = tokensByPlace.DeploymentInProgress[0];
+const deployment = input.DeploymentInProgress[0];
 const rawSeverity = Distribution.Gaussian(
   Math.min(1, 0.25 + deployment.risk * 0.65 * parameters.incident_severity_multiplier),
   0.12

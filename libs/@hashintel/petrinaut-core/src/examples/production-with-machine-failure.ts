@@ -139,13 +139,13 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
           lambdaType: "predicate",
           lambdaCode: `// Production finishes when the batch's transformation progress (advanced by
 // the Production Dynamics) reaches 100%.
-return tokensByPlace.MachinesProducing[0].transformation_progress >= 1;`,
+return input.MachinesProducing[0].transformation_progress >= 1;`,
           transitionKernelCode: `// On success the machine returns to the AvailableMachines pool, carrying its
 // accumulated damage with it. The GoodProduct output place is uncoloured, so
 // it simply gains a token (no attributes to set here).
 return {
   AvailableMachines: [
-    { machine_damage_ratio: tokensByPlace.MachinesProducing[0].machine_damage_ratio }
+    { machine_damage_ratio: input.MachinesProducing[0].machine_damage_ratio }
   ],
 };`,
           x: 48 * GRID_SIZE,
@@ -176,13 +176,13 @@ return {
 // Raising the damage ratio (in [0,1]) to the 100th power keeps the hazard
 // almost zero for healthy machines and only spikes as damage approaches 1,
 // so machines mostly fail when they are already badly worn.
-return tokensByPlace.MachinesProducing[0].machine_damage_ratio ** 100;`,
+return input.MachinesProducing[0].machine_damage_ratio ** 100;`,
           transitionKernelCode: `// A failed machine moves to BrokenMachines, keeping its damage ratio so the
 // downstream repair flow knows how much damage to undo.
 return {
   BrokenMachines: [
     {
-      machine_damage_ratio: tokensByPlace.MachinesProducing[0].machine_damage_ratio
+      machine_damage_ratio: input.MachinesProducing[0].machine_damage_ratio
     }
   ],
 };`,
@@ -219,7 +219,7 @@ return true;`,
 return {
   MachinesProducing: [
     {
-      machine_damage_ratio: tokensByPlace.AvailableMachines[0].machine_damage_ratio,
+      machine_damage_ratio: input.AvailableMachines[0].machine_damage_ratio,
       transformation_progress: 0
     }
   ],
@@ -246,7 +246,7 @@ return {
           lambdaType: "predicate",
           lambdaCode: `// Repair is complete once the Reparation Dynamics have driven the machine's
 // damage ratio down to 0 (or below).
-return tokensByPlace.MachinesBeingRepaired[0].machine_damage_ratio <= 0;`,
+return input.MachinesBeingRepaired[0].machine_damage_ratio <= 0;`,
           transitionKernelCode: `// Return the fully-repaired machine to the AvailableMachines pool with its
 // damage reset to 0, ready to start producing again.
 return {
@@ -284,7 +284,7 @@ return true;`,
 // through) and dispatch a technician who starts 10 units away; the Technician
 // Travel Dynamics then count that distance down to 0.
 return {
-  MachinesToRepair: tokensByPlace.BrokenMachines,
+  MachinesToRepair: input.BrokenMachines,
   TechniciansComing: [
     { distance_to_site: 10 }
   ],
@@ -310,7 +310,7 @@ return {
           ],
           lambdaType: "predicate",
           lambdaCode: `// The technician has arrived once their remaining travel distance hits 0.
-return tokensByPlace.TechniciansComing[0].distance_to_site <= 0;`,
+return input.TechniciansComing[0].distance_to_site <= 0;`,
           transitionKernelCode: `// The arrived technician joins the AvailableTechnicians pool, ready to be
 // paired with a machine in the Start Repair transition.
 return {
@@ -351,7 +351,7 @@ return true;`,
 // Dynamics will steadily reduce the damage until Finish Repair fires.
 return {
   MachinesBeingRepaired: [
-    { machine_damage_ratio: tokensByPlace.MachinesToRepair[0].machine_damage_ratio }
+    { machine_damage_ratio: input.MachinesToRepair[0].machine_damage_ratio }
   ],
 };`,
           x: 109 * GRID_SIZE,
