@@ -26,8 +26,6 @@ export interface VoiceDiagnosticEvent {
 
 export type VoiceDiagnosticReporter = (event: VoiceDiagnosticEvent) => void;
 
-const voiceRequestIdPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const serverVoiceErrorCodes = [
   "request-aborted",
   "network",
@@ -38,11 +36,45 @@ const serverVoiceErrorCodes = [
 
 export const createVoiceRequestId = (): string => crypto.randomUUID();
 
+const isAsciiHexadecimalDigit = (character: string): boolean => {
+  const codePoint = character.charCodeAt(0);
+  return (
+    (codePoint >= 48 && codePoint <= 57) ||
+    (codePoint >= 65 && codePoint <= 70) ||
+    (codePoint >= 97 && codePoint <= 102)
+  );
+};
+
+const isVoiceRequestId = (value: string): boolean => {
+  if (
+    value.length !== 36 ||
+    value[8] !== "-" ||
+    value[13] !== "-" ||
+    value[14] !== "4" ||
+    value[18] !== "-" ||
+    value[23] !== "-" ||
+    !["8", "9", "a", "b"].includes(value[19]?.toLowerCase() ?? "")
+  ) {
+    return false;
+  }
+
+  for (let index = 0; index < value.length; index++) {
+    if (index === 8 || index === 13 || index === 18 || index === 23) {
+      continue;
+    }
+    if (!isAsciiHexadecimalDigit(value[index]!)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 export const resolveVoiceRequestId = (
   value: string | null | undefined,
   createRequestId: () => string = createVoiceRequestId,
 ): string =>
-  value !== null && value !== undefined && voiceRequestIdPattern.test(value)
+  value !== null && value !== undefined && isVoiceRequestId(value)
     ? value
     : createRequestId();
 
@@ -140,7 +172,7 @@ export const voiceErrorFromResponse = (
   return new VoiceError(
     operation,
     code,
-    responseRequestId !== null && voiceRequestIdPattern.test(responseRequestId)
+    responseRequestId !== null && isVoiceRequestId(responseRequestId)
       ? responseRequestId
       : fallbackRequestId,
   );
