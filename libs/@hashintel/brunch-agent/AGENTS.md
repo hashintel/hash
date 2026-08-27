@@ -6,14 +6,18 @@ from this file.
 
 ## The three laws
 
-1. **Dumbest real implementation first.** Cross the real production boundary end-to-end before
-   improving anything: use the real entrypoint and wiring, inline what can stay local, and pin
-   only the invariants and constraints the working path actually exposes. Then re-decide at the
-   new fog-line instead of running an inherited plan.
+1. **Real throughline first, least mechanism.** Cross the real production boundary end-to-end
+   before improving anything: use the real entrypoint and wiring, prefer the platform and chosen
+   libraries to a custom mechanism, and inline what can stay local. Pin only the invariants and
+   constraints the working path actually exposes. Minimum applies to the mechanism, not the
+   contract: known consumers of this work must be able to rely on it without inventing missing
+   semantics. Then re-decide at the new fog-line instead of running an inherited plan.
 2. **Deepen only under observed strain.** An intended design is a hypothesis, not a destination.
-   Admit the next piece of complexity when the current implementation strains under a present
-   requirement (duplication diverging, a boundary leaking, an invariant that will not hold
-   locally), and cut the design when the design itself is what is straining progress.
+   Anti-caricature: a pattern name retrieves relevant properties; it is not a blueprint. Restate
+   the local obligation without the name, then implement only what discharges it. Admit the next
+   piece of complexity when the current implementation strains under a present requirement
+   (duplication diverging, a boundary leaking, an invariant that will not hold locally), and cut
+   the design when the design itself is what is straining progress.
 3. **A branch is a mission, not a ticket.** Every mission carries an imperative that guides and
    bounds its work; its evidence-gathering and decisions are judged against that imperative, not
    against a plan graph.
@@ -25,9 +29,13 @@ into the branch/PR description. Do not create additional planning or control doc
 
 - **Imperative** — what must become true, and why now.
 - **Throughline** — the real entrypoint or boundary being changed.
-- **Proof** — the observable evidence that would establish progress.
+- **Proof** — the observable evidence that would establish progress, and the claim it does not
+  make. A path, a connected skeleton, and a discharged contract are different completions.
 - **Constraints** — the few already-earned truths that must stay true.
-- **Fog-line** — what is unknown and must not be designed past.
+- **Fog-line** — uncertainty that current evidence cannot yet decide between consequential
+  alternatives, and must not be designed past. Clarifying intent is not clearing terrain. Capture
+  unresolved flags here: why they matter, what they constrain, and what would re-enter them.
+  Running the path may lengthen this list; that is calibration, not regression.
 - **Stop or reorient** — evidence that invalidates or changes the route.
 
 ## Correctives
@@ -38,9 +46,17 @@ into the branch/PR description. Do not create additional planning or control doc
 - A ticket is a projection; the mission is the authority. If the ticket stops serving the
   imperative, stop and surface the divergence instead of finishing the ticket.
 - When evidence changes the route, stop; do not finish the planned neighbourhood.
-- When unsure, build the smallest real path that reveals more.
 - When things accumulate, subtract before you extend.
 - No imperative and proof means it is not a mission yet — do not start it.
+- Censor noise; keep consequential doubt visible.
+- Checking is proportional to consequence and reversibility. Within that budget, a commitment is
+  warranted when the premises it depends on are either observed at the real boundary or
+  explicitly accepted as risk.
+- Low confidence must change the next move — build the smallest real path that reveals more,
+  inspect, choose the reversible option, or flag it — or go unsaid.
+- At close, update the PR description: what each proof item established, the observed answer to
+  each fog-line question, and the flags that carry into the next mission. The PR description is
+  the only record that survives the squash.
 
 ## Retained facts
 
@@ -59,8 +75,9 @@ into the branch/PR description. Do not create additional planning or control doc
   evaluation side, never inside interviewee or elicitor inputs.
 - **Posture:** prototype · stakes high — persisted capture data and merge gates must fail loudly,
   never corrupt silently · horizon: current milestone.
-- **Flue design moments:** see
-  [`docs/reference/architecture/flue-routing.md`](docs/reference/architecture/flue-routing.md).
+- **Flue:** when adding state, a loop, a route, or a test harness, consult
+  [`docs/reference/architecture/flue-routing.md`](docs/reference/architecture/flue-routing.md)
+  before inventing a parallel mechanism.
 
 ## Authorities vs obligations
 
@@ -68,4 +85,8 @@ into the branch/PR description. Do not create additional planning or control doc
 [`docs/evidence/`](docs/evidence) are history and reference: prior design hypotheses and observed
 results. They are not marching orders. Re-earn any design you build to; an implemented decision is
 evidence, unimplemented design is a hypothesis. A branch may depart from a recorded decision by
-noting the divergence in its commit.
+noting the divergence in its commit. Provenance is not warrant: a statement is evidence of what
+was said, not automatically of the terrain. This holds equally for specs, ADRs, the user's
+statements, and the model's own recommendations. Objectives, trade-off preferences, and policy
+settle by conversation with their owner; current-state claims, causal claims, and feasibility
+settle only at the real boundary.

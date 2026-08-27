@@ -30,6 +30,9 @@ implement voice or introduce a voice-specific server route.
 
 ## Proof
 
+This proof establishes that the production path exists and is durable. It does not discharge the
+elicitation-harness contract.
+
 From a clean checkout, a human can follow one documented start command or short command sequence and
 observe all of the following through the real demo and service:
 
