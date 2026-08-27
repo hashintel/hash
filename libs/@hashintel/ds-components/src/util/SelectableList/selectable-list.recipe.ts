@@ -36,7 +36,6 @@ export const styles = sva({
       outline: "0",
       maxHeight: "[var(--available-height)]",
       overflowY: "auto",
-      scrollbarWidth: "[thin]",
       color: "fg.heading",
       minWidth: "[140px]",
       zIndex: "popover",
@@ -93,7 +92,6 @@ export const styles = sva({
       // to the outer content instead.
       minHeight: "[min(200px, var(--selectable-list-items-height, 0px))]",
       overflowY: "auto",
-      scrollbarWidth: "[thin]",
       "& > *": {
         flexShrink: "0",
       },
