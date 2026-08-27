@@ -12,7 +12,10 @@ import {
   type SDCPN,
   type WorkerLike,
 } from "@hashintel/petrinaut-core";
-import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
+import {
+  compileHirArtifacts,
+  lowerScenarioToHir,
+} from "@hashintel/petrinaut-core/hir";
 
 import { LanguageClientContext } from "../lsp/context";
 import {
@@ -166,6 +169,10 @@ const LanguageClientOverride = ({
           requestHirArtifacts ??
           ((sdcpn, extensions) =>
             Promise.resolve(compileHirArtifacts(sdcpn, extensions))),
+        // Lower for real (inline instead of in a worker), so scenarios the
+        // provider synthesizes — the ad-hoc path — actually compile.
+        requestScenarioHir: (scenario) =>
+          Promise.resolve(lowerScenarioToHir(scenario)),
       }}
     >
       {children}
