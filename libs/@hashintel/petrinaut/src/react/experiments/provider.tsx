@@ -9,6 +9,7 @@ import { v4 as generateUuid } from "uuid";
 import {
   compileScenario,
   getOwn,
+  type CompileScenarioOutcome,
   type InitialMarking,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
@@ -21,6 +22,7 @@ import {
   createWorkerPoolExperimentBackend,
   selectExperimentBackend,
   WORKER_POOL_BACKEND_ID,
+  type ExperimentBackend,
   type ExperimentBackendRegistration,
   type ExperimentRequest,
 } from "@hashintel/petrinaut-core/experiments";
@@ -42,6 +44,17 @@ import {
   isExperimentActive,
   isTerminalExperimentStatus,
 } from "./context";
+import {
+  buildParameterRangeValues,
+  countGridCombinations,
+  MAX_EXPERIMENT_COMBINATIONS,
+  type ExperimentParameterAxis,
+} from "./parameter-grid";
+import {
+  createSweepSession,
+  type SweepSession,
+  type SweepSessionUpdate,
+} from "./sweep-session";
 
 type ExperimentsProviderProps = React.PropsWithChildren<{
   workerFactory?: WorkerFactory;
@@ -64,6 +77,52 @@ type ExperimentHandleRegistration = {
 type PendingExperimentRegistration = {
   abortController: AbortController;
 };
+
+/**
+ * Expands the create-form's per-parameter inputs into fixed string values and
+ * sweep axes. Ranged inputs on parameters the scenario does not declare are
+ * ignored, matching how fixed values have always behaved.
+ */
+function buildSweepAxes(
+  scenario: Scenario | null,
+  inputs: CreateExperimentInput["scenarioParameterValues"],
+): { fixedValues: Record<string, string>; axes: ExperimentParameterAxis[] } {
+  const fixedValues: Record<string, string> = {};
+  const axes: ExperimentParameterAxis[] = [];
+
+  for (const parameter of scenario?.scenarioParameters ?? []) {
+    const input = inputs[parameter.identifier] ?? { mode: "fixed", value: "" };
+    if (input.mode === "fixed") {
+      fixedValues[parameter.identifier] = input.value;
+      continue;
+    }
+
+    const outcome = buildParameterRangeValues(parameter, input);
+    if (!outcome.ok) {
+      throw new Error(outcome.error);
+    }
+    axes.push({ identifier: parameter.identifier, values: outcome.values });
+  }
+
+  if (countGridCombinations(axes) > MAX_EXPERIMENT_COMBINATIONS) {
+    throw new Error(
+      `The parameter ranges produce ${countGridCombinations(axes)} combinations; the maximum is ${MAX_EXPERIMENT_COMBINATIONS}`,
+    );
+  }
+
+  return { fixedValues, axes };
+}
+
+/** Last frame per metric id, the shape the summary cards read. */
+function latestFramesById(
+  frames: readonly ExperimentRecord["metricFrames"][number][],
+): Record<string, ExperimentRecord["metricFrames"][number]> {
+  const latest: Record<string, ExperimentRecord["metricFrames"][number]> = {};
+  for (const frame of frames) {
+    latest[frame.metricId] = frame;
+  }
+  return latest;
+}
 
 function mapExperimentStatus(
   status: MonteCarloExperimentState,
@@ -199,6 +258,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const pendingRegistrationsRef = useRef(
     new Map<string, PendingExperimentRegistration>(),
   );
+  const sweepSessionsRef = useRef(new Map<string, SweepSession>());
   const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
   const [selectedExperimentId, setSelectedExperimentId] = useState<
     string | null
@@ -208,6 +268,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   useEffect(() => {
     const registrations = registrationsRef.current;
     const pendingRegistrations = pendingRegistrationsRef.current;
+    const sweepSessions = sweepSessionsRef.current;
     return () => {
       for (const registration of pendingRegistrations.values()) {
         registration.abortController.abort();
@@ -218,6 +279,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         registration.handle.dispose();
       }
       registrations.clear();
+      for (const session of sweepSessions.values()) {
+        session.dispose();
+      }
+      sweepSessions.clear();
     };
   }, []);
 
@@ -334,6 +399,132 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     sync();
   };
 
+  /**
+   * Starts the progressive compute session behind a sweep experiment.
+   *
+   * The first batch runs the backend-selection walk (so GPU-vs-CPU choice and
+   * fallback reporting behave exactly as for a plain experiment); later
+   * batches re-assess the chosen backend with each batch's request — the GPU
+   * backend regenerates its shader for the new parameter values there.
+   */
+  const startSweepSession = (options: {
+    experiment: ExperimentRecord;
+    axes: readonly ExperimentParameterAxis[];
+    registrations: readonly ExperimentBackendRegistration[];
+    buildRequest: (options: {
+      needsHirTrees: boolean;
+      override?: Partial<
+        Pick<
+          ExperimentRequest,
+          "parameterValues" | "initialMarking" | "seed" | "runCount"
+        >
+      >;
+    }) => Promise<ExperimentRequest>;
+    compileForValues: (
+      swept: Readonly<Record<string, number>>,
+    ) => Extract<CompileScenarioOutcome, { ok: true }>;
+  }) => {
+    const { experiment, axes, registrations, buildRequest, compileForValues } =
+      options;
+    const experimentId = experiment.id;
+    let chosenBackend: ExperimentBackend | null = null;
+
+    const onNote = (note: { message: string }) => {
+      addNotification({
+        message: `${experiment.name}: ${note.message}`,
+        tone: "error",
+      });
+    };
+
+    const describeBlockers = (
+      blockers: readonly { message: string }[],
+    ): string => blockers.map((blocker) => blocker.message).join("; ");
+
+    const session = createSweepSession({
+      axes,
+      runCount: experiment.runCount,
+      seed: experiment.seed,
+      instantiateBatch: async ({ parameterValues, seed, runCount, signal }) => {
+        const compiled = compileForValues(parameterValues);
+        const override = {
+          parameterValues: compiled.result.parameterValues,
+          initialMarking: compiled.result.initialState,
+          seed,
+          runCount,
+        };
+
+        if (!chosenBackend) {
+          const selection = await selectExperimentBackend({
+            registrations,
+            buildRequest: ({ needsHirTrees }) =>
+              buildRequest({ needsHirTrees, override }),
+            instantiateOptions: { signal, onNote },
+          });
+          if (!selection.ok) {
+            throw new Error(
+              selection.declined
+                .map((entry) => `${entry.backendId}: ${entry.reason}`)
+                .join("; ") || "No compute backend could run this experiment.",
+            );
+          }
+          chosenBackend = selection.backend;
+          const [firstDeclined] = selection.declined;
+          if (firstDeclined) {
+            addNotification({
+              message: `${experiment.name} is running on the CPU: ${firstDeclined.reason}`,
+              tone: "neutral",
+            });
+          }
+          patchExperiment(experimentId, {
+            computeBackend: selection.backendId as ExperimentComputeBackend,
+            computeBackendFallbackReason: firstDeclined?.reason ?? null,
+            startedAt: Date.now(),
+          });
+          return selection.handle;
+        }
+
+        const request = await buildRequest({
+          needsHirTrees: chosenBackend.needsHirTrees,
+          override,
+        });
+        const assessment = await chosenBackend.assess(request);
+        if (!assessment.eligible) {
+          throw new Error(describeBlockers(assessment.blockers));
+        }
+        const instantiated = await assessment.instantiate({ signal, onNote });
+        if (!instantiated.ok) {
+          throw new Error(describeBlockers(instantiated.blockers));
+        }
+        return instantiated.handle;
+      },
+      onUpdate: (update: SweepSessionUpdate) => {
+        patchExperiment(experimentId, {
+          status: update.computing ? "running" : "idle",
+          metricFrames: update.metricFrames,
+          latestMetricFramesById: latestFramesById(update.metricFrames),
+          progress: update.progress,
+          sweep: {
+            selection: update.selection,
+            parameterValues: update.parameterValues,
+            runsCompleted: update.runsCompleted,
+            runsSampled: update.runsSampled,
+            runTarget: update.runTarget,
+            computing: update.computing,
+          },
+        });
+      },
+      onError: (message) => {
+        patchExperiment(experimentId, { error: message, status: "error" });
+        addNotification({
+          message: `${experiment.name} failed: ${message}`,
+          tone: "error",
+        });
+      },
+    });
+
+    sweepSessionsRef.current.set(experimentId, session);
+  };
+
   const createExperiment: ExperimentsContextValue["createExperiment"] = async (
     input,
   ) => {
@@ -349,6 +540,14 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       throw new Error("Selected scenario does not exist");
     }
 
+    const { fixedValues, axes } = buildSweepAxes(
+      selectedScenario ?? null,
+      input.scenarioParameterValues,
+    );
+    if (axes.length > 0 && !selectedScenario) {
+      throw new Error("Parameter ranges require a scenario");
+    }
+
     let parameterValues: Record<string, string> = {};
     let initialMarking: InitialMarking = {};
     const globalParameters = extensionsRef.current.parameters
@@ -358,32 +557,65 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       ? sdcpn
       : { ...sdcpn, parameters: [] };
 
+    /**
+     * Compiles the scenario for one concrete assignment of the swept
+     * parameters. A sweep calls this per batch; a plain experiment once.
+     */
+    let compileForValues:
+      | ((
+          swept: Readonly<Record<string, number>>,
+        ) => Extract<CompileScenarioOutcome, { ok: true }>)
+      | null = null;
+
     if (selectedScenario) {
       const parsedScenarioValues = parseScenarioParameterValues(
         selectedScenario,
-        input.scenarioParameterValues,
+        fixedValues,
       );
       if (parsedScenarioValues.errors.length > 0) {
-        throw new Error(parsedScenarioValues.errors.join("\n"));
+        // Swept parameters have no fixed value to parse; their errors are
+        // range errors, already thrown by `buildSweepAxes`.
+        const sweptIdentifiers = new Set(axes.map((axis) => axis.identifier));
+        const errors = parsedScenarioValues.errors.filter(
+          (message) =>
+            ![...sweptIdentifiers].some((identifier) =>
+              message.startsWith(identifier),
+            ),
+        );
+        if (errors.length > 0) {
+          throw new Error(errors.join("\n"));
+        }
       }
 
       const scenarioHir = await requestScenarioHir(selectedScenario);
-      const compiledScenario = compileScenario(
-        selectedScenario,
-        scenarioHir,
-        globalParameters,
-        sdcpn.places,
-        sdcpn.types,
-        { scenarioParameterValues: parsedScenarioValues.values },
-      );
-      if (!compiledScenario.ok) {
-        throw new Error(
-          compiledScenario.errors
-            .map((error) => `${error.source}:${error.itemId} ${error.message}`)
-            .join("\n"),
+      const scenario = selectedScenario;
+      compileForValues = (swept) => {
+        const compiled = compileScenario(
+          scenario,
+          scenarioHir,
+          globalParameters,
+          sdcpn.places,
+          sdcpn.types,
+          {
+            scenarioParameterValues: {
+              ...parsedScenarioValues.values,
+              ...swept,
+            },
+          },
         );
-      }
+        if (!compiled.ok) {
+          throw new Error(
+            compiled.errors
+              .map(
+                (error) => `${error.source}:${error.itemId} ${error.message}`,
+              )
+              .join("\n"),
+          );
+        }
+        return compiled;
+      };
 
+      const compiledScenario = compileForValues({});
       parameterValues = compiledScenario.result.parameterValues;
       initialMarking = compiledScenario.result.initialState;
     }
@@ -409,6 +641,22 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       progress: null,
       latestMetricFramesById: {},
       metricFrames: [],
+      parameterAxes: axes,
+      sweep:
+        axes.length > 0
+          ? {
+              selection: Object.fromEntries(
+                axes.map((axis) => [axis.identifier, 0]),
+              ),
+              parameterValues: Object.fromEntries(
+                axes.map((axis) => [axis.identifier, axis.values[0]!]),
+              ),
+              runsCompleted: 0,
+              runsSampled: 0,
+              runTarget: null,
+              computing: true,
+            }
+          : null,
     };
 
     setExperiments((prev) => [experiment, ...prev]);
@@ -442,8 +690,16 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         // from the backend itself, so a new backend cannot be forgotten here.
         const buildRequest = async ({
           needsHirTrees,
+          override,
         }: {
           needsHirTrees: boolean;
+          /** Per-batch fields a sweep swaps out; a plain run passes none. */
+          override?: Partial<
+            Pick<
+              ExperimentRequest,
+              "parameterValues" | "initialMarking" | "seed" | "runCount"
+            >
+          >;
         }): Promise<ExperimentRequest> => {
           const { artifacts, failures } = await requestHirArtifacts(
             compiledExperimentSdcpn,
@@ -488,6 +744,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             runCount: input.runCount,
             metricSpecs,
             hirArtifacts: artifacts,
+            ...override,
           };
         };
 
@@ -522,6 +779,18 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
               }),
             ),
         });
+
+        if (axes.length > 0 && compileForValues) {
+          startSweepSession({
+            experiment,
+            axes,
+            registrations,
+            buildRequest,
+            compileForValues,
+          });
+          pendingRegistrationsRef.current.delete(experimentId);
+          return;
+        }
 
         const selection = await selectExperimentBackend({
           registrations,
@@ -586,6 +855,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           // work they actually differ in.
           startedAt: Date.now(),
         });
+
         registerExperimentHandle(experiment, handle);
         handle.start();
       } catch (error) {
@@ -624,12 +894,22 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       return;
     }
 
+    const session = sweepSessionsRef.current.get(experimentId);
+    if (session) {
+      session.dispose();
+      sweepSessionsRef.current.delete(experimentId);
+      patchExperiment(experimentId, { status: "cancelled" });
+      return;
+    }
+
     registrationsRef.current.get(experimentId)?.handle.cancel();
   };
 
   const removeExperiment: ExperimentsContextValue["removeExperiment"] = (
     experimentId,
   ) => {
+    sweepSessionsRef.current.get(experimentId)?.dispose();
+    sweepSessionsRef.current.delete(experimentId);
     disposeExperimentHandle(experimentId);
     setExperiments((prev) =>
       prev.filter((experiment) => experiment.id !== experimentId),
@@ -637,6 +917,13 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     setSelectedExperimentId((current) =>
       current === experimentId ? null : current,
     );
+  };
+
+  const setSweepSelection: ExperimentsContextValue["setSweepSelection"] = (
+    experimentId,
+    selection,
+  ) => {
+    sweepSessionsRef.current.get(experimentId)?.setSelection(selection);
   };
 
   const selectedExperiment =
@@ -651,6 +938,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     createExperiment: useStableCallback(createExperiment),
     cancelExperiment: useStableCallback(cancelExperiment),
     removeExperiment: useStableCallback(removeExperiment),
+    setSweepSelection: useStableCallback(setSweepSelection),
   };
 
   return (
