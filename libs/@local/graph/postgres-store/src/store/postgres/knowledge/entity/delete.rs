@@ -22,10 +22,7 @@ use type_system::{
         Entity,
         entity::id::{DraftId, EntityEditionId, EntityUuid},
     },
-    principal::{
-        actor::{ActorEntityUuid, ActorId},
-        actor_group::WebId,
-    },
+    principal::{actor::ActorId, actor_group::WebId},
 };
 
 use crate::store::{
