@@ -159,6 +159,7 @@ describe("dependency direction (spec §4, §12.2)", () => {
             CORE,
           );
           expect(specifier).not.toBe(`${CORE}/storage`);
+          expect(specifier).not.toBe(`${CORE}/prompts`);
         }
       }
     }
@@ -193,6 +194,15 @@ describe("dependency direction (spec §4, §12.2)", () => {
     expect(promptImporters.length).toBeGreaterThan(0);
     for (const importer of promptImporters) {
       expect(importer.pkg).toMatch(/^binding-/u);
+    }
+
+    // Plugin-only CI lints the plugin and does not run this suite. The
+    // oxlint path ban is the gate that fires then; this assertion keeps
+    // that gate from disappearing while the suite still runs.
+    for (const plugin of byRole("plugin")) {
+      expect(
+        readFileSync(join(plugin.path, ".oxlintrc.json"), "utf8"),
+      ).toContain(`"name": "${CORE}/prompts"`);
     }
   });
 
