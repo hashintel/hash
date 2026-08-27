@@ -26,6 +26,7 @@ import { useStableCallback } from "../hooks/use-stable-callback";
 import { LanguageClientContext } from "../lsp/context";
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
+import { UserSettingsContext } from "../state/user-settings-context";
 import { useStore } from "../use-store";
 import {
   type InitialMarking,
@@ -177,6 +178,10 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   );
   const { extensions, petriNetDefinition } = sdcpnContext;
   const { addNotification } = use(NotificationsContext);
+  // Gates the inline ad-hoc definition end to end: with the setting off, a
+  // definition kept in state (typed while it was on) must not steer runs
+  // the pre-feature UI no longer shows it in.
+  const { enableAdHocScenarios } = use(UserSettingsContext);
 
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
@@ -613,7 +618,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       }))
     : [];
   const adHocSynthesized =
-    !selectedScenario && stateValues.adHocScenario
+    enableAdHocScenarios && !selectedScenario && stateValues.adHocScenario
       ? synthesizeAdHocScenario(stateValues.adHocScenario, {
           netParameters: adHocNetParameters,
           places: petriNetDefinition.places,

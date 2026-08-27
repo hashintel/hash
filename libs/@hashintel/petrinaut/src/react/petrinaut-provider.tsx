@@ -74,14 +74,16 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
         workerFactory={lspWorkerFactory}
       >
         <NotificationsProvider>
-          <SimulationProvider
-            key={instance.handle.id}
-            workerFactory={simulationWorkerFactory}
-          >
-            <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
-              <OptimizationsProvider>
-                <PlaybackProvider>
-                  <UserSettingsProvider>
+          {/* Above SimulationProvider: the simulation provider reads the
+              Ad-hoc scenarios setting to gate the inline definition. */}
+          <UserSettingsProvider>
+            <SimulationProvider
+              key={instance.handle.id}
+              workerFactory={simulationWorkerFactory}
+            >
+              <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
+                <OptimizationsProvider>
+                  <PlaybackProvider>
                     <ActiveNetProvider>
                       <EditorProvider>
                         <ExecutionFrameProvider>
@@ -89,11 +91,11 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
                         </ExecutionFrameProvider>
                       </EditorProvider>
                     </ActiveNetProvider>
-                  </UserSettingsProvider>
-                </PlaybackProvider>
-              </OptimizationsProvider>
-            </ExperimentsProvider>
-          </SimulationProvider>
+                  </PlaybackProvider>
+                </OptimizationsProvider>
+              </ExperimentsProvider>
+            </SimulationProvider>
+          </UserSettingsProvider>
         </NotificationsProvider>
       </LanguageClientProvider>
     </SDCPNProvider>
