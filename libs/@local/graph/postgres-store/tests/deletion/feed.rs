@@ -22,11 +22,14 @@ use hash_graph_store::{
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use type_system::knowledge::{
-    Entity,
-    property::{
-        Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
+use type_system::{
+    knowledge::{
+        Entity,
+        property::{
+            Property, PropertyObject, PropertyPatchOperation, PropertyPath, PropertyWithMetadata,
+        },
     },
+    principal::actor::ActorEntityUuid,
 };
 
 use crate::{
@@ -333,7 +336,7 @@ async fn purge_with_archived_links_ends_link_and_deletes_target() {
 
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             purge_params(&person_b, LinkDeletionBehavior::Archive),
         )
         .await
@@ -351,7 +354,10 @@ async fn purge_with_archived_links_ends_link_and_deletes_target() {
         deleted[0].entity.entity_uuid,
         person_b.metadata.record_id.entity_id.entity_uuid
     );
-    assert_eq!(deleted[0].provenance.deleted_by_id, api.account_id);
+    assert_eq!(
+        deleted[0].provenance.deleted_by_id,
+        ActorEntityUuid::from(api.account_id)
+    );
 }
 
 /// Purge removes the temporal rows outright, so [`EntityEvent::Deleted`] is the only event it
@@ -366,7 +372,7 @@ async fn purge_fires_deleted_only() {
 
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             purge_params(&entity, LinkDeletionBehavior::Ignore),
         )
         .await
@@ -399,7 +405,7 @@ async fn erase_fires_nothing() {
 
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
                 temporal_axes: QueryTemporalAxesUnresolved::live_only(),
