@@ -848,7 +848,15 @@ class Typechecker {
         return;
       }
       case "metric": {
-        if (!isNumeric(returnType)) {
+        if (context.expected === "boolean") {
+          if (!isBoolish(returnType)) {
+            this.report(
+              bodySpan,
+              "hir:metric-return",
+              `This condition must return a boolean, got ${formatHirType(returnType)}.`,
+            );
+          }
+        } else if (!isNumeric(returnType)) {
           this.report(
             bodySpan,
             "hir:metric-return",

@@ -132,6 +132,11 @@ export type HirMetricContext = {
   /** ALL places of the root net, keyed by display name (last name wins for
    * duplicates, matching the runtime object-key overwrite). */
   places: HirMetricPlaceInfo[];
+  /**
+   * What the body must return: a number (a metric, the default) or a
+   * boolean (a state constraint — a metric-shaped condition).
+   */
+  expected?: "real" | "boolean";
 };
 
 /** One scenario parameter, read in scenario code as `scenario.<identifier>`. */
@@ -371,6 +376,7 @@ export function buildLambdaContext(
 export function buildMetricContext(
   sdcpn: SDCPN,
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+  expected: "real" | "boolean" = "real",
 ): HirMetricContext {
   const colorById = collectColors(sdcpn, extensions);
   const placesByName = new Map<string, HirMetricPlaceInfo>();
@@ -388,6 +394,7 @@ export function buildMetricContext(
     surface: "metric",
     parameters: toParameterInfos(extensions.parameters ? sdcpn.parameters : []),
     places: [...placesByName.values()],
+    expected,
   };
 }
 
