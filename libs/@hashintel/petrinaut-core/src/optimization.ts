@@ -120,6 +120,106 @@ export const petrinautOptimizationParameterBindingSchema = z
   ])
   .meta({ description: "The per-study treatment of one scenario parameter." });
 
+// -- Constraints --------------------------------------------------------------
+//
+// Boolean conditions authored as TypeScript and carried as serialized HIR,
+// so every consumer — the frontend editors, the CLI, and the Python
+// binding — reads one shared expression representation without a TypeScript
+// frontend of its own. In this version constraints are declarative payload
+// only: nothing enforces or prunes on them yet.
+
+/**
+ * Shallow structural validation of one serialized HIR function
+ * (`HirFunction` in `hir/hir.ts`, which owns the full grammar). The body is
+ * carried as-is: evaluators must reject node kinds they do not know.
+ */
+export const serializedHirFunctionSchema = z
+  .looseObject({
+    hirVersion: z.literal(1),
+    surface: z.enum([
+      "dynamics",
+      "lambda",
+      "kernel",
+      "metric",
+      "scenario-expression",
+      "scenario-code",
+    ]),
+    params: z.array(z.looseObject({ name: z.string() })),
+    body: z.looseObject({ kind: z.string() }),
+  })
+  .meta({
+    description:
+      "A serialized HIR function (see hir/hir.ts for the full grammar). Carried verbatim; evaluators must reject unknown node kinds.",
+  });
+
+export const petrinautOptimizationConstraintSchema = z
+  .strictObject({
+    id: z.string().min(1),
+    name: z.string().trim().min(1).optional().meta({
+      description: "Optional display name shown wherever the constraint is reported.",
+    }),
+    code: z.string().trim().min(1).meta({
+      description:
+        "The authored TypeScript source — the editable text of record. `hir` is its lowered form; regenerating `hir` from `code` must be a no-op.",
+    }),
+    hir: serializedHirFunctionSchema,
+  })
+  .meta({
+    description:
+      "One boolean condition. Parameter-space constraints are expressions over `scenario.*` (and `parameters.*`); state-space constraints are metric-like bodies over the simulation `state`, returning boolean.",
+  });
+
+export const petrinautOptimizationConstraintsSchema = z
+  .strictObject({
+    parameterSpace: z
+      .array(petrinautOptimizationConstraintSchema)
+      .default([])
+      .meta({
+        description:
+          "Conditions over the sampled scenario parameters (`scenario.*`), e.g. `scenario.min_altitude < scenario.max_altitude`. Intended to let samplers avoid infeasible suggestions; not enforced yet.",
+      }),
+    stateSpace: z
+      .array(petrinautOptimizationConstraintSchema)
+      .default([])
+      .meta({
+        description:
+          "Conditions over the simulation state, authored like a metric body but returning boolean. Intended for safe-region margins later; not evaluated yet.",
+      }),
+  })
+  .superRefine((constraints, context) => {
+    const seen = new Set<string>();
+    for (const [space, list] of [
+      ["parameterSpace", constraints.parameterSpace],
+      ["stateSpace", constraints.stateSpace],
+    ] as const) {
+      for (const [index, constraint] of list.entries()) {
+        if (seen.has(constraint.id)) {
+          addIssue(
+            context,
+            [space, index, "id"],
+            `Duplicate constraint id "${constraint.id}"`,
+          );
+        }
+        seen.add(constraint.id);
+      }
+      const expectedSurface =
+        space === "parameterSpace" ? "scenario-expression" : "metric";
+      for (const [index, constraint] of list.entries()) {
+        if (constraint.hir.surface !== expectedSurface) {
+          addIssue(
+            context,
+            [space, index, "hir"],
+            `A ${space} constraint must lower on the "${expectedSurface}" surface, got "${constraint.hir.surface}"`,
+          );
+        }
+      }
+    }
+  })
+  .meta({
+    description:
+      "The study's boolean conditions, split by what they range over. Declarative in this version: carried, displayed, and readable from the Python binding, but not yet enforced.",
+  });
+
 export const petrinautOptimizationObjectiveSchema = z
   .strictObject({
     metricId: z.string().min(1),
@@ -238,6 +338,10 @@ export const petrinautOptimizationManifestSchema = z
     model: optimizationModelSchema,
     scenario: optimizationScenarioSchema,
     objective: petrinautOptimizationObjectiveSchema,
+    constraints: petrinautOptimizationConstraintsSchema.optional().meta({
+      description:
+        "Optional boolean conditions over the parameter space and the simulation state. Absent means unconstrained.",
+    }),
     execution: petrinautOptimizationExecutionSchema,
     study: petrinautOptimizationStudySchema,
   })
@@ -521,10 +625,14 @@ export const petrinautOptimizationDescribeResultSchema = z
           "Study settings with the execution seed. `seedsPerTrial` is reported once the CLI runs seeded replicates; absent means 1.",
       }),
     parameters: z.array(petrinautOptimizationDescribeParameterSchema),
+    constraints: petrinautOptimizationConstraintsSchema.optional().meta({
+      description:
+        "The manifest's constraints, passed through verbatim so protocol clients (the Python binding) can evaluate their HIR. Absent means unconstrained.",
+    }),
   })
   .meta({
     description:
-      "The `optimization.describe` result: direction, study settings, and the parameters that are not fixed.",
+      "The `optimization.describe` result: direction, study settings, the parameters that are not fixed, and the study's constraints.",
   });
 
 export const petrinautOptimizationReplicateSchema = z
@@ -544,6 +652,12 @@ export const petrinautOptimizationEvaluateResultSchema = z
       "The `optimization.evaluate` result. `objective` is the mean of the per-seed objectives (identical to the sole run's objective when the trial runs one seed); `replicates` reports the per-seed values whenever a trial runs more than one.",
   });
 
+export type PetrinautOptimizationConstraint = z.infer<
+  typeof petrinautOptimizationConstraintSchema
+>;
+export type PetrinautOptimizationConstraints = z.infer<
+  typeof petrinautOptimizationConstraintsSchema
+>;
 export type PetrinautOptimizationDescribeParameter = z.infer<
   typeof petrinautOptimizationDescribeParameterSchema
 >;
