@@ -6,7 +6,7 @@ import {
   getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../../extensions";
-import { AMBIENT_INPUT_NAMES } from "../../hir";
+import { AMBIENT_INPUT_NAMES, type DualFormSurfaceKind } from "../../hir";
 import { SCENARIO_HELPER_TYPE_DECLARATIONS } from "../../simulation/authoring/scenario/helpers";
 import { TYPE_POLICIES } from "../../simulation/engine/type-policies";
 import { applyFormWrapper } from "./create-language-service-host";
@@ -99,22 +99,26 @@ function toKernelOutputTokenType(
  * Builds a dual-form code file for a dynamics/lambda/kernel item. The module
  * wrapper declares the constructor for `export default <Ctor>(...)` code; the
  * body wrapper types the code as a bare function body whose parameters are
- * the surface's ambient input object and `parameters`. The body wrapper's
- * return type is widened with `| void` so an empty or unfinished body is not
- * a TypeScript error — the HIR lint reports a missing `return` with a
+ * the surface's ambient input object and `parameters`.
+ *
+ * The body wrapper's suffix appends an unreachable `return undefined as
+ * never;` so an empty or unfinished body is not a TypeScript error (no
+ * TS2355/TS2366) — the HIR lint reports a missing `return` with a
  * friendlier, correctly-positioned message, and an empty lambda is valid
- * (the runtime default applies).
+ * (the runtime default applies). Unlike widening the return type with
+ * `| void`, this keeps mismatch messages exact ("not assignable to type
+ * 'boolean'", with no `void` the user never wrote).
  */
 function dualFormCodeFile(options: {
   content: string;
-  surface: keyof typeof AMBIENT_INPUT_NAMES;
+  surface: DualFormSurfaceKind;
   /** Lines injected before module-form code (constructor import + declare). */
   modulePrefixLines: string[];
   /** Import lines for the types the body wrapper's signature references. */
   bodyImportLines: string[];
   /** TypeScript type of the ambient input object. */
   inputType: string;
-  /** Declared return type of the body (before `| void` widening). */
+  /** Declared return type of the body. */
   returnType: string;
   parametersDefsPath: string;
 }): VirtualFile {
@@ -130,10 +134,10 @@ function dualFormCodeFile(options: {
         prefix: [
           `import type { Parameters } from "${options.parametersDefsPath}";`,
           ...options.bodyImportLines,
-          `function __${options.surface}(${inputName}: ${options.inputType}, parameters: Parameters): ${options.returnType} | void {`,
+          `function __${options.surface}(${inputName}: ${options.inputType}, parameters: Parameters): ${options.returnType} {`,
           "",
         ].join("\n"),
-        suffix: "\n}",
+        suffix: "\nreturn undefined as never;\n}",
       },
     },
   });

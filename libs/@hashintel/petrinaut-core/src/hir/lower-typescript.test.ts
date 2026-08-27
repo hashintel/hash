@@ -678,7 +678,7 @@ return total;`;
       const code = `return 1 +;`;
       const [diagnostic] = lowerErr(code, "kernel");
       expect(diagnostic!.code).toBe("hir:parse-error");
-      expect(diagnostic!.span.start).toBeLessThanOrEqual(code.length);
+      expect(diagnostic!.span.start).toBe(code.indexOf(";"));
     });
   });
 

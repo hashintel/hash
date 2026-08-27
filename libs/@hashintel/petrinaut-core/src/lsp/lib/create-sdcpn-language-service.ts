@@ -19,8 +19,12 @@ import type { SDCPN } from "../../types/sdcpn";
 
 /**
  * Adjusts diagnostic positions to account for injected prefix and suffix.
- * Diagnostics in the prefix area are clamped to the start of user content;
- * diagnostics in the suffix area are clamped to its end.
+ * Diagnostics in the suffix area are clamped to the end of user content.
+ * Diagnostics in the prefix keep their (negative) adjusted offset: some are
+ * load-bearing with no user-side twin — the scenario/metric wrappers rely on
+ * TS2355 ("must return a value"), reported on the wrapper signature, to flag
+ * a body that never returns — and editors clamp negative offsets to the
+ * start of the document.
  */
 function adjustDiagnostics<T extends ts.Diagnostic>(
   diagnostics: readonly T[],
@@ -31,11 +35,6 @@ function adjustDiagnostics<T extends ts.Diagnostic>(
     let start =
       diag.start !== undefined ? diag.start - prefixLength : undefined;
     let { length } = diag;
-
-    if (start !== undefined && start < 0) {
-      length = Math.max((length ?? 1) + start, 1);
-      start = 0;
-    }
 
     if (start !== undefined && contentLength !== undefined) {
       if (start >= contentLength) {
@@ -200,13 +199,14 @@ export class SDCPNLanguageServer {
     this.controller.updateContent(fileName, content);
   }
 
-  /** Get the full text content (prefix + user content) of a virtual file. */
+  /** Get the full text content (prefix + user content + suffix) of a virtual
+   * file — the text the TypeScript service checks. */
   getFileContent(fileName: string): string | undefined {
     const file = this.controller.getFile(fileName);
     if (!file) {
       return undefined;
     }
-    return (file.prefix ?? "") + file.content;
+    return (file.prefix ?? "") + file.content + (file.suffix ?? "");
   }
 
   /** Get only the user-visible content of a virtual file (without the injected prefix). */

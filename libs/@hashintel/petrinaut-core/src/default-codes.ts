@@ -88,7 +88,7 @@ export const generateDefaultLambdaCode = (
 
 ${
   lambdaType === "predicate"
-    ? "return true; // Always enabled (alternative: return Infinity;)"
+    ? "return true; // Always enabled"
     : "return 1.0; // Average firing rate of once per second"
 }`;
 

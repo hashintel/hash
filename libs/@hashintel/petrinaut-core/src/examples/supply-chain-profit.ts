@@ -105,7 +105,7 @@ const expediteBoost = 1 + Math.max(0, Math.min(1, parameters.expedite_fraction))
 return Math.max(0, 0.015 * reorderGap * batchEffect * expediteBoost);`,
         transitionKernelCode: `// This transition only creates/routes tokens — the destination place is
 // uncolored, so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 120,
         y: 253,
       },
@@ -132,7 +132,7 @@ return ({});`,
 return Math.max(0, parameters.production_rate);`,
         transitionKernelCode: `// This transition only creates/routes tokens — the destination place is
 // uncolored, so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 680,
         y: 253,
       },
@@ -156,7 +156,7 @@ const marketingEffect = 1 + 0.015 * parameters.marketing_spend;
 return Math.max(0, baseDemand * priceEffect * marketingEffect);`,
         transitionKernelCode: `// This transition only creates/routes tokens — the destination place is
 // uncolored, so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 680,
         y: 103,
       },
@@ -189,7 +189,7 @@ return ({});`,
 return 250;`,
         transitionKernelCode: `// This transition only creates/routes tokens — the destination place is
 // uncolored, so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 1240,
         y: 262,
       },
@@ -221,7 +221,7 @@ return ({});`,
 return 40;`,
         transitionKernelCode: `// This transition only creates/routes tokens — the destination place is
 // uncolored, so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 1240,
         y: 95,
       },

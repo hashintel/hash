@@ -1626,6 +1626,30 @@ return { Target: [{ x: source.x + parameters.rate }] };`,
       expect(result.isValid).toBe(true);
     });
 
+    it("reports redeclaring an ambient name on the user's declaration", () => {
+      const code = `const parameters = 1;
+return true;`;
+      const sdcpn = bareBodySdcpn({ lambdaCode: code });
+
+      const result = check(sdcpn);
+
+      expect(result.isValid).toBe(false);
+      const lambdaItem = result.itemDiagnostics.find(
+        (item) => item.itemType === "transition-lambda",
+      )!;
+      expect(
+        lambdaItem.diagnostics.some(
+          (diagnostic) => diagnostic.start === code.indexOf("parameters"),
+        ),
+      ).toBe(true);
+      // The twin diagnostic on the injected wrapper parameter keeps its
+      // negative offset (editors clamp it) — it must not be relocated onto
+      // the user's first character.
+      expect(
+        lambdaItem.diagnostics.some((diagnostic) => diagnostic.start === 0),
+      ).toBe(false);
+    });
+
     it("reports a missing return in a kernel body via the HIR lint", () => {
       const sdcpn = bareBodySdcpn({
         transitionKernelCode: `const x = 1;`,

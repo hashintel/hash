@@ -467,7 +467,7 @@ return {
 return parameters.supplier_a_disruption_rate;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 675,
         y: 150,
       },
@@ -492,7 +492,7 @@ return ({});`,
 return parameters.supplier_a_repair_rate;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 120,
         y: 90,
       },
@@ -517,7 +517,7 @@ return ({});`,
 return parameters.supplier_b_disruption_rate;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 675,
         y: 585,
       },
@@ -542,7 +542,7 @@ return ({});`,
 return parameters.supplier_b_repair_rate;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 1245,
         y: 195,
       },
@@ -570,7 +570,7 @@ const shipment = tokensByPlace.InboundShipments[0];
 return shipment.eta <= 0 && shipment.risk_score < parameters.inbound_damage_threshold;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 675,
         y: 285,
       },
@@ -597,7 +597,7 @@ const shipment = tokensByPlace.InboundShipments[0];
 return shipment.eta <= 0 && shipment.risk_score >= parameters.inbound_damage_threshold;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 675,
         y: 435,
       },
@@ -676,7 +676,7 @@ const batch = tokensByPlace.WorkInProcess[0];
 return batch.processing_left <= 0 && batch.quality >= parameters.min_quality;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 1800,
         y: 435,
       },
@@ -703,7 +703,7 @@ const batch = tokensByPlace.WorkInProcess[0];
 return batch.processing_left <= 0 && batch.quality < parameters.min_quality;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 1800,
         y: 285,
       },
@@ -962,7 +962,7 @@ const vipPatience = order.priority > 0.5 ? 0.6 : 1;
 return vipPatience * (parameters.cancel_base_rate + order.age * parameters.cancel_age_factor);`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 2925,
         y: 615,
       },
@@ -990,7 +990,7 @@ const shipment = tokensByPlace.OutboundShipments[0];
 return shipment.eta <= 0 && shipment.risk_score < parameters.outbound_loss_threshold;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 3480,
         y: 540,
       },
@@ -1017,7 +1017,7 @@ const shipment = tokensByPlace.OutboundShipments[0];
 return shipment.eta <= 0 && shipment.risk_score >= parameters.outbound_loss_threshold;`,
         transitionKernelCode: `// This transition only routes/marks tokens — the destination place needs
 // no computed attributes — so the kernel returns no token data.
-return ({});`,
+return {};`,
         x: 3480,
         y: 390,
       },
