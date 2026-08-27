@@ -178,7 +178,7 @@ mod tests {
     /// them.
     #[cfg(feature = "clap")]
     #[test]
-    fn defaults_leave_enforcement_off() {
+    fn defaults_enforce_the_budgets() {
         use clap::Parser as _;
 
         #[derive(clap::Parser)]
@@ -190,8 +190,8 @@ mod tests {
         let parsed = Wrapper::parse_from(["test"]).rate_limit;
         assert_eq!(
             parsed.rate_limit_mode,
-            RateLimitMode::Observe,
-            "nobody should be turned away until the budgets are measured"
+            RateLimitMode::Enforce,
+            "an activated rate limiter should deny by default; observing is the opt-out"
         );
         assert_eq!(
             parsed.client_ip_source,

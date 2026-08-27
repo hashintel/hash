@@ -14,10 +14,10 @@
 //! [`authentication_middleware`]: crate::authentication::authentication_middleware
 //!
 //! A request over its budget receives `429 Too Many Requests` with `Retry-After` in
-//! [`RateLimitMode::Enforce`], and is served unchanged in [`RateLimitMode::Observe`], the
-//! default. `Retry-After` is the whole client-facing contract: a served response says nothing
-//! about the budget it crossed, and what enforcement would have done is read from the sweep
-//! report instead.
+//! [`RateLimitMode::Enforce`], the default, and is served unchanged in
+//! [`RateLimitMode::Observe`]. `Retry-After` is the whole client-facing contract: a served
+//! response says nothing about the budget it crossed, and what enforcement would have done is
+//! read from the sweep report instead.
 //!
 //! Denials, address fallbacks and unresolvable addresses log at debug. The eviction sweep reports
 //! the store sizes every interval, at warn with the interval's totals whenever it saw one of
