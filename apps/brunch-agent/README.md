@@ -8,8 +8,9 @@ From the repository root, make `ANTHROPIC_API_KEY` available in the environment 
 yarn dev:brunch
 ```
 
-The command starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut website at
-`http://127.0.0.1:4915`. The website proxies `/api/chat` to Brunch. The panel talks to one plain
+The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system
+codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut
+website at `http://127.0.0.1:4915`. The website proxies `/api/chat` to Brunch. The panel talks to one plain
 Flue chat agent: streamed text and reasoning, one server `ping` tool, and the existing Petrinaut
 `readPetrinautDoc` client tool. There is no elicitation, capture, or `brunch_ask` on this path.
 

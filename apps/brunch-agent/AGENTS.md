@@ -7,5 +7,6 @@ concrete question requires them; ADRs and specs are hypotheses, not implementati
 HASH root guidance takes precedence.
 
 The application composes the Flue runtime, HTTP routes, and the Brunch packages required by the
-current mission. It must remain independent of Petrinaut implementation packages;
-`apps/petrinaut-website` meets it through the AI SDK/HTTP transport.
+current mission. It must remain independent of Petrinaut UI (`@hashintel/petrinaut`); it may import
+published catalogs from `@hashintel/petrinaut-core` (for example user-guide page ids the panel
+already executes). `apps/petrinaut-website` meets the editor through the AI SDK/HTTP transport.

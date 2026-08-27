@@ -441,6 +441,7 @@ __metadata:
     "@flue/sdk": "npm:2.0.3"
     "@flue/vite": "npm:2.0.3"
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*"
+    "@hashintel/petrinaut-core": "workspace:*"
     "@opentelemetry/api": "npm:1.9.1"
     "@types/node": "npm:22.18.13"
     "@types/react": "npm:19.2.14"
