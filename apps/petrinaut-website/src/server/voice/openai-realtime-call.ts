@@ -43,8 +43,9 @@ const readSdpOffer = async (request: Request): Promise<string | Response> => {
     return response("The SDP offer is too large.", 413);
   }
 
-  const sdp = new TextDecoder().decode(body).trim();
-  if (!sdp || !sdp.startsWith("v=0")) {
+  const sdp = new TextDecoder().decode(body);
+  const normalizedSdp = sdp.trim();
+  if (!normalizedSdp || !normalizedSdp.startsWith("v=0")) {
     return response("The SDP offer is invalid.", 400);
   }
   return sdp;
@@ -82,12 +83,8 @@ export const createOpenAIRealtimeCallHandler =
 
     const session = createOpenAITranscriptionSession();
     const form = new FormData();
-    form.set("sdp", new Blob([sdp], { type: "application/sdp" }), "offer.sdp");
-    form.set(
-      "session",
-      new Blob([JSON.stringify(session)], { type: "application/json" }),
-      "session.json",
-    );
+    form.set("sdp", sdp);
+    form.set("session", JSON.stringify(session));
 
     const abortController = new AbortController();
     const abortForTimeout = () => abortController.abort(timeoutError);
@@ -110,12 +107,14 @@ export const createOpenAIRealtimeCallHandler =
       if (!upstreamResponse.ok) {
         return response(CONNECTION_ERROR_MESSAGE, 502);
       }
+      const upstreamContentType = upstreamResponse.headers
+        .get("content-type")
+        ?.split(";", 1)[0]
+        ?.trim()
+        .toLowerCase();
       if (
-        upstreamResponse.headers
-          .get("content-type")
-          ?.split(";", 1)[0]
-          ?.trim()
-          .toLowerCase() !== "application/sdp"
+        upstreamContentType !== "application/sdp" &&
+        upstreamContentType !== "text/plain"
       ) {
         return response(CONNECTION_ERROR_MESSAGE, 502);
       }

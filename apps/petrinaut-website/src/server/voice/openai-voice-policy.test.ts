@@ -46,8 +46,8 @@ describe("OpenAI voice policy", () => {
     ).toEqual({ available: true, connectionTimeoutMs: 15_000 });
   });
 
-  test("owns a transcription-only session policy with semantic VAD", () => {
-    expect(OPENAI_TRANSCRIPTION_POLICY_VERSION).toBe("process-modeling-en-v1");
+  test("owns a transcription-only session policy with provider-default VAD", () => {
+    expect(OPENAI_TRANSCRIPTION_POLICY_VERSION).toBe("process-modeling-en-v2");
     expect(createOpenAITranscriptionSession()).toEqual({
       type: "transcription",
       audio: {
@@ -74,10 +74,6 @@ describe("OpenAI voice policy", () => {
               "metric",
             ],
             languages: ["en"],
-          },
-          turn_detection: {
-            type: "semantic_vad",
-            eagerness: "low",
           },
         },
       },

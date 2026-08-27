@@ -81,7 +81,9 @@ Voice input is disabled by default and always unavailable when `VERCEL_ENV` is
 real `VITE_BRUNCH_CHAT_ENDPOINT`, `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and a
 dedicated `OPENAI_VOICE_API_KEY`. The browser sends its SDP offer to this app;
 the server initializes an OpenAI transcription-only Realtime session and keeps
-the provider key, language, vocabulary, and VAD policy private.
+the provider key, model, language, and vocabulary policy private. The session
+uses `gpt-live-transcribe`'s default server VAD because OpenAI's unified call
+currently times out when explicit turn detection is included during setup.
 
 Only finalized transcripts enter the existing Petrinaut composer and Brunch AI
 SDK transport. Partial transcripts remain display-only. The preview derives a

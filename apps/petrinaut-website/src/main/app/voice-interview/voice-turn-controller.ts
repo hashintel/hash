@@ -69,7 +69,6 @@ export class VoiceTurnController {
   readonly #listeners = new Set<SnapshotListener>();
   readonly #session: RealtimeSession;
   readonly #submitText: (input: SubmitTextInput) => Promise<unknown>;
-  readonly #unsubscribeFromSession: () => void;
   readonly #completedKeys = new Set<string>();
   #activeEpoch: number | null = null;
   #activeItemId: string | null = null;
@@ -88,9 +87,7 @@ export class VoiceTurnController {
     this.#conversationId = conversationId;
     this.#session = session;
     this.#submitText = submitText;
-    this.#unsubscribeFromSession = session.subscribe((event) =>
-      this.#handleSessionEvent(event),
-    );
+    session.subscribe((event) => this.#handleSessionEvent(event));
   }
 
   public getSnapshot(): VoiceTurnSnapshot {
@@ -230,12 +227,6 @@ export class VoiceTurnController {
       return;
     }
     this.#reopenListeningIfReady();
-  }
-
-  public async dispose(): Promise<void> {
-    await this.end();
-    this.#unsubscribeFromSession();
-    this.#listeners.clear();
   }
 
   async #deliver(input: SubmitTextInput): Promise<void> {

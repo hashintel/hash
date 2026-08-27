@@ -9,7 +9,7 @@ const enabledEnvironment = {
 };
 
 const createRequest = (
-  body = "v=0\r\no=- 0 0 IN IP4 127.0.0.1",
+  body = "v=0\r\no=- 0 0 IN IP4 127.0.0.1\r\n",
   overrides: ConstructorParameters<typeof Request>[1] = {},
 ) =>
   new Request("https://petrinaut.test/api/voice/realtime-call", {
@@ -83,7 +83,7 @@ describe("OpenAI Realtime call handler", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(
       async () =>
         new Response("v=0\r\no=OpenAI answer", {
-          headers: { "content-type": "application/sdp" },
+          headers: { "content-type": "text/plain; charset=utf-8" },
         }),
     );
     const handler = createOpenAIRealtimeCallHandler({
@@ -111,21 +111,17 @@ describe("OpenAI Realtime call handler", () => {
     expect(form).toBeInstanceOf(FormData);
     const sdp = form.get("sdp");
     const session = form.get("session");
-    expect(sdp).toBeInstanceOf(Blob);
-    expect(session).toBeInstanceOf(Blob);
-    expect((sdp as Blob).type).toBe("application/sdp");
-    expect(await (sdp as Blob).text()).toBe("v=0\r\no=- 0 0 IN IP4 127.0.0.1");
-    expect((session as Blob).type).toBe("application/json");
-    expect(JSON.parse(await (session as Blob).text())).toMatchObject({
+    expect(sdp).toBe("v=0\r\no=- 0 0 IN IP4 127.0.0.1\r\n");
+    expect(typeof session).toBe("string");
+    expect(JSON.parse(session as string)).toMatchObject({
       type: "transcription",
       audio: {
         input: {
           transcription: { model: "gpt-live-transcribe", languages: ["en"] },
-          turn_detection: { type: "semantic_vad", eagerness: "low" },
         },
       },
     });
-    expect(await (session as Blob).text()).not.toContain("response.create");
+    expect(session as string).not.toContain("response.create");
   });
 
   test("sanitizes upstream failures", async () => {

@@ -335,7 +335,7 @@ const AvailableVoiceInterviewControl = ({
 
   useEffect(
     () => () => {
-      void store.controller.dispose();
+      void store.controller.end();
     },
     [store],
   );

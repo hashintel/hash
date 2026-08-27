@@ -1,5 +1,5 @@
 export const OPENAI_REALTIME_CONNECTION_TIMEOUT_MS = 15_000;
-export const OPENAI_TRANSCRIPTION_POLICY_VERSION = "process-modeling-en-v1";
+export const OPENAI_TRANSCRIPTION_POLICY_VERSION = "process-modeling-en-v2";
 
 interface VoiceEnvironment {
   readonly NODE_ENV?: string;
@@ -48,10 +48,6 @@ export const createOpenAITranscriptionSession = () => ({
           "metric",
         ],
         languages: ["en"],
-      },
-      turn_detection: {
-        type: "semantic_vad" as const,
-        eagerness: "low" as const,
       },
     },
   },

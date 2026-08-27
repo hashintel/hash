@@ -1,12 +1,22 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { act, StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   loadOpenAIVoiceConfig,
+  VoiceInterviewControl,
   VoiceInterviewControlView,
 } from "./voice-interview-control";
 
 describe("voice interview control", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   test("loads only a schema-valid, available server configuration", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json({ available: true, connectionTimeoutMs: 15_000 }),
@@ -106,5 +116,60 @@ describe("voice interview control", () => {
 
     expect(html).toContain("Microphone off. Microphone access is required.");
     expect(html).toContain("Reconnect voice input");
+  });
+
+  test("remains interactive after Strict Mode replays its effects", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
+      Response.json({ available: true, connectionTimeoutMs: 15_000 }),
+    );
+    const getUserMedia = vi.fn(async () => {
+      throw new DOMException("Permission denied", "NotAllowedError");
+    });
+    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+    vi.stubGlobal("fetch", fetch);
+    vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
+
+    const container = document.createElement("div");
+    document.body.append(container);
+    const root = createRoot(container);
+
+    try {
+      await act(async () => {
+        root.render(
+          <StrictMode>
+            <VoiceInterviewControl
+              conversationId="petrinaut-preview:net-1"
+              messages={[]}
+              status="ready"
+              stop={vi.fn(async () => undefined)}
+              submitText={vi.fn(async () => ({
+                kind: "message" as const,
+                messageId: "message-1",
+              }))}
+            />
+          </StrictMode>,
+        );
+      });
+
+      const startButton = container.querySelector<HTMLButtonElement>(
+        'button[aria-label="Start voice input"]',
+      );
+      expect(startButton).not.toBeNull();
+
+      await act(async () => {
+        startButton!.click();
+      });
+
+      expect(getUserMedia).toHaveBeenCalledOnce();
+      expect(container.textContent).toContain(
+        "Microphone access is required to start voice input.",
+      );
+      expect(
+        container.querySelector('button[aria-label="Reconnect voice input"]'),
+      ).not.toBeNull();
+    } finally {
+      await act(async () => root.unmount());
+      container.remove();
+    }
   });
 });

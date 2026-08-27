@@ -213,7 +213,7 @@ describe("VoiceTurnController", () => {
     );
   });
 
-  test("closes the listening window when semantic VAD commits an item", async () => {
+  test("closes the listening window when VAD commits an item", async () => {
     const harness = createHarness();
     await harness.controller.start();
 

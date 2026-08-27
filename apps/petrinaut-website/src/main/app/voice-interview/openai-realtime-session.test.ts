@@ -166,7 +166,7 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.tracks[0]!.enabled).toBe(false);
   });
 
-  test("closes the microphone when semantic VAD commits an input item", async () => {
+  test("closes the microphone when VAD commits an input item", async () => {
     const harness = createHarness();
     await harness.session.connect();
     harness.session.setMicrophoneEnabled(true);
