@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { walkHir } from "../../../../hir/hir";
 import { lowerScenarioToHir } from "../../../../hir/scenario";
 import { scenarioSchema } from "../../../../schemas/scenario-schema";
 import { compileScenario } from "../compile-scenario";
@@ -1041,6 +1042,40 @@ describe("exposed variables", () => {
         (parameter) => parameter.identifier,
       ),
     ).toEqual(["base_pressure"]);
+  });
+
+  it("captures generated parameters from the ambient before shadowing scenario", () => {
+    // Pins a lowering precondition the generated code depends on: the
+    // lowerer resolves identifiers sequentially with no hoisting or TDZ, so
+    // `const __adhocParam0 = scenario.<generated>` BEFORE the local
+    // `const scenario = {…}` reads the ambient parameter record. A future
+    // use-before-declaration pre-pass in the lowerer would break synthesis
+    // — this test fails first, with a readable reason.
+    const state = baseState();
+    state.variables = [
+      {
+        ...state.variables[0]!,
+        optimize: { min: "0", max: "10", scale: "linear" },
+      },
+    ];
+    const outcome = synthesizeAdHocOptimization(state, context);
+    if (!outcome.ok) {
+      throw new Error(JSON.stringify(outcome.errors));
+    }
+    const hir = lowerScenarioToHir(outcome.output.scenario, {
+      adHocContext: context,
+    });
+    const item = hir.initialStateCode;
+    if (!item?.ok) {
+      throw new Error("expected the generated code to lower");
+    }
+    const scenarioRefNames: string[] = [];
+    walkHir(item.fn.body, (node) => {
+      if (node.kind === "scenarioRef") {
+        scenarioRefNames.push(node.name);
+      }
+    });
+    expect(scenarioRefNames).toContain("adhoc_var_net_basePressure");
   });
 });
 

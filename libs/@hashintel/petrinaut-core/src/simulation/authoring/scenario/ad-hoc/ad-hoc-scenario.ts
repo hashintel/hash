@@ -1615,7 +1615,10 @@ function generateInitialStateCode(
 
     const rowArrays = placeState.rows.map((row, rowIndex) => {
       if (row.kind === "template") {
-        const countAlias = `__adhocCount_${identifierSegment(placeKey)}_${rowIndex}`;
+        // Numbered, never name-derived: two places whose names sanitize
+        // alike ("Bay A" / "Bay-A") must not share an alias — sequential
+        // let-bindings would silently make both read the last one.
+        const countAlias = `__adhocCount${countLines.length}`;
         countLines.push(
           `const ${countAlias} = Math.max(0, Math.round(${source(
             row.count,
