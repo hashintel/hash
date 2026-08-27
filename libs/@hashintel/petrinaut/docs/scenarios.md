@@ -37,6 +37,8 @@ You will need scenarios when you want to:
 
 The view drawer (opened by clicking a row in the Scenarios list) is the same form populated with the existing values. It has **Close** and **Save** buttons.
 
+With the experimental [Ad-hoc scenarios](ad-hoc-scenarios.md#enabling-the-feature) setting on, the Create Scenario drawer instead shows the [ad-hoc form](ad-hoc-scenarios.md#saved-ad-hoc-scenarios): name and description above one inline Initial State + Parameters form, with a **Scenario Parameter** toggle on each Variable and no "Define as code" toggle. A scenario created that way always edits through the same form.
+
 ## Initial state: per-place vs code
 
 The Initial State section has a **Define as code** toggle.

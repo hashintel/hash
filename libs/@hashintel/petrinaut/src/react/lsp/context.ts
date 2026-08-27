@@ -1,6 +1,7 @@
 import { createContext } from "react";
 
 import type {
+  AdHocSynthesisContext,
   CompletionList,
   Diagnostic,
   DocumentUri,
@@ -56,9 +57,14 @@ export interface LanguageClientContextValue {
   /**
    * Lower a scenario's expressions and code-mode body to HIR (in the
    * language worker). `compileScenario` type-checks and interprets the
-   * result.
+   * result. A scenario whose initial state is `adhoc` synthesizes against
+   * `adHocContext` first — without it, lowering that scenario reports an
+   * error item.
    */
-  requestScenarioHir: (scenario: ScenarioLoweringInput) => Promise<ScenarioHir>;
+  requestScenarioHir: (
+    scenario: ScenarioLoweringInput,
+    adHocContext?: AdHocSynthesisContext,
+  ) => Promise<ScenarioHir>;
   /** Initialize a temporary scenario editing session. */
   initializeScenarioSession: (params: ScenarioSessionParams) => void;
   /** Update a scenario editing session. */

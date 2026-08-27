@@ -3,6 +3,7 @@ import { use, useEffect, useState } from "react";
 import { LanguageClientContext } from "../lsp/context";
 
 import type {
+  AdHocSynthesisContext,
   Scenario,
   ScenarioHir,
   ScenarioLoweringInput,
@@ -17,9 +18,19 @@ export type ScenarioHirState = {
 
 /** Serializes the parts of a scenario that lowering depends on: its code,
  * not its parameter defaults or coloured-place token rows — tweaking a value
- * or editing a row must not re-lower. The key doubles as the request payload
- * (parsed back in the effect), so the effect depends on nothing else. */
-const loweringKey = (scenario: Scenario): string => {
+ * or editing a row must not re-lower. An ad-hoc scenario also depends on the
+ * net context it synthesizes against, so that joins the key. The key doubles
+ * as the request payload (parsed back in the effect), so the effect depends
+ * on nothing else. */
+type LoweringPayload = {
+  scenario: ScenarioLoweringInput;
+  adHocContext?: AdHocSynthesisContext;
+};
+
+const loweringKey = (
+  scenario: Scenario,
+  adHocContext: AdHocSynthesisContext | undefined,
+): string => {
   const initialState =
     scenario.initialState.type === "per_place"
       ? {
@@ -34,9 +45,14 @@ const loweringKey = (scenario: Scenario): string => {
         }
       : scenario.initialState;
   return JSON.stringify({
-    parameterOverrides: scenario.parameterOverrides,
-    initialState,
-  } satisfies ScenarioLoweringInput);
+    scenario: {
+      parameterOverrides: scenario.parameterOverrides,
+      initialState,
+    },
+    ...(scenario.initialState.type === "adhoc" && adHocContext
+      ? { adHocContext }
+      : {}),
+  } satisfies LoweringPayload);
 };
 
 const PENDING: ScenarioHirState = { hir: null, error: null };
@@ -51,9 +67,11 @@ const PENDING: ScenarioHirState = { hir: null, error: null };
  */
 export function useScenarioHir(
   scenario: Scenario | undefined,
+  /** The net context an `adhoc` initial state synthesizes against. */
+  adHocContext?: AdHocSynthesisContext,
 ): ScenarioHirState {
   const { requestScenarioHir } = use(LanguageClientContext);
-  const key = scenario ? loweringKey(scenario) : null;
+  const key = scenario ? loweringKey(scenario, adHocContext) : null;
 
   const [entry, setEntry] = useState<{
     key: string;
@@ -65,8 +83,8 @@ export function useScenarioHir(
       return;
     }
     let cancelled = false;
-    const input = JSON.parse(key) as ScenarioLoweringInput;
-    requestScenarioHir(input)
+    const payload = JSON.parse(key) as LoweringPayload;
+    requestScenarioHir(payload.scenario, payload.adHocContext)
       .then((hir) => {
         if (!cancelled) {
           setEntry({ key, state: { hir, error: null } });

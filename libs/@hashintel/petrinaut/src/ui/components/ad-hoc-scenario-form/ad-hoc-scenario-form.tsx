@@ -109,6 +109,11 @@ export interface AdHocScenarioFormProps {
   }) => React.ReactNode;
   /** Classname for the form's root element (the keyboard-handling div). */
   className?: string;
+  /**
+   * Externally-owned LSP session id, so the host can address this form's
+   * diagnostics (a drawer footer summing errors); generated when omitted.
+   */
+  sessionId?: string;
 }
 
 /**
@@ -150,8 +155,9 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   bare = false,
   renderLayout,
   className,
+  sessionId: externalSessionId,
 }) => {
-  const sessionId = useAdHocLspSession(state);
+  const sessionId = useAdHocLspSession(state, externalSessionId);
   const { diagnosticsByUri } = use(LanguageClientContext);
   // Every edit below is an action dispatched through the history: the pure
   // reducer in petrinaut-core computes the next state, and Cmd/Ctrl+Z
