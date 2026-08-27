@@ -107,6 +107,11 @@ export interface AdHocScenarioFormProps {
   }) => React.ReactNode;
   /** Classname for the form's root element (the keyboard-handling div). */
   className?: string;
+  /**
+   * Externally-owned LSP session id, so the host can address this form's
+   * diagnostics (a drawer footer summing errors); generated when omitted.
+   */
+  sessionId?: string;
 }
 
 /**
@@ -158,8 +163,9 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   withVariables = true,
   renderLayout,
   className,
+  sessionId: externalSessionId,
 }) => {
-  const sessionId = useAdHocLspSession(state);
+  const sessionId = useAdHocLspSession(state, externalSessionId);
   const { diagnosticsByUri, requestFormatExpression } = use(
     LanguageClientContext,
   );

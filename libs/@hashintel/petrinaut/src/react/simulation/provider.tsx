@@ -710,6 +710,13 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const scenarioHirState = useScenarioHir(
     selectedScenario ??
       (adHocSynthesized?.ok ? adHocSynthesized.scenario : undefined),
+    // A persisted ad-hoc scenario synthesizes in the worker against the
+    // net context; the quick-sim definition was synthesized above already.
+    {
+      netParameters: extensions.parameters ? petriNetDefinition.parameters : [],
+      places: petriNetDefinition.places,
+      types: petriNetDefinition.types,
+    },
   );
 
   // Build a scenario with user-tweaked parameter values.

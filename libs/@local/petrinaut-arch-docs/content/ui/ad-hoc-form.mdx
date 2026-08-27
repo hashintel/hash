@@ -20,7 +20,11 @@ third mode, `"expose"`, is the scenario creation form's: it offers no value
 toggles at all, and instead each top-level Variable row grows a "Scenario
 Parameter" toggle (`AdHocVariable.exposed`) — the saved scenario exposes
 those Variables as its tunable parameters. Optimize selections write the
-`optimize` settings object; expose writes the boolean `exposed` flag.
+`optimize` settings object; expose writes the boolean `exposed` flag. In
+that consumer alone the definition persists — `initialState.type: "adhoc"`
+on the saved scenario, with `scenarioParameters` and `parameterOverrides`
+derived from it on save (`useAdHocScenarioAuthoring`); everywhere else the
+generated scenario stays ephemeral.
 
 The design is the scenario **code editor's model, constrained**: everything
 the form can express synthesizes to code-mode scenario source that the
