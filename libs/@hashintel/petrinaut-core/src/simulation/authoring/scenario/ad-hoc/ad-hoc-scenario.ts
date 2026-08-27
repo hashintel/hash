@@ -1509,7 +1509,12 @@ function variableProductions(
  * Rewrites a net-parameter override expression so it may read the top-level
  * Variables as `scenario.<name>`. Override expressions are single
  * expressions (no statement scope to shadow in), so each Variable reference
- * is substituted with its production.
+ * is substituted with its production. Unlike a Variable's own expression —
+ * where a forward reference to a later sibling fails type checking — an
+ * override may read ANY top-level Variable: by the time an override is
+ * conceptually evaluated, every Variable exists. Substitution is textual,
+ * so deeply chained Variables can expand large; in practice the size is
+ * bounded by what fits in the form's editors.
  */
 function inlineVariablesIntoOverride(
   expression: string,
