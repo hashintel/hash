@@ -35,6 +35,7 @@ import { AiAssistantPanel } from "./ai-assistant-panel";
 import type { PetrinautAiAssistant } from "../../../petrinaut";
 import type {
   PetrinautAiComposerControlContext,
+  PetrinautAiInteractionMode,
   PetrinautAiInterviewStageContext,
 } from "../../../types/ai-assistant-composer-control";
 import type {
@@ -157,12 +158,16 @@ const testInstances: ReturnType<typeof createPetrinaut>[] = [];
 const renderTestPanel = ({
   aiAssistant,
   editorContext = editorContextValue,
+  initialInteractionMode,
   initialMessage,
+  onInitialInteractionModeConsumed,
   petriNetDefinition = emptySDCPN,
 }: {
   aiAssistant: PetrinautAiAssistant;
   editorContext?: EditorContextValue;
+  initialInteractionMode?: PetrinautAiInteractionMode;
   initialMessage?: string;
+  onInitialInteractionModeConsumed?: () => void;
   petriNetDefinition?: SDCPN;
 }) => {
   const handle = createJsonDocHandle({
@@ -193,7 +198,9 @@ const renderTestPanel = ({
         <SDCPNContext.Provider value={sdcpnContext}>
           <AiAssistantPanel
             aiAssistant={nextAiAssistant}
+            initialInteractionMode={initialInteractionMode}
             initialMessage={initialMessage}
+            onInitialInteractionModeConsumed={onInitialInteractionModeConsumed}
           />
         </SDCPNContext.Provider>
       </EditorContext.Provider>
@@ -288,6 +295,50 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(screen.getByPlaceholderText("Describe the process you want to create")).not.toBeNull();
     expect(interviewStageMounts).toBe(1);
     expect(interviewStageUnmounts).toBe(0);
+  });
+
+  test("defers and consumes an initial Interview mode once, then falls back to Chat", () => {
+    let latestInteractionMode = "chat";
+    const onInitialInteractionModeConsumed = vi.fn();
+    const aiAssistant: PetrinautAiAssistant = {
+      renderInterviewStage: (context) => {
+        latestInteractionMode = context.interactionMode;
+        return <div>Interview stage</div>;
+      },
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    };
+    const closedEditorContext = {
+      ...editorContextValue,
+      isAiAssistantOpen: false,
+    };
+    const rendered = renderTestPanel({
+      aiAssistant,
+      editorContext: closedEditorContext,
+      initialInteractionMode: "interview",
+      onInitialInteractionModeConsumed,
+    });
+
+    expect(latestInteractionMode).toBe("chat");
+    expect(onInitialInteractionModeConsumed).not.toHaveBeenCalled();
+
+    rendered.rerenderPanel(aiAssistant, editorContextValue);
+
+    expect(latestInteractionMode).toBe("interview");
+    expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
+
+    const unavailableAssistant: PetrinautAiAssistant = {
+      transport: aiAssistant.transport,
+    };
+    rendered.rerenderPanel(unavailableAssistant, editorContextValue);
+
+    expect(screen.queryByText("Interview stage")).toBeNull();
+    expect(
+      screen.getByPlaceholderText("Describe the process you want to create"),
+    ).not.toBeNull();
+    expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
   });
 
   test("accepts one interview answer while generic chat is streaming and submits it after settlement", async () => {

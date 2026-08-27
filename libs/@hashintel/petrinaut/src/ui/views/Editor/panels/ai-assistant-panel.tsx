@@ -265,6 +265,8 @@ export const AiAssistantPanel = ({
     [],
   );
   const queuedInterviewAnswerRef = useRef<QueuedInterviewAnswer | null>(null);
+  const consumedInitialInteractionModeRef =
+    useRef<PetrinautAiInteractionMode | null>(null);
   const submittedInitialMessageRef = useRef<string | null>(null);
 
   const titleRef = useRef(title);
@@ -897,9 +899,16 @@ export const AiAssistantPanel = ({
 
   useEffect(() => {
     if (
-      !isAiAssistantOpen ||
       initialInteractionMode === undefined ||
       initialInteractionMode === null
+    ) {
+      consumedInitialInteractionModeRef.current = null;
+      return;
+    }
+
+    if (
+      !isAiAssistantOpen ||
+      consumedInitialInteractionModeRef.current === initialInteractionMode
     ) {
       return;
     }
@@ -910,6 +919,7 @@ export const AiAssistantPanel = ({
         ? "chat"
         : initialInteractionMode,
     );
+    consumedInitialInteractionModeRef.current = initialInteractionMode;
     onInitialInteractionModeConsumed?.();
   }, [
     aiAssistant.renderInterviewStage,

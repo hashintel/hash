@@ -568,10 +568,10 @@ export const AiAssistantContents = ({
         <div
           className={`${headerStyle} ${panelContentStyle({ visible: isOpen })}`}
         >
-          {interviewAvailable ? (
+          {interviewAvailable && onInteractionModeChange ? (
             <AiInteractionModeTabs
               mode={interactionMode}
-              onModeChange={onInteractionModeChange ?? (() => {})}
+              onModeChange={onInteractionModeChange}
             />
           ) : (
             <div className={tabStyle({ active: true })}>AI</div>
@@ -640,75 +640,75 @@ export const AiAssistantContents = ({
           <div
             className={`${composerWrapStyle} ${panelContentStyle({ visible: isOpen })}`}
           >
-          {showChips && (
-            <PromptChips
-              chips={promptChips}
-              disabled={isBusy}
-              onDismiss={() => setChipsDismissed(true)}
-              onSelect={(prompt) => onSendPrompt(prompt)}
-            />
-          )}
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              const submitter = (event.nativeEvent as SubmitEvent).submitter;
-              if (
-                canSubmit &&
-                submitter?.hasAttribute("data-ai-assistant-submit")
-              ) {
-                onSubmit();
-              }
-            }}
-          >
-            <div className={composerStyle}>
-              <textarea
-                ref={inputRef}
-                className={composerTextareaStyle}
-                rows={1}
-                value={input}
-                onChange={(event) => onInputChange(event.currentTarget.value)}
-                onKeyDown={(event) => {
-                  // Enter sends; Shift+Enter inserts a newline (the textarea's
-                  // native behaviour, so we just let it through). The
-                  // `isComposing` guard stops an IME confirmation keystroke
-                  // from sending a half-finished message.
-                  if (
-                    event.key === "Enter" &&
-                    !event.shiftKey &&
-                    !event.nativeEvent.isComposing
-                  ) {
-                    event.preventDefault();
-                    if (canSubmit) {
-                      onSubmit();
-                    }
-                  }
-                }}
-                placeholder={
-                  messages.length === 0
-                    ? "Describe the process you want to create"
-                    : "Continue iterating..."
+            {showChips && (
+              <PromptChips
+                chips={promptChips}
+                disabled={isBusy}
+                onDismiss={() => setChipsDismissed(true)}
+                onSelect={(prompt) => onSendPrompt(prompt)}
+              />
+            )}
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                const submitter = (event.nativeEvent as SubmitEvent).submitter;
+                if (
+                  canSubmit &&
+                  submitter?.hasAttribute("data-ai-assistant-submit")
+                ) {
+                  onSubmit();
                 }
-                aria-label="Message AI assistant"
-              />
-              {composerControl}
-              <Button
-                data-ai-assistant-submit
-                type={isBusy ? "button" : "submit"}
-                size="sm"
-                variant={isBusy ? "subtle" : "solid"}
-                tone={isBusy ? "neutral" : "brand"}
-                disabled={!isBusy && !canSubmit}
-                aria-label={isBusy ? "Stop AI response" : "Send message"}
-                onClick={() => {
-                  if (isBusy) {
-                    onStop();
+              }}
+            >
+              <div className={composerStyle}>
+                <textarea
+                  ref={inputRef}
+                  className={composerTextareaStyle}
+                  rows={1}
+                  value={input}
+                  onChange={(event) => onInputChange(event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    // Enter sends; Shift+Enter inserts a newline (the textarea's
+                    // native behaviour, so we just let it through). The
+                    // `isComposing` guard stops an IME confirmation keystroke
+                    // from sending a half-finished message.
+                    if (
+                      event.key === "Enter" &&
+                      !event.shiftKey &&
+                      !event.nativeEvent.isComposing
+                    ) {
+                      event.preventDefault();
+                      if (canSubmit) {
+                        onSubmit();
+                      }
+                    }
+                  }}
+                  placeholder={
+                    messages.length === 0
+                      ? "Describe the process you want to create"
+                      : "Continue iterating..."
                   }
-                }}
-                iconName={isBusy ? "stopFilled" : "arrowUp"}
-                tooltip={isBusy ? "Stop AI response" : "Send message"}
-              />
-            </div>
-          </form>
+                  aria-label="Message AI assistant"
+                />
+                {composerControl}
+                <Button
+                  data-ai-assistant-submit
+                  type={isBusy ? "button" : "submit"}
+                  size="sm"
+                  variant={isBusy ? "subtle" : "solid"}
+                  tone={isBusy ? "neutral" : "brand"}
+                  disabled={!isBusy && !canSubmit}
+                  aria-label={isBusy ? "Stop AI response" : "Send message"}
+                  onClick={() => {
+                    if (isBusy) {
+                      onStop();
+                    }
+                  }}
+                  iconName={isBusy ? "stopFilled" : "arrowUp"}
+                  tooltip={isBusy ? "Stop AI response" : "Send message"}
+                />
+              </div>
+            </form>
           </div>
         )}
       </div>

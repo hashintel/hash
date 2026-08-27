@@ -68,6 +68,12 @@ const aiCtaModalCopyStyle = css({
   maxWidth: "[420px]",
 });
 
+const aiCtaModalDescriptionStyle = css({
+  margin: "0",
+  color: "neutral.s80",
+  textStyle: "sm",
+});
+
 const aiCtaModalTitleStyle = css({
   margin: "0",
   color: "neutral.s110",
@@ -129,6 +135,8 @@ export const AiCtaModal = ({
     };
   }, [onDismiss]);
 
+  const effectiveInteractionMode = interviewAvailable ? interactionMode : "chat";
+
   return (
     <div className={aiCtaModalLayerStyle} style={{ bottom: bottomClearance }}>
       <form
@@ -159,7 +167,7 @@ export const AiCtaModal = ({
             onModeChange={setInteractionMode}
           />
         )}
-        {interactionMode === "chat" ? (
+        {effectiveInteractionMode === "chat" ? (
           <>
             <div className={aiCtaModalIconStyle}>
               <AiAssistantIcon size={32} />
@@ -201,7 +209,7 @@ export const AiCtaModal = ({
               <h2 className={aiCtaModalTitleStyle}>
                 Talk through your process with AI
               </h2>
-              <p>
+              <p className={aiCtaModalDescriptionStyle}>
                 Answer a few guided questions and Petrinaut will create the
                 model.
               </p>
