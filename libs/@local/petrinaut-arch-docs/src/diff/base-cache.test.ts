@@ -73,12 +73,39 @@ describe("base cache", () => {
     ).toBeNull();
   });
 
+  it("keeps entries for different generator versions side by side", () => {
+    const otherSide = { ...sideFixture, sourceUrlPrefix: "other/" };
+    writeCachedBaseSide({
+      cacheDir: scratch,
+      sha,
+      inputsHash: "hash-1",
+      side: sideFixture,
+    });
+    writeCachedBaseSide({
+      cacheDir: scratch,
+      sha,
+      inputsHash: "hash-2",
+      side: otherSide,
+    });
+
+    expect(
+      readCachedBaseSide({ cacheDir: scratch, sha, inputsHash: "hash-1" }),
+    ).toEqual(sideFixture);
+    expect(
+      readCachedBaseSide({ cacheDir: scratch, sha, inputsHash: "hash-2" }),
+    ).toEqual(otherSide);
+  });
+
   it("misses on an absent or unreadable entry", async () => {
     expect(
       readCachedBaseSide({ cacheDir: scratch, sha, inputsHash: "hash-1" }),
     ).toBeNull();
 
-    await writeFile(join(scratch, `base-${sha}.json`), "not json", "utf8");
+    await writeFile(
+      join(scratch, `base-hash-1-${sha}.json`),
+      "not json",
+      "utf8",
+    );
     expect(
       readCachedBaseSide({ cacheDir: scratch, sha, inputsHash: "hash-1" }),
     ).toBeNull();

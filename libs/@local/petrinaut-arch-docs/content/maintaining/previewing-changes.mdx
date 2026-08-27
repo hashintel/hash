@@ -52,7 +52,8 @@ architecture describes, and flags nothing.
 
 The base side is cached between builds, keyed by the base commit and the
 generator's own sources, so pushing again while the base has not moved skips
-the base build.
+the base build. A build of `main` stores its own pages as the entry every PR
+targeting `main` starts from, so the common case computes no base at all.
 
 The result is written into the bundle itself: the manifest records each page's
 status for the sidebar, changed pages carry markers between their blocks, and

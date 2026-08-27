@@ -232,10 +232,18 @@ of only the covered directories, so the transfer stays small. The build log
 says `base tree fetched from …` when this path ran.
 
 The built base side is cached under `node_modules/.cache/petrinaut-arch-docs`,
-keyed by the base commit and a hash of the generator's own sources, config and
-pinned dependencies — CI providers persist that directory between builds, so
-pushing to a PR whose base has not moved skips the base build entirely (the
-log says `base bundle from cache (…)`). Source-link URLs carry the built
+keyed in the entry's file name by a hash of the generator's own sources,
+config and pinned dependencies, then the base commit — CI providers persist
+that directory between builds, so any later commit whose base has not moved
+skips the base build entirely (the log says `base bundle from cache (…)`),
+and builds running different generator versions against one base keep
+separate entries. Every clean build also stores its _own_ side as a future
+base: the CI cache is restored per branch with a fallback to the production
+deployment, so the entry a `main` build writes is what a PR targeting `main`
+finds on its first build — the common case computes no base at all. A cached entry is trusted exactly as far as the build that
+wrote it — its pages are compiled as MDX — which is sound while only this
+project's own builds write the directory; a shared remote cache would need
+this analysis redone. Source-link URLs carry the built
 commit and are masked per side before comparison, which is what makes a base
 side built by an earlier build comparable at all.
 

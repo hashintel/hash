@@ -6,6 +6,7 @@
  * violated rule — so the map cannot quietly stop matching the code.
  */
 
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { chmod, mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -108,6 +109,63 @@ const resolveDiffBase = (args: string[]): string | null => {
     : fromEnvironment;
 };
 
+const cacheDir = join(repoRoot, "node_modules/.cache/petrinaut-arch-docs");
+
+/** Repo-relative directories whose content the generator reads. */
+const coveredPaths = (): string[] => [
+  ...new Set([
+    ...config.packages.map((pkg) => pkg.path),
+    "libs/@local/petrinaut-arch-docs",
+  ]),
+];
+
+/**
+ * Stores this build's own side as a future diff base.
+ *
+ * This is what shares the cache across branches: the CI cache is restored per
+ * branch with a fallback to the production deployment, so the entry a `main`
+ * build writes here is what every PR targeting `main` finds on its first
+ * build — no PR recomputes the base the production build already produced.
+ * It also means only protected-branch builds ever write the entries other
+ * branches read.
+ *
+ * Skipped when the checkout's commit is unknown, and locally when the covered
+ * sources have uncommitted changes — an entry must describe its commit, not a
+ * dirty tree.
+ */
+const seedBaseCache = (bundle: BuiltBundle, includeDiagrams: boolean): void => {
+  let sha = process.env.VERCEL_GIT_COMMIT_SHA ?? "";
+
+  if (!/^[0-9a-f]{40}$/u.test(sha)) {
+    try {
+      sha = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: repoRoot,
+        encoding: "utf8",
+      }).trim();
+      const dirty = execFileSync(
+        "git",
+        ["status", "--porcelain", "--", ...coveredPaths()],
+        { cwd: repoRoot, encoding: "utf8" },
+      ).trim();
+      if (!/^[0-9a-f]{40}$/u.test(sha) || dirty !== "") {
+        return;
+      }
+    } catch {
+      return;
+    }
+  }
+
+  writeCachedBaseSide({
+    cacheDir,
+    sha,
+    inputsHash: generatorInputsHash({
+      packageRoot: join(repoRoot, "libs/@local/petrinaut-arch-docs"),
+      includeDiagrams,
+    }),
+    side: diffSideOfBundle(bundle, config.sourceUrlPrefix),
+  });
+};
+
 /**
  * Builds the base ref's bundle and applies the diff to the head one.
  *
@@ -125,7 +183,6 @@ const withDiffAgainst = async (
   let baseTree: BaseTree | null = null;
   try {
     const url = remoteRepoUrl(process.env);
-    const cacheDir = join(repoRoot, "node_modules/.cache/petrinaut-arch-docs");
     const inputsHash = generatorInputsHash({
       packageRoot: join(repoRoot, "libs/@local/petrinaut-arch-docs"),
       includeDiagrams,
@@ -146,17 +203,13 @@ const withDiffAgainst = async (
         dim(`base bundle from cache (${baseSha.slice(0, 10)})\n`),
       );
     } else {
+      // The list includes the arch-docs package for the base tree's authored
+      // content and dependency-cruiser tsconfig; the generator itself still
+      // runs from this checkout.
       const tree = await materializeBaseTree({
         repoRoot,
         ref,
-        paths: [
-          ...new Set([
-            ...config.packages.map((pkg) => pkg.path),
-            // For the base tree's authored content and dependency-cruiser
-            // tsconfig; the generator itself still runs from this checkout.
-            "libs/@local/petrinaut-arch-docs",
-          ]),
-        ],
+        paths: coveredPaths(),
       });
       baseTree = tree;
       baseSha = tree.sha;
@@ -300,6 +353,10 @@ const main = async (): Promise<number> => {
     );
     return 1;
   }
+
+  // Every clean build stores its own side as a future diff base — a `main`
+  // build's entry is what spares each PR from rebuilding the base itself.
+  seedBaseCache(bundle, diagramsAvailable);
 
   // Applied only to a bundle that already passed the checks: the diff decorates
   // the output, it never gates it.
