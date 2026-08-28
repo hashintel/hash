@@ -21,7 +21,8 @@
  *
  * The whole form is keyboard-editable: every table is an arrow-key grid with
  * a phantom trailing row, grids and collapsible section/place headers chain
- * into one vertical walk (the zone registry in `use-form-navigation`), and
+ * into one vertical walk (a vertical `FocusStack` from the worksheet
+ * layer), and
  * Cmd/Ctrl+Z / Shift+Cmd/Ctrl+Z walk a form-level undo history (open text
  * fields keep their own). Focusing a value highlights the rows it reads and
  * the cells that read it (`dependency-highlight`).
@@ -38,14 +39,11 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../react/lsp/context";
+import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
+import { useFocusHeader } from "../../worksheet/use-focus-member";
 import { Section, SectionList } from "../section";
 import { computeAdHocHighlight } from "./dependency-highlight";
 import { AdHocFormContext } from "./form-context";
-import {
-  FormNavigationContext,
-  useFormNavigationRegistry,
-  useNavigationHeader,
-} from "./navigation/use-form-navigation";
 import { ParameterRows } from "./parameter-rows";
 import { ColouredPlaceBlock, UncolouredPlaceBlock } from "./place-block";
 import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
@@ -92,7 +90,7 @@ const NavigableSection: React.FC<{
   children: React.ReactNode;
 }> = ({ title, tooltip, children }) => {
   const [open, setOpen] = useState(true);
-  const header = useNavigationHeader({
+  const header = useFocusHeader({
     collapse: () => setOpen(false),
     expand: () => setOpen(true),
   });
@@ -132,10 +130,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     context,
     onChange,
   );
-
-  // Zones (grids, section headers, place headers) register here; arrow moves
-  // past a zone's edge continue into the next one in document order.
-  const navigation = useFormNavigationRegistry();
 
   // Escape pressed while focus is inside the form never reaches the host:
   // the drawers/dialogs the form embeds in close on Escape via a document
@@ -272,7 +266,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
 
   return (
     <AdHocFormContext value={services}>
-      <FormNavigationContext value={navigation}>
+      <FocusRoot>
         {/* Undo/redo listens in the capture phase, so it sees keys before any
           cell handler; open text fields and Monaco pass through untouched. */}
         <div
@@ -289,34 +283,36 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
             }
           }}
         >
-          <SectionList>
-            {variableRows ? (
-              <NavigableSection
-                title="Variables"
-                tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
-              >
-                {variableRows}
-              </NavigableSection>
-            ) : null}
+          <FocusStack axis="vertical">
+            <SectionList>
+              {variableRows ? (
+                <NavigableSection
+                  title="Variables"
+                  tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
+                >
+                  {variableRows}
+                </NavigableSection>
+              ) : null}
 
-            {parameterRows ? (
-              <NavigableSection
-                title="Parameters"
-                tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
-              >
-                {parameterRows}
-              </NavigableSection>
-            ) : null}
+              {parameterRows ? (
+                <NavigableSection
+                  title="Parameters"
+                  tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
+                >
+                  {parameterRows}
+                </NavigableSection>
+              ) : null}
 
-            <NavigableSection
-              title="Initial state"
-              tooltip="Token counts and values per place. Every value is an expression."
-            >
-              {placesList}
-            </NavigableSection>
-          </SectionList>
+              <NavigableSection
+                title="Initial state"
+                tooltip="Token counts and values per place. Every value is an expression."
+              >
+                {placesList}
+              </NavigableSection>
+            </SectionList>
+          </FocusStack>
         </div>
-      </FormNavigationContext>
+      </FocusRoot>
     </AdHocFormContext>
   );
 };

@@ -65,12 +65,16 @@ Each table ends in a dimmed trailing line that creates the next entry.
 
 ## The keyboard grid and zones
 
-Each table owns a 2D grid of its cells; the form chains tables through a
-zone registry (`navigation/use-form-navigation.ts`).
+The movement model is the [worksheet keyboard
+flow](layer:ui.worksheet): grids, headers, and tables are members of
+`FocusStack` groups, and the rules below are this form's instantiation of
+that layer's contract.
 
-11. ArrowUp/ArrowDown at a grid edge exit to the neighbouring zone in
-    document order. ArrowLeft/ArrowRight never leave a zone, and inside a
-    text field they stay with the caret.
+11. The form's sections chain in one vertical stack: ArrowUp/ArrowDown at a
+    grid edge move to the neighbouring member in document order. Horizontal
+    arrows that run off a table's sides route through the enclosing stacks
+    (nothing beside a section leaves focus in place); inside a text field
+    they stay with the caret.
 12. The token table's vertical stops are, top to bottom: column headers,
     the shared-values line (when a column is shared), then per row a count
     strip (dynamic rows only) followed by the cells, then the phantom line.
@@ -79,11 +83,11 @@ zone registry (`navigation/use-form-navigation.ts`).
 13. Section and place headers are single-element zones: Up/Down move to the
     neighbouring zone, Left collapses, Right expands. A collapsed zone
     fails entry and the walk skips it.
-14. A wrapper with `data-nav-panel` fences the walk: focus never crosses a
-    panel boundary. Every group handed to `renderLayout` is its own panel,
-    so in the Simulation Settings embedding the Parameters and Initial
-    state columns are separate keyboard islands, while the default stacked
-    layout (no panels) chains top to bottom.
+14. Side-by-side layouts wrap each column in its own vertical `FocusStack`
+    inside a horizontal one: vertical arrows stay within a column, and
+    horizontal arrows at a table's sides cross into the neighbouring
+    column, entering it at its remembered position. The default stacked
+    layout is a single vertical stack chaining top to bottom.
 
 ## The editor slab
 

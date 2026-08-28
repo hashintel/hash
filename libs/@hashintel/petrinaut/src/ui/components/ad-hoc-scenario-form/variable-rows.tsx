@@ -16,9 +16,11 @@ import { use, useEffect, useRef, useState } from "react";
 import { Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
+import { useFocusGrid } from "../../worksheet/use-focus-grid";
+import { useRowSelection } from "../../worksheet/use-row-selection";
+import { useSelectFirstActivation } from "../../worksheet/use-select-first";
 import { adHocVariableKey } from "./dependency-highlight";
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
-import { useNavigationGrid } from "./navigation/use-grid-navigation";
 import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
 import {
   cellButtonStyle,
@@ -36,8 +38,6 @@ import {
 import { GutterCell } from "./spreadsheet/gutter-cell";
 import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
 import { PhantomLine } from "./spreadsheet/phantom-line";
-import { useRowSelection } from "./spreadsheet/use-row-selection";
-import { useSelectFirstActivation } from "./spreadsheet/use-select-first";
 import { ValueEditor } from "./value-editor";
 
 import type { AdHocVariable } from "@hashintel/petrinaut-core";
@@ -220,7 +220,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
     selection === "optimize" || (selection === "expose" && placeId === null)
       ? selection
       : null;
-  const { register, onKeyDown, attach } = useNavigationGrid();
+  const { register, onKeyDown, attach } = useFocusGrid();
   const gutterRefs = useRef(new Map<number, HTMLButtonElement>());
   const phantomRef = useRef<HTMLButtonElement | null>(null);
   // Gutter focus selects the whole row; the selection highlight follows it.

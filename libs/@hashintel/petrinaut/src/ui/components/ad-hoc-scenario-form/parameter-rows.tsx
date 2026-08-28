@@ -9,8 +9,8 @@ import { use } from "react";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { emptyAdHocValue } from "@hashintel/petrinaut-core";
 
+import { useFocusGrid } from "../../worksheet/use-focus-grid";
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
-import { useNavigationGrid } from "./navigation/use-grid-navigation";
 import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
 import {
   cellStyle,
@@ -79,7 +79,7 @@ export interface ParameterRowsProps {
 export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
   const { synthesisContext, selection, highlight, setFocusedValue, dispatch } =
     use(AdHocFormContext);
-  const { register, onKeyDown, attach } = useNavigationGrid();
+  const { register, onKeyDown, attach } = useFocusGrid();
 
   const entryFor = (parameterId: string): AdHocNetParameter =>
     entries.find((entry) => entry.parameterId === parameterId) ?? {

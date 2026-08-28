@@ -34,11 +34,11 @@ import {
   type Place,
 } from "@hashintel/petrinaut-core";
 
+import { focusLands } from "../../worksheet/focus-flow";
+import { useFocusMember } from "../../worksheet/use-focus-member";
+import { useRowSelection } from "../../worksheet/use-row-selection";
+import { useSelectFirstActivation } from "../../worksheet/use-select-first";
 import { AdHocFormContext } from "./form-context";
-import {
-  focusLands,
-  useNavigationZone,
-} from "./navigation/use-form-navigation";
 import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
 import {
   cellStyle,
@@ -51,8 +51,6 @@ import {
 } from "./spreadsheet/form-table";
 import { GutterCell } from "./spreadsheet/gutter-cell";
 import { PhantomLine } from "./spreadsheet/phantom-line";
-import { useRowSelection } from "./spreadsheet/use-row-selection";
-import { useSelectFirstActivation } from "./spreadsheet/use-select-first";
 import { ValueEditor } from "./value-editor";
 
 // A background image, not a solid color, so it composites over row tints.
@@ -204,11 +202,13 @@ export const TokenTable: React.FC<TokenTableProps> = ({
 
   // The table hands focus to the neighbouring form zone past its edges, and
   // receives it at the column headers (top) or the phantom row (bottom).
-  const { attach: attachZone, exit: exitZone } = useNavigationZone((edge) =>
-    edge === "first"
+  const { attach: attachZone, moveFrom } = useFocusMember((entry) =>
+    entry.direction === "down" || entry.direction === "right"
       ? focusLands(headerRefs.current.get(0))
       : focusLands(cellRefs.current.get(`${state.rows.length}-0`)),
   );
+  const exitZone = (direction: "next" | "previous") =>
+    moveFrom(direction === "next" ? "down" : "up");
 
   // Every keyboard-reachable line of the table, top to bottom: the column
   // headers, the shared values, then each row's count strip (dynamic rows)
@@ -339,6 +339,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
     if (position.kind === "gutter") {
       if (event.key === "ArrowRight") {
         handled(() => focusCell(position.row, 0));
+      } else if (event.key === "ArrowLeft") {
+        handled(() => moveFrom("left", { row: stopIndex, column: 0 }));
       } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         const step = event.key === "ArrowDown" ? 1 : -1;
         const nextRow = position.row + step;
@@ -364,10 +366,20 @@ export const TokenTable: React.FC<TokenTableProps> = ({
     }
 
     if (position.kind === "header") {
-      if (event.key === "ArrowRight" && position.column < columnCount - 1) {
-        handled(() => headerRefs.current.get(position.column + 1)?.focus());
-      } else if (event.key === "ArrowLeft" && position.column > 0) {
-        handled(() => headerRefs.current.get(position.column - 1)?.focus());
+      if (event.key === "ArrowRight") {
+        if (position.column < columnCount - 1) {
+          handled(() => headerRefs.current.get(position.column + 1)?.focus());
+        } else {
+          handled(() =>
+            moveFrom("right", { row: stopIndex, column: position.column }),
+          );
+        }
+      } else if (event.key === "ArrowLeft") {
+        if (position.column > 0) {
+          handled(() => headerRefs.current.get(position.column - 1)?.focus());
+        } else {
+          handled(() => moveFrom("left", { row: stopIndex, column: 0 }));
+        }
       }
       return;
     }
@@ -391,15 +403,24 @@ export const TokenTable: React.FC<TokenTableProps> = ({
       return;
     }
 
-    // Cells and the phantom row.
+    // Cells and the phantom row. Horizontal moves past the table's sides
+    // ask the enclosing stack to carry focus to a sibling column.
     const row = position.kind === "cell" ? position.row : state.rows.length;
-    if (event.key === "ArrowRight" && position.column < columnCount - 1) {
-      handled(() => focusCell(row, position.column + 1));
+    if (event.key === "ArrowRight") {
+      if (position.column < columnCount - 1) {
+        handled(() => focusCell(row, position.column + 1));
+      } else {
+        handled(() =>
+          moveFrom("right", { row: stopIndex, column: position.column }),
+        );
+      }
     } else if (event.key === "ArrowLeft") {
       if (position.column > 0) {
         handled(() => focusCell(row, position.column - 1));
       } else if (position.kind === "cell") {
         handled(() => gutterRefs.current.get(position.row)?.focus());
+      } else {
+        handled(() => moveFrom("left", { row: stopIndex, column: 0 }));
       }
     }
     // Enter falls through: the cell's own click/open handling owns it.

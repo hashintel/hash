@@ -34,6 +34,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { CodeEditor } from "../../monaco/code-editor";
+import { useSelectFirstActivation } from "../../worksheet/use-select-first";
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
 import {
   cellButtonStyle,
@@ -42,7 +43,6 @@ import {
   dependencyHighlightStyle,
 } from "./spreadsheet/form-table";
 import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
-import { useSelectFirstActivation } from "./spreadsheet/use-select-first";
 import { stepAdHocValue } from "./step-value";
 
 import type {

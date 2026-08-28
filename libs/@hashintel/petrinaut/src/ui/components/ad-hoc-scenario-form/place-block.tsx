@@ -16,12 +16,12 @@ import { use, useState } from "react";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { resolveAdHocPlaceTotal } from "@hashintel/petrinaut-core";
 
-import { AdHocFormContext } from "./form-context";
+import { focusLands } from "../../worksheet/focus-flow";
 import {
-  focusLands,
-  useNavigationHeader,
-  useNavigationZone,
-} from "./navigation/use-form-navigation";
+  useFocusHeader,
+  useFocusMember,
+} from "../../worksheet/use-focus-member";
+import { AdHocFormContext } from "./form-context";
 import { tableContainerStyle } from "./spreadsheet/form-table";
 import { TokenTable } from "./token-table";
 import { ValueEditor } from "./value-editor";
@@ -161,7 +161,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
 }) => {
   const { formState, synthesisContext, dense } = use(AdHocFormContext);
   const [collapsed, setCollapsed] = useState(false);
-  const { attach: attachHeader, onHeaderKeyDown } = useNavigationHeader({
+  const { attach: attachHeader, onHeaderKeyDown } = useFocusHeader({
     collapse: () => setCollapsed(true),
     expand: () => setCollapsed(false),
   });
@@ -230,9 +230,11 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
   const { dense } = use(AdHocFormContext);
   const target = { kind: "count" as const, placeId: place.id, row: null };
   const [trigger, setTrigger] = useState<HTMLButtonElement | null>(null);
-  const { attach: attachZone, exit: exitZone } = useNavigationZone(() =>
+  const { attach: attachZone, moveFrom } = useFocusMember(() =>
     focusLands(trigger),
   );
+  const exitZone = (direction: "next" | "previous") =>
+    moveFrom(direction === "next" ? "down" : "up");
 
   return (
     <div ref={attachZone} className={cx(blockStyle, dense && denseBlockStyle)}>

@@ -102,6 +102,12 @@ export const config: ArchitectureConfig = {
         "state providers must not depend on the components that render them, so the React layer stays testable without mounting the editor",
     },
     {
+      from: "ui.worksheet",
+      to: "ui.adhoc-form",
+      reason:
+        "the worksheet keyboard flow is generic: it must never know the form state it navigates",
+    },
+    {
       from: "core",
       to: "cli",
       reason:

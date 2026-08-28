@@ -147,7 +147,7 @@ are background images, so they compose over row tints.
 
 Arrow keys walk each table as a grid; moves past an edge continue into the
 neighbouring **zone** in document order (grids, section headers, place
-headers — the registry in `use-form-navigation`, which skips zones that
+headers — the worksheet layer's `FocusStack` walk, which skips members that
 decline focus, e.g. collapsed ones). Tab stays native throughout the form;
 the one interception is an open gutter menu, where Tab dismisses the menu
 back to its gutter, as menus do. Section
@@ -305,7 +305,7 @@ initial-state body and wrapped override expressions.
           note: "The state-agnostic building blocks the three tables compose: the table shell, gutter cells with their menu choreography, the trailing add-lines, the row-selection model",
         },
         {
-          label: "ui.adhoc-form.navigation",
+          label: "ui.worksheet",
           note: "Zone registry: each grid or header owns its arrows; an edge move focuses the next zone in DOM order, skipping collapsed ones",
         },
         {
