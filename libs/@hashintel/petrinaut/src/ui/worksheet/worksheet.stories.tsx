@@ -337,9 +337,9 @@ export const Contained: Story = {
     <StoryFrame
       intro={
         "A vertical stack whose middle member is a horizontal stack with " +
-        "contain (the dashed fence). Arrow down from the top grid to enter " +
+        "contain (the dashed border). Arrow down from the top grid to enter " +
         "the pair, then try to leave with the arrow keys: Left and Right " +
-        "cross between the two inner grids, but no arrow escapes the fence " +
+        "cross between the two inner grids, but no arrow escapes the pair " +
         "— Up and Down are refused. Tab still moves freely in and out."
       }
     >

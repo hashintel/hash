@@ -9,7 +9,8 @@ A worksheet is a panel composed of spreadsheet grids and ordinary controls,
 laid out in nested columns and rows. This layer gives every worksheet one
 keyboard model. It knows nothing about what the grids contain: consumers own
 their cells, refs, and state; the layer owns movement, memory, and the tab
-order.
+order. The [usage manual](doc:ui/worksheet/usage-manual) shows the wiring
+for each piece.
 
 ## The pieces
 
@@ -41,7 +42,7 @@ Each numbered rule is a test target; `focus-flow.test.tsx` covers them.
    carry focus to a sibling. A stack at its own edge asks its parent.
 3. A move nobody accepts leaves focus where it is, and the key is still
    consumed. This is the canonical data-grid edge behaviour.
-4. `contain` fences a stack: arrows never carry focus out of it, in any
+4. `contain` bounds a stack: arrows never carry focus out of it, in any
    direction.
 5. Entry restores memory by default: a stack re-enters its last-focused
    child, a grid its last-focused cell (focusgroup semantics). Memory is
@@ -65,18 +66,10 @@ Each numbered rule is a test target; `focus-flow.test.tsx` covers them.
     table declares `role="grid"`/`row`/`gridcell` itself, and the layer
     moves real DOM focus (never `aria-activedescendant`).
 
-## Consuming the hooks
-
-Destructure hook results before use: `const { register, attach } =
-useFocusGrid()`. Assigning `grid.attach` straight into a `ref` makes the
-React Compiler treat the whole hook result as a ref and reject every later
-property access ("Cannot access refs during render"); destructured
-bindings compile without the diagnostic.
-
 ## Boundaries
 
 The layer must not import form or scenario state; the dependency rule
-fencing it from the form layer ships with the form. The ad-hoc scenario form is
+keeping the form layer out of its imports ships with the form. The ad-hoc scenario form is
 its first consumer; the editor's other token spreadsheet is the expected
 second. Stories in `worksheet.stories.tsx` demonstrate the configurations:
 side-by-side columns, aligned entry, contained stacks, a stop table, and

@@ -9,7 +9,7 @@
  * neighbouring child, entering it at its remembered position (focusgroup
  * semantics, the default) or aligned with the position the move left from
  * (`entry="aligned"`). Cross-axis moves, and moves off the stack's own
- * edge, forward to the enclosing stack — unless `contain` fences the walk.
+ * edge, forward to the enclosing stack — unless `contain` bounds the walk.
  *
  * Tab order is untouched throughout: every grid stays its own tab stop and
  * plain controls keep theirs. Arrow-crossing between siblings is an
