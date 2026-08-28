@@ -125,7 +125,10 @@ export const SDCPNCanvas: React.FC<{
     setEditionMode,
     componentSubnetId,
     cursorMode,
+    beginSelectionGesture,
+    endSelectionGesture,
     selectItem,
+    setSelection,
     clearSelection,
     hasCanvasSelection,
     setHoveredItem,
@@ -317,10 +320,7 @@ export const SDCPNCanvas: React.FC<{
   // Edge selection is handled here instead of in applyNodeChanges,
   // because we want edges selectable only by click, not by drag-to-select.
   function onEdgeClick(_event: React.MouseEvent, edge: { id: string }) {
-    selectItem({
-      type: "arc",
-      id: edge.id,
-    });
+    setSelection(new Map([[edge.id, { type: "arc", id: edge.id }]]));
   }
 
   function onNodeMouseEnter(
@@ -478,6 +478,8 @@ export const SDCPNCanvas: React.FC<{
       onNodeMouseLeave={onNodeMouseLeave}
       onEdgeMouseEnter={onEdgeMouseEnter}
       onEdgeMouseLeave={onEdgeMouseLeave}
+      onSelectionStart={beginSelectionGesture}
+      onSelectionEnd={endSelectionGesture}
       onPaneClick={onPaneClick}
       onDrop={isReadonly ? undefined : onDrop}
       onDragOver={isReadonly ? undefined : onDragOver}

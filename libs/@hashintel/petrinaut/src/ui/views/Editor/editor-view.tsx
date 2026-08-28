@@ -28,6 +28,7 @@ import { ExperimentsContext } from "../../../react/experiments/context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
+import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { Box } from "../../components/box";
@@ -124,6 +125,9 @@ export const EditorView = ({
   viewportActions?: ViewportAction[];
 }) => {
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
+  // Auto-layout moves nodes, which a read-only net rejects, so the menu would
+  // otherwise offer an item that silently does nothing.
+  const isReadOnly = useIsReadOnly();
   // Get data from sdcpn-store
   const {
     createNewNet,
@@ -343,13 +347,17 @@ export const EditorView = ({
           },
         ]
       : []),
-    {
-      id: "layout",
-      text: "Layout",
-      onClick: () => {
-        void applyAutoLayout();
-      },
-    },
+    ...(isReadOnly
+      ? []
+      : [
+          {
+            id: "layout",
+            text: "Layout",
+            onClick: () => {
+              void applyAutoLayout();
+            },
+          },
+        ]),
     ...(showNetManagementMenuItems
       ? [
           {

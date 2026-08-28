@@ -49,6 +49,7 @@ const emptySDCPN: SDCPN = {
 const editorContextValue: EditorContextValue = {
   ...initialEditorState,
   isAiAssistantOpen: true,
+  navigateTo: () => {},
   setGlobalMode: () => {},
   setEditionMode: () => {},
   setAddComponentMode: () => {},
@@ -65,6 +66,8 @@ const editorContextValue: EditorContextValue = {
   isNotSelectedConnection: () => false,
   selectedConnections: new Map(),
   setSelection: () => {},
+  beginSelectionGesture: () => {},
+  endSelectionGesture: () => {},
   selectItem: () => {},
   toggleItem: () => {},
   clearSelection: () => {},
@@ -87,7 +90,6 @@ const editorContextValue: EditorContextValue = {
   toggleAiAssistant: () => {},
   searchInputRef: { current: null },
   triggerPanelAnimation: () => {},
-  __reinitialize: () => {},
 };
 
 const streamChunks = (

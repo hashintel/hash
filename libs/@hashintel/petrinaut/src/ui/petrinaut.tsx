@@ -46,6 +46,7 @@ export type PetrinautAiAssistant = {
   transport: PetrinautAiTransport;
 };
 
+import type { PetrinautNavigationController } from "../react/navigation";
 import type { NetManagement } from "../react/net-management-context";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
 import type { ViewportAction } from "./types/viewport-action";
@@ -96,6 +97,8 @@ export type PetrinautProps = {
    * `?worker` against the host's own copy of the worker source.
    */
   lspWorkerFactory?: LspWorkerFactory;
+  /** Optional host-controlled, router-neutral app location. */
+  navigation?: PetrinautNavigationController;
 };
 
 const noop = () => {};
@@ -123,6 +126,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   simulationWorkerFactory,
   monteCarloWorkerFactory,
   lspWorkerFactory,
+  navigation,
 }) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(
@@ -148,6 +152,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
         simulationWorkerFactory={simulationWorkerFactory}
         monteCarloWorkerFactory={monteCarloWorkerFactory}
         lspWorkerFactory={lspWorkerFactory}
+        navigation={navigation}
       >
         <MonacoProvider>
           <Stack

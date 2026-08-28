@@ -61,6 +61,12 @@ In the experiment's view drawer (open it by clicking a row in the list, or any e
 
 There is no built-in restart action -- to re-run with the same configuration, **Create** a new experiment with the same settings.
 
+Opening and closing an existing experiment participates in Browser Back /
+Forward history on hosts with app navigation enabled. Experiment records and
+results remain session data: browser navigation can reopen a record while the
+current Petrinaut session is mounted, but reloading a copied experiment URL
+does not recreate the run.
+
 A confirmation prompt blocks browser/tab close while any experiment is initializing or running.
 
 ### Notifications

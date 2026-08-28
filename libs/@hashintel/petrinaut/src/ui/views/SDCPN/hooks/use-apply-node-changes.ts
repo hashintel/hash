@@ -83,41 +83,44 @@ export function useApplyNodeChanges() {
     // ReactFlow fires separately in the same event tick) don't clobber
     // each other due to stale closure state.
     if (selectionChanged) {
-      setSelection((prevSelection) => {
-        const hasNonCanvasItems = Array.from(prevSelection.values()).some(
-          (item) =>
-            item.type !== "place" &&
-            item.type !== "transition" &&
-            item.type !== "arc" &&
-            item.type !== "componentInstance",
-        );
+      setSelection(
+        (prevSelection) => {
+          const hasNonCanvasItems = Array.from(prevSelection.values()).some(
+            (item) =>
+              item.type !== "place" &&
+              item.type !== "transition" &&
+              item.type !== "arc" &&
+              item.type !== "componentInstance",
+          );
 
-        const base: SelectionMap = new Map(
-          hasNonCanvasItems ? [] : prevSelection,
-        );
+          const base: SelectionMap = new Map(
+            hasNonCanvasItems ? [] : prevSelection,
+          );
 
-        let changed = hasNonCanvasItems && prevSelection.size > 0;
+          let changed = hasNonCanvasItems && prevSelection.size > 0;
 
-        for (const change of changes) {
-          if (change.type === "select") {
-            if (change.selected && !base.has(change.id)) {
-              const itemType = getItemType(change.id);
-              // Skip edges — they are only selectable via direct click
-              // (onEdgeClick), not via drag-to-select box selection.
-              if (itemType && itemType !== "arc") {
-                base.set(change.id, { type: itemType, id: change.id });
+          for (const change of changes) {
+            if (change.type === "select") {
+              if (change.selected && !base.has(change.id)) {
+                const itemType = getItemType(change.id);
+                // Skip edges — they are only selectable via direct click
+                // (onEdgeClick), not via drag-to-select box selection.
+                if (itemType && itemType !== "arc") {
+                  base.set(change.id, { type: itemType, id: change.id });
+                  changed = true;
+                }
+              } else if (!change.selected && base.has(change.id)) {
+                base.delete(change.id);
                 changed = true;
               }
-            } else if (!change.selected && base.has(change.id)) {
-              base.delete(change.id);
-              changed = true;
             }
           }
-        }
 
-        // Avoid unnecessary re-renders when nothing actually changed
-        return changed ? base : prevSelection;
-      });
+          // Avoid unnecessary re-renders when nothing actually changed
+          return changed ? base : prevSelection;
+        },
+        { batch: "react-flow" },
+      );
     }
 
     // Commit all final positions from drag-end in a single atomic mutation

@@ -1,9 +1,10 @@
 import { useReactFlow } from "@xyflow/react";
-import { use, useState } from "react";
+import { use } from "react";
 
 import { Button } from "@hashintel/ds-components";
 import { cx, css, cva } from "@hashintel/ds-helpers/css";
 
+import { usePetrinautNavigation } from "../../../../react/navigation";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { ViewportSettingsDialog } from "./viewport-settings-dialog";
@@ -36,7 +37,14 @@ const blurredBackground = css({ backdropFilter: "[blur(10px)]" });
 export const ViewportControls: React.FC<{
   viewportActions?: ViewportAction[];
 }> = ({ viewportActions }) => {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const navigation = usePetrinautNavigation();
+  const isSettingsOpen = navigation.state.overlay?.type === "viewport-settings";
+  const setIsSettingsOpen = (open: boolean) => {
+    navigation.navigate(
+      { overlay: open ? { type: "viewport-settings" } : null },
+      { cause: "user", action: "overlay" },
+    );
+  };
   const { zoomIn, zoomOut } = useReactFlow();
   const {
     collapseAllPanels,

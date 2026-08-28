@@ -16,6 +16,18 @@ export type {
   PetrinautAiChatTransport,
   PetrinautProps,
 } from "./petrinaut";
+export type {
+  PetrinautNavigationAction,
+  PetrinautNavigationController,
+  PetrinautNavigationHistory,
+  PetrinautNavigationHistoryPolicy,
+  PetrinautNavigationIntent,
+  PetrinautNavigationOverlay,
+  PetrinautNavigationState,
+  PetrinautNavigationUpdate,
+  PetrinautNavigationUpdater,
+  PetrinautSimulateResource,
+} from "../react/navigation";
 export { definePetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
 export type {
   PetrinautAiInteractiveTool,

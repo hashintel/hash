@@ -22,6 +22,7 @@ import { deriveDefaultParameterValues } from "../hooks/use-default-parameter-val
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import { LanguageClientContext } from "../lsp/context";
+import { usePetrinautNavigation } from "../navigation";
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import { useStore } from "../use-store";
@@ -73,11 +74,13 @@ function getScenarioParameterDefaults(
   return values;
 }
 
-function createInitialStateValues(): SimulationStateValues {
+function createInitialStateValues(options?: {
+  selectedScenarioId?: string | null;
+}): SimulationStateValues {
   return {
     parameterValues: {},
     initialMarking: {},
-    selectedScenarioId: undefined,
+    selectedScenarioId: options?.selectedScenarioId,
     scenarioParameterValues: {},
     dt: 0.01,
     maxTime: null,
@@ -170,16 +173,24 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const { requestHirArtifacts, requestScenarioHir } = use(
     LanguageClientContext,
   );
+  const navigation = usePetrinautNavigation();
   const { extensions, petriNetDefinition } = sdcpnContext;
   const { addNotification } = use(NotificationsContext);
 
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
   const workerFactoryRef = useLatest(workerFactory ?? createSimulationWorker);
+  const requestedScenarioId = navigation.state.scenarioId;
+  const effectiveSelectedScenarioId = getEffectiveSelectedScenarioId(
+    petriNetDefinition.scenarios,
+    requestedScenarioId,
+  );
 
   // Configuration state (not managed by the simulation handle)
   const [stateValues, setStateValues] = useState<SimulationStateValues>(() =>
-    createInitialStateValues(),
+    createInitialStateValues({
+      selectedScenarioId: navigation.state.scenarioId,
+    }),
   );
   const stateValuesRef = useLatest(stateValues);
 
@@ -265,23 +276,46 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     setErrorItemId(null);
   };
 
+  const previousEffectiveScenarioIdRef = useRef(effectiveSelectedScenarioId);
+  useEffect(() => {
+    if (
+      previousEffectiveScenarioIdRef.current === effectiveSelectedScenarioId
+    ) {
+      return;
+    }
+    previousEffectiveScenarioIdRef.current = effectiveSelectedScenarioId;
+
+    initializationGenerationRef.current += 1;
+    simulationRef.current?.dispose();
+    simulationRef.current = null;
+    setSimulation(null);
+    setError(null);
+    setErrorItemId(null);
+    setStateValues((prev) => ({
+      ...prev,
+      selectedScenarioId: effectiveSelectedScenarioId,
+      scenarioParameterValues: getScenarioParameterDefaults(
+        petriNetDefinition.scenarios?.find(
+          (scenario) => scenario.id === effectiveSelectedScenarioId,
+        ),
+      ),
+    }));
+  }, [
+    effectiveSelectedScenarioId,
+    petriNetDefinition.scenarios,
+    simulationRef,
+  ]);
+
+  // Only navigates. The effective-scenario effect above owns the simulation
+  // disposal and parameter-default reset, so a user-initiated switch and a
+  // host- or history-initiated one take the same path — and a controlled host
+  // that declines the navigation keeps its running simulation untouched.
   const setSelectedScenarioId: SimulationContextValue["setSelectedScenarioId"] =
     (scenarioId) => {
-      if (stateValuesRef.current.selectedScenarioId !== scenarioId) {
-        invalidateSimulationForConfigurationChange();
-      }
-
-      setStateValues((prev) => {
-        const scenario = petriNetDefinition.scenarios?.find(
-          (s) => s.id === scenarioId,
-        );
-
-        return {
-          ...prev,
-          selectedScenarioId: scenarioId,
-          scenarioParameterValues: getScenarioParameterDefaults(scenario),
-        };
-      });
+      navigation.navigate(
+        { scenarioId },
+        { cause: "user", action: "scenario" },
+      );
     };
 
   const setScenarioParameterValue: SimulationContextValue["setScenarioParameterValue"] =
@@ -292,15 +326,22 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         invalidateSimulationForConfigurationChange();
       }
 
+      if (
+        requestedScenarioId === undefined &&
+        effectiveSelectedScenarioId !== null
+      ) {
+        navigation.navigate(
+          { scenarioId: effectiveSelectedScenarioId },
+          { cause: "normalization", action: "scenario" },
+        );
+      }
+
       setStateValues((prev) => ({
         ...prev,
         selectedScenarioId:
-          prev.selectedScenarioId === undefined
-            ? getEffectiveSelectedScenarioId(
-                petriNetDefinition.scenarios,
-                prev.selectedScenarioId,
-              )
-            : prev.selectedScenarioId,
+          requestedScenarioId === undefined
+            ? effectiveSelectedScenarioId
+            : requestedScenarioId,
         scenarioParameterValues: {
           ...prev.scenarioParameterValues,
           [identifier]: value,
@@ -570,10 +611,18 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   const simulationState = mapCoreState(simulation ? coreStatus : null);
   const totalFrames = frameSummary.count;
-  const effectiveSelectedScenarioId = getEffectiveSelectedScenarioId(
-    petriNetDefinition.scenarios,
-    stateValues.selectedScenarioId,
-  );
+  useEffect(() => {
+    if (
+      requestedScenarioId !== undefined &&
+      requestedScenarioId !== null &&
+      requestedScenarioId !== effectiveSelectedScenarioId
+    ) {
+      navigation.navigate(
+        { scenarioId: effectiveSelectedScenarioId },
+        { cause: "normalization", action: "scenario" },
+      );
+    }
+  }, [effectiveSelectedScenarioId, navigation, requestedScenarioId]);
   const effectiveScenarioParameterValues =
     stateValues.selectedScenarioId === undefined ||
     stateValues.selectedScenarioId === effectiveSelectedScenarioId

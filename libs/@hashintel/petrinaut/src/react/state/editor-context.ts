@@ -42,7 +42,15 @@ export type SimulateDrawerState =
   | { type: "view-metric"; metricId: string }
   | { type: "create-metric" }
   | { type: "view-experiment"; experimentId: string }
-  | { type: "create-experiment" };
+  | { type: "create-experiment" }
+  | { type: "create-optimization" };
+
+export type EditorNavigationTarget = {
+  globalMode?: EditorGlobalMode;
+  simulateViewMode?: SimulateViewMode;
+  simulateDrawer?: SimulateDrawerState;
+  selection?: SelectionMap;
+};
 
 /**
  * What is rendered on the simulation timeline chart.
@@ -110,6 +118,8 @@ export type EditorState = {
  * The action functions for the editor.
  */
 export type EditorActions = {
+  /** Navigate several editor surfaces as one app-history transition. */
+  navigateTo: (target: EditorNavigationTarget) => void;
   setGlobalMode: (mode: EditorGlobalMode) => void;
   setEditionMode: (mode: EditorEditionMode) => void;
   setCursorMode: (mode: CursorMode) => void;
@@ -131,7 +141,10 @@ export type EditorActions = {
   selectedConnections: SelectionMap;
   setSelection: (
     selection: SelectionMap | ((prev: SelectionMap) => SelectionMap),
+    options?: { cause: "normalization" } | { batch: "react-flow" },
   ) => void;
+  beginSelectionGesture: () => void;
+  endSelectionGesture: () => void;
   selectItem: (item: SelectionItem) => void;
   toggleItem: (item: SelectionItem) => void;
   clearSelection: () => void;
@@ -158,7 +171,6 @@ export type EditorActions = {
   setAiAssistantOpen: (isOpen: boolean) => void;
   toggleAiAssistant: () => void;
   triggerPanelAnimation: () => void;
-  __reinitialize: () => void;
 };
 
 export type EditorContextValue = EditorState &
@@ -195,6 +207,7 @@ export const initialEditorState: EditorState = {
 
 const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   ...initialEditorState,
+  navigateTo: () => {},
   setGlobalMode: () => {},
   setEditionMode: () => {},
   setCursorMode: () => {},
@@ -211,6 +224,8 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   isNotSelectedConnection: () => false,
   selectedConnections: new Map(),
   setSelection: () => {},
+  beginSelectionGesture: () => {},
+  endSelectionGesture: () => {},
   selectItem: () => {},
   toggleItem: () => {},
   clearSelection: () => {},
@@ -233,7 +248,6 @@ const DEFAULT_CONTEXT_VALUE: EditorContextValue = {
   toggleAiAssistant: () => {},
   searchInputRef: createRef<HTMLInputElement | null>(),
   triggerPanelAnimation: () => {},
-  __reinitialize: () => {},
 };
 
 export const EditorContext = createContext<EditorContextValue>(

@@ -23,6 +23,9 @@ export default defineConfig(({ command }) => ({
         // Dependency-free instantiation of compiled HIR artifacts.
         "hir-runtime": resolve(packageRoot, "src/hir-runtime.ts"),
         optimization: resolve(packageRoot, "src/optimization.ts"),
+        // Dependency-free entry: the selection vocabulary alone, for hosts that
+        // validate selection in a route or a server function.
+        selection: resolve(packageRoot, "src/selection.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),
         "workers/monte-carlo": resolve(

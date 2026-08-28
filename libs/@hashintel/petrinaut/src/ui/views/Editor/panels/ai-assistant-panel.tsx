@@ -63,27 +63,25 @@ export type {
 
 const selectTarget = (
   target: AiToolTarget,
-  actions: Pick<
-    EditorContextValue,
-    "selectItem" | "setGlobalMode" | "setSimulateDrawer" | "setSimulateViewMode"
-  >,
+  actions: Pick<EditorContextValue, "navigateTo" | "selectItem">,
 ) => {
   if (target.kind === "selection") {
     actions.selectItem(target.item);
     return;
   }
 
-  actions.setGlobalMode("simulate");
-  actions.setSimulateViewMode(target.mode);
-  actions.setSimulateDrawer(
-    target.mode === "scenarios"
-      ? target.itemId
-        ? { type: "view-scenario", scenarioId: target.itemId }
-        : { type: "closed" }
-      : target.itemId
-        ? { type: "view-metric", metricId: target.itemId }
-        : { type: "closed" },
-  );
+  actions.navigateTo({
+    globalMode: "simulate",
+    simulateViewMode: target.mode,
+    simulateDrawer:
+      target.mode === "scenarios"
+        ? target.itemId
+          ? { type: "view-scenario", scenarioId: target.itemId }
+          : { type: "closed" }
+        : target.itemId
+          ? { type: "view-metric", metricId: target.itemId }
+          : { type: "closed" },
+  });
 };
 
 const isPetrinautAiMutationToolName = (
@@ -224,12 +222,10 @@ export const AiAssistantPanel = ({
   const {
     hasSelection,
     isAiAssistantOpen,
+    navigateTo,
     propertiesPanelWidth,
     selectItem,
     setAiAssistantOpen,
-    setGlobalMode,
-    setSimulateDrawer,
-    setSimulateViewMode,
   } = use(EditorContext);
 
   const { petriNetDefinition, setTitle, title } = use(SDCPNContext);
@@ -695,10 +691,8 @@ export const AiAssistantPanel = ({
       }}
       onSelectToolTarget={(target) =>
         selectTarget(target, {
+          navigateTo,
           selectItem,
-          setGlobalMode,
-          setSimulateDrawer,
-          setSimulateViewMode,
         })
       }
       onSendPrompt={(prompt) => {

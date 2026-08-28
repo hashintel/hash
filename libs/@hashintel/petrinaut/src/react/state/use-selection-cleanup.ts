@@ -81,15 +81,18 @@ export function useSelectionCleanup() {
     }
 
     if (hasStale) {
-      setSelection((prev) => {
-        const cleaned: SelectionMap = new Map();
-        for (const [id, item] of prev) {
-          if (validIds.has(id)) {
-            cleaned.set(id, item);
+      setSelection(
+        (prev) => {
+          const cleaned: SelectionMap = new Map();
+          for (const [id, item] of prev) {
+            if (validIds.has(id)) {
+              cleaned.set(id, item);
+            }
           }
-        }
-        return cleaned;
-      });
+          return cleaned;
+        },
+        { cause: "normalization" },
+      );
     }
 
     // Clear hoveredItem if it references a deleted element

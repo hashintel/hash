@@ -15,6 +15,10 @@ import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
 
 import { LanguageClientContext } from "../lsp/context";
 import {
+  PetrinautNavigationProvider,
+  usePetrinautNavigation,
+} from "../navigation";
+import {
   NotificationsContext,
   type AddNotificationInput,
 } from "../notifications/context";
@@ -23,6 +27,7 @@ import { ExperimentsContext, type ExperimentsContextValue } from "./context";
 import { ExperimentsProvider } from "./provider";
 
 import type { LanguageClientContextValue } from "../lsp/context";
+import type { PetrinautNavigationState } from "../navigation";
 import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,
@@ -187,16 +192,29 @@ const ExperimentsContextConsumer = ({
   return null;
 };
 
+const NavigationContextConsumer = ({
+  onNavigationState,
+}: {
+  onNavigationState: (state: Readonly<PetrinautNavigationState>) => void;
+}) => {
+  onNavigationState(usePetrinautNavigation().state);
+  return null;
+};
+
 const TestWrapper = ({
   addNotification,
   requestHirArtifacts,
   worker,
   onContextValue,
+  initialNavigationState,
+  onNavigationState,
 }: {
   addNotification?: (notification: AddNotificationInput) => string;
   requestHirArtifacts?: LanguageClientContextValue["requestHirArtifacts"];
   worker: FakeMonteCarloWorker;
   onContextValue: (value: ExperimentsContextValue) => void;
+  initialNavigationState?: Partial<PetrinautNavigationState>;
+  onNavigationState: (state: Readonly<PetrinautNavigationState>) => void;
 }) => (
   <NotificationsContext
     value={{
@@ -206,19 +224,22 @@ const TestWrapper = ({
   >
     <SDCPNContext.Provider value={sdcpnContextValue}>
       <LanguageClientOverride requestHirArtifacts={requestHirArtifacts}>
-        <ExperimentsProvider
-          workerFactory={() =>
-            worker as WorkerLike<
-              MonteCarloToWorkerMessage,
-              MonteCarloToMainMessage
-            >
-          }
-          // One shard, so a single fake worker stands in for the whole
-          // experiment. Sharding itself is covered in petrinaut-core.
-          experimentShardCount={1}
-        >
-          <ExperimentsContextConsumer onContextValue={onContextValue} />
-        </ExperimentsProvider>
+        <PetrinautNavigationProvider initialState={initialNavigationState}>
+          <NavigationContextConsumer onNavigationState={onNavigationState} />
+          <ExperimentsProvider
+            workerFactory={() =>
+              worker as WorkerLike<
+                MonteCarloToWorkerMessage,
+                MonteCarloToMainMessage
+              >
+            }
+            // One shard, so a single fake worker stands in for the whole
+            // experiment. Sharding itself is covered in petrinaut-core.
+            experimentShardCount={1}
+          >
+            <ExperimentsContextConsumer onContextValue={onContextValue} />
+          </ExperimentsProvider>
+        </PetrinautNavigationProvider>
       </LanguageClientOverride>
     </SDCPNContext.Provider>
   </NotificationsContext>
@@ -229,12 +250,17 @@ function renderExperimentsProvider(
   options: {
     addNotification?: (notification: AddNotificationInput) => string;
     requestHirArtifacts?: LanguageClientContextValue["requestHirArtifacts"];
+    initialNavigationState?: Partial<PetrinautNavigationState>;
   } = {},
 ): {
   getValue: () => ExperimentsContextValue;
+  getNavigationState: () => Readonly<PetrinautNavigationState>;
   renderResult: RenderResult;
 } {
   const valueHolder = { current: null as ExperimentsContextValue | null };
+  const navigationStateHolder = {
+    current: null as Readonly<PetrinautNavigationState> | null,
+  };
   const captureValue = (value: ExperimentsContextValue) => {
     valueHolder.current = value;
   };
@@ -245,16 +271,55 @@ function renderExperimentsProvider(
       requestHirArtifacts={options.requestHirArtifacts}
       worker={worker}
       onContextValue={captureValue}
+      initialNavigationState={options.initialNavigationState}
+      onNavigationState={(state) => {
+        navigationStateHolder.current = state;
+      }}
     />,
   );
 
   return {
     getValue: () => valueHolder.current!,
+    getNavigationState: () => navigationStateHolder.current!,
     renderResult,
   };
 }
 
 describe("ExperimentsProvider", () => {
+  it("replaces the creation overlay with the created experiment location", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getNavigationState, getValue, renderResult } =
+      renderExperimentsProvider(worker, {
+        initialNavigationState: { overlay: { type: "create-experiment" } },
+      });
+
+    try {
+      let experimentId = "";
+      await act(async () => {
+        experimentId = await getValue().createExperiment({
+          name: "Navigated experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        await flushWorkerSetup();
+      });
+
+      expect(getNavigationState()).toMatchObject({
+        mode: "simulate",
+        simulateView: "experiments",
+        simulateResource: { type: "experiment", id: experimentId },
+        overlay: null,
+      });
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
   it("creates an initializing experiment before the worker reports ready", async () => {
     const worker = new FakeMonteCarloWorker();
     const { getValue, renderResult } = renderExperimentsProvider(worker);
