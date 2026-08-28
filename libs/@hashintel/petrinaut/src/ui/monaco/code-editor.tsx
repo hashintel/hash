@@ -1,4 +1,4 @@
-import { Suspense, use, useRef } from "react";
+import { Suspense, use, useRef, useState } from "react";
 
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -159,6 +159,12 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
 }) => {
   const { Editor } = use(use(MonacoContext));
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  // While the editor has focus its model is the source of truth: the wrapper
+  // must not echo the (possibly one-keystroke-stale) controlled value back
+  // into the model mid-typing — that reset teleports the cursor to the end.
+  // Withholding `value` makes @monaco-editor/react skip its sync; the prop
+  // resumes syncing external changes once focus leaves.
+  const [editorFocused, setEditorFocused] = useState(false);
 
   const handleMount = (
     editorInstance: editor.IStandaloneCodeEditor,
@@ -193,12 +199,14 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
       });
     }
 
-    if (onEditorFocus) {
-      editorInstance.onDidFocusEditorText(() => onEditorFocus());
-    }
-    if (onEditorBlur) {
-      editorInstance.onDidBlurEditorText(() => onEditorBlur());
-    }
+    editorInstance.onDidFocusEditorText(() => {
+      setEditorFocused(true);
+      onEditorFocus?.();
+    });
+    editorInstance.onDidBlurEditorText(() => {
+      setEditorFocused(false);
+      onEditorBlur?.();
+    });
 
     onMount?.(editorInstance, monacoInstance);
   };
@@ -234,6 +242,9 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
         renderLineHighlight: "none",
         contextmenu: false,
         suggest: { showStatusBar: false },
+        // The textarea input path: EditContext lets macOS smart punctuation
+        // rewrite code (double-space becomes a period).
+        editContext: false,
         ...options,
         tabFocusMode: true,
       }
@@ -249,6 +260,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
         lineNumbersMinChars: 3,
         padding: { top: 8, bottom: 8 },
         fixedOverflowWidgets: true,
+        editContext: false,
         ...options,
       };
 
@@ -262,7 +274,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
         height={singleLine ? SINGLE_LINE_TOTAL_HEIGHT : "100%"}
         options={editorOptions}
         onMount={handleMount}
-        value={value}
+        value={editorFocused ? undefined : value}
         onChange={onChange}
         {...props}
       />
