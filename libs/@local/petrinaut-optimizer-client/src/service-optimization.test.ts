@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createPetrinautOptOptimization } from "./petrinaut-opt-optimization";
+import { createServicePetrinautOptimization } from "./service-optimization.js";
 
 import type { PetrinautOptimizationInput } from "@hashintel/petrinaut-core";
 
@@ -9,8 +9,10 @@ const input = {
   study: { trials: 2 },
 } as PetrinautOptimizationInput;
 
-describe("createPetrinautOptOptimization", () => {
-  it("creates, attaches to, and cancels runs via the development proxy", async () => {
+const endpoint = () => new URL("/api/petrinaut-opt/", "http://localhost/");
+
+describe("createServicePetrinautOptimization", () => {
+  it("creates, attaches to, and cancels runs via the endpoint", async () => {
     const fetchImpl = vi.fn(async (_url: string | URL, init?: RequestInit) => {
       if (init?.method === "POST") {
         return Promise.resolve(
@@ -30,7 +32,10 @@ describe("createPetrinautOptOptimization", () => {
         }),
       );
     });
-    const optimization = createPetrinautOptOptimization(fetchImpl);
+    const optimization = createServicePetrinautOptimization({
+      endpoint,
+      fetchImpl,
+    });
 
     const { runId } = await optimization.createOptimizationRun(input);
     expect(runId).toBe("run-1");
@@ -69,7 +74,10 @@ describe("createPetrinautOptOptimization", () => {
         ),
       ),
     );
-    const optimization = createPetrinautOptOptimization(fetchImpl);
+    const optimization = createServicePetrinautOptimization({
+      endpoint,
+      fetchImpl,
+    });
 
     const onAttached = vi.fn();
     const error = await (async () => {

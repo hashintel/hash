@@ -7791,6 +7791,7 @@ __metadata:
     "@hashintel/ds-helpers": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:^"
     "@hashintel/refractive": "workspace:^"
+    "@local/petrinaut-optimizer-client": "workspace:*"
     "@monaco-editor/react": "npm:4.8.0-rc.3"
     "@pandacss/dev": "npm:1.11.1"
     "@storybook/react-vite": "npm:10.2.19"

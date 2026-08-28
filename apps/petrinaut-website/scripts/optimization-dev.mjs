@@ -15,6 +15,15 @@ const container = "petrinaut-opt-website-dev";
 // nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request
 const optimizerOrigin = "http://127.0.0.1:4004";
 
+// `--storybook` starts Petrinaut's Storybook (editor built from source, with
+// fast refresh) against the optimizer instead of the demo website (which
+// consumes the built dist). Remaining arguments go to the spawned dev server.
+const cliArguments = process.argv.slice(2);
+const storybookMode = cliArguments.includes("--storybook");
+const forwardedArguments = cliArguments.filter(
+  (argument) => argument !== "--storybook",
+);
+
 const wait = (durationMs) =>
   new Promise((resolve) => setTimeout(resolve, durationMs));
 
@@ -166,21 +175,40 @@ try {
     await waitForOptimizer();
   }
 
-  console.log("Building Petrinaut for the demo website...");
-  await run("turbo", ["build", "--filter", "@hashintel/petrinaut"]);
+  const providerEnv = {
+    ...process.env,
+    PETRINAUT_OPT_ORIGIN: optimizerOrigin,
+    VITE_PETRINAUT_OPT_PROVIDER: "service",
+  };
 
-  console.log("Starting the Petrinaut optimization demo...");
-  // Extra arguments go to Vite, so a caller can pin the port:
-  // `yarn dev:petrinaut-optimization --port 5175 --strictPort`.
-  websiteProcess = spawn("yarn", ["vite", ...process.argv.slice(2)], {
-    cwd: appDirectory,
-    env: {
-      ...process.env,
-      PETRINAUT_OPT_ORIGIN: optimizerOrigin,
-      VITE_PETRINAUT_OPT_PROVIDER: "service",
-    },
-    stdio: "inherit",
-  });
+  if (storybookMode) {
+    console.log("Starting Petrinaut's Storybook against the optimizer...");
+    // Through Turborepo so Storybook's workspace dependencies are built;
+    // Storybook itself serves the editor from source with fast refresh.
+    websiteProcess = spawn(
+      "turbo",
+      [
+        "run",
+        "dev",
+        "--filter",
+        "@hashintel/petrinaut",
+        ...(forwardedArguments.length > 0 ? ["--", ...forwardedArguments] : []),
+      ],
+      { cwd: repositoryRoot, env: providerEnv, stdio: "inherit" },
+    );
+  } else {
+    console.log("Building Petrinaut for the demo website...");
+    await run("turbo", ["build", "--filter", "@hashintel/petrinaut"]);
+
+    console.log("Starting the Petrinaut optimization demo...");
+    // Extra arguments go to Vite, so a caller can pin the port:
+    // `yarn dev:petrinaut-optimization --port 5175 --strictPort`.
+    websiteProcess = spawn("yarn", ["vite", ...forwardedArguments], {
+      cwd: appDirectory,
+      env: providerEnv,
+      stdio: "inherit",
+    });
+  }
 
   const forwardSignal = (signal) => websiteProcess?.kill(signal);
   const handleSigint = () => forwardSignal("SIGINT");
