@@ -38,11 +38,15 @@ remembers that acknowledgement in this browser for the current disclosure versio
 selections of **Interview** start directly. If browser storage is unavailable or the disclosure
 changes, Petrinaut asks again.
 
-While **Interview** is selected, the full interview stage replaces the generic message composer. It
-keeps the current question visible, labels live words **Not sent yet**, and shows **Answer
-recorded** only after finalization. The words shown as the question are also the exact words spoken
-by the AI-generated OpenAI voice. Choose **Use text instead** to select **Chat** and return focus to
-the composer.
+The full Interview stage keeps the current question above a circular microphone control. While
+Petrinaut is listening, waveform bars respond to your microphone and a short **Listening** status
+confirms capture. The technical input-level name remains available to screen readers without adding
+visible meter text.
+
+Partial words appear in a compact **Live transcript** strip with a **Recording** status. After
+finalization, the strip changes to **Your answer** with **Sent**. Icon controls provide **Done
+speaking**, **Pause**, **Use text instead**, and the actions valid for the current phase; hover or
+focus an icon to see its title.
 
 The stage names the microphone state and shows input activity only while the microphone is really
 on. During interviewer playback, **Interrupt and speak** first stops playback and then opens the
@@ -69,14 +73,14 @@ When Brunch has produced authoritative completion information, the stage can exp
 **Still exploring** topics. It does not show a question count or a speculative model preview; the
 Petrinaut canvas remains the model surface.
 
-If voice cannot continue, the status panel identifies the kind of problem. For microphone
-permission or device errors, allow access or connect/select a microphone before reconnecting. For
-an interrupted request, network error, or timeout, check the connection and choose **Reconnect**.
-If the preview is unavailable, continue with the text composer. An invalid service response
-includes a diagnostic reference you can give to an operator; error codes and that reference sit
-under collapsed **Technical details** so you can share them without them dominating the interview.
-That reference and its diagnostic record do not contain your transcript or the response being
-spoken.
+If voice cannot continue, the status panel identifies the kind of problem with a warning circle and
+a visible **Reconnect** action. For microphone permission or device errors, allow access or
+connect/select a microphone before reconnecting. For an interrupted request, network error, or
+timeout, check the connection and choose **Reconnect**. If the preview is unavailable, continue
+with the text composer. An invalid service response includes a diagnostic reference you can give to
+an operator; error codes and that reference sit under collapsed **Technical details** so you can share
+them without them dominating the interview. That reference and its diagnostic record do not contain
+your transcript or the response being spoken.
 
 When no interview is active, **Clear AI chat** via the delete button in the top right of the panel
 wipes the conversation, stops any in-flight stream, and tells the host app to forget the messages

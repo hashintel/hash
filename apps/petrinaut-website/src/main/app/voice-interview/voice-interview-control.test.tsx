@@ -708,34 +708,102 @@ describe("voice interview stage", () => {
   });
 
   test("uses a detached bottom mini bar with independent expand, type, pause, and end controls", () => {
-    const html = renderToStaticMarkup(
-      <VoiceInterviewControlView
-        {...viewProps({ placement: "detached", presentation: "mini" })}
-      />,
-    );
-
-    expect(html).toContain('aria-label="Voice interview mini bar"');
-    expect(html).toContain(
-      'aria-label="Expand voice interview. Microphone on · Listening. Question: What happens after approval?"',
-    );
-    expect(html).toContain("Microphone on · Listening");
-    expect(html).toContain("What happens after approval?");
-    expect(html).toContain("--voice-interview-right");
-    expect(html).toContain("[@media_(min-width:_768px)]");
-    expect(html).not.toContain("md:right_4");
-    expect(html).toContain('aria-label="Use text instead"');
-    expect(html).toContain(">Pause<");
-    expect(html).toContain('aria-label="End interview"');
-
     render(
       <VoiceInterviewControlView
         {...viewProps({ placement: "detached", presentation: "mini" })}
       />,
     );
-    const endButton = screen.getByRole("button", { name: "End interview" });
-    expect(endButton.querySelector("svg")).not.toBeNull();
-    expect(endButton.parentElement?.getAttribute("data-part")).toBe("trigger");
-    expect(endButton.parentElement?.getAttribute("data-scope")).toBe("tooltip");
+
+    expect(
+      screen.getByRole("region", { name: "Voice interview mini bar" }),
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", {
+        name: "Expand voice interview. Microphone on · Listening. Question: What happens after approval?",
+      }),
+    ).not.toBeNull();
+    expect(screen.getByText("Listening")).not.toBeNull();
+    expect(screen.queryByText("Microphone on · Listening")).toBeNull();
+    expect(screen.getByText("What happens after approval?")).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Done speaking" }),
+    ).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Pause" })).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Use text instead" }),
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "End interview" }),
+    ).not.toBeNull();
+
+    for (const name of [
+      "Done speaking",
+      "Pause",
+      "Use text instead",
+      "End interview",
+    ]) {
+      const button = screen.getByRole("button", { name });
+      expect(button.querySelector("svg")).not.toBeNull();
+      expect(button.parentElement?.getAttribute("data-scope")).toBe("tooltip");
+    }
+
+    const html = renderToStaticMarkup(
+      <VoiceInterviewControlView
+        {...viewProps({ placement: "detached", presentation: "mini" })}
+      />,
+    );
+    expect(html).toContain("--voice-interview-right");
+    expect(html).toContain("[@media_(min-width:_768px)]");
+    expect(html).not.toContain("md:right_4");
+  });
+
+  test("shows only the valid compact phase action", () => {
+    const rendered = render(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: { ...snapshot, microphoneEnabled: false, phase: "paused" },
+          presentation: "mini",
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Resume listening" }),
+    ).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Done speaking" })).toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: "Resume listening" })
+        .querySelector("svg"),
+    ).not.toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: "Resume listening" })
+        .parentElement?.getAttribute("data-scope"),
+    ).toBe("tooltip");
+
+    rendered.rerender(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: { ...snapshot, microphoneEnabled: false, phase: "playing" },
+          presentation: "mini",
+        })}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Interrupt and speak" }),
+    ).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: "Interrupt and speak" })
+        .querySelector("svg"),
+    ).not.toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: "Interrupt and speak" })
+        .parentElement?.getAttribute("data-scope"),
+    ).toBe("tooltip");
   });
 
   test("announces compact question and provisional transcript context", () => {

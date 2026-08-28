@@ -9,3 +9,6 @@ identity, stop handling, schema-validated interactive-tool text mapping, explici
 targeting for corrections, and a queue-aware voice submission path. Add the Chat / Interview mode
 switch and export `PetrinautAiInteractionMode`, with the selected interaction mode and mode-change
 callback available to host-rendered interview stages.
+
+Simplify Interview mode with a circular microphone waveform, compact recording/sent transcript
+states, phase-specific icon controls, and focused reconnect recovery.

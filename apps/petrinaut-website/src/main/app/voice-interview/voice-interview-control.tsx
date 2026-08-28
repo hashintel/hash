@@ -848,31 +848,69 @@ export const VoiceInterviewControlView = ({
               <FaMicrophoneSlash aria-hidden="true" />
             )}
             <span className={miniTextStyle}>
-              <span>{status}</span>
+              <span>{shortStatusText(snapshot)}</span>
               {snapshot.currentQuestion && (
                 <span className={contextStyle}>{snapshot.currentQuestion}</span>
               )}
             </span>
           </button>
-          {isSpeaking ? (
-            <Button size="xs" type="button" onClick={onInterrupt}>
-              Interrupt and speak
-            </Button>
-          ) : snapshot.phase === "paused" ? (
-            <Button size="xs" type="button" onClick={onResume}>
-              Resume
-            </Button>
-          ) : (
+          {snapshot.phase === "listening" && (
+            <>
+              <Button
+                aria-label="Done speaking"
+                prefix={<FaCheck aria-hidden="true" />}
+                shape="round"
+                size="xs"
+                tooltip="Done speaking"
+                type="button"
+                onClick={onDoneSpeaking}
+              />
+              <Button
+                aria-label="Pause"
+                disabled={!snapshot.microphoneEnabled}
+                prefix={<FaPause aria-hidden="true" />}
+                shape="round"
+                size="xs"
+                tooltip="Pause"
+                type="button"
+                variant="subtle"
+                onClick={onPause}
+              />
+            </>
+          )}
+          {snapshot.phase === "paused" && (
             <Button
-              disabled={!snapshot.microphoneEnabled}
-              prefix={<FaPause aria-hidden="true" />}
+              aria-label="Resume listening"
+              prefix={<FaPlay aria-hidden="true" />}
+              shape="round"
               size="xs"
+              tooltip="Resume listening"
               type="button"
-              variant="subtle"
-              onClick={onPause}
-            >
-              Pause
-            </Button>
+              onClick={onResume}
+            />
+          )}
+          {(snapshot.phase === "synthesizing" ||
+            snapshot.phase === "playing") && (
+            <Button
+              aria-label="Interrupt and speak"
+              prefix={<FaMicrophone aria-hidden="true" />}
+              shape="round"
+              size="xs"
+              tooltip="Interrupt and speak"
+              type="button"
+              onClick={onInterrupt}
+            />
+          )}
+          {snapshot.phase === "recoverable-error" && (
+            <Button
+              aria-label="Reconnect"
+              prefix={<FaRotate aria-hidden="true" />}
+              shape="round"
+              size="xs"
+              tooltip="Reconnect"
+              type="button"
+              onClick={onReconnect}
+            />
           )}
           <Button
             aria-label="Use text instead"
