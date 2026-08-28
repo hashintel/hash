@@ -14,9 +14,11 @@ Current process-model-elicitation assets:
 - `cases/vestera-scheduling/` — the Vestera case.
 - `oracles/vestera-scheduling/` — case-specific retrospective and prospective ledgers.
 - `oracles/ir-quality-ruler-v1.md` — frozen general IR-quality ruler.
-- `protocols/prospective-runbook-v1/` — the unchanged path to freeze and run prospectively.
+- `protocols/prospective-runbook-v1/` — the frozen prospective baseline, run with `yarn workspace @apps/brunch-agent runbook:elicit`.
 - `protocols/ir-quality-ruler-v1/` — the independent omniscient and cold-review procedures.
 - `protocols/legacy-baseline/` — retained historical instrument; do not use it for new runs.
+
+The prospective ruler has been calibrated, but the three-run baseline has not yet been executed.
 
 When an instrument ceases to be supported, archive a short record under
 `docs/archive/evaluations/`, retain its observed output, and remove its executable source rather

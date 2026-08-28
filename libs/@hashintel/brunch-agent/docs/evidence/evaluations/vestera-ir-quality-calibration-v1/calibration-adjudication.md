@@ -80,7 +80,7 @@ The cold reviewers discovered relevant absences not explicit in the retrospectiv
 - whether changeovers must start or finish inside the crew window.
 
 These are grader-only additions in
-`evaluations/oracles/process-model-elicitation/vestera-baseline/truth-ledger-v1-prospective.yaml`.
+`evaluations/oracles/vestera-scheduling/truth-ledger-v1-prospective.yaml`.
 The v0 ledger used by the four historical graders remains retrospective and unchanged in meaning;
 the interviewee-visible situation pack was not enlarged.
 
@@ -146,8 +146,8 @@ Clarified after calibration:
 
 Frozen artifacts for the next prospective runs:
 
-- `evaluations/oracles/process-model-elicitation/ir-quality/ruler-v1.md`
-- `evaluations/oracles/process-model-elicitation/vestera-baseline/truth-ledger-v1-prospective.yaml`
+- `evaluations/oracles/ir-quality-ruler-v1.md`
+- `evaluations/oracles/vestera-scheduling/truth-ledger-v1-prospective.yaml`
 
 ## What this calibration does not prove
 

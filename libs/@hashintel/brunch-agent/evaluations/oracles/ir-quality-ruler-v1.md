@@ -164,7 +164,7 @@ property or apply an anchor inconsistently. Human review is mandatory for all ha
 ## Prospective baseline use
 
 Use the frozen prospective ledger
-`../vestera-baseline/truth-ledger-v1-prospective.yaml`; also freeze the case, prompts,
+`vestera-scheduling/truth-ledger-v1-prospective.yaml`; also freeze the case, prompts,
 model/configuration, and hard stop before running the unchanged current elicitation path. Use at
 least three independent runs per case. Retain transcripts,
 IRs, grader reports, model/config, turn/token/latency measures, and any simulator disclosure side
