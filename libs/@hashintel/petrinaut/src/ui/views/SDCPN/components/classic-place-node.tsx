@@ -33,7 +33,6 @@ const placeCircleStyle = cva({
     gap: "3",
     minWidth: "0",
     border: "2px solid color-mix(in oklab, black, white 35%)",
-    backgroundColor: "neutral.s10",
     fontSize: "[15px]",
     boxSizing: "border-box",
     position: "relative",
