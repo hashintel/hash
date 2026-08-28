@@ -223,6 +223,11 @@ const parametersListStyle = css({
   paddingBottom: "3",
   // Small right inset so row values don't hug the scrollbar/column edge.
   paddingRight: "2",
+  // Bleed: place headers pull their chevron 18px left of the tables; the
+  // padding/negative-margin pair keeps positions identical while extending
+  // the clip box so the chevron isn't cropped.
+  paddingLeft: "[18px]",
+  marginLeft: "[-18px]",
 });
 
 // Plain rows separated by hairline dividers, matching the sidebar's
@@ -272,6 +277,16 @@ const ratioRowStyle = css({
 const ratioSliderStyle = css({
   width: "[120px]",
   opacity: "[1]",
+});
+
+// The Clear affordance stays quiet until pointed at: it wipes the whole
+// draft, so it should not compete with the fields it clears.
+const quietClearButtonStyle = css({
+  opacity: "[0.55]",
+  transition: "[opacity 0.12s ease]",
+  _hover: { opacity: "[1]" },
+  _focusVisible: { opacity: "[1]" },
+  _disabled: { opacity: "[0.3]" },
 });
 
 const emptyMessageStyle = css({
@@ -584,6 +599,8 @@ const SimulationSettingsContent: React.FC = () => {
                     size="xs"
                     variant="ghost"
                     tone="neutral"
+                    iconName="rotateLeft"
+                    className={quietClearButtonStyle}
                     disabled={adHocScenario === null || isSimulationActive}
                     onClick={() => setAdHocScenario(null)}
                   >
