@@ -3,5 +3,35 @@
 Headless Petrinaut APIs for SDCPN documents, mutations, simulation, playback,
 language services, and supporting domain utilities.
 
-This package intentionally has no React or UI dependencies. The visual editor
-package, `@hashintel/petrinaut`, builds on top of it.
+This package has no React or UI dependencies, which is what lets it run
+unchanged in Node and inside workers. The visual editor package,
+`@hashintel/petrinaut`, builds on top of it.
+
+## Handle Creation
+
+Petrinaut reads and writes documents through `PetrinautDocHandle`. Use
+`createJsonDocHandle()` for an in-memory handle with patch events,
+extension sanitization, and optional undo/redo history:
+
+```ts
+import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+
+const handle = createJsonDocHandle({
+  id: "my-net",
+  initial: {
+    places: [{ id: "p1", name: "P1", x: 0, y: 0 }],
+    transitions: [],
+  },
+});
+```
+
+`initial` accepts `SDCPNInput`, a loose document shape for host integrations.
+Plain-net defaults are filled in automatically: omitted arc weights become `1`,
+input arc types become `"standard"`, extension arrays default to `[]`, and
+disabled extension data is sanitized according to handle capabilities.
+
+When another application is the source of truth, implement `PetrinautDocHandle`
+directly so editor edits can emit `source: "local"` and host/store updates can
+emit `source: "remote"`. The full guide, including the invariants the editor
+relies on, is in the architecture docs:
+[Embedding in a host application](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/handle/host-integration.mdx).
