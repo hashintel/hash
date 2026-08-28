@@ -1,78 +1,16 @@
-import { z } from "zod";
-
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent-transport-aisdk/client-tools";
 
+import { sweepOutputSchema } from "../brunch-sweep-output";
+
+import type {
+  SweepCapture,
+  SweepCompletionFailure,
+  SweepCompletionReport,
+} from "../brunch-sweep-output";
 import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type { UIMessageChunk } from "ai";
 
-const completionFailureSchema = z.object({
-  diagnostic: z.string(),
-  nodeId: z.string().optional(),
-  kind: z.string().optional(),
-  slot: z.string().optional(),
-  requirement: z.string(),
-  actual: z.string(),
-  message: z.string(),
-  captureIds: z.array(z.string()),
-});
-
-const completionReportSchema = z.object({
-  complete: z.boolean(),
-  pluginVersion: z.string(),
-  revision: z.string(),
-  failures: z.array(completionFailureSchema),
-  sliceNodeIds: z.array(z.string()),
-  outsideSlice: z.array(
-    z.object({
-      nodeId: z.string(),
-      kind: z.string(),
-      open: z.array(completionFailureSchema),
-    }),
-  ),
-});
-
-const captureSchema = z.object({
-  id: z.string(),
-  status: z.enum(["active", "superseded", "retracted"]),
-  epistemicStatus: z.string(),
-  confidence: z.string(),
-  content: z.union([
-    z.object({ value: z.unknown() }),
-    z.object({ absence: z.string() }),
-  ]),
-  evidence: z.array(z.object({ excerpt: z.string() })).optional(),
-  basis: z
-    .object({
-      type: z.string(),
-      description: z.string(),
-    })
-    .optional(),
-  alternativeGroup: z.string().optional(),
-  supersedes: z.string().optional(),
-});
-
-export const sweepOutputSchema = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("no-settled-range") }),
-  z.object({
-    status: z.literal("refused"),
-    refusal: z.object({
-      code: z.string(),
-      message: z.string(),
-    }),
-  }),
-  z.object({
-    status: z.literal("applied"),
-    appliedCaptureIds: z.array(z.string()),
-    captures: z.array(captureSchema),
-    completion: completionReportSchema.optional(),
-  }),
-]);
-
-type CompletionFailure = z.infer<typeof completionFailureSchema>;
-type CompletionReport = z.infer<typeof completionReportSchema>;
-type VisibleCapture = z.infer<typeof captureSchema>;
-
-const formatFailure = (failure: CompletionFailure): string => {
+const formatFailure = (failure: SweepCompletionFailure): string => {
   const location =
     failure.nodeId === undefined
       ? ""
@@ -84,7 +22,7 @@ const formatFailure = (failure: CompletionFailure): string => {
   return `Completion gap [${failure.diagnostic}]${location}: needs ${failure.requirement}; actual ${failure.actual}. ${failure.message}${captures}`;
 };
 
-const formatCapture = (capture: VisibleCapture): string => {
+const formatCapture = (capture: SweepCapture): string => {
   const content =
     "value" in capture.content
       ? JSON.stringify(capture.content.value)
@@ -106,7 +44,7 @@ const formatCapture = (capture: VisibleCapture): string => {
   return `Capture ${capture.id} (${capture.status}; ${capture.epistemicStatus}; confidence ${capture.confidence}): ${content} — ${provenance}${history.length === 0 ? "" : `; ${history.join("; ")}`}`;
 };
 
-const formatCompletion = (report: CompletionReport): string[] => [
+const formatCompletion = (report: SweepCompletionReport): string[] => [
   `Completion: ${report.complete ? "complete" : "incomplete"} · plugin ${report.pluginVersion} · revision ${report.revision}`,
   `Completion slice: ${report.sliceNodeIds.join(", ") || "none"}`,
   ...report.failures.map(formatFailure),

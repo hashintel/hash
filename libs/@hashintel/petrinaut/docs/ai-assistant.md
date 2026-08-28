@@ -44,9 +44,11 @@ confirms capture. The technical input-level name remains available to screen rea
 visible meter text.
 
 Partial words appear in a compact **Live transcript** strip with a **Recording** status. After
-finalization, the strip changes to **Your answer** with **Sent**. Icon controls provide **Done
-speaking**, **Pause**, **Use text instead**, and the actions valid for the current phase; hover or
-focus an icon to see its title.
+finalization, the strip changes to **Your answer**. It reads **Sending** while the answer is on its
+way to the interview and **Sent** once the interview has accepted it; if delivery fails, it reads
+**Not sent** so you know to retry rather than assuming the answer arrived. Icon controls provide
+**Use text instead**, **Done speaking**, **Pause**, and the other actions valid for the current
+phase; hover or focus an icon to see its title.
 
 The stage names the microphone state and shows input activity only while the microphone is really
 on. During interviewer playback, **Interrupt and speak** first stops playback and then opens the
@@ -74,7 +76,10 @@ When Brunch has produced authoritative completion information, the stage can exp
 Petrinaut canvas remains the model surface.
 
 If voice cannot continue, the status panel identifies the kind of problem with a warning circle and
-a visible **Reconnect** action. For microphone permission or device errors, allow access or
+a visible **Reconnect** action. The heading names that kind: microphone wording for permission and
+device problems, connection wording for network, timeout, and interrupted requests, and neutral
+interview wording when the interview itself could not continue. For microphone permission or device
+errors, allow access or
 connect/select a microphone before reconnecting. For an interrupted request, network error, or
 timeout, check the connection and choose **Reconnect**. If the preview is unavailable, continue
 with the text composer. An invalid service response includes a diagnostic reference you can give to

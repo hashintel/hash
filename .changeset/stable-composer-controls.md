@@ -8,7 +8,10 @@ while the normal chat stream settles. Include stable finalized-text submission, 
 identity, stop handling, schema-validated interactive-tool text mapping, explicit separate-message
 targeting for corrections, and a queue-aware voice submission path. Add the Chat / Interview mode
 switch and export `PetrinautAiInteractionMode`, with the selected interaction mode and mode-change
-callback available to host-rendered interview stages.
+callback available to host-rendered interview stages. `renderComposerControl` remains a supported
+public seam for hosts that only need their own control beside the message box, independently of the
+interview stage.
 
-Simplify Interview mode with a circular microphone waveform, compact recording/sent transcript
-states, phase-specific icon controls, and focused reconnect recovery.
+Simplify Interview mode with a circular microphone waveform, compact transcript states that
+distinguish recording, sending, sent, and undelivered answers, phase-specific icon controls, and
+recovery that names the kind of failure before offering reconnect.

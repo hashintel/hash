@@ -1,6 +1,6 @@
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent-transport-aisdk/client-tools";
 
-import { sweepOutputSchema } from "../local-storage-demo/brunch-panel-transport";
+import { sweepOutputSchema } from "../brunch-sweep-output";
 
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 

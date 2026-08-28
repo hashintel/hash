@@ -27,8 +27,13 @@ recovery or public availability.
 
 1. **The host application owns voice.** `apps/petrinaut-website` owns OpenAI policy, WebRTC,
    transcript event parsing, half-duplex state, playback, feature UI, and server routes.
-   `@hashintel/petrinaut` exposes only a generic composer control and finalized-text submission
-   seam. Brunch packages contain no provider code.
+   `@hashintel/petrinaut` exposes provider-neutral seams only: a generic composer control
+   (`renderComposerControl`) and a persistent host-rendered interview stage
+   (`renderInterviewStage`) whose `PetrinautAiInterviewStageContext` supplies finalized-text
+   submission, conversation identity, sidebar placement and focus, active-conversation
+   protection, and the Chat / Interview interaction mode. Petrinaut owns the mode switch and
+   composer focus; it knows nothing about OpenAI, audio, or transcription. Brunch packages
+   contain no provider code.
 2. **OpenAI is the only runtime voice provider.** Do not add a provider abstraction, selector,
    compatibility layer, or ElevenLabs dependency, configuration, route, script, test, or
    diagnostic.
@@ -45,9 +50,12 @@ recovery or public availability.
    existing correlated tool-output path; otherwise the final becomes a stable-ID user message.
    A user-initiated correction is a new explicit message and opts out of pending-tool mapping
    rather than being silently inferred from its wording.
-5. **The interaction is half-duplex.** The microphone is closed while Brunch is handling a turn
-   and while speech is synthesized or playing. Barge-in and simultaneous listening and playback
-   are out of scope.
+5. **The interaction is half-duplex.** The microphone is closed while speech is synthesized or
+   playing, and while a turn the interview cannot yet absorb is outstanding. Petrinaut may
+   retain exactly one finalized answer while the normal chat stream settles, so a pending
+   `brunch_ask` keeps capture open for that one answer instead of waiting for generic chat
+   settlement; the buffered answer still enters the conversation through the canonical composer
+   path. Barge-in and simultaneous listening and playback are out of scope.
 6. **Speech receives canonical Brunch text exactly.** A dedicated OpenAI Speech request receives
    only finalized assistant text or the validated `brunch_ask.input.question` selected from the
    AI SDK message structure. The application does not scrape rendered DOM, ask Realtime to "say
@@ -64,7 +72,9 @@ recovery or public availability.
   status, and the effective host-supplied or generated conversation identity. Interactive tools may
   opt into a schema-validated text-to-output mapper. Keyboard and alternate finalized text therefore
   cannot bypass ask correlation by default; the host may explicitly target a separate message for
-  a correction.
+  a correction. It also gains the interview-stage seam and `PetrinautAiInteractionMode`, which keep
+  Chat / Interview ownership, docked and detached placement, and one-answer buffering inside
+  Petrinaut rather than in provider code.
 - OpenAI implementation names and policy stay in `apps/petrinaut-website`. The existing
   `transport-aisdk` package remains the sole browser-to-Brunch conversation transport.
 - Preview PRs may demonstrate transcription and exact canonical speech before production
@@ -118,7 +128,8 @@ recovery or public availability.
 ## Revisit condition
 
 Revisit if the unified OpenAI WebRTC initialization API cannot enforce server-owned transcription
-policy; if the generic composer seam cannot preserve the existing AI SDK and `brunch_ask` paths;
+policy; if the generic composer and interview-stage seams cannot preserve the existing AI SDK and
+`brunch_ask` paths;
 or if production authentication, replay, telemetry, or projection contracts require a boundary
 change rather than an application adapter. Do not address any of these by making browser or
 provider history authoritative.
