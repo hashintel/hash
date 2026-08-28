@@ -2,8 +2,10 @@ import {
   addParent,
   addProperty,
   createEntityType,
+  inheritanceRow,
   openTypePage,
   parentCard,
+  propertiesTable,
   propertyRow,
   randomTypeName,
   requiredCheckbox,
@@ -42,9 +44,7 @@ test("removing a type's only parent survives a reload", async ({ page }) => {
 
   await openTypePage(page, childPath);
   await expect(page.getByText("No other types yet")).toBeVisible();
-  await expect(
-    page.getByTestId("inheritance-row").getByTestId("type-card"),
-  ).toHaveCount(0);
+  await expect(inheritanceRow(page).getByRole("link")).toHaveCount(0);
 });
 
 test("unchecking the last required property survives a reload", async ({
@@ -90,7 +90,7 @@ test("removing one of two properties leaves the other in place", async ({
   await propertyRow(page, "Description")
     .getByTestId("type-menu-trigger")
     .click();
-  await page.getByTestId("type-menu-remove").click();
+  await page.getByRole("menuitem", { name: "Remove property" }).click();
   await expect(propertyRow(page, "Description")).toHaveCount(0);
 
   await saveChanges(page);
@@ -115,7 +115,7 @@ test("saving an edit bumps the version and serves the new schema", async ({
   await expect(propertyRow(page, "Description")).toHaveCount(1);
 
   await openTypePage(page, `${typePath}/v/1`);
-  await expect(page.getByTestId("property-row")).toHaveCount(0);
+  await expect(propertiesTable(page).getByRole("row")).toHaveCount(0);
 
   await openTypePage(page, typePath);
   await expect(propertyRow(page, "Description")).toHaveCount(1);

@@ -173,7 +173,6 @@ export const PropertyRow = ({
   return (
     <>
       <EntityTypeTableRow
-        dataTestId="property-row"
         inherited={!!inheritanceChain}
         ref={(row: HTMLTableRowElement | null) => {
           if (row) {

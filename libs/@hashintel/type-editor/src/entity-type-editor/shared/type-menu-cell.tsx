@@ -208,7 +208,6 @@ export const TypeMenuCell = ({
               ),
               <MenuItem
                 key="remove"
-                data-testid="type-menu-remove"
                 onClick={() => {
                   popupState.close();
                   onRemove?.();

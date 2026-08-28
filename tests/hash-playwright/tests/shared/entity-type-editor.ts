@@ -11,18 +11,36 @@ const PAGE_READY_TIMEOUT = 30_000;
 export const randomTypeName = () =>
   `TestEntity${(Math.random() * 100000).toFixed()}`;
 
-export const propertyRow = (page: Page, name: string) =>
-  page.getByTestId("property-row").filter({ hasText: name });
-
-export const parentCard = (page: Page, name: string) =>
+/**
+ * The table of properties, told apart from the table of links by the heading
+ * of its first column. A type with no properties shows a card inviting one to
+ * be added in place of the table, so this matches nothing for such a type.
+ */
+export const propertiesTable = (page: Page) =>
   page
-    .getByTestId("inheritance-row")
-    .getByTestId("type-card")
-    .filter({ hasText: name });
+    .getByRole("table")
+    .filter({ has: page.getByRole("columnheader", { name: "Property name" }) });
+
+export const propertyRow = (page: Page, name: string) =>
+  propertiesTable(page).getByRole("row").filter({ hasText: name });
 
 /**
- * The test id sits on the MUI checkbox root; the assertions and actions need
- * the input it wraps.
+ * The row of parents under the `Extends` heading. It is a plain container with
+ * no heading, role or accessible name of its own, so it is reached by test id;
+ * what it holds is reached by what the user reads.
+ */
+export const inheritanceRow = (page: Page) =>
+  page.getByTestId("inheritance-row");
+
+/** A parent is shown as a card linking to it, labelled with title and version. */
+export const parentCard = (page: Page, name: string) =>
+  inheritanceRow(page).getByRole("link", { name });
+
+/**
+ * Neither of a property row's two checkboxes is labelled — `Required` and
+ * `Allow multiple` are column headings, not names the checkbox carries — so a
+ * role does not tell them apart and the test id stays. It sits on the MUI
+ * checkbox root; the assertions and actions need the input it wraps.
  */
 export const requiredCheckbox = (page: Page, propertyName: string) =>
   propertyRow(page, propertyName)
@@ -31,12 +49,14 @@ export const requiredCheckbox = (page: Page, propertyName: string) =>
 
 /**
  * Navigate to a type and wait for the editor itself, not just the URL. The
- * inheritance row is part of the definition tab, so it appears only once the
+ * `Extends` heading is part of the definition tab, so it appears only once the
  * type has loaded and the skeleton has been replaced.
  */
 export const openTypePage = async (page: Page, path: string) => {
   await page.goto(path);
-  await expect(page.getByTestId("inheritance-row")).toBeVisible({
+  await expect(
+    page.getByRole("heading", { name: "Extends", exact: true }),
+  ).toBeVisible({
     timeout: PAGE_READY_TIMEOUT,
   });
 };
@@ -138,13 +158,13 @@ const addTypeByName = async (
   await selector.locator("input").fill(name);
 
   /**
-   * `and` matches elements that are both an option title and hold exactly the
-   * name, rather than a descendant holding it — the title element has no
-   * element children for a chained text locator to match.
+   * Two webs can each hold a type of the same title, so the list can offer
+   * more than one option reading exactly the name typed. Any of them will do;
+   * what matters is that it is not an option reading something else.
    */
   await page
-    .getByTestId("selector-autocomplete-option-title")
-    .and(page.getByText(name, { exact: true }))
+    .getByRole("option")
+    .filter({ has: page.getByText(name, { exact: true }) })
     .first()
     .click();
 

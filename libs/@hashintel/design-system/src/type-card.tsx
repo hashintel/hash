@@ -78,7 +78,6 @@ export const TypeCard = ({
       onMouseLeave={() => (onDelete ? setHovered(false) : null)}
     >
       <Box
-        data-testid="type-card"
         sx={{
           height: 40,
           display: "flex",
