@@ -96,7 +96,8 @@ export interface AdHocScenarioFormProps {
    * groups render without section chrome; a group the props
    * withhold (`withVariables`, an empty `netParameters`) is `null`. The
    * host's own chrome may render inside too — the wrapper only carries the
-   * form's keyboard handling.
+   * form's keyboard handling. Each group is its own keyboard panel: arrow
+   * navigation chains zones within a group but never walks across groups.
    */
   renderLayout?: (groups: {
     variables: React.ReactNode;
@@ -106,6 +107,19 @@ export interface AdHocScenarioFormProps {
   /** Classname for the form's root element (the keyboard-handling div). */
   className?: string;
 }
+
+// Each renderLayout group is its own keyboard panel: hosts lay the groups
+// out side by side, and the vertical arrow walk must not slide out of one
+// column into the next (data-nav-panel fences the zone walk).
+// display:contents keeps the wrapper out of the host's layout.
+const navPanelStyle = css({ display: "contents" });
+
+const asNavPanel = (node: React.ReactNode): React.ReactNode =>
+  node === null ? null : (
+    <div className={navPanelStyle} data-nav-panel>
+      {node}
+    </div>
+  );
 
 /**
  * A Section that participates in the form's keyboard walk: its collapse
@@ -324,9 +338,9 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
         >
           {renderLayout ? (
             renderLayout({
-              variables: variableRows,
-              parameters: parameterRows,
-              places: placesList,
+              variables: asNavPanel(variableRows),
+              parameters: asNavPanel(parameterRows),
+              places: asNavPanel(placesList),
             })
           ) : (
             <FocusStack axis="vertical">
