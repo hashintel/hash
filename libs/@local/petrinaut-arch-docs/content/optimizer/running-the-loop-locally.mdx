@@ -44,9 +44,29 @@ does six things in order:
    optimizer is left alone.
 
 Docker must be running unless a reusable optimizer is already serving.
-Extra arguments are forwarded to Vite, so
+Extra arguments are forwarded to the dev server, so
 `yarn dev:petrinaut-optimization --port 5175 --strictPort` pins the website
 port for tooling that needs to know it.
+
+## With Storybook, for editor work
+
+The website consumes Petrinaut's **built dist**, so editing the editor means
+rebuilding it. Storybook builds the editor from source with fast refresh, and
+can run against the same real optimizer:
+
+```sh
+yarn dev:petrinaut-optimization --storybook
+```
+
+The container lifecycle is identical (steps 1–3 and 6); instead of the
+website, it starts Petrinaut's Storybook through Turborepo with the provider
+environment set. Open the **Petrinaut → With real optimizer** story: the full
+editor on a net with an objective, where optimization studies created in
+Simulate mode run on the local service. Storybook's dev server carries the
+same `/api/petrinaut-opt/*` proxy as the website's, and the story explains
+how to launch when the environment is missing. Remaining arguments go to the
+Storybook script (`yarn dev:petrinaut-optimization --storybook -- --port 6007`
+through Turborepo's pass-through).
 
 ## Why plain `yarn dev` shows no Optimizations view
 

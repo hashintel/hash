@@ -11,10 +11,21 @@
     "browser": true
   },
   "rules": {
-    "array-callback-return": ["error", { "allowImplicit": true }],
+    "array-callback-return": [
+      "error",
+      {
+        "allowImplicit": true
+      }
+    ],
     "default-case-last": "error",
     "default-param-last": "error",
-    "eqeqeq": ["error", "always", { "null": "ignore" }],
+    "eqeqeq": [
+      "error",
+      "always",
+      {
+        "null": "ignore"
+      }
+    ],
     "guard-for-in": "error",
     "no-alert": "error",
     "no-cond-assign": ["error", "always"],
@@ -34,7 +45,9 @@
     "no-template-curly-in-string": "error",
     "no-unsafe-optional-chaining": [
       "error",
-      { "disallowArithmeticOperators": true }
+      {
+        "disallowArithmeticOperators": true
+      }
     ],
     "no-unused-vars": [
       "error",
@@ -44,19 +57,28 @@
         "varsIgnorePattern": "^_+"
       }
     ],
-    "no-void": ["error", { "allowAsStatement": true }],
-
+    "no-void": [
+      "error",
+      {
+        "allowAsStatement": true
+      }
+    ],
     "no-console": "error",
     "new-cap": "error",
     "no-new-func": "error",
     "func-names": "error",
     "no-bitwise": "error",
     "no-multi-assign": "error",
-
     "no-restricted-globals": [
       "error",
-      { "name": "isFinite", "message": "Use Number.isFinite instead" },
-      { "name": "isNaN", "message": "Use Number.isNaN instead" },
+      {
+        "name": "isFinite",
+        "message": "Use Number.isFinite instead"
+      },
+      {
+        "name": "isNaN",
+        "message": "Use Number.isNaN instead"
+      },
       "event",
       "name",
       "length",
@@ -64,7 +86,6 @@
     ],
     "no-shadow": "error",
     "no-use-before-define": "error",
-
     "no-restricted-imports": [
       "error",
       {
@@ -76,7 +97,6 @@
         ]
       }
     ],
-
     "import/no-named-as-default": "error",
     "import/no-named-as-default-member": "error",
     "import/no-mutable-exports": "error",
@@ -84,15 +104,28 @@
     "import/no-named-default": "error",
     "import/no-self-import": "error",
     "import/no-cycle": "error",
-
-    "react/jsx-pascal-case": ["error", { "allowAllCaps": true }],
+    "react/jsx-pascal-case": [
+      "error",
+      {
+        "allowAllCaps": true
+      }
+    ],
     "react/no-danger": "error",
-    "react/jsx-no-target-blank": ["error", { "enforceDynamicLinks": "always" }],
+    "react/jsx-no-target-blank": [
+      "error",
+      {
+        "enforceDynamicLinks": "always"
+      }
+    ],
     "react/jsx-no-comment-textnodes": "error",
     "react/no-array-index-key": "error",
     "react/button-has-type": [
       "error",
-      { "button": true, "submit": true, "reset": false }
+      {
+        "button": true,
+        "submit": true,
+        "reset": false
+      }
     ],
     "react-hooks-js/static-components": "error",
     "react-hooks-js/use-memo": "error",
@@ -110,12 +143,19 @@
     "react-hooks-js/unsupported-syntax": "error",
     "react-hooks-js/config": "error",
     "react-hooks-js/gating": "error",
-
     "jsx-a11y/prefer-tag-over-role": "off",
-    "jsx-a11y/aria-role": ["error", { "ignoreNonDOM": false }],
+    "jsx-a11y/aria-role": [
+      "error",
+      {
+        "ignoreNonDOM": false
+      }
+    ],
     "jsx-a11y/no-noninteractive-tabindex": [
       "error",
-      { "tags": [], "roles": ["tabpanel"] }
+      {
+        "tags": [],
+        "roles": ["tabpanel"]
+      }
     ],
     "jsx-a11y/label-has-associated-control": "error",
     "jsx-a11y/no-static-element-interactions": [
@@ -131,7 +171,6 @@
         ]
       }
     ],
-
     "@typescript-eslint/ban-ts-comment": [
       "error",
       {
@@ -149,10 +188,8 @@
     "@typescript-eslint/no-unsafe-assignment": "error",
     "@typescript-eslint/no-unsafe-call": "error",
     "@typescript-eslint/no-unsafe-function-type": "error",
-
     "unicorn/no-new-array": "off",
     "unicorn/filename-case": "error",
-
     "constructor-super": "off",
     "no-class-assign": "off",
     "no-const-assign": "off",
@@ -175,5 +212,13 @@
     "*.gen.*",
     "*.tsbuildinfo",
     ".turbo/**"
+  ],
+  "overrides": [
+    {
+      "files": ["src/**/*.stories.tsx", ".storybook/**/*.{ts,tsx}"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
   ]
 }
