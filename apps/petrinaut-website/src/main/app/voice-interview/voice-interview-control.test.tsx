@@ -218,6 +218,11 @@ describe("voice interview stage", () => {
         {...viewProps({ consented: false, presentation: "start" })}
       />,
     );
+    render(
+      <VoiceInterviewControlView
+        {...viewProps({ consented: false, presentation: "start" })}
+      />,
+    );
 
     expect(html).toContain("Voice interview");
     expect(html).toContain("Talk through your process with AI");
@@ -232,6 +237,13 @@ describe("voice interview stage", () => {
     expect(html).toContain("Check microphone");
     expect(html).toContain("pos_absolute");
     expect(html).not.toContain("pos_fixed");
+
+    const textButton = screen.getByRole("button", { name: "Use text instead" });
+    expect(textButton.querySelector("svg")).not.toBeNull();
+    expect(textButton.parentElement?.getAttribute("data-scope")).toBe(
+      "tooltip",
+    );
+    expect(textButton.textContent.replaceAll("\u200B", "").trim()).toBe("");
   });
 
   test("keeps diagnostic recovery details visible without reopening the microphone", () => {
