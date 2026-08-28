@@ -319,6 +319,7 @@ const ExperimentMetrics = ({
           >
             <ExperimentMetricTimeline
               frames={frames}
+              timeDomain={[0, experiment.maxTime]}
               displaySize={size}
               onDisplaySizeChange={(nextSize) =>
                 setSizes((previous) => ({

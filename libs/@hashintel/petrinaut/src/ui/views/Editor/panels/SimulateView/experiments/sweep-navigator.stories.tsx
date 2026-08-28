@@ -276,6 +276,8 @@ const NavigatorWithStreamingMetrics = () => {
       >
         <ExperimentMetricTimeline
           frames={frames}
+          label="Infected"
+          timeDomain={[0, STREAM_FRAME_COUNT - 1]}
           displaySize={metricSize}
           onDisplaySizeChange={setMetricSize}
         />
@@ -367,9 +369,18 @@ const realSweepHintStyle: React.CSSProperties = {
  * CPU pool (per-run parameter draws cannot run on the GPU) — collapse both
  * parameters to points and the GPU takes over.
  */
+type RealSweepConfig = {
+  runCount: number;
+  maxTime: number;
+  dt: number;
+};
+
 const RealSweepSession = ({
   computeBackend,
-}: {
+  runCount,
+  maxTime,
+  dt,
+}: RealSweepConfig & {
   computeBackend: ExperimentComputeBackend;
 }) => {
   const { experiments, createExperiment, setSweepSelection } =
@@ -391,10 +402,10 @@ const RealSweepSession = ({
         transmission_rate: { mode: "range", min: 0.5, max: 4 },
         recovery_rate: { mode: "range", min: 0.2, max: 1.5 },
       },
-      runCount: 100,
+      runCount,
       seed: 42,
-      dt: 0.5,
-      maxTime: 30,
+      dt,
+      maxTime,
       metricSpecs: [
         {
           kind: "placeTokenCountMean",
@@ -406,7 +417,7 @@ const RealSweepSession = ({
       ],
       computeBackend,
     }).catch((cause: unknown) => setCreateError(String(cause)));
-  }, [computeBackend, createExperiment]);
+  }, [computeBackend, createExperiment, dt, maxTime, runCount]);
 
   const experiment = experiments.find((candidate) => candidate.sweep !== null);
 
@@ -455,6 +466,8 @@ const RealSweepSession = ({
       >
         <ExperimentMetricTimeline
           frames={experiment.metricFrames}
+          label="Infected"
+          timeDomain={[0, maxTime]}
           displaySize={metricSize}
           onDisplaySizeChange={setMetricSize}
         />
@@ -465,7 +478,10 @@ const RealSweepSession = ({
 
 const RealSweepStory = ({
   computeBackend,
-}: {
+  runCount,
+  maxTime,
+  dt,
+}: RealSweepConfig & {
   computeBackend: ExperimentComputeBackend;
 }) => (
   <SDCPNContext value={realSweepSdcpnContextValue}>
@@ -474,7 +490,12 @@ const RealSweepStory = ({
         <NotificationsProvider>
           <UserSettingsProvider>
             <ExperimentsProvider>
-              <RealSweepSession computeBackend={computeBackend} />
+              <RealSweepSession
+                computeBackend={computeBackend}
+                runCount={runCount}
+                maxTime={maxTime}
+                dt={dt}
+              />
             </ExperimentsProvider>
           </UserSettingsProvider>
         </NotificationsProvider>
@@ -483,12 +504,47 @@ const RealSweepStory = ({
   </SDCPNContext>
 );
 
-export const RealCpuSweep: Story = {
+/**
+ * Storybook controls for the real-compute stories. Changing one remounts
+ * the story (the render key), which starts a fresh experiment with the new
+ * settings. The run ladder climbs ×5/×2 past 1000, so budgets like 100 000
+ * refine in the same escalating batches the app uses.
+ */
+const realSweepArgs: RealSweepConfig = {
+  runCount: 1_000,
+  maxTime: 60,
+  dt: 0.5,
+};
+const realSweepArgTypes = {
+  runCount: { control: { type: "number", min: 8, max: 100_000, step: 1 } },
+  maxTime: { control: { type: "number", min: 5, max: 600, step: 5 } },
+  dt: { control: { type: "number", min: 0.05, max: 5, step: 0.05 } },
+} as const;
+const realSweepKey = (prefix: string, config: RealSweepConfig) =>
+  `${prefix}-${config.runCount}-${config.maxTime}-${config.dt}`;
+
+export const RealCpuSweep: StoryObj<RealSweepConfig> = {
   name: "Real compute on CPU",
-  render: () => <RealSweepStory computeBackend="cpu" />,
+  args: realSweepArgs,
+  argTypes: realSweepArgTypes,
+  render: (args) => (
+    <RealSweepStory
+      key={realSweepKey("cpu", args)}
+      computeBackend="cpu"
+      {...args}
+    />
+  ),
 };
 
-export const RealGpuSweep: Story = {
+export const RealGpuSweep: StoryObj<RealSweepConfig> = {
   name: "Real compute on GPU (points)",
-  render: () => <RealSweepStory computeBackend="webgpu" />,
+  args: realSweepArgs,
+  argTypes: realSweepArgTypes,
+  render: (args) => (
+    <RealSweepStory
+      key={realSweepKey("gpu", args)}
+      computeBackend="webgpu"
+      {...args}
+    />
+  ),
 };
