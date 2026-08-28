@@ -29,10 +29,12 @@ import {
   PetrinautNavigationProvider,
   type PetrinautNavigationController,
 } from "../../react/navigation";
+import { NotificationsProvider } from "../../react/notifications/provider";
 import {
   PetrinautCanvasProvider,
   PetrinautDocumentProvider,
 } from "../../react/petrinaut-provider-layers";
+import { SimulationProvider } from "../../react/simulation/provider";
 import { SDCPNView } from "../views/SDCPN/sdcpn-view";
 import { PetrinautPresentationProvider } from "../views/shared/presentation-context";
 import {
@@ -40,7 +42,17 @@ import {
   type PetrinautPreviewNavigationState,
 } from "./navigation-adapter";
 import { PreviewNetNavigation } from "./preview-net-navigation";
+import {
+  PreviewSimulationConfiguration,
+  PreviewSimulationPlaybackControls,
+} from "./preview-quick-simulation-controls";
 import { PreviewPropertiesPanel } from "./properties-panel";
+import {
+  createPreviewSimulationCompiler,
+  resolvePreviewPlaybackOptions,
+  type PetrinautPreviewQuickSimulation,
+  validatePreviewQuickSimulation,
+} from "./quick-simulation";
 
 import type { NetManagement } from "../../react/net-management-context";
 import type { ViewportAction } from "../types/viewport-action";
@@ -103,6 +115,9 @@ const previewBadgeStyle = css({
   fontWeight: "semibold",
   textTransform: "uppercase",
   letterSpacing: "[0.4px]",
+  "@media (max-width: 480px)": {
+    display: "none",
+  },
 });
 
 // The canvas and the docked inspector share the row; narrow viewports stack
@@ -136,6 +151,11 @@ export type PetrinautPreviewProps = {
    * router; Preview itself does not depend on a router implementation.
    */
   navigation?: PetrinautNavigationController<PetrinautPreviewNavigationState>;
+  /**
+   * Optional build-time artifacts and bounded controls for running the
+   * model's named scenarios without mounting Petrinaut's language tooling.
+   */
+  quickSimulation?: PetrinautPreviewQuickSimulation;
   /** Host actions displayed alongside the canvas zoom controls. */
   viewportActions?: ViewportAction[];
 };
@@ -145,17 +165,23 @@ export type PetrinautPreviewProps = {
  *
  * The component creates a history-free read-only document and renders the
  * exact same {@link SDCPNView} as the editor. It intentionally mounts neither
- * Monaco/LSP nor experiments, optimizations, AI, or simulation controls.
+ * Monaco/LSP nor experiments, optimizations, or AI. Hosts may opt into a
+ * bounded Quick Simulation surface by supplying precompiled artifacts.
  */
 export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
   definition,
   documentId,
   navigation,
+  quickSimulation,
   title = "Petrinaut model",
   viewportActions,
 }) => {
   const generatedDocumentId = useId();
   const portalContainerRef = useRef<HTMLDivElement>(null);
+  const hasQuickSimulation = quickSimulation !== undefined;
+  if (quickSimulation) {
+    validatePreviewQuickSimulation(definition, quickSimulation);
+  }
   const handle = useMemo(
     () =>
       createJsonDocHandle({
@@ -171,8 +197,37 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
     [handle],
   );
   const navigationAdapter = useMemo(
-    () => (navigation ? createPreviewNavigationAdapter(navigation) : undefined),
-    [navigation],
+    () =>
+      navigation
+        ? createPreviewNavigationAdapter(
+            navigation,
+            hasQuickSimulation ? "simulate" : "edit",
+          )
+        : undefined,
+    [hasQuickSimulation, navigation],
+  );
+  const hirArtifacts = quickSimulation?.hirArtifacts;
+  const scenarioHirById = quickSimulation?.scenarioHirById;
+  // SimulationProvider's lowering effect keys on compiler function identity,
+  // so retain the adapter while the host's immutable artifacts are unchanged.
+  const simulationCompiler = useMemo(
+    () =>
+      hirArtifacts && scenarioHirById
+        ? createPreviewSimulationCompiler({ hirArtifacts, scenarioHirById })
+        : undefined,
+    [hirArtifacts, scenarioHirById],
+  );
+  const allowedPlaybackSpeeds = quickSimulation?.allowedPlaybackSpeeds;
+  const defaultPlaybackSpeed = quickSimulation?.defaultPlaybackSpeed;
+  const playbackOptions = useMemo(
+    () =>
+      hasQuickSimulation
+        ? resolvePreviewPlaybackOptions({
+            allowedPlaybackSpeeds,
+            defaultPlaybackSpeed,
+          })
+        : undefined,
+    [allowedPlaybackSpeeds, defaultPlaybackSpeed, hasQuickSimulation],
   );
   const netManagement = useMemo<NetManagement>(
     () => ({
@@ -187,41 +242,74 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
 
   useEffect(() => () => instance.dispose(), [instance]);
 
+  const canvas = (
+    <PetrinautCanvasProvider
+      initialPlaybackSpeed={playbackOptions?.defaultPlaybackSpeed}
+    >
+      <div
+        ref={portalContainerRef}
+        className={cx(previewRootStyle, "petrinaut-root")}
+      >
+        <header className={previewHeaderStyle}>
+          <PreviewNetNavigation />
+          <span className={previewTitleStyle} title={title}>
+            {title}
+          </span>
+          {quickSimulation && (
+            <PreviewSimulationConfiguration
+              parameterBounds={quickSimulation.parameterBounds}
+            />
+          )}
+          <span className={previewBadgeStyle}>View only</span>
+        </header>
+        <main className={previewMainStyle}>
+          <div className={previewCanvasStyle}>
+            <SDCPNView viewportActions={viewportActions} />
+            {quickSimulation && (
+              <PreviewSimulationPlaybackControls
+                allowedPlaybackSpeeds={playbackOptions?.allowedPlaybackSpeeds}
+              />
+            )}
+          </div>
+          <PreviewPropertiesPanel />
+        </main>
+      </div>
+    </PetrinautCanvasProvider>
+  );
+
   return (
     <PortalContainerContext value={portalContainerRef}>
       <PetrinautDocumentProvider
+        key={instance.handle.id}
         instance={instance}
         netManagement={netManagement}
       >
         <PetrinautNavigationProvider
           controller={navigationAdapter}
           initialState={{
-            mode: "edit",
+            mode: hasQuickSimulation ? "simulate" : "edit",
             simulateView: "scenarios",
           }}
           key={handle.id}
         >
           <PetrinautPresentationProvider profile="preview">
-            <PetrinautCanvasProvider>
-              <div
-                ref={portalContainerRef}
-                className={cx(previewRootStyle, "petrinaut-root")}
-              >
-                <header className={previewHeaderStyle}>
-                  <PreviewNetNavigation />
-                  <span className={previewTitleStyle} title={title}>
-                    {title}
-                  </span>
-                  <span className={previewBadgeStyle}>View only</span>
-                </header>
-                <main className={previewMainStyle}>
-                  <div className={previewCanvasStyle}>
-                    <SDCPNView viewportActions={viewportActions} />
-                  </div>
-                  <PreviewPropertiesPanel />
-                </main>
-              </div>
-            </PetrinautCanvasProvider>
+            {quickSimulation && simulationCompiler ? (
+              <NotificationsProvider>
+                <SimulationProvider
+                  compiler={simulationCompiler}
+                  initialConfiguration={{
+                    dt: quickSimulation.dt,
+                    maxTime: quickSimulation.maxTime,
+                  }}
+                  requireScenario
+                  workerFactory={quickSimulation.workerFactory}
+                >
+                  {canvas}
+                </SimulationProvider>
+              </NotificationsProvider>
+            ) : (
+              canvas
+            )}
           </PetrinautPresentationProvider>
         </PetrinautNavigationProvider>
       </PetrinautDocumentProvider>

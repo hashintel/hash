@@ -13,7 +13,7 @@ import { UndoRedoContext } from "./state/undo-redo-context";
 import { UserSettingsProvider } from "./state/user-settings-provider";
 import { useHandleHistoryAsUndoRedo } from "./use-handle-history-as-undo-redo";
 
-import type { Petrinaut } from "@hashintel/petrinaut-core";
+import type { Petrinaut, PlaybackSpeed } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
 
 export type PetrinautDocumentProviderProps = {
@@ -58,6 +58,7 @@ export const PetrinautDocumentProvider: React.FC<
 
 export type PetrinautCanvasProviderProps = {
   children: ReactNode;
+  initialPlaybackSpeed?: PlaybackSpeed;
 };
 
 /**
@@ -71,9 +72,9 @@ export type PetrinautCanvasProviderProps = {
  */
 export const PetrinautCanvasProvider: React.FC<
   PetrinautCanvasProviderProps
-> = ({ children }) => (
+> = ({ children, initialPlaybackSpeed }) => (
   <CanvasViewportProvider>
-    <PlaybackProvider>
+    <PlaybackProvider initialSpeed={initialPlaybackSpeed}>
       <ActiveNetProvider>
         <EditorProvider>
           <ExecutionFrameProvider>{children}</ExecutionFrameProvider>

@@ -102,7 +102,7 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
   values,
   onValuesChange,
 }) => {
-  const hirState = useScenarioHir(scenario, context);
+  const hirState = useScenarioHir(scenario, { adHocContext: context });
   const [computedOpen, setComputedOpen] = useState(false);
   // `seededFrom` is the persisted scenario object the variables came from:
   // saving an edit to it replaces the object, so the drawer reseeds to the

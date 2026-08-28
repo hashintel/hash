@@ -100,6 +100,11 @@ export type {
   NotificationTone,
 } from "./notifications/context";
 export { NotificationsProvider } from "./notifications/provider";
+export { SimulationProvider } from "./simulation/provider";
+export type {
+  SimulationCompiler,
+  SimulationProviderProps,
+} from "./simulation/provider";
 
 // --- Error tracker DI ---
 export { ErrorTrackerContext } from "./error-tracker-context";
