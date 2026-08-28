@@ -23,11 +23,14 @@ export interface SliderProps {
   style?: React.CSSProperties;
   min?: number;
   max?: number;
+  step?: number;
   value?: number;
   defaultValue?: number;
   label?: string;
   showValueText?: boolean;
   onChange?: (value: number) => void;
+  /** Fires once when a drag or keyboard interaction settles. */
+  onChangeEnd?: (value: number) => void;
 }
 
 export const Slider: React.FC<SliderProps> = ({
@@ -35,15 +38,18 @@ export const Slider: React.FC<SliderProps> = ({
   style,
   min,
   max,
+  step,
   value,
   defaultValue,
   label,
   showValueText = false,
   onChange,
+  onChangeEnd,
 }) => {
   return (
     <BaseSlider.Root
       min={min}
+      step={step}
       className={cx(
         css({
           position: "relative",
@@ -62,6 +68,12 @@ export const Slider: React.FC<SliderProps> = ({
         // For now this component only supports single value sliders
         if (newValue !== undefined) {
           onChange?.(newValue);
+        }
+      }}
+      onValueChangeEnd={(details) => {
+        const newValue = details.value[0];
+        if (newValue !== undefined) {
+          onChangeEnd?.(newValue);
         }
       }}
     >
