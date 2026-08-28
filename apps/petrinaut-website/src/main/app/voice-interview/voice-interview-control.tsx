@@ -1,5 +1,6 @@
 import {
   type FormEvent,
+  type ReactNode,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -359,7 +360,9 @@ const transcriptStateStyle = cva({
   variants: {
     state: {
       recording: { color: "red.s80" },
+      sending: { color: "neutral.s80" },
       sent: { color: "green.s90" },
+      unsent: { color: "red.s90" },
     },
   },
 });
@@ -616,6 +619,31 @@ const VoiceFocal = ({ snapshot }: { snapshot: VoiceTurnSnapshot }) => {
   );
 };
 
+const deliveryStatus = (
+  delivery: VoiceTurnSnapshot["lastAnswerDelivery"],
+): { icon: ReactNode; label: string; state: "sending" | "sent" | "unsent" } => {
+  switch (delivery) {
+    case "delivered":
+      return {
+        icon: <FaCircleCheck aria-hidden="true" />,
+        label: "Sent",
+        state: "sent",
+      };
+    case "pending":
+      return {
+        icon: <FaCircleNotch aria-hidden="true" />,
+        label: "Sending",
+        state: "sending",
+      };
+    default:
+      return {
+        icon: <FaTriangleExclamation aria-hidden="true" />,
+        label: "Not sent",
+        state: "unsent",
+      };
+  }
+};
+
 const TranscriptStrip = ({
   onEdit,
   onRedo,
@@ -629,6 +657,8 @@ const TranscriptStrip = ({
   const text = snapshot.partialText || snapshot.lastCommittedText;
   if (!text) return null;
 
+  const delivery = deliveryStatus(snapshot.lastAnswerDelivery);
+
   return (
     <div className={transcriptStyle}>
       <div className={transcriptHeaderStyle}>
@@ -641,9 +671,9 @@ const TranscriptStrip = ({
             Recording
           </span>
         ) : (
-          <span className={transcriptStateStyle({ state: "sent" })}>
-            <FaCircleCheck aria-hidden="true" />
-            Sent
+          <span className={transcriptStateStyle({ state: delivery.state })}>
+            {delivery.icon}
+            {delivery.label}
           </span>
         )}
       </div>

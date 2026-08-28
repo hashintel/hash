@@ -30,6 +30,7 @@ const snapshot = {
   errorCode: null,
   errorMessage: "",
   errorRequestId: "",
+  lastAnswerDelivery: "none" as const,
   lastCommittedText: "",
   microphoneEnabled: true,
   microphoneLevel: 0.24,
@@ -507,6 +508,7 @@ describe("voice interview stage", () => {
         {...viewProps({
           snapshot: {
             ...snapshot,
+            lastAnswerDelivery: "delivered",
             lastCommittedText: "The shift lead assigns an owner.",
             microphoneEnabled: false,
             microphoneLevel: 0,
@@ -519,6 +521,53 @@ describe("voice interview stage", () => {
 
     expect(screen.getByText("Your answer")).not.toBeNull();
     expect(screen.getByText("Sent")).not.toBeNull();
+    expect(screen.getByText("The shift lead assigns an owner.")).not.toBeNull();
+  });
+
+  test("shows a sending status while the answer is still being delivered", () => {
+    render(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            lastAnswerDelivery: "pending",
+            lastCommittedText: "The shift lead assigns an owner.",
+            microphoneEnabled: false,
+            microphoneLevel: 0,
+            partialText: "",
+            phase: "delivering",
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Your answer")).not.toBeNull();
+    expect(screen.getByText("Sending")).not.toBeNull();
+    expect(screen.queryByText("Sent")).toBeNull();
+  });
+
+  test("shows a not-sent status when delivery failed", () => {
+    render(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            errorCode: null,
+            errorMessage:
+              "The interview could not accept that answer. Use the composer to retry.",
+            lastAnswerDelivery: "failed",
+            lastCommittedText: "The shift lead assigns an owner.",
+            microphoneEnabled: false,
+            microphoneLevel: 0,
+            partialText: "",
+            phase: "recoverable-error",
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Not sent")).not.toBeNull();
+    expect(screen.queryByText("Sent")).toBeNull();
     expect(screen.getByText("The shift lead assigns an owner.")).not.toBeNull();
   });
 

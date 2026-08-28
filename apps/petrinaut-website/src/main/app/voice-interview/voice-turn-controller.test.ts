@@ -1622,11 +1622,137 @@ describe("VoiceTurnController", () => {
     expect(harness.controller.getSnapshot()).toMatchObject({
       errorCode: "network",
       errorRequestId: "voice-request-in-flight-speech",
+      lastAnswerDelivery: "failed",
       phase: "recoverable-error",
     });
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
       false,
     );
+  });
+
+  test("marks the last answer delivered only once the composer accepts it", async () => {
+    const harness = createHarness();
+    let finishDelivery: (() => void) | undefined;
+    harness.submitText.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishDelivery = () => resolve({ kind: "message" as const });
+        }),
+    );
+    await harness.controller.start();
+
+    harness.emit({
+      key: key(1, "item-a"),
+      text: "The support lead triages it.",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      lastAnswerDelivery: "pending",
+      lastCommittedText: "The support lead triages it.",
+      phase: "delivering",
+    });
+
+    finishDelivery?.();
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().lastAnswerDelivery).toBe(
+        "delivered",
+      ),
+    );
+  });
+
+  test("records a failed delivery instead of a delivered answer", async () => {
+    const harness = createHarness();
+    harness.submitText.mockRejectedValueOnce(new Error("Delivery rejected"));
+    await harness.controller.start();
+
+    harness.emit({
+      key: key(1, "item-b"),
+      text: "The support lead triages it.",
+      type: "completed",
+    });
+
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        lastAnswerDelivery: "failed",
+        lastCommittedText: "The support lead triages it.",
+        phase: "recoverable-error",
+      }),
+    );
+  });
+
+  test("clears delivery state when the next question arrives", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emit({
+      key: key(1, "item-c"),
+      text: "The support lead triages it.",
+      type: "completed",
+    });
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().lastAnswerDelivery).toBe(
+        "delivered",
+      ),
+    );
+
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [
+        {
+          ...canonicalSegment("ask-after-delivery"),
+          source: "brunch-ask" as const,
+        },
+      ],
+      status: "ready",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      lastAnswerDelivery: "none",
+      lastCommittedText: "",
+    });
+  });
+
+  test("does not let a stale delivery result overwrite the next answer", async () => {
+    const harness = createHarness();
+    let finishStaleDelivery: (() => void) | undefined;
+    harness.submitText.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishStaleDelivery = () => resolve({ kind: "message" as const });
+        }),
+    );
+    await harness.controller.start();
+    harness.emit({
+      key: key(1, "item-stale"),
+      text: "The first answer.",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+
+    harness.emit({
+      code: "network",
+      message: "The voice connection failed. Try reconnecting.",
+      requestId: "voice-request-stale-delivery",
+      type: "error",
+    });
+    await harness.controller.reconnect();
+    harness.submitText.mockRejectedValueOnce(new Error("Delivery rejected"));
+    harness.emit({
+      key: key(2, "item-current"),
+      text: "The second answer.",
+      type: "completed",
+    });
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().lastAnswerDelivery).toBe(
+        "failed",
+      ),
+    );
+
+    finishStaleDelivery?.();
+    await Promise.resolve();
+
+    expect(harness.controller.getSnapshot().lastAnswerDelivery).toBe("failed");
   });
 
   test("cancels speech synchronously and rejects stale playback events when voice ends", async () => {

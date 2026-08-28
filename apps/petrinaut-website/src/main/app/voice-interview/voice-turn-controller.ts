@@ -18,12 +18,20 @@ export type VoiceTurnPhase =
   | "playing"
   | "recoverable-error";
 
+/**
+ * Whether the committed answer reached the interview. `pending` covers an
+ * in-flight submission, so a failed or unfinished delivery is never mistaken
+ * for a successful one.
+ */
+export type VoiceAnswerDelivery = "none" | "pending" | "delivered" | "failed";
+
 export interface VoiceTurnSnapshot {
   readonly canReviseLastAnswer: boolean;
   readonly currentQuestion: string;
   readonly errorCode: VoiceErrorCode | null;
   readonly errorMessage: string;
   readonly errorRequestId: string;
+  readonly lastAnswerDelivery: VoiceAnswerDelivery;
   readonly lastCommittedText: string;
   readonly microphoneEnabled: boolean;
   readonly microphoneLevel: number;
@@ -102,6 +110,7 @@ const initialSnapshot: VoiceTurnSnapshot = {
   errorCode: null,
   errorMessage: "",
   errorRequestId: "",
+  lastAnswerDelivery: "none",
   lastCommittedText: "",
   microphoneEnabled: false,
   microphoneLevel: 0,
@@ -131,6 +140,7 @@ export class VoiceTurnController {
   #canAcceptInterviewAnswer = true;
   #chatStatus: ChatStatus = "ready";
   #currentQuestionId: string | null = null;
+  #deliverySequence = 0;
   #generation = 0;
   #pendingDelivery: SubmitTextInput | null = null;
   #paused = false;
@@ -250,6 +260,7 @@ export class VoiceTurnController {
     this.#update({
       errorMessage: "",
       currentQuestion: "",
+      lastAnswerDelivery: "none",
       lastCommittedText: "",
       microphoneLevel: 0,
       partialText: "",
@@ -281,7 +292,11 @@ export class VoiceTurnController {
 
     this.#questionAnswered = true;
     this.#setMicrophoneEnabled(false);
-    this.#update({ errorMessage: "", phase: "delivering" });
+    this.#update({
+      errorMessage: "",
+      lastAnswerDelivery: "pending",
+      phase: "delivering",
+    });
     return this.#deliver({
       target: "message",
       text: `Correction to my previous voice answer "${previousText}": ${correctedText}`,
@@ -438,10 +453,12 @@ export class VoiceTurnController {
     }
 
     const generation = this.#generation;
+    const delivery = ++this.#deliverySequence;
     this.#awaitingChatCycle = true;
     this.#sawBusyChatStatus = false;
     try {
       await this.#submitText(input);
+      this.#recordDeliveryOutcome(delivery, "delivered");
       if (
         generation !== this.#generation ||
         !this.#isAwaitingCurrentChatCycle()
@@ -454,6 +471,7 @@ export class VoiceTurnController {
       this.#settleListeningIfReady();
       return true;
     } catch {
+      this.#recordDeliveryOutcome(delivery, "failed");
       if (
         generation !== this.#generation ||
         this.#snapshot.phase === "recoverable-error"
@@ -476,6 +494,23 @@ export class VoiceTurnController {
       });
       return false;
     }
+  }
+
+  /**
+   * Applies a delivery result only while it still describes the answer the
+   * snapshot is waiting on, so a late result cannot relabel a newer answer.
+   */
+  #recordDeliveryOutcome(
+    delivery: number,
+    outcome: "delivered" | "failed",
+  ): void {
+    if (
+      delivery !== this.#deliverySequence ||
+      this.#snapshot.lastAnswerDelivery !== "pending"
+    ) {
+      return;
+    }
+    this.#update({ lastAnswerDelivery: outcome });
   }
 
   #isAwaitingCurrentChatCycle(): boolean {
@@ -593,6 +628,7 @@ export class VoiceTurnController {
     const canDeliver = this.#isChatReady();
     this.#update({
       errorMessage: "",
+      lastAnswerDelivery: "pending",
       lastCommittedText: finalText,
       partialText: "",
       phase: canDeliver ? "delivering" : "waiting",
@@ -820,6 +856,7 @@ export class VoiceTurnController {
       this.#sawBusyChatStatus = false;
       this.#update({
         currentQuestion: segment.text,
+        lastAnswerDelivery: "none",
         lastCommittedText: "",
       });
       this.#recordLatency("question-visible", segment.id);
