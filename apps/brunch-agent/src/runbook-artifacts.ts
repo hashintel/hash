@@ -4,8 +4,6 @@ import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
 
 export const RUNBOOK_IR_FENCE = "runbook-ir";
 
-export const PN_JSON_FENCE = "pn-json";
-
 const fencedBlockPattern = (language: string): RegExp =>
   new RegExp("```" + language + "\\s*\\n([\\s\\S]*?)```", "g");
 
@@ -34,12 +32,6 @@ export const recoverRunbookIr = (
   snapshot: FlueConversationSnapshot,
 ): string | undefined =>
   latestFencedBlock(assistantTextFrom(snapshot), RUNBOOK_IR_FENCE);
-
-export const recoverPnJson = (snapshot: FlueConversationSnapshot): unknown => {
-  const block = latestFencedBlock(assistantTextFrom(snapshot), PN_JSON_FENCE);
-  if (block === undefined) return undefined;
-  return JSON.parse(block) as unknown;
-};
 
 export const interviewerToolNamesFrom = (
   snapshot: FlueConversationSnapshot,

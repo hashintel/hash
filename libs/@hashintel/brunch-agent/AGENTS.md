@@ -26,7 +26,7 @@ from this file.
 
 When work starts on a branch, state these six things in [`MISSION.md`](MISSION.md) and copy them
 into the branch/PR description. Do not create additional planning or control documents, except the
-next-concerns draft below.
+next-concerns draft and bounded side quest described below.
 
 - **Imperative** — what must become true, and why now.
 - **Throughline** — the real entrypoint or boundary being changed.
@@ -46,6 +46,16 @@ section pointing at the draft. Keep both on future missions.
 ### One live mission, next-concerns draft
 
 [`MISSION.md`](MISSION.md) is the only execution authority. Agents and humans implement against it.
+
+[`SIDE_QUEST.md`](SIDE_QUEST.md), when present, is one temporary, user-authorized experiment or
+remediation inside the live mission. It is legitimate only when evidence from that mission has
+exposed a bounded set of concrete residual failures whose investigation helps close the mission or
+informs named later clusters. It must state its relationship to the live mission, imperative,
+throughlines, proof, constraints, stop conditions, and budget for each paid activity. It must not
+supersede or contradict `MISSION.md`, broaden into speculative future work, create a second live
+mission, or coexist with another active side quest. Record its outcome in mission evidence and any
+affected `MISSION.next.md` clusters, then remove the active side-quest file before archiving the
+mission.
 
 [`MISSION.next.md`](MISSION.next.md) is the self-contained canonical capture repository for
 upcoming work: the draft missions and the comprehensive record of ideas, observations, questions,

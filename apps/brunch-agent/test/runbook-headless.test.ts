@@ -8,7 +8,7 @@ import { runNodeScript } from "./run-node-script";
 
 const testDirectory = import.meta.dirname;
 
-test("a headless createFlueClient drive recovers IR and a parsable PN without the capture store", async () => {
+test("the built ChatAgent constructs a validated net from the saved IR", async () => {
   const dbDirectory = await mkdtemp(join(tmpdir(), "brunch-runbook-"));
   try {
     const { exitCode, stdout, stderr } = await runNodeScript(
@@ -24,20 +24,29 @@ test("a headless createFlueClient drive recovers IR and a parsable PN without th
     const result = JSON.parse(
       resultLine!.slice("RUNBOOK_HEADLESS_HERMETIC ".length),
     ) as {
-      hasIr: boolean;
-      irHasUnknowns: boolean;
+      sourceIrUsed: boolean;
       parseOk: boolean;
-      hadMissingPositions: boolean;
       toolNames: string[];
       resourceFilesRead: string[];
+      validationRejections: string[];
+      emittedFreeFormPnJson: boolean;
+      userMessages: number;
       wroteCaptureStore: boolean;
     };
-    expect(result.hasIr).toBe(true);
-    expect(result.irHasUnknowns).toBe(true);
+    expect(result.sourceIrUsed).toBe(true);
     expect(result.parseOk).toBe(true);
-    expect(result.hadMissingPositions).toBe(true);
     expect(result.toolNames).toContain("activate_skill");
     expect(result.toolNames).toContain("read_skill_resource");
+    expect(result.toolNames).toEqual(
+      expect.arrayContaining([
+        "getLatestNetDefinition",
+        "addType",
+        "addParameter",
+        "addPlace",
+        "addTransition",
+        "addArc",
+      ]),
+    );
     expect(result.toolNames).not.toContain("sweep");
     expect(result.toolNames).not.toContain("brunch_sweep");
     expect(result.toolNames).not.toContain("brunch_ask");
@@ -47,6 +56,12 @@ test("a headless createFlueClient drive recovers IR and a parsable PN without th
       "pn-construction.md",
       "checks.md",
     ]);
+    expect(result.validationRejections).toHaveLength(1);
+    expect(result.validationRejections[0]).toContain(
+      "expected number to be >0",
+    );
+    expect(result.emittedFreeFormPnJson).toBe(false);
+    expect(result.userMessages).toBe(1);
     expect(result.wroteCaptureStore).toBe(false);
   } finally {
     await rm(dbDirectory, { recursive: true, force: true });

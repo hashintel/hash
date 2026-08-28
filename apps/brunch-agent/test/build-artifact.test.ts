@@ -105,6 +105,15 @@ describe("the emitted server bundle", () => {
     expect(bundle).toContain(".data-wipe-me"); // db.ts's default store path
   });
 
+  test("packages the authored skill without the retired filesystem loader", () => {
+    expect(bundle).toContain("createSkillReference");
+    expect(bundle).toContain("skill:sdcpn-modelling:");
+    expect(bundle).toContain("sdcpn-modelling");
+    expect(bundle).not.toContain("splitSkillMarkdown");
+    expect(bundle).not.toContain("skillFileUrl");
+    expect(bundle).not.toContain("./sdcpn-modelling/SKILL.md");
+  });
+
   test("carries no model key", () => {
     const modelKey = new RegExp(
       `${"ANTHROPIC"}_${"API"}_${"KEY"}\\s*[:=]\\s*['"][^'"]+['"]`,

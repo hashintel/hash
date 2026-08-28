@@ -121,6 +121,16 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     expect(result.interviewerToolNames).toContain("readPetrinautDoc");
     expect(result.interviewerToolNames).not.toContain("sweep");
     expect(result.interviewerToolNames).not.toContain("brunch_sweep");
+    expect(result.interviewerToolNames).not.toEqual(
+      expect.arrayContaining([
+        "getLatestNetDefinition",
+        "addType",
+        "addParameter",
+        "addPlace",
+        "addTransition",
+        "addArc",
+      ]),
+    );
     expect(result.captureIds.length).toBe(1);
     expect(result.captureExcerpts).toEqual([
       "Run the FE-1435 transport probe.",

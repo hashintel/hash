@@ -131,7 +131,9 @@ iterate on the PN tools and see whether many changes can land at once.
 **Locked.** Brunch agent read/write of the live net via existing panel `onToolCall`, not by
 absorbing the stock modeller or its 46-tool set. Second assistant, not a replacement
 modeller. No canvas mutation tools before this cut — they waited here so Mission 3 could
-not draw nets from vibes. Which tools, when: not decided.
+not draw nets from vibes. The retired Mission 3 side quest exercised six tools only in an
+immutable headless construct mode; ordinary panel conversations remained unchanged. Which
+tools and lifecycle belong on the live panel is still not decided.
 
 **IR at this cut.** Mission 3's IR is a markdown template (skill supporting file), structured
 but not strictly typed; generation uses inference. This cut introduces the typed map (which
@@ -147,6 +149,27 @@ Standing decisions.
 `history()`) is how you iterate a runbook; it belongs with Mission 3, not as a sibling of
 R/W. Two alternatives were rejected: keeping read/write in Mission 3, and treating runbook
 work as unbounded ongoing edits rather than a mission.
+
+**Headless bridge finding.** The side quest proved that the built production agent can
+mount exactly `getLatestNetDefinition`, `addType`, `addParameter`, `addPlace`,
+`addTransition`, and `addArc` from immutable Flue `initialData`; a headless client can
+execute those canonical Petrinaut callbacks and resume by call id; and
+`parseSDCPNFile({ title, ...definition })` accepts the callback-produced document. The
+hermetic run also proved canonical Zod rejection and correction of a zero-weight arc.
+
+The one real-model run falsified the proposed schema-language bridge. A Valibot
+`looseObject` + `rawTransform` can preserve canonical Zod validation and error paths, but
+mechanically placing Zod JSON Schema in the description does not give the provider a
+shape-aware tool schema. The model encoded `addType.elements` as a string nine times and
+never reached a non-empty net. The parser accepted the empty file, which is not semantic
+success.
+
+Mission 5 must therefore require a mechanical, provider-visible schema path — preferably
+Flue accepting Standard Schema or supplied JSON Schema, otherwise a shape-preserving
+Zod-to-Valibot conversion. Do not copy Petrinaut payload fields into Brunch. Its acceptance
+gate must combine parser success with a non-empty and semantically inspected net; parser
+acceptance alone is vacuous. The full run and $0.24699 cost are recorded in the Mission 3
+proof.
 
 # Mission 6 — capture improvement
 

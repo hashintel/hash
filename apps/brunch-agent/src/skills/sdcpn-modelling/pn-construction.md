@@ -15,35 +15,22 @@ Read this only when constructing or checking a net. Consume the filled runbook I
 
 Missing canvas positions are acceptable. Prefer a net the parser accepts over a pretty layout.
 
-The `pn-json` object must be a Petrinaut SDCPN file, not a generic Petri-net sketch. Required fields:
+When Petrinaut construction tools are mounted, their generated schemas are the
+only authority for payload fields:
 
-```json
-{
-  "title": "Example",
-  "places": [
-    {
-      "id": "p_waiting",
-      "name": "Waiting",
-      "colorId": null,
-      "dynamicsEnabled": false,
-      "differentialEquationId": null
-    }
-  ],
-  "transitions": [
-    {
-      "id": "t_start",
-      "name": "Start",
-      "inputArcs": [{ "placeId": "p_waiting", "weight": 1 }],
-      "outputArcs": [],
-      "lambdaType": "predicate",
-      "lambdaCode": "true",
-      "transitionKernelCode": ""
-    }
-  ]
-}
-```
+1. Call `getLatestNetDefinition` before constructing.
+2. Add only IR-supported token types and tunable parameters with `addType` and
+   `addParameter`.
+3. Add places and transitions with `addPlace` and `addTransition`. Establish
+   their stable IDs before connecting them.
+4. Add every connection with `addArc`. Arc weights are positive token
+   multiplicities; a zero-weight branch is not an exclusive mode.
+5. Call `getLatestNetDefinition` after each dependent stage and once at the end.
+   Correct rejected calls in the same conversation.
 
-Do not emit `label`, `initial`, a top-level `arcs` array, `guards`, or `delays`. Places use `name`. Transitions use `name`, `inputArcs`, and `outputArcs`. Optional `types`, `parameters`, and `differentialEquations` arrays may be omitted.
+Do not emit a `pn-json` block or reproduce the resulting definition as
+free-form JSON. The validated tool calls and the client's final definition are
+the construction artifact.
 
 Name every inference. If the IR does not support a place, transition, or arc, do not invent a silent default — omit it and list the loss, or mark the default in the delivery.
 
@@ -95,7 +82,7 @@ Not allowed:
 
 ## Projection loss
 
-The net cannot honestly hold: qualitative objectives without a metric, unwritten political weights, data bindings not yet connected, and any practiced rule whose condition the expert could not name. Keep those in the IR's loss section and mention them beside the `pn-json` block.
+The net cannot honestly hold: qualitative objectives without a metric, unwritten political weights, data bindings not yet connected, and any practiced rule whose condition the expert could not name. Keep those in the IR's loss section and name them in the construction delivery.
 
 ## Worked examples
 

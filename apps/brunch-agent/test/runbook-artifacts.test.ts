@@ -2,8 +2,6 @@ import { describe, expect, test } from "vitest";
 
 import {
   latestFencedBlock,
-  PN_JSON_FENCE,
-  recoverPnJson,
   recoverRunbookIr,
   RUNBOOK_IR_FENCE,
   skillResourcePathsFrom,
@@ -38,24 +36,16 @@ describe("runbook artifact recovery", () => {
     expect(latestFencedBlock(text, RUNBOOK_IR_FENCE)).toBe("# second");
   });
 
-  test("recovers IR and PN JSON from assistant history", () => {
+  test("recovers an IR from assistant history", () => {
     const snapshot = snapshotWithAssistantText(
       [
         "```" + RUNBOOK_IR_FENCE,
         "# Runbook IR",
         "## Purpose and outcome",
         "```",
-        "```" + PN_JSON_FENCE,
-        '{"title":"Example","places":[],"transitions":[]}',
-        "```",
       ].join("\n"),
     );
     expect(recoverRunbookIr(snapshot)).toContain("# Runbook IR");
-    expect(recoverPnJson(snapshot)).toEqual({
-      title: "Example",
-      places: [],
-      transitions: [],
-    });
   });
 
   test("collects read_skill_resource paths", () => {

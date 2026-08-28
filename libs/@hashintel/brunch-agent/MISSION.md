@@ -15,6 +15,14 @@ draft of upcoming work, not a mission; do not implement it. Host-continuity work
 read/write tools, typed IR maps, observer-triggered sweeps, and any join to Mission 2's capture
 store are not this mission.
 
+A now-retired side quest authorized one bounded Mission 3 remediation: a construct-only headless
+conversation may mount the minimal Petrinaut mutation subset needed to replace free-form net JSON
+with validated construction. Packaging and hermetic callback execution passed, but the single
+real-model run failed to construct a non-empty net because the provider-facing open-object schema
+lost the canonical array shape. The evidence is recorded in the implementation proof and carried
+into Mission 5. Those tools stay absent from ordinary interview and `/api/chat` panel
+conversations; live-net integration and the typed map remain Mission 5.
+
 ## Imperative
 
 Prove that one production Flue `ChatAgent` can use a **structurally typed elicitation runbook** to
@@ -116,8 +124,9 @@ runbook helped, failed, or created attention strain. A fluent conversation by it
   its SDCPN elicitor, `brunch_ask`, sweep, fold, or completion accounting.
 - The IR template is a teaching workpiece, not ADR-0003 register 2 and not a projection of captures.
   Do not call `applyCaptureSweep` or join Mission 2's store.
-- No Petrinaut canvas mutation tools and no typed FE map. Generation may use inference from
-  structured prose.
+- No Petrinaut canvas mutation tools on ordinary interview or `/api/chat` panel conversations and
+  no typed FE map. The active side quest alone may mount its six-tool subset on a construct-only
+  headless conversation; generation still uses inference from structured prose.
 - The app may import `@hashintel/petrinaut-core` to parse/validate PN JSON. It must not import
   `@hashintel/petrinaut` UI.
 - Update user-facing docs only where exercised behavior changes.

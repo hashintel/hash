@@ -1,28 +1,38 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, test } from "vitest";
 
-import {
-  RUNBOOK_RESOURCE_FILES,
-  RUNBOOK_SKILL_NAME,
-  sdcpnModellingSkill,
-} from "../src/skills/sdcpn-modelling.ts";
+const skillDirectory = new URL(
+  "../src/skills/sdcpn-modelling/",
+  import.meta.url,
+);
+const resourceFiles = [
+  "elicitation.md",
+  "ir-template.md",
+  "pn-construction.md",
+  "checks.md",
+] as const;
 
-describe("the sdcpn-modelling skill package", () => {
-  test("loads one skill with the four supporting resources", () => {
-    expect(sdcpnModellingSkill.name).toBe(RUNBOOK_SKILL_NAME);
-    expect(sdcpnModellingSkill.description.length).toBeGreaterThan(0);
-    expect(sdcpnModellingSkill.description.length).toBeLessThanOrEqual(1024);
-    expect(sdcpnModellingSkill.instructions).toContain("Lifecycle");
-    expect(Object.keys(sdcpnModellingSkill.files ?? {})).toEqual([
-      ...RUNBOOK_RESOURCE_FILES,
-    ]);
-    expect(sdcpnModellingSkill.files?.["elicitation.md"]).toContain(
-      "provenance: universal",
-    );
-    expect(sdcpnModellingSkill.files?.["elicitation.md"]).not.toMatch(
-      /Vestera|truck fleet|semiconductor/i,
-    );
-    expect(sdcpnModellingSkill.files?.["pn-construction.md"]).toContain(
-      "Timed work",
-    );
+const readSkillFile = (fileName: string): string =>
+  readFileSync(new URL(fileName, skillDirectory), "utf8");
+
+describe("the authored sdcpn-modelling skill", () => {
+  test("has spec-valid routing frontmatter and four supporting resources", () => {
+    const skill = readSkillFile("SKILL.md");
+    expect(skill).toMatch(/^---\nname: sdcpn-modelling\n/u);
+    expect(skill).toMatch(/^description: .+Use when .+\n/mu);
+    expect(skill).toContain("# Lifecycle");
+    expect(resourceFiles.map(readSkillFile)).toHaveLength(4);
+  });
+
+  test("keeps reusable teaching separate from the scenario and payload contract", () => {
+    const elicitation = readSkillFile("elicitation.md");
+    const construction = readSkillFile("pn-construction.md");
+    expect(elicitation).toContain("provenance: universal");
+    expect(elicitation).not.toMatch(/Vestera|truck fleet|semiconductor/iu);
+    expect(construction).toContain("Timed work");
+    expect(construction).toContain("getLatestNetDefinition");
+    expect(construction).not.toContain("```json");
+    expect(construction).not.toContain("```pn-json");
   });
 });

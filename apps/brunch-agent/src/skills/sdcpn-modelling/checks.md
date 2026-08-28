@@ -26,7 +26,13 @@ If a check fails, fix the IR or return to elicitation. Three tries, then deliver
 
 ## PN validity
 
-The `pn-json` object must parse as a Petrinaut SDCPN file (`title`, `places[].name`, `transitions[].name` / `inputArcs` / `outputArcs` / `lambdaType` / `lambdaCode`). Missing canvas positions are allowed. Do not use `label` or a top-level `arcs` array. The net should have a title, at least one place and one transition, and a spelled-out order among the activities the IR claims.
+Use `getLatestNetDefinition` to inspect the client-owned result. Every change
+must have passed the mounted Petrinaut tool schema; correct any rejection
+before delivery. Check that the net has at least one place and transition, all
+arc weights are positive, shared resources are returned where the IR says they
+are reserved rather than consumed, exclusive modes are structurally exclusive,
+and the activities have the order the IR claims. Missing canvas positions are
+allowed.
 
 A net that cannot run because order was never stated is a failed check, not a styling issue.
 

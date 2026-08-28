@@ -1,17 +1,11 @@
 /**
- * Headless Mission 3 drive: createFlueClient → send → wait → history()
- * against the production ChatAgent. A second model plays the expert from the
- * Vestera situation pack. The driver never activates skills or writes the
- * capture store.
+ * Construct-only side-quest drive. A filled runbook IR is the sole modelling
+ * input; the built production ChatAgent constructs through a headless
+ * Petrinaut client and never emits free-form net JSON.
  *
+ * Build first, then run:
+ *   yarn turbo run build --filter @apps/brunch-agent
  *   yarn workspace @apps/brunch-agent runbook:headless
- *
- *   ANTHROPIC_API_KEY              required unless BRUNCH_RUNBOOK_ANTHROPIC_MODULE is set
- *   BRUNCH_CHAT_MODEL              interviewer; this script defaults it to claude-sonnet-4-5
- *   BRUNCH_RUNBOOK_EXPERT_MODEL    expert; defaults to claude-sonnet-4-5
- *   BRUNCH_RUNBOOK_HARD_STOP       interviewer turns before construct; default 8
- *   BRUNCH_RUNBOOK_OUTPUT_DIR      artifact directory
- *   BRUNCH_RUNBOOK_ANTHROPIC_MODULE  test-only expert client stand-in
  */
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -20,46 +14,39 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { observe } from "@flue/runtime";
-import { sqlite, start } from "@flue/runtime/node";
 import { createFlueClient } from "@flue/sdk";
 
-import { parseSDCPNFile } from "@hashintel/petrinaut-core";
-
+import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tool.ts";
+import {
+  agentOwnershipHeaders,
+  flueConversationIdFrom,
+} from "./conversation-identity.ts";
+import {
+  createHeadlessPetrinautClient,
+  isPetrinautConstructionToolName,
+  type HeadlessPetrinautToolCall,
+  type HeadlessPetrinautToolResult,
+} from "./headless-petrinaut-client.ts";
+import { loadBuiltBrunchApplication } from "./load-built-application.ts";
+import { CHAT_AGENT_ROUTE } from "./routes.ts";
 import {
   interviewerToolNamesFrom,
-  recoverPnJson,
-  recoverRunbookIr,
   skillResourcePathsFrom,
 } from "./runbook-artifacts.ts";
+import { VALIDATED_CONSTRUCTION_MODE } from "./tools/petrinaut-construction.ts";
 
-import type { FlueConversationSnapshot } from "@flue/sdk";
+import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
 
 process.env.BRUNCH_CHAT_MODEL ??= "claude-sonnet-4-5";
 
-const { ChatAgent, CHAT_MODEL_ID } = await import("./agents/chat-agent.ts");
-const { default: app } = await import("./app.ts");
-const { agentOwnershipHeaders, flueConversationIdFrom } =
-  await import("./conversation-identity.ts");
-const { formatFlueTranscript } = await import("./flue-transcript.ts");
-const { CHAT_AGENT_ROUTE } = await import("./routes.ts");
-
-const EXPERT_MODEL =
-  process.env.BRUNCH_RUNBOOK_EXPERT_MODEL ?? "claude-sonnet-4-5";
-const HARD_STOP = Number(process.env.BRUNCH_RUNBOOK_HARD_STOP ?? "8");
-const LATENCY_STOP_MS = Number(
-  process.env.BRUNCH_RUNBOOK_LATENCY_STOP_MS ?? "180000",
+const DOCUMENT_TITLE = "Coatings line scheduling";
+const MAX_CLIENT_ROUNDS = Number(
+  process.env.BRUNCH_RUNBOOK_CLIENT_ROUNDS ?? "80",
 );
-const expertClientModule = process.env.BRUNCH_RUNBOOK_ANTHROPIC_MODULE;
-const apiKey = process.env.ANTHROPIC_API_KEY;
 
-if (!apiKey && !expertClientModule) {
-  process.stderr.write("ANTHROPIC_API_KEY is not set\n");
-  process.exit(1);
-}
-
-const caseDirectory = fileURLToPath(
+const irPath = fileURLToPath(
   new URL(
-    "../../../libs/@hashintel/brunch-agent/evaluations/cases/process-model-elicitation/baseline/",
+    "../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/process-model-elicitation/runbook-headless/runbook-headless-2026-08-28T11-03-53-683Z.ir.md",
     import.meta.url,
   ),
 );
@@ -72,215 +59,314 @@ const defaultOutputDirectory = fileURLToPath(
 const outputDirectory =
   process.env.BRUNCH_RUNBOOK_OUTPUT_DIR ?? defaultOutputDirectory;
 
-const situationPack = await readFile(
-  join(caseDirectory, "situation-pack.md"),
-  "utf8",
-);
-const openingRaw = await readFile(
-  join(caseDirectory, "opening-message.md"),
-  "utf8",
-);
-const openingSeparator = openingRaw.indexOf("\n---\n");
-const openingMessage = (
-  openingSeparator === -1 ? openingRaw : openingRaw.slice(openingSeparator + 5)
-).trim();
-
-const constructMessage = [
-  "Please construct the Petri-net JSON from the current runbook IR.",
-  "Read the construction and check resources.",
-  "Emit the filled IR in a runbook-ir fence and the net in a pn-json fence.",
-  "Name every inference, approximation, default, omission, and unrepresentable fact.",
-].join(" ");
-
-interface ExpertMessage {
-  readonly role: "user" | "assistant";
-  readonly content: string;
-}
-
-interface ExpertResponse {
-  readonly content: readonly {
-    readonly type: string;
-    readonly text?: string;
-  }[];
-}
-
-interface ExpertClient {
-  messages: {
-    create(request: {
-      model: string;
-      max_tokens: number;
-      thinking: { type: "disabled" };
-      system: string;
-      messages: readonly ExpertMessage[];
-    }): Promise<ExpertResponse>;
-  };
-}
-
-const defaultExportFrom = async (specifier: string): Promise<unknown> => {
-  const loaded: unknown = await import(specifier);
-  if (typeof loaded !== "object" || loaded === null || !("default" in loaded)) {
-    throw new Error(`${specifier} has no default export`);
-  }
-  return loaded.default;
+const filledIr = await readFile(irPath, "utf8");
+const conversationId = `runbook-validated-construction-${new Date()
+  .toISOString()
+  .replaceAll(/[:.]/gu, "-")}`;
+const identity = {
+  principalKey: "principal-runbook-validated-construction",
+  conversationId,
 };
-
-const expertClient: ExpertClient = expertClientModule
-  ? ((await defaultExportFrom(expertClientModule)) as ExpertClient)
-  : new ((await defaultExportFrom("@anthropic-ai/sdk")) as new (options: {
-      apiKey: string | undefined;
-      maxRetries: number;
-      timeout: number;
-    }) => ExpertClient)({
-      apiKey,
-      maxRetries: 5,
-      timeout: 30 * 60 * 1000,
-    });
-
-const expertMessages: ExpertMessage[] = [];
-
-const askExpert = async (interviewerText: string): Promise<string> => {
-  expertMessages.push({ role: "user", content: interviewerText });
-  const response = await expertClient.messages.create({
-    model: EXPERT_MODEL,
-    max_tokens: 1500,
-    thinking: { type: "disabled" },
-    system: situationPack,
-    messages: expertMessages,
-  });
-  const text = response.content
-    .filter((block) => block.type === "text")
-    .map((block) => block.text)
-    .join("\n")
-    .trim();
-  expertMessages.push({ role: "assistant", content: text });
-  return text;
-};
-
-const latestAssistantText = (snapshot: FlueConversationSnapshot): string => {
-  const assistantMessages = snapshot.messages.filter(
-    (message) => message.purpose === "assistant",
-  );
-  for (const message of assistantMessages.toReversed()) {
-    const text = message.parts
-      .filter((part) => part.type === "text")
-      .map((part) => part.text)
-      .join("\n")
-      .trim();
-    if (text.length > 0) return text;
-  }
-  return "";
-};
-
-const turnDurationsMs: number[] = [];
-const stopObserving = observe((event) => {
-  if (event.type !== "turn") return;
-  if (typeof event.durationMs === "number") {
-    turnDurationsMs.push(event.durationMs);
-  }
-});
-
-const { anthropicProvider } =
-  await import("@earendil-works/pi-ai/providers/anthropic");
-
-const principalKey = "principal-runbook-headless";
-const conversationId = `runbook-headless-${new Date().toISOString().replaceAll(/[:.]/gu, "-")}`;
-const identity = { principalKey, conversationId };
 const instanceId = flueConversationIdFrom(identity);
 const dbFile = join(tmpdir(), `${conversationId}.db`);
+process.env.BRUNCH_DEV_DB_PATH = dbFile;
+
+const constructionRequest = [
+  "Construct a Petrinaut net from the filled runbook IR below.",
+  "The IR is the only modelling input: do not interview or ask follow-up questions.",
+  "Activate the sdcpn-modelling skill, read its construction and check resources, and use the mounted validated Petrinaut tools.",
+  "Do not emit a pn-json block or any other free-form net JSON.",
+  "Finish by naming every inference, approximation, default, omission, unrepresentable fact, and still-open unknown.",
+  "",
+  filledIr.trim(),
+].join("\n");
+
+type TurnUsage = {
+  readonly durationMs?: number;
+  readonly inputTokens?: number;
+  readonly outputTokens?: number;
+  readonly totalTokens?: number;
+  readonly cost?: number;
+};
+
+const turnUsage: TurnUsage[] = [];
+const stopObserving = observe((event) => {
+  if (event.type !== "turn") return;
+  const usage = event.response.usage;
+  turnUsage.push({
+    ...(typeof event.durationMs === "number"
+      ? { durationMs: event.durationMs }
+      : {}),
+    ...(usage
+      ? {
+          inputTokens: usage.input,
+          outputTokens: usage.output,
+          totalTokens: usage.totalTokens,
+          cost: usage.cost.total,
+        }
+      : {}),
+  });
+});
+
+const dynamicPartsFrom = (
+  snapshot: FlueConversationSnapshot,
+): Extract<FlueConversationPart, { type: "dynamic-tool" }>[] =>
+  snapshot.messages.flatMap((message) =>
+    message.parts.filter(
+      (part): part is Extract<FlueConversationPart, { type: "dynamic-tool" }> =>
+        part.type === "dynamic-tool",
+    ),
+  );
+
+const pendingCallsFrom = (
+  snapshot: FlueConversationSnapshot,
+  completedCallIds: ReadonlySet<string>,
+): HeadlessPetrinautToolCall[] =>
+  dynamicPartsFrom(snapshot).flatMap((part) => {
+    if (!isPetrinautConstructionToolName(part.toolName)) return [];
+    if (completedCallIds.has(part.toolCallId)) return [];
+    if (part.state !== "output-available" || !isAwaitingClient(part.output)) {
+      return [];
+    }
+    return [
+      {
+        toolCallId: part.toolCallId,
+        toolName: part.toolName,
+        input: part.input,
+      },
+    ];
+  });
+
+const validationRejectionsFrom = (snapshot: FlueConversationSnapshot) =>
+  dynamicPartsFrom(snapshot).flatMap((part) =>
+    isPetrinautConstructionToolName(part.toolName) &&
+    part.state === "output-error"
+      ? [
+          {
+            toolCallId: part.toolCallId,
+            toolName: part.toolName,
+            error: part.errorText,
+          },
+        ]
+      : [],
+  );
+
+const latestAssistantTextFrom = (snapshot: FlueConversationSnapshot): string =>
+  snapshot.messages
+    .filter((message) => message.purpose === "assistant")
+    .flatMap((message) =>
+      message.parts.filter(
+        (part): part is Extract<FlueConversationPart, { type: "text" }> =>
+          part.type === "text",
+      ),
+    )
+    .map((part) => part.text)
+    .join("\n\n")
+    .trim();
+
+const totalFrom = (values: readonly (number | undefined)[]): number =>
+  values.reduce<number>((total, value) => total + (value ?? 0), 0);
 
 await mkdir(outputDirectory, { recursive: true });
 
-const flue = await start({
-  agents: [ChatAgent],
-  providers: [anthropicProvider()],
-  db: sqlite(dbFile),
-});
+const petrinautClient = createHeadlessPetrinautClient(DOCUMENT_TITLE);
+let application: Awaited<ReturnType<typeof loadBuiltBrunchApplication>> | null =
+  null;
 
-const appTransport: typeof fetch = async (input, init) =>
-  app.fetch(input instanceof Request ? input : new Request(input, init));
-
-const client = createFlueClient({
-  url: `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
-  fetch: appTransport,
-  headers: agentOwnershipHeaders(identity),
-});
-
-const dispatch = async (body: string): Promise<void> => {
-  const admission = await client.send({ message: { kind: "user", body } });
-  await client.wait(admission);
-};
-
-let stopReason = "hard-stop";
 try {
-  await dispatch(openingMessage);
-  for (let turn = 1; turn <= HARD_STOP; turn++) {
-    const latestDuration = turnDurationsMs.at(-1);
-    if (latestDuration !== undefined && latestDuration > LATENCY_STOP_MS) {
-      stopReason = "latency-stop";
-      break;
-    }
+  const loadedApplication = await loadBuiltBrunchApplication();
+  application = loadedApplication;
+  const appTransport: typeof fetch = async (input, init) =>
+    loadedApplication.fetch(
+      input instanceof Request ? input : new Request(input, init),
+    );
+  const client = createFlueClient({
+    url: `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`,
+    fetch: appTransport,
+    headers: agentOwnershipHeaders(identity),
+  });
+
+  const firstAdmission = await client.send({
+    initialData: { mode: VALIDATED_CONSTRUCTION_MODE },
+    message: { kind: "user", body: constructionRequest },
+  });
+  await client.wait(firstAdmission);
+
+  const completedCallIds = new Set<string>();
+  const clientToolResults: HeadlessPetrinautToolResult[] = [];
+  let stopReason = "settled";
+
+  const serviceClientCalls = async (clientRound: number): Promise<number> => {
+    if (clientRound >= MAX_CLIENT_ROUNDS) return clientRound;
     const snapshot = await client.history();
-    if (recoverRunbookIr(snapshot) !== undefined && turn >= 3) {
-      stopReason = "ir-ready";
-      break;
+    const pendingCalls = pendingCallsFrom(snapshot, completedCallIds);
+    if (pendingCalls.length === 0) return clientRound;
+
+    const results = await Promise.all(
+      pendingCalls.map((pendingCall) => petrinautClient.execute(pendingCall)),
+    );
+    for (const result of results) {
+      completedCallIds.add(result.toolCallId);
+      clientToolResults.push(result);
     }
-    const interviewerText = latestAssistantText(snapshot);
-    if (interviewerText.length === 0) {
-      stopReason = "empty-interviewer";
-      break;
-    }
-    const expertReply = await askExpert(interviewerText);
-    await dispatch(expertReply);
+
+    const admission = await client.send({
+      message: {
+        kind: "signal",
+        type: CLIENT_TOOL_RESULT_SIGNAL,
+        tagName: CLIENT_TOOL_RESULT_SIGNAL,
+        body: JSON.stringify(results),
+      },
+    });
+    await client.wait(admission);
+    return serviceClientCalls(clientRound + 1);
+  };
+
+  const clientRounds = await serviceClientCalls(0);
+  const snapshot = await client.history();
+  if (pendingCallsFrom(snapshot, completedCallIds).length > 0) {
+    stopReason = "client-round-limit";
   }
 
-  await dispatch(constructMessage);
-  const snapshot = await client.history();
-  const ir = recoverRunbookIr(snapshot);
-  const pn = recoverPnJson(snapshot);
-  const parsed =
-    pn === undefined
-      ? { ok: false as const, error: "no pn-json fence" }
-      : parseSDCPNFile(pn);
+  const parsed = petrinautClient.parse();
+  const validationRejections = validationRejectionsFrom(snapshot);
+  const callbackRejections = clientToolResults.filter(
+    (result) => "applied" in result.output && result.output.applied === false,
+  );
+  const correctionClasses = [
+    ...(validationRejections.length > 0 ? ["schema-validation"] : []),
+    ...(callbackRejections.length > 0 ? ["client-callback"] : []),
+  ];
   const toolNames = interviewerToolNamesFrom(snapshot);
   const resourcePaths = skillResourcePathsFrom(snapshot);
+  const assistantText = latestAssistantTextFrom(snapshot);
+  const definition = petrinautClient.definition();
+  const searchableDefinition = JSON.stringify(definition).toLowerCase();
+  const arcs = definition.transitions.flatMap((transition) => [
+    ...transition.inputArcs,
+    ...transition.outputArcs,
+  ]);
+  const changeoverCrewPlaceIds = new Set(
+    definition.places
+      .filter((place) => {
+        const identity = `${place.id} ${place.name}`.toLowerCase();
+        return identity.includes("changeover") && identity.includes("crew");
+      })
+      .map((place) => place.id),
+  );
+  const semanticInspection = {
+    hasPlacesAndTransitions:
+      definition.places.length > 0 && definition.transitions.length > 0,
+    hasExclusiveLineModes: ["white", "tint", "specialty"].every((mode) =>
+      searchableDefinition.includes(mode),
+    ),
+    hasReturnedChangeoverCrew: definition.transitions.some((transition) =>
+      transition.inputArcs.some(
+        (inputArc) =>
+          inputArc.placeId !== undefined &&
+          changeoverCrewPlaceIds.has(inputArc.placeId) &&
+          transition.outputArcs.some(
+            (outputArc) => outputArc.placeId === inputArc.placeId,
+          ),
+      ),
+    ),
+    hasLineProductRestrictions:
+      searchableDefinition.includes("meridian") &&
+      searchableDefinition.includes("ct-12") &&
+      searchableDefinition.includes("ct-14"),
+    hasDirectionalWashdowns:
+      searchableDefinition.includes("white") &&
+      searchableDefinition.includes("tint") &&
+      searchableDefinition.includes("washdown"),
+    hasOnlyPositiveArcWeights:
+      arcs.length > 0 && arcs.every((arc) => arc.weight > 0),
+    namesIrLossesAndUnknowns: [
+      "vw-02",
+      "idle",
+      "breakdown",
+      "commercial",
+    ].every((term) => assistantText.toLowerCase().includes(term)),
+  };
+  const semanticFidelityOk = Object.values(semanticInspection).every(Boolean);
   const record = {
     startedAt: conversationId,
-    interviewerModel: CHAT_MODEL_ID,
-    expertModel: EXPERT_MODEL,
+    interviewerModel: process.env.BRUNCH_CHAT_MODEL,
+    sourceIrPath: irPath,
+    documentTitle: DOCUMENT_TITLE,
     stopReason,
-    turnDurationsMs,
+    clientRounds,
     toolNames,
     resourcePaths,
-    ir,
-    pn,
+    clientToolResults,
+    validationRejections,
+    callbackRejections,
+    correctionCount: validationRejections.length + callbackRejections.length,
+    correctionClasses,
+    definition,
+    document: petrinautClient.document(),
     parse: parsed.ok
       ? { ok: true, hadMissingPositions: parsed.hadMissingPositions }
       : { ok: false, error: parsed.error },
+    assistantText,
+    semanticInspection,
+    semanticFidelityOk,
+    proofSatisfied: parsed.ok && semanticFidelityOk,
+    noInterviewTurns: true,
+    emittedFreeFormPnJson: assistantText.includes("```pn-json"),
     wroteCaptureStore: false,
-    transcript: formatFlueTranscript(snapshot),
+    usage: {
+      turns: turnUsage,
+      inputTokens: totalFrom(turnUsage.map((turn) => turn.inputTokens)),
+      outputTokens: totalFrom(turnUsage.map((turn) => turn.outputTokens)),
+      totalTokens: totalFrom(turnUsage.map((turn) => turn.totalTokens)),
+      cost: totalFrom(turnUsage.map((turn) => turn.cost)),
+    },
+    transcript: (await import("./flue-transcript.ts")).formatFlueTranscript(
+      snapshot,
+    ),
   };
+
+  const artifactBase = `${outputDirectory}/${conversationId}`;
   await writeFile(
-    `${outputDirectory}/${conversationId}.json`,
+    `${artifactBase}.json`,
     `${JSON.stringify(record, null, 2)}\n`,
   );
   await writeFile(
-    `${outputDirectory}/${conversationId}.md`,
-    `# Runbook headless ${conversationId}\n\n${record.transcript}\n`,
+    `${artifactBase}.md`,
+    [
+      `# Runbook validated construction ${conversationId}`,
+      "",
+      `- Parser accepted: ${record.parse.ok}`,
+      `- Semantic fidelity accepted: ${record.semanticFidelityOk}`,
+      `- Proof satisfied: ${record.proofSatisfied}`,
+      `- Corrections: ${record.correctionCount} (${record.correctionClasses.join(", ") || "none"})`,
+      `- Cost: ${record.usage.cost}`,
+      `- Client rounds: ${record.clientRounds}`,
+      "",
+      record.transcript,
+      "",
+    ].join("\n"),
   );
-  if (ir !== undefined) {
-    await writeFile(`${outputDirectory}/${conversationId}.ir.md`, `${ir}\n`);
-  }
+
   process.stdout.write(
-    `RUNBOOK_HEADLESS_RESULT ${JSON.stringify({
+    `RUNBOOK_VALIDATED_CONSTRUCTION_RESULT ${JSON.stringify({
       stopReason,
-      hasIr: ir !== undefined,
       parseOk: parsed.ok,
+      semanticFidelityOk,
+      proofSatisfied: record.proofSatisfied,
+      correctionCount: record.correctionCount,
+      correctionClasses,
+      cost: record.usage.cost,
+      clientRounds,
       toolNames,
       resourcePaths,
-      maxTurnMs: Math.max(0, ...turnDurationsMs),
+      emittedFreeFormPnJson: record.emittedFreeFormPnJson,
+      wroteCaptureStore: false,
+      artifactBase,
     })}\n`,
   );
 } finally {
+  petrinautClient.dispose();
   stopObserving();
-  await flue.stop();
+  await application?.stop();
 }
