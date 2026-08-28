@@ -222,7 +222,11 @@ where
                 // delegating, so resolving it as anonymous points at a configuration fault.
                 tracing::warn!("actor-ID header carried no recognized credential");
             }
-            C::anonymous().map_err(Report::new)
+            C::anonymous().map_err(|error| {
+                let report = Report::new(error);
+                log_rejection(&report);
+                report
+            })
         }
     }
 }
@@ -486,6 +490,30 @@ mod tests {
                 error()
             );
         }
+
+        // The uncredentialed rejection takes the `Continue` path instead of a provider's
+        // rejection, so it has its own logging site to pin. Same test: the event tests share
+        // the process-global callsite interest cache and cannot run in parallel.
+        let levels = EventLevels::default();
+        let subscriber = tracing_subscriber::registry().with(levels.clone());
+        tracing::callsite::rebuild_interest_cache();
+
+        async {
+            let _outcome: Result<ActorId, _> = resolve_request_actor(
+                &StaticAuthenticationProvider::NotRecognized,
+                &HeaderMap::new(),
+            )
+            .await;
+        }
+        .with_subscriber(subscriber)
+        .await;
+
+        let recorded = levels.0.lock().expect("the event log should lock");
+        assert_eq!(
+            recorded.as_slice(),
+            [tracing::Level::DEBUG],
+            "the missing credentials should be logged once"
+        );
     }
 
     /// What the provider recorded about the credential has to survive the resolver, or the
