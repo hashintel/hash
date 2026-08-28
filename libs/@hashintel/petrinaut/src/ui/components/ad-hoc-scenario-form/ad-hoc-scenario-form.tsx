@@ -66,13 +66,6 @@ const placesListStyle = css({
   gap: "3",
 });
 
-// The bare layout: the exposed groups stacked without section chrome.
-const bareListStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "4",
-});
-
 export interface AdHocScenarioFormProps {
   state: AdHocScenarioState;
   onChange: (state: AdHocScenarioState) => void;
@@ -87,12 +80,6 @@ export interface AdHocScenarioFormProps {
    * when the context carries no net parameters.
    */
   withVariables?: boolean;
-  /**
-   * Render the exposed groups without the collapsible section chrome — the
-   * host supplies its own headings. For embedding inside a panel that
-   * already has a heading grammar (Simulation Settings).
-   */
-  bare?: boolean;
 }
 
 /**
@@ -131,7 +118,6 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   context,
   selection,
   withVariables = true,
-  bare = false,
 }) => {
   const sessionId = useAdHocLspSession(state);
   const { diagnosticsByUri, requestFormatExpression } = use(
@@ -236,7 +222,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     highlight,
     setFocusedValue,
     formatExpression: requestFormatExpression,
-    dense: bare,
+    dense: false,
   };
 
   const parameterRows =
@@ -290,42 +276,32 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
         {/* Undo/redo listens in the capture phase, so it sees keys before any
           cell handler; open text fields and Monaco pass through untouched. */}
         <div ref={rootRef} onKeyDownCapture={handleKeyDown}>
-          {bare ? (
-            // The host owns the headings; the groups stack plainly.
-            // Variables lead: net parameter overrides may read them.
-            <div className={bareListStyle}>
-              {variableRows}
-              {parameterRows}
-              {placesList}
-            </div>
-          ) : (
-            <SectionList>
-              {variableRows ? (
-                <NavigableSection
-                  title="Variables"
-                  tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
-                >
-                  {variableRows}
-                </NavigableSection>
-              ) : null}
-
-              {parameterRows ? (
-                <NavigableSection
-                  title="Parameters"
-                  tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
-                >
-                  {parameterRows}
-                </NavigableSection>
-              ) : null}
-
+          <SectionList>
+            {variableRows ? (
               <NavigableSection
-                title="Initial state"
-                tooltip="Token counts and values per place. Every value is an expression."
+                title="Variables"
+                tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
               >
-                {placesList}
+                {variableRows}
               </NavigableSection>
-            </SectionList>
-          )}
+            ) : null}
+
+            {parameterRows ? (
+              <NavigableSection
+                title="Parameters"
+                tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
+              >
+                {parameterRows}
+              </NavigableSection>
+            ) : null}
+
+            <NavigableSection
+              title="Initial state"
+              tooltip="Token counts and values per place. Every value is an expression."
+            >
+              {placesList}
+            </NavigableSection>
+          </SectionList>
         </div>
       </FormNavigationContext>
     </AdHocFormContext>

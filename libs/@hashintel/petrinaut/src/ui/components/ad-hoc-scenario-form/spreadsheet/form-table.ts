@@ -122,6 +122,46 @@ export const gutterMenuButtonStyle = css({
   _hover: { opacity: "[1!]", backgroundColor: "neutral.s20" },
 });
 
+/**
+ * The shared look of a focusable cell button (value triggers, bound cells,
+ * name cells): mono text, quiet hover wash, and the form's plain-:focus
+ * selection ring — a pointer click selects the cell and the selection must
+ * show either way. Height stays with the owner (cx cannot safely override
+ * conflicting atomic properties).
+ */
+export const cellButtonStyle = css({
+  display: "flex",
+  alignItems: "center",
+  width: "[100%]",
+  border: "none",
+  padding: "[4px 8px]",
+  fontFamily: "mono",
+  fontSize: "xs",
+  color: "neutral.s110",
+  backgroundColor: "[transparent]",
+  cursor: "pointer",
+  textAlign: "left",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
+  _hover: { backgroundColor: "neutral.s10" },
+  _focus: {
+    outline: "[2px solid {colors.blue.s70}]",
+    outlineOffset: "[-2px]",
+    backgroundColor: "blue.s05",
+  },
+});
+
+/** The wavy diagnostics underline on a cell's content (input or span). */
+export const cellErrorUnderlineStyle = css({
+  "& input, & span": {
+    textDecorationLine: "underline",
+    textDecorationStyle: "wavy",
+    textDecorationColor: "red.s90",
+    textUnderlineOffset: "[3px]",
+  },
+});
+
 /** A borderless input filling a cell, spreadsheet-style. */
 export const cellInputStyle = css({
   width: "[100%]",

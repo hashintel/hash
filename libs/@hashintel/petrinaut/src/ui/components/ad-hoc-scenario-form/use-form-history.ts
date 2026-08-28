@@ -23,6 +23,8 @@ import {
   applyAdHocAction,
 } from "@hashintel/petrinaut-core";
 
+import { useLatest } from "../../../react/hooks/use-latest";
+
 import type {
   AdHocAction,
   AdHocScenarioState,
@@ -103,9 +105,15 @@ export function useAdHocFormHistory(
     setModel(appendEntry(model, state));
   }
 
+  const stateRef = useLatest(state);
+
   const dispatch = (action: AdHocAction) => {
-    const next = applyAdHocAction(state, context, action);
-    if (next === state) {
+    // Through the latest-state ref: a dispatch can fire from an async
+    // continuation (the format-on-commit round-trip), and applying it to a
+    // render-closure snapshot would overwrite edits made meanwhile.
+    const latest = stateRef.current;
+    const next = applyAdHocAction(latest, context, action);
+    if (next === latest) {
       return;
     }
     const key = adHocActionCoalescingKey(action);

@@ -250,8 +250,7 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
         <ValueEditor
           value={state.count}
           target={target}
-          integer
-          withStep={false}
+          kind="count"
           placeholder="0 tokens"
           triggerRef={setTrigger}
           onTriggerKeyDown={(event) => {

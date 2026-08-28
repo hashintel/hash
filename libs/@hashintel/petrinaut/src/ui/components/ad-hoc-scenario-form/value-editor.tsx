@@ -18,6 +18,7 @@ import { Portal } from "@ark-ui/react/portal";
 import {
   use,
   useEffect,
+  useEffectEvent,
   useId,
   useLayoutEffect,
   useRef,
@@ -26,43 +27,34 @@ import {
 
 import { Select, usePortalContainerRef } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { adHocSlotKey, adHocTargetLabel } from "@hashintel/petrinaut-core";
+import {
+  adHocNeutralExpression,
+  adHocSlotKey,
+  adHocTargetLabel,
+} from "@hashintel/petrinaut-core";
 
 import { CodeEditor } from "../../monaco/code-editor";
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
 import {
+  cellButtonStyle,
+  cellErrorUnderlineStyle,
   cellSelectStyle,
   dependencyHighlightStyle,
 } from "./spreadsheet/form-table";
 import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
+import { useSelectFirstActivation } from "./spreadsheet/use-select-first";
+import { stepAdHocValue } from "./step-value";
 
-import type { AdHocValue, AdHocValueTarget } from "@hashintel/petrinaut-core";
+import type {
+  AdHocValue,
+  AdHocValueTarget,
+  ColorElementType,
+} from "@hashintel/petrinaut-core";
 
-const triggerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  width: "[100%]",
+// Fills the cell; the base look is the kit's shared cell button.
+const triggerHeightStyle = css({
   height: "[100%]",
   minHeight: "[28px]",
-  border: "none",
-  padding: "[4px 8px]",
-  fontFamily: "mono",
-  fontSize: "xs",
-  color: "neutral.s110",
-  backgroundColor: "[transparent]",
-  cursor: "pointer",
-  textAlign: "left",
-  overflow: "hidden",
-  whiteSpace: "nowrap",
-  textOverflow: "ellipsis",
-  _hover: { backgroundColor: "neutral.s10" },
-  // Plain :focus, not :focus-visible: a pointer click selects the cell and
-  // the selection must show either way.
-  _focus: {
-    outline: "[2px solid {colors.blue.s70}]",
-    outlineOffset: "[-2px]",
-    backgroundColor: "blue.s05",
-  },
 });
 
 const triggerTextStyle = css({
@@ -83,15 +75,6 @@ const derivedTriggerStyle = css({
 
 const placeholderTriggerStyle = css({
   color: "neutral.s70",
-});
-
-const errorTriggerStyle = css({
-  "& > span": {
-    textDecorationLine: "underline",
-    textDecorationStyle: "wavy",
-    textDecorationColor: "red.s90",
-    textUnderlineOffset: "[3px]",
-  },
 });
 
 /** Only one editor may be open; opening one announces itself to the rest. */
@@ -199,28 +182,8 @@ const boundsLabelStyle = css({
   borderBottom: "[1px solid {colors.neutral.a05}]",
 });
 
-const boundTriggerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  width: "[100%]",
+const boundTriggerHeightStyle = css({
   height: "[28px]",
-  border: "none",
-  padding: "[4px 8px]",
-  fontFamily: "mono",
-  fontSize: "xs",
-  color: "neutral.s110",
-  backgroundColor: "[transparent]",
-  cursor: "pointer",
-  textAlign: "left",
-  overflow: "hidden",
-  whiteSpace: "nowrap",
-  textOverflow: "ellipsis",
-  _hover: { backgroundColor: "neutral.s10" },
-  _focus: {
-    outline: "[2px solid {colors.blue.s70}]",
-    outlineOffset: "[-2px]",
-    backgroundColor: "blue.s05",
-  },
 });
 
 const boundEditorStyle = css({
@@ -266,12 +229,14 @@ export interface ValueEditorProps {
    * supersedes.
    */
   target: AdHocValueTarget;
-  /** Integer slots validate integer bounds. */
-  integer?: boolean;
-  /** Boolean slots optimize as a true/false choice with no bounds. */
-  booleanDomain?: boolean;
-  /** Counts hide the Step field (integer step 1 is implied). */
-  withStep?: boolean;
+  /**
+   * The slot's value domain — one fact, everything else derives from it:
+   * booleans optimize as a true/false choice with no bounds and step with
+   * Up/Down; integers get a Step bound; counts are integers with an implied
+   * step of 1 (no Step field); strings and UUIDs don't arrow-step. The
+   * default placeholder is the domain's neutral value.
+   */
+  kind: ColorElementType | "count";
   /**
    * Rendered as derived: dimmed, chevron-prefixed, out of the tab order, and
    * editing is delegated to the shared column's own editor by the parent.
@@ -283,12 +248,6 @@ export interface ValueEditorProps {
   display?: React.ReactNode;
   /** Trigger placeholder when the expression is empty. */
   placeholder?: string;
-  /**
-   * What Up/Down steps in the open editor. Defaults by domain: boolean
-   * slots toggle true/false, everything else steps numeric literals;
-   * "none" (strings, UUIDs) leaves the arrows to Monaco.
-   */
-  stepping?: "number" | "boolean" | "none";
   /**
    * Opens the editor when this becomes a fresh non-zero nonce (phantom-row
    * materialization, derived-cell click-through).
@@ -349,8 +308,7 @@ const BoundCell: React.FC<BoundCellProps> = ({
   onNavigate,
   onEditorMount,
 }) => {
-  const wasFocusedOnPointerDownRef = useRef(false);
-  const selfRef = useRef<HTMLButtonElement | null>(null);
+  const activation = useSelectFirstActivation();
 
   if (editing) {
     return (
@@ -375,21 +333,19 @@ const BoundCell: React.FC<BoundCellProps> = ({
   return (
     <button
       ref={(element) => {
-        selfRef.current = element;
         registerTrigger(element);
       }}
       type="button"
       aria-label={`${label} of ${valueLabel}`}
       title={error}
-      className={cx(boundTriggerStyle, error && errorTriggerStyle)}
-      onPointerDown={() => {
-        wasFocusedOnPointerDownRef.current =
-          document.activeElement === selfRef.current;
-      }}
+      className={cx(
+        cellButtonStyle,
+        boundTriggerHeightStyle,
+        error && cellErrorUnderlineStyle,
+      )}
+      onPointerDown={activation.onPointerDown}
       onClick={(event) => {
-        // A keyboard "click" (Enter/Space) always edits; a pointer click
-        // edits only an already-selected cell — the first click selects.
-        if (event.detail === 0 || wasFocusedOnPointerDownRef.current) {
+        if (activation.shouldActivate(event)) {
           onStartEdit();
         }
       }}
@@ -410,14 +366,11 @@ const BoundCell: React.FC<BoundCellProps> = ({
 export const ValueEditor: React.FC<ValueEditorProps> = ({
   value,
   target,
-  integer = false,
-  booleanDomain = false,
-  withStep = true,
+  kind,
   derived = false,
   className,
   display,
-  placeholder = "0",
-  stepping,
+  placeholder,
   autoOpen = 0,
   onOpenDerived,
   triggerRef,
@@ -434,6 +387,9 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     formatExpression,
     dispatch,
   } = use(AdHocFormContext);
+  const booleanDomain = kind === "boolean";
+  const triggerPlaceholder =
+    placeholder ?? (kind === "count" ? "0" : adHocNeutralExpression(kind));
   const label = adHocTargetLabel(target, formState, synthesisContext);
   const dependencyHighlighted = highlight.slotKeys.has(
     adHocSlotKey({ target, part: "expression" }),
@@ -450,9 +406,9 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       >[0]
     | null
   >(null);
-  // Whether the pointer landed on an already-selected cell: the first click
-  // selects, the second (or a double-click, or Enter) edits.
-  const wasFocusedOnPointerDownRef = useRef(false);
+  // The first click selects the cell, the second (or a double-click, or
+  // Enter) edits — the form's shared activation grammar.
+  const triggerActivation = useSelectFirstActivation();
   const [open, setOpenState] = useState(autoOpen > 0);
   // Which bound cell holds an open expression editor. Escape peels one
   // layer: it leaves the bound edit first, and closes the slab from a
@@ -498,12 +454,9 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       dispatch({ type: "setExpression", target, expression: formatted });
     });
   };
-  // The overlay effect's close paths call through a ref, so the effect does
-  // not depend on (and re-subscribe over) the commit closure.
-  const commitFormatRef = useRef(commitFormat);
-  useEffect(() => {
-    commitFormatRef.current = commitFormat;
-  });
+  // The overlay effect's close paths call through an effect event, so the
+  // effect neither depends on nor re-subscribes over the commit closure.
+  const commitFormatEvent = useEffectEvent(commitFormat);
 
   // Opening announces itself so any other open editor yields. The dispatch
   // lives in an effect, never in render: the listeners call other
@@ -529,7 +482,12 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   // wins over Monaco, but only while the suggest widget is closed and the
   // editor itself (expression or bound) has focus — setValue routes through
   // the editor's onChange, so the right dispatch fires either way.
-  const stepMode = stepping ?? (booleanDomain ? "boolean" : "number");
+  const stepMode =
+    kind === "boolean"
+      ? "boolean"
+      : kind === "string" || kind === "uuid"
+        ? "none"
+        : "number";
   const stepValueWithArrows = (event: React.KeyboardEvent) => {
     if (
       (event.key !== "ArrowUp" && event.key !== "ArrowDown") ||
@@ -546,19 +504,12 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       return;
     }
     const current = model.getValue();
-    const up = event.key === "ArrowUp";
-    let next: string | null = null;
-    if (stepMode === "boolean") {
-      if (/^\s*(true|false)?\s*$/.test(current)) {
-        next = up ? "true" : "false";
-      }
-    } else if (/^\s*$/.test(current)) {
-      next = String((up ? 1 : -1) * (event.shiftKey ? 10 : 1));
-    } else if (/^\s*-?(\d+(\.\d*)?|\.\d+)\s*$/.test(current)) {
-      const delta = (up ? 1 : -1) * (event.shiftKey ? 10 : 1);
-      const decimals = /\.(\d*)\s*$/.exec(current)?.[1]?.length ?? 0;
-      next = (Number.parseFloat(current) + delta).toFixed(decimals);
-    }
+    const next = stepAdHocValue(
+      current,
+      event.key === "ArrowUp",
+      event.shiftKey,
+      stepMode,
+    );
     if (next === null || next === current) {
       return;
     }
@@ -613,7 +564,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     }
     const onAnotherEditorOpen = (event: Event) => {
       if ((event as CustomEvent<string>).detail !== editorId) {
-        commitFormatRef.current();
+        commitFormatEvent();
         setOpenState(false);
       }
     };
@@ -626,7 +577,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
           !overlay.contains(event.target) &&
           !buttonRef.current?.contains(event.target)
         ) {
-          commitFormatRef.current();
+          commitFormatEvent();
           setOpenState(false);
         }
       }
@@ -682,7 +633,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
         setTimeout(() => boundRefs.current.get(key)?.focus(), 0);
         return;
       }
-      commitFormatRef.current();
+      commitFormatEvent();
       setOpenState(false);
       buttonRef.current?.focus();
     };
@@ -699,7 +650,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
         ? new IntersectionObserver(
             (entries) => {
               if (entries.some((entry) => !entry.isIntersecting)) {
-                commitFormatRef.current();
+                commitFormatEvent();
                 setOpenState(false);
               }
             },
@@ -726,7 +677,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       ? booleanDomain
         ? "true / false"
         : `${value.optimize!.min} … ${value.optimize!.max}`
-      : value.expression || placeholder);
+      : value.expression || triggerPlaceholder);
 
   const expressionSlot = { target, part: "expression" as const };
   const error = optimized
@@ -741,7 +692,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const boundFields: { key: "min" | "max" | "step"; fieldLabel: string }[] = [
     { key: "min", fieldLabel: "Min" },
     { key: "max", fieldLabel: "Max" },
-    ...(integer && withStep
+    ...(kind === "integer"
       ? [{ key: "step" as const, fieldLabel: "Step" }]
       : []),
   ];
@@ -785,11 +736,12 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
         title={showTriggerError ? error : undefined}
         data-highlighted={dependencyHighlighted || undefined}
         className={cx(
-          triggerStyle,
+          cellButtonStyle,
+          triggerHeightStyle,
           optimized && optimizedTriggerStyle,
           derived && derivedTriggerStyle,
           isEmpty && placeholderTriggerStyle,
-          showTriggerError && errorTriggerStyle,
+          showTriggerError && cellErrorUnderlineStyle,
           dependencyHighlighted && dependencyHighlightStyle,
           className,
         )}
@@ -800,19 +752,13 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
             setFocusedValue(null);
           }
         }}
-        onPointerDown={() => {
-          wasFocusedOnPointerDownRef.current =
-            document.activeElement === buttonRef.current;
-        }}
+        onPointerDown={triggerActivation.onPointerDown}
         onClick={(event) => {
           if (derived) {
             onOpenDerived?.();
             return;
           }
-          // A keyboard "click" (Enter/Space) carries no pointer detail and
-          // always opens; a pointer click opens only on an already-selected
-          // cell — the first click selects it.
-          if (event.detail === 0 || wasFocusedOnPointerDownRef.current) {
+          if (triggerActivation.shouldActivate(event)) {
             setOpenState(true);
           }
         }}
@@ -949,7 +895,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                     language="typescript"
                     path={uriFor(expressionSlot) || undefined}
                     value={value.expression}
-                    placeholder={placeholder}
+                    placeholder={triggerPlaceholder}
                     onMount={(editorInstance) => {
                       monacoRef.current = editorInstance;
                       editorInstance.focus();

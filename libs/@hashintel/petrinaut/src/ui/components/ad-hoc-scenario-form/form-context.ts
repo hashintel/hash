@@ -61,8 +61,9 @@ export interface AdHocFormServices {
    */
   formatExpression: (code: string) => Promise<string | null>;
   /**
-   * The embedded rendering (`bare`): smaller place titles, tighter
-   * spacing — for hosts that show the form inside an already-dense panel.
+   * The embedded rendering (a host-driven `renderLayout`): smaller place
+   * titles, tighter spacing — for hosts that show the form inside an
+   * already-dense panel.
    */
   dense: boolean;
 }

@@ -25,7 +25,6 @@ import { use, useRef, useState } from "react";
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
-  adHocNeutralExpression,
   adHocRowKindOf,
   resolveAdHocPlaceTotal,
   type AdHocColouredPlace,
@@ -149,14 +148,6 @@ const totalTextStyle = css({
   marginTop: "[1px]",
 });
 
-/** The open editor's arrow-stepping mode for a colour element's cells. */
-const steppingFor = (type: Color["elements"][number]["type"]) =>
-  type === "boolean"
-    ? "boolean"
-    : type === "real" || type === "integer"
-      ? "number"
-      : "none";
-
 export interface TokenTableProps {
   place: Place;
   colour: Color;
@@ -249,6 +240,11 @@ export const TokenTable: React.FC<TokenTableProps> = ({
             state.sharedColumns[element.name] ? columnIndex : null,
           )
           .filter((columnIndex) => columnIndex !== null);
+        // Stale sharedColumns keys (a renamed colour element) can leave no
+        // matching column: a focus no-op, not a reduce over an empty array.
+        if (sharedColumns.length === 0) {
+          break;
+        }
         const nearest = sharedColumns.reduce((best, candidate) =>
           Math.abs(candidate - column) < Math.abs(best - column)
             ? candidate
@@ -464,8 +460,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 <ValueEditor
                   value={row.count}
                   target={countTarget}
-                  integer
-                  withStep={false}
+                  kind="count"
                   placeholder="1"
                   className={cx(
                     stripEditorStyle,
@@ -612,10 +607,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                         }
                       : target
                   }
-                  integer={element.type === "integer"}
-                  booleanDomain={element.type === "boolean"}
-                  stepping={steppingFor(element.type)}
-                  placeholder={adHocNeutralExpression(element.type)}
+                  kind={element.type}
                   derived={Boolean(shared)}
                   autoOpen={autoOpen}
                   onOpenDerived={() => openSharedEditor(element.name)}
@@ -729,10 +721,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                     <ValueEditor
                       value={shared}
                       target={target}
-                      integer={element.type === "integer"}
-                      booleanDomain={element.type === "boolean"}
-                      stepping={steppingFor(element.type)}
-                      placeholder={adHocNeutralExpression(element.type)}
+                      kind={element.type}
                       autoOpen={
                         sharedAutoOpen?.field === element.name
                           ? sharedAutoOpen.nonce

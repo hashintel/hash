@@ -123,8 +123,7 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
                           </span>
                         )
                   }
-                  integer={parameter.type === "integer"}
-                  booleanDomain={parameter.type === "boolean"}
+                  kind={parameter.type}
                   placeholder={parameter.defaultValue}
                   triggerRef={register(parameterIndex, 0)}
                   onTriggerKeyDown={onKeyDown(parameterIndex, 0)}

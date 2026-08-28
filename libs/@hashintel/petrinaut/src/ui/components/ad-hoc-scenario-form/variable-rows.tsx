@@ -15,13 +15,14 @@ import { use, useEffect, useRef, useState } from "react";
 
 import { Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { adHocNeutralExpression } from "@hashintel/petrinaut-core";
 
 import { adHocVariableKey } from "./dependency-highlight";
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
 import { useNavigationGrid } from "./navigation/use-grid-navigation";
 import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
 import {
+  cellButtonStyle,
+  cellErrorUnderlineStyle,
   cellInputStyle,
   cellSelectStyle,
   cellStyle,
@@ -67,39 +68,8 @@ const exposeCellStyle = css({
   textAlign: "center",
 });
 
-const nameButtonStyle = css({
-  display: "flex",
-  alignItems: "center",
-  width: "[100%]",
+const nameButtonHeightStyle = css({
   height: "[28px]",
-  border: "none",
-  padding: "[4px 8px]",
-  fontFamily: "mono",
-  fontSize: "xs",
-  color: "neutral.s110",
-  backgroundColor: "[transparent]",
-  cursor: "pointer",
-  textAlign: "left",
-  overflow: "hidden",
-  whiteSpace: "nowrap",
-  textOverflow: "ellipsis",
-  _hover: { backgroundColor: "neutral.s10" },
-  // Plain :focus, not :focus-visible: a pointer click selects the cell and
-  // the selection must show either way.
-  _focus: {
-    outline: "[2px solid {colors.blue.s70}]",
-    outlineOffset: "[-2px]",
-    backgroundColor: "blue.s05",
-  },
-});
-
-const invalidNameStyle = css({
-  "& input, & span": {
-    textDecorationLine: "underline",
-    textDecorationStyle: "wavy",
-    textDecorationColor: "red.s90",
-    textUnderlineOffset: "[3px]",
-  },
 });
 
 interface NameCellProps {
@@ -131,7 +101,7 @@ const NameCell: React.FC<NameCellProps> = ({
   onCellKeyDown,
 }) => {
   const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const wasFocusedOnPointerDownRef = useRef(false);
+  const activation = useSelectFirstActivation();
   const [editing, setEditing] = useState(autoEdit > 0);
   const [seenAutoEdit, setSeenAutoEdit] = useState(autoEdit);
   if (autoEdit !== seenAutoEdit) {
@@ -207,19 +177,14 @@ const NameCell: React.FC<NameCellProps> = ({
         cellRef(element);
       }}
       type="button"
-      className={nameButtonStyle}
+      className={cx(cellButtonStyle, nameButtonHeightStyle)}
       aria-label={ariaLabel}
       title={error}
       onFocus={() => onFocusChange(true)}
       onBlur={() => onFocusChange(false)}
-      onPointerDown={() => {
-        wasFocusedOnPointerDownRef.current =
-          document.activeElement === buttonRef.current;
-      }}
+      onPointerDown={activation.onPointerDown}
       onClick={(event) => {
-        // A keyboard "click" (Enter/Space) carries no pointer detail and
-        // always edits; a pointer click edits only an already-selected cell.
-        if (event.detail === 0 || wasFocusedOnPointerDownRef.current) {
+        if (activation.shouldActivate(event)) {
           setEditing(true);
         }
       }}
@@ -374,7 +339,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                 className={cx(
                   cellStyle,
                   nameCellStyle,
-                  nameError && invalidNameStyle,
+                  nameError && cellErrorUnderlineStyle,
                   rowHighlight,
                 )}
               >
@@ -444,9 +409,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                 <ValueEditor
                   target={target}
                   value={variable}
-                  integer={variable.type === "integer"}
-                  booleanDomain={variable.type === "boolean"}
-                  placeholder={adHocNeutralExpression(variable.type)}
+                  kind={variable.type}
                   triggerRef={register(index, 3)}
                   onTriggerKeyDown={onKeyDown(index, 3)}
                 />

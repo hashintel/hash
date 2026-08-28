@@ -110,13 +110,11 @@ const Harness: React.FC<{
   onState?: (state: AdHocScenarioState) => void;
   initial?: AdHocScenarioState;
   withVariables?: boolean;
-  bare?: boolean;
 }> = ({
   selection = "optimize",
   onState,
   initial = EMPTY_AD_HOC_STATE,
   withVariables,
-  bare,
 }) => {
   const [state, setState] = useState(initial);
   return (
@@ -129,7 +127,6 @@ const Harness: React.FC<{
       context={context}
       selection={selection}
       withVariables={withVariables}
-      bare={bare}
     />
   );
 };
@@ -1100,18 +1097,5 @@ describe("AdHocScenarioForm", () => {
     expect(
       screen.getByRole("button", { name: "Add a token row (pressure)" }),
     ).toBeTruthy();
-  });
-
-  it("renders bare, without section chrome, for hosts with their own headings", () => {
-    render(<Harness bare withVariables={false} />);
-    expect(screen.queryByText("Initial state")).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: "Toggle Initial state section" }),
-    ).toBeNull();
-    // The content itself is all there: places, gutters, phantom rows.
-    expect(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-    ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Queue › count" })).toBeTruthy();
   });
 });
