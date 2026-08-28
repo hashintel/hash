@@ -183,6 +183,15 @@ type ClientRequest =
         /** Net context an `adhoc` initial state synthesizes against. */
         adHocContext?: AdHocSynthesisContext;
       };
+    }
+  | {
+      jsonrpc: "2.0";
+      id: number;
+      method: "sdcpn/formatExpression";
+      params: {
+        /** A single scenario-expression to re-print canonically. */
+        code: string;
+      };
     };
 
 /** Any message from the main thread to the worker. */

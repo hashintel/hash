@@ -115,6 +115,14 @@ export interface LanguageClient {
   ): Promise<ScenarioHir>;
 
   /**
+   * Re-prints a single scenario-expression canonically (in the worker, where
+   * the TypeScript frontend lives): normalized spacing, minimal parentheses,
+   * numeric literals preserved. Resolves null when the code does not lower —
+   * callers keep the user's text untouched in that case.
+   */
+  requestFormatExpression(this: void, code: string): Promise<string | null>;
+
+  /**
    * Tear down the transport. Pending requests reject with "Worker terminated".
    * Idempotent.
    */
@@ -366,6 +374,9 @@ export function createLanguageClient(
         scenario,
         adHocContext,
       });
+    },
+    requestFormatExpression(code) {
+      return sendRequest<string | null>("sdcpn/formatExpression", { code });
     },
 
     dispose() {

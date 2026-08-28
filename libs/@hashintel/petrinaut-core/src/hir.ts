@@ -95,6 +95,10 @@ export {
   type ScenarioLoweringInput,
 } from "./hir/scenario";
 export {
+  formatTypeScriptExpression,
+  hirExpressionToTypeScript,
+} from "./hir/print";
+export {
   buildDynamicsContext,
   buildKernelContext,
   buildLambdaContext,

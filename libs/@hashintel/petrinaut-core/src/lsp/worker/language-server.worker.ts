@@ -29,6 +29,7 @@ import {
   buildScenarioCodeContext,
   buildScenarioExpressionContext,
   compileHirArtifacts,
+  formatTypeScriptExpression,
   lowerScenarioToHir,
 } from "../../hir";
 import { getHirDiagnosticsForItem } from "../lib/check-hir";
@@ -578,6 +579,12 @@ workerRuntime.onMessage((data) => {
             adHocContext: data.params.adHocContext,
           }),
         );
+        break;
+      }
+
+      case "sdcpn/formatExpression": {
+        const { id } = data;
+        respond(id, formatTypeScriptExpression(data.params.code));
         break;
       }
 
