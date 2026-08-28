@@ -10,13 +10,25 @@ yarn dev:brunch
 
 The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system
 codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut
-website at `http://127.0.0.1:4915`. The website proxies `/api/chat` to Brunch. The panel talks to one plain
-Flue chat agent: streamed text and reasoning, one server `ping` tool, one stub
-skill (`confirm-path`, activated via `activate_skill`), and the existing Petrinaut
-`readPetrinautDoc` client tool. There is no elicitation loop, sweep tool, or
-`brunch_ask` on this path. Capture is a harness-side pipe: an explicit settled
-range of Flue history is applied into a JSON store beside the conversation
-database, not by the interviewer.
+website at `http://127.0.0.1:4915`. The website proxies `/api/chat` to Brunch. The panel talks to one Flue
+chat agent: streamed text and reasoning, one server `ping` tool, one
+modelling runbook skill (`sdcpn-modelling`, activated via `activate_skill`,
+with supporting resources via `read_skill_resource`), and the existing
+Petrinaut `readPetrinautDoc` client tool. There is no elicitation loop,
+sweep tool, or `brunch_ask` on this path. Capture is a harness-side pipe:
+an explicit settled range of Flue history is applied into a JSON store
+beside the conversation database, not by the interviewer.
+
+A headless Mission 3 drive (simulated expert, same `ChatAgent` door):
+
+```sh
+yarn workspace @apps/brunch-agent runbook:headless
+```
+
+`ANTHROPIC_API_KEY` is required. `BRUNCH_CHAT_MODEL` selects the interviewer
+(default `claude-sonnet-4-5` for this script only). Artifacts write under
+`libs/@hashintel/brunch-agent/docs/evidence/evaluations/process-model-elicitation/runbook-headless/`
+unless `BRUNCH_RUNBOOK_OUTPUT_DIR` is set.
 
 Conversations persist in `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH`
 overrides that local path. Capture envelopes for one Flue conversation sit beside that sqlite

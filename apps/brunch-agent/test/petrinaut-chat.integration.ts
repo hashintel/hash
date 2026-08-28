@@ -17,7 +17,7 @@ import {
   ACTIVATE_SKILL_TOOL_NAME,
   CHAT_MODEL_ID,
   ChatAgent,
-  STUB_SKILL_NAME,
+  RUNBOOK_SKILL_NAME,
 } from "../src/agents/chat-agent.ts";
 import { applyCaptureSweep } from "../src/capture-sweep.ts";
 import { CLIENT_TOOL_RESULT_SIGNAL } from "../src/client-tool.ts";
@@ -27,6 +27,7 @@ import {
 } from "../src/conversation-identity.ts";
 import { formatFlueTranscript } from "../src/flue-transcript.ts";
 import { CHAT_AGENT_ROUTE } from "../src/routes.ts";
+import { READ_SKILL_RESOURCE_TOOL_NAME } from "../src/skills/sdcpn-modelling.ts";
 import { PING_TOOL_NAME } from "../src/tools/ping.ts";
 import { READ_PETRINAUT_DOC_TOOL_NAME } from "../src/tools/read-petrinaut-doc.ts";
 
@@ -114,18 +115,50 @@ try {
     };
     process.stdout.write(`PETRINAUT_RESUME_RESULT ${JSON.stringify(result)}\n`);
   } else {
+    const packagedSkillResourcePathFrom = (
+      context: unknown,
+      fileName: string,
+    ): string => {
+      const serialized = JSON.stringify(context);
+      const match = serialized.match(
+        new RegExp(
+          `/\\.flue/packaged-skills/[^"\\s\\\\]+/${fileName.replace(".", "\\.")}`,
+        ),
+      );
+      if (match === null) {
+        throw new Error(
+          `activate_skill briefing did not advertise ${fileName}`,
+        );
+      }
+      return match[0];
+    };
+
     faux.setResponses([
       fauxAssistantMessage(
         [
-          fauxThinking("Load the mount confirmation skill."),
+          fauxThinking("Load the modelling runbook skill."),
           fauxToolCall(
             ACTIVATE_SKILL_TOOL_NAME,
-            { name: STUB_SKILL_NAME },
+            { name: RUNBOOK_SKILL_NAME },
             { id: "tool-skill-1" },
           ),
         ],
         { stopReason: "toolUse" },
       ),
+      (context) =>
+        fauxAssistantMessage(
+          [
+            fauxThinking("Read elicitation teaching from the skill package."),
+            fauxToolCall(
+              READ_SKILL_RESOURCE_TOOL_NAME,
+              {
+                path: packagedSkillResourcePathFrom(context, "elicitation.md"),
+              },
+              { id: "tool-resource-1" },
+            ),
+          ],
+          { stopReason: "toolUse" },
+        ),
       fauxAssistantMessage(
         [
           fauxThinking("Confirm the server path, then read the guide."),
@@ -208,6 +241,14 @@ try {
         ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
           chunk.type === "tool-input-available" &&
           chunk.toolName === ACTIVATE_SKILL_TOOL_NAME,
+      ) ?? null;
+    const readSkillResourceCall =
+      initialChunks.find(
+        (
+          chunk,
+        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
+          chunk.type === "tool-input-available" &&
+          chunk.toolName === READ_SKILL_RESOURCE_TOOL_NAME,
       ) ?? null;
     const pingOutputChunk = initialChunks.find(
       (chunk) =>
@@ -422,6 +463,7 @@ try {
       instanceId,
       dbPath: dbFile,
       activateSkillCall,
+      readSkillResourceCall,
       interviewerToolNames,
       captureUserText: userTextFromHistory(
         snapshot.messages.map((message) => ({
