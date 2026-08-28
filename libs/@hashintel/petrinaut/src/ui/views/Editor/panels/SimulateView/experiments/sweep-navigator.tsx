@@ -8,14 +8,15 @@
  * while the charts scroll.
  *
  * Purely presentational: selection and sampling progress come in as props,
- * and the only output is `onSelectionChange`. Slider moves commit on
- * release — dragging previews the range locally and the change fires once,
- * so the owner cancels at most one batch per gesture rather than one per
- * pixel.
+ * and the only output is `onSelectionChange`. Slider moves commit live —
+ * positions are quantized, so a drag emits one change per step crossed and
+ * compute follows the thumb.
  */
-import { useState } from "react";
-
-import { LoadingSpinner, SegmentedControl } from "@hashintel/ds-components";
+import {
+  LoadingSpinner,
+  SegmentedControl,
+  Slider,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { axisValueAt } from "../../../../../../react/experiments/parameter-grid";
@@ -73,6 +74,10 @@ const readoutStyle = css({
   textAlign: "right",
 });
 
+const pointSliderStyle = css({
+  flex: "1",
+});
+
 const statusStyle = css({
   display: "flex",
   alignItems: "center",
@@ -101,20 +106,18 @@ const AxisControl = ({
   selected: SweepAxisSelection;
   onSelect: (range: SweepAxisSelection) => void;
 }) => {
-  /** Range being dragged; null when the slider mirrors the committed state. */
-  const [draft, setDraft] = useState<[number, number] | null>(null);
-
   const isPoint = selected.from === selected.to;
-  const shown = draft ?? [selected.from, selected.to];
 
-  const commit = (range: [number, number]) => {
-    setDraft(null);
-    onSelect({ from: range[0], to: range[1] });
+  const commitPoint = (position: number) => {
+    if (position !== selected.from || position !== selected.to) {
+      onSelect({ from: position, to: position });
+    }
   };
-
-  /** In point mode both thumbs coincide; the moved end is the new point. */
-  const pointAt = (range: [number, number]): number =>
-    range[0] !== selected.from ? range[0] : range[1];
+  const commitRange = (range: [number, number]) => {
+    if (range[0] !== selected.from || range[1] !== selected.to) {
+      onSelect({ from: range[0], to: range[1] });
+    }
+  };
 
   return (
     <>
@@ -137,24 +140,33 @@ const AxisControl = ({
           }
         }}
       />
-      <RangeSlider
-        min={0}
-        max={axis.stepCount}
-        step={1}
-        value={isPoint && draft === null ? [shown[0], shown[0]] : shown}
-        aria-label={axis.identifier}
-        onChange={(range) => {
-          setDraft(isPoint ? [pointAt(range), pointAt(range)] : range);
-        }}
-        onChangeEnd={(range) => {
-          commit(isPoint ? [pointAt(range), pointAt(range)] : range);
-        }}
-      />
+      {isPoint ? (
+        // A single thumb, not a collapsed RangeSlider: coincident range
+        // thumbs trap the drag on the upper one, which cannot move left.
+        <Slider
+          className={pointSliderStyle}
+          min={0}
+          max={axis.stepCount}
+          step={1}
+          value={selected.from}
+          aria-label={axis.identifier}
+          onChange={commitPoint}
+        />
+      ) : (
+        <RangeSlider
+          min={0}
+          max={axis.stepCount}
+          step={1}
+          value={[selected.from, selected.to]}
+          aria-label={axis.identifier}
+          onChange={commitRange}
+        />
+      )}
       <span className={readoutStyle}>
-        {shown[0] === shown[1]
-          ? formatAxisValue(axisValueAt(axis, shown[0]))
-          : `${formatAxisValue(axisValueAt(axis, shown[0]))} – ${formatAxisValue(
-              axisValueAt(axis, shown[1]),
+        {isPoint
+          ? formatAxisValue(axisValueAt(axis, selected.from))
+          : `${formatAxisValue(axisValueAt(axis, selected.from))} – ${formatAxisValue(
+              axisValueAt(axis, selected.to),
             )}`}
       </span>
     </>

@@ -61,8 +61,8 @@ export const Slider: React.FC<SliderProps> = ({
       )}
       style={style}
       max={max}
-      value={value ? [value] : undefined}
-      defaultValue={defaultValue ? [defaultValue] : undefined}
+      value={value !== undefined ? [value] : undefined}
+      defaultValue={defaultValue !== undefined ? [defaultValue] : undefined}
       onValueChange={(details) => {
         const newValue = details.value[0];
         // For now this component only supports single value sliders
