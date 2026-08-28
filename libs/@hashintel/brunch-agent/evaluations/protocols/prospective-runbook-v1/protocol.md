@@ -14,7 +14,7 @@ yarn workspace @apps/brunch-agent runbook:headless
 
 The interviewer is the mounted `ChatAgent`. The expert is a second model that
 sees only
-[`situation-pack.md`](../../../cases/process-model-elicitation/baseline/situation-pack.md).
+[`situation-pack.md`](../../cases/vestera-scheduling/situation-pack.md).
 The interviewer never sees that pack. Expert replies are ordinary user
 messages.
 
@@ -33,6 +33,6 @@ messages.
 ## Artifacts
 
 Written under
-`docs/evidence/evaluations/process-model-elicitation/runbook-headless/`
+`docs/evidence/evaluations/vestera-runbook-headless/`
 unless the output directory is overridden. The hermetic faux throughline is
 `apps/brunch-agent/test/runbook-headless.test.ts`; it does not write here.

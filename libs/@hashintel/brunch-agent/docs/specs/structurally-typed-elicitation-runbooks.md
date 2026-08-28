@@ -103,8 +103,8 @@ The harness repertoire and its research sources already establish useful general
 - kickoff, trajectory, close, and honest partial delivery.
 
 Primary local syntheses include
-[`elicitation-strategy-literature.md`](../reference/research/elicitation/elicitation-strategy-literature.md),
-[`frontier-model-elicitor-failure-catalogue.md`](../reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md),
+[`elicitation-strategy-literature.md`](../research/elicitation/elicitation-strategy-literature.md),
+[`frontier-model-elicitor-failure-catalogue.md`](../research/elicitation/frontier-model-elicitor-failure-catalogue.md),
 and the current [`repertoire.yaml`](../../packages/core/src/repertoire.yaml). Their content is
 source material; Mission 3 does not restore the repertoire runtime.
 

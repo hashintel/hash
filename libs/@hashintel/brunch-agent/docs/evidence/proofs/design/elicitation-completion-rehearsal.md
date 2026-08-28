@@ -366,12 +366,12 @@ prose. Two fixed runs are existence evidence only, not rate estimates.
 
 ## Evidence bundle
 
-- [FE-1407 failure catalogue](../../../reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md)
-- [baseline readout](../../evaluations/process-model-elicitation/baseline/readout.md)
-- [condition 1 transcript](../../evaluations/process-model-elicitation/baseline/transcripts/condition-1.md)
-- [condition 2 transcript](../../evaluations/process-model-elicitation/baseline/transcripts/condition-2.md)
-- [baseline situation pack](../../../../evaluations/cases/process-model-elicitation/baseline/situation-pack.md)
-- [baseline protocol](../../../../evaluations/protocols/process-model-elicitation/baseline/protocol.md)
+- [FE-1407 failure catalogue](../../../research/elicitation/frontier-model-elicitor-failure-catalogue.md)
+- [baseline readout](../../evaluations/vestera-legacy-baseline/readout.md)
+- [condition 1 transcript](../../evaluations/vestera-legacy-baseline/transcripts/condition-1.md)
+- [condition 2 transcript](../../evaluations/vestera-legacy-baseline/transcripts/condition-2.md)
+- [baseline situation pack](../../../../evaluations/cases/vestera-scheduling/situation-pack.md)
+- [baseline protocol](../../../../evaluations/protocols/legacy-baseline/protocol.md)
 - [plugin contract](../../../specs/plugin-contract.md) and
   [ADR-0003](../../../adr/0003-three-register-ir.md)
 

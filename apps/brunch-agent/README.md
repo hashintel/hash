@@ -27,7 +27,7 @@ yarn workspace @apps/brunch-agent runbook:headless
 
 `ANTHROPIC_API_KEY` is required. `BRUNCH_CHAT_MODEL` selects the interviewer
 (default `claude-sonnet-4-5` for this script only). Artifacts write under
-`libs/@hashintel/brunch-agent/docs/evidence/evaluations/process-model-elicitation/runbook-headless/`
+`libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/`
 unless `BRUNCH_RUNBOOK_OUTPUT_DIR` is set.
 
 Conversations persist in `apps/brunch-agent/.data-wipe-me/conversations.db`. `BRUNCH_DEV_DB_PATH`

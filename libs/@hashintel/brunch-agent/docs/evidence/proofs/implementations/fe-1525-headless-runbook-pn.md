@@ -5,7 +5,7 @@
 **Mission:** `MISSION.md` still live — archive only on acceptance.
 **Runs:**
 - hermetic: `apps/brunch-agent/test/runbook-headless.test.ts`
-- real-model 1: `docs/evidence/evaluations/process-model-elicitation/runbook-headless/runbook-headless-2026-08-28T10-56-59-351Z.*`
+- real-model 1: `docs/evidence/evaluations/vestera-runbook-headless/runbook-headless-2026-08-28T10-56-59-351Z.*`
 - real-model 2 (one edit cycle): `…/runbook-headless-2026-08-28T11-03-53-683Z.*`
 - side quest, validated construction from Run 2 IR:
   `…/runbook-validated-construction-2026-08-28T13-02-51-095Z.*`

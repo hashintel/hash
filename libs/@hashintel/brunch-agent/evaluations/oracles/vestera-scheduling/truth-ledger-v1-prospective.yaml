@@ -1,15 +1,36 @@
-version: 0-retrospective
+version: 1-prospective
 case: vestera-coatings-baseline
-source: evaluations/cases/process-model-elicitation/baseline/situation-pack.md
-authored_after_runs: true
-use: grader calibration only
+source: evaluations/cases/vestera-scheduling/situation-pack.md
+provenance:
+  authored_after_historical_runs: true
+  calibrated_against_historical_runs: true
+  frozen_before_prospective_runs: true
+use: prospective baseline and variant grading only
 warning: >-
-  This ledger was authored after the two Mission 3 runs existed. It may be used to calibrate
-  graders and discover mistake classes, but must not serve as the prospective baseline oracle.
+  This ledger was informed by the two historical Mission 3 runs, so it must not turn those runs
+  into a baseline distribution. It is frozen before future runs and may grade those prospective
+  runs when the case, prompts, model configuration, and protocol are frozen with it.
 importance_weights:
   load-bearing: 3
   useful: 2
   incidental: 1
+
+calibration_rules:
+  transcript_precedence: >-
+    Grade what the simulated expert actually disclosed. Ledger truth may identify a distinction,
+    but it does not erase hedges, narrower examples, corrections, or nondisclosure in the transcript.
+  interviewer_proposals: >-
+    A value or interpretation appearing only in an interviewer question is not user evidence unless
+    the expert explicitly adopts it.
+  relevant_absences: >-
+    Entries whose epistemic_character is relevant-absence describe a relation the pack does not
+    settle. Credit elicitation that identifies the gap; do not expect the expert or IR to fill it.
+  hard_stop: >-
+    When the expert ends elicitation, distinguish unanswered suitable questions from earlier missed
+    opportunities. Do not convert turn-budget truncation into an ordinary acquisition miss.
+  partial_disclosure: >-
+    A concrete example inside a ledger range is partial evidence, not simulator failure by itself.
+    Penalize only unsupported generalization beyond the disclosed example.
 
 facts:
   - id: objective-weekly-scheduling
@@ -84,6 +105,31 @@ facts:
     expected_ir_homes: [boundary, triggers, quantities]
     traps: [inventing a stochastic arrival process instead of the weekly book]
 
+  - id: demand-priority-attribute
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not say which demand-book field identifies Meridian, distributor, or small-account
+      priority, even though customer class changes lateness policy.
+    expected_ir_homes: [triggers, inputs, unknowns]
+    traps: [assuming customer priority can be recovered from SKU or due date]
+
+  - id: due-date-completion-event
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: direct-if-asked
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not establish whether an order meets its due date at production completion, QA
+      release, ready-to-ship state, or shipment.
+    expected_ir_homes: [goals, boundary, validation, unknowns]
+    traps:
+      [
+        silently choosing QA release or shipment while excluding shipping from the boundary,
+      ]
+
   - id: process-four-stages
     importance: load-bearing
     epistemic_character: explicit-fact
@@ -93,6 +139,17 @@ facts:
     expected_ir_homes: [activities, flow]
     traps:
       [collapsing stages before checking whether stage-level constraints matter]
+
+  - id: stage-resource-overlap-topology
+    importance: load-bearing
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not specify which physical resource each stage reserves, whether different orders
+      overlap across stages on one line, or whether the line is indivisible for a whole run.
+    expected_ir_homes: [activities, resources, flow, unknowns]
+    traps: [silently making all stages serial, silently allowing overlap]
 
   - id: intermediate-holding-tanks
     importance: useful
@@ -167,6 +224,28 @@ facts:
     expected_ir_homes: [resources, time, policies]
     traps: [assuming continuous availability]
 
+  - id: initial-line-family-state
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: direct-if-asked
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not define each line's Monday-morning family state or whether it is a required
+      schedule input, although the first changeover depends on it.
+    expected_ir_homes: [prerequisites, time, unknowns]
+    traps: [assuming every line starts clean]
+
+  - id: horizon-carryover
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: >-
+      Small accounts may slide a week, but the pack does not define how deferred or unfinished orders
+      cross the Friday horizon boundary.
+    expected_ir_homes: [boundary, policies, unknowns]
+    traps: [dropping unfinished orders at the horizon]
+
   - id: line3-overtime
     importance: useful
     epistemic_character: policy-with-social-cost
@@ -184,6 +263,17 @@ facts:
     truth: One two-tech changeover crew serves all three lines on day shift only; simultaneous family switches contend.
     expected_ir_homes: [resources, flow, policies, situation-notes]
     traps: [treating washdowns as independent line delays]
+
+  - id: changeover-window-semantics
+    importance: useful
+    epistemic_character: relevant-absence
+    discoverability: tension-probe
+    expert_can_answer: not-established
+    truth: >-
+      The pack does not say whether a family-switch washdown must finish by 14:00 or may start before
+      the crew's shift ends and continue afterward.
+    expected_ir_homes: [resources, time, policies, unknowns]
+    traps: [silently choosing start-by or finish-by semantics]
 
   - id: changeover-crew-priority
     importance: load-bearing

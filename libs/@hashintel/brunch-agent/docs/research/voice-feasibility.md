@@ -1,8 +1,8 @@
 # Voice-first elicitation: feasibility against the elicitation kernel
 
 Resolves FE-1359. Written 2026-08-11 against
-[`spec.md`](../../specs/elicitation-kernel.md) (draft assembled 2026-08-10, reviewed twice since),
-the inbox note [voice-implementation-recommendation-pplx](../voice-implementation-recommendation-pplx.md),
+[`spec.md`](../specs/elicitation-kernel.md) (draft assembled 2026-08-10, reviewed twice since),
+the inbox note [voice-implementation-recommendation-pplx](../reference/voice-implementation-recommendation-pplx.md),
 the three prototype branches (`prototype/10-flue-roundtrip`, `prototype/11-capture-sweep`,
 `prototype/13-sweep-seam`), and web verification of the provider landscape (sources at the end).
 
@@ -613,22 +613,22 @@ the kernel loop is demonstrably done with two weeks to spare.
 
 Spec and repo (primary):
 
-- [`spec.md`](../../specs/elicitation-kernel.md) §4, §5, §5.1, §7.2–§7.7, §8.1–§8.3, §9.1–§9.6, §10,
+- [`spec.md`](../specs/elicitation-kernel.md) §4, §5, §5.1, §7.2–§7.7, §8.1–§8.3, §9.1–§9.6, §10,
   §11.4, §12.6, §13.1
-- [`CONTEXT.md`](../../../CONTEXT.md) — ui-shell definition
-- [`issues/01-flue-architecture-deep-read.md`](../../archive/elicitation-kernel/issues/01-flue-architecture-deep-read.md)
+- [`CONTEXT.md`](../../CONTEXT.md) — ui-shell definition
+- [`issues/01-flue-architecture-deep-read.md`](../archive/elicitation-kernel/issues/01-flue-architecture-deep-read.md)
   — durable-submission terminal outcomes and abort signal; `useDataWriter` one-way; `useAgentStart`
   load-data seam; `@flue/sdk` for non-React hosts
-- [`issues/10-walking-skeleton-flue-roundtrip.md`](../../archive/elicitation-kernel/issues/10-walking-skeleton-flue-roundtrip.md)
+- [`issues/10-walking-skeleton-flue-roundtrip.md`](../archive/elicitation-kernel/issues/10-walking-skeleton-flue-roundtrip.md)
   — turn suspension proven, wake wart, update-in-place data channel
 - `prototypes/sweep-seam/src/ui/chat.tsx` on `prototype/13-sweep-seam` — the existing reply
   transport (`useFlueAgent`, `agent.sendMessage(text)`), tap-as-string, `StorePanel`
-- [`docs/reference/yannis-dora-lu-transcript-2026-08-11.md`](../yannis-dora-lu-transcript-2026-08-11.md)
+- [`docs/reference/yannis-dora-lu-transcript-2026-08-11.md`](../reference/yannis-dora-lu-transcript-2026-08-11.md)
   — the ASR-fidelity evidence
 
 Provider and practice (web, fetched 2026-08-11):
 
-- [`docs/reference/voice-implementation-recommendation-pplx.md`](../voice-implementation-recommendation-pplx.md)
+- [`docs/reference/voice-implementation-recommendation-pplx.md`](../reference/voice-implementation-recommendation-pplx.md)
   — the prior recommendation this document refines and partly dissents from
 - [ElevenLabs Speech Engine overview](https://elevenlabs.io/docs/overview/capabilities/speech-engine)
   — "adds voice capabilities to any chat agent"; "your server provides the LLM logic"; SDK "manages

@@ -9,9 +9,9 @@ This is retrospective calibration, not the prospective baseline and not a CI gat
 
 Shared case:
 
-- opening request: `evaluations/cases/process-model-elicitation/baseline/opening-message.md`
-- situation pack: `evaluations/cases/process-model-elicitation/baseline/situation-pack.md`
-- retrospective oracle: `evaluations/oracles/process-model-elicitation/vestera-baseline/truth-ledger-v0-retrospective.yaml`
+- opening request: `evaluations/cases/vestera-scheduling/opening-message.md`
+- situation pack: `evaluations/cases/vestera-scheduling/situation-pack.md`
+- retrospective oracle: `evaluations/oracles/vestera-scheduling/truth-ledger-v0-retrospective.yaml`
 
 Runs:
 
@@ -19,7 +19,7 @@ Runs:
 - `runbook-headless-2026-08-28T11-03-53-683Z` (hard-stop after five interview turns)
 
 Run transcript and recovered IR artifacts live under
-`docs/evidence/evaluations/process-model-elicitation/runbook-headless/`.
+`docs/evidence/evaluations/vestera-runbook-headless/`.
 
 ## Procedure
 
@@ -29,13 +29,13 @@ For each run:
    transcript, and IR.
 2. A separate evaluator follows `cold-ir-reviewer.md` with opening request and IR only.
 3. Retain both raw reports under
-   `docs/evidence/evaluations/process-model-elicitation/ir-quality-calibration-v1/`.
+   `docs/evidence/evaluations/vestera-ir-quality-calibration-v1/`.
 4. Compare score direction, reconstruction, assumptions, and smallest-next-question findings.
 5. Human adjudication records agreements, explainable role differences, grader defects, and
    unresolved disagreements.
 6. Revise the prompts/ledger only when the disagreement exposes an oracle defect rather than a
    legitimate difference between omniscient and cold roles.
-7. Freeze reviewed anchors and mistake ids as `evaluations/oracles/process-model-elicitation/ir-quality/ruler-v1.md`.
+7. Freeze reviewed anchors and mistake ids as `evaluations/oracles/ir-quality-ruler-v1.md`.
 
 ## Interpretation
 
@@ -45,7 +45,7 @@ For each run:
   artifact property conflict, not merely because one role can see more evidence.
 - Existing runs cannot establish variance or a repeatable baseline. After the ruler freezes, rerun
   the unchanged current agent at least three times against
-  `evaluations/oracles/process-model-elicitation/vestera-baseline/truth-ledger-v1-prospective.yaml`.
+  `evaluations/oracles/vestera-scheduling/truth-ledger-v1-prospective.yaml`.
 
 ## Stop conditions
 

@@ -6,7 +6,7 @@
 > [folded store](transcripts/cycle-1/condition-5-captures.json)). Commissioned by Lu after the read-out
 > showed 2.4 minutes per interviewer turn: "not going to be viable at all, for a working
 > application". Inputs: the raw record's per-turn tool calls, signals, sweep results, and usage
-> totals; the runner [`harness-run.ts`](../../../../../evaluations/protocols/process-model-elicitation/baseline/harness-run.ts);
+> totals; the runner [`harness-run.ts`](../../../../evaluations/protocols/legacy-baseline/harness-run.ts);
 > `packages/core/src/sweep-protocol.ts`; `packages/binding-flue`'s sweep and settlement path; the
 > Flue `OperationOptions`, `turn` event, and `DurabilityConfig` types in `node_modules/flue`.
 > Status: **evidence and recommendation, not authority** — nothing here changes a spec, a key, or

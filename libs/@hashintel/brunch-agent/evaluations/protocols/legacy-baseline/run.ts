@@ -15,7 +15,7 @@
 //   --resume          continue an interrupted run from its checkpoint
 //   --continue-final  ask the interviewer to finish a final delivery that was cut off at max_tokens
 //
-// Production outputs, under docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/:
+// Production outputs, under docs/evidence/evaluations/vestera-legacy-baseline/transcripts/:
 //   condition-<n>.md        readable transcript with run metadata
 //   condition-<n>.raw.json  full message arrays + per-call token usage (also the checkpoint)
 //   condition-<n>-model.txt the final delivery message, verbatim (delivered runs only)
@@ -128,16 +128,13 @@ async function getAnthropic(): Promise<BaselineAnthropicClient> {
 
 const baseDir = fileURLToPath(new URL(".", import.meta.url));
 const caseDir = fileURLToPath(
-  new URL(
-    "../../../cases/process-model-elicitation/baseline/",
-    import.meta.url,
-  ),
+  new URL("../../cases/vestera-scheduling/", import.meta.url),
 );
 const transcriptDir =
   testOutputDirectory ??
   fileURLToPath(
     new URL(
-      "../../../../docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/",
+      "../../../docs/evidence/evaluations/vestera-legacy-baseline/transcripts/",
       import.meta.url,
     ),
   );

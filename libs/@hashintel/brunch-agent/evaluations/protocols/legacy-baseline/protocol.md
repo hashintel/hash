@@ -2,15 +2,21 @@
 
 What does one-shot / guided AI elicitation already achieve, and what changes when reviewed
 completion diagnostics drive the guidance? The read-out lives in the immutable
-[evaluation evidence](../../../../docs/evidence/evaluations/process-model-elicitation/baseline/readout.md).
+[evaluation evidence](../../../docs/evidence/evaluations/vestera-legacy-baseline/readout.md).
 
-**Status (2026-08-25).** Conditions 1 and 2 are frozen reference evidence: they are rerun only if
-the instrument itself changes (expert pack, probes, turn budget), never per design cycle. Condition
-3 is retired, never run; its preregistration and prompt stay as the record of what was planned (see
-the amendments atop [condition-3-preregistration.md](condition-3-preregistration.md)); its
-instrument code, lock, and operator documents were deleted on 2026-08-26. Conditions 4
-and 5 are the live arms of the ADR-0007 convergence cycles: 4 measures the teaching layer as text,
-5 measures the shipped harness around that text. Each design cycle reruns both.
+**Historical status (2026-08-25).** Conditions 1 and 2 are frozen reference evidence: they were
+rerun only when the instrument itself changed (expert pack, probes, turn budget), never per design
+cycle. Condition 3 is retired, never run; its preregistration and prompt stay as the record of what
+was planned (see the amendments atop [condition-3-preregistration.md](condition-3-preregistration.md));
+its instrument code, lock, and operator documents were deleted on 2026-08-26. Conditions 4 and 5
+were the ADR-0007 convergence arms: 4 measured the teaching layer as text, 5 measured the shipped
+harness around that text.
+
+**Retirement (2026-08-28).** This is a retained historical instrument, not a supported path for
+new evaluation runs. The current prospective path is
+[`../prospective-runbook-v1/`](../prospective-runbook-v1/); its evidence is graded with
+[`../ir-quality-ruler-v1/`](../ir-quality-ruler-v1/). The runner and hermetic tests remain only
+until a separately scoped removal verifies no remaining operational dependency.
 
 ## Conditions
 
@@ -23,7 +29,7 @@ and 5 are the live arms of the ADR-0007 convergence cycles: 4 measures the teach
 | 5   | `claude-opus-5` | the shipped SDCPN elicitor's own instructions (binding-flue composes the ask protocol, the settlement protocol, and the same rendering as condition 4) | the harness in the loop: the real `brunch-sdcpn-elicitor` agent in the Flue runtime with `ask`, the settlement nudge, private `sweep` extraction into the capture store, fold, and computed completion. The 4→5 delta measures what the machinery buys over the text; the store is the deliverable |
 
 Conditions 1, 2, 4, and 5 receive the identical opening user message
-([opening-message.md](../../../cases/process-model-elicitation/baseline/opening-message.md)); the
+([opening-message.md](../../cases/vestera-scheduling/opening-message.md)); the
 v0 system prompt is the only difference between conditions 1 and 2, so the 1→2 delta measures what
 pack content alone buys. Condition 3 would have used the same base opening plus its preregistered
 single-session treatment sentence and the corrections and instrument recorded in
@@ -36,7 +42,7 @@ Subject: **Production Process Scheduling** (Notion use-case DB, the mature spec'
 reference model — FE-1363 retained it as the flat-baseline testbed). The interviewee is a
 simulated expert per the FE-1363 resolution: `claude-sonnet-5` role-playing a master scheduler,
 defined by
-[situation-pack.md](../../../cases/process-model-elicitation/baseline/situation-pack.md). The pack
+[situation-pack.md](../../cases/vestera-scheduling/situation-pack.md). The pack
 was authored from the use case's
 operational prose (problem & context, data requirements, commercial angle) and never from the
 model outline — pack and reference model sit on opposite sides of the information wall. Facts
@@ -90,30 +96,16 @@ rather than fill).
 - Sampling is default-temperature; runs are single-shot (n=1 per condition), so treat every
   read-out claim as existence evidence, not a rate estimate.
 
-Rerun from the HASH root with
-`turbo run baseline:run --filter '@hashintel/brunch-agent' -- 1` /
-`turbo run baseline:run --filter '@hashintel/brunch-agent' -- 2` /
-`turbo run baseline:run --filter '@hashintel/brunch-agent' -- 4` (needs `ANTHROPIC_API_KEY`;
-condition 4 imports the harness's built output, so `turbo run build --filter '@hashintel/brunch-agent'`
-first, and writes the assembled system prompt beside its transcript as `condition-4-system.md`).
-Condition 4 otherwise uses conditions 1–2's mechanics: the legacy impatience placement, turn
-budget, and delivery classifier. Condition 5 runs from the application package, which owns the
-agent composition: `turbo run baseline:harness --filter '@apps/brunch-agent'` (builds the workspace
-first; writes `condition-5.md`, `condition-5.raw.json`, `condition-5-model.md`,
-`condition-5-captures.json`, `condition-5-system.md`, and `condition-5.timings.jsonl`). `run.ts`
-accepts only `1`, `2`, and `4`; condition 3 has no entry point. Production transcripts land in
-`docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/`; set
-`BRUNCH_BASELINE_OUTPUT_DIR` to preserve a run under a separate production evidence directory.
-Tests set
-  `BRUNCH_BASELINE_TEST_OUTPUT_DIR` to an isolated directory and never write committed evidence;
-  the condition-5 test additionally swaps both models for stand-ins
-  (`BRUNCH_BASELINE_ANTHROPIC_MODULE`, `BRUNCH_BASELINE_INTERVIEWER_PROVIDER_MODULE`).
+The former operator commands are intentionally no longer exposed. Their output is preserved
+under `docs/evidence/evaluations/vestera-legacy-baseline/transcripts/`; reruns, if ever needed to
+explain those records, require an explicitly scoped restoration rather than treating this protocol
+as a current experiment.
 
 ## Instruments (scored in the read-out)
 
 1. **Bano/Ferrari 34-mistake taxonomy**, via the operationalized Likert questionnaire
    (verbatim in
-   [interviewing-literature-source-catalog.md](../../../../docs/reference/research/elicitation/interviewing-literature-source-catalog.md)),
+   [interviewing-literature-source-catalog.md](../../../docs/research/elicitation/interviewing-literature-source-catalog.md)),
    scored per LLMREI practice: Question Formulation, Question Omission, Order of Interview,
    Communication Skills, Customer Interaction (Analyst Behaviour and Teamwork & Planning
    dropped as inapplicable to a text-only single agent).
@@ -134,7 +126,7 @@ Tests set
    interviewer turn and tagged as interview, sweep, or repair from harness signal order. The raw
    record, transcript turn headers, and JSONL timing artifact carry the measurements. The first run
    recorded tokens and the run window only; see the
-   [turn latency assessment](../../../../docs/evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md).
+   [turn latency assessment](../../../docs/evidence/evaluations/vestera-legacy-baseline/condition-5-turn-latency.md).
 
 ## Threats to validity (acknowledged)
 

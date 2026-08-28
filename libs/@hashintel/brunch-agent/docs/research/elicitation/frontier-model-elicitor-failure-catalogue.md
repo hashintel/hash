@@ -65,8 +65,8 @@ should do better" is not an owner.
   only data remained, but did not deliver. Eleven subsequent turns included acknowledgements,
   dashes, and an explicit no-further-response message. The forced wrap then produced the artifact
   immediately
-  ([condition 1 transcript](../../../evidence/evaluations/process-model-elicitation/baseline/transcripts/condition-1.md),
-  [baseline readout](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md#headline-findings)).
+  ([condition 1 transcript](../../evidence/evaluations/vestera-legacy-baseline/transcripts/condition-1.md),
+  [baseline readout](../../evidence/evaluations/vestera-legacy-baseline/readout.md#headline-findings)).
 - **Mechanism:** The model had locally completed its interview plan and entered a socially polite
   closing mode. No state transition required it either to deliver or to record why delivery was
   blocked, so conversational closure replaced task closure.
@@ -88,8 +88,8 @@ should do better" is not an owner.
 - **Evidence — baseline observation:** Condition 1 correctly refused to invent missing data,
   prescribed spreadsheet, rate, demand, and breakdown pulls, then placed the promised deliverable
   behind those pulls even though it could already produce a useful, caveated artifact
-  ([condition 1 transcript](../../../evidence/evaluations/process-model-elicitation/baseline/transcripts/condition-1.md),
-  [readout: the 1→2 delta](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md#the-12-delta--what-pack-content-alone-buys)).
+  ([condition 1 transcript](../../evidence/evaluations/vestera-legacy-baseline/transcripts/condition-1.md),
+  [readout: the 1→2 delta](../../evidence/evaluations/vestera-legacy-baseline/readout.md#the-12-delta--what-pack-content-alone-buys)).
 - **Mechanism:** A sound epistemic disposition—do not fabricate—was coupled to an all-or-nothing
   notion of delivery. The model treated missing inputs as permission to postpone the output rather
   than as typed gaps inside a deliverable.
@@ -113,8 +113,8 @@ should do better" is not an owner.
   second session, prepared precise data requests and scenarios, and continued to do useful work.
   The evaluation setting could not grant the promised session, and the baseline implementation had
   no target-document state for that future session to inherit
-  ([condition 2 transcript](../../../evidence/evaluations/process-model-elicitation/baseline/transcripts/condition-2.md),
-  [readout: headline finding 2](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md#headline-findings)).
+  ([condition 2 transcript](../../evidence/evaluations/vestera-legacy-baseline/transcripts/condition-2.md),
+  [readout: headline finding 2](../../evidence/evaluations/vestera-legacy-baseline/readout.md#headline-findings)).
 - **Mechanism:** The model followed a realistic multi-session practice without checking whether the
   substrate offered persistence and re-entry. The social promise created an imagined capability.
 - **Detection signature:** A future session is promised, but there is no durable target-document,
@@ -157,7 +157,7 @@ should do better" is not an owner.
 
 - **Class:** stopping.
 - **Evidence — baseline observation:** Both baseline conditions required the forced wrap
-  ([baseline readout](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md#headline-findings)).
+  ([baseline readout](../../evidence/evaluations/vestera-legacy-baseline/readout.md#headline-findings)).
 - **Evidence — published observation:** In ReqElicitGym, GPT-5.2 without
   explicit reasoning averaged 19.98 of 20 turns while eliciting only 0.13 of the annotated implicit
   requirements; the authors read this as the absence of an effective stopping criterion
@@ -185,7 +185,7 @@ should do better" is not an owner.
   approximately ten-day failure interval and a triangular distribution; it placed an invented shade
   threshold and exact lateness limits inside confirmed rows. Condition 2 invented exact shift times
   and a truck schedule despite its detailed ledger
-  ([readout: silent-assumption audit](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md#silent-assumption-audit)).
+  ([readout: silent-assumption audit](../../evidence/evaluations/vestera-legacy-baseline/readout.md#silent-assumption-audit)).
 - **Mechanism:** A model must make a precise artifact from vague language. If the semantic bridge is
   implicit, a useful formalization is easily mistaken for user-grounded fact.
 - **Detection signature:** A precise value, category, threshold, distribution, or rule appears in a
@@ -206,7 +206,7 @@ should do better" is not an owner.
 - **Evidence — baseline observation:** Condition 1 invented a `SHADE` 1–5 instrument and a VW-02
   threshold inside confirmed model content. Condition 2 invented a daily truck schedule that
   directly affected its penalty window
-  ([baseline readout](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md#silent-assumption-audit)).
+  ([baseline readout](../../evidence/evaluations/vestera-legacy-baseline/readout.md#silent-assumption-audit)).
 - **Evidence — published observation:** LLMREI separately reports an unsupported project-price
   estimate ([LLMREI](https://arxiv.org/html/2507.02564v1)).
 - **Mechanism:** The model fills a representational hole with a coherent local construct, then loses
@@ -228,7 +228,7 @@ should do better" is not an owner.
 - **Evidence — baseline observation:** Condition 1's draft lateness place disappeared from the final
   net. Condition 2 dropped the volunteered skeleton night crew. Both interviews used prose
   attribution that required manual reconsolidation
-  ([readout: residual gaps 2–4](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md#residual-gaps-in-condition-2--the-evidence-derived-plugin-requirements)).
+  ([readout: residual gaps 2–4](../../evidence/evaluations/vestera-legacy-baseline/readout.md#residual-gaps-in-condition-2--the-evidence-derived-plugin-requirements)).
 - **Mechanism:** The model repeatedly rewrites a large artifact from its narrative summary. A fact
   can be understood and even acknowledged, yet vanish during later synthesis with no broken
   reference to reveal the loss.
@@ -255,7 +255,7 @@ should do better" is not an owner.
   ([ReqElicitGym](https://arxiv.org/html/2602.18306v1)).
 - **Evidence — baseline observation:** The baseline runs contain silent hardening from vague
   language into precise assertions
-  ([baseline readout](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md#silent-assumption-audit)).
+  ([baseline readout](../../evidence/evaluations/vestera-legacy-baseline/readout.md#silent-assumption-audit)).
 - **Evidence — catalogue synthesis:** Silent hardening is the artifact-side signature of the
   ambiguity bypass described in the published observations; the cited sources do not themselves
   make that cross-setting identification.
@@ -280,7 +280,7 @@ should do better" is not an owner.
 - **Evidence — baseline observation:** Condition 2 never asked about ramp scrap, so the fact was
   absent from its model, assumption ledger, and self-reported gaps. Both conditions missed
   maintenance and the historian despite strong accounting of topics they had touched
-  ([readout: excavation table](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md#excavation-against-the-situation-packs-tiers)).
+  ([readout: excavation table](../../evidence/evaluations/vestera-legacy-baseline/readout.md#excavation-against-the-situation-packs-tiers)).
 - **Mechanism:** Self-report can enumerate only concepts already in the model's active context.
   Untouched categories leave no conversational residue from which the model can infer that it
   omitted them.
@@ -301,7 +301,7 @@ should do better" is not an owner.
 - **Evidence — baseline observation:** Each baseline run surfaced deep facts the other missed.
   Condition 1 found the VW-02 veto; condition 2 found the moving bottleneck and the cliff/slope
   penalty structure; both shared other blind spots
-  ([readout: complementary misses](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md#excavation-against-the-situation-packs-tiers)).
+  ([readout: complementary misses](../../evidence/evaluations/vestera-legacy-baseline/readout.md#excavation-against-the-situation-packs-tiers)).
 - **Mechanism:** Adaptive questioning creates path dependence. Early answers and locally salient
   threads change which later questions become likely, so strong depth in one region can coexist
   with an untouched region.
@@ -321,7 +321,7 @@ should do better" is not an owner.
 - **Class:** coverage.
 - **Evidence — baseline observation:** The baseline Bano scores were nearly clean while important
   gaps remained
-  ([baseline readout](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md#bano-questionnaire-scores)).
+  ([baseline readout](../../evidence/evaluations/vestera-legacy-baseline/readout.md#bano-questionnaire-scores)).
 - **Evidence — published observation:** LLMREI's interviewers communicated well and appeared
   adaptive but elicited at most 60.94% of requirements fully and 12.76% partially. ReqElicitGym's
   best implicit-requirement ratio was 0.32
@@ -349,7 +349,7 @@ should do better" is not an owner.
   annotations and a token-loss structural bug. Condition 2 delivered a clear coloured-net
   specification with types and capacities outside the target format and no runnable scenario.
   Neither produced a loadable model
-  ([readout: output artifacts](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md#output-artifacts)).
+  ([readout: output artifacts](../../evidence/evaluations/vestera-legacy-baseline/readout.md#output-artifacts)).
 - **Mechanism:** The model optimizes for a coherent description when the target contract and
   deterministic validation are unavailable. It can sincerely call the description runnable
   without executing it.
@@ -371,7 +371,7 @@ should do better" is not an owner.
 - **Class:** interaction.
 - **Evidence — baseline observation:** Condition 1 opened with 29 questions. Condition 2 used groups
   of three to five and scored better on long-question and opening items
-  ([baseline readout](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md#bano-questionnaire-scores)).
+  ([baseline readout](../../evidence/evaluations/vestera-legacy-baseline/readout.md#bano-questionnaire-scores)).
 - **Evidence — published observation:** LLMREI found during prompt development that models could
   overwhelm users with multiple questions, an error absent from the Bano list
   ([LLMREI](https://arxiv.org/html/2507.02564v1)).
@@ -463,21 +463,21 @@ each successor performs.
 
 ### Repository evidence
 
-- [Baseline condition 1 transcript](../../../evidence/evaluations/process-model-elicitation/baseline/transcripts/condition-1.md)
-  and [delivered model](../../../evidence/evaluations/process-model-elicitation/baseline/transcripts/condition-1-model.txt).
-- [Baseline condition 2 transcript](../../../evidence/evaluations/process-model-elicitation/baseline/transcripts/condition-2.md)
-  and [delivered model](../../../evidence/evaluations/process-model-elicitation/baseline/transcripts/condition-2-model.txt).
-- [Baseline readout](../../../evidence/evaluations/process-model-elicitation/baseline/readout.md),
+- [Baseline condition 1 transcript](../../evidence/evaluations/vestera-legacy-baseline/transcripts/condition-1.md)
+  and [delivered model](../../evidence/evaluations/vestera-legacy-baseline/transcripts/condition-1-model.txt).
+- [Baseline condition 2 transcript](../../evidence/evaluations/vestera-legacy-baseline/transcripts/condition-2.md)
+  and [delivered model](../../evidence/evaluations/vestera-legacy-baseline/transcripts/condition-2-model.txt).
+- [Baseline readout](../../evidence/evaluations/vestera-legacy-baseline/readout.md),
   including the single-run limitation, scored instruments, coverage comparison, silent-assumption
   audit, output inspection, and residual requirements.
-- [Baseline protocol](../../../../evaluations/protocols/process-model-elicitation/baseline/protocol.md)
+- [Baseline protocol](../../../evaluations/protocols/legacy-baseline/protocol.md)
   and its information-wall account.
 - [Indexed interviewing source catalogue](interviewing-literature-source-catalog.md) and
   [elicitation strategy synthesis](elicitation-strategy-literature.md).
-- [Research-patterns audit](../../../evidence/proofs/audits/research-patterns-audit.md), which
+- [Research-patterns audit](../../evidence/proofs/audits/research-patterns-audit.md), which
   identifies the novice-human population mismatch and the locally synthesized stopping claims.
-- [Elicitation harness specification](../../../specs/elicitation-kernel.md) and
-  [provisional plugin contract](../../../specs/plugin-contract.md) for the prevention mechanisms;
+- [Elicitation harness specification](../../specs/elicitation-kernel.md) and
+  [provisional plugin contract](../../specs/plugin-contract.md) for the prevention mechanisms;
   these are design authorities, not evidence that the mechanisms work.
 
 ### Primary-source verification

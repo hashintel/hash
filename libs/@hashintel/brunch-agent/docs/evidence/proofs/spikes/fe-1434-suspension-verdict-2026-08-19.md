@@ -28,7 +28,7 @@ for the protocol ticket rather than a behavioral claim from this spike.
 
 Two cases ran: three returned tool outputs, retained as a normalized before/after transcript,
 and 100 returned tool outputs, pressure-testing the count raised by the
-[Petrinaut survey §6d](../../../reference/research/petrinaut-survey.md#6d-where-the-evidence-is-thin) for a
+[Petrinaut survey §6d](../../../research/petrinaut-survey.md#6d-where-the-evidence-is-thin) for a
 roughly 40-place net. These are faux outputs, not 100 real dependent Petrinaut mutations. The
 probe then read public Flue history through the binding's
 [`projectFlueHistoryForSweep`](../../../../packages/binding-flue/src/history-reader.ts) function

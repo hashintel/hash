@@ -5,7 +5,7 @@ Frozen: 2026-08-28
 Scope: conversation through emitted Markdown IR; excludes Petri-net construction.
 
 Calibrated against the two historical Vestera Mission 3 runs and four independent reports under
-`docs/evidence/evaluations/process-model-elicitation/ir-quality-calibration-v1/`. Those runs are
+`docs/evidence/evaluations/vestera-ir-quality-calibration-v1/`. Those runs are
 anchors, not a baseline distribution.
 
 ## Governing judgment

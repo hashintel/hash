@@ -42,7 +42,7 @@ What the first cycle's "validate" step returned. Source: the desk pressure revie
 and the condition-2 run; a discrete-event and a formal-verification plugin
 sketched against the keys). The condition-4 baseline run (the rendered layer as
 a prompt only) adds its strains in
-`docs/evidence/evaluations/process-model-elicitation/baseline/readout.md`.
+`docs/evidence/evaluations/vestera-legacy-baseline/readout.md`.
 
 **Verdict on the catalogue: not frozen.** No key is added, merged, dropped,
 split, or renamed by this input. All 100 situations land on an existing key or
@@ -217,4 +217,4 @@ quote-repair efficiency, prompt-only delivery classification, and a terminal act
 for an incomplete engagement after the expert stops. Those findings belong to
 the sweep/fold, evaluation, and session-control machinery; none is repaired by a
 new plugin-authoring key. The evidence and full verdict are recorded in the
-[baseline read-out](../../../docs/evidence/evaluations/process-model-elicitation/baseline/readout.md).
+[baseline read-out](../../../docs/evidence/evaluations/vestera-legacy-baseline/readout.md).

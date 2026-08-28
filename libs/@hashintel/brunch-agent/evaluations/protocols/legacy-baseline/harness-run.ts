@@ -15,9 +15,8 @@
  * that drives an agent through turns: `start()`, then `send()`/`wait()`/
  * `history()` through the SDK client over the app's own router.
  *
- * Usage, from `apps/brunch-agent` after `turbo run build` for the workspace:
- *
- *     yarn baseline:harness
+ * This retained historical runner has no supported operator command. Restore it only through
+ * an explicitly scoped historical investigation.
  *
  * Environment:
  *
@@ -154,17 +153,14 @@ const targetDocumentDirectory = await mkdtemp(
 process.env["BRUNCH_DEV_TARGET_DOCUMENT_DIR"] = targetDocumentDirectory;
 
 const caseDir = fileURLToPath(
-  new URL(
-    "../../../cases/process-model-elicitation/baseline/",
-    import.meta.url,
-  ),
+  new URL("../../cases/vestera-scheduling/", import.meta.url),
 );
 const transcriptDir =
   testOutputDirectory ??
   outputDirectory ??
   fileURLToPath(
     new URL(
-      "../../../../docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/",
+      "../../../docs/evidence/evaluations/vestera-legacy-baseline/transcripts/",
       import.meta.url,
     ),
   );

@@ -46,13 +46,13 @@ const MAX_CLIENT_ROUNDS = Number(
 
 const irPath = fileURLToPath(
   new URL(
-    "../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/process-model-elicitation/runbook-headless/runbook-headless-2026-08-28T11-03-53-683Z.ir.md",
+    "../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/runbook-headless-2026-08-28T11-03-53-683Z.ir.md",
     import.meta.url,
   ),
 );
 const defaultOutputDirectory = fileURLToPath(
   new URL(
-    "../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/process-model-elicitation/runbook-headless/",
+    "../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/",
     import.meta.url,
   ),
 );

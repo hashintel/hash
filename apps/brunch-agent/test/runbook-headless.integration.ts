@@ -49,7 +49,7 @@ process.env.BRUNCH_DEV_DB_PATH =
 
 const irPath = fileURLToPath(
   new URL(
-    "../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/process-model-elicitation/runbook-headless/runbook-headless-2026-08-28T11-03-53-683Z.ir.md",
+    "../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/runbook-headless-2026-08-28T11-03-53-683Z.ir.md",
     import.meta.url,
   ),
 );

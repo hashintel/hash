@@ -2,7 +2,7 @@
 
 Scored 2026-08-13, against the transcripts in [`transcripts/`](transcripts/). Design and
 mechanics are in the executable
-[protocol](../../../../../evaluations/protocols/process-model-elicitation/baseline/protocol.md).
+[protocol](../../../../evaluations/protocols/legacy-baseline/protocol.md).
 All conditions ran `claude-opus-5` as interviewer against the same simulated master scheduler,
 single-shot each — every claim below is existence evidence, not a rate estimate. The sections
 through the first condition-4 review are the 2026-08-13 / 2026-08-25 read-out unchanged.
@@ -725,7 +725,7 @@ runbook, ontology, schema, pattern, or machinery key. Missing model content is r
 existing unsatisfied rows; adding keys would not repair it.
 
 The final third-formalism check also fills cells only. Reapplying the cycle-one
-[formal-verification sketch](../../../proofs/design/plugin-keys-pressure-review-cycle-1.md#14-flexibility--formal-verification-sketch-tlamodel-checking-properties-not-written-to-a-file)
+[formal-verification sketch](../../proofs/design/plugin-keys-pressure-review-cycle-1.md#14-flexibility--formal-verification-sketch-tlamodel-checking-properties-not-written-to-a-file)
 to the cycle-two contract leaves its five kinds, anchor, and guidance cells unchanged. Its demands
 use only `spelled out`, `named`, and `at least N`, all still accepted; the new applicability facet
 omits the quantity and policy-versus-practice defaults that the sketch identified as noise. It
