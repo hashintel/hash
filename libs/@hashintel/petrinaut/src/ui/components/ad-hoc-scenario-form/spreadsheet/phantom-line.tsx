@@ -1,8 +1,9 @@
 /**
  * The quiet trailing line of a spreadsheet, slightly shorter than content
- * rows: its `+` gutter creates the entry, and the cells the owning table
- * renders after it (a single message line, or one button per column) do the
- * same. Hovering anywhere on the line brightens all of it.
+ * rows: its `+` gutter creates the entry directly, while the cells the
+ * owning table renders after it follow the cell selection model — a first
+ * click selects, a second click or Enter creates. Hovering anywhere on the
+ * line brightens all of it.
  */
 
 import { cx } from "@hashintel/ds-helpers/css";

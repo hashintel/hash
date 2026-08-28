@@ -2,8 +2,9 @@
  * A Variables list, used at both scopes, in the form's spreadsheet grammar:
  * one row per Variable — a gutter whose pop-up menu deletes the row, then
  * name, type, value, and Optimize (where available) cells — plus a quiet
- * trailing line that materializes a fresh Variable on click or Enter,
- * reachable with ArrowDown from any cell of the last row. The name cell
+ * trailing line whose first click selects it and whose second click (or
+ * Enter, or the gutter's +) materializes a fresh Variable, reachable with
+ * ArrowDown from any cell of the last row. The name cell
  * behaves like every other cell: focusing selects it, Enter (or a second
  * click) edits, Escape leaves the edit. Arrow keys move between cells, the
  * type select included (Enter opens it), and continue into the neighbouring
@@ -25,6 +26,7 @@ import {
   cellStyle,
   dependencyHighlightStyle as highlightStyle,
   gutterCellStyle,
+  lightGutterCellStyle,
   phantomCellButtonStyle,
   phantomRowCellStyle,
   selectedRowCellStyle,
@@ -33,6 +35,7 @@ import { GutterCell } from "./spreadsheet/gutter-cell";
 import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
 import { PhantomLine } from "./spreadsheet/phantom-line";
 import { useRowSelection } from "./spreadsheet/use-row-selection";
+import { useSelectFirstActivation } from "./spreadsheet/use-select-first";
 import { ValueEditor } from "./value-editor";
 
 import type { AdHocVariable } from "@hashintel/petrinaut-core";
@@ -256,6 +259,8 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   const phantomRef = useRef<HTMLButtonElement | null>(null);
   // Gutter focus selects the whole row; the selection highlight follows it.
   const rowSelection = useRowSelection();
+  // The add-line selects on the first click and materializes on the second.
+  const phantomActivation = useSelectFirstActivation();
   // A nonce, so a repeat click re-opens the fresh row's name editor.
   const [materialized, setMaterialized] = useState<{
     index: number;
@@ -314,10 +319,15 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
             // eslint-disable-next-line react/no-array-index-key
             <tr key={index} data-highlighted={highlighted || undefined}>
               <td
-                className={cx(gutterCellStyle, gutterColumnStyle, rowHighlight)}
+                className={cx(
+                  gutterCellStyle,
+                  lightGutterCellStyle,
+                  gutterColumnStyle,
+                  rowHighlight,
+                )}
               >
                 <GutterCell
-                  glyph={<Icon name="function" size="xs" />}
+                  glyph={<Icon name="bracketsCurly" size="xs" />}
                   label={`Variable ${index + 1} actions`}
                   menuLabel={`Variable ${index + 1} menu`}
                   items={[
@@ -480,7 +490,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
         <PhantomLine
           gutterLabel={`Add a variable from the gutter (${scopeLabel})`}
           onMaterialize={materializeVariable}
-          gutterClassName={gutterColumnStyle}
+          gutterClassName={cx(gutterColumnStyle, lightGutterCellStyle)}
         >
           <td
             colSpan={toggleColumn ? 3 : 2}
@@ -496,7 +506,12 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
               type="button"
               className={phantomCellButtonStyle}
               aria-label={`Add a variable (${scopeLabel})`}
-              onClick={materializeVariable}
+              onPointerDown={phantomActivation.onPointerDown}
+              onClick={(event) => {
+                if (phantomActivation.shouldActivate(event)) {
+                  materializeVariable();
+                }
+              }}
               onKeyDown={onKeyDown(variables.length, 0)}
             >
               Add a variable…

@@ -167,7 +167,8 @@ export const phantomRowCellStyle = css({
 
 /**
  * A phantom cell: an empty trailing row's click target, quieter than real
- * content, materializing a fresh entry on click or Enter.
+ * content. A first click selects it; a click on the selected cell, or
+ * Enter, materializes a fresh entry.
  */
 export const phantomCellButtonStyle = css({
   display: "flex",
@@ -194,7 +195,9 @@ export const phantomCellButtonStyle = css({
 });
 
 /** The quiet "+" button filling an add-line's gutter; hovering the row
- * brightens it, and clicking it creates the new entry too. */
+ * brightens it, hovering or focusing the button itself darkens it to the
+ * real gutter buttons' hover treatment, and clicking it creates the new
+ * entry too. */
 export const phantomGutterButtonStyle = css({
   display: "flex",
   alignItems: "center",
@@ -209,15 +212,28 @@ export const phantomGutterButtonStyle = css({
   color: "neutral.s60",
   opacity: "[0.55]",
   cursor: "pointer",
-  transition: "[opacity 0.12s ease]",
+  transition: "[opacity 0.12s ease, color 0.12s ease]",
   "tr:hover &": { opacity: "[1]" },
-  _hover: { opacity: "[1]" },
+  _hover: {
+    opacity: "[1]",
+    color: "neutral.s120",
+    backgroundColor: "neutral.s20",
+  },
   _focus: {
     outline: "[2px solid {colors.blue.s70}]",
     outlineOffset: "[-2px]",
     backgroundColor: "blue.s05",
+    color: "neutral.s120",
     opacity: "[1]",
   },
+});
+
+/**
+ * Lightens a gutter cell one surface step. The Variables list wears it so
+ * the whole block reads lighter than the raised token table beneath it.
+ */
+export const lightGutterCellStyle = css({
+  backgroundColor: "[{colors.neutral.s05}!]",
 });
 
 /**

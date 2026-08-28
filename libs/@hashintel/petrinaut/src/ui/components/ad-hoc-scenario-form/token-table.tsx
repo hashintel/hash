@@ -8,8 +8,9 @@
  * values: sharing paints the column with a subtle wash under the row tints,
  * puts one value slot directly below the header, and renders the cells
  * beneath as dimmed derived copies whose clicks edit the shared value. A
- * phantom trailing row materializes into a fixed row on click, and the
- * place's token total sits at the bottom.
+ * phantom trailing row follows the cell selection model — the first click
+ * selects, the second (or Enter, or the gutter's +) materializes a fixed
+ * row — and the place's token total sits at the bottom.
  *
  * The whole table is a keyboard grid. Arrows and Tab move between cells;
  * vertical moves pass through the shared-values line and each dynamic row's
@@ -51,6 +52,7 @@ import {
 import { GutterCell } from "./spreadsheet/gutter-cell";
 import { PhantomLine } from "./spreadsheet/phantom-line";
 import { useRowSelection } from "./spreadsheet/use-row-selection";
+import { useSelectFirstActivation } from "./spreadsheet/use-select-first";
 import { ValueEditor } from "./value-editor";
 
 // A background image, not a solid color, so it composites over row tints.
@@ -171,6 +173,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   } | null>(null);
   // Gutter focus selects the whole row; the selection highlight follows it.
   const rowSelection = useRowSelection();
+  // Phantom cells select on the first click and materialize on the second.
+  const phantomActivation = useSelectFirstActivation();
   const cellRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const gutterRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
   const stripRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
@@ -742,7 +746,9 @@ export const TokenTable: React.FC<TokenTableProps> = ({
 
         {state.rows.map((row, rowIndex) => renderDataRow(row, rowIndex))}
 
-        {/* Phantom trailing row: materializes on click. */}
+        {/* Phantom trailing row: a first click selects a phantom cell; a
+            click on the selected cell, a double-click, or Enter materializes
+            the row. The gutter's + materializes directly. */}
         <tbody>
           <PhantomLine
             gutterLabel="Add a token row"
@@ -769,7 +775,12 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   type="button"
                   className={phantomCellButtonStyle}
                   aria-label={`Add a token row (${element.name})`}
-                  onClick={() => materializeRow(columnIndex)}
+                  onPointerDown={phantomActivation.onPointerDown}
+                  onClick={(event) => {
+                    if (phantomActivation.shouldActivate(event)) {
+                      materializeRow(columnIndex);
+                    }
+                  }}
                   onKeyDown={(event) =>
                     handleGridKeyDown(event, {
                       kind: "phantom",

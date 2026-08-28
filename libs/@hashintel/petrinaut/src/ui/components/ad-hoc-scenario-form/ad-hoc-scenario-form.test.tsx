@@ -163,6 +163,65 @@ describe("AdHocScenarioForm", () => {
     ).toBeTruthy();
   });
 
+  it("a phantom cell selects on the first pointer click and materializes on the second", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    const phantom = screen.getByRole("button", {
+      name: "Add a token row (pressure)",
+    });
+
+    // A first pointer click (detail 1, target not focused at pointerdown)
+    // only selects the cell — no row appears.
+    fireEvent.pointerDown(phantom);
+    fireEvent.click(phantom, { detail: 1 });
+    expect(latest).toBeUndefined();
+    expect(screen.queryByRole("button", { name: "Row 1 kind" })).toBeNull();
+
+    // A pointer click on the already-selected cell materializes the row.
+    phantom.focus();
+    fireEvent.pointerDown(phantom);
+    fireEvent.click(phantom, { detail: 1 });
+    expect(colouredPlace(latest).rows).toHaveLength(1);
+
+    // A keyboard "click" (Enter — no pointer detail) materializes directly
+    // on a fresh, unselected phantom.
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+    expect(colouredPlace(latest).rows).toHaveLength(2);
+  });
+
+  it("the add-variable line selects on the first pointer click and materializes on the second", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    const addLine = screen.getByRole("button", {
+      name: "Add a variable (Top-level variables)",
+    });
+
+    fireEvent.pointerDown(addLine);
+    fireEvent.click(addLine, { detail: 1 });
+    expect(latest).toBeUndefined();
+
+    addLine.focus();
+    fireEvent.pointerDown(addLine);
+    fireEvent.click(addLine, { detail: 1 });
+    expect(latest?.variables).toHaveLength(1);
+  });
+
   it("selects a row's kind from the gutter menu", async () => {
     let latest: AdHocScenarioState | undefined;
     render(
