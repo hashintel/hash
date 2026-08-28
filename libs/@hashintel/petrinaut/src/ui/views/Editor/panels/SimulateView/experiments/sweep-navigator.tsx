@@ -1,33 +1,45 @@
 /**
- * The parameter navigator of a sweep experiment: one slider row per swept
- * parameter, plus a refinement status line. Each slider selects a position
- * range on the parameter's quantized interval — the whole interval by
- * default, collapsible to a single point — and moving it redirects compute to
- * the newly selected region; the metrics below re-stream for it, so this
- * strip lives in the section's sticky band and stays visible while the
- * charts scroll.
+ * The parameter navigator of a sweep: one slider row per swept parameter,
+ * plus a sampling status line. Each slider selects a position range on the
+ * parameter's quantized interval — the whole interval by default,
+ * collapsible to a single point — and committing a move reports the new
+ * selection so the owner can redirect compute to it. In the experiment
+ * drawer this strip lives in the section's sticky band and stays visible
+ * while the charts scroll.
  *
- * Slider moves commit on release: dragging previews the range locally and
- * `setSweepSelection` fires once, so the session cancels at most one batch
- * per gesture rather than one per pixel.
+ * Purely presentational: selection and sampling progress come in as props,
+ * and the only output is `onSelectionChange`. Slider moves commit on
+ * release — dragging previews the range locally and the change fires once,
+ * so the owner cancels at most one batch per gesture rather than one per
+ * pixel.
  */
-import { use, useState } from "react";
+import { useState } from "react";
 
 import { LoadingSpinner, SegmentedControl } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import { axisValueAt } from "../../../../../../react/experiments/parameter-grid";
 import { RangeSlider } from "./sweep-navigator/range-slider";
 
 import type {
-  ExperimentRecord,
-  ExperimentSweepState,
-} from "../../../../../../react/experiments/context";
-import type {
   ExperimentParameterAxis,
   SweepAxisSelection,
+  SweepSelection,
 } from "../../../../../../react/experiments/parameter-grid";
+
+/** Sampling progress shown under the sliders. */
+export type SweepNavigatorStatus = {
+  /** Whether a batch is currently running for the selection. */
+  computing: boolean;
+  /** Runs finished for the selection so far. */
+  runsCompleted: number;
+  /** Runs finished within the currently running batch's target. */
+  runsSampled: number;
+  /** The running batch's run target; null when idle. */
+  runTarget: number | null;
+  /** The selection's full run budget, reached when sampling saturates. */
+  runCount: number;
+};
 
 const navigatorStyle = css({
   display: "flex",
@@ -149,14 +161,14 @@ const AxisControl = ({
   );
 };
 
-const RefinementStatus = ({
-  sweep,
-  runCount,
+const SamplingStatus = ({
+  selection,
+  status,
 }: {
-  sweep: ExperimentSweepState;
-  runCount: number;
+  selection: SweepSelection;
+  status: SweepNavigatorStatus;
 }) => {
-  const isRange = Object.values(sweep.selection).some(
+  const isRange = Object.values(selection).some(
     (range) => range.from !== range.to,
   );
   const activity = isRange
@@ -165,18 +177,18 @@ const RefinementStatus = ({
 
   return (
     <div className={statusStyle}>
-      {sweep.computing ? (
+      {status.computing ? (
         <>
           <LoadingSpinner size="xs" />
           <span>
-            {sweep.runsSampled} of {sweep.runTarget ?? runCount} runs —{" "}
+            {status.runsSampled} of {status.runTarget ?? status.runCount} runs —{" "}
             {activity}
           </span>
         </>
       ) : (
         <span>
-          {sweep.runsCompleted} of {runCount} runs
-          {sweep.runsCompleted >= runCount ? " — fully sampled" : ""}
+          {status.runsCompleted} of {status.runCount} runs
+          {status.runsCompleted >= status.runCount ? " — fully sampled" : ""}
         </span>
       )}
     </div>
@@ -184,19 +196,19 @@ const RefinementStatus = ({
 };
 
 export const SweepNavigator = ({
-  experiment,
+  axes,
+  selection,
+  status,
+  onSelectionChange,
 }: {
-  experiment: ExperimentRecord;
+  axes: readonly ExperimentParameterAxis[];
+  selection: SweepSelection;
+  status: SweepNavigatorStatus;
+  onSelectionChange: (selection: SweepSelection) => void;
 }) => {
-  const { setSweepSelection } = use(ExperimentsContext);
-  const sweep = experiment.sweep;
-  if (!sweep) {
-    return null;
-  }
-
   return (
     <div className={navigatorStyle}>
-      {experiment.parameterAxes.map((axis) => (
+      {axes.map((axis) => (
         <div className={rowStyle} key={axis.identifier}>
           <span className={nameStyle} title={axis.identifier}>
             {axis.identifier}
@@ -204,21 +216,21 @@ export const SweepNavigator = ({
           <AxisControl
             axis={axis}
             selected={
-              sweep.selection[axis.identifier] ?? {
+              selection[axis.identifier] ?? {
                 from: 0,
                 to: axis.stepCount,
               }
             }
             onSelect={(range) =>
-              setSweepSelection(experiment.id, {
-                ...sweep.selection,
+              onSelectionChange({
+                ...selection,
                 [axis.identifier]: range,
               })
             }
           />
         </div>
       ))}
-      <RefinementStatus sweep={sweep} runCount={experiment.runCount} />
+      <SamplingStatus selection={selection} status={status} />
     </div>
   );
 };

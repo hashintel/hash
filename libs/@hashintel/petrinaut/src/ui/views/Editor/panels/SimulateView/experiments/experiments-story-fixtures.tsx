@@ -263,9 +263,18 @@ const createFakeExperiment = (
 export function FakeExperimentsProvider({
   children,
   initialExperiments,
+  overrides,
 }: {
   children: ReactNode;
   initialExperiments: readonly ExperimentRecord[];
+  /**
+   * Per-story replacements for the fake compute callbacks — e.g. a slower
+   * sampler to watch a surface fill in, or one that resolves null to show
+   * the empty state.
+   */
+  overrides?: Partial<
+    Pick<ExperimentsContextValue, "sampleSweepCell" | "sampleDetachedObjective">
+  >;
 }) {
   const [experiments, setExperiments] = useState<readonly ExperimentRecord[]>(
     () => initialExperiments,
@@ -379,8 +388,9 @@ export function FakeExperimentsProvider({
           );
         });
       },
+      ...overrides,
     }),
-    [experiments, selectedExperiment, selectedExperimentId],
+    [experiments, selectedExperiment, selectedExperimentId, overrides],
   );
 
   return <ExperimentsContext value={value}>{children}</ExperimentsContext>;
