@@ -44,7 +44,7 @@ const defaultDisplayStyle = css({
   gap: "1.5",
   // The value sits a step darker than the tag, still lighter than an
   // override's neutral.s110.
-  color: "neutral.s80",
+  color: "neutral.s90",
 });
 
 const defaultTagStyle = css({
@@ -52,7 +52,7 @@ const defaultTagStyle = css({
   fontWeight: "medium",
   textTransform: "uppercase",
   letterSpacing: "[0.5px]",
-  color: "neutral.s60",
+  color: "neutral.s70",
 });
 
 const parameterTypeCellStyle = css({

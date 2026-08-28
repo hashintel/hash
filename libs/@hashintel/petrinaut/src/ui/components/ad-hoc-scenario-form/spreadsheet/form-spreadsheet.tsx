@@ -27,7 +27,7 @@ const raisedContainerStyle = css({
 // use, so a secondary spreadsheet (a Variables list) sits lighter than the
 // token table's regular frame.
 const lightFrameContainerStyle = css({
-  borderColor: "[{colors.neutral.a10}!]",
+  borderColor: "[{colors.neutral.a20}!]",
 });
 
 export interface FormSpreadsheetProps {
