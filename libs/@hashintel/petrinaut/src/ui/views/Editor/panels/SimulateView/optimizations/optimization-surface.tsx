@@ -24,31 +24,35 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import {
-  bluesColor,
   coarseToFineOrder,
-  contourLevels,
-  idwRaster,
-  marchingSquaresSegments,
   sweepCellObjective,
 } from "../../../../../../react/experiments/contour-grid";
+import { distributionStats } from "../../../../../../react/experiments/distribution-stats";
 import {
   EXPERIMENT_RUN_LADDER,
   mergeMetricFramesAcrossCells,
 } from "../../../../../../react/experiments/parameter-grid";
 import { sweepBatchSeed } from "../../../../../../react/experiments/sweep-session";
-import { useElementSize } from "../../../../../../react/hooks/use-element-size";
 import {
   buildOptimizationSurfaceAxes,
   optimizationAxisMidpoint,
   optimizationAxisPositionFor,
   optimizationAxisValueAt,
 } from "../../../../../../react/optimizations/surface-grid";
+import {
+  ContourSurface,
+  contourSurfaceKey,
+} from "../../../../../components/contour-surface";
 
 import type { ExperimentsContextValue } from "../../../../../../react/experiments/context";
-import type { ContourSample } from "../../../../../../react/experiments/contour-grid";
+import type { DistributionStats } from "../../../../../../react/experiments/distribution-stats";
 import type { SweepCellSnapshot } from "../../../../../../react/experiments/sweep-session";
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
 import type { OptimizationSurfaceAxis } from "../../../../../../react/optimizations/surface-grid";
+import type {
+  ContourSurfaceMarker,
+  ContourSurfaceValues,
+} from "../../../../../components/contour-surface";
 
 /** Runs a surface cell needs before its point appears. */
 const SURFACE_CELL_RUNS = 8;
@@ -58,9 +62,6 @@ const SELECTED_POINT_MAX_RUNS = 100;
 
 /** Sampled positions per axis on the surface's sub-grid. */
 const SURFACE_GRID_POSITIONS = 11;
-
-/** Raster resolution per grid cell, in pixels of interpolation lattice. */
-const RASTER_SUBDIVISION = 8;
 
 /** Evenly spread quantized positions of `axis` shown on the surface. */
 function surfacePositions(axis: OptimizationSurfaceAxis): number[] {
@@ -122,23 +123,6 @@ const sliderValueStyle = css({
   textAlign: "right",
 });
 
-const canvasFrameStyle = css({
-  position: "relative",
-  borderWidth: "[1px]",
-  borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
-  borderRadius: "md",
-  overflow: "hidden",
-  backgroundColor: "neutral.s00",
-});
-
-const canvasStyle = css({
-  display: "block",
-  width: "[100%]",
-  height: "[280px]",
-  cursor: "crosshair",
-});
-
 const captionStyle = css({
   fontSize: "xs",
   color: "neutral.s80",
@@ -160,42 +144,6 @@ function formatValue(value: number): string {
     ? value.toExponential(2)
     : String(Number(value.toPrecision(4)));
 }
-
-/** Mean and median of a distribution frame's bins. */
-function distributionStats(
-  snapshot: SweepCellSnapshot,
-  metricId: string,
-): { runs: number; mean: number; median: number } | null {
-  for (let index = snapshot.metricFrames.length - 1; index >= 0; index--) {
-    const frame = snapshot.metricFrames[index]!;
-    if (frame.metricId !== metricId || frame.outputType !== "distribution") {
-      continue;
-    }
-    let weight = 0;
-    let sum = 0;
-    for (const [value, frequency] of frame.bins) {
-      weight += frequency;
-      sum += value * frequency;
-    }
-    if (weight === 0) {
-      return null;
-    }
-    const half = weight / 2;
-    let cumulative = 0;
-    let median = frame.bins[0]?.[0] ?? 0;
-    for (const [value, frequency] of frame.bins) {
-      cumulative += frequency;
-      if (cumulative >= half) {
-        median = value;
-        break;
-      }
-    }
-    return { runs: weight, mean: sum / weight, median };
-  }
-  return null;
-}
-
-type SurfaceValues = ReadonlyMap<string, number>;
 
 /**
  * Brings one cell up to at least `minRuns` locally computed runs, merging
@@ -299,123 +247,6 @@ async function sampleStudyCell(options: {
   return merged;
 }
 
-function gridCellKey(xIndex: number, yIndex: number): string {
-  return `${xIndex},${yIndex}`;
-}
-
-function drawSurface(options: {
-  canvas: HTMLCanvasElement;
-  width: number;
-  height: number;
-  nx: number;
-  ny: number;
-  values: SurfaceValues;
-  trials: readonly { x: number; y: number; best: boolean }[];
-}): void {
-  const { canvas, width, height, nx, ny, values, trials } = options;
-  const pixelRatio = globalThis.devicePixelRatio || 1;
-  canvas.width = Math.max(1, Math.round(width * pixelRatio));
-  canvas.height = Math.max(1, Math.round(height * pixelRatio));
-  const context = canvas.getContext("2d");
-  if (!context) {
-    return;
-  }
-  context.scale(pixelRatio, pixelRatio);
-  context.clearRect(0, 0, width, height);
-
-  const samples: ContourSample[] = [];
-  for (const [key, value] of values) {
-    const [x = 0, y = 0] = key.split(",").map(Number);
-    samples.push({ x, y, value });
-  }
-
-  const pointX = (x: number): number => (x / Math.max(nx - 1, 1)) * width;
-  const pointY = (y: number): number =>
-    height - (y / Math.max(ny - 1, 1)) * height;
-
-  if (samples.length > 0) {
-    const rasterWidth = Math.max(2, (nx - 1) * RASTER_SUBDIVISION + 1);
-    const rasterHeight = Math.max(2, (ny - 1) * RASTER_SUBDIVISION + 1);
-    const raster = idwRaster({
-      samples,
-      nx,
-      ny,
-      width: rasterWidth,
-      height: rasterHeight,
-    });
-
-    let min = Number.POSITIVE_INFINITY;
-    let max = Number.NEGATIVE_INFINITY;
-    for (const sample of samples) {
-      min = Math.min(min, sample.value);
-      max = Math.max(max, sample.value);
-    }
-
-    const cellWidth = width / (rasterWidth - 1);
-    const cellHeight = height / (rasterHeight - 1);
-    const span = max - min;
-
-    for (let py = 0; py < rasterHeight - 1; py++) {
-      for (let px = 0; px < rasterWidth - 1; px++) {
-        const value = raster[py * rasterWidth + px]!;
-        context.fillStyle = bluesColor(span > 0 ? (value - min) / span : 0.5);
-        context.fillRect(
-          px * cellWidth,
-          py * cellHeight,
-          cellWidth + 1,
-          cellHeight + 1,
-        );
-      }
-    }
-
-    if (span > 0) {
-      context.strokeStyle = "rgba(15, 23, 42, 0.35)";
-      context.lineWidth = 1;
-      for (const level of contourLevels(min, max, 10)) {
-        context.beginPath();
-        for (const [x1, y1, x2, y2] of marchingSquaresSegments(
-          raster,
-          rasterWidth,
-          rasterHeight,
-          level,
-        )) {
-          context.moveTo(x1 * cellWidth, y1 * cellHeight);
-          context.lineTo(x2 * cellWidth, y2 * cellHeight);
-        }
-        context.stroke();
-      }
-    }
-
-    for (const sample of samples) {
-      context.beginPath();
-      context.arc(pointX(sample.x), pointY(sample.y), 2.5, 0, Math.PI * 2);
-      context.fillStyle = "rgba(15, 23, 42, 0.75)";
-      context.fill();
-      context.strokeStyle = "rgba(255, 255, 255, 0.9)";
-      context.lineWidth = 1;
-      context.stroke();
-    }
-  }
-
-  // Trial markers, projected onto the shown axes. Distinct from the sampled
-  // dots: hollow rings, with the best trial emphasised.
-  for (const trial of trials) {
-    context.beginPath();
-    context.arc(
-      pointX(trial.x),
-      pointY(trial.y),
-      trial.best ? 5 : 3.5,
-      0,
-      Math.PI * 2,
-    );
-    context.strokeStyle = trial.best
-      ? "rgba(217, 119, 6, 0.95)"
-      : "rgba(217, 119, 6, 0.55)";
-    context.lineWidth = trial.best ? 2 : 1.25;
-    context.stroke();
-  }
-}
-
 export const OptimizationSurface = ({
   optimization,
 }: {
@@ -431,18 +262,13 @@ export const OptimizationSurface = ({
   const [xAxisId, setXAxisId] = useState(axes[0]?.identifier ?? "");
   const [yAxisId, setYAxisId] = useState(axes[1]?.identifier ?? "");
   const [positions, setPositions] = useState<Record<string, number>>({});
-  const [cellValues, setCellValues] = useState<SurfaceValues>(new Map());
-  const [selectedStats, setSelectedStats] = useState<{
-    runs: number;
-    mean: number;
-    median: number;
-  } | null>(null);
+  const [cellValues, setCellValues] = useState<ContourSurfaceValues>(new Map());
+  const [selectedStats, setSelectedStats] = useState<DistributionStats | null>(
+    null,
+  );
   const [walkKey, setWalkKey] = useState("");
   /** Finished local batches per position tuple, merged across rungs. */
   const cellCacheRef = useRef(new Map<string, SweepCellSnapshot>());
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const frameRef = useRef<HTMLDivElement>(null);
-  const size = useElementSize(frameRef, { debounce: 50 });
 
   const xAxis = axes.find((axis) => axis.identifier === xAxisId);
   const yAxis = axes.find((axis) => axis.identifier === yAxisId);
@@ -540,7 +366,7 @@ export const OptimizationSurface = ({
           if (value !== null) {
             setCellValues((previous) => {
               const next = new Map(previous);
-              next.set(gridCellKey(cell.x, cell.y), value);
+              next.set(contourSurfaceKey(cell.x, cell.y), value);
               return next;
             });
           }
@@ -590,7 +416,7 @@ export const OptimizationSurface = ({
         if (!snapshot) {
           return;
         }
-        setSelectedStats(distributionStats(snapshot, metricId));
+        setSelectedStats(distributionStats(snapshot.metricFrames, metricId));
         setCellValues((previous) => {
           // The selected point is usually also a grid cell; refresh it.
           const xPositions = surfacePositions(walkXAxis);
@@ -605,7 +431,7 @@ export const OptimizationSurface = ({
             return previous;
           }
           const next = new Map(previous);
-          next.set(gridCellKey(xIndex, yIndex), value);
+          next.set(contourSurfaceKey(xIndex, yIndex), value);
           return next;
         });
       }
@@ -625,43 +451,31 @@ export const OptimizationSurface = ({
     sampleDetachedObjective,
   ]);
 
-  // Painting is imperative canvas work driven by measured size.
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !xAxis || !yAxis || !size || size.width === 0) {
-      return;
-    }
-    const xPositions = surfacePositions(xAxis);
-    const yPositions = surfacePositions(yAxis);
-    const trials = optimization.trials
-      .filter((trial) => trial.state === "complete" && trial.objective !== null)
-      .map((trial) => {
-        const xValue = trial.parameters[xAxis.identifier];
-        const yValue = trial.parameters[yAxis.identifier];
-        if (typeof xValue !== "number" || typeof yValue !== "number") {
-          return null;
-        }
-        return {
-          x:
-            (optimizationAxisPositionFor(xAxis, xValue) / xAxis.stepCount) *
-            (xPositions.length - 1),
-          y:
-            (optimizationAxisPositionFor(yAxis, yValue) / yAxis.stepCount) *
-            (yPositions.length - 1),
-          best: optimization.best?.trial === trial.trial,
-        };
-      })
-      .filter((trial) => trial !== null);
-    drawSurface({
-      canvas,
-      width: size.width,
-      height: 280,
-      nx: xPositions.length,
-      ny: yPositions.length,
-      values: cellValues,
-      trials,
-    });
-  }, [cellValues, size, xAxis, yAxis, optimization.trials, optimization.best]);
+  /** Completed trials projected onto the shown axes, as ring markers. */
+  const trialMarkers: ContourSurfaceMarker[] =
+    xAxis && yAxis
+      ? optimization.trials
+          .filter(
+            (trial) => trial.state === "complete" && trial.objective !== null,
+          )
+          .map((trial) => {
+            const xValue = trial.parameters[xAxis.identifier];
+            const yValue = trial.parameters[yAxis.identifier];
+            if (typeof xValue !== "number" || typeof yValue !== "number") {
+              return null;
+            }
+            return {
+              x:
+                (optimizationAxisPositionFor(xAxis, xValue) / xAxis.stepCount) *
+                (surfacePositions(xAxis).length - 1),
+              y:
+                (optimizationAxisPositionFor(yAxis, yValue) / yAxis.stepCount) *
+                (surfacePositions(yAxis).length - 1),
+              emphasis: optimization.best?.trial === trial.trial,
+            };
+          })
+          .filter((marker) => marker !== null)
+      : [];
 
   if (axes.length < 2 || !objectiveMetric) {
     return null;
@@ -672,18 +486,14 @@ export const OptimizationSurface = ({
     text: axis.identifier,
   }));
 
-  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleClickFraction = (fractionX: number, fractionY: number) => {
     if (!xAxis || !yAxis) {
       return;
     }
-    const bounds = event.currentTarget.getBoundingClientRect();
-    const clamp = (fraction: number) => Math.min(Math.max(fraction, 0), 1);
-    const relativeX = clamp((event.clientX - bounds.left) / bounds.width);
-    const relativeY = clamp(1 - (event.clientY - bounds.top) / bounds.height);
     setPositions((previous) => ({
       ...previous,
-      [xAxis.identifier]: Math.round(relativeX * xAxis.stepCount),
-      [yAxis.identifier]: Math.round(relativeY * yAxis.stepCount),
+      [xAxis.identifier]: Math.round(fractionX * xAxis.stepCount),
+      [yAxis.identifier]: Math.round(fractionY * yAxis.stepCount),
     }));
   };
 
@@ -741,13 +551,16 @@ export const OptimizationSurface = ({
             )} median · ${selectedStats.runs} runs`
           : "computing…"}
       </div>
-      <div ref={frameRef} className={canvasFrameStyle}>
-        <canvas
-          ref={canvasRef}
-          className={canvasStyle}
-          onClick={handleCanvasClick}
+      {xAxis && yAxis ? (
+        <ContourSurface
+          nx={surfacePositions(xAxis).length}
+          ny={surfacePositions(yAxis).length}
+          values={cellValues}
+          markers={trialMarkers}
+          onClickFraction={handleClickFraction}
+          aria-label="Optimization surface"
         />
-      </div>
+      ) : null}
       <span className={captionStyle}>
         {cellValues.size} locally computed points · rings are the study's trials
         (best highlighted) · click to navigate
