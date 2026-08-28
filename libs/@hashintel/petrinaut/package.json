@@ -84,6 +84,7 @@
   },
   "devDependencies": {
     "@hashintel/ds-helpers": "workspace:*",
+    "@local/petrinaut-optimizer-client": "workspace:*",
     "@pandacss/dev": "1.11.1",
     "@rolldown/plugin-babel": "0.2.1",
     "@storybook/react-vite": "10.2.19",
