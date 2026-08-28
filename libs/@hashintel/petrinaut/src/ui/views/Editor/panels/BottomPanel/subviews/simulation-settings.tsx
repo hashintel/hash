@@ -43,13 +43,31 @@ const scenarioRowStyle = css({
   alignItems: "center",
   gap: "2",
   flexShrink: 0,
-  // The picker sits above the columns; capped so it reads as one control,
-  // not a full-panel bar.
-  maxWidth: "[420px]",
-  // Small right inset so the action buttons don't hug the column edge,
+  // Small right inset so the row's controls don't hug the panel edge,
   // matching the parameters list below.
   paddingRight: "2",
   marginBottom: "3",
+});
+
+// The picker reads as one control, not a full-panel bar; the Time Step
+// control fills the row's right edge.
+const scenarioPickerGroupStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  flex: "[1]",
+  minWidth: "[0]",
+  maxWidth: "[420px]",
+});
+
+// Time Step sits inline on the picker row, pushed to the right edge — the
+// columns below keep the full panel width to themselves.
+const timeStepInlineStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1.5",
+  marginLeft: "auto",
+  flexShrink: 0,
 });
 
 const scenarioLabelStyle = css({
@@ -87,16 +105,15 @@ const containerStyle = css({
   minHeight: "[0]",
 });
 
-// Two columns normally; a third, widest, carries the inline initial-state
-// form when the ad-hoc setting is on and no scenario is selected. The
-// scenario picker sits above the grid, so each column starts with its
-// section header and the three headers align.
-const twoColumnContainerStyle = css({
-  gridTemplateColumns: "[1fr 1fr]",
+// Parameters alone normally; the ad-hoc embedding adds a wider Initial
+// state column. The scenario picker and Time Step sit above the grid, so
+// the columns keep the full panel width and their headers align.
+const parametersOnlyContainerStyle = css({
+  gridTemplateColumns: "[1fr]",
 });
 
-const threeColumnContainerStyle = css({
-  gridTemplateColumns: "[1fr 1.4fr 0.7fr]",
+const adHocColumnsContainerStyle = css({
+  gridTemplateColumns: "[1fr 1.4fr]",
 });
 
 // The form wraps the whole grid when the ad-hoc embedding is live, so its
@@ -144,20 +161,6 @@ const sectionTitleStyle = css({
   textTransform: "uppercase",
   color: "neutral.a100",
   letterSpacing: "[0.5px]",
-});
-
-const settingsRowStyle = css({
-  display: "flex",
-  flexDirection: "row",
-  gap: "6",
-  flexWrap: "wrap",
-});
-
-const settingGroupStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "1",
-  minWidth: "[120px]",
 });
 
 const labelStyle = css({
@@ -431,33 +434,27 @@ const SimulationSettingsContent: React.FC = () => {
     { value: NO_SCENARIO, text: "No scenario" },
   ];
 
-  const computationSection = (
-    <div className={sectionStyle}>
-      <div className={sectionTitleStyle}>Computation</div>
-      <div className={settingsRowStyle}>
-        {/* Time Step Input */}
-        <div className={settingGroupStyle}>
-          <label htmlFor="time-step-input" className={labelStyle}>
-            Time Step <span className={smallLabelStyle}>(sec/frame)</span>
-            <HelpTooltip content="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
-          </label>
-          <NumberInput
-            htmlForId="time-step-input"
-            size="xs"
-            width="xs"
-            min={0.001}
-            step={0.001}
-            hideStepper
-            value={dt}
-            onChange={(nextDt) => {
-              if (nextDt !== null && nextDt > 0) {
-                setDt(nextDt);
-              }
-            }}
-            disabled={isSimulationActive}
-          />
-        </div>
-      </div>
+  const timeStepControl = (
+    <div className={timeStepInlineStyle}>
+      <label htmlFor="time-step-input" className={labelStyle}>
+        Time Step <span className={smallLabelStyle}>(sec/frame)</span>
+        <HelpTooltip content="Controls the resolution of the ODE solver. Smaller steps yield finer approximations but take longer to compute." />
+      </label>
+      <NumberInput
+        htmlForId="time-step-input"
+        size="xs"
+        width="xs"
+        min={0.001}
+        step={0.001}
+        hideStepper
+        value={dt}
+        onChange={(nextDt) => {
+          if (nextDt !== null && nextDt > 0) {
+            setDt(nextDt);
+          }
+        }}
+        disabled={isSimulationActive}
+      />
     </div>
   );
 
@@ -473,83 +470,88 @@ const SimulationSettingsContent: React.FC = () => {
         scenario={selectedScenario}
       />
 
-      {/* The scenario picker sits above the columns, so the PARAMETERS,
-          INITIAL STATE, and COMPUTATION headers all start their columns at
-          the same height. */}
+      {/* The scenario picker and Time Step share the top row, so the
+          PARAMETERS and INITIAL STATE columns below keep the full panel
+          width and their headers start at the same height. */}
       <div className={scenarioRowStyle}>
-        <span className={scenarioLabelStyle}>Scenario</span>
-        <div className={scenarioSelectWrapperStyle}>
-          <Select
-            required
-            value={selectedScenarioId}
-            onChange={(scenarioId) =>
-              setContextScenarioId(
-                scenarioId === NO_SCENARIO ? null : scenarioId,
-              )
-            }
-            items={scenarioOptions}
-            size="xs"
-            disabled={isSimulationActive}
-            renderItem={(value) => {
-              const option = scenarioOptions.find((opt) => opt.value === value);
-              return (
-                <span
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    minWidth: 0,
-                  }}
-                >
-                  {value === NO_SCENARIO && (
-                    <Icon
-                      name="dash"
-                      size="xs"
-                      className={css({ opacity: "[0.4]" })}
-                    />
-                  )}
+        <div className={scenarioPickerGroupStyle}>
+          <span className={scenarioLabelStyle}>Scenario</span>
+          <div className={scenarioSelectWrapperStyle}>
+            <Select
+              required
+              value={selectedScenarioId}
+              onChange={(scenarioId) =>
+                setContextScenarioId(
+                  scenarioId === NO_SCENARIO ? null : scenarioId,
+                )
+              }
+              items={scenarioOptions}
+              size="xs"
+              disabled={isSimulationActive}
+              renderItem={(value) => {
+                const option = scenarioOptions.find(
+                  (opt) => opt.value === value,
+                );
+                return (
                   <span
                     style={{
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      minWidth: 0,
                     }}
                   >
-                    {option?.text}
+                    {value === NO_SCENARIO && (
+                      <Icon
+                        name="dash"
+                        size="xs"
+                        className={css({ opacity: "[0.4]" })}
+                      />
+                    )}
+                    <span
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {option?.text}
+                    </span>
                   </span>
-                </span>
-              );
-            }}
-          />
-        </div>
-        <div style={{ display: "flex" }}>
-          {selectedScenario && (
+                );
+              }}
+            />
+          </div>
+          <div style={{ display: "flex" }}>
+            {selectedScenario && (
+              <Button
+                size="xs"
+                variant="ghost"
+                aria-label="Edit scenario"
+                tooltip="Edit Scenario"
+                iconName="pencil"
+                onClick={() => setIsViewScenarioOpen(true)}
+              />
+            )}
             <Button
               size="xs"
               variant="ghost"
-              aria-label="Edit scenario"
-              tooltip="Edit Scenario"
-              iconName="pencil"
-              onClick={() => setIsViewScenarioOpen(true)}
+              aria-label="Create scenario"
+              tooltip="Create Scenario"
+              iconName="plus"
+              onClick={() => setIsCreateScenarioOpen(true)}
             />
-          )}
-          <Button
-            size="xs"
-            variant="ghost"
-            aria-label="Create scenario"
-            tooltip="Create Scenario"
-            iconName="plus"
-            onClick={() => setIsCreateScenarioOpen(true)}
-          />
-          <Button
-            size="xs"
-            variant="ghost"
-            aria-label="Manage scenarios"
-            tooltip="Manage Scenarios"
-            iconName="list"
-            onClick={() => setGlobalMode("simulate")}
-          />
+            <Button
+              size="xs"
+              variant="ghost"
+              aria-label="Manage scenarios"
+              tooltip="Manage Scenarios"
+              iconName="list"
+              onClick={() => setGlobalMode("simulate")}
+            />
+          </div>
         </div>
+        {timeStepControl}
       </div>
 
       {adHocActive ? (
@@ -570,7 +572,7 @@ const SimulationSettingsContent: React.FC = () => {
           withVariables={false}
           className={adHocFormRootStyle}
           renderLayout={({ parameters: parameterRows, places: placesList }) => (
-            <div className={cx(containerStyle, threeColumnContainerStyle)}>
+            <div className={cx(containerStyle, adHocColumnsContainerStyle)}>
               <div className={cx(sectionStyle, fillSectionStyle)}>
                 <div className={initialStateTitleRowStyle}>
                   <div className={sectionTitleStyle}>Parameters</div>
@@ -620,13 +622,11 @@ const SimulationSettingsContent: React.FC = () => {
                   </div>
                 </ParametersScrollArea>
               </div>
-
-              {computationSection}
             </div>
           )}
         />
       ) : (
-        <div className={cx(containerStyle, twoColumnContainerStyle)}>
+        <div className={cx(containerStyle, parametersOnlyContainerStyle)}>
           {/* Parameters Section */}
           <div className={cx(sectionStyle, fillSectionStyle)}>
             <div className={sectionTitleStyle}>Parameters</div>
@@ -751,8 +751,6 @@ const SimulationSettingsContent: React.FC = () => {
               </div>
             )}
           </div>
-
-          {computationSection}
         </div>
       )}
 
