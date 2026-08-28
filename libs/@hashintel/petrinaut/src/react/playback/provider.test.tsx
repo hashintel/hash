@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { act, render, type RenderResult } from "@testing-library/react";
-import { use } from "react";
+import { StrictMode, use } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -814,6 +814,53 @@ describe("PlaybackProvider", () => {
       expect(getPlaybackValue().playbackState).toBe("Stopped");
       expect(getPlaybackValue().currentFrameIndex).toBe(0);
     });
+  });
+
+  it("advances arriving frames when StrictMode replays mount effects", async () => {
+    const initialize = vi.fn().mockResolvedValue(undefined);
+    const run = vi.fn();
+    const simulationContext = createMockSimulationContext({ initialize, run });
+    const valueHolder = { current: null as PlaybackContextValue | null };
+
+    const { rerender } = render(
+      <StrictMode>
+        <TestWrapper
+          simContext={simulationContext}
+          onContextValue={(value) => {
+            valueHolder.current = value;
+          }}
+        />
+      </StrictMode>,
+    );
+
+    await act(async () => {
+      await valueHolder.current!.play();
+    });
+
+    expect(initialize).toHaveBeenCalled();
+    expect(run).toHaveBeenCalled();
+    expect(valueHolder.current!.playbackState).toBe("Playing");
+
+    rerender(
+      <StrictMode>
+        <TestWrapper
+          simContext={createMockSimulationContext(
+            { state: "Running", initialize, run },
+            10,
+          )}
+          onContextValue={(value) => {
+            valueHolder.current = value;
+          }}
+        />
+      </StrictMode>,
+    );
+
+    act(() => {
+      rafCallbacks.shift()!(0);
+      rafCallbacks.shift()!(20);
+    });
+
+    expect(valueHolder.current!.currentFrameIndex).toBe(2);
   });
 
   describe("currentViewedFrame", () => {
