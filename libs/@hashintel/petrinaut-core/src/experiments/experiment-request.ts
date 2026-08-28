@@ -14,6 +14,7 @@ import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirArtifacts } from "../hir-runtime";
 import type { InitialMarking } from "../simulation/api";
 import type { MonteCarloMetricSpec } from "../simulation/monte-carlo/metrics/types";
+import type { MonteCarloRunConfig } from "../simulation/monte-carlo/types";
 import type { SDCPN } from "../types/sdcpn";
 
 export type ExperimentRequest = {
@@ -25,6 +26,13 @@ export type ExperimentRequest = {
   readonly dt: number;
   readonly maxTime: number;
   readonly runCount: number;
+  /**
+   * Per-run overrides, indexed by global run index; `runs.length` must equal
+   * `runCount` when present. A sweep over parameter ranges uses this to give
+   * every run its own drawn parameter values. Backends whose compiled form
+   * bakes parameters in (the WebGPU shader) refuse requests that carry it.
+   */
+  readonly runs?: readonly MonteCarloRunConfig[];
   /**
    * Metrics to record.
    *

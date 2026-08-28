@@ -63,12 +63,12 @@ Flip **Sweep** on any numeric scenario parameter to explore an interval of value
 
 A sweep computes **what you have selected**. The results drawer grows a **Parameters** strip — pinned while you scroll — with one slider per swept parameter. Each slider selects a range on its interval, and starts spanning the whole of it:
 
-- **Range** (the default): Petrinaut samples points spread across the selected region, a small batch at a time, and the metric charts below show the distribution **over the region** — it takes shape after the first few points and keeps sharpening while you stay. Resize the range from either end to focus; the status line counts sampled points and runs.
-- **Point**: switch a parameter's control to Point and its slider collapses to a single value. A point refines in escalating batches (8, 25, 100, … up to your run budget), exactly like a plain experiment at that value.
+- **Range** (the default): Petrinaut runs **one stochastic simulation over the ranges** — every run draws its own value for each ranged parameter, spread across the selected interval — and the metric charts stream the live distribution **over the region**, sharpening exactly like a plain experiment's. Resize a range from either end to focus; compute restarts on the new selection. Range selections run on the CPU at full parallelism (the GPU needs one parameter value per experiment); an initial state that a scenario derives from a ranged parameter holds at the range's midpoint, while the simulation itself reads each run's own value.
+- **Point**: switch a parameter's control to Point and its slider collapses to a single value. A point refines in escalating batches (8, 25, 100, … up to your run budget), exactly like a plain experiment at that value — including on the GPU.
 
 Move a slider and compute immediately restarts on the new selection, like a raytracer dropping its rays when the camera moves. Every position you have visited keeps its results: narrowing a range, collapsing to a point, or sliding back to an earlier value restores its runs and distributions instantly, and refinement resumes where it left off.
 
-Every sampled point uses the same seed sequence (common random numbers), so differences you see across the interval come from the parameters, not from sampling luck. The GPU backend works for sweeps the same way it does for a plain experiment: the choice is made on the first batch and each later batch reuses it.
+Every selection uses the same seed sequence (common random numbers), and a run's parameter draw depends only on its position in the sequence, so differences you see between selections come from the parameters, not from sampling luck.
 
 #### The surface view
 

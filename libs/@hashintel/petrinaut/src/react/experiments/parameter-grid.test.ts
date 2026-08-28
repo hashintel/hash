@@ -4,13 +4,12 @@ import {
   axisPositionFor,
   axisValueAt,
   buildParameterAxis,
-  countRegionCells,
-  enumerateRegionCells,
   fullSweepSelection,
   getNextRunTarget,
   mergeMetricFramesAcrossCells,
   normalizeSweepSelection,
   SWEEP_AXIS_STEPS,
+  sweepRunFraction,
 } from "./parameter-grid";
 
 import type { ExperimentParameterAxis } from "./parameter-grid";
@@ -197,43 +196,35 @@ describe("selections and regions", () => {
       }),
     ).toEqual({ x: { from: 0, to: 4 }, y: { from: 1, to: 1 } });
   });
+});
 
-  it("counts the cells of a region", () => {
-    expect(countRegionCells(axes, fullSweepSelection(axes))).toBe(15);
-    expect(
-      countRegionCells(axes, {
-        x: { from: 1, to: 2 },
-        y: { from: 0, to: 0 },
-      }),
-    ).toBe(2);
-  });
-
-  it("enumerates every region cell exactly once", () => {
-    const selection = { x: { from: 0, to: 4 }, y: { from: 0, to: 2 } };
-    const seen = [...enumerateRegionCells(axes, selection)].map(
-      (cell) => `${cell.x},${cell.y}`,
+describe("sweepRunFraction", () => {
+  it("is prefix-stable: a run's draw never depends on how many runs exist", () => {
+    const first = Array.from({ length: 8 }, (_, index) =>
+      sweepRunFraction(index, 0),
     );
-    expect(seen).toHaveLength(15);
-    expect(new Set(seen).size).toBe(15);
+    const extended = Array.from({ length: 25 }, (_, index) =>
+      sweepRunFraction(index, 0),
+    );
+    expect(extended.slice(0, 8)).toEqual(first);
   });
 
-  it("spreads early cells across the region rather than scanning corner-first", () => {
-    const wide: ExperimentParameterAxis[] = [
-      { identifier: "x", min: 0, max: 1, stepCount: 50, integer: false },
-    ];
-    const selection = { x: { from: 0, to: 50 } };
-    const first = [...enumerateRegionCells(wide, selection)]
-      .slice(0, 4)
-      .map((cell) => cell.x!);
-    // The first few positions span the interval instead of clustering at 0.
-    expect(Math.max(...first) - Math.min(...first)).toBeGreaterThan(20);
+  it("spreads early runs across the unit interval", () => {
+    const fractions = Array.from({ length: 8 }, (_, index) =>
+      sweepRunFraction(index, 0),
+    );
+    expect(Math.min(...fractions)).toBeLessThan(0.2);
+    expect(Math.max(...fractions)).toBeGreaterThan(0.8);
   });
 
-  it("enumerates a point region as its single cell", () => {
-    const selection = { x: { from: 2, to: 2 }, y: { from: 1, to: 1 } };
-    expect([...enumerateRegionCells(axes, selection)]).toEqual([
-      { x: 2, y: 1 },
-    ]);
+  it("draws different axes from different sequences", () => {
+    const xDraws = Array.from({ length: 6 }, (_, index) =>
+      sweepRunFraction(index, 0),
+    );
+    const yDraws = Array.from({ length: 6 }, (_, index) =>
+      sweepRunFraction(index, 1),
+    );
+    expect(xDraws).not.toEqual(yDraws);
   });
 });
 
