@@ -139,7 +139,10 @@ const ROOT_STOP_ID = "root";
 const targetKey = (target: FocusStopTarget): string =>
   `${target.stopId}:${target.column}`;
 
-const NetsListContent: React.FC = () => {
+export const NetNavigationList: React.FC<{
+  /** Called after a net is picked, so a menu host can close itself. */
+  onSelect?: () => void;
+}> = ({ onSelect }) => {
   const presentation = usePetrinautPresentation();
   const {
     petriNetDefinition: { subnets },
@@ -192,6 +195,12 @@ const NetsListContent: React.FC = () => {
       inputRef.current?.select();
     }
   }, [editingId]);
+
+  const handleSelect = (subnetId: string | null) => {
+    setActiveSubnetId(subnetId);
+    onSelect?.();
+  };
+
 
   const startEditing = (subnetId: string, currentName: string) => {
     if (isReadOnly) return;
@@ -276,8 +285,8 @@ const NetsListContent: React.FC = () => {
       <div
         {...rowFocusProps(ROOT_STOP_ID)}
         className={itemStyle({ active: activeSubnetId === null })}
-        onClick={() => setActiveSubnetId(null)}
-        onKeyDown={onRowKeyDown(ROOT_STOP_ID, () => setActiveSubnetId(null))}
+        onClick={() => handleSelect(null)}
+        onKeyDown={onRowKeyDown(ROOT_STOP_ID, () => handleSelect(null))}
         role="option"
         aria-selected={activeSubnetId === null}
         tabIndex={tabIndexFor({ stopId: ROOT_STOP_ID, column: 0 })}
@@ -299,7 +308,7 @@ const NetsListContent: React.FC = () => {
             className={itemStyle({ active: activeSubnetId === subnet.id })}
             onClick={() => {
               if (editingId !== subnet.id) {
-                setActiveSubnetId(subnet.id);
+                handleSelect(subnet.id);
               }
             }}
             onDoubleClick={() => {
@@ -308,7 +317,7 @@ const NetsListContent: React.FC = () => {
               }
             }}
             onKeyDown={onRowKeyDown(subnet.id, () =>
-              setActiveSubnetId(subnet.id),
+              handleSelect(subnet.id),
             )}
             role="option"
             aria-selected={activeSubnetId === subnet.id}
@@ -369,7 +378,7 @@ export const netsListSubView: SubView = {
   title: "Nets",
   tooltip:
     "View the root net and reusable subnets. Mark subnet places as ports, then instantiate subnets as components in the root net.",
-  component: NetsListContent,
+  component: NetNavigationList,
   renderHeaderAction: () => <NetsHeaderAction />,
   headerActionMutates: true,
   defaultCollapsed: false,

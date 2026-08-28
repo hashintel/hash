@@ -31,12 +31,14 @@ const isExternalDependency = (id: string) =>
 export default defineConfig(({ command }) => ({
   build: {
     lib: {
-      // Keep the legacy `main` entry for back-compat alongside the React/UI
-      // split from RFC 0001 and the preset consumed by host Panda pipelines.
+      // Public entry points: the legacy `main` (back-compat), the React/UI
+      // split per RFC 0001, and a Preview entry that excludes editor-only
+      // providers. Each emits its own JS + dts bundle.
       entry: {
         main: "src/main.ts",
         react: "src/react/index.ts",
         ui: "src/ui/index.ts",
+        preview: "src/preview.ts",
         // Panda preset consumed by hosts that compile Petrinaut's styles
         // through their own Panda pipeline (see panda.ship.config.ts).
         "panda-preset": "src/panda-preset.ts",

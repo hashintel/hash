@@ -1,6 +1,6 @@
 import { createContext, use, type PropsWithChildren } from "react";
 
-export type PetrinautPresentationProfile = "editor" | "review";
+export type PetrinautPresentationProfile = "editor" | "review" | "preview";
 
 export type PetrinautPresentationCapabilities = {
   profile: PetrinautPresentationProfile;
@@ -39,6 +39,15 @@ const PRESENTATION_CAPABILITIES: Record<
     showViewportSettings: true,
     showMinimap: true,
     compactControls: false,
+  },
+  preview: {
+    profile: "preview",
+    showMutationActions: false,
+    showSourceCode: false,
+    showCustomVisualizers: false,
+    showViewportSettings: false,
+    showMinimap: true,
+    compactControls: true,
   },
 };
 
