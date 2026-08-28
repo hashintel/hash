@@ -40,3 +40,19 @@ A surface cell's value is the mean over eight runs — enough for the shape,
 not for reading precise values. Clicking a region moves the navigator to the
 nearest combination, whose ladder then refines it properly; the deeper result
 flows back into the same cache and the surface repaints with it.
+
+## The optimization surface
+
+The optimization drawer mounts the same rendering and sampling shape over a
+study's optimized parameters (`optimization-surface.tsx`), with two
+differences. Axes come from the study's domains (`react/optimizations/
+surface-grid.ts`): log-scale domains quantize in log space and integer domains
+snap to their step. And samples cannot go through a sweep session — a study
+must run its **frozen model snapshot**, not the live editor net — so the
+experiments provider exposes `sampleDetachedObjective`: a serialized
+single-worker lane that compiles the snapshot once per study (cached), runs
+its objective as an expression metric, and returns the finished frames. The
+component keeps its own per-position cache and climbs the same run ladder for
+the selected point, streaming the objective's mean and median. The study's
+completed trials draw as projected markers over the locally computed fill —
+the first form of the optimizer streaming its evaluations back.
