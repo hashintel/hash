@@ -21,7 +21,6 @@ const miniMapClassName = css({
 
 const SHAPE_SIZE = 90;
 const TRANSITION_WIDTH_RATIO = 1.5;
-const DEFAULT_PLACE_FILL = "#0F0F0F";
 const DEFAULT_TRANSITION_FILL = "#6b7280";
 const DEFAULT_COMPONENT_FILL = "#0f766e";
 const SELECTED_COLOR = "#3bb9f6";
@@ -44,9 +43,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
   // Compute colors based on node type and type color
   const fill =
     node.data.type === "place"
-      ? node.data.typeColor
-        ? miniMapPlaceFillColor(node.data.typeColor)
-        : DEFAULT_PLACE_FILL
+      ? miniMapPlaceFillColor(node.data.typeColor)
       : node.data.type === "componentInstance"
         ? DEFAULT_COMPONENT_FILL
         : DEFAULT_TRANSITION_FILL;

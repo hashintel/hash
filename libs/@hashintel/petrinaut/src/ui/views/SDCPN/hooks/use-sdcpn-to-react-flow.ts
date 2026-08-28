@@ -189,7 +189,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         outputId: transition.id,
       });
       const endpointColor = getEndpointColor(endpoint);
-      let arcColor = endpointColor ? arcStrokeColor(endpointColor) : "#777";
+      let arcColor = arcStrokeColor(endpointColor);
 
       const notSelectedConnection =
         isNotHoveredConnection(arcId) ||
@@ -233,7 +233,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         outputId: getArcEndpointKey(endpoint),
       });
       const endpointColor = getEndpointColor(endpoint);
-      let arcColor = endpointColor ? arcStrokeColor(endpointColor) : "#777";
+      let arcColor = arcStrokeColor(endpointColor);
 
       const notSelectedConnection =
         isNotHoveredConnection(arcId) ||

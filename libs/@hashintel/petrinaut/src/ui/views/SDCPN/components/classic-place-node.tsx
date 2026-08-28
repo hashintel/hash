@@ -9,7 +9,7 @@ import { SimulationContext } from "../../../../react/simulation/context";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { splitPascalCase } from "../../../lib/split-pascal-case";
 import { handleStyling } from "../styles/styling";
-import { classicPlaceFillColor, placeBorderColor } from "../styles/type-colors";
+import { placeBorderColor, placeFillColor } from "../styles/type-colors";
 import { PlaceStateTooltip } from "./place-state-tooltip";
 
 import type { PlaceNodeType } from "../reactflow-types";
@@ -176,12 +176,8 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
       <div
         className={placeCircleStyle({ selection: selectionVariant })}
         style={{
-          borderColor: data.typeColor
-            ? placeBorderColor(data.typeColor)
-            : undefined,
-          backgroundColor: data.typeColor
-            ? classicPlaceFillColor(data.typeColor)
-            : undefined,
+          borderColor: placeBorderColor(data.typeColor),
+          backgroundColor: placeFillColor(data.typeColor),
         }}
       >
         {data.dynamicsEnabled && (

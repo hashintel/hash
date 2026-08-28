@@ -6,7 +6,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { ExecutionFrameSourceContext } from "../../../../react/execution-frame/context";
 import { SimulationContext } from "../../../../react/simulation/context";
 import { EditorContext } from "../../../../react/state/editor-context";
-import { compactPlaceFillColor, placeBorderColor } from "../styles/type-colors";
+import { placeBorderColor, placeFillColor } from "../styles/type-colors";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
@@ -94,13 +94,9 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
 
   const subtitle = data.dynamicsEnabled ? "Place (Dynamics)" : "Place";
 
-  const typeColorBorder = data.typeColor
-    ? placeBorderColor(data.typeColor)
-    : undefined;
+  const typeColorBorder = placeBorderColor(data.typeColor);
 
-  const placeBackgroundColor = data.typeColor
-    ? compactPlaceFillColor(data.typeColor)
-    : "#FFFFFF";
+  const placeBackgroundColor = placeFillColor(data.typeColor);
 
   return (
     <>
