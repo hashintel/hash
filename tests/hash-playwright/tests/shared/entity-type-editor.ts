@@ -62,6 +62,15 @@ export const publishDraftEntityType = async (page: Page, title: string) => {
       !url.searchParams.has("draft"),
   );
 
+  /**
+   * Dropping the `draft` parameter changes the key the page gives the editor,
+   * so React replaces the whole tree. The edit bar is open for a draft, whose
+   * version is 0, and closed once the published type has rendered and the
+   * form has been reset — wait for that, or an interaction lands on the tree
+   * that is about to be discarded.
+   */
+  await expect(page.getByTestId("editbar-confirm")).toBeHidden();
+
   return new URL(page.url()).pathname;
 };
 
