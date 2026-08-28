@@ -27,12 +27,30 @@ const parameterNameCellStyle = css({
   alignItems: "center",
   height: "[28px]",
   paddingX: "2",
+  fontFamily: "mono",
   fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.s110",
   overflow: "hidden",
   whiteSpace: "nowrap",
   textOverflow: "ellipsis",
+});
+
+// An untouched parameter shows its default quietly: a small uppercase tag,
+// then the value — both lighter than an actual override.
+const defaultDisplayStyle = css({
+  display: "inline-flex",
+  alignItems: "baseline",
+  gap: "1.5",
+  color: "neutral.s70",
+});
+
+const defaultTagStyle = css({
+  fontSize: "[9px]",
+  fontWeight: "medium",
+  textTransform: "uppercase",
+  letterSpacing: "[0.5px]",
+  color: "neutral.s60",
 });
 
 const parameterTypeCellStyle = css({
@@ -96,8 +114,12 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
                   display={
                     entry.optimize
                       ? undefined
-                      : entry.expression ||
-                        `default (${parameter.defaultValue})`
+                      : entry.expression || (
+                          <span className={defaultDisplayStyle}>
+                            <span className={defaultTagStyle}>default</span>
+                            {parameter.defaultValue}
+                          </span>
+                        )
                   }
                   integer={parameter.type === "integer"}
                   booleanDomain={parameter.type === "boolean"}

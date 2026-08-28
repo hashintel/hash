@@ -128,6 +128,11 @@ const pathLabelStyle = css({
   paddingX: "1.5",
   paddingY: "[3px]",
   backgroundColor: "neutral.s110",
+  // The same 1px ring as the editor body, so the bar and the cell share one
+  // frame width; rounded only where it does not touch the cell.
+  boxShadow: "[0 0 0 1px {colors.neutral.s110}]",
+  borderTopLeftRadius: "[6px]",
+  borderTopRightRadius: "[6px]",
   fontSize: "[9px]",
   fontFamily: "mono",
   color: "neutral.s30",
@@ -149,6 +154,9 @@ const belowStripStyle = css({
   paddingX: "1",
   paddingY: "[3px]",
   backgroundColor: "neutral.s110",
+  boxShadow: "[0 0 0 1px {colors.neutral.s110}]",
+  borderBottomLeftRadius: "[6px]",
+  borderBottomRightRadius: "[6px]",
 });
 
 // The bounds are a small spreadsheet inside the slab: one labeled square
@@ -263,8 +271,8 @@ export interface ValueEditorProps {
   derived?: boolean;
   /** Extra classname for the trigger. */
   className?: string;
-  /** Overrides the trigger text (defaults to the expression). */
-  display?: string;
+  /** Overrides the trigger content (defaults to the expression). */
+  display?: React.ReactNode;
   /** Trigger placeholder when the expression is empty. */
   placeholder?: string;
   /**
@@ -456,6 +464,37 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const endBoundEdit = (key: "min" | "max" | "step") => {
     setEditingBound(null);
     setTimeout(() => boundRefs.current.get(key)?.focus(), 0);
+  };
+
+  // ArrowUp/Down while the open editor holds a bare numeric literal steps it
+  // like a spinner: ±1, ±10 with Shift. Captured on the overlay so it wins
+  // over Monaco, but only when the suggest widget is closed and the editor
+  // itself (expression or bound) has focus — setValue routes through the
+  // editor's onChange, so the right dispatch fires either way.
+  const stepNumericLiteral = (event: React.KeyboardEvent) => {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") {
+      return;
+    }
+    const editorInstance = monacoRef.current;
+    const model = editorInstance?.getModel();
+    if (!editorInstance || !model || !editorInstance.hasTextFocus()) {
+      return;
+    }
+    if (overlayRef.current?.querySelector(".suggest-widget.visible")) {
+      return;
+    }
+    const current = model.getValue();
+    if (!/^\s*-?(\d+(\.\d*)?|\.\d+)\s*$/.test(current)) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const delta =
+      (event.key === "ArrowUp" ? 1 : -1) * (event.shiftKey ? 10 : 1);
+    const decimals = /\.(\d*)\s*$/.exec(current)?.[1]?.length ?? 0;
+    const next = (Number.parseFloat(current) + delta).toFixed(decimals);
+    editorInstance.setValue(next);
+    editorInstance.setPosition({ lineNumber: 1, column: next.length + 1 });
   };
   const [rect, setRect] = useState<{
     top: number;
@@ -712,13 +751,16 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
         }}
         onKeyDown={onTriggerKeyDown}
       >
-        <span className={triggerTextStyle}>{derived ? `⌃ ${text}` : text}</span>
+        <span className={triggerTextStyle}>
+          {derived ? <>⌃ {text}</> : text}
+        </span>
       </button>
       {open && rect ? (
         <Portal container={portalContainerRef}>
           <div
             ref={overlayRef}
             className={overlayStyle}
+            onKeyDownCapture={stepNumericLiteral}
             style={{
               top: rect.top,
               left: rect.left,
