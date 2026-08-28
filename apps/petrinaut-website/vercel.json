@@ -1,4 +1,5 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "github": {
     "silent": true,
     "autoJobCancelation": true
@@ -7,6 +8,47 @@
   "installCommand": "./vercel-install.sh",
   "devCommand": "turbo run build && yarn preview",
   "outputDirectory": "./dist",
+  "headers": [
+    {
+      "source": "/((?!api(?:/|$)|embed/examples/).*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'none'"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
+      ]
+    },
+    {
+      "source": "/embed/examples/:path*",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors *"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/((?!api(?:/|$)).*)",
@@ -16,6 +58,9 @@
   "functions": {
     "api/chat.ts": {
       "maxDuration": 300
+    },
+    "api/oembed.ts": {
+      "maxDuration": 10
     }
   }
 }

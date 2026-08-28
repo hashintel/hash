@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 import { Petrinaut } from "@hashintel/petrinaut/ui";
 
+import { getOEmbedDiscoveryUrl } from "./oembed-discovery";
 import { getReadonlyExampleHandle } from "./readonly-example-handle";
 import { useSharedSearchNavigation } from "./use-shared-search-navigation";
 
@@ -53,8 +54,20 @@ export const FullExamplePage = ({
     };
   }, [example.catalog.title]);
 
+  // The website is a client-rendered SPA, so the oEmbed discovery link cannot
+  // be baked into index.html; React 19 hoists this <link> into document.head.
+  // Consumers that execute the page's JavaScript can then discover the same
+  // production oEmbed endpoint used by server integrations.
+  const discoveryUrl = getOEmbedDiscoveryUrl(example.catalog.slug, search);
+
   return (
     <main className={pageStyle}>
+      <link
+        href={discoveryUrl}
+        rel="alternate"
+        title={`${example.catalog.title} oEmbed profile`}
+        type="application/json+oembed"
+      />
       <Petrinaut
         handle={handle}
         hideNetManagementControls="all"

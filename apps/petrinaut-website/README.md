@@ -2,7 +2,7 @@
 
 A website for demoing Petrinaut (libs/@hashintel/petrinaut).
 
-A SPA plus a single API function that proxies AI requests to OpenAI.
+A SPA with API functions for AI assistance and JSON oEmbed discovery.
 
 ## Quickstart
 
@@ -15,7 +15,23 @@ turbo run dev
 
 The dev server runs at [http://localhost:5173](http://localhost:5173). A plugin in `vite.config.ts` loads the API function.
 
-In production, the function in the `api` folder is automatically deployed as a Vercel Serverless Function.
+In production, the functions in the `api` folder are automatically deployed as
+Vercel Functions.
+
+## Example embeds and oEmbed
+
+Canonical example pages live below `/examples`. The JSON oEmbed endpoint at
+`/api/oembed` accepts their production URLs and returns an
+`/embed/examples/...` iframe. Canonical pages send both CSP `frame-ancestors
+'none'` and `X-Frame-Options: DENY`; only the dedicated embed routes permit
+third-party framing. The returned iframe is sandboxed with
+`allow-scripts allow-same-origin` and does not send a referrer.
+
+Because this is a client-rendered SPA, a static `index.html` discovery link
+cannot include the current example URL. `FullExamplePage` adds the standard
+`application/json+oembed` link to the document head after the route mounts.
+Consumers that do not execute JavaScript must call `/api/oembed` directly or
+use provider-pattern discovery instead.
 
 ### Optimization demo with Petrinaut Opt
 
