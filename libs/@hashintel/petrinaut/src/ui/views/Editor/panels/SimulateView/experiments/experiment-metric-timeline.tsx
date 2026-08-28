@@ -106,6 +106,24 @@ const chartStyle = css({
   },
 });
 
+// Wraps the chart root so the waiting overlay can sit on top of the (fixed
+// height) plot area without living inside it — the plot effect replaces the
+// chart root's children wholesale.
+const chartFrameStyle = css({
+  position: "relative",
+});
+
+const chartWaitingStyle = css({
+  position: "absolute",
+  inset: "[0]",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "sm",
+  color: "neutral.s80",
+  pointerEvents: "none",
+});
+
 const footerStyle = css({
   display: "flex",
   alignItems: "flex-start",
@@ -890,6 +908,7 @@ function chartOptions(
   distributionView: DistributionView,
   timeTrace: TimeTrace,
   framesRef: { current: readonly MetricFrame[] },
+  timeDomain: readonly [number, number] | undefined,
 ): uPlot.Options {
   const isDistribution = outputType === "distribution";
   const showsSpread = isDistribution && !aggregateRuns;
@@ -945,7 +964,11 @@ function chartOptions(
       show: false,
     },
     scales: {
-      x: { time: false },
+      // A pinned domain keeps the x viewport still while frames stream in;
+      // without one the axis grows with the data.
+      x: timeDomain
+        ? { time: false, range: () => [timeDomain[0], timeDomain[1]] }
+        : { time: false },
       y: {
         range: (_u, min, max) => {
           if (isHeatmap) {
@@ -1098,10 +1121,24 @@ export const ExperimentMetricTimeline = ({
   frames,
   displaySize,
   onDisplaySizeChange,
+  label,
+  timeDomain,
 }: {
   frames: readonly MetricFrame[];
   displaySize: MetricSize;
   onDisplaySizeChange: (size: MetricSize) => void;
+  /**
+   * Title shown before any frame arrives. With it, the component keeps its
+   * full shell — header, fixed-height plot area, footer — while empty, so
+   * data arriving (or a re-stream clearing the frames) causes no layout
+   * shift. Without it, an empty component renders a plain placeholder.
+   */
+  label?: string;
+  /**
+   * Pins the x axis to this time window (typically `[0, maxTime]`). Without
+   * it the axis fits the streamed frames and rescales as they arrive.
+   */
+  timeDomain?: readonly [number, number];
 }) => {
   const portalContainerRef = usePortalContainerRef();
   const chartRootRef = useRef<HTMLDivElement>(null);
@@ -1176,6 +1213,8 @@ export const ExperimentMetricTimeline = ({
         )
       : data;
   const usesPlot = displayMode !== "number";
+  const timeDomainStart = timeDomain?.[0];
+  const timeDomainEnd = timeDomain?.[1];
   const latestDataRef = useRef(plotData);
   const latestFramesRef = useRef(frames);
   const hasPlotData = plotData[0]!.length > 0;
@@ -1211,6 +1250,9 @@ export const ExperimentMetricTimeline = ({
             distributionView,
             timeTrace,
             latestFramesRef,
+            timeDomainStart !== undefined && timeDomainEnd !== undefined
+              ? [timeDomainStart, timeDomainEnd]
+              : undefined,
           ),
       createEmptyMetricTimelineData(),
       root,
@@ -1296,6 +1338,8 @@ export const ExperimentMetricTimeline = ({
     outputType,
     runAggregation,
     size,
+    timeDomainEnd,
+    timeDomainStart,
     timeTrace,
     usesPlot,
   ]);
@@ -1353,7 +1397,7 @@ export const ExperimentMetricTimeline = ({
     }
   }, [selectedFrame, framePopoverPosition]);
 
-  if (!latestFrame) {
+  if (!latestFrame && label === undefined) {
     return <div className={emptyStyle}>Waiting for metric data</div>;
   }
 
@@ -1400,7 +1444,7 @@ export const ExperimentMetricTimeline = ({
   return (
     <div className={rootStyle}>
       <div className={headerStyle}>
-        <span className={titleStyle}>{latestFrame.label}</span>
+        <span className={titleStyle}>{latestFrame?.label ?? label}</span>
         <div className={headerRightStyle}>
           <Button
             variant="ghost"
@@ -1419,7 +1463,12 @@ export const ExperimentMetricTimeline = ({
           {formatLatestMetricValue(aggregateNumber)}
         </div>
       ) : (
-        <div ref={chartRootRef} className={chartStyle} />
+        <div className={chartFrameStyle}>
+          <div ref={chartRootRef} className={chartStyle} />
+          {hasPlotData ? null : (
+            <div className={chartWaitingStyle}>Waiting for metric data</div>
+          )}
+        </div>
       )}
       {isBands ? (
         <div className={legendStyle}>

@@ -54,11 +54,20 @@ const Card = ({
   </div>
 );
 
-const SizedTimeline = ({ frames }: { frames: readonly MetricFrame[] }) => {
+const SizedTimeline = ({
+  frames,
+  pinned = false,
+}: {
+  frames: readonly MetricFrame[];
+  /** Pin the x axis to the full time window instead of fitting the data. */
+  pinned?: boolean;
+}) => {
   const [size, setSize] = useState<MetricSize>("large");
   return (
     <ExperimentMetricTimeline
       frames={frames}
+      label="Infected"
+      timeDomain={pinned ? [0, FRAME_COUNT - 1] : undefined}
       displaySize={size}
       onDisplaySizeChange={setSize}
     />
@@ -85,9 +94,9 @@ const StreamingFramesStory = () => {
 
   return (
     <Card
-      caption={`${frames.length} of ${FRAME_COUNT} frames received at 25 runs`}
+      caption={`${frames.length} of ${FRAME_COUNT} frames received at 25 runs — the x axis is pinned to the full window, and the shell holds its size before the first frame`}
     >
-      <SizedTimeline frames={frames} />
+      <SizedTimeline frames={frames} pinned />
     </Card>
   );
 };
