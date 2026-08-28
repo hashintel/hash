@@ -9,6 +9,7 @@ use core::{
 use axum::{
     Router, body::Body, extract::ConnectInfo, middleware, response::Response, routing::get,
 };
+use error_stack::Report;
 use http::{Request, StatusCode};
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
@@ -657,9 +658,9 @@ async fn authentication_error_fails_loudly() {
     let mut request = request(IpAddr::V4(Ipv4Addr::LOCALHOST));
     request
         .extensions_mut()
-        .insert(ResolvedAuthentication::new(Err(
+        .insert(ResolvedAuthentication::new(Err(Arc::new(Report::new(
             AuthenticationError::MissingDelegatedActor,
-        )));
+        )))));
 
     assert_eq!(
         send(&router, request).await.status(),
