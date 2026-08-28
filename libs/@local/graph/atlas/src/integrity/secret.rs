@@ -1,4 +1,6 @@
-use core::{convert::Infallible, error::Error, fmt, marker::PhantomData, str::FromStr};
+use alloc::{alloc::Allocator, sync::Arc};
+use core::{error::Error, fmt, marker::PhantomData, mem::MaybeUninit, str::FromStr};
+use std::alloc::Global;
 
 use clap::builder::TypedValueParser;
 use zerocopy::IntoBytes as _;
@@ -18,39 +20,71 @@ use super::{ParseHexError, hex::HexBytes};
 /// that copies the exposed value into its own storage owns that copy's end of life. The value also
 /// arrives from the command line or environment, whose copies precede the type.
 #[derive(Clone)]
-pub(crate) struct SecretString(String);
+pub(crate) struct SecretString<A: Allocator = Global>(Arc<Zeroizing<str>, A>);
 
-impl SecretString {
-    /// Consumes the secret, handing the held value onward in a wrapper that zeroizes on drop.
+impl<A: Allocator> SecretString<A> {
+    /// Consumes the secret, handing the shared allocation onward with custody intact.
     ///
-    /// Custody transfers rather than lapsing: the returned guard owns the same allocation and
-    /// zeroizes it when dropped. Nothing copies in the transfer. A consumer whose API takes a bare
-    /// owned [`String`] takes [`into_unguarded`](Self::into_unguarded) instead, because moving the
-    /// value out of the guard would otherwise force a copy the guard cannot follow.
+    /// The returned guard is the same allocation, and it zeroizes when its last holder drops.
+    /// Nothing copies in the transfer. A consumer whose API needs the value outside custody
+    /// takes [`into_unguarded`](Self::into_unguarded) instead.
     #[must_use]
-    pub(crate) fn expose(mut self) -> Zeroizing<String> {
-        Zeroizing::new(core::mem::take(&mut self.0))
+    pub(crate) fn expose(self) -> Arc<Zeroizing<str>, A> {
+        self.0
     }
 
     /// Consumes the secret, moving the held value out of zeroizing custody.
     ///
-    /// The returned [`String`] is the same allocation with no guard left on it: whoever consumes it
-    /// determines its end of life, and nothing zeroizes it.
+    /// The returned [`Arc<str>`] carries no guard: whoever holds it determines its end of life,
+    /// and nothing zeroizes it. A secret with one holder leaves as the same allocation,
+    /// reinterpreted in place without a copy. A shared secret leaves as a fresh copy, and every
+    /// other holder keeps the guarded original.
     #[must_use]
-    pub(crate) fn into_unguarded(mut self) -> String {
-        core::mem::take(&mut self.0)
+    pub(crate) fn into_unguarded(self) -> Arc<str, A>
+    where
+        A: Clone,
+    {
+        if Arc::is_unique(&self.0) {
+            let (ptr, alloc) = Arc::into_raw_with_allocator(self.0);
+
+            // SAFETY: the pointer and allocator come from `into_raw_with_allocator` on this same
+            // allocation. `Zeroizing<str>` is `#[repr(transparent)]` over `str` with the
+            // identical representation documented, so the pointee retype preserves layout and
+            // slice metadata. Dropping the guard type is this method's contract.
+            unsafe { Arc::from_raw_in(ptr as *const str, alloc) }
+        } else {
+            let alloc = Arc::allocator(&self.0).clone();
+            let len = self.0.len();
+
+            let mut arc: Arc<[MaybeUninit<u8>], A> = Arc::new_uninit_slice_in(len, alloc);
+
+            unsafe {
+                Arc::get_mut_unchecked(&mut arc).write_copy_of_slice(self.0.as_bytes());
+            }
+
+            let arc: Arc<[u8], A> = unsafe { arc.assume_init() };
+            let (ptr, alloc) = Arc::into_raw_with_allocator(arc);
+
+            unsafe { Arc::from_raw_in(ptr as *const str, alloc) }
+        }
     }
 }
 
-impl PartialEq for SecretString {
+impl<A> PartialEq for SecretString<A>
+where
+    A: Allocator,
+{
     fn eq(&self, other: &Self) -> bool {
         subtle::ConstantTimeEq::ct_eq(self.0.as_bytes(), other.0.as_bytes()).into()
     }
 }
 
-impl Eq for SecretString {}
+impl<A> Eq for SecretString<A> where A: Allocator {}
 
-impl fmt::Debug for SecretString {
+impl<A> fmt::Debug for SecretString<A>
+where
+    A: Allocator,
+{
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("SecretString")
             .field("len", &self.0.len())
@@ -58,23 +92,29 @@ impl fmt::Debug for SecretString {
     }
 }
 
-impl fmt::Display for SecretString {
+impl<A> fmt::Display for SecretString<A>
+where
+    A: Allocator,
+{
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("[redacted]")
     }
 }
 
-impl Drop for SecretString {
-    fn drop(&mut self) {
-        self.0.zeroize();
-    }
-}
-
 impl FromStr for SecretString {
-    type Err = Infallible;
+    type Err = !;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        Ok(Self(value.to_owned()))
+        let value: Arc<str> = Arc::from(value);
+
+        let ptr = Arc::into_raw(value);
+        // SAFETY: the pointer comes from `into_raw` on this same allocation, and `Zeroizing<str>`
+        // is `#[repr(transparent)]` over `str` with the identical representation documented, so
+        // the pointee retype preserves layout and slice metadata and the guard's drop reaches
+        // valid bytes.
+        let arc = unsafe { Arc::from_raw(ptr as *const Zeroizing<str>) };
+
+        Ok(Self(arc))
     }
 }
 
@@ -358,5 +398,43 @@ mod tests {
                 "a character of the input reached the error: {rendered}"
             );
         }
+    }
+
+    /// The sole holder's allocation leaves custody in place, with no copy.
+    ///
+    /// Pointer equality is the witness: the unguarded value is the same allocation the secret
+    /// held, reinterpreted rather than moved. Run under Miri, this also checks the retype's
+    /// provenance.
+    #[test]
+    fn unguarded_unique() {
+        const VALUE: &str = "a-secret-with-one-holder";
+
+        let secret = SecretString::from_str(VALUE).expect("the conversion cannot fail");
+        let address = secret.0.as_ptr();
+
+        let unguarded = secret.into_unguarded();
+
+        assert_eq!(unguarded.as_ptr(), address);
+        assert_eq!(&*unguarded, VALUE);
+    }
+
+    /// A shared secret leaves as a fresh copy, and the held clone keeps its guarded allocation.
+    ///
+    /// Pointer inequality is the witness for the copy, and the held clone still exposing the
+    /// value is the witness that custody stayed with it. Run under Miri, this also checks the
+    /// copy's initialization and provenance.
+    #[test]
+    fn unguarded_shared() {
+        const VALUE: &str = "a-secret-with-two-holders";
+
+        let secret = SecretString::from_str(VALUE).expect("the conversion cannot fail");
+        let held = secret.clone();
+        let address = held.0.as_ptr();
+
+        let unguarded = secret.into_unguarded();
+
+        assert_ne!(unguarded.as_ptr(), address);
+        assert_eq!(&*unguarded, VALUE);
+        assert_eq!(held.expose().as_bytes(), VALUE.as_bytes());
     }
 }

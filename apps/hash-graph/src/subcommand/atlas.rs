@@ -122,19 +122,20 @@ pub(crate) async fn run_atlas(
     .change_context(GraphError)?;
 
     // Absent a configured Temporal server, arrivals stage and never ensure, which fails closed.
-    let ensure = create_temporal_client(&args.temporal)
-        .await?
-        .map(|client| cli::EmbeddingEnsure {
-            temporal: client,
-            exclusions,
-        });
+    let workflow =
+        create_temporal_client(&args.temporal)
+            .await?
+            .map(|client| cli::EmbeddingWorkflow {
+                temporal: client,
+                exclusions,
+            });
 
     // Every request answers under the scope of the actor it names.
     let router = cli::ServeCommand::new(args.root, args.serve)
         .run(
             Arc::new(pool),
             hash_graph_atlas::cli::VisibilityLimits::default(),
-            ensure,
+            workflow,
         )
         .map_err(Report::new)
         .change_context(GraphError)?

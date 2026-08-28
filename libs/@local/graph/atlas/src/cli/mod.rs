@@ -51,7 +51,7 @@ pub use self::{
 use crate::{device::PinnedDevice, file::generation::GenerationRoot};
 pub use crate::{
     salt::runner::operator::{ClassifierSource, Options, Placement, RunError, Summary},
-    serve::{EmbeddingEnsure, LocateLimits, TileLimits, TranslateLimits, VisibilityLimits},
+    serve::{EmbeddingWorkflow, LocateLimits, TileLimits, TranslateLimits, VisibilityLimits},
 };
 
 mod dump;
