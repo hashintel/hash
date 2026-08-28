@@ -97,6 +97,7 @@ pub fn routes<P>(
     store_pool: Arc<PostgresStorePool>,
     authentication_provider: Arc<P>,
     service_secret: Arc<str>,
+    authentication_metrics: Arc<auth::AuthenticationMetrics>,
     external_services: ExternalServicesConfig,
 ) -> Router
 where
@@ -108,6 +109,8 @@ where
 
     #[cfg(feature = "unsafe-dev-endpoints")]
     let secret_gate_secret = Arc::clone(&service_secret);
+    #[cfg(feature = "unsafe-dev-endpoints")]
+    let secret_gate_metrics = Arc::clone(&authentication_metrics);
 
     let kratos = Arc::new(KratosIdentityProvider::new(
         external_services.kratos_admin_url.clone(),
@@ -118,9 +121,11 @@ where
         move |request, next| {
             let provider = Arc::clone(&authentication_provider);
             let service_secret = Arc::clone(&service_secret);
+            let metrics = Arc::clone(&authentication_metrics);
             auth::authentication_middleware::<_, ActorId>(
                 provider,
                 service_secret,
+                metrics,
                 auth::is_bootstrap_route,
                 request,
                 next,
@@ -139,7 +144,8 @@ where
             .route("/entity-types", delete(delete_entity_types))
             .route_layer(axum::middleware::from_fn(move |request, next| {
                 let service_secret = Arc::clone(&secret_gate_secret);
-                auth::service_secret_middleware(service_secret, request, next)
+                let metrics = Arc::clone(&secret_gate_metrics);
+                auth::service_secret_middleware(service_secret, metrics, request, next)
             })),
     );
 

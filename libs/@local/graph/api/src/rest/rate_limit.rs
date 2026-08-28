@@ -211,13 +211,15 @@ mod tests {
     async fn attaching_budgets_unmatched_paths_and_spares_later_merges() {
         // Two requests of gate budget: the specification, then one unmatched path before it runs
         // out.
-        let limiters = Arc::new(RateLimiters::new(
+        let meter = opentelemetry::global::meter("test");
+        let limiters = RateLimiters::start(
             &(&RateLimitConfig {
                 rate_limit_gate_burst: non_zero(2),
                 ..config(1)
             })
                 .into(),
-        ));
+            &meter,
+        );
         let router = crate::rest::attach_request_middlewares::<_, Option<ActorId>>(
             Router::new()
                 .route("/entities", get(async || "ok"))
@@ -225,6 +227,7 @@ mod tests {
             Router::new().route("/openapi.json", get(async || "spec")),
             Arc::new(StaticAuthenticationProvider::Rejected),
             Arc::from(SERVICE_SECRET),
+            Arc::new(crate::rest::auth::AuthenticationMetrics::new(&meter)),
             limiters,
         )
         .merge(Router::new().route("/health", get(async || "ok")));
@@ -290,7 +293,8 @@ mod tests {
     /// A denied request carries the client message alone.
     #[tokio::test]
     async fn denied_bodies_carry_the_client_message() {
-        let limiters = Arc::new(RateLimiters::new(&(&config(1)).into()));
+        let limiters =
+            RateLimiters::start(&(&config(1)).into(), &opentelemetry::global::meter("test"));
         let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
         let router =
             Router::new()

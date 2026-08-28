@@ -19,15 +19,26 @@ use super::{
     ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters, ip_gate_middleware,
     principal_limit_middleware,
 };
-use crate::authentication::{
-    ResolvedAuthentication, authentication_middleware, provider::StaticAuthenticationProvider,
-    request::AuthenticationError,
+use crate::{
+    authentication::{
+        AuthenticationMetrics, ResolvedAuthentication, authentication_middleware,
+        provider::StaticAuthenticationProvider, request::AuthenticationError,
+    },
+    test_metrics::{RecordedMetrics, noop_meter},
 };
 
 const SERVICE_SECRET: &str = "hash-svc-test-secret";
 
 fn non_zero(value: u32) -> core::num::NonZeroU32 {
     core::num::NonZeroU32::new(value).expect("the value should be non-zero")
+}
+
+fn auth_metrics() -> Arc<AuthenticationMetrics> {
+    Arc::new(AuthenticationMetrics::new(&noop_meter()))
+}
+
+fn limiters(config: &RateLimitConfig) -> Arc<RateLimiters> {
+    RateLimiters::start(config, &noop_meter())
 }
 
 /// A configuration that exercises only the burst: budgets refill once per hour, the gate once per
@@ -61,11 +72,15 @@ fn gate_router_with(limiters: &Arc<RateLimiters>) -> Router {
 }
 
 fn gate_router(config: &RateLimitConfig) -> Router {
-    gate_router_with(&Arc::new(RateLimiters::new(config)))
+    gate_router_with(&limiters(config))
 }
 
 fn principal_router(config: &RateLimitConfig) -> Router {
-    let limiters = Arc::new(RateLimiters::new(config));
+    principal_router_with(&limiters(config))
+}
+
+fn principal_router_with(limiters: &Arc<RateLimiters>) -> Router {
+    let limiters = Arc::clone(limiters);
     let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
     Router::new()
         .route("/entities", get(async || "ok"))
@@ -81,7 +96,7 @@ fn principal_router(config: &RateLimitConfig) -> Router {
 
 /// Stacks the three request middlewares in the order a REST router wires them.
 fn full_stack_router(config: &RateLimitConfig, provider: StaticAuthenticationProvider) -> Router {
-    full_stack_router_with(&Arc::new(RateLimiters::new(config)), provider)
+    full_stack_router_with(&limiters(config), provider)
 }
 
 fn full_stack_router_with(
@@ -90,6 +105,7 @@ fn full_stack_router_with(
 ) -> Router {
     let limiters = Arc::clone(limiters);
     let provider = Arc::new(provider);
+    let metrics = auth_metrics();
     let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
     let gate_limiters = Arc::clone(&limiters);
     let gate_secret = Arc::clone(&service_secret);
@@ -107,9 +123,11 @@ fn full_stack_router_with(
         .route_layer(middleware::from_fn(move |request, next| {
             let provider = Arc::clone(&provider);
             let service_secret = Arc::clone(&service_secret);
+            let metrics = Arc::clone(&metrics);
             authentication_middleware::<_, Option<ActorId>>(
                 provider,
                 service_secret,
+                metrics,
                 |_path| false,
                 request,
                 next,
@@ -172,15 +190,16 @@ fn anonymous_request(peer: IpAddr) -> Request<Body> {
     let mut request = request(peer);
     request
         .extensions_mut()
-        .insert(ResolvedAuthentication::new(Ok(None)));
+        .insert(ResolvedAuthentication::new(Ok(None), auth_metrics()));
     request
 }
 
 fn actor_request(actor_id: ActorId) -> Request<Body> {
     let mut request = request(IpAddr::V4(Ipv4Addr::LOCALHOST));
-    request
-        .extensions_mut()
-        .insert(ResolvedAuthentication::new(Ok(Some(actor_id))));
+    request.extensions_mut().insert(ResolvedAuthentication::new(
+        Ok(Some(actor_id)),
+        auth_metrics(),
+    ));
     request
 }
 
@@ -433,7 +452,8 @@ async fn anonymous_requests_draw_from_their_address_budget() {
 
 #[tokio::test]
 async fn route_without_authentication_fails_loudly() {
-    let router = principal_router(&config(1));
+    let recorded = RecordedMetrics::new();
+    let router = principal_router_with(&RateLimiters::start(&config(1), &recorded.meter()));
 
     let response = send(&router, request(IpAddr::V4(Ipv4Addr::LOCALHOST))).await;
     assert_eq!(
@@ -441,11 +461,20 @@ async fn route_without_authentication_fails_loudly() {
         StatusCode::INTERNAL_SERVER_ERROR,
         "a wiring mistake should fail loudly rather than skip the budget"
     );
+    assert_eq!(
+        recorded.counter(
+            "hash.rate_limit.misconfigurations",
+            &[("reason", "missing_authentication")],
+        ),
+        1,
+        "the missing authentication middleware should be counted"
+    );
 }
 
 #[tokio::test]
 async fn route_without_the_address_gate_fails_loudly() {
-    let router = principal_router(&config(1));
+    let recorded = RecordedMetrics::new();
+    let router = principal_router_with(&RateLimiters::start(&config(1), &recorded.meter()));
 
     let response = send(&router, anonymous_request(address("192.0.2.1"))).await;
     assert_eq!(
@@ -453,15 +482,27 @@ async fn route_without_the_address_gate_fails_loudly() {
         StatusCode::INTERNAL_SERVER_ERROR,
         "an anonymous request should not be budgeted where the gate never resolved an address"
     );
+    assert_eq!(
+        recorded.counter(
+            "hash.rate_limit.misconfigurations",
+            &[("reason", "missing_address_gate")],
+        ),
+        1,
+        "the missing address gate should be counted"
+    );
 }
 
-/// Which budget denied is read off the tally, since a response names no budget.
+/// Which budget denied is read off the decisions metric, since a response names no budget.
 #[tokio::test]
 async fn gate_runs_ahead_of_authentication() {
-    let limiters = Arc::new(RateLimiters::new(&RateLimitConfig {
-        rate_limit_anonymous_burst: non_zero(10),
-        ..config(1)
-    }));
+    let recorded = RecordedMetrics::new();
+    let limiters = RateLimiters::start(
+        &RateLimitConfig {
+            rate_limit_anonymous_burst: non_zero(10),
+            ..config(1)
+        },
+        &recorded.meter(),
+    );
     let router = full_stack_router_with(&limiters, StaticAuthenticationProvider::NotRecognized);
     let client = address("192.0.2.1");
 
@@ -474,24 +515,35 @@ async fn gate_runs_ahead_of_authentication() {
         StatusCode::TOO_MANY_REQUESTS
     );
 
-    let totals = limiters.tally.take();
     assert_eq!(
-        totals.gate_denials, 1,
+        recorded.counter(
+            "hash.rate_limit.decisions",
+            &[("limiter", "gate"), ("outcome", "denied")],
+        ),
+        1,
         "the gate should deny before the anonymous budget of 10 is consulted"
     );
     assert_eq!(
-        totals.anonymous_denials, 0,
-        "the anonymous budget should never have been charged"
+        recorded.counter(
+            "hash.rate_limit.decisions",
+            &[("limiter", "anonymous"), ("outcome", "denied")],
+        ),
+        0,
+        "the anonymous budget should never have denied"
     );
 }
 
 #[tokio::test]
 async fn authentication_feeds_the_actor_budget() {
-    let limiters = Arc::new(RateLimiters::new(&RateLimitConfig {
-        rate_limit_gate_burst: non_zero(10),
-        rate_limit_anonymous_burst: non_zero(10),
-        ..config(1)
-    }));
+    let recorded = RecordedMetrics::new();
+    let limiters = RateLimiters::start(
+        &RateLimitConfig {
+            rate_limit_gate_burst: non_zero(10),
+            rate_limit_anonymous_burst: non_zero(10),
+            ..config(1)
+        },
+        &recorded.meter(),
+    );
     let router = full_stack_router_with(
         &limiters,
         StaticAuthenticationProvider::Verified(random_actor()),
@@ -507,24 +559,36 @@ async fn authentication_feeds_the_actor_budget() {
         StatusCode::TOO_MANY_REQUESTS
     );
 
-    let totals = limiters.tally.take();
     assert_eq!(
-        totals.actor_denials, 1,
+        recorded.counter(
+            "hash.rate_limit.decisions",
+            &[("limiter", "actor"), ("outcome", "denied")],
+        ),
+        1,
         "a verified actor should be charged against the actor budget"
     );
-    assert_eq!(
-        (totals.gate_denials, totals.anonymous_denials),
-        (0, 0),
-        "neither address budget should have denied at a burst of 10"
-    );
+    for limiter in ["gate", "anonymous"] {
+        assert_eq!(
+            recorded.counter(
+                "hash.rate_limit.decisions",
+                &[("limiter", limiter), ("outcome", "denied")],
+            ),
+            0,
+            "the {limiter} budget should not have denied at a burst of 10"
+        );
+    }
 }
 
 #[tokio::test]
 async fn observing_serves_the_request_and_reports_nothing_to_the_client() {
-    let limiters = Arc::new(RateLimiters::new(&RateLimitConfig {
-        rate_limit_mode: RateLimitMode::Observe,
-        ..config(1)
-    }));
+    let recorded = RecordedMetrics::new();
+    let limiters = RateLimiters::start(
+        &RateLimitConfig {
+            rate_limit_mode: RateLimitMode::Observe,
+            ..config(1)
+        },
+        &recorded.meter(),
+    );
     let router = full_stack_router_with(&limiters, StaticAuthenticationProvider::NotRecognized);
     let client = address("192.0.2.1");
 
@@ -545,15 +609,22 @@ async fn observing_serves_the_request_and_reports_nothing_to_the_client() {
         "a served request should not tell a client to wait for something it already got"
     );
 
-    let totals = limiters.tally.take();
     assert_eq!(
-        totals.gate_denials, 1,
-        "the denial should reach the interval report even where it is not applied"
+        recorded.counter(
+            "hash.rate_limit.decisions",
+            &[("limiter", "gate"), ("outcome", "would_deny")],
+        ),
+        1,
+        "the denial should be recorded as `would_deny` even where it is not applied"
     );
     assert_eq!(
-        totals.anonymous_denials, 1,
+        recorded.counter(
+            "hash.rate_limit.decisions",
+            &[("limiter", "anonymous"), ("outcome", "would_deny")],
+        ),
+        1,
         "observing should keep charging the budgets behind the one that was crossed, so the \
-         report shows what enforcement would have done at each"
+         metric shows what enforcement would have done at each"
     );
 }
 
@@ -584,11 +655,12 @@ async fn enforced_denials_skip_the_inner_stack() {
     let handler_reached = Arc::clone(&reached);
     // The anonymous budget has headroom, so only the gate denies. Were the inner stack awaited
     // before the denial answered, the handler would run and be counted.
-    let limiters = Arc::new(RateLimiters::new(&RateLimitConfig {
+    let limiters = limiters(&RateLimitConfig {
         rate_limit_anonymous_burst: non_zero(10),
         ..config(1)
-    }));
+    });
     let provider = Arc::new(StaticAuthenticationProvider::NotRecognized);
+    let metrics = auth_metrics();
     let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
     let gate_limiters = Arc::clone(&limiters);
     let gate_secret = Arc::clone(&service_secret);
@@ -612,9 +684,11 @@ async fn enforced_denials_skip_the_inner_stack() {
         .route_layer(middleware::from_fn(move |request, next| {
             let provider = Arc::clone(&provider);
             let service_secret = Arc::clone(&service_secret);
+            let metrics = Arc::clone(&metrics);
             authentication_middleware::<_, Option<ActorId>>(
                 provider,
                 service_secret,
+                metrics,
                 |_path| false,
                 request,
                 next,
@@ -653,25 +727,36 @@ async fn enforced_denials_skip_the_inner_stack() {
 
 #[tokio::test]
 async fn authentication_error_fails_loudly() {
-    let router = principal_router(&config(1));
+    let recorded = RecordedMetrics::new();
+    let router = principal_router_with(&RateLimiters::start(&config(1), &recorded.meter()));
 
     let mut request = request(IpAddr::V4(Ipv4Addr::LOCALHOST));
-    request
-        .extensions_mut()
-        .insert(ResolvedAuthentication::new(Err(Arc::new(Report::new(
+    request.extensions_mut().insert(ResolvedAuthentication::new(
+        Err(Arc::new(Report::new(
             AuthenticationError::MissingDelegatedActor,
-        )))));
+        ))),
+        auth_metrics(),
+    ));
 
     assert_eq!(
         send(&router, request).await.status(),
         StatusCode::INTERNAL_SERVER_ERROR,
         "an unrejected authentication error should fail loudly rather than skip the budget"
     );
+    assert_eq!(
+        recorded.counter(
+            "hash.rate_limit.misconfigurations",
+            &[("reason", "unrejected_authentication_error")],
+        ),
+        1,
+        "the unrejected authentication error should be counted"
+    );
 }
 
 #[tokio::test]
-async fn one_request_counts_once_without_an_address() {
-    let limiters = Arc::new(RateLimiters::new(&config(1)));
+async fn unknown_addresses_count_once_per_stage() {
+    let recorded = RecordedMetrics::new();
+    let limiters = RateLimiters::start(&config(1), &recorded.meter());
     let router = full_stack_router_with(&limiters, StaticAuthenticationProvider::NotRecognized);
 
     assert_eq!(
@@ -679,19 +764,56 @@ async fn one_request_counts_once_without_an_address() {
         StatusCode::OK
     );
 
-    let totals = limiters.tally.take();
-    assert_eq!(
-        totals.unknown_addresses, 1,
-        "both middlewares saw one request, so the counter that alarms on this should read one"
-    );
+    for stage in ["gate", "principal"] {
+        assert_eq!(
+            recorded.counter(
+                "hash.rate_limit.unchecked",
+                &[("stage", stage), ("reason", "unknown_address")],
+            ),
+            1,
+            "the request should count as unchecked at the {stage} stage"
+        );
+    }
 }
 
 #[tokio::test]
-async fn denials_and_fallbacks_reach_the_interval_report() {
-    let limiters = Arc::new(RateLimiters::new(&RateLimitConfig {
-        client_ip_source: ClientIpSource::XForwardedFor,
-        ..config(1)
-    }));
+async fn service_secret_passes_count_as_unchecked_at_each_stage() {
+    let recorded = RecordedMetrics::new();
+    let limiters = RateLimiters::start(&config(1), &recorded.meter());
+    let router = full_stack_router_with(&limiters, StaticAuthenticationProvider::NotRecognized);
+
+    let response = send(
+        &router,
+        credentialed_request(
+            address("192.0.2.1"),
+            &format!("HASH-Service {SERVICE_SECRET}"),
+        ),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::OK);
+
+    for stage in ["gate", "principal"] {
+        assert_eq!(
+            recorded.counter(
+                "hash.rate_limit.unchecked",
+                &[("stage", stage), ("reason", "service_secret")],
+            ),
+            1,
+            "the secret-bearing request should count as unchecked at the {stage} stage"
+        );
+    }
+}
+
+#[tokio::test]
+async fn denials_and_fallbacks_reach_the_meter() {
+    let recorded = RecordedMetrics::new();
+    let limiters = RateLimiters::start(
+        &RateLimitConfig {
+            client_ip_source: ClientIpSource::XForwardedFor,
+            ..config(1)
+        },
+        &recorded.meter(),
+    );
     let router = gate_router_with(&limiters);
     let peer = address("192.0.2.1");
 
@@ -703,31 +825,143 @@ async fn denials_and_fallbacks_reach_the_interval_report() {
         .await;
     }
 
-    let totals = limiters.tally.take();
     assert_eq!(
-        totals.gate_denials, 1,
-        "the second of two requests over a burst of one should be counted"
+        recorded.counter(
+            "hash.rate_limit.decisions",
+            &[("limiter", "gate"), ("outcome", "allowed")],
+        ),
+        1,
+        "the first of two requests over a burst of one should count as allowed"
     );
     assert_eq!(
-        totals.address_fallbacks, 2,
+        recorded.counter(
+            "hash.rate_limit.decisions",
+            &[("limiter", "gate"), ("outcome", "denied")],
+        ),
+        1,
+        "the second of two requests over a burst of one should count as denied"
+    );
+    assert_eq!(
+        recorded.histogram_count(
+            "hash.rate_limit.denial_wait",
+            &[("limiter", "gate"), ("outcome", "denied")],
+        ),
+        1,
+        "the denial should record its wait time"
+    );
+    let wait = recorded.histogram_sum(
+        "hash.rate_limit.denial_wait",
+        &[("limiter", "gate"), ("outcome", "denied")],
+    );
+    assert!(
+        wait > 0.0 && wait <= 1.0,
+        "a per-second budget's wait should be recorded in seconds, got {wait}"
+    );
+    assert_eq!(
+        recorded.counter(
+            "hash.rate_limit.address_fallbacks",
+            &[("reason", "unparsable")],
+        ),
+        2,
         "both unusable headers should be counted"
     );
 
-    let reset = limiters.tally.take();
+    send(&router, request(address("192.0.2.2"))).await;
     assert_eq!(
-        reset.gate_denials, 0,
-        "a report should cover only its own interval"
+        recorded.counter(
+            "hash.rate_limit.address_fallbacks",
+            &[("reason", "header_missing")],
+        ),
+        1,
+        "the absent header should be counted"
+    );
+    let mut binary = request(address("192.0.2.3"));
+    binary.headers_mut().insert(
+        "x-forwarded-for",
+        http::HeaderValue::from_bytes(b"\xff").expect("the header should hold arbitrary bytes"),
+    );
+    send(&router, binary).await;
+    assert_eq!(
+        recorded.counter(
+            "hash.rate_limit.address_fallbacks",
+            &[("reason", "header_not_ascii")],
+        ),
+        1,
+        "the undecodable header should be counted"
+    );
+
+    assert_eq!(
+        recorded.counter_attribute_keys("hash.rate_limit.decisions"),
+        ["limiter".to_owned(), "outcome".to_owned()].into(),
+        "an added label would fan the decisions series out per value, so the key set is pinned"
+    );
+}
+
+/// The mode gauge is what keeps a `denied` alert honest: it names the mode whose outcome the
+/// decisions metric carries.
+#[tokio::test]
+async fn mode_gauge_names_the_configured_mode() {
+    let recorded = RecordedMetrics::new();
+    let _limiters = RateLimiters::start(
+        &RateLimitConfig {
+            rate_limit_mode: RateLimitMode::Observe,
+            ..config(1)
+        },
+        &recorded.meter(),
+    );
+
+    assert_eq!(
+        recorded.gauge("hash.rate_limit.mode", &[("mode", "observe")]),
+        Some(1),
+        "the gauge should stand at one for the configured mode"
+    );
+}
+
+#[tokio::test]
+async fn tracked_keys_gauge_reads_the_stores() {
+    let recorded = RecordedMetrics::new();
+    let limiters = RateLimiters::start(&config(1), &recorded.meter());
+    let router = gate_router_with(&limiters);
+
+    assert_eq!(
+        send(&router, request(address("192.0.2.1"))).await.status(),
+        StatusCode::OK
+    );
+
+    for (limiter, keys) in [("gate", 1), ("anonymous", 0), ("actor", 0)] {
+        assert_eq!(
+            recorded.gauge("hash.rate_limit.tracked_keys", &[("limiter", limiter)]),
+            Some(keys),
+            "the {limiter} store should be observed at {keys} keys"
+        );
+    }
+}
+
+/// The gauge callback and the maintenance task must not keep the state alive.
+///
+/// A strong capture would leak the key stores for the process lifetime and keep the maintenance
+/// task running forever, since the meter provider holds the callback until it shuts down.
+#[tokio::test]
+async fn started_state_drops_once_its_last_holder_does() {
+    let recorded = RecordedMetrics::new();
+    let limiters = RateLimiters::start(&config(1), &recorded.meter());
+    let weak = Arc::downgrade(&limiters);
+
+    drop(limiters);
+
+    assert!(
+        weak.upgrade().is_none(),
+        "the gauge callback and the maintenance task should hold the state weakly"
     );
 }
 
 #[tokio::test(start_paused = true)]
-async fn maintenance_sweeps_on_its_interval() {
-    let limiters = Arc::new(RateLimiters::new(&RateLimitConfig {
+async fn maintenance_runs_on_its_interval() {
+    let limiters = limiters(&RateLimitConfig {
         rate_limit_gate_per_second: non_zero(u32::MAX),
         ..config(1)
-    }));
+    });
     let router = gate_router_with(&limiters);
-    limiters.spawn_maintenance();
 
     send(&router, request(address("192.0.2.1"))).await;
     assert_eq!(
@@ -736,11 +970,11 @@ async fn maintenance_sweeps_on_its_interval() {
         "the request should have left a key behind"
     );
 
-    tokio::time::sleep(super::SWEEP_INTERVAL + core::time::Duration::from_secs(1)).await;
+    tokio::time::sleep(super::MAINTENANCE_INTERVAL + core::time::Duration::from_secs(1)).await;
     assert_eq!(
         limiters.tracked_keys(),
         0,
-        "the spawned sweep should release keys without anyone calling it"
+        "the started maintenance should release keys without anyone calling it"
     );
 }
 
@@ -759,17 +993,18 @@ async fn admitted_requests_carry_no_budget_headers() {
     }
 }
 
-/// Populates all three stores, so a sweep that forgets one is caught.
+/// Populates all three stores, so a maintenance run that forgets one is caught.
 #[tokio::test]
-async fn sweeping_releases_replenished_keys_from_every_store() {
-    // The largest rates the type holds, so every key is releasable by the time the sweep runs.
+async fn maintenance_releases_replenished_keys_from_every_store() {
+    // The largest rates the type holds, so every key is releasable by the time maintenance runs.
     let quotas = RateLimitConfig {
         rate_limit_gate_per_second: non_zero(u32::MAX),
         rate_limit_anonymous_per_hour: non_zero(u32::MAX),
         rate_limit_actor_per_hour: non_zero(u32::MAX),
         ..config(1)
     };
-    let limiters = Arc::new(RateLimiters::new(&quotas));
+    let recorded = RecordedMetrics::new();
+    let limiters = RateLimiters::start(&quotas, &recorded.meter());
     let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
     let gate_limiters = Arc::clone(&limiters);
     let gate_secret = Arc::clone(&service_secret);
@@ -802,7 +1037,10 @@ async fn sweeping_releases_replenished_keys_from_every_store() {
     let mut authenticated = request(client);
     authenticated
         .extensions_mut()
-        .insert(ResolvedAuthentication::new(Ok(Some(random_actor()))));
+        .insert(ResolvedAuthentication::new(
+            Ok(Some(random_actor())),
+            auth_metrics(),
+        ));
     assert_eq!(send(&router, authenticated).await.status(), StatusCode::OK);
 
     assert_eq!(
@@ -811,10 +1049,21 @@ async fn sweeping_releases_replenished_keys_from_every_store() {
         "one gate key shared by both requests, plus one anonymous and one actor key"
     );
 
-    limiters.sweep();
+    limiters.maintain();
     assert_eq!(
         limiters.tracked_keys(),
         0,
-        "eviction is the only thing releasing keys, so every store has to be swept"
+        "eviction is the only thing releasing keys, so every store has to be maintained"
     );
+    assert!(
+        recorded.counter("hash.rate_limit.maintenance_runs", &[]) >= 1,
+        "the run should count itself"
+    );
+    for limiter in ["gate", "anonymous", "actor"] {
+        assert_eq!(
+            recorded.counter("hash.rate_limit.evicted_keys", &[("limiter", limiter)]),
+            1,
+            "the released {limiter} key should be counted"
+        );
+    }
 }

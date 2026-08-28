@@ -17,11 +17,12 @@
 //! [`RateLimitMode::Enforce`], the default, and is served unchanged in
 //! [`RateLimitMode::Observe`]. `Retry-After` is the whole client-facing contract: a served
 //! response says nothing about the budget it crossed, and what enforcement would have done is
-//! read from the sweep report instead.
+//! read from the `would_deny` outcome of the decisions metric instead.
 //!
-//! Denials, address fallbacks and unresolvable addresses log at debug. The eviction sweep reports
-//! the store sizes every interval, at warn with the interval's totals whenever it saw one of
-//! those, at info otherwise.
+//! Every budget decision, unchecked pass, address fallback, and maintenance run is counted on
+//! the meter the state is built with, and the keys each limiter store holds are gauged. Denials
+//! and address fallbacks also log at debug, carrying the key and header detail too wide for a
+//! metric label.
 //!
 //! Limiter state lives in process memory, so enforcement is per instance: a deployment with N
 //! instances admits up to N times the configured rates, and a rolling release starts every budget
@@ -33,12 +34,7 @@ mod config;
 mod tests;
 
 use alloc::sync::Arc;
-use core::{
-    fmt,
-    num::NonZeroU64,
-    sync::atomic::{AtomicU64, Ordering},
-    time::Duration,
-};
+use core::{fmt, num::NonZeroU64, time::Duration};
 use std::sync::LazyLock;
 
 use axum::{body::Body, extract::Request, middleware::Next, response::Response};
@@ -53,6 +49,10 @@ use http::{
     HeaderValue,
     header::{CONTENT_TYPE, RETRY_AFTER},
 };
+use opentelemetry::{
+    KeyValue,
+    metrics::{Counter, Histogram, Meter},
+};
 use type_system::principal::actor::ActorId;
 
 use self::address::{BucketKey, ResolvedClientAddress};
@@ -62,8 +62,8 @@ use crate::{
     response::{error_body, error_response},
 };
 
-/// How often replenished keys are evicted and the interval is reported.
-const SWEEP_INTERVAL: Duration = Duration::from_secs(60);
+/// How often replenished keys are evicted.
+const MAINTENANCE_INTERVAL: Duration = Duration::from_secs(60);
 
 type KeyedLimiter<K> = RateLimiter<K, DefaultKeyedStateStore<K>, DefaultClock, NoOpMiddleware>;
 
@@ -79,86 +79,208 @@ enum Budget {
 }
 
 impl Budget {
+    const ACTOR: &'static str = "actor";
+    const ANONYMOUS: &'static str = "anonymous";
+    const GATE: &'static str = "gate";
+
     /// Returns the budget's name.
     const fn as_str(self) -> &'static str {
         match self {
-            Self::Gate(_) => "gate",
-            Self::Anonymous(_) => "anonymous",
-            Self::Actor(_) => "actor",
+            Self::Gate(_) => Self::GATE,
+            Self::Anonymous(_) => Self::ANONYMOUS,
+            Self::Actor(_) => Self::ACTOR,
         }
     }
 }
 
-/// The counters one sweep interval reports.
-#[derive(Default)]
-struct Tally {
-    gate_denials: AtomicU64,
-    anonymous_denials: AtomicU64,
-    actor_denials: AtomicU64,
-    address_fallbacks: AtomicU64,
-    unknown_addresses: AtomicU64,
+/// The decision a budget check records.
+#[derive(Clone, Copy)]
+enum Outcome {
+    Allowed,
+    Denied,
+    WouldDeny,
 }
 
-impl Tally {
-    const fn denials(&self, budget: Budget) -> &AtomicU64 {
-        match budget {
-            Budget::Gate(_) => &self.gate_denials,
-            Budget::Anonymous(_) => &self.anonymous_denials,
-            Budget::Actor(_) => &self.actor_denials,
+impl Outcome {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Allowed => "allowed",
+            Self::Denied => "denied",
+            Self::WouldDeny => "would_deny",
+        }
+    }
+}
+
+impl RateLimitMode {
+    /// Returns the outcome this mode records for a request over its budget.
+    const fn denial_outcome(self) -> Outcome {
+        match self {
+            Self::Enforce => Outcome::Denied,
+            Self::Observe => Outcome::WouldDeny,
         }
     }
 
-    /// Records a request whose client address could not be determined.
-    fn note_unknown_address(&self) {
-        self.unknown_addresses.fetch_add(1, Ordering::Relaxed);
-        tracing::debug!(
-            "client address unavailable, request passes the rate limiter unchecked; the router \
-             has to be served with `into_make_service_with_connect_info`"
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Enforce => "enforce",
+            Self::Observe => "observe",
+        }
+    }
+}
+
+/// The middleware a request passes unchecked.
+#[derive(Clone, Copy)]
+enum Stage {
+    Gate,
+    Principal,
+}
+
+impl Stage {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Gate => "gate",
+            Self::Principal => "principal",
+        }
+    }
+}
+
+/// Why a request passes a stage unchecked.
+#[derive(Clone, Copy)]
+enum UncheckedReason {
+    ServiceSecret,
+    UnknownAddress,
+}
+
+impl UncheckedReason {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::ServiceSecret => "service_secret",
+            Self::UnknownAddress => "unknown_address",
+        }
+    }
+}
+
+/// A route wired so the principal limiter cannot budget it.
+#[derive(Clone, Copy)]
+enum Misconfiguration {
+    MissingAuthentication,
+    UnrejectedAuthenticationError,
+    MissingAddressGate,
+}
+
+impl Misconfiguration {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::MissingAuthentication => "missing_authentication",
+            Self::UnrejectedAuthenticationError => "unrejected_authentication_error",
+            Self::MissingAddressGate => "missing_address_gate",
+        }
+    }
+}
+
+/// Instruments recording what the limiter decides and what passes it unchecked.
+struct RateLimitMetrics {
+    decisions: Counter<u64>,
+    unchecked: Counter<u64>,
+    misconfigurations: Counter<u64>,
+    address_fallbacks: Counter<u64>,
+    maintenance_runs: Counter<u64>,
+    evicted_keys: Counter<u64>,
+    denial_wait: Histogram<f64>,
+}
+
+impl RateLimitMetrics {
+    fn new(meter: &Meter, mode: RateLimitMode) -> Self {
+        meter
+            .u64_gauge("hash.rate_limit.mode")
+            .with_description("One at the mode the limiter runs in")
+            .build()
+            .record(1, &[KeyValue::new("mode", mode.as_str())]);
+        Self {
+            decisions: meter
+                .u64_counter("hash.rate_limit.decisions")
+                .with_description("Budget decisions by limiter and outcome")
+                .with_unit("{request}")
+                .build(),
+            unchecked: meter
+                .u64_counter("hash.rate_limit.unchecked")
+                .with_description("Requests passing a limiter stage without a budget check")
+                .with_unit("{request}")
+                .build(),
+            misconfigurations: meter
+                .u64_counter("hash.rate_limit.misconfigurations")
+                .with_description(
+                    "Requests answered with an internal error because the route is wired without \
+                     the middleware the principal limiter builds on",
+                )
+                .with_unit("{request}")
+                .build(),
+            address_fallbacks: meter
+                .u64_counter("hash.rate_limit.address_fallbacks")
+                .with_description(
+                    "Client addresses read from the connection instead of the configured header",
+                )
+                .with_unit("{request}")
+                .build(),
+            maintenance_runs: meter
+                .u64_counter("hash.rate_limit.maintenance_runs")
+                .with_description("Completed eviction runs")
+                .with_unit("{run}")
+                .build(),
+            evicted_keys: meter
+                .u64_counter("hash.rate_limit.evicted_keys")
+                .with_description("Keys released by maintenance after regaining their budget")
+                .with_unit("{key}")
+                .build(),
+            // The boundaries span the sub-second waits of the per-second gate quota and the
+            // hour-scale waits of the principal quotas; the defaults are sized for milliseconds
+            // and would put every wait in one bucket.
+            denial_wait: meter
+                .f64_histogram("hash.rate_limit.denial_wait")
+                .with_description("Time until the crossed budget admits the request again")
+                .with_unit("s")
+                .with_boundaries(vec![
+                    0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 30.0, 60.0, 300.0, 1800.0, 3600.0,
+                ])
+                .build(),
+        }
+    }
+
+    fn decision(&self, budget: Budget, outcome: Outcome) {
+        self.decisions.add(
+            1,
+            &[
+                KeyValue::new("limiter", budget.as_str()),
+                KeyValue::new("outcome", outcome.as_str()),
+            ],
         );
     }
 
-    /// Reads every counter and resets it.
-    fn take(&self) -> Totals {
-        let Self {
-            gate_denials,
-            anonymous_denials,
-            actor_denials,
-            address_fallbacks,
-            unknown_addresses,
-        } = self;
-        Totals {
-            gate_denials: gate_denials.swap(0, Ordering::Relaxed),
-            anonymous_denials: anonymous_denials.swap(0, Ordering::Relaxed),
-            actor_denials: actor_denials.swap(0, Ordering::Relaxed),
-            address_fallbacks: address_fallbacks.swap(0, Ordering::Relaxed),
-            unknown_addresses: unknown_addresses.swap(0, Ordering::Relaxed),
-        }
+    /// Records a request over its budget: the decision and the wait it was told.
+    fn denial(&self, budget: Budget, outcome: Outcome, wait: Duration) {
+        self.decision(budget, outcome);
+        self.denial_wait.record(
+            wait.as_secs_f64(),
+            &[
+                KeyValue::new("limiter", budget.as_str()),
+                KeyValue::new("outcome", outcome.as_str()),
+            ],
+        );
     }
-}
 
-/// One interval's totals.
-struct Totals {
-    gate_denials: u64,
-    anonymous_denials: u64,
-    actor_denials: u64,
-    address_fallbacks: u64,
-    unknown_addresses: u64,
-}
+    fn unchecked(&self, stage: Stage, reason: UncheckedReason) {
+        self.unchecked.add(
+            1,
+            &[
+                KeyValue::new("stage", stage.as_str()),
+                KeyValue::new("reason", reason.as_str()),
+            ],
+        );
+    }
 
-impl Totals {
-    const fn is_empty(&self) -> bool {
-        let Self {
-            gate_denials,
-            anonymous_denials,
-            actor_denials,
-            address_fallbacks,
-            unknown_addresses,
-        } = self;
-        *gate_denials == 0
-            && *anonymous_denials == 0
-            && *actor_denials == 0
-            && *address_fallbacks == 0
-            && *unknown_addresses == 0
+    fn misconfiguration(&self, reason: Misconfiguration) {
+        self.misconfigurations
+            .add(1, &[KeyValue::new("reason", reason.as_str())]);
     }
 }
 
@@ -181,24 +303,31 @@ impl Denial {
 
 /// The shared limiter state both rate-limiting middlewares charge against.
 ///
-/// Build one per router from the configuration, hand it to [`ip_gate_middleware`] and
-/// [`principal_limit_middleware`] behind one [`Arc`], and call [`spawn_maintenance`] on it so
-/// replenished keys are released.
+/// [`start`] one per router from the configuration and hand it to [`ip_gate_middleware`] and
+/// [`principal_limit_middleware`]; it maintains itself for as long as it is held.
 ///
-/// [`spawn_maintenance`]: Self::spawn_maintenance
+/// [`start`]: Self::start
 pub struct RateLimiters {
     mode: RateLimitMode,
     client_ip_source: ClientIpSource,
     gate: KeyedLimiter<BucketKey>,
     anonymous: KeyedLimiter<BucketKey>,
     actor: KeyedLimiter<ActorId>,
-    tally: Tally,
+    metrics: RateLimitMetrics,
 }
 
 impl RateLimiters {
-    /// Creates the limiter state from the configuration.
-    #[must_use]
-    pub fn new(config: &RateLimitConfig) -> Self {
+    /// Creates the limiter state, registers the key gauge, and spawns the maintenance task.
+    ///
+    /// The task and the gauge hold weak references, so they cannot keep the state alive: the task
+    /// ends on the first tick after the state is dropped. The gauge reads the stores directly
+    /// rather than from the maintenance task, so a lost task shows as a flat run count next to a
+    /// climbing key count.
+    ///
+    /// # Panics
+    ///
+    /// Panics when called outside a Tokio runtime.
+    pub fn start(config: &RateLimitConfig, meter: &Meter) -> Arc<Self> {
         tracing::info!(
             mode = ?config.rate_limit_mode,
             client_ip_source = ?config.client_ip_source,
@@ -210,7 +339,7 @@ impl RateLimiters {
             actor_burst = config.rate_limit_actor_burst,
             "rate limiting active"
         );
-        Self {
+        let this = Arc::new(Self {
             mode: config.rate_limit_mode,
             client_ip_source: config.client_ip_source,
             gate: RateLimiter::keyed(
@@ -228,40 +357,52 @@ impl RateLimiters {
                     .allow_burst(config.rate_limit_actor_burst),
             )
             .with_middleware(),
-            tally: Tally::default(),
-        }
-    }
+            metrics: RateLimitMetrics::new(meter, config.rate_limit_mode),
+        });
 
-    /// Spawns the eviction sweep and a watcher reporting its loss.
-    ///
-    /// The sweep holds a weak reference, so it cannot keep the state alive, and ends on the first
-    /// tick after the state is dropped.
-    ///
-    /// # Panics
-    ///
-    /// Panics when called outside a Tokio runtime.
-    pub fn spawn_maintenance(self: &Arc<Self>) {
-        let limiters = Arc::downgrade(self);
-        let sweeper = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(SWEEP_INTERVAL);
+        meter
+            .u64_observable_gauge("hash.rate_limit.tracked_keys")
+            .with_description("Keys currently held by each limiter store")
+            .with_unit("{key}")
+            .with_callback({
+                let limiters = Arc::downgrade(&this);
+                move |observer| {
+                    let Some(limiters) = limiters.upgrade() else {
+                        return;
+                    };
+                    for (limiter, keys) in [
+                        (Budget::GATE, limiters.gate.len()),
+                        (Budget::ANONYMOUS, limiters.anonymous.len()),
+                        (Budget::ACTOR, limiters.actor.len()),
+                    ] {
+                        observer.observe(keys as u64, &[KeyValue::new("limiter", limiter)]);
+                    }
+                }
+            })
+            .build();
+
+        let limiters = Arc::downgrade(&this);
+        let maintenance = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(MAINTENANCE_INTERVAL);
             loop {
                 interval.tick().await;
                 let Some(limiters) = limiters.upgrade() else {
-                    tracing::debug!("rate-limiter state dropped, ending the eviction sweep");
+                    tracing::debug!("rate-limiter state dropped, ending its maintenance");
                     break;
                 };
-                limiters.sweep();
+                limiters.maintain();
             }
         });
-
         tokio::spawn(async move {
-            if let Err(error) = sweeper.await {
+            if let Err(error) = maintenance.await {
                 tracing::error!(
                     %error,
-                    "rate-limiter eviction sweep stopped, keys are no longer released"
+                    "rate-limiter maintenance stopped, keys are no longer released"
                 );
             }
         });
+
+        this
     }
 
     /// Reads the budget key of a request from the configured source.
@@ -275,7 +416,9 @@ impl RateLimiters {
         match address::from_header(request, header) {
             Ok(key) => Some(key),
             Err(fallback) => {
-                self.tally.address_fallbacks.fetch_add(1, Ordering::Relaxed);
+                self.metrics
+                    .address_fallbacks
+                    .add(1, &[KeyValue::new("reason", fallback.as_str())]);
                 tracing::debug!(
                     reason = fallback.as_str(),
                     header = %header,
@@ -286,55 +429,42 @@ impl RateLimiters {
         }
     }
 
+    /// Records a request whose client address could not be determined at the gate.
+    fn note_unknown_address(&self) {
+        self.metrics
+            .unchecked(Stage::Gate, UncheckedReason::UnknownAddress);
+        tracing::debug!(
+            "client address unavailable, request passes the rate limiter unchecked; the router \
+             has to be served with `into_make_service_with_connect_info`"
+        );
+    }
+
     #[cfg(test)]
     fn tracked_keys(&self) -> usize {
         self.gate.len() + self.anonymous.len() + self.actor.len()
     }
 
-    /// Drops keys that regained their full budget, shrinks the stores, and reports the interval.
+    /// Drops keys that regained their full budget and shrinks the stores.
     ///
     /// Eviction is the only mechanism releasing keys, so a store grows with every distinct client
     /// until this runs.
-    fn sweep(&self) {
-        let Self {
-            mode,
-            client_ip_source: _,
-            gate,
-            anonymous,
-            actor,
-            tally,
-        } = self;
-
-        release(gate);
-        release(anonymous);
-        release(actor);
-
-        let gate_keys = gate.len();
-        let anonymous_keys = anonymous.len();
-        let actor_keys = actor.len();
-        let totals = tally.take();
-        if totals.is_empty() {
-            tracing::info!(
-                gate_keys,
-                anonymous_keys,
-                actor_keys,
-                mode = ?mode,
-                "rate limiter interval report"
-            );
-            return;
+    fn maintain(&self) {
+        for (limiter, evicted) in [
+            (Budget::GATE, release(&self.gate)),
+            (Budget::ANONYMOUS, release(&self.anonymous)),
+            (Budget::ACTOR, release(&self.actor)),
+        ] {
+            self.metrics
+                .evicted_keys
+                .add(evicted as u64, &[KeyValue::new("limiter", limiter)]);
         }
+        self.metrics.maintenance_runs.add(1, &[]);
 
-        tracing::warn!(
-            gate_denials = totals.gate_denials,
-            anonymous_denials = totals.anonymous_denials,
-            actor_denials = totals.actor_denials,
-            address_fallbacks = totals.address_fallbacks,
-            unknown_addresses = totals.unknown_addresses,
-            gate_keys,
-            anonymous_keys,
-            actor_keys,
-            mode = ?mode,
-            "rate limiter interval report"
+        tracing::debug!(
+            gate_keys = self.gate.len(),
+            anonymous_keys = self.anonymous.len(),
+            actor_keys = self.actor.len(),
+            "rate limiter maintenance run"
         );
     }
 
@@ -358,12 +488,16 @@ impl RateLimiters {
         K: fmt::Display + Clone + Eq + core::hash::Hash,
     {
         let not_until = match limiter.check_key(key) {
-            Ok(()) => return Ok(()),
+            Ok(()) => {
+                self.metrics.decision(budget, Outcome::Allowed);
+                return Ok(());
+            }
             Err(not_until) => not_until,
         };
 
-        self.tally.denials(budget).fetch_add(1, Ordering::Relaxed);
         let wait = not_until.wait_time_from(limiter.clock().now());
+        self.metrics
+            .denial(budget, self.mode.denial_outcome(), wait);
         let seconds = wait.as_secs() + u64::from(wait.subsec_nanos() > 0);
         let retry_after = NonZeroU64::new(seconds).unwrap_or(NonZeroU64::MIN);
         tracing::debug!(
@@ -380,13 +514,15 @@ impl RateLimiters {
     }
 }
 
-/// Releases the keys of one store that regained their full budget.
-fn release<K>(limiter: &KeyedLimiter<K>)
+/// Releases the keys of one store that regained their full budget, returning how many.
+fn release<K>(limiter: &KeyedLimiter<K>) -> usize
 where
     K: core::hash::Hash + Eq + Clone,
 {
+    let before = limiter.len();
     limiter.retain_recent();
     limiter.shrink_to_fit();
+    before.saturating_sub(limiter.len())
 }
 
 /// Throttles each client address ahead of credential verification.
@@ -405,6 +541,8 @@ where
 /// use hash_middleware::rate_limit::{RateLimiters, ip_gate_middleware};
 /// # use hash_middleware::rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode};
 ///
+/// # #[tokio::main(flavor = "current_thread")]
+/// # async fn main() {
 /// # let quota = |value| NonZeroU32::new(value).expect("the quota should be non-zero");
 /// # let config = RateLimitConfig {
 /// #     rate_limit_mode: RateLimitMode::Observe,
@@ -416,7 +554,8 @@ where
 /// #     rate_limit_actor_per_hour: quota(6000),
 /// #     rate_limit_actor_burst: quota(100),
 /// # };
-/// let limiters = Arc::new(RateLimiters::new(&config));
+/// # let meter = opentelemetry::global::meter("doc");
+/// let limiters = RateLimiters::start(&config, &meter);
 /// let service_secret: Arc<str> = Arc::from("service-secret");
 ///
 /// // A `layer` rather than a `route_layer`, so unmatched paths draw on a budget too.
@@ -431,6 +570,7 @@ where
 ///                 next,
 ///             )
 ///         }));
+/// # }
 /// ```
 pub async fn ip_gate_middleware(
     limiters: Arc<RateLimiters>,
@@ -439,6 +579,9 @@ pub async fn ip_gate_middleware(
     next: Next,
 ) -> Response {
     if presents_service_secret(request.headers(), &service_secret) {
+        limiters
+            .metrics
+            .unchecked(Stage::Gate, UncheckedReason::ServiceSecret);
         return next.run(request).await;
     }
 
@@ -448,7 +591,7 @@ pub async fn ip_gate_middleware(
         ResolvedClientAddress::Bucketed,
     ));
     let Some(key) = resolved else {
-        limiters.tally.note_unknown_address();
+        limiters.note_unknown_address();
         return next.run(request).await;
     };
 
@@ -475,7 +618,7 @@ pub async fn ip_gate_middleware(
 /// # use axum::{Router, middleware, routing::get};
 /// # use error_stack::Report;
 /// # use hash_middleware::authentication::{
-/// #     authentication_middleware,
+/// #     AuthenticationMetrics, authentication_middleware,
 /// #     provider::{AuthenticationProvider, Caller},
 /// #     request::AuthenticationError,
 /// # };
@@ -495,6 +638,8 @@ pub async fn ip_gate_middleware(
 /// #         ControlFlow::Continue(())
 /// #     }
 /// # }
+/// # #[tokio::main(flavor = "current_thread")]
+/// # async fn main() {
 /// # let quota = |value| NonZeroU32::new(value).expect("the quota should be non-zero");
 /// # let config = RateLimitConfig {
 /// #     rate_limit_mode: RateLimitMode::Observe,
@@ -506,10 +651,12 @@ pub async fn ip_gate_middleware(
 /// #     rate_limit_actor_per_hour: quota(6000),
 /// #     rate_limit_actor_burst: quota(100),
 /// # };
-/// let limiters = Arc::new(RateLimiters::new(&config));
+/// # let meter = opentelemetry::global::meter("doc");
+/// let limiters = RateLimiters::start(&config, &meter);
 /// let service_secret: Arc<str> = Arc::from("service-secret");
 /// # let provider = Arc::new(Verifier);
 /// # let auth_secret = Arc::clone(&service_secret);
+/// # let auth_metrics = Arc::new(AuthenticationMetrics::new(&meter));
 /// let principal_limiters = Arc::clone(&limiters);
 /// let principal_secret = Arc::clone(&service_secret);
 ///
@@ -526,9 +673,11 @@ pub async fn ip_gate_middleware(
 ///     .route_layer(middleware::from_fn(move |request, next| {
 ///         # let provider = Arc::clone(&provider);
 ///         # let auth_secret = Arc::clone(&auth_secret);
+///         # let auth_metrics = Arc::clone(&auth_metrics);
 ///         authentication_middleware::<_, Option<ActorId>>(
 ///             provider,
 ///             auth_secret,
+///             auth_metrics,
 ///             |_path| false,
 ///             request,
 ///             next,
@@ -542,6 +691,7 @@ pub async fn ip_gate_middleware(
 ///             next,
 ///         )
 ///     }));
+/// # }
 /// ```
 pub async fn principal_limit_middleware(
     limiters: Arc<RateLimiters>,
@@ -550,6 +700,9 @@ pub async fn principal_limit_middleware(
     next: Next,
 ) -> Response {
     if presents_service_secret(request.headers(), &service_secret) {
+        limiters
+            .metrics
+            .unchecked(Stage::Principal, UncheckedReason::ServiceSecret);
         return next.run(request).await;
     }
     let Some(resolved) = request.extensions().get::<ResolvedAuthentication>() else {
@@ -557,6 +710,9 @@ pub async fn principal_limit_middleware(
             path = request.uri().path(),
             "`principal_limit_middleware` ran on a route without authentication middleware"
         );
+        limiters
+            .metrics
+            .misconfiguration(Misconfiguration::MissingAuthentication);
         return internal_error();
     };
     let actor = match resolved.outcome() {
@@ -568,6 +724,9 @@ pub async fn principal_limit_middleware(
             // the only account of what the provider saw — `Display` would print the first
             // context and drop them.
             tracing::error!(error = ?error, "authentication error reached the rate limiter unrejected");
+            limiters
+                .metrics
+                .misconfiguration(Misconfiguration::UnrejectedAuthenticationError);
             return internal_error();
         }
     };
@@ -580,10 +739,17 @@ pub async fn principal_limit_middleware(
                 path = request.uri().path(),
                 "`principal_limit_middleware` ran on a route without the address gate"
             );
+            limiters
+                .metrics
+                .misconfiguration(Misconfiguration::MissingAddressGate);
             return internal_error();
         };
         let Some(key) = resolved.key() else {
-            // The gate counted the unresolvable address already.
+            // Counted per stage, so the gate's count of this address does not stand in for the
+            // principal stage.
+            limiters
+                .metrics
+                .unchecked(Stage::Principal, UncheckedReason::UnknownAddress);
             return next.run(request).await;
         };
         Budget::Anonymous(key)

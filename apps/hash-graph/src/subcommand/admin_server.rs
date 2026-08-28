@@ -4,13 +4,16 @@ use core::{fmt, net::SocketAddr, num::NonZero, str::FromStr as _, time::Duration
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_api::rest::auth::{
-    CloudflareAccessConfig, JwtValidatorConfig, KratosAdminConfig, build_operator_provider,
+    AuthenticationMetrics, CloudflareAccessConfig, JwtValidatorConfig, KratosAdminConfig,
+    build_operator_provider,
 };
 use hash_graph_postgres_store::{
     snapshot::SnapshotEntry,
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings},
 };
+use hash_telemetry::Telemetry;
 use jsonwebtoken::Algorithm;
+use opentelemetry::metrics::Meter;
 use reqwest::{Client, Url};
 use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
@@ -292,6 +295,7 @@ pub(crate) async fn run_admin_server(
     pool: PostgresStorePool,
     config: AdminConfig,
     service_secret: String,
+    meter: Meter,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
     let cloudflare_access = cloudflare_access_config(&config)?;
@@ -321,6 +325,7 @@ pub(crate) async fn run_admin_server(
         pool,
         authentication_provider,
         Arc::from(service_secret),
+        Arc::new(AuthenticationMetrics::new(&meter)),
         hash_graph_api::rest::admin::ExternalServicesConfig {
             kratos_admin_url,
             hydra_admin_url,
@@ -350,13 +355,14 @@ pub(crate) fn start_admin_server(
     pool: PostgresStorePool,
     config: AdminConfig,
     service_secret: String,
+    meter: Meter,
     lifecycle: &ServerLifecycle,
 ) {
     SnapshotEntry::install_error_stack_hook();
 
     let shutdown = lifecycle.shutdown.clone();
     lifecycle.spawn("Admin server", async move {
-        run_admin_server(pool, config, service_secret, shutdown).await
+        run_admin_server(pool, config, service_secret, meter, shutdown).await
     });
 }
 
@@ -369,7 +375,10 @@ pub(crate) fn start_admin_server(
     clippy::exit,
     reason = "Force shutdown on double ctrl-c is intentional"
 )]
-pub async fn admin_server(args: AdminServerArgs) -> Result<(), Report<GraphError>> {
+pub async fn admin_server(
+    args: AdminServerArgs,
+    telemetry: &Telemetry,
+) -> Result<(), Report<GraphError>> {
     if args.healthcheck.healthcheck {
         return wait_healthcheck(
             || healthcheck(args.config.address.clone()),
@@ -406,7 +415,13 @@ pub async fn admin_server(args: AdminServerArgs) -> Result<(), Report<GraphError
         })?;
 
     let lifecycle = ServerLifecycle::new();
-    start_admin_server(pool, args.config, service_secret, &lifecycle);
+    start_admin_server(
+        pool,
+        args.config,
+        service_secret,
+        telemetry.meter("Graph Admin API"),
+        &lifecycle,
+    );
 
     // Wait for shutdown signal or unexpected server exit
     let aborted = tokio::select! {
