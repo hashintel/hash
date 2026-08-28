@@ -17,9 +17,12 @@ import {
   TokenTypeIcon,
   TransitionFilledIcon,
 } from "../../../../../constants/entity-icons";
-import { clampIndex } from "../../../../../lib/clamp-index";
+import { focusLands } from "../../../../../worksheet/focus-flow";
+import { useFocusMember } from "../../../../../worksheet/use-focus-member";
+import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
 
 import type { SubView } from "../../../../../components/sub-view/types";
+import type { FocusStop } from "../../../../../worksheet/use-focus-stops";
 import type { SelectionItem } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
@@ -52,7 +55,6 @@ const resultListStyle = css({
   gap: "[1px]",
   py: "1",
   mx: "-1",
-  outline: "none",
 });
 
 const resultRowStyle = cva({
@@ -68,6 +70,10 @@ const resultRowStyle = cva({
     fontWeight: "medium",
     color: "neutral.s115",
     transition: "[background-color 100ms ease-out]",
+    _focus: {
+      outline: "none",
+      backgroundColor: "neutral.bg.subtle.hover",
+    },
   },
   variants: {
     isSelected: {
@@ -78,11 +84,6 @@ const resultRowStyle = cva({
       false: {
         backgroundColor: "[transparent]",
         _hover: { backgroundColor: "neutral.bg.surface.hover" },
-      },
-    },
-    isFocused: {
-      true: {
-        backgroundColor: "neutral.bg.subtle.hover",
       },
     },
   },
@@ -213,115 +214,63 @@ function useSearchableItems(): SearchableItem[] {
 
 // -- Components ---------------------------------------------------------------
 
+/**
+ * The result rows, one member of the search panel's vertical focus flow:
+ * arrows walk the rows and select as they move, and a move off the top edge
+ * flows back into the search input above.
+ */
 const SearchResultsList: React.FC<{ results: SearchResult[] }> = ({
   results,
 }) => {
+  const { isSelected: checkIsSelected, selectItem } = use(EditorContext);
+  const targets = useRef<Map<string, HTMLElement>>(new Map());
+
+  const stops: FocusStop[] = results.map(({ item }) => ({
+    id: item.id,
+    kind: "row",
+  }));
   const {
-    isSelected: checkIsSelected,
-    selectItem,
-    searchInputRef,
-  } = use(EditorContext);
-  const [focusedIndexState, setFocusedIndex] = useState<number | null>(null);
-  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const focusedIndex = clampIndex(focusedIndexState, results.length);
-
-  // Truncate stale row refs when results change.
-  useEffect(() => {
-    rowRefs.current.length = results.length;
-  }, [results.length]);
-
-  // Scroll focused item into view
-  useEffect(() => {
-    if (focusedIndex !== null) {
-      rowRefs.current[focusedIndex]?.scrollIntoView({ block: "nearest" });
-    }
-  }, [focusedIndex]);
-
-  const handleListKeyDown = (event: React.KeyboardEvent) => {
-    switch (event.key) {
-      case "ArrowDown": {
-        event.preventDefault();
-        if (results.length === 0) {
-          return;
-        }
-        const nextIndex =
-          focusedIndex === null
-            ? 0
-            : Math.min(focusedIndex + 1, results.length - 1);
-        setFocusedIndex(nextIndex);
-        const item = results[nextIndex];
-        if (item) {
-          selectItem(item.item.selectionItem);
-        }
-        break;
-      }
-      case "ArrowUp": {
-        event.preventDefault();
-        if (focusedIndex === null || focusedIndex === 0) {
-          // Move focus back to the search input
-          setFocusedIndex(null);
-          searchInputRef.current?.focus();
-        } else {
-          const nextIndex = focusedIndex - 1;
-          setFocusedIndex(nextIndex);
-          const item = results[nextIndex];
-          if (item) {
-            selectItem(item.item.selectionItem);
-          }
-        }
-        break;
-      }
-      case "Enter": {
-        event.preventDefault();
-        if (focusedIndex !== null) {
-          const item = results[focusedIndex];
-          if (item) {
-            selectItem(item.item.selectionItem);
-          }
-        }
-        break;
-      }
-    }
-  };
+    onKeyDown: onStopsKeyDown,
+    onFocusTarget,
+    tabIndexFor,
+    attach,
+  } = useFocusStops({
+    stops,
+    columnCount: 1,
+    focusTarget: (target) => focusLands(targets.current.get(target.stopId)),
+  });
 
   return (
-    <div
-      className={resultListStyle}
-      role="listbox"
-      tabIndex={0}
-      onKeyDown={handleListKeyDown}
-      onFocus={() => {
-        // When the list receives focus (e.g. from ArrowDown in input),
-        // highlight the first item. Selection happens on Enter or ArrowDown.
-        if (focusedIndex === null && results.length > 0) {
-          setFocusedIndex(0);
-        }
-      }}
-    >
-      {results.map(({ item, highlighted }, index) => {
+    <div ref={attach} className={resultListStyle} role="listbox">
+      {results.map(({ item, highlighted }) => {
         const isSelected = checkIsSelected(item.id);
-        const isFocused = focusedIndex === index;
         return (
           <div
             key={item.id}
-            ref={(el) => {
-              rowRefs.current[index] = el;
+            ref={(element) => {
+              if (element) {
+                targets.current.set(item.id, element);
+              } else {
+                targets.current.delete(item.id);
+              }
             }}
             role="option"
-            tabIndex={-1}
+            tabIndex={tabIndexFor({ stopId: item.id, column: 0 })}
             aria-selected={isSelected}
-            className={resultRowStyle({ isSelected, isFocused })}
-            onClick={() => {
+            className={resultRowStyle({ isSelected })}
+            onClick={() => selectItem(item.selectionItem)}
+            onFocus={() => {
+              onFocusTarget({ stopId: item.id, column: 0 });
               selectItem(item.selectionItem);
-              setFocusedIndex(index);
             }}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
-                event.stopPropagation();
                 event.preventDefault();
+                event.stopPropagation();
                 selectItem(item.selectionItem);
-                setFocusedIndex(index);
+                return;
               }
+              onStopsKeyDown({ stopId: item.id, column: 0 })(event);
             }}
           >
             <div className={resultContentStyle}>
@@ -390,7 +339,7 @@ const SearchContent: React.FC = () => {
     <>
       {matchLabel && <div className={matchCountStyle}>{matchLabel}</div>}
       {results.length > 0 ? (
-        <SearchResultsList key={query} results={results} />
+        <SearchResultsList results={results} />
       ) : hasQuery ? (
         <div className={emptyResultsStyle}>No matches</div>
       ) : null}
@@ -398,8 +347,15 @@ const SearchContent: React.FC = () => {
   );
 };
 
+/**
+ * The search input, the first member of the search panel's vertical focus
+ * flow: ArrowDown hands focus to the result list below.
+ */
 const SearchTitle: React.FC = () => {
   const { isSearchOpen, searchInputRef } = use(EditorContext);
+  const { attach, moveFrom } = useFocusMember(() =>
+    focusLands(searchInputRef.current),
+  );
 
   useEffect(() => {
     if (isSearchOpen) {
@@ -412,17 +368,17 @@ const SearchTitle: React.FC = () => {
 
   return (
     <input
-      ref={searchInputRef}
+      ref={(element) => {
+        searchInputRef.current = element;
+        attach(element);
+      }}
       type="text"
       placeholder="Find anything…"
       className={searchInputStyle}
       onKeyDown={(event) => {
         if (event.key === "ArrowDown") {
           event.preventDefault();
-          // Find the result list within the same sub-view section and focus it
-          const section = searchInputRef.current?.closest("[data-panel]");
-          const list = section?.querySelector<HTMLElement>("[role=listbox]");
-          list?.focus();
+          moveFrom("down");
         }
       }}
     />

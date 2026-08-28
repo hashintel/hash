@@ -141,9 +141,13 @@ The left sidebar has four tabs for creating and managing entities:
 
 Toggle the sidebar with the button in the top-left corner.
 
+Each list is a single Tab stop. Arrow keys move through the rows and select as they move, Shift+Arrow extends the selection, and Enter or Space selects the focused row. ArrowRight on a row reaches its **⋯** menu (or a group's **+** button), and ArrowLeft returns to the row. Group headers collapse with ArrowLeft and expand with ArrowRight.
+
 ## Search
 
 Press **Cmd+F** / **Ctrl+F** to open a search bar. Type to filter entities by name. Press **Escape** to close.
+
+ArrowDown moves from the search input into the results; arrows then walk the results and select as they move, and ArrowUp from the first result returns to the input.
 
 ## Browser Back and Forward
 

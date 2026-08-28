@@ -1,15 +1,21 @@
-import { Fragment, use, useEffect, useRef, useState } from "react";
+import { Fragment, use, useRef, useState } from "react";
 
 import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../../../react/state/editor-context";
-import { clampIndex } from "../../../../../lib/clamp-index";
+import { focusLands } from "../../../../../worksheet/focus-flow";
+import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
+import { RowActionSlot } from "./row-action-slot";
 
 import type {
   SubView,
   SubViewResizeConfig,
 } from "../../../../../components/sub-view/types";
+import type {
+  FocusStop,
+  FocusStopTarget,
+} from "../../../../../worksheet/use-focus-stops";
 import type { SelectionItem, SelectionMap } from "@hashintel/petrinaut-core";
 import type { ComponentType, ReactNode } from "react";
 
@@ -20,8 +26,6 @@ const listContainerStyle = css({
   flex: "[1]",
   /** Reduce horizontal padding from the parent */
   mx: "-1",
-  /** Suppress browser default focus ring — focus is shown per-row via isFocused variant */
-  outline: "none",
   /** Enable animating height to/from `auto` for collapsible group children */
   interpolateSize: "[allow-keywords]",
 });
@@ -52,40 +56,39 @@ const listItemRowStyle = cva({
       true: {
         cursor: "pointer",
 
-        /* Reveal the action button on hover or when its menu is open. Hidden
-           with `display` rather than `opacity` so it takes no space and the
-           label keeps the full row width until the button is shown. */
+        /* Focus is shown as a background change, matching the hover treatment */
+        _focus: {
+          outline: "none",
+          backgroundColor: "neutral.s25",
+        },
+
+        /* Reveal the action slot on hover, while the row or the slot holds
+           focus, or while its menu is open. Hidden with `display` rather than
+           `opacity` so it takes no space and the label keeps the full row
+           width until the slot is shown. */
         "& [data-row-action]": {
           display: "none",
         },
-        "&:hover [data-row-action], & [data-row-action][data-state=open]": {
-          display: "flex",
-        },
+        "&:hover [data-row-action], &:focus-within [data-row-action], & [data-row-action]:has([data-state=open]), & [data-row-action][data-state=open]":
+          {
+            display: "flex",
+          },
       },
     },
     isSelected: {
       true: {
         backgroundColor: "blue.s30",
-        "&:has([data-row-action][data-state=open])": {
+        _focus: {
+          backgroundColor: "blue.s40",
+        },
+        "&:has([data-row-action] [data-state=open])": {
           backgroundColor: "blue.s40",
         },
       },
       false: {},
     },
-    isFocused: {
-      true: {
-        backgroundColor: "neutral.s25",
-      },
-    },
   },
   compoundVariants: [
-    {
-      isFocused: true,
-      isSelected: true,
-      css: {
-        backgroundColor: "blue.s40",
-      },
-    },
     {
       selectable: true,
       isSelected: false,
@@ -93,7 +96,7 @@ const listItemRowStyle = cva({
         _hover: {
           backgroundColor: "neutral.bg.surface.hover",
         },
-        "&:has([data-row-action][data-state=open])": {
+        "&:has([data-row-action] [data-state=open])": {
           backgroundColor: "neutral.bg.surface.hover",
         },
       },
@@ -230,7 +233,6 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
           size="xxs"
           variant="ghost"
           iconName="ellipsis"
-          data-row-action
           onClick={(event) => event.stopPropagation()}
         />
       }
@@ -239,6 +241,9 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
     />
   );
 };
+
+const targetKey = (target: FocusStopTarget): string =>
+  `${target.stopId}:${target.column}`;
 
 const NonEmptyFilterableListContent = <T extends FilterableListItem>({
   items,
@@ -263,15 +268,14 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
     setSelection,
   } = use(EditorContext);
 
-  const [focusedIndexState, setFocusedIndex] = useState<number | null>(null);
-  const [anchorIndexState, setAnchorIndex] = useState<number | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // The Shift-range anchor: the item the last plain selection landed on.
+  const [anchorId, setAnchorId] = useState<string | null>(null);
+  const targets = useRef<Map<string, HTMLElement>>(new Map());
 
   // Flatten tree: items with children become group header + child rows.
   // Children are always included (even when collapsed) so the DOM stays
   // stable for height animation. The `hidden` flag marks collapsed children
-  // so keyboard navigation can skip them.
+  // so they stay out of the keyboard flow.
   const flatRows: {
     item: T;
     depth: number;
@@ -306,28 +310,49 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
     }
   }
 
-  const focusedIndex = clampIndex(focusedIndexState, flatRows.length);
-  const anchorIndex = clampIndex(anchorIndexState, flatRows.length);
+  // The rows the keyboard flow walks, in document order.
+  const focusableRows = flatRows.filter(
+    (row) => !row.hidden && !row.emptyGroupMessage,
+  );
+  const stops: FocusStop[] = focusableRows.map((row) => ({
+    id: row.item.id,
+    kind: "row",
+  }));
 
-  // Truncate stale row refs when visible rows change.
-  useEffect(() => {
-    rowRefs.current.length = flatRows.length;
-  }, [flatRows.length]);
+  const {
+    onKeyDown: onStopsKeyDown,
+    onFocusTarget,
+    tabIndexFor,
+    attach,
+  } = useFocusStops({
+    stops,
+    // Column 0 is the row itself; column 1 its action slot (menu / add).
+    columnCount: 2,
+    focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
+  });
 
-  // Scroll focused item into view
-  useEffect(() => {
-    if (focusedIndex !== null) {
-      rowRefs.current[focusedIndex]?.scrollIntoView({ block: "nearest" });
+  const registerTarget =
+    (target: FocusStopTarget) => (element: HTMLElement | null) => {
+      if (element) {
+        targets.current.set(targetKey(target), element);
+      } else {
+        targets.current.delete(targetKey(target));
+      }
+    };
+
+  const selectRange = (fromId: string | null, toId: string) => {
+    const ids = focusableRows.map((row) => row.item.id);
+    const toIndex = ids.indexOf(toId);
+    if (toIndex === -1) {
+      return;
     }
-  }, [focusedIndex]);
-
-  const selectRange = (fromIndex: number | null, toIndex: number) => {
-    const start = Math.min(fromIndex ?? toIndex, toIndex);
-    const end = Math.max(fromIndex ?? toIndex, toIndex);
+    const fromIndex = fromId === null ? toIndex : ids.indexOf(fromId);
+    const start = Math.min(fromIndex === -1 ? toIndex : fromIndex, toIndex);
+    const end = Math.max(fromIndex === -1 ? toIndex : fromIndex, toIndex);
     const newSelection: SelectionMap = new Map();
     for (let i = start; i <= end; i++) {
-      const row = flatRows[i];
-      if (row && !row.isGroup && !row.hidden && !row.emptyGroupMessage) {
+      const row = focusableRows[i]!;
+      if (!row.isGroup) {
         const selItem = getSelectionItem(row.item);
         newSelection.set(selItem.id, selItem);
       }
@@ -335,126 +360,64 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
     setSelection(newSelection);
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    // Ignore key events bubbling from nested interactive controls (e.g. row menu buttons)
-    if (event.target !== event.currentTarget) {
+  /** Arrows select as they move: sync the selection to wherever focus landed. */
+  const selectFollowingFocus = (extendRange: boolean) => {
+    const active = document.activeElement;
+    const landed = focusableRows.find(
+      (row) => targets.current.get(`${row.item.id}:0`) === active,
+    );
+    if (!landed || landed.isGroup) {
       return;
     }
-    if (flatRows.length === 0) {
-      return;
-    }
-
-    switch (event.key) {
-      case "ArrowDown": {
-        event.preventDefault();
-        let nextIndex =
-          focusedIndex === null
-            ? 0
-            : Math.min(focusedIndex + 1, flatRows.length - 1);
-        // Skip hidden and empty placeholder rows
-        while (
-          nextIndex < flatRows.length - 1 &&
-          (flatRows[nextIndex]?.hidden ||
-            flatRows[nextIndex]?.emptyGroupMessage)
-        ) {
-          nextIndex++;
-        }
-        setFocusedIndex(nextIndex);
-        const row = flatRows[nextIndex];
-        if (row && !row.isGroup && !row.hidden && !row.emptyGroupMessage) {
-          if (event.shiftKey) {
-            selectRange(anchorIndex ?? nextIndex, nextIndex);
-          } else {
-            selectItem(getSelectionItem(row.item));
-            setAnchorIndex(nextIndex);
-          }
-        }
-        break;
-      }
-      case "ArrowUp": {
-        event.preventDefault();
-        let nextIndex =
-          focusedIndex === null
-            ? flatRows.length - 1
-            : Math.max(focusedIndex - 1, 0);
-        // Skip hidden and empty placeholder rows
-        while (
-          nextIndex > 0 &&
-          (flatRows[nextIndex]?.hidden ||
-            flatRows[nextIndex]?.emptyGroupMessage)
-        ) {
-          nextIndex--;
-        }
-        setFocusedIndex(nextIndex);
-        const row = flatRows[nextIndex];
-        if (row && !row.isGroup && !row.hidden && !row.emptyGroupMessage) {
-          if (event.shiftKey) {
-            selectRange(anchorIndex ?? nextIndex, nextIndex);
-          } else {
-            selectItem(getSelectionItem(row.item));
-            setAnchorIndex(nextIndex);
-          }
-        }
-        break;
-      }
-      case "Enter":
-      case " ": {
-        event.preventDefault();
-        if (focusedIndex !== null) {
-          const row = flatRows[focusedIndex];
-          if (row && !row.hidden && !row.emptyGroupMessage) {
-            if (row.isGroup) {
-              toggleGroup(row.item.id);
-            } else {
-              selectItem(getSelectionItem(row.item));
-              setAnchorIndex(focusedIndex);
-            }
-          }
-        }
-        break;
-      }
-      case "ArrowRight": {
-        if (focusedIndex !== null) {
-          const row = flatRows[focusedIndex];
-          if (row?.isGroup && collapsedGroups.has(row.item.id)) {
-            event.preventDefault();
-            toggleGroup(row.item.id);
-          }
-        }
-        break;
-      }
-      case "ArrowLeft": {
-        if (focusedIndex !== null) {
-          const row = flatRows[focusedIndex];
-          if (row?.isGroup && !collapsedGroups.has(row.item.id)) {
-            event.preventDefault();
-            toggleGroup(row.item.id);
-          }
-        }
-        break;
-      }
-      case "Escape": {
-        clearSelection();
-        setFocusedIndex(null);
-        setAnchorIndex(null);
-        break;
-      }
+    if (extendRange) {
+      selectRange(anchorId, landed.item.id);
+    } else {
+      selectItem(getSelectionItem(landed.item));
+      setAnchorId(landed.item.id);
     }
   };
 
-  const handleContainerClick = () => {
-    clearSelection();
-    setFocusedIndex(null);
-    setAnchorIndex(null);
-  };
+  const onRowKeyDown =
+    (row: (typeof flatRows)[number]): React.KeyboardEventHandler =>
+    (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (row.isGroup) {
+          toggleGroup(row.item.id);
+        } else {
+          selectItem(getSelectionItem(row.item));
+          setAnchorId(row.item.id);
+        }
+        return;
+      }
+      // A group header owns the horizontal arrow that changes its state;
+      // the other direction falls through to the flow (ArrowRight on an
+      // expanded group walks to its action slot).
+      if (
+        row.isGroup &&
+        (event.key === "ArrowLeft" || event.key === "ArrowRight")
+      ) {
+        const collapsed = collapsedGroups.has(row.item.id);
+        if (event.key === "ArrowRight" ? collapsed : !collapsed) {
+          event.preventDefault();
+          event.stopPropagation();
+          toggleGroup(row.item.id);
+          return;
+        }
+      }
+      const vertical = event.key === "ArrowUp" || event.key === "ArrowDown";
+      onStopsKeyDown({ stopId: row.item.id, column: 0 })(event);
+      if (vertical) {
+        selectFollowingFocus(event.shiftKey);
+      }
+    };
 
   const handleRowClick = (
     event: React.MouseEvent,
-    index: number,
     row: { item: T; isGroup: boolean },
   ) => {
     event.stopPropagation();
-    setFocusedIndex(index);
 
     if (row.isGroup) {
       toggleGroup(row.item.id);
@@ -462,30 +425,35 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
     }
 
     const selectionItem = getSelectionItem(row.item);
-    if (event.shiftKey && anchorIndex !== null) {
-      selectRange(anchorIndex, index);
+    if (event.shiftKey && anchorId !== null) {
+      selectRange(anchorId, row.item.id);
     } else if (event.metaKey || event.ctrlKey) {
       toggleItem(selectionItem);
-      setAnchorIndex(index);
+      setAnchorId(row.item.id);
     } else {
       selectItem(selectionItem);
-      setAnchorIndex(index);
+      setAnchorId(row.item.id);
     }
+  };
+
+  const handleContainerClick = () => {
+    clearSelection();
+    setAnchorId(null);
   };
 
   return (
     <div
-      ref={containerRef}
+      ref={attach}
       className={listContainerStyle}
       role="listbox"
       aria-multiselectable="true"
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
+      tabIndex={-1}
       onClick={handleContainerClick}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) {
-          setFocusedIndex(null);
-          setAnchorIndex(null);
+      onKeyDown={(event) => {
+        // Bubbled from the rows, which do not handle Escape themselves.
+        if (event.key === "Escape") {
+          clearSelection();
+          setAnchorId(null);
         }
       }}
     >
@@ -495,44 +463,43 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
         const isCollapsed = isGroup && collapsedGroups.has(topItem.id);
 
         const itemRow = (item: T, depth: number) => {
-          const index = flatRows.findIndex(
-            (r) => r.item === item && r.depth === depth,
-          );
+          const row = flatRows.find(
+            (candidate) => candidate.item === item && candidate.depth === depth,
+          )!;
           const isItemGroup = item === topItem && isGroup;
           const selected = !isItemGroup && checkIsSelected(item.id);
-          const focused = focusedIndex === index;
+          const inFlow = !row.hidden;
+          const rowTarget: FocusStopTarget = { stopId: item.id, column: 0 };
+          const actionTarget: FocusStopTarget = { stopId: item.id, column: 1 };
 
           return (
             <div
               key={`${depth}-${item.id}`}
-              ref={(el) => {
-                rowRefs.current[index] = el;
-              }}
+              ref={inFlow ? registerTarget(rowTarget) : undefined}
               onClick={(event) =>
-                handleRowClick(event, index, {
+                handleRowClick(event, {
                   item,
                   isGroup: isItemGroup,
                 })
               }
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  if (isItemGroup) {
-                    toggleGroup(item.id);
-                  } else {
-                    selectItem(getSelectionItem(item));
-                    setFocusedIndex(index);
-                    setAnchorIndex(index);
-                  }
-                }
-              }}
+              onKeyDown={inFlow ? onRowKeyDown(row) : undefined}
+              onFocus={
+                inFlow
+                  ? (event) => {
+                      // Focus bubbles: only the row itself, not its action
+                      // slot, reports the row position.
+                      if (event.target === event.currentTarget) {
+                        onFocusTarget(rowTarget);
+                      }
+                    }
+                  : undefined
+              }
               role="option"
-              tabIndex={-1}
+              tabIndex={inFlow ? tabIndexFor(rowTarget) : -1}
               aria-selected={selected}
               className={listItemRowStyle({
                 selectable: true,
                 isSelected: selected,
-                isFocused: focused,
               })}
               style={
                 depth > 0
@@ -561,16 +528,23 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
                 </div>
               </div>
               {isItemGroup && item.renderGroupAction && (
-                <span
-                  role="presentation"
-                  data-row-action
-                  onClick={(event) => event.stopPropagation()}
-                  onKeyDown={(event) => event.stopPropagation()}
+                <RowActionSlot
+                  registerButton={registerTarget(actionTarget)}
+                  onArrowKeyDown={onStopsKeyDown(actionTarget)}
+                  onButtonFocus={() => onFocusTarget(actionTarget)}
                 >
                   <item.renderGroupAction />
-                </span>
+                </RowActionSlot>
               )}
-              {!isItemGroup && RenderRowMenu && <RenderRowMenu item={item} />}
+              {!isItemGroup && RenderRowMenu && (
+                <RowActionSlot
+                  registerButton={registerTarget(actionTarget)}
+                  onArrowKeyDown={onStopsKeyDown(actionTarget)}
+                  onButtonFocus={() => onFocusTarget(actionTarget)}
+                >
+                  <RenderRowMenu item={item} />
+                </RowActionSlot>
+              )}
             </div>
           );
         };
@@ -593,7 +567,6 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
                       className={listItemRowStyle({
                         selectable: false,
                         isSelected: false,
-                        isFocused: false,
                       })}
                       style={{ paddingLeft: NESTING_INDENT + 4 }}
                     >
@@ -650,7 +623,6 @@ const FilterableListContent = <T extends FilterableListItem>({
         className={listContainerStyle}
         role="listbox"
         aria-multiselectable="true"
-        tabIndex={0}
       >
         <div className={emptyMessageStyle}>{emptyMessage}</div>
       </div>
