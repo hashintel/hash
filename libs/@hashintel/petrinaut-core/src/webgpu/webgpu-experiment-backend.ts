@@ -70,6 +70,17 @@ function assess(
   request: ExperimentRequest,
   options: WebGpuExperimentBackendOptions,
 ): ExperimentAssessment {
+  if (request.runs !== undefined) {
+    const blockers: ExperimentBlockers = [
+      {
+        code: "per-run-parameters",
+        message:
+          "The GPU backend bakes parameter values into its shader, so it cannot run an experiment whose runs carry their own parameter values (a sweep over a parameter range). It runs on the CPU instead.",
+        origin: "configuration",
+      },
+    ];
+    return { eligible: false, blockers };
+  }
   if (request.hirArtifacts === undefined) {
     const blockers: ExperimentBlockers = [
       {

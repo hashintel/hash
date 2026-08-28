@@ -12,6 +12,7 @@ import type { SweepSelection, SweepSessionUpdate } from "./sweep-session";
 import type {
   MonteCarloExperiment,
   MonteCarloExperimentEvent,
+  MonteCarloRunConfig,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
 } from "@hashintel/petrinaut-core";
@@ -63,6 +64,7 @@ function frame(
 /** A hand-driven experiment handle: the test decides when batches finish. */
 function makeFakeBatch(request: {
   parameterValues: Readonly<Record<string, number>>;
+  runs?: readonly MonteCarloRunConfig[];
   seed: number;
   runCount: number;
   background?: boolean;
@@ -246,45 +248,65 @@ describe("createSweepSession", () => {
     expect(last.computing).toBe(false);
     expect(last.runTarget).toBeNull();
     expect(last.runsCompleted).toBe(25);
-    expect(last.cellsInRegion).toBe(1);
     expect(last.metricFrames[0]).toMatchObject({ bins: [[1, 25]] });
     session.dispose();
   });
 
-  it("levels every cell of the default full region at the first rung", async () => {
-    const { session, batches, updates, settle } = makeHarness(8);
-
-    // 3 x-positions × 2 y-positions = 6 cells, each one 8-run batch at the
-    // first rung, all with the base seed — common random numbers across the
-    // region.
-    const seenCells = new Set<string>();
-    for (let index = 0; index < 6; index++) {
-      await settle();
-      const batch = batches.at(-1)!;
-      expect(batch.request.seed).toBe(42);
-      expect(batch.request.runCount).toBe(8);
-      seenCells.add(
-        `${batch.request.parameterValues.x},${batch.request.parameterValues.y}`,
-      );
-      batch.stream([frame(8, [[1, 8]])]);
-      batch.complete();
-    }
+  it("runs a range selection as one experiment with per-run drawn values", async () => {
+    const { session, batches, updates, settle } = makeHarness(25);
     await settle();
 
-    expect(batches).toHaveLength(6);
-    expect(seenCells.size).toBe(6);
+    // The default full selection is one batch: 8 runs, base seed, one
+    // per-run parameter draw per ranged axis, midpoint values for the
+    // scenario compile.
+    expect(batches).toHaveLength(1);
+    const request = batches[0]!.request;
+    expect(request.seed).toBe(42);
+    expect(request.runCount).toBe(8);
+    expect(request.parameterValues).toEqual({ x: 1, y: 15 });
+    expect(request.runs).toHaveLength(8);
+
+    const xDraws = request.runs!.map((run) => Number(run.parameterValues!.x));
+    const yDraws = request.runs!.map((run) => Number(run.parameterValues!.y));
+    // Draws stay inside the selected value intervals and spread across them.
+    expect(Math.min(...xDraws)).toBeGreaterThanOrEqual(0);
+    expect(Math.max(...xDraws)).toBeLessThanOrEqual(2);
+    expect(Math.max(...xDraws) - Math.min(...xDraws)).toBeGreaterThan(1);
+    expect(Math.min(...yDraws)).toBeGreaterThanOrEqual(10);
+    expect(Math.max(...yDraws)).toBeLessThanOrEqual(20);
+
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    batches[0]!.complete();
+    await settle();
+
+    // The next rung extends the same sequence: runs 8..24, derived seed.
+    expect(batches).toHaveLength(2);
+    const second = batches[1]!.request;
+    expect(second.runCount).toBe(17);
+    expect(second.seed).toBe(sweepBatchSeed(42, 8));
+    expect(second.runs).toHaveLength(17);
+    // Prefix stability: the second batch continues at global index 8, so its
+    // first draw differs from the first batch's first draw.
+    expect(second.runs![0]!.parameterValues!.x).not.toBe(
+      request.runs![0]!.parameterValues!.x,
+    );
 
     const last = updates.at(-1)!;
-    expect(last.computing).toBe(false);
-    expect(last.cellsInRegion).toBe(6);
-    expect(last.cellsSampled).toBe(6);
-    expect(last.runsCompleted).toBe(48);
-    // The merged region view sums every cell's bins.
-    expect(last.metricFrames[0]).toMatchObject({ bins: [[1, 48]] });
+    expect(last.runsCompleted).toBe(8);
     session.dispose();
   });
 
-  it("restarts on the new region when the selection changes", async () => {
+  it("sends no per-run values for a point selection", async () => {
+    const { session, batches, settle } = makeHarness(25, point(1, 1));
+    await settle();
+
+    expect(batches).toHaveLength(1);
+    expect(batches[0]!.request.runs).toBeUndefined();
+    expect(batches[0]!.request.parameterValues).toEqual({ x: 1, y: 20 });
+    session.dispose();
+  });
+
+  it("restarts on the new selection when it changes", async () => {
     const { session, batches, updates, settle } = makeHarness(25, point(0, 0));
     await settle();
     batches[0]!.stream([frame(4, [[1, 4]])]);
@@ -299,8 +321,34 @@ describe("createSweepSession", () => {
     expect(batches[1]!.request).toMatchObject({ seed: 42, runCount: 8 });
 
     const last = updates.at(-1)!;
-    expect(last.activeCellValues).toEqual({ x: 1, y: 10 });
     expect(last.runsCompleted).toBe(0);
+    session.dispose();
+  });
+
+  it("resumes a revisited range from its ladder position", async () => {
+    const rangeSelection = { x: { from: 0, to: 2 }, y: { from: 0, to: 0 } };
+    const { session, batches, settle } = makeHarness(100, rangeSelection);
+    await settle();
+    batches[0]!.stream([frame(8, [[2, 8]])]);
+    batches[0]!.complete();
+    await settle();
+    expect(batches).toHaveLength(2); // second rung of the range running
+
+    session.setSelection(point(1, 0));
+    await settle();
+    expect(batches).toHaveLength(3);
+
+    session.setSelection(rangeSelection);
+    await settle();
+
+    // Back on the range: its 8 finished runs survive, so the new batch
+    // starts at the second rung with the same drawn sequence.
+    const resumed = batches.at(-1)!;
+    expect(resumed.request.runCount).toBe(17);
+    expect(resumed.request.seed).toBe(sweepBatchSeed(42, 8));
+    expect(resumed.request.runs![0]!.parameterValues!.x).toBe(
+      batches[1]!.request.runs![0]!.parameterValues!.x,
+    );
     session.dispose();
   });
 
@@ -328,23 +376,22 @@ describe("createSweepSession", () => {
     session.dispose();
   });
 
-  it("shows cached cells of a widened region immediately", async () => {
-    const { session, batches, updates, settle } = makeHarness(8, point(0, 0));
+  it("keys distinct selections separately in the cache", async () => {
+    const { session, batches, settle } = makeHarness(8, point(0, 0));
     await settle();
     batches[0]!.stream([frame(8, [[3, 8]])]);
     batches[0]!.complete();
     await settle();
 
-    // Widen x to cover positions 0..1: the cached point contributes to the
-    // merged view straight away, before the new cell finishes.
+    // Widening to a range is a different selection: it computes fresh
+    // rather than borrowing the point's runs.
     session.setSelection({ x: { from: 0, to: 1 }, y: { from: 0, to: 0 } });
     await settle();
 
-    const during = updates.at(-1)!;
-    expect(during.cellsInRegion).toBe(2);
-    expect(during.cellsSampled).toBe(1);
-    expect(during.runsCompleted).toBe(8);
-    expect(during.metricFrames[0]).toMatchObject({ bins: [[3, 8]] });
+    const rangeBatch = batches.at(-1)!;
+    expect(rangeBatch.request.runCount).toBe(8);
+    expect(rangeBatch.request.seed).toBe(42);
+    expect(rangeBatch.request.runs).toHaveLength(8);
     session.dispose();
   });
 

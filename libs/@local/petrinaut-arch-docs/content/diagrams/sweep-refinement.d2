@@ -3,13 +3,13 @@ direction: right
 
 navigator: "sweep navigator\n(range slider per\nparameter, sticky)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
 session: "sweep session\n(selected region:\nposition ranges)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
-cache: "cell cache\n(finished batches\nper position)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+cache: "selection cache\n(finished batches\nper selection)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
 backend: "chosen backend\n(CPU worker pool\nor WebGPU)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 charts: "metric charts\n(stream while batches run)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
 
 navigator -> session: "selection change\n(cancel + restart)" {style.stroke-dash: 4}
-session -> backend: "one cell's batch: runs\n[completed, next rung)"
+session -> backend: "the selection's batch: runs\n[completed, next rung)"
 backend -> session: frames stream
 session -> cache: fold finished batch
 cache -> session: "resume mid-ladder\non revisit" {style.stroke-dash: 4}
-session -> charts: "region's cached +\nin-flight frames, merged"
+session -> charts: "selection's cached +\nin-flight frames, merged"
