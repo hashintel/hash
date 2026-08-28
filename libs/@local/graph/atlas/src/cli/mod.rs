@@ -46,7 +46,7 @@ pub use self::{
     embedder::{EmbedderArgs, EmbedderError},
     fit::{FitArgs, FitCommand, FitError, FitVerdict},
     postgres::{ConnectError, PostgresArgs, connect},
-    serve::{ServeArgs, ServeCommand, ServeError},
+    serve::{RequestFacilities, ServeArgs, ServeCommand, ServeError},
 };
 use crate::{device::PinnedDevice, file::generation::GenerationRoot};
 pub use crate::{

@@ -6,7 +6,13 @@ use core::{error::Error, fmt, time::Duration};
 use axum::Router;
 use clap::Args;
 use hash_graph_postgres_store::store::PostgresStorePool;
+use hash_middleware::{
+    authentication::{authentication_middleware, provider::AuthenticationProvider},
+    rate_limit::{RateLimitConfig, RateLimiters, ip_gate_middleware, principal_limit_middleware},
+    telemetry::HttpTracingLayer,
+};
 use rand::rngs::SysRng;
+use type_system::principal::actor::ActorId;
 
 use super::RootArgs;
 use crate::{
@@ -251,6 +257,33 @@ impl Error for ServeError {
     }
 }
 
+/// Path the liveness route answers on.
+///
+/// The route sits outside the request budgets. The tracing layer skips it, since spans over a
+/// probe answered every few seconds per task only inflate the metrics derived from them.
+const STATUS_PATH: &str = "/status";
+
+/// The request-handling inputs the hosting binary supplies.
+///
+/// [`ServeCommand::run`] composes them into the router's request middlewares, so every route it
+/// returns sits behind the per-address limiter, credential resolution, and the per-principal
+/// budget, with request tracing outermost. The liveness route alone answers outside the budgets.
+pub struct RequestFacilities<P> {
+    /// The credential verifier chain resolving each request's headers to an actor.
+    ///
+    /// A request without a recognized credential resolves as anonymous, and whether an anonymous
+    /// caller may proceed is each handler's to state through the extractor it takes.
+    pub provider: Arc<P>,
+
+    /// The secret internal services present to delegate an actor and to pass the budgets
+    /// unmetered.
+    pub service_secret: Arc<str>,
+
+    /// The request budgets, keyed per client address ahead of authentication and per principal
+    /// behind it.
+    pub rate_limit: RateLimitConfig,
+}
+
 /// One serve invocation, resolved: the enforced limits and the wire secret over an opened root.
 #[derive(Debug)]
 pub struct ServeCommand {
@@ -276,10 +309,14 @@ impl ServeCommand {
 
     /// Opens the root's active generation and builds the read-API router over it.
     ///
-    /// `/status` liveness route included.
+    /// The router carries its own request middlewares, composed from the supplied
+    /// [`RequestFacilities`]. A request clears the per-address limiter and credential resolution
+    /// before the per-principal budget meters it, and request tracing wraps the whole router.
+    /// The `/status` liveness route answers outside the budgets, and tracing opens no span for
+    /// it.
     ///
-    /// The hosting binary owns the listener, lifecycle, middleware, the dialed store connection
-    /// `pool` - every store read the serving process makes goes through it, detail trailers and
+    /// The hosting binary owns the listener, lifecycle, the dialed store connection `pool` -
+    /// every store read the serving process makes goes through it, detail trailers and
     /// permission resolution alike - and `visibility`, the window over which the router reuses a
     /// resolved scope. The router carries everything the atlas serves.
     ///
@@ -288,7 +325,7 @@ impl ServeCommand {
     /// consumer polls the entity feed through the same pool for the process's lifetime, and the
     /// staging arm walks classified arrivals toward placement, ensuring embeddings when the
     /// caller supplies `ensure` and staging without ensures otherwise. Consumer initialization
-    /// draws a fresh delta epoch, which every authority token seals, so the tokens minted beside
+    /// draws a fresh delta epoch, which every authority token seals, so the tokens issued beside
     /// an earlier register lifetime refuse uniformly and their sessions bootstrap again.
     ///
     /// # Errors
@@ -298,12 +335,25 @@ impl ServeCommand {
     /// generation, [`ServeError::Secret`] for an invocation with no wire secret,
     /// [`ServeError::Open`] for artifacts that do not open, and [`ServeError::Epoch`] when the
     /// delta epoch's entropy draw fails.
-    pub fn run(
+    ///
+    /// # Panics
+    ///
+    /// This panics when called outside a Tokio runtime. The rate limiters' eviction sweep spawns
+    /// onto the caller's runtime, as does the delta consumer where one runs.
+    pub fn run<P>(
         self,
         pool: Arc<PostgresStorePool>,
         visibility: VisibilityLimits,
         ensure: Option<EmbeddingEnsure>,
-    ) -> Result<Router, ServeError> {
+        RequestFacilities {
+            provider,
+            service_secret,
+            rate_limit,
+        }: RequestFacilities<P>,
+    ) -> Result<Router, ServeError>
+    where
+        P: AuthenticationProvider<Option<ActorId>> + 'static,
+    {
         // Embedders reach this entry without passing through the shell's main.
         crate::math::kernel::verify_cpu_baseline();
 
@@ -376,11 +426,50 @@ impl ServeCommand {
             None
         };
 
-        Ok(
-            api::router(atlas, self.limits, details, pool, visibility, epoch, cell).route(
-                "/status",
+        let principal_limiters = Arc::new(RateLimiters::new(&rate_limit));
+        principal_limiters.spawn_maintenance();
+
+        let gate_limiters = Arc::clone(&principal_limiters);
+        let principal_secret = Arc::clone(&service_secret);
+        let auth_secret = Arc::clone(&service_secret);
+
+        // A layer covers only the routes added before it. The api routes sit behind all three
+        // request middlewares, while the liveness route, added after the budgets, spends none of
+        // them. The tracing layer covers everything and its predicate skips the liveness path.
+        let router = api::router(atlas, self.limits, details, pool, visibility, epoch, cell)
+            .route_layer(axum::middleware::from_fn(move |request, next| {
+                principal_limit_middleware(
+                    Arc::clone(&principal_limiters),
+                    Arc::clone(&principal_secret),
+                    request,
+                    next,
+                )
+            }))
+            .route_layer(axum::middleware::from_fn(move |request, next| {
+                // The atlas names no bootstrap route, so no route answers on the service
+                // secret alone.
+                authentication_middleware::<_, Option<ActorId>>(
+                    Arc::clone(&provider),
+                    Arc::clone(&auth_secret),
+                    |_path| false,
+                    request,
+                    next,
+                )
+            }))
+            .layer(axum::middleware::from_fn(move |request, next| {
+                ip_gate_middleware(
+                    Arc::clone(&gate_limiters),
+                    Arc::clone(&service_secret),
+                    request,
+                    next,
+                )
+            }))
+            .route(
+                STATUS_PATH,
                 axum::routing::get(async || axum::http::StatusCode::OK),
-            ),
-        )
+            )
+            .layer(HttpTracingLayer::new(|path| path == STATUS_PATH));
+
+        Ok(router)
     }
 }

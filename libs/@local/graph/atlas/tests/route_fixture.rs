@@ -9,10 +9,11 @@
 //!
 //! The test stands where a hosting binary stands. It builds the router through
 //! [`ServeCommand::run`] over the store the `HASH_GRAPH_PG_*` environment names and the
-//! generation root `HASH_GRAPH_ATLAS_ROOT` names, then speaks to the router as an HTTP client.
-//! No crate internals participate, so the captured bytes witness the composition production
-//! serves, from the actor header and the sealed filter through token admission to tile
-//! assembly.
+//! generation root `HASH_GRAPH_ATLAS_ROOT` names, supplies the request facilities a host
+//! supplies - its credential verifier resolves the actor header directly - and then speaks to
+//! the router as an HTTP client. No crate internals participate, so the captured bytes witness
+//! the composition production serves, from the actor header and the sealed filter through token
+//! admission to tile assembly.
 //!
 //! A fitted generation is not a standing property of every checkout, so the test runs only when
 //! `ATLAS_ROUTE_FIXTURE` selects a mode and reports itself skipped otherwise:
@@ -47,26 +48,57 @@
     reason = "an integration test target is a std binary with no alloc crate of its own"
 )]
 
+use core::{num::NonZeroU32, ops::ControlFlow};
 use std::{fs, path::PathBuf, sync::Arc};
 
 use axum::{
     body::Body,
-    http::{Request, StatusCode, header::CONTENT_TYPE},
+    http::{HeaderMap, Request, StatusCode, header::CONTENT_TYPE},
 };
 use clap::Parser;
-use hash_graph_atlas::cli::{RootArgs, ServeArgs, ServeCommand, VisibilityLimits};
+use error_stack::Report;
+use hash_graph_atlas::cli::{
+    RequestFacilities, RootArgs, ServeArgs, ServeCommand, VisibilityLimits,
+};
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
     PostgresStoreSettings,
 };
+use hash_middleware::{
+    authentication::{
+        provider::AuthenticationProvider,
+        request::{ACTOR_ID_HEADER, AuthenticationError, actor_id_from_header},
+    },
+    rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode},
+};
 use serde_json::{Value, json};
 use tokio_postgres::NoTls;
 use tower::ServiceExt as _;
+use type_system::principal::actor::{ActorId, UserId};
 
-/// The header naming the authenticated actor, the graph REST API's own spelling.
-const ACTOR_HEADER: &str = "X-Authenticated-User-Actor-Id";
+/// Resolves the actor header as a delegated user, standing where the deployment's credential
+/// chain stands.
+///
+/// The fixture's charter is transport, so the verifier trusts the header the test sends itself,
+/// without the service-secret ceremony or the store's actor-kind lookup. The named actor is a
+/// user in the arranged store.
+struct HeaderDelegation;
 
-/// The response header carrying the minted authority token.
+impl AuthenticationProvider<Option<ActorId>> for HeaderDelegation {
+    fn authenticate(
+        &self,
+        headers: &HeaderMap,
+    ) -> impl Future<Output = ControlFlow<Result<Option<ActorId>, Report<AuthenticationError>>>> + Send
+    {
+        core::future::ready(match actor_id_from_header(headers) {
+            Ok(actor) => ControlFlow::Break(Ok(Some(ActorId::User(UserId::new(actor))))),
+            Err(AuthenticationError::MissingDelegatedActor) => ControlFlow::Continue(()),
+            Err(error) => ControlFlow::Break(Err(Report::new(error))),
+        })
+    }
+}
+
+/// The response header carrying the issued authority token.
 const AUTHORITY_HEADER: &str = "atlas-authority";
 
 /// The fixture's basename under `fixtures/wire/`.
@@ -336,15 +368,37 @@ async fn route_served_scoped_tile_fixture() {
     // The fixture is a claim about the change under test, never about live store state, so the
     // delta consumer stays off and the served bytes come from the generation alone.
     let invocation = Invocation::parse_from(["route-fixture", "--no-delta"]);
+    // Observe mode, because the fixture pins transport rather than budgets, and a oneshot
+    // request has no connection info for the per-address key to read.
+    let quota = |value| NonZeroU32::new(value).expect("the quota is non-zero");
+    let facilities = RequestFacilities {
+        provider: Arc::new(HeaderDelegation),
+        service_secret: Arc::from("route-fixture-service-secret"),
+        rate_limit: RateLimitConfig {
+            rate_limit_mode: RateLimitMode::Observe,
+            client_ip_source: ClientIpSource::ConnectInfo,
+            rate_limit_gate_per_second: quota(10),
+            rate_limit_gate_burst: quota(50),
+            rate_limit_anonymous_per_hour: quota(60),
+            rate_limit_anonymous_burst: quota(50),
+            rate_limit_actor_per_hour: quota(6000),
+            rate_limit_actor_burst: quota(100),
+        },
+    };
     let router = ServeCommand::new(invocation.root, invocation.serve)
-        .run(Arc::new(pool), VisibilityLimits::default(), None)
+        .run(
+            Arc::new(pool),
+            VisibilityLimits::default(),
+            None,
+            facilities,
+        )
         .expect("the root holds an activated generation and a wire secret is configured");
 
     // The generation under serve, from the route that names it.
     let (status, _, body) = send(
         &router,
         Request::get("/v1/atlas/current")
-            .header(ACTOR_HEADER, &actor)
+            .header(ACTOR_ID_HEADER, &actor)
             .body(Body::empty())
             .expect("the request builds"),
     )
@@ -361,7 +415,7 @@ async fn route_served_scoped_tile_fixture() {
     let (status, headers, body) = send(
         &router,
         Request::post(format!("/v1/atlas/generation/{generation}/manifest"))
-            .header(ACTOR_HEADER, &actor)
+            .header(ACTOR_ID_HEADER, &actor)
             .header(CONTENT_TYPE, "application/json")
             .body(Body::from(FILTER))
             .expect("the request builds"),
@@ -401,7 +455,7 @@ async fn route_served_scoped_tile_fixture() {
     let (status, headers, tile) = send(
         &router,
         Request::post(format!("/v1/atlas/tile/{generation}/plain/0/0/0"))
-            .header(ACTOR_HEADER, &actor)
+            .header(ACTOR_ID_HEADER, &actor)
             .header(AUTHORITY_HEADER, &token)
             .body(Body::empty())
             .expect("the request builds"),
