@@ -124,8 +124,10 @@ pub enum StaticAuthenticationProvider {
     NotRecognized,
     /// Verifies every request to this actor.
     Verified(ActorId),
-    /// Rejects every request.
+    /// Rejects every request as carrying an invalid session.
     Rejected,
+    /// Fails to verify every request.
+    Unreachable,
 }
 
 #[cfg(any(test, feature = "test-utils"))]
@@ -142,6 +144,9 @@ where
             Self::Verified(actor) => ControlFlow::Break(Ok(C::from_actor(*actor))),
             Self::Rejected => {
                 ControlFlow::Break(Err(Report::new(AuthenticationError::InvalidSession)))
+            }
+            Self::Unreachable => {
+                ControlFlow::Break(Err(Report::new(AuthenticationError::ProviderUnreachable)))
             }
         })
     }
