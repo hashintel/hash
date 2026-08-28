@@ -23,7 +23,7 @@ M1 chat (done)    M2 pipe (archived)    M3 runbook (live)
 └─ Brunch elicitation
     ├─ M5 typed map + Petrinaut R/W
     └─ M6 capture improvement (observer, maybe types, maybe subagents)
-LATER / parallel — OTel/eval, watch-sims, HarnessAgent
+LATER / parallel — OTel/eval, watch-sims, sim-check, HarnessAgent
 ```
 
 Two trunks, one live `MISSION.md`. Parallel means stacked branches or worktrees, not two
@@ -36,7 +36,9 @@ Not a mission. A standing constraint on every elicitation cut.
 Capture (archived Mission 2) and the runbook / IR path (live Mission 3) were brought in
 together so strain is visible. There is **no designed join**. Whether they converge, and if
 so where, when, and in what form, is an open later question. Do not wire them in order to
-tidy the list.
+tidy the list. The sharpest form of the question, from the Mission 3 review: if they
+converge, is the runbook IR the fold target — does the workpiece become what swept evidence
+accumulates into?
 
 Three premature convergence shapes were refused:
 
@@ -63,6 +65,12 @@ turns on the order of minutes. Stop lines that carry forward from M2: producing 
 requires a model call; a sweep tool appears on the interviewer; kinds / slots / fold or the
 plugin / repertoire YAML runtime re-enters as the teaching vehicle; the runbook or IR template is wired
 to the store; ordinary turns return to condition-5 latency.
+
+Mission 3 pried the latency classes apart: teaching turns ran 5–23s (healthy); construct
+emission ran 162–271s — a different budget, slow by design in one-shot form. The condition-5
+tripwire applies to ordinary teaching turns. Construct-phase latency is budgeted separately;
+one-shot emission vs a validated tool loop is a Mission 5 design axis, not a stop-line
+breach.
 
 # Mission 4 — host continuity and choice
 
@@ -111,6 +119,11 @@ Product control to compact, or to show a summarized range, only after that pin.
 Moved here from the original M3 batching: it is history reconstruction, not a prompting
 concern.
 
+Cross-cluster interaction: the runbook path recovers its IR by scraping Flue history. A
+compaction boundary that summarizes the `runbook-ir` fence away silently breaks Mission 5's
+consumption pattern. The pin must cover fence survival, or the IR must gain a durable
+surface first.
+
 ## Voice (git parent, not this cut)
 
 Stack on `kostandin/h-6763-openai-canonical-speech` when that branch is the parent. Same
@@ -137,7 +150,18 @@ tools and lifecycle belong on the live panel is still not decided.
 
 **IR at this cut.** Mission 3's IR is a markdown template (skill supporting file), structured
 but not strictly typed; generation uses inference. This cut introduces the typed map (which
-fields become places / transitions / arcs). Rejected alternatives were to make Mission 3 use
+fields become places / transitions / arcs). The construction-discovered-gap return —
+unexercised in Mission 3, where the agent delivered `partial-with-named-gaps` instead of
+asking — becomes mechanical here: a missing required field names the smallest next question.
+The map must also make completion and terminal acts derived runtime decisions: required
+fields and unresolved gaps determine ask / construct / deliver, rather than the model
+self-reporting readiness.
+
+**Node identity fog.** Mutation tools accept caller-supplied stable ids, but whether
+model-minted place / transition ids survive edit and regeneration cycles is unexamined.
+Mission 6's capture-to-node attachment cannot assume they do.
+
+Rejected alternatives were to make Mission 3 use
 core kind/slot tables with the template only projecting the fold, or to skip the document
 template and begin the typed IR in Mission 3. The first would put the full plugin IR back on
 the door too early.
@@ -168,8 +192,25 @@ Mission 5 must therefore require a mechanical, provider-visible schema path — 
 Flue accepting Standard Schema or supplied JSON Schema, otherwise a shape-preserving
 Zod-to-Valibot conversion. Do not copy Petrinaut payload fields into Brunch. Its acceptance
 gate must combine parser success with a non-empty and semantically inspected net; parser
-acceptance alone is vacuous. The full run and $0.24699 cost are recorded in the Mission 3
-proof.
+acceptance alone is vacuous — and an IR audit oracle: a reader who never saw the
+conversation reconstructs the intended model from the IR alone. The full run and $0.24699
+cost are recorded in the Mission 3 proof.
+
+**Fog, carried from the Mission 3 review and the side-quest run.**
+
+- Provider-visible schema: does Flue have a documented path for Standard Schema or supplied
+  JSON Schema, or is this an upstream Flue ask? The requirement above rests on an unverified
+  capability.
+- Repair-loop design: the real run went 0-for-9 — nine `addType.elements` rejections and no
+  recovery. Schema invisibility is the recorded cause, but this cut must decide correction
+  budget, stop condition, and whether rejection messages alone can steer.
+- IR recovery seam: the IR is scraped from the last `runbook-ir` fence in history. When the
+  typed map consumes it, decide whether the scrape stays or the map defines the first
+  durable IR contract. Interacts with Mission 4 compaction: a boundary that summarizes the
+  fence away breaks recovery.
+- Schema-alignment watch: `parseSDCPNFile`'s file-format schemas and `action-schemas.ts`
+  are separate families aligned by hand inside petrinaut-core. This cut's acceptance gate
+  depends on that alignment; a failure at that seam routes upstream, not into Brunch.
 
 # Mission 6 — capture improvement
 
@@ -261,6 +302,17 @@ embed that page. A pane can at most open the URL or tail the transcript CLI.
 Watching sims in the Petrinaut panel, including a client-tool stand-in, would couple every sim to
 panel client tools unnecessary for elicitation rehearsal. `HarnessAgent` is not this surface.
 
+## Simulation-backed construct check
+
+Parallel spike, not a mission. Nothing verifies that a constructed net faithfully models
+what the expert described: `parseSDCPNFile` is shape-only, and the Mission 5 gate adds
+non-emptiness, IR correspondence, and an IR audit — semantic fidelity above that rung is
+owned by nobody. Candidate oracle: Petrinaut's own simulation engine — run the net against
+expectations recorded in the IR and compare qualitative behavior. Fixture: the hermetic
+side-quest net (the real-model run produced an empty net and is not a fixture). Not on the
+critical path. If a simulated net contradicts the expert's account, that is the demo moment
+that justifies the elicitation stack.
+
 ## AI SDK 7 `HarnessAgent`
 
 Undecided. Converse of the current door (resume a harness session by chat id). Flue already
@@ -279,6 +331,10 @@ no canvas tools. These did not make that cut:
 - "Maybe wire PN JSON into the app programmatically" — manual load is enough to score
   whether the template contained enough. Programmatic load is leftover, not a Mission 3
   proof item.
+- The construction-discovered-gap return was never exercised: no contradiction was injected.
+  Its typed mechanization is recorded under Mission 5.
+- Opening overload (4–10 numbered questions per turn, both real runs) is a known one-home
+  edit to `elicitation.md` that no mission owns.
 
 The live mission now consumes
 [`docs/specs/structurally-typed-elicitation-runbooks.md`](docs/specs/structurally-typed-elicitation-runbooks.md):
@@ -290,7 +346,7 @@ Mission 3 fog, not successor work.
 
 Not missions.
 
-## Teaching mechanism
+## Ownership and teaching mechanism
 
 One real Flue skill is the teaching mechanism (Mission 2 landed `defineSkill` / `useSkill` /
 `activate_skill`). Do not grow a skill catalog. A concise always-on instruction routes to the skill;
@@ -298,6 +354,25 @@ its body carries lifecycle procedure and its supporting resources disclose elici
 the IR template, PN construction, and checks as needed. Flue `useSkill` is not always-on
 `useInstruction`, and the runbook may incorporate repertoire content without re-admitting the core
 YAML runtime or plugin keys onto this door.
+
+Ownership boundaries (Mission 3 review + retired side quest, 2026-08-28):
+
+- **Prompting is Brunch's.** How-to-build guidance — interview policy, composition teaching,
+  "how to build a Petri net" prose — is Brunch-authored. The latest `petrinautAiPrompt` on
+  `main` (post-FE-1516) is the coverage reference: teach from it, never hand-copy it, and
+  exclude its interview / "make it up" escape-hatch policy from the runbook's elicitation
+  discipline.
+- **Contracts are Petrinaut's.** TypeScript API contracts and payload shapes for Petri nets
+  and Petrinaut (`action-schemas.ts`, the net definition, code-surface field names) are
+  consumed by import or generation, never hand-copied. FE-1516 drifted a prose copy within a
+  day of landing — the standing counterexample.
+- **Skill packaging is Flue's.** An authored skill directory is statically imported through
+  its bare `SKILL.md` specifier and mounted with `useSkill`; no custom frontmatter parsing,
+  hand-enumerated resources, or source-relative runtime reads.
+
+The universal ↔ SDCPN provenance migration (which teaching lines move up or down) is an
+ongoing editorial practice recorded per edit, not automation. It ran zero times on real
+evidence during Mission 3.
 
 Cross-cuts the live runbook path and the capture-improvement elicitor guidance; it belongs
 to no single future cluster, so it stands here.
