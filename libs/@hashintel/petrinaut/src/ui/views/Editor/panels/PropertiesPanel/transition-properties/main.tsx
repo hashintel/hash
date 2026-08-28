@@ -5,14 +5,14 @@ import { getTransitionLogicAvailability } from "@hashintel/petrinaut-core";
 
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
+import { createDeferredSubView } from "../../../../../components/sub-view/deferred-sub-view";
 import { VerticalSubViewsContainer } from "../../../../../components/sub-view/vertical/vertical-sub-views-container";
+import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import {
   TransitionPropertiesProvider,
   type TransitionLogicNet,
 } from "./context";
 import { transitionMainContentSubView } from "./subviews/main";
-import { transitionFiringTimeSubView } from "./subviews/transition-firing-time/subview";
-import { transitionResultsSubView } from "./subviews/transition-results/subview";
 
 import type { PetrinautMutations } from "../../../../../../react";
 import type { SubView } from "../../../../../components/sub-view/types";
@@ -23,6 +23,40 @@ const containerStyle = css({
   flexDirection: "column",
   height: "[100%]",
   minHeight: "[0]",
+});
+
+const transitionFiringTimeSubView = createDeferredSubView({
+  id: "transition-firing-time",
+  title: "Firing Time",
+  defaultCollapsed: true,
+  tooltip:
+    "Define the rate at or conditions under which this transition will fire, optionally based on each set of input tokens' data (where input tokens have types).",
+  hasHeaderAction: true,
+  resizable: {
+    minHeight: 250,
+    maxHeight: 1200,
+    defaultHeight: 300,
+  },
+  load: async () =>
+    (await import("./subviews/transition-firing-time/subview"))
+      .transitionFiringTimeSubView,
+});
+
+const transitionResultsSubView = createDeferredSubView({
+  id: "transition-results",
+  title: "Transition Results",
+  defaultCollapsed: true,
+  tooltip:
+    "This function determines the data for output tokens, optionally based on the input token data and any global parameters defined.",
+  hasHeaderAction: true,
+  resizable: {
+    minHeight: 300,
+    maxHeight: 1200,
+    defaultHeight: 500,
+  },
+  load: async () =>
+    (await import("./subviews/transition-results/subview"))
+      .transitionResultsSubView,
 });
 
 interface TransitionPropertiesProps {
@@ -47,6 +81,7 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
   removeArc,
 }) => {
   const isReadOnly = useIsReadOnly();
+  const presentation = usePetrinautPresentation();
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const logicAvailability = getTransitionLogicAvailability(
     transition,
@@ -57,8 +92,12 @@ export const TransitionProperties: React.FC<TransitionPropertiesProps> = ({
 
   const subViews: SubView[] = [
     transitionMainContentSubView,
-    ...(logicAvailability.lambda ? [transitionFiringTimeSubView] : []),
-    ...(logicAvailability.transitionKernel ? [transitionResultsSubView] : []),
+    ...(presentation.showSourceCode && logicAvailability.lambda
+      ? [transitionFiringTimeSubView]
+      : []),
+    ...(presentation.showSourceCode && logicAvailability.transitionKernel
+      ? [transitionResultsSubView]
+      : []),
   ];
 
   return (

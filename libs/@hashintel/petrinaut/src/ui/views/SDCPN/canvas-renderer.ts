@@ -25,6 +25,8 @@ export type CanvasController = {
   ) => void;
   zoomIn: () => void;
   zoomOut: () => void;
+  /** Frames the whole scene, easing the move when the renderer supports it. */
+  fitView: () => void;
   /** Client (viewport-relative screen) coordinates to scene coordinates. */
   screenToScene: (point: CanvasPoint) => CanvasPoint;
   sceneToScreen: (point: CanvasPoint) => CanvasPoint;

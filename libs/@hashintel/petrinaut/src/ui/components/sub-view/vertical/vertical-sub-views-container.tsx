@@ -10,6 +10,7 @@ import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { useScrollOverflow } from "../../../hooks/use-scroll-overflow";
+import { usePetrinautPresentation } from "../../../views/shared/presentation-context";
 
 import type { SubView } from "../types";
 
@@ -422,6 +423,7 @@ interface VerticalSubViewsContainerProps {
 export const VerticalSubViewsContainer: React.FC<
   VerticalSubViewsContainerProps
 > = ({ name, subViews, defaultExpanded = true }) => {
+  const presentation = usePetrinautPresentation();
   const { showAnimations, subViewPanels, updateSubViewSection } =
     use(UserSettingsContext);
 
@@ -500,7 +502,11 @@ export const VerticalSubViewsContainer: React.FC<
                   renderTitle={subView.renderTitle}
                   isExpanded={isExpanded}
                   onToggle={() => toggleSection(subView)}
-                  renderHeaderAction={subView.renderHeaderAction}
+                  renderHeaderAction={
+                    presentation.showMutationActions
+                      ? subView.renderHeaderAction
+                      : undefined
+                  }
                   alwaysShowHeaderAction={subView.alwaysShowHeaderAction}
                 />
 

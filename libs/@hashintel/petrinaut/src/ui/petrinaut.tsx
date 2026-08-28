@@ -20,6 +20,10 @@ import { PetrinautProvider } from "../react/petrinaut-provider";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
 import { EditorView } from "./views/Editor/editor-view";
+import {
+  PetrinautPresentationProvider,
+  type PetrinautPresentationProfile,
+} from "./views/shared/presentation-context";
 
 // `clip`, not `hidden`: a hidden-overflow box is still programmatically
 // scrollable, and focusing an element the canvas transform pushed past the
@@ -112,6 +116,12 @@ export type PetrinautProps = {
   lspWorkerFactory?: LspWorkerFactory;
   /** Optional host-controlled, router-neutral app location. */
   navigation?: PetrinautNavigationController;
+  /**
+   * Presentation policy for the full editor. `review` keeps the full editor
+   * surface while suppressing authoring actions for route-scoped read-only
+   * examples. The default remains `editor`.
+   */
+  presentationProfile?: PetrinautPresentationProfile;
 };
 
 const noop = () => {};
@@ -140,6 +150,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   monteCarloWorkerFactory,
   lspWorkerFactory,
   navigation,
+  presentationProfile = "editor",
 }) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(
@@ -167,19 +178,21 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
         lspWorkerFactory={lspWorkerFactory}
         navigation={navigation}
       >
-        <MonacoProvider>
-          <Stack
-            className={cx(editorRootStyle, "petrinaut-root")}
-            ref={portalContainerRef}
-          >
-            <EditorView
-              aiAssistant={aiAssistant}
-              hideNetManagementControls={hideNetManagementControls}
-              slots={slots}
-              viewportActions={viewportActions}
-            />
-          </Stack>
-        </MonacoProvider>
+        <PetrinautPresentationProvider profile={presentationProfile}>
+          <MonacoProvider>
+            <Stack
+              className={cx(editorRootStyle, "petrinaut-root")}
+              ref={portalContainerRef}
+            >
+              <EditorView
+                aiAssistant={aiAssistant}
+                hideNetManagementControls={hideNetManagementControls}
+                slots={slots}
+                viewportActions={viewportActions}
+              />
+            </Stack>
+          </MonacoProvider>
+        </PetrinautPresentationProvider>
       </PetrinautProvider>
     </PortalContainerContext>
   );

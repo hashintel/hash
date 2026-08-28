@@ -11,6 +11,7 @@ import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
+import { usePetrinautPresentation } from "../../../../shared/presentation-context";
 import { RowActionCell } from "./row-action-cell";
 
 import type { SubView } from "../../../../../components/sub-view/types";
@@ -102,11 +103,16 @@ const renameInputStyle = css({
 });
 
 const NetsHeaderAction: React.FC = () => {
+  const presentation = usePetrinautPresentation();
   const {
     petriNetDefinition: { subnets },
   } = use(SDCPNContext);
   const { addSubnet } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
+
+  if (!presentation.showMutationActions) {
+    return null;
+  }
 
   return (
     <Button
@@ -139,12 +145,14 @@ const targetKey = (target: FocusStopTarget): string =>
   `${target.stopId}:${target.column}`;
 
 const NetsListContent: React.FC = () => {
+  const presentation = usePetrinautPresentation();
   const {
     petriNetDefinition: { subnets },
   } = use(SDCPNContext);
   const { activeSubnetId, setActiveSubnetId } = use(ActiveNetContext);
   const { updateSubnet, removeSubnet } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
+  const mutationActionsVisible = presentation.showMutationActions;
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -233,7 +241,10 @@ const NetsListContent: React.FC = () => {
       if (
         (event.key === "Delete" || event.key === "Backspace") &&
         stopId !== ROOT_STOP_ID &&
-        !isReadOnly
+        !isReadOnly &&
+        // A keyboard delete is a mutation, so a presentation that hides the
+        // delete button has to refuse the shortcut too.
+        mutationActionsVisible
       ) {
         event.preventDefault();
         event.stopPropagation();
@@ -296,7 +307,11 @@ const NetsListContent: React.FC = () => {
                 setActiveSubnetId(subnet.id);
               }
             }}
-            onDoubleClick={() => startEditing(subnet.id, subnet.name)}
+            onDoubleClick={() => {
+              if (mutationActionsVisible) {
+                startEditing(subnet.id, subnet.name);
+              }
+            }}
             onKeyDown={onRowKeyDown(subnet.id, () =>
               setActiveSubnetId(subnet.id),
             )}
@@ -324,7 +339,7 @@ const NetsListContent: React.FC = () => {
             ) : (
               <span className={nameStyle}>{subnet.name}</span>
             )}
-            {editingId !== subnet.id && (
+            {mutationActionsVisible && editingId !== subnet.id && (
               <RowActionCell
                 registerButton={registerTarget(actionTarget)}
                 onArrowKeyDown={onStopsKeyDown(actionTarget)}

@@ -78,6 +78,7 @@ export const EmbeddedExamplePage: FunctionComponent<
           handle={handle}
           hideNetManagementControls="all"
           navigation={navigation}
+          presentationProfile="review"
           readonly
           slots={{
             topBarStart: (
