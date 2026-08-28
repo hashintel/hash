@@ -92,6 +92,25 @@ const errorStyle = css({
   whiteSpace: "pre-wrap",
 });
 
+// The drawer body is a column: the summary, the navigator, and the surface
+// hold still at the top, and the metric charts alone scroll below them.
+const drawerBodyStyle = css({
+  paddingTop: "[0]",
+  display: "flex",
+  flexDirection: "column",
+});
+
+const fixedSectionStyle = css({
+  flexShrink: "0",
+});
+
+const metricsScrollStyle = css({
+  flex: "[1]",
+  minHeight: "[160px]",
+  overflowY: "auto",
+  scrollbarWidth: "[thin]",
+});
+
 const metricGridStyle = css({
   display: "grid",
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -365,12 +384,13 @@ export const ViewExperimentDrawer = ({
         title={experiment.name}
         description="Monte Carlo experiment metrics"
       />
-      <Drawer.Body className={css({ paddingTop: "[0]" })}>
+      <Drawer.Body className={drawerBodyStyle}>
         <SectionList>
           <Section
             title="Summary"
             collapsible
             defaultOpen
+            className={fixedSectionStyle}
             // In the header rather than the grid below, so which backend ran
             // stays visible when the section is collapsed.
             renderHeaderAction={() => (
@@ -383,8 +403,9 @@ export const ViewExperimentDrawer = ({
             <Section
               title="Parameters"
               tooltip="Only the selected combination computes. Move a control and compute follows it; results for visited combinations are kept."
-              // Not collapsible: the navigator lives in the sticky band so it
-              // stays usable while the charts below stream.
+              className={fixedSectionStyle}
+              // Not collapsible: the navigator stays usable while the charts
+              // below stream.
               renderStickyBand={() =>
                 experiment.sweep ? (
                   <SweepNavigator
@@ -407,19 +428,22 @@ export const ViewExperimentDrawer = ({
               {null}
             </Section>
           ) : null}
-          {experiment.metricFrames.length > 0 ? (
-            <Section title="Metrics" collapsible defaultOpen>
-              <ExperimentMetrics experiment={experiment} />
-            </Section>
-          ) : null}
           {experiment.sweep && experiment.parameterAxes.length >= 2 ? (
             <Section
               title="Surface"
               tooltip="One metric's final value over two swept parameters, sampled progressively at 8 runs per combination. Click to move the navigator."
               collapsible
               defaultOpen
+              className={fixedSectionStyle}
             >
               <SweepSurface experiment={experiment} />
+            </Section>
+          ) : null}
+          {experiment.metricFrames.length > 0 ? (
+            <Section title="Metrics" fillHeight>
+              <div className={metricsScrollStyle}>
+                <ExperimentMetrics experiment={experiment} />
+              </div>
             </Section>
           ) : null}
         </SectionList>
