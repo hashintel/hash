@@ -180,7 +180,7 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
             ? hexToHsl(data.typeColor).lighten(-10).saturate(-30).css(1)
             : undefined,
           backgroundColor: data.typeColor
-            ? hexToHsl(data.typeColor).lighten(35).css(1)
+            ? hexToHsl(data.typeColor).lightness(85).css(1)
             : undefined,
         }}
       >

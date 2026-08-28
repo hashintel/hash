@@ -99,7 +99,7 @@ export const PlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
     : undefined;
 
   const placeBackgroundColor = data.typeColor
-    ? hexToHsl(data.typeColor).lighten(30).css(1)
+    ? hexToHsl(data.typeColor).lightness(80).css(1)
     : "#FFFFFF";
 
   return (
