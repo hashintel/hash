@@ -1,32 +1,36 @@
 /**
- * The parameter navigator of a sweep experiment: one control row per swept
- * parameter, plus a refinement status line. Moving any control redirects
- * compute to the newly selected combination; the metrics below re-stream for
- * it, so this strip lives in the section's sticky band and stays visible
- * while the charts scroll.
+ * The parameter navigator of a sweep experiment: one slider row per swept
+ * parameter, plus a refinement status line. Each slider selects a position
+ * range on the parameter's quantized interval — the whole interval by
+ * default, collapsible to a single point — and moving it redirects compute to
+ * the newly selected region; the metrics below re-stream for it, so this
+ * strip lives in the section's sticky band and stays visible while the
+ * charts scroll.
  *
- * Axes with few values render every value as a segmented control (one click
- * to jump anywhere); longer axes step through values with prev/next.
+ * Slider moves commit on release: dragging previews the range locally and
+ * `setSweepSelection` fires once, so the session cancels at most one batch
+ * per gesture rather than one per pixel.
  */
-import { use } from "react";
+import { use, useState } from "react";
 
 import {
-  Button,
   LoadingSpinner,
+  RangeSlider,
   SegmentedControl,
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
+import { axisValueAt } from "../../../../../../react/experiments/parameter-grid";
 
 import type {
   ExperimentRecord,
   ExperimentSweepState,
 } from "../../../../../../react/experiments/context";
-import type { ExperimentParameterAxis } from "../../../../../../react/experiments/parameter-grid";
-
-/** Above this many values, a segmented control becomes a stepper. */
-const SEGMENTED_VALUE_LIMIT = 6;
+import type {
+  ExperimentParameterAxis,
+  SweepAxisSelection,
+} from "../../../../../../react/experiments/parameter-grid";
 
 const navigatorStyle = css({
   display: "flex",
@@ -51,24 +55,13 @@ const nameStyle = css({
   whiteSpace: "nowrap",
 });
 
-const stepperStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1",
-});
-
-const stepperValueStyle = css({
+const readoutStyle = css({
   fontSize: "xs",
   fontVariantNumeric: "tabular-nums",
   color: "neutral.s100",
-  minWidth: "[96px]",
-  textAlign: "center",
-});
-
-const stepperPositionStyle = css({
-  fontSize: "[10px]",
-  color: "neutral.s80",
-  fontVariantNumeric: "tabular-nums",
+  width: "[128px]",
+  flexShrink: 0,
+  textAlign: "right",
 });
 
 const statusStyle = css({
@@ -87,60 +80,75 @@ function formatAxisValue(value: number): string {
   const abs = Math.abs(value);
   return abs !== 0 && (abs < 0.001 || abs >= 10_000)
     ? value.toExponential(2)
-    : String(Number(value.toPrecision(6)));
+    : String(Number(value.toPrecision(4)));
 }
 
 const AxisControl = ({
   axis,
-  selectedIndex,
+  selected,
   onSelect,
 }: {
   axis: ExperimentParameterAxis;
-  selectedIndex: number;
-  onSelect: (index: number) => void;
+  selected: SweepAxisSelection;
+  onSelect: (range: SweepAxisSelection) => void;
 }) => {
-  if (axis.values.length <= SEGMENTED_VALUE_LIMIT) {
-    return (
-      <SegmentedControl
-        size="xs"
-        aria-label={axis.identifier}
-        items={axis.values.map((value, index) => ({
-          value: String(index),
-          label: formatAxisValue(value),
-        }))}
-        value={String(selectedIndex)}
-        onChange={(next) => onSelect(Number(next))}
-      />
-    );
-  }
+  /** Range being dragged; null when the slider mirrors the committed state. */
+  const [draft, setDraft] = useState<[number, number] | null>(null);
+
+  const isPoint = selected.from === selected.to;
+  const shown = draft ?? [selected.from, selected.to];
+
+  const commit = (range: [number, number]) => {
+    setDraft(null);
+    onSelect({ from: range[0], to: range[1] });
+  };
+
+  /** In point mode both thumbs coincide; the moved end is the new point. */
+  const pointAt = (range: [number, number]): number =>
+    range[0] !== selected.from ? range[0] : range[1];
 
   return (
-    <div className={stepperStyle}>
-      <Button
+    <>
+      <SegmentedControl
         size="xs"
-        variant="ghost"
-        tone="neutral"
-        iconName="chevronLeft"
-        aria-label={`Previous ${axis.identifier} value`}
-        disabled={selectedIndex <= 0}
-        onClick={() => onSelect(selectedIndex - 1)}
+        aria-label={`${axis.identifier} selection mode`}
+        items={[
+          { value: "range", label: "Range" },
+          { value: "point", label: "Point" },
+        ]}
+        value={isPoint ? "point" : "range"}
+        onChange={(mode) => {
+          if (mode === "point" && !isPoint) {
+            // Collapse to the middle of the current range.
+            const middle = Math.round((selected.from + selected.to) / 2);
+            onSelect({ from: middle, to: middle });
+          } else if (mode === "range" && isPoint) {
+            // Expand back to the whole interval.
+            onSelect({ from: 0, to: axis.stepCount });
+          }
+        }}
       />
-      <span className={stepperValueStyle}>
-        {formatAxisValue(axis.values[selectedIndex] ?? 0)}
-      </span>
-      <Button
-        size="xs"
-        variant="ghost"
-        tone="neutral"
-        iconName="chevronRight"
-        aria-label={`Next ${axis.identifier} value`}
-        disabled={selectedIndex >= axis.values.length - 1}
-        onClick={() => onSelect(selectedIndex + 1)}
+      <RangeSlider
+        min={0}
+        max={axis.stepCount}
+        step={1}
+        value={isPoint && draft === null ? [shown[0], shown[0]] : shown}
+        aria-label={axis.identifier}
+        onChange={(range) => {
+          setDraft(isPoint ? [pointAt(range), pointAt(range)] : range);
+        }}
+        onChangeEnd={(range) => {
+          commit(isPoint ? [pointAt(range), pointAt(range)] : range);
+        }}
       />
-      <span className={stepperPositionStyle}>
-        {selectedIndex + 1}/{axis.values.length}
+      <span className={readoutStyle}>
+        {shown[0] === shown[1]
+          ? formatAxisValue(axisValueAt(axis, shown[0]))
+          : `${formatAxisValue(axisValueAt(axis, shown[0]))} – ${formatAxisValue(
+              axisValueAt(axis, shown[1]),
+            )}`}
       </span>
-    </div>
+    </>
   );
 };
 
@@ -150,24 +158,31 @@ const RefinementStatus = ({
 }: {
   sweep: ExperimentSweepState;
   runCount: number;
-}) => (
-  <div className={statusStyle}>
-    {sweep.computing ? (
-      <>
-        <LoadingSpinner size="xs" />
+}) => {
+  const region =
+    sweep.cellsInRegion > 1
+      ? `${sweep.cellsSampled} of ${sweep.cellsInRegion} cells · ${sweep.runsCompleted} runs`
+      : `${sweep.runsSampled} of ${sweep.runTarget ?? runCount} runs`;
+
+  return (
+    <div className={statusStyle}>
+      {sweep.computing ? (
+        <>
+          <LoadingSpinner size="xs" />
+          <span>{region} — refining while you stay here</span>
+        </>
+      ) : (
         <span>
-          {sweep.runsSampled} of {sweep.runTarget ?? runCount} runs — refining
-          while you stay here
+          {sweep.cellsInRegion > 1
+            ? region
+            : `${sweep.runsCompleted} of ${runCount} runs${
+                sweep.runsCompleted >= runCount ? " — fully sampled" : ""
+              }`}
         </span>
-      </>
-    ) : (
-      <span>
-        {sweep.runsCompleted} of {runCount} runs
-        {sweep.runsCompleted >= runCount ? " — fully sampled" : ""}
-      </span>
-    )}
-  </div>
-);
+      )}
+    </div>
+  );
+};
 
 export const SweepNavigator = ({
   experiment,
@@ -189,11 +204,16 @@ export const SweepNavigator = ({
           </span>
           <AxisControl
             axis={axis}
-            selectedIndex={sweep.selection[axis.identifier] ?? 0}
-            onSelect={(index) =>
+            selected={
+              sweep.selection[axis.identifier] ?? {
+                from: 0,
+                to: axis.stepCount,
+              }
+            }
+            onSelect={(range) =>
               setSweepSelection(experiment.id, {
                 ...sweep.selection,
-                [axis.identifier]: index,
+                [axis.identifier]: range,
               })
             }
           />

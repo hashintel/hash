@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildParameterGridCombinations,
-  buildParameterRangeValues,
-  countGridCombinations,
+  axisPositionFor,
+  axisValueAt,
+  buildParameterAxis,
+  countRegionCells,
+  enumerateRegionCells,
+  fullSweepSelection,
   getNextRunTarget,
   mergeMetricFramesAcrossCells,
+  normalizeSweepSelection,
+  SWEEP_AXIS_STEPS,
 } from "./parameter-grid";
 
+import type { ExperimentParameterAxis } from "./parameter-grid";
 import type {
   MonteCarloUserDefinedDistributionMetricFrame,
   MonteCarloUserDefinedScalarMetricFrame,
@@ -53,135 +59,181 @@ function makeScalarFrame(
   };
 }
 
-describe("buildParameterRangeValues", () => {
-  it("expands an inclusive range into evenly spaced values", () => {
-    const outcome = buildParameterRangeValues(
-      { identifier: "x", type: "real" },
-      { mode: "range", min: 0, max: 9, valueCount: 10 },
+describe("buildParameterAxis", () => {
+  it("quantizes a real interval into SWEEP_AXIS_STEPS steps", () => {
+    const outcome = buildParameterAxis(
+      { identifier: "beta", type: "real" },
+      { min: 0, max: 1 },
     );
-
     expect(outcome).toEqual({
       ok: true,
-      values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+      axis: {
+        identifier: "beta",
+        min: 0,
+        max: 1,
+        stepCount: SWEEP_AXIS_STEPS,
+        integer: false,
+      },
     });
   });
 
-  it("keeps fractional steps free of float artifacts", () => {
-    const outcome = buildParameterRangeValues(
-      { identifier: "x", type: "real" },
-      { mode: "range", min: 0.1, max: 0.5, valueCount: 5 },
+  it("gives a narrow integer interval one step per integer", () => {
+    const outcome = buildParameterAxis(
+      { identifier: "count", type: "integer" },
+      { min: 3, max: 9 },
     );
-
     expect(outcome).toEqual({
       ok: true,
-      values: [0.1, 0.2, 0.3, 0.4, 0.5],
+      axis: {
+        identifier: "count",
+        min: 3,
+        max: 9,
+        stepCount: 6,
+        integer: true,
+      },
     });
   });
 
-  it("always includes max as the final value", () => {
-    const outcome = buildParameterRangeValues(
-      { identifier: "x", type: "real" },
-      { mode: "range", min: 0, max: 1, valueCount: 3 },
+  it("caps a wide integer interval at SWEEP_AXIS_STEPS", () => {
+    const outcome = buildParameterAxis(
+      { identifier: "count", type: "integer" },
+      { min: 0, max: 1000 },
     );
-
-    expect(outcome).toEqual({ ok: true, values: [0, 0.5, 1] });
-  });
-
-  it("produces a single value when valueCount is 1", () => {
-    const outcome = buildParameterRangeValues(
-      { identifier: "x", type: "real" },
-      { mode: "range", min: 2.5, max: 2.5, valueCount: 1 },
-    );
-
-    expect(outcome).toEqual({ ok: true, values: [2.5] });
-  });
-
-  it("rounds integer parameter values", () => {
-    const outcome = buildParameterRangeValues(
-      { identifier: "n", type: "integer" },
-      { mode: "range", min: 0, max: 10, valueCount: 3 },
-    );
-
-    expect(outcome).toEqual({ ok: true, values: [0, 5, 10] });
-  });
-
-  it("rejects integer ranges that round onto duplicate values", () => {
-    const outcome = buildParameterRangeValues(
-      { identifier: "n", type: "integer" },
-      { mode: "range", min: 0, max: 2, valueCount: 5 },
-    );
-
-    expect(outcome.ok).toBe(false);
-    if (!outcome.ok) {
-      expect(outcome.error).toContain("duplicate integer values");
-    }
+    expect(outcome.ok && outcome.axis.stepCount).toBe(SWEEP_AXIS_STEPS);
   });
 
   it("rejects boolean parameters", () => {
-    const outcome = buildParameterRangeValues(
-      { identifier: "flag", type: "boolean" },
-      { mode: "range", min: 0, max: 1, valueCount: 2 },
-    );
-
-    expect(outcome.ok).toBe(false);
+    expect(
+      buildParameterAxis(
+        { identifier: "flag", type: "boolean" },
+        { min: 0, max: 1 },
+      ).ok,
+    ).toBe(false);
   });
 
-  it("rejects ratio ranges outside [0, 1]", () => {
-    const outcome = buildParameterRangeValues(
-      { identifier: "p", type: "ratio" },
-      { mode: "range", min: 0.5, max: 1.5, valueCount: 3 },
-    );
-
-    expect(outcome.ok).toBe(false);
+  it("rejects ratio intervals outside [0, 1]", () => {
+    expect(
+      buildParameterAxis(
+        { identifier: "share", type: "ratio" },
+        { min: -0.1, max: 0.5 },
+      ).ok,
+    ).toBe(false);
   });
 
-  it("rejects max <= min when more than one value is requested", () => {
-    const outcome = buildParameterRangeValues(
-      { identifier: "x", type: "real" },
-      { mode: "range", min: 5, max: 5, valueCount: 2 },
-    );
-
-    expect(outcome.ok).toBe(false);
-  });
-
-  it("rejects non-integer or non-positive value counts", () => {
-    for (const valueCount of [0, -1, 2.5, Number.NaN]) {
-      const outcome = buildParameterRangeValues(
-        { identifier: "x", type: "real" },
-        { mode: "range", min: 0, max: 1, valueCount },
-      );
-
-      expect(outcome.ok).toBe(false);
-    }
+  it("rejects max <= min", () => {
+    expect(
+      buildParameterAxis(
+        { identifier: "beta", type: "real" },
+        { min: 1, max: 1 },
+      ).ok,
+    ).toBe(false);
   });
 });
 
-describe("buildParameterGridCombinations", () => {
-  it("returns a single empty combination without axes", () => {
-    expect(buildParameterGridCombinations([])).toEqual([{}]);
-    expect(countGridCombinations([])).toBe(1);
+describe("axisValueAt / axisPositionFor", () => {
+  const beta: ExperimentParameterAxis = {
+    identifier: "beta",
+    min: 0,
+    max: 1,
+    stepCount: 50,
+    integer: false,
+  };
+
+  it("maps position endpoints to the interval endpoints", () => {
+    expect(axisValueAt(beta, 0)).toBe(0);
+    expect(axisValueAt(beta, 50)).toBe(1);
+    expect(axisValueAt(beta, 25)).toBe(0.5);
   });
 
-  it("builds the row-major cartesian product of the axes", () => {
-    const combinations = buildParameterGridCombinations([
-      { identifier: "a", values: [1, 2] },
-      { identifier: "b", values: [10, 20, 30] },
-    ]);
+  it("keeps generated values free of float artifacts", () => {
+    const axis: ExperimentParameterAxis = {
+      identifier: "x",
+      min: 0,
+      max: 0.7,
+      stepCount: 50,
+      integer: false,
+    };
+    // 0.7 * 15 / 50 in raw float arithmetic carries an artifact tail.
+    expect(String(axisValueAt(axis, 15)).length).toBeLessThanOrEqual(6);
+  });
 
-    expect(combinations).toEqual([
-      { a: 1, b: 10 },
-      { a: 1, b: 20 },
-      { a: 1, b: 30 },
-      { a: 2, b: 10 },
-      { a: 2, b: 20 },
-      { a: 2, b: 30 },
-    ]);
+  it("rounds integer axis values to integers", () => {
+    const axis: ExperimentParameterAxis = {
+      identifier: "count",
+      min: 0,
+      max: 1000,
+      stepCount: 50,
+      integer: true,
+    };
+    expect(axisValueAt(axis, 7)).toBe(140);
+  });
+
+  it("round-trips values to their nearest position", () => {
+    expect(axisPositionFor(beta, 0.5)).toBe(25);
+    expect(axisPositionFor(beta, 0.501)).toBe(25);
+    expect(axisPositionFor(beta, 2)).toBe(50);
+    expect(axisPositionFor(beta, -1)).toBe(0);
+  });
+});
+
+describe("selections and regions", () => {
+  const axes: ExperimentParameterAxis[] = [
+    { identifier: "x", min: 0, max: 1, stepCount: 4, integer: false },
+    { identifier: "y", min: 0, max: 1, stepCount: 2, integer: false },
+  ];
+
+  it("defaults to the whole interval per axis", () => {
+    expect(fullSweepSelection(axes)).toEqual({
+      x: { from: 0, to: 4 },
+      y: { from: 0, to: 2 },
+    });
+  });
+
+  it("normalizes reversed and out-of-bounds ranges", () => {
     expect(
-      countGridCombinations([
-        { identifier: "a", values: [1, 2] },
-        { identifier: "b", values: [10, 20, 30] },
-      ]),
-    ).toBe(6);
+      normalizeSweepSelection(axes, {
+        x: { from: 9, to: -3 },
+        y: { from: 1, to: 1 },
+      }),
+    ).toEqual({ x: { from: 0, to: 4 }, y: { from: 1, to: 1 } });
+  });
+
+  it("counts the cells of a region", () => {
+    expect(countRegionCells(axes, fullSweepSelection(axes))).toBe(15);
+    expect(
+      countRegionCells(axes, {
+        x: { from: 1, to: 2 },
+        y: { from: 0, to: 0 },
+      }),
+    ).toBe(2);
+  });
+
+  it("enumerates every region cell exactly once", () => {
+    const selection = { x: { from: 0, to: 4 }, y: { from: 0, to: 2 } };
+    const seen = [...enumerateRegionCells(axes, selection)].map(
+      (cell) => `${cell.x},${cell.y}`,
+    );
+    expect(seen).toHaveLength(15);
+    expect(new Set(seen).size).toBe(15);
+  });
+
+  it("spreads early cells across the region rather than scanning corner-first", () => {
+    const wide: ExperimentParameterAxis[] = [
+      { identifier: "x", min: 0, max: 1, stepCount: 50, integer: false },
+    ];
+    const selection = { x: { from: 0, to: 50 } };
+    const first = [...enumerateRegionCells(wide, selection)]
+      .slice(0, 4)
+      .map((cell) => cell.x!);
+    // The first few positions span the interval instead of clustering at 0.
+    expect(Math.max(...first) - Math.min(...first)).toBeGreaterThan(20);
+  });
+
+  it("enumerates a point region as its single cell", () => {
+    const selection = { x: { from: 2, to: 2 }, y: { from: 1, to: 1 } };
+    expect([...enumerateRegionCells(axes, selection)]).toEqual([
+      { x: 2, y: 1 },
+    ]);
   });
 });
 

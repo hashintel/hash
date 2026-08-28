@@ -1,58 +1,77 @@
 /**
  * Progressive computation of one parameter-sweep experiment.
  *
- * A sweep never computes its whole grid. It computes the combination the
- * navigator points at, in batches that climb `EXPERIMENT_RUN_LADDER`, and
- * restarts on the new combination the moment the selection changes — the way
- * a raytracer drops its rays when the camera moves. Finished batches fold
- * into a per-combination cache, so revisiting a combination resumes from its
- * ladder position instead of starting over.
+ * A sweep never computes its whole quantized space eagerly. It computes the
+ * region the navigator selects — a position range per parameter, a single
+ * point in the degenerate case — and restarts on the new region the moment
+ * the selection changes, the way a raytracer drops its rays when the camera
+ * moves. A point refines by climbing `EXPERIMENT_RUN_LADDER`; a region
+ * levels its cells rung by rung, visiting them in a low-discrepancy order so
+ * the merged view spreads across the region early. Finished batches fold
+ * into a per-position cache, so revisiting a position — narrowing a range,
+ * collapsing to a point, or sliding back — restores everything already
+ * computed.
  *
  * The session is backend-agnostic: it asks an injected `instantiateBatch` for
  * a `MonteCarloExperiment` per batch and only consumes the handle's stores,
- * so CPU worker pools and the WebGPU backend behave identically here.
+ * so CPU worker pools and the WebGPU backend behave identically here. Each
+ * batch has one concrete value per parameter, so per-batch scenario
+ * compilation and GPU eligibility are untouched by region selections.
  *
- * Determinism: batch *b* covering runs `[from, target)` derives its base seed
- * as `deriveRunSeed(seed, from)` (the first batch keeps `seed` verbatim).
- * Every combination climbs the same ladder, so the same rung uses the same
- * seeds in every combination — common random numbers across the grid — and
+ * Determinism: a cell's batch covering runs `[from, target)` derives its
+ * base seed as `deriveRunSeed(seed, from)` (the first batch keeps `seed`
+ * verbatim). Every cell climbs the same ladder, so the same rung uses the
+ * same seeds in every cell — common random numbers across the space — and
  * re-running a rung after a cancellation repeats it exactly.
  */
 import { deriveRunSeed } from "@hashintel/petrinaut-core";
 
 import {
+  axisValueAt,
+  countRegionCells,
+  enumerateRegionCells,
+  fullSweepSelection,
   getNextRunTarget,
   mergeMetricFramesAcrossCells,
+  normalizeSweepSelection,
 } from "./parameter-grid";
 
-import type { ExperimentParameterAxis } from "./parameter-grid";
+import type { ExperimentParameterAxis, SweepSelection } from "./parameter-grid";
 import type {
   MonteCarloExperiment,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
 } from "@hashintel/petrinaut-core";
 
-/** Navigator position: value *index* per swept parameter identifier. */
-export type SweepSelection = Readonly<Record<string, number>>;
+export type { SweepSelection } from "./parameter-grid";
 
-/** Finished batches of one combination, merged. */
+/** Finished batches of one cell (quantized position tuple), merged. */
 export type SweepCellSnapshot = {
   runsCompleted: number;
   metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
 };
 
+/** A cached cell: its position tuple and its merged finished batches. */
+type SweepCellEntry = SweepCellSnapshot & {
+  position: Readonly<Record<string, number>>;
+};
+
 /** What the session streams to its owner on every meaningful change. */
 export type SweepSessionUpdate = {
   selection: SweepSelection;
-  /** Concrete swept values for `selection`, keyed by identifier. */
-  parameterValues: Readonly<Record<string, number>>;
-  /** Cached batches plus the in-flight batch, merged. */
+  /** Concrete values of the cell the in-flight batch computes, or null. */
+  activeCellValues: Readonly<Record<string, number>> | null;
+  /** Cached batches of every cell in the region, plus the in-flight batch. */
   metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
   /** Runs contributing to `metricFrames`, including the in-flight batch. */
   runsSampled: number;
-  /** Runs in finished batches only. */
+  /** Runs in finished batches across the region. */
   runsCompleted: number;
-  /** Ladder target the in-flight batch climbs to; null when saturated. */
+  /** Cells of the region with at least one finished batch. */
+  cellsSampled: number;
+  /** Cells inside the selected region. */
+  cellsInRegion: number;
+  /** Ladder target the in-flight batch climbs its cell to; null when done. */
   runTarget: number | null;
   /** Live progress of the in-flight batch; null when idle. */
   progress: MonteCarloWorkerProgress | null;
@@ -76,9 +95,11 @@ export type InstantiateSweepBatch = (options: {
 
 export type CreateSweepSessionOptions = {
   axes: readonly ExperimentParameterAxis[];
-  /** Maximum runs per combination — the top of the ladder. */
+  /** Maximum runs per cell — the top of the ladder. */
   runCount: number;
   seed: number;
+  /** Starting selection; the whole space when omitted. */
+  initialSelection?: SweepSelection;
   instantiateBatch: InstantiateSweepBatch;
   onUpdate: (update: SweepSessionUpdate) => void;
   /** A failed batch stops the session; the owner decides how to surface it. */
@@ -88,14 +109,14 @@ export type CreateSweepSessionOptions = {
 export type SweepSession = {
   setSelection: (selection: SweepSelection) => void;
   /**
-   * Reads a combination's finished-batch snapshot, by concrete values.
+   * Reads a cell's finished-batch snapshot, by quantized position.
    * The surface sampler uses this to reuse navigator work.
    */
   getCell: (
-    parameterValues: Readonly<Record<string, number>>,
+    position: Readonly<Record<string, number>>,
   ) => SweepCellSnapshot | undefined;
   /**
-   * Brings a combination up to at least `minRuns` finished runs, off the
+   * Brings a cell up to at least `minRuns` finished runs, off the
    * navigator's lane — the surface view samples its grid through this.
    *
    * Background batches run one at a time on a single worker, so the
@@ -106,34 +127,45 @@ export type SweepSession = {
    * run sequence. Resolves null when the session is disposed first.
    */
   sampleCell: (
-    parameterValues: Readonly<Record<string, number>>,
+    position: Readonly<Record<string, number>>,
     minRuns: number,
   ) => Promise<SweepCellSnapshot | null>;
   dispose: () => void;
 };
 
-/** Canonical cache key for a combination: values in axis order. */
+/** Canonical cache key for a cell: quantized positions in axis order. */
 export function sweepCellKey(
   axes: readonly ExperimentParameterAxis[],
-  parameterValues: Readonly<Record<string, number>>,
+  position: Readonly<Record<string, number>>,
 ): string {
   return axes
-    .map((axis) => `${axis.identifier}=${parameterValues[axis.identifier]}`)
+    .map((axis) => `${axis.identifier}=${position[axis.identifier] ?? 0}`)
     .join("|");
 }
 
-/** Concrete values for a selection of value indices. */
-export function sweepSelectionValues(
+/** Concrete parameter values of a cell's position tuple. */
+export function sweepCellValues(
   axes: readonly ExperimentParameterAxis[],
-  selection: SweepSelection,
+  position: Readonly<Record<string, number>>,
 ): Record<string, number> {
   const values: Record<string, number> = {};
   for (const axis of axes) {
-    const index = selection[axis.identifier] ?? 0;
-    values[axis.identifier] =
-      axis.values[Math.min(Math.max(index, 0), axis.values.length - 1)]!;
+    values[axis.identifier] = axisValueAt(axis, position[axis.identifier] ?? 0);
   }
   return values;
+}
+
+/** Whether `position` lies inside the selected region. */
+function cellInRegion(
+  axes: readonly ExperimentParameterAxis[],
+  selection: SweepSelection,
+  position: Readonly<Record<string, number>>,
+): boolean {
+  return axes.every((axis) => {
+    const range = selection[axis.identifier] ?? { from: 0, to: axis.stepCount };
+    const cellPosition = position[axis.identifier] ?? 0;
+    return cellPosition >= range.from && cellPosition <= range.to;
+  });
 }
 
 /** The base seed of the batch whose first run has global index `from`. */
@@ -146,9 +178,10 @@ export function createSweepSession(
 ): SweepSession {
   const { axes, runCount, seed, instantiateBatch, onUpdate, onError } = options;
 
-  const cells = new Map<string, SweepCellSnapshot>();
-  let selection: SweepSelection = Object.fromEntries(
-    axes.map((axis) => [axis.identifier, 0]),
+  const cells = new Map<string, SweepCellEntry>();
+  let selection: SweepSelection = normalizeSweepSelection(
+    axes,
+    options.initialSelection ?? fullSweepSelection(axes),
   );
   let disposed = false;
   let failed = false;
@@ -156,11 +189,29 @@ export function createSweepSession(
   let generation = 0;
   let abortCurrent: (() => void) | null = null;
 
-  const snapshotFor = (key: string): SweepCellSnapshot =>
-    cells.get(key) ?? { runsCompleted: 0, metricFrames: [] };
+  const snapshotFor = (
+    position: Readonly<Record<string, number>>,
+  ): SweepCellSnapshot =>
+    cells.get(sweepCellKey(axes, position)) ?? {
+      runsCompleted: 0,
+      metricFrames: [],
+    };
+
+  const foldCell = (
+    position: Readonly<Record<string, number>>,
+    snapshot: SweepCellSnapshot,
+  ) => {
+    cells.set(sweepCellKey(axes, position), { ...snapshot, position });
+  };
+
+  /** Cached cells inside the current region. */
+  const regionEntries = (): SweepCellEntry[] =>
+    [...cells.values()].filter((entry) =>
+      cellInRegion(axes, selection, entry.position),
+    );
 
   const publish = (update: {
-    values: Record<string, number>;
+    activeCell: Readonly<Record<string, number>> | null;
     inFlightFrames?: readonly MonteCarloUserDefinedMetricFrame[];
     inFlightRuns?: number;
     runTarget: number | null;
@@ -170,17 +221,27 @@ export function createSweepSession(
     if (disposed) {
       return;
     }
-    const snapshot = snapshotFor(sweepCellKey(axes, update.values));
+    const entries = regionEntries();
     const inFlight = update.inFlightFrames ?? [];
+    const frameSets = entries.map((entry) => entry.metricFrames);
+    if (inFlight.length > 0) {
+      frameSets.push(inFlight);
+    }
     onUpdate({
       selection,
-      parameterValues: update.values,
-      metricFrames:
-        inFlight.length > 0
-          ? mergeMetricFramesAcrossCells([snapshot.metricFrames, inFlight])
-          : snapshot.metricFrames,
-      runsSampled: snapshot.runsCompleted + (update.inFlightRuns ?? 0),
-      runsCompleted: snapshot.runsCompleted,
+      activeCellValues: update.activeCell
+        ? sweepCellValues(axes, update.activeCell)
+        : null,
+      metricFrames: mergeMetricFramesAcrossCells(frameSets),
+      runsSampled:
+        entries.reduce((sum, entry) => sum + entry.runsCompleted, 0) +
+        (update.inFlightRuns ?? 0),
+      runsCompleted: entries.reduce(
+        (sum, entry) => sum + entry.runsCompleted,
+        0,
+      ),
+      cellsSampled: entries.filter((entry) => entry.runsCompleted > 0).length,
+      cellsInRegion: countRegionCells(axes, selection),
       runTarget: update.runTarget,
       progress: update.progress ?? null,
       computing: update.computing,
@@ -203,11 +264,11 @@ export function createSweepSession(
    */
   const executeBatch = async (
     loopGeneration: number,
-    values: Record<string, number>,
-    key: string,
+    position: Readonly<Record<string, number>>,
     snapshot: SweepCellSnapshot,
     target: number,
   ): Promise<"continue" | "stop"> => {
+    const values = sweepCellValues(axes, position);
     const abortController = new AbortController();
     // Until the handle exists, aborting the controller is all a restart can
     // do; instantiation rejects with AbortError and the stale loop exits.
@@ -231,7 +292,7 @@ export function createSweepSession(
       onError(
         error instanceof Error ? error.message : "Failed to start a batch",
       );
-      publish({ values, runTarget: target, computing: false });
+      publish({ activeCell: position, runTarget: target, computing: false });
       return "stop";
     }
 
@@ -253,7 +314,7 @@ export function createSweepSession(
         return;
       }
       publish({
-        values,
+        activeCell: position,
         inFlightFrames: handle.metrics.get().frames,
         inFlightRuns: handle.progress.get()?.completedRuns ?? 0,
         runTarget: target,
@@ -291,7 +352,7 @@ export function createSweepSession(
     if (failed && !isStale(loopGeneration)) {
       // The session idles after a failure; leave the last good frames up
       // rather than a spinner that will never finish.
-      publish({ values, runTarget: null, computing: false });
+      publish({ activeCell: position, runTarget: null, computing: false });
     }
     const finishedFrames = handle.metrics.get().frames;
     handle.dispose();
@@ -300,7 +361,7 @@ export function createSweepSession(
     if (outcome === "complete") {
       // Fold the batch into the cache even when the user has moved on —
       // completed rays are never thrown away.
-      cells.set(key, {
+      foldCell(position, {
         runsCompleted: target,
         metricFrames: mergeMetricFramesAcrossCells([
           snapshot.metricFrames,
@@ -313,31 +374,49 @@ export function createSweepSession(
     return "stop";
   };
 
+  /**
+   * Levels the region rung by rung: every cell reaches a ladder target
+   * before any cell climbs past it, and cells are visited in the enumerator's
+   * low-discrepancy order so early coverage spreads across the region. For a
+   * point selection this degenerates to climbing the ladder on one cell.
+   */
   const refineLoop = async (loopGeneration: number): Promise<void> => {
-    while (!isStale(loopGeneration) && !failed) {
-      const values = sweepSelectionValues(axes, selection);
-      const key = sweepCellKey(axes, values);
-      const snapshot = snapshotFor(key);
-      const target = getNextRunTarget(snapshot.runsCompleted, runCount);
+    for (;;) {
+      let advanced = false;
 
-      if (target === null) {
-        publish({ values, runTarget: null, computing: false });
-        return;
+      for (const position of enumerateRegionCells(axes, selection)) {
+        if (isStale(loopGeneration) || failed) {
+          return;
+        }
+        const snapshot = snapshotFor(position);
+        const target = getNextRunTarget(snapshot.runsCompleted, runCount);
+        if (target === null) {
+          continue;
+        }
+        // One rung per cell per pass: the pass takes every cell up one
+        // ladder step before any cell climbs further, so a broad region
+        // shows broad coverage before depth.
+        publish({ activeCell: position, runTarget: target, computing: true });
+        const outcome = await executeBatch(
+          loopGeneration,
+          position,
+          snapshot,
+          target,
+        );
+        if (outcome === "stop") {
+          return;
+        }
+        advanced = true;
       }
 
-      publish({ values, runTarget: target, computing: true });
-
-      const outcome = await executeBatch(
-        loopGeneration,
-        values,
-        key,
-        snapshot,
-        target,
-      );
-      if (outcome === "stop") {
+      if (isStale(loopGeneration) || failed) {
         return;
       }
-      // Loop: next ladder rung for the (possibly unchanged) selection.
+      if (!advanced) {
+        // Every cell in the region is saturated.
+        publish({ activeCell: null, runTarget: null, computing: false });
+        return;
+      }
     }
   };
 
@@ -354,14 +433,13 @@ export function createSweepSession(
   let backgroundChain: Promise<unknown> = Promise.resolve();
 
   const runBackgroundBatch = async (
-    values: Record<string, number>,
+    position: Readonly<Record<string, number>>,
     minRuns: number,
   ): Promise<SweepCellSnapshot | null> => {
     if (disposed || failed) {
       return null;
     }
-    const key = sweepCellKey(axes, values);
-    const snapshot = snapshotFor(key);
+    const snapshot = snapshotFor(position);
     const target = Math.min(minRuns, runCount);
     if (snapshot.runsCompleted >= target) {
       return snapshot;
@@ -371,7 +449,7 @@ export function createSweepSession(
     let handle: MonteCarloExperiment;
     try {
       handle = await instantiateBatch({
-        parameterValues: values,
+        parameterValues: sweepCellValues(axes, position),
         seed: sweepBatchSeed(seed, snapshot.runsCompleted),
         runCount: target - snapshot.runsCompleted,
         background: true,
@@ -401,19 +479,18 @@ export function createSweepSession(
     if (!completed || isDisposed()) {
       return null;
     }
-    const merged: SweepCellSnapshot = {
-      runsCompleted: target,
-      metricFrames: mergeMetricFramesAcrossCells([
-        snapshot.metricFrames,
-        frames,
-      ]),
-    };
     // The navigator may have refined this cell further while we sampled; the
     // deeper snapshot wins.
-    if (snapshotFor(key).runsCompleted < target) {
-      cells.set(key, merged);
+    if (snapshotFor(position).runsCompleted < target) {
+      foldCell(position, {
+        runsCompleted: target,
+        metricFrames: mergeMetricFramesAcrossCells([
+          snapshot.metricFrames,
+          frames,
+        ]),
+      });
     }
-    return snapshotFor(key);
+    return snapshotFor(position);
   };
 
   return {
@@ -421,23 +498,24 @@ export function createSweepSession(
       if (disposed) {
         return;
       }
-      const changed = axes.some(
-        (axis) => (next[axis.identifier] ?? 0) !== selection[axis.identifier],
-      );
+      const normalized = normalizeSweepSelection(axes, next);
+      const changed = axes.some((axis) => {
+        const current = selection[axis.identifier]!;
+        const incoming = normalized[axis.identifier]!;
+        return current.from !== incoming.from || current.to !== incoming.to;
+      });
       if (!changed) {
         return;
       }
-      selection = Object.fromEntries(
-        axes.map((axis) => [axis.identifier, next[axis.identifier] ?? 0]),
-      );
+      selection = normalized;
       restart();
     },
-    getCell(parameterValues) {
-      return cells.get(sweepCellKey(axes, parameterValues));
+    getCell(position) {
+      return cells.get(sweepCellKey(axes, position));
     },
-    sampleCell(parameterValues, minRuns) {
+    sampleCell(position, minRuns) {
       const next = backgroundChain.then(() =>
-        runBackgroundBatch({ ...parameterValues }, minRuns),
+        runBackgroundBatch({ ...position }, minRuns),
       );
       backgroundChain = next.catch(() => null);
       return next;
