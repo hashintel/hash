@@ -3,6 +3,7 @@
 use core::time::Duration;
 
 use error_stack::Report;
+use hash_middleware::authentication::request::AuthenticationError;
 use reqwest::Url;
 use type_system::principal::actor::{ActorEntityUuid, UserId};
 
@@ -10,7 +11,6 @@ use super::{KratosAdminClient, KratosAdminError};
 use crate::{
     actor::{ResolveActor, resolve_user_actor},
     cloudflare::ResolveEmailActor,
-    request::AuthenticationError,
 };
 
 /// Configuration for [`KratosEmailActorResolver`].
@@ -126,6 +126,7 @@ mod tests {
     use std::collections::HashMap;
 
     use axum::{Json, Router, extract::Query, response::IntoResponse as _, routing::get};
+    use hash_middleware::authentication::request::AuthenticationError;
     use http::StatusCode;
     use reqwest::Url;
     use rstest::rstest;
@@ -138,7 +139,6 @@ mod tests {
         actor::tests::{FixedActorResolver, known_user, random_actor},
         cloudflare::ResolveEmailActor as _,
         kratos::tests::spawn_fake_kratos,
-        request::AuthenticationError,
     };
 
     const EMAIL: &str = "user@example.com";

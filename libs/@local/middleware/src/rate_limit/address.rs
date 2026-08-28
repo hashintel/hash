@@ -2,7 +2,8 @@
 
 use core::{
     fmt,
-    net::{IpAddr, Ipv6Addr, SocketAddr},
+    net::{AddrParseError, IpAddr, Ipv6Addr, SocketAddr},
+    str::FromStr,
 };
 
 use axum::extract::{ConnectInfo, Request};
@@ -29,6 +30,17 @@ impl BucketKey {
 impl fmt::Display for BucketKey {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(fmt)
+    }
+}
+
+impl FromStr for BucketKey {
+    type Err = AddrParseError;
+
+    fn from_str(address: &str) -> Result<Self, Self::Err> {
+        address
+            .parse::<IpAddr>()
+            .or_else(|_error| address.parse::<SocketAddr>().map(|address| address.ip()))
+            .map(Self::new)
     }
 }
 
@@ -84,7 +96,7 @@ pub(super) fn from_header(request: &Request, header: &HeaderName) -> Result<Buck
     };
     let value = value.to_str().map_err(|_error| Fallback::HeaderNotAscii)?;
     let last = value.rsplit_once(',').map_or(value, |(_, last)| last);
-    parse(last.trim()).ok_or(Fallback::Unparsable)
+    BucketKey::from_str(last.trim()).map_err(|_error| Fallback::Unparsable)
 }
 
 /// Returns the address of the connection the request arrived on.
@@ -98,23 +110,19 @@ pub(super) fn peer(request: &Request) -> Option<BucketKey> {
         .map(|ConnectInfo(address)| BucketKey::new(address.ip()))
 }
 
-fn parse(address: &str) -> Option<BucketKey> {
-    address
-        .parse::<IpAddr>()
-        .or_else(|_error| address.parse::<SocketAddr>().map(|address| address.ip()))
-        .ok()
-        .map(BucketKey::new)
-}
-
 #[cfg(test)]
 mod tests {
-    use core::net::{IpAddr, Ipv4Addr, SocketAddr};
+    use core::{
+        assert_matches,
+        net::{AddrParseError, IpAddr, Ipv4Addr, SocketAddr},
+        str::FromStr as _,
+    };
 
     use axum::{body::Body, extract::ConnectInfo};
     use http::{HeaderName, HeaderValue, Request};
 
-    use super::{BucketKey, Fallback, from_header, parse, peer};
-    use crate::rest::rate_limit::config::ClientIpSource;
+    use super::{BucketKey, Fallback, from_header, peer};
+    use crate::rate_limit::config::ClientIpSource;
 
     fn key(address: &str) -> BucketKey {
         BucketKey::new(address.parse().expect("the address should parse"))
@@ -178,9 +186,9 @@ mod tests {
             &["203.0.113.9", "192.0.2.1, 198.51.100.7"],
         );
 
-        assert_eq!(
+        assert_matches!(
             from_header(&request, forwarded_for()),
-            Ok(key("198.51.100.7")),
+            Ok(resolved) if resolved == key("198.51.100.7"),
             "only the entry the closest proxy appended is outside the client's control"
         );
     }
@@ -189,25 +197,25 @@ mod tests {
     fn cf_connecting_ip_reads_the_last_instance() {
         let request = with_header("cf-connecting-ip", &["192.0.2.1", "203.0.113.9"]);
 
-        assert_eq!(
+        assert_matches!(
             from_header(
                 &request,
                 ClientIpSource::CfConnectingIp
                     .header()
                     .expect("the source should name a header")
             ),
-            Ok(key("203.0.113.9")),
+            Ok(resolved) if resolved == key("203.0.113.9"),
             "the last instance is the one the closest proxy wrote"
         );
     }
 
     #[test]
     fn unusable_headers_name_their_reason() {
-        assert_eq!(
+        assert_matches!(
             from_header(&request(IpAddr::V4(Ipv4Addr::LOCALHOST)), forwarded_for()),
             Err(Fallback::HeaderMissing)
         );
-        assert_eq!(
+        assert_matches!(
             from_header(
                 &with_header("x-forwarded-for", &["unknown"]),
                 forwarded_for()
@@ -220,7 +228,7 @@ mod tests {
             "x-forwarded-for",
             HeaderValue::from_bytes(b"\xff").expect("the header should hold arbitrary bytes"),
         );
-        assert_eq!(
+        assert_matches!(
             from_header(&binary, forwarded_for()),
             Err(Fallback::HeaderNotAscii)
         );
@@ -228,9 +236,17 @@ mod tests {
 
     #[test]
     fn forwarded_addresses_accept_a_port_suffix() {
-        assert_eq!(parse("192.0.2.1:5678"), Some(key("192.0.2.1")));
-        assert_eq!(parse("[2001:db8::1]:443"), Some(key("2001:db8::1")));
-        assert_eq!(parse("unknown"), None);
+        assert_matches!(
+            BucketKey::from_str("192.0.2.1:5678"),
+            Ok(resolved) if resolved == key("192.0.2.1")
+        );
+        assert_matches!(
+            BucketKey::from_str("[2001:db8::1]:443"),
+            Ok(resolved) if resolved == key("2001:db8::1")
+        );
+
+        let _: AddrParseError =
+            BucketKey::from_str("unknown").expect_err("`unknown` should not parse as an address");
     }
 
     #[test]

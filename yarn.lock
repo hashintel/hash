@@ -14864,6 +14864,7 @@ __metadata:
     "@rust/hash-graph-type-fetcher": "workspace:*"
     "@rust/hash-graph-types": "workspace:*"
     "@rust/hash-graph-validation": "workspace:*"
+    "@rust/hash-middleware": "workspace:*"
     "@rust/hash-status": "workspace:*"
     "@rust/hash-temporal-client": "workspace:*"
     "@rust/hashql-ast": "workspace:*"
@@ -14884,7 +14885,7 @@ __metadata:
     "@rust/error-stack": "workspace:*"
     "@rust/hash-graph-authorization": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
-    "@rust/hash-status": "workspace:*"
+    "@rust/hash-middleware": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -15083,9 +15084,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hash-middleware@workspace:libs/@local/middleware":
+"@rust/hash-middleware@workspace:*, @rust/hash-middleware@workspace:libs/@local/middleware":
   version: 0.0.0-use.local
   resolution: "@rust/hash-middleware@workspace:libs/@local/middleware"
+  dependencies:
+    "@blockprotocol/type-system-rs": "workspace:*"
+    "@rust/error-stack": "workspace:*"
   languageName: unknown
   linkType: soft
 

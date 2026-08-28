@@ -34,6 +34,7 @@
     "@rust/hash-graph-type-fetcher": "workspace:*",
     "@rust/hash-graph-types": "workspace:*",
     "@rust/hash-graph-validation": "workspace:*",
+    "@rust/hash-middleware": "workspace:*",
     "@rust/hash-status": "workspace:*",
     "@rust/hash-temporal-client": "workspace:*",
     "@rust/hashql-ast": "workspace:*",

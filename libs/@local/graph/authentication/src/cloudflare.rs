@@ -3,14 +3,14 @@
 use core::ops::ControlFlow;
 
 use error_stack::Report;
-use http::HeaderMap;
-use type_system::principal::actor::{ActorId, UserId};
-
-use crate::{
-    jwt::{JwtError, JwtValidator},
+use hash_middleware::authentication::{
     provider::{AuthenticationProvider, Caller},
     request::AuthenticationError,
 };
+use http::HeaderMap;
+use type_system::principal::actor::{ActorId, UserId};
+
+use crate::jwt::{JwtError, JwtValidator};
 
 /// Name of the header carrying the Cloudflare Access JWT.
 ///
@@ -127,6 +127,10 @@ mod tests {
 
     use axum::{Json, Router, routing::get};
     use error_stack::Report;
+    use hash_middleware::authentication::{
+        provider::{AuthenticationProvider as _, expect_rejection},
+        request::AuthenticationError,
+    };
     use http::{HeaderMap, HeaderValue, StatusCode};
     use jsonwebtoken::{Algorithm, EncodingKey, Header};
     use reqwest::Url;
@@ -136,11 +140,7 @@ mod tests {
     use uuid::Uuid;
 
     use super::{ACCESS_JWT_HEADER, CloudflareAccessProvider, ResolveEmailActor};
-    use crate::{
-        jwt::{JwtValidator, JwtValidatorConfig},
-        provider::{AuthenticationProvider as _, tests::expect_rejection},
-        request::AuthenticationError,
-    };
+    use crate::jwt::{JwtValidator, JwtValidatorConfig};
 
     const KEY_ID: &str = "jwt-test-key";
     const AUDIENCE: &str = "test-audience";

@@ -22,9 +22,9 @@ use hash_graph_authentication::{
     actor::ResolveActor,
     cloudflare::ResolveEmailActor as _,
     kratos::{IdentityDeletion, KratosAdminClient, KratosAdminConfig, KratosEmailActorResolver},
-    request::AuthenticationError,
 };
 use hash_graph_authorization::policies::store::error::DetermineActorError;
+use hash_middleware::authentication::request::AuthenticationError;
 use reqwest::{Client, Url};
 use serde_json::json;
 use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};

@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::Instant};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_api::rest::http_tracing_layer::HttpTracingLayer;
+use hash_graph_api::rest::telemetry;
 use hash_graph_type_fetcher::fetcher_server::{FetchServer, router};
 use reqwest::Client;
 use tokio::{
@@ -78,7 +78,7 @@ pub(crate) async fn run_type_fetcher(
         buffer_size: 10,
         predefined_types: HashMap::new(),
     })
-    .layer(HttpTracingLayer);
+    .layer(telemetry::layer());
 
     axum::serve(
         listener,
