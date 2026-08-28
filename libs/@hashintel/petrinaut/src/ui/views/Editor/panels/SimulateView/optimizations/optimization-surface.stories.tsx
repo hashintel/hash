@@ -25,46 +25,61 @@ type Story = StoryObj<typeof meta>;
 
 /**
  * The stories' local compute: the same synthetic objective the fake trials
- * used, returned as a single-bin distribution frame after a short delay — so
- * the contour fills in progressively and the trial rings land on it.
+ * used, returned as a single-bin distribution frame after `delayFor` the
+ * batch — so the contour fills in progressively and the trial rings land on
+ * it, at whatever pace the story simulates.
  */
-const sampleSyntheticObjective = (request: DetachedObjectiveRequest) => {
-  const objective = syntheticObjective(request.scenarioParameterValues);
-  const frame = {
-    metricId: request.metric.id,
-    label: request.metric.label,
-    outputType: "distribution" as const,
-    frameNumber: 365,
-    time: 365,
-    bins: [[Math.round(objective * 100) / 100, request.runCount]] as (readonly [
-      number,
-      number,
-    ])[],
-    value: null,
-    frameValue: null,
-    timeValue: null,
-    runSampleCount: request.runCount,
-    timeSampleCount: request.runCount,
-  };
-  return new Promise<{ runsCompleted: number; metricFrames: [typeof frame] }>(
-    (resolve) => {
+const makeSyntheticObjectiveSampler =
+  (delayFor: (runCount: number) => number) =>
+  (request: DetachedObjectiveRequest) => {
+    const objective = syntheticObjective(request.scenarioParameterValues);
+    const frame = {
+      metricId: request.metric.id,
+      label: request.metric.label,
+      outputType: "distribution" as const,
+      frameNumber: 365,
+      time: 365,
+      bins: [
+        [Math.round(objective * 100) / 100, request.runCount],
+      ] as (readonly [number, number])[],
+      value: null,
+      frameValue: null,
+      timeValue: null,
+      runSampleCount: request.runCount,
+      timeSampleCount: request.runCount,
+    };
+    return new Promise<{
+      runsCompleted: number;
+      metricFrames: [typeof frame];
+    }>((resolve) => {
       setTimeout(
         () =>
           resolve({ runsCompleted: request.runCount, metricFrames: [frame] }),
-        80,
+        delayFor(request.runCount),
       );
-    },
-  );
-};
+    });
+  };
+
+const sampleSyntheticObjective = makeSyntheticObjectiveSampler(() => 80);
+
+/** Batches cost real simulation time on the CPU lane, scaling with runs. */
+const sampleAtCpuPace = makeSyntheticObjectiveSampler(
+  (runCount) => 250 + runCount * 4,
+);
+
+/** A GPU lane steps a whole batch in near-constant, negligible time. */
+const sampleAtGpuPace = makeSyntheticObjectiveSampler(() => 8);
 
 const OptimizationSurfaceStory = ({
   optimization,
+  sampler = sampleSyntheticObjective,
 }: {
   optimization: OptimizationRecord;
+  sampler?: typeof sampleSyntheticObjective;
 }) => (
   <FakeExperimentsProvider
     initialExperiments={[]}
-    overrides={{ sampleDetachedObjective: sampleSyntheticObjective }}
+    overrides={{ sampleDetachedObjective: sampler }}
   >
     <div style={{ width: 640 }}>
       <OptimizationSurface optimization={optimization} />
@@ -145,6 +160,41 @@ export const LogScale: Story = {
         input: logScaleInput,
         trials: logScaleTrials.trials,
         best: logScaleTrials.best,
+        status: "complete",
+      })}
+    />
+  ),
+};
+
+/**
+ * The pacing variants: local compute today runs on the CPU's detached lane;
+ * the GPU pace previews the planned WebGPU path for point batches. Both use
+ * the complete study, so the trial rings sit on the streaming fill.
+ */
+export const CpuPacedCompute: Story = {
+  name: "Local compute at CPU pace",
+  render: () => (
+    <OptimizationSurfaceStory
+      sampler={sampleAtCpuPace}
+      optimization={makeOptimizationRecord({
+        input: baseInput,
+        trials: completeTrials.trials,
+        best: completeTrials.best,
+        status: "complete",
+      })}
+    />
+  ),
+};
+
+export const GpuPacedCompute: Story = {
+  name: "Local compute at GPU pace",
+  render: () => (
+    <OptimizationSurfaceStory
+      sampler={sampleAtGpuPace}
+      optimization={makeOptimizationRecord({
+        input: baseInput,
+        trials: completeTrials.trials,
+        best: completeTrials.best,
         status: "complete",
       })}
     />

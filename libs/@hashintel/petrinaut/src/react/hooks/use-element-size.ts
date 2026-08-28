@@ -18,7 +18,11 @@ interface UseElementSizeOptions {
 /**
  * Returns the content-box size of a DOM element, kept in sync via ResizeObserver.
  *
- * Returns `null` until the element is mounted and the first observation fires.
+ * Returns `null` until the element is mounted and the first observation fires,
+ * and again while the element is unmounted — the element may mount later than
+ * the hook (e.g. a chart root that only renders once data exists) or be
+ * swapped, and the observer follows it.
+ *
  * Supports an optional `debounce` interval to throttle updates.
  *
  * @example
@@ -37,9 +41,26 @@ export function useElementSize(
   const [size, setSize] = useState<ElementSize | null>(null);
   const debounceMs = options?.debounce ?? 0;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const observedRef = useRef<HTMLElement | null>(null);
+  const observerRef = useRef<ResizeObserver | null>(null);
 
+  // Deliberately no dependency array: a RefObject gives no signal when its
+  // `.current` changes, and the observed element can mount after the first
+  // commit or be swapped for another — so re-check its identity after every
+  // render, and only re-subscribe when the element actually changed.
   useEffect(() => {
     const el = ref.current;
+    if (el === observedRef.current) {
+      return;
+    }
+
+    observerRef.current?.disconnect();
+    observerRef.current = null;
+    observedRef.current = el;
+
+    // While no element is mounted the last size is kept, not reset: callers
+    // gate rendering on the element's presence anyway, and the next
+    // observation corrects any drift.
     if (!el) {
       return;
     }
@@ -73,15 +94,20 @@ export function useElementSize(
     });
 
     ro.observe(el);
+    observerRef.current = ro;
+  });
 
-    return () => {
-      ro.disconnect();
+  useEffect(
+    () => () => {
+      observerRef.current?.disconnect();
+      observerRef.current = null;
       if (timerRef.current != null) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
-    };
-  }, [ref, debounceMs]);
+    },
+    [],
+  );
 
   return size;
 }
