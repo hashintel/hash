@@ -87,6 +87,39 @@ describe("interview coverage", () => {
     });
   });
 
+  test("names each covered topic once when node identifiers share a label", () => {
+    const messages = [
+      {
+        id: "assistant-sweep",
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolCallId: "sweep-2",
+            toolName: SWEEP_TOOL_NAME,
+            state: "output-available",
+            input: {},
+            output: {
+              status: "applied",
+              appliedCaptureIds: [],
+              captures: [],
+              completion: {
+                complete: true,
+                pluginVersion: "sdcpn/1",
+                revision: "revision-2",
+                failures: [],
+                sliceNodeIds: ["activity:approval", "object:approval"],
+                outsideSlice: [],
+              },
+            },
+          },
+        ],
+      },
+    ] as unknown as PetrinautAiMessage[];
+
+    expect(selectInterviewCoverage(messages)?.covered).toEqual(["approval"]);
+  });
+
   test("omits coverage when no validated completion report exists", () => {
     expect(selectInterviewCoverage([])).toBeNull();
   });

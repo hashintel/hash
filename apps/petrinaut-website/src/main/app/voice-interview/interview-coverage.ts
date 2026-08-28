@@ -44,9 +44,11 @@ export const selectInterviewCoverage = (
           failure.nodeId === undefined ? [] : [failure.nodeId],
         ),
       );
-      const covered = completion.sliceNodeIds
-        .filter((nodeId) => !nodesWithFailures.has(nodeId))
-        .map(nodeLabel);
+      const covered = unique(
+        completion.sliceNodeIds
+          .filter((nodeId) => !nodesWithFailures.has(nodeId))
+          .map(nodeLabel),
+      );
       const stillExploring = unique(
         completion.failures.map((failure) =>
           failure.nodeId === undefined

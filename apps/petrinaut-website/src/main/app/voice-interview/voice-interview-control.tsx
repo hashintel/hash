@@ -39,6 +39,7 @@ import { SpeechPlaybackController } from "./speech-playback-controller";
 import {
   VoiceTurnController,
   type VoiceLatencyEvent,
+  type VoiceTurnPhase,
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
@@ -418,7 +419,7 @@ const recoveryStyle = css({
   fontSize: "sm",
 });
 
-const technicalDetailsStyle = css({
+const secondaryDetailsStyle = css({
   color: "neutral.s80",
   fontSize: "xs",
   _open: { color: "neutral.s90" },
@@ -577,30 +578,44 @@ const Meter = ({ snapshot }: { snapshot: VoiceTurnSnapshot }) => {
   );
 };
 
+const focalIcon = (phase: VoiceTurnPhase): ReactNode => {
+  switch (phase) {
+    case "listening":
+      return <FaMicrophone aria-hidden="true" />;
+    case "paused":
+      return <FaMicrophoneSlash aria-hidden="true" />;
+    case "playing":
+      return <FaVolumeHigh aria-hidden="true" />;
+    case "delivering":
+      return <FaCircleCheck aria-hidden="true" />;
+    case "recoverable-error":
+      return <FaTriangleExclamation aria-hidden="true" />;
+    case "idle":
+    case "connecting":
+    case "transcribing":
+    case "waiting":
+    case "synthesizing":
+      return <FaCircleNotch aria-hidden="true" />;
+  }
+};
+
+const focalTone = (phase: VoiceTurnPhase) => {
+  switch (phase) {
+    case "recoverable-error":
+      return "error";
+    case "delivering":
+      return "success";
+    case "listening":
+      return "active";
+    default:
+      return "idle";
+  }
+};
+
 const VoiceFocal = ({ snapshot }: { snapshot: VoiceTurnSnapshot }) => {
   const active = snapshot.phase === "listening";
-  const tone =
-    snapshot.phase === "recoverable-error"
-      ? "error"
-      : snapshot.phase === "delivering"
-        ? "success"
-        : active
-          ? "active"
-          : "idle";
-  const icon =
-    snapshot.phase === "listening" ? (
-      <FaMicrophone aria-hidden="true" />
-    ) : snapshot.phase === "paused" ? (
-      <FaMicrophoneSlash aria-hidden="true" />
-    ) : snapshot.phase === "playing" ? (
-      <FaVolumeHigh aria-hidden="true" />
-    ) : snapshot.phase === "delivering" ? (
-      <FaCircleCheck aria-hidden="true" />
-    ) : snapshot.phase === "recoverable-error" ? (
-      <FaTriangleExclamation aria-hidden="true" />
-    ) : (
-      <FaCircleNotch aria-hidden="true" />
-    );
+  const tone = focalTone(snapshot.phase);
+  const icon = focalIcon(snapshot.phase);
 
   return (
     <div className={focalAreaStyle}>
@@ -617,6 +632,25 @@ const VoiceFocal = ({ snapshot }: { snapshot: VoiceTurnSnapshot }) => {
       </span>
     </div>
   );
+};
+
+/**
+ * Recoverable errors cover far more than microphone access, so the heading
+ * names the family the error code belongs to rather than always blaming the
+ * microphone. The message below it stays the actionable guidance.
+ */
+const recoveryHeading = (errorCode: VoiceTurnSnapshot["errorCode"]): string => {
+  switch (errorCode) {
+    case "microphone-permission":
+    case "microphone-device":
+      return "We couldn’t reconnect the microphone";
+    case "network":
+    case "timeout":
+    case "request-aborted":
+      return "We lost the voice connection";
+    default:
+      return "The interview couldn’t continue";
+  }
 };
 
 const deliveryStatus = (
@@ -711,7 +745,7 @@ const TranscriptStrip = ({
 const Coverage = ({ coverage }: { coverage: InterviewCoverage | null }) => {
   if (!coverage) return null;
   return (
-    <details>
+    <details className={secondaryDetailsStyle}>
       <summary className={labelStyle}>
         {coverage.complete ? "Coverage complete" : "Interview coverage"}
       </summary>
@@ -1017,10 +1051,10 @@ export const VoiceInterviewControlView = ({
 
         {snapshot.phase === "recoverable-error" && (
           <div className={recoveryStyle}>
-            <strong>We couldn’t reconnect the microphone</strong>
+            <strong>{recoveryHeading(snapshot.errorCode)}</strong>
             <span>{snapshot.errorMessage}</span>
             {(snapshot.errorCode || snapshot.errorRequestId) && (
-              <details className={technicalDetailsStyle}>
+              <details className={secondaryDetailsStyle}>
                 <summary>Technical details</summary>
                 {snapshot.errorCode && (
                   <div>Error code: {snapshot.errorCode}</div>
@@ -1060,6 +1094,26 @@ export const VoiceInterviewControlView = ({
         )}
 
         <div className={actionsStyle}>
+          {snapshot.phase === "recoverable-error" && (
+            <Button
+              aria-label="Reconnect"
+              prefix={<FaRotate aria-hidden="true" />}
+              type="button"
+              onClick={onReconnect}
+            >
+              Reconnect
+            </Button>
+          )}
+          <Button
+            aria-label="Use text instead"
+            prefix={<FaKeyboard aria-hidden="true" />}
+            shape="round"
+            size="sm"
+            tooltip="Use text instead"
+            type="button"
+            variant="ghost"
+            onClick={onTypeInstead}
+          />
           {isSpeaking && (
             <Button
               aria-label="Interrupt and speak"
@@ -1105,26 +1159,6 @@ export const VoiceInterviewControlView = ({
               onClick={onResume}
             />
           )}
-          {snapshot.phase === "recoverable-error" && (
-            <Button
-              aria-label="Reconnect"
-              prefix={<FaRotate aria-hidden="true" />}
-              type="button"
-              onClick={onReconnect}
-            >
-              Reconnect
-            </Button>
-          )}
-          <Button
-            aria-label="Use text instead"
-            prefix={<FaKeyboard aria-hidden="true" />}
-            shape="round"
-            size="sm"
-            tooltip="Use text instead"
-            type="button"
-            variant="ghost"
-            onClick={onTypeInstead}
-          />
         </div>
 
         <Coverage coverage={coverage} />
@@ -1140,6 +1174,33 @@ export const VoiceInterviewControlView = ({
       </span>
     </section>
   );
+};
+
+/**
+ * Recovery always stays visible, a detached or Chat-mode host only keeps an
+ * active session as the compact bar, and Interview mode shows whichever stage
+ * the user last chose.
+ */
+const selectVisiblePresentation = ({
+  active,
+  interactionMode,
+  phase,
+  placement,
+  presentation,
+}: {
+  readonly active: boolean;
+  readonly interactionMode: PetrinautAiInterviewStageContext["interactionMode"];
+  readonly phase: VoiceTurnPhase;
+  readonly placement: PetrinautAiInterviewStageContext["placement"];
+  readonly presentation: Presentation;
+}): Presentation | null => {
+  if (phase === "recoverable-error") {
+    return interactionMode === "chat" ? "mini" : "full";
+  }
+  if (placement === "detached" || interactionMode === "chat") {
+    return active ? "mini" : null;
+  }
+  return presentation;
 };
 
 const recordLatency = (event: VoiceLatencyEvent): void => {
@@ -1301,20 +1362,13 @@ const AvailableVoiceInterviewControl = ({
     void store.controller.start();
   };
 
-  const visiblePresentation =
-    snapshot.phase === "recoverable-error"
-      ? context.interactionMode === "chat"
-        ? "mini"
-        : "full"
-      : context.placement === "detached"
-        ? active
-          ? "mini"
-          : null
-        : context.interactionMode === "chat"
-          ? active
-            ? "mini"
-            : null
-          : presentation;
+  const visiblePresentation = selectVisiblePresentation({
+    active,
+    interactionMode: context.interactionMode,
+    phase: snapshot.phase,
+    placement: context.placement,
+    presentation,
+  });
 
   if (visiblePresentation === null) {
     return null;

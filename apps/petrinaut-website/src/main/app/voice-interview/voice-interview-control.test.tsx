@@ -22,6 +22,8 @@ import {
   type VoiceInterviewControlViewProps,
 } from "./voice-interview-control";
 
+import type { VoiceTurnSnapshot } from "./voice-turn-controller";
+
 import type { PetrinautAiInterviewStageContext } from "@hashintel/petrinaut/ui";
 
 const snapshot = {
@@ -588,6 +590,74 @@ describe("voice interview stage", () => {
     ).toBe("");
   });
 
+  test("orders the full listening actions as keyboard, done speaking, then pause", () => {
+    const html = renderToStaticMarkup(
+      <VoiceInterviewControlView {...viewProps()} />,
+    );
+
+    expect(html.indexOf('aria-label="Use text instead"')).toBeLessThan(
+      html.indexOf('aria-label="Done speaking"'),
+    );
+    expect(html.indexOf('aria-label="Done speaking"')).toBeLessThan(
+      html.indexOf('aria-label="Pause"'),
+    );
+  });
+
+  test("offers only resume and keyboard actions while paused", () => {
+    render(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            microphoneEnabled: false,
+            microphoneLevel: 0,
+            partialText: "",
+            phase: "paused",
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Paused")).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Resume listening" }),
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Use text instead" }),
+    ).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Done speaking" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Interrupt and speak" }),
+    ).toBeNull();
+  });
+
+  test("shows the waveform only while the microphone is listening", () => {
+    const rendered = render(<VoiceInterviewControlView {...viewProps()} />);
+
+    expect(screen.getByTestId("voice-waveform")).not.toBeNull();
+
+    for (const phase of ["paused", "playing", "waiting"] as const) {
+      rendered.rerender(
+        <VoiceInterviewControlView
+          {...viewProps({
+            snapshot: {
+              ...snapshot,
+              microphoneEnabled: false,
+              microphoneLevel: 0,
+              partialText: "",
+              phase,
+            },
+          })}
+        />,
+      );
+      expect(screen.queryByTestId("voice-waveform")).toBeNull();
+      expect(
+        screen.queryByText(/Microphone input level:/u),
+      ).toBeNull();
+    }
+  });
+
   test("keeps reconnect visible and makes secondary recovery icon-only", () => {
     render(
       <VoiceInterviewControlView
@@ -619,6 +689,69 @@ describe("voice interview stage", () => {
         .querySelector("svg"),
     ).not.toBeNull();
     expect(screen.getByText("Technical details")).not.toBeNull();
+  });
+
+  test("names the recovery problem for each error family", () => {
+    const recovery = (
+      errorCode: VoiceTurnSnapshot["errorCode"],
+      errorMessage: string,
+    ) => (
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            errorCode,
+            errorMessage,
+            microphoneEnabled: false,
+            microphoneLevel: 0,
+            partialText: "",
+            phase: "recoverable-error",
+          },
+        })}
+      />
+    );
+
+    const rendered = render(
+      recovery(
+        "microphone-device",
+        "Connect or select a microphone, then reconnect voice input.",
+      ),
+    );
+    expect(
+      screen.getByText("We couldn’t reconnect the microphone"),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(
+        "Connect or select a microphone, then reconnect voice input.",
+      ),
+    ).not.toBeNull();
+
+    rendered.rerender(
+      recovery(
+        "timeout",
+        "The voice connection timed out. Check your connection, then reconnect voice input.",
+      ),
+    );
+    expect(screen.getByText("We lost the voice connection")).not.toBeNull();
+
+    rendered.rerender(
+      recovery(
+        "invalid-response",
+        "The interview could not accept that answer. Use the composer to retry.",
+      ),
+    );
+    expect(screen.getByText("The interview couldn’t continue")).not.toBeNull();
+
+    rendered.rerender(
+      recovery(
+        null,
+        "The interview could not accept that answer. Use the composer to retry.",
+      ),
+    );
+    expect(screen.getByText("The interview couldn’t continue")).not.toBeNull();
+    expect(
+      screen.queryByText("We couldn’t reconnect the microphone"),
+    ).toBeNull();
   });
 
   test("renders icons for the listening controls", () => {
@@ -888,5 +1021,21 @@ describe("voice interview stage", () => {
     expect(html).toContain("Covered");
     expect(html).toContain("Still exploring");
     expect(html).not.toMatch(/\d+ of \d+/u);
+  });
+
+  test("keeps interview coverage as a low-emphasis details row", () => {
+    const html = renderToStaticMarkup(
+      <VoiceInterviewControlView
+        {...viewProps({
+          coverage: {
+            complete: false,
+            covered: ["dispatch"],
+            stillExploring: ["approval — how long it takes"],
+          },
+        })}
+      />,
+    );
+
+    expect(html).toMatch(/<details class="[^"]*fs_xs/u);
   });
 });
