@@ -113,7 +113,7 @@ export type HirAnalysis = {
 type AbstractValue =
   /** An opaque scalar (number/boolean). */
   | { kind: "scalar" }
-  /** The lambda/kernel input object (`tokensByPlace`). */
+  /** The lambda/kernel input object. */
   | { kind: "inputRecord" }
   /** A token array belonging to a place. */
   | { kind: "tokens"; place: HirTokenReadPlace }

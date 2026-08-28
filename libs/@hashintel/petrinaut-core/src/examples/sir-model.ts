@@ -75,15 +75,13 @@ export const sirModel: { title: string; petriNetDefinition: SDCPN } = {
         lambdaType: "stochastic",
         lambdaCode: `// Mass-action infection: fires at the configured infection rate whenever a
 // Susceptible and an Infected are both present (the two standard input arcs).
-export default Lambda((tokens, parameters) => parameters.infection_rate)`,
+return parameters.infection_rate;`,
         transitionKernelCode: `// Consumes 1 Susceptible + 1 Infected and produces 2 Infected (the output
 // arc has weight 2), encoding the S + I -> 2I reaction: the susceptible has
 // become newly infected. Places are untyped, so tokens carry no attributes.
-export default TransitionKernel(() => {
-  return {
-    Infected: [{}, {}],
-  };
-});`,
+return {
+  Infected: [{}, {}],
+};`,
         x: -10 * GRID_SIZE,
         y: 5 * GRID_SIZE,
       },
@@ -106,14 +104,12 @@ export default TransitionKernel(() => {
         lambdaType: "stochastic",
         lambdaCode: `// Each Infected recovers at the configured recovery rate. The ratio of
 // infection_rate to recovery_rate sets the basic reproduction number R0.
-export default Lambda((tokens, parameters) => parameters.recovery_rate)`,
+return parameters.recovery_rate;`,
         transitionKernelCode: `// Move one Infected to Recovered (1-to-1). Recovered individuals are immune,
 // so they never re-enter the Susceptible or Infected places.
-export default TransitionKernel(() => {
-  return {
-    Recovered: [{}],
-  };
-});`,
+return {
+  Recovered: [{}],
+};`,
         x: 6 * GRID_SIZE,
         y: 16 * GRID_SIZE,
       },
