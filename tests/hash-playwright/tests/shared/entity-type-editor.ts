@@ -40,7 +40,7 @@ export const startDraftEntityType = async (page: Page, title: string) => {
   await form.locator('input[name="title"]').fill(title);
   await form.locator('textarea[name="description"]').fill("Test Entity");
   await form.locator('input[name="titlePlural"]').fill(`${title}s`);
-  await form.locator("button").click();
+  await form.locator('button[type="submit"]').click();
 
   await page.waitForURL(
     (url) =>
