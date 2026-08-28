@@ -9,9 +9,6 @@ use core::{
 use axum::{
     Router, body::Body, extract::ConnectInfo, middleware, response::Response, routing::get,
 };
-use hash_graph_authentication::{
-    provider::StaticAuthenticationProvider, request::AuthenticationError,
-};
 use http::{Request, StatusCode};
 use tower::ServiceExt as _;
 use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
@@ -21,7 +18,10 @@ use super::{
     ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters, ip_gate_middleware,
     principal_limit_middleware,
 };
-use crate::rest::auth::{ResolvedAuthentication, authentication_middleware};
+use crate::authentication::{
+    ResolvedAuthentication, authentication_middleware, provider::StaticAuthenticationProvider,
+    request::AuthenticationError,
+};
 
 const SERVICE_SECRET: &str = "hash-svc-test-secret";
 
@@ -78,7 +78,7 @@ fn principal_router(config: &RateLimitConfig) -> Router {
         }))
 }
 
-/// Stacks the three request middlewares in the order the REST router wires them.
+/// Stacks the three request middlewares in the order a REST router wires them.
 fn full_stack_router(config: &RateLimitConfig, provider: StaticAuthenticationProvider) -> Router {
     full_stack_router_with(&Arc::new(RateLimiters::new(config)), provider)
 }
@@ -106,7 +106,13 @@ fn full_stack_router_with(
         .route_layer(middleware::from_fn(move |request, next| {
             let provider = Arc::clone(&provider);
             let service_secret = Arc::clone(&service_secret);
-            authentication_middleware::<_, Option<ActorId>>(provider, service_secret, request, next)
+            authentication_middleware::<_, Option<ActorId>>(
+                provider,
+                service_secret,
+                |_path| false,
+                request,
+                next,
+            )
         }))
         .route_layer(middleware::from_fn(move |request, next| {
             ip_gate_middleware(
@@ -200,36 +206,6 @@ async fn send(router: &Router, request: Request<Body>) -> Response {
         .oneshot(request)
         .await
         .expect("the router should respond")
-}
-
-/// The defaults reach an operator through clap, so they are read back the way clap renders them.
-#[cfg(feature = "clap")]
-#[test]
-fn defaults_leave_enforcement_off() {
-    use clap::Parser as _;
-
-    #[derive(clap::Parser)]
-    struct Wrapper {
-        #[clap(flatten)]
-        rate_limit: RateLimitConfig,
-    }
-
-    let parsed = Wrapper::parse_from(["test"]).rate_limit;
-    assert_eq!(
-        parsed.rate_limit_mode,
-        RateLimitMode::Observe,
-        "nobody should be turned away until the budgets are measured"
-    );
-    assert_eq!(
-        parsed.client_ip_source,
-        ClientIpSource::ConnectInfo,
-        "a forwarded header should only be read where a deployment asks for it"
-    );
-    assert_eq!(
-        parsed.rate_limit_anonymous_burst.get(),
-        50,
-        "an anonymous caller should be able to load a page's worth of requests at once"
-    );
 }
 
 #[tokio::test]
@@ -580,60 +556,6 @@ async fn observing_serves_the_request_and_reports_nothing_to_the_client() {
     );
 }
 
-/// Drives `attach_request_middlewares`, the function `rest_api_router` wires the stack with, so
-/// what each route carries is read off the production assembly rather than a copy of it.
-#[tokio::test]
-async fn attaching_budgets_unmatched_paths_and_spares_later_merges() {
-    // Two requests of gate budget: the specification, then one unmatched path before it runs out.
-    let limiters = Arc::new(RateLimiters::new(&RateLimitConfig {
-        rate_limit_gate_burst: non_zero(2),
-        ..config(1)
-    }));
-    let router = crate::rest::attach_request_middlewares::<_, Option<ActorId>>(
-        Router::new()
-            .route("/entities", get(async || "ok"))
-            .fallback(|| async { StatusCode::NOT_FOUND }),
-        Router::new().route("/openapi.json", get(async || "spec")),
-        Arc::new(StaticAuthenticationProvider::Rejected),
-        Arc::from(SERVICE_SECRET),
-        limiters,
-    )
-    .merge(Router::new().route("/health", get(async || "ok")));
-    let client = address("192.0.2.1");
-
-    assert_eq!(
-        send(&router, request_to("/openapi.json", client))
-            .await
-            .status(),
-        StatusCode::OK,
-        "a route merged between the layers should skip authentication, which rejects everything \
-         here"
-    );
-
-    assert_eq!(
-        send(&router, request_to("/does-not-exist", client))
-            .await
-            .status(),
-        StatusCode::NOT_FOUND,
-        "an unmatched path should answer 404 without reaching authentication"
-    );
-    assert_eq!(
-        send(&router, request_to("/does-not-exist", client))
-            .await
-            .status(),
-        StatusCode::TOO_MANY_REQUESTS,
-        "an unmatched path should draw from the address budget like any other request"
-    );
-
-    for _ in 0..3 {
-        assert_eq!(
-            send(&router, request_to("/health", client)).await.status(),
-            StatusCode::OK,
-            "a probe merged after the gate should stay outside it, whatever the budget holds"
-        );
-    }
-}
-
 /// A rejected credential and an exhausted gate answer differently, so the order they run in is
 /// observable from the status code alone.
 #[tokio::test]
@@ -689,7 +611,13 @@ async fn enforced_denials_skip_the_inner_stack() {
         .route_layer(middleware::from_fn(move |request, next| {
             let provider = Arc::clone(&provider);
             let service_secret = Arc::clone(&service_secret);
-            authentication_middleware::<_, Option<ActorId>>(provider, service_secret, request, next)
+            authentication_middleware::<_, Option<ActorId>>(
+                provider,
+                service_secret,
+                |_path| false,
+                request,
+                next,
+            )
         }))
         .route_layer(middleware::from_fn(move |request, next| {
             ip_gate_middleware(
@@ -798,7 +726,7 @@ async fn maintenance_sweeps_on_its_interval() {
         ..config(1)
     }));
     let router = gate_router_with(&limiters);
-    super::spawn_maintenance(Arc::downgrade(&limiters));
+    limiters.spawn_maintenance();
 
     send(&router, request(address("192.0.2.1"))).await;
     assert_eq!(

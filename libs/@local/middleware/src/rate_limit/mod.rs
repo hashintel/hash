@@ -1,4 +1,4 @@
-//! Rate limiting for the REST API.
+//! Rate limiting for HTTP request handling.
 //!
 //! Two middlewares share the limiter state in `RateLimiters`. `ip_gate_middleware` runs ahead of
 //! the authentication middleware and throttles each client address before credential
@@ -6,13 +6,18 @@
 //! principal: the actor for authenticated requests, counted across every address it connects
 //! from, and the client address for anonymous ones.
 //!
-//! Requests presenting the service secret pass both middlewares unchecked.
+//! Requests presenting the service secret pass both middlewares unchecked. Both middlewares and
+//! [`authentication_middleware`] have to share one secret: the principal limiter treats a stored
+//! authentication error as unreachable because the requests it could arise from passed by secret
+//! above.
+//!
+//! [`authentication_middleware`]: crate::authentication::authentication_middleware
 //!
 //! A request over its budget receives `429 Too Many Requests` with `Retry-After` in
-//! [`RateLimitMode::Enforce`], and is served unchanged in [`RateLimitMode::Observe`], the
-//! default. `Retry-After` is the whole client-facing contract: a served response says nothing
-//! about the budget it crossed, and what enforcement would have done is read from the sweep
-//! report instead.
+//! [`RateLimitMode::Enforce`], the default, and is served unchanged in
+//! [`RateLimitMode::Observe`]. `Retry-After` is the whole client-facing contract: a served
+//! response says nothing about the budget it crossed, and what enforcement would have done is
+//! read from the sweep report instead.
 //!
 //! Denials, address fallbacks and unresolvable addresses log at debug. The eviction sweep reports
 //! the store sizes every interval, at warn with the interval's totals whenever it saw one of
@@ -27,7 +32,7 @@ mod config;
 #[cfg(test)]
 mod tests;
 
-use alloc::sync::{Arc, Weak};
+use alloc::sync::Arc;
 use core::{
     fmt,
     num::NonZeroU64,
@@ -36,12 +41,7 @@ use core::{
 };
 use std::sync::LazyLock;
 
-use axum::{
-    body::Body,
-    extract::Request,
-    middleware::Next,
-    response::{IntoResponse as _, Response},
-};
+use axum::{body::Body, extract::Request, middleware::Next, response::Response};
 use bytes::Bytes;
 use governor::{
     Quota, RateLimiter,
@@ -49,8 +49,6 @@ use governor::{
     middleware::NoOpMiddleware,
     state::keyed::DefaultKeyedStateStore,
 };
-use hash_graph_authentication::delegation::presents_service_secret;
-use hash_status::{Status, StatusCode};
 use http::{
     HeaderValue,
     header::{CONTENT_TYPE, RETRY_AFTER},
@@ -59,7 +57,10 @@ use type_system::principal::actor::ActorId;
 
 use self::address::{BucketKey, ResolvedClientAddress};
 pub use self::config::{ClientIpSource, RateLimitConfig, RateLimitMode};
-use crate::rest::{auth::ResolvedAuthentication, status::status_to_response};
+use crate::{
+    authentication::{ResolvedAuthentication, service_secret::presents_service_secret},
+    response::{error_body, error_response},
+};
 
 /// How often replenished keys are evicted and the interval is reported.
 const SWEEP_INTERVAL: Duration = Duration::from_secs(60);
@@ -178,9 +179,14 @@ impl Denial {
     }
 }
 
-/// The keyed limiters, the mode a denial is answered with, and the source the address is read
-/// from.
-pub(crate) struct RateLimiters {
+/// The shared limiter state both rate-limiting middlewares charge against.
+///
+/// Build one per router from the configuration, hand it to [`ip_gate_middleware`] and
+/// [`principal_limit_middleware`] behind one [`Arc`], and call [`spawn_maintenance`] on it so
+/// replenished keys are released.
+///
+/// [`spawn_maintenance`]: Self::spawn_maintenance
+pub struct RateLimiters {
     mode: RateLimitMode,
     client_ip_source: ClientIpSource,
     gate: KeyedLimiter<BucketKey>,
@@ -192,7 +198,7 @@ pub(crate) struct RateLimiters {
 impl RateLimiters {
     /// Creates the limiter state from the configuration.
     #[must_use]
-    pub(crate) fn new(config: &RateLimitConfig) -> Self {
+    pub fn new(config: &RateLimitConfig) -> Self {
         tracing::info!(
             mode = ?config.rate_limit_mode,
             client_ip_source = ?config.client_ip_source,
@@ -224,6 +230,38 @@ impl RateLimiters {
             .with_middleware(),
             tally: Tally::default(),
         }
+    }
+
+    /// Spawns the eviction sweep and a watcher reporting its loss.
+    ///
+    /// The sweep holds a weak reference, so it cannot keep the state alive, and ends on the first
+    /// tick after the state is dropped.
+    ///
+    /// # Panics
+    ///
+    /// Panics when called outside a Tokio runtime.
+    pub fn spawn_maintenance(self: &Arc<Self>) {
+        let limiters = Arc::downgrade(self);
+        let sweeper = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(SWEEP_INTERVAL);
+            loop {
+                interval.tick().await;
+                let Some(limiters) = limiters.upgrade() else {
+                    tracing::debug!("rate-limiter state dropped, ending the eviction sweep");
+                    break;
+                };
+                limiters.sweep();
+            }
+        });
+
+        tokio::spawn(async move {
+            if let Err(error) = sweeper.await {
+                tracing::error!(
+                    %error,
+                    "rate-limiter eviction sweep stopped, keys are no longer released"
+                );
+            }
+        });
     }
 
     /// Reads the budget key of a request from the configured source.
@@ -351,42 +389,50 @@ where
     limiter.shrink_to_fit();
 }
 
-/// Spawns the eviction sweep and a watcher reporting its loss.
-///
-/// The sweep holds a weak reference, so it cannot keep the state alive, and ends on the first tick
-/// after the state is dropped.
-///
-/// # Panics
-///
-/// Panics when called outside a Tokio runtime.
-pub(crate) fn spawn_maintenance(limiters: Weak<RateLimiters>) {
-    let sweeper = tokio::spawn(async move {
-        let mut interval = tokio::time::interval(SWEEP_INTERVAL);
-        loop {
-            interval.tick().await;
-            let Some(limiters) = limiters.upgrade() else {
-                tracing::debug!("rate-limiter state dropped, ending the eviction sweep");
-                break;
-            };
-            limiters.sweep();
-        }
-    });
-
-    tokio::spawn(async move {
-        if let Err(error) = sweeper.await {
-            tracing::error!(
-                %error,
-                "rate-limiter eviction sweep stopped, keys are no longer released"
-            );
-        }
-    });
-}
-
 /// Throttles each client address ahead of credential verification.
 ///
 /// The service secret is verified against the configured value, so a request merely presenting
-/// the scheme stays gated. A request whose client address cannot be determined passes unchecked.
-pub(crate) async fn ip_gate_middleware(
+/// the scheme stays gated. A request whose client address cannot be determined passes unchecked —
+/// reading the connection's address requires serving the router with
+/// `into_make_service_with_connect_info`.
+///
+/// # Example
+///
+/// ```
+/// # use core::num::NonZeroU32;
+/// # use std::sync::Arc;
+/// # use axum::{Router, middleware, routing::get};
+/// use hash_middleware::rate_limit::{RateLimiters, ip_gate_middleware};
+/// # use hash_middleware::rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode};
+///
+/// # let quota = |value| NonZeroU32::new(value).expect("the quota should be non-zero");
+/// # let config = RateLimitConfig {
+/// #     rate_limit_mode: RateLimitMode::Observe,
+/// #     client_ip_source: ClientIpSource::ConnectInfo,
+/// #     rate_limit_gate_per_second: quota(10),
+/// #     rate_limit_gate_burst: quota(50),
+/// #     rate_limit_anonymous_per_hour: quota(60),
+/// #     rate_limit_anonymous_burst: quota(50),
+/// #     rate_limit_actor_per_hour: quota(6000),
+/// #     rate_limit_actor_burst: quota(100),
+/// # };
+/// let limiters = Arc::new(RateLimiters::new(&config));
+/// let service_secret: Arc<str> = Arc::from("service-secret");
+///
+/// // A `layer` rather than a `route_layer`, so unmatched paths draw on a budget too.
+/// let router: Router =
+///     Router::new()
+///         .route("/entities", get(async || "ok"))
+///         .layer(middleware::from_fn(move |request, next| {
+///             ip_gate_middleware(
+///                 Arc::clone(&limiters),
+///                 Arc::clone(&service_secret),
+///                 request,
+///                 next,
+///             )
+///         }));
+/// ```
+pub async fn ip_gate_middleware(
     limiters: Arc<RateLimiters>,
     service_secret: Arc<str>,
     mut request: Request,
@@ -417,7 +463,87 @@ pub(crate) async fn ip_gate_middleware(
 /// Requests presenting the service secret pass unchecked, as does an anonymous request whose
 /// client address the gate could not determine. A route reached without the authentication
 /// middleware or without the address gate is answered with an internal error.
-pub(crate) async fn principal_limit_middleware(
+///
+/// # Example
+///
+/// Layered inside the authentication middleware, which itself sits inside the gate — the crate
+/// documentation shows the full stack:
+///
+/// ```
+/// # use core::{num::NonZeroU32, ops::ControlFlow};
+/// # use std::sync::Arc;
+/// # use axum::{Router, middleware, routing::get};
+/// # use error_stack::Report;
+/// # use hash_middleware::authentication::{
+/// #     authentication_middleware,
+/// #     provider::{AuthenticationProvider, Caller},
+/// #     request::AuthenticationError,
+/// # };
+/// # use http::HeaderMap;
+/// # use type_system::principal::actor::ActorId;
+/// use hash_middleware::rate_limit::{
+///     RateLimiters, ip_gate_middleware, principal_limit_middleware,
+/// };
+/// # use hash_middleware::rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode};
+///
+/// # struct Verifier;
+/// # impl<C: Caller> AuthenticationProvider<C> for Verifier {
+/// #     async fn authenticate(
+/// #         &self,
+/// #         _headers: &HeaderMap,
+/// #     ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
+/// #         ControlFlow::Continue(())
+/// #     }
+/// # }
+/// # let quota = |value| NonZeroU32::new(value).expect("the quota should be non-zero");
+/// # let config = RateLimitConfig {
+/// #     rate_limit_mode: RateLimitMode::Observe,
+/// #     client_ip_source: ClientIpSource::ConnectInfo,
+/// #     rate_limit_gate_per_second: quota(10),
+/// #     rate_limit_gate_burst: quota(50),
+/// #     rate_limit_anonymous_per_hour: quota(60),
+/// #     rate_limit_anonymous_burst: quota(50),
+/// #     rate_limit_actor_per_hour: quota(6000),
+/// #     rate_limit_actor_burst: quota(100),
+/// # };
+/// let limiters = Arc::new(RateLimiters::new(&config));
+/// let service_secret: Arc<str> = Arc::from("service-secret");
+/// # let provider = Arc::new(Verifier);
+/// # let auth_secret = Arc::clone(&service_secret);
+/// let principal_limiters = Arc::clone(&limiters);
+/// let principal_secret = Arc::clone(&service_secret);
+///
+/// let router: Router = Router::new()
+///     .route("/entities", get(async || "ok"))
+///     .route_layer(middleware::from_fn(move |request, next| {
+///         principal_limit_middleware(
+///             Arc::clone(&principal_limiters),
+///             Arc::clone(&principal_secret),
+///             request,
+///             next,
+///         )
+///     }))
+///     .route_layer(middleware::from_fn(move |request, next| {
+///         # let provider = Arc::clone(&provider);
+///         # let auth_secret = Arc::clone(&auth_secret);
+///         authentication_middleware::<_, Option<ActorId>>(
+///             provider,
+///             auth_secret,
+///             |_path| false,
+///             request,
+///             next,
+///         )
+///     }))
+///     .layer(middleware::from_fn(move |request, next| {
+///         ip_gate_middleware(
+///             Arc::clone(&limiters),
+///             Arc::clone(&service_secret),
+///             request,
+///             next,
+///         )
+///     }));
+/// ```
+pub async fn principal_limit_middleware(
     limiters: Arc<RateLimiters>,
     service_secret: Arc<str>,
     request: Request,
@@ -466,25 +592,14 @@ pub(crate) async fn principal_limit_middleware(
     }
 }
 
-/// The status and body every enforced denial answers with, built once.
-static TOO_MANY_REQUESTS: LazyLock<(http::StatusCode, Bytes)> = LazyLock::new(|| {
-    let status = Status::<()>::new(
-        StatusCode::ResourceExhausted,
-        Some("rate limit exceeded".to_owned()),
-        vec![],
-    );
-    let code = http::StatusCode::from_u16(status.code().to_http_code())
-        .expect("the status code should map to an HTTP status code");
-    let body = serde_json::to_vec(&status).expect("the status should serialize");
-    (code, Bytes::from(body))
-});
+/// The body every enforced denial answers with, built once.
+static TOO_MANY_REQUESTS: LazyLock<Bytes> =
+    LazyLock::new(|| Bytes::from(error_body("rate limit exceeded".to_owned())));
 
 /// Builds the 429 response for a denied request.
 fn too_many_requests(retry_after: NonZeroU64) -> Response {
-    let (code, body) = &*TOO_MANY_REQUESTS;
-
-    let mut response = Response::new(Body::from(body.clone()));
-    *response.status_mut() = *code;
+    let mut response = Response::new(Body::from(TOO_MANY_REQUESTS.clone()));
+    *response.status_mut() = http::StatusCode::TOO_MANY_REQUESTS;
     let headers = response.headers_mut();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
     headers.insert(RETRY_AFTER, HeaderValue::from(retry_after.get()));
@@ -492,10 +607,8 @@ fn too_many_requests(retry_after: NonZeroU64) -> Response {
 }
 
 fn internal_error() -> Response {
-    status_to_response(Status::<()>::new(
-        StatusCode::Internal,
-        Some("internal server error".to_owned()),
-        vec![],
-    ))
-    .into_response()
+    error_response(
+        http::StatusCode::INTERNAL_SERVER_ERROR,
+        "internal server error".to_owned(),
+    )
 }

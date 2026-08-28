@@ -5,13 +5,14 @@
 //! the admin identity API. This module carries the response handling and the metadata the Graph
 //! exchanges with an identity.
 //!
-//! [`AuthenticationProvider`]: crate::provider::AuthenticationProvider
+//! [`AuthenticationProvider`]: hash_middleware::authentication::provider::AuthenticationProvider
 
 mod admin;
 mod identity;
 mod session;
 
 use error_stack::{Report, ResultExt as _};
+use hash_middleware::authentication::request::AuthenticationError;
 use reqwest::Response;
 use serde::Deserialize;
 use type_system::principal::actor::UserId;
@@ -26,7 +27,6 @@ pub use self::{
         KratosSessionConfig, KratosSessionProvider, SESSION_COOKIE_NAME, SESSION_TOKEN_HEADER,
     },
 };
-use crate::request::AuthenticationError;
 
 /// The `metadata_public` fields the Graph exchanges with a Kratos identity.
 ///

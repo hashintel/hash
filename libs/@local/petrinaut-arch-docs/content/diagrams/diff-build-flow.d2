@@ -1,0 +1,23 @@
+# Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
+direction: right
+
+branch: "branch checkout" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+base-ref: "base ref\n(main)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+base-tree: "base source tree\n(scratch directory)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+
+build-branch: "generator" {style.fill: "#fbe3e8"; style.stroke: "#ad3a5b"}
+build-base: "generator\n(same version, same config)" {style.fill: "#fbe3e8"; style.stroke: "#ad3a5b"}
+compare: "normalize + compare\nmask counts, ordering,\nincoming edges; diff per block" {style.fill: "#fbe3e8"; style.stroke: "#ad3a5b"}
+
+branch-bundle: "branch bundle" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+base-bundle: "base bundle\n(in memory only)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+output: "annotated bundle\nbadges, block markers,\ntombstones" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+base-ref -> base-tree: git archive, or an\nanonymous sparse fetch {style.stroke-dash: 3}
+branch -> build-branch
+base-tree -> build-base
+build-branch -> branch-bundle
+build-base -> base-bundle
+branch-bundle -> compare
+base-bundle -> compare
+compare -> output

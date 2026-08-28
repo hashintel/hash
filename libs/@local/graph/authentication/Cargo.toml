@@ -11,7 +11,7 @@ authors.workspace = true
 error-stack              = { workspace = true, public = true }
 hash-graph-authorization = { workspace = true, public = true }
 hash-graph-store         = { workspace = true, public = true }
-hash-status              = { workspace = true, public = true }
+hash-middleware          = { workspace = true, public = true }
 type-system              = { workspace = true, public = true }
 
 # Public third-party dependencies
@@ -27,17 +27,17 @@ derive_more    = { workspace = true, features = ["display", "error"] }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }
-subtle         = { workspace = true }
 tokio          = { workspace = true, features = ["sync"] }
 tracing        = { workspace = true }
 uuid           = { workspace = true }
 
 [dev-dependencies]
-axum         = { workspace = true }
-jsonwebtoken = { workspace = true, features = ["use_pem"] }
-rstest       = { workspace = true }
-tokio        = { workspace = true, features = ["macros", "rt-multi-thread"] }
-uuid         = { workspace = true, features = ["v4"] }
+axum            = { workspace = true }
+hash-middleware = { workspace = true, features = ["test-utils"] }
+jsonwebtoken    = { workspace = true, features = ["use_pem"] }
+rstest          = { workspace = true }
+tokio           = { workspace = true, features = ["macros", "rt-multi-thread"] }
+uuid            = { workspace = true, features = ["v4"] }
 
 [features]
 test-utils = []

@@ -8,7 +8,7 @@ use http::header;
 /// [`HttpTracingLayer`] skips it: a probe answered every few seconds per task carries no signal,
 /// and tracing it only inflates the RED metrics derived from spans.
 ///
-/// [`HttpTracingLayer`]: crate::rest::http_tracing_layer::HttpTracingLayer
+/// [`HttpTracingLayer`]: crate::rest::telemetry::HttpTracingLayer
 pub const HEALTH_PATH: &str = "/health";
 
 const HEALTH_MEDIA_TYPE: &str = "application/health+json";

@@ -131,7 +131,7 @@ mod tests {
     fn transpile_entity_id_rows() {
         assert_eq!(
             trim_whitespace(&bulk_insert::<EntityIdRow>().rows(&[]).compile().0),
-            r#"INSERT INTO "entity_ids" ("web_id", "entity_uuid", "provenance", "read_only", "created_by_id", "created_at_transaction_time", "created_at_decision_time") SELECT * FROM UNNEST(($1::uuid[]), ($2::uuid[]), ($3::jsonb[]), ($4::bool[]), ($5::uuid[]), ($6::timestamptz[]), ($7::timestamptz[]))"#
+            r#"INSERT INTO "entity_ids" ("web_id", "entity_uuid", "provenance", "read_only", "created_by_id", "created_at_transaction_time", "created_at_decision_time", "deleted_by_id", "deleted_at_transaction_time", "deleted_at_decision_time") SELECT * FROM UNNEST(($1::uuid[]), ($2::uuid[]), ($3::jsonb[]), ($4::bool[]), ($5::uuid[]), ($6::timestamptz[]), ($7::timestamptz[]), ($8::uuid[]), ($9::timestamptz[]), ($10::timestamptz[]))"#
         );
     }
 
@@ -168,7 +168,7 @@ mod tests {
                     .compile()
                     .0
             ),
-            r#"INSERT INTO "entity_ids_tmp" ("web_id", "entity_uuid", "provenance", "read_only", "created_by_id", "created_at_transaction_time", "created_at_decision_time") SELECT DISTINCT * FROM UNNEST(($1::uuid[]), ($2::uuid[]), ($3::jsonb[]), ($4::bool[]), ($5::uuid[]), ($6::timestamptz[]), ($7::timestamptz[])) ON CONFLICT DO NOTHING"#
+            r#"INSERT INTO "entity_ids_tmp" ("web_id", "entity_uuid", "provenance", "read_only", "created_by_id", "created_at_transaction_time", "created_at_decision_time", "deleted_by_id", "deleted_at_transaction_time", "deleted_at_decision_time") SELECT DISTINCT * FROM UNNEST(($1::uuid[]), ($2::uuid[]), ($3::jsonb[]), ($4::bool[]), ($5::uuid[]), ($6::timestamptz[]), ($7::timestamptz[]), ($8::uuid[]), ($9::timestamptz[]), ($10::timestamptz[])) ON CONFLICT DO NOTHING"#
         );
     }
 }

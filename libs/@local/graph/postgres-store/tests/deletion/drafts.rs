@@ -21,9 +21,9 @@ use crate::{
 /// `select_entities_for_deletion` puts the entity in the draft-only bucket. Then
 /// `promote_draft_only_entities` queries `entity_temporal_metadata` (across ALL temporal history,
 /// no time restriction) for rows where `draft_id IS NULL OR NOT (draft_id = ANY(matched_drafts))`.
-/// Since there's no published version and no unmatched drafts, the query returns nothing → draft
-/// vec is cleared → entity becomes a full target → `entity_ids` gets tombstone provenance via
-/// `update_entity_ids_provenance`.
+/// Since there's no published version and no unmatched drafts, the query returns nothing, the
+/// draft vec is cleared, the entity becomes a full target, and `entity_ids` gets its deletion
+/// tombstone written via `update_entity_ids_provenance`.
 #[tokio::test]
 async fn draft_only_entity_promoted_to_full_delete() {
     let mut database = DatabaseTestWrapper::new().await;
@@ -502,8 +502,8 @@ async fn mixed_full_and_draft_targets() {
 /// published version blocks promotion, so `FullEntityDeletionTarget` is empty and
 /// `DraftOnlyDeletionTarget` has the draft. The guards `!full_target.web_ids.is_empty()` and
 /// `!draft_target.draft_ids.is_empty()` must correctly skip the empty branch without errors. In
-/// particular, the empty full target must not trigger `delete_entity_edge`, `count_incoming_links`,
-/// or `update_entity_ids_provenance`.
+/// particular, the empty full target must not trigger `delete_entity_edge`,
+/// `count_incoming_link_edges`, or `update_entity_ids_provenance`.
 #[tokio::test]
 async fn empty_target_guards() {
     let mut database = DatabaseTestWrapper::new().await;

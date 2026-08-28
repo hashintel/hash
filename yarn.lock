@@ -442,6 +442,7 @@ __metadata:
     "@hashintel/brunch-agent": "workspace:*"
     "@hashintel/brunch-agent-binding-flue": "workspace:*"
     "@hashintel/brunch-agent-plugin-gherkin": "workspace:*"
+    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*"
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*"
     "@types/node": "npm:22.18.13"
     "@types/react": "npm:19.2.14"
@@ -7556,6 +7557,21 @@ __metadata:
 "@hashintel/brunch-agent-plugin-gherkin@workspace:*, @hashintel/brunch-agent-plugin-gherkin@workspace:libs/@hashintel/brunch-agent/packages/plugin-gherkin":
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-plugin-gherkin@workspace:libs/@hashintel/brunch-agent/packages/plugin-gherkin"
+  dependencies:
+    "@hashintel/brunch-agent": "workspace:*"
+    "@types/node": "npm:22.18.13"
+    "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
+    oxlint: "npm:1.63.0"
+    oxlint-tsgolint: "npm:0.22.1"
+    valibot: "npm:1.4.2"
+    vite: "npm:8.1.0"
+    vitest: "npm:4.1.10"
+  languageName: unknown
+  linkType: soft
+
+"@hashintel/brunch-agent-plugin-sdcpn@workspace:*, @hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn":
+  version: 0.0.0-use.local
+  resolution: "@hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn"
   dependencies:
     "@hashintel/brunch-agent": "workspace:*"
     "@types/node": "npm:22.18.13"
@@ -14850,6 +14866,7 @@ __metadata:
     "@rust/hash-graph-type-fetcher": "workspace:*"
     "@rust/hash-graph-types": "workspace:*"
     "@rust/hash-graph-validation": "workspace:*"
+    "@rust/hash-middleware": "workspace:*"
     "@rust/hash-status": "workspace:*"
     "@rust/hash-temporal-client": "workspace:*"
     "@rust/hashql-ast": "workspace:*"
@@ -14870,7 +14887,7 @@ __metadata:
     "@rust/error-stack": "workspace:*"
     "@rust/hash-graph-authorization": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
-    "@rust/hash-status": "workspace:*"
+    "@rust/hash-middleware": "workspace:*"
   languageName: unknown
   linkType: soft
 
@@ -15069,9 +15086,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hash-middleware@workspace:libs/@local/middleware":
+"@rust/hash-middleware@workspace:*, @rust/hash-middleware@workspace:libs/@local/middleware":
   version: 0.0.0-use.local
   resolution: "@rust/hash-middleware@workspace:libs/@local/middleware"
+  dependencies:
+    "@blockprotocol/type-system-rs": "workspace:*"
+    "@rust/error-stack": "workspace:*"
   languageName: unknown
   linkType: soft
 

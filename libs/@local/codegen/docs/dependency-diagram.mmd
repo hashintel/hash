@@ -35,13 +35,14 @@ graph TD
     23[<a href="../hashql_hir/index.html">hashql-hir</a>]
     24[<a href="../hashql_mir/index.html">hashql-mir</a>]
     25[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
-    26[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
-    27[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
-    28[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
-    29[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    26[<a href="../hash_middleware/index.html">hash-middleware</a>]
+    27[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    28[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    29[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    30[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
     0 --> 4
     1 --> 10
-    1 -.-> 29
+    1 -.-> 30
     2 -.-> 3
     4 -.-> 5
     4 --> 5
@@ -50,6 +51,8 @@ graph TD
     4 --> 22
     4 --> 25
     5 --> 9
+    5 -.-> 26
+    5 --> 26
     6 --> 1
     7 --> 12
     8 --> 7
@@ -57,11 +60,11 @@ graph TD
     8 --> 13
     9 --> 6
     9 --> 12
-    9 --> 26
+    9 --> 27
     10 --> 2
     11 --> 9
-    12 -.-> 29
-    13 -.-> 29
+    12 -.-> 30
+    13 -.-> 30
     14 --> 17
     15 --> 2
     16 -.-> 1
@@ -80,6 +83,7 @@ graph TD
     25 --> 19
     25 --> 21
     26 --> 1
-    27 -.-> 4
-    28 -.-> 8
-    29 --> 9
+    27 --> 1
+    28 -.-> 4
+    29 -.-> 8
+    30 --> 9

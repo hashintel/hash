@@ -619,6 +619,11 @@ impl<'p> PropertyProtectionFilterConfig<'p> {
 
     /// Returns the default HASH configuration that protects email on User entities.
     ///
+    /// Every protected property must be a property that no entity type names as its label
+    /// property. Entity labels are materialized into the label cache by extracting the label
+    /// property's value from the stored properties object, and that derivation takes no actor,
+    /// so the label column of a masked entity still carries the protected value.
+    ///
     /// # Panics
     ///
     /// Panics if the hardcoded URLs are invalid (should never happen).
@@ -846,7 +851,9 @@ fn collect_from_path<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
             collect_from_json_path(json_path.as_ref(), config, excluded);
         }
         EntityQueryPath::EntityEdge { path, .. } => collect_from_path(path, config, excluded),
-        EntityQueryPath::Label { .. } | EntityQueryPath::FirstLabel => {
+        EntityQueryPath::Label { .. }
+        | EntityQueryPath::FirstLabel
+        | EntityQueryPath::FirstLabelProperty => {
             // TODO(BE-313): check if label_property is protected
         }
         EntityQueryPath::Embedding => {
@@ -859,6 +866,8 @@ fn collect_from_path<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
         | EntityQueryPath::DecisionTime
         | EntityQueryPath::TransactionTime
         | EntityQueryPath::DirectTypeCount
+        | EntityQueryPath::ScalarProperties
+        | EntityQueryPath::PropertyCount
         | EntityQueryPath::EntityConfidence
         | EntityQueryPath::LeftEntityConfidence
         | EntityQueryPath::LeftEntityProvenance

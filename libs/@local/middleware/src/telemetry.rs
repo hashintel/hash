@@ -1,3 +1,5 @@
+//! An HTTP server span per request, joined to the caller's OpenTelemetry trace.
+
 use core::{future::Future, net::SocketAddr};
 
 use axum::extract::{ConnectInfo, MatchedPath, Request};
@@ -10,8 +12,6 @@ use opentelemetry_semantic_conventions::trace;
 use tower::{Layer, Service};
 use tracing::{Instrument as _, Span, field::Empty};
 use tracing_opentelemetry::OpenTelemetrySpanExt as _;
-
-use crate::rest::probe;
 
 struct HeaderExtractor<'a>(&'a http::HeaderMap);
 
@@ -43,7 +43,7 @@ fn extract_context_from_headers(headers: &http::HeaderMap) -> Context {
     global::get_text_map_propagator(|propagator| propagator.extract(&extractor))
 }
 
-fn create_http_span<B>(request: &Request<B>) -> Span {
+fn create_http_span<B>(request: &Request<B>, skip: fn(&str) -> bool) -> Span {
     // Use MatchedPath if available (route template like /entities/{id}),
     // fallback to actual URI path for unmatched requests
     let path = request
@@ -51,7 +51,7 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
         .get::<MatchedPath>()
         .map_or_else(|| request.uri().path(), MatchedPath::as_str);
 
-    if path == probe::HEALTH_PATH {
+    if skip(path) {
         return Span::none();
     }
 
@@ -74,8 +74,7 @@ fn create_http_span<B>(request: &Request<B>) -> Span {
     );
 
     // `set_parent` returns an error if no OpenTelemetry layer is registered with the subscriber,
-    // e.g. when OTLP export is disabled. In that case the span simply has no remote parent, which
-    // matches the previous (pre `tracing-opentelemetry` 0.32) silent no-op behavior.
+    // e.g. when OTLP export is disabled. In that case the span simply has no remote parent.
     if let Err(error) = http_span.set_parent(extract_context_from_headers(request.headers())) {
         tracing::debug!(%error, "could not set parent OpenTelemetry context on HTTP span");
     }
@@ -141,20 +140,51 @@ fn inject_context_to_headers(context: &Context, headers: &mut http::HeaderMap) {
     });
 }
 
+/// Spans every request the wrapped service serves, except the paths `skip` names.
+///
+/// A skipped path — typically a health probe answered every few seconds — produces no span at
+/// all rather than a noisy one.
+///
+/// # Example
+///
+/// ```
+/// use axum::{Router, routing::get};
+/// use hash_middleware::telemetry::HttpTracingLayer;
+///
+/// let router: Router = Router::new()
+///     .route("/entities", get(async || "ok"))
+///     .route("/health", get(async || "ok"))
+///     .layer(HttpTracingLayer::new(|path| path == "/health"));
+/// ```
 #[derive(Clone, Debug)]
-pub struct HttpTracingLayer;
+pub struct HttpTracingLayer {
+    skip: fn(&str) -> bool,
+}
+
+impl HttpTracingLayer {
+    /// Creates the layer, skipping the paths `skip` names.
+    #[must_use]
+    pub const fn new(skip: fn(&str) -> bool) -> Self {
+        Self { skip }
+    }
+}
 
 impl<S> Layer<S> for HttpTracingLayer {
     type Service = HttpTracingService<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        HttpTracingService { inner }
+        HttpTracingService {
+            inner,
+            skip: self.skip,
+        }
     }
 }
 
+/// The service [`HttpTracingLayer`] wraps its inner service into.
 #[derive(Clone, Debug)]
 pub struct HttpTracingService<S> {
     inner: S,
+    skip: fn(&str) -> bool,
 }
 
 impl<S, Req, Res> Service<Request<Req>> for HttpTracingService<S>
@@ -174,13 +204,13 @@ where
     }
 
     fn call(&mut self, req: Request<Req>) -> Self::Future {
-        let http_span = create_http_span(&req);
+        let http_span = create_http_span(&req, self.skip);
         let future = self.inner.call(req);
 
         async move {
             let mut result = future.await;
 
-            // Record response attributes and inject headers (only for successful responses)
+            // Record response attributes and inject headers when the service produced a response.
             if let Ok(response) = &mut result {
                 let current_span = Span::current();
                 record_response_attributes(&current_span, response);
@@ -192,5 +222,73 @@ where
             result
         }
         .instrument(http_span)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::sync::Arc;
+    use std::sync::Mutex;
+
+    use axum::{Router, body::Body, routing::get};
+    use http::Request;
+    use tower::ServiceExt as _;
+    use tracing::instrument::WithSubscriber as _;
+    use tracing_subscriber::layer::SubscriberExt as _;
+
+    use super::HttpTracingLayer;
+
+    /// Records the name of every span opened under the subscriber it is layered onto.
+    #[derive(Clone, Default)]
+    struct SpanNames(Arc<Mutex<Vec<&'static str>>>);
+
+    impl<S: tracing::Subscriber> tracing_subscriber::Layer<S> for SpanNames {
+        fn on_new_span(
+            &self,
+            attrs: &tracing::span::Attributes<'_>,
+            _id: &tracing::span::Id,
+            _ctx: tracing_subscriber::layer::Context<'_, S>,
+        ) {
+            self.0
+                .lock()
+                .expect("the span log should lock")
+                .push(attrs.metadata().name());
+        }
+    }
+
+    #[tokio::test]
+    async fn only_unskipped_paths_open_spans() {
+        let names = SpanNames::default();
+        let subscriber = tracing_subscriber::registry().with(names.clone());
+
+        let router: Router = Router::new()
+            .route("/entities", get(async || "ok"))
+            .route("/health", get(async || "ok"))
+            .layer(HttpTracingLayer::new(|path| path == "/health"));
+
+        async {
+            for uri in ["/health", "/entities"] {
+                let response = router
+                    .clone()
+                    .oneshot(
+                        Request::builder()
+                            .uri(uri)
+                            .body(Body::empty())
+                            .expect("the request should build"),
+                    )
+                    .await
+                    .expect("the router should respond");
+                assert_eq!(response.status(), http::StatusCode::OK);
+            }
+        }
+        .with_subscriber(subscriber)
+        .await;
+
+        let names = names.0.lock().expect("the span log should lock");
+        assert_eq!(
+            names.as_slice(),
+            ["HTTP request"],
+            "the skipped path should open no span, the other path exactly one"
+        );
     }
 }

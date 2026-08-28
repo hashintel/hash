@@ -21,7 +21,7 @@ graph TD
     9[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
     10[<a href="../harpc_types/index.html">harpc-types</a>]
     11[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
-    12[<a href="../hash_status/index.html">hash-status</a>]
+    12[<a href="../hash_middleware/index.html">hash-middleware</a>]
     13[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
     14[<a href="../error_stack/index.html">error-stack</a>]
     15[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
@@ -34,6 +34,7 @@ graph TD
     4 -.-> 5
     4 --> 5
     5 --> 7
+    5 -.-> 12
     5 --> 12
     6 --> 1
     7 --> 6
@@ -44,6 +45,7 @@ graph TD
     11 -.-> 10
     11 --> 10
     11 --> 14
+    12 --> 1
     13 --> 1
     15 -.-> 4
     16 --> 7

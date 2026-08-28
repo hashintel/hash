@@ -21,6 +21,7 @@
     "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/brunch-agent-binding-flue": "workspace:*",
     "@hashintel/brunch-agent-plugin-gherkin": "workspace:*",
+    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*",
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*",
     "hono": "4.13.2",
     "react": "19.2.6",

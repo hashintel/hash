@@ -2,12 +2,11 @@
 
 use core::{ops::ControlFlow, str::FromStr as _};
 
-use hash_status::StatusCode;
-use http::HeaderMap;
+use http::{HeaderMap, StatusCode};
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
-use crate::provider::{AuthenticationProvider, Caller};
+use crate::authentication::provider::{AuthenticationProvider, Caller};
 
 /// Name of the header carrying an unverified actor ID.
 pub const ACTOR_ID_HEADER: &str = "X-Authenticated-User-Actor-Id";
@@ -51,7 +50,7 @@ pub enum AuthenticationError {
     /// The verified identity has no matching user actor.
     #[display("the authenticated identity has no matching user actor")]
     IdentityWithoutActor,
-    /// The identity has no Graph actor provisioned.
+    /// The identity has no actor provisioned.
     #[display("identity `{identity_id}` has no Graph actor provisioned")]
     NotProvisioned {
         /// The provider-side identity ID lacking the actor provisioning.
@@ -81,11 +80,11 @@ impl AuthenticationError {
     #[must_use]
     pub const fn status_code(&self) -> StatusCode {
         match self {
-            Self::InvalidActorIdHeader | Self::MalformedCredential => StatusCode::InvalidArgument,
+            Self::InvalidActorIdHeader | Self::MalformedCredential => StatusCode::BAD_REQUEST,
             Self::ProviderUnreachable | Self::ProviderRejection | Self::StoreError => {
-                StatusCode::Unavailable
+                StatusCode::SERVICE_UNAVAILABLE
             }
-            Self::InvalidProviderResponse => StatusCode::Internal,
+            Self::InvalidProviderResponse => StatusCode::INTERNAL_SERVER_ERROR,
             Self::MissingCredentials
             | Self::MissingServiceSecret
             | Self::InvalidServiceSecret
@@ -95,7 +94,7 @@ impl AuthenticationError {
             | Self::IdentityWithoutActor
             | Self::NotProvisioned { .. }
             | Self::ActorNotFound { .. }
-            | Self::NotAUser { .. } => StatusCode::Unauthenticated,
+            | Self::NotAUser { .. } => StatusCode::UNAUTHORIZED,
         }
     }
 
@@ -157,10 +156,7 @@ where
         ControlFlow::Break(Ok(caller)) => Ok(caller),
         ControlFlow::Break(Err(report)) => {
             let error = report.current_context().clone();
-            if matches!(
-                error.status_code(),
-                StatusCode::Unavailable | StatusCode::Internal
-            ) {
+            if error.status_code().is_server_error() {
                 tracing::error!(error = ?report, "credential verification failed");
             } else if matches!(
                 error,
@@ -227,7 +223,7 @@ mod tests {
     use uuid::Uuid;
 
     use super::{AuthenticationError, resolve_request_actor};
-    use crate::provider::StaticAuthenticationProvider;
+    use crate::authentication::provider::StaticAuthenticationProvider;
 
     fn random_user() -> ActorId {
         ActorId::User(UserId::new(ActorEntityUuid::new(Uuid::new_v4())))

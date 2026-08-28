@@ -3,7 +3,7 @@ use core::{net::SocketAddr, time::Duration};
 use axum::Router;
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_api::rest::{http_tracing_layer::HttpTracingLayer, probe};
+use hash_graph_api::rest::{probe, telemetry};
 use reqwest::Client;
 use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_util::sync::CancellationToken;
@@ -40,7 +40,7 @@ pub struct AtlasArgs {
 /// The SALT Atlas implementation replaces this router while keeping the
 /// subcommand, address, and healthcheck wiring.
 fn router() -> Router {
-    probe::router().layer(HttpTracingLayer)
+    probe::router().layer(telemetry::layer())
 }
 
 /// Runs the atlas server, shutting down when `shutdown` is cancelled.

@@ -60,7 +60,9 @@ const escapeTableCell = (text: string): string =>
   text.replace(/\\/gu, "\\\\").replace(/\|/gu, "\\|").replace(/\n/gu, " ");
 
 /** Serialises frontmatter by hand so the output stays byte-stable. */
-const frontmatter = (fields: Record<string, string | number>): string => {
+export const frontmatter = (
+  fields: Record<string, string | number>,
+): string => {
   const lines = Object.entries(fields).map(
     ([key, value]) =>
       `${key}: ${typeof value === "number" ? value : JSON.stringify(value)}`,
@@ -135,7 +137,7 @@ const relativeTo = (fromSlug: string, toSlug: string): string => {
  * slug-relative form here produced `diagrams/x.svg` from `pages/architecture.mdx`,
  * which points at a `pages/diagrams/` directory that does not exist.
  */
-const assetPathFrom = (slug: string, assetPath: string): string =>
+export const assetPathFrom = (slug: string, assetPath: string): string =>
   posix.relative(posix.dirname(`pages/${slug}`), assetPath);
 
 /**

@@ -110,10 +110,10 @@ export function decideAskReplyAdmission(
 
 /** Render-invariant instruction fragments for the ask/suspension protocol. */
 export function askProtocolInstructionFragments(
-  targetDomain: string,
+  targetFormalism: string,
 ): readonly string[] {
   return [
-    `You are interviewing someone to elicit ${targetDomain}.`,
+    `You are interviewing someone to elicit ${targetFormalism}.`,
     `Ask one question at a time with ${toolName("ask")}.`,
     "Continue the conversation after each reply, using the harness-provided reply binding as a mechanical fact.",
   ];

@@ -48,6 +48,61 @@ export {
   type PluginProposalType,
 } from "./plugin";
 export {
+  mustKnowRowsFor,
+  parsePluginFile,
+  PLUGIN_FILE_HEADINGS,
+  PluginFileError,
+  pluginFileInstructions,
+  PRECISION_WORDS,
+  type FloorRow,
+  type KindRow,
+  type MustKnowRow,
+  type PatternRow,
+  type PluginFile,
+  type PluginFileHeading,
+  type PrecisionDemand,
+  type PrecisionWord,
+} from "./plugin-file";
+export {
+  createSlotAssertionSchema,
+  nodeId,
+  slotAssertionExtractionGuidance,
+  SlotAssertionSchema,
+  SOURCE_REGIMES,
+  type SlotAssertion,
+  type SourceRegime,
+} from "./slot-assertion";
+export {
+  findNode,
+  foldElicitedModel,
+  type ElicitedModel,
+  type ElicitedNode,
+  type SlotReading,
+  type SlotState,
+  type UnmappedCapture,
+} from "./elicited-model";
+export {
+  ANCHOR_KIND,
+  COMPLETION_DIAGNOSTICS,
+  completionDemands,
+  evaluateCompletion,
+  precisionSatisfies,
+  type CompletionAnchor,
+  type CompletionDemands,
+  type CompletionDiagnostic,
+  type CompletionFailure,
+  type CompletionReport,
+  type OutsideSliceNode,
+} from "./completion";
+export {
+  buildCompletionCueSignal,
+  buildSweepList,
+  completionProtocolInstructionFragments,
+  type CompletionCueSignal,
+  type PatternCue,
+  type SweepList,
+} from "./cue";
+export {
   ABSENCE_STATES,
   CaptureInputProposalSchema,
   applyCaptureStoreCommand,
