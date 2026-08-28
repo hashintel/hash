@@ -96,8 +96,9 @@ export interface AdHocScenarioFormProps {
    * groups render without section chrome; a group the props
    * withhold (`withVariables`, an empty `netParameters`) is `null`. The
    * host's own chrome may render inside too — the wrapper only carries the
-   * form's keyboard handling. Each group is its own keyboard panel: arrow
-   * navigation chains zones within a group but never walks across groups.
+   * form's keyboard handling. Each group is its own column in the keyboard
+   * flow: vertical arrows chain within a group, and horizontal moves at a
+   * table's side cross into the neighbouring group.
    */
   renderLayout?: (groups: {
     variables: React.ReactNode;
@@ -109,17 +110,13 @@ export interface AdHocScenarioFormProps {
 }
 
 // Each renderLayout group is its own keyboard panel: hosts lay the groups
-// out side by side, and the vertical arrow walk must not slide out of one
-// column into the next (data-nav-panel fences the zone walk).
-// display:contents keeps the wrapper out of the host's layout.
-const navPanelStyle = css({ display: "contents" });
-
-const asNavPanel = (node: React.ReactNode): React.ReactNode =>
-  node === null ? null : (
-    <div className={navPanelStyle} data-nav-panel>
-      {node}
-    </div>
-  );
+// out side by side. Each becomes its own vertical FocusStack: vertical
+// arrows stay within a column, and a horizontal move at a table's side
+// crosses into the neighbouring column, entering at its remembered
+// position. FocusStack renders display:contents, so the host's layout is
+// untouched.
+const asColumn = (node: React.ReactNode): React.ReactNode =>
+  node === null ? null : <FocusStack axis="vertical">{node}</FocusStack>;
 
 /**
  * A Section that participates in the form's keyboard walk: its collapse
@@ -337,11 +334,13 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
           onKeyDown={stopDeleteKeys}
         >
           {renderLayout ? (
-            renderLayout({
-              variables: asNavPanel(variableRows),
-              parameters: asNavPanel(parameterRows),
-              places: asNavPanel(placesList),
-            })
+            <FocusStack axis="horizontal">
+              {renderLayout({
+                variables: asColumn(variableRows),
+                parameters: asColumn(parameterRows),
+                places: asColumn(placesList),
+              })}
+            </FocusStack>
           ) : (
             <FocusStack axis="vertical">
               <SectionList>
