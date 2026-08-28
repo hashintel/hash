@@ -353,6 +353,9 @@ function validateVariableName(name: string): string | null {
   if (RESERVED_NAMES.has(name)) {
     return `"${name}" is reserved and cannot name a variable.`;
   }
+  if (isDangerousRecordKey(name)) {
+    return `"${name}" is a reserved JavaScript property name and cannot name a variable.`;
+  }
   if (name.startsWith("__adhoc")) {
     return `"${name}" collides with generated code; names may not start with "__adhoc".`;
   }
@@ -401,7 +404,10 @@ function freeze<T extends Record<string, unknown>>(record: T): T {
 }
 
 /**
- * Evaluates one expression in the same hardened shape `compileScenario` uses.
+ * Evaluates one expression as raw JavaScript in the hardened new-Function
+ * shape the place visualizer shares (`SHADOWED_GLOBALS` + `runSandboxed`) —
+ * used here because synthesis runs synchronously, where HIR lowering (which
+ * needs the TypeScript compiler, worker-only in the browser) is unavailable.
  * The non-optimized top-level Variables are in scope as `scenario.<name>`,
  * built in declaration order so later Variables may read earlier ones. Used
  * for bound expressions (which must resolve to constants at synthesis time),
@@ -427,7 +433,7 @@ function evaluateConstant(
     `}`,
     `return (function (scenario) { return (${expression}); })(__adhocVars);`,
   ].join("\n");
-  // eslint-disable-next-line no-new-func,typescript-eslint/no-implied-eval -- intentional: user-authored expressions, same sandbox as compileScenario
+  // eslint-disable-next-line no-new-func,typescript-eslint/no-implied-eval -- intentional: user-authored expressions in the shared hardened sandbox (see sandbox.ts)
   const fn = new Function("parameters", "scenario", ...HELPER_NAMES, body) as (
     ...args: unknown[]
   ) => unknown;
@@ -735,12 +741,6 @@ function inlinePlaceVariables(
 }
 
 /**
- * The token total a place's table shows at its bottom: the sum of every
- * row's count (1 per fixed row). It resolves to a number unless a count is
- * optimized or depends on something that is; then the unresolved parts are
- * printed as they are, joined onto whatever did resolve.
- */
-/**
  * The neutral expression an empty slot synthesizes as, per element type: an
  * empty cell means "the zero value", never a compile error. UUIDs get the
  * nil UUID — `Uuid.generate()` is kernel-only, and nil is the engine's uuid
@@ -848,6 +848,12 @@ function withNeutralAdHocExpressions(
   };
 }
 
+/**
+ * The token total a place's table shows at its bottom: the sum of every
+ * row's count (1 per fixed row). It resolves to a number unless a count is
+ * optimized or depends on something that is; then the unresolved parts are
+ * printed as they are, joined onto whatever did resolve.
+ */
 export function resolveAdHocPlaceTotal(
   state: AdHocScenarioState,
   context: AdHocSynthesisContext,
@@ -1639,8 +1645,9 @@ const variableReferencePattern = (name: string): RegExp =>
  * an ambient parameter read (optimized/exposed) or its expression with
  * references to EARLIER Variables replaced by their productions. A
  * reference to itself or a later sibling is left as `scenario.<name>` and
- * fails type checking as an unknown scenario parameter — the same contract
- * the form's LSP scoping teaches.
+ * fails scenario compilation as an unknown scenario parameter, unattributed
+ * to a slot — the form's LSP declares every top-level Variable in
+ * `scenario`, so the editor does not flag it.
  */
 interface VariableProduction {
   name: string;

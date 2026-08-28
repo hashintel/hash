@@ -510,13 +510,15 @@ describe("synthesizeAdHocScenario", () => {
     state.variables.push(
       { name: "scenario", type: "real", expression: "1", optimize: null },
       { name: "2fast", type: "real", expression: "1", optimize: null },
+      // A prototype-polluting property name never reaches generated code.
+      { name: "__proto__", type: "real", expression: "1", optimize: null },
     );
     const outcome = synthesizeAdHocScenario(state, context);
     expect(outcome).toMatchObject({ ok: false });
     if (outcome.ok) {
       return;
     }
-    expect(outcome.errors).toHaveLength(2);
+    expect(outcome.errors).toHaveLength(3);
   });
 });
 
