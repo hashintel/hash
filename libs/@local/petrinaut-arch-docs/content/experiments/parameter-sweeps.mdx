@@ -16,26 +16,30 @@ precomputed for cameras nobody is looking through.
 
 ![The selected region refining](@diagrams/sweep-refinement.svg)
 
-## Cells, regions, and the refinement ladder
+## Points, ranges, and the refinement ladder
 
-A **cell** is one position tuple; every batch runs one cell, so a batch has
-one concrete value per parameter — scenario compilation stays per-batch and
-GPU eligibility is untouched by range selections. A **region** (the selected
-ranges' product) levels its cells rung by rung up the ladder — 8, 25, 100,
-500, 1000, then ×5/×2, capped by the per-cell run budget — visiting cells in
-a deterministic low-discrepancy order (`enumerateRegionCells`, Halton bases
-per axis), so the merged view spreads across the region after a handful of
-batches instead of filling corner-first. A point selection is a one-cell
-region: it degenerates to climbing the ladder on that cell.
+A **point** selection runs the experiment at that value. A **range**
+selection runs one stochastic experiment over the ranges: each run carries
+its own drawn value per ranged parameter (`sweepRangeRuns`), low-discrepancy
+across the selected value interval and prefix-stable in the global run index
+— the quantized positions bound the interval, they do not grid it. One
+selection is one experiment: full worker-pool parallelism, and the metric
+stream is the experiment's own, so the distribution over the region streams
+from the first frames and sharpens as runs land.
 
-The drawer shows the **merge** of every cached cell in the region plus the
-in-flight batch (`mergeMetricFramesAcrossCells`): distribution bins add,
-scalar frames recombine through their run-aggregate monoid. A batch that
-finishes folds into its cell's cache entry; a batch cancelled by a selection
-change is discarded whole. Because cells are keyed by quantized position,
-narrowing a range, collapsing to a point, or revisiting an earlier position
-restores its cached runs instantly and refinement resumes from the cached
-rung.
+Either kind climbs the ladder — 8, 25, 100, 500, 1000, then ×5/×2, capped by
+the run budget — in batches that fold into a cache keyed by the whole
+selection (a point is a degenerate range). A batch cancelled by a selection
+change is discarded whole; revisiting any earlier selection restores its runs
+and resumes from its cached rung.
+
+Per-run parameter values travel as `ExperimentRequest.runs`, which the
+simulator, the experiment runtime, and the shard slicing already carry. The
+WebGPU backend refuses requests with per-run values — its shader bakes
+parameters in — so the provider routes range batches straight to the CPU
+worker pool; point batches keep the chosen backend. Scenario compilation
+needs one value per parameter, so an initial state derived from a ranged
+parameter holds at the range midpoint while runtime reads vary per run.
 
 ## Determinism
 

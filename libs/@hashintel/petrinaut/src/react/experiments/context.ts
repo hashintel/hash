@@ -131,17 +131,11 @@ export type ExperimentRecord = {
 export type ExperimentSweepState = {
   /** Inclusive position range per swept parameter identifier. */
   selection: SweepSelection;
-  /** Concrete values of the cell currently being computed, or null. */
-  activeCellValues: Readonly<Record<string, number>> | null;
-  /** Finished runs across the selected region. */
+  /** Finished runs for the selection. */
   runsCompleted: number;
   /** Runs contributing to the shown frames, including the in-flight batch. */
   runsSampled: number;
-  /** Cells of the region with at least one finished batch. */
-  cellsSampled: number;
-  /** Cells inside the selected region. */
-  cellsInRegion: number;
-  /** Ladder target the in-flight batch climbs its cell to; null when done. */
+  /** Ladder target the in-flight batch climbs to; null when saturated. */
   runTarget: number | null;
   computing: boolean;
 };
