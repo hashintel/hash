@@ -23,12 +23,21 @@ const raisedContainerStyle = css({
   backgroundColor: "neutral.s05",
 });
 
+// The light frame drops the container border to the same hairline the cells
+// use, so a secondary spreadsheet (a Variables list) sits lighter than the
+// token table's regular frame.
+const lightFrameContainerStyle = css({
+  borderColor: "[{colors.neutral.a10}!]",
+});
+
 export interface FormSpreadsheetProps {
   /** Registers the container as a navigation zone (`useNavigationZone`). */
   attach?: (element: HTMLDivElement | null) => void;
   ariaLabel?: string;
   /** "raised" darkens the grid a step; "plain" (default) stays white. */
   tone?: "plain" | "raised";
+  /** "light" drops the container border to the cells' hairline weight. */
+  frame?: "regular" | "light";
   children: ReactNode;
 }
 
@@ -36,6 +45,7 @@ export const FormSpreadsheet: React.FC<FormSpreadsheetProps> = ({
   attach,
   ariaLabel,
   tone = "plain",
+  frame = "regular",
   children,
 }) => (
   <div
@@ -43,6 +53,7 @@ export const FormSpreadsheet: React.FC<FormSpreadsheetProps> = ({
     className={cx(
       tableContainerStyle,
       tone === "raised" && raisedContainerStyle,
+      frame === "light" && lightFrameContainerStyle,
     )}
     aria-label={ariaLabel}
   >

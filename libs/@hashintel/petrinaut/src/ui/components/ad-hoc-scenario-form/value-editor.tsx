@@ -116,6 +116,14 @@ const overlayBodyStyle = css({
   display: "flex",
 });
 
+// The slab's outward corners round slightly wherever a bar does not cover
+// them: the body's bottom when there is no Optimize bar (and its top if a
+// host ever drops the path bar).
+const bodyBottomEdgeStyle = css({
+  borderBottomLeftRadius: "[3px]",
+  borderBottomRightRadius: "[3px]",
+});
+
 // The label bar and the Optimize bar sit flush against the editor, spanning
 // its full width — one square slab, no gaps. Both are dark, so the slab's
 // frame contrasts with the spreadsheet around it.
@@ -131,8 +139,8 @@ const pathLabelStyle = css({
   // The same 1px ring as the editor body, so the bar and the cell share one
   // frame width; rounded only where it does not touch the cell.
   boxShadow: "[0 0 0 1px {colors.neutral.s110}]",
-  borderTopLeftRadius: "[6px]",
-  borderTopRightRadius: "[6px]",
+  borderTopLeftRadius: "[3px]",
+  borderTopRightRadius: "[3px]",
   fontSize: "[9px]",
   fontFamily: "mono",
   color: "neutral.s30",
@@ -155,8 +163,8 @@ const belowStripStyle = css({
   paddingY: "[3px]",
   backgroundColor: "neutral.s110",
   boxShadow: "[0 0 0 1px {colors.neutral.s110}]",
-  borderBottomLeftRadius: "[6px]",
-  borderBottomRightRadius: "[6px]",
+  borderBottomLeftRadius: "[3px]",
+  borderBottomRightRadius: "[3px]",
 });
 
 // The bounds are a small spreadsheet inside the slab: one labeled square
@@ -816,7 +824,12 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
             }}
           >
             <div className={pathLabelStyle}>{label}</div>
-            <div className={overlayBodyStyle}>
+            <div
+              className={cx(
+                overlayBodyStyle,
+                !selectable && bodyBottomEdgeStyle,
+              )}
+            >
               {optimized && booleanDomain ? (
                 <div className={booleanNoteStyle}>
                   The optimizer tries true and false.

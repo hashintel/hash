@@ -302,7 +302,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
     };
 
   return (
-    <FormSpreadsheet attach={attach} ariaLabel={scopeLabel}>
+    <FormSpreadsheet attach={attach} ariaLabel={scopeLabel} frame="light">
       <tbody>
         {variables.map((variable, index) => {
           const target = { kind: "variable" as const, placeId, index };

@@ -172,6 +172,19 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   ) => {
     editorRef.current = editorInstance;
 
+    // With a `path`, @monaco-editor/react reuses the existing model and
+    // ignores `value` — a reopened editor would show the model's stale text
+    // instead of the committed (possibly re-formatted) value. Sync once on
+    // mount; while focused the model stays authoritative (see below).
+    const mountedModel = editorInstance.getModel();
+    if (
+      value !== undefined &&
+      mountedModel &&
+      mountedModel.getValue() !== value
+    ) {
+      mountedModel.setValue(value);
+    }
+
     if (singleLine) {
       // Reactively strip newlines — this handles Enter key, paste, and any
       // other source of newlines without blocking Enter from being used by

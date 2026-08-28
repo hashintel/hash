@@ -63,7 +63,7 @@ import type {
 const placesListStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "5",
+  gap: "3",
 });
 
 // The bare layout: the exposed groups stacked without section chrome.

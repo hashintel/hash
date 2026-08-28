@@ -136,14 +136,16 @@ const stripEditorOptimizedStyle = css({
   backgroundColor: "[transparent]",
 });
 
-// The place total sits under the spreadsheet, outside it.
+// The place total sits under the spreadsheet, outside it — one tight line,
+// so it doesn't widen the gap to the next place block.
 const totalTextStyle = css({
   textAlign: "right",
   fontFamily: "mono",
   fontSize: "[10px]",
+  lineHeight: "[1.2]",
   color: "neutral.s80",
   paddingX: "1",
-  marginTop: "[2px]",
+  marginTop: "[1px]",
 });
 
 export interface TokenTableProps {

@@ -42,7 +42,9 @@ const defaultDisplayStyle = css({
   display: "inline-flex",
   alignItems: "baseline",
   gap: "1.5",
-  color: "neutral.s70",
+  // The value sits a step darker than the tag, still lighter than an
+  // override's neutral.s110.
+  color: "neutral.s80",
 });
 
 const defaultTagStyle = css({
