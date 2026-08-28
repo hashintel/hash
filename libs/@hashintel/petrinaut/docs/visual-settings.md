@@ -42,7 +42,7 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 
 ### Notebook view (experimental)
 
-Adds a **Notebook** option to the mode selector in the top bar, next to **Edit**: a read-only view of the net as a list of cells, for reviewing and debugging models. See [Notebook View](notebook-view.md).
+Adds a **Notebook** option to the mode selector in the top bar, next to **Edit**: the net as a list of cells with editable code, for reviewing and debugging models. See [Notebook View](notebook-view.md).
 
 ### Entities tree view (experimental)
 

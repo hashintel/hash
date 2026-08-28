@@ -2,7 +2,7 @@
 
 > **Experimental.** Enable **Notebook view** in the viewport settings dialog (the gear button in the canvas controls) to add a **Notebook** option to the mode selector in the top bar, right after **Edit**.
 
-The Notebook view shows your net as a list of one-line cells — one per place, transition, token type, differential equation, and parameter — so you can read a model like code instead of untangling a diagram. It is read-only: use it to review, debug, or understand a net (especially one someone else built), and switch back to **Edit** to change anything.
+The Notebook view shows your net as a list of one-line cells — one per place, transition, token type, differential equation, and parameter — so you can read a model like code instead of untangling a diagram. The net's structure is read-only here — use **Edit** to add or rewire nodes — but code is editable in place: firing times, kernels, equations, and visualizers save as you type, exactly as in the properties panel.
 
 ## Cells
 
@@ -11,7 +11,7 @@ Each row reads like a declaration: the kind keyword (`Place`, `Transition`, `Typ
 - Click the caret (or press **→** / **←**) to open or close a cell. Open cells show the full definition: a transition's inputs and outputs with weights and arc kinds, its firing-time and kernel code, an equation's code, a type's fields. Cells stay as you leave them; selecting a cell does not open it.
 - Click a row to select it. **↑** / **↓** move the selection, **Enter** or **Space** select the focused row. The list is one Tab stop: **Tab** enters it at the last row you were on.
 - While a cell is open, its parts join the keyboard flow: **↓** / **↑** walk from the row through its inputs, outputs, and code. A part that names another cell — a transition's input or output place — jumps there with **Enter**, **Space**, or a click.
-- Code blocks work like spreadsheet cells with an editor inside: **Enter** steps into the editor (arrow keys then move the caret, not the list) and **Escape** steps back out.
+- Code blocks work like spreadsheet cells with an editor inside: **Enter** steps into the editor to edit the code (arrow keys then move the caret, not the list) and **Escape** steps back out. Edits save as you type; a running simulation or a read-only host locks the editors.
 - The end of each row shows how many things depend on it, as `direct → total`. `2 → 11` means two cells use it directly and eleven are affected in total downstream.
 
 Two badges can appear after a cell's name:
@@ -40,6 +40,6 @@ The right-hand panel draws the whole net as a top-to-bottom flow graph of places
 
 ## Limits
 
-- The view is read-only, including for the AI assistant.
+- Structure (nodes, arcs, names) is read-only in this view; only code fields are editable.
 - Subnets and component instances are not shown as cells yet.
 - A parameter counts as "used" by a transition or equation when its variable name appears in the code — comments included.

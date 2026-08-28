@@ -124,7 +124,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "actual-mode":
     "Actual mode: host-provided live execution view, Brunch stream URL route, read-only extension-free net, current limits.",
   "notebook-view":
-    "Experimental read-only notebook view: cells per place/transition/type/equation/parameter, expand/keyboard/search, document vs topological order, dependency gutters, whole-net graph explorer with cycles, initial (siphon) places, focus re-layout.",
+    "Experimental notebook view (structure read-only, code editable in place): cells per place/transition/type/equation/parameter, expand/keyboard/search, document vs topological order, dependency gutters, whole-net graph explorer with cycles, initial (siphon) places, focus re-layout.",
   "ai-assistant":
     "In-app AI assistant: opening the panel, one text and Voice mode transcript/composer, waveform start, inline Voice state and provenance, typed handoff, consent/recovery, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
   "visual-settings":
