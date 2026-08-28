@@ -8,6 +8,12 @@
  * the zone's edge, the zone asks the form to carry focus into the next or
  * previous zone in document order. Zones that cannot take focus (inside a
  * collapsed section) are skipped, so the walk always lands somewhere visible.
+ *
+ * A layout can fence zones into keyboard panels by stamping a wrapper element
+ * with `data-nav-panel`: the walk stops at a panel boundary instead of
+ * carrying focus into a side-by-side neighbour. Without such wrappers (the
+ * default stacked layout) every zone shares one panel and the walk chains
+ * through the whole form.
  */
 
 import { createContext, use, useEffect, useId, useRef, useState } from "react";
@@ -50,6 +56,10 @@ export function focusLands(element: HTMLElement | null | undefined): boolean {
   return document.activeElement === element;
 }
 
+/** The zone's enclosing keyboard panel, or null outside any panel. */
+const panelOf = (element: HTMLElement): Element | null =>
+  element.closest("[data-nav-panel]");
+
 /** The form root's navigation registry, provided via FormNavigationContext. */
 export function useFormNavigationRegistry(): FormNavigation {
   const zonesRef = useRef(new Map<string, NavigationZoneHandle>());
@@ -75,11 +85,17 @@ export function useFormNavigationRegistry(): FormNavigation {
     const start = ordered.indexOf(from);
     const step = direction === "next" ? 1 : -1;
     const edge: NavigationEdge = direction === "next" ? "first" : "last";
+    const panel = panelOf(from.element);
     for (
       let index = start + step;
       index >= 0 && index < ordered.length;
       index += step
     ) {
+      // Panels are contiguous in document order, so the first zone outside
+      // the origin's panel ends the walk.
+      if (panelOf(ordered[index]!.element) !== panel) {
+        return false;
+      }
       if (ordered[index]!.enter(edge)) {
         return true;
       }
