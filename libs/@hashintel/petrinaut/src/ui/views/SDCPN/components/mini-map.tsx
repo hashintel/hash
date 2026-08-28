@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { EditorContext } from "../../../../react/state/editor-context";
 import { PANEL_MARGIN } from "../../../constants/ui";
-import { hexToHsl } from "../../../lib/hsl-color";
+import { miniMapPlaceFillColor } from "../styles/type-colors";
 
 import type { NodeType } from "../reactflow-types";
 import type { MiniMapNodeProps, MiniMapProps } from "@xyflow/react";
@@ -45,7 +45,7 @@ const MiniMapNode: React.FC<MiniMapNodeProps> = ({ id, x, y }) => {
   const fill =
     node.data.type === "place"
       ? node.data.typeColor
-        ? hexToHsl(node.data.typeColor).saturation(50).css(1)
+        ? miniMapPlaceFillColor(node.data.typeColor)
         : DEFAULT_PLACE_FILL
       : node.data.type === "componentInstance"
         ? DEFAULT_COMPONENT_FILL

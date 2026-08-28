@@ -18,8 +18,8 @@ import { ActiveNetContext } from "../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
-import { hexToHsl } from "../../../lib/hsl-color";
 import { NOT_SELECTED_CONNECTION_OVERLAY_OPACITY } from "../styles/styling";
+import { arcStrokeColor } from "../styles/type-colors";
 
 import type {
   EdgeType,
@@ -189,9 +189,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         outputId: transition.id,
       });
       const endpointColor = getEndpointColor(endpoint);
-      let arcColor = endpointColor
-        ? hexToHsl(endpointColor).lighten(-15).saturate(-30).css(1)
-        : "#777";
+      let arcColor = endpointColor ? arcStrokeColor(endpointColor) : "#777";
 
       const notSelectedConnection =
         isNotHoveredConnection(arcId) ||
@@ -235,9 +233,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         outputId: getArcEndpointKey(endpoint),
       });
       const endpointColor = getEndpointColor(endpoint);
-      let arcColor = endpointColor
-        ? hexToHsl(endpointColor).lighten(-15).saturate(-30).css(1)
-        : "#777";
+      let arcColor = endpointColor ? arcStrokeColor(endpointColor) : "#777";
 
       const notSelectedConnection =
         isNotHoveredConnection(arcId) ||

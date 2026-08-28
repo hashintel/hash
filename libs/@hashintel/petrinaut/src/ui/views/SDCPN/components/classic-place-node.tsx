@@ -7,9 +7,9 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { ExecutionFrameSourceContext } from "../../../../react/execution-frame/context";
 import { SimulationContext } from "../../../../react/simulation/context";
 import { EditorContext } from "../../../../react/state/editor-context";
-import { hexToHsl } from "../../../lib/hsl-color";
 import { splitPascalCase } from "../../../lib/split-pascal-case";
 import { handleStyling } from "../styles/styling";
+import { classicPlaceFillColor, placeBorderColor } from "../styles/type-colors";
 import { PlaceStateTooltip } from "./place-state-tooltip";
 
 import type { PlaceNodeType } from "../reactflow-types";
@@ -177,10 +177,10 @@ export const ClassicPlaceNode: React.FC<NodeProps<PlaceNodeType>> = ({
         className={placeCircleStyle({ selection: selectionVariant })}
         style={{
           borderColor: data.typeColor
-            ? hexToHsl(data.typeColor).lighten(-10).saturate(-30).css(1)
+            ? placeBorderColor(data.typeColor)
             : undefined,
           backgroundColor: data.typeColor
-            ? hexToHsl(data.typeColor).lightness(85).css(1)
+            ? classicPlaceFillColor(data.typeColor)
             : undefined,
         }}
       >
