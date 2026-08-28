@@ -1,5 +1,4 @@
-import babel from "@rolldown/plugin-babel";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react";
 import { dts } from "rolldown-plugin-dts";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
 
@@ -65,8 +64,7 @@ export default defineConfig(({ command }) => ({
       ],
     }),
 
-    react(),
-    babel({
+    react({
       // Default excludes node_modules. Also skip workspace `dist/` outputs:
       // those are pre-bundled JSX → `jsx(tag, { ref, ... })` calls, and
       // React Compiler flags the inlined `ref` prop as "Passing a ref to a
@@ -74,16 +72,14 @@ export default defineConfig(({ command }) => ({
       exclude: [
         /[\\/]node_modules[\\/]/,
         /[\\/]libs[\\/]@hashintel[\\/][^\\/]+[\\/]dist[\\/]/,
+        /\.d\.ts$/,
         /^0rolldown\/runtime\.js$/,
       ],
-      presets: [
-        reactCompilerPreset({
-          target: "19",
-          compilationMode: "infer",
-          // @ts-expect-error - panicThreshold is accepted at runtime
-          panicThreshold: "critical_errors",
-        }),
-      ],
+      compiler: {
+        target: "19",
+        compilationMode: "infer",
+        panicThreshold: "critical_errors",
+      },
     }),
 
     command === "build" &&
