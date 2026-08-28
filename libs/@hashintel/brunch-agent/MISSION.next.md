@@ -1,31 +1,33 @@
-Draft of upcoming missions, and the record of what we currently think we know about what to
-do next — ideas, observations, questions, and named mechanisms already raised. Not execution
-authority. Implement against [`MISSION.md`](MISSION.md). Do not promote this file wholesale.
-Do not keep two live missions.
+Self-contained canonical capture repository for upcoming missions: what we currently think we
+know about what to do next — ideas, observations, questions, and named mechanisms already raised.
+Not execution authority. Implement against [`MISSION.md`](MISSION.md). Do not promote this file
+wholesale. Do not keep two live missions.
 
-Likely future missions are the `#` headings that name a cut. Imperative, Throughline, Proof,
-and Status wait until a cluster is cut into `MISSION.md`. Constraints, fog, and stop lines
-appear where the 2026-08-27 grill (Q1–Q17) already earned them. Spikes that are not missions,
-and standing lock / out-of-scope decisions, are not fake missions.
+Plausible future missions are the ordered `# Mission N — …` headings. Imperative, Throughline,
+Proof, and Status wait until a cluster is cut into `MISSION.md`. Constraints, fog, and stop lines
+appear where prior discussion already earned them. Spikes, standing lock / out-of-scope decisions,
+and a live mission's leftovers get unnumbered headings — they are not fake missions. Update this
+file while planning context is active; it must carry full capture fidelity without relying on a
+transcript. When cutting or regrouping, compare this draft before and after: every item must either
+move into the live mission or remain here at the same fidelity.
 
-Provenance for the grill: [`docs/inbox/2026-08-27-mission-close-and-next.md`](docs/inbox/2026-08-27-mission-close-and-next.md).
-Live Mission 3 is the runbook / template / headless / off-canvas-PN experiment. Archived
-Mission 2 is the mechanical capture pipe. Neither is restated here as a mission.
+Live Mission 3 is the runbook / template / headless / off-canvas-PN experiment. Archived Mission 2
+is the mechanical capture pipe. Neither is restated here as a mission.
 
 ```text
 M1 chat (done)    M2 pipe (archived)    M3 runbook (live)
-├─ Host (uncut)
+├─ M4 host continuity and choice
 │   ├─ two brains, same panel
 │   ├─ net create/save/load = session discriminator
 │   └─ compaction reconstructs panel + transcript
 └─ Brunch elicitation
-    ├─ M4  typed map + Petrinaut R/W
-    └─ M5  capture improvement (observer, maybe types, maybe subagents)
+    ├─ M5 typed map + Petrinaut R/W
+    └─ M6 capture improvement (observer, maybe types, maybe subagents)
 LATER / parallel — OTel/eval, watch-sims, HarnessAgent
 ```
 
 Two trunks, one live `MISSION.md`. Parallel means stacked branches or worktrees, not two
-authority files. Q1-C (two live missions at once) was rejected.
+authority files. Keeping two live missions at once was rejected.
 
 # Capture and runbook stay independent
 
@@ -36,13 +38,13 @@ together so strain is visible. There is **no designed join**. Whether they conve
 so where, when, and in what form, is an open later question. Do not wire them in order to
 tidy the list.
 
-Q12 A/B/C were all refused:
+Three premature convergence shapes were refused:
 
-- **A (refused).** Two artifacts with a designed join: capture store as provenance ledger,
-  template as workpiece, M5 when ledger entries grow types that match M4's map.
-- **B (refused).** One artifact: sweep's opaque payload *is* the template update.
-- **C (refused).** M3 ignores the capture store; M2's store sits idle until something typed
-  exists.
+- **Designed two-artifact join.** Capture store as provenance ledger, template as workpiece,
+  and Mission 6 as the point where ledger entries grow types that match Mission 5's map.
+- **One artifact.** Sweep's opaque payload *is* the template update.
+- **Idle capture store.** Mission 3 ignores the capture store and Mission 2's store sits idle
+  until something typed exists.
 
 **Why the typed-capture kernel failed (observation, not a plan).** The sweep mechanism with
 typed captures became too complex and demanded too much LLM judgment to use it and to map
@@ -58,17 +60,17 @@ means capture-store apply.
 
 **Strain threshold to watch** (condition 5): typed mapping, in-loop LLM judgment, question
 turns on the order of minutes. Stop lines that carry forward from M2: producing captures
-requires a model call; a sweep tool appears on the interviewer; kinds / slots / fold /
-plugins / repertoire re-enter as the teaching vehicle; the runbook or IR template is wired
+requires a model call; a sweep tool appears on the interviewer; kinds / slots / fold or the
+plugin / repertoire YAML runtime re-enters as the teaching vehicle; the runbook or IR template is wired
 to the store; ordinary turns return to condition-5 latency.
 
-# Host trunk
+# Mission 4 — host continuity and choice
 
 Later cut. Does not need the capture pipe. Does not need a runbook. Compaction sits here
 because it is the same reconstruction family as save/load, not because it is prompting.
 
-OTel may ride this trunk if it is in flight; it must not sequence the elicitation ladder
-(Q4-B). Voice is a git parent, not a cluster here.
+OTel may ride this trunk if it is in flight; it must not sequence the elicitation ladder.
+Voice is a git parent, not a cluster here.
 
 ## Two brains, same panel
 
@@ -95,10 +97,10 @@ mint another conversation id; resume = reload the same net. Archived Mission 2 a
 the capture store by Flue conversation identity (principal + conversation id) until this
 proof lands.
 
-**Locked (Q3-A).** Net id is only the conversation discriminator. A distinct Brunch
-target-document stays later. Do not collapse "one net *is* the target-document" — that is an
-unearned product ontology and would leak into HASH entity vs demo localStorage. Q3-B
-(collapse) and Q3-C (sweep in a throwaway store, splice later) were rejected.
+**Locked.** Net id is only the conversation discriminator. A distinct Brunch target-document
+stays later. Do not collapse "one net *is* the target-document" — that is an unearned product
+ontology and would leak into HASH entity vs demo localStorage. Two alternatives were rejected:
+collapsing the net into the target-document, and sweeping into a throwaway store to splice later.
 
 ## Compaction
 
@@ -116,7 +118,7 @@ Stack on `kostandin/h-6763-openai-canonical-speech` when that branch is the pare
 stolen vs configured `/api/chat`, and `submitText` with no `brunch_ask`. Brunch owns no
 provider audio. Not a mission.
 
-# Typed map and Petrinaut read/write
+# Mission 5 — typed map and Petrinaut read/write
 
 After live Mission 3. FE Petri-net generation from some kind of IR, at the minimal typing
 sophistication necessary: what maps to what. The flue agent must be able to generate a PN
@@ -131,27 +133,22 @@ absorbing the stock modeller or its 46-tool set. Second assistant, not a replace
 modeller. No canvas mutation tools before this cut — they waited here so Mission 3 could
 not draw nets from vibes. Which tools, when: not decided.
 
-**IR at this cut.** Mission 3's IR is a markdown template (skill supporting file),
-structured but not strictly typed; generation uses inference. This cut introduces the typed
-map (which fields become places / transitions / arcs). Q8-B (M3 already uses core kind/slot
-tables; the template is only a projection of the fold) and Q8-C (skip the document
-template; typed IR starts in M3) were rejected. B would put the full plugin IR back on the
-door too early.
+**IR at this cut.** Mission 3's IR is a markdown template (skill supporting file), structured
+but not strictly typed; generation uses inference. This cut introduces the typed map (which
+fields become places / transitions / arcs). Rejected alternatives were to make Mission 3 use
+core kind/slot tables with the template only projecting the fold, or to skip the document
+template and begin the typed IR in Mission 3. The first would put the full plugin IR back on
+the door too early.
 
-**Teaching vehicle.** Q2-A: one real Flue skill is the cheap proof that the teaching
-*mechanism* works (Mission 2 landed `defineSkill` / `useSkill` / `activate_skill`). Do not
-grow a skill catalog. Iterate the runbook body (which may live inside that one skill, or as
-instruction text). Flue `useSkill` (progressive-disclosure `SKILL.md` catalogs,
-`activate_skill`) is not always-on `useInstruction` / the agent's return string, and is not
-Brunch repertoire (core YAML, off this path). Q2-C (re-admit repertoire/plugin keys onto
-this door) was rejected.
+**Teaching vehicle.** Standing decision, not this cluster's: see "Teaching mechanism" under
+Standing decisions.
 
 **Headless vs canvas.** Headless JS-API drive (`createFlueClient` → `send` → `wait` →
 `history()`) is how you iterate a runbook; it belongs with Mission 3, not as a sibling of
-R/W. Q7-A (keep R/W in M3) and Q7-C (runbook is just ongoing edits, not a mission) were
-rejected.
+R/W. Two alternatives were rejected: keeping read/write in Mission 3, and treating runbook
+work as unbounded ongoing edits rather than a mission.
 
-# Capture improvement
+# Mission 6 — capture improvement
 
 After the typed map, or after the runbook path has shown what it can do without types.
 This is where latency and judgment re-enter **on purpose**, so the untenable threshold is
@@ -162,15 +159,15 @@ winning.
 
 Not a harness counter parked as a label. The observer **is** the sweep mechanism.
 
-**When (from the Pi extension, and Q11).** Count tokens — no model call to decide *whether*
-to sweep. Arm after N tokens (Pi precedent: on the order of 10,000). Fire on the next
-settled turn. Anything that does not require an LLM call to decide when to trigger is a
-latency saving. The trigger is not the interviewer calling a tool.
+**When (from the Pi-extension precedent).** Count tokens — no model call to decide *whether*
+to sweep. Arm after N tokens (precedent: on the order of 10,000). Fire on the next settled
+turn. Anything that does not require an LLM call to decide when to trigger is a latency saving.
+The trigger is not the interviewer calling a tool.
 
-Q11-A locked this observer out of Mission 2: a token counter is a scheduler, and putting it
-in the pipe proof would make "did we pick the right N?" look like a sweep failure. Q11-B
-(M2 includes the observer; lower N so a short chat crosses it) and Q11-C (bonus hook on the
-same `apply-sweep` in M2) were rejected.
+This observer was deliberately kept out of Mission 2: a token counter is a scheduler, and putting
+it in the pipe proof would make "did we pick the right N?" look like a sweep failure. Two Mission 2
+alternatives were rejected: including the observer with a low threshold so a short chat crosses
+it, and landing it as a bonus hook on the same `apply-sweep`.
 
 **Calls.** Fire-and-forget, **queued**, **retried on failure**.
 
@@ -182,10 +179,10 @@ the queue settle, fold, and see what is still needed.
 
 **Fold semantics** as generic as we can possibly get away with.
 
-**Scheduler vs model.** Binding can still *run* apply-sweep; the model is not the
-scheduler. A sweep tool on the interviewer is an LLM decision about *when*, which is the
-latency mechanism to keep off the path until this cut admits judgment on purpose (Q15-A,
-carried forward from M2).
+**Scheduler vs model.** Binding can still *run* apply-sweep; the model is not the scheduler.
+A sweep tool on the interviewer is an LLM decision about *when*, which is the latency mechanism
+to keep off the path until this cut admits judgment on purpose. This constraint carries forward
+from Mission 2.
 
 ## Extraction thickness (reintegration ladder)
 
@@ -196,12 +193,12 @@ Progressive re-entry after the pipe is green, when you are trying to notice the 
 
 1. Stub envelopes (done).
 2. A **separate** cheap extraction call (not the interviewer) that emits quotes / opaque
-   blobs only — no slot types, no mapping to kinds (Q14-B, not yet admitted).
+   blobs only — no slot types, no mapping to kinds; not yet admitted.
 3. Typed claims / plugin proposal catalog (`statement-noted`, SDCPN slots, …) — the
-   condition-5 failure mode (Q14-C). Re-enter only to see the threshold, not as the
-   teaching vehicle.
+   condition-5 failure mode. Re-enter only to see the threshold, not as the teaching vehicle.
 
-Q14-A was M2's cut (no extraction model). B and C belong on this path, not earlier.
+Mission 2 chose the first rung: no extraction model. The second and third rungs belong on this
+path, not earlier.
 
 ## Subagents
 
@@ -220,9 +217,9 @@ nothing exports. Prove `gen_ai.conversation.id` = Flue instance id. `dispatch()`
 `/api/chat` path) does not propagate `traceparent`. Content capture stays off until a
 privacy policy. FE-1505 / FE-1423 stay production gates.
 
-Q4-B: do this on Host if that trunk is in flight; do not let it sequence the ladder. Not
-C (OTel as a proof bullet of the first Brunch or Host mission). The original "prove this
-too, in mission 2" was retracted.
+Do this on Mission 4 if that trunk is in flight; do not let it sequence the elicitation ladder.
+Do not make OTel a proof bullet of the first Brunch or host mission. The original idea to prove it
+in Mission 2 was retracted.
 
 ## Watch simulated conversations
 
@@ -230,17 +227,16 @@ Parallel spike, not a mission. The product itch: there is not yet a way to visua
 simulated conversations. That dissatisfaction is the reason this spike exists; it is not
 on the critical path.
 
-**Locked (Q9-A).** Driver: `@flue/sdk` JSON (`createFlueClient` → `send` → `wait` →
-`history()`), not PTY poll. Human observer: the same conversation URL. `:4321` already
+**Locked.** Driver: `@flue/sdk` JSON (`createFlueClient` → `send` → `wait` → `history()`),
+not PTY poll. Human observer: the same conversation URL. `:4321` already
 follows a conversation (`useFlueAgent`) but only paints text — render `dynamic-tool` /
 `data-*` / skill activation. The missing piece is a **second observer on the same
 conversation URL**, not a new protocol. Herdr panes are PTYs, not browsers; herdr cannot
 embed that page. A pane can at most open the URL or tail the transcript CLI.
 
-**Rejected.** Q9-B: wait for a herdr webview / JSON pane as the real product (blocks on
-herdr). Q9-C: watch sims in the Petrinaut panel, including a client-tool stand-in (couples
-every sim to panel client tools you do not need for elicitation rehearsal).
-`HarnessAgent` is not this surface.
+**Rejected.** Waiting for a Herdr webview / JSON pane as the real product would block on Herdr.
+Watching sims in the Petrinaut panel, including a client-tool stand-in, would couple every sim to
+panel client tools unnecessary for elicitation rehearsal. `HarnessAgent` is not this surface.
 
 ## AI SDK 7 `HarnessAgent`
 
@@ -251,24 +247,37 @@ not as the watch-sims surface.
 
 # Mission 3 leftovers
 
-Live Mission 3 locked a one-shot desk net (PN JSON, petrinaut validate, manual load OK) and
+Live Mission 3 locked one off-canvas PN JSON result (Petrinaut validation, manual load OK) and
 no canvas tools. These did not make that cut:
 
-- Original M3 also allowed **periodic** PN generation from a filling template ("one-shot at
-  end, or periodic"). Q13-B locked one-shot for Mission 3 so the runbook experiment has a
-  score. Periodic generation remains a later idea.
+- Original Mission 3 discussion also allowed **periodic** PN generation from a filling template
+  ("one-shot at end, or periodic"). The live mission locked one-shot generation so the runbook
+  experiment has a score. Periodic generation remains a later idea.
 - "Maybe wire PN JSON into the app programmatically" — manual load is enough to score
   whether the template contained enough. Programmatic load is leftover, not a Mission 3
   proof item.
 
-Teaching ingredients (placement still fog on the live mission; recorded so a later cut does
-not re-invent the bundle): some system prompting, some skill prompting, instructions on how
-to interpret the runbook (system or skill), and a template resource that is the IR.
-Bundling them in the skill is allowed. Growing a catalog is not.
+The live mission now consumes
+[`docs/specs/structurally-typed-elicitation-runbooks.md`](docs/specs/structurally-typed-elicitation-runbooks.md):
+one agent, a concise always-on router, one runbook skill, and disclosed resources for elicitation,
+the IR template, PN construction, and checks. Exact heading and resource boundaries remain live
+Mission 3 fog, not successor work.
 
 # Standing decisions
 
 Not missions.
+
+## Teaching mechanism
+
+One real Flue skill is the teaching mechanism (Mission 2 landed `defineSkill` / `useSkill` /
+`activate_skill`). Do not grow a skill catalog. A concise always-on instruction routes to the skill;
+its body carries lifecycle procedure and its supporting resources disclose elicitation teaching,
+the IR template, PN construction, and checks as needed. Flue `useSkill` is not always-on
+`useInstruction`, and the runbook may incorporate repertoire content without re-admitting the core
+YAML runtime or plugin keys onto this door.
+
+Cross-cuts the live runbook path and the capture-improvement elicitor guidance; it belongs
+to no single future cluster, so it stands here.
 
 ## Locked, not a mission
 

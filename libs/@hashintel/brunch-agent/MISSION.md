@@ -1,112 +1,183 @@
-# Mission 3 — runbook, template, headless PN
+# Mission 3 — structurally typed runbook to headless PN
 
 ## Status
 
 Live. This file is execution authority.
 
-Later concerns are clustered in [`MISSION.next.md`](MISSION.next.md). That file is a draft of
-upcoming work, not a mission; do not implement it. Host-trunk work, Petrinaut read/write tools,
-typed IR maps, observer-triggered sweeps, and any join to Mission 2's capture store are not this
-mission.
+Required design input:
+[`docs/specs/structurally-typed-elicitation-runbooks.md`](docs/specs/structurally-typed-elicitation-runbooks.md).
+The specification defines the meaning and first architecture of the runbook; this mission decides
+what to build and prove. If the real path contradicts the design, stop and surface the evidence
+rather than satisfying the document by construction.
+
+Later concerns are clustered in [`MISSION.next.md`](MISSION.next.md). That file is the canonical
+draft of upcoming work, not a mission; do not implement it. Host-continuity work, Petrinaut
+read/write tools, typed IR maps, observer-triggered sweeps, and any join to Mission 2's capture
+store are not this mission.
 
 ## Imperative
 
-Prove that a comprehensive runbook and IR template can teach a model through the live Flue
-chat door, that the filled template can be driven headless (no GUI), and that the filled
-document contains enough to generate a Petri net Petrinaut will accept. Condition 5's runner
-is broken on this app (deleted elicitor imports); restore the JS-API drive pattern, not a TUI
-and not the old SDCPN elicitor. This is a prompting experiment. It does not improve capture
-quality, and it does not fold Mission 2's ledger.
+Prove that one production Flue `ChatAgent` can use a **structurally typed elicitation runbook** to
+conduct or replay an interview, maintain a structured-but-not-strictly-semantically-typed
+**runbook IR**, and use that workpiece to generate Petri-net JSON that Petrinaut accepts. Bare IR
+below means this Markdown workpiece, not the existing typed three-register IR.
+
+The runbook combines two authored knowledge layers: universal elicitation teaching (the useful
+content behind the repertoire) and SDCPN target-formalism guidance (what to investigate, notice,
+deepen, preserve, transform, and check). Deliver them through one Flue skill with progressively
+disclosed resources, not through a large undifferentiated system prompt, a skill catalog, or the
+old plugin runtime.
+
+Condition 5's typed-capture path demanded too much in-loop semantic judgment and produced ordinary
+question turns on the order of minutes. This mission recovers its researched teaching and authoring
+discipline while testing structural typing as the sufficient first lever. It does not improve
+capture quality and does not fold Mission 2's ledger.
 
 ## Throughline
 
-One headless pass on the Mission 1 door, with a runbook and IR template mounted on the
-production `ChatAgent`:
+One headless pass through the Mission 1 production door:
 
-`createFlueClient → send → wait → history() → filled IR template → structured (not strictly typed) IR → PN JSON → petrinaut-core parse/validate`
+`createFlueClient → send initial modelling request → ChatAgent activates the runbook skill and reads elicitation + IR resources → (driver send → wait → history()) × interview turns → recover filled IR → driver sends construct-from-IR request → ChatAgent reads PN-construction + check resources and returns PN JSON → wait → history() → petrinaut-core parse/validate`
 
-Generate the net without canvas mutation tools. Manual load into the app is enough to score
-whether the template contained enough to draw. Template fill is not a sweep: sweep means
-capture-store apply. Do not join this path to Mission 2's store.
+Skill activation and resource reads occur inside model turns initiated by `send`; the headless driver
+does not invoke them before dispatch. The same agent owns elicitation, IR maintenance,
+construction, and validation. These are lifecycle
+phases, not separate agents. Construction may expose a gap and route the same agent back to
+elicitation; the runbook describes the return without inventing a workflow engine.
+
+During elicitation, work in the expert's vocabulary and maintain the IR. Read PN-construction
+material only when constructing or checking the net. The IR is the seam: generation consumes it
+rather than treating the transcript as the model. Manual loading into Petrinaut remains enough to
+inspect the drawing.
 
 ## Proof
 
-This proof establishes that a headless teaching loop can fill a template and yield a
-validatable Petri net. It does not establish a typed map, canvas write tools, capture
-improvement, session-as-net, or two brains.
+This proof establishes that a structurally typed runbook package can teach one agent through the
+real Flue path and yield a validatable Petri net. It does not establish a final heading catalogue,
+a typed capture/IR system, canvas write tools, session-as-net, two brains, or an automated
+repertoire-to-runbook compiler.
 
-From the real brunch-agent entrypoint (same `ChatAgent` / `/api/chat` door as Missions 1–2),
-one production-path test or documented JS-API script observes all of the following:
+From the real brunch-agent entrypoint (the same `ChatAgent` / `/api/chat` door as Missions 1–2),
+one production-path test or documented headless script observes all of the following:
 
-1. A headless client drives the live agent with `createFlueClient` → `send` → `wait` →
-   `history()` (the Flue routing-table loop, not a PTY/TUI).
-2. A comprehensive runbook and IR template are mounted on that agent (system prompt, skill
-   body, supporting file — placement is fog; bundling in the skill is allowed).
-3. The conversation fills the template; the filled document is recoverable from that
-   conversation's outputs without opening the Petrinaut GUI.
-4. Inference from that filled document produces PN JSON that `parseSDCPNFile` (or the current
-   petrinaut-core import equivalent) accepts. Missing canvas positions are allowed if the
-   parser already treats them as recoverable.
-5. The interviewer never called a sweep tool; the capture store was not written as part of
-   producing the net.
+1. The agent has one mounted runbook skill. Its concise catalog description and always-on
+   instruction route the modelling lifecycle without embedding the full runbook in the system
+   prompt.
+2. Skill activation yields the shared lifecycle procedure. Flue's native skill-resource surface
+   makes elicitation teaching, the IR template, PN-construction guidance, and checks readable
+   without a bespoke loader.
+3. The elicitation material visibly combines universal teaching and SDCPN target-formalism content
+   under the structural responsibilities fixed by the design specification. Authored runbook
+   content names situation typologies, not facts from the fixed operational scenario; those facts
+   appear only in conversation inputs, the filled IR, and evidence expectations.
+4. Interviewing uses the expert's vocabulary rather than places, transitions, arcs, or colours;
+   construction guidance is not required to frame ordinary elicitation questions.
+5. The conversation fills a recoverable Markdown IR whose structure, unknowns, assumptions,
+   conflicts, and omissions are legible without opening the Petrinaut GUI.
+6. The construction phase consumes that IR, reads the construction/check material, and produces PN
+   JSON that `parseSDCPNFile` (or the current Petrinaut-core import equivalent) accepts. Missing
+   canvas positions are allowed if the parser already treats them as recoverable.
+7. The result names consequential inference, approximation, defaulting, omission, and
+   unrepresentable material rather than silently hardening it.
+8. The interviewer never calls a sweep tool and producing the IR/net does not write Mission 2's
+   capture store.
 
-Prefer that one throughline over a broad suite. A human panel run is not required; manual
-load of the JSON into the app is enough to inspect the drawing.
+Prefer that one throughline over a broad suite. Record the resource path taken and where the first
+runbook helped, failed, or created attention strain. A fluent conversation by itself is not proof.
 
 ## Constraints
 
-- Mission 1's chat door stays the door: Petrinaut panel → `transport-aisdk` → Flue
-  `ChatAgent`. Do not rewrite the panel onto `@flue/react`. The adapter still must not depend
-  on core, binding, or plugins.
-- Restore the drive pattern from condition 5's runner (`createFlueClient` over the app
-  router). Do not revive that runner's SDCPN elicitor, `brunch_ask`, sweep, fold, or
-  completion accounting as the teaching vehicle.
-- Do not re-enter plugin-gherkin, plugin-sdcpn, repertoire, kinds, slots, fold, completion,
-  issues, or correction in order to author the template.
-- Template fill is not a sweep. Do not call `applyCaptureSweep` or otherwise join Mission 2's
-  ledger unless a later cut says so. The template is a teaching artifact, not ADR-0003
-  register-2 derived from captures.
-- No Petrinaut canvas mutation tools. No typed FE map. Generation may be structured without
-  being strictly typed.
+- Consume
+  [`docs/specs/structurally-typed-elicitation-runbooks.md`](docs/specs/structurally-typed-elicitation-runbooks.md):
+  broad runbook definition, structural-before-semantic typing, universal + target-formalism
+  authorship, one-agent lifecycle, one skill, and lazy phase-specific reference.
+- Mission 1's chat door stays the door: Petrinaut panel → `transport-aisdk` → Flue `ChatAgent`.
+  Do not rewrite the panel onto `@flue/react`. The adapter still must not depend on core, binding,
+  or plugins.
+- Use Flue's documented happy paths: `useSkill`, `activate_skill`, packaged supporting resources,
+  `read_skill_resource`, existing tool mounting, and the JS-API drive pattern. No custom prompt or
+  resource loader.
+- Author the first rendered runbook directly in Markdown. Do not build a key renderer, compiler,
+  projection engine, or generic schema framework before a second real consumer creates strain.
+- Keep the system instruction to identity, routing, lifecycle invariants, transport facts, and the
+  requirement to activate the runbook. Bulky teaching belongs in the skill package.
+- One model-facing agent and one runbook skill. No skill catalog, subagent topology, workflow
+  engine, TUI, or second server.
+- Keep elicitation and construction in separate information regions. Conversation follows the
+  expert's thread; IR headings do not become an opening questionnaire; PN internals remain
+  construction vocabulary.
+- Author runbook resources at the target-formalism level. Concrete scenario facts belong only to
+  the run input and filled IR; do not bake a truck fleet, semiconductor fab, or any other test case
+  into reusable teaching.
+- Structural typing may fix headings, nesting, repeated entry shapes, completion criteria, checks,
+  unknowns, and losses. Do not require closed kinds, slots, proposal types, precision grades,
+  firing predicates, fold rules, or typed completion algebra.
+- Restore the useful drive pattern from condition 5 (`createFlueClient` over the app router), not
+  its SDCPN elicitor, `brunch_ask`, sweep, fold, or completion accounting.
+- The IR template is a teaching workpiece, not ADR-0003 register 2 and not a projection of captures.
+  Do not call `applyCaptureSweep` or join Mission 2's store.
+- No Petrinaut canvas mutation tools and no typed FE map. Generation may use inference from
+  structured prose.
 - The app may import `@hashintel/petrinaut-core` to parse/validate PN JSON. It must not import
   `@hashintel/petrinaut` UI.
-- Update runbook/docs only where exercised behavior changes.
+- Update user-facing docs only where exercised behavior changes.
 
 ## Fog-line
 
-Do not design past these questions before running the simplest path that can answer them:
+Do not design past these questions before running the smallest path that can answer them:
 
-- Where the runbook and IR template live (system prompt, skill body, supporting file, or a
-  bundle of those) so the model actually uses them under `send`/`wait`.
-- What "structured but not strictly typed IR" looks like at the real boundary — a JSON
-  document the script consumes, a skill output, or a last-turn artifact — without inventing a
-  three-register revival.
-- How much of condition 5's runner to restore versus a thinner drive script on the current
-  `ChatAgent`.
-- Whether `parseSDCPNFile` is enough "petrinaut validate," or the throughline exposes a
-  smaller/larger import check.
+- The first exact Markdown heading catalogue and which repeated entries need required child
+  headings rather than authoring convention alone.
+- The smallest sufficient boundary between skill instructions and supporting resources. The
+  conceptual roles are fixed; exact files move only in response to observed sprawl, missed routing,
+  or phase contamination.
+- The skill's name/description and the smallest always-on instruction that reliably cause
+  activation and resource routing over a long conversation.
+- How the filled Markdown IR is recovered from the real conversation: one last-turn artifact, a
+  resource-like document returned in output, or another shape already supported by the path. Do
+  not create a persistence surface to answer this.
+- How to exercise the lifecycle's construction-discovered-gap return without manufacturing a
+  workflow state machine.
+- Whether `parseSDCPNFile` is sufficient “Petrinaut accepts,” or the path exposes a smaller/larger
+  import check.
+- Which instructions initially believed universal prove SDCPN-specific, and which SDCPN guidance
+  earns migration upward. Record the editorial move; do not automate it.
 
-Resolve each at the real boundary, record the observed answer in code/tests, and then
-re-evaluate. Do not turn them into a plugin SDK revival or a capture↔IR join.
+Resolve each at the real boundary and record the observed answer in code/tests and mission-close
+evidence. A longer fog-line after the first run is calibration, not failure.
 
 ## Stop or reorient
 
-Stop and surface the evidence before continuing if:
+Stop and surface evidence before continuing if:
 
-- producing the net requires writing Mission 2's capture store, or template fill is
-  implemented as apply-sweep;
-- plugin-sdcpn, repertoire, fold, completion, or `brunch_ask` re-enter as the teaching
+- the runbook is implemented from the old narrow `kickoff` / `trajectory` / `close` definition or
+  the broader design specification is treated as optional;
+- the system prompt becomes the full research/runbook corpus instead of a concise router;
+- more skills, another agent, a custom loader, or a workflow engine appear to solve an unobserved
+  future problem;
+- construction material leaks into ordinary interviewing and produces schema-shaped or PN-shaped
+  questions;
+- concrete scenario facts enter authored runbook resources instead of the conversation/IR instance;
+- the agent cannot reliably activate the skill or read the relevant phase resource on the real
+  path;
+- the IR cannot support PN generation without rereading the transcript as the primary model;
+- a closed kind/slot/proposal/precision/firing/fold/completion system re-enters merely to make the
+  first template feel rigorous;
+- producing the IR or PN requires writing Mission 2's capture store or implementing template fill
+  as apply-sweep;
+- plugin-sdcpn, repertoire runtime, fold, completion, or `brunch_ask` re-enter as the teaching
   vehicle;
 - canvas mutation tools appear on the interviewer;
-- the drive becomes a TUI or a second server rather than `createFlueClient` against the live
-  door;
+- the drive becomes a TUI or second server instead of `createFlueClient` against the live door;
 - the adapter grows a dependency on core, binding, or plugins;
-- ordinary turns on this path return to condition-5 latency (order-of-minutes) as the
-  designed shape of a teaching turn.
+- ordinary teaching turns return to condition-5 latency (order-of-minutes) as the designed shape.
+
+A need for one semantic commitment is not permission to restore the whole typed kernel. Name the
+specific missing commitment and reorient from that evidence.
 
 ## Deferred
 
-Host trunk, typed map and Petrinaut read/write via existing `onToolCall`, capture improvement
-(token-threshold observer, typed payloads), and whether capture and runbooks converge, are
-clustered in [`MISSION.next.md`](MISSION.next.md). That draft does not supersede this
-section.
+Mission 4 host continuity, Mission 5 typed map and Petrinaut read/write via existing `onToolCall`,
+Mission 6 capture improvement, and whether capture and runbooks converge remain in
+[`MISSION.next.md`](MISSION.next.md). Periodic PN generation and programmatic loading also remain
+there. That draft does not supersede this mission.
