@@ -18,7 +18,6 @@ import {
   unshareAdHocColumn,
 } from "./ad-hoc-scenario";
 
-import type { ColorElementType } from "../../../../types/sdcpn";
 import type {
   AdHocColouredPlace,
   AdHocOptimizeSettings,
@@ -216,19 +215,6 @@ export const emptyAdHocValue = (expression = ""): AdHocValue => ({
   optimize: null,
 });
 
-/** A sensible starting expression per colour element type. */
-const defaultCellExpression = (type: ColorElementType): string => {
-  switch (type) {
-    case "boolean":
-      return "false";
-    case "string":
-    case "uuid":
-      return '""';
-    default:
-      return "0";
-  }
-};
-
 const placeElements = (context: AdHocSynthesisContext, placeId: string) => {
   const place = context.places.find((candidate) => candidate.id === placeId);
   const colour = place?.colorId
@@ -237,13 +223,12 @@ const placeElements = (context: AdHocSynthesisContext, placeId: string) => {
   return colour?.elements ?? [];
 };
 
+// Cells start empty: an empty expression synthesizes as the element type's
+// neutral value, and the form shows that neutral grayed as a placeholder.
 export const defaultAdHocCellsFor = (
   context: AdHocSynthesisContext,
   placeId: string,
-): AdHocValue[] =>
-  placeElements(context, placeId).map((element) =>
-    emptyAdHocValue(defaultCellExpression(element.type)),
-  );
+): AdHocValue[] => placeElements(context, placeId).map(() => emptyAdHocValue());
 
 /**
  * The form edits every place in the net; places the user has not touched are

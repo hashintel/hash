@@ -59,10 +59,13 @@ import type {
 import type {
   AdHocColouredPlace,
   AdHocOptimizeSettings,
+  AdHocPlaceState,
   AdHocRow,
   AdHocScenarioState,
   AdHocValue,
+  AdHocVariable,
   Color,
+  ColorElementType,
   Parameter,
   Place,
   Scenario,
@@ -737,22 +740,133 @@ function inlinePlaceVariables(
  * optimized or depends on something that is; then the unresolved parts are
  * printed as they are, joined onto whatever did resolve.
  */
+/**
+ * The neutral expression an empty slot synthesizes as, per element type: an
+ * empty cell means "the zero value", never a compile error. UUIDs get the
+ * nil UUID — `Uuid.generate()` is kernel-only, and nil is the engine's uuid
+ * default too.
+ */
+export const adHocNeutralExpression = (type: ColorElementType): string => {
+  switch (type) {
+    case "boolean":
+      return "false";
+    case "string":
+      return '""';
+    case "uuid":
+      return '"00000000-0000-0000-0000-000000000000"';
+    default:
+      return "0";
+  }
+};
+
+/**
+ * Replaces every empty expression with its slot's neutral, so an empty slot
+ * synthesizes as "nothing here" instead of erroring: cells and shared
+ * columns by element type, Variables by their type, a dynamic row's count
+ * as 1, an uncoloured place's count as 0. Two kinds of emptiness keep their
+ * meaning: a net-parameter override (empty keeps the default) and the kept
+ * expression of an honored Optimize slot (the preview default falls back to
+ * the domain midpoint).
+ */
+function withNeutralAdHocExpressions(
+  state: AdHocScenarioState,
+  context: AdHocSynthesisContext,
+  includeOptimize: boolean,
+): AdHocScenarioState {
+  const substitute = <Value extends AdHocValue>(
+    value: Value,
+    neutral: string,
+  ): Value =>
+    value.expression.trim() === "" && !(includeOptimize && value.optimize)
+      ? { ...value, expression: neutral }
+      : value;
+  const substituteVariables = (list: AdHocVariable[]): AdHocVariable[] =>
+    list.map((variable) =>
+      substitute(variable, adHocNeutralExpression(variable.type)),
+    );
+
+  return {
+    ...state,
+    variables: substituteVariables(state.variables),
+    places: Object.fromEntries(
+      Object.entries(state.places).map(
+        ([placeId, placeState]): [string, AdHocPlaceState] => {
+          if (placeState.kind === "uncoloured") {
+            return [
+              placeId,
+              { ...placeState, count: substitute(placeState.count, "0") },
+            ];
+          }
+          const place = context.places.find(
+            (candidate) => candidate.id === placeId,
+          );
+          const colour = place?.colorId
+            ? context.types.find((type) => type.id === place.colorId)
+            : undefined;
+          const elements = colour?.elements ?? [];
+          const cellNeutral = (column: number): string =>
+            adHocNeutralExpression(elements[column]?.type ?? "real");
+          const columnNeutral = (field: string): string =>
+            adHocNeutralExpression(
+              elements.find((element) => element.name === field)?.type ??
+                "real",
+            );
+          return [
+            placeId,
+            {
+              ...placeState,
+              variables: substituteVariables(placeState.variables),
+              sharedColumns: Object.fromEntries(
+                Object.entries(placeState.sharedColumns).map(
+                  ([field, value]) => [
+                    field,
+                    substitute(value, columnNeutral(field)),
+                  ],
+                ),
+              ),
+              rows: placeState.rows.map((row) =>
+                row.kind === "template"
+                  ? {
+                      ...row,
+                      count: substitute(row.count, "1"),
+                      cells: row.cells.map((cell, column) =>
+                        substitute(cell, cellNeutral(column)),
+                      ),
+                    }
+                  : {
+                      ...row,
+                      cells: row.cells.map((cell, column) =>
+                        substitute(cell, cellNeutral(column)),
+                      ),
+                    },
+              ),
+            },
+          ];
+        },
+      ),
+    ),
+  };
+}
+
 export function resolveAdHocPlaceTotal(
   state: AdHocScenarioState,
   context: AdHocSynthesisContext,
   placeId: string,
 ): AdHocPlaceTotal {
-  const placeState = state.places[placeId];
+  // Empty expressions read as their neutral here too, so an emptied count
+  // never leaks "" into the printed total.
+  const normalized = withNeutralAdHocExpressions(state, context, true);
+  const placeState = normalized.places[placeId];
   const parameters = netParameterDefaults(context);
-  const constants = constantVariables(state);
+  const constants = constantVariables(normalized);
 
   const optimizedNames = new Set<string>();
-  for (const variable of state.variables) {
+  for (const variable of normalized.variables) {
     if (variable.optimize) {
       optimizedNames.add(`scenario.${variable.name}`);
     }
   }
-  for (const entry of state.netParameters) {
+  for (const entry of normalized.netParameters) {
     if (entry.optimize) {
       const parameter = context.netParameters.find(
         (candidate) => candidate.id === entry.parameterId,
@@ -882,29 +996,6 @@ function collectPlan(
   );
   const typeById = new Map(context.types.map((type) => [type.id, type]));
 
-  // The expression is unused only while the slot is optimized and Optimize is
-  // honored; everywhere else an empty expression would generate the syntax
-  // error `()` attributed to nothing the user can find.
-  const requireExpression = (
-    value: AdHocValue,
-    target: AdHocValueTarget,
-    source: AdHocSynthesisError["source"],
-    itemId: string,
-    what: string,
-  ): void => {
-    if (includeOptimize && value.optimize) {
-      return;
-    }
-    if (value.expression.trim() === "") {
-      errors.push({
-        source,
-        itemId,
-        slot: { target, part: "expression" },
-        message: `${what} needs an expression.`,
-      });
-    }
-  };
-
   const topLevelNames = new Set<string>();
   for (const [index, variable] of state.variables.entries()) {
     const target: AdHocValueTarget = { kind: "variable", placeId: null, index };
@@ -928,13 +1019,6 @@ function collectPlan(
       continue;
     }
     topLevelNames.add(variable.name);
-    requireExpression(
-      variable,
-      target,
-      "variable",
-      variable.name,
-      `Variable "${variable.name}"`,
-    );
     if (includeOptimize && variable.optimize) {
       optimized.push({
         parameterName: adHocParameterName.variable(
@@ -1019,13 +1103,6 @@ function collectPlan(
     usedPlaceNames.set(place.name, placeId);
 
     if (placeState.kind === "uncoloured") {
-      requireExpression(
-        placeState.count,
-        { kind: "count", placeId, row: null },
-        "count",
-        placeId,
-        `The token count of "${place.name}"`,
-      );
       if (includeOptimize && placeState.count.optimize) {
         optimized.push({
           parameterName: adHocParameterName.count(placeKey),
@@ -1090,13 +1167,6 @@ function collectPlan(
         continue;
       }
       placeVariableNames.add(variable.name);
-      requireExpression(
-        variable,
-        target,
-        "variable",
-        variable.name,
-        `Variable "${variable.name}"`,
-      );
       if (includeOptimize && variable.optimize) {
         optimized.push({
           parameterName: adHocParameterName.variable(placeKey, variable.name),
@@ -1122,13 +1192,6 @@ function collectPlan(
         placeId,
         column: named.index,
       };
-      requireExpression(
-        shared,
-        target,
-        "cell",
-        adHocParameterName.column(placeKey, field),
-        `The shared value of column "${field}"`,
-      );
       if (!includeOptimize || !shared.optimize) {
         continue;
       }
@@ -1152,15 +1215,6 @@ function collectPlan(
     }
 
     for (const [rowIndex, row] of placeState.rows.entries()) {
-      if (row.kind === "template") {
-        requireExpression(
-          row.count,
-          { kind: "count", placeId, row: rowIndex },
-          "count",
-          adHocParameterName.count(placeKey, rowIndex),
-          `The count of row ${rowIndex + 1} in "${place.name}"`,
-        );
-      }
       if (includeOptimize && row.kind === "template" && row.count.optimize) {
         optimized.push({
           parameterName: adHocParameterName.count(placeKey, rowIndex),
@@ -1195,13 +1249,6 @@ function collectPlan(
         if (placeState.sharedColumns[element.name]) {
           continue;
         }
-        requireExpression(
-          cell,
-          target,
-          "cell",
-          adHocParameterName.cell(placeKey, rowIndex, element.name),
-          `The "${element.name}" value of row ${rowIndex + 1} in "${place.name}"`,
-        );
         if (!includeOptimize || !cell.optimize) {
           continue;
         }
@@ -1888,17 +1935,22 @@ function synthesize(
 ):
   | { ok: true; output: AdHocSynthesisOutput }
   | { ok: false; errors: AdHocSynthesisError[] } {
-  const plan = collectPlan(state, context, includeOptimize);
-  collectCountErrors(plan, state, context, includeOptimize);
+  const normalized = withNeutralAdHocExpressions(
+    state,
+    context,
+    includeOptimize,
+  );
+  const plan = collectPlan(normalized, context, includeOptimize);
+  collectCountErrors(plan, normalized, context, includeOptimize);
   const exposedParameters = resolveExposed(
     plan,
-    state,
+    normalized,
     context,
     includeOptimize,
   );
   const { scenarioParameters: optimizedParameters, optimizedFields } =
     includeOptimize
-      ? resolveOptimized(plan, state, context)
+      ? resolveOptimized(plan, normalized, context)
       : { scenarioParameters: [], optimizedFields: [] };
   const scenarioParameters = [...exposedParameters, ...optimizedParameters];
   // Exposed identifiers are user-derived, generated ones sanitize user text
@@ -1926,7 +1978,7 @@ function synthesize(
     context.netParameters.map((parameter) => [parameter.id, parameter]),
   );
   const parameterOverrides: Record<string, string> = {};
-  for (const entry of state.netParameters) {
+  for (const entry of normalized.netParameters) {
     const parameter = parameterById.get(entry.parameterId);
     if (!parameter) {
       continue;
@@ -1937,7 +1989,7 @@ function synthesize(
     } else if (entry.expression.trim() !== "") {
       parameterOverrides[entry.parameterId] = inlineVariablesIntoOverride(
         entry.expression,
-        state,
+        normalized,
         includeOptimize,
       );
     }
@@ -1950,7 +2002,7 @@ function synthesize(
     parameterOverrides,
     initialState: {
       type: "code",
-      content: generateInitialStateCode(state, context, includeOptimize),
+      content: generateInitialStateCode(normalized, context, includeOptimize),
     },
   };
 

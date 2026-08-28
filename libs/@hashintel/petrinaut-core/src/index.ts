@@ -430,6 +430,7 @@ export {
   adHocRowKindOf,
   cycleAdHocRowKind,
   setAdHocRowKind,
+  adHocNeutralExpression,
   resolveAdHocPlaceTotal,
   shareAdHocColumn,
   synthesizeAdHocOptimization,

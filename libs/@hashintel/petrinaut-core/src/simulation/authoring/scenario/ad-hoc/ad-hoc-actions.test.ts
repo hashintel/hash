@@ -676,7 +676,9 @@ describe("token row actions", () => {
     });
     const added = pumps(state).rows[2]!;
     expect(added.kind).toBe("fixed");
-    expect(added.cells.map((c) => c.expression)).toEqual(["0", "false"]);
+    // Fresh cells are empty: they synthesize as the type's neutral and show
+    // it grayed as a placeholder.
+    expect(added.cells.map((c) => c.expression)).toEqual(["", ""]);
   });
 
   it("creates the place state on first touch", () => {
@@ -879,10 +881,10 @@ describe("helpers", () => {
     ).toEqual({ kind: "uncoloured", count: emptyAdHocValue("0") });
   });
 
-  it("defaultAdHocCellsFor and newAdHocVariable produce well-typed starters", () => {
+  it("defaultAdHocCellsFor seeds empty cells that read as the type's neutral", () => {
     expect(
       defaultAdHocCellsFor(context, "place-pumps").map((c) => c.expression),
-    ).toEqual(["0", "false"]);
+    ).toEqual(["", ""]);
     expect(newAdHocVariable([]).name).toBe("variable1");
   });
 });

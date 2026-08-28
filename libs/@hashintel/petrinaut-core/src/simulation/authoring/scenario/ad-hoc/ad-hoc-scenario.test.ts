@@ -425,24 +425,47 @@ describe("synthesizeAdHocScenario", () => {
     });
   });
 
-  it("rejects an empty required expression at its slot", () => {
+  it("an empty expression synthesizes as the slot's neutral value", () => {
     const state = baseState();
     const place = state.places["place-pumps"];
     if (place?.kind !== "coloured") {
       throw new Error("fixture should be coloured");
     }
+    // Empty real cell -> 0, empty boolean cell -> false.
     place.rows[0]!.cells[0] = { expression: "  ", optimize: null };
+    place.rows[0]!.cells[1] = { expression: "", optimize: null };
+    // Empty dynamic-row count -> 1 token.
+    place.rows[1] = template("", "1", "false");
+    // Empty per-place variable -> its type's neutral (boolean false).
+    place.variables[0] = {
+      name: "wear",
+      type: "boolean",
+      expression: "",
+      optimize: null,
+    };
+    // Empty uncoloured count -> 0.
+    state.places["place-queue"] = { kind: "uncoloured", count: cell("") };
 
     const outcome = synthesizeAdHocScenario(state, context);
-    expect(outcome).toMatchObject({ ok: false });
+    expect(outcome.ok).toBe(true);
+    const result = compiled(outcome);
+    expect(result.initialState["place-queue"]).toBe(0);
+    expect(result.initialState["place-pumps"]).toEqual([
+      { pressure: 0, worn: false },
+      { pressure: 1, worn: false },
+    ]);
+  });
+
+  it("an empty net parameter override still keeps the default", () => {
+    const state = baseState();
+    state.netParameters = [
+      { parameterId: "param-rate", expression: "", optimize: null },
+    ];
+    const outcome = synthesizeAdHocScenario(state, context);
+    expect(outcome.ok).toBe(true);
     if (outcome.ok) {
-      return;
+      expect(outcome.scenario.parameterOverrides).toEqual({});
     }
-    expect(outcome.errors[0]?.message).toContain("needs an expression");
-    expect(outcome.errors[0]?.slot).toEqual({
-      target: { kind: "cell", placeId: "place-pumps", row: 0, column: 0 },
-      part: "expression",
-    });
   });
 
   it("rejects two participating places sharing a name", () => {
