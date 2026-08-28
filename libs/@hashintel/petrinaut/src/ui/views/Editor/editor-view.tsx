@@ -24,7 +24,6 @@ import {
 
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
-import { ExperimentsContext } from "../../../react/experiments/context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
@@ -52,6 +51,7 @@ import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 import { SimulateView } from "./panels/SimulateView/simulate-view";
+import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
@@ -143,18 +143,17 @@ export const EditorView = ({
   // Get editor context
   const {
     isAiAssistantOpen,
+    navigateTo,
     setGlobalMode,
     editionMode,
     setEditionMode,
     cursorMode,
     setCursorMode,
     clearSelection,
-    setSimulateViewMode,
     setAiAssistantOpen,
     isBottomPanelOpen,
     bottomPanelHeight,
   } = use(EditorContext);
-  const { setSelectedExperimentId } = use(ExperimentsContext);
   const actualMode = use(ActualModeContext);
 
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
@@ -226,9 +225,11 @@ export const EditorView = ({
   }
 
   function handleRunningExperimentClick(experimentId: string) {
-    setGlobalMode("simulate");
-    setSimulateViewMode("experiments");
-    setSelectedExperimentId(experimentId);
+    navigateTo({
+      globalMode: "simulate",
+      simulateViewMode: "experiments",
+      simulateDrawer: { type: "view-experiment", experimentId },
+    });
   }
 
   async function handleImport() {
@@ -520,6 +521,8 @@ export const EditorView = ({
           </Box>
         )}
       </Stack>
+
+      <SimulationCreationDrawer />
     </>
   );
 };

@@ -25,6 +25,7 @@ import { OptimizationsProvider } from "../../../../../react/optimizations/provid
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsProvider } from "../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../monaco/provider";
+import { SimulationCreationDrawer } from "../../simulation-creation-drawer";
 import {
   FakeEditorProvider,
   FakeExperimentsProvider,
@@ -317,6 +318,7 @@ const SimulateViewStory = ({
                     className={portalContainerStyle}
                   />
                   <SimulateView />
+                  <SimulationCreationDrawer />
                 </div>
               </FakeExperimentsProvider>
             </FakeEditorProvider>
@@ -359,6 +361,7 @@ const RunnableSimulateViewStory = ({
                           className={portalContainerStyle}
                         />
                         <SimulateView />
+                        <SimulationCreationDrawer />
                       </div>
                     </OptimizationsProvider>
                   </ExperimentsProvider>

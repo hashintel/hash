@@ -1,11 +1,11 @@
-import { use, useState } from "react";
+import { use } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 
+import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
-import { CreateScenarioDrawer } from "./create-scenario-drawer";
 import { ViewScenarioDrawer } from "./view-scenario-drawer";
 
 import type { Scenario } from "@hashintel/petrinaut-core";
@@ -26,11 +26,6 @@ const scenarioColumns = [
     render: (scenario) => scenario.description ?? "",
   },
 ] satisfies readonly TableColumn<Scenario>[];
-
-type ScenarioDrawerState =
-  | { type: "closed" }
-  | { type: "view-scenario"; scenarioId: string }
-  | { type: "create-scenario" };
 
 const ScenarioList = ({
   scenarios,
@@ -54,9 +49,8 @@ const ScenarioList = ({
 };
 
 export const ScenariosView = () => {
-  const [drawer, setDrawer] = useState<ScenarioDrawerState>({
-    type: "closed",
-  });
+  const { simulateDrawer: drawer, setSimulateDrawer: setDrawer } =
+    use(EditorContext);
   const { petriNetDefinition } = use(SDCPNContext);
   const scenarios = petriNetDefinition.scenarios ?? [];
 
@@ -86,11 +80,6 @@ export const ScenariosView = () => {
         scenarios={scenarios}
         selectedId={drawer.type === "view-scenario" ? drawer.scenarioId : null}
         onSelect={(id) => setDrawer({ type: "view-scenario", scenarioId: id })}
-      />
-
-      <CreateScenarioDrawer
-        open={drawer.type === "create-scenario"}
-        onClose={closeDrawer}
       />
 
       <ViewScenarioDrawer

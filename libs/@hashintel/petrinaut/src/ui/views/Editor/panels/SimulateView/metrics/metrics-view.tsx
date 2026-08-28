@@ -1,11 +1,11 @@
-import { use, useState } from "react";
+import { use } from "react";
 
 import { Button, Icon } from "@hashintel/ds-components";
 
+import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
-import { CreateMetricDrawer } from "./create-metric-drawer";
 import { ViewMetricDrawer } from "./view-metric-drawer";
 
 import type { Metric } from "@hashintel/petrinaut-core";
@@ -26,11 +26,6 @@ const metricColumns = [
     render: (metric) => metric.description ?? "",
   },
 ] satisfies readonly TableColumn<Metric>[];
-
-type MetricDrawerState =
-  | { type: "closed" }
-  | { type: "view-metric"; metricId: string }
-  | { type: "create-metric" };
 
 const MetricList = ({
   metrics,
@@ -54,9 +49,8 @@ const MetricList = ({
 };
 
 export const MetricsView = () => {
-  const [drawer, setDrawer] = useState<MetricDrawerState>({
-    type: "closed",
-  });
+  const { simulateDrawer: drawer, setSimulateDrawer: setDrawer } =
+    use(EditorContext);
   const { petriNetDefinition } = use(SDCPNContext);
   const metrics = petriNetDefinition.metrics ?? [];
 
@@ -86,11 +80,6 @@ export const MetricsView = () => {
         metrics={metrics}
         selectedId={drawer.type === "view-metric" ? drawer.metricId : null}
         onSelect={(id) => setDrawer({ type: "view-metric", metricId: id })}
-      />
-
-      <CreateMetricDrawer
-        open={drawer.type === "create-metric"}
-        onClose={closeDrawer}
       />
 
       <ViewMetricDrawer

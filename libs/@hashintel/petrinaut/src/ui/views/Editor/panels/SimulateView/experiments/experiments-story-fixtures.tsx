@@ -13,6 +13,7 @@ import {
   EditorContext,
   initialEditorState,
   type EditorContextValue,
+  type SimulateDrawerState,
   type SimulateViewMode,
 } from "../../../../../../react/state/editor-context";
 
@@ -225,6 +226,10 @@ export function FakeEditorProvider({
   const [simulateViewMode, setSimulateViewMode] = useState<SimulateViewMode>(
     initialSimulateViewMode,
   );
+  // Stateful so stories that mount SimulationCreationDrawer can open it.
+  const [simulateDrawer, setSimulateDrawer] = useState<SimulateDrawerState>({
+    type: "closed",
+  });
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const value = useMemo<EditorContextValue>(
@@ -261,7 +266,8 @@ export function FakeEditorProvider({
       isNotHoveredConnection: () => false,
       setDraggingStateByNodeId: () => {},
       updateDraggingStateByNodeId: () => {},
-      setSimulateDrawer: () => {},
+      simulateDrawer,
+      setSimulateDrawer,
       setAiAssistantOpen: () => {},
       toggleAiAssistant: () => {},
       resetDraggingState: () => {},
@@ -274,7 +280,7 @@ export function FakeEditorProvider({
       triggerPanelAnimation: () => {},
       searchInputRef,
     }),
-    [simulateViewMode],
+    [simulateDrawer, simulateViewMode],
   );
 
   return <EditorContext value={value}>{children}</EditorContext>;

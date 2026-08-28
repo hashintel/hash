@@ -16,7 +16,6 @@ import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { Slider } from "../../../../../components/slider";
 import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
-import { CreateScenarioDrawer } from "../../SimulateView/scenarios/create-scenario-drawer";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
 
 import type { SubView } from "../../../../../components/sub-view/types";
@@ -306,7 +305,7 @@ const NO_SCENARIO = "__none__";
  * Includes a scenario picker, parameters section, and computation settings.
  */
 const SimulationSettingsContent: React.FC = () => {
-  const { setGlobalMode } = use(EditorContext);
+  const { navigateTo, setSimulateDrawer } = use(EditorContext);
   const {
     extensions,
     petriNetDefinition: { parameters, scenarios },
@@ -326,7 +325,6 @@ const SimulationSettingsContent: React.FC = () => {
   } = use(SimulationContext);
 
   const selectedScenarioId = contextScenarioId ?? NO_SCENARIO;
-  const [isCreateScenarioOpen, setIsCreateScenarioOpen] = useState(false);
   const [isViewScenarioOpen, setIsViewScenarioOpen] = useState(false);
 
   const isSimulationActive =
@@ -365,10 +363,6 @@ const SimulationSettingsContent: React.FC = () => {
 
   return (
     <div className={rootStyle}>
-      <CreateScenarioDrawer
-        open={isCreateScenarioOpen}
-        onClose={() => setIsCreateScenarioOpen(false)}
-      />
       <ViewScenarioDrawer
         open={isViewScenarioOpen}
         onClose={() => setIsViewScenarioOpen(false)}
@@ -444,7 +438,7 @@ const SimulationSettingsContent: React.FC = () => {
                 aria-label="Create scenario"
                 tooltip="Create Scenario"
                 iconName="plus"
-                onClick={() => setIsCreateScenarioOpen(true)}
+                onClick={() => setSimulateDrawer({ type: "create-scenario" })}
               />
               <Button
                 size="xs"
@@ -452,7 +446,12 @@ const SimulationSettingsContent: React.FC = () => {
                 aria-label="Manage scenarios"
                 tooltip="Manage Scenarios"
                 iconName="list"
-                onClick={() => setGlobalMode("simulate")}
+                onClick={() =>
+                  navigateTo({
+                    globalMode: "simulate",
+                    simulateViewMode: "scenarios",
+                  })
+                }
               />
             </div>
           </div>
