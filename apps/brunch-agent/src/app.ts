@@ -13,9 +13,14 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
 import { GherkinElicitor } from "./agents/gherkin-elicitor.ts";
+import { SdcpnElicitor } from "./agents/sdcpn-elicitor.ts";
 import { assetHandler } from "./assets.ts";
 import { petrinautChatHandler } from "./petrinaut-chat.ts";
-import { GHERKIN_AGENT_ROUTE, PETRINAUT_CHAT_ROUTE } from "./routes.ts";
+import {
+  GHERKIN_AGENT_ROUTE,
+  PETRINAUT_CHAT_ROUTE,
+  SDCPN_AGENT_ROUTE,
+} from "./routes.ts";
 
 const app = new Hono();
 
@@ -24,6 +29,9 @@ const app = new Hono();
 // share the route constant; Flue still keys storage on the agent's independent,
 // pinned identity.
 app.route(`/agents/${GHERKIN_AGENT_ROUTE}`, createAgentRouter(GherkinElicitor));
+// The SDCPN elicitor is the process-model target (ADR-0006): the plugin file
+// is code the harness loads, and this mount is what FE-1404's run talks to.
+app.route(`/agents/${SDCPN_AGENT_ROUTE}`, createAgentRouter(SdcpnElicitor));
 
 // The application owns the HTTP mount; transport-aisdk owns only request validation
 // and AI SDK stream encoding. No parallel conversation renderer is introduced.

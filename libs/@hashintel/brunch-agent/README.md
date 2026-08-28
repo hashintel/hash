@@ -14,6 +14,8 @@ This directory is its context and agent-session root, not a package workspace:
 - [`packages/binding-flue/`](./packages/binding-flue/) is the Flue binding.
 - [`packages/transport-aisdk/`](./packages/transport-aisdk/) is the AI SDK transport.
 - [`packages/plugin-gherkin/`](./packages/plugin-gherkin/) is the Gherkin target plugin.
+- [`packages/plugin-sdcpn/`](./packages/plugin-sdcpn/) is the SDCPN target plugin: `plugin.md` and its
+  slot-assertion proposal type.
 - [`../../../apps/brunch-agent/`](../../../apps/brunch-agent/) is the remote server and diagnostic
   application.
 

@@ -5,7 +5,7 @@ Status: **provisional**, reshaped 2026-08-25 by
 [ADR-0003](../adr/0003-three-register-ir.md)): a worked pass across at least three plugin
 targets on a real fold. Decided on: FE-1405 (registers), FE-1480 (ADR-0005 outputs), and the
 2026-08-25 design-convergence review (per-formalism plugin file). The normative exemplar for
-every row and column shape named here is [`sdcpn-plugin.md`](sdcpn-plugin.md); where this
+every row and column shape named here is [`plugin-sdcpn/plugin.md`](../../packages/plugin-sdcpn/plugin.md); where this
 document and that file disagree about shape, the file wins and this document is amended.
 The retired declarative draft is archived at
 [`plugin-contract-2026-08-25-declarative-draft.md`](../archive/specs/plugin-contract-2026-08-25-declarative-draft.md).
@@ -98,7 +98,7 @@ IR slot, fourth register, or plugin operation. `reconcile` remains optional.
   name its slot) is adjudicated at the FE-1383 seam, not forked around here.
 - **Smallest honest plugin.** A file whose `Kinds` table has one row and whose `Must know` table
   demands one `named` slot must load and run (kernel §11.3).
-- **Readability oracle.** Someone who has read `sdcpn-plugin.md` can write the Gherkin plugin
+- **Readability oracle.** Someone who has read `plugin-sdcpn/plugin.md` can write the Gherkin plugin
   file by analogy in a sitting. A harness change that breaks this is a regression even if all
   tests pass.
 

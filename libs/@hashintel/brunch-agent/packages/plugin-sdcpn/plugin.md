@@ -11,7 +11,7 @@ coloured Petri nets (Petrinaut) · Version: `sdcpn/2026-08-25.1`
 > have a conversation.
 >
 > It merges two existing sources into one artifact: the kind vocabulary and completion rule of
-> [the IR spec's Layer B](intermediate-representation.md#layer-b--the-cps-plugins-ir), and the
+> [the IR spec's Layer B](../../docs/specs/intermediate-representation.md#layer-b--the-cps-plugins-ir), and the
 > interviewing guidance of the condition-2 v0 prompt. Nothing here is new design; the domain-keyed
 > demand tables and cards of FE-1402/1403/1404 are the departure this file walks back.
 >
@@ -20,8 +20,8 @@ coloured Petri nets (Petrinaut) · Version: `sdcpn/2026-08-25.1`
 > unchanged. A new case that seems to need a new row is a finding about the abstraction to be
 > decided, never content to be added here.
 >
-> It lives under `docs/specs/` until the walking-skeleton branch creates `packages/plugin-sdcpn/`
-> with a manifest and the parser; the file then moves there unchanged.
+> It lives at `packages/plugin-sdcpn/plugin.md` and is parsed by the harness's `parsePluginFile`;
+> the package's `slot-asserted` proposal type is restricted to the kinds and slots below.
 
 ## Purpose
 

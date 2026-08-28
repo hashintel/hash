@@ -5,9 +5,17 @@ import * as v from "valibot";
 
 import { FreeTextAffordance } from "@hashintel/brunch-agent";
 
-import { GHERKIN_AGENT_ROUTE } from "../routes.ts";
+import { AGENT_ROUTES, isAgentTarget } from "../routes.ts";
 
 const conversationId = crypto.randomUUID();
+
+// `?target=sdcpn` selects the agent; the gallery is one route per plugin and
+// gherkin remains the default tracer.
+const requestedTarget = new URLSearchParams(window.location.search).get(
+  "target",
+);
+const agentRoute =
+  AGENT_ROUTES[isAgentTarget(requestedTarget) ? requestedTarget : "gherkin"];
 
 function VisibleMessage({ message }: { message: FlueConversationMessage }) {
   if (
@@ -58,7 +66,7 @@ export function Chat() {
   const client = useMemo(
     () =>
       createFlueClient({
-        url: `/agents/${GHERKIN_AGENT_ROUTE}/${conversationId}`,
+        url: `/agents/${agentRoute}/${conversationId}`,
       }),
     [],
   );

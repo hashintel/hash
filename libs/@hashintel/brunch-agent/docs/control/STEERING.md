@@ -27,7 +27,7 @@ and [S-007](STRATEGY-LOG.md#s-007). Governing architecture:
 production path with one formalism-level plugin, not further design. Every design question still
 open is answered by what the slice forces, and answered in code. The design-convergence frontier is
 closed: its outputs are test-bed material, and its one durable design result is the plugin file
-[`sdcpn-plugin.md`](../specs/sdcpn-plugin.md) ratified by ADR-0006.
+[`plugin-sdcpn/plugin.md`](../../packages/plugin-sdcpn/plugin.md) ratified by ADR-0006.
 
 The slice has four epicentres, ordered by the size of the gap they close. Work starts at the
 centre of each and moves outward; edges (SDK generality, affordance catalogues, UI breadth,
@@ -104,6 +104,7 @@ The read-only Linear graph supplies mechanical availability, never priority.
 | --- | --- | --- | --- | --- |
 | FE-1480 executable realization unavailable | FE-1438; [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | Client tools return code diagnostics to the elicitor. | 2026-08-25 | Scaffold work may proceed; no runnable FE-1480 proof until the gate opens. |
 | Final use case outstanding | Dora; FE-1476 / September Plan | Dora confirms or changes it. | 2026-08-25 | If creation is required, Proof 1 becomes acceptance-relevant rather than a harness proof; reconcile ADR-0004/proof. |
+| Deferral licensing (completion spec rules 17–19) unbuildable | [elicitation-completion](../specs/elicitation-completion.md) rules 17–19; FE-1480 / [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md) | A durable projection delivery exists for an evaluated revision. | 2026-08-25 | E1 supplies the report and revision (FE-1497, #9325); rule 18 makes licensing `false` without a delivered projection, so no issue is opened. When FE-1480 delivers, it is one read-time function beside `evaluateCompletion` plus a binding hook at settlement; no new persistence. |
 | Truck-fleet dossier missing from the repository | FE-1382 is Done but its promised `docs/reference/research/` artifact is absent. | Artifact path/branch is supplied or a reviewed replacement is selected. | 2026-08-25 | The generality half of Proof 1 uses a fixture derived from the inbox truck SDCPN and Layer B's worked example; claim no dossier-backed domain provenance. |
 
 ## Decision-relevant beliefs and unknowns
@@ -112,7 +113,7 @@ The read-only Linear graph supplies mechanical availability, never priority.
 | --- | --- | --- |
 | Kind-level rows express the coatings case. | Medium-high; the twenty domain-keyed rows of the FE-1402 rehearsal collapse onto eight kind rows on paper. | Proof 1's first half. |
 | The truck-fleet case adds zero headings and zero rows. | Medium; Layer B was validated against it, but never through this file. | Proof 1's second half. |
-| The controller read path is small. | Medium; `evaluateCompletion` is nineteen invariants over a fold the store already supports. | Build E1; if it exceeds the plugin file in size, stop and look. |
+| The controller read path is small. | The tripwire fired: E1 landed on FE-1497 (#9325) at 1055 code lines (excluding comments) against the plugin file's 225 non-blank lines — 378 parse the file and narrow the proposal schema, 677 are the fold, completion, and cue. Rules 17–19 are deferred (see gates). | Look before E3: is the 378-line parser an argument for a stricter plugin-file format (YAML or front matter for the machine-read tables) so the parser shrinks to a schema? Watch whether FE-1479's affected-slice and delta moves fit inside the 677-line engine. |
 | Field-local code obligations support localized realization and repair. | Low-medium; the corpus and Petrinaut diagnostics are field-addressed, but no Brunch run exists. | Realize one stochastic transition without rewriting an unrelated field. |
 | Five turns yield a scoped correction. | Low; unrehearsed. The review-and-revise runbook in the plugin file is the first concrete trajectory. | Run two bounded rehearsals against a fixture model. |
 | Ask carries durable client-tool results. | Medium-low; machine results refused today. | Run one correlated FE-1438 round trip. |
