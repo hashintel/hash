@@ -909,6 +909,7 @@ function chartOptions(
   timeTrace: TimeTrace,
   framesRef: { current: readonly MetricFrame[] },
   timeDomain: readonly [number, number] | undefined,
+  yFloor: { current: number },
 ): uPlot.Options {
   const isDistribution = outputType === "distribution";
   const showsSpread = isDistribution && !aggregateRuns;
@@ -970,19 +971,33 @@ function chartOptions(
         ? { time: false, range: () => [timeDomain[0], timeDomain[1]] }
         : { time: false },
       y: {
+        // The y ceiling only ratchets up (`yFloor` holds the highest ceiling
+        // this view has shown), so streaming never shrinks the scale and a
+        // re-stream after a parameter change keeps the previous frame of
+        // reference — including while the data is momentarily empty.
+        /* eslint-disable no-param-reassign -- `yFloor` is a deliberately
+           shared ratchet: these callbacks raise it as data streams in. */
         range: (_u, min, max) => {
           if (isHeatmap) {
             const range = binValueRange(framesRef.current);
-
-            return range ? rangeWithBaseline(range[0], range[1]) : [0, 1];
+            if (!range) {
+              return [0, Math.max(1, yFloor.current)];
+            }
+            yFloor.current = Math.max(yFloor.current, range[1]);
+            return rangeWithBaseline(
+              range[0],
+              Math.max(range[1], yFloor.current),
+            );
           }
 
           if (!Number.isFinite(min) || !Number.isFinite(max)) {
-            return [0, 1];
+            return [0, Math.max(1, yFloor.current)];
           }
 
-          return rangeWithBaseline(min, max);
+          yFloor.current = Math.max(yFloor.current, max);
+          return rangeWithBaseline(min, Math.max(max, yFloor.current));
         },
+        /* eslint-enable no-param-reassign */
       },
     },
     axes: [
@@ -1160,7 +1175,16 @@ export const ExperimentMetricTimeline = ({
   const [timeAggregation, setTimeAggregation] =
     useState<TimeAggregation>("mean");
   const latestFrame = frames.at(-1);
-  const outputType = latestFrame?.outputType ?? "scalar";
+  // A re-stream (parameters changed) briefly empties the frames; remembering
+  // the last output type keeps the footer controls and chart shape stable
+  // instead of flickering through the scalar defaults.
+  const [lastOutputType, setLastOutputType] = useState<
+    MetricFrame["outputType"] | null
+  >(null);
+  if (latestFrame && latestFrame.outputType !== lastOutputType) {
+    setLastOutputType(latestFrame.outputType);
+  }
+  const outputType = latestFrame?.outputType ?? lastOutputType ?? "scalar";
   const selectedFrame = selectedFrameKey
     ? (frames.find(
         (frame) =>
@@ -1218,6 +1242,18 @@ export const ExperimentMetricTimeline = ({
   const latestDataRef = useRef(plotData);
   const latestFramesRef = useRef(frames);
   const hasPlotData = plotData[0]!.length > 0;
+  // Once a metric has shown data, an empty re-stream keeps the plot mounted
+  // (axes and grid intact) rather than falling back to the waiting state —
+  // possible only with a pinned time domain, since empty data pins nothing.
+  const hasEverHadData = lastOutputType !== null;
+  const keepsAxesWhileEmpty =
+    hasEverHadData &&
+    timeDomainStart !== undefined &&
+    timeDomainEnd !== undefined;
+  const canPlot = usesPlot && (hasPlotData || keepsAxesWhileEmpty);
+  /** Highest y ceiling shown by the current view; reset when the view changes. */
+  const yFloorRef = useRef(0);
+  const viewKeyRef = useRef("");
 
   useEffect(() => {
     latestDataRef.current = plotData;
@@ -1228,8 +1264,13 @@ export const ExperimentMetricTimeline = ({
   }, [frames]);
 
   useEffect(() => {
+    const viewKey = `${displayMode}|${aggregateRuns}|${runAggregation}|${distributionView}|${timeTrace}`;
+    if (viewKeyRef.current !== viewKey) {
+      viewKeyRef.current = viewKey;
+      yFloorRef.current = 0;
+    }
     const root = chartRootRef.current;
-    if (!root || !size || !hasPlotData || !usesPlot) {
+    if (!root || !size || !canPlot) {
       plotRef.current?.destroy();
       plotRef.current = null;
       root?.replaceChildren();
@@ -1253,6 +1294,7 @@ export const ExperimentMetricTimeline = ({
             timeDomainStart !== undefined && timeDomainEnd !== undefined
               ? [timeDomainStart, timeDomainEnd]
               : undefined,
+            yFloorRef,
           ),
       createEmptyMetricTimelineData(),
       root,
@@ -1332,16 +1374,15 @@ export const ExperimentMetricTimeline = ({
     };
   }, [
     aggregateRuns,
+    canPlot,
     displayMode,
     distributionView,
-    hasPlotData,
     outputType,
     runAggregation,
     size,
     timeDomainEnd,
     timeDomainStart,
     timeTrace,
-    usesPlot,
   ]);
 
   useEffect(() => {
@@ -1465,7 +1506,7 @@ export const ExperimentMetricTimeline = ({
       ) : (
         <div className={chartFrameStyle}>
           <div ref={chartRootRef} className={chartStyle} />
-          {hasPlotData ? null : (
+          {hasPlotData || hasEverHadData ? null : (
             <div className={chartWaitingStyle}>Waiting for metric data</div>
           )}
         </div>
