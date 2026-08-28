@@ -228,7 +228,7 @@ describe("voice interview stage", () => {
       html.indexOf("Check microphone"),
     );
     expect(html).toMatch(/<button[^>]*disabled[^>]*>Start interview/u);
-    expect(html).toContain(">Use text instead<");
+    expect(html).toContain('aria-label="Use text instead"');
     expect(html).toContain("Check microphone");
     expect(html).toContain("pos_absolute");
     expect(html).not.toContain("pos_fixed");
@@ -253,7 +253,7 @@ describe("voice interview stage", () => {
       />,
     );
 
-    expect(html).toContain("We couldn’t connect");
+    expect(html).toContain("We couldn’t reconnect the microphone");
     expect(html).toContain(
       "Allow microphone access in your browser settings, then reconnect voice input.",
     );
@@ -261,7 +261,7 @@ describe("voice interview stage", () => {
     expect(html).toContain("microphone-permission");
     expect(html).toContain("voice-request-permission");
     expect(html).toContain(">Reconnect<");
-    expect(html).toContain(">Use text instead<");
+    expect(html).toContain('aria-label="Use text instead"');
     expect(html).not.toContain(">Type instead<");
   });
 
@@ -283,10 +283,10 @@ describe("voice interview stage", () => {
       await screen.findByRole("region", { name: "Voice interview stage" }),
     ).not.toBeNull();
     expect(
-      await screen.findAllByText(
+      await screen.findByText(
         /Microphone off · Allow microphone access in your browser settings, then reconnect voice input\./u,
       ),
-    ).toHaveLength(2);
+    ).not.toBeNull();
     expect(screen.getByRole("button", { name: "Reconnect" })).not.toBeNull();
     expect(screen.getByText("Interview active")).not.toBeNull();
     expect(screen.getByText("Interview mode")).not.toBeNull();
@@ -450,20 +450,112 @@ describe("voice interview stage", () => {
     ).not.toBeNull();
   });
 
-  test("keeps the question visible, distinguishes provisional text, and names microphone level", () => {
+  test("keeps the question visible and names microphone level", () => {
     const html = renderToStaticMarkup(
       <VoiceInterviewControlView {...viewProps()} />,
     );
 
     expect(html).toContain("What happens after approval?");
-    expect(html).toContain("What we’re hearing · Not sent yet");
-    expect(html).toContain("Microphone on · Listening");
+    expect(html).toContain("Live transcript");
+    expect(html).toContain("Listening");
     expect(html).toContain("Microphone input level: Medium");
-    expect(html).toContain("Done speaking");
+    expect(html).toContain('aria-label="Done speaking"');
     expect(html).toContain("motionReduce:vis_hidden");
     expect(html).toContain("pos_relative");
     expect(html).not.toContain("pos_fixed");
     expect(html).toContain('aria-live="polite"');
+  });
+
+  test("centers a circular microphone and waveform without visible level copy", () => {
+    render(<VoiceInterviewControlView {...viewProps()} />);
+
+    expect(screen.getByTestId("voice-microphone-focal")).not.toBeNull();
+    expect(screen.getByTestId("voice-waveform")).not.toBeNull();
+    expect(screen.getByText("Listening")).not.toBeNull();
+
+    const accessibleLevel = screen.getByText(
+      "Microphone input level: Medium",
+    );
+    expect(accessibleLevel.className).toContain("pos_absolute");
+    expect(
+      screen.queryByText("Microphone on · Listening", {
+        selector: ":not([role='status'])",
+      }),
+    ).toBeNull();
+  });
+
+  test("shows compact recording and sent transcript statuses", () => {
+    const rendered = render(<VoiceInterviewControlView {...viewProps()} />);
+
+    expect(screen.getByText("Live transcript")).not.toBeNull();
+    expect(screen.getByText("Recording")).not.toBeNull();
+    expect(screen.queryByText("What we’re hearing · Not sent yet")).toBeNull();
+    expect(screen.getByRole("status").textContent).toContain("Not sent yet");
+
+    rendered.rerender(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            lastCommittedText: "The shift lead assigns an owner.",
+            microphoneEnabled: false,
+            microphoneLevel: 0,
+            partialText: "",
+            phase: "waiting",
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Your answer")).not.toBeNull();
+    expect(screen.getByText("Sent")).not.toBeNull();
+    expect(screen.getByText("The shift lead assigns an owner.")).not.toBeNull();
+  });
+
+  test("uses voice-app icon controls while listening", () => {
+    render(<VoiceInterviewControlView {...viewProps()} />);
+
+    for (const name of ["Use text instead", "Done speaking", "Pause"]) {
+      const button = screen.getByRole("button", { name });
+      expect(button.querySelector("svg")).not.toBeNull();
+      expect(button.parentElement?.getAttribute("data-scope")).toBe("tooltip");
+    }
+
+    expect(
+      screen
+        .getByRole("button", { name: "Done speaking" })
+        .textContent.replaceAll("\u200B", "")
+        .trim(),
+    ).toBe("");
+  });
+
+  test("keeps reconnect visible and makes secondary recovery icon-only", () => {
+    render(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            errorCode: "microphone-permission",
+            errorMessage:
+              "Allow microphone access in your browser settings, then reconnect voice input.",
+            errorRequestId: "voice-request-permission",
+            microphoneEnabled: false,
+            microphoneLevel: 0,
+            partialText: "",
+            phase: "recoverable-error",
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText("We couldn’t reconnect the microphone")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Reconnect" }).textContent).toContain(
+      "Reconnect",
+    );
+    expect(
+      screen.getByRole("button", { name: "Use text instead" }).querySelector("svg"),
+    ).not.toBeNull();
+    expect(screen.getByText("Technical details")).not.toBeNull();
   });
 
   test("renders icons for the listening controls", () => {
@@ -597,7 +689,7 @@ describe("voice interview stage", () => {
     );
 
     expect(html).toContain("Microphone off · Interviewer speaking");
-    expect(html).toContain("Interrupt and speak");
+    expect(html).toContain('aria-label="Interrupt and speak"');
     expect(html).not.toContain(">Pause<");
   });
 

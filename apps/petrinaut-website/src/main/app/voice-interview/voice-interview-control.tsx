@@ -7,12 +7,20 @@ import {
   useSyncExternalStore,
 } from "react";
 import {
+  FaArrowRotateLeft,
   FaCheck,
+  FaCircleCheck,
+  FaCircleNotch,
   FaKeyboard,
   FaMicrophone,
   FaMicrophoneSlash,
   FaMinus,
   FaPause,
+  FaPen,
+  FaPlay,
+  FaRotate,
+  FaTriangleExclamation,
+  FaVolumeHigh,
   FaXmark,
 } from "react-icons/fa6";
 
@@ -198,6 +206,7 @@ const stageStyle = css({
 const headerStyle = css({
   display: "flex",
   alignItems: "center",
+  justifyContent: "flex-end",
   gap: "2",
 });
 
@@ -243,15 +252,116 @@ const miniTextStyle = css({
   flexDirection: "column",
 });
 
-const listeningStyle = css({
+const focalAreaStyle = css({
   display: "flex",
-  minHeight: "[84px]",
+  minHeight: "[150px]",
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
+  gap: "3",
+});
+
+const focalCircleStyle = cva({
+  base: {
+    position: "relative",
+    display: "flex",
+    width: "[108px]",
+    height: "[108px]",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "2",
+    borderWidth: "thin",
+    borderStyle: "solid",
+    borderRadius: "full",
+    _before: {
+      content: '""',
+      position: "absolute",
+      inset: "[-10px]",
+      borderWidth: "thin",
+      borderStyle: "solid",
+      borderColor: "blue.a20",
+      borderRadius: "full",
+    },
+  },
+  variants: {
+    tone: {
+      active: {
+        borderColor: "blue.a30",
+        backgroundColor: "blue.a10",
+        color: "blue.s90",
+        boxShadow: "[0 14px 30px rgba(35,125,181,0.14)]",
+      },
+      idle: {
+        borderColor: "neutral.a20",
+        backgroundColor: "neutral.s20",
+        color: "neutral.s80",
+      },
+      success: {
+        borderColor: "green.a30",
+        backgroundColor: "green.a10",
+        color: "green.s90",
+      },
+      error: {
+        borderColor: "red.a30",
+        backgroundColor: "red.a10",
+        color: "red.s90",
+      },
+    },
+  },
+});
+
+const shortStateStyle = css({
+  display: "flex",
+  alignItems: "center",
   gap: "2",
-  borderRadius: "lg",
-  backgroundColor: "blue.a10",
+  color: "neutral.s90",
+  fontSize: "xs",
+  fontWeight: "semibold",
+});
+
+const recordingDotStyle = css({
+  width: "[7px]",
+  height: "[7px]",
+  borderRadius: "full",
+  backgroundColor: "green.s70",
+  boxShadow: "[0 0 0 4px rgba(24,168,120,0.10)]",
+});
+
+const transcriptHeaderStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: "2",
+});
+
+const recordingTranscriptDotStyle = css({
+  width: "[7px]",
+  height: "[7px]",
+  borderRadius: "full",
+  backgroundColor: "red.s70",
+});
+
+const transcriptActionsStyle = css({
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: "1",
+});
+
+const transcriptStateStyle = cva({
+  base: {
+    display: "flex",
+    alignItems: "center",
+    gap: "1",
+    fontSize: "xs",
+    fontWeight: "semibold",
+  },
+  variants: {
+    state: {
+      recording: { color: "red.s80" },
+      sent: { color: "green.s90" },
+    },
+  },
 });
 
 const meterStyle = css({
@@ -294,10 +404,15 @@ const labelStyle = css({
   fontWeight: "semibold",
 });
 
-const phaseStyle = css({
-  color: "blue.s80",
-  fontSize: "xs",
-  fontWeight: "semibold",
+const recoveryStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
+  padding: "2.5",
+  borderRadius: "lg",
+  backgroundColor: "red.a10",
+  color: "neutral.s100",
+  fontSize: "sm",
 });
 
 const technicalDetailsStyle = css({
@@ -401,6 +516,31 @@ const statusText = (snapshot: VoiceTurnSnapshot): string => {
   }
 };
 
+const shortStatusText = (snapshot: VoiceTurnSnapshot): string => {
+  switch (snapshot.phase) {
+    case "idle":
+      return "Ready";
+    case "connecting":
+      return "Connecting";
+    case "listening":
+      return "Listening";
+    case "paused":
+      return "Paused";
+    case "transcribing":
+      return "Finishing answer";
+    case "delivering":
+      return "Answer recorded";
+    case "waiting":
+      return "Writing that down";
+    case "synthesizing":
+      return "Preparing next question";
+    case "playing":
+      return "Interviewer speaking";
+    case "recoverable-error":
+      return "Connection paused";
+  }
+};
+
 const inputLevelText = (level: number): string =>
   level >= 0.35
     ? "High"
@@ -414,7 +554,11 @@ const Meter = ({ snapshot }: { snapshot: VoiceTurnSnapshot }) => {
   const level = snapshot.microphoneLevel;
   return (
     <>
-      <div className={meterStyle} aria-hidden="true">
+      <div
+        aria-hidden="true"
+        className={meterStyle}
+        data-testid="voice-waveform"
+      >
         {[0.7, 1, 0.8, 1.15, 0.65].map((factor) => (
           <span
             className={meterBarStyle}
@@ -423,10 +567,114 @@ const Meter = ({ snapshot }: { snapshot: VoiceTurnSnapshot }) => {
           />
         ))}
       </div>
-      <span className={labelStyle}>
+      <span className={liveRegionStyle}>
         {`Microphone input level: ${inputLevelText(level)}`}
       </span>
     </>
+  );
+};
+
+const VoiceFocal = ({ snapshot }: { snapshot: VoiceTurnSnapshot }) => {
+  const active = snapshot.phase === "listening";
+  const tone =
+    snapshot.phase === "recoverable-error"
+      ? "error"
+      : snapshot.phase === "delivering"
+        ? "success"
+        : active
+          ? "active"
+          : "idle";
+  const icon =
+    snapshot.phase === "listening" ? (
+      <FaMicrophone aria-hidden="true" />
+    ) : snapshot.phase === "paused" ? (
+      <FaMicrophoneSlash aria-hidden="true" />
+    ) : snapshot.phase === "playing" ? (
+      <FaVolumeHigh aria-hidden="true" />
+    ) : snapshot.phase === "delivering" ? (
+      <FaCircleCheck aria-hidden="true" />
+    ) : snapshot.phase === "recoverable-error" ? (
+      <FaTriangleExclamation aria-hidden="true" />
+    ) : (
+      <FaCircleNotch aria-hidden="true" />
+    );
+
+  return (
+    <div className={focalAreaStyle}>
+      <div
+        className={focalCircleStyle({ tone })}
+        data-testid="voice-microphone-focal"
+      >
+        {icon}
+        {active && <Meter snapshot={snapshot} />}
+      </div>
+      <span className={shortStateStyle}>
+        {active && <span className={recordingDotStyle} />}
+        {shortStatusText(snapshot)}
+      </span>
+    </div>
+  );
+};
+
+const TranscriptStrip = ({
+  onEdit,
+  onRedo,
+  snapshot,
+}: {
+  onEdit: () => void;
+  onRedo: () => void;
+  snapshot: VoiceTurnSnapshot;
+}) => {
+  const recording = Boolean(snapshot.partialText);
+  const text = snapshot.partialText || snapshot.lastCommittedText;
+  if (!text) return null;
+
+  return (
+    <div className={transcriptStyle}>
+      <div className={transcriptHeaderStyle}>
+        <span className={labelStyle}>
+          {recording ? "Live transcript" : "Your answer"}
+        </span>
+        {recording ? (
+          <span className={transcriptStateStyle({ state: "recording" })}>
+            <span className={recordingTranscriptDotStyle} />
+            Recording
+          </span>
+        ) : (
+          <span className={transcriptStateStyle({ state: "sent" })}>
+            <FaCircleCheck aria-hidden="true" />
+            Sent
+          </span>
+        )}
+      </div>
+      <span>{text}</span>
+      {!recording && (
+        <div className={transcriptActionsStyle}>
+          <Button
+            aria-label="Redo answer"
+            disabled={!snapshot.canReviseLastAnswer}
+            prefix={<FaArrowRotateLeft aria-hidden="true" />}
+            shape="round"
+            size="xs"
+            tooltip="Redo answer"
+            type="button"
+            variant="ghost"
+            onClick={onRedo}
+          />
+          <Button
+            aria-label="Edit text"
+            disabled={!snapshot.canReviseLastAnswer}
+            prefix={<FaPen aria-hidden="true" />}
+            shape="round"
+            size="xs"
+            tooltip="Edit text"
+            type="button"
+            variant="ghost"
+            onClick={onEdit}
+          />
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -530,13 +778,15 @@ export const VoiceInterviewControlView = ({
               </span>
             </div>
             <Button
+              aria-label="Use text instead"
+              prefix={<FaKeyboard aria-hidden="true" />}
+              shape="round"
               size="xs"
+              tooltip="Use text instead"
               type="button"
               variant="ghost"
               onClick={onTypeInstead}
-            >
-              Use text instead
-            </Button>
+            />
           </header>
           <p className={statusStyle}>
             Your speech is transcribed by OpenAI. Petrinaut keeps finalized
@@ -669,7 +919,6 @@ export const VoiceInterviewControlView = ({
     >
       <div className={stageStyle}>
         <header className={headerStyle}>
-          <span className={titleStyle}>Voice interview</span>
           <Button
             aria-label="Minimize voice interview"
             prefix={<FaMinus aria-hidden="true" />}
@@ -696,19 +945,11 @@ export const VoiceInterviewControlView = ({
           {snapshot.currentQuestion || "The next question will appear here."}
         </p>
 
-        <div className={listeningStyle}>
-          {snapshot.microphoneEnabled ? (
-            <FaMicrophone aria-hidden="true" />
-          ) : (
-            <FaMicrophoneSlash aria-hidden="true" />
-          )}
-          {snapshot.microphoneEnabled && <Meter snapshot={snapshot} />}
-          <span className={phaseStyle}>{status}</span>
-        </div>
+        <VoiceFocal snapshot={snapshot} />
 
         {snapshot.phase === "recoverable-error" && (
-          <div className={transcriptStyle}>
-            <strong>We couldn’t connect</strong>
+          <div className={recoveryStyle}>
+            <strong>We couldn’t reconnect the microphone</strong>
             <span>{snapshot.errorMessage}</span>
             {(snapshot.errorCode || snapshot.errorRequestId) && (
               <details className={technicalDetailsStyle}>
@@ -724,20 +965,11 @@ export const VoiceInterviewControlView = ({
           </div>
         )}
 
-        {snapshot.partialText && (
-          <div className={transcriptStyle}>
-            <span className={labelStyle}>
-              What we’re hearing · Not sent yet
-            </span>
-            <span>{snapshot.partialText}</span>
-          </div>
-        )}
-        {!snapshot.partialText && snapshot.lastCommittedText && (
-          <div className={transcriptStyle}>
-            <span className={labelStyle}>Answer recorded</span>
-            <span>{snapshot.lastCommittedText}</span>
-          </div>
-        )}
+        <TranscriptStrip
+          onEdit={onEdit}
+          onRedo={onRedo}
+          snapshot={snapshot}
+        />
 
         {editing && (
           <form className={actionsStyle} onSubmit={submitCorrection}>
@@ -765,64 +997,70 @@ export const VoiceInterviewControlView = ({
 
         <div className={actionsStyle}>
           {isSpeaking && (
-            <Button type="button" onClick={onInterrupt}>
-              Interrupt and speak
-            </Button>
+            <Button
+              aria-label="Interrupt and speak"
+              prefix={<FaMicrophone aria-hidden="true" />}
+              shape="round"
+              size="md"
+              tooltip="Interrupt and speak"
+              type="button"
+              onClick={onInterrupt}
+            />
           )}
           {snapshot.phase === "listening" && (
             <>
               <Button
                 aria-label="Done speaking"
                 prefix={<FaCheck aria-hidden="true" />}
+                shape="round"
+                size="md"
+                tooltip="Done speaking"
                 type="button"
                 onClick={onDoneSpeaking}
-              >
-                Done speaking
-              </Button>
+              />
               <Button
                 aria-label="Pause"
                 prefix={<FaPause aria-hidden="true" />}
+                shape="round"
+                size="sm"
+                tooltip="Pause"
                 type="button"
                 variant="subtle"
                 onClick={onPause}
-              >
-                Pause
-              </Button>
+              />
             </>
           )}
           {snapshot.phase === "paused" && (
-            <Button type="button" onClick={onResume}>
-              Resume listening
-            </Button>
+            <Button
+              aria-label="Resume listening"
+              prefix={<FaPlay aria-hidden="true" />}
+              shape="round"
+              size="md"
+              tooltip="Resume listening"
+              type="button"
+              onClick={onResume}
+            />
           )}
           {snapshot.phase === "recoverable-error" && (
-            <Button type="button" onClick={onReconnect}>
+            <Button
+              aria-label="Reconnect"
+              prefix={<FaRotate aria-hidden="true" />}
+              type="button"
+              onClick={onReconnect}
+            >
               Reconnect
             </Button>
           )}
-          {snapshot.lastCommittedText && !snapshot.partialText && (
-            <>
-              <Button
-                disabled={!snapshot.canReviseLastAnswer}
-                type="button"
-                variant="subtle"
-                onClick={onRedo}
-              >
-                Redo answer
-              </Button>
-              <Button
-                disabled={!snapshot.canReviseLastAnswer}
-                type="button"
-                variant="ghost"
-                onClick={onEdit}
-              >
-                Edit text
-              </Button>
-            </>
-          )}
-          <Button type="button" variant="ghost" onClick={onTypeInstead}>
-            Use text instead
-          </Button>
+          <Button
+            aria-label="Use text instead"
+            prefix={<FaKeyboard aria-hidden="true" />}
+            shape="round"
+            size="sm"
+            tooltip="Use text instead"
+            type="button"
+            variant="ghost"
+            onClick={onTypeInstead}
+          />
         </div>
 
         <Coverage coverage={coverage} />
