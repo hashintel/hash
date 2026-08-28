@@ -36,9 +36,6 @@ const rootStyle = css({
   minHeight: "[0]",
   paddingTop: "2",
   paddingX: "4",
-  // Anchor for the compile-error banner, which overlays the panel's bottom
-  // edge instead of participating in the column flow.
-  position: "relative",
 });
 
 const scenarioRowStyle = css({
@@ -283,22 +280,20 @@ const emptyMessageStyle = css({
   fontStyle: "italic",
 });
 
-// Error callout shown when the selected scenario fails to compile, so a broken
-// scenario is never silently ignored. It floats over the bottom of the panel
-// instead of sitting in the column flow — an error must not shift the form
-// the user is in the middle of fixing. The columns behind it keep their own
-// scrolling, and a long error list scrolls inside the banner rather than
-// swallowing the panel.
+// Error callout shown when the selected scenario fails to compile, so a
+// broken scenario is never silently ignored. It docks at the panel's bottom,
+// below the columns: appearing takes height from the content grid — whose
+// columns scroll internally, so nothing becomes unreachable — rather than
+// covering it or shifting it downward. Flat and barely rounded, so it reads
+// as a bar of the panel, not a floating toast; a long error list scrolls
+// inside the banner rather than swallowing the panel.
 const scenarioBannerStyle = css({
-  position: "absolute",
-  bottom: "2",
-  // Match the root's horizontal insets so the banner aligns with the columns.
-  left: "4",
-  right: "4",
-  zIndex: "[10]",
+  flexShrink: 0,
+  marginTop: "2",
+  marginBottom: "2",
   maxHeight: "[40%]",
   overflowY: "auto",
-  boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.25)]",
+  borderRadius: "sm",
   textStyle: "xs",
   lineHeight: "[1.3]",
   padding: "[6px 8px]",
