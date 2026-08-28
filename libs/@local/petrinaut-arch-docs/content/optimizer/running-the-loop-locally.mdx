@@ -1,0 +1,110 @@
+---
+title: Running the loop locally
+description: One command that stands up the whole optimization loop — browser, Python service, and CLI subprocess — without HASH.
+sidebar_order: 20
+attachTo: optimizer
+---
+
+The full optimization loop runs locally without any HASH infrastructure. From
+the repository root:
+
+```sh
+yarn dev:petrinaut-optimization
+```
+
+Then open [http://localhost:5173/optimization](http://localhost:5173/optimization)
+(or whatever port Vite prints). Simulate mode gains the **Optimizations** view,
+and studies created there run against the real
+[optimizer](layer:optimizer) service.
+
+The command is `apps/petrinaut-website/scripts/optimization-dev.mjs`, and it
+does six things in order:
+
+1. Removes any container left behind by an earlier launcher run. A
+   hard-killed launcher (closed terminal, crash) never reaches its cleanup,
+   and the leftover otherwise holds port 4004 — every later launch would fail
+   with "port is already allocated" — while serving whatever code it was
+   built from.
+2. Reuses an optimizer it does not own that already serves
+   `127.0.0.1:4004` healthily — the compose stack's container, or a bare
+   `uvicorn` — and then skips Docker entirely. Note a long-lived one can be
+   too old for the current protocol.
+3. Otherwise builds the `petrinaut-opt:local` Docker image from
+   `apps/petrinaut-opt/docker/Dockerfile` and runs it read-only on
+   `127.0.0.1:4004`, polling its `/status` endpoint until healthy (30
+   seconds, then it gives up). The image bundles the [CLI](layer:cli) at
+   `/usr/local/bin/petrinaut`, so the service finds its child executable
+   without any checkout-specific setup.
+4. Builds `@hashintel/petrinaut` through Turborepo — the demo website consumes
+   the **built dists**, not the sources.
+5. Starts the website's Vite dev server with
+   `VITE_PETRINAUT_OPT_PROVIDER=service` and
+   `PETRINAUT_OPT_ORIGIN=http://127.0.0.1:4004`.
+6. Stops and removes its container when you stop the command. A reused
+   optimizer is left alone.
+
+Docker must be running unless a reusable optimizer is already serving.
+Extra arguments are forwarded to Vite, so
+`yarn dev:petrinaut-optimization --port 5175 --strictPort` pins the website
+port for tooling that needs to know it.
+
+## Why plain `yarn dev` shows no Optimizations view
+
+The editor renders the Optimizations tab only when a
+`PetrinautOptimizationContext` is mounted, and the website mounts one only on
+the `/optimization` route with `VITE_PETRINAUT_OPT_PROVIDER=service` set. A
+plain `turbo run dev` in `@apps/petrinaut-website` leaves the context null:
+the tab is hidden and nothing optimization-related is reachable. Storybook
+provides a fake optimizer for isolated UI work on the drawers.
+
+## The request path
+
+The browser never talks to the Python service directly. Vite's dev server
+proxies `/api/petrinaut-opt/*` to the optimizer origin (rewriting the prefix
+away), which avoids development-only CORS changes to the service. Behind
+that, the service spawns one `petrinaut serve` subprocess per optimization
+run and speaks JSON lines to it — the
+[subprocess boundary](doc:optimizer/subprocess-boundary) covers that
+contract, and the [CLI usage manual](doc:cli/usage-manual) the protocol.
+
+```
+browser ── /api/petrinaut-opt/* ──▶ Vite proxy ──▶ petrinaut-opt (127.0.0.1:4004)
+                                                        │ one per run
+                                                        ▼
+                                                  petrinaut serve (JSON lines)
+```
+
+Override the proxy target with `PETRINAUT_OPT_ORIGIN` when the service runs
+somewhere other than `127.0.0.1:4004`.
+
+## Without Docker
+
+When iterating on the Python service itself, a container rebuild per change
+is the wrong loop. Run the service directly:
+
+```sh
+cd apps/petrinaut-opt
+uv sync
+uv run uvicorn src.optimization_api:app --reload --port 4004
+```
+
+Two things the Docker image otherwise provides become your problem:
+
+- **The CLI on `PATH`.** The service launches its child as `petrinaut` on a
+  fixed `PATH` (`/usr/local/bin:/usr/bin:/bin`). In a checkout, build it
+  (`turbo run build --filter @hashintel/petrinaut-cli`) and link its `bin`
+  onto that path — the [Python bindings manual](doc:python-bindings/usage-manual)
+  covers the options.
+- **The port.** Bare `uvicorn --reload` defaults to 8000; pass `--port 4004`
+  or point the website at it with `PETRINAUT_OPT_ORIGIN`.
+
+Then start the website side alone, with the provider enabled:
+
+```sh
+cd apps/petrinaut-website
+VITE_PETRINAUT_OPT_PROVIDER=service yarn dev
+```
+
+Use the one-command Docker flow when you are working on Petrinaut and just
+need a real optimizer behind it; use the uvicorn flow when the service is
+what you are changing.
