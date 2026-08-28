@@ -299,6 +299,53 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(interviewStageUnmounts).toBe(0);
   });
 
+  test("moves focus to the composer only when the interview stage requests it", () => {
+    const Stage = (context: PetrinautAiInterviewStageContext) => (
+      <>
+        <button
+          type="button"
+          onClick={() => context.setInteractionMode("chat")}
+        >
+          Minimize interview
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            context.setInteractionMode("chat");
+            context.focusComposer();
+          }}
+        >
+          Use text instead
+        </button>
+      </>
+    );
+    const aiAssistant: PetrinautAiAssistant = {
+      renderInterviewStage: (context) => <Stage {...context} />,
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    };
+
+    renderTestPanel({ aiAssistant });
+    fireEvent.click(screen.getByRole("button", { name: "Interview" }));
+
+    const minimizeButton = screen.getByRole("button", {
+      name: "Minimize interview",
+    });
+    minimizeButton.focus();
+    fireEvent.click(minimizeButton);
+
+    expect(document.activeElement).toBe(minimizeButton);
+
+    fireEvent.click(screen.getByRole("button", { name: "Interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use text instead" }));
+
+    expect(document.activeElement).toBe(
+      screen.getByPlaceholderText("Describe the process you want to create"),
+    );
+  });
+
   test("defers and consumes an initial Interview mode once, then falls back to Chat", () => {
     let latestInteractionMode = "chat";
     const onInitialInteractionModeConsumed = vi.fn();

@@ -258,9 +258,6 @@ export const AiAssistantPanel = ({
   const selectInteractionMode = useCallback(
     (nextMode: PetrinautAiInteractionMode) => {
       setInteractionMode(nextMode);
-      if (nextMode === "chat") {
-        setComposerFocusRequest((request) => request + 1);
-      }
     },
     [],
   );
@@ -1011,6 +1008,7 @@ export const AiAssistantPanel = ({
     focusComposer: () => {
       selectInteractionMode("chat");
       setAiAssistantOpen(true);
+      setComposerFocusRequest((request) => request + 1);
     },
     interactionMode,
     openSidebar: () => setAiAssistantOpen(true),

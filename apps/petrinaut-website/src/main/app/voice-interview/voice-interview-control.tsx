@@ -521,6 +521,24 @@ const statusText = (snapshot: VoiceTurnSnapshot): string => {
   }
 };
 
+type RecoveryErrorFamily = "connection" | "interview" | "microphone";
+
+const recoveryErrorFamily = (
+  errorCode: VoiceTurnSnapshot["errorCode"],
+): RecoveryErrorFamily => {
+  switch (errorCode) {
+    case "microphone-permission":
+    case "microphone-device":
+      return "microphone";
+    case "network":
+    case "timeout":
+    case "request-aborted":
+      return "connection";
+    default:
+      return "interview";
+  }
+};
+
 const shortStatusText = (snapshot: VoiceTurnSnapshot): string => {
   switch (snapshot.phase) {
     case "idle":
@@ -541,8 +559,16 @@ const shortStatusText = (snapshot: VoiceTurnSnapshot): string => {
       return "Preparing next question";
     case "playing":
       return "Interviewer speaking";
-    case "recoverable-error":
-      return "Connection paused";
+    case "recoverable-error": {
+      switch (recoveryErrorFamily(snapshot.errorCode)) {
+        case "microphone":
+          return "Microphone unavailable";
+        case "connection":
+          return "Connection paused";
+        case "interview":
+          return "Interview paused";
+      }
+    }
   }
 };
 
@@ -641,15 +667,12 @@ const VoiceFocal = ({ snapshot }: { snapshot: VoiceTurnSnapshot }) => {
  * microphone. The message below it stays the actionable guidance.
  */
 const recoveryHeading = (errorCode: VoiceTurnSnapshot["errorCode"]): string => {
-  switch (errorCode) {
-    case "microphone-permission":
-    case "microphone-device":
+  switch (recoveryErrorFamily(errorCode)) {
+    case "microphone":
       return "We couldn’t reconnect the microphone";
-    case "network":
-    case "timeout":
-    case "request-aborted":
+    case "connection":
       return "We lost the voice connection";
-    default:
+    case "interview":
       return "The interview couldn’t continue";
   }
 };

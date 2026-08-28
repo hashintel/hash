@@ -717,6 +717,7 @@ describe("voice interview stage", () => {
     expect(
       screen.getByText("We couldn’t reconnect the microphone"),
     ).not.toBeNull();
+    expect(screen.getByText("Microphone unavailable")).not.toBeNull();
     expect(
       screen.getByText(
         "Connect or select a microphone, then reconnect voice input.",
@@ -730,6 +731,7 @@ describe("voice interview stage", () => {
       ),
     );
     expect(screen.getByText("We lost the voice connection")).not.toBeNull();
+    expect(screen.getByText("Connection paused")).not.toBeNull();
 
     rendered.rerender(
       recovery(
@@ -738,6 +740,7 @@ describe("voice interview stage", () => {
       ),
     );
     expect(screen.getByText("The interview couldn’t continue")).not.toBeNull();
+    expect(screen.getByText("Interview paused")).not.toBeNull();
 
     rendered.rerender(
       recovery(
@@ -746,6 +749,7 @@ describe("voice interview stage", () => {
       ),
     );
     expect(screen.getByText("The interview couldn’t continue")).not.toBeNull();
+    expect(screen.getByText("Interview paused")).not.toBeNull();
     expect(
       screen.queryByText("We couldn’t reconnect the microphone"),
     ).toBeNull();
