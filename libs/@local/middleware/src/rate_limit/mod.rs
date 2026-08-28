@@ -564,7 +564,10 @@ pub async fn principal_limit_middleware(
         Err(error) => {
             // `authentication_middleware` stores an error only as `MissingDelegatedActor` on a
             // bootstrap route, and those requests present the service secret and passed above.
-            tracing::error!(%error, "authentication error reached the rate limiter unrejected");
+            // Reaching this means the middleware order broke, so the report's attachments are
+            // the only account of what the provider saw — `Display` would print the first
+            // context and drop them.
+            tracing::error!(error = ?error, "authentication error reached the rate limiter unrejected");
             return internal_error();
         }
     };

@@ -24,39 +24,52 @@ use axum::{
     middleware::Next,
     response::Response,
 };
+use error_stack::Report;
 use type_system::principal::actor::ActorId;
 
 use self::{
     provider::{AuthenticationProvider, Caller},
-    request::{AuthenticationError, resolve_request_actor},
+    request::{AuthenticationError, log_rejection, resolve_request_actor},
     service_secret::{presents_service_secret, service_credential},
 };
 use crate::response::error_response;
 
 /// The resolved authentication of a request, stored as a request extension.
+///
+/// A rejection carries the full report. The [`Arc`] is what lets it live in an extension:
+/// [`Report`] is not [`Clone`], and an extension value has to be.
 #[derive(Clone)]
-pub(crate) struct ResolvedAuthentication(Result<Option<ActorId>, AuthenticationError>);
+pub(crate) struct ResolvedAuthentication(Result<Option<ActorId>, Arc<Report<AuthenticationError>>>);
 
 impl ResolvedAuthentication {
     #[cfg(test)]
-    pub(crate) const fn new(outcome: Result<Option<ActorId>, AuthenticationError>) -> Self {
+    pub(crate) const fn new(
+        outcome: Result<Option<ActorId>, Arc<Report<AuthenticationError>>>,
+    ) -> Self {
         Self(outcome)
     }
 
-    pub(crate) const fn outcome(&self) -> &Result<Option<ActorId>, AuthenticationError> {
+    pub(crate) const fn outcome(
+        &self,
+    ) -> &Result<Option<ActorId>, Arc<Report<AuthenticationError>>> {
         &self.0
     }
 }
 
 /// Converts an authentication failure into the response returned to the client.
 ///
-/// The response carries the client-safe message. Identifiers stay in the server-side logs. Only
-/// logs at debug level: a rejection is the caller's to repair, and where verification itself
-/// failed, [`resolve_request_actor`] has already logged the report at the level matching the
-/// fault domain.
-fn rejection(error: &AuthenticationError) -> Response {
-    tracing::debug!(%error, "request rejected");
+/// The response carries the client-safe message. Identifiers and the report's attachments stay in
+/// the server-side logs, where [`log_rejection`] has already reported them.
+fn rejection(report: &Report<AuthenticationError>) -> Response {
+    let error = report.current_context();
     error_response(error.status_code(), error.client_message().to_owned())
+}
+
+/// Reports a rejection and converts it into the response returned to the client.
+fn logged_rejection(error: AuthenticationError) -> Response {
+    let report = Report::new(error);
+    log_rejection(&report);
+    rejection(&report)
 }
 
 /// Returns the rejection for a request that does not carry the service secret, [`None`] when it
@@ -66,12 +79,13 @@ fn service_secret_rejection(headers: &http::HeaderMap, service_secret: &str) -> 
         return None;
     }
 
-    if service_credential(headers).is_some() {
-        tracing::warn!("request rejected due to a service credential mismatch");
-        return Some(rejection(&AuthenticationError::InvalidServiceSecret));
-    }
-    tracing::debug!("request rejected without a service credential");
-    Some(rejection(&AuthenticationError::MissingServiceSecret))
+    // A presented credential that does not match says the sender believed it had one, which the
+    // fault domain separates from a request carrying none at all.
+    Some(logged_rejection(if service_credential(headers).is_some() {
+        AuthenticationError::InvalidServiceSecret
+    } else {
+        AuthenticationError::MissingServiceSecret
+    }))
 }
 
 /// Rejects requests that do not carry the service secret.
@@ -106,7 +120,10 @@ pub async fn service_secret_middleware(
 
 /// Records the authenticated actor on the request span and stores the outcome as a request
 /// extension.
-fn store_outcome(request: &mut Request, outcome: Result<Option<ActorId>, AuthenticationError>) {
+fn store_outcome(
+    request: &mut Request,
+    outcome: Result<Option<ActorId>, Arc<Report<AuthenticationError>>>,
+) {
     if let Ok(Some(actor_id)) = &outcome {
         tracing::Span::current().record("actor_entity_uuid", tracing::field::display(actor_id));
     }
@@ -194,11 +211,17 @@ where
 
     let outcome = resolve_request_actor(&*provider, request.headers())
         .await
-        .map(Caller::into_actor);
+        .map(Caller::into_actor)
+        .map_err(Arc::new);
 
     match &outcome {
-        Err(AuthenticationError::MissingDelegatedActor) if bootstrap => {}
-        Err(error) => return rejection(error),
+        Err(report)
+            if bootstrap
+                && matches!(
+                    report.current_context(),
+                    AuthenticationError::MissingDelegatedActor
+                ) => {}
+        Err(report) => return rejection(report),
         Ok(_) => {}
     }
 
@@ -224,10 +247,12 @@ impl<S: Sync> FromRequestParts<S> for AuthenticatedActorId {
     ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
         core::future::ready(match parts.extensions.get::<ResolvedAuthentication>() {
             Some(ResolvedAuthentication(Ok(Some(actor_id)))) => Ok(Self(*actor_id)),
+            // Resolution succeeded and found no actor; the rejection originates here, in the
+            // handler's requirement, so this is the site that reports it.
             Some(ResolvedAuthentication(Ok(None))) => {
-                Err(rejection(&AuthenticationError::MissingCredentials))
+                Err(logged_rejection(AuthenticationError::MissingCredentials))
             }
-            Some(ResolvedAuthentication(Err(error))) => Err(rejection(error)),
+            Some(ResolvedAuthentication(Err(report))) => Err(rejection(report)),
             None => {
                 tracing::error!(
                     "`AuthenticatedActorId` extracted on a route without authentication middleware"
@@ -255,7 +280,7 @@ impl<S: Sync> OptionalFromRequestParts<S> for AuthenticatedActorId {
     ) -> impl Future<Output = Result<Option<Self>, Self::Rejection>> + Send {
         core::future::ready(match parts.extensions.get::<ResolvedAuthentication>() {
             Some(ResolvedAuthentication(Ok(caller))) => Ok(caller.map(Self)),
-            Some(ResolvedAuthentication(Err(error))) => Err(rejection(error)),
+            Some(ResolvedAuthentication(Err(report))) => Err(rejection(report)),
             None => {
                 tracing::error!(
                     "`AuthenticatedActorId` extracted on a route without authentication middleware"
