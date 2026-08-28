@@ -25,6 +25,7 @@ import { use, useRef, useState } from "react";
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import {
+  adHocNeutralExpression,
   adHocRowKindOf,
   resolveAdHocPlaceTotal,
   type AdHocColouredPlace,
@@ -147,6 +148,14 @@ const totalTextStyle = css({
   paddingX: "1",
   marginTop: "[1px]",
 });
+
+/** The open editor's arrow-stepping mode for a colour element's cells. */
+const steppingFor = (type: Color["elements"][number]["type"]) =>
+  type === "boolean"
+    ? "boolean"
+    : type === "real" || type === "integer"
+      ? "number"
+      : "none";
 
 export interface TokenTableProps {
   place: Place;
@@ -605,6 +614,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   }
                   integer={element.type === "integer"}
                   booleanDomain={element.type === "boolean"}
+                  stepping={steppingFor(element.type)}
+                  placeholder={adHocNeutralExpression(element.type)}
                   derived={Boolean(shared)}
                   autoOpen={autoOpen}
                   onOpenDerived={() => openSharedEditor(element.name)}
@@ -720,6 +731,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                       target={target}
                       integer={element.type === "integer"}
                       booleanDomain={element.type === "boolean"}
+                      stepping={steppingFor(element.type)}
+                      placeholder={adHocNeutralExpression(element.type)}
                       autoOpen={
                         sharedAutoOpen?.field === element.name
                           ? sharedAutoOpen.nonce

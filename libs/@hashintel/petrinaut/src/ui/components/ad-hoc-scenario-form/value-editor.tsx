@@ -284,6 +284,12 @@ export interface ValueEditorProps {
   /** Trigger placeholder when the expression is empty. */
   placeholder?: string;
   /**
+   * What Up/Down steps in the open editor. Defaults by domain: boolean
+   * slots toggle true/false, everything else steps numeric literals;
+   * "none" (strings, UUIDs) leaves the arrows to Monaco.
+   */
+  stepping?: "number" | "boolean" | "none";
+  /**
    * Opens the editor when this becomes a fresh non-zero nonce (phantom-row
    * materialization, derived-cell click-through).
    */
@@ -411,6 +417,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   className,
   display,
   placeholder = "0",
+  stepping,
   autoOpen = 0,
   onOpenDerived,
   triggerRef,
@@ -515,13 +522,19 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     setTimeout(() => boundRefs.current.get(key)?.focus(), 0);
   };
 
-  // ArrowUp/Down while the open editor holds a bare numeric literal steps it
-  // like a spinner: ±1, ±10 with Shift. Captured on the overlay so it wins
-  // over Monaco, but only when the suggest widget is closed and the editor
-  // itself (expression or bound) has focus — setValue routes through the
-  // editor's onChange, so the right dispatch fires either way.
-  const stepNumericLiteral = (event: React.KeyboardEvent) => {
-    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") {
+  // ArrowUp/Down in the open editor step its value like a spinner: an empty
+  // or bare-numeric-literal content steps ±1 (±10 with Shift, decimals
+  // preserved); a boolean slot toggles to true (Up) / false (Down); string
+  // and UUID slots leave the arrows to Monaco. Captured on the overlay so it
+  // wins over Monaco, but only while the suggest widget is closed and the
+  // editor itself (expression or bound) has focus — setValue routes through
+  // the editor's onChange, so the right dispatch fires either way.
+  const stepMode = stepping ?? (booleanDomain ? "boolean" : "number");
+  const stepValueWithArrows = (event: React.KeyboardEvent) => {
+    if (
+      (event.key !== "ArrowUp" && event.key !== "ArrowDown") ||
+      stepMode === "none"
+    ) {
       return;
     }
     const editorInstance = monacoRef.current;
@@ -533,15 +546,24 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       return;
     }
     const current = model.getValue();
-    if (!/^\s*-?(\d+(\.\d*)?|\.\d+)\s*$/.test(current)) {
+    const up = event.key === "ArrowUp";
+    let next: string | null = null;
+    if (stepMode === "boolean") {
+      if (/^\s*(true|false)?\s*$/.test(current)) {
+        next = up ? "true" : "false";
+      }
+    } else if (/^\s*$/.test(current)) {
+      next = String((up ? 1 : -1) * (event.shiftKey ? 10 : 1));
+    } else if (/^\s*-?(\d+(\.\d*)?|\.\d+)\s*$/.test(current)) {
+      const delta = (up ? 1 : -1) * (event.shiftKey ? 10 : 1);
+      const decimals = /\.(\d*)\s*$/.exec(current)?.[1]?.length ?? 0;
+      next = (Number.parseFloat(current) + delta).toFixed(decimals);
+    }
+    if (next === null || next === current) {
       return;
     }
     event.preventDefault();
     event.stopPropagation();
-    const delta =
-      (event.key === "ArrowUp" ? 1 : -1) * (event.shiftKey ? 10 : 1);
-    const decimals = /\.(\d*)\s*$/.exec(current)?.[1]?.length ?? 0;
-    const next = (Number.parseFloat(current) + delta).toFixed(decimals);
     editorInstance.setValue(next);
     editorInstance.setPosition({ lineNumber: 1, column: next.length + 1 });
   };
@@ -810,7 +832,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
           <div
             ref={overlayRef}
             className={overlayStyle}
-            onKeyDownCapture={stepNumericLiteral}
+            onKeyDownCapture={stepValueWithArrows}
             style={{
               top: rect.top,
               left: rect.left,

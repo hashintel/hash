@@ -371,7 +371,9 @@ describe("AdHocScenarioForm", () => {
     fireEvent.click(header);
 
     const place = colouredPlace(latest);
-    expect(place.sharedColumns["pressure"]?.expression).toBe("0");
+    // Fresh cells are empty, so the seeded shared value is empty too — it
+    // synthesizes as the column type's neutral.
+    expect(place.sharedColumns["pressure"]?.expression).toBe("");
     expect(header.getAttribute("aria-pressed")).toBe("true");
 
     fireEvent.click(header);

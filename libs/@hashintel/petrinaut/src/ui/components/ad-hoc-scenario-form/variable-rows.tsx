@@ -15,6 +15,7 @@ import { use, useEffect, useRef, useState } from "react";
 
 import { Icon, Select } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { adHocNeutralExpression } from "@hashintel/petrinaut-core";
 
 import { adHocVariableKey } from "./dependency-highlight";
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
@@ -445,6 +446,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
                   value={variable}
                   integer={variable.type === "integer"}
                   booleanDomain={variable.type === "boolean"}
+                  placeholder={adHocNeutralExpression(variable.type)}
                   triggerRef={register(index, 3)}
                   onTriggerKeyDown={onKeyDown(index, 3)}
                 />
