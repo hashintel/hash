@@ -2,7 +2,7 @@
 
 > **Experimental.** Enable **Notebook view** in the viewport settings dialog (the gear button in the canvas controls) to add a **Notebook** option to the mode selector in the top bar, right after **Edit**.
 
-The Notebook view shows your net as a list of one-line cells — one per place, transition, token type, differential equation, and parameter — so you can read a model like code instead of untangling a diagram. The net's structure is read-only here — use **Edit** to add or rewire nodes — but code is editable in place: firing times, kernels, equations, and visualizers save as you type, exactly as in the properties panel.
+The Notebook view shows your net as a list of one-line cells — one per place, transition, token type, differential equation, and parameter — so you can read a model like code instead of untangling a diagram. Everything an open cell shows is editable in place, exactly as in the properties panel: names, a parameter's variable name and default, a place's type and dynamics, a type's colour and fields, arc weights and kinds — and code, which saves as you type. Only adding and removing nodes, arcs, and fields needs **Edit** mode.
 
 ## Cells
 
@@ -10,7 +10,7 @@ Each row reads like a declaration: the kind keyword (`Place`, `Transition`, `Typ
 
 - Click the caret (or press **→** / **←**) to open or close a cell. Open cells show the full definition: a transition's inputs and outputs with weights and arc kinds, its firing-time and kernel code, an equation's code, a type's fields. Cells stay as you leave them; selecting a cell does not open it.
 - Click a row to select it. **↑** / **↓** move the selection, **Enter** or **Space** select the focused row. The list is one Tab stop: **Tab** enters it at the last row you were on.
-- While a cell is open, its parts join the keyboard flow: **↓** / **↑** walk from the row through its inputs, outputs, and code. A part that names another cell — a transition's input or output place — jumps there with **Enter**, **Space**, or a click.
+- While a cell is open, its parts join the keyboard flow: **↓** / **↑** walk from the row through its fields, inputs, outputs, and code. On a line with several values — an arc's place, weight, and kind, or a type field's name and type — **→** / **←** move between them one value at a time, and **↓** / **↑** keep your column when the next line has one. **Enter** acts on the selected value: buttons and checkboxes activate immediately (an arc's place name jumps to that place's cell), text fields and dropdowns step in for editing. **Escape** discards the draft and steps back out, and **Enter** in a text field saves.
 - Code blocks work like spreadsheet cells with an editor inside: **Enter** steps into the editor to edit the code (arrow keys then move the caret, not the list) and **Escape** steps back out. Edits save as you type; a running simulation or a read-only host locks the editors.
 - The end of each row shows how many things depend on it, as `direct → total`. `2 → 11` means two cells use it directly and eleven are affected in total downstream.
 
@@ -40,6 +40,6 @@ The right-hand panel draws the whole net as a top-to-bottom flow graph of places
 
 ## Limits
 
-- Structure (nodes, arcs, names) is read-only in this view; only code fields are editable.
+- Cells edit what exists; adding or removing places, transitions, arcs, and type fields happens in Edit mode.
 - Subnets and component instances are not shown as cells yet.
 - A parameter counts as "used" by a transition or equation when its variable name appears in the code — comments included.

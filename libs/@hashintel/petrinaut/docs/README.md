@@ -21,9 +21,10 @@ A quick map of the things you'll encounter:
 - **Optimization** -- a search over a flat set of scenario parameters,
   targeting one saved or run-local custom metric.
 
-Petrinaut has three global modes in the top bar, though **Actual** is only enabled when the host application provides a live execution source:
+Petrinaut has four global modes in the top bar, though **Notebook** is experimental and **Actual** is only enabled when the host application provides a live execution source:
 
 - **Edit** -- the drawing/configuration workspace plus single-run simulation playback.
+- **Notebook** -- the net as a list of cells editable in place, behind the Notebook view setting.
 - **Simulate** -- a separate management surface for scenarios and experiments,
   with optimizations when the host application provides an optimizer.
 - **Actual** -- a read-only live-execution view supplied by a host such as Brunch.
