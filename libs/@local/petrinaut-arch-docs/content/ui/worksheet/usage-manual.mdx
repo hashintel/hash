@@ -1,0 +1,225 @@
+---
+title: Usage manual
+description: How to assemble a worksheet from the Focus primitives, with wiring examples for stacks, grids, stop tables, headers, and the selection grammar.
+sidebar_order: 20
+attachTo: ui.worksheet
+---
+
+This page shows how to build a worksheet panel from the layer's pieces. The
+[keyboard-flow contract](doc:ui/worksheet) defines the behaviour each piece
+guarantees; this page shows the wiring. The module lives at
+`libs/@hashintel/petrinaut/src/ui/worksheet/`, and every configuration below
+runs as a story in `worksheet.stories.tsx` (`yarn workspace
+@hashintel/petrinaut storybook`, under `worksheet/FocusStack`).
+
+The layer adds no ARIA and moves real DOM focus. Put roles and labels on your
+own elements: a data table declares `role="grid"`, `row`, and `gridcell`
+itself (contract rule 10).
+
+## Consuming the hooks
+
+Destructure hook results before use: `const { register, attach } =
+useFocusGrid()`. Assigning `grid.attach` straight into a `ref` makes the
+React Compiler treat the whole hook result as a ref and reject every later
+property access ("Cannot access refs during render"); destructured bindings
+compile without the diagnostic.
+
+## Lay out the flow
+
+Wrap the panel in one `FocusRoot`, then describe its geometry with nested
+`FocusStack` elements. A stack renders `display: contents`, so it adds no box
+and no role; keep layout styles on your own elements inside it.
+
+```tsx
+<FocusRoot>
+  <div className={columnsStyle}>
+    <FocusStack axis="horizontal">
+      <FocusStack axis="vertical">
+        <div className={columnStyle}>
+          <TokenGrid />
+          <VariablesGrid />
+        </div>
+      </FocusStack>
+      <FocusStack axis="vertical">
+        <div className={columnStyle}>
+          <ParametersGrid />
+        </div>
+      </FocusStack>
+    </FocusStack>
+  </div>
+</FocusRoot>
+```
+
+- `FocusRoot` bounds the flow. A move that escapes the outermost stack stops
+  there instead of routing into surrounding UI.
+- Sibling order is document order. Members and nested stacks register
+  themselves; there is nothing to list by hand.
+- `contain` on a stack refuses every arrow move out of it, in any direction.
+  Tab still moves freely.
+- `entry="aligned"` on a stack keeps the position of the moves it routes: a
+  horizontal move keeps its row, a vertical move keeps its column, landing on
+  the nearest focusable cell. The default (`entry="remembered"`) re-enters
+  each member at its last-focused position. Set the policy on the stack whose
+  axis carries the crossing; stacks the entry passes through hand it on
+  unchanged.
+
+## A uniform grid
+
+`useFocusGrid` handles a rows-by-columns block of focusable cells. Wire four
+things: `attach` on the container, and `register`, `tabIndexFor`, and
+`onKeyDown` on each cell.
+
+```tsx
+const RatesGrid = ({ rows }: { rows: string[][] }) => {
+  const { attach, register, tabIndexFor, onKeyDown } = useFocusGrid();
+  return (
+    <div ref={attach} aria-label="Rates">
+      {rows.map((cells, row) => (
+        <div key={row}>
+          {cells.map((label, column) => (
+            <button
+              key={column}
+              type="button"
+              ref={register(row, column)}
+              tabIndex={tabIndexFor(row, column)}
+              onKeyDown={onKeyDown(row, column)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+- The grid is one tab stop: `tabIndexFor` returns `0` for the remembered cell
+  and `-1` for the rest.
+- Focus memory needs no wiring. Any focus landing inside the attached
+  container updates the remembered cell. Call `onFocusCell(row, column)` from
+  a cell's `onFocus` only when the cell renders outside the container (a
+  portal).
+- Cells register under their `(row, column)` position. Positions may have
+  holes; arrows skip positions nothing registered.
+- Inside an `<input>` or `<textarea>` the horizontal arrows keep moving the
+  caret. Only the vertical arrows navigate.
+- A toolbar is a one-row grid: register each button at row `0` and the row
+  becomes one tab stop whose buttons ArrowLeft and ArrowRight walk.
+
+## A table with irregular lines
+
+`useFocusStops` covers tables a uniform grid cannot describe: a gutter lane,
+full-width strips, and lines with cells in some columns only. Declare the
+vertical structure as an ordered list of stops, top to bottom, and keep
+ownership of focusing.
+
+```tsx
+const stops: FocusStop[] = [
+  { id: "header", kind: "row" },
+  { id: "count", kind: "full" },
+  { id: "token-1", kind: "row", gutter: true },
+  { id: "token-2", kind: "row", gutter: true },
+  { id: "shared", kind: "sparse", columns: [1, 2] },
+];
+
+const targetKey = (target: FocusStopTarget) =>
+  `${target.stopId}:${target.column}`;
+
+const TokenTable = () => {
+  const targets = useRef(new Map<string, HTMLElement>());
+  const { attach, onKeyDown, onFocusTarget, tabIndexFor } = useFocusStops({
+    stops,
+    columnCount: 3,
+    focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
+  });
+  // Each focusable part wires, for its own position: FocusStopTarget:
+  //   ref       -> store the element into targets under targetKey(position)
+  //   tabIndex  -> tabIndexFor(position)
+  //   onKeyDown -> onKeyDown(position)
+  //   onFocus   -> onFocusTarget(position)
+  // ...
+};
+```
+
+- `focusTarget` receives a wished position and reports whether an element
+  took focus. Ref bookkeeping and any nearest-column policy stay with the
+  table that owns them.
+- A `row` stop with `gutter: true` joins the gutter lane. Its gutter part
+  wires with `column: "gutter"`; the contract describes the lane's movement.
+- A `full` stop renders one full-width part wired at `column: 0`. The hook
+  keeps the column memory across it itself, so wiring `onFocusTarget` on the
+  strip is safe.
+- Rebuild the `stops` array every render; the hook reads it fresh.
+- The returned `moveFrom(direction, from?)` hands a move to the enclosing
+  stack. Use it from custom key handling at edges the stop walk does not
+  cover.
+
+## Headers and custom members
+
+`useFocusHeader` registers a section header as one member. With `collapse`
+and `expand` given, the header owns ArrowLeft and ArrowRight and never emits
+horizontal moves; omit them and the horizontal arrows leave the header
+sideways. Vertical arrows leave to the neighbouring member either way.
+
+```tsx
+const SectionHeader = () => {
+  const [expanded, setExpanded] = useState(true);
+  const { attach, onHeaderKeyDown } = useFocusHeader({
+    collapse: () => setExpanded(false),
+    expand: () => setExpanded(true),
+  });
+  return (
+    <button
+      type="button"
+      ref={attach}
+      onKeyDown={onHeaderKeyDown}
+      onClick={() => setExpanded(!expanded)}
+      aria-expanded={expanded}
+    >
+      Reaction rates
+    </button>
+  );
+};
+```
+
+A collapsed section's content fails entry, and the vertical walk skips it.
+
+`useFocusMember(enter)` registers anything else as one member. The `enter`
+callback receives the arriving `FocusEntry` and returns whether focus landed;
+the returned `moveFrom` delegates a move to the enclosing stack. A component
+with its own internal key handling registers this way and calls `moveFrom`
+when a move runs off its edge.
+
+## The selection grammar
+
+`useSelectFirstActivation` gives a click target that is also a selectable
+cell the worksheet's activation behaviour: the first pointer click only
+selects (focuses) it, a click on an already-selected target activates, and
+Enter or Space always activates.
+
+```tsx
+const { onPointerDown, shouldActivate } = useSelectFirstActivation();
+
+<button
+  type="button"
+  onPointerDown={onPointerDown}
+  onClick={(event) => {
+    if (shouldActivate(event)) {
+      activate();
+    }
+  }}
+/>;
+```
+
+- Double-click needs no handler of its own: its second click lands on an
+  already-selected target and activates. This matters where activation is
+  not idempotent, such as materializing a phantom row.
+- One instance serves any number of sibling targets.
+
+`useRowSelection` is the row-selection model gutter tables share. Its
+`selectedRow` is the row to render as selected: the row whose gutter holds
+focus, or the row whose gutter menu is open. Report gutter focus with
+`setFocusedRow(row)` and blur with `setFocusedRow(null)`; `openMenu(row,
+anchor)` and `closeMenu()` keep one menu open per table, and the menu's row
+stays selected while the menu holds focus.
