@@ -62,6 +62,7 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     });
     expect(result.pingOutput).toEqual({ ok: true, note: "health" });
     expect(result.clientToolCall).toMatchObject({
+      dynamic: true,
       type: "tool-input-available",
       toolName: "readPetrinautDoc",
       input: { doc: "ai-assistant" },

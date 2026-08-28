@@ -139,6 +139,7 @@ export const createFlueUiStream = (
             toolCallId: chunk.toolCallId,
             toolName: chunk.toolName,
             input: chunk.input,
+            ...(isClientTool ? { dynamic: true } : {}),
             ...(providerExecuted === undefined ? {} : { providerExecuted }),
           });
           return;

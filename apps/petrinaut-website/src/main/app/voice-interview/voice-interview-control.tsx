@@ -990,7 +990,10 @@ export const VoiceInterviewControlView = ({
         </header>
 
         <p className={questionStyle}>
-          {snapshot.currentQuestion || "The next question will appear here."}
+          {snapshot.currentQuestion ||
+            (snapshot.connection === "connected"
+              ? "Tell me about the process you want to model."
+              : "The next question will appear here.")}
         </p>
 
         <VoiceFocal snapshot={snapshot} />

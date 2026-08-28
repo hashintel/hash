@@ -338,6 +338,8 @@ describe("OpenAIRealtimeSession", () => {
     expect(responseCreate).toMatchObject({
       type: "response.create",
       response: {
+        instructions:
+          "Speak only the response_text strings supplied by Petrinaut, in array order and verbatim. Deliver them as a warm, calm, curious, confident, concise, and professionally neutral expert interviewer, at a measured conversational pace with natural emphasis. Never sound robotic, fawning, rushed, overenthusiastic, or patronizing. Do not add, remove, paraphrase, acknowledge, or explain anything.",
         output_modalities: ["audio"],
         parallel_tool_calls: false,
         tool_choice: "none",

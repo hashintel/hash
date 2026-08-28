@@ -38,7 +38,7 @@ interface ActiveSubmission {
   readonly baselineSegmentIds: ReadonlySet<string>;
   readonly callId: string;
   readonly epoch: number;
-  readonly pendingQuestionId: string;
+  readonly pendingQuestionId: string | null;
   correlated: boolean;
   sawBusyChatStatus: boolean;
 }
@@ -48,6 +48,11 @@ interface ArgumentStream {
   readonly itemId: string;
   readonly responseId: string;
 }
+
+export type RealtimeBridgeErrorCode =
+  | "interview-correlation"
+  | "interview-response"
+  | "interview-submission";
 
 export type RealtimeBrunchBridgeEvent =
   | {
@@ -65,7 +70,11 @@ export type RealtimeBrunchBridgeEvent =
       readonly segments: CanonicalSpeechSegment[];
       readonly type: "canonical-response-ready";
     }
-  | { readonly message: string; readonly type: "error" };
+  | {
+      readonly code: RealtimeBridgeErrorCode;
+      readonly message: string;
+      readonly type: "error";
+    };
 
 type BridgeListener = (event: RealtimeBrunchBridgeEvent) => void;
 
@@ -170,6 +179,7 @@ export class RealtimeBrunchBridge {
     if (update.status === "error") {
       this.#fail(
         "The interview could not complete that turn. Use the composer to retry.",
+        "interview-response",
       );
       return;
     }
@@ -206,11 +216,14 @@ export class RealtimeBrunchBridge {
     }
   }
 
-  #fail(message: string): void {
+  #fail(
+    message: string,
+    code: RealtimeBridgeErrorCode = "interview-correlation",
+  ): void {
     ++this.#generation;
     this.#activeSubmission = null;
     this.#argumentDeltas.clear();
-    this.#emit({ message, type: "error" });
+    this.#emit({ code, message, type: "error" });
   }
 
   #handleSessionEvent(event: OpenAIRealtimeSessionEvent): void {
@@ -275,7 +288,11 @@ export class RealtimeBrunchBridge {
 
     const answer = parseContinueInterviewArguments(event.arguments);
     const question = latestPendingQuestion(this.#chat.canonicalSegments);
-    if (!answer || !question || !this.#chat.canAcceptInterviewAnswer) {
+    if (
+      !answer ||
+      !this.#chat.canAcceptInterviewAnswer ||
+      (!question && this.#chat.status !== "ready")
+    ) {
       this.#fail(INVALID_BRIDGE_EVENT);
       return;
     }
@@ -288,7 +305,7 @@ export class RealtimeBrunchBridge {
       callId: event.callId,
       correlated: false,
       epoch: event.connectionEpoch,
-      pendingQuestionId: question.partId,
+      pendingQuestionId: question?.partId ?? null,
       sawBusyChatStatus: false,
     };
     this.#emit({ answer, callId: event.callId, type: "submission-started" });
@@ -314,10 +331,12 @@ export class RealtimeBrunchBridge {
       ) {
         return;
       }
-      if (
-        result.kind !== "interactive-tool" ||
-        result.toolCallId !== active.pendingQuestionId
-      ) {
+      const resultMatchesSubmission =
+        active.pendingQuestionId === null
+          ? result.kind === "message"
+          : result.kind === "interactive-tool" &&
+            result.toolCallId === active.pendingQuestionId;
+      if (!resultMatchesSubmission) {
         this.#fail(INVALID_BRIDGE_EVENT);
         return;
       }
@@ -332,6 +351,7 @@ export class RealtimeBrunchBridge {
       if (generation === this.#generation) {
         this.#fail(
           "The interview could not accept that answer. Use the composer to retry.",
+          "interview-submission",
         );
       }
     }

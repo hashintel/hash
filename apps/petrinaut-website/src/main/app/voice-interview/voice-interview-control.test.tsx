@@ -548,6 +548,24 @@ describe("voice interview stage", () => {
     expect(html).toContain('aria-live="polite"');
   });
 
+  test("invites a spoken kickoff when no interview question exists", () => {
+    render(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            currentQuestion: "",
+            partialText: "",
+          },
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByText("Tell me about the process you want to model."),
+    ).not.toBeNull();
+  });
+
   test("centers a circular microphone and waveform without visible level copy", () => {
     render(<VoiceInterviewControlView {...viewProps()} />);
 

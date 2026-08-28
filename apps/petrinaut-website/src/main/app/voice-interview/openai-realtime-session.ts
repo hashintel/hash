@@ -109,7 +109,7 @@ interface RequestTiming {
 type SessionListener = (event: OpenAIRealtimeSessionEvent) => void;
 
 const CANONICAL_RESPONSE_INSTRUCTIONS =
-  "Speak only the response_text strings supplied by Petrinaut, in array order and verbatim. Do not add, remove, paraphrase, acknowledge, or explain anything.";
+  "Speak only the response_text strings supplied by Petrinaut, in array order and verbatim. Deliver them as a warm, calm, curious, confident, concise, and professionally neutral expert interviewer, at a measured conversational pace with natural emphasis. Never sound robotic, fawning, rushed, overenthusiastic, or patronizing. Do not add, remove, paraphrase, acknowledge, or explain anything.";
 const MAX_CANONICAL_SEGMENTS = 64;
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>

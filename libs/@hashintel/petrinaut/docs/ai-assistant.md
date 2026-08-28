@@ -41,7 +41,9 @@ the disclosure changes, Petrinaut asks again.
 The full Interview stage keeps the current question above a circular microphone control. While
 Petrinaut is listening, waveform bars respond to your microphone and a short **Listening** status
 confirms capture. The technical input-level name remains available to screen readers without adding
-visible meter text.
+visible meter text. If the conversation does not have a question yet, the stage asks you to describe
+the process you want to model. Your first finalized spoken description starts the Brunch conversation
+as your message; after Brunch asks its first question, later spoken turns answer the current question.
 
 Partial words appear in a compact **Live transcript** strip with a **Recording** status. After
 finalization, the strip changes to **Your answer**. It reads **Sending** while the answer is on its
@@ -62,9 +64,11 @@ interview**. After an answer is recorded and before the interview advances, **Ed
 explicit correction; it remains unavailable while the previous answer is still being written down.
 Choose **Use text instead** to switch to the generic message composer as a keyboard fallback.
 
-The question and finalized response shown in the Petrinaut conversation are authoritative. Spoken
-audio is generated from that Brunch text but may not be verbatim. Interrupting audio does not undo
-the visible response or change the interview's saved history.
+The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the
+authority on your system. Brunch still chooses every question and interview decision; OpenAI only
+delivers its words. The question and finalized response shown in the Petrinaut conversation are
+authoritative. Spoken audio is generated from that Brunch text but may not be verbatim. Interrupting
+audio does not undo the visible response or change the interview's saved history.
 
 Selecting **Chat** or **Minimize** hides the full stage. If the interview is active, the same session
 continues in a compact bar above the composer; expanding the bar reopens the sidebar and selects
@@ -88,7 +92,9 @@ timeout, check the connection and choose **Reconnect**. If the preview is unavai
 with the text composer. An invalid service response includes a diagnostic reference you can give to
 an operator; error codes and that reference sit under collapsed **Technical details** so you can share
 them without them dominating the interview. That reference and its diagnostic record do not contain
-your transcript or the response being spoken.
+your transcript or the response being spoken. Interview-state failures use a content-free
+`interview-correlation`, `interview-response`, or `interview-submission` code so an operator can
+distinguish them without receiving your answer.
 
 When no interview is active, **Clear AI chat** via the delete button in the top right of the panel
 wipes the conversation, stops any in-flight stream, and tells the host app to forget the messages

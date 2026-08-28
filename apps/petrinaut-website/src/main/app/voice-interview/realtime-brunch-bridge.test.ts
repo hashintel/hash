@@ -34,10 +34,15 @@ const createHarness = () => {
       };
     }),
   };
-  const submitInterviewAnswer = vi.fn(async () => ({
-    kind: "interactive-tool" as const,
-    toolCallId: "ask-current",
-  }));
+  const submitInterviewAnswer = vi.fn(
+    async (): Promise<
+      | { kind: "interactive-tool"; toolCallId: string }
+      | { kind: "message"; messageId: string }
+    > => ({
+      kind: "interactive-tool",
+      toolCallId: "ask-current",
+    }),
+  );
   const bridge = new RealtimeBrunchBridge({
     session,
     submitInterviewAnswer,
@@ -168,6 +173,53 @@ describe("RealtimeBrunchBridge", () => {
     ]);
   });
 
+  test("uses the first spoken turn to start Brunch when no question exists", async () => {
+    const harness = createHarness();
+    harness.submitInterviewAnswer.mockResolvedValueOnce({
+      kind: "message",
+      messageId: "message-kickoff",
+    });
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      status: "ready",
+    });
+    harness.bridge.start(7);
+
+    harness.emit(toolDone(7, '{"answer":"Battery charger workflow"}'));
+
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledWith({
+        id: createRealtimeSubmissionId(7, "call-1"),
+        text: "Battery charger workflow",
+      }),
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [],
+      status: "submitted",
+    });
+    const firstQuestion = segment(
+      "ask-first",
+      "What starts the battery charger workflow?",
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [firstQuestion],
+      status: "ready",
+    });
+
+    expect(harness.session.completeFunctionCall).toHaveBeenCalledWith(
+      "call-1",
+      [firstQuestion],
+    );
+    expect(harness.events.map(({ type }) => type)).toEqual([
+      "submission-started",
+      "submission-accepted",
+      "canonical-response-ready",
+    ]);
+  });
+
   test("requires a correlated Brunch busy cycle before accepting new canonical segments", async () => {
     const harness = createHarness();
     const question = segment("ask-current", "What happens after approval?");
@@ -230,7 +282,10 @@ describe("RealtimeBrunchBridge", () => {
 
     expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
     expect(harness.events).toEqual([
-      expect.objectContaining({ type: "error" }),
+      expect.objectContaining({
+        code: "interview-correlation",
+        type: "error",
+      }),
     ]);
   });
 
