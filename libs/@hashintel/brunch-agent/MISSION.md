@@ -4,9 +4,10 @@
 
 Live. This file is execution authority.
 
-Later concerns are clustered in [`MISSION.next.md`](MISSION.next.md). That file is a scratchpad,
-not a mission; do not implement it. Host-trunk work, Petrinaut read/write tools, typed IR maps,
-observer-triggered sweeps, and any join to Mission 2's capture store are not this mission.
+Later concerns are clustered in [`MISSION.next.md`](MISSION.next.md). That file is a draft of
+upcoming work, not a mission; do not implement it. Host-trunk work, Petrinaut read/write tools,
+typed IR maps, observer-triggered sweeps, and any join to Mission 2's capture store are not this
+mission.
 
 ## Imperative
 
@@ -107,5 +108,5 @@ Stop and surface the evidence before continuing if:
 
 Host trunk, typed map and Petrinaut read/write via existing `onToolCall`, capture improvement
 (token-threshold observer, typed payloads), and whether capture and runbooks converge, are
-clustered in [`MISSION.next.md`](MISSION.next.md). That scratchpad does not supersede this
+clustered in [`MISSION.next.md`](MISSION.next.md). That draft does not supersede this
 section.

@@ -26,7 +26,7 @@ from this file.
 
 When work starts on a branch, state these six things in [`MISSION.md`](MISSION.md) and copy them
 into the branch/PR description. Do not create additional planning or control documents, except the
-next-concerns scratchpad below.
+next-concerns draft below.
 
 - **Imperative** — what must become true, and why now.
 - **Throughline** — the real entrypoint or boundary being changed.
@@ -39,22 +39,35 @@ next-concerns scratchpad below.
   Running the path may lengthen this list; that is calibration, not regression.
 - **Stop or reorient** — evidence that invalidates or changes the route.
 
-### One live mission, next-concerns scratchpad
+### One live mission, next-concerns draft
 
 [`MISSION.md`](MISSION.md) is the only execution authority. Agents and humans implement against it.
 
-[`MISSION.next.md`](MISSION.next.md) is the scratchpad for discussing all next concerns. It may
-hold a longer horizon than a single mission. It is not a mission: do not implement it, do not
-treat it as a second concurrent mission, and do not declare its focus until planning is resolved.
+[`MISSION.next.md`](MISSION.next.md) is the draft of upcoming work and the comprehensive record of
+ideas, observations, questions, and named mechanisms already raised. It may hold a longer horizon
+than a single mission. It is not a mission: do not implement it, do not treat it as a second
+concurrent mission, and do not declare its focus until a cluster is cut.
 
-A current mission's **Deferred** items belong in that scratchpad as well. Do not silently drop or
+Keep every hypothesis, observation, question, and named mechanism at conversational fidelity. A
+heading plus a one-line label is not a record of a design. Rejected alternatives and the reason
+they lost belong next to the locked choice. Ungrilled fog stays marked unasked.
+
+Group likely future missions as multiple `#` headings (one cluster per heading). Spikes that are
+not missions, and standing lock / out-of-scope decisions, get their own headings — they are not
+fake missions. Do not pre-fill Imperative, Throughline, Proof, or Status on a cluster; those
+sections are the cut into `MISSION.md`. Record Constraints, Fog-line, and Stop or reorient on a
+cluster only when the conversation already earned them.
+
+A current mission's **Deferred** items belong in that draft as well. Do not silently drop or
 supersede them when adding other concerns.
 
 When the current mission is accepted and the next focus is resolved:
 
 1. Move `MISSION.md` to `docs/mission-archive/{n}-{slug}.md`.
-2. Cut a single focused `MISSION.md` from the scratchpad (the six-section contract above).
-3. Leave everything that did not make the cut in `MISSION.next.md`.
+2. Cut a single focused `MISSION.md` from one cluster (the six-section contract above).
+3. Leave everything that did not make the cut in `MISSION.next.md` at the same fidelity — still
+   hypotheses, still rejected alternatives, still named mechanisms. A cut is a copy of one cluster
+   into authority, not a summary of the remainder.
 
 Do not promote `MISSION.next.md` wholesale. Do not keep two live missions. Do not delete a closed
 mission; the archive is evidence of what was proven, not marching orders. Re-earn before building
