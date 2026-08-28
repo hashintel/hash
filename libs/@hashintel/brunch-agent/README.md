@@ -4,8 +4,8 @@ Brunch is the stateful elicitation harness and package family at `libs/@hashinte
 
 - [`AGENTS.md`](./AGENTS.md) is the agent charter.
 - [`MISSION.md`](./MISSION.md) is the current objective and stop conditions.
-  [`MISSION.next.md`](./MISSION.next.md) is the draft of upcoming missions and the record of
-  successor concerns (longer horizon than one mission; not execution authority). Closed missions
+  [`MISSION.next.md`](./MISSION.next.md) is the self-contained canonical capture repository for
+  upcoming missions (longer horizon than one mission; not execution authority). Closed missions
   live under
   [`docs/mission-archive/`](./docs/mission-archive/).
 - [`CONTEXT.md`](./CONTEXT.md) defines the domain language.
