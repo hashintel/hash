@@ -365,36 +365,36 @@ describe("buildSweepAxes", () => {
 
   it("splits fixed values from sweep axes", () => {
     const { fixedValues, axes } = buildSweepAxes(scenario, {
-      beta: { mode: "range", min: 0, max: 1, valueCount: 5 },
+      beta: { mode: "range", min: 0, max: 1 },
       count: { mode: "fixed", value: "12" },
     });
 
     expect(fixedValues).toEqual({ count: "12" });
     expect(axes).toEqual([
-      { identifier: "beta", values: [0, 0.25, 0.5, 0.75, 1] },
+      { identifier: "beta", min: 0, max: 1, stepCount: 50, integer: false },
+    ]);
+  });
+
+  it("gives integer parameters one step per integer on narrow intervals", () => {
+    const { axes } = buildSweepAxes(scenario, {
+      count: { mode: "range", min: 0, max: 20 },
+    });
+    expect(axes).toEqual([
+      { identifier: "count", min: 0, max: 20, stepCount: 20, integer: true },
     ]);
   });
 
   it("rejects an invalid range with the parameter named", () => {
     expect(() =>
       buildSweepAxes(scenario, {
-        beta: { mode: "range", min: 1, max: 0, valueCount: 5 },
+        beta: { mode: "range", min: 1, max: 0 },
       }),
     ).toThrow("beta");
   });
 
-  it("rejects a grid over the combination cap", () => {
-    expect(() =>
-      buildSweepAxes(scenario, {
-        beta: { mode: "range", min: 0, max: 1, valueCount: 21 },
-        count: { mode: "range", min: 0, max: 20, valueCount: 21 },
-      }),
-    ).toThrow("maximum is 200");
-  });
-
   it("ignores inputs for parameters the scenario does not declare", () => {
     const { axes } = buildSweepAxes(scenario, {
-      ghost: { mode: "range", min: 0, max: 1, valueCount: 3 },
+      ghost: { mode: "range", min: 0, max: 1 },
     });
     expect(axes).toEqual([]);
   });
