@@ -3,6 +3,7 @@ import {
   type ReactNode,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -1270,7 +1271,12 @@ const AvailableVoiceInterviewControl = ({
     context;
   const openSidebarRef = useRef(openSidebar);
   const handledInterviewSelectionRef = useRef(false);
-  const coverage = selectInterviewCoverage(context.messages);
+  // Microphone level updates re-render this component many times per answer;
+  // the coverage scan only changes when the conversation does.
+  const coverage = useMemo(
+    () => selectInterviewCoverage(context.messages),
+    [context.messages],
+  );
 
   if (previousPlacement !== context.placement) {
     setPreviousPlacement(context.placement);

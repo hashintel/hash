@@ -120,6 +120,7 @@ export class OpenAIRealtimeSession {
   #mediaStream: MediaStream | null = null;
   #meterFrame: number | null = null;
   #meterHasSample = false;
+  #meterLevel = 0;
   #meterSamples: Uint8Array<ArrayBuffer> | null = null;
   #messageListener: ((event: MessageEvent<unknown>) => void) | null = null;
   #microphoneTrack: MediaStreamTrack | null = null;
@@ -481,10 +482,18 @@ export class OpenAIRealtimeSession {
         const normalized = (value - 128) / 128;
         squaredTotal += normalized * normalized;
       }
-      this.#emit({
-        level: Math.min(1, Math.sqrt(squaredTotal / this.#meterSamples.length)),
-        type: "microphone-level",
-      });
+      // The meter only drives a five-bar waveform, so two decimals is all the
+      // resolution a listener can use. Quantizing and skipping repeats keeps
+      // an every-animation-frame sample from re-rendering the interview.
+      const level =
+        Math.round(
+          Math.min(1, Math.sqrt(squaredTotal / this.#meterSamples.length)) *
+            100,
+        ) / 100;
+      if (level !== this.#meterLevel) {
+        this.#meterLevel = level;
+        this.#emit({ level, type: "microphone-level" });
+      }
       this.#meterHasSample = true;
       this.#meterFrame = this.#dependencies.requestAnimationFrame(sample);
     };
@@ -498,6 +507,7 @@ export class OpenAIRealtimeSession {
     }
     this.#dependencies.cancelAnimationFrame(this.#meterFrame);
     this.#meterFrame = null;
+    this.#meterLevel = 0;
     if (this.#meterHasSample) {
       this.#emit({ level: 0, type: "microphone-level" });
       this.#meterHasSample = false;

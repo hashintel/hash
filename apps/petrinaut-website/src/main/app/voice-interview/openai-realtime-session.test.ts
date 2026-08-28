@@ -214,6 +214,37 @@ describe("OpenAIRealtimeSession", () => {
     });
   });
 
+  test("quantizes input levels and skips unchanged meter frames", async () => {
+    const harness = createHarness();
+    harness.analyser.getByteTimeDomainData.mockImplementation(
+      (data: Uint8Array) => {
+        data.fill(200);
+      },
+    );
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+
+    const levels = () =>
+      harness.events
+        .filter((event) => event.type === "microphone-level")
+        .map((event) => (event as { level: number }).level);
+
+    harness.animationFrames.shift()?.(0);
+    harness.animationFrames.shift()?.(0);
+    harness.animationFrames.shift()?.(0);
+
+    expect(levels()).toEqual([0.56]);
+
+    harness.analyser.getByteTimeDomainData.mockImplementation(
+      (data: Uint8Array) => {
+        data.fill(160);
+      },
+    );
+    harness.animationFrames.shift()?.(0);
+
+    expect(levels()).toEqual([0.56, 0.25]);
+  });
+
   test("resumes a suspended input meter before waiting for microphone access", async () => {
     const harness = createHarness();
     const track = { enabled: true, stop: vi.fn() };
