@@ -36,10 +36,12 @@ changes to make a stack operation proceed.
 
 ## Lifecycle
 
-1. State the mission in `MISSION.md`. Record successor concerns in `MISSION.next.md` at
-   conversational fidelity, without declaring the next mission's focus or changing execution
-   authority. On acceptance, archive the closed mission under `docs/mission-archive/` and cut a
-   focused `MISSION.md` from one cluster, per `AGENTS.md`.
+1. State the mission in `MISSION.md`. While planning context is active, capture successor concerns
+   in `MISSION.next.md` at conversational fidelity without changing execution authority. That draft
+   is the self-contained canonical source for future cuts; do not substitute an external transcript.
+   On acceptance, archive the closed mission, cut a focused `MISSION.md` from the next numbered
+   cluster, and compare the draft before and after so uncopied material stays at the same fidelity,
+   per `AGENTS.md`.
 2. After explicit approval, create its Linear issue in the `brunch-agent` project and assign the
    accountable human.
 3. Create the Graphite branch from the intended parent, or explicitly link a pre-existing branch.

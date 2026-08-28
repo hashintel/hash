@@ -39,24 +39,37 @@ next-concerns draft below.
   Running the path may lengthen this list; that is calibration, not regression.
 - **Stop or reorient** — evidence that invalidates or changes the route.
 
+The six sections are the contract. Missions have also carried two additions that earned their
+keep: a short **Status** header (live / accepted) above the contract, and a closing **Deferred**
+section pointing at the draft. Keep both on future missions.
+
 ### One live mission, next-concerns draft
 
 [`MISSION.md`](MISSION.md) is the only execution authority. Agents and humans implement against it.
 
-[`MISSION.next.md`](MISSION.next.md) is the draft of upcoming work and the comprehensive record of
-ideas, observations, questions, and named mechanisms already raised. It may hold a longer horizon
-than a single mission. It is not a mission: do not implement it, do not treat it as a second
-concurrent mission, and do not declare its focus until a cluster is cut.
+[`MISSION.next.md`](MISSION.next.md) is the self-contained canonical capture repository for
+upcoming work: the draft missions and the comprehensive record of ideas, observations, questions,
+and named mechanisms already raised. It may hold a longer horizon than a single mission. It is not
+a mission: do not implement it, do not treat it as a second concurrent mission, and do not declare
+its focus until a cluster is cut.
 
-Keep every hypothesis, observation, question, and named mechanism at conversational fidelity. A
-heading plus a one-line label is not a record of a design. Rejected alternatives and the reason
-they lost belong next to the locked choice. Ungrilled fog stays marked unasked.
+Update the draft during planning, design, grilling, or other mission elicitation while the context
+is active. Keep every hypothesis, observation, question, and named mechanism at conversational
+fidelity. A heading plus a one-line label is not a record of a design. Rejected alternatives and
+the reason they lost belong next to the locked choice. Ungrilled fog stays marked unasked. The
+draft must stand on its own; do not rely on or link to a transcript as a substitute for capturing
+that content here.
 
-Group likely future missions as multiple `#` headings (one cluster per heading). Spikes that are
-not missions, and standing lock / out-of-scope decisions, get their own headings — they are not
-fake missions. Do not pre-fill Imperative, Throughline, Proof, or Status on a cluster; those
-sections are the cut into `MISSION.md`. Record Constraints, Fog-line, and Stop or reorient on a
-cluster only when the conversation already earned them.
+When regrouping or cutting, compare the draft before and after. Every item must either move into
+the live mission or remain in the draft at the same fidelity. Once an elicitation session is over,
+the draft — not an external transcript — is the source for future cuts.
+
+Group plausible future missions as ordered, numbered `# Mission N — …` headings. Spikes that are
+not missions, standing lock / out-of-scope decisions, and a live mission's leftover / Deferred
+items get their own unnumbered headings — they are not fake missions. Do not pre-fill Imperative,
+Throughline, Proof, or Status on a cluster; those sections are the cut into `MISSION.md`. Record
+Constraints, Fog-line, and Stop or reorient on a cluster only when the conversation already earned
+them.
 
 A current mission's **Deferred** items belong in that draft as well. Do not silently drop or
 supersede them when adding other concerns.
