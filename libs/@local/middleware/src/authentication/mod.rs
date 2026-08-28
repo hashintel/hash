@@ -513,13 +513,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn middleware_rejects_rejected_credentials_on_bootstrap_routes() {
-        let response = router(StaticAuthenticationProvider::Rejected)
+    async fn middleware_rejects_unverifiable_credentials_on_bootstrap_routes() {
+        let response = router(StaticAuthenticationProvider::Unreachable)
             .oneshot(request_with_secret("/bootstrap", SERVICE_SECRET))
             .await
             .expect("the router should respond");
 
-        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
     }
 
     /// A router requiring an actor.
@@ -540,13 +540,31 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn rejected_credential_does_not_degrade_to_anonymous() {
+    async fn verified_rejection_degrades_to_anonymous() {
         let response = router(StaticAuthenticationProvider::Rejected)
             .oneshot(request("/anonymous-allowed"))
             .await
             .expect("the router should respond");
 
-        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), 1024)
+            .await
+            .expect("the response body should be readable");
+        assert_eq!(
+            body,
+            b"anonymous".as_slice(),
+            "the expired credential should serve the request anonymously, not as an actor"
+        );
+    }
+
+    #[tokio::test]
+    async fn failure_to_verify_does_not_degrade_to_anonymous() {
+        let response = router(StaticAuthenticationProvider::Unreachable)
+            .oneshot(request("/anonymous-allowed"))
+            .await
+            .expect("the router should respond");
+
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
     }
 
     #[tokio::test]

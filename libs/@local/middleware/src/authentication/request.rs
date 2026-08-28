@@ -113,6 +113,13 @@ impl AuthenticationError {
         }
     }
 
+    /// Whether the provider verified the credential and rejected it, as opposed to failing to
+    /// verify it.
+    #[must_use]
+    pub const fn is_verified_rejection(&self) -> bool {
+        matches!(self, Self::InvalidSession | Self::InvalidAccessToken)
+    }
+
     /// Returns whose fault a rejection with this error is.
     #[must_use]
     pub const fn fault_domain(&self) -> FaultDomain {
@@ -189,13 +196,16 @@ pub(crate) fn log_rejection(report: &Report<AuthenticationError>) {
 
 /// Resolves the acting principal from the request headers.
 ///
-/// The provider is the only credential path: a request whose credential is rejected fails, and a
-/// request without a recognized credential resolves through [`Caller::anonymous`]. Chain providers
-/// as pairs, nested for more than two, to accept several credential kinds.
+/// The provider is the only credential path: a request without a recognized credential resolves
+/// through [`Caller::anonymous`], and so does one whose credential the provider verified and
+/// rejected — an expired session reads public data like a request without one. A failure to
+/// verify keeps failing the request. Chain providers as pairs, nested for more than two, to
+/// accept several credential kinds.
 ///
 /// # Errors
 ///
-/// - the rejection reason of the provider that recognized the credential
+/// - the rejection reason of the provider that recognized the credential, where the caller type
+///   requires an actor or the credential could not be verified
 /// - [`MissingCredentials`] if no provider recognized a credential and the caller type requires an
 ///   actor
 ///
@@ -214,7 +224,16 @@ where
         ControlFlow::Break(Ok(caller)) => Ok(caller),
         ControlFlow::Break(Err(report)) => {
             log_rejection(&report);
-            Err(report)
+            // A verified rejection degrades to anonymous where the chain serves anonymous
+            // callers — never to another credential: an ambient credential must not take over
+            // an expired explicit choice.
+            if report.current_context().is_verified_rejection()
+                && let Ok(caller) = C::anonymous()
+            {
+                Ok(caller)
+            } else {
+                Err(report)
+            }
         }
         ControlFlow::Continue(()) => {
             if headers.contains_key(ACTOR_ID_HEADER) {
@@ -369,6 +388,66 @@ mod tests {
                 .current_context(),
             AuthenticationError::MissingCredentials,
             "the rejection should name the missing credentials"
+        );
+    }
+
+    #[tokio::test]
+    async fn verified_rejection_resolves_anonymously_where_no_actor_is_required() {
+        let provider = StaticAuthenticationProvider::Rejected;
+
+        let outcome: Result<Option<ActorId>, _> =
+            resolve_request_actor(&provider, &HeaderMap::new()).await;
+
+        assert!(
+            matches!(outcome, Ok(None)),
+            "an expired credential should read as anonymous where the chain serves anonymous \
+             callers"
+        );
+    }
+
+    #[tokio::test]
+    async fn failure_to_verify_rejects_even_where_anonymous_is_served() {
+        let provider = StaticAuthenticationProvider::Unreachable;
+
+        let outcome: Result<Option<ActorId>, _> =
+            resolve_request_actor(&provider, &HeaderMap::new()).await;
+
+        assert!(
+            matches!(
+                outcome
+                    .expect_err("an unverifiable credential should fail the request")
+                    .current_context(),
+                AuthenticationError::ProviderUnreachable
+            ),
+            "the rejection should carry the verification failure"
+        );
+    }
+
+    /// An expired explicit credential must not hand the request to an ambient one further down
+    /// the chain.
+    #[tokio::test]
+    async fn verified_rejection_does_not_fall_through_to_another_credential() {
+        let chain = (
+            StaticAuthenticationProvider::Rejected,
+            StaticAuthenticationProvider::Verified(random_user()),
+        );
+
+        let anonymous: Result<Option<ActorId>, _> =
+            resolve_request_actor(&chain, &HeaderMap::new()).await;
+        assert!(
+            matches!(anonymous, Ok(None)),
+            "the expired credential should degrade to anonymous, not to the second credential"
+        );
+
+        let required: Result<ActorId, _> = resolve_request_actor(&chain, &HeaderMap::new()).await;
+        assert!(
+            matches!(
+                required
+                    .expect_err("the expired credential should fail where an actor is required")
+                    .current_context(),
+                AuthenticationError::InvalidSession
+            ),
+            "the rejection should carry the expired credential's reason"
         );
     }
 

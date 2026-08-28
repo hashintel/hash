@@ -561,12 +561,12 @@ async fn observing_serves_the_request_and_reports_nothing_to_the_client() {
 /// observable from the status code alone.
 #[tokio::test]
 async fn gate_denies_without_consulting_the_provider() {
-    let router = full_stack_router(&config(1), StaticAuthenticationProvider::Rejected);
+    let router = full_stack_router(&config(1), StaticAuthenticationProvider::Unreachable);
     let client = address("192.0.2.1");
 
     assert_eq!(
         send(&router, request(client)).await.status(),
-        StatusCode::UNAUTHORIZED,
+        StatusCode::SERVICE_UNAVAILABLE,
         "the provider should have its say while the gate still holds budget"
     );
 
