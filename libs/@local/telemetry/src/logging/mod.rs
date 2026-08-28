@@ -415,8 +415,9 @@ where
     }
 }
 
-#[must_use]
-pub(crate) fn file_layer<S>(config: FileConfig) -> (impl Layer<S>, impl Drop)
+pub(crate) fn file_layer<S>(
+    config: FileConfig,
+) -> (impl Layer<S>, tracing_appender::non_blocking::WorkerGuard)
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {

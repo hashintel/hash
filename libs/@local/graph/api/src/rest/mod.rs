@@ -525,6 +525,7 @@ where
     pub cloudflare_access: Option<auth::CloudflareAccessConfig>,
     pub service_secret: String,
     pub rate_limit: rate_limit::RateLimitConfig,
+    pub meter: opentelemetry::metrics::Meter,
     pub compiler: Arc<hashql::CompilerContext>,
     pub clustering: Arc<ClusteringContext>,
     /// Whether to serve an interactive rendering of the `OpenAPI` specification.
@@ -575,6 +576,7 @@ fn attach_request_middlewares<P, C>(
     unauthenticated: Router,
     provider: Arc<P>,
     service_secret: Arc<str>,
+    authentication_metrics: Arc<auth::AuthenticationMetrics>,
     rate_limiters: Arc<rate_limit::RateLimiters>,
 ) -> Router
 where
@@ -598,6 +600,7 @@ where
             auth::authentication_middleware::<_, C>(
                 Arc::clone(&provider),
                 Arc::clone(&auth_secret),
+                Arc::clone(&authentication_metrics),
                 auth::is_bootstrap_route,
                 request,
                 next,
@@ -631,11 +634,10 @@ where
         &dependencies.store,
     ));
     let service_secret: Arc<str> = Arc::from(dependencies.service_secret);
+    let authentication_metrics = Arc::new(auth::AuthenticationMetrics::new(&dependencies.meter));
 
-    let rate_limiters = Arc::new(rate_limit::RateLimiters::new(
-        &(&dependencies.rate_limit).into(),
-    ));
-    rate_limiters.spawn_maintenance();
+    let rate_limiters =
+        rate_limit::RateLimiters::start(&(&dependencies.rate_limit).into(), &dependencies.meter);
 
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S>()
@@ -654,6 +656,7 @@ where
         openapi_only_router(dependencies.serve_api_reference),
         authentication_provider,
         service_secret,
+        authentication_metrics,
         rate_limiters,
     )
     .layer(

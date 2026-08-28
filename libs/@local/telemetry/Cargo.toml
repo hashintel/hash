@@ -9,7 +9,7 @@ authors.workspace = true
 [dependencies]
 # Public workspace dependencies
 error-stack        = { workspace = true, public = true }
-opentelemetry      = { workspace = true, public = true }
+opentelemetry      = { workspace = true, public = true, features = ["metrics"] }
 opentelemetry-otlp = { workspace = true, public = true, features = ["trace", "logs", "metrics", "grpc-tonic", "tls-ring", "tls-roots"] }
 
 # Public third-party dependencies
@@ -34,6 +34,9 @@ tracing                        = { workspace = true }
 tracing-error                  = { workspace = true }
 tracing-flame                  = { workspace = true }
 tracing-opentelemetry          = { workspace = true }
+
+[dev-dependencies]
+opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
 
 [features]
 clap = ["dep:clap", "dep:clap_builder"]

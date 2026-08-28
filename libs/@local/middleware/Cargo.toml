@@ -15,6 +15,7 @@ type-system = { workspace = true, public = true }
 axum          = { workspace = true, public = true }
 axum-core     = { workspace = true, public = true }
 http          = { workspace = true, public = true, features = ["std"] }
+opentelemetry = { workspace = true, public = true, features = ["metrics"] }
 tower-layer   = { workspace = true, public = true }
 tower-service = { workspace = true, public = true }
 
@@ -25,7 +26,6 @@ clap = { workspace = true, optional = true, features = ["derive"] }
 bytes                              = { workspace = true }
 derive_more                        = { workspace = true, features = ["display", "error"] }
 governor                           = { workspace = true }
-opentelemetry                      = { workspace = true }
 opentelemetry-semantic-conventions = { workspace = true, features = ["semconv_experimental"] }
 serde                              = { workspace = true, features = ["derive"] }
 serde_json                         = { workspace = true }
@@ -38,6 +38,7 @@ tracing-opentelemetry              = { workspace = true }
 uuid                               = { workspace = true }
 
 [dev-dependencies]
+opentelemetry_sdk  = { workspace = true, features = ["metrics", "testing"] }
 tokio              = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
 tower              = { workspace = true, features = ["util"] }
 tracing-subscriber = { workspace = true, features = ["registry"] }

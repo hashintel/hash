@@ -34,7 +34,7 @@
 //! use error_stack::Report;
 //! use hash_middleware::{
 //!     authentication::{
-//!         AuthenticatedActorId, authentication_middleware,
+//!         AuthenticatedActorId, AuthenticationMetrics, authentication_middleware,
 //!         provider::{AuthenticationProvider, Caller},
 //!         request::AuthenticationError,
 //!     },
@@ -66,22 +66,26 @@
 //!
 //! # #[tokio::main(flavor = "current_thread")]
 //! # async fn main() {
+//! # let meter = opentelemetry::global::meter("doc");
 //! let quota = |value| NonZeroU32::new(value).expect("the quota should be non-zero");
-//! let limiters = Arc::new(RateLimiters::new(&RateLimitConfig {
-//!     rate_limit_mode: RateLimitMode::Observe,
-//!     client_ip_source: ClientIpSource::ConnectInfo,
-//!     rate_limit_gate_per_second: quota(10),
-//!     rate_limit_gate_burst: quota(50),
-//!     rate_limit_anonymous_per_hour: quota(60),
-//!     rate_limit_anonymous_burst: quota(50),
-//!     rate_limit_actor_per_hour: quota(6000),
-//!     rate_limit_actor_burst: quota(100),
-//! }));
-//! limiters.spawn_maintenance();
+//! let limiters = RateLimiters::start(
+//!     &RateLimitConfig {
+//!         rate_limit_mode: RateLimitMode::Observe,
+//!         client_ip_source: ClientIpSource::ConnectInfo,
+//!         rate_limit_gate_per_second: quota(10),
+//!         rate_limit_gate_burst: quota(50),
+//!         rate_limit_anonymous_per_hour: quota(60),
+//!         rate_limit_anonymous_burst: quota(50),
+//!         rate_limit_actor_per_hour: quota(6000),
+//!         rate_limit_actor_burst: quota(100),
+//!     },
+//!     &meter,
+//! );
 //!
 //! let provider = Arc::new(Verifier);
 //! let service_secret: Arc<str> = Arc::from("service-secret");
 //! let auth_secret = Arc::clone(&service_secret);
+//! let auth_metrics = Arc::new(AuthenticationMetrics::new(&meter));
 //! let principal_limiters = Arc::clone(&limiters);
 //! let principal_secret = Arc::clone(&service_secret);
 //! let gate_limiters = Arc::clone(&limiters);
@@ -101,6 +105,7 @@
 //!         authentication_middleware::<_, ActorId>(
 //!             Arc::clone(&provider),
 //!             Arc::clone(&auth_secret),
+//!             Arc::clone(&auth_metrics),
 //!             |_path| false,
 //!             request,
 //!             next,
@@ -133,3 +138,5 @@ pub mod authentication;
 pub mod rate_limit;
 mod response;
 pub mod telemetry;
+#[cfg(test)]
+mod test_metrics;

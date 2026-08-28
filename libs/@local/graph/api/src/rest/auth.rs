@@ -21,7 +21,8 @@ pub use hash_graph_authentication::{
 use hash_graph_authorization::policies::store::PrincipalStore;
 use hash_graph_store::pool::StorePool;
 pub use hash_middleware::authentication::{
-    AuthenticatedActorId, authentication_middleware, service_secret_middleware,
+    AuthenticatedActorId, AuthenticationMetrics, authentication_middleware,
+    service_secret_middleware,
 };
 
 /// Configuration for Cloudflare Access authentication.
@@ -130,7 +131,9 @@ mod tests {
     use type_system::principal::actor::ActorId;
     use uuid::Uuid;
 
-    use super::{AuthenticatedActorId, authentication_middleware, is_bootstrap_route};
+    use super::{
+        AuthenticatedActorId, AuthenticationMetrics, authentication_middleware, is_bootstrap_route,
+    };
 
     fn request(uri: &str) -> Request<Body> {
         Request::builder()
@@ -207,12 +210,17 @@ mod tests {
             FixedActorResolver::new(HashMap::new()),
         ));
         let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
+        let metrics = Arc::new(AuthenticationMetrics::new(&opentelemetry::global::meter(
+            "test",
+        )));
         routes().layer(middleware::from_fn(move |request, next| {
             let provider = Arc::clone(&provider);
             let service_secret = Arc::clone(&service_secret);
+            let metrics = Arc::clone(&metrics);
             authentication_middleware::<_, Option<ActorId>>(
                 provider,
                 service_secret,
+                metrics,
                 is_bootstrap_route,
                 request,
                 next,
@@ -340,12 +348,17 @@ mod tests {
 
             let provider = Arc::new(FailingProvider(error));
             let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
+            let metrics = Arc::new(AuthenticationMetrics::new(&opentelemetry::global::meter(
+                "test",
+            )));
             let router = routes().layer(middleware::from_fn(move |request, next| {
                 let provider = Arc::clone(&provider);
                 let service_secret = Arc::clone(&service_secret);
+                let metrics = Arc::clone(&metrics);
                 authentication_middleware::<_, ActorId>(
                     provider,
                     service_secret,
+                    metrics,
                     is_bootstrap_route,
                     request,
                     next,

@@ -26,6 +26,18 @@ pub enum FaultDomain {
     Caller,
 }
 
+impl FaultDomain {
+    /// Returns the domain's name.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Service => "service",
+            Self::Operator => "operator",
+            Self::Caller => "caller",
+        }
+    }
+}
+
 /// Errors that can occur while authenticating a request.
 #[derive(Debug, Clone, derive_more::Display)]
 pub enum AuthenticationError {
@@ -250,6 +262,47 @@ where
     }
 }
 
+/// One instance of every error variant.
+///
+/// The array length is the variant count, so adding a variant stops compiling here until an
+/// instance of it is supplied. Distinct discriminants rule out one variant standing in twice
+/// while another goes missing.
+#[cfg(test)]
+pub(crate) fn every_error(
+    identity_id: &str,
+    actor_id: ActorEntityUuid,
+) -> [AuthenticationError; core::mem::variant_count::<AuthenticationError>()] {
+    let errors = [
+        AuthenticationError::MissingCredentials,
+        AuthenticationError::MalformedCredential,
+        AuthenticationError::InvalidActorIdHeader,
+        AuthenticationError::MissingServiceSecret,
+        AuthenticationError::InvalidServiceSecret,
+        AuthenticationError::MissingDelegatedActor,
+        AuthenticationError::ProviderUnreachable,
+        AuthenticationError::ProviderRejection,
+        AuthenticationError::InvalidProviderResponse,
+        AuthenticationError::InvalidSession,
+        AuthenticationError::InvalidAccessToken,
+        AuthenticationError::IdentityWithoutActor,
+        AuthenticationError::NotProvisioned {
+            identity_id: identity_id.to_owned(),
+        },
+        AuthenticationError::ActorNotFound { actor_id },
+        AuthenticationError::NotAUser { actor_id },
+        AuthenticationError::StoreError,
+    ];
+
+    for (index, error) in errors.iter().enumerate() {
+        let repeated = errors[..index]
+            .iter()
+            .any(|earlier| core::mem::discriminant(earlier) == core::mem::discriminant(error));
+        assert!(!repeated, "`{error}` should appear exactly once");
+    }
+
+    errors
+}
+
 /// Parses the actor from the unverified actor-ID header.
 ///
 /// # Errors
@@ -275,7 +328,7 @@ pub fn actor_id_from_header(headers: &HeaderMap) -> Result<ActorEntityUuid, Auth
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
-    use core::{assert_matches, mem, ops::ControlFlow};
+    use core::{assert_matches, ops::ControlFlow};
     use std::sync::Mutex;
 
     use error_stack::Report;
@@ -285,7 +338,7 @@ mod tests {
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
-    use super::{AuthenticationError, FaultDomain, resolve_request_actor};
+    use super::{AuthenticationError, FaultDomain, every_error, resolve_request_actor};
     use crate::authentication::provider::{
         AuthenticationProvider, Caller, StaticAuthenticationProvider,
     };
@@ -464,46 +517,6 @@ mod tests {
             AuthenticationError::MissingCredentials,
             "the rejection should name the missing credentials"
         );
-    }
-
-    /// One instance of every error variant.
-    ///
-    /// The array length is the variant count, so adding a variant stops compiling here until an
-    /// instance of it is supplied. Distinct discriminants rule out one variant standing in twice
-    /// while another goes missing.
-    fn every_error(
-        identity_id: &str,
-        actor_id: ActorEntityUuid,
-    ) -> [AuthenticationError; mem::variant_count::<AuthenticationError>()] {
-        let errors = [
-            AuthenticationError::MissingCredentials,
-            AuthenticationError::MalformedCredential,
-            AuthenticationError::InvalidActorIdHeader,
-            AuthenticationError::MissingServiceSecret,
-            AuthenticationError::InvalidServiceSecret,
-            AuthenticationError::MissingDelegatedActor,
-            AuthenticationError::ProviderUnreachable,
-            AuthenticationError::ProviderRejection,
-            AuthenticationError::InvalidProviderResponse,
-            AuthenticationError::InvalidSession,
-            AuthenticationError::InvalidAccessToken,
-            AuthenticationError::IdentityWithoutActor,
-            AuthenticationError::NotProvisioned {
-                identity_id: identity_id.to_owned(),
-            },
-            AuthenticationError::ActorNotFound { actor_id },
-            AuthenticationError::NotAUser { actor_id },
-            AuthenticationError::StoreError,
-        ];
-
-        for (index, error) in errors.iter().enumerate() {
-            let repeated = errors[..index]
-                .iter()
-                .any(|earlier| mem::discriminant(earlier) == mem::discriminant(error));
-            assert!(!repeated, "`{error}` should appear exactly once");
-        }
-
-        errors
     }
 
     /// A status the service reports as its own fault is the service's fault to report.

@@ -14,7 +14,7 @@ pub enum RateLimitMode {
     /// Deny the request with `429 Too Many Requests`.
     #[default]
     Enforce,
-    /// Serve the request unchanged, counting the denial in the interval report.
+    /// Serve the request unchanged, recording the denial as `would_deny`.
     Observe,
 }
 
