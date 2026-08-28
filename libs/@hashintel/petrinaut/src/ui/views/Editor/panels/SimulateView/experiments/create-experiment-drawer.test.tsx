@@ -152,6 +152,7 @@ const TestProviders = ({
             removeExperiment: () => {},
             setSweepSelection: () => {},
             sampleSweepCell: () => Promise.resolve(null),
+            sampleDetachedObjective: () => Promise.resolve(null),
           }}
         >
           <SDCPNContext value={sdcpnContextValue}>

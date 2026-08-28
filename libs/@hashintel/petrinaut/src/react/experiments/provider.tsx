@@ -15,6 +15,7 @@ import {
   type MonteCarloExperimentState,
   getDefaultMonteCarloShardCount,
   type WorkerFactory,
+  DEFAULT_PETRINAUT_EXTENSIONS,
   type Scenario,
   type ScenarioParameter,
 } from "@hashintel/petrinaut-core";
@@ -43,6 +44,7 @@ import {
   type ExperimentsContextValue,
   isExperimentActive,
   isTerminalExperimentStatus,
+  type DetachedObjectiveRequest,
 } from "./context";
 import {
   buildParameterAxis,
@@ -53,6 +55,7 @@ import {
 import {
   createSweepSession,
   type SweepSession,
+  type SweepCellSnapshot,
   type SweepSessionUpdate,
 } from "./sweep-session";
 
@@ -253,6 +256,24 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     new Map<string, PendingExperimentRegistration>(),
   );
   const sweepSessionsRef = useRef(new Map<string, SweepSession>());
+  /** Serializes detached objective batches on one background worker. */
+  const detachedChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  const detachedCpuBackendRef = useRef<ExperimentBackend | null>(null);
+  const detachedCompileCacheRef = useRef(
+    new Map<
+      string,
+      Promise<{
+        scenario: Scenario;
+        scenarioHir: Awaited<ReturnType<typeof requestScenarioHir>>;
+        artifacts: Awaited<ReturnType<typeof requestHirArtifacts>>["artifacts"];
+        metricArtifact: NonNullable<
+          Awaited<
+            ReturnType<typeof requestHirArtifacts>
+          >["artifacts"]["metrics"][string]
+        >;
+      }>
+    >(),
+  );
   const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
   const [selectedExperimentId, setSelectedExperimentId] = useState<
     string | null
@@ -947,6 +968,145 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       .get(experimentId)
       ?.sampleCell(parameterValues, minRuns) ?? Promise.resolve(null);
 
+  const runDetachedObjectiveBatch = async (
+    request: DetachedObjectiveRequest,
+  ): Promise<SweepCellSnapshot | null> => {
+    try {
+      // One compiled snapshot per study: the frozen definition, its scenario
+      // HIR, and its HIR artifacts never change for a given cacheKey.
+      let compiled = detachedCompileCacheRef.current.get(request.cacheKey);
+      if (!compiled) {
+        compiled = (async () => {
+          const scenario = (request.definition.scenarios ?? []).find(
+            (candidate: Scenario) => candidate.id === request.scenarioId,
+          );
+          if (!scenario) {
+            throw new Error(
+              `Scenario ${request.scenarioId} is not in the model snapshot`,
+            );
+          }
+          // The snapshot runs under default extensions, as it does on the
+          // optimizer service — the live editor's toggles do not apply to a
+          // frozen study.
+          const { artifacts, failures } = await requestHirArtifacts(
+            request.definition,
+            DEFAULT_PETRINAUT_EXTENSIONS,
+            { includeHir: false },
+          );
+          const metricArtifact = getOwn(artifacts.metrics, request.metric.id);
+          if (!metricArtifact) {
+            throw new Error(
+              failures
+                .map((failure) => failure.diagnostics[0]?.message)
+                .filter(Boolean)
+                .join("; ") || "The objective metric did not compile",
+            );
+          }
+          const scenarioHir = await requestScenarioHir(scenario);
+          return { scenario, scenarioHir, artifacts, metricArtifact };
+        })();
+        detachedCompileCacheRef.current.set(request.cacheKey, compiled);
+        compiled.catch(() => {
+          // A failed compile is retried on the next sample rather than cached.
+          detachedCompileCacheRef.current.delete(request.cacheKey);
+        });
+      }
+      const { scenario, scenarioHir, artifacts, metricArtifact } =
+        await compiled;
+
+      const compiledScenario = compileScenario(
+        scenario,
+        scenarioHir,
+        request.definition.parameters,
+        request.definition.places,
+        request.definition.types,
+        {
+          // Scenario compilation is numeric; boolean bindings arrive as their
+          // 0/1 encoding, matching how the engine stores boolean parameters.
+          scenarioParameterValues: Object.fromEntries(
+            Object.entries(request.scenarioParameterValues).map(
+              ([identifier, value]) => [
+                identifier,
+                typeof value === "boolean" ? (value ? 1 : 0) : value,
+              ],
+            ),
+          ),
+        },
+      );
+      if (!compiledScenario.ok) {
+        return null;
+      }
+
+      detachedCpuBackendRef.current ??= createWorkerPoolExperimentBackend({
+        createWorker: workerFactoryRef.current,
+        shardCount: 1,
+      });
+      const backend = detachedCpuBackendRef.current;
+
+      const abortController = new AbortController();
+      const assessment = await backend.assess({
+        sdcpn: request.definition,
+        extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+        initialMarking: compiledScenario.result.initialState,
+        parameterValues: compiledScenario.result.parameterValues,
+        seed: request.seed,
+        dt: request.dt,
+        maxTime: request.maxTime,
+        runCount: request.runCount,
+        metricSpecs: [
+          {
+            kind: "expression",
+            id: request.metric.id,
+            label: request.metric.label,
+            code: request.metric.code,
+            sampleRuns: "all",
+            runOutput: { type: "distribution" },
+            artifact: metricArtifact,
+          },
+        ],
+        hirArtifacts: artifacts,
+      });
+      if (!assessment.eligible) {
+        return null;
+      }
+      const instantiated = await assessment.instantiate({
+        signal: abortController.signal,
+      });
+      if (!instantiated.ok) {
+        return null;
+      }
+      const handle = instantiated.handle;
+
+      const done = new Promise<boolean>((resolve) => {
+        const offEvents = handle.events.subscribe((event) => {
+          offEvents();
+          resolve(event.type === "complete");
+        });
+      });
+      handle.start();
+      const completed = await done;
+      const frames = handle.metrics.get().frames;
+      handle.dispose();
+      if (!completed) {
+        return null;
+      }
+      return { runsCompleted: request.runCount, metricFrames: frames };
+    } catch {
+      // A refused or failed batch is a hole in the surface, not an error the
+      // optimization view should surface.
+      return null;
+    }
+  };
+
+  const sampleDetachedObjective: ExperimentsContextValue["sampleDetachedObjective"] =
+    (request) => {
+      const next = detachedChainRef.current.then(() =>
+        runDetachedObjectiveBatch(request),
+      );
+      detachedChainRef.current = next.catch(() => null);
+      return next;
+    };
+
   const selectedExperiment =
     experiments.find((experiment) => experiment.id === selectedExperimentId) ??
     null;
@@ -961,6 +1121,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     removeExperiment: useStableCallback(removeExperiment),
     setSweepSelection: useStableCallback(setSweepSelection),
     sampleSweepCell: useStableCallback(sampleSweepCell),
+    sampleDetachedObjective: useStableCallback(sampleDetachedObjective),
   };
 
   return (

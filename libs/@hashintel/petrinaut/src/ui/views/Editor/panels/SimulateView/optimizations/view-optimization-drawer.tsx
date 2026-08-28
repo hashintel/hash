@@ -10,6 +10,7 @@ import {
 } from "../../../../../../react/optimizations/context";
 import { Section, SectionList } from "../../../../../components/section";
 import { Table, type TableColumn } from "../../../../../components/table";
+import { OptimizationSurface } from "./optimization-surface";
 
 const summaryStyle = css({
   marginTop: "-1",
@@ -300,6 +301,12 @@ export const ViewOptimizationDrawer = ({
 
   const active = isOptimizationActive(optimization);
   const displayedSteps = optimization.trials.slice(-200).reverse();
+  // The surface needs two navigable (non-boolean optimized) parameters.
+  const surfaceEligible =
+    Object.values(optimization.input.scenario.parameterBindings).filter(
+      (binding) =>
+        binding.kind === "optimize" && binding.domain.kind !== "boolean",
+    ).length >= 2;
 
   return (
     <Drawer
@@ -349,6 +356,16 @@ export const ViewOptimizationDrawer = ({
                 getRowId={(trial) => String(trial.trial)}
                 rows={displayedSteps}
               />
+            </Section>
+          ) : null}
+          {surfaceEligible ? (
+            <Section
+              title="Surface"
+              tooltip="The objective over two optimized parameters, computed locally on this machine — the study's own trials appear as rings. Move the sliders or click the plot to recompute elsewhere."
+              collapsible
+              defaultOpen
+            >
+              <OptimizationSurface optimization={optimization} />
             </Section>
           ) : null}
         </SectionList>
