@@ -142,6 +142,7 @@
   },
   "ignorePatterns": [
     "dist/**",
+    "styled-system/**",
     "build/**",
     "coverage/**",
     "scripts/**",
