@@ -45,9 +45,9 @@ import {
   isTerminalExperimentStatus,
 } from "./context";
 import {
-  buildParameterRangeValues,
-  countGridCombinations,
-  MAX_EXPERIMENT_COMBINATIONS,
+  buildParameterAxis,
+  countRegionCells,
+  fullSweepSelection,
   type ExperimentParameterAxis,
 } from "./parameter-grid";
 import {
@@ -97,17 +97,11 @@ export function buildSweepAxes(
       continue;
     }
 
-    const outcome = buildParameterRangeValues(parameter, input);
+    const outcome = buildParameterAxis(parameter, input);
     if (!outcome.ok) {
       throw new Error(outcome.error);
     }
-    axes.push({ identifier: parameter.identifier, values: outcome.values });
-  }
-
-  if (countGridCombinations(axes) > MAX_EXPERIMENT_COMBINATIONS) {
-    throw new Error(
-      `The parameter ranges produce ${countGridCombinations(axes)} combinations; the maximum is ${MAX_EXPERIMENT_COMBINATIONS}`,
-    );
+    axes.push(outcome.axis);
   }
 
   return { fixedValues, axes };
@@ -526,9 +520,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           progress: update.progress,
           sweep: {
             selection: update.selection,
-            parameterValues: update.parameterValues,
+            activeCellValues: update.activeCellValues,
             runsCompleted: update.runsCompleted,
             runsSampled: update.runsSampled,
+            cellsSampled: update.cellsSampled,
+            cellsInRegion: update.cellsInRegion,
             runTarget: update.runTarget,
             computing: update.computing,
           },
@@ -663,14 +659,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       sweep:
         axes.length > 0
           ? {
-              selection: Object.fromEntries(
-                axes.map((axis) => [axis.identifier, 0]),
-              ),
-              parameterValues: Object.fromEntries(
-                axes.map((axis) => [axis.identifier, axis.values[0]!]),
-              ),
+              selection: fullSweepSelection(axes),
+              activeCellValues: null,
               runsCompleted: 0,
               runsSampled: 0,
+              cellsSampled: 0,
+              cellsInRegion: countRegionCells(axes, fullSweepSelection(axes)),
               runTarget: null,
               computing: true,
             }

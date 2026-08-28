@@ -34,6 +34,22 @@ import type { ExperimentParameterAxis } from "../../../../../../react/experiment
 /** Runs a surface cell needs before its point appears. */
 const SURFACE_CELL_RUNS = 8;
 
+/**
+ * Sampled positions per axis on the surface: a sub-grid of the slider's
+ * quantization, coarse enough that a full X×Y sweep at `SURFACE_CELL_RUNS`
+ * stays affordable while the picture keeps filling in.
+ */
+const SURFACE_GRID_POSITIONS = 11;
+
+/** Evenly spread quantized positions of `axis` shown on the surface. */
+function surfacePositions(axis: ExperimentParameterAxis): number[] {
+  const count = Math.min(SURFACE_GRID_POSITIONS, axis.stepCount + 1);
+  const positions = Array.from({ length: count }, (_, index) =>
+    Math.round((index * axis.stepCount) / (count - 1)),
+  );
+  return [...new Set(positions)];
+}
+
 /** Raster resolution per grid cell, in pixels of interpolation lattice. */
 const RASTER_SUBDIVISION = 8;
 
@@ -88,18 +104,22 @@ function surfaceCellKey(xIndex: number, yIndex: number): string {
   return `${xIndex},${yIndex}`;
 }
 
-/** The navigator's values for every axis not shown on the surface. */
-function fixedValuesKey(
+/**
+ * The navigator's position for every axis not shown on the surface: the
+ * middle of its selected range (the range itself when it is a point).
+ */
+function fixedPositionsKey(
   experiment: ExperimentRecord,
   xAxis: string,
   yAxis: string,
 ): string {
   return experiment.parameterAxes
     .filter((axis) => axis.identifier !== xAxis && axis.identifier !== yAxis)
-    .map(
-      (axis) =>
-        `${axis.identifier}=${experiment.sweep?.selection[axis.identifier] ?? 0}`,
-    )
+    .map((axis) => {
+      const range = experiment.sweep?.selection[axis.identifier];
+      const position = range ? Math.round((range.from + range.to) / 2) : 0;
+      return `${axis.identifier}=${position}`;
+    })
     .join("|");
 }
 
@@ -107,11 +127,11 @@ function drawSurface(options: {
   canvas: HTMLCanvasElement;
   width: number;
   height: number;
-  xAxis: ExperimentParameterAxis;
-  yAxis: ExperimentParameterAxis;
+  nx: number;
+  ny: number;
   values: SurfaceValues;
 }): void {
-  const { canvas, width, height, xAxis, yAxis, values } = options;
+  const { canvas, width, height, nx, ny, values } = options;
   const pixelRatio = globalThis.devicePixelRatio || 1;
   canvas.width = Math.max(1, Math.round(width * pixelRatio));
   canvas.height = Math.max(1, Math.round(height * pixelRatio));
@@ -131,8 +151,6 @@ function drawSurface(options: {
     return;
   }
 
-  const nx = xAxis.values.length;
-  const ny = yAxis.values.length;
   const rasterWidth = Math.max(2, (nx - 1) * RASTER_SUBDIVISION + 1);
   const rasterHeight = Math.max(2, (ny - 1) * RASTER_SUBDIVISION + 1);
   const raster = idwRaster({
@@ -220,7 +238,7 @@ export const SweepSurface = ({
 
   const xAxis = axes.find((axis) => axis.identifier === xAxisId);
   const yAxis = axes.find((axis) => axis.identifier === yAxisId);
-  const slice = fixedValuesKey(experiment, xAxisId, yAxisId);
+  const slice = fixedPositionsKey(experiment, xAxisId, yAxisId);
   const experimentId = experiment.id;
   const sweepSelection = experiment.sweep?.selection;
 
@@ -252,28 +270,27 @@ export const SweepSurface = ({
       ),
     );
 
+    const xPositions = surfacePositions(xAxis);
+    const yPositions = surfacePositions(yAxis);
     const run = async () => {
       for (const cell of coarseToFineOrder(
-        xAxis.values.length,
-        yAxis.values.length,
+        xPositions.length,
+        yPositions.length,
       )) {
         if (isWalkStale()) {
           return;
         }
-        const parameterValues: Record<string, number> = {
-          [xAxis.identifier]: xAxis.values[cell.x]!,
-          [yAxis.identifier]: yAxis.values[cell.y]!,
+        const position: Record<string, number> = {
+          [xAxis.identifier]: xPositions[cell.x]!,
+          [yAxis.identifier]: yPositions[cell.y]!,
         };
-        for (const [identifier, indexText] of fixedEntries) {
-          const axis = axes.find((it) => it.identifier === identifier);
-          if (axis) {
-            parameterValues[identifier] = axis.values[Number(indexText)]!;
-          }
+        for (const [identifier, positionText] of fixedEntries) {
+          position[identifier] = Number(positionText);
         }
 
         const snapshot = await sampleSweepCell(
           experimentId,
-          parameterValues,
+          position,
           SURFACE_CELL_RUNS,
         );
         if (isWalkStale()) {
@@ -309,8 +326,8 @@ export const SweepSurface = ({
       canvas,
       width: size.width,
       height: 280,
-      xAxis,
-      yAxis,
+      nx: surfacePositions(xAxis).length,
+      ny: surfacePositions(yAxis).length,
       values: cellValues,
     });
   }, [cellValues, size, xAxis, yAxis]);
@@ -335,23 +352,22 @@ export const SweepSurface = ({
     const bounds = event.currentTarget.getBoundingClientRect();
     const relativeX = (event.clientX - bounds.left) / bounds.width;
     const relativeY = 1 - (event.clientY - bounds.top) / bounds.height;
-    const xIndex = Math.round(relativeX * (xAxis.values.length - 1));
-    const yIndex = Math.round(relativeY * (yAxis.values.length - 1));
+    const clamp = (fraction: number) => Math.min(Math.max(fraction, 0), 1);
+    // Clicking collapses both shown axes to a point at the clicked position.
+    const xPosition = Math.round(clamp(relativeX) * xAxis.stepCount);
+    const yPosition = Math.round(clamp(relativeY) * yAxis.stepCount);
     setSweepSelection(experimentId, {
       ...sweepSelection,
-      [xAxis.identifier]: Math.min(
-        Math.max(xIndex, 0),
-        xAxis.values.length - 1,
-      ),
-      [yAxis.identifier]: Math.min(
-        Math.max(yIndex, 0),
-        yAxis.values.length - 1,
-      ),
+      [xAxis.identifier]: { from: xPosition, to: xPosition },
+      [yAxis.identifier]: { from: yPosition, to: yPosition },
     });
   };
 
   const sampledCount = cellValues.size;
-  const totalCells = (xAxis?.values.length ?? 0) * (yAxis?.values.length ?? 0);
+  const totalCells =
+    xAxis && yAxis
+      ? surfacePositions(xAxis).length * surfacePositions(yAxis).length
+      : 0;
 
   return (
     <div className={surfaceStyle}>
