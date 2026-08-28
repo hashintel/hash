@@ -69,8 +69,10 @@ Each numbered rule is a test target; `focus-flow.test.tsx` covers them.
 ## Boundaries
 
 The layer must not import form or scenario state; the dependency rule
-keeping the form layer out of its imports ships with the form. The ad-hoc scenario form is
-its first consumer; the editor's other token spreadsheet is the expected
-second. Stories in `worksheet.stories.tsx` demonstrate the configurations:
+keeping the form layer out of its imports ships with the form. The token
+spreadsheet (place initial state and the scenario forms) is its first
+consumer — a stop table with a gutter lane, wrapped in a vertical stack
+where a scenario form mounts one grid per place; the ad-hoc scenario form
+is the expected next. Stories in `worksheet.stories.tsx` demonstrate the configurations:
 side-by-side columns, aligned entry, contained stacks, a stop table, and
 mixed controls.
