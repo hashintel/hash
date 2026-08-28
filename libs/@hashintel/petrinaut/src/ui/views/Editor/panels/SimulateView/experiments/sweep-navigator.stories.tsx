@@ -1,20 +1,37 @@
-import { useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
+import { sirModel } from "@hashintel/petrinaut-core/examples";
+
+import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import {
   axisValueAt,
   fullSweepSelection,
 } from "../../../../../../react/experiments/parameter-grid";
+import { ExperimentsProvider } from "../../../../../../react/experiments/provider";
+import { LanguageClientProvider } from "../../../../../../react/lsp/provider";
+import { NotificationsProvider } from "../../../../../../react/notifications/provider";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { UserSettingsProvider } from "../../../../../../react/state/user-settings-provider";
+import { MonacoProvider } from "../../../../../monaco/provider";
 import { ExperimentMetricTimeline } from "./experiment-metric-timeline";
-import { sirInfectedFrame } from "./experiments-story-fixtures";
+import {
+  sirInfectedFrame,
+  sirSdcpnContextValue,
+} from "./experiments-story-fixtures";
 import { SweepNavigator, type SweepNavigatorStatus } from "./sweep-navigator";
 
-import type { ExperimentRecord } from "../../../../../../react/experiments/context";
+import type {
+  ExperimentComputeBackend,
+  ExperimentRecord,
+} from "../../../../../../react/experiments/context";
 import type {
   ExperimentParameterAxis,
   SweepAxisSelection,
   SweepSelection,
 } from "../../../../../../react/experiments/parameter-grid";
+import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { MetricSize } from "./experiment-metric-timeline";
+import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -289,4 +306,189 @@ export const FullySampled: Story = {
       }}
     />
   ),
+};
+
+// -- Real compute ------------------------------------------------------------
+
+/**
+ * A story-only SIR scenario whose swept parameters drive the transition
+ * rates through `parameterOverrides` — so ranging them genuinely changes
+ * each run's dynamics. (The stock scenarios' parameters only shape the
+ * initial marking, which a range holds at its midpoint.) Token counts stay
+ * under the GPU backend's 256-per-measured-place limit, so point
+ * selections are GPU-eligible.
+ */
+const REAL_SWEEP_SCENARIO_ID = "scenario__story_rate_sweep";
+
+const realSweepDefinition: SDCPN = {
+  ...sirModel.petriNetDefinition,
+  scenarios: [
+    ...(sirModel.petriNetDefinition.scenarios ?? []),
+    {
+      id: REAL_SWEEP_SCENARIO_ID,
+      name: "Rate sweep",
+      description:
+        "Feeds the infection and recovery rates from swept scenario parameters.",
+      scenarioParameters: [
+        { type: "real", identifier: "transmission_rate", default: 1.5 },
+        { type: "real", identifier: "recovery_rate", default: 0.8 },
+      ],
+      parameterOverrides: {
+        param__infection_rate: "scenario.transmission_rate",
+        param__recovery_rate: "scenario.recovery_rate",
+      },
+      initialState: {
+        type: "per_place",
+        content: {
+          place__susceptible: "190",
+          place__infected: "10",
+          place__recovered: "0",
+        },
+      },
+    },
+  ],
+};
+
+const realSweepSdcpnContextValue: SDCPNContextValue = {
+  ...sirSdcpnContextValue,
+  petriNetDefinition: realSweepDefinition,
+};
+
+const realSweepHintStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: "#888",
+  margin: 0,
+};
+
+/**
+ * The navigator against the real experiments provider: a genuine sweep
+ * experiment simulates in browser workers, and moving a slider redirects
+ * real compute. With the GPU requested, range selections still run on the
+ * CPU pool (per-run parameter draws cannot run on the GPU) — collapse both
+ * parameters to points and the GPU takes over.
+ */
+const RealSweepSession = ({
+  computeBackend,
+}: {
+  computeBackend: ExperimentComputeBackend;
+}) => {
+  const { experiments, createExperiment, setSweepSelection } =
+    use(ExperimentsContext);
+  const startedRef = useRef(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [metricSize, setMetricSize] = useState<MetricSize>("large");
+
+  useEffect(() => {
+    // Once per story lifetime, surviving StrictMode's double-invoked mount.
+    if (startedRef.current) {
+      return;
+    }
+    startedRef.current = true;
+    createExperiment({
+      name: "Real rate sweep",
+      scenarioId: REAL_SWEEP_SCENARIO_ID,
+      scenarioParameterValues: {
+        transmission_rate: { mode: "range", min: 0.5, max: 4 },
+        recovery_rate: { mode: "range", min: 0.2, max: 1.5 },
+      },
+      runCount: 100,
+      seed: 42,
+      dt: 0.5,
+      maxTime: 30,
+      metricSpecs: [
+        {
+          kind: "placeTokenCountMean",
+          id: "infected",
+          label: "Infected",
+          placeId: "place__infected",
+          runOutput: { type: "distribution", binning: "exact" },
+        },
+      ],
+      computeBackend,
+    }).catch((cause: unknown) => setCreateError(String(cause)));
+  }, [computeBackend, createExperiment]);
+
+  const experiment = experiments.find((candidate) => candidate.sweep !== null);
+
+  if (createError) {
+    return <p style={{ color: "#b91c1c" }}>{createError}</p>;
+  }
+  if (!experiment?.sweep) {
+    return <p style={realSweepHintStyle}>Compiling the scenario…</p>;
+  }
+
+  return (
+    <div
+      style={{
+        width: 640,
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+      }}
+    >
+      <p style={realSweepHintStyle}>
+        Batches ran on{" "}
+        {experiment.computeBackend === "webgpu" ? "the GPU" : "the CPU"}
+        {experiment.computeBackendFallbackReason
+          ? ` — ${experiment.computeBackendFallbackReason}`
+          : ""}
+        {computeBackend === "webgpu"
+          ? " · ranges draw per-run parameter values the GPU cannot run, so they fall back to the CPU pool; switch both parameters to Point and the GPU takes over"
+          : ""}
+      </p>
+      <SweepNavigator
+        axes={experiment.parameterAxes}
+        selection={experiment.sweep.selection}
+        status={{
+          computing: experiment.sweep.computing,
+          runsCompleted: experiment.sweep.runsCompleted,
+          runsSampled: experiment.sweep.runsSampled,
+          runTarget: experiment.sweep.runTarget,
+          runCount: experiment.runCount,
+        }}
+        onSelectionChange={(selection) =>
+          setSweepSelection(experiment.id, selection)
+        }
+      />
+      <div
+        style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12 }}
+      >
+        <ExperimentMetricTimeline
+          frames={experiment.metricFrames}
+          displaySize={metricSize}
+          onDisplaySizeChange={setMetricSize}
+        />
+      </div>
+    </div>
+  );
+};
+
+const RealSweepStory = ({
+  computeBackend,
+}: {
+  computeBackend: ExperimentComputeBackend;
+}) => (
+  <SDCPNContext value={realSweepSdcpnContextValue}>
+    <LanguageClientProvider>
+      <MonacoProvider>
+        <NotificationsProvider>
+          <UserSettingsProvider>
+            <ExperimentsProvider>
+              <RealSweepSession computeBackend={computeBackend} />
+            </ExperimentsProvider>
+          </UserSettingsProvider>
+        </NotificationsProvider>
+      </MonacoProvider>
+    </LanguageClientProvider>
+  </SDCPNContext>
+);
+
+export const RealCpuSweep: Story = {
+  name: "Real compute on CPU",
+  render: () => <RealSweepStory computeBackend="cpu" />,
+};
+
+export const RealGpuSweep: Story = {
+  name: "Real compute on GPU (points)",
+  render: () => <RealSweepStory computeBackend="webgpu" />,
 };
