@@ -23,7 +23,6 @@ import {
 } from "./voice-interview-control";
 
 import type { VoiceTurnSnapshot } from "./voice-turn-controller";
-
 import type { PetrinautAiInterviewStageContext } from "@hashintel/petrinaut/ui";
 
 const snapshot = {
@@ -652,9 +651,7 @@ describe("voice interview stage", () => {
         />,
       );
       expect(screen.queryByTestId("voice-waveform")).toBeNull();
-      expect(
-        screen.queryByText(/Microphone input level:/u),
-      ).toBeNull();
+      expect(screen.queryByText(/Microphone input level:/u)).toBeNull();
     }
   });
 
