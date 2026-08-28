@@ -36,6 +36,9 @@ const rootStyle = css({
   minHeight: "[0]",
   paddingTop: "2",
   paddingX: "4",
+  // Anchor for the compile-error banner, which overlays the panel's bottom
+  // edge instead of participating in the column flow.
+  position: "relative",
 });
 
 const scenarioRowStyle = css({
@@ -281,11 +284,21 @@ const emptyMessageStyle = css({
 });
 
 // Error callout shown when the selected scenario fails to compile, so a broken
-// scenario is never silently ignored. `flexShrink` keeps it from collapsing in
-// the settings column; the compact `textStyle`/`padding` keep the banner to the
-// same footprint (and wrap points) as the plain callout it replaced.
+// scenario is never silently ignored. It floats over the bottom of the panel
+// instead of sitting in the column flow — an error must not shift the form
+// the user is in the middle of fixing. The columns behind it keep their own
+// scrolling, and a long error list scrolls inside the banner rather than
+// swallowing the panel.
 const scenarioBannerStyle = css({
-  flexShrink: 0,
+  position: "absolute",
+  bottom: "2",
+  // Match the root's horizontal insets so the banner aligns with the columns.
+  left: "4",
+  right: "4",
+  zIndex: "[10]",
+  maxHeight: "[40%]",
+  overflowY: "auto",
+  boxShadow: "[0 2px 8px rgba(0, 0, 0, 0.25)]",
   textStyle: "xs",
   lineHeight: "[1.3]",
   padding: "[6px 8px]",
@@ -529,29 +542,6 @@ const SimulationSettingsContent: React.FC = () => {
         </div>
       </div>
 
-      {scenarioCompilationErrors && (
-        <Banner
-          tone="error"
-          icon={false}
-          role="alert"
-          className={scenarioBannerStyle}
-        >
-          <Banner.Title as="h3">
-            Scenario failed to compile — its parameter overrides and initial
-            state are not applied.
-          </Banner.Title>
-          <Banner.Description className={scenarioMessagesStyle}>
-            {scenarioCompilationErrors.map((compilationError) => (
-              <span
-                key={`${compilationError.source}:${compilationError.itemId}:${compilationError.message}`}
-              >
-                {compilationError.message}
-              </span>
-            ))}
-          </Banner.Description>
-        </Banner>
-      )}
-
       {adHocActive ? (
         /* The ad-hoc embedding: Parameters become the form's override
            spreadsheet and Initial state its places, laid out as panel
@@ -752,6 +742,29 @@ const SimulationSettingsContent: React.FC = () => {
 
           {computationSection}
         </div>
+      )}
+
+      {scenarioCompilationErrors && (
+        <Banner
+          tone="error"
+          icon={false}
+          role="alert"
+          className={scenarioBannerStyle}
+        >
+          <Banner.Title as="h3">
+            Scenario failed to compile — its parameter overrides and initial
+            state are not applied.
+          </Banner.Title>
+          <Banner.Description className={scenarioMessagesStyle}>
+            {scenarioCompilationErrors.map((compilationError) => (
+              <span
+                key={`${compilationError.source}:${compilationError.itemId}:${compilationError.message}`}
+              >
+                {compilationError.message}
+              </span>
+            ))}
+          </Banner.Description>
+        </Banner>
       )}
     </div>
   );
