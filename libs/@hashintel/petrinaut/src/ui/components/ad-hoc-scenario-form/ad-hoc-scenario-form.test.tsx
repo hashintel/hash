@@ -1069,7 +1069,7 @@ describe("AdHocScenarioForm", () => {
     expect(latest?.variables).toHaveLength(1);
   });
 
-  it("renderLayout groups are separate keyboard panels", () => {
+  it("renderLayout groups are columns: vertical arrows stay, horizontal ones cross with memory", () => {
     render(
       <Harness
         withVariables={false}
@@ -1082,31 +1082,45 @@ describe("AdHocScenarioForm", () => {
       />,
     );
 
-    // Down past the parameters grid's last row must not slide into the
-    // places group — the host lays the groups out side by side.
+    // Down past the parameters grid's last row stays put — the columns sit
+    // side by side, so vertical moves never slide across.
     const rateValue = screen.getByRole("button", { name: "Rate" });
     rateValue.focus();
     fireEvent.keyDown(rateValue, { key: "ArrowDown" });
     expect(document.activeElement).toBe(rateValue);
 
-    // Up from the places group's first zone must not enter parameters.
+    // Up from the places column's first member stays inside the column.
     const pumpsHeader = screen.getByRole("button", { name: "Pumps place" });
     pumpsHeader.focus();
     fireEvent.keyDown(pumpsHeader, { key: "ArrowUp" });
     expect(document.activeElement).toBe(pumpsHeader);
 
-    // Within the places group the walk still chains: up from the token
+    // Right from the parameters row's last cell crosses into the places
+    // column, entering its first member.
+    const optimizeToggle = screen.getByRole("button", {
+      name: "Optimize Rate",
+    });
+    optimizeToggle.focus();
+    fireEvent.keyDown(optimizeToggle, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(pumpsHeader);
+
+    // Left from a places grid crosses back to the parameters column's
+    // remembered cell.
+    const addVariable = screen.getByRole("button", {
+      name: "Add a variable (Variables of Pumps)",
+    });
+    addVariable.focus();
+    fireEvent.keyDown(addVariable, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(optimizeToggle);
+
+    // Within the places column the walk still chains: up from the token
     // table's column header lands on the place's own add-variable line.
     const pressureHeader = screen.getByRole("button", {
       name: "Share column pressure",
     });
     pressureHeader.focus();
     fireEvent.keyDown(pressureHeader, { key: "ArrowUp" });
-    expect(document.activeElement).toBe(
-      screen.getByRole("button", {
-        name: "Add a variable (Variables of Pumps)",
-      }),
-    );
+    expect(document.activeElement).toBe(addVariable);
   });
 
   // The three tests below stay LAST: their undo/redo and editor-overlay
