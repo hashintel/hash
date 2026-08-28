@@ -5,8 +5,8 @@ loop, a route, or a test harness — _before_ writing the new thing. Each row ro
 indication to the affordance to rely on, the divergence it exists to prevent, and the point
 where canon stops and a human or an owning ticket decides. Every row is grounded in the
 [architecture cheatsheet](flue-architecture-cheatsheet.md) (§ refs), the
-[patterns audit](../../evidence/proofs/audits/flue-patterns-audit-2026-08-17.md), or the
-[flue-vs-tilde analysis](../amp-analysis-flue-vs-tilde.md); details live there.
+[patterns audit](../../evidence/audits/flue-patterns-audit-2026-08-17.md), or the
+[flue-vs-tilde analysis](../../research/amp-analysis-flue-vs-tilde.md); details live there.
 
 **Which lane am I in?** Flue's surface sorts our system into three lanes (cheatsheet,
 boundary summary). _Shell-facing_ (UI transport, observability, evals, schedules, deploy):

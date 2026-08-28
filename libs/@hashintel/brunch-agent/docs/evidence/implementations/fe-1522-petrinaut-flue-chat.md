@@ -66,4 +66,4 @@ witnessed against the live service: reload hydration, process bounce with the
 same SQLite snapshot and panel conversation, `history()` transcript (and
 `@flue/sdk` bonus), voice dock documented and checked against KA's `submitText`
 path. Mission 1 is accepted; close report is
-[`docs/mission-archive/1-bare-petrinaut-flue-chat.md`](../../../mission-archive/1-bare-petrinaut-flue-chat.md).
+[`docs/mission-archive/1-bare-petrinaut-flue-chat.md`](../../mission-archive/1-bare-petrinaut-flue-chat.md).

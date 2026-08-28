@@ -5,7 +5,7 @@ remediation sweep (FE-1401): builder's account, spec-discharge note, write-time 
 assessment against penciled item 7, the commit-message backfill (applied to the branch), and a
 live-probed verification of the FE-1419 refactor queue's capture-store claims. Agent-authored
 under instruction; reviewed before landing. Companion rendering:
-[`capture-store.md`](../../../reference/architecture/capture-store.md).
+[`capture-store.md`](../../reference/architecture/capture-store.md).
 
 ## Builder's account
 

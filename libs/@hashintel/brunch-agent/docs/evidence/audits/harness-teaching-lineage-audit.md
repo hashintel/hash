@@ -6,7 +6,7 @@
 > any one plugin. Produced 2026-08-25 from three full-read sweeps (specs, ADRs, and control
 > surfaces; archive and reference; evidence, evaluations, inbox, agent protocols, and source
 > prose) plus the Linear record of FE-1360, FE-1364, FE-1397, FE-1403, FE-1406, and FE-1407. It
-> feeds [ADR-0007](../../../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md)
+> feeds [ADR-0007](../../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md)
 > and is evidence, not authority: where it quotes a document, that document governs. Counts are
 > case-insensitive occurrence counts over the named trees at the audit date.
 
@@ -25,7 +25,7 @@ Each entry: when, where, what the idea was called, which layer it was put in, wh
 enumerated, and what became of it.
 
 **2026-08-06 — the two intake documents.** The agentic-elicitation challenges and criteria
-papers (`docs/reference/agentic-elicitation-*.md`) call the craft _lenses_ plus a
+papers (`docs/research/agentic-elicitation-*.md`) call the craft _lenses_ plus a
 _DialoguePolicy_: "the agentic part is primarily deciding which lenses are relevant, what to ask
 next, and when to stop." Plugins "contribute domain knowledge without independently taking over
 the conversation"; the runtime decides "whether this matters" and "how to phrase the question."

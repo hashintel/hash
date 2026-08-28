@@ -2,7 +2,7 @@
 
 Compiled 2026-08-28 as a read-only research compilation from local Brunch sources after
 Mission 3's headless runbook proof
-([fe-1525-headless-runbook-pn](../../evidence/proofs/implementations/fe-1525-headless-runbook-pn.md)).
+([fe-1525-headless-runbook-pn](../../evidence/implementations/fe-1525-headless-runbook-pn.md)).
 Specs, ADRs, prior prompts, and research notes are evidence and hypotheses, not automatically
 current authority (`AGENTS.md`). Status labels in the four notes: **Observed**, **Inferred**,
 **Proposed**. These notes do not amend `MISSION.md` or the skill resources.

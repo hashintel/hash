@@ -1,7 +1,7 @@
 # Elicitation strategy: what the literature already knows
 
 Resolves the research half of FE-1360. Companion to
-[open-questions-elicitation-design-2026-08-11](../../archive/external-snapshots/open-questions-elicitation-design-2026-08-11.md)
+[open-questions-elicitation-design-2026-08-11](../../archive/design/open-questions-elicitation-design-2026-08-11.md)
 (the question inventory) and
 [expert-meeting-findings-2026-08-11](../../evidence/proofs/research/expert-meeting-findings-2026-08-11.md)
 (which established that there is no in-house interviewing practice to elicit from, activating

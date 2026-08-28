@@ -2,7 +2,7 @@
 
 Resolves FE-1359. Written 2026-08-11 against
 [`spec.md`](../specs/elicitation-kernel.md) (draft assembled 2026-08-10, reviewed twice since),
-the inbox note [voice-implementation-recommendation-pplx](../reference/voice-implementation-recommendation-pplx.md),
+the inbox note [voice-implementation-recommendation-pplx](./voice-implementation-recommendation-pplx.md),
 the three prototype branches (`prototype/10-flue-roundtrip`, `prototype/11-capture-sweep`,
 `prototype/13-sweep-seam`), and web verification of the provider landscape (sources at the end).
 
@@ -628,7 +628,7 @@ Spec and repo (primary):
 
 Provider and practice (web, fetched 2026-08-11):
 
-- [`docs/reference/voice-implementation-recommendation-pplx.md`](../reference/voice-implementation-recommendation-pplx.md)
+- [`docs/research/voice-implementation-recommendation-pplx.md`](./voice-implementation-recommendation-pplx.md)
   — the prior recommendation this document refines and partly dissents from
 - [ElevenLabs Speech Engine overview](https://elevenlabs.io/docs/overview/capabilities/speech-engine)
   — "adds voice capabilities to any chat agent"; "your server provides the LLM logic"; SDK "manages

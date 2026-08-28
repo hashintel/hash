@@ -1,7 +1,7 @@
 # Completion without pretending the conversation is finished
 
 This is the plain-language rendering of the provisional
-[target-document completion contract](../../../specs/elicitation-completion.md). The specification
+[target-document completion contract](../../specs/elicitation-completion.md). The specification
 is the required-behavior authority. This rendering is a legibility check: it explains the same
 rules without the declaration notation and records where that translation strained.
 

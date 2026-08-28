@@ -6,10 +6,10 @@ Implement only through a live mission.
 
 Sources:
 
-- [`../reference/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md`](../reference/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md)
+- [`../reference/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md`](../research/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md)
 - [`elicitation-completion.md`](elicitation-completion.md)
 - [`structurally-typed-elicitation-runbooks.md`](structurally-typed-elicitation-runbooks.md)
-- [`../evidence/proofs/implementations/fe-1525-headless-runbook-pn.md`](../evidence/proofs/implementations/fe-1525-headless-runbook-pn.md)
+- [`../evidence/proofs/implementations/fe-1525-headless-runbook-pn.md`](../evidence/implementations/fe-1525-headless-runbook-pn.md)
 - [`../../MISSION.next.md`](../../MISSION.next.md)
 
 ## Verification stance

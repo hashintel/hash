@@ -1,7 +1,7 @@
 # IR worked examples — Layer-A validation (FE-1397)
 
 Resolved 2026-08-13. This document discharges the ratification condition on the generic IR
-definition ([`ir-design.md`](../../../specs/intermediate-representation.md), Layer A): speculative payload type systems drafted
+definition ([`ir-design.md`](../../specs/intermediate-representation.md), Layer A): speculative payload type systems drafted
 across three plugin targets at different complexity levels, each checked against the five MUST
 properties and three MAY patterns. **Desk validation only** — nothing here has run through a
 working harness; Layer-A claims stay provisional until the September build exercises them.

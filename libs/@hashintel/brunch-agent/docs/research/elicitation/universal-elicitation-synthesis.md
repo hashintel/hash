@@ -16,9 +16,9 @@ workpiece, independent of later formal construction.
 [frontier-model-elicitor-failure-catalogue](frontier-model-elicitor-failure-catalogue.md). Design
 hypotheses: `docs/specs/elicitation-to-ir-oracle-design.md`,
 `docs/specs/structurally-typed-elicitation-runbooks.md`, `docs/specs/elicitation-completion.md`,
-`docs/reference/agentic-elicitation-challenges-2026-08-06T10-02-41Z.md`,
-`docs/reference/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md`. Observed runs:
-`docs/evidence/proofs/implementations/fe-1525-headless-runbook-pn.md` and the two 2026-08-28
+`docs/research/agentic-elicitation-challenges-2026-08-06T10-02-41Z.md`,
+`docs/research/agentic-elicitation-criteria-2026-08-06T14-11-18Z.md`. Observed runs:
+`docs/evidence/implementations/fe-1525-headless-runbook-pn.md` and the two 2026-08-28
 headless transcripts it cites.
 
 This document does not prescribe destination-formalism investigation, construction mapping, or

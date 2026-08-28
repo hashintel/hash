@@ -37,7 +37,7 @@ and the repertoire were written against this shape together.
 ## Cycle 2 — input, 2026-08-25
 
 What the first cycle's "validate" step returned. Source: the desk pressure review
-[`docs/evidence/proofs/design/plugin-keys-pressure-review-cycle-1.md`](../../../docs/evidence/proofs/design/plugin-keys-pressure-review-cycle-1.md)
+[`docs/evidence/design/plugin-keys-pressure-review-cycle-1.md`](../../../docs/evidence/design/plugin-keys-pressure-review-cycle-1.md)
 (100 situations from the CPS process-modelling material, the literature review,
 and the condition-2 run; a discrete-event and a formal-verification plugin
 sketched against the keys). The condition-4 baseline run (the rendered layer as

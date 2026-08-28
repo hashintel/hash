@@ -15,7 +15,7 @@ at `docs/evidence/evaluations/vestera-runbook-headless/runbook-headless-2026-08-
 (Run 1) and
 `…/runbook-headless-2026-08-28T11-03-53-683Z.ir.md` (Run 2); matching transcripts; construction
 from Run 2 at `…/runbook-validated-construction-2026-08-28T13-02-51-095Z.md`; proof
-`docs/evidence/proofs/implementations/fe-1525-headless-runbook-pn.md`.
+`docs/evidence/implementations/fe-1525-headless-runbook-pn.md`.
 
 ---
 

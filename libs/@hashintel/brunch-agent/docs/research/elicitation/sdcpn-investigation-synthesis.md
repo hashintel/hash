@@ -101,7 +101,7 @@ parts, code surfaces, or payload fields.
 
 **Rabbit holes unless the objective requires them.** Formal 12-component specifications;
 structural reachability/boundedness/liveness proofs once quantities are continuous
-(`docs/reference/2026-08 SDCPNs for cyber-physical systems.md`, “Structural guarantees”);
+(`docs/reference/hash-documents/2026-08 SDCPNs for cyber-physical systems.md`, “Structural guarantees”);
 stochastic differential noise; rare-event acceleration; lot-splitting and multi-depot fidelity
 the published models themselves treat as simplifications; asking the expert to name a
 distribution family; a continuous quantity nobody looks at and that starts or stops nothing;

@@ -96,7 +96,7 @@ kinds, slots, proposal types, precision grades, fold rules, or typed completion 
 with four supporting resources. Headless drive is `createFlueClient` → `send` → `wait` →
 `history()`. Tools on the interview path: `activate_skill`, `read_skill_resource` only.
 `wroteCaptureStore: false`
-(`docs/evidence/proofs/implementations/fe-1525-headless-runbook-pn.md`).
+(`docs/evidence/implementations/fe-1525-headless-runbook-pn.md`).
 
 **Observed.** The filled IR is recovered by scraping the last `runbook-ir` fence from assistant
 text in Flue history. There is no `usePersistentState` and no capture store. The model sometimes

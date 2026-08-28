@@ -474,7 +474,7 @@ each successor performs.
   and its information-wall account.
 - [Indexed interviewing source catalogue](interviewing-literature-source-catalog.md) and
   [elicitation strategy synthesis](elicitation-strategy-literature.md).
-- [Research-patterns audit](../../evidence/proofs/audits/research-patterns-audit.md), which
+- [Research-patterns audit](../../evidence/audits/research-patterns-audit.md), which
   identifies the novice-human population mismatch and the locally synthesized stopping claims.
 - [Elicitation harness specification](../../specs/elicitation-kernel.md) and
   [provisional plugin contract](../../specs/plugin-contract.md) for the prevention mechanisms;
