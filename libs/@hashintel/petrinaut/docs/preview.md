@@ -34,10 +34,17 @@ the preview never starts it automatically. The same bar lets you pause, reset,
 choose from the playback speeds allowed by the embed, and scrub through the
 frames that have been produced.
 
+As soon as frames arrive, the compact bar expands upward to show a small
+timeline. The timeline follows playback, lets you hover to inspect a series,
+and supports clicking or dragging to scrub the canvas to another frame. It
+collapses again when you reset the simulation. This expansion is animated when
+Petrinaut animations are enabled and reduced-motion is not requested.
+
 Quick Simulation uses a fixed time step and time horizon selected by the embed.
-It intentionally does not expose the full Simulate workspace, timeline chart,
-or controls for changing those run settings. Scenario parameters are limited
-to the safe ranges chosen for that embedded example.
+It intentionally does not expose the full Simulate workspace, timeline-series
+configuration, metric authoring, or controls for changing those run settings.
+Scenario parameters are limited to the safe ranges chosen for that embedded
+example.
 
 ## Navigation and embedding
 

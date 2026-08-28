@@ -3,9 +3,12 @@ import { use, useRef, useState } from "react";
 import { Button, Icon, Popover } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { ExecutionFrameSourceContext } from "../../react/execution-frame/context";
 import { SimulationContext } from "../../react/simulation/context";
 import { ActiveNetContext } from "../../react/state/active-net-context";
+import { UserSettingsContext } from "../../react/state/user-settings-context";
 import { SimulationControls } from "../views/Editor/components/BottomBar/simulation-controls";
+import { SimulationTimeline } from "../views/Editor/panels/BottomPanel/subviews/simulation-timeline/content";
 import { SimulationScenarioControls } from "../views/shared/simulation-scenario-controls";
 
 import type { PetrinautPreviewQuickSimulation } from "./quick-simulation";
@@ -26,21 +29,72 @@ const playbackPositionStyle = css({
   bottom: "3",
   zIndex: "[calc(var(--z-index-sticky) + 1)]",
   transform: "translateX(-50%)",
-  maxWidth: "[calc(100% - 24px)]",
+  width: "[calc(100% - 24px)]",
+  maxWidth: "[420px]",
   padding: "1",
-  overflowX: "auto",
+  overflow: "hidden",
   borderWidth: "thin",
   borderColor: "neutral.a50",
   borderRadius: "xl",
   backgroundColor: "white.a95",
   boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.12)]",
+  "&[data-expanded='true']": {
+    maxWidth: "[720px]",
+  },
+  "&[data-animated='true']": {
+    transition: "[max-width 180ms ease-in-out]",
+    "@media (prefers-reduced-motion: reduce)": {
+      transition: "[none]",
+    },
+  },
 });
 
-const playbackControlsStyle = css({
+const playbackControlsScrollStyle = css({
+  width: "full",
+  minWidth: "0",
+  overflowX: "auto",
+});
+
+const playbackControlsRowStyle = css({
   display: "flex",
   alignItems: "center",
+  justifyContent: "center",
   gap: "1",
-  minWidth: "[max-content]",
+  width: "[max-content]",
+  minWidth: "full",
+});
+
+const timelineRevealStyle = css({
+  display: "grid",
+  gridTemplateRows: "[0fr]",
+  opacity: "0",
+  pointerEvents: "none",
+  "&[data-expanded='true']": {
+    gridTemplateRows: "[1fr]",
+    opacity: "1",
+    pointerEvents: "auto",
+  },
+  "&[data-animated='true']": {
+    transition:
+      "[grid-template-rows 180ms ease-in-out, opacity 140ms ease-in-out]",
+    "@media (prefers-reduced-motion: reduce)": {
+      transition: "[none]",
+    },
+  },
+});
+
+const timelineClipStyle = css({
+  minHeight: "0",
+  overflow: "hidden",
+});
+
+const timelineStyle = css({
+  height: "[clamp(60px, 20vh, 116px)]",
+  minHeight: "0",
+  marginTop: "1",
+  paddingTop: "1",
+  borderTopWidth: "thin",
+  borderColor: "neutral.bd.subtle",
 });
 
 const configurationLabelStyle = css({
@@ -94,18 +148,42 @@ export const PreviewSimulationPlaybackControls = ({
 }: Pick<PetrinautPreviewQuickSimulation, "allowedPlaybackSpeeds">) => {
   const { activeSubnetId } = use(ActiveNetContext);
   const { scenarioCompilationErrors } = use(SimulationContext);
+  const { totalFrames } = use(ExecutionFrameSourceContext);
+  const { showAnimations } = use(UserSettingsContext);
+  const expanded = totalFrames > 0;
 
   return (
-    <div className={playbackPositionStyle}>
-      <div className={playbackControlsStyle}>
-        <SimulationControls
-          allowedPlaybackSpeeds={
-            allowedPlaybackSpeeds?.length ? allowedPlaybackSpeeds : undefined
-          }
-          disabled={scenarioCompilationErrors !== null}
-          inSubnet={activeSubnetId !== null}
-        />
+    <section
+      aria-label="Simulation playback"
+      className={playbackPositionStyle}
+      data-animated={showAnimations}
+      data-expanded={expanded}
+      data-state={expanded ? "expanded" : "collapsed"}
+    >
+      <div className={playbackControlsScrollStyle}>
+        <div className={playbackControlsRowStyle}>
+          <SimulationControls
+            allowedPlaybackSpeeds={
+              allowedPlaybackSpeeds?.length ? allowedPlaybackSpeeds : undefined
+            }
+            disabled={scenarioCompilationErrors !== null}
+            inSubnet={activeSubnetId !== null}
+          />
+        </div>
       </div>
-    </div>
+      <div
+        aria-hidden={!expanded}
+        className={timelineRevealStyle}
+        data-animated={showAnimations}
+        data-expanded={expanded}
+        data-preview-timeline=""
+      >
+        <div className={timelineClipStyle}>
+          <div className={timelineStyle}>
+            <SimulationTimeline showLegend={false} />
+          </div>
+        </div>
+      </div>
+    </section>
   );
 };
