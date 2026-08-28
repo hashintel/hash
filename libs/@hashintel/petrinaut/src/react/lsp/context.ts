@@ -59,6 +59,12 @@ export interface LanguageClientContextValue {
    * result.
    */
   requestScenarioHir: (scenario: ScenarioLoweringInput) => Promise<ScenarioHir>;
+  /**
+   * Re-print a single scenario-expression canonically (normalized spacing,
+   * minimal parentheses, numeric literals preserved). Resolves null when the
+   * code does not lower — keep the user's text in that case.
+   */
+  requestFormatExpression: (code: string) => Promise<string | null>;
   /** Initialize a temporary scenario editing session. */
   initializeScenarioSession: (params: ScenarioSessionParams) => void;
   /** Update a scenario editing session. */
@@ -79,7 +85,8 @@ export interface LanguageClientContextValue {
   killMetricSession: (sessionId: string) => void;
 }
 
-const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
+/** The inert default: no worker wired — requests resolve to empty results. */
+export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
   diagnosticsByUri: new Map(),
   totalDiagnosticsCount: 0,
   errorDiagnosticsCount: 0,
@@ -105,6 +112,7 @@ const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
       parameterOverrides: {},
       placeExpressions: {},
     }),
+  requestFormatExpression: () => Promise.resolve(null),
   initializeScenarioSession: () => {},
   updateScenarioSession: () => {},
   killScenarioSession: () => {},
@@ -117,5 +125,5 @@ const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
 };
 
 export const LanguageClientContext = createContext<LanguageClientContextValue>(
-  DEFAULT_CONTEXT_VALUE,
+  DEFAULT_LANGUAGE_CLIENT_CONTEXT,
 );

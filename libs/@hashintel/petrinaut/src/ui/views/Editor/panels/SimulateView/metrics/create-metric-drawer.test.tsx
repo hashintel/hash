@@ -46,6 +46,7 @@ function makeLanguageClientValue(): LanguageClientContextValue {
         placeExpressions: {},
       }),
     ),
+    requestFormatExpression: vi.fn(() => Promise.resolve(null)),
     requestHirArtifacts: vi.fn(() =>
       Promise.resolve({
         artifacts: {

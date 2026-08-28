@@ -134,7 +134,9 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   bare = false,
 }) => {
   const sessionId = useAdHocLspSession(state);
-  const { diagnosticsByUri } = use(LanguageClientContext);
+  const { diagnosticsByUri, requestFormatExpression } = use(
+    LanguageClientContext,
+  );
   // Every edit below is an action dispatched through the history: the pure
   // reducer in petrinaut-core computes the next state, and Cmd/Ctrl+Z
   // anywhere in the form (open text fields excepted — those own their own
@@ -233,6 +235,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     },
     highlight,
     setFocusedValue,
+    formatExpression: requestFormatExpression,
     dense: bare,
   };
 

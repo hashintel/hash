@@ -56,6 +56,11 @@ export interface AdHocFormServices {
   /** Reports which value or row holds focus, driving the highlight. */
   setFocusedValue: (target: AdHocFocusTarget | null) => void;
   /**
+   * Re-prints a valid expression canonically (via the language worker).
+   * Resolves null when the code does not lower — the text stays untouched.
+   */
+  formatExpression: (code: string) => Promise<string | null>;
+  /**
    * The embedded rendering (`bare`): smaller place titles, tighter
    * spacing — for hosts that show the form inside an already-dense panel.
    */
@@ -72,5 +77,6 @@ export const AdHocFormContext = createContext<AdHocFormServices>({
   uriFor: () => "",
   highlight: EMPTY_AD_HOC_HIGHLIGHT,
   setFocusedValue: () => {},
+  formatExpression: () => Promise.resolve(null),
   dense: false,
 });

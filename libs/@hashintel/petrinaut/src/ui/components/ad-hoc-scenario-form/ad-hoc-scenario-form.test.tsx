@@ -13,6 +13,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
 
+import {
+  DEFAULT_LANGUAGE_CLIENT_CONTEXT,
+  LanguageClientContext,
+} from "../../../react/lsp/context";
 import { AdHocScenarioForm } from "./ad-hoc-scenario-form";
 
 import type { AdHocFormSelection } from "./form-context";
@@ -484,6 +488,42 @@ describe("AdHocScenarioForm", () => {
     expect(colouredPlace(latest).rows).toHaveLength(0);
     await new Promise((resolve) => {
       setTimeout(resolve, 0);
+    });
+  });
+
+  it("re-prints a committed expression through the format service", async () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <LanguageClientContext.Provider
+        value={{
+          ...DEFAULT_LANGUAGE_CLIENT_CONTEXT,
+          requestFormatExpression: (code) =>
+            Promise.resolve(code === "1+2" ? "1 + 2" : null),
+        }}
+      >
+        <Harness
+          onState={(state) => {
+            latest = state;
+          }}
+        />
+      </LanguageClientContext.Provider>,
+    );
+
+    // Materializing opens the fresh cell's editor (the mocked textarea).
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+    const editor = screen.getByRole("textbox", { name: "Expression" });
+    fireEvent.change(editor, { target: { value: "1+2" } });
+
+    // Escape closes the slab; the committed text comes back formatted.
+    fireEvent.keyDown(editor, { key: "Escape" });
+    await waitFor(() => {
+      const row = colouredPlace(latest).rows[0];
+      if (row?.kind !== "fixed") {
+        throw new Error("expected a fixed row");
+      }
+      expect(row.cells[0]?.expression).toBe("1 + 2");
     });
   });
 

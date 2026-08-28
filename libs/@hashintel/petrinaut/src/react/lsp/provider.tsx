@@ -111,6 +111,7 @@ export const LanguageClientProvider: React.FC<{
     requestSignatureHelp: client.requestSignatureHelp,
     requestHirArtifacts: client.requestHirArtifacts,
     requestScenarioHir: client.requestScenarioHir,
+    requestFormatExpression: client.requestFormatExpression,
     initializeScenarioSession: client.initializeScenarioSession,
     updateScenarioSession: client.updateScenarioSession,
     killScenarioSession: client.killScenarioSession,

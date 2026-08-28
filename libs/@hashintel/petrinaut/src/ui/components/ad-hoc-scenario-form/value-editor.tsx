@@ -416,6 +416,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     selection,
     highlight,
     setFocusedValue,
+    formatExpression,
     dispatch,
   } = use(AdHocFormContext);
   const label = adHocTargetLabel(target, formState, synthesisContext);
@@ -451,12 +452,52 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   // Opening the slab selects the Min cell once; reset per open.
   const minAutoSelectedRef = useRef(false);
 
+  // Value slots carry Optimize toggles only in optimize mode; expose mode
+  // marks whole top-level Variables (in their own rows), never value slots.
+  const selectable = selection === "optimize";
+  const optimized = selectable && value.optimize !== null;
+  // Closing the slab commits the expression, and a valid one is re-printed
+  // canonically (worker-side, from the lowered tree) — normalized spacing,
+  // minimal parentheses, literals preserved. The nonce discards a response
+  // that arrives after the editor reopened or after a newer commit.
+  const formatNonceRef = useRef(0);
+  const commitFormat = () => {
+    if (optimized) {
+      return;
+    }
+    const expression =
+      monacoRef.current?.getModel()?.getValue() ?? value.expression;
+    if (expression.trim() === "") {
+      return;
+    }
+    formatNonceRef.current += 1;
+    const nonce = formatNonceRef.current;
+    void formatExpression(expression).then((formatted) => {
+      if (
+        nonce !== formatNonceRef.current ||
+        formatted === null ||
+        formatted === expression
+      ) {
+        return;
+      }
+      dispatch({ type: "setExpression", target, expression: formatted });
+    });
+  };
+  // The overlay effect's close paths call through a ref, so the effect does
+  // not depend on (and re-subscribe over) the commit closure.
+  const commitFormatRef = useRef(commitFormat);
+  useEffect(() => {
+    commitFormatRef.current = commitFormat;
+  });
+
   // Opening announces itself so any other open editor yields. The dispatch
   // lives in an effect, never in render: the listeners call other
   // components' setState, and this also covers an editor that mounts
   // already open (a materialized phantom row's cell).
   useEffect(() => {
     if (open) {
+      // Reopening abandons any in-flight format from the previous close.
+      formatNonceRef.current += 1;
       window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: editorId }));
     }
   }, [open, editorId]);
@@ -496,6 +537,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     editorInstance.setValue(next);
     editorInstance.setPosition({ lineNumber: 1, column: next.length + 1 });
   };
+
   const [rect, setRect] = useState<{
     top: number;
     left: number;
@@ -541,6 +583,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     }
     const onAnotherEditorOpen = (event: Event) => {
       if ((event as CustomEvent<string>).detail !== editorId) {
+        commitFormatRef.current();
         setOpenState(false);
       }
     };
@@ -553,6 +596,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
           !overlay.contains(event.target) &&
           !buttonRef.current?.contains(event.target)
         ) {
+          commitFormatRef.current();
           setOpenState(false);
         }
       }
@@ -608,6 +652,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
         setTimeout(() => boundRefs.current.get(key)?.focus(), 0);
         return;
       }
+      commitFormatRef.current();
       setOpenState(false);
       buttonRef.current?.focus();
     };
@@ -624,6 +669,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
         ? new IntersectionObserver(
             (entries) => {
               if (entries.some((entry) => !entry.isIntersecting)) {
+                commitFormatRef.current();
                 setOpenState(false);
               }
             },
@@ -643,10 +689,6 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     };
   }, [open, editorId, editingBound]);
 
-  // Value slots carry Optimize toggles only in optimize mode; expose mode
-  // marks whole top-level Variables (in their own rows), never value slots.
-  const selectable = selection === "optimize";
-  const optimized = selectable && value.optimize !== null;
   const isEmpty = !display && !optimized && value.expression.trim() === "";
   const text =
     display ??
@@ -885,6 +927,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                       })
                     }
                     onSubmit={() => {
+                      commitFormat();
                       setOpenState(false);
                       buttonRef.current?.focus();
                     }}
