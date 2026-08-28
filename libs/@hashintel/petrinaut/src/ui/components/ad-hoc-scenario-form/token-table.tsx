@@ -164,11 +164,24 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   const elements = colour.elements;
   const columnCount = elements.length;
   // Nonces, so a repeat click re-triggers the editor's auto-open behaviour.
+  // `pending` marks the one rows change the materialize dispatch is about to
+  // cause; any other rows change (undo, redo, an external reset) clears the
+  // nonce, so a cell re-mounted by a replay never reopens its editor.
   const [materializedCell, setMaterializedCell] = useState<{
     row: number;
     column: number;
     nonce: number;
+    pending: boolean;
   } | null>(null);
+  const [seenRows, setSeenRows] = useState(state.rows);
+  if (state.rows !== seenRows) {
+    setSeenRows(state.rows);
+    if (materializedCell?.pending) {
+      setMaterializedCell({ ...materializedCell, pending: false });
+    } else if (materializedCell) {
+      setMaterializedCell(null);
+    }
+  }
   const [sharedAutoOpen, setSharedAutoOpen] = useState<{
     field: string;
     nonce: number;
@@ -414,6 +427,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
       row: rowIndex,
       column,
       nonce: (previous?.nonce ?? 0) + 1,
+      pending: true,
     }));
   };
 

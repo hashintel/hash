@@ -275,7 +275,20 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
       <FormNavigationContext value={navigation}>
         {/* Undo/redo listens in the capture phase, so it sees keys before any
           cell handler; open text fields and Monaco pass through untouched. */}
-        <div ref={rootRef} onKeyDownCapture={handleKeyDown}>
+        <div
+          ref={rootRef}
+          role="group"
+          aria-label="Ad-hoc scenario definition"
+          onKeyDownCapture={handleKeyDown}
+          // Delete/Backspace acts inside the form (clear a cell, delete a
+          // row) and must never bubble to the app, where it would hit the
+          // canvas's delete-selection shortcut.
+          onKeyDown={(event) => {
+            if (event.key === "Delete" || event.key === "Backspace") {
+              event.stopPropagation();
+            }
+          }}
+        >
           <SectionList>
             {variableRows ? (
               <NavigableSection

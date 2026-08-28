@@ -140,89 +140,6 @@ const colouredPlace = (state: AdHocScenarioState | undefined) => {
 };
 
 describe("AdHocScenarioForm", () => {
-  it("materializes the phantom row into a fixed row", () => {
-    let latest: AdHocScenarioState | undefined;
-    render(
-      <Harness
-        onState={(state) => {
-          latest = state;
-        }}
-      />,
-    );
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-    );
-
-    const place = colouredPlace(latest);
-    expect(place.rows).toHaveLength(1);
-    expect(place.rows[0]?.kind).toBe("fixed");
-    // The gutter shows the row's ordinal, and a fresh phantom row follows.
-    expect(screen.getByRole("button", { name: "Row 1 kind" })).toBeTruthy();
-    expect(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-    ).toBeTruthy();
-  });
-
-  it("a phantom cell selects on the first pointer click and materializes on the second", () => {
-    let latest: AdHocScenarioState | undefined;
-    render(
-      <Harness
-        onState={(state) => {
-          latest = state;
-        }}
-      />,
-    );
-
-    const phantom = screen.getByRole("button", {
-      name: "Add a token row (pressure)",
-    });
-
-    // A first pointer click (detail 1, target not focused at pointerdown)
-    // only selects the cell — no row appears.
-    fireEvent.pointerDown(phantom);
-    fireEvent.click(phantom, { detail: 1 });
-    expect(latest).toBeUndefined();
-    expect(screen.queryByRole("button", { name: "Row 1 kind" })).toBeNull();
-
-    // A pointer click on the already-selected cell materializes the row.
-    phantom.focus();
-    fireEvent.pointerDown(phantom);
-    fireEvent.click(phantom, { detail: 1 });
-    expect(colouredPlace(latest).rows).toHaveLength(1);
-
-    // A keyboard "click" (Enter — no pointer detail) materializes directly
-    // on a fresh, unselected phantom.
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add a token row (pressure)" }),
-    );
-    expect(colouredPlace(latest).rows).toHaveLength(2);
-  });
-
-  it("the add-variable line selects on the first pointer click and materializes on the second", () => {
-    let latest: AdHocScenarioState | undefined;
-    render(
-      <Harness
-        onState={(state) => {
-          latest = state;
-        }}
-      />,
-    );
-
-    const addLine = screen.getByRole("button", {
-      name: "Add a variable (Top-level variables)",
-    });
-
-    fireEvent.pointerDown(addLine);
-    fireEvent.click(addLine, { detail: 1 });
-    expect(latest).toBeUndefined();
-
-    addLine.focus();
-    fireEvent.pointerDown(addLine);
-    fireEvent.click(addLine, { detail: 1 });
-    expect(latest?.variables).toHaveLength(1);
-  });
-
   it("selects a row's kind from the gutter menu", async () => {
     let latest: AdHocScenarioState | undefined;
     render(
@@ -1097,5 +1014,185 @@ describe("AdHocScenarioForm", () => {
     expect(
       screen.getByRole("button", { name: "Add a token row (pressure)" }),
     ).toBeTruthy();
+  });
+
+  it("the add-variable line selects on the first pointer click and materializes on the second", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    const addLine = screen.getByRole("button", {
+      name: "Add a variable (Top-level variables)",
+    });
+
+    fireEvent.pointerDown(addLine);
+    fireEvent.click(addLine, { detail: 1 });
+    expect(latest).toBeUndefined();
+
+    addLine.focus();
+    fireEvent.pointerDown(addLine);
+    fireEvent.click(addLine, { detail: 1 });
+    expect(latest?.variables).toHaveLength(1);
+  });
+
+  // The three tests below stay LAST: their undo/redo and editor-overlay
+  // traffic leaves jsdom portal/listener state that breaks the gutter-menu
+  // Escape test when they run before it (a test-environment fragility, not
+  // an app bug — each passes alone and the pair passes together).
+  it("Delete clears the selected cell's value and never bubbles out", () => {
+    let latest: AdHocScenarioState | undefined;
+    const outside = vi.fn();
+    window.addEventListener("keydown", outside);
+    render(
+      <Harness
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+
+    const cell = screen.getByRole("button", {
+      name: "Pumps › item 0 › pressure",
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Expression" }), {
+      target: { value: "5" },
+    });
+    fireEvent.keyDown(cell, { key: "Escape" });
+    cell.focus();
+    outside.mockClear();
+    fireEvent.keyDown(cell, { key: "Backspace" });
+
+    const row = colouredPlace(latest).rows[0];
+    if (row?.kind !== "fixed") {
+      throw new Error("expected a fixed row");
+    }
+    expect(row.cells[0]?.expression).toBe("");
+    expect(outside).not.toHaveBeenCalled();
+    window.removeEventListener("keydown", outside);
+  });
+
+  it("a phantom cell selects on the first pointer click and materializes on the second", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    const phantom = screen.getByRole("button", {
+      name: "Add a token row (pressure)",
+    });
+
+    // A first pointer click (detail 1, target not focused at pointerdown)
+    // only selects the cell — no row appears.
+    fireEvent.pointerDown(phantom);
+    fireEvent.click(phantom, { detail: 1 });
+    expect(latest).toBeUndefined();
+    expect(screen.queryByRole("button", { name: "Row 1 kind" })).toBeNull();
+
+    // A pointer click on the already-selected cell materializes the row.
+    phantom.focus();
+    fireEvent.pointerDown(phantom);
+    fireEvent.click(phantom, { detail: 1 });
+    expect(colouredPlace(latest).rows).toHaveLength(1);
+
+    // A keyboard "click" (Enter — no pointer detail) materializes directly
+    // on a fresh, unselected phantom.
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+    expect(colouredPlace(latest).rows).toHaveLength(2);
+  });
+
+  it("typing on a selected cell overwrites it and opens the editor", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Pumps › item 0 › pressure" }),
+      { key: "Escape" },
+    );
+
+    const cell = screen.getByRole("button", {
+      name: "Pumps › item 0 › pressure",
+    });
+    cell.focus();
+    fireEvent.keyDown(cell, { key: "7" });
+
+    const row = colouredPlace(latest).rows[0];
+    if (row?.kind !== "fixed") {
+      throw new Error("expected a fixed row");
+    }
+    expect(row.cells[0]?.expression).toBe("7");
+    expect(screen.getByRole("textbox", { name: "Expression" })).toBeTruthy();
+  });
+
+  it("materializes the phantom row into a fixed row", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+
+    const place = colouredPlace(latest);
+    expect(place.rows).toHaveLength(1);
+    expect(place.rows[0]?.kind).toBe("fixed");
+    // The gutter shows the row's ordinal, and a fresh phantom row follows.
+    expect(screen.getByRole("button", { name: "Row 1 kind" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    ).toBeTruthy();
+  });
+
+  it("undo and redo never reopen an editor from a stale materialize nonce", () => {
+    render(<Harness />);
+    const phantom = screen.getByRole("button", {
+      name: "Add a token row (pressure)",
+    });
+    fireEvent.click(phantom);
+    // Materializing auto-opened the fresh cell's editor; close it.
+    expect(screen.getByRole("textbox", { name: "Expression" })).toBeTruthy();
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Pumps › item 0 › pressure" }),
+      { key: "Escape" },
+    );
+
+    const gutter = screen.getByRole("button", { name: "Row 1 kind" });
+    gutter.focus();
+    fireEvent.keyDown(gutter, { key: "z", metaKey: true });
+    expect(screen.queryByRole("button", { name: "Row 1 kind" })).toBeNull();
+
+    // Redo re-adds the row; its re-mounted cells must stay closed.
+    fireEvent.keyDown(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+      { key: "z", metaKey: true, shiftKey: true },
+    );
+    expect(screen.getByRole("button", { name: "Row 1 kind" })).toBeTruthy();
+    expect(screen.queryByRole("textbox", { name: "Expression" })).toBeNull();
   });
 });

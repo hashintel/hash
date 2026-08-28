@@ -183,6 +183,13 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
       mountedModel.getValue() !== value
     ) {
       mountedModel.setValue(value);
+      // Typing continues where the synced text ends (a type-to-overwrite
+      // character, a re-formatted commit).
+      const lastLine = mountedModel.getLineCount();
+      editorInstance.setPosition({
+        lineNumber: lastLine,
+        column: mountedModel.getLineMaxColumn(lastLine),
+      });
     }
 
     if (singleLine) {

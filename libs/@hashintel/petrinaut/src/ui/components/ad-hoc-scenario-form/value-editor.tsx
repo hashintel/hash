@@ -260,6 +260,18 @@ export interface ValueEditorProps {
   onTriggerKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
 }
 
+/**
+ * A single printable character, spreadsheet-style typing on a selected cell.
+ * Space stays a keyboard "click" (button activation), and modified keys stay
+ * shortcuts.
+ */
+const isOverwriteKey = (event: React.KeyboardEvent): boolean =>
+  event.key.length === 1 &&
+  event.key !== " " &&
+  !event.metaKey &&
+  !event.ctrlKey &&
+  !event.altKey;
+
 /** The minimum open-editor width; narrow cells grow to stay usable. */
 const MIN_OVERLAY_WIDTH = 220;
 
@@ -355,6 +367,21 @@ const BoundCell: React.FC<BoundCellProps> = ({
           event.preventDefault();
           event.stopPropagation();
           onNavigate(event.key === "ArrowLeft" ? -1 : 1);
+          return;
+        }
+        if (event.key === "Delete" || event.key === "Backspace") {
+          event.preventDefault();
+          event.stopPropagation();
+          if (bound !== "") {
+            onChange("");
+          }
+          return;
+        }
+        if (isOverwriteKey(event)) {
+          event.preventDefault();
+          event.stopPropagation();
+          onChange(event.key);
+          onStartEdit();
         }
       }}
     >
@@ -767,7 +794,32 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
             setOpenState(true);
           }
         }}
-        onKeyDown={onTriggerKeyDown}
+        onKeyDown={(event) => {
+          // Delete/Backspace clears the selected cell's value and never
+          // reaches the app (a bubbled Delete would hit canvas shortcuts).
+          if (event.key === "Delete" || event.key === "Backspace") {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!derived && !optimized && value.expression !== "") {
+              dispatch({ type: "setExpression", target, expression: "" });
+            }
+            return;
+          }
+          // Typing on a selected cell overwrites it, spreadsheet-style: the
+          // typed character replaces the value and the editor opens on it.
+          if (!derived && !optimized && isOverwriteKey(event)) {
+            event.preventDefault();
+            event.stopPropagation();
+            dispatch({
+              type: "setExpression",
+              target,
+              expression: event.key,
+            });
+            setOpenState(true);
+            return;
+          }
+          onTriggerKeyDown?.(event);
+        }}
       >
         <span className={triggerTextStyle}>
           {derived ? <>⌃ {text}</> : text}

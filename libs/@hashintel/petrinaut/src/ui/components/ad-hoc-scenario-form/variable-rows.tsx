@@ -228,16 +228,30 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
   // The add-line selects on the first click and materializes on the second.
   const phantomActivation = useSelectFirstActivation();
   // A nonce, so a repeat click re-opens the fresh row's name editor.
+  // `pending` marks the one variables change the materialize dispatch is
+  // about to cause; any other change (undo, redo) clears the nonce, so a
+  // row re-mounted by a replay never reopens its name editor.
   const [materialized, setMaterialized] = useState<{
     index: number;
     nonce: number;
+    pending: boolean;
   } | null>(null);
+  const [seenVariables, setSeenVariables] = useState(variables);
+  if (variables !== seenVariables) {
+    setSeenVariables(variables);
+    if (materialized?.pending) {
+      setMaterialized({ ...materialized, pending: false });
+    } else if (materialized) {
+      setMaterialized(null);
+    }
+  }
 
   const materializeVariable = () => {
     dispatch({ type: "addVariable", placeId });
     setMaterialized((previous) => ({
       index: variables.length,
       nonce: (previous?.nonce ?? 0) + 1,
+      pending: true,
     }));
   };
 
