@@ -110,11 +110,13 @@ const Harness: React.FC<{
   onState?: (state: AdHocScenarioState) => void;
   initial?: AdHocScenarioState;
   withVariables?: boolean;
+  renderLayout?: React.ComponentProps<typeof AdHocScenarioForm>["renderLayout"];
 }> = ({
   selection = "optimize",
   onState,
   initial = EMPTY_AD_HOC_STATE,
   withVariables,
+  renderLayout,
 }) => {
   const [state, setState] = useState(initial);
   return (
@@ -127,6 +129,7 @@ const Harness: React.FC<{
       context={context}
       selection={selection}
       withVariables={withVariables}
+      renderLayout={renderLayout}
     />
   );
 };
@@ -1064,6 +1067,46 @@ describe("AdHocScenarioForm", () => {
     fireEvent.pointerDown(addLine);
     fireEvent.click(addLine, { detail: 1 });
     expect(latest?.variables).toHaveLength(1);
+  });
+
+  it("renderLayout groups are separate keyboard panels", () => {
+    render(
+      <Harness
+        withVariables={false}
+        renderLayout={({ parameters, places }) => (
+          <div>
+            <div>{parameters}</div>
+            <div>{places}</div>
+          </div>
+        )}
+      />,
+    );
+
+    // Down past the parameters grid's last row must not slide into the
+    // places group — the host lays the groups out side by side.
+    const rateValue = screen.getByRole("button", { name: "Rate" });
+    rateValue.focus();
+    fireEvent.keyDown(rateValue, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(rateValue);
+
+    // Up from the places group's first zone must not enter parameters.
+    const pumpsHeader = screen.getByRole("button", { name: "Pumps place" });
+    pumpsHeader.focus();
+    fireEvent.keyDown(pumpsHeader, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(pumpsHeader);
+
+    // Within the places group the walk still chains: up from the token
+    // table's column header lands on the place's own add-variable line.
+    const pressureHeader = screen.getByRole("button", {
+      name: "Share column pressure",
+    });
+    pressureHeader.focus();
+    fireEvent.keyDown(pressureHeader, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", {
+        name: "Add a variable (Variables of Pumps)",
+      }),
+    );
   });
 
   // The three tests below stay LAST: their undo/redo and editor-overlay
