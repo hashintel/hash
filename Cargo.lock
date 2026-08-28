@@ -5975,6 +5975,7 @@ dependencies = [
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-types",
+ "hash-middleware",
  "hash-temporal-client",
  "hashql-core",
  "heed",

@@ -33,7 +33,7 @@ use super::{
 /// Every variant names an input this process produced rather than a request the caller shaped. A
 /// transport answers [`ViewError::Contract`] and [`ViewError::Schedule`] with its internal problem.
 /// [`ViewError::Offset`] is the one a caller can act on. Its token sealed an offset under a
-/// contract this process no longer serves, and a fresh mint reseals it.
+/// contract this process no longer serves, and a fresh issuance reseals it.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum ViewError {
     /// The proof and the schedule it travelled with pair the wrong variants.
@@ -50,7 +50,8 @@ pub(crate) enum ViewError {
     /// An operator proof travelled with a nonzero delivery-cut offset.
     ///
     /// The corpus schedule has one cut per zoom and takes no offset, so an operator view serves at
-    /// offset zero. A nonzero value means a mint sealed and declared an offset no route can serve,
+    /// offset zero. A nonzero value means an issuance sealed and declared an offset no route can
+    /// serve,
     /// and binding refuses it rather than answering corpus bytes under a declared cut nothing
     /// produced.
     Offset(CutOffset),

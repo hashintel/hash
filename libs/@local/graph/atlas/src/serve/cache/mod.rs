@@ -78,7 +78,7 @@ pub(crate) struct PendingCacheEntry {
     cohort: Option<Arc<DeltaSnapshot>>,
     /// The scope's occupancy aggregate, absent for a corpus proof, which takes no cut offset.
     ///
-    /// Aggregated from the resolution before the withdrawal fold, so the cut offset a mint
+    /// Aggregated from the resolution before the withdrawal fold, so the cut offset an issuance
     /// resolves stays a function of the store's answer alone and no snapshot moves it.
     occupancy: Option<ViewOccupancy>,
     /// The entry's estimated weight, folded into moka's weight domain at resolution.
@@ -114,9 +114,9 @@ impl PendingCacheEntry {
     /// lifetime. The entry folds that snapshot's withdrawals out of the proof's masks, so the
     /// masks, the census, and the schedule all describe what the entry can actually serve, and
     /// a request whose ingress capture is this same publication has nothing left to subtract.
-    /// The occupancy aggregate is taken before the fold, so the cut offset a mint resolves
-    /// stays a function of the store's answer alone. The owner ruled that split as it stands:
-    /// the root's aggregates follow the folded view while the mint's input does not.
+    /// The occupancy aggregate is taken before the fold, so the cut offset an issuance resolves
+    /// stays a function of the store's answer alone. The root's aggregates follow the folded
+    /// view while the issuance's input does not.
     ///
     /// Caller requirement: `proof` resolved against that same snapshot, so the slots its node
     /// mask admits are the cohort's own.
@@ -209,9 +209,10 @@ pub(crate) struct CacheEntry {
     cohort: Option<Arc<DeltaSnapshot>>,
     /// The scope's occupancy aggregate, absent for a corpus proof, which takes no cut offset.
     ///
-    /// Aggregated from the resolution before the withdrawal fold, so the cut offset a mint
+    /// Aggregated from the resolution before the withdrawal fold, so the cut offset an issuance
     /// resolves stays a function of the store's answer alone and no snapshot moves it. Holding
-    /// the aggregate here is also what lets a mint answer without a pass over the code column.
+    /// the aggregate here is also what lets an issuance answer without a pass over the code
+    /// column.
     occupancy: Option<ViewOccupancy>,
     /// The delivery schedule of [`Self::proof`]'s view, resolved with it.
     ///
@@ -493,9 +494,9 @@ impl VisibilityCache {
     /// # Errors
     ///
     /// Returns `resolver`'s error when an inline resolution fails, holding no entry. A failed
-    /// resolution publishes nothing, and the requests that shared it share its error. A failed
-    /// refresh leaves the held entry serving and releases the refresh, so the next request past the
-    /// soft window tries again.
+    /// resolution publishes nothing, and the requests that shared it share its error. Failing a
+    /// refresh instead leaves the held entry serving and releases the refresh, so the next request
+    /// past the soft window tries again.
     pub(crate) async fn resolve<R, E>(
         &self,
         key: CacheKey,

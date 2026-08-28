@@ -58,8 +58,8 @@ pub(super) struct CellPath {
 /// `POST /v1/atlas/tile/{generation}/{variant}/{z}/{x}/{y}`: one tile as `SALTILET` bytes.
 ///
 /// An absent body reads as the all-defaults query.
-pub(super) async fn handler(
-    State(state): State<AppState>,
+pub(super) async fn handler<R>(
+    State(state): State<AppState<R>>,
     visibility: Visibility,
     Generation(VariantPath {
         generation,

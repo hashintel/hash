@@ -78,8 +78,8 @@ Filtering binds at the manifest. This body has no `filter` field, and an unknown
 ///
 /// The source's spotlight subgraph, as `SALTILEL` bytes. The source id is the request's subject, so
 /// the route requires the body.
-pub(super) async fn handler(
-    State(state): State<AppState>,
+pub(super) async fn handler<R>(
+    State(state): State<AppState<R>>,
     visibility: Visibility,
     Generation(VariantPath {
         generation,
@@ -192,8 +192,8 @@ impl LocateStore for ChannelLocateStore {
 }
 
 /// Answers one order against the serving store, both halves concurrently.
-async fn hydrate(
-    state: &AppState,
+async fn hydrate<R>(
+    state: &AppState<R>,
     order: LocateOrderMessage,
     masking: MaskingActor,
 ) -> Result<LocateHydration, DetailError> {

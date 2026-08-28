@@ -68,7 +68,8 @@ use crate::{
 /// The inclusive occupied-cell band a scope's delivery aims for.
 ///
 /// Both bounds are public configured constants, positive and ordered `lower ≤ upper`. A count
-/// inside the band sits at distance zero; outside it, its distance is the shortfall or the excess.
+/// inside the band lies at distance zero, and outside it the distance is the shortfall or the
+/// excess.
 ///
 /// Unconfigured, the band runs 2,000 through 4,000 occupied cells.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

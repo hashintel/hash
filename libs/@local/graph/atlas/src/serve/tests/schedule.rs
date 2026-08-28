@@ -76,8 +76,8 @@ pub(super) mod reference {
     /// Assigns first-occupant buckets over exactly `rows`, to the complete key depth.
     ///
     /// Rank order, coarse to fine: a row takes the shallowest depth at which it is the first
-    /// representative of its cell; rows never claiming a cell - co-located at the complete key -
-    /// take the deepest bucket.
+    /// representative of its cell, and rows never claiming a cell - co-located at the complete
+    /// key - take the deepest bucket.
     pub(crate) fn buckets(rows: &[Row]) -> Vec<u8> {
         let mut by_rank: Vec<usize> = (0..rows.len()).collect();
         by_rank.sort_unstable_by_key(|&local| rows[local].rank);
@@ -494,7 +494,7 @@ async fn mismatched_proof_and_schedule_refuse_the_contract() {
 /// An operator proof carrying a nonzero offset refuses at the binding.
 ///
 /// The corpus schedule has one cut per zoom, so an offset into it names bytes no route produces.
-/// The case that reaches here is a token sealed before the mint fixed operator offsets at zero.
+/// The case that reaches here is a token sealed before issuance fixed operator offsets at zero.
 /// Refusing it keeps the manifest's declared cut and the served bytes one statement. The caller's
 /// recovery is a renewal, whose fresh token seals zero.
 ///

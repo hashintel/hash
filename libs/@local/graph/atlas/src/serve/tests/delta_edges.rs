@@ -2,8 +2,8 @@
 //! translate, and locate routes.
 //!
 //! Every case runs the route's own assembly with a real published snapshot, folded, classified,
-//! and placed exactly as the consumer records them, so the witnesses cover the seam rather than
-//! the map lookups alone. A delta link serves when the proof's identity set admits it, the
+//! and placed exactly as the consumer records them, so the witnesses cover the served path rather
+//! than the map lookups alone. A delta link serves when the proof's identity set admits it, the
 //! ingress capture does not withdraw it, and the response's delivered sets hold both of its
 //! endpoints, and it merges into the same ascending identity order the fitted edges answer in.
 //! Translate reads the same publication keyed by identity, its endpoints qualified through the
@@ -1465,8 +1465,8 @@ fn reciprocal_pairs_dataset() -> crate::dataset::memory::MemoryDataset {
 /// Differential over the reciprocal-pair fixture: rank ties at the cap boundary, every cap.
 ///
 /// Edges sharing their less-prominent endpoint share a key rank, so the tie-break law is under
-/// test at every cap that cuts at a tie: a rank equal to the kept worst's must still price the
-/// identity, and the strict form of the rank exclusion is what a `>=` mutation breaks here
+/// test at every cap that cuts at a tie, where a rank equal to the kept worst's must still price
+/// the identity, and the strict form of the rank exclusion is what a `>=` mutation breaks here
 /// while every targeted witness stays green.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
@@ -2427,7 +2427,7 @@ async fn dormant_arrival_publication_shape() {
     );
 }
 
-/// Locate refuses the dormant-endpoint link rather than minting an unindexable endpoint.
+/// Locate refuses the dormant-endpoint link rather than fabricating an unindexable endpoint.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_refuses_dormant_link() {

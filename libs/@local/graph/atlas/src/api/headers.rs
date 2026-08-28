@@ -7,15 +7,15 @@ use aide::openapi;
 
 /// The `current` posture: cached copies revalidate on every read.
 ///
-/// The pointer is the API's one mutable read; a stale copy is exactly the failure the route exists
+/// The pointer is the API's one mutable read. A stale copy is exactly the failure the route exists
 /// to prevent.
 pub(super) const REVALIDATE: &str = "private, no-cache";
 
 /// The authority token header.
 ///
-/// The manifest response mints it, and data requests present it back.
+/// The manifest response issues it, and data requests present it back.
 ///
-/// The canonical spelling is `Atlas-Authority`; the constant is lowercase because static header
+/// The canonical spelling is `Atlas-Authority`. The constant is lowercase because static header
 /// names are, and header matching is case-insensitive either way.
 pub(super) const AUTHORITY: &str = "atlas-authority";
 
@@ -32,48 +32,27 @@ pub(super) const AUTHORITY_DOCUMENTED: &str = "Atlas-Authority";
 /// `no-store` keeps them out of the way.
 pub(super) const NO_STORE: &str = "private, no-store";
 
-/// Whether a documented parameter is mandatory.
+/// Documents the presented authority token's request header, in its required reading.
 ///
-/// Named rather than boolean because the two readings of one header are the whole distinction
-/// between the routes that carry it, and a call site reads that distinction here.
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum Required {
-    /// The route answers nothing without the parameter.
-    Yes,
-    /// The route answers without the parameter.
-    No,
-}
-
-impl From<Required> for bool {
-    fn from(required: Required) -> Self {
-        matches!(required, Required::Yes)
-    }
-}
-
-/// Documents the presented authority token's request header.
-///
-/// `required` separates the two readings. A data route answers nothing without a token, while the
-/// manifest accepts a request that presents none and bootstraps it. The schema pins the alphabet
-/// and not the width, and names no sealed field - the token is opaque to every caller.
+/// The data routes document this parameter as written. The manifest extracts the scope optionally,
+/// and aide derives its documentation from this same parameter, flipping `required`. The
+/// description therefore covers both readings and the flag separates them. The schema pins the
+/// alphabet and not the width, and names no sealed field - the token is opaque to every caller.
 #[expect(
     clippy::default_trait_access,
     reason = "we do not want to pull in a dependency just to pin its default"
 )]
-pub(super) fn presented_authority(required: Required) -> openapi::Parameter {
-    let mandatory = bool::from(required);
-    let description = if mandatory {
-        "the authority token this route requires, as minted into the manifest response's \
-         `Atlas-Authority` header; replay the value verbatim"
-    } else {
-        "the authority token held for this generation, replayed verbatim. Presenting none \
-         bootstraps a view; presenting an expired one renews it"
-    };
+pub(super) fn presented_authority() -> openapi::Parameter {
+    let description = "the authority token present in the response's `Atlas-Authority` header, \
+                       replayed verbatim. Required for any data route. The manifest may supply a \
+                       previously admitted token, in which case certain properties of the token \
+                       are carried forward.";
 
     openapi::Parameter::Header {
         parameter_data: openapi::ParameterData {
             name: AUTHORITY_DOCUMENTED.to_owned(),
             description: Some(description.to_owned()),
-            required: mandatory,
+            required: true,
             deprecated: None,
             format: openapi::ParameterSchemaOrContent::Schema(openapi::SchemaObject {
                 json_schema: schemars::json_schema!({"type": "string", "pattern": "^[0-9a-f]+$"}),
@@ -89,7 +68,7 @@ pub(super) fn presented_authority(required: Required) -> openapi::Parameter {
     }
 }
 
-/// Documents the minted authority token's response header.
+/// Documents the issued authority token's response header.
 ///
 /// The pattern fixes the alphabet and not the width: the width follows from the envelope's
 /// construction, and no client may depend on it.
@@ -100,7 +79,7 @@ pub(super) fn presented_authority(required: Required) -> openapi::Parameter {
 pub(super) fn authority() -> openapi::ReferenceOr<openapi::Header> {
     openapi::ReferenceOr::Item(openapi::Header {
         description: Some(
-            "a freshly minted per-caller authority token, lowercase hexadecimal; present it back \
+            "a freshly issued per-caller authority token, lowercase hexadecimal. Present it back \
              in this same header on every data request"
                 .to_owned(),
         ),

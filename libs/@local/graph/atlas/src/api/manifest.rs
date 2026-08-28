@@ -15,16 +15,17 @@ use axum::{
     http::{HeaderName, HeaderValue, StatusCode, header},
 };
 use hash_graph_store::filter::Filter;
-use type_system::{knowledge::Entity, principal::actor::ActorEntityUuid};
+use rand::TryCryptoRng;
+use type_system::knowledge::Entity;
 
 use super::{
     AppState,
-    authorization::Presented,
+    authorization::Actor,
     clause,
     extract::Generation,
     headers,
-    problem::{Problem, ProblemType, reject_generation, unauthorized},
-    visibility::{self, Actor},
+    problem::{Problem, ProblemType, reject_generation},
+    visibility,
 };
 use crate::{
     file::generation::GenerationId,
@@ -36,7 +37,7 @@ use crate::{
     },
 };
 
-/// The rule by which one mint seals its delivery-cut offset.
+/// The rule by which one issuance seals its delivery-cut offset.
 #[derive(Debug, Copy, Clone)]
 enum OffsetRule {
     /// A first token for this actor, which resolves the wanted view's own offset.
@@ -45,24 +46,25 @@ enum OffsetRule {
     ///
     /// A scoped view keeps the offset it sealed, so the detail a tile carries at a fixed zoom does
     /// not move across a renewal. Zero is what an operator view seals here as everywhere, which
-    /// normalizes a token minted under an older contract instead of carrying its value forward.
+    /// normalizes a token issued under an older contract instead of carrying its value forward.
     Carry(CutOffset),
     /// A token for another view, which keeps the sealed offset unless that view resolves coarser.
     Rebind(CutOffset),
 }
 
-/// The delivery-cut offset one mint seals.
+/// The delivery-cut offset one issuance seals.
 ///
 /// [`CutOffset::ZERO`] whenever no offset is servable. A deployment without a density policy serves
 /// every scope at its recorded cut. An operator view serves the corpus schedule, and an absent
 /// `view` is what says that, so no route can serve corpus bytes while its manifest declares a
 /// deeper cut.
 ///
-/// With a policy and a scoped view, [`OffsetRule`] states which question this mint asks, and the
-/// arithmetic of every answer lives in [`DensityPolicy`]. Every handler path mints through here, so
-/// no branch can seal an offset by a rule of its own. `view` is the scope's entry-held aggregate,
-/// taken from the store's answer alone, so no mint pays an occupancy pass and no snapshot moves
-/// the offset a mint seals. [`OffsetRule::Carry`] never reads it: a session keeping its own view
+/// With a policy and a scoped view, [`OffsetRule`] states which question this issuance asks, and
+/// the arithmetic of every answer lives in [`DensityPolicy`]. Every handler path issues through
+/// here, so no branch can seal an offset by a rule of its own. `view` is the scope's entry-held
+/// aggregate, taken from the store's answer alone, so no issuance pays an occupancy pass and no
+/// snapshot moves the sealed offset. [`OffsetRule::Carry`] never reads it: a session keeping its
+/// own view
 /// keeps the offset it sealed.
 fn sealed_offset(
     density: Option<DensityPolicy>,
@@ -94,7 +96,7 @@ The wire version the binary envelopes speak, the served variant names, the bucke
      one. The response is not cached either: the `Atlas-Authority` header carries a fresh \
      authority token the data routes require, valid for `authorityHardSeconds`. Re-fetch at the \
      `authoritySoftSeconds` cadence, presenting the current token - even expired - in the same \
-     header: a scoped view's sealed delivery depth carries into the fresh mint, so renewing \
+     header: a scoped view's sealed delivery depth carries into the fresh token, so renewing \
      authority does not change the detail a tile carries, and a full-visibility view renews at \
      the corpus cut it serves. There is no separate renewal mode: every request states the view \
      it wants, so a caller that wants its filter must send that filter's exact bytes again. A \
@@ -131,8 +133,9 @@ pub(super) struct GenerationPath {
 /// Bootstrap data for one generation and one caller.
 ///
 /// Every block but one holds for the generation's lifetime. `scopeSchedule` states the delivery cut
-/// this mint resolved and sealed, so the document a caller reads describes the bytes its own routes
-/// answer with. The response carries a freshly minted authority token in the `Atlas-Authority`
+/// this issuance resolved and sealed, so the document a caller reads describes the bytes its own
+/// routes answer with. The response carries a freshly issued authority token in the
+/// `Atlas-Authority`
 /// header, which is the second reason it sends `no-store`. Fetching it also resolves the caller's
 /// scope. A client bootstraps here, so the resolution costs the request that expects a wait rather
 /// than the first tile.
@@ -157,24 +160,17 @@ pub(super) struct GenerationPath {
 /// wanted view and its depth.
 ///
 /// [`DensityPolicy::rebind`]: crate::serve::DensityPolicy::rebind
-pub(super) async fn handler(
-    State(state): State<AppState>,
+pub(super) async fn handler<R>(
+    State(state): State<AppState<R>>,
     Actor(actor): Actor,
-    presented: Presented,
+    carried: Option<Scope>,
     Generation(GenerationPath { generation }): Generation<GenerationPath>,
     body: Bytes,
-) -> Result<impl IntoApiResponse, Problem<'static>> {
+) -> Result<impl IntoApiResponse, Problem<'static>>
+where
+    R: TryCryptoRng,
+{
     reject_generation(&state, generation)?;
-
-    // The contract orders the judgments as the generation above, then the presentation here, then
-    // the body below.
-    let carried = match presented {
-        Presented::Refused => return Err(unauthorized()),
-        Presented::Absent => None,
-        Presented::Carried(scope) => Some(scope),
-    };
-
-    let actor = ActorEntityUuid::from(actor);
 
     // The digest is over the bytes exactly as presented; the parse is the edge validation, and the
     // resolution recompiles the filter from the same bytes.
@@ -236,8 +232,8 @@ pub(super) async fn handler(
 
     let token = state
         .tokens
-        .mint(scope, SystemTime::now())
-        .map_err(|error| Problem::internal(error, "minting the authority token failed"))?;
+        .issue(scope, SystemTime::now())
+        .map_err(|error| Problem::internal(error, "issuing the authority token failed"))?;
 
     Ok((
         [
@@ -285,7 +281,7 @@ impl schemars::JsonSchema for FilterDocument {
 ///
 /// The default response is the catch-all each of the four data routes already declares. The
 /// manifest resolves a caller's scope too, so it answers the same visibility and internal problems
-/// and owes the same declaration; without it the document would promise four statuses for an
+/// and owes the same declaration. Without it the document would promise four statuses for an
 /// operation that has five.
 pub(super) fn document(operation: TransformOperation<'_>) -> TransformOperation<'_> {
     // A bodyless request states the unfiltered view (a bootstrap, or a renewal that removes its
@@ -454,13 +450,13 @@ mod tests {
         );
     }
 
-    /// An operator view seals zero at every mint, over a fixture whose argmin is not zero.
+    /// An operator view seals zero at every issuance, over a fixture whose argmin is not zero.
     ///
     /// The absent occupancy is what an operator proof answers, and the fixture's own argmin is 1,
-    /// so a mint that consulted the policy anyway would seal 1 here and fail all three assertions.
-    /// The carried case is the one that matters after a change: a token minted before this rule
-    /// seals a nonzero offset, and its renewal has to come back at zero rather than carry the bad
-    /// value forward.
+    /// so an issuance that consulted the policy anyway would seal 1 here and fail all three
+    /// assertions. The carried case guards the change boundary, where a token issued before this
+    /// rule seals a nonzero offset and its renewal has to come back at zero rather than carry the
+    /// bad value forward.
     #[test]
     fn operator_view_seals_zero_at_every_mint() {
         assert_eq!(
@@ -564,7 +560,7 @@ mod tests {
 
         assert!(
             headers[super::headers::AUTHORITY_DOCUMENTED].is_object(),
-            "the minted authority header is not declared"
+            "the issued authority header is not declared"
         );
         assert!(
             headers["Cache-Control"].is_object(),

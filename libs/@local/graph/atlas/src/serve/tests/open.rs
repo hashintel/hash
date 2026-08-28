@@ -1,6 +1,6 @@
 //! Cross-artifact agreement at open: each shared-domain disagreement names its own variant.
 //!
-//! `Atlas::open` is the only place that checks the artifacts against each other; every read path
+//! `Atlas::open` is the only place that checks the artifacts against each other. Every read path
 //! below it indexes across them without re-validating. A generation whose artifacts disagree
 //! therefore gets one chance at refusal, and refusing it under the wrong name leaves an operator
 //! little better off than serving it would: the variant is what an operator repairs from.
@@ -263,7 +263,7 @@ fn constant_u32_column(path: &Utf8PathBuf, rows: u64, value: u32) {
 /// One published generation with the counts its tamper witnesses compare against.
 ///
 /// Every tamper test publishes its own fixture and moves a single domain by one row, leaving
-/// the artifact valid at its own format. The rejection must name the tamper's own variant; the
+/// the artifact valid at its own format. The rejection must name the tamper's own variant, and the
 /// test then restores the bytes and reopens. The reopen is the negative control: each rejection
 /// belongs to its tamper rather than to a fixture that had stopped opening unnoticed.
 ///

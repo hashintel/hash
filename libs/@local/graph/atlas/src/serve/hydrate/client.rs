@@ -3,8 +3,8 @@
 //! Live detail reads over the serving store pool.
 //!
 //! Each hydration resolves its identities through the store's own query compiler, so a
-//! statement carries the read path's semantics by construction: the live temporal axes, the
-//! draft exclusion, and the per-actor property masking. A property value leaves the store
+//! statement reads under the live temporal axes and the draft exclusion and masks properties
+//! per actor, by construction. A property value leaves the store
 //! masked for the requesting actor under exactly the conditions the graph's entity reads mask
 //! it - the deployment configures protection and the actor is not an instance admin - and
 //! [`MaskingActor`] carries that actor from the scope's policy resolution into every order.

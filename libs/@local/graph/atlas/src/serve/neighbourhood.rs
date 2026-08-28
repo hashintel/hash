@@ -709,8 +709,8 @@ impl RankCap {
     /// Offers one qualifying candidate, recording the truncation when the selection is full.
     ///
     /// A full selection truncates either way: the offer falls when its key loses to the kept
-    /// worst, and the kept worst falls by eviction when the offer wins. A zero cap truncates
-    /// every offer. Equal keys cannot arrive, because distinct link identities make the key a
+    /// worst, and the kept worst falls by eviction when the offer wins. Under a zero cap every
+    /// offer truncates. Equal keys cannot arrive, because distinct link identities make the key a
     /// total order.
     fn offer(&mut self, key: (EndpointRank, ArchivedEntityId), edge: ServedEdge) {
         if self.kept.len() < self.cap {

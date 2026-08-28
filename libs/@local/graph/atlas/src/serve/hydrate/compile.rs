@@ -32,7 +32,6 @@ use futures::StreamExt as _;
 use hash_graph_authorization::policies::{
     MergePolicies, PolicyComponents,
     action::ActionName,
-    principal::actor::AuthenticatedActor,
     store::{PolicyStore, PrincipalStore, error::ContextCreationError},
 };
 use hash_graph_postgres_store::store::{
@@ -53,7 +52,7 @@ use hashql_core::collections::fast_hash_set;
 use tokio_postgres::GenericClient as _;
 use type_system::{
     knowledge::{Entity, entity::id::EntityUuid},
-    principal::actor_group::WebId,
+    principal::{actor::ActorId, actor_group::WebId},
 };
 use uuid::Uuid;
 
@@ -187,7 +186,7 @@ const fn admits_every_row(
 /// partial row stream admits no rows anywhere.
 #[tracing::instrument(skip_all)]
 pub(crate) async fn visibility_proof<S>(
-    actor: AuthenticatedActor,
+    actor: Option<ActorId>,
     filter: Option<&Filter<'_, Entity>>,
     protection: &PropertyProtectionFilterConfig<'static>,
     store: &S,
@@ -201,8 +200,7 @@ where
     let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
     let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
 
-    let policy_components = PolicyComponents::builder(store)
-        .with_actor(actor)
+    let policy_components = PolicyComponents::builder(store, actor)
         .with_action(ActionName::ViewEntity, MergePolicies::Yes)
         .await
         .map_err(ProofError::Policies)?;

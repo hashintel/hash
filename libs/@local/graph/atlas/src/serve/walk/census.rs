@@ -15,7 +15,7 @@ use crate::{
 
 /// The corpus-wide census of one visible view.
 ///
-/// The aggregates a root tile publishes about the whole view rather than about its own cell: how
+/// The aggregates a root tile publishes about the whole view rather than about its own cell - how
 /// many points the root's schedule delivers, where the visible set lies, and how deep it goes.
 /// Every one of them is a function of the generation's artifacts and the proof alone rather than of
 /// the request, so a scope resolves its census once and every root-tile request under it reads that
@@ -171,7 +171,7 @@ impl Walk<'_> {
     /// key, so it occupies no cell at any depth: the aggregate is a statement about the view and
     /// nothing else.
     ///
-    /// The gather owns its keys, since the fold sorts them; the proof's own visible count sizes the
+    /// The gather owns its keys, since the fold sorts them. The proof's own visible count sizes the
     /// buffer exactly.
     pub(crate) fn visible_occupancy(&self) -> ViewOccupancy {
         let count = self.morton.count();

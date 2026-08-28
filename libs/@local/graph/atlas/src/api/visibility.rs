@@ -1,25 +1,19 @@
 //! One request's visibility, resolved from its admitted authority token.
 //!
 //! A [`VisibilityProof`] masks every corpus-bearing response, and [`Visibility`] is that proof for
-//! one request. Extraction admits the presented token through [`authorization::admit`], then
+//! one request. Extraction admits the presented token through [`Scope`]'s own extraction, then
 //! resolves the scope the token seals (actor and filter digest, the visibility key's own fields)
 //! through the store, held in the visibility cache for its reuse window. A data route that resolves
 //! visibility without an admitted token is unrepresentable, because the key's identity comes out of
 //! the sealed scope.
 //!
-//! The `X-Authenticated-User-Actor-Id` header names the actor, and that header is the trust
-//! boundary the graph's REST API stands on. The gateway authenticates the session and states the
-//! actor, and this process takes the header as that statement. A request carrying no such header is
-//! a malformed request and answers 400. A request whose token refuses answers 401. A request whose
-//! own filter document does not compile answers 400, and a request the store cannot resolve for any
-//! other reason answers 503. [`proof_problem`] is that split. Every refusal happens before any
-//! assembly reads the request.
+//! The caller is whoever the authentication middleware resolved, anonymous included, and the
+//! sealed scope binds that identity. A request whose authentication fails answers the middleware's
+//! own status, a refused token answers 401, a filter document that does not compile answers 400,
+//! and a request the store cannot resolve for any other reason answers 503. [`proof_problem`] is
+//! that split. Every refusal happens before any assembly reads the request.
 
 use alloc::sync::Arc;
-use core::{
-    future::{self, Future},
-    str::FromStr as _,
-};
 use std::time::Instant;
 
 use aide::{OperationInput, generate::GenContext, openapi};
@@ -27,19 +21,19 @@ use axum::{
     extract::FromRequestParts,
     http::{StatusCode, request::Parts},
 };
-use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_postgres_store::store::{PostgresStorePool, error::StoreError};
 use hash_graph_store::{filter::Filter, pool::StorePool as _};
-use type_system::{knowledge::Entity, principal::actor::ActorEntityUuid};
-use uuid::Uuid;
+use rand::TryCryptoRng;
+use type_system::{knowledge::Entity, principal::actor::ActorId};
 
 use super::{
-    AppState, authorization, headers,
-    problem::{Problem, ProblemType, missing_actor, unauthorized, visibility_unavailable},
+    AppState,
+    problem::{Problem, ProblemType, unauthorized, visibility_unavailable},
 };
 use crate::serve::{
     Atlas, CutOffset, DeltaSnapshot, PlacementCohort, View, ViewError, ViewOccupancy,
     VisibilityLimits, VisibilityProof,
+    authorization::Scope,
     cache::{
         CacheEntry, PendingCacheEntry, VisibilityCache,
         scope::{CacheKey, FilterDigest},
@@ -50,12 +44,6 @@ use crate::serve::{
     },
     schedule::ViewSchedule,
 };
-
-/// The header naming the authenticated actor.
-///
-/// Parity with the graph's REST API, which accepts this name, fixes the spelling. Headers this
-/// crate introduces carry no prefix.
-const ACTOR_HEADER: &str = "X-Authenticated-User-Actor-Id";
 
 /// The resolution state behind every [`Visibility`].
 ///
@@ -105,8 +93,9 @@ impl Resolved {
     /// Returns the scope's occupancy aggregate, absent for a corpus proof.
     ///
     /// The corpus schedule has one cut per zoom and takes no offset, so an operator scope holds
-    /// no aggregate and a mint over it seals zero. A scoped entry aggregates once at resolution,
-    /// from the store's answer alone, and every mint under the entry reads that value.
+    /// no aggregate and an issuance over it seals zero. A scoped entry aggregates once at
+    /// resolution, from the store's answer alone, and every issuance under the entry reads that
+    /// value.
     pub(super) fn occupancy(&self) -> Option<&ViewOccupancy> {
         self.entry.occupancy()
     }
@@ -200,19 +189,22 @@ impl Visibility {
     }
 }
 
-impl FromRequestParts<AppState> for Visibility {
+impl<R> FromRequestParts<AppState<R>> for Visibility
+where
+    R: TryCryptoRng + Send,
+{
     type Rejection = Problem<'static>;
 
     async fn from_request_parts(
         parts: &mut Parts,
-        state: &AppState,
+        state: &AppState<R>,
     ) -> Result<Self, Self::Rejection> {
         // One ingress capture before any proof or cache work, so the request's admissions
         // cannot straddle a publication.
         let delta = state.delta.load_full();
 
-        let scope = authorization::admit(parts, state)?;
-        let resolved = resolve(state, *scope.actor, scope.filter.digest(), None).await?;
+        let scope = Scope::from_request_parts(parts, state).await?;
+        let resolved = resolve(state, scope.actor.into(), scope.filter.digest(), None).await?;
 
         // A capture the entry's masks already folded leaves no residue, so the routes skip
         // their admission walks whole instead of subtracting nothing.
@@ -227,16 +219,12 @@ impl FromRequestParts<AppState> for Visibility {
 }
 
 impl OperationInput for Visibility {
-    /// Documents the presented token as a required request header.
+    /// Documents what admission documents: the token, a required request header.
     ///
-    /// Extraction admits the request before resolving anything, so a route taking this extractor
-    /// answers nothing without a token.
-    fn operation_input(_ctx: &mut GenContext, operation: &mut openapi::Operation) {
-        operation
-            .parameters
-            .push(openapi::ReferenceOr::Item(headers::presented_authority(
-                headers::Required::Yes,
-            )));
+    /// Extraction admits through [`Scope`], so the documentation delegates to the same impl and
+    /// the two extractors cannot drift apart.
+    fn operation_input(ctx: &mut GenContext, operation: &mut openapi::Operation) {
+        <Scope as OperationInput>::operation_input(ctx, operation);
     }
 }
 
@@ -258,9 +246,9 @@ impl OperationInput for Visibility {
 /// [`proof_problem`] gives the failing stage: `400` for the caller's own filter, the internal
 /// problem for this deployment's, and the `503` visibility problem for every condition of the
 /// store's.
-pub(super) async fn resolve(
-    state: &AppState,
-    actor: ActorEntityUuid,
+pub(super) async fn resolve<R>(
+    state: &AppState<R>,
+    actor: Option<ActorId>,
     filter: Option<FilterDigest>,
     document: Option<Arc<[u8]>>,
 ) -> Result<Resolved, Problem<'static>> {
@@ -286,7 +274,6 @@ pub(super) async fn resolve(
     let pool = Arc::clone(&state.authority.pool);
     let atlas = Arc::clone(&state.atlas);
     let cell = Arc::clone(&state.delta);
-    let actor = AuthenticatedActor::Uuid(actor);
 
     let entry = state
         .authority
@@ -384,10 +371,10 @@ fn proof_problem(error: &ProofError) -> Problem<'static> {
 /// The problem one refused binding answers.
 ///
 /// A sealed offset the view cannot serve is stale authority rather than a request defect. An
-/// operator view takes no offset, so the mint that issued a token carrying one ran under a
-/// contract this process no longer serves. That answers the uniform `401`, whose stated remedy is
-/// a fresh manifest request, and the mint that request runs seals the offset the view does serve.
-/// The combination stays a server defect in the log, because no current mint can produce it.
+/// operator view takes no offset, so a token carrying one was issued under a contract this
+/// process no longer serves. That answers the uniform `401`, whose stated remedy is a fresh
+/// manifest request, and the issuance that request runs seals the offset the view does serve.
+/// The combination stays a server defect in the log, because no current issuance can produce it.
 ///
 /// Every other binding failure names an input this process produced and answers the internal
 /// problem.
@@ -405,46 +392,6 @@ pub(super) fn view_problem(error: ViewError) -> Problem<'static> {
             Problem::internal(error, "delivery refused its schedule")
         }
     }
-}
-
-/// The authenticated actor one request names, without resolving its scope.
-///
-/// The manifest's mint and continuity reading need the actor identity alone. [`Visibility`]
-/// resolves the full scope where a handler assembles a response.
-#[derive(Debug, Clone, Copy)]
-pub(super) struct Actor(pub AuthenticatedActor);
-
-impl FromRequestParts<AppState> for Actor {
-    type Rejection = Problem<'static>;
-
-    fn from_request_parts(
-        parts: &mut Parts,
-        _state: &AppState,
-    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
-        future::ready(actor(parts).map(Self))
-    }
-}
-
-impl OperationInput for Actor {}
-
-/// Reads the actor the gateway authenticated.
-///
-/// Absent, non-ASCII and unparsable headers answer one problem. Each is a malformed request, and
-/// the detail names which of the three it was.
-pub(super) fn actor(parts: &Parts) -> Result<AuthenticatedActor, Problem<'static>> {
-    let header = parts
-        .headers
-        .get(ACTOR_HEADER)
-        .ok_or_else(|| missing_actor(format!("`{ACTOR_HEADER}` is absent")))?;
-
-    let value = header.to_str().map_err(|_error| {
-        missing_actor(format!("`{ACTOR_HEADER}` is not a visible ASCII string"))
-    })?;
-
-    let uuid = Uuid::from_str(value)
-        .map_err(|error| missing_actor(format!("`{ACTOR_HEADER}` is not a uuid: {error}")))?;
-
-    Ok(AuthenticatedActor::Uuid(ActorEntityUuid::new(uuid)))
 }
 
 #[cfg(test)]
@@ -522,7 +469,8 @@ mod tests {
 
     /// A sealed offset the view cannot serve answers the uniform refusal, not the internal problem.
     ///
-    /// The client action for a stale authority is a fresh manifest request, and that mint reseals
+    /// The client action for a stale authority is a fresh manifest request, and that issuance
+    /// reseals
     /// the offset the view does serve. Every other binding failure runs beside it here, so the case
     /// states which refusals are the caller's to act on and which are this process reporting
     /// itself.

@@ -20,7 +20,7 @@ use chacha20poly1305::{
 use hkdf::Hkdf;
 use rand::{SeedableRng as _, rngs::ChaCha20Rng};
 use sha2::Sha256;
-use type_system::principal::actor::ActorEntityUuid;
+use type_system::principal::actor::{ActorId, UserId};
 use uuid::Uuid;
 use zerocopy::IntoBytes as _;
 
@@ -48,6 +48,9 @@ const NONCE_BYTES: usize = 24;
 /// The clear header's width.
 const HEADER_BYTES: usize = VERSION_BYTES + ISSUED_AT_BYTES + NONCE_BYTES;
 
+/// The width of an actor kind, one discriminant byte naming user, machine, ai, or anonymous.
+const ACTOR_KIND_BYTES: usize = 1;
+
 /// An actor uuid's width.
 const ACTOR_BYTES: usize = 16;
 
@@ -65,10 +68,15 @@ const EPOCH_BYTES: usize = 16;
 
 /// The sealed plaintext's width.
 ///
-/// The sealed plaintext is an actor uuid, a presence byte, a filter digest, the offset byte, a
-/// second presence byte, and the delta epoch.
-const PLAINTEXT_BYTES: usize =
-    ACTOR_BYTES + PRESENCE_BYTES + DIGEST_BYTES + OFFSET_BYTES + PRESENCE_BYTES + EPOCH_BYTES;
+/// The sealed plaintext is an actor kind byte, an actor uuid, a presence byte, a filter digest,
+/// the offset byte, a second presence byte, and the delta epoch.
+const PLAINTEXT_BYTES: usize = ACTOR_KIND_BYTES
+    + ACTOR_BYTES
+    + PRESENCE_BYTES
+    + DIGEST_BYTES
+    + OFFSET_BYTES
+    + PRESENCE_BYTES
+    + EPOCH_BYTES;
 
 /// Poly1305's tag width.
 const TAG_BYTES: usize = 16;
@@ -113,15 +121,20 @@ fn issued_at() -> SystemTime {
 /// The view of one actor, resolved at offset `k`, over the filter digest of `filter` when present.
 fn scope(actor: u128, k: u8, filter: Option<&[u8]>) -> Scope {
     Scope::new(
-        ActorEntityUuid::new(Uuid::from_u128(actor)),
+        presenter(actor),
         filter.map(FilterDigest::of),
         CutOffset::new(k),
     )
 }
 
 /// The actor identity `actor` names, as a token's presenter.
-fn presenter(actor: u128) -> ActorEntityUuid {
-    ActorEntityUuid::new(Uuid::from_u128(actor))
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "the presenter's domain is `Option<ActorId>`, and this fixture names its `Some` form \
+              beside the literal `None`, the anonymous presenter"
+)]
+fn presenter(actor: u128) -> Option<ActorId> {
+    Some(ActorId::User(UserId::new(Uuid::from_u128(actor))))
 }
 
 /// Derives the sealing key independently: HKDF-SHA256, generation digest as salt, one label.
@@ -151,22 +164,31 @@ fn header(now: SystemTime, nonce: &[u8]) -> [u8; HEADER_BYTES] {
 
 /// Assembles the sealed plaintext by hand.
 ///
-/// The bytes run actor uuid, presence byte, filter digest, offset byte, epoch presence byte, and
-/// epoch, in that order. An absent filter and an absent epoch each leave their presence byte and
-/// payload zeroed.
+/// The bytes run actor kind byte, actor uuid, presence byte, filter digest, offset byte, epoch
+/// presence byte, and epoch, in that order. A named presenter is a user here, kind byte zero over
+/// its uuid, and an anonymous one seals kind byte three over the nil uuid. An absent filter and an
+/// absent epoch each leave their presence byte and payload zeroed.
 fn plaintext(
-    actor: u128,
+    actor: Option<u128>,
     k: u8,
     filter: Option<&[u8]>,
     epoch: Option<DeltaEpoch>,
 ) -> [u8; PLAINTEXT_BYTES] {
-    const OFFSET_AT: usize = ACTOR_BYTES + PRESENCE_BYTES + DIGEST_BYTES;
+    const FILTER_AT: usize = ACTOR_KIND_BYTES + ACTOR_BYTES;
+    const OFFSET_AT: usize = FILTER_AT + PRESENCE_BYTES + DIGEST_BYTES;
 
     let mut bytes = [0_u8; PLAINTEXT_BYTES];
-    bytes[..ACTOR_BYTES].copy_from_slice(&Uuid::from_u128(actor).into_bytes());
+    match actor {
+        Some(actor) => {
+            bytes[0] = 0;
+            bytes[ACTOR_KIND_BYTES..FILTER_AT]
+                .copy_from_slice(&Uuid::from_u128(actor).into_bytes());
+        }
+        None => bytes[0] = 3,
+    }
     if let Some(canonical) = filter {
-        bytes[ACTOR_BYTES] = 1;
-        bytes[ACTOR_BYTES + PRESENCE_BYTES..OFFSET_AT]
+        bytes[FILTER_AT] = 1;
+        bytes[FILTER_AT + PRESENCE_BYTES..OFFSET_AT]
             .copy_from_slice(FilterDigest::of(canonical).as_bytes());
     }
     bytes[OFFSET_AT] = k;
@@ -181,7 +203,7 @@ fn plaintext(
 /// Seals a plaintext under the independent implementation.
 ///
 /// The production `open` must accept the resulting envelope, which makes this the counterpart of
-/// the byte-compared mint.
+/// the byte-compared issuance.
 fn seal_raw(
     plaintext: &[u8; PLAINTEXT_BYTES],
     now: SystemTime,
@@ -205,11 +227,11 @@ fn seal_raw(
     blob
 }
 
-/// A minted token is byte-identical to an independently assembled envelope, filtered or not.
+/// An issued token is byte-identical to an independently assembled envelope, filtered or not.
 ///
 /// The associated data is the clear header's own bytes, so this case pins that too. An
 /// implementation that authenticated a re-encoded form of the same fields would produce a different
-/// tag and fail here. The envelope is the same fixed 116 bytes at either offset and with or without
+/// tag and fail here. The envelope is the same fixed 117 bytes at either offset and with or without
 /// a filter. An absent filter leaves the digest field zero rather than dropping it, and an absent
 /// epoch does the same, so neither presence shows in the length.
 #[test]
@@ -224,7 +246,7 @@ fn minted_token_matches_an_independent_envelope() {
 
     for (k, filter) in [(0, None), (5, Some(b"{\"kind\":\"all\"}".as_slice()))] {
         let minted = authority
-            .mint(scope(11, k, filter), issued_at())
+            .issue(scope(11, k, filter), issued_at())
             .expect("the seeded generator is infallible");
 
         // The nonce is public, so the reimplementation takes it from the envelope under test and
@@ -236,7 +258,7 @@ fn minted_token_matches_an_independent_envelope() {
             .encrypt(
                 XNonce::from_slice(nonce),
                 Payload {
-                    msg: &plaintext(11, k, filter, None),
+                    msg: &plaintext(Some(11), k, filter, None),
                     aad: &clear,
                 },
             )
@@ -253,14 +275,54 @@ fn minted_token_matches_an_independent_envelope() {
         assert_eq!(
             minted.len(),
             ENVELOPE_BYTES,
-            "the envelope is a fixed 116 bytes"
+            "the envelope is a fixed 117 bytes"
         );
     }
 }
 
+/// An anonymous scope seals kind byte three over the nil uuid, byte-compared like a named one.
+///
+/// Tokens outlive restarts within a generation, so the sealed discriminant values are a
+/// compatibility surface this case pins independently of the production enum's declaration order.
+#[test]
+fn anonymous_scope_matches_an_independent_envelope() {
+    let authority = TokenAuthority::new(
+        generation(),
+        &secret(),
+        Duration::from_mins(10),
+        None,
+        rng(),
+    );
+
+    let minted = authority
+        .issue(Scope::new(None, None, CutOffset::ZERO), issued_at())
+        .expect("the seeded generator is infallible");
+
+    let nonce = &minted[NONCE_OFFSET..NONCE_OFFSET + NONCE_BYTES];
+    let clear = header(issued_at(), nonce);
+    let body = XChaCha20Poly1305::new(&key().into())
+        .encrypt(
+            XNonce::from_slice(nonce),
+            Payload {
+                msg: &plaintext(None, 0, None, None),
+                aad: &clear,
+            },
+        )
+        .expect("the fixture payload encrypts");
+
+    let mut expected = clear.to_vec();
+    expected.extend_from_slice(&body);
+
+    assert_eq!(
+        minted.as_slice(),
+        expected.as_slice(),
+        "the anonymous envelope is not the assembled bytes"
+    );
+}
+
 /// An independent decryption recovers the sealed plaintext.
 ///
-/// The mint-side byte comparison has its counterpart here. This case decrypts the body under the
+/// The issue-side byte comparison has its counterpart here. This case decrypts the body under the
 /// independently derived key and compares it with the hand-assembled plaintext, which pins the
 /// sealed bytes from both sides of the AEAD.
 #[test]
@@ -274,7 +336,7 @@ fn independent_open_recovers_the_scope() {
         rng(),
     );
     let minted = authority
-        .mint(scope(11, 5, Some(canonical)), issued_at())
+        .issue(scope(11, 5, Some(canonical)), issued_at())
         .expect("the seeded generator is infallible");
 
     let (clear, body) = minted.split_at(HEADER_BYTES);
@@ -290,7 +352,7 @@ fn independent_open_recovers_the_scope() {
 
     assert_eq!(
         recovered,
-        plaintext(11, 5, Some(canonical), None),
+        plaintext(Some(11), 5, Some(canonical), None),
         "the sealed plaintext is not the assembled bytes"
     );
 }
@@ -298,8 +360,8 @@ fn independent_open_recovers_the_scope() {
 /// A hand-assembled envelope opens to the scope it names, filtered or not.
 ///
 /// The independent implementation seals, the production `open` accepts and resolves the scope. With
-/// the mint-side byte comparison this closes the loop in both directions, so the round trip through
-/// the production pair alone needs no case of its own.
+/// the issue-side byte comparison this closes the loop in both directions, so the round trip
+/// through the production pair alone needs no case of its own.
 #[test]
 fn hand_assembled_envelope_opens() {
     let authority = TokenAuthority::new(
@@ -312,7 +374,7 @@ fn hand_assembled_envelope_opens() {
 
     for (k, filter) in [(0, None), (5, Some(b"{\"kind\":\"all\"}".as_slice()))] {
         let blob = seal_raw(
-            &plaintext(11, k, filter, None),
+            &plaintext(Some(11), k, filter, None),
             issued_at(),
             &[9; NONCE_BYTES],
         );
@@ -342,7 +404,7 @@ fn rewritten_issue_time_refuses() {
         rng(),
     );
     let mut minted = authority
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     // Move the recorded second, which the tag covers.
@@ -366,7 +428,7 @@ fn token_outside_the_window_refuses() {
         rng(),
     );
     let minted = authority
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
     let hard = Duration::from_mins(10);
 
@@ -389,7 +451,7 @@ fn token_outside_the_window_refuses() {
         .expect("a token one second inside the window opens");
 }
 
-/// A token minted under another generation refuses.
+/// A token issued under another generation refuses.
 ///
 /// The generation salts the key, so this refusal happens at the tag rather than at a field
 /// comparison, and it holds for a token whose plaintext is otherwise identical.
@@ -403,7 +465,7 @@ fn foreign_generation_refuses() {
         rng(),
     );
     let minted = minting
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     let foreign = TokenAuthority::new(
@@ -434,7 +496,7 @@ fn foreign_secret_refuses() {
         rng(),
     );
     let minted = authority
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     let foreign = TokenAuthority::new(
@@ -466,7 +528,7 @@ fn tampered_byte_refuses() {
         rng(),
     );
     let minted = authority
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     for (region, index) in [
@@ -486,7 +548,7 @@ fn tampered_byte_refuses() {
 
 /// A valid token presented by an actor it does not name refuses.
 ///
-/// The tag proves the server minted the token, not that the presenter is its subject: without this
+/// The tag proves the server issued the token, not that the presenter is its subject: without this
 /// refusal a leaked token would grant any authenticated actor the subject's scope.
 #[test]
 fn foreign_actor_refuses() {
@@ -498,7 +560,7 @@ fn foreign_actor_refuses() {
         rng(),
     );
     let minted = authority
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     assert_eq!(
@@ -508,11 +570,11 @@ fn foreign_actor_refuses() {
     );
 }
 
-/// An expired token no longer opens, yet still carries its view state for a re-mint.
+/// An expired token no longer opens, yet still yields its view state for a renewal.
 ///
-/// The property the carried read exists for: hard invalidation forces a fresh mint without
+/// The property the carried read exists for: hard invalidation forces a fresh token without
 /// perturbing the view. At an instant past the hard window, `open` refuses the token as stale while
-/// `carried` still reads the sealed state - and a token re-minted from that state opens, sealing
+/// `carried` still reads the sealed state - and a token re-issued from that state opens, sealing
 /// the same view.
 #[test]
 fn expired_token_still_carries_its_scope() {
@@ -524,7 +586,7 @@ fn expired_token_still_carries_its_scope() {
         rng(),
     );
     let minted = authority
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
     let later = issued_at() + Duration::from_mins(11);
 
@@ -535,12 +597,12 @@ fn expired_token_still_carries_its_scope() {
     );
 
     let carried = authority
-        .carried(&minted, presenter(11))
+        .continuity(&minted, presenter(11))
         .expect("an expired token still carries its state");
     assert_eq!(carried, scope(11, 5, None), "the carried state differs");
 
     let renewed = authority
-        .mint(carried, later)
+        .issue(carried, later)
         .expect("the seeded generator is infallible");
     assert_eq!(
         authority
@@ -562,26 +624,26 @@ fn carried_read_still_enforces_tag_and_actor() {
         rng(),
     );
     let minted = authority
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     let mut tampered = minted;
     tampered[HEADER_BYTES] ^= 1;
     assert_eq!(
-        authority.carried(&tampered, presenter(11)),
+        authority.continuity(&tampered, presenter(11)),
         Err(AuthorityError::Authentication),
         "a tampered token carried"
     );
     assert_eq!(
-        authority.carried(&minted, presenter(12)),
+        authority.continuity(&minted, presenter(12)),
         Err(AuthorityError::Actor),
         "another actor's presentation carried"
     );
 }
 
-/// A minted token seals the authority's delta epoch at the hand-assembled offsets.
+/// An issued token seals the authority's delta epoch at the hand-assembled offsets.
 ///
-/// The mint stamps the held epoch rather than reading one from the scope, so the sealed bytes are
+/// Issuance stamps the held epoch rather than reading one from the scope, so the sealed bytes are
 /// the authority's to prove. This case decrypts under the independent key and compares against
 /// the hand-assembled plaintext carrying the same epoch, which pins the epoch's offset and its
 /// presence byte.
@@ -596,7 +658,7 @@ fn minted_token_seals_the_held_epoch() {
         rng(),
     );
     let minted = authority
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     let (clear, body) = minted.split_at(HEADER_BYTES);
@@ -612,7 +674,7 @@ fn minted_token_seals_the_held_epoch() {
 
     assert_eq!(
         recovered,
-        plaintext(11, 5, None, Some(epoch)),
+        plaintext(Some(11), 5, None, Some(epoch)),
         "the sealed plaintext is not the assembled bytes"
     );
 
@@ -623,11 +685,11 @@ fn minted_token_seals_the_held_epoch() {
 
 /// A token sealed under a dead delta epoch refuses, on the data read and the renewal read alike.
 ///
-/// The minting and successor authorities share one generation and secret, standing in for a
+/// The issuing and successor authorities share one generation and secret, standing in for a
 /// serving process before and after a restart: the sealing key is identical, so the refusal is
 /// the epoch comparison rather than the tag. The renewal read is the path the session-replacement
-/// contract names - view state accumulated beside a dead register must not carry into a mint
-/// under the live one - and the successor still mints fresh tokens that open.
+/// contract names - view state accumulated beside a dead register must not carry into a token
+/// issued under the live one - and the successor still issues fresh tokens that open.
 #[test]
 fn dead_epoch_refuses_open_and_carry() {
     let mut draws = rng();
@@ -642,7 +704,7 @@ fn dead_epoch_refuses_open_and_carry() {
         rng(),
     );
     let minted = minting
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     let successor = TokenAuthority::new(
@@ -658,13 +720,13 @@ fn dead_epoch_refuses_open_and_carry() {
         "a dead epoch's token opened"
     );
     assert_eq!(
-        successor.carried(&minted, presenter(11)),
+        successor.continuity(&minted, presenter(11)),
         Err(AuthorityError::Epoch),
         "a dead epoch's token carried into a renewal"
     );
 
     let renewed = successor
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
     successor
         .open(&renewed, presenter(11), issued_at())
@@ -696,10 +758,10 @@ fn epoch_presence_binds_in_both_directions() {
     );
 
     let absent_sealed = without
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
     let present_sealed = with
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     assert_eq!(
@@ -728,7 +790,7 @@ fn absent_epochs_survive_a_restart() {
         rng(),
     );
     let minted = minting
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     let restarted = TokenAuthority::new(
@@ -747,10 +809,10 @@ fn absent_epochs_survive_a_restart() {
     );
 }
 
-/// A second mint draws a different nonce.
+/// A second issuance draws a different nonce.
 ///
 /// Nonce reuse under one key repeats the keystream and the Poly1305 one-time key, so the property
-/// worth witnessing is the opposite of determinism: the entropy source advances per mint. Both
+/// worth witnessing is the opposite of determinism: the entropy source advances per issuance. Both
 /// tokens open.
 #[test]
 fn two_mints_draw_distinct_nonces() {
@@ -762,10 +824,10 @@ fn two_mints_draw_distinct_nonces() {
         rng(),
     );
     let first = authority
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
     let second = authority
-        .mint(scope(11, 5, None), issued_at())
+        .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
 
     assert_ne!(

@@ -9,9 +9,8 @@
 //!
 //! The fold cases pin the law's resolution-time form. A folded scoped proof and the admission
 //! walk hide the same withdrawn rows, a corpus proof declines the fold whole, and the root's
-//! global aggregates follow the folded view, as the owner ruled at the fold's landing. The
-//! ruled split's other half - the mint's occupancy input ignoring the fold - is the cache
-//! entry's own contract, witnessed beside its type.
+//! global aggregates follow the folded view. The split's other half - the issuance's occupancy
+//! input ignoring the fold - is the cache entry's own contract, witnessed beside its type.
 
 use hashql_core::{
     collections::fast_hash_set,
@@ -554,8 +553,8 @@ async fn translate_answers_withdrawn_identities_as_absent_keys() {
 /// A folded scoped proof delivers the subtracted rows, and subtracting over it moves no byte.
 ///
 /// The claims split by width on purpose. Subtracting the snapshot a proof already folded is
-/// byte-exact vacuous, because no delivered set holds a folded row - the identity the skip gate
-/// stands on. Across the fold boundary itself the withdrawn row is absent either way, and the
+/// byte-exact vacuous, because no delivered set holds a folded row - the identity the skip
+/// rests on. Across the fold boundary itself the withdrawn row is absent either way, and the
 /// folded cascade may deliver more: the schedule re-levels over the visible rows, promoting a
 /// row into the slot the withdrawal freed where the subtracted document keeps the gap - the
 /// same refresh-boundary semantics arrivals already have. The control folds a snapshot whose
@@ -628,7 +627,7 @@ async fn a_folded_proof_delivers_the_subtracted_rows_with_nothing_to_subtract() 
 ///
 /// The set withdraws the rows attaining the extent's four extremes, the rest of one root cell,
 /// and every row of the deepest occupied bucket, so the extent, the count, and the depth all
-/// part from the unfolded view's: an aggregate that fails to follow the fold is a detectable
+/// part from the unfolded view's, and an aggregate that fails to follow the fold is a detectable
 /// answer on each axis. The root cell is what parts the count on any layout, because a cell
 /// keeping one surviving row keeps its representative and delivers the same number of rows as
 /// before. Returns the corpus extent and the withdrawn rows beside their seeds.

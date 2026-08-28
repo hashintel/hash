@@ -178,8 +178,8 @@ pub(crate) enum ScalarValue {
 
 /// Hydrated per-point locate node details, aligned to the delivered order.
 ///
-/// Labels and direct types for every delivered node; properties and their completeness for the
-/// source alone - neighbour detail is one locate away.
+/// Labels and direct types for every delivered node, plus properties and their completeness for
+/// the source alone - neighbour detail is one locate away.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct LocateNodeDetails<'details> {
     /// The display label per delivered point.
@@ -190,7 +190,7 @@ pub(crate) struct LocateNodeDetails<'details> {
     type_urls: IdVec<NodeSlot, Vec<VersionedUrl>>,
     /// The source's surviving properties, ascending by base URL.
     ///
-    /// `None` marks a source the store no longer serves; a resolved source without scalar
+    /// `None` marks a source the store no longer serves. A resolved source without scalar
     /// properties reads an empty list.
     source_properties: Option<Vec<(BaseUrl, ScalarValue)>>,
     /// Whether the source's surviving properties are the entity's whole deliverable set.

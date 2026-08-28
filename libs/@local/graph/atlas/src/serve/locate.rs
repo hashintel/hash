@@ -129,9 +129,9 @@ impl Atlas {
     ///
     /// Ingress goes through [`Atlas::resolve`], the same keyed codec as egress, so the lookup is
     /// pure arithmetic that resolves in process. [`None`] for out-of-universe values and for rows
-    /// the proof hides, collapsed at the seam before any caller observes the cause. A wire id
-    /// minted for a cohort slot resolves through the view's arrival table, exactly as the same
-    /// arrival's entity id does.
+    /// the proof hides, collapsed at the resolution before any caller observes the cause. A wire
+    /// id allocated for a cohort slot resolves through the view's arrival table, exactly as the
+    /// same arrival's entity id does.
     pub(crate) fn resolve_wire_source(
         &self,
         view: &View<'_>,
@@ -147,9 +147,9 @@ impl Atlas {
     ///
     /// [`None`] when the view's schedule does not hold the position.
     ///
-    /// An operator view inverts the corpus cut rule off the position's fencepost segment. A scoped
-    /// view inverts its own rule `z + span + k` over its own cascade, so the answer is a function
-    /// of the visible rows alone and carries no evidence of what the mask removed.
+    /// An operator view inverts the corpus cut rule off the position's fencepost segment, and a
+    /// scoped view inverts its own rule `z + span + k` over its own cascade, so the answer is a
+    /// function of the visible rows alone and carries no evidence of what the mask removed.
     fn first_visible_zoom(
         &self,
         cut: Option<ScheduleCut<'_>>,
@@ -169,7 +169,7 @@ impl Atlas {
     ///
     /// [`None`] when `view`'s schedule holds no bucket for the row, which collapses into the
     /// endpoint's `unknown-entity`: a source the view's own delivery never reaches is a source
-    /// this view cannot locate, and the seam already answers missing and denied alike.
+    /// this view cannot locate, and the resolution already answers missing and denied alike.
     fn source_point(&self, view: &View<'_>, row: VisibleRow) -> Option<SourcePoint> {
         // Both ingress paths converge here, so the withdrawal check covers the entity-keyed and
         // the wire-keyed resolutions alike, and a withdrawn source is nonexistent to both.

@@ -1,7 +1,7 @@
 //! Translate.
 //!
-//! Upstream entity ids to atlas identity, the correlation seam between entities the client fetched
-//! through the graph API and dots already on screen.
+//! Upstream entity ids to atlas identity, correlating entities the client fetched through the
+//! graph API with dots already on screen.
 //!
 //! The response is two maps keyed by the requested id string echoed verbatim, byte-for-byte and
 //! without normalization, so client-side map lookups are literal and which map answers gives the

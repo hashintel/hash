@@ -1,8 +1,8 @@
 //! The hydration statements, built through the store's query compiler.
 //!
-//! Every read builds through the store's own [`SelectCompiler`], so a statement carries the
-//! read path's semantics by construction: the live temporal axes, the draft exclusion, and
-//! the per-actor property masking. Each column set adds its selections to a caller's
+//! Every read builds through the store's own [`SelectCompiler`], so a statement reads under
+//! the live temporal axes and the draft exclusion and masks properties per actor, by
+//! construction. Each column set adds its selections to a caller's
 //! compiler and decodes the rows the compiled statement answers, so a row position is known
 //! to exactly the type that assigned it.
 //!
@@ -288,8 +288,8 @@ mod tests {
     ///
     /// The masked spelling is the subtraction inside `jsonb_each(`, which is the compiler's
     /// column hook firing inside each property subquery. The count is over the masked object
-    /// too: a whole-object count against a masked map would tell an actor how many properties
-    /// were withheld, which is the enumeration signal the protection exists to close.
+    /// too, because a whole-object count against a masked map would tell an actor how many
+    /// properties were withheld - the enumeration signal the protection exists to close.
     #[test]
     fn detail_read_masks_both_property_subqueries() {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();

@@ -3,14 +3,14 @@
 //! A token seals the [`Scope`] that names an authorized view. The scope holds the actor, the filter
 //! digest (the visibility proof's identity, resolved over the filter at bootstrap), and the view
 //! state derived for that proof, the delivery-cut offset `k`. A per-generation key encrypts the
-//! plaintext, and the tag proves this server minted it. The server keeps no token state, because a
-//! re-mint reads the sealed state out of the presented token, so a refresh renews authority while
+//! plaintext, and the tag proves this server issued it. The server keeps no token state, because a
+//! renewal reads the sealed state out of the presented token, so a refresh renews authority while
 //! the view stays fixed.
 //!
 //! The filter travels as its digest. The client holds the filter document itself and re-presents it
 //! when a server-side entry has expired. The sealed digest is the check that the presented document
 //! is this view's filter. An actor with more than one active filter holds one token per filter, and
-//! the digests tell them apart. A filter binds at the manifest, where the token re-mints, and a
+//! the digests tell them apart. A filter binds at the manifest, where the token renews, and a
 //! pinned run accumulates delivered state under one filter for its whole lifetime.
 //!
 //! # The envelope
@@ -22,7 +22,7 @@
 //! Poly1305's tag.
 //!
 //! The associated data is the header's own bytes, so both sides authenticate an identical form. The
-//! clear header stays as minted, because a rewritten `issued_at` invalidates the tag.
+//! clear header stays as issued, because a rewritten `issued_at` invalidates the tag.
 //!
 //! # The key
 //!
@@ -35,22 +35,22 @@
 //!
 //! # The epoch
 //!
-//! The sealed state carries the delta epoch the authority held at mint, absent for a process
+//! The sealed state carries the delta epoch the authority held at issuance, absent for a process
 //! serving without a delta consumer. Every open compares the sealed value against the held one
 //! and refuses any other, the renewal read included, because slot assignment is process-local: a
-//! token minted beside one delta register must not authorize reads over another. The refusal is
+//! token issued beside one delta register must not authorize reads over another. The refusal is
 //! the same uniform answer as every other cause, and the client's remedy is the same fresh
-//! manifest, which mints under the held epoch. A process serving with no delta consumer holds the
+//! manifest, which issues under the held epoch. A process serving with no delta consumer holds the
 //! absent form, so its tokens survive restarts.
 //!
 //! # The nonce
 //!
-//! Each mint samples the nonce from an injected [`TryCryptoRng`] behind a lock. Minting locks for
-//! the draw alone and seals outside it, and opening never touches the generator. A nonce is unique
-//! per key, because reuse repeats the keystream and the Poly1305 one-time key. `XChaCha20`'s
+//! Each issuance samples the nonce from an injected [`TryCryptoRng`] behind a lock. Issuing locks
+//! for the draw alone and seals outside it, and opening never touches the generator. A nonce is
+//! unique per key, because reuse repeats the keystream and the Poly1305 one-time key. `XChaCha20`'s
 //! 192-bit width makes sampling a safe way to reach that uniqueness. Collision probability stays
-//! below 2⁻³² until about 2⁸⁰ mints, and the same bound covers a fleet of replicas that derive one
-//! key per generation from shared configuration.
+//! below 2⁻³² until about 2⁸⁰ issued tokens, and the same bound covers a fleet of replicas that
+//! derive one key per generation from shared configuration.
 #![expect(
     clippy::empty_enums,
     reason = "zerocopy's TryFromBytes derive expands to an empty enum for the discriminant check, \
@@ -66,7 +66,7 @@ use chacha20poly1305::{
 use hkdf::Hkdf;
 use rand::{TryCryptoRng, TryRng as _};
 use sha2::Sha256;
-use type_system::principal::actor::ActorEntityUuid;
+use type_system::principal::actor::{ActorEntityUuid, ActorId, AiId, MachineId, UserId};
 use uuid::Uuid;
 use zerocopy::{IntoBytes as _, LE, TryFromBytes as _, U64};
 
@@ -101,12 +101,12 @@ pub(crate) enum AuthorityError {
     Stale,
     /// The token names an actor other than its presenter.
     ///
-    /// The tag proves the server minted the token, not that the presenter is its subject; without
+    /// The tag proves the server created the token, not that the presenter is its subject. Without
     /// this refusal a leaked token would grant any authenticated actor the subject's scope.
     Actor,
     /// The token seals a delta epoch other than the held one.
     ///
-    /// Slot assignment is process-local, so authority minted beside one delta register must not
+    /// Slot assignment is process-local, so authority issued beside one delta register must not
     /// reach another.
     Epoch,
 }
@@ -148,7 +148,7 @@ enum MessageVersion {
 /// The token envelope's clear header.
 ///
 /// The format version, the issue time, and the nonce. The tag authenticates them verbatim, which
-/// fixes their values at mint.
+/// fixes their values at issuance.
 #[derive(
     Debug,
     Copy,
@@ -167,7 +167,7 @@ struct AuthorityHeader {
     /// The issue time as whole seconds since the Unix epoch.
     ///
     /// The wall clock narrows to seconds at this field. Every signature in this module speaks
-    /// [`SystemTime`]. Clock agreement between the process that mints and the process that opens
+    /// [`SystemTime`]. Clock agreement between the process that issues and the process that opens
     /// bounds the field's accuracy, and the acceptance window it feeds spans minutes. Truncation
     /// reads earlier than the instant it records, so a token expires marginally early.
     issued_at: U64<LE>,
@@ -233,11 +233,95 @@ impl Deref for ArchivedActorEntityUuid {
     }
 }
 
+/// A sealed actor's kind.
+///
+/// The discriminant half of [`ArchivedActorId`], one validated byte: parsing refuses every value
+/// outside the principal kinds and [`Anonymous`], the anonymous presenter.
+///
+/// [`Anonymous`]: ArchivedActorType::Anonymous
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::IntoBytes,
+    zerocopy::TryFromBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+)]
+#[repr(u8)]
+pub(crate) enum ArchivedActorType {
+    User,
+    Machine,
+    Ai,
+    Anonymous,
+}
+
+/// A sealed actor identity holding the kind beside the uuid, the byte-level form of an
+/// `Option<ActorId>`.
+///
+/// An anonymous presenter seals [`ArchivedActorType::Anonymous`] over the nil uuid. The `From`
+/// conversions are the only writers, so equality over both fields is exact: no sealed state holds
+/// `Absent` beside a non-nil id.
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    zerocopy::IntoBytes,
+    zerocopy::TryFromBytes,
+    zerocopy::Immutable,
+    zerocopy::Unaligned,
+    zerocopy::KnownLayout,
+)]
+#[repr(C)]
+pub(crate) struct ArchivedActorId {
+    pub r#type: ArchivedActorType,
+    pub id: ArchivedActorEntityUuid,
+}
+
+impl From<Option<ActorId>> for ArchivedActorId {
+    fn from(value: Option<ActorId>) -> Self {
+        match value {
+            Some(ActorId::User(uuid)) => Self {
+                r#type: ArchivedActorType::User,
+                id: ArchivedActorEntityUuid::from(ActorEntityUuid::new(uuid)),
+            },
+            Some(ActorId::Machine(uuid)) => Self {
+                r#type: ArchivedActorType::Machine,
+                id: ArchivedActorEntityUuid::from(ActorEntityUuid::new(uuid)),
+            },
+            Some(ActorId::Ai(uuid)) => Self {
+                r#type: ArchivedActorType::Ai,
+                id: ArchivedActorEntityUuid::from(ActorEntityUuid::new(uuid)),
+            },
+            None => Self {
+                r#type: ArchivedActorType::Anonymous,
+                id: ArchivedActorEntityUuid::from(ActorEntityUuid::new(Uuid::nil())),
+            },
+        }
+    }
+}
+
+impl From<ArchivedActorId> for Option<ActorId> {
+    fn from(value: ArchivedActorId) -> Self {
+        match value.r#type {
+            ArchivedActorType::User => Some(ActorId::User(UserId::new(*value.id))),
+            ArchivedActorType::Machine => Some(ActorId::Machine(MachineId::new(*value.id))),
+            ArchivedActorType::Ai => Some(ActorId::Ai(AiId::new(*value.id))),
+            ArchivedActorType::Anonymous => None,
+        }
+    }
+}
+
 /// A scope's request filter, by identity.
 ///
 /// The discriminant is the presence and the payload is the digest, one validated field: parsing
 /// admits the two written forms and a tampered discriminant refuses as
-/// [`AuthorityError::Envelope`]. The absent form carries zeroed payload bytes, so a filter's
+/// [`AuthorityError::Envelope`]. The absent form zeroes its payload bytes, so a filter's
 /// presence never shows in the envelope's length.
 #[derive(
     Debug,
@@ -277,9 +361,9 @@ impl From<Option<FilterDigest>> for ScopeFilter {
 ///
 /// The discriminant is the presence and the payload is the epoch, one validated field: parsing
 /// admits the two written forms and a tampered discriminant refuses as
-/// [`AuthorityError::Envelope`]. The absent form zeroes its payload bytes and names a mint with
-/// no delta consumer, so equality between two absent values is what lets those tokens survive a
-/// restart.
+/// [`AuthorityError::Envelope`]. The absent form zeroes its payload bytes and names a token issued
+/// with no delta consumer, so equality between two absent values is what lets those tokens survive
+/// a restart.
 #[derive(
     Debug,
     Copy,
@@ -308,13 +392,13 @@ impl From<Option<DeltaEpoch>> for ScopeEpoch {
 ///
 /// The actor and filter digest name the visibility proof the view answers under. `k` is the
 /// delivery depth the session serves at, resolved at its bootstrap over the occupancy then in
-/// force. A re-mint carries `k` forward, so a session keeps one delivery depth rather than
+/// force. A renewal carries `k` forward, so a session keeps one delivery depth rather than
 /// re-optimizing it per request, and a re-bind of the filter digest keeps it unless the new view
 /// resolves coarser, which clamps it down. The carried value is the caller's own earlier
 /// resolution, so delivery depth reflects that caller's own session history and never another
 /// actor's rows.
 ///
-/// The scope is its own byte-level form, with every field a zerocopy type, so a mint seals it
+/// The scope is its own byte-level form, with every field a zerocopy type, so issuance seals it
 /// verbatim and an open reads it in place. The filter discriminant is the one validated byte. Every
 /// other pattern is a valid value, and the tag already vouched for it.
 #[derive(
@@ -335,8 +419,8 @@ impl From<Option<DeltaEpoch>> for ScopeEpoch {
 )]
 #[repr(C)]
 pub(crate) struct Scope {
-    /// The one actor allowed to present this view.
-    pub actor: ArchivedActorEntityUuid,
+    /// The one actor allowed to present this view (anonymous included).
+    pub actor: ArchivedActorId,
     /// The digest of the filter the view's visibility proof resolved over, absent when the view
     /// has no filter.
     pub filter: ScopeFilter,
@@ -350,9 +434,9 @@ impl Scope {
         clippy::min_ident_chars,
         reason = "`k` is the delivery-cut offset's name throughout the density contract"
     )]
-    pub(crate) fn new(actor: ActorEntityUuid, filter: Option<FilterDigest>, k: CutOffset) -> Self {
+    pub(crate) fn new(actor: Option<ActorId>, filter: Option<FilterDigest>, k: CutOffset) -> Self {
         Self {
-            actor: ArchivedActorEntityUuid::from(actor),
+            actor: actor.into(),
             filter: ScopeFilter::from(filter),
             k,
         }
@@ -362,7 +446,7 @@ impl Scope {
 /// The caller's scope and the authority's delta epoch, sealed as one plaintext.
 ///
 /// Its own byte-level form exactly as [`Scope`] is. The epoch is the authority's rather than the
-/// caller's: the mint stamps the held value and the open refuses any other, so no caller can seal
+/// caller's: issuance stamps the held value and the open refuses any other, so no caller can seal
 /// a scope under an epoch the process does not hold.
 #[derive(
     Debug,
@@ -384,7 +468,7 @@ struct SealedState {
 
 /// One sealed token, the envelope as a type, read in place.
 ///
-/// Every field sits at a fixed offset, so a blob of [`TOKEN_BYTES`] resolves into header,
+/// Every field lies at a fixed offset, so a blob of [`TOKEN_BYTES`] resolves into header,
 /// ciphertext, and trailer in one zerocopy cast, and the cast validates the format version.
 #[derive(
     Debug,
@@ -413,13 +497,13 @@ impl SealedAuthority {
 /// Derived from the envelope type itself, so it moves when the layout does.
 pub(crate) const TOKEN_BYTES: usize = SealedAuthority::SIZE;
 
-/// Mints and opens the authority tokens of one generation.
+/// Issues and opens the authority tokens of one generation.
 ///
 /// One value holds the whole judgment context. The generation's sealing key comes from one
 /// derivation at construction, and the acceptance window bounds a token's age. The held delta
-/// epoch binds a token to the register lifetime whose process minted it, and the entropy source
+/// epoch binds a token to the register lifetime whose process issued it, and the entropy source
 /// stays behind its own lock, held for the nonce draw alone, so opening never contends with
-/// minting. A token opens under the authority whose generation sealed it, under the epoch it
+/// issuing. A token opens under the authority whose generation sealed it, under the epoch it
 /// holds, for the actor it names, and only while its issue time lies inside the window.
 #[derive(Debug)]
 pub(crate) struct TokenAuthority<R> {
@@ -431,15 +515,12 @@ pub(crate) struct TokenAuthority<R> {
     ///
     /// A token older than this at open refuses as stale.
     hard: Duration,
-    /// The delta epoch every mint stamps and every open requires.
+    /// The delta epoch every issuance stamps and every open requires.
     epoch: ScopeEpoch,
     rng: Mutex<R>,
 }
 
-impl<R> TokenAuthority<R>
-where
-    R: TryCryptoRng,
-{
+impl<R> TokenAuthority<R> {
     /// Builds the authority of one generation.
     ///
     /// The key derives from `secret` with the generation digest as its salt. A token stays
@@ -467,20 +548,23 @@ where
         }
     }
 
-    /// Mints the token naming `scope`, issued at `now`, stamped with the held delta epoch.
+    /// Creates the token naming `scope`, issued at `now`, stamped with the held delta epoch.
     ///
     /// `now` is wall-clock time, because whichever process opens the token judges its age, and
     /// [`SystemTime`] is the clock whose value still means the same in another process.
     ///
     /// # Errors
     ///
-    /// Returns the generator's error when drawing the nonce fails: entropy failure refuses the mint
+    /// Returns the generator's error when drawing the nonce fails: entropy failure refuses issuance
     /// rather than sealing under a predictable nonce.
-    pub(crate) fn mint(
+    pub(crate) fn issue(
         &self,
         scope: Scope,
         now: SystemTime,
-    ) -> Result<[u8; SealedAuthority::SIZE], R::Error> {
+    ) -> Result<[u8; SealedAuthority::SIZE], R::Error>
+    where
+        R: TryCryptoRng,
+    {
         let sealed = SealedState {
             scope,
             epoch: self.epoch,
@@ -541,7 +625,7 @@ where
     pub(crate) fn open(
         &self,
         blob: &[u8; TOKEN_BYTES],
-        actor: ActorEntityUuid,
+        actor: Option<ActorId>,
         now: SystemTime,
     ) -> Result<Scope, AuthorityError> {
         let (issued_at, sealed) = self.unseal(blob)?;
@@ -554,16 +638,17 @@ where
         Self::subject(scope, actor)
     }
 
-    /// Reads the view state a presented token carries, for a re-mint.
+    /// Reads the view state a presented token carries, for a renewal.
     ///
     /// This read does not judge the acceptance window. An expired token is no longer authority, yet
-    /// it remains authentic evidence of the view state a past mint sealed, and carrying that state
-    /// into a fresh mint keeps a view stable across a refresh. The tag, the epoch, and the actor
-    /// still bind, and the leniency reaches no further than the mint. This read authenticates a
-    /// scope and carries it forward, while every data request under the fresh token resolves that
-    /// scope through the visibility cache, whose own hard window bounds how old a resolution may
-    /// answer. The epoch binds here exactly because this is the renewal: view state accumulated
-    /// beside a dead register must not carry into a mint under the live one.
+    /// it remains authentic evidence of the view state a past issuance sealed, and re-sealing that
+    /// state into a fresh token keeps a view stable across a refresh. The tag, the epoch, and the
+    /// actor still bind, and the leniency reaches no further than the renewal. This read
+    /// authenticates a scope and carries it forward, while every data request under the fresh
+    /// token resolves that scope through the visibility cache, whose own hard window bounds how
+    /// old a resolution may answer. The epoch binds here exactly because this is the renewal:
+    /// view state accumulated beside a dead register must not carry into a token issued under
+    /// the live one.
     ///
     /// # Errors
     ///
@@ -571,10 +656,10 @@ where
     /// [`AuthorityError::Authentication`] when the tag refuses, [`AuthorityError::Epoch`] for a
     /// sealed delta epoch other than the held one, and [`AuthorityError::Actor`] for a presenter
     /// the token does not name.
-    pub(crate) fn carried(
+    pub(crate) fn continuity(
         &self,
         blob: &[u8; TOKEN_BYTES],
-        actor: ActorEntityUuid,
+        actor: Option<ActorId>,
     ) -> Result<Scope, AuthorityError> {
         let (_issued_at, sealed) = self.unseal(blob)?;
         let scope = self.alive(sealed)?;
@@ -623,8 +708,12 @@ where
     }
 
     /// Resolves the sealed state for `actor`, refusing a presenter the token does not name.
-    fn subject(scope: Scope, actor: ActorEntityUuid) -> Result<Scope, AuthorityError> {
-        if scope.actor != ArchivedActorEntityUuid::from(actor) {
+    #[expect(
+        clippy::missing_const_for_fn,
+        reason = "the derived `PartialEq` behind `!=` is not const-callable"
+    )]
+    fn subject(scope: Scope, actor: Option<ActorId>) -> Result<Scope, AuthorityError> {
+        if scope.actor != actor.into() {
             return Err(AuthorityError::Actor);
         }
 

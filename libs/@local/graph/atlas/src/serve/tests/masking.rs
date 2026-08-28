@@ -19,11 +19,11 @@ use crate::{
     serve::{delta::PlacementCohort, visibility::ResolvedRow},
 };
 
-/// The resolve seam collapses every failure to one [`None`].
+/// Resolution collapses every failure to one [`None`].
 ///
-/// Under the full proof every in-universe wire id resolves to its row; under a mask the hidden
+/// Under the full proof every in-universe wire id resolves to its row, and under a mask the hidden
 /// row's wire id answers exactly the [`None`] an out-of-universe value answers, so forbidden and
-/// nonexistent are indistinguishable downstream of the seam.
+/// nonexistent are indistinguishable downstream of the resolution.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn resolve_collapses_every_failure_to_one_none() {
@@ -232,7 +232,7 @@ async fn masked_edges_inherit_endpoint_visibility() {
 
 /// Translate answers missing for denied, in both identity domains.
 ///
-/// A hidden node's id is an absent key exactly like a nonexistent id; an edge is absent when either
+/// A hidden node's id is an absent key exactly like a nonexistent id. An edge is absent when either
 /// endpoint hides (edge visibility derives) and present while both endpoints show.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
@@ -907,8 +907,9 @@ fn assert_locate_delivers_the_visible_ego_graph(
 /// ingresses that accept an identifier. Those are locate by entity id, locate by wire row id, and
 /// translate. The case compares each denied request with the same request naming something that
 /// never existed - an unknown entity seed, a wire value outside the codec's image - and the answers
-/// are equal values at the seam. The renderers downstream are deterministic functions of those
-/// values, so equal values are equal response bytes: the collapse law, swept rather than sampled.
+/// are equal values at the resolution. The renderers downstream are deterministic functions of
+/// those values, so equal values are equal response bytes: the collapse law, swept rather than
+/// sampled.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {

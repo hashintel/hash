@@ -290,14 +290,14 @@ impl Atlas {
 
     /// Censuses the visible view `proof` admits over this generation.
     ///
-    /// A root tile publishes corpus-wide aggregates, resolved once per scope. An unmasked proof
+    /// A root tile publishes corpus-wide aggregates, resolved once per scope - an unmasked proof
     /// answers from the artifacts, and a masked one costs one pass over the base column. Every
     /// root-tile request under a scope then reads the census rather than recomputing it, which
     /// keeps the walk off the request path.
     ///
     /// The caller must pass the census taken from this same proof. Assembly reads it as the view's
     /// own aggregates without re-deriving them, so a census paired with a different proof publishes
-    /// that other scope's extent. Pinning a proof to its own generation carries the same contract
+    /// that other scope's extent. Pinning a proof to its own generation states the same contract
     /// for the same reason.
     #[must_use]
     pub(crate) fn census(&self, proof: &VisibilityProof) -> ViewCensus {
@@ -415,7 +415,7 @@ impl Atlas {
 
         // Admission subtraction: the ingress snapshot's withdrawn rows leave the document here,
         // before the trailer gathers any detail, so labels stay aligned to the surviving points
-        // by construction. An empty projection skips the walk whole. The gate widens for a
+        // by construction. An empty projection skips the walk whole. The admission widens for a
         // view holding arrivals, because a retained cohort can serve an identity the
         // ingress set withdraws without any fitted row entering the bitsets.
         if let Some(delta) = view.delta()

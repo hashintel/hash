@@ -1,10 +1,10 @@
 //! The open pass.
 //!
 //! Mapping a generation's serving artifacts and validating each format plus their cross-artifact
-//! agreement once, so every read after it trusts its views. The pass is one linear derivation: map
-//! and type each artifact, prove the artifacts agree on their shared domains, derive the serving
-//! state (the schedule, the wire codec and its encoded row column, the frame extent), and construct
-//! the [`Atlas`] whole - no half-initialized value exists at any point.
+//! agreement once, so every read after it trusts its views. The pass is one linear derivation. It
+//! maps and types each artifact and proves the artifacts agree on their shared domains. It then
+//! derives the serving state (the schedule, the wire codec and its encoded row column, the frame
+//! extent) and constructs the [`Atlas`] whole - no half-initialized value exists at any point.
 
 use std::sync::OnceLock;
 
@@ -42,7 +42,7 @@ use crate::{
 /// The options one serving open takes.
 ///
 /// Configuration travels as a struct, never constants or bare parameters. The struct has no
-/// default: every open names its secret explicitly, so no deployment can serve under key material
+/// default. Every open names its secret explicitly, so no deployment can serve under key material
 /// it never configured.
 #[derive(Debug, Clone)]
 pub(crate) struct OpenOptions {

@@ -1,6 +1,6 @@
-//! The visibility seam.
+//! The visibility join point.
 //!
-//! The server-held proof of which rows are visible, and the single join point every row ingress
+//! The server-held proof of which rows are visible, and the single path every row ingress
 //! factors through.
 //!
 //! [`VisibilityProof`] is the visible row set `V_u` as a value, the caller-supplied row masks
@@ -17,14 +17,14 @@
 //! `Option` exists whose `None` means "everything", and the full-visibility value is a distinct,
 //! named constructor rather than a default.
 //!
-//! [`Atlas::resolve`] is the single resolution seam. It decodes the wire id and then tests mask
+//! [`Atlas::resolve`] is the single resolution path. It decodes the wire id and then tests mask
 //! membership, with decode failure, out-of-universe values, and mask misses all collapsing to the
 //! same [`None`] before any rendering observes the cause. [`VisibleRow`] has no other constructor,
 //! so a row that reaches point-lookup assembly carries its visibility in the type; [`VisibleEdge`]
-//! is the same discipline over the link domain, minted only by [`VisibilityProof::verify_edge`],
+//! is the same discipline over the link domain, created only by [`VisibilityProof::verify_edge`],
 //! which is the delivery rule itself. Set-shaped node paths (tile gathers) mask through
-//! [`VisibilityProof::intersect`] and [`VisibilityProof::contains`] wholesale instead of minting a
-//! value per row.
+//! [`VisibilityProof::intersect`] and [`VisibilityProof::contains`] wholesale instead of creating
+//! a value per row.
 
 use hashql_core::{
     collections::FastHashSet,
@@ -94,7 +94,7 @@ pub(crate) enum ProofKind {
     Corpus,
     /// The proof declares a scope, so that scope's own cascade serves it.
     ///
-    /// The cascade takes a delivery-cut offset, which a mint over this proof resolves.
+    /// The cascade takes a delivery-cut offset, which an issuance over this proof resolves.
     Scope,
 }
 
@@ -235,7 +235,7 @@ impl VisibilityProof {
     /// Masks admitting every row of a generation are still a declared scope, and reading them as
     /// the corpus proof would serve that scope the operator's own schedule and cut. Both callers
     /// are cheap paths that ask before doing work: the masked gathers skip their masking when the
-    /// whole corpus is visible, and a mint resolves an occupancy aggregate only for a scope.
+    /// whole corpus is visible, and an issuance resolves an occupancy aggregate only for a scope.
     #[must_use]
     pub(crate) const fn kind(&self) -> ProofKind {
         if self.nodes.is_full() && self.edges.is_full() {
@@ -331,7 +331,7 @@ impl VisibilityProof {
 
 /// A node row that carries its visibility proof in the type.
 ///
-/// The only constructor is the resolution seam, so an unproven row cannot reach an assembly
+/// The only constructor is [`Atlas::resolve`], so an unproven row cannot reach an assembly
 /// function that takes a [`VisibleRow`]. The value is the internal row id for in-process gathers,
 /// and it never crosses the wire.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -362,7 +362,7 @@ impl VisibleEdge {
 
 /// One wire node ingress resolved into the domain that publishes it.
 ///
-/// The decode seam answers from two domains under one universe. A row below the generation's
+/// The decode answers from two domains under one universe. A row below the generation's
 /// fitted bound is a fitted row and carries its visibility proof in the vessel. A row at or past
 /// the bound is a cohort slot serving a placed arrival, answered by the identity it publishes,
 /// and the caller resolves the arrival's delivery values against the view's own arrival table,
@@ -379,7 +379,7 @@ impl Atlas {
     /// Resolves a wire node row id into the domain that publishes it.
     ///
     /// The single join point of the response discipline. The decode runs under `cohort`'s
-    /// accepted universe, so a wire id minted for a cohort slot resolves exactly while an entry
+    /// accepted universe, so a wire id allocated for a cohort slot resolves exactly while an entry
     /// bound to that publication serves the request. A decoded row below the generation's fitted
     /// bound resolves against the proof as a fitted row, and a row at or past it resolves through
     /// the cohort's slot index as a placed arrival, admitted exactly when the proof's widened
@@ -388,7 +388,7 @@ impl Atlas {
     /// Decode failure (out-of-universe wire values), mask misses (rows the proof hides), and
     /// slots the cohort does not serve all answer the same [`None`]. Forbidden and nonexistent
     /// are indistinguishable to everything downstream. The transport renders one problem body
-    /// for both, and nothing upstream of this seam logs or branches on the cause.
+    /// for both, and nothing upstream of this point logs or branches on the cause.
     #[must_use]
     pub(crate) fn resolve(
         &self,

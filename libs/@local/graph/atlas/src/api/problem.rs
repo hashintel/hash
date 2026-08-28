@@ -4,7 +4,7 @@
 //! `application/problem+json`, and the shared rejections - foreign generation, foreign variant -
 //! live here beside the document they produce. Requests that fail before a handler runs - malformed
 //! bodies, wrong content types, unparsable tile addresses - route through [`super::extract`]'s
-//! wrappers and answer problem documents too; only the router's own rejections (an unmatched route,
+//! wrappers and answer problem documents too. Only the router's own rejections (an unmatched route,
 //! a wrong method) stay plain.
 
 use alloc::borrow::Cow;
@@ -15,6 +15,7 @@ use axum::{
     http::{StatusCode, header},
     response::{IntoResponse, Response},
 };
+use hash_middleware::authentication::request::AuthenticationError;
 
 use super::AppState;
 use crate::{file::generation::GenerationId, serve::VARIANTS};
@@ -57,13 +58,15 @@ pub(super) enum ProblemType {
     /// A required request body that did not arrive.
     #[serde(rename = "/problems/atlas/missing-body")]
     MissingBody,
-    /// A request body that is not the operation's JSON: wrong content type, syntax error, shape
-    /// mismatch, or oversize.
+    /// A request body that is not the operation's JSON, whether wrong content type, syntax error,
+    /// shape mismatch, or oversize.
     #[serde(rename = "/problems/atlas/invalid-body")]
     InvalidBody,
-    /// A request that names no authenticated actor while the process resolves scopes per caller.
-    #[serde(rename = "/problems/atlas/missing-actor")]
-    MissingActor,
+    /// A caller the authentication middleware could not resolve.
+    ///
+    /// The status and detail are the middleware's own client-safe reading of the failure.
+    #[serde(rename = "/problems/atlas/unauthenticated")]
+    Unauthenticated,
     /// A request whose authority token is absent, malformed, foreign, or stale.
     #[serde(rename = "/problems/atlas/unauthorized")]
     Unauthorized,
@@ -74,7 +77,7 @@ pub(super) enum ProblemType {
 
 /// One RFC 9457 problem document.
 #[derive(Debug, serde::Serialize, schemars::JsonSchema)]
-pub(super) struct Problem<'content> {
+pub(crate) struct Problem<'content> {
     r#type: ProblemType,
     title: Cow<'content, str>,
     #[serde(serialize_with = "status_as_u16")]
@@ -122,7 +125,25 @@ impl<'content> Problem<'content> {
         Self::new(
             StatusCode::INTERNAL_SERVER_ERROR,
             ProblemType::InternalError,
-            detail,
+            if cfg!(debug_assertions) {
+                detail
+            } else {
+                Cow::Borrowed("internal server error")
+            },
+        )
+    }
+}
+
+/// Carries an authentication failure as this crate's problem document.
+///
+/// The status and detail are [`AuthenticationError`]'s own client-safe readings, so this crate
+/// never restates the middleware's status map.
+impl From<AuthenticationError> for Problem<'static> {
+    fn from(error: AuthenticationError) -> Self {
+        Self::new(
+            error.status_code(),
+            ProblemType::Unauthenticated,
+            error.client_message(),
         )
     }
 }
@@ -178,11 +199,11 @@ impl OperationOutput for Problem<'_> {
 
 /// Rejects a route whose generation echo does not name the pinned generation.
 ///
-/// A well-formed id names a resource, so an id this process does not serve is a 404; the client's
-/// recovery is to re-read `current` and retry. A malformed id never reaches here - the path
-/// extractor answers `invalid-generation` (400) first.
-pub(super) fn reject_generation(
-    state: &AppState,
+/// A well-formed id names a resource, so an id this process does not serve is a 404, and the
+/// client's recovery is to re-read `current` and retry. A malformed id never reaches here - the
+/// path extractor answers `invalid-generation` (400) first.
+pub(super) fn reject_generation<R>(
+    state: &AppState<R>,
     generation: GenerationId,
 ) -> Result<(), Problem<'static>> {
     if generation == state.atlas.generation() {
@@ -196,21 +217,11 @@ pub(super) fn reject_generation(
     ))
 }
 
-/// Refuses a request that names no authenticated actor.
-///
-/// The gateway authenticates the session and states the actor in a header, so a request arriving
-/// without one is a malformed request and answers 400. `detail` names which way the header failed,
-/// and echoes nothing else.
-pub(super) fn missing_actor(detail: impl Into<Cow<'static, str>>) -> Problem<'static> {
-    Problem::new(StatusCode::BAD_REQUEST, ProblemType::MissingActor, detail)
-}
-
 /// Refuses a request that presents no acceptable authority token.
 ///
 /// One uniform answer for every cause (an absent header, a malformed encoding, a failed tag, a
 /// stale issue time, or an actor mismatch), so a caller learns that its presentation refused and
-/// nothing about why. Refusals are client-recoverable and arrive whenever a held token ages out, so
-/// the server logs no cause.
+/// nothing about why. The refused cause reaches the server log alone.
 pub(super) fn unauthorized() -> Problem<'static> {
     Problem::new(
         StatusCode::UNAUTHORIZED,

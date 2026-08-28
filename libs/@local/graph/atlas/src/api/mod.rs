@@ -11,7 +11,7 @@
 //! rejections are problem documents, and the generation/variant path shape four routes address a
 //! layout by), [`clause`] (the OpenAPI responses more than one route states identically),
 //! [`saltile`] (binary envelope responses and their assembly worker), [`headers`] (the
-//! Cache-Control postures, sent and documented from one constant), and [`mod@reference`] (the
+//! Cache-Control postures, sent and documented from one constant), and [`mod@openapi`] (the
 //! OpenAPI document and its reference page).
 //!
 //! Response assembly is synchronous and CPU-bound, so handlers schedule it on a rayon worker behind
@@ -28,13 +28,18 @@ use aide::{
         ApiRouter,
         routing::{get_with, post_with},
     },
-    openapi::{Info, OpenApi},
+    openapi::{
+        ApiKeyLocation, Components, Info, OpenApi, ReferenceOr, SecurityRequirement, SecurityScheme,
+    },
 };
-use axum::{Extension, Router, body::Bytes};
+use axum::{Extension, Router, extract::FromRef};
 use hash_graph_postgres_store::store::PostgresStorePool;
+use hash_middleware::authentication::{
+    request::ACTOR_ID_HEADER, service_secret::SERVICE_AUTH_SCHEME,
+};
 use rand::rngs::SysRng;
 
-use self::visibility::Authority;
+use self::{openapi::OpenApiDocument, visibility::Authority};
 use crate::serve::{
     Atlas, DeltaCell, DeltaEpoch, DensityBand, DensityPolicy, GraphDatabaseClient, ServeLimits,
     VisibilityLimits, authorization::TokenAuthority, hydrate::CachedTypeUrlResolver,
@@ -48,8 +53,8 @@ mod extract;
 mod headers;
 mod locate;
 mod manifest;
+mod openapi;
 mod problem;
-mod reference;
 mod saltile;
 mod tile;
 mod translate;
@@ -68,7 +73,7 @@ const API_DESCRIPTION: &str =
      (`bucketSchedule`), and the delivery schedule this caller's own responses follow \
      (`scopeSchedule`, whose `k` a restricted decoder adds to the bucket span to attribute runs \
      to buckets). Every block except `scopeSchedule` is immutable for the generation's lifetime. \
-     Every successful response mints the authority token the data routes require, and the body \
+     Every successful response issues the authority token the data routes require, and the body \
      states the view the request wants: a filter document, or nothing for the unfiltered view.
 3. `POST` the tile, edges, and locate routes for binary geometry; `POST` translate for JSON \
      identity resolution.
@@ -90,10 +95,11 @@ const API_DESCRIPTION: &str =
      unparsable tile address answers `invalid-coordinate`, and a malformed generation id answers \
      `invalid-generation`. An `unknown-generation` problem always means: re-read `current` and \
      retry.
-- Authorization answers three problems. A request naming no authenticated actor answers \
-     `missing-actor` (400). An absent, malformed, foreign, or stale `Atlas-Authority` token \
-     answers `unauthorized` (401), one uniform refusal whose remedy is a fresh manifest request. \
-     A scope this process cannot resolve answers `visibility-unavailable` (503).
+- Authorization answers three problems. A caller the authentication middleware cannot resolve \
+     answers `unauthenticated`, carrying the middleware's own status. An absent, malformed, \
+     foreign, or stale `Atlas-Authority` token answers `unauthorized` (401), one uniform refusal \
+     whose remedy is a fresh manifest request. A scope this process cannot resolve answers \
+     `visibility-unavailable` (503).
 - The binary envelope's normative contract is the `Atlas wire format` section below - this \
      document is self-contained; a decoder implements against it.";
 
@@ -103,19 +109,76 @@ const API_DESCRIPTION: &str =
 /// normative text rather than pointing at a repository file.
 const WIRE_FORMAT: &str = include_str!("../../docs/wire.md");
 
+/// The credential schemes the deployment authenticates, by document name.
+///
+/// The authentication middleware resolves credentials ahead of this router and cannot write into
+/// this document, so this array is the document's statement of what authenticates, and [`router`]
+/// carries each scheme into the root security requirements.
+// The Kratos and Cloudflare names mirror `hash-graph-authentication`'s provider constants;
+// depending on that crate for three strings would pull its Kratos and JWT machinery into this one.
+#[expect(
+    clippy::default_trait_access,
+    reason = "we do not want to pull in a dependency just to pin its default"
+)]
+fn credential_schemes() -> [(&'static str, SecurityScheme); 4] {
+    [
+        (
+            "sessionToken",
+            SecurityScheme::ApiKey {
+                location: ApiKeyLocation::Header,
+                name: "X-Session-Token".to_owned(),
+                description: Some("the caller's Kratos session token".to_owned()),
+                extensions: Default::default(),
+            },
+        ),
+        (
+            "sessionCookie",
+            SecurityScheme::ApiKey {
+                location: ApiKeyLocation::Cookie,
+                name: "ory_kratos_session".to_owned(),
+                description: Some("the caller's Kratos browser session".to_owned()),
+                extensions: Default::default(),
+            },
+        ),
+        (
+            "cloudflareAccess",
+            SecurityScheme::ApiKey {
+                location: ApiKeyLocation::Header,
+                name: "Cf-Access-Jwt-Assertion".to_owned(),
+                description: Some(
+                    "the Cloudflare Access JWT, on deployments behind Cloudflare Access".to_owned(),
+                ),
+                extensions: Default::default(),
+            },
+        ),
+        (
+            "serviceDelegation",
+            SecurityScheme::Http {
+                scheme: SERVICE_AUTH_SCHEME.to_owned(),
+                bearer_format: None,
+                description: Some(format!(
+                    "the shared service secret, with the delegated actor beside it in the \
+                     `{ACTOR_ID_HEADER}` header"
+                )),
+                extensions: Default::default(),
+            },
+        ),
+    ]
+}
+
 /// The shared route state.
 ///
 /// The pinned generation, the limits the handlers enforce and the manifest publishes, the store
 /// connection detail hydration reads through, the authority every assembly path masks by - read per
 /// request through [`visibility::Visibility`] - the delta cell every request captures its
-/// withdrawal snapshot from at ingress, and the token authority the manifest mints from, whose
-/// sealed scope is the identity every data route resolves its visibility under.
+/// withdrawal snapshot from at ingress, and the token authority behind the manifest's tokens,
+/// whose sealed scope is the identity every data route resolves its visibility under.
 #[derive(Clone)]
-struct AppState {
+struct AppState<R> {
     atlas: Arc<Atlas>,
     limits: ServeLimits,
     visibility: VisibilityLimits,
-    tokens: Arc<TokenAuthority<SysRng>>,
+    tokens: Arc<TokenAuthority<R>>,
     /// The published delta snapshot cell, empty until the consumer's first publication.
     ///
     /// Each request loads it once at ingress and reads that one snapshot at every admission in
@@ -132,6 +195,12 @@ struct AppState {
     type_urls: Arc<CachedTypeUrlResolver<Arc<GraphDatabaseClient>>>,
 }
 
+impl<R> FromRef<AppState<R>> for Arc<TokenAuthority<R>> {
+    fn from_ref(input: &AppState<R>) -> Self {
+        Self::clone(&input.tokens)
+    }
+}
+
 /// Builds the read API router over one opened generation.
 ///
 /// With the OpenAPI document generated at startup and served beside the API.
@@ -141,8 +210,8 @@ struct AppState {
 /// `visibility` the window the router reuses a resolved scope for. The router serves no request
 /// without an actor, and serves no actor another's rows. The authority token's key derives from the
 /// secret that opened the atlas, and every token seals `epoch`, the serving process's delta epoch,
-/// so a restarted delta register refuses the tokens minted beside its predecessor. The manifest
-/// mints one per fetch, and the data routes refuse without one.
+/// so a restarted delta register refuses the tokens issued beside its predecessor. The manifest
+/// issues one per fetch, and the data routes refuse without one.
 ///
 /// # Panics
 ///
@@ -175,9 +244,22 @@ pub(crate) fn router(
         delta,
     };
 
-    // Each operation declares its responses explicitly; the
-    // handler-signature inference would double-declare them.
+    // To increase the accuracy of response inference we manually declare
+    // responses for each operation.
     aide::generate::infer_responses(false);
+
+    let mut components = Components::default();
+    // The empty requirement admits the anonymous caller, a first-class presenter.
+    let mut security = vec![SecurityRequirement::new()];
+    for (name, scheme) in credential_schemes() {
+        security.push(SecurityRequirement::from_iter([(
+            name.to_owned(),
+            Vec::new(),
+        )]));
+        components
+            .security_schemes
+            .insert(name.to_owned(), ReferenceOr::Item(scheme));
+    }
 
     let mut api = OpenApi {
         info: Info {
@@ -186,6 +268,8 @@ pub(crate) fn router(
             version: env!("CARGO_PKG_VERSION").to_owned(),
             ..Info::default()
         },
+        security,
+        components: Some(components),
         ..OpenApi::default()
     };
 
@@ -214,17 +298,10 @@ pub(crate) fn router(
             "/v1/atlas/translate/{generation}/{variant}",
             post_with(translate::handler, translate::document),
         )
-        .route(
-            "/v1/atlas/openapi.json",
-            axum::routing::get(reference::serve_document),
-        )
-        .route("/v1/atlas/openapi", axum::routing::get(reference::page()))
+        .route("/v1/atlas/openapi.json", axum::routing::get(openapi::json))
+        .route("/v1/atlas/openapi", axum::routing::get(openapi::html))
         .with_state(state)
         .finish_api(&mut api);
 
-    // Startup pins the generation and therefore the document too:
-    // rendered once, served as bytes.
-    let document =
-        Bytes::from(serde_json::to_string(&api).expect("the OpenAPI document serializes"));
-    router.layer(Extension(document))
+    router.layer(Extension(OpenApiDocument::new(&api)))
 }

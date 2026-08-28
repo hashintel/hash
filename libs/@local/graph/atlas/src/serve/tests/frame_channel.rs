@@ -199,8 +199,8 @@ fn hidden_row_outside_the_visible_frame_changes_the_visible_key_assignment() {
 /// exactly as the sparse world reads them.
 ///
 /// It asserts nothing about buckets. An interior hidden row still moves the bucket assignment when
-/// it outranks a visible row for a contested cell, which is [`super::metadata_channel`]'s witness;
-/// asserting bucket equality here would generalize one lucky instance into a false rule.
+/// it outranks a visible row for a contested cell, which is [`super::metadata_channel`]'s witness.
+/// Asserting bucket equality here would generalize one lucky instance into a false rule.
 #[test]
 fn interior_hidden_row_leaves_the_visible_key_assignment_fixed() {
     let (sparse_frame, sparse) = read(&VISIBLE, VISIBLE.len());

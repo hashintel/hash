@@ -18,7 +18,7 @@
 //! requesting actor. Each order carries the actor its scope's policy resolution produced
 //! ([`MaskingActor`]), and the property statements compile through the store's own query compiler
 //! under the read path's masking conditions, so a trailer withholds exactly what the graph's entity
-//! reads withhold from that actor: an owner reads a protected value of their own where a stranger
+//! reads withhold from that actor. An owner reads a protected value of their own where a stranger
 //! does not, and an instance admin reads unmasked.
 //!
 //! Labels stand outside that rule, here and on the graph's own read path. A label is a property

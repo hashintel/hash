@@ -36,12 +36,18 @@
 //! produces; `grid` is the bucket schedule and its addressing; `secret`, the wire secret; and
 //! `error`, the open-failure taxonomy.
 //!
-//! The domain: `visibility` carries the proof and its resolution; `codec` the keyed row-id
-//! permutation; `density` the public band that resolves one scope's delivery cut; `walk` the
-//! schedule-driven point delivery - full-visibility range assembly, the masked delivery chain, and
-//! the census; `neighbourhood` the adjacency edge sets and their caps; `colour` the type-colouring
-//! resolution; `intern` the wire intern tables; `authorization` the sealed authority tokens;
-//! `hydrate` the live store reads behind detail trailers.
+//! The domain:
+//!
+//! - `visibility` carries the proof and its resolution
+//! - `codec` the keyed row-id permutation
+//! - `density` the public band that resolves one scope's delivery cut
+//! - `walk` the schedule-driven point delivery - full-visibility range assembly, the masked
+//!   delivery chain, and the census
+//! - `neighbourhood` the adjacency edge sets and their caps
+//! - `colour` the type-colouring resolution
+//! - `intern` the wire intern tables
+//! - `authorization` the sealed authority tokens
+//! - `hydrate` the live store reads behind detail trailers
 //!
 //! The read surfaces compose those: `tile`, `edges`, `locate`, and `translate` each hold one
 //! endpoint's request vocabulary, rejection taxonomy, and assembly, and `manifest` the bootstrap

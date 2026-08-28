@@ -31,7 +31,7 @@
 //!
 //! An arrival's *placement* ([`ProjectedArrival`]) is the wire coordinate the staging arm
 //! projects for it through the generation's own publish path. The register keeps the first
-//! placement per identity and never replaces it: a later edition moves the coordinate nowhere.
+//! placement per identity and never replaces it, so a later edition moves the coordinate nowhere.
 //! The refit recalibrates placements exactly as it recalibrates fitted rows, whose coordinates
 //! are also fit-time content and often editions old. A placement recorded while the identity
 //! stands withdrawn serves nothing, and an unarchive republishes the recorded coordinate at its
@@ -55,9 +55,9 @@
 //! for the next poll to retry.
 //!
 //! A [`DeltaEpoch`] names one register's lifetime. Slot assignment is process-local and a
-//! replay does not reproduce placement order, so a wire id minted under one register must not
+//! replay does not reproduce placement order, so a wire id allocated under one register must not
 //! resolve under another. Consumer initialization draws a fresh epoch, the token authority seals
-//! it into every token it mints, and a token sealed under any other epoch receives the uniform
+//! it into every token it issues, and a token sealed under any other epoch receives the uniform
 //! authorization refusal. A restart is therefore a new epoch by construction: old slot mappings
 //! die with the process instead of quietly renaming entities.
 //!
@@ -192,7 +192,7 @@ impl From<&EntityEvent> for DeltaEvent {
     }
 }
 
-/// One register lifetime's name, sealed into every authority token minted while it lives.
+/// One register lifetime's name, sealed into every authority token issued while it lives.
 ///
 /// The value is random rather than derived, so two register lifetimes over one generation match
 /// only by a collision of 128 fresh bits. Equality is the whole interface: the token authority

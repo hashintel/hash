@@ -1,12 +1,11 @@
 ---
 source: libs/@local/graph/atlas/src/serve/hydrate/statements.rs
-assertion_line: 370
 expression: detail.compile().0
 ---
 SELECT "entity_temporal_metadata_0_0_0"."web_id", "entity_temporal_metadata_0_0_0"."entity_uuid", "entity_edition_cache_1_1_0"."versioned_urls", "entity_edition_cache_1_1_0"."direct_types", (SELECT jsonb_object_agg("scalar_property"."key", "scalar_property"."value")
-FROM jsonb_each(("entity_editions_1_1_0"."properties" - (CASE WHEN ("entity_temporal_metadata_0_0_0"."entity_uuid" != $7) AND ("entity_edition_cache_1_1_0"."base_urls" @> ARRAY[$8]::text[]) THEN ARRAY[$9]::text[] ELSE ARRAY[]::text[] END))) AS "scalar_property"("key", "value")
+FROM jsonb_each(("entity_editions_1_1_0"."properties" - (CASE WHEN "entity_edition_cache_1_1_0"."base_urls" @> ARRAY[$7]::text[] THEN ARRAY[$8]::text[] ELSE ARRAY[]::text[] END))) AS "scalar_property"("key", "value")
 WHERE jsonb_typeof("scalar_property"."value") = ANY(($6::text[]))), ((SELECT count(*)
-FROM jsonb_each(("entity_editions_1_1_0"."properties" - (CASE WHEN ("entity_temporal_metadata_0_0_0"."entity_uuid" != $7) AND ("entity_edition_cache_1_1_0"."base_urls" @> ARRAY[$8]::text[]) THEN ARRAY[$9]::text[] ELSE ARRAY[]::text[] END))) AS "scalar_property"("key", "value"))::int4), ("entity_edition_cache_1_1_0"."label_properties")[1]
+FROM jsonb_each(("entity_editions_1_1_0"."properties" - (CASE WHEN "entity_edition_cache_1_1_0"."base_urls" @> ARRAY[$7]::text[] THEN ARRAY[$8]::text[] ELSE ARRAY[]::text[] END))) AS "scalar_property"("key", "value"))::int4), ("entity_edition_cache_1_1_0"."label_properties")[1]
 FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
 INNER JOIN "entity_editions" AS "entity_editions_0_1_0"
   ON "entity_editions_0_1_0"."entity_edition_id" = "entity_temporal_metadata_0_0_0"."entity_edition_id"

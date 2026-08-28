@@ -32,8 +32,8 @@ use crate::{
 ///
 /// The hand derivation uses four rows on a `span = 1, max_tile_depth = 1` grid, whose deepest
 /// bucket is `2 + k`. Rows a and b share the complete key, so the better-ranked a claims depth 0
-/// and b never claims a cell; c claims depth 1 - its first depth apart from a - and d claims depth
-/// 2 under `k = 0`'s catch-all... at which the law stops distinguishing it from b.
+/// and b never claims a cell. Row c claims depth 1 - its first depth apart from a - and d claims
+/// depth 2 under `k = 0`'s catch-all... at which the law stops distinguishing it from b.
 #[test]
 fn hand_cascade_pins_the_first_occupant_law() {
     // On the unit grid, a and b share the north-west cell, c takes the north-east, and d shares a's

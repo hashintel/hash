@@ -114,7 +114,7 @@ impl LocateLinkHydration {
 
 /// The store half of one locate response.
 ///
-/// One call consumes the capability, so a response hydrates at most once and the type carries
+/// One call consumes the capability, so a response hydrates at most once and the type states
 /// that contract instead of a runtime check. An implementation answers the order from
 /// wherever its store lives. The transport bridges to an async connection, and a test answers from
 /// a fixture table with no store at all.
@@ -136,7 +136,7 @@ pub(crate) trait LocateStore {
 /// generation's payloads or the register's captured displays, so the store's whole share is
 /// resolving each uuid to its versioned URL. `None` marks a type the store no longer serves.
 ///
-/// One call consumes the capability, so a response hydrates at most once and the type carries
+/// One call consumes the capability, so a response hydrates at most once and the type states
 /// that contract instead of a runtime check. An implementation answers from wherever its
 /// store lives, and a test answers from a fixture table with no store at all.
 pub(crate) trait EdgesStore {

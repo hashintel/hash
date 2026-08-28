@@ -1,7 +1,7 @@
 //! Resolution from ontology type uuids to their versioned URLs, behind a composable cache.
 //!
 //! An ontology type uuid derives from the versioned URL it names, so the mapping from uuid to
-//! URL is immutable: a store row cannot change its URL under the same uuid, and a resolved pair
+//! URL is immutable. A store row cannot change its URL under the same uuid, and a resolved pair
 //! stays true for as long as the process lives. That is what makes a lazily filled,
 //! never-invalidated cache correct here, and why the cache is generation-independent - a
 //! generation swap changes which uuids a response requires, never what a uuid resolves to.

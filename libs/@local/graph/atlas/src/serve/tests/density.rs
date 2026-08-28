@@ -178,8 +178,9 @@ async fn proof_admitting_nothing_occupies_nothing() {
 
 /// The delivery-cut policy is offered no operator view to resolve.
 ///
-/// An operator proof serves the corpus schedule, whose one cut per zoom takes no offset, so a mint
-/// over one seals zero. The case pins that at the proof-kind check rather than at the mint. The
+/// An operator proof serves the corpus schedule, whose one cut per zoom takes no offset, so an
+/// issuance over one seals zero. The case pins that at the proof-kind check rather than at the
+/// issuance. The
 /// fixture's own corpus occupancy resolves nonzero under the band below, which the first assertion
 /// states, and the absent aggregate is therefore about the proof's kind. A view that happened to
 /// resolve zero would pass the same check for the wrong reason.

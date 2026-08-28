@@ -1,159 +1,191 @@
-//! Authority token transport: the `Atlas-Authority` header codec and its two readings.
+//! Authority token transport: the `Atlas-Authority` header and its two readings.
 //!
-//! The manifest response mints a token and sends it hex-encoded in the `Atlas-Authority` header;
-//! every data request presents it back in the same header. The judgment - tag, window, actor - is
-//! [`TokenAuthority::open`]'s; this module owns the transport and the two ways a route reads a
-//! presentation. [`admit`] is the data routes' reading. It returns the sealed [`Scope`] only under
-//! a fresh token naming the requesting actor, and collapses every refusal into one uniform `401`
-//! problem, so a caller learns that it must re-fetch the manifest and nothing about why.
-//! [`Presented`] is the manifest's reading. It distinguishes an absent token from a refused one and
-//! never rejects, because the manifest judges the generation before it judges continuity.
+//! The manifest response issues the token and every data request presents it back in the same
+//! header. The judgment is [`TokenAuthority::open`]'s. Extracting [`Scope`] is the data routes'
+//! reading: admission only under a fresh token naming the requesting actor, every refusal one
+//! uniform `401`. Extracting `Option<Scope>` is the manifest's reading: an absent token is a
+//! fresh bootstrap and the reading forgives the window, while the tag and the actor stay binding.
+//! Both readings resolve the caller through [`Actor`], the authentication middleware's resolution.
 //!
 //! [`TokenAuthority::open`]: crate::serve::authorization::TokenAuthority::open
 
-use core::future::{self, Future};
 use std::time::SystemTime;
 
 use aide::{generate::GenContext, openapi, operation::OperationInput};
 use axum::{
-    extract::FromRequestParts,
-    http::{HeaderValue, request::Parts},
+    extract::{FromRequestParts, OptionalFromRequestParts},
+    http::request::Parts,
 };
-use rand::TryCryptoRng;
-use type_system::principal::actor::ActorEntityUuid;
+use hash_middleware::authentication::{AuthenticatedActorId, AuthenticatedActorIdRejection};
+use type_system::principal::actor::ActorId;
 
 use super::{
     AppState, headers,
     problem::{Problem, unauthorized},
-    visibility::actor,
 };
 use crate::{
     integrity::HexBytes,
     serve::authorization::{Scope, TOKEN_BYTES, TokenAuthority},
 };
 
-/// Judges one presentation for admission: the sealed scope under a fresh, actor-matching token.
+/// A request's cached caller resolution.
 ///
-/// [`None`] for every other presentation - an absent header, a value outside the codec, or a token
-/// [`TokenAuthority::open`] refuses.
-fn judge<R>(
-    header: Option<&HeaderValue>,
-    tokens: &TokenAuthority<R>,
-    actor: ActorEntityUuid,
-    now: SystemTime,
-) -> Option<Scope>
+/// [`Actor`] reads this entry before asking the middleware and stores the outcome after, so a
+/// request resolves its caller once however many extractors ask. An entry inserted before the
+/// first extraction supplies the resolution itself, which is what lets a test drive the
+/// extractors without the middleware's layer.
+#[derive(Debug, Clone)]
+struct ActorCache(Result<Actor, AuthenticatedActorIdRejection>);
+
+/// The authenticated caller, anonymous included.
+///
+/// The authentication middleware resolves the caller ahead of this router, and this extractor
+/// reads that resolution. [`None`] is an anonymous caller, a first-class presenter.
+#[derive(Debug, Clone, Copy)]
+pub(super) struct Actor(pub Option<ActorId>);
+
+impl<S> FromRequestParts<S> for Actor
 where
-    R: TryCryptoRng,
+    S: Send + Sync,
 {
-    let token: HexBytes<TOKEN_BYTES> = header?.to_str().ok()?.parse().ok()?;
-
-    tokens.open(&token.into_inner(), actor, now).ok()
-}
-
-/// Admits one data request, returning the sealed [`Scope`] under a fresh actor-matching token.
-///
-/// Runs inside [`Visibility`]'s extraction, ahead of the scope resolution, so an unauthorized
-/// request costs one AEAD open and never a store round trip. It also runs ahead of the handler
-/// body's generation check, and that order is the data routes' half of the contract: **a data route
-/// admits first and reaches the generation's `404` only under an acceptable token.** A token minted
-/// under a retired generation therefore answers `401` here - its tag fails under the current key -
-/// while a token this generation minted, presented at a route naming a retired one, passes
-/// admission and answers `404` `unknown-generation` from the handler body.
-///
-/// The manifest orders the two judgments the other way round, generation first, so a client that
-/// holds no acceptable token still discovers a re-pin there. Both orders are contractual. A `404`
-/// from a data route means the caller's pin is stale and its token is good, and a `401` never
-/// discriminates a stale pin from a stale token. The generation judgment stays in the handler body
-/// for exactly that reason.
-///
-/// # Errors
-///
-/// One uniform `401` problem for every token refusal cause, and the `400` missing-actor problem for
-/// a request that names no authenticated actor.
-///
-/// [`Visibility`]: super::visibility::Visibility
-pub(super) fn admit(parts: &Parts, state: &AppState) -> Result<Scope, Problem<'static>> {
-    let actor = actor(parts)?;
-
-    judge(
-        parts.headers.get(headers::AUTHORITY),
-        &state.tokens,
-        ActorEntityUuid::from(actor),
-        SystemTime::now(),
-    )
-    .ok_or_else(unauthorized)
-}
-
-/// A presented token's continuity reading, for the manifest's re-mint.
-///
-/// Extraction never rejects on the token. The manifest judges the generation first, so a retired
-/// generation answers `404` whatever the presentation, and the refusal of a present-but-invalid
-/// token is the handler's to give after that check. The reading forgives the window - an expired
-/// token is the expected presentation at a refresh - while the tag and the actor stay binding: a
-/// token that fails either reads as [`Presented::Refused`], never as a fresh bootstrap.
-#[derive(Debug)]
-pub(super) enum Presented {
-    /// No token in the header: a fresh bootstrap.
-    Absent,
-    /// An authentic same-actor token, staleness forgiven.
-    ///
-    /// The sealed scope carries into the re-mint.
-    Carried(Scope),
-    /// A present and unacceptable token.
-    ///
-    /// Outside the codec, failing the tag, or naming another actor.
-    Refused,
-}
-
-/// Reads one presentation for continuity.
-fn read<R>(
-    header: Option<&HeaderValue>,
-    tokens: &TokenAuthority<R>,
-    actor: ActorEntityUuid,
-) -> Presented
-where
-    R: TryCryptoRng,
-{
-    let Some(value) = header else {
-        return Presented::Absent;
-    };
-
-    value
-        .to_str()
-        .ok()
-        .and_then(|text| text.parse::<HexBytes<TOKEN_BYTES>>().ok())
-        .and_then(|token| tokens.carried(&token.into_inner(), actor).ok())
-        .map_or(Presented::Refused, Presented::Carried)
-}
-
-impl FromRequestParts<AppState> for Presented {
     type Rejection = Problem<'static>;
 
-    fn from_request_parts(
-        parts: &mut Parts,
-        state: &AppState,
-    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
-        future::ready(actor(parts).map(|actor| {
-            read(
-                parts.headers.get(headers::AUTHORITY),
-                &state.tokens,
-                ActorEntityUuid::from(actor),
-            )
-        }))
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let resolution = if let Some(ActorCache(cached)) = parts.extensions.get::<ActorCache>() {
+            cached.clone()
+        } else {
+            let resolution = Option::<AuthenticatedActorId>::from_request_parts(parts, state)
+                .await
+                .map(|actor| Self(actor.map(|AuthenticatedActorId(id)| id)));
+
+            parts.extensions.insert(ActorCache(resolution.clone()));
+            resolution
+        };
+
+        match resolution {
+            Ok(actor) => Ok(actor),
+            Err(AuthenticatedActorIdRejection::MissingLayer) => Err(Problem::internal(
+                "`Actor` extracted on a route without the authentication middleware",
+                "the caller's authentication was never resolved",
+            )),
+            Err(AuthenticatedActorIdRejection::Authentication(error)) => Err(error.into()),
+        }
     }
 }
 
-impl OperationInput for Presented {
-    /// Documents the presented token as an optional request header.
+/// Adds nothing per operation: the document root declares the credential surface.
+///
+/// The authentication middleware resolves credentials ahead of this router and cannot write into
+/// this document, so [`router`](super::router) declares the schemes it accepts once, as the
+/// document's own security requirements.
+impl OperationInput for Actor {}
+
+/// The token authority slice of a router state.
+///
+/// Both [`Scope`] readings judge presentations against the authority alone, so they extract from
+/// any state that supplies one, the full application state or a bare authority.
+pub(super) trait TokenState {
+    /// The authority's randomness source.
+    type Rng;
+
+    /// The authority judging every presentation.
+    fn tokens(&self) -> &TokenAuthority<Self::Rng>;
+}
+
+impl<R> TokenState for AppState<R> {
+    type Rng = R;
+
+    fn tokens(&self) -> &TokenAuthority<R> {
+        &self.tokens
+    }
+}
+
+/// Admits one data request: the sealed [`Scope`] under a fresh, actor-matching token.
+///
+/// Admission precedes every resolution (an unauthorized request costs one AEAD open and never a
+/// store round trip) and precedes the handler body's generation check. A retired generation's
+/// token fails its tag under the current key and answers `401` here, while a current token
+/// presented at a route naming a retired generation passes admission and finds the `404` in the
+/// handler. A `404` from a data route therefore means the caller's pin is stale and its token is
+/// good.
+///
+/// Every refusal is the one uniform `401` problem. An absent header and a value outside the
+/// codec refuse silently. A refusal from [`TokenAuthority::open`] also reaches the server log.
+///
+/// [`TokenAuthority::open`]: crate::serve::authorization::TokenAuthority::open
+impl<S> FromRequestParts<S> for Scope
+where
+    S: TokenState + Send + Sync,
+{
+    type Rejection = Problem<'static>;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let Actor(actor) = Actor::from_request_parts(parts, state).await?;
+
+        parts
+            .headers
+            .get(headers::AUTHORITY)
+            .and_then(|header| header.to_str().ok()?.parse::<HexBytes<TOKEN_BYTES>>().ok())
+            .and_then(|token| {
+                state
+                    .tokens()
+                    .open(&token.into_inner(), actor, SystemTime::now())
+                    .inspect_err(|error| tracing::warn!(%error, "unable to open token"))
+                    .ok()
+            })
+            .ok_or_else(unauthorized)
+    }
+}
+
+/// Reads one presentation for the manifest's renewal: window forgiven, tag and actor binding.
+///
+/// An absent header is [`None`], a fresh bootstrap. A refused presentation (outside the codec,
+/// failing the tag, or naming another actor) is the uniform `401` problem rather than a fresh
+/// bootstrap, so a corrupted retention or an actor switch cannot become another view without
+/// notice. [`TokenAuthority::continuity`] is the judgment, so an expired token still carries its
+/// sealed view into the fresh token the manifest issues.
+///
+/// Refusal fires at extraction, ahead of the handler body's generation check. A stale pin with a
+/// refused token answers `401`, and the token-less follow-up finds the generation's `404` and the
+/// re-pin there.
+///
+/// [`TokenAuthority::continuity`]: crate::serve::authorization::TokenAuthority::continuity
+impl<S> OptionalFromRequestParts<S> for Scope
+where
+    S: TokenState + Send + Sync,
+{
+    type Rejection = Problem<'static>;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &S,
+    ) -> Result<Option<Self>, Self::Rejection> {
+        let Actor(actor) = Actor::from_request_parts(parts, state).await?;
+
+        let Some(header) = parts.headers.get(headers::AUTHORITY) else {
+            return Ok(None);
+        };
+
+        header
+            .to_str()
+            .ok()
+            .and_then(|text| text.parse::<HexBytes<TOKEN_BYTES>>().ok())
+            .and_then(|token| state.tokens().continuity(&token.into_inner(), actor).ok())
+            .map_or_else(|| Err(unauthorized()), |scope| Ok(Some(scope)))
+    }
+}
+
+impl OperationInput for Scope {
+    /// Documents the presented token as a required request header.
     ///
-    /// Optional is the manifest's whole distinction from a data route: a request presenting no
-    /// token bootstraps a view where a data route would refuse.
+    /// Required is the data routes' contract: extraction admits before anything resolves, so a
+    /// route taking the sealed scope answers nothing without a token. The manifest takes
+    /// `Option<Scope>`, and aide derives its documentation from this impl, flipping the parameter
+    /// to optional - the manifest's whole distinction from a data route.
     fn operation_input(_ctx: &mut GenContext, operation: &mut openapi::Operation) {
         operation
             .parameters
-            .push(openapi::ReferenceOr::Item(headers::presented_authority(
-                headers::Required::No,
-            )));
+            .push(openapi::ReferenceOr::Item(headers::presented_authority()));
     }
 }
 
@@ -163,12 +195,16 @@ mod tests {
     use std::time::SystemTime;
 
     use aide::{openapi::Operation, transform::TransformOperation};
-    use axum::http::HeaderValue;
+    use axum::{
+        extract::{FromRequestParts, OptionalFromRequestParts},
+        http::{HeaderValue, Request, request::Parts},
+    };
+    use futures::executor::block_on;
     use rand::{SeedableRng as _, rngs::ChaCha20Rng};
-    use type_system::principal::actor::ActorEntityUuid;
+    use type_system::principal::actor::{ActorId, UserId};
     use uuid::Uuid;
 
-    use super::{Presented, headers, judge, read};
+    use super::{Actor, ActorCache, Problem, TokenState, headers};
     use crate::{
         api::visibility::Visibility,
         integrity::{HexBytes, SecretHexBytes},
@@ -177,6 +213,15 @@ mod tests {
             authorization::{Scope, TOKEN_BYTES, TokenAuthority},
         },
     };
+
+    /// The bare authority as a test's whole state.
+    impl TokenState for TokenAuthority<ChaCha20Rng> {
+        type Rng = ChaCha20Rng;
+
+        fn tokens(&self) -> &Self {
+            self
+        }
+    }
 
     /// Renders the operation input one extractor documents.
     fn emitted_input<T: aide::operation::OperationInput>() -> serde_json::Value {
@@ -205,43 +250,92 @@ mod tests {
     }
 
     /// The actor identity `actor` names.
-    fn presenter(actor: u128) -> ActorEntityUuid {
-        ActorEntityUuid::new(Uuid::from_u128(actor))
+    #[expect(
+        clippy::unnecessary_wraps,
+        reason = "the presenter's domain is `Option<ActorId>`, and this fixture names its `Some` \
+                  form beside the literal `None`, the anonymous presenter"
+    )]
+    fn presenter(actor: u128) -> Option<ActorId> {
+        Some(ActorId::User(UserId::new(Uuid::from_u128(actor))))
     }
 
-    /// The header value carrying a freshly minted token for `actor`.
-    fn minted(tokens: &TokenAuthority<ChaCha20Rng>, actor: u128) -> HeaderValue {
-        let scope = Scope::new(presenter(actor), None, CutOffset::ZERO);
+    /// The authority header presenting a token for `presenter`, issued at `issued_at`.
+    fn minted(
+        tokens: &TokenAuthority<ChaCha20Rng>,
+        presenter: Option<ActorId>,
+        issued_at: SystemTime,
+    ) -> HeaderValue {
         let token = tokens
-            .mint(scope, issued_at())
+            .issue(Scope::new(presenter, None, CutOffset::ZERO), issued_at)
             .expect("the seeded generator is infallible");
 
         HeaderValue::try_from(HexBytes::new(token).to_string())
             .expect("hexadecimal is a valid header value")
     }
 
+    /// One request's parts, with `resolution` cached as the middleware's outcome and `token`
+    /// presented in the authority header.
+    fn parts(resolution: Option<ActorId>, token: Option<&HeaderValue>) -> Parts {
+        let mut request = Request::builder().uri("/");
+        if let Some(token) = token {
+            request = request.header(headers::AUTHORITY, token.clone());
+        }
+
+        let (mut parts, ()) = request
+            .body(())
+            .expect("a static URI and a hexadecimal header form a valid request")
+            .into_parts();
+        parts.extensions.insert(ActorCache(Ok(Actor(resolution))));
+
+        parts
+    }
+
+    /// Drives a data route's admission reading with the authority as the whole state.
+    fn admit(
+        tokens: &TokenAuthority<ChaCha20Rng>,
+        resolution: Option<ActorId>,
+        token: Option<&HeaderValue>,
+    ) -> Result<Scope, Problem<'static>> {
+        block_on(<Scope as FromRequestParts<_>>::from_request_parts(
+            &mut parts(resolution, token),
+            tokens,
+        ))
+    }
+
+    /// Drives the manifest's continuity reading with the authority as the whole state.
+    fn read(
+        tokens: &TokenAuthority<ChaCha20Rng>,
+        resolution: Option<ActorId>,
+        token: Option<&HeaderValue>,
+    ) -> Result<Option<Scope>, Problem<'static>> {
+        block_on(<Scope as OptionalFromRequestParts<_>>::from_request_parts(
+            &mut parts(resolution, token),
+            tokens,
+        ))
+    }
+
     /// An absent header reads as a fresh bootstrap, never as a refusal.
     #[test]
     fn absent_token_reads_as_a_fresh_bootstrap() {
-        assert_matches!(read(None, &authority(), presenter(11)), Presented::Absent);
+        assert_matches!(read(&authority(), presenter(11), None), Ok(None));
     }
 
-    /// A present header outside the codec reads as refused, never as a fresh bootstrap.
+    /// A header outside the codec reads as refused, never as a fresh bootstrap.
     ///
-    /// The manifest's case split depends on this distinction: a client that presented something
-    /// receives a refusal, so a corrupted retention never becomes another view without notice.
+    /// The refused answer tells a client its retention corrupted, where a bootstrap would
+    /// silently hand it another view.
     #[test]
     fn garbage_header_reads_as_refused() {
         let tokens = authority();
 
         for garbage in ["", "zz", &"ab".repeat(TOKEN_BYTES)] {
+            let header = garbage
+                .parse::<HeaderValue>()
+                .expect("a visible ASCII string");
+
             assert_matches!(
-                read(
-                    Some(&HeaderValue::from_str(garbage).expect("a visible ASCII string")),
-                    &tokens,
-                    presenter(11),
-                ),
-                Presented::Refused,
+                read(&tokens, presenter(11), Some(&header)),
+                Err(_),
                 "a garbage header did not read as refused"
             );
         }
@@ -249,34 +343,56 @@ mod tests {
 
     /// Another actor's authentic token reads as refused, never as a fresh bootstrap.
     ///
-    /// This test closes a witnessed hole: an actor switch that leaves a stale token behind must
-    /// answer with a refusal rather than mint the new actor a fresh view under a `200` the client
-    /// reads as continuity.
+    /// An actor switch that leaves a stale token behind answers with a refusal rather than a
+    /// fresh view under a `200` the client would read as continuity.
     #[test]
     fn foreign_actors_token_reads_as_refused() {
         let tokens = authority();
-        let header = minted(&tokens, 11);
+        let header = minted(&tokens, presenter(11), issued_at());
 
+        assert_matches!(read(&tokens, presenter(12), Some(&header)), Err(_));
+    }
+
+    /// An anonymous caller's token binds to the anonymous presenter exactly as a named one.
+    #[test]
+    fn anonymous_token_binds_its_presenter() {
+        let tokens = authority();
+        let anonymous = minted(&tokens, None, issued_at());
+        let named = minted(&tokens, presenter(11), issued_at());
+
+        assert_matches!(read(&tokens, None, Some(&anonymous)), Ok(Some(_)));
         assert_matches!(
-            read(Some(&header), &tokens, presenter(12)),
-            Presented::Refused
+            read(&tokens, presenter(11), Some(&anonymous)),
+            Err(_),
+            "a named presenter carried the anonymous token"
+        );
+        assert_matches!(
+            read(&tokens, None, Some(&named)),
+            Err(_),
+            "an anonymous presenter carried a named token"
         );
     }
 
-    /// An expired token still reads as carried, and its sealed scope is intact.
+    /// Admission enforces the window the continuity reading forgives.
+    ///
+    /// The same presentation diverges at the two readings: past the enforced window a data
+    /// request refuses while the manifest still carries the sealed view into the fresh token it
+    /// issues. Issue times pin to the wall clock admission reads, so the fresh token stays inside
+    /// the ten-minute window and the expired one stays outside it.
     #[test]
-    fn expired_token_reads_as_carried() {
+    fn expired_token_refuses_at_admission_yet_reads_as_carried() {
         let tokens = authority();
-        let header = minted(&tokens, 11);
+        let now = SystemTime::now();
+        let expired = minted(&tokens, presenter(11), now - Duration::from_mins(11));
+        let fresh = minted(&tokens, presenter(11), now);
 
-        let Presented::Carried(scope) = read(Some(&header), &tokens, presenter(11)) else {
-            panic!("an authentic token did not read as carried");
-        };
-        assert_eq!(
-            scope,
-            Scope::new(presenter(11), None, CutOffset::ZERO),
-            "the carried scope differs from the minted one"
+        assert_matches!(
+            admit(&tokens, presenter(11), Some(&expired)),
+            Err(_),
+            "an expired token admitted a data request"
         );
+        assert_matches!(read(&tokens, presenter(11), Some(&expired)), Ok(Some(_)));
+        assert_matches!(admit(&tokens, presenter(11), Some(&fresh)), Ok(_));
     }
 
     /// The emitted OpenAPI documents the token optional on the manifest, required on a data route.
@@ -287,7 +403,7 @@ mod tests {
     /// builder call, because that is what a generator reads.
     #[test]
     fn presented_token_is_documented_by_reading() {
-        let manifest = emitted_input::<Presented>();
+        let manifest = emitted_input::<Option<Scope>>();
         let data_route = emitted_input::<Visibility>();
 
         for (route, emitted) in [("manifest", &manifest), ("data route", &data_route)] {
@@ -319,31 +435,6 @@ mod tests {
             data_route["parameters"][0]["required"],
             serde_json::Value::Bool(true),
             "a data route documents the token as optional"
-        );
-    }
-
-    /// Admission enforces the window the continuity reading forgives.
-    ///
-    /// The same presentation diverges at the two readings: past the enforced window a data request
-    /// refuses while the manifest still carries the sealed view into a fresh mint.
-    #[test]
-    fn expired_token_refuses_at_admission_yet_reads_as_carried() {
-        let tokens = authority();
-        let header = minted(&tokens, 11);
-        let expired = issued_at() + Duration::from_mins(11);
-
-        assert_eq!(
-            judge(Some(&header), &tokens, presenter(11), expired),
-            None,
-            "an expired token admitted a data request"
-        );
-        assert_matches!(
-            read(Some(&header), &tokens, presenter(11)),
-            Presented::Carried(_)
-        );
-        assert_matches!(
-            judge(Some(&header), &tokens, presenter(11), issued_at()),
-            Some(_)
         );
     }
 }

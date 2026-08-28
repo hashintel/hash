@@ -387,9 +387,9 @@ impl Atlas {
 
     /// Collects the union of the listed tiles' delivered sets, one per serving domain.
     ///
-    /// A tile's delivered set is mode-independent - its cumulative delta set equals its total set -
-    /// so the union is one cumulative-schedule read per tile, deduplicated by the sets
-    /// themselves. A scoped view reads its own cascade's prefix through its cut, arrivals
+    /// A tile's delivered set is mode-independent, because its cumulative delta set equals its
+    /// total set. The union is therefore one cumulative-schedule read per tile, deduplicated by
+    /// the sets themselves. A scoped view reads its own cascade's prefix through its cut, arrivals
     /// included, while an operator view reads the corpus schedule's runs and its overlay's
     /// arrival runs. Each is the delivery the tile route answers under that same view.
     fn delivered_bounds(

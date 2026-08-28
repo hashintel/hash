@@ -6,7 +6,7 @@ use core::{
 use std::time::Instant;
 
 use hashql_core::{collections::fast_hash_set, id::Id as _};
-use type_system::principal::actor::ActorEntityUuid;
+use type_system::principal::actor::{ActorId, UserId};
 use uuid::Uuid;
 
 use super::{
@@ -75,7 +75,7 @@ fn key_of(actor: u128) -> CacheKey {
             .repeat(32)
             .parse()
             .expect("64 hexadecimal digits name a generation"),
-        actor: ActorEntityUuid::new(Uuid::from_u128(actor)),
+        actor: Some(ActorId::User(UserId::new(Uuid::from_u128(actor)))),
         filter: None,
     }
 }
@@ -317,11 +317,11 @@ async fn small_scope_memo_unbuilt() {
 ///
 /// [`PendingCacheEntry::of`] folds the cohort's withdrawals out of the proof before censusing,
 /// so the aggregates the root publishes describe what the entry can actually serve. The
-/// occupancy aggregate reads the proof before the fold, which keeps the cut offset a mint
-/// resolves the store's answer alone. This pins the census/occupancy pair's ordering at the
-/// constructor: nothing but statement order inside `of` holds it. Reordering the census
+/// occupancy aggregate reads the proof before the fold, which keeps the cut offset an issuance
+/// resolves a function of the store's answer alone. This pins the census/occupancy pair's ordering
+/// at the constructor: nothing but statement order inside `of` holds it. Reordering the census
 /// against the fold reddens exactly here, and reordering the occupancy reddens this witness
-/// and the mint witness beside it. The schedule's place in that order has its own witness in
+/// and the issuance witness beside it. The schedule's place in that order has its own witness in
 /// the delivery test below, which takes the entry to bytes.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
@@ -371,10 +371,10 @@ async fn entry_census_folded_occupancy_unfolded() {
     );
 }
 
-/// The occupancy aggregate a mint reads ignores the entry's folded snapshot.
+/// The occupancy aggregate an issuance reads ignores the entry's folded snapshot.
 ///
 /// The entry aggregates occupancy from the store's answer before folding withdrawals, so the cut
-/// offset a mint resolves is a function of the resolution alone and no snapshot moves it. The
+/// offset an issuance resolves is a function of the resolution alone and no snapshot moves it. The
 /// witness withdraws every row of one occupied cell, because occupancy counts cells over the
 /// fixture's co-located points and a lesser withdrawal cannot move it - which is exactly what
 /// makes the equal aggregates a statement rather than a tautology, and the folded proof's own
@@ -422,7 +422,7 @@ async fn mint_occupancy_ignores_fold() {
     );
     assert_eq!(
         folded.occupancy, bare.occupancy,
-        "no snapshot moves a mint's input",
+        "no snapshot moves an issuance's input",
     );
     assert_eq!(
         folded.occupancy,
@@ -624,7 +624,7 @@ async fn stale_refresh_publishes_nothing() {
         .await
         .expect("the resolution answers");
 
-    // The refresh resolver blocks on a permit that the gate stores rather than signals, so the
+    // The refresh resolver blocks on a permit that the `Notify` stores rather than signals, so the
     // order below holds however the runtime interleaves the spawned task.
     let gate = Arc::new(tokio::sync::Notify::new());
     let refresh_gate = Arc::clone(&gate);

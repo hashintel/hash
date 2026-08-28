@@ -295,7 +295,8 @@ fn view_already_above_the_band_keeps_the_base_offset() {
 /// No resolution cuts deeper than the view's saturation depth.
 ///
 /// The plateau view saturates at depth 3, so with span 1 offset 2 is the deepest cut that separates
-/// anything: a deeper one would deliver more buckets and more response for identical occupancy. The
+/// anything, because a deeper one would deliver more buckets and more response for identical
+/// occupancy. The
 /// band `[10, 20]` is unreachable from above, so nothing but this property stops the argmin at 2
 /// rather than at [`CEILING`], which is 27 and therefore not what caps this resolution.
 ///
@@ -453,8 +454,8 @@ fn rebind_clamps_down_when_the_new_view_resolves_coarser() {
 
 /// A re-bind to an empty view clamps to the base offset.
 ///
-/// An empty view resolves [`CutOffset::ZERO`], so the clamp takes it whatever the session held: a
-/// view with no occupancy is never served at a depth an earlier view paid for.
+/// An empty view resolves [`CutOffset::ZERO`], and the clamp takes it whatever the session held.
+/// A view with no occupancy is never served at a depth an earlier view paid for.
 #[test]
 fn rebind_to_an_empty_view_clamps_to_the_base_offset() {
     let policy = policy(band(20, 20));

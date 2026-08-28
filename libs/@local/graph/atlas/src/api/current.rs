@@ -26,7 +26,7 @@ struct CurrentResponse {
 }
 
 /// `GET /v1/atlas/current`: the one mutable read.
-pub(super) async fn handler(State(state): State<AppState>) -> impl IntoApiResponse {
+pub(super) async fn handler<R>(State(state): State<AppState<R>>) -> impl IntoApiResponse {
     (
         [(header::CACHE_CONTROL, headers::REVALIDATE)],
         Json(CurrentResponse {

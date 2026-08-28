@@ -1,11 +1,11 @@
 //! Cohort-serving witnesses: placed arrivals answer through the entry's retained cohort.
 //!
 //! Every case runs the served translate path with a real published snapshot, folded, classified,
-//! and placed exactly as the consumer records them, so the witnesses cover the seam rather than
-//! the map lookups alone. Translate is the first arrival-sensitive read. It resolves identities
-//! against the cohort and encodes slots under the cohort's universe, and the ingress capture's
-//! withdrawn identity set filters what the cohort retains. Each case carries a same-path control
-//! whose delta touches nothing the request names.
+//! and placed exactly as the consumer records them, so the witnesses cover the served path rather
+//! than the map lookups alone. Translate is the first arrival-sensitive read. It resolves
+//! identities against the cohort and encodes slots under the cohort's universe, and the ingress
+//! capture's withdrawn identity set filters what the cohort retains. Each case carries a same-path
+//! control whose delta touches nothing the request names.
 
 #![expect(
     clippy::min_ident_chars,
@@ -374,8 +374,8 @@ async fn ingress_withdrawal_subtracts_retained_arrival_from_tiles() {
 /// The delivery-cut inputs never read the cohort: occupancy and census answer identically
 /// under a widened proof and its slot-free counterpart.
 ///
-/// Both are position-bounded walks over the generation's columns, so the cut offset `k` a mint
-/// resolves from them cannot move when arrivals join a scope.
+/// Both are position-bounded walks over the generation's columns, so the cut offset `k` an
+/// issuance resolves from them cannot move when arrivals join a scope.
 #[tokio::test]
 #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn occupancy_and_census_never_read_cohort() {
@@ -816,7 +816,7 @@ async fn ingress_withdrawal_subtracts_spliced_arrival_from_corpus_tiles() {
 
 /// A store answering that every delivered entity resolves with no recorded detail.
 ///
-/// The resolution gate opens and every store-derived column stays empty, so an expectation built
+/// The store resolution answers and every store-derived column stays empty, so an expectation built
 /// over it pins the in-process columns - the captured display among them - without store-derived
 /// content.
 struct ResolvingEmptyStore;
@@ -927,7 +927,7 @@ async fn arrival_source_point_cut_rule() {
 ///
 /// The full envelope delivers the arrival alone and complete, because the generation's
 /// adjacency never names a cohort slot and this cohort publishes no link at it. The columns
-/// carry its projected coordinate and slot wire id, the trailer carries the captured display
+/// carry its projected coordinate and slot wire id. The trailer carries the captured display
 /// once the store resolution answers, and the edge columns stay empty. A second assembly must
 /// produce identical bytes.
 #[tokio::test]
@@ -1118,7 +1118,7 @@ async fn withdrawn_or_unadmitted_arrival_locates_nowhere() {
     );
     assert!(
         atlas.resolve_wire_source(&view, slot_wire).is_none(),
-        "an unadmitted slot refuses at the seam"
+        "an unadmitted slot refuses at resolution"
     );
 
     // The empty cohort is the resolution that read no publication: the slot wire id lies past

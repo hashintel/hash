@@ -412,7 +412,7 @@ const EDGE_SEED: u8 = 64;
 /// and node row `r` keys [`entity_id_of`] of `r`. Edge row `r` keys [`entity_id_of`] of
 /// `EDGE_SEED + r`.
 ///
-/// The memory dataset speaks 8-byte positional ids, which the serving open rejects; the rewrite
+/// The memory dataset speaks 8-byte positional ids, which the serving open rejects. The rewrite
 /// is the test-lane bridge that gives a fixture generation store-width ids. Open
 /// trusts the metadata document's hash, not per-file digests (tooling verifies those), so the
 /// rewritten artifacts serve.
@@ -804,9 +804,9 @@ fn extremes(points: &[Vec2], row_ids: &[u32]) -> (Bounds2, Vec<u32>) {
 
 /// The generation's extent, and rows whose removal both vacates every edge and empties a root cell.
 ///
-/// The extreme-attaining rows alone move the extent, and they move the root count only when they
-/// are some cell's whole population: a cell keeping one visible row keeps a representative, and
-/// the root cut delivers one row per occupied cell, so the count does not move at all. Whether any
+/// The extreme-attaining rows alone move the extent. The root count moves only when the withdrawn
+/// rows were some cell's whole population, since the root cut delivers one row per occupied cell
+/// and a cell keeping one visible row keeps its representative. Whether any
 /// cell holds nothing but extreme rows is a property of the fitted layout rather than of the
 /// witness, and a layout is target-specific down to the last bit of each coordinate, so a witness
 /// resting on that coincidence has teeth on one target and none on the next.
@@ -1359,9 +1359,9 @@ fn qualifying_columns(
 
 /// Maps a derivation's internal edge columns onto the wire's.
 ///
-/// Node ids encoded through an independently derived codec; edge identities from the fixture's
-/// seeding rule. Delivery order ascends by identity bytes, which for the fixture is ascending
-/// internal edge row - the input order `qualifying_columns` already produces.
+/// Node ids encode through an independently derived codec, and edge identities come from the
+/// fixture's seeding rule. Delivery order ascends by identity bytes, which for the fixture is
+/// ascending internal edge row - the input order `qualifying_columns` already produces.
 fn wire_columns(atlas: &Atlas, sources: &[u32], targets: &[u32], rows: &[u32]) -> EdgeColumns {
     let node_codec = test_codec(atlas);
     assert!(rows.is_sorted(), "the derivation supplies ascending rows");
@@ -2162,8 +2162,8 @@ async fn locate_ego_graph() {
 
 /// The squared wire-frame distance between two fitted rows, as selection-key bits.
 ///
-/// The derivation must mirror the selection key bit for bit: a fused `mul_add` rounds differently
-/// and reorders near-ties.
+/// The derivation must mirror the selection key bit for bit, because a fused `mul_add` rounds
+/// differently and reorders near-ties.
 fn wire_distance_bits(atlas: &Atlas, from: u32, to: u32) -> u32 {
     let positions = atlas.positions();
     let origin = positions[atlas.positions_of_row()[NodeRowId::from_u32(from)]];

@@ -226,7 +226,7 @@ where
 
     /// Decodes a wire value back to its internal row id, [`None`] outside the image of `universe`.
     ///
-    /// [`None`] is the single out-of-image answer; ingress resolution collapses it with every other
+    /// [`None`] is the single out-of-image answer. Ingress resolution collapses it with every other
     /// lookup failure before a response can observe the cause.
     pub(crate) fn decode(&self, wire: WireRow<I>, universe: Universe<I>) -> Option<I> {
         let row = I::from_u32(self.unpermute(wire.get()));

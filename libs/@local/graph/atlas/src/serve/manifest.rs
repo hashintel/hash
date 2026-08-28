@@ -12,12 +12,12 @@ use crate::{file::generation::GenerationId, salt::wire::WIRE_VERSION};
 /// The serving limits of the manifest's `limits` block.
 ///
 /// Each value comes from a value the server enforces, so an advertised limit never disagrees with
-/// enforcement. Request-validation limits let a client validate before sending; response-shaping
-/// limits say what delivery truncates; the staleness windows say when a held authority token
-/// expires.
+/// enforcement. Request-validation limits let a client validate before sending, and
+/// response-shaping limits say what delivery truncates. The staleness windows say when a held
+/// authority token expires.
 ///
-/// A limit belongs here when a correct client's own behaviour depends on it - what it may ask for,
-/// what it must expect back, when it should refresh - and the block carries nothing a client cannot
+/// A limit belongs here when a correct client's own behaviour depends on it - what it may ask for
+/// and must expect back, and when to refresh - and the block carries nothing a client cannot
 /// act on. The staleness windows are the visibility cache's own pair. A token names a cached scope,
 /// so the token's validity and the entry's are one question and publish as one pair. The cache's
 /// entry capacity governs no client behaviour and stays absent.
@@ -78,7 +78,7 @@ impl ServeLimits {
 ///
 /// Every block except [`Manifest::scope_schedule`] derives from serving configuration and snapshot
 /// provenance alone and stays valid for the generation's lifetime; the scope block is the caller's
-/// own, sealed into the authority token minted beside this document.
+/// own, sealed into the authority token issued beside this document.
 #[derive(Debug, Clone, serde::Serialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Manifest {

@@ -47,10 +47,10 @@ pub(super) struct VariantPath {
 
 /// A JSON request body whose rejections are problem documents.
 ///
-/// [`Json`] with the failure paths routed into the problem surface: a request without a body
-/// answers `missing-body` when the operation requires the body (`Option<Body<T>>` reads an absent
-/// body as `None`), and a present body that is not the operation's JSON - wrong content type,
-/// syntax error, shape mismatch, oversize - answers `invalid-body` with the framework's parse
+/// [`Json`] with the failure paths routed into the problem surface. A request without a body
+/// answers `missing-body` when the operation requires one, and `Option<Body<T>>` reads an absent
+/// body as `None`. A present body that is not the operation's JSON - whether wrong content type,
+/// syntax error, shape mismatch, or oversize - answers `invalid-body` with the framework's parse
 /// failure as its detail and status. The detail is a request echo, never server state.
 #[derive(Debug)]
 pub(super) struct Body<T>(pub(super) T);

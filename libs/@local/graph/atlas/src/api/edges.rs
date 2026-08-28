@@ -69,8 +69,8 @@ Filtering binds at the manifest. This body has no `filter` field, and an unknown
 ///
 /// The edges among the listed tiles' delivered rows, as `SALTILEE` bytes. The tiles list is the
 /// request's subject, so the route requires the body.
-pub(super) async fn handler(
-    State(state): State<AppState>,
+pub(super) async fn handler<R>(
+    State(state): State<AppState<R>>,
     visibility: Visibility,
     Generation(VariantPath {
         generation,
