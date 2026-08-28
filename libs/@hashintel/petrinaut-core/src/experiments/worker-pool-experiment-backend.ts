@@ -67,6 +67,7 @@ function assess(
           dt: request.dt,
           maxTime: request.maxTime,
           runCount: request.runCount,
+          ...(request.runs === undefined ? {} : { runs: request.runs }),
           metricSpecs: request.metricSpecs,
           ...(request.hirArtifacts === undefined
             ? {}

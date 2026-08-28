@@ -220,16 +220,7 @@ export function normalizeSweepSelection(
   );
 }
 
-/** Number of quantized cells inside the selected region. */
-export function countRegionCells(
-  axes: readonly ExperimentParameterAxis[],
-  selection: SweepSelection,
-): number {
-  return axes.reduce((product, axis) => {
-    const range = selection[axis.identifier] ?? { from: 0, to: axis.stepCount };
-    return product * (range.to - range.from + 1);
-  }, 1);
-}
+const HALTON_BASES = [2, 3, 5, 7, 11, 13, 17, 19];
 
 /** Radical inverse of `index` in `base` — the Halton sequence's coordinate. */
 function radicalInverse(index: number, base: number): number {
@@ -244,76 +235,21 @@ function radicalInverse(index: number, base: number): number {
   return result;
 }
 
-const HALTON_BASES = [2, 3, 5, 7, 11, 13, 17, 19];
-
 /**
- * Enumerates every cell (position tuple) of the selected region exactly once,
- * in a deterministic low-discrepancy order: early cells spread across the
- * whole region, so a merged view over the region takes shape after a handful
- * of batches instead of filling corner-first. Falls back to scanning the
- * remaining cells in index order once the Halton sequence stops finding new
- * ones, so coverage always completes.
+ * Where run `globalRunIndex` falls along ranged axis `axisIndex`, in [0, 1):
+ * a per-axis low-discrepancy sequence (radical inverse in a distinct prime
+ * base per axis), so any prefix of runs covers every range near-uniformly and
+ * jointly. Prefix-stable in the run index — a ladder batch extends the exact
+ * sequence earlier batches drew from, so cached runs never go stale.
  */
-export function* enumerateRegionCells(
-  axes: readonly ExperimentParameterAxis[],
-  selection: SweepSelection,
-): Generator<Record<string, number>, void, undefined> {
-  const ranges = axes.map((axis) => {
-    const range = selection[axis.identifier] ?? { from: 0, to: axis.stepCount };
-    return { identifier: axis.identifier, ...range };
-  });
-  const total = countRegionCells(axes, selection);
-  const yielded = new Set<string>();
-
-  const cellAt = (positions: number[]): Record<string, number> =>
-    Object.fromEntries(
-      ranges.map((range, axisIndex) => [
-        range.identifier,
-        positions[axisIndex]!,
-      ]),
-    );
-
-  let stagnation = 0;
-  for (let index = 0; yielded.size < total && stagnation < total * 8; index++) {
-    const positions = ranges.map((range, axisIndex) => {
-      const span = range.to - range.from + 1;
-      const fraction = radicalInverse(
-        index + 1,
-        HALTON_BASES[axisIndex % HALTON_BASES.length]!,
-      );
-      return range.from + Math.min(Math.floor(fraction * span), span - 1);
-    });
-    const key = positions.join("|");
-    if (yielded.has(key)) {
-      stagnation += 1;
-      continue;
-    }
-    stagnation = 0;
-    yielded.add(key);
-    yield cellAt(positions);
-  }
-
-  if (yielded.size >= total) {
-    return;
-  }
-  // Sweep the stragglers in index order (first axis slowest).
-  const counters = ranges.map((range) => range.from);
-  for (;;) {
-    const key = counters.join("|");
-    if (!yielded.has(key)) {
-      yielded.add(key);
-      yield cellAt(counters);
-    }
-    let axisIndex = ranges.length - 1;
-    while (axisIndex >= 0 && counters[axisIndex]! >= ranges[axisIndex]!.to) {
-      counters[axisIndex] = ranges[axisIndex]!.from;
-      axisIndex -= 1;
-    }
-    if (axisIndex < 0) {
-      return;
-    }
-    counters[axisIndex]! += 1;
-  }
+export function sweepRunFraction(
+  globalRunIndex: number,
+  axisIndex: number,
+): number {
+  return radicalInverse(
+    globalRunIndex + 1,
+    HALTON_BASES[axisIndex % HALTON_BASES.length]!,
+  );
 }
 
 function mergeDistributionBins(

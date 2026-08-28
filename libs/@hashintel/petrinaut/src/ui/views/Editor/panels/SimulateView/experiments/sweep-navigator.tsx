@@ -159,25 +159,27 @@ const RefinementStatus = ({
   sweep: ExperimentSweepState;
   runCount: number;
 }) => {
-  const region =
-    sweep.cellsInRegion > 1
-      ? `${sweep.cellsSampled} of ${sweep.cellsInRegion} cells · ${sweep.runsCompleted} runs`
-      : `${sweep.runsSampled} of ${sweep.runTarget ?? runCount} runs`;
+  const isRange = Object.values(sweep.selection).some(
+    (range) => range.from !== range.to,
+  );
+  const activity = isRange
+    ? "sampling across the selected ranges"
+    : "refining while you stay here";
 
   return (
     <div className={statusStyle}>
       {sweep.computing ? (
         <>
           <LoadingSpinner size="xs" />
-          <span>{region} — refining while you stay here</span>
+          <span>
+            {sweep.runsSampled} of {sweep.runTarget ?? runCount} runs —{" "}
+            {activity}
+          </span>
         </>
       ) : (
         <span>
-          {sweep.cellsInRegion > 1
-            ? region
-            : `${sweep.runsCompleted} of ${runCount} runs${
-                sweep.runsCompleted >= runCount ? " — fully sampled" : ""
-              }`}
+          {sweep.runsCompleted} of {runCount} runs
+          {sweep.runsCompleted >= runCount ? " — fully sampled" : ""}
         </span>
       )}
     </div>

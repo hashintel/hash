@@ -48,7 +48,6 @@ import {
 } from "./context";
 import {
   buildParameterAxis,
-  countRegionCells,
   fullSweepSelection,
   type ExperimentParameterAxis,
 } from "./parameter-grid";
@@ -431,7 +430,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       override?: Partial<
         Pick<
           ExperimentRequest,
-          "parameterValues" | "initialMarking" | "seed" | "runCount"
+          "parameterValues" | "initialMarking" | "seed" | "runCount" | "runs"
         >
       >;
     }) => Promise<ExperimentRequest>;
@@ -449,6 +448,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
      * a sweep whose surface view is never opened spawns nothing extra.
      */
     let backgroundCpuBackend: ExperimentBackend | null = null;
+    /**
+     * Range batches carry per-run parameter values, which the GPU refuses,
+     * so they go straight to the CPU worker pool at full parallelism.
+     */
+    let rangeCpuBackend: ExperimentBackend | null = null;
 
     const onNote = (note: { message: string }) => {
       addNotification({
@@ -467,6 +471,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       seed: experiment.seed,
       instantiateBatch: async ({
         parameterValues,
+        runs,
         seed,
         runCount,
         background,
@@ -478,7 +483,37 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           initialMarking: compiled.result.initialState,
           seed,
           runCount,
+          ...(runs === undefined ? {} : { runs }),
         };
+
+        if (runs !== undefined) {
+          // One stochastic experiment over the selected ranges: full worker
+          // pool, no backend walk — per-run parameter values are CPU-only.
+          rangeCpuBackend ??= createWorkerPoolExperimentBackend({
+            createWorker: workerFactoryRef.current,
+            shardCount:
+              shardCountRef.current ?? getDefaultMonteCarloShardCount(),
+          });
+          const request = await buildRequest({
+            needsHirTrees: rangeCpuBackend.needsHirTrees,
+            override,
+          });
+          const assessment = await rangeCpuBackend.assess(request);
+          if (!assessment.eligible) {
+            throw new Error(describeBlockers(assessment.blockers));
+          }
+          const instantiated = await assessment.instantiate({
+            signal,
+            onNote,
+          });
+          if (!instantiated.ok) {
+            throw new Error(describeBlockers(instantiated.blockers));
+          }
+          if (experiment.computeBackend !== "cpu") {
+            patchExperiment(experimentId, { computeBackend: "cpu" });
+          }
+          return instantiated.handle;
+        }
 
         if (!chosenBackend) {
           const selection = await selectExperimentBackend({
@@ -541,11 +576,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           progress: update.progress,
           sweep: {
             selection: update.selection,
-            activeCellValues: update.activeCellValues,
             runsCompleted: update.runsCompleted,
             runsSampled: update.runsSampled,
-            cellsSampled: update.cellsSampled,
-            cellsInRegion: update.cellsInRegion,
             runTarget: update.runTarget,
             computing: update.computing,
           },
@@ -681,11 +713,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         axes.length > 0
           ? {
               selection: fullSweepSelection(axes),
-              activeCellValues: null,
               runsCompleted: 0,
               runsSampled: 0,
-              cellsSampled: 0,
-              cellsInRegion: countRegionCells(axes, fullSweepSelection(axes)),
               runTarget: null,
               computing: true,
             }
