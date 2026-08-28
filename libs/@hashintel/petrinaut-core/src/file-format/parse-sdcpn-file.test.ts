@@ -47,6 +47,17 @@ describe("parseSDCPNFile", () => {
       expect(result.hadMissingPositions).toBe(false);
     });
 
+    it("parses a versioned file without meta", () => {
+      const result = parseSDCPNFile({
+        version: 1,
+        ...minimalSDCPN,
+      });
+
+      expect(result.ok).toBe(true);
+      if (!result.ok) return;
+      expect(result.sdcpn.title).toBe("Test Net");
+    });
+
     it("defaults optional arrays (types, parameters, differentialEquations)", () => {
       const result = parseSDCPNFile({
         version: 1,

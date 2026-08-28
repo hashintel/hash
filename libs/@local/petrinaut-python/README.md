@@ -17,6 +17,9 @@ per-request error frames raise `PetrinautRunError` and leave it usable.
 
 ## Running a model
 
+Model and manifest files may be YAML (the editor's default export format) or
+JSON; the CLI detects the format from the content.
+
 ```python
 from petrinaut import PetrinautSession
 

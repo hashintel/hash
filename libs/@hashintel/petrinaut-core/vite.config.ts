@@ -40,6 +40,7 @@ export default defineConfig(({ command }) => ({
         "typescript",
         "elkjs",
         "immer",
+        "js-yaml",
         "uuid",
         "vscode-languageserver-types",
         "zod",

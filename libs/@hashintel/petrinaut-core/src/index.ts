@@ -465,6 +465,13 @@ export { runSandboxed, SHADOWED_GLOBALS } from "./simulation/authoring/sandbox";
 
 // --- File, clipboard, and editor protocol helpers ---
 export {
+  parseDocumentText,
+  serializeDocument,
+  type DocumentFormat,
+  type ParseDocumentTextResult,
+} from "./file-format/document-text";
+export {
+  parseSDCPNDocument,
   parseSDCPNFile,
   type ImportResult,
 } from "./file-format/parse-sdcpn-file";

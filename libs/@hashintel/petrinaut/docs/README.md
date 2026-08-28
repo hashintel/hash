@@ -8,7 +8,7 @@ It lets you build, configure, and simulate Petri nets. It has support for variou
 
 Petrinaut is available at [demo.petrinaut.org](https://demo.petrinaut.org).
 
-Net data will be stored in local browser storage. You can also export and import nets as JSON files for transfer between devices and browsers.
+Net data will be stored in local browser storage. You can also export and import nets as YAML or JSON files for transfer between devices and browsers.
 
 ## Concepts
 
