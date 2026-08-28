@@ -8,7 +8,9 @@ import {
   propertiesTable,
   propertyRow,
   randomTypeName,
+  removeParentButton,
   requiredCheckbox,
+  rowMenuButton,
   saveChanges,
 } from "../shared/entity-type-editor";
 import { expect, test } from "../shared/runtime";
@@ -37,7 +39,7 @@ test("removing a type's only parent survives a reload", async ({ page }) => {
   await expect(parentCard(page, parentName)).toBeVisible();
 
   await parentCard(page, parentName).hover();
-  await parentCard(page, parentName).getByTestId("type-card-delete").click();
+  await removeParentButton(page, parentName).click();
   await expect(parentCard(page, parentName)).toHaveCount(0);
 
   await saveChanges(page);
@@ -87,9 +89,7 @@ test("removing one of two properties leaves the other in place", async ({
   await expect(propertyRow(page, "Description")).toHaveCount(1);
   await expect(propertyRow(page, "Location")).toHaveCount(1);
 
-  await propertyRow(page, "Description")
-    .getByTestId("type-menu-trigger")
-    .click();
+  await rowMenuButton(page, "Description").click();
   await page.getByRole("menuitem", { name: "Remove property" }).click();
   await expect(propertyRow(page, "Description")).toHaveCount(0);
 

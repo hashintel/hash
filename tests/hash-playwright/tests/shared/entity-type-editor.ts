@@ -25,27 +25,31 @@ export const propertyRow = (page: Page, name: string) =>
   propertiesTable(page).getByRole("row").filter({ hasText: name });
 
 /**
- * The row of parents under the `Extends` heading. It is a plain container with
- * no heading, role or accessible name of its own, so it is reached by test id;
- * what it holds is reached by what the user reads.
+ * The row of parents, which the `Extends` heading above it names.
  */
 export const inheritanceRow = (page: Page) =>
-  page.getByTestId("inheritance-row");
+  page.getByRole("group", { name: "Extends" });
 
 /** A parent is shown as a card linking to it, labelled with title and version. */
 export const parentCard = (page: Page, name: string) =>
   inheritanceRow(page).getByRole("link", { name });
 
+/** The card's close button, which offers to remove the parent it names. */
+export const removeParentButton = (page: Page, name: string) =>
+  inheritanceRow(page).getByRole("button", { name: `Remove ${name}` });
+
 /**
- * Neither of a property row's two checkboxes is labelled — `Required` and
- * `Allow multiple` are column headings, not names the checkbox carries — so a
- * role does not tell them apart and the test id stays. It sits on the MUI
- * checkbox root; the assertions and actions need the input it wraps.
+ * A property row's two checkboxes take their names from the columns they sit
+ * under, `Required` and `Allow multiple`, each qualified by the property.
  */
 export const requiredCheckbox = (page: Page, propertyName: string) =>
-  propertyRow(page, propertyName)
-    .getByTestId("property-required-checkbox")
-    .locator('input[type="checkbox"]');
+  propertyRow(page, propertyName).getByRole("checkbox", {
+    name: `Required: ${propertyName}`,
+  });
+
+/** The ellipsis button opening the menu of actions for a row's type. */
+export const rowMenuButton = (page: Page, name: string) =>
+  propertyRow(page, name).getByRole("button", { name: `Options for ${name}` });
 
 /**
  * Navigate to a type and wait for the editor itself, not just the URL. The

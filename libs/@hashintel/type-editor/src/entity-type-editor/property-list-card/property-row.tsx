@@ -233,6 +233,7 @@ export const PropertyRow = ({
         {menuTableCell ?? (
           <TypeMenuCell
             typeId={property.$id}
+            typeTitle={property.title}
             variant="property"
             editable={false}
           />

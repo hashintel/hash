@@ -140,7 +140,9 @@ export const TypeCard = ({
         {onDelete && (
           <Collapse in={hovered} orientation="horizontal">
             <IconButton
-              data-testid="type-card-delete"
+              aria-label={
+                swappableOnly ? `Replace ${title}` : `Remove ${title}`
+              }
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
