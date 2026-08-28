@@ -1138,6 +1138,7 @@ export const ProcessEditor = ({
            * `form-action 'none'` still prevents any actual form navigation.
            */
           sandbox="allow-scripts allow-forms"
+          allow="clipboard-read *; clipboard-write *"
           referrerPolicy="no-referrer"
           title="Process editor"
           sx={{
