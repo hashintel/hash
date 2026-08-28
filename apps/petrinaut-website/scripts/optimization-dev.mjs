@@ -6,7 +6,10 @@ import { fileURLToPath } from "node:url";
 const appDirectory = fileURLToPath(new URL("..", import.meta.url));
 const repositoryRoot = fileURLToPath(new URL("../../..", import.meta.url));
 const image = "petrinaut-opt:local";
-const container = `petrinaut-opt-website-dev-${process.pid}`;
+// One fixed name rather than a per-invocation one: the container owns port
+// 4004 exclusively anyway, and a fixed name lets a new launcher find and
+// replace what an earlier run left behind.
+const container = "petrinaut-opt-website-dev";
 // This launcher binds the development container to loopback only, so local
 // plaintext HTTP is intentional and is never used by a deployed application.
 // nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request
@@ -35,6 +38,61 @@ const run = (command, args, options = {}) =>
       }
     });
   });
+
+const capture = (command, args) =>
+  new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: repositoryRoot,
+      env: process.env,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    let output = "";
+    child.stdout.on("data", (chunk) => {
+      output += chunk;
+    });
+    child.once("error", reject);
+    child.once("exit", (code) => {
+      if (code === 0) {
+        resolve(output);
+      } else {
+        reject(new Error(`${command} exited with code ${code}`));
+      }
+    });
+  });
+
+/**
+ * Remove containers this launcher started and never stopped. A hard-killed
+ * launcher (closed terminal, crash) never reaches its cleanup, and the
+ * detached container then holds port 4004 forever — every later launch would
+ * fail with "port is already allocated". Removing rather than reusing them
+ * also keeps the image rebuild meaningful: a leftover keeps serving the code
+ * it was built from.
+ */
+const removeLeftoverContainers = async () => {
+  const names = await capture("docker", [
+    "ps",
+    "--all",
+    "--filter",
+    `name=${container}`,
+    "--format",
+    "{{.Names}}",
+  ]).catch(() => "");
+  for (const name of names.split("\n").filter(Boolean)) {
+    console.log(`Removing leftover Petrinaut Opt dev container ${name}...`);
+    await run("docker", ["rm", "--force", name], { stdio: "ignore" }).catch(
+      () => undefined,
+    );
+  }
+};
+
+const isOptimizerHealthy = async () => {
+  try {
+    const response = await fetch(`${optimizerOrigin}/status`);
+    return response.ok;
+  } catch {
+    return false;
+  }
+};
 
 const waitForOptimizer = async () => {
   for (let attempt = 0; attempt < 60; attempt += 1) {
@@ -65,43 +123,56 @@ const stopContainer = async () => {
 };
 
 try {
-  await run("docker", ["info"], { stdio: "ignore" }).catch(() => {
-    throw new Error(
-      "Docker is not running. Start Docker Desktop and run the command again.",
-    );
-  });
+  await removeLeftoverContainers();
 
-  console.log("Building Petrinaut Opt...");
-  await run("docker", [
-    "build",
-    "--file",
-    "apps/petrinaut-opt/docker/Dockerfile",
-    "--tag",
-    image,
-    ".",
-  ]);
+  // An optimizer this launcher does not own already serving on the port —
+  // the compose stack's container, or a bare `uvicorn` during Python work —
+  // is reused as-is; starting a second container would fail on the port bind.
+  // Launcher-owned leftovers never reach this check: they were removed above,
+  // so the freshly built image is what actually serves.
+  if (await isOptimizerHealthy()) {
+    console.log(`Reusing the optimizer already serving on ${optimizerOrigin}.`);
+  } else {
+    await run("docker", ["info"], { stdio: "ignore" }).catch(() => {
+      throw new Error(
+        "Docker is not running. Start Docker Desktop and run the command again.",
+      );
+    });
 
-  console.log("Starting Petrinaut Opt on http://127.0.0.1:4004...");
-  await run("docker", [
-    "run",
-    "--detach",
-    "--init",
-    "--read-only",
-    "--rm",
-    "--name",
-    container,
-    "--publish",
-    "127.0.0.1:4004:4004",
-    image,
-  ]);
-  containerStarted = true;
-  await waitForOptimizer();
+    console.log("Building Petrinaut Opt...");
+    await run("docker", [
+      "build",
+      "--file",
+      "apps/petrinaut-opt/docker/Dockerfile",
+      "--tag",
+      image,
+      ".",
+    ]);
+
+    console.log("Starting Petrinaut Opt on http://127.0.0.1:4004...");
+    await run("docker", [
+      "run",
+      "--detach",
+      "--init",
+      "--read-only",
+      "--rm",
+      "--name",
+      container,
+      "--publish",
+      "127.0.0.1:4004:4004",
+      image,
+    ]);
+    containerStarted = true;
+    await waitForOptimizer();
+  }
 
   console.log("Building Petrinaut for the demo website...");
   await run("turbo", ["build", "--filter", "@hashintel/petrinaut"]);
 
   console.log("Starting the Petrinaut optimization demo...");
-  websiteProcess = spawn("yarn", ["vite"], {
+  // Extra arguments go to Vite, so a caller can pin the port:
+  // `yarn dev:petrinaut-optimization --port 5175 --strictPort`.
+  websiteProcess = spawn("yarn", ["vite", ...process.argv.slice(2)], {
     cwd: appDirectory,
     env: {
       ...process.env,
