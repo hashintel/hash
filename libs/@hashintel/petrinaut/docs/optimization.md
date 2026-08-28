@@ -70,8 +70,10 @@ steps arrive and shows:
 - The current best metric value.
 - The best flat scenario-parameter assignment.
 - The latest received steps, including their parameters, objective values, and
-  colored state indicators. For long runs, the drawer displays the newest 200
-  steps while retaining aggregate progress and the current best result.
+  colored state indicators. The step list sits at the bottom of the drawer and
+  scrolls on its own — the summary, the best parameters, and the surface above
+  it hold still. For long runs, the drawer displays the newest 200 steps while
+  retaining aggregate progress and the current best result.
 
 Closing the drawer does not stop the optimization. Use **Cancel** to abort an
 active run. Completed, cancelled, and failed records can be removed from their
@@ -85,8 +87,8 @@ kept, and a **Retry** action starts a fresh run with the same settings.
 ## The surface view
 
 A study with two or more optimized numeric parameters grows a **Surface**
-section at the bottom of its drawer: an Optuna-style contour of the objective
-over two parameters you pick. The study's own trials appear as rings (the best
+section between the best parameters and the step list: an Optuna-style contour
+of the objective over two parameters you pick. The study's own trials appear as rings (the best
 trial highlighted), and the filled contour comes from points **computed
 locally on your machine** — the study's model snapshot runs on a background
 worker, a few runs per point, and the plot fills in coarse shape first.
