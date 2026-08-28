@@ -473,9 +473,7 @@ describe("voice interview stage", () => {
     expect(screen.getByTestId("voice-waveform")).not.toBeNull();
     expect(screen.getByText("Listening")).not.toBeNull();
 
-    const accessibleLevel = screen.getByText(
-      "Microphone input level: Medium",
-    );
+    const accessibleLevel = screen.getByText("Microphone input level: Medium");
     expect(accessibleLevel.className).toContain("pos_absolute");
     expect(
       screen.queryByText("Microphone on · Listening", {
@@ -548,12 +546,16 @@ describe("voice interview stage", () => {
       />,
     );
 
-    expect(screen.getByText("We couldn’t reconnect the microphone")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Reconnect" }).textContent).toContain(
-      "Reconnect",
-    );
     expect(
-      screen.getByRole("button", { name: "Use text instead" }).querySelector("svg"),
+      screen.getByText("We couldn’t reconnect the microphone"),
+    ).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Reconnect" }).textContent,
+    ).toContain("Reconnect");
+    expect(
+      screen
+        .getByRole("button", { name: "Use text instead" })
+        .querySelector("svg"),
     ).not.toBeNull();
     expect(screen.getByText("Technical details")).not.toBeNull();
   });

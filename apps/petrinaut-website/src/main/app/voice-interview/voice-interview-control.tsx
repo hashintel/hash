@@ -965,11 +965,7 @@ export const VoiceInterviewControlView = ({
           </div>
         )}
 
-        <TranscriptStrip
-          onEdit={onEdit}
-          onRedo={onRedo}
-          snapshot={snapshot}
-        />
+        <TranscriptStrip onEdit={onEdit} onRedo={onRedo} snapshot={snapshot} />
 
         {editing && (
           <form className={actionsStyle} onSubmit={submitCorrection}>
