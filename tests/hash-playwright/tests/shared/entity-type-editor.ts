@@ -1,9 +1,45 @@
 import { expect } from "./runtime";
 
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
+
+/**
+ * Loading a type page runs a subgraph query before the editor renders, which
+ * can take longer than an assertion's default budget on a busy runner.
+ */
+const PAGE_READY_TIMEOUT = 30_000;
 
 export const randomTypeName = () =>
   `TestEntity${(Math.random() * 100000).toFixed()}`;
+
+export const propertyRow = (page: Page, name: string) =>
+  page.getByTestId("property-row").filter({ hasText: name });
+
+export const parentCard = (page: Page, name: string) =>
+  page
+    .getByTestId("inheritance-row")
+    .getByTestId("type-card")
+    .filter({ hasText: name });
+
+/**
+ * The test id sits on the MUI checkbox root; the assertions and actions need
+ * the input it wraps.
+ */
+export const requiredCheckbox = (page: Page, propertyName: string) =>
+  propertyRow(page, propertyName)
+    .getByTestId("property-required-checkbox")
+    .locator('input[type="checkbox"]');
+
+/**
+ * Navigate to a type and wait for the editor itself, not just the URL. The
+ * inheritance row is part of the definition tab, so it appears only once the
+ * type has loaded and the skeleton has been replaced.
+ */
+export const openTypePage = async (page: Page, path: string) => {
+  await page.goto(path);
+  await expect(page.getByTestId("inheritance-row")).toBeVisible({
+    timeout: PAGE_READY_TIMEOUT,
+  });
+};
 
 /**
  * Click the edit bar's confirm button and wait for the mutation it sends to
@@ -51,7 +87,12 @@ export const startDraftEntityType = async (page: Page, title: string) => {
 
 /**
  * Publish the draft currently in the editor. Returns the path of the
- * published type, so a test can navigate back to it after a reload.
+ * published type.
+ *
+ * Dropping the `draft` parameter changes the key the page gives the editor,
+ * so React replaces the whole tree. Loading the published path afresh leaves
+ * the browser on a tree with no pending replacement, where an interaction
+ * cannot be discarded by one.
  */
 export const publishDraftEntityType = async (page: Page, title: string) => {
   await publishChanges(page, "createEntityType");
@@ -62,16 +103,11 @@ export const publishDraftEntityType = async (page: Page, title: string) => {
       !url.searchParams.has("draft"),
   );
 
-  /**
-   * Dropping the `draft` parameter changes the key the page gives the editor,
-   * so React replaces the whole tree. The edit bar is open for a draft, whose
-   * version is 0, and closed once the published type has rendered and the
-   * form has been reset — wait for that, or an interaction lands on the tree
-   * that is about to be discarded.
-   */
-  await expect(page.getByTestId("editbar-confirm")).toBeHidden();
+  const path = new URL(page.url()).pathname;
 
-  return new URL(page.url()).pathname;
+  await openTypePage(page, path);
+
+  return path;
 };
 
 /** Create an entity type with no properties or parents, and publish it. */
@@ -84,11 +120,16 @@ export const createEntityType = async (page: Page, title: string) => {
  * Attach a type by typing its title and choosing the option with exactly that
  * title, so what follows asserts against a known type rather than whichever
  * option happened to be listed first.
+ *
+ * `attached` is what the choice should produce. Waiting for it proves the
+ * option was taken, where waiting for the selector to disappear would also be
+ * satisfied by the editor unmounting for some other reason.
  */
 const addTypeByName = async (
   page: Page,
   addAffordanceText: string,
   name: string,
+  attached: Locator,
 ) => {
   await page.getByText(addAffordanceText, { exact: true }).click();
 
@@ -107,29 +148,11 @@ const addTypeByName = async (
     .first()
     .click();
 
-  await expect(selector).toBeHidden();
+  await expect(attached).toBeVisible();
 };
 
 export const addProperty = (page: Page, name: string) =>
-  addTypeByName(page, "Add a property", name);
+  addTypeByName(page, "Add a property", name, propertyRow(page, name));
 
 export const addParent = (page: Page, name: string) =>
-  addTypeByName(page, "ADD TYPE", name);
-
-export const propertyRow = (page: Page, name: string) =>
-  page.getByTestId("property-row").filter({ hasText: name });
-
-export const parentCard = (page: Page, name: string) =>
-  page
-    .getByTestId("inheritance-row")
-    .getByTestId("type-card")
-    .filter({ hasText: name });
-
-/**
- * The test id sits on the MUI checkbox root; the assertions and actions need
- * the input it wraps.
- */
-export const requiredCheckbox = (page: Page, propertyName: string) =>
-  propertyRow(page, propertyName)
-    .getByTestId("property-required-checkbox")
-    .locator('input[type="checkbox"]');
+  addTypeByName(page, "ADD TYPE", name, parentCard(page, name));

@@ -8,6 +8,7 @@ import {
   createEntityType,
   parentCard,
   propertyRow,
+  openTypePage,
   publishDraftEntityType,
   randomTypeName,
   startDraftEntityType,
@@ -96,6 +97,8 @@ test("user can create entity type", async ({ page }) => {
 test("user can create an entity type that extends another", async ({
   page,
 }) => {
+  test.slow();
+
   const parentName = randomTypeName();
   await createEntityType(page, parentName);
 
@@ -106,13 +109,15 @@ test("user can create an entity type that extends another", async ({
 
   const childPath = await publishDraftEntityType(page, childName);
 
-  await page.goto(childPath);
+  await openTypePage(page, childPath);
   await expect(parentCard(page, parentName)).toBeVisible();
 });
 
 test("user can create an entity type with a named property", async ({
   page,
 }) => {
+  test.slow();
+
   const typeName = randomTypeName();
   await startDraftEntityType(page, typeName);
 
@@ -120,6 +125,6 @@ test("user can create an entity type with a named property", async ({
 
   const typePath = await publishDraftEntityType(page, typeName);
 
-  await page.goto(typePath);
+  await openTypePage(page, typePath);
   await expect(propertyRow(page, "Description")).toHaveCount(1);
 });
