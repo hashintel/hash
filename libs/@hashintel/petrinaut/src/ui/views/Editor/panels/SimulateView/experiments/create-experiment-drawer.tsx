@@ -26,10 +26,7 @@ import {
   type ExperimentMetricSpecInput,
 } from "../../../../../../react/experiments/context";
 import {
-  buildParameterRangeValues,
-  countGridCombinations,
-  MAX_EXPERIMENT_COMBINATIONS,
-  WARN_EXPERIMENT_COMBINATIONS,
+  buildParameterAxis,
   type ExperimentParameterAxis,
   type ExperimentParameterInput,
   type ExperimentParameterRangeInput,
@@ -182,10 +179,6 @@ const paramRangeStyle = css({
   flex: "1",
   minWidth: "[0]",
   "& > *": { flex: "1", minWidth: "[0]" },
-});
-
-const paramRangeCountStyle = css({
-  flex: "[0 0 84px]",
 });
 
 const sweepSummaryStyle = css({
@@ -573,27 +566,20 @@ function buildMetricSpecs(
 
 // -- Component ----------------------------------------------------------------
 
-const DEFAULT_RANGE_VALUE_COUNT = 5;
-
-/** The range a parameter starts sweeping with: around its default. */
+/** The interval a parameter starts sweeping with: around its default. */
 function initialRangeFor(
   param: ScenarioParameter,
 ): ExperimentParameterRangeInput {
   const base = typeof param.default === "number" ? param.default : 0;
   if (param.type === "ratio") {
-    return {
-      mode: "range",
-      min: 0,
-      max: 1,
-      valueCount: DEFAULT_RANGE_VALUE_COUNT,
-    };
+    return { mode: "range", min: 0, max: 1 };
   }
   const spread = Math.max(Math.abs(base), 1);
   const min =
     param.type === "integer" ? Math.round(base - spread) : base - spread;
   const max =
     param.type === "integer" ? Math.round(base + spread) : base + spread;
-  return { mode: "range", min, max, valueCount: DEFAULT_RANGE_VALUE_COUNT };
+  return { mode: "range", min, max };
 }
 
 const ScenarioParameterRow = ({
@@ -624,17 +610,6 @@ const ScenarioParameterRow = ({
           value={Number.isFinite(value.max) ? value.max : null}
           onChange={(max) => onChange({ ...value, max: max ?? Number.NaN })}
         />
-        <div className={paramRangeCountStyle}>
-          <NumberInput
-            size="sm"
-            aria-label={`${param.identifier} values`}
-            min={1}
-            value={value.valueCount}
-            onChange={(valueCount) =>
-              onChange({ ...value, valueCount: valueCount ?? 0 })
-            }
-          />
-        </div>
       </div>
     ) : (
       <CodeEditor
@@ -1128,9 +1103,9 @@ export const CreateExperimentDrawer = ({
       ? "Define at least one metric"
       : metricDiagnosticError;
   /**
-   * The grid the current range inputs define. `error` carries the first
-   * invalid range or the over-cap message; `null` summary means no parameter
-   * sweeps, i.e. a plain single-combination experiment.
+   * The sweep the current interval inputs define. `error` carries the first
+   * invalid interval; `null` summary means no parameter sweeps, i.e. a plain
+   * single-combination experiment.
    */
   const sweepSummary = ((): {
     text: string;
@@ -1143,30 +1118,19 @@ export const CreateExperimentDrawer = ({
       if (!input || input.mode !== "range") {
         continue;
       }
-      const outcome = buildParameterRangeValues(param, input);
+      const outcome = buildParameterAxis(param, input);
       if (!outcome.ok) {
         return { text: outcome.error, tone: "error", error: true };
       }
-      axes.push({ identifier: param.identifier, values: outcome.values });
+      axes.push(outcome.axis);
     }
     if (axes.length === 0) {
       return null;
     }
-    const combinations = countGridCombinations(axes);
-    if (combinations > MAX_EXPERIMENT_COMBINATIONS) {
-      return {
-        text: `${combinations} combinations — the maximum is ${MAX_EXPERIMENT_COMBINATIONS}`,
-        tone: "error",
-        error: true,
-      };
-    }
+    const names = axes.map((axis) => axis.identifier).join(", ");
     return {
-      text: `${combinations} combinations × ${runCount === "" ? "?" : runCount} runs each, computed one combination at a time${
-        combinations > WARN_EXPERIMENT_COMBINATIONS
-          ? " — a large grid takes a while to explore"
-          : ""
-      }`,
-      tone: combinations > WARN_EXPERIMENT_COMBINATIONS ? "warning" : "neutral",
+      text: `${axes.length === 1 ? `${names} swept over its interval` : `${names} swept over their intervals`} — the whole selection computes progressively, and the navigator narrows it to regions or points`,
+      tone: "neutral",
       error: false,
     };
   })();

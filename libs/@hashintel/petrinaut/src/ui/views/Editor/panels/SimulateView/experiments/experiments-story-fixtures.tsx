@@ -158,17 +158,31 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
       },
     ],
     parameterAxes: [
-      { identifier: "transmission_rate", values: [0.1, 0.2, 0.3, 0.4, 0.5] },
+      {
+        identifier: "transmission_rate",
+        min: 0.1,
+        max: 0.5,
+        stepCount: 50,
+        integer: false,
+      },
       {
         identifier: "recovery_days",
-        values: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20],
+        min: 2,
+        max: 20,
+        stepCount: 18,
+        integer: true,
       },
     ],
     sweep: {
-      selection: { transmission_rate: 2, recovery_days: 3 },
-      parameterValues: { transmission_rate: 0.3, recovery_days: 8 },
+      selection: {
+        transmission_rate: { from: 25, to: 25 },
+        recovery_days: { from: 6, to: 6 },
+      },
+      activeCellValues: { transmission_rate: 0.3, recovery_days: 8 },
       runsCompleted: 25,
       runsSampled: 61,
+      cellsSampled: 1,
+      cellsInRegion: 1,
       runTarget: 100,
       computing: true,
     },
@@ -299,12 +313,12 @@ export function FakeExperimentsProvider({
           ),
         );
       },
-      sampleSweepCell: (_experimentId, parameterValues) => {
+      sampleSweepCell: (_experimentId, position) => {
         // A synthetic objective surface — a smooth bump — so the story's
         // contour fills in the way a real sweep's would, walk delay included.
-        const coordinates = Object.values(parameterValues);
-        const x = coordinates[0] ?? 0;
-        const y = coordinates[1] ?? 0;
+        // Positions are quantized indices; map them back to values.
+        const x = 0.1 + ((position.transmission_rate ?? 0) / 50) * 0.4;
+        const y = 2 + (position.recovery_days ?? 0);
         const objective =
           100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
           6 * Math.sin(x * 9) +
