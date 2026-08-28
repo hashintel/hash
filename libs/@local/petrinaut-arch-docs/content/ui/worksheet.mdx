@@ -1,0 +1,83 @@
+---
+title: The worksheet keyboard flow
+description: The Focus primitives that route arrow keys through panels of grids and controls, and the contract every worksheet obeys.
+sidebar_order: 10
+attachTo: ui.worksheet
+---
+
+A worksheet is a panel composed of spreadsheet grids and ordinary controls,
+laid out in nested columns and rows. This layer gives every worksheet one
+keyboard model. It knows nothing about what the grids contain: consumers own
+their cells, refs, and state; the layer owns movement, memory, and the tab
+order.
+
+## The pieces
+
+- `FocusStack axis="horizontal" | "vertical"`: a nestable directional
+  group. It renders `display: contents` (no box, no role): the layout stays
+  the host's. Children register through context.
+- `FocusRoot`: the boundary of a flow: moves that escape the outermost
+  stack stop there.
+- `useFocusGrid`: a uniform grid of focusable cells, one member of the
+  enclosing stack.
+- `useFocusStops`: a table whose lines are not uniform: full-width stops,
+  sparse lines, and a gutter lane, declared as an ordered stop list.
+- `useFocusHeader` / `useFocusMember`: single-element members (collapsible
+  headers, lone cells) and custom navigators.
+- `useSelectFirstActivation` and `useRowSelection`: the interaction
+  grammar shared by worksheet tables: the first click selects, the second
+  acts; a focused gutter selects its whole row.
+
+## The contract
+
+Each numbered rule is a test target; `focus-flow.test.tsx` covers them.
+
+1. Tab order is never rerouted. Each grid is one tab stop (roving
+   tabindex: `tabIndexFor` marks the remembered cell 0 and the rest -1);
+   plain controls keep their own stops. Arrow-crossing between siblings is
+   an enhancement over that intact order.
+2. Arrows move within a member; a move that runs off the member's edge
+   asks the nearest enclosing stack whose axis matches the direction to
+   carry focus to a sibling. A stack at its own edge asks its parent.
+3. A move nobody accepts leaves focus where it is, and the key is still
+   consumed. This is the canonical data-grid edge behaviour.
+4. `contain` fences a stack: arrows never carry focus out of it, in any
+   direction.
+5. Entry restores memory by default: a stack re-enters its last-focused
+   child, a grid its last-focused cell (focusgroup semantics). Memory is
+   dropped when the remembered element unmounts; entry then falls back to
+   the edge the move arrives at.
+6. `entry="aligned"` on the stack that routes a move makes it keep its
+   position instead: a horizontal move keeps its row, a vertical one its
+   column, landing on the nearest focusable cell to the wish. Stacks the
+   entry passes through hand it on unchanged, and the remembered child
+   still picks which member receives it.
+7. Inside a text input the horizontal arrows stay with the caret; only
+   vertical arrows navigate.
+8. A header owns Left/Right when it collapses and expands; a member whose
+   entry fails (collapsed content) is skipped in the walk.
+9. In a stop table, vertical arrows walk the declared stops, carrying the
+   column across full-width stops; a sparse line is entered at the nearest
+   declared column. The gutter is its own lane: vertical moves stay
+   gutter-to-gutter over row stops, ArrowRight enters the line's cells at
+   column 0, ArrowLeft from column 0 returns to the gutter.
+10. Stacks add no ARIA. Roles belong to consumers on real elements: a data
+    table declares `role="grid"`/`row`/`gridcell` itself, and the layer
+    moves real DOM focus (never `aria-activedescendant`).
+
+## Consuming the hooks
+
+Destructure hook results before use: `const { register, attach } =
+useFocusGrid()`. Assigning `grid.attach` straight into a `ref` makes the
+React Compiler treat the whole hook result as a ref and reject every later
+property access ("Cannot access refs during render"); destructured
+bindings compile without the diagnostic.
+
+## Boundaries
+
+The layer must not import form or scenario state; the dependency rule
+fencing it from the form layer ships with the form. The ad-hoc scenario form is
+its first consumer; the editor's other token spreadsheet is the expected
+second. Stories in `worksheet.stories.tsx` demonstrate the configurations:
+side-by-side columns, aligned entry, contained stacks, a stop table, and
+mixed controls.
