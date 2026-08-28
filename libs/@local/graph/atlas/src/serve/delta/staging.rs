@@ -102,7 +102,7 @@ use crate::{
 /// A deployment with no Temporal client configured builds no value of this type: its arrivals
 /// stage and never ensure, which fails closed.
 #[derive(Debug)]
-pub struct EmbeddingEnsure {
+pub struct EmbeddingWorkflow {
     /// The client the ensure starts workflows through.
     pub temporal: TemporalClient,
     /// The property exclusions every ensured workflow receives.
@@ -406,7 +406,7 @@ pub(crate) struct StagingArm {
     /// The polling knobs, shared with the poll arm.
     polling: DeltaPolling,
     /// The ensure client and its exclusions, or [`None`] to stage without ensuring.
-    ensure: Option<EmbeddingEnsure>,
+    workflow: Option<EmbeddingWorkflow>,
     /// The generation's publish path, or [`None`] for a baseline-placed generation, which
     /// stages without placing.
     placer: Option<Placer>,
@@ -429,7 +429,7 @@ impl StagingArm {
         pool: Arc<PostgresStorePool>,
         cell: Arc<DeltaCell>,
         polling: DeltaPolling,
-        ensure: Option<EmbeddingEnsure>,
+        workflow: Option<EmbeddingWorkflow>,
         placer: Option<Placer>,
         placements: Sender<(ArchivedEntityId, ProjectedArrival)>,
     ) -> Self {
@@ -438,7 +438,7 @@ impl StagingArm {
             pool,
             cell,
             polling,
-            ensure,
+            workflow,
             placer,
             placements,
             pipeline,
@@ -698,7 +698,7 @@ impl StagingArm {
         identity: ArchivedEntityId,
         edition: EntityEditionId,
     ) {
-        let Some(ensure) = &self.ensure else {
+        let Some(workflow) = &self.workflow else {
             return;
         };
 
@@ -723,13 +723,13 @@ impl StagingArm {
 
         let entity = EntityId::from(identity);
         let workflow_id = format!("atlas-embedding-{entity}-{}", edition.as_uuid());
-        match ensure
+        match workflow
             .temporal
             .ensure_update_entity_embeddings_workflow(
                 workflow_id,
                 actor,
                 entity,
-                &ensure.exclusions,
+                &workflow.exclusions,
             )
             .await
         {
