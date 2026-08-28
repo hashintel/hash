@@ -152,7 +152,11 @@ export const PropertyTypeRow = ({
           <EntityTypeTableCenteredCell width={REQUIRED_CELL_WIDTH}>
             <Controller
               render={({ field: { value, ...field } }) => (
-                <Checkbox {...field} checked={value} />
+                <Checkbox
+                  {...field}
+                  checked={value}
+                  data-testid="property-required-checkbox"
+                />
               )}
               control={control}
               name={`properties.${propertyIndex}.required`}

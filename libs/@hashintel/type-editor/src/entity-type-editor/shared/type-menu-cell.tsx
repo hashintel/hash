@@ -142,7 +142,7 @@ export const TypeMenuCell = ({
         },
       }}
     >
-      <IconButton {...bindTrigger(popupState)}>
+      <IconButton data-testid="type-menu-trigger" {...bindTrigger(popupState)}>
         <FontAwesomeIcon
           icon={faEllipsis}
           sx={(theme) => ({
@@ -208,6 +208,7 @@ export const TypeMenuCell = ({
               ),
               <MenuItem
                 key="remove"
+                data-testid="type-menu-remove"
                 onClick={() => {
                   popupState.close();
                   onRemove?.();

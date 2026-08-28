@@ -78,6 +78,7 @@ export const TypeCard = ({
       onMouseLeave={() => (onDelete ? setHovered(false) : null)}
     >
       <Box
+        data-testid="type-card"
         sx={{
           height: 40,
           display: "flex",
@@ -140,6 +141,7 @@ export const TypeCard = ({
         {onDelete && (
           <Collapse in={hovered} orientation="horizontal">
             <IconButton
+              data-testid="type-card-delete"
               onClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();

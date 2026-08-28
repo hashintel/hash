@@ -211,7 +211,12 @@ export const SelectorAutocompleteOption = ({
                     textOverflow: "ellipsis",
                   })}
                 >
-                  {title}
+                  <Box
+                    component="span"
+                    data-testid="selector-autocomplete-option-title"
+                  >
+                    {title}
+                  </Box>
                 </Typography>
               </Stack>
             </Box>

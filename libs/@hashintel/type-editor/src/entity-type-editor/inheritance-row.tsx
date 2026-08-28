@@ -203,6 +203,7 @@ export const InheritanceRow = ({
   return (
     <>
       <Stack
+        data-testid="inheritance-row"
         direction="row"
         alignItems="center"
         sx={{ height: TYPE_SELECTOR_HEIGHT }}

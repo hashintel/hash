@@ -2,6 +2,16 @@ import {
   changeSidebarListDisplay,
   expandSidebarSection,
 } from "../shared/change-sidebar-list-display";
+import {
+  addParent,
+  addProperty,
+  createEntityType,
+  parentCard,
+  propertyRow,
+  publishDraftEntityType,
+  randomTypeName,
+  startDraftEntityType,
+} from "../shared/entity-type-editor";
 import { expect, test } from "../shared/runtime";
 
 // Use bob so that sidebar-preference mutations don't conflict with
@@ -81,4 +91,35 @@ test("user can create entity type", async ({ page }) => {
   await page.waitForURL(
     (url) => !!url.pathname.endsWith(entityTypeName.toLowerCase()),
   );
+});
+
+test("user can create an entity type that extends another", async ({
+  page,
+}) => {
+  const parentName = randomTypeName();
+  await createEntityType(page, parentName);
+
+  const childName = randomTypeName();
+  await startDraftEntityType(page, childName);
+
+  await addParent(page, parentName);
+
+  const childPath = await publishDraftEntityType(page, childName);
+
+  await page.goto(childPath);
+  await expect(parentCard(page, parentName)).toBeVisible();
+});
+
+test("user can create an entity type with a named property", async ({
+  page,
+}) => {
+  const typeName = randomTypeName();
+  await startDraftEntityType(page, typeName);
+
+  await addProperty(page, "Description");
+
+  const typePath = await publishDraftEntityType(page, typeName);
+
+  await page.goto(typePath);
+  await expect(propertyRow(page, "Description")).toHaveCount(1);
 });
