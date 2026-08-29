@@ -241,20 +241,43 @@ function radicalInverse(index: number, base: number): number {
 }
 
 /**
+ * A seed-derived fraction in [0, 1): each axis's Cranley–Patterson shift.
+ * `Math.imul` keeps every product in 32 bits — plain `*` would round through
+ * f64 and diverge across engines.
+ */
+/* eslint-disable no-bitwise -- a 32-bit hash is bit manipulation by definition */
+function axisShift(seed: number, axisIndex: number): number {
+  let hash =
+    (Math.imul(seed | 0, 0x9e3779b1) ^ Math.imul(axisIndex + 1, 0x85ebca6b)) >>>
+    0;
+  hash = Math.imul(hash ^ (hash >>> 15), 0x2c1b3c6d) >>> 0;
+  hash = Math.imul(hash ^ (hash >>> 13), 0x297a2d39) >>> 0;
+  hash ^= hash >>> 16;
+  return (hash >>> 0) / 4_294_967_296;
+}
+/* eslint-enable no-bitwise */
+
+/**
  * Where run `globalRunIndex` falls along ranged axis `axisIndex`, in [0, 1):
  * a per-axis low-discrepancy sequence (radical inverse in a distinct prime
- * base per axis), so any prefix of runs covers every range near-uniformly and
- * jointly. Prefix-stable in the run index — a ladder batch extends the exact
- * sequence earlier batches drew from, so cached runs never go stale.
+ * base per axis), rotated by a seed-derived shift (Cranley–Patterson). Any
+ * prefix of runs covers every range near-uniformly and jointly; the rotation
+ * makes the draws unbiased over the seed and gives every experiment seed its
+ * own value sequence. Prefix-stable — a draw depends only on the seed, the
+ * axis, and the run index — so a ladder batch extends the exact sequence
+ * earlier batches drew from, and cached runs never go stale.
  */
 export function sweepRunFraction(
+  seed: number,
   globalRunIndex: number,
   axisIndex: number,
 ): number {
-  return radicalInverse(
-    globalRunIndex + 1,
-    HALTON_BASES[axisIndex % HALTON_BASES.length]!,
-  );
+  const fraction =
+    radicalInverse(
+      globalRunIndex + 1,
+      HALTON_BASES[axisIndex % HALTON_BASES.length]!,
+    ) + axisShift(seed, axisIndex);
+  return fraction >= 1 ? fraction - 1 : fraction;
 }
 
 function mergeDistributionBins(

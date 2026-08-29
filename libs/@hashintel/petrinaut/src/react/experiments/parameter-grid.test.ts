@@ -201,30 +201,56 @@ describe("selections and regions", () => {
 describe("sweepRunFraction", () => {
   it("is prefix-stable: a run's draw never depends on how many runs exist", () => {
     const first = Array.from({ length: 8 }, (_, index) =>
-      sweepRunFraction(index, 0),
+      sweepRunFraction(7, index, 0),
     );
     const extended = Array.from({ length: 25 }, (_, index) =>
-      sweepRunFraction(index, 0),
+      sweepRunFraction(7, index, 0),
     );
     expect(extended.slice(0, 8)).toEqual(first);
   });
 
-  it("spreads early runs across the unit interval", () => {
-    const fractions = Array.from({ length: 8 }, (_, index) =>
-      sweepRunFraction(index, 0),
-    );
-    expect(Math.min(...fractions)).toBeLessThan(0.2);
-    expect(Math.max(...fractions)).toBeGreaterThan(0.8);
+  it("spreads early runs across the unit interval, whatever the seed", () => {
+    for (const seed of [0, 7, 123_456, 2 ** 31 - 1]) {
+      const fractions = Array.from({ length: 8 }, (_, index) =>
+        sweepRunFraction(seed, index, 0),
+      );
+      expect(Math.min(...fractions)).toBeLessThan(0.2);
+      expect(Math.max(...fractions)).toBeGreaterThan(0.8);
+      for (const fraction of fractions) {
+        expect(fraction).toBeGreaterThanOrEqual(0);
+        expect(fraction).toBeLessThan(1);
+      }
+    }
   });
 
   it("draws different axes from different sequences", () => {
     const xDraws = Array.from({ length: 6 }, (_, index) =>
-      sweepRunFraction(index, 0),
+      sweepRunFraction(7, index, 0),
     );
     const yDraws = Array.from({ length: 6 }, (_, index) =>
-      sweepRunFraction(index, 1),
+      sweepRunFraction(7, index, 1),
     );
     expect(xDraws).not.toEqual(yDraws);
+  });
+
+  it("reproduces exactly for the same seed", () => {
+    const first = Array.from({ length: 12 }, (_, index) =>
+      sweepRunFraction(42, index, 0),
+    );
+    const again = Array.from({ length: 12 }, (_, index) =>
+      sweepRunFraction(42, index, 0),
+    );
+    expect(again).toEqual(first);
+  });
+
+  it("draws a different value sequence per experiment seed", () => {
+    const seedA = Array.from({ length: 6 }, (_, index) =>
+      sweepRunFraction(1, index, 0),
+    );
+    const seedB = Array.from({ length: 6 }, (_, index) =>
+      sweepRunFraction(2, index, 0),
+    );
+    expect(seedA).not.toEqual(seedB);
   });
 });
 
