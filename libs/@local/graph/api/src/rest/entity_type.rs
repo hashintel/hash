@@ -28,7 +28,6 @@ use hash_graph_store::{
     pool::StorePool,
     query::ConflictBehavior,
 };
-use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloadInfo};
 use hash_graph_types::{Embedding, ontology::EntityTypeEmbedding};
 use hash_map::HashMap;
 use hash_temporal_client::TemporalClient;
@@ -46,7 +45,7 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
-use super::status::BoxedResponse;
+use super::status::{BoxedResponse, ErrorInfo, Status};
 use crate::rest::{
     ApiConfig, AuthenticatedActorId, OpenApiQuery, QueryLogger, RestApiStore, SearchRequestError,
     json::Json,
@@ -223,7 +222,7 @@ where
                      including request details and logs."
                         .to_owned(),
                 ),
-                vec![StatusPayloadInfo::Error(ErrorInfo::new(
+                vec![ErrorInfo::new(
                     // TODO: add information from the report here
                     //   see https://linear.app/hash/issue/H-3009
                     HashMap::new(),
@@ -232,7 +231,7 @@ where
                     //       `ErrorReason::to_reason` or perhaps as a big enum, or
                     //       as an attachment
                     "STORE_ACQUISITION_FAILURE".to_owned(),
-                ))],
+                )],
             ))
         })?;
 
@@ -252,7 +251,7 @@ where
                      sure the service is able to host a type under the domain you supplied?"
                         .to_owned(),
                 ),
-                vec![StatusPayloadInfo::Error(ErrorInfo::new(
+                vec![ErrorInfo::new(
                     HashMap::from([(
                         "entityTypeId".to_owned(),
                         serde_json::to_value(&schema.id)
@@ -262,7 +261,7 @@ where
                     //       requiring top level contexts to implement a trait
                     // `ErrorReason::to_reason`       or perhaps as a big enum
                     "INVALID_TYPE_ID".to_owned(),
-                ))],
+                )],
             ))
         })?;
 
@@ -324,14 +323,14 @@ where
                          you intended to call `updateEntityType` instead?"
                             .to_owned(),
                     ),
-                    vec![StatusPayloadInfo::Error(ErrorInfo::new(
+                    vec![ErrorInfo::new(
                         metadata,
                         // TODO: We should encapsulate these Reasons within the type system,
                         //       perhaps requiring top level contexts to implement a trait
                         //       `ErrorReason::to_reason` or perhaps as a big enum, or as an
                         // attachment
                         "BASE_URI_ALREADY_EXISTS".to_owned(),
-                    ))],
+                    )],
                 ));
             }
 
@@ -343,13 +342,13 @@ where
                      whatever information you can provide including request details and logs."
                         .to_owned(),
                 ),
-                vec![StatusPayloadInfo::Error(ErrorInfo::new(
+                vec![ErrorInfo::new(
                     HashMap::new(),
                     // TODO: We should encapsulate these Reasons within the type system, perhaps
                     //       requiring top level contexts to implement a trait
                     //       `ErrorReason::to_reason` or perhaps as a big enum, or as an attachment
                     "INTERNAL".to_owned(),
-                ))],
+                )],
             ))
         })?;
 
@@ -416,7 +415,7 @@ where
                      including request details and logs."
                         .to_owned(),
                 ),
-                vec![StatusPayloadInfo::Error(ErrorInfo::new(
+                vec![ErrorInfo::new(
                     // TODO: add information from the report here
                     //   see https://linear.app/hash/issue/H-3009
                     HashMap::new(),
@@ -425,7 +424,7 @@ where
                     //       `ErrorReason::to_reason` or perhaps as a big enum,
                     //       or as an attachment
                     "STORE_ACQUISITION_FAILURE".to_owned(),
-                ))],
+                )],
             ))
         })?;
 
