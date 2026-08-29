@@ -5,6 +5,8 @@
   "description": "Hickory DNS implementation of DNS effect library",
   "license": "MIT OR Apache-2.0",
   "scripts": {
-    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root effect-dns-hickory --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info"
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root effect-dns-hickory --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy"
   }
 }
