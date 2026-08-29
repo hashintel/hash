@@ -587,7 +587,7 @@ where
     /// ```
     #[inline]
     #[must_use]
-    pub fn as_slice(&self) -> &IdSlice<I, T> {
+    pub const fn as_slice(&self) -> &IdSlice<I, T> {
         &self.inner
     }
 }

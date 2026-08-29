@@ -89,11 +89,17 @@ function canEmitBufferProgram(
       return emitBufferKernelJs(fn, context) !== null;
     case "metric":
       return emitBufferMetricJs(fn, context) !== null;
+    case "scenario-expression":
+    case "scenario-code":
+      // Scenario surfaces are interpreted (`interpret.ts`), never emitted as
+      // buffer programs, so every checked shape can run.
+      return true;
   }
 }
 
 /**
- * Lints one piece of user code (a full `export default Ctor(...)` module).
+ * Lints one piece of user code (a bare function body or a legacy
+ * `export default Ctor(...)` module — see `user-code-form.ts`).
  *
  * Callers should skip this when the TypeScript checker already reports errors
  * for the same code — HIR lints assume syntactically and type-valid input.

@@ -8,8 +8,8 @@
   "scripts": {
     "build": "vite build && vite build --config vite.client.config.ts",
     "dev": "vite dev",
-    "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
-    "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
+    "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
+    "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
     "test:unit": "vitest run --config vitest.config.ts"
@@ -21,6 +21,7 @@
     "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/brunch-agent-binding-flue": "workspace:*",
     "@hashintel/brunch-agent-plugin-gherkin": "workspace:*",
+    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*",
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*",
     "hono": "4.13.2",
     "react": "19.2.6",
@@ -34,6 +35,7 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "ai": "6.0.182",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "vite": "8.1.0",

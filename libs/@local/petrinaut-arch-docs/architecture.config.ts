@@ -8,6 +8,8 @@
  * exercise. Resist the temptation to add a path→layer mapping here.
  */
 
+import { resolveSourceUrlPrefix } from "./src/source-url";
+
 import type { ArchitecturePackageInput } from "./src/model";
 
 export interface LayerRule {
@@ -27,7 +29,7 @@ export interface ArchitectureConfig {
   outputDirectory: string;
   /** Where hand-written MDX is read from, repo-relative. */
   contentDirectory: string;
-  /** Base URL for source links in generated pages. */
+  /** Base URL for source links in generated pages, including the git ref. */
   sourceUrlPrefix: string;
 }
 
@@ -53,6 +55,20 @@ export const config: ArchitectureConfig = {
       description:
         "JSON-lines CLI serving one compiled model per process: run requests and optimization studies over stdio or a Unix socket. No HTTP, no React.",
       language: "typescript",
+    },
+    {
+      name: "@local/petrinaut-python",
+      path: "libs/@local/petrinaut-python",
+      description:
+        "Python bindings for the CLI's JSON-lines protocol: sessions, run requests, optimization studies. POSIX-only; pydantic validates protocol responses.",
+      language: "python",
+    },
+    {
+      name: "@apps/petrinaut-opt",
+      path: "apps/petrinaut-opt",
+      description:
+        "Python optimizer service: detached Optuna studies over the CLI, replayable SSE event streams, admission control.",
+      language: "python",
     },
   ],
 
@@ -99,6 +115,8 @@ export const config: ArchitectureConfig = {
     "__fixtures__",
     "__snapshots__",
     "docs",
+    "__pycache__",
+    ".venv",
   ],
 
   /**
@@ -116,5 +134,10 @@ export const config: ArchitectureConfig = {
    */
   outputDirectory: "libs/@local/petrinaut-arch-docs/bundle",
   contentDirectory: "libs/@local/petrinaut-arch-docs/content",
-  sourceUrlPrefix: "https://github.com/hashintel/hash/blob/main/",
+  /**
+   * Resolved from the build environment rather than pinned to `main`, so a
+   * preview deployment links to the commit it was built from. See
+   * `src/source-url.ts` for the variables and their precedence.
+   */
+  sourceUrlPrefix: resolveSourceUrlPrefix(process.env),
 };

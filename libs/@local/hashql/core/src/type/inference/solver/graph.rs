@@ -353,7 +353,7 @@ impl Graph {
         self.nodes.iter().map(|node| node.id)
     }
 
-    pub(crate) fn node(&self, index: usize) -> VariableId {
+    pub(crate) const fn node(&self, index: usize) -> VariableId {
         self.nodes[index].id
     }
 

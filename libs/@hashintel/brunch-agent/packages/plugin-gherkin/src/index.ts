@@ -1,5 +1,5 @@
 /**
- * `@hashintel/brunch-agent-plugin-gherkin` — the gherkin target-domain (spec §13.1).
+ * `@hashintel/brunch-agent-plugin-gherkin` — the gherkin target formalism (spec §13.1).
  *
  * The tracer target: cheap enough to wire end-to-end first, and deliberately
  * trivial, so it must not be the plugin that freezes the contract (spec §13's
@@ -18,7 +18,7 @@ import { definePlugin } from "@hashintel/brunch-agent";
 const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
 const evidenceQuote = v.strictObject({ excerpt: nonEmptyString });
 
-const StatementNotedProposal = v.pipe(
+export const StatementNotedProposal = v.pipe(
   v.strictObject({
     evidence: v.pipe(v.array(evidenceQuote), v.minLength(1)),
     epistemicStatus: v.literal("explicit"),
@@ -40,9 +40,13 @@ const StatementNotedProposal = v.pipe(
   ),
 );
 
+export type StatementNotedProposalInput = v.InferInput<
+  typeof StatementNotedProposal
+>;
+
 export const gherkin = definePlugin({
   name: "plugin-gherkin",
-  targetDomain: "gherkin",
+  targetFormalism: "gherkin",
   proposalCatalog: [
     {
       name: "statement-noted",

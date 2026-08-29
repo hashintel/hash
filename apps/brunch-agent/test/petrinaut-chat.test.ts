@@ -5,33 +5,49 @@ import { expect, test } from "vitest";
 
 import { runNodeScript } from "./run-node-script";
 
-type StreamChunk = Record<string, unknown> & { readonly type: string };
+import type { PetrinautChatResult } from "./petrinaut-chat-result";
+import type { TransportInspectionEvent } from "@hashintel/brunch-agent-transport-aisdk";
+import type { UIMessageChunk } from "ai";
+
 const testDirectory = import.meta.dirname;
 
 const normalizedChunk = (
-  chunk: StreamChunk,
+  chunk: UIMessageChunk,
   messageId: string,
-): StreamChunk => {
-  const normalized = { ...chunk };
-  if (normalized.messageId === messageId) normalized.messageId = "$message";
-  if (typeof normalized.id === "string")
+): UIMessageChunk => {
+  const normalized = structuredClone(chunk);
+  if ("messageId" in normalized && normalized.messageId === messageId)
+    normalized.messageId = "$message";
+  if ("id" in normalized && typeof normalized.id === "string")
     normalized.id = normalized.id.replace(messageId, "$message");
   return normalized;
 };
 
+type DeltaChunk = Extract<
+  UIMessageChunk,
+  { type: `${string}-delta`; id: string; delta: string }
+>;
+
+const isDeltaChunk = (chunk: UIMessageChunk): chunk is DeltaChunk =>
+  chunk.type.endsWith("-delta") &&
+  "id" in chunk &&
+  typeof chunk.id === "string" &&
+  "delta" in chunk &&
+  typeof chunk.delta === "string";
+
 const normalizedChunks = (
-  chunks: readonly StreamChunk[],
+  chunks: readonly UIMessageChunk[],
   messageId: string,
-): StreamChunk[] =>
-  chunks.reduce<StreamChunk[]>((normalized, chunk) => {
+): UIMessageChunk[] =>
+  chunks.reduce<UIMessageChunk[]>((normalized, chunk) => {
     const current = normalizedChunk(chunk, messageId);
     const previous = normalized.at(-1);
     if (
-      current.type.endsWith("-delta") &&
-      previous?.type === current.type &&
-      previous.id === current.id &&
-      typeof previous.delta === "string" &&
-      typeof current.delta === "string"
+      isDeltaChunk(current) &&
+      previous !== undefined &&
+      isDeltaChunk(previous) &&
+      previous.type === current.type &&
+      previous.id === current.id
     ) {
       previous.delta += current.delta;
       return normalized;
@@ -52,10 +68,9 @@ test("the committed application route drives the actual elicitor for reasoning a
     .filter((line) => line.startsWith("TRANSPORT_AISDK "))
     .map(
       (line) =>
-        JSON.parse(line.slice("TRANSPORT_AISDK ".length)) as Record<
-          string,
-          unknown
-        >,
+        JSON.parse(
+          line.slice("TRANSPORT_AISDK ".length),
+        ) as TransportInspectionEvent,
     );
   const resultLine = stdout
     .split("\n")
@@ -63,17 +78,11 @@ test("the committed application route drives the actual elicitor for reasoning a
   expect(resultLine, stdout).toBeDefined();
   const result = JSON.parse(
     resultLine!.slice("PETRINAUT_CHAT_RESULT ".length),
-  ) as {
-    status: number;
-    messageId: string;
-    partIds: string[];
-    reasoning: string;
-    text: string;
-    finish: unknown;
-    chunks: StreamChunk[];
-  };
+  ) as PetrinautChatResult;
 
   expect(result.status).toBe(200);
+  expect(result.messageId).toBeDefined();
+  if (result.messageId === undefined) throw new Error("missing message id");
   expect(result.messageId.length).toBeGreaterThan(0);
   expect(
     result.partIds.every((partId) => partId.startsWith(`${result.messageId}:`)),
@@ -91,7 +100,7 @@ test("the committed application route drives the actual elicitor for reasoning a
       ),
       "utf8",
     ),
-  ) as StreamChunk[];
+  ) as UIMessageChunk[];
   expect(normalizedChunks(result.chunks, result.messageId)).toEqual(golden);
   expect(inspectionLines[0]).toMatchObject({
     type: "request-start",

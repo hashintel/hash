@@ -5,9 +5,7 @@ use std::collections::{HashMap, HashSet};
 use error_stack::Report;
 use futures::TryFutureExt as _;
 use hash_graph_authorization::policies::{
-    Effect,
-    action::ActionName,
-    principal::{PrincipalConstraint, actor::AuthenticatedActor},
+    Effect, action::ActionName, principal::PrincipalConstraint,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::{Embedding, knowledge::entity::EntityEmbedding};
@@ -26,7 +24,10 @@ use type_system::{
         },
     },
     ontology::{VersionedUrl, entity_type::ClosedMultiEntityType},
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorId},
+        actor_group::WebId,
+    },
 };
 #[cfg(feature = "utoipa")]
 use utoipa::{
@@ -767,7 +768,7 @@ pub trait EntityStore {
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
     fn create_entity(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: CreateEntityParams,
     ) -> impl Future<Output = Result<Entity, Report<InsertionError>>> + Send {
         self.create_entities(actor_id, vec![params])
@@ -781,7 +782,7 @@ pub trait EntityStore {
     /// Creates new [`Entities`][Entity].
     fn create_entities(
         &mut self,
-        actor_uuid: ActorEntityUuid,
+        actor_id: ActorId,
         params: Vec<CreateEntityParams>,
     ) -> impl Future<Output = Result<Vec<Entity>, Report<InsertionError>>> + Send;
 
@@ -792,7 +793,7 @@ pub trait EntityStore {
     /// - if the validation failed
     fn validate_entity(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: ValidateEntityParams<'_>,
     ) -> impl Future<Output = Result<HashMap<usize, EntityValidationReport>, Report<QueryError>>> + Send
     {
@@ -806,7 +807,7 @@ pub trait EntityStore {
     /// - if the validation failed
     fn validate_entities(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> impl Future<Output = Result<HashMap<usize, EntityValidationReport>, Report<QueryError>>> + Send;
 
@@ -819,12 +820,14 @@ pub trait EntityStore {
     /// single read-only transaction with an isolation level of at least repeatable read. This
     /// requires mutable access to the store to begin the transaction.
     ///
+    /// [`None`] reads as the public actor.
+    ///
     /// # Errors
     ///
     /// - if the requested [`Entities`][Entity] cannot be retrieved
     fn query_entities(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryEntitiesParams<'_>,
     ) -> impl Future<Output = Result<QueryEntitiesResponse<'static>, Report<QueryError>>> + Send;
 
@@ -840,7 +843,7 @@ pub trait EntityStore {
     /// [`query_entities`]: Self::query_entities
     fn search_entities(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: SearchEntitiesParams,
     ) -> impl Future<Output = Result<SearchEntitiesResponse, Report<QueryError>>> + Send;
 
@@ -853,12 +856,14 @@ pub trait EntityStore {
     /// of at least repeatable read. This requires mutable access to the store to begin the
     /// transaction.
     ///
+    /// [`None`] reads as the public actor.
+    ///
     /// # Errors
     ///
     /// - if the requested [`Entities`][Entity] cannot be retrieved
     fn query_entity_subgraph(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryEntitySubgraphParams<'_>,
     ) -> impl Future<Output = Result<QueryEntitySubgraphResponse<'static>, Report<QueryError>>> + Send;
 
@@ -871,7 +876,7 @@ pub trait EntityStore {
     /// [`query_entities`]: Self::query_entities
     fn summarize_entities(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: SummarizeEntitiesParams<'_>,
     ) -> impl Future<Output = Result<SummarizeEntitiesResponse, Report<QueryError>>> + Send;
 
@@ -892,13 +897,16 @@ pub trait EntityStore {
     /// [`EntityTableCursor`]: crate::entity::EntityTableCursor
     fn query_entities_table(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: QueryEntitiesTableParams,
     ) -> impl Future<Output = Result<QueryEntitiesTableResponse, Report<QueryError>>> + Send;
 
+    /// Get the latest edition of the [`Entity`], or the one live at the given timestamps.
+    ///
+    /// [`None`] reads as the public actor.
     fn get_entity_by_id(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         entity_id: EntityId,
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
@@ -906,7 +914,7 @@ pub trait EntityStore {
 
     fn patch_entity(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: PatchEntityParams,
     ) -> impl Future<Output = Result<Entity, Report<UpdateError>>> + Send;
 
@@ -945,13 +953,13 @@ pub trait EntityStore {
     /// [`Filter::for_entity_by_entity_id`]: crate::filter::Filter::for_entity_by_entity_id
     fn delete_entities(
         &mut self,
-        actor_id: AuthenticatedActor,
+        actor_id: ActorId,
         params: DeleteEntitiesParams<'_>,
     ) -> impl Future<Output = Result<DeletionSummary, Report<DeletionError>>> + Send;
 
     fn diff_entity(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: DiffEntityParams,
     ) -> impl Future<Output = Result<DiffEntityResult<'static>, Report<QueryError>>> + Send
     where
@@ -960,7 +968,7 @@ pub trait EntityStore {
         async move {
             let first_entity = self
                 .get_entity_by_id(
-                    actor_id,
+                    Some(actor_id),
                     params.first_entity_id,
                     params.first_transaction_time,
                     params.first_decision_time,
@@ -968,7 +976,7 @@ pub trait EntityStore {
                 .await?;
             let second_entity = self
                 .get_entity_by_id(
-                    actor_id,
+                    Some(actor_id),
                     params.second_entity_id,
                     params.second_transaction_time,
                     params.second_decision_time,
@@ -1016,7 +1024,7 @@ pub trait EntityStore {
 
     fn update_entity_embeddings(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 
@@ -1037,7 +1045,7 @@ pub trait EntityStore {
     /// embedding query fails.
     fn cluster_entities(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: ClusterEntitiesParams,
     ) -> impl Future<Output = Result<ClusterEntitiesResponse, Report<ClusterError>>> + Send;
 
@@ -1065,7 +1073,7 @@ pub trait EntityStore {
     /// [`StoreError`]: CheckPermissionError::StoreError
     fn has_permission_for_entities(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         params: HasPermissionForEntitiesParams<'_>,
     ) -> impl Future<
         Output = Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>>,

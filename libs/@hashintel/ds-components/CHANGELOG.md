@@ -1,5 +1,12 @@
 # @hashintel/ds-components
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies:
+  - @hashintel/ds-helpers@0.2.2
+
 ## 0.3.0
 
 ### Minor Changes

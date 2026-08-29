@@ -94,7 +94,7 @@ impl<C: AsClient, S: TransactionState> PostgresStore<C, S> {
 
         Ok(self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",

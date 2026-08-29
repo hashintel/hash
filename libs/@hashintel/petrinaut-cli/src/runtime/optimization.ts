@@ -3,9 +3,11 @@ import { readFile } from "node:fs/promises";
 import {
   compileScenario,
   deriveRunSeed,
+  parseDocumentText,
   petrinautOptimizationEvaluateParamsSchema,
   petrinautOptimizationManifestSchema,
 } from "@hashintel/petrinaut-core";
+import { lowerScenarioToHir } from "@hashintel/petrinaut-core/hir";
 
 import type {
   PetrinautOptimizationDescribeParameter,
@@ -54,13 +56,11 @@ export async function loadOptimizationManifest(
   path: string,
 ): Promise<PetrinautOptimizationManifest> {
   const text = await readFile(path, "utf8");
-  let data: unknown;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error("Optimization manifest must be valid JSON");
+  const document = parseDocumentText(text);
+  if (!document.ok) {
+    throw new Error(`Invalid optimization manifest: ${document.error}`);
   }
-  return parseOptimizationManifest(data);
+  return parseOptimizationManifest(document.data);
 }
 
 function describeParameter(
@@ -178,6 +178,10 @@ export function createOptimizationProtocol(args: {
     optimizedParameters.map(({ parameter }) => parameter.identifier),
   );
 
+  // Lower the scenario's expressions once per study; each trial re-runs only
+  // the type-check and the interpreter with that trial's parameter values.
+  const scenarioHir = lowerScenarioToHir(scenario);
+
   return {
     describe() {
       return {
@@ -231,6 +235,7 @@ export function createOptimizationProtocol(args: {
 
       const compiledScenario = compileScenario(
         scenario,
+        scenarioHir,
         manifest.model.definition.parameters,
         manifest.model.definition.places,
         manifest.model.definition.types,

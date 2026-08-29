@@ -60,6 +60,16 @@ protocols, and the costs behind each design choice.
 - [Monte Carlo experiments](doc:simulation/experiments) — bounded memory, and why
   only aggregates reach the UI.
 
+## Embedding Petrinaut
+
+How a host application connects its own document store to the editor.
+
+- [Embedding in a host application](doc:handle/host-integration): the
+  `PetrinautDocHandle` contract, the invariants the editor relies on, and a
+  worked adapter.
+- [Handle contract gaps](doc:handle/contract-gaps): where the contract
+  under-specifies or misbehaves, and the enhancement each gap calls for.
+
 ## The packages at a glance
 
 `@hashintel/petrinaut-core` is the headless half: the document model, the HIR
@@ -75,7 +85,8 @@ way, which is enforced rather than merely intended.
 Python optimizer service drive; its [usage manual](doc:cli/usage-manual) covers
 the transports, the protocol, and optimization studies.
 
-Two further packages are not yet covered by the generated model:
-`@apps/petrinaut-website` and `apps/petrinaut-opt` (the Python Optuna service).
-Adding them is a matter of declaring layers in their source; see
-[Declaring layers](doc:maintaining/declaring-layers).
+`apps/petrinaut-opt` (the Python Optuna service) and `@local/petrinaut-python`
+(its CLI bindings) are covered too, with their layers and import edges derived
+the same way as the TypeScript ones. One package is not covered at all:
+`@apps/petrinaut-website`. Adding a package is a matter of declaring layers in
+its source; see [Declaring layers](doc:maintaining/declaring-layers).

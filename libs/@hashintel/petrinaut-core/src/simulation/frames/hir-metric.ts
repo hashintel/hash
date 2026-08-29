@@ -4,6 +4,7 @@ import {
   type HirMetricArtifact,
   type HirParameterValues,
 } from "../../hir/instantiate";
+import { cloneUserKeyedRecord } from "../../validation/record-keys";
 
 import type { Place } from "../../types/sdcpn";
 import type { SimulationFrameReader } from "../api";
@@ -52,7 +53,8 @@ export function createHirMetricEvaluator(args: {
   // Monte-Carlo runs can override parameters per run, so its contents are
   // refreshed from each frame's own resolved values before evaluation; frame
   // sources that carry none keep the evaluator's construction-time defaults.
-  const boundParameters: HirParameterValues = { ...parameterValues };
+  const boundParameters: HirParameterValues =
+    cloneUserKeyedRecord(parameterValues);
   let lastParameterValues: HirParameterValues | null = null;
   const bindParameters = (frameParameters: HirParameterValues): void => {
     if (frameParameters === lastParameterValues) {

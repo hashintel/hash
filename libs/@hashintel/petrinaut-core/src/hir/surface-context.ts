@@ -18,7 +18,7 @@
  * which occupy no floats but must still be produced by kernels).
  *
  * When several arcs reference places with the same display name, the runtime
- * `tokensByPlace` object keeps the LAST arc's tokens (object key overwrite) —
+ * `input` object keeps the LAST arc's tokens (object key overwrite) —
  * both the merged `inputPlaces` bindings and name-based slot resolution
  * follow that rule.
  */
@@ -39,6 +39,7 @@ import type {
   OutputArc,
   Parameter,
   Place,
+  ScenarioParameter,
   SDCPN,
   Transition,
 } from "../types/sdcpn";
@@ -133,11 +134,53 @@ export type HirMetricContext = {
   places: HirMetricPlaceInfo[];
 };
 
+/** One scenario parameter, read in scenario code as `scenario.<identifier>`. */
+export type HirScenarioParameterInfo = {
+  name: string;
+  type: ScenarioParameter["type"];
+};
+
+/**
+ * Context for one scenario expression: a parameter override or an uncoloured
+ * place's initial token count. `parameters` and `scenario` are ambient.
+ */
+export type HirScenarioExpressionContext = {
+  surface: "scenario-expression";
+  parameters: HirParameterInfo[];
+  scenarioParameters: HirScenarioParameterInfo[];
+  /** What the expression must produce. */
+  expected: "real" | "integer" | "boolean";
+};
+
+/** One place as seen by scenario code-mode initial state. */
+export type HirScenarioPlaceInfo = {
+  name: string;
+  /** Coloured places take token-record arrays; uncoloured ones a count. */
+  colored: boolean;
+  elements: HirTokenElementInfo[];
+};
+
+/**
+ * Context for a scenario's code-mode initial state: a bare body returning a
+ * record keyed by place display name. `parameters` and `scenario` are
+ * ambient.
+ */
+export type HirScenarioCodeContext = {
+  surface: "scenario-code";
+  parameters: HirParameterInfo[];
+  scenarioParameters: HirScenarioParameterInfo[];
+  /** ALL places keyed by display name (last name wins for duplicates,
+   * matching the runtime's name lookup). */
+  places: HirScenarioPlaceInfo[];
+};
+
 export type HirSurfaceContext =
   | HirDynamicsContext
   | HirLambdaContext
   | HirKernelContext
-  | HirMetricContext;
+  | HirMetricContext
+  | HirScenarioExpressionContext
+  | HirScenarioCodeContext;
 
 const SCOPE_SEPARATOR = "::";
 
@@ -151,7 +194,7 @@ function toParameterInfos(parameters: Parameter[]): HirParameterInfo[] {
 /**
  * Display name for the place an arc points at — must match the property keys
  * generated for the LSP `Input`/`Output` types and the runtime
- * `tokensByPlace` objects (`Instance::Port` scoping for component ports).
+ * `input` objects (`Instance::Port` scoping for component ports).
  */
 function getArcPlaceDisplayName(
   arc: InputArc | OutputArc,
@@ -227,7 +270,7 @@ function collectArcs(
     }));
 
     // Last arc with a given name wins, matching the runtime's object-key
-    // overwrite when building `tokensByPlace`.
+    // overwrite when building `input`.
     bindings.set(name, {
       name,
       colorId: color.id,
@@ -344,6 +387,67 @@ export function buildMetricContext(
   return {
     surface: "metric",
     parameters: toParameterInfos(extensions.parameters ? sdcpn.parameters : []),
+    places: [...placesByName.values()],
+  };
+}
+
+function toScenarioParameterInfos(
+  scenarioParameters: readonly ScenarioParameter[],
+): HirScenarioParameterInfo[] {
+  return scenarioParameters
+    .filter((parameter) => parameter.identifier.trim() !== "")
+    .map((parameter) => ({
+      name: parameter.identifier,
+      type: parameter.type,
+    }));
+}
+
+/**
+ * Builds the context for one scenario expression. Takes plain lists rather
+ * than an SDCPN: scenario compilation receives net parameters and places as
+ * arguments, not the full net.
+ */
+export function buildScenarioExpressionContext(
+  netParameters: readonly Parameter[],
+  scenarioParameters: readonly ScenarioParameter[],
+  expected: HirScenarioExpressionContext["expected"],
+): HirScenarioExpressionContext {
+  return {
+    surface: "scenario-expression",
+    parameters: toParameterInfos([...netParameters]),
+    scenarioParameters: toScenarioParameterInfos(scenarioParameters),
+    expected,
+  };
+}
+
+/**
+ * Builds the context for a scenario's code-mode initial state. Places are
+ * keyed by display name; a later place with the same name wins, matching the
+ * runtime's name lookup.
+ */
+export function buildScenarioCodeContext(
+  netParameters: readonly Parameter[],
+  scenarioParameters: readonly ScenarioParameter[],
+  places: readonly Place[],
+  types: readonly Color[],
+): HirScenarioCodeContext {
+  const colorById = new Map(types.map((color) => [color.id, color]));
+  const placesByName = new Map<string, HirScenarioPlaceInfo>();
+  for (const place of places) {
+    const color = place.colorId ? colorById.get(place.colorId) : undefined;
+    placesByName.set(place.name, {
+      name: place.name,
+      colored: color !== undefined,
+      elements: (color?.elements ?? []).map((element) => ({
+        name: element.name,
+        type: element.type,
+      })),
+    });
+  }
+  return {
+    surface: "scenario-code",
+    parameters: toParameterInfos([...netParameters]),
+    scenarioParameters: toScenarioParameterInfos(scenarioParameters),
     places: [...placesByName.values()],
   };
 }

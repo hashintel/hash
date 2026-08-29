@@ -2,8 +2,9 @@
 
 Issues for this repo live in **Linear**, worked through the `linear` CLI (see the
 `tool-linear-cli` skill). Long-form artifacts — specs, research write-ups, notes — stay in this
-repo under `docs/planning/<effort>/` (see `documentation.md`); Linear issues link to them by repo path (and to Notion/Google
-docs by URL). The issue is the tracker record; the repo file is the document.
+repo in the role-based topology defined by `documentation.md`; Linear issues link to them by repo
+path (and to Notion/Google docs by URL). The issue is the tracker record; the repo file is the
+document.
 
 How issue titles and bodies are written — the contract/execution-record split, outcome-shaped
 titles, plain-prose context — is covered in `issue-writing.md`; it applies to every issue an
@@ -11,8 +12,14 @@ agent authors from this repo.
 
 ## Conventions
 
-- **Default team**: `FE`. **Project**: `brunch-agent`. Create issues with
-  `linear issue create --team FE --project brunch-agent`. The project is the
+**Approval gate:** reading Linear is allowed, but obtain explicit approval before any issue
+creation, edit, comment, hierarchy change, state change, project mutation, or other write. Approval
+for one named operation does not authorize adjacent mutations.
+
+- **Default team**: `FE`. **Project**: `brunch-agent`. Every approved new issue is created with
+  `linear issue create --team FE --project brunch-agent --assignee self`, plus `--parent` when it
+  is not a root. Verify assignee, project, and parent after creation. Assignment denotes accountable
+  human ownership, never an agent claim. The project is the
   ownership boundary for this codebase — see the registry rule below.
 - Related work also lives on teams `PRO` (product) and `H` (HASH) — read/reference those freely;
   create there only when asked. The legacy `brunch` project holds the old brunch product's
@@ -26,8 +33,9 @@ agent authors from this repo.
 
 ## When a skill says "publish to the issue tracker"
 
-Create a Linear issue on team `FE`, project `brunch-agent`. If the content is long-form, commit
-it under `docs/planning/<effort>/` and link the repo path from the issue description.
+After explicit approval, create a Linear issue on team `FE`, project `brunch-agent`. If the content
+is long-form, place it by its role under `documentation.md` and link the repo path from the issue
+description.
 
 ## When a skill says "fetch the relevant ticket"
 
@@ -67,7 +75,9 @@ update. Publish it to the `brunch-agent` project.
 ## Wayfinding operations
 
 Used by the `ds-wayfind` skill. The **map** is a Linear issue with one **child** sub-issue per
-ticket.
+ticket. Linear owns issue facts: state, hierarchy, project membership, assignment, and hard
+blockers. `STEERING` projects only current soft edges and chooses strategic work by objective
+contribution, risk retired, and information gain.
 
 - **Map**: an FE issue in project `brunch-agent`, labeled `wayfinder → map` (label group `wayfinder`,
   children `map` / `research` / `prototype` / `grilling` / `manual-task` — created 2026-08-11;
@@ -78,9 +88,9 @@ ticket.
   carrying its `wayfinder → <type>` label. The description holds the question.
 - **Blocking**: Linear's native **blocks / blocked-by** relations. A ticket is unblocked when
   every issue blocking it is closed (Done or Canceled).
-- **Frontier**: open, unblocked, **unassigned** sub-issues of the map — lowest issue number
-  first.
-- **Claim**: assign the issue to yourself (the dev driving the map) before any work.
+- **Mechanical frontier**: open, unblocked sub-issues of the map — lowest issue number first. This
+  is an availability filter, not the strategic proof frontier. Before work, inspect issue state and
+  any active branch or PR to avoid duplicate execution.
 - **Resolve**: post the answer as a comment on the issue, set state **Done**, then append a
   one-line gist + link to the map issue's _Decisions so far_ section (edit the map description).
 - **Out of scope**: set state **Canceled** and record the gist + reason in the map's
@@ -97,28 +107,28 @@ in the `brunch-agent` project. Nothing else — no label, no team, no root-walki
 belonging. Within the project, every issue must additionally be **reachable from a root**: either
 it is a sub-issue (directly or transitively) of a root map — currently FE-1383 (build) and
 FE-1357 (demo + plugin spec) — or a sub-issue of a named sweep ticket (FE-1401-style), or it
-_is_ a root and `docs/planning/_shared/COORDINATION.md` names it under **Exceptional roots**. An
+_is_ a root and `docs/control/STEERING.md` names it under **Exceptional roots**. An
 issue in the project but reachable from no root is captured-then-orphaned, the failure mode this
 rule exists to stop. Set the parent at creation (`--parent FE-XXXX`), not in a later sweep.
 
 Audit (run at arc close, alongside the legibility protocol's consolidation step):
 
 ```shell
-turbo run linear:graph --filter '@hashintel/brunch-agent'
+turbo run linear:graph --filter '@hashintel/brunch-agent' -- --all
 ```
 
 Check each open row without a `p:` parent against the roots above. An orphan gets a parent or an
-explicit root listing in `COORDINATION.md` — silence is not an option it has. The projection is
-project-wide rather than assignment-scoped: assignment is fallible, and more contributors means
-unassigned work is normal. A shared custom view — "brunch-agent: open without parent" — surfaces
+explicit root listing in `STEERING.md` — silence is not an option it has. The projection is
+project-wide rather than assignment-scoped. The graph also audits every project issue against the
+current authenticated user; mismatches require review, never auto-repair. Existing reassignment is
+a separate write and remains approval-gated. A shared custom view — "brunch-agent: open without parent" — surfaces
 candidate orphans continuously; its only legitimate rows are the roots themselves.
 
 ## Historical note
 
 Before 2026-08-11 this repo tracked issues as local markdown under `.scratch/<feature-slug>/`
-(map at `map.md`, tickets at `issues/NN-<slug>.md`; live trees moved under `docs/planning/`,
-completed ones under `docs/history/planning/`). The completed `elicitation-kernel` effort
-remains in that form as the canonical archive (now at `docs/history/planning/elicitation-kernel/`), and is **mirrored in Linear for team
+(map at `map.md`, tickets at `issues/NN-<slug>.md`). The completed `elicitation-kernel` effort
+remains in that form as the canonical archive (now at `docs/archive/elicitation-kernel/`), and is **mirrored in Linear for team
 visibility** as FE-1366 (map) with sub-issues FE-1367–FE-1379, all Done, blocking relations
 preserved. New efforts go to Linear directly.
 

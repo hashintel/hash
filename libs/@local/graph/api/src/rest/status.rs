@@ -1,16 +1,14 @@
-use core::{error::Error, fmt::Debug, mem};
+use core::{error::Error, mem};
 use std::collections::HashMap;
 
-use axum::{
-    Json,
-    response::{IntoResponse, Response},
-};
+use axum::response::{IntoResponse, Response};
 use error_stack::Report;
 use hash_graph_postgres_store::store::error::BaseUrlAlreadyExists;
 use hash_graph_store::entity::EntityValidationReport;
 use hash_status::{Status, StatusCode};
 use serde::Serialize;
 
+/// A boxed [`Response`], keeping the types that carry one small.
 pub struct BoxedResponse(Box<Response>);
 
 impl IntoResponse for BoxedResponse {
@@ -25,19 +23,19 @@ impl From<Response> for BoxedResponse {
     }
 }
 
-/// Converts a `Status` into an `axum::Response`.
+/// Converts a [`Status`] into the response it answers with.
 ///
 /// # Panics
 ///
-/// Panics if the `Status` code does not map to a valid HTTP status code.
+/// Panics if the [`Status`] code does not map to a valid HTTP status code.
 #[must_use]
 pub fn status_to_response<T>(status: Status<T>) -> BoxedResponse
 where
-    T: Serialize + Send + Sync + Debug,
+    T: Serialize + Send + Sync + core::fmt::Debug,
 {
     let status_code = axum::http::StatusCode::from_u16(status.code().to_http_code())
         .expect("HASH Status code should map to a valid HTTP status code");
-    let mut response = Json(status).into_response();
+    let mut response = axum::Json(status).into_response();
     *response.status_mut() = status_code;
 
     response.into()

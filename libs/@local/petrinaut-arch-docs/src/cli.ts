@@ -13,6 +13,8 @@ import { fileURLToPath } from "node:url";
 import { config } from "../architecture.config";
 import { buildBundle, bundleTextFiles, type BuiltBundle } from "./build";
 import { countErrors, type Diagnostic } from "./diagnostics";
+import { obtainBaseSide, seedBaseCacheWithSelf } from "./diff/base-side";
+import { applyBundleDiff } from "./diff/bundle-diff";
 import { canRenderDiagrams, renderD2 } from "./emit/d2";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -59,6 +61,92 @@ const summarise = (bundle: BuiltBundle): void => {
       `${bundle.model.layers.length} layers \u00b7 ${bundle.model.edges.length} edges \u00b7 ${files} files \u00b7 ${bundle.generated.length} generated pages \u00b7 ${bundle.authored.length} authored pages\n`,
     ),
   );
+};
+
+/**
+ * The ref to diff the bundle against, or null for a plain build.
+ *
+ * `--diff-base <ref>` (or `--diff-base=<ref>`) wins over the
+ * `PETRINAUT_ARCH_DOCS_DIFF_BASE` environment variable, which is how CI turns
+ * the diff on for preview builds without touching the command line.
+ */
+const resolveDiffBase = (args: string[]): string | null => {
+  const flagIndex = args.findIndex(
+    (arg) => arg === "--diff-base" || arg.startsWith("--diff-base="),
+  );
+
+  if (flagIndex !== -1) {
+    const flag = args[flagIndex] ?? "";
+    const value = flag.includes("=")
+      ? flag.slice(flag.indexOf("=") + 1)
+      : (args[flagIndex + 1] ?? "");
+    if (value.trim() === "") {
+      // The flag was typed deliberately, so an empty value gets a message
+      // rather than a silent plain build.
+      process.stderr.write(
+        `${yellow("warning")} --diff-base given without a ref; building without change highlighting\n`,
+      );
+      return null;
+    }
+    return value.trim();
+  }
+
+  const fromEnvironment = process.env.PETRINAUT_ARCH_DOCS_DIFF_BASE?.trim();
+  return fromEnvironment === undefined || fromEnvironment === ""
+    ? null
+    : fromEnvironment;
+};
+
+/**
+ * Applies the diff against the base ref to the head bundle.
+ *
+ * The base side comes from `obtainBaseSide` — the cache, the local clone, or
+ * an anonymous fetch — always built by the current generator with the current
+ * config, so the comparison never sees emitter or prefix drift. Any failure
+ * degrades to the plain bundle with a warning: a broken diff must not take
+ * the docs down with it.
+ */
+const withDiffAgainst = async (
+  bundle: BuiltBundle,
+  ref: string,
+  includeDiagrams: boolean,
+): Promise<BuiltBundle> => {
+  try {
+    const base = await obtainBaseSide({ repoRoot, ref, includeDiagrams });
+
+    if (base.fromCache) {
+      process.stdout.write(
+        dim(`base bundle from cache (${base.sha.slice(0, 10)})\n`),
+      );
+    }
+    // Logged because it names the strategy: a Vercel build has no usable
+    // clone, and this line is how its logs show the fallback fetch worked.
+    if (base.fetchedFrom !== undefined) {
+      process.stdout.write(dim(`base tree fetched from ${base.fetchedFrom}\n`));
+    }
+
+    const diffed = applyBundleDiff(bundle, base.side, {
+      baseRef: ref,
+      baseSha: base.sha,
+      sourceUrlPrefix: config.sourceUrlPrefix,
+    });
+
+    const statuses = Object.values(diffed.manifest.diff?.pages ?? {});
+    const count = (status: string) =>
+      statuses.filter((entry) => entry === status).length;
+    process.stdout.write(
+      dim(
+        `changes vs ${ref} (${base.sha.slice(0, 10)}): ${count("added")} added · ${count("changed")} changed · ${count("removed")} removed\n`,
+      ),
+    );
+
+    return diffed;
+  } catch (cause) {
+    process.stderr.write(
+      `${yellow("warning")} building without change highlighting: could not compare against \`${ref}\`\n  ${cause instanceof Error ? cause.message : String(cause)}\n`,
+    );
+    return bundle;
+  }
 };
 
 /** Returns false when a diagram the pages already reference failed to render. */
@@ -152,11 +240,34 @@ const main = async (): Promise<number> => {
     return 1;
   }
 
-  if (!(await writeBundle(bundle, diagramsAvailable))) {
+  // Applied only to a bundle that already passed the checks: the diff decorates
+  // the output, it never gates it.
+  const diffBase = resolveDiffBase(process.argv.slice(3));
+  const written =
+    diffBase === null
+      ? bundle
+      : await withDiffAgainst(bundle, diffBase, diagramsAvailable);
+
+  // Every clean build stores its own side as a future diff base — a `main`
+  // build's entry is what spares each PR from rebuilding the base itself.
+  // Seeded after the diff has read its base, so at the cache's capacity this
+  // write can never evict the entry the diff was about to use.
+  seedBaseCacheWithSelf({
+    repoRoot,
+    bundle,
+    includeDiagrams: diagramsAvailable,
+  });
+
+  if (!(await writeBundle(written, diagramsAvailable))) {
     return 1;
   }
 
-  process.stdout.write(`Wrote ${config.outputDirectory}\n`);
+  // The prefix is logged because it varies by build: a preview deployment
+  // points its source links at the previewed commit, and a wrong ref is
+  // otherwise only visible by clicking a link on the published page.
+  process.stdout.write(
+    `Wrote ${config.outputDirectory}, source links to ${config.sourceUrlPrefix}\n`,
+  );
   return 0;
 };
 

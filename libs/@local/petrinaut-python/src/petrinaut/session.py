@@ -7,6 +7,8 @@ spawned, read, timed out, and shut down lives in :mod:`petrinaut._transport`;
 this module is the part a consumer reads.
 
 POSIX only, via the transport: process groups and descriptor polling.
+
+@talksTo cli via JSON lines over stdio (spawned subprocess)
 """
 
 from __future__ import annotations
@@ -89,7 +91,11 @@ class PetrinautSession:
     def from_model_file(
         path: str | os.PathLike[str], **options: Any
     ) -> PetrinautSession:
-        """Serve a model JSON file (``petrinaut serve --model <path> --stdio``)."""
+        """Serve a model file (``petrinaut serve --model <path> --stdio``).
+
+        The file may be YAML or JSON; the CLI detects the format from the
+        content.
+        """
         return PetrinautSession(
             serve_arguments=("--model", os.fspath(path), "--stdio"),
             **options,

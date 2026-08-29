@@ -14,14 +14,17 @@ export const capturedUserEntryIdsForSession = async (
   sessionId: string,
 ): Promise<ReadonlySet<string>> => {
   const entryIds = new Set<string>();
-  for (const capture of snapshot.captures) {
-    if (!("evidence" in capture)) continue;
-    for (const evidence of capture.evidence) {
-      if (evidence.pointer.sessionId !== sessionId) continue;
-      for (const entry of await store.readArchivedEntries(evidence.pointer)) {
-        if (entry.versions.at(-1)?.kind === "user-affordance-payload") {
-          entryIds.add(entry.substrateEntryId);
-        }
+  const archiveReads = snapshot.captures.flatMap((capture) =>
+    "evidence" in capture
+      ? capture.evidence
+          .filter((evidence) => evidence.pointer.sessionId === sessionId)
+          .map((evidence) => store.readArchivedEntries(evidence.pointer))
+      : [],
+  );
+  for (const archivedEntries of await Promise.all(archiveReads)) {
+    for (const entry of archivedEntries) {
+      if (entry.versions.at(-1)?.kind === "user-affordance-payload") {
+        entryIds.add(entry.substrateEntryId);
       }
     }
   }

@@ -28,7 +28,7 @@ use type_system::{
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     principal::{
-        actor::{ActorEntityUuid, ActorType, MachineId},
+        actor::{ActorId, ActorType, MachineId},
         actor_group::WebId,
     },
     provenance::{OriginProvenance, OriginType},
@@ -154,7 +154,7 @@ pub(crate) async fn setup(
 /// Seeds all ontology types (data types, property types, entity types).
 async fn seed_ontology(
     store: &mut PostgresStore<Client>,
-    actor_id: ActorEntityUuid,
+    actor_id: ActorId,
     ownership: &OntologyOwnership,
 ) -> Result<(), Report<SetupError>> {
     let ontology_provenance = ProvidedOntologyEditionProvenance {
@@ -239,7 +239,7 @@ async fn seed_ontology(
 /// Creates a non-link entity from a property JSON fixture and entity type JSON.
 async fn create_entity(
     store: &mut PostgresStore<Client>,
-    actor_id: ActorEntityUuid,
+    actor_id: ActorId,
     web_id: WebId,
     entity_type_json: &str,
     properties_json: &str,
@@ -296,7 +296,7 @@ async fn seed_data(
         .attach("could not create test user")?
         .user_id;
 
-    let actor_id: ActorEntityUuid = user_id.into();
+    let actor_id: ActorId = user_id.into();
     let web_id: WebId = user_id.into();
     let ownership = OntologyOwnership::Local { web_id };
 

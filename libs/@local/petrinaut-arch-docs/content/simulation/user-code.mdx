@@ -1,23 +1,25 @@
 ---
 title: Compiling user code
-description: How authored TypeScript becomes buffer programs, and what the sandbox does and does not protect.
+description: How authored TypeScript becomes buffer programs or interpreted HIR, and what the visualizer sandbox does and does not protect.
 sidebar_order: 10
 attachTo: core.simulation.authoring
 ---
 
 import { Pipeline } from "@diagrams/pipeline";
 
-Dynamics, lambdas, kernels and metrics all compile through the HIR: user
-TypeScript is lowered to a source-spanned IR, checked against the net, and
-emitted as buffer-native JavaScript with offsets and strides baked in. Scenario
-code takes a separate, simpler path.
+Dynamics, lambdas, kernels, metrics and scenario code all compile through the
+HIR: user TypeScript is lowered to a source-spanned IR and checked against the
+net. The hot-path surfaces are emitted as buffer-native JavaScript with
+offsets and strides baked in; scenario code, which runs once per run or
+optimization trial, is evaluated by an HIR interpreter instead: no emitted
+JavaScript and no `new Function`.
 
 <Pipeline
   title="The HIR pipeline"
   steps={[
     {
       label: "User source",
-      note: "TypeScript, e.g. `export default Lambda(fn)`",
+      note: "TypeScript: a bare function body, or a legacy `export default Lambda(fn)` module",
     },
     {
       label: "Lower to HIR",
@@ -45,14 +47,21 @@ HIR checks and emitters.
 
 ## What compiles where
 
-| Surface           | Authored as                                  | Executed in                                        |
-| ----------------- | -------------------------------------------- | -------------------------------------------------- |
-| Transition lambda | module, `Lambda(fn)`                         | Worker, per enablement check                       |
-| Transition kernel | module, `TransitionKernel(fn)`               | Worker, per firing                                 |
-| Dynamics          | module, `Dynamics(fn)`                       | Worker, per step per place                         |
-| Metric            | plain function body                          | Main thread (timeline) and MC worker (experiments) |
-| Scenario          | per-place expressions, or one code-mode body | Main thread, before the run starts                 |
-| Place visualizer  | module, `Visualization(fn)` returning JSX    | Main thread, at render                             |
+| Surface           | Authored as                                              | Executed in                                                           |
+| ----------------- | -------------------------------------------------------- | --------------------------------------------------------------------- |
+| Transition lambda | function body (or legacy module, `Lambda(fn)`)           | Worker, per enablement check                                          |
+| Transition kernel | function body (or legacy module, `TransitionKernel(fn)`) | Worker, per firing                                                    |
+| Dynamics          | function body (or legacy module, `Dynamics(fn)`)         | Worker, per step per place                                            |
+| Metric            | plain function body                                      | Main thread (timeline) and MC worker (experiments)                    |
+| Scenario          | per-place expressions, or one code-mode body             | HIR interpreter: main thread before a run, CLI per optimization trial |
+| Place visualizer  | module, `Visualization(fn)` returning JSX                | Main thread, at render                                                |
+
+Lambda, kernel, and dynamics code is classified per piece of code
+(`hir/user-code-form.ts`): any top-level `export` marks the legacy module
+form, anything else is a bare body with the input object and `parameters`
+ambient. The HIR lowering and the LSP's virtual-file wrappers share that one
+detector, so the editor and the compiler never disagree about a given source
+text.
 
 The visualizer is the one inherently React-based surface — it authors JSX — which
 is why it compiles in the UI package rather than in the headless core.
@@ -62,31 +71,51 @@ propagating into a chart.
 
 ## Scenarios produce a marking, not a run
 
-Scenario compilation is separate from the HIR pipeline and produces an initial
-marking (plus parameter overrides) before the simulation is created.
+Scenario compilation produces an initial marking (plus parameter overrides)
+before the simulation is created, in two halves. Lowering to HIR needs the
+TypeScript compiler, so it runs where the compiler lives: the LSP worker in
+the browser (`requestScenarioHir`), or inline in Node
+(`lowerScenarioToHir`). `compileScenario` takes the lowered result,
+type-checks it against the net's parameters and places, and evaluates it with
+the interpreter (`hir/interpret.ts`). One lowering serves many evaluations:
+optimization trials and parameter tweaks re-run only the type check and the
+interpreter, never the TypeScript frontend.
 
 Two modes, with one asymmetry worth remembering: **per-place mode is keyed by
-place ID, code mode is keyed by place name.** In code mode, unknown names are
-silently dropped.
+place ID, code mode is keyed by place name.** In code mode, an unknown name is
+an error twice over: the type checker flags it in the editor
+(`hir:unknown-scenario-place`), and evaluation reports it for the shapes the
+checker cannot see (a return type that collapses to unknown).
 
 In per-place mode an uncoloured place takes an expression evaluated with
 parameters in scope, rounded and clamped at zero; a coloured place takes row
 arrays in colour-element order, each coerced with typed defaults for missing
-columns, and extra columns throw.
+columns. Extra columns and invalid typed values are reported as compilation
+errors.
 
 ## What the sandbox is for
 
-Scenario expressions run with a list of globals shadowed — `window`, `document`,
-`globalThis`, `fetch`, `importScripts`, `Function`, timers and similar — so those
-name lookups resolve to `undefined`. Because shadowing only stops identifier
-lookup, the sandbox additionally blocks the constructor-chain escape
-(`({}).constructor.constructor` reaching `Function`) for the duration of the
-call, by swapping the `.constructor` descriptors on the built-in prototypes and
-restoring them afterwards.
+The place visualizer is the one surface still executed as raw JavaScript
+(`compile-visualizer.ts` in the UI package; it authors JSX, which the HIR
+does not represent). Its Babel-compiled module body runs in strict mode with
+a list of globals shadowed (`window`, `document`, `globalThis`, `fetch`,
+`importScripts`, `Function`, timers and similar), so those name lookups
+resolve to `undefined`. Because shadowing only stops identifier lookup, the
+sandbox additionally blocks the constructor-chain escape
+(`({}).constructor.constructor` reaching `Function`) around the module
+evaluation and each render, by swapping the `.constructor` descriptors on the
+built-in prototypes and restoring them afterwards.
 
-**Treat this as robustness hardening, not isolation.** User code executes with
-`new Function` in the same realm as the host. It protects against typos and
-accidental API use, not against an attacker.
+**Treat this as robustness hardening, not isolation.** Visualizer code
+executes with `new Function` in the same realm as the host. It protects
+against typos and accidental API use, not against an attacker. Every other
+surface, scenario code included, compiles through the HIR, where
+out-of-subset code is a blocking diagnostic rather than a sandbox concern.
+
+Identity strings (ids, parameter variable names, element names) are the other
+untrusted input: [Untrusted names](doc:simulation/untrusted-names) covers how
+they are rejected at the import and simulation boundaries and why records
+keyed by them have no prototype.
 
 ## Distributions are sampled once
 

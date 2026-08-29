@@ -54,9 +54,11 @@ REQUESTED_PATHS: dict[str, list[str]] = {
     # architecture tests in packages/core read its docs, scripts, and agent
     # contract files
     "@hashintel/brunch-agent": [
+        ".config/oxlint/brunch",
         "libs/@hashintel/brunch-agent/AGENTS.md",
         "libs/@hashintel/brunch-agent/CONTEXT.md",
         "libs/@hashintel/brunch-agent/docs",
+        "libs/@hashintel/brunch-agent/evaluations",
         "libs/@hashintel/brunch-agent/scripts",
     ],
 }

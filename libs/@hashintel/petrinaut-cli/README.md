@@ -18,5 +18,8 @@ Build the CLI, then serve a model saved from the editor:
 
 ```bash
 turbo --filter @hashintel/petrinaut-cli build
-node libs/@hashintel/petrinaut-cli/dist/cli.js serve --model ./my-model.json
+node libs/@hashintel/petrinaut-cli/dist/cli.js serve --model ./my-model.yaml
 ```
+
+Model and manifest files may be YAML (the editor's default export format) or
+JSON; the CLI detects the format from the content.

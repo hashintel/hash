@@ -53,7 +53,7 @@ use type_system::{
         property::metadata::PropertyObjectMetadata,
     },
     ontology::{VersionedUrl, entity_type::EntityTypeUuid},
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{actor::ActorId, actor_group::WebId},
 };
 
 use crate::store::{
@@ -356,11 +356,10 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     pub(crate) async fn query_entities_table_impl(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: QueryEntitiesTableParams,
     ) -> Result<QueryEntitiesTableResponse, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, Some(actor_id))
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -545,9 +544,9 @@ where
 
         let (statement, parameters) = compiler.compile();
 
-        let rows = self
+        let rows: Vec<_> = self
             .as_client()
-            .query(&statement, parameters)
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -555,6 +554,9 @@ where
                 peer.service = "Postgres",
                 db.query.text = statement,
             ))
+            .await
+            .change_context(QueryError)?
+            .try_collect()
             .await
             .change_context(QueryError)?;
 
@@ -643,7 +645,7 @@ where
             };
             Some(
                 self.get_closed_multi_entity_types(
-                    actor_id,
+                    Some(actor_id),
                     rows.iter()
                         .map(|row| row.entity_type_ids.clone())
                         .chain(
@@ -690,7 +692,7 @@ where
                     .collect::<Vec<_>>();
                 Some(
                     self.get_entity_type_resolve_definitions(
-                        actor_id,
+                        Some(actor_id),
                         &entity_type_uuids,
                         params.include_entity_types
                             == Some(IncludeEntityTypeOption::ResolvedWithDataTypeChildren),
@@ -764,7 +766,7 @@ where
 
         let rows = self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -811,7 +813,7 @@ where
 
         let rows = self
             .as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -1366,7 +1368,7 @@ mod tests {
                   AND ("entity_temporal_metadata_0_0_0"."decision_time" && $2)
                   AND (("entity_temporal_metadata_0_0_0"."web_id" = ANY($3))
                   AND ("entity_editions_0_1_0"."archived" != $4))
-                  AND (("entity_edition_cache_1_1_0"."versioned_urls" @> ARRAY[$5]::text[]))),
+                  AND ("entity_edition_cache_1_1_0"."versioned_urls" @> ARRAY[$5]::text[])),
                 "limited" AS (SELECT *
                 FROM "roots"
                 ORDER BY "created_at_decision_time" DESC, "entity_uuid" DESC LIMIT 500)

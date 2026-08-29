@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""HTTP API for streaming Petrinaut optimization studies."""
+"""HTTP API for streaming Petrinaut optimization studies.
+
+@layerRoot optimizer
+@role FastAPI service running detached Optuna studies through the Python bindings, with replayable event streams and admission control
+"""
 
 from __future__ import annotations
 

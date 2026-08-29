@@ -13,10 +13,10 @@ export interface FlueReplyProjector {
   accept(chunk: ConversationStreamChunk): void;
 }
 
-type StreamingPart = {
-  readonly kind: "text" | "reasoning";
-  readonly partId: string;
-};
+type StreamingPart = Omit<
+  Extract<HarnessReplyEvent, { type: "part-start" }>,
+  "type"
+>;
 
 export const createFlueReplyProjector = (
   options: FlueReplyProjectorOptions,
@@ -40,7 +40,7 @@ export const createFlueReplyProjector = (
     turnId = undefined;
   };
 
-  const startPart = (kind: "text" | "reasoning"): StreamingPart => {
+  const startPart = (kind: StreamingPart["kind"]): StreamingPart => {
     finishPart();
     partOrdinal += 1;
     const part = {

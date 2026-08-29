@@ -1,14 +1,14 @@
 use core::error::Error;
 
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::policies::store::PolicyStore as _;
+use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
 use hash_graph_store::{
     entity::{DeleteEntitiesParams, DeletionScope, EntityStore as _},
     filter::Filter,
     pool::StorePool as _,
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
-use type_system::principal::actor::ActorEntityUuid;
+use type_system::principal::actor::ActorId;
 
 use crate::scenario::runner::Runner;
 
@@ -38,6 +38,8 @@ pub enum ResetDbError {
     EnsureDb,
     #[display("Failed to acquire store")]
     Acquire,
+    #[display("Failed to resolve the system machine")]
+    ResolveSystemMachine,
     #[display("Failed to delete principals")]
     DeletePrincipals,
     #[display("Failed to delete data types")]
@@ -84,10 +86,19 @@ impl ResetDbStage {
                 .change_context(ResetDbError::Acquire)?;
             let store = conn.store();
 
+            // The principals are about to be erased too, so the reset acts as the system
+            // machine, which is recreated on demand.
+            let actor_id = ActorId::from(
+                store
+                    .get_or_create_system_machine("h")
+                    .await
+                    .change_context(ResetDbError::ResolveSystemMachine)?,
+            );
+
             if self.entities {
                 store
                     .delete_entities(
-                        ActorEntityUuid::new(uuid::Uuid::nil()).into(),
+                        actor_id,
                         DeleteEntitiesParams {
                             filter: Filter::All(Vec::new()),
                             temporal_axes: QueryTemporalAxesUnresolved::all(),
@@ -123,7 +134,7 @@ impl ResetDbStage {
             }
             if self.principals {
                 store
-                    .delete_principals(ActorEntityUuid::new(uuid::Uuid::nil()))
+                    .delete_principals()
                     .await
                     .change_context(ResetDbError::DeletePrincipals)?;
                 reset_db_result.deleted_principals = true;

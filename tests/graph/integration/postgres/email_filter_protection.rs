@@ -381,7 +381,7 @@ impl DatabaseApi<'_> {
         sorting: EntityQuerySorting<'static>,
     ) -> Vec<Entity> {
         Box::pin(self.query_entities(
-            self.account_id,
+            Some(self.account_id),
             hash_graph_store::entity::QueryEntitiesParams {
                 filter,
                 temporal_axes: standard_temporal_axes(),
@@ -3144,7 +3144,7 @@ async fn subgraph_traversal_masks_linked_user_email() {
     // Query subgraph starting from org, traversing to linked entities (the user)
     let response = api
         .query_entity_subgraph(
-            api.account_id,
+            Some(api.account_id),
             QueryEntitySubgraphParams::ResolveDepths {
                 graph_resolve_depths: GraphResolveDepths::default(),
                 traversal_paths: vec![EntityTraversalPath {

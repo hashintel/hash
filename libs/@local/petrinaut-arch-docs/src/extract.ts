@@ -17,7 +17,7 @@ import { error, type Diagnostic } from "./diagnostics";
 import { parseFrontmatter } from "./frontmatter";
 import { layerSchema, parentLayerId } from "./model";
 import { toPosix } from "./paths";
-import { sourceExtensions, sourceRootOf } from "./scope";
+import { sourceExtensionsFor, sourceRootOf } from "./scope";
 import { scanTags } from "./tags";
 
 import type { Layer, ArchitecturePackage } from "./model";
@@ -37,10 +37,25 @@ interface LayerAccumulator {
   lineCount: number;
 }
 
+/**
+ * One `@talksTo` occurrence, kept against its file so the graph stage can
+ * resolve the declaring file's layer and report errors with a location.
+ */
+export interface TalksToDeclaration {
+  /** Repo-relative source file carrying the annotation. */
+  file: string;
+  line: number;
+  /** Layer id on the receiving end of the protocol. */
+  target: string;
+  protocol: string;
+}
+
 export interface ExtractionResult {
   layers: Layer[];
   /** Repo-relative source file → layer id, for the graph stage. */
   fileLayers: Map<string, string>;
+  /** `@talksTo` declarations, resolved into edges by the graph stage. */
+  talksTo: TalksToDeclaration[];
   diagnostics: Diagnostic[];
 }
 
@@ -52,8 +67,6 @@ export interface ExtractOptions {
   /** Regex matched against repo-relative paths to skip files. */
   ignoredFilePattern: RegExp;
 }
-
-const sourceExtensionSet = new Set<string>(sourceExtensions);
 
 const extensionOf = (name: string): string => {
   const dot = name.lastIndexOf(".");
@@ -143,28 +156,17 @@ export const extract = async (
   const diagnostics: Diagnostic[] = [];
 
   const accumulators = new Map<string, LayerAccumulator>();
+  const talksTo: TalksToDeclaration[] = [];
   /** Folder → layer id it declares. */
   const scopes = new Map<string, string>();
   /** Layer id → the file that declared it, for duplicate reporting. */
   const declaredBy = new Map<string, string>();
 
   const packageEntries = new Map<string, WalkEntry[]>();
+  const isSourceEntry = (pkg: ArchitecturePackage, entry: WalkEntry): boolean =>
+    sourceExtensionsFor(pkg).includes(extensionOf(entry.name));
 
   for (const pkg of packages) {
-    // A package whose language has no extractor would otherwise contribute no
-    // files, no layers and no diagnostics — appearing in the model as covered
-    // while being entirely undescribed. That is the silent mis-bucketing this
-    // system exists to remove, so it is an error rather than a skip.
-    if (pkg.language !== "typescript") {
-      diagnostics.push(
-        error(
-          `${pkg.path}/package.json`,
-          `package \`${pkg.name}\` is configured as \`${pkg.language}\`, which has no extractor — it would be listed in the model with no layers. Remove it from architecture.config.ts until one exists.`,
-        ),
-      );
-      continue;
-    }
-
     const entries = await walkFiles(
       join(repoRoot, sourceRootOf(pkg)),
       repoRoot,
@@ -181,7 +183,7 @@ export const extract = async (
   for (const pkg of packages) {
     for (const entry of packageEntries.get(pkg.name) ?? []) {
       const isMarkdown = entry.name.toLowerCase().endsWith(".md");
-      const isSource = sourceExtensionSet.has(extensionOf(entry.name));
+      const isSource = isSourceEntry(pkg, entry);
 
       if (!isMarkdown && !isSource) {
         continue;
@@ -250,12 +252,24 @@ export const extract = async (
         continue;
       }
 
-      const { tags, diagnostics: tagDiagnostics } = scanTags(contents);
+      const { tags, diagnostics: tagDiagnostics } = scanTags(
+        contents,
+        pkg.language,
+      );
 
       for (const diagnostic of tagDiagnostics) {
         diagnostics.push(
           error(entry.path, diagnostic.message, diagnostic.line),
         );
+      }
+
+      for (const declaration of tags.talksTo) {
+        talksTo.push({
+          file: entry.path,
+          line: declaration.line,
+          target: declaration.target,
+          protocol: declaration.protocol,
+        });
       }
 
       if (tags.layerRoot) {
@@ -290,7 +304,7 @@ export const extract = async (
   for (const pkg of packages) {
     for (const entry of packageEntries.get(pkg.name) ?? []) {
       const isMarkdown = entry.name.toLowerCase().endsWith(".md");
-      const isSource = sourceExtensionSet.has(extensionOf(entry.name));
+      const isSource = isSourceEntry(pkg, entry);
 
       if (!isMarkdown && !isSource) {
         continue;
@@ -325,9 +339,8 @@ export const extract = async (
         continue;
       }
 
-      // Only line counts are read here: with no per-file tags left in the
-      // vocabulary, a file's contents say nothing about the architecture beyond
-      // which layer's folder it sits in.
+      // Only line counts are read here: pass 1 already collected every tag,
+      // so at this point a file's contents add nothing beyond its size.
       const contents = await readFile(entry.absolutePath, "utf8");
 
       accumulator.files.push(entry.path);
@@ -384,5 +397,5 @@ export const extract = async (
     })
     .sort((left, right) => left.id.localeCompare(right.id));
 
-  return { layers, fileLayers, diagnostics };
+  return { layers, fileLayers, talksTo, diagnostics };
 };

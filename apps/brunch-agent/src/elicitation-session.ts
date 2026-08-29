@@ -4,17 +4,27 @@ import {
   createFlueHistoryReader,
   createLocalCaptureStore,
   type ElicitationSession,
+  type FlueHistoryReaderOptions,
 } from "@hashintel/brunch-agent-binding-flue";
 
-import { GHERKIN_AGENT_ROUTE } from "./routes.ts";
+import { AGENT_ROUTES, type AgentTarget } from "./routes.ts";
 import { targetDocumentPath } from "./target-document-path.ts";
 
-const appTransport = (async (input: RequestInfo | URL, init?: RequestInit) => {
+const appTransport: FlueHistoryReaderOptions["transport"] = async (
+  input,
+  init,
+) => {
   const { default: app } = await import("./app.ts");
   return app.fetch(input instanceof Request ? input : new Request(input, init));
-}) as typeof fetch;
+};
 
-export const createGherkinElicitationSession = (
+/**
+ * One session factory per target agent. The history reader resolves
+ * conversations through the agent's own route, so each target gets a
+ * named creator rather than a shared one that guesses the route.
+ */
+const createElicitationSession = (
+  target: AgentTarget,
   sessionId: string,
   targetDocumentId: string,
 ): ElicitationSession => {
@@ -26,9 +36,21 @@ export const createGherkinElicitationSession = (
     captureStore,
     historyReader: createFlueHistoryReader({
       resolveConversationUrl: (id) =>
-        `http://brunch.local/agents/${GHERKIN_AGENT_ROUTE}/${id}`,
+        `http://brunch.local/agents/${AGENT_ROUTES[target]}/${id}`,
       transport: appTransport,
       archive: captureStore,
     }),
   };
 };
+
+export const createGherkinElicitationSession = (
+  sessionId: string,
+  targetDocumentId: string,
+): ElicitationSession =>
+  createElicitationSession("gherkin", sessionId, targetDocumentId);
+
+export const createSdcpnElicitationSession = (
+  sessionId: string,
+  targetDocumentId: string,
+): ElicitationSession =>
+  createElicitationSession("sdcpn", sessionId, targetDocumentId);

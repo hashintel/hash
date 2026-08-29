@@ -78,7 +78,7 @@ class OptimizationSession(PetrinautSession):
     def from_manifest_file(
         path: str | os.PathLike[str], **options: Any
     ) -> OptimizationSession:
-        """Serve a manifest JSON file, read by the CLI itself.
+        """Serve a manifest file, YAML or JSON, read by the CLI itself.
 
         The mirror of :meth:`PetrinautSession.from_model_file`.
         """

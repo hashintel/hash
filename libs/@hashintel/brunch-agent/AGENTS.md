@@ -10,6 +10,19 @@ guidance always wins where it conflicts with this file.
 - `packages/transport-*`: wire transports; none may depend on a binding.
 - `packages/plugin-*`: target plugins; each depends only on the harness.
 - `../../../apps/brunch-agent`: remote server, application composition, and local diagnostics.
+- `evaluations`: cases, protocols, and oracles; see `evaluations/AGENTS.md` before changing them.
+
+## Stack
+
+- Format TypeScript and JSON with HASH-root `oxfmt` (double quotes, 80 columns), not Biome or
+  Prettier. Brunch Markdown remains excluded.
+- `lint:eslint` runs Oxlint with multi-file import analysis, type-aware rules, and compiler
+  diagnostics. Package `.oxlintrc.json` files extend Brunch presets under
+  `.config/oxlint/brunch/`.
+- `lint:tsc` remains the independent `tsgo --noEmit` type-check gate.
+- `test:unit` runs Vitest through `vitest run`; architecture tests remain the topology, Flue
+  placement, and hermetic-runtime gates.
+- Vite 8 builds the libraries and application.
 
 The context root is not a package-manager root. Do not add a `package.json`, lockfile, nested
 workspace configuration, or standalone CI here. Run package tasks through HASH's root Yarn/Turbo
@@ -25,24 +38,19 @@ workspace.
 
 - Use Graphite (`gt`) for stack operations; do not use `gh stack` in HASH.
 - Issues live in Linear team `FE`, project `brunch-agent`.
-- Keep the human-owned issue contract separate from collapsed `🏗️ Agent notes`; see
-  `docs/agents/issue-writing.md`.
-- Maintain the glossary in `CONTEXT.md` and context decisions in `docs/adr/`; see
-  `docs/agents/domain.md`.
-- Keep `docs/INDEX.md` complete and follow `docs/agents/documentation.md`.
-- Before closing a Brunch work arc, run the context-local `arc-close` skill and its canonical
-  procedure in `docs/agents/arc-close.md`.
-- At design moments involving Flue, follow `docs/agents/flue-routing.md`.
+- Brunch Markdown is created and maintained by agents; exclude it from `oxfmt` and `markdownlint`.
 
-The complete protocol set is:
+Route by trigger; load only the applicable compact protocol:
 
-- `docs/agents/arc-close.md`
-- `docs/agents/documentation.md`
-- `docs/agents/domain.md`
-- `docs/agents/flue-routing.md`
-- `docs/agents/git-workflow.md`
-- `docs/agents/issue-tracker.md`
-- `docs/agents/issue-writing.md`
-- `docs/agents/legibility.md`
-- `docs/agents/posture.md`
-- `docs/agents/triage-labels.md`
+- Start or resume without a proof target, or when objectives, pressure, proof, authority, external
+  gates, frontier value, or arc-close findings change: `docs/agents/steering.md`.
+- Create, mutate, triage, or structure issues: `docs/agents/issue-tracker.md`,
+  `docs/agents/issue-writing.md`, and `docs/agents/triage-labels.md`.
+- Add, move, settle, or index documents: `docs/agents/documentation.md`.
+- Change domain terms or accepted context decisions: `docs/agents/domain.md`.
+- Make a Flue design choice: `docs/agents/flue-routing.md`.
+- Produce a significant agent-authored artifact or proof: `docs/agents/legibility.md`.
+- Make an architecture-sensitive move: `docs/agents/posture.md`.
+- Operate on branches, stacks, commits, or PRs: `docs/agents/git-workflow.md`.
+- Close a work arc: run the context-local `arc-close` skill and
+  `docs/agents/arc-close.md`.

@@ -58,7 +58,7 @@ impl<'heap> HirMap<'heap> {
     /// [`TypeId::PLACEHOLDER`] if no data has been assigned yet.
     #[inline]
     #[must_use]
-    pub fn type_id(&self, id: HirId) -> TypeId {
+    pub const fn type_id(&self, id: HirId) -> TypeId {
         self.types[id]
     }
 

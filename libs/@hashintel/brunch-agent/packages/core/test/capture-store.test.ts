@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "vitest";
 
 import {
+  ABSENCE_STATES,
   applyCaptureStoreCommand as applyCaptureStoreCommandWithArchive,
   createEmptyCaptureStoreSnapshot,
   deriveCaptureStatus,
@@ -213,15 +214,7 @@ describe("capture-store contract", () => {
   });
 
   test("harness-invariant: 9 — all six absence values remain first-class capture content", () => {
-    const absences = [
-      "unknown-to-user",
-      "not-yet-decided",
-      "not-applicable",
-      "explicitly-absent",
-      "declined",
-      "deferred",
-    ] as const;
-    const proposals: CaptureInputProposal[] = absences.map(
+    const proposals: CaptureInputProposal[] = ABSENCE_STATES.map(
       (absence, index) => ({
         evidence: [userEvidence(absence, index + 1)],
         epistemicStatus: "inferred",
@@ -236,7 +229,7 @@ describe("capture-store contract", () => {
     });
 
     expect(result.snapshot.captures.map((capture) => capture.content)).toEqual(
-      absences.map((absence) => ({ absence })),
+      ABSENCE_STATES.map((absence) => ({ absence })),
     );
     expect(
       result.snapshot.captures.every(
@@ -682,6 +675,7 @@ describe("capture-store contract", () => {
         reason,
         refused: true,
         code: "invalid-envelope",
+        // oxlint-disable-next-line typescript/no-unsafe-assignment -- Vitest asymmetric matchers are typed as any.
         message: expect.stringMatching(expectedMessage),
       });
     }
@@ -770,6 +764,7 @@ describe("capture-store contract", () => {
         reason,
         refused: true,
         code: "invalid-envelope",
+        // oxlint-disable-next-line typescript/no-unsafe-assignment -- Vitest asymmetric matchers are typed as any.
         message: expect.stringMatching(/open conflict.*share/i),
       });
     }
@@ -1157,7 +1152,10 @@ describe("capture-store contract", () => {
 
     // Bent from a snapshot the store itself produced, so the reversed range is
     // the only thing wrong with what the parser is handed.
-    type EvidenceBearing = { evidence: { pointer: Record<string, unknown> }[] };
+    type Mutable<Value> = { -readonly [Key in keyof Value]: Value[Key] };
+    type EvidenceBearing = {
+      evidence: Array<{ pointer: Mutable<EvidenceSpan["pointer"]> }>;
+    };
     const withReversedRange = (family: "captures" | "events"): unknown => {
       const clone = structuredClone(retracted) as unknown as Record<
         string,

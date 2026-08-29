@@ -1,0 +1,52 @@
+[package]
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+name              = "hash-middleware"
+publish.workspace = true
+version.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+error-stack = { workspace = true, public = true }
+type-system = { workspace = true, public = true }
+
+# Public third-party dependencies
+axum          = { workspace = true, public = true }
+axum-core     = { workspace = true, public = true }
+http          = { workspace = true, public = true, features = ["std"] }
+opentelemetry = { workspace = true, public = true, features = ["metrics"] }
+tower-layer   = { workspace = true, public = true }
+tower-service = { workspace = true, public = true }
+
+# Private third-party dependencies (optional)
+clap = { workspace = true, optional = true, features = ["derive"] }
+
+# Private third-party dependencies
+bytes                              = { workspace = true }
+derive_more                        = { workspace = true, features = ["display", "error"] }
+governor                           = { workspace = true }
+opentelemetry-semantic-conventions = { workspace = true, features = ["semconv_experimental"] }
+serde                              = { workspace = true, features = ["derive"] }
+serde_json                         = { workspace = true }
+simple-mermaid                     = { workspace = true }
+subtle                             = { workspace = true }
+tokio                              = { workspace = true, features = ["rt", "time"] }
+tower                              = { workspace = true }
+tracing                            = { workspace = true }
+tracing-opentelemetry              = { workspace = true }
+uuid                               = { workspace = true }
+
+[dev-dependencies]
+opentelemetry_sdk  = { workspace = true, features = ["metrics", "testing"] }
+tokio              = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
+tower              = { workspace = true, features = ["util"] }
+tracing-subscriber = { workspace = true, features = ["registry"] }
+uuid               = { workspace = true, features = ["v4"] }
+
+[features]
+clap       = ["dep:clap"]
+test-utils = []
+
+[lints]
+workspace = true

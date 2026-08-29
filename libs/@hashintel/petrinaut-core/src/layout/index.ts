@@ -1,6 +1,6 @@
 /**
  * @layerRoot core.layout
- * @role Computes node positions for a net, so auto-layout does not require the canvas
+ * @role Computes node positions, dimensions and canvas geometry for a net, so neither auto-layout nor viewport math requires the canvas
  */
 
 export {
@@ -8,4 +8,18 @@ export {
   type LayoutDimensions,
   type NodePosition,
 } from "./calculate-graph-layout";
-export { layoutNodeDimensions } from "./dimensions";
+export {
+  classicNodeDimensions,
+  compactNodeDimensions,
+  getComponentInstanceHeight,
+  layoutNodeDimensions,
+  type NodeDimensions,
+  type RenderNodeDimensions,
+} from "./dimensions";
+export {
+  getBoundsOfCenteredBoxes,
+  getMinZoomForBounds,
+  type Rect,
+  type Size,
+  ZOOM_PADDING,
+} from "./geometry";

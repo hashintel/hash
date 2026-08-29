@@ -38,7 +38,9 @@ use self::{
     error::{HashQlDiagnosticCategory, status_to_response},
     value::OwnedValue,
 };
-use crate::rest::{InteractiveHeader, JsonCompatHeader, json::Json, status::BoxedResponse};
+use crate::rest::{
+    AuthenticatedActorId, InteractiveHeader, JsonCompatHeader, json::Json, status::BoxedResponse,
+};
 
 /// Shared resources for HashQL query compilation and execution, created once at server startup.
 pub struct CompilerContext {
@@ -231,6 +233,7 @@ pub(crate) struct HashQlRequest {
     )
 )]
 pub(crate) async fn query_hashql(
+    AuthenticatedActorId(_actor_id): AuthenticatedActorId,
     Extension(compiler): Extension<Arc<CompilerContext>>,
     Extension(postgres): Extension<Arc<PostgresStorePool>>,
     Extension(temporal): Extension<Option<Arc<TemporalClient>>>,

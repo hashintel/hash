@@ -59,9 +59,8 @@ export default defineConfig({
   ignorePatterns: [
     // License files have intentional formatting that shouldn't be touched
     "**/LICENSE*.md",
-    // Imported Brunch context docs, including hash-pinned frozen data
-    // snapshots whose bytes must not be rewritten
-    "libs/@hashintel/brunch-agent/docs/**",
+    // Brunch Markdown is created and maintained by agents
+    "libs/@hashintel/brunch-agent/**/*.md",
     // While supported, it doesn't yet support the full breadth
     // of taplo configuration options that we have set
     // see: https://github.com/oxc-project/oxc/issues/18580

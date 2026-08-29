@@ -619,6 +619,11 @@ impl<'p> PropertyProtectionFilterConfig<'p> {
 
     /// Returns the default HASH configuration that protects email on User entities.
     ///
+    /// Every protected property must be a property that no entity type names as its label
+    /// property. Entity labels are materialized into the label cache by extracting the label
+    /// property's value from the stored properties object, and that derivation takes no actor,
+    /// so the label column of a masked entity still carries the protected value.
+    ///
     /// # Panics
     ///
     /// Panics if the hardcoded URLs are invalid (should never happen).
@@ -846,7 +851,9 @@ fn collect_from_path<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
             collect_from_json_path(json_path.as_ref(), config, excluded);
         }
         EntityQueryPath::EntityEdge { path, .. } => collect_from_path(path, config, excluded),
-        EntityQueryPath::Label { .. } | EntityQueryPath::FirstLabel => {
+        EntityQueryPath::Label { .. }
+        | EntityQueryPath::FirstLabel
+        | EntityQueryPath::FirstLabelProperty => {
             // TODO(BE-313): check if label_property is protected
         }
         EntityQueryPath::Embedding => {
@@ -859,6 +866,8 @@ fn collect_from_path<'f, 'p, I: Extend<&'f PropertyFilter<'p>>>(
         | EntityQueryPath::DecisionTime
         | EntityQueryPath::TransactionTime
         | EntityQueryPath::DirectTypeCount
+        | EntityQueryPath::ScalarProperties
+        | EntityQueryPath::PropertyCount
         | EntityQueryPath::EntityConfidence
         | EntityQueryPath::LeftEntityConfidence
         | EntityQueryPath::LeftEntityProvenance
@@ -1412,6 +1421,7 @@ mod tests {
     // =========================================================================
 
     mod transform {
+        use type_system::principal::actor::{ActorEntityUuid, UserId};
         use uuid::Uuid;
 
         use super::*;
@@ -1433,24 +1443,10 @@ mod tests {
             )
         }
 
-        /// Creates `Uuid != ActorId` filter (entity UUID is not the actor's UUID).
-        /// When `actor_id` is `None`, uses `Uuid::nil()`.
-        fn uuid_not_actor() -> Filter<'static, Entity> {
-            Filter::NotEqual(
-                FilterExpression::Path {
-                    path: EntityQueryPath::Uuid,
-                },
-                FilterExpression::Parameter {
-                    parameter: Parameter::Uuid(Uuid::nil()),
-                    convert: None,
-                },
-            )
-        }
-
-        /// Creates the full exclusion filter: `(type = User AND uuid != ActorId)`.
-        /// This matches the structure from `hash_default()`.
+        /// Creates the `hash_default()` exclusion filter as it transforms without an actor, which
+        /// drops the `uuid != ActorId` comparison.
         fn exclusion_filter() -> Filter<'static, Entity> {
-            all(vec![type_is_user(), uuid_not_actor()])
+            all(vec![type_is_user()])
         }
 
         /// Creates `NOT(type = User AND uuid != ActorId)` filter.
@@ -1639,6 +1635,37 @@ mod tests {
             ]);
 
             assert_eq!(do_transform(input), expected);
+        }
+
+        #[test]
+        fn actor_compares_against_its_own_uuid() {
+            let actor_uuid = Uuid::new_v4();
+            let actor_id = ActorId::User(UserId::new(ActorEntityUuid::new(actor_uuid)));
+
+            let transformed = transform_filter(
+                email_eq("test@example.com"),
+                &email_protection_config(),
+                0,
+                Some(actor_id),
+            );
+
+            let expected = all(vec![
+                email_eq("test@example.com"),
+                not(all(vec![
+                    type_is_user(),
+                    Filter::NotEqual(
+                        FilterExpression::Path {
+                            path: EntityQueryPath::Uuid,
+                        },
+                        FilterExpression::Parameter {
+                            parameter: Parameter::Uuid(actor_uuid),
+                            convert: None,
+                        },
+                    ),
+                ])),
+            ]);
+
+            assert_eq!(transformed, expected);
         }
     }
 }

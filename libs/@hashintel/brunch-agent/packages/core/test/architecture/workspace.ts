@@ -118,7 +118,7 @@ export interface SourceFile {
 const SOURCE_EXTENSIONS = /\.(ts|tsx|mts|mjs|js|jsx)$/;
 /** Never scanned: not authored here, or build output. */
 const SKIP_DIRECTORIES = ["node_modules", "dist", ".flue", ".git", ".turbo"];
-const TEST_DIRECTORIES = ["test", "tests", "__tests__"];
+const TEST_DIRECTORIES = new Set(["test", "tests", "__tests__"]);
 
 /** Every source file under a directory, recursively. A missing directory yields none. */
 export function filesIn(
@@ -163,7 +163,7 @@ function partitionedFiles(pkg: WorkspacePackage): {
   const test: SourceFile[] = [];
   for (const file of filesIn(pkg.path)) {
     const segments = relative(pkg.path, file.path).split(/[/\\]/);
-    (segments.some((segment) => TEST_DIRECTORIES.includes(segment))
+    (segments.some((segment) => TEST_DIRECTORIES.has(segment))
       ? test
       : source
     ).push(file);

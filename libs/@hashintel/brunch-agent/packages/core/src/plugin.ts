@@ -1,6 +1,7 @@
 import * as v from "valibot";
 
 import type { CaptureInputProposal } from "./capture-store";
+import type { PluginFile } from "./plugin-file";
 
 /**
  * The plugin descriptor — identity only, at this stage.
@@ -10,8 +11,13 @@ import type { CaptureInputProposal } from "./capture-store";
  * says the trivial target must not freeze the plugin contract before the hard
  * target has stressed it, so nothing in this scaffold ratifies the SDK export
  * surface. What the descriptor fixes now is only what the topology needs —
- * that a plugin declares which target-domain it defines, and does so through
+ * that a plugin declares which target formalism it defines, and does so through
  * Valibot like every other boundary in the system (spec §12.4).
+ *
+ * ADR-0006 adds the plugin file: a per-formalism sectioned Markdown document
+ * whose three tables parameterise the harness's fold, completion, and cue. A
+ * plugin that carries one is a kind-and-slot plugin and proposes slot
+ * assertions; the tracer plugin still has none.
  */
 export const PluginDescriptor = v.object({
   /** Package-level identity, matching the `plugin-*` role prefix (spec §12.2). */
@@ -19,8 +25,8 @@ export const PluginDescriptor = v.object({
     v.string(),
     v.regex(/^plugin-[a-z][a-z0-9-]*$/, "expected a `plugin-<name>` name"),
   ),
-  /** The artifact family this plugin elicits — gherkin scenarios, assurance arguments. */
-  targetDomain: v.pipe(v.string(), v.nonEmpty()),
+  /** The target formalism this plugin elicits toward — gherkin, sdcpn — never a domain. */
+  targetFormalism: v.pipe(v.string(), v.nonEmpty()),
 });
 
 export interface PluginProposalType {
@@ -32,6 +38,8 @@ export interface PluginProposalType {
 export type Plugin = v.InferOutput<typeof PluginDescriptor> & {
   /** FE-1392's declared floor; FE-1393 grows the catalog and SDK around it. */
   readonly proposalCatalog: readonly [PluginProposalType];
+  /** The parsed plugin file (ADR-0006); absent for a plugin without one. */
+  readonly file?: PluginFile;
 };
 
 /**
@@ -43,6 +51,7 @@ export type Plugin = v.InferOutput<typeof PluginDescriptor> & {
 export function definePlugin(descriptor: Plugin): Plugin {
   const identity = v.parse(PluginDescriptor, descriptor);
   const [proposal, ...extraProposals] = descriptor.proposalCatalog;
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- Public JavaScript callers still require the runtime cardinality guard.
   if (!proposal || extraProposals.length > 0) {
     throw new TypeError(
       "This slice requires exactly one declared proposal type.",
@@ -56,5 +65,6 @@ export function definePlugin(descriptor: Plugin): Plugin {
   return {
     ...identity,
     proposalCatalog: [{ ...proposal, name, description }],
+    ...(descriptor.file === undefined ? {} : { file: descriptor.file }),
   };
 }

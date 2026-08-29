@@ -7,6 +7,8 @@
  * are emitted by `emit-buffer-js.ts` (the simulator's only program shape —
  * packed-struct buffer access with compile-time-constant offsets/strides).
  */
+import { cloneUserKeyedRecord } from "../validation/record-keys";
+
 import type { RuntimeDistribution } from "../simulation/authoring/user-code/distribution";
 
 export type HirParameterValues = Record<string, number | boolean>;
@@ -154,6 +156,20 @@ export const hirDistributionRuntime = {
   }),
 };
 
+/**
+ * Rebinds parameter values onto a frozen, prototype-free copy before they
+ * become `__params` in a compiled program. Emitted parameter reads are
+ * `__params["<name>"]`; a name colliding with an `Object.prototype` member
+ * ("constructor", "valueOf", ...) must read its own value or `undefined`,
+ * never the inherited member. Parameter names come from imported files, so
+ * they are untrusted.
+ */
+function bindParameterValues(
+  parameterValues: HirParameterValues,
+): HirParameterValues {
+  return Object.freeze(cloneUserKeyedRecord(parameterValues));
+}
+
 function instantiate(
   source: string,
   parameterValues: HirParameterValues,
@@ -165,7 +181,7 @@ function instantiate(
     "__params",
     "__pool",
     `"use strict"; return (${source});`,
-  )(hirDistributionRuntime, parameterValues, stringPool);
+  )(hirDistributionRuntime, bindParameterValues(parameterValues), stringPool);
 }
 
 export function instantiateHirBufferDynamics(

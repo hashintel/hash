@@ -1,5 +1,6 @@
 use alloc::collections::BTreeSet;
 
+use proc_macro2::Ident;
 use unsynn::{ToTokens as _, TokenStream, TokenTree, quote};
 
 use super::grammar::{self, AttributeBody, IdAttribute};
@@ -11,9 +12,22 @@ pub(crate) enum DisplayAttribute {
     Format(TokenTree),
 }
 
+pub(crate) struct Spanned<T> {
+    pub value: T,
+    pub span: proc_macro::Span,
+}
+
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq)]
 pub(crate) enum Trait {
     Step,
+}
+
+/// Byte order selected by the `endian` attribute.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum Endianness {
+    Native,
+    Little,
+    Big,
 }
 
 pub(crate) struct Attributes {
@@ -21,6 +35,10 @@ pub(crate) struct Attributes {
     pub r#const: TokenStream,
     pub display: DisplayAttribute,
     pub traits: BTreeSet<Trait>,
+
+    pub endian: Option<Spanned<Endianness>>,
+    /// The `unaligned` keyword token; presence turns the mode on, kept for error spans.
+    pub unaligned: Option<proc_macro::Span>,
 
     pub extra: TokenStream,
 }
@@ -51,6 +69,25 @@ impl Attributes {
                     self.display = DisplayAttribute::Format(token_tree);
                 }
             },
+            IdAttribute::Endian {
+                _endian: endian,
+                _eq,
+                value,
+            } => {
+                self.endian = Some(Spanned {
+                    value: match value {
+                        grammar::EndianValue::Little(_) => Endianness::Little,
+                        grammar::EndianValue::Big(_) => Endianness::Big,
+                        grammar::EndianValue::Native(_) => Endianness::Native,
+                    },
+                    span: AsRef::<Ident>::as_ref(&endian).span().unwrap(),
+                });
+            }
+            IdAttribute::Unaligned {
+                _unaligned: unaligned,
+            } => {
+                self.unaligned = Some(AsRef::<Ident>::as_ref(&unaligned).span().unwrap());
+            }
         }
     }
 
@@ -60,6 +97,8 @@ impl Attributes {
             r#const: TokenStream::new(),
             display: DisplayAttribute::Auto,
             traits: BTreeSet::new(),
+            endian: None,
+            unaligned: None,
             extra: TokenStream::new(),
         };
 

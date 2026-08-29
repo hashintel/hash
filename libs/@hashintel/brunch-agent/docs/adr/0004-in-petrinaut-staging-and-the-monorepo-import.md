@@ -4,8 +4,10 @@ Date: 2026-08-18
 Status: accepted
 Amended: 2026-08-20 by FE-1437 (package family and imported application charter);
 2026-08-21 by FE-1437 (Brunch context root)
+Extended: 2026-08-24 by [ADR-0005](0005-model-assisted-sdcpn-realization.md) (artifact contract;
+no topology change)
 Supersedes: the demo-shell recommendation in
-[recommendation-demo-vehicle](../planning/process-model-elicitation/recommendation-demo-vehicle.md)
+[recommendation-demo-vehicle](../archive/decisions/superseded/recommendation-demo-vehicle.md)
 (FE-1362's resolution); amends ADR-0002's rule N3
 Decided on: the 2026-08-18 integration meeting (Dei, Chris, Lu); recorded on FE-1433
 
@@ -60,9 +62,11 @@ imported with git history into the `hashintel/hash` monorepo as a native workspa
    or competing toolchain. `apps/brunch-agent` remains at HASH's application root and points back
    to this context authority.
 
-The artifact boundary (versioned net file + scenario through `parseSDCPNFile`) remains the
-inter-library contract and the "it's just a file" demo beat; what this ADR changes is where the
-elicitor is staged, not what it emits.
+The artifact boundary remains file-based through `parseSDCPNFile`, and the "it's just a file" demo
+beat remains. ADR-0005 refines the production path without changing this topology: the projection
+plugin gives the application a versioned scaffold plus scenario, code obligations, and loss report;
+the application realizes the obligations through Petrinaut's client tools before accepting the
+final executable file.
 
 ## Consequences
 
@@ -70,7 +74,7 @@ elicitor is staged, not what it emits.
   this ADR; FE-1331 (start elicitation from create-new-net) is un-deferred — in-Petrinaut
   initiation is now the September topology, not the post-September one.
 - The integration build was specified on FE-1433
-  ([petrinaut-integration-spec](../planning/process-model-elicitation/petrinaut-integration-spec.md)),
+  ([petrinaut-integration-spec](../specs/petrinaut-integration.md)),
   and both gating spikes reported: Flue turn suspension carries client-tool round-trips, and the
   Pi-to-AI-SDK stream adapter drives Petrinaut's panel.
 - The review stack and spikes have landed. FE-1437 records the final standalone SHA and imports

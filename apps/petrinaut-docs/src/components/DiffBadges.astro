@@ -1,0 +1,38 @@
+---
+/**
+ * On a diff build, two linked chips in the header say what is being compared:
+ * the deployed PR (or branch) and the base it is diffed against, each with the
+ * commit built. The arrow reads in the merge direction. Hidden entirely on a
+ * plain build, and on viewports too narrow to carry them.
+ *
+ * The context is injected by `astro.config.mjs` as a compile-time constant;
+ * see `src/diff-context.ts`.
+ */
+
+import type { DiffCompareContext } from "../diff-context";
+
+declare const __PND_DIFF_COMPARE__: DiffCompareContext | null | undefined;
+
+const context: DiffCompareContext | null =
+  typeof __PND_DIFF_COMPARE__ === "undefined"
+    ? null
+    : (__PND_DIFF_COMPARE__ ?? null);
+---
+
+{
+  context !== null && (
+    <span class="pnd-diff-compare">
+      <a class="pnd-diff-chip" href={context.head.href} title={context.head.title}>
+        <span class="pnd-diff-chip-name">{context.head.label}</span>
+        {context.head.sha !== null && <code>{context.head.sha}</code>}
+      </a>
+      <span class="pnd-diff-compare-arrow" aria-hidden="true">
+        →
+      </span>
+      <a class="pnd-diff-chip" href={context.base.href} title={context.base.title}>
+        <span class="pnd-diff-chip-name">{context.base.label}</span>
+        {context.base.sha !== null && <code>{context.base.sha}</code>}
+      </a>
+    </span>
+  )
+}

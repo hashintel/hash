@@ -33,9 +33,11 @@ import {
   layerSlug,
   type GeneratedPage,
 } from "./emit/mdx";
+import { readShippedComponents } from "./emit/shipped-components";
 import { extract } from "./extract";
 import { buildGraph } from "./graph";
 import {
+  ARCHITECTURE_MODEL_VERSION,
   architectureModelSchema,
   packageSchema,
   type ArchitectureModel,
@@ -50,7 +52,7 @@ export interface BuiltBundle {
   authored: AuthoredPage[];
   /** Diagram name → D2 source. */
   diagramSources: Map<string, string>;
-  /** Importable diagram components shipped with the bundle. */
+  /** Bundle components: authored diagram components plus the shipped cards. */
   components: AuthoredComponent[];
   singleFile: string;
   diagnostics: Diagnostic[];
@@ -96,7 +98,7 @@ export const buildBundle = async (options: {
 
   const graph = await buildGraph({
     repoRoot,
-    packages: packages.filter((pkg) => pkg.language === "typescript"),
+    packages,
     tsconfigPath: join(
       repoRoot,
       "libs/@local/petrinaut-arch-docs/dependency-cruiser.tsconfig.json",
@@ -105,12 +107,13 @@ export const buildBundle = async (options: {
     ignoredFilePattern: settings.ignoredFilePattern,
     fileLayers: extraction.fileLayers,
     layers: extraction.layers,
+    talksTo: extraction.talksTo,
   });
 
   diagnostics.push(...graph.diagnostics);
 
   const model: ArchitectureModel = {
-    version: 1,
+    version: ARCHITECTURE_MODEL_VERSION,
     packages,
     layers: extraction.layers,
     edges: graph.edges,
@@ -252,6 +255,24 @@ export const buildBundle = async (options: {
     ]);
   }
 
+  // Both component sets land in the bundle's `components/`, so an authored
+  // component whose file name matches a shipped one would overwrite a module
+  // every generated layer page imports.
+  const shippedComponents = await readShippedComponents();
+  const shippedPaths = new Set(
+    shippedComponents.map((component) => component.path),
+  );
+  for (const component of authoredResult.components) {
+    if (shippedPaths.has(component.path)) {
+      diagnostics.push(
+        error(
+          `${settings.contentDirectory}/${component.path}`,
+          `component \`${component.name}\` collides with a component the generator ships`,
+        ),
+      );
+    }
+  }
+
   const componentNames = new Set(
     authoredResult.components.map((component) => component.name),
   );
@@ -347,7 +368,7 @@ export const buildBundle = async (options: {
     authored,
     diagramSources,
     singleFile: buildSingleFileArchitecture(model),
-    components: authoredResult.components,
+    components: [...authoredResult.components, ...shippedComponents],
     diagnostics,
   };
 };

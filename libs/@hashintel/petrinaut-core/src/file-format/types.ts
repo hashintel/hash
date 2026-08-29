@@ -164,11 +164,13 @@ const fileMetaSchema = z.object({
 
 /**
  * Schema for the versioned SDCPN file format (v1+).
- * Includes format metadata (version, meta.generator) alongside the SDCPN data.
+ * Includes format metadata (version, meta.generator) alongside the SDCPN
+ * data. Exports always write `meta`, but import accepts a file without it so
+ * a hand-written file can declare `version` without generator boilerplate.
  */
 export const sdcpnFileSchema = sdcpnSchema.extend({
   version: z.number().int().min(1).max(SDCPN_FILE_FORMAT_VERSION),
-  meta: fileMetaSchema,
+  meta: fileMetaSchema.optional(),
   title: z.string(),
 });
 

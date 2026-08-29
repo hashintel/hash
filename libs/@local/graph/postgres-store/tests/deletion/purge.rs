@@ -18,14 +18,17 @@ use type_system::{
             PropertyWithMetadata,
         },
     },
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorId},
+        actor_group::WebId,
+    },
 };
 use uuid::Uuid;
 
 use crate::{
     DatabaseTestWrapper, alice, bob, count_entities, create_link, create_person,
     create_second_user, get_created_by_id, get_deletion_provenance, person_type_id, provenance,
-    raw_count, raw_entity_ids_exists, seed,
+    provenance_jsonb_has_deletion_keys, raw_count, raw_entity_ids_exists, seed,
 };
 
 /// Helper: purge with default settings (`include_drafts=false`, Ignore link behavior).
@@ -83,7 +86,7 @@ async fn published_entity() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -177,7 +180,7 @@ async fn published_entity_with_history() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -227,7 +230,7 @@ async fn no_match_is_noop() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(nonexistent_id),
                 include_drafts: false,
@@ -270,7 +273,7 @@ async fn include_drafts_irrelevant_for_published() {
     let summary_a = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -287,7 +290,7 @@ async fn include_drafts_irrelevant_for_published() {
     let summary_b = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: true,
@@ -314,10 +317,10 @@ async fn include_drafts_irrelevant_for_published() {
 
 /// `Purge` with [`LinkDeletionBehavior::Error`] succeeds when no incoming links exist.
 ///
-/// All other purge tests use `Ignore` link behavior, skipping `count_incoming_links` entirely.
-/// This test exercises the `Error` path: `count_incoming_links` runs, finds 0 incoming edges from
-/// sources outside the batch, and deletion proceeds normally. Confirms the happy path through the
-/// link check doesn't spuriously block deletion.
+/// All other purge tests use `Ignore` link behavior, skipping `count_incoming_link_edges` entirely.
+/// This test exercises the `Error` path: `count_incoming_link_edges` runs, finds 0 incoming
+/// edges from sources outside the batch, and deletion proceeds normally. Confirms the happy
+/// path through the link check doesn't spuriously block deletion.
 #[tokio::test]
 async fn purge_error_succeeds_without_incoming_links() {
     let mut database = DatabaseTestWrapper::new().await;
@@ -329,7 +332,7 @@ async fn purge_error_succeeds_without_incoming_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,
@@ -357,10 +360,9 @@ async fn purge_error_succeeds_without_incoming_links() {
 
 /// Verifies the tombstone carries correct deletion provenance.
 ///
-/// After purge, the `entity_ids` row persists with `provenance->'deletion'` containing
-/// `deletedById` (matching the acting actor), `deletedAtTransactionTime`, and
-/// `deletedAtDecisionTime`. The provenance is merged into the existing JSONB via
-/// `update_entity_ids_provenance` using PostgreSQL's `||` operator. Verified via raw SQL.
+/// After purge, the `entity_ids` row persists with the `deleted_by_id` (matching the acting
+/// actor), `deleted_at_transaction_time`, and `deleted_at_decision_time` columns set, written
+/// by `update_entity_ids_provenance`. Verified via raw SQL.
 #[tokio::test]
 async fn tombstone_has_deletion_provenance() {
     let mut database = DatabaseTestWrapper::new().await;
@@ -372,7 +374,7 @@ async fn tombstone_has_deletion_provenance() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -393,7 +395,10 @@ async fn tombstone_has_deletion_provenance() {
         .await
         .expect("deletion provenance should exist");
 
-    assert_eq!(deletion.deleted_by_id, api.account_id);
+    assert_eq!(
+        deletion.deleted_by_id,
+        ActorEntityUuid::from(api.account_id)
+    );
 }
 
 /// Verifies all satellite tables are cleaned after purge.
@@ -415,7 +420,7 @@ async fn satellite_tables_cleaned() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -470,7 +475,7 @@ async fn double_deletion_is_noop() {
     let summary1 = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -492,7 +497,7 @@ async fn double_deletion_is_noop() {
     let summary2 = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -538,7 +543,7 @@ async fn multiple_entities_in_batch() {
 
     let summary = api
         .store
-        .delete_entities(api.account_id.into(), purge_params(filter))
+        .delete_entities(api.account_id, purge_params(filter))
         .await
         .expect("could not delete entities");
 
@@ -575,7 +580,7 @@ async fn other_entity_unaffected() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             purge_params(Filter::for_entity_by_entity_id(id_a)),
         )
         .await
@@ -633,7 +638,7 @@ async fn batch_with_mixed_entity_states() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter,
                 include_drafts: true,
@@ -682,7 +687,7 @@ async fn cross_web_batch() {
     let entity_a = create_person(&mut api, alice(), false).await;
     let id_a = entity_a.metadata.record_id.entity_id;
 
-    let second_user: ActorEntityUuid = create_second_user(&mut api).await.into();
+    let second_user: ActorId = create_second_user(&mut api).await.into();
     let entity_b = api
         .store
         .create_entity(
@@ -718,7 +723,7 @@ async fn cross_web_batch() {
 
     let summary = api
         .store
-        .delete_entities(api.account_id.into(), purge_params(filter))
+        .delete_entities(api.account_id, purge_params(filter))
         .await
         .expect("could not delete cross-web batch");
 
@@ -779,7 +784,7 @@ async fn query_after_purge_returns_empty() {
 
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -794,9 +799,8 @@ async fn query_after_purge_returns_empty() {
 /// Verifies provenance records the deleting actor, not the creating actor.
 ///
 /// Actor A creates the entity, Actor B deletes it. `update_entity_ids_provenance` receives the
-/// `actor_id` from the `delete_entities` caller and stores it as `deleted_by_id` in
-/// [`EntityDeletionProvenance`]. The tombstone's `provenance->'deletion'->'deletedById'` must be
-/// Actor B's ID, not A's.
+/// `actor_id` from the `delete_entities` caller and stores it in the `deleted_by_id` column.
+/// The tombstone's `deleted_by_id` must be Actor B's ID, not A's.
 #[tokio::test]
 async fn different_actor_deleting() {
     let mut database = DatabaseTestWrapper::new().await;
@@ -807,11 +811,11 @@ async fn different_actor_deleting() {
     let entity_id = entity.metadata.record_id.entity_id;
 
     // Delete as actor B
-    let actor_b: ActorEntityUuid = create_second_user(&mut api).await.into();
+    let actor_b: ActorId = create_second_user(&mut api).await.into();
     let summary = api
         .store
         .delete_entities(
-            actor_b.into(),
+            actor_b,
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -830,8 +834,11 @@ async fn different_actor_deleting() {
         .await
         .expect("deletion provenance should exist");
 
-    assert_eq!(deletion.deleted_by_id, actor_b);
-    assert_ne!(deletion.deleted_by_id, api.account_id);
+    assert_eq!(deletion.deleted_by_id, ActorEntityUuid::from(actor_b));
+    assert_ne!(
+        deletion.deleted_by_id,
+        ActorEntityUuid::from(api.account_id)
+    );
 }
 
 /// Purges an entity that has embeddings in `entity_embeddings`.
@@ -877,7 +884,7 @@ async fn entity_with_embeddings() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -922,7 +929,7 @@ async fn large_batch() {
 
     let summary = api
         .store
-        .delete_entities(api.account_id.into(), purge_params(filter))
+        .delete_entities(api.account_id, purge_params(filter))
         .await
         .expect("could not delete large batch");
 
@@ -965,7 +972,7 @@ async fn filter_by_entity_type() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_type_id(&person_type),
                 include_drafts: false,
@@ -1031,7 +1038,7 @@ async fn archived_entity() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -1050,12 +1057,13 @@ async fn archived_entity() {
     assert!(raw_entity_ids_exists(&api, entity_id.web_id, entity_id.entity_uuid).await);
 }
 
-/// Verifies the soft-delete's provenance merge only adds deletion keys.
+/// Verifies the tombstone stamp touches only the deletion columns.
 ///
-/// The deletion is written as a JSONB `||` merge into `entity_ids.provenance`, which must leave
-/// the creator column and any other JSONB-resident keys untouched.
+/// The deletion is written into the three `deleted_*` columns. The creator column stays
+/// untouched, and the provenance JSONB gains no keys: each datum is stored exactly once since
+/// V58, so a deletion key surfacing in the JSONB means the retired write path is back.
 #[tokio::test]
-async fn provenance_merge_only_adds_deletion_keys() {
+async fn provenance_touches_only_deletion_columns() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
@@ -1064,7 +1072,7 @@ async fn provenance_merge_only_adds_deletion_keys() {
 
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -1074,14 +1082,20 @@ async fn provenance_merge_only_adds_deletion_keys() {
     let created_by_id = get_created_by_id(&api, entity_id.web_id, entity_id.entity_uuid)
         .await
         .expect("entity_ids row should exist");
-    assert_eq!(created_by_id, api.account_id);
+    assert_eq!(created_by_id, ActorEntityUuid::from(api.account_id));
 
-    // Deletion provenance must be added to the JSONB.
+    // Deletion provenance must be present in the columns.
     assert!(
         get_deletion_provenance(&api, entity_id.web_id, entity_id.entity_uuid)
             .await
             .is_some(),
         "deletion provenance must be present"
+    );
+
+    // And the JSONB must not have gained any deletion keys.
+    assert!(
+        !provenance_jsonb_has_deletion_keys(&api, entity_id.web_id, entity_id.entity_uuid).await,
+        "the provenance JSONB must not carry deletion keys"
     );
 }
 
@@ -1102,7 +1116,7 @@ async fn erase_after_purge_is_noop() {
 
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             purge_params(Filter::for_entity_by_entity_id(entity_id)),
         )
         .await
@@ -1111,7 +1125,7 @@ async fn erase_after_purge_is_noop() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(entity_id),
                 include_drafts: false,

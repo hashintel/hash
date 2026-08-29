@@ -6,18 +6,13 @@ import {
   type AiCommandActionName,
 } from "@hashintel/petrinaut-core";
 
+import type { AiToolOutput } from "../tool-summaries";
 import type {
   InteractiveToolDefinition,
   InteractiveToolWidgetProps,
 } from "./types";
 
 type ApplyAutoLayoutInput = AiCommandActionInput<"applyAutoLayout">;
-export type ApplyAutoLayoutDecision =
-  | { readonly action: "apply" }
-  | { readonly action: "decline" };
-export type ApplyAutoLayoutResult =
-  | { readonly applied: true; readonly title: string }
-  | { readonly applied: false; readonly reason: string };
 
 const widgetStyle = css({
   display: "flex",
@@ -44,16 +39,12 @@ const ApplyAutoLayoutWidget = ({
   state,
   submit,
   submittedOutput,
-}: InteractiveToolWidgetProps<
-  ApplyAutoLayoutInput,
-  ApplyAutoLayoutDecision,
-  ApplyAutoLayoutResult
->) => {
+}: InteractiveToolWidgetProps<ApplyAutoLayoutInput, AiToolOutput>) => {
   if (state === "submitted") {
     const verdict =
-      submittedOutput?.applied === true
+      submittedOutput.applied === true
         ? submittedOutput.title
-        : ((submittedOutput as { reason?: string } | undefined)?.reason ??
+        : ((submittedOutput as { reason?: string }).reason ??
           "Auto-layout declined.");
     return (
       <div className={widgetStyle}>
@@ -73,7 +64,12 @@ const ApplyAutoLayoutWidget = ({
           size="sm"
           variant="solid"
           tone="brand"
-          onClick={() => submit({ action: "apply" })}
+          onClick={() =>
+            submit({
+              applied: true,
+              title: "Auto-layout requested",
+            })
+          }
         >
           Yes, auto-layout
         </Button>
@@ -81,7 +77,9 @@ const ApplyAutoLayoutWidget = ({
           size="sm"
           variant="subtle"
           tone="neutral"
-          onClick={() => submit({ action: "decline" })}
+          onClick={() =>
+            submit({ applied: false, reason: "User declined auto-layout." })
+          }
         >
           No, keep current layout
         </Button>
@@ -97,9 +95,7 @@ const ApplyAutoLayoutWidget = ({
  */
 export const applyAutoLayoutInteractiveTool: InteractiveToolDefinition<
   ApplyAutoLayoutInput,
-  ApplyAutoLayoutDecision,
-  ApplyAutoLayoutResult,
-  "applyAutoLayout"
+  AiToolOutput
 > = {
   toolName: "applyAutoLayout" satisfies AiCommandActionName,
   shouldHandle: (raw): boolean => {
@@ -108,27 +104,6 @@ export const applyAutoLayoutInteractiveTool: InteractiveToolDefinition<
   },
   parseInput: (raw): ApplyAutoLayoutInput =>
     aiCommandActionInputSchemas.applyAutoLayout.parse(raw),
-  parseOutput: (raw): ApplyAutoLayoutResult => {
-    if (typeof raw !== "object" || raw === null) {
-      throw new TypeError("Expected an auto-layout result object.");
-    }
-    if (
-      "applied" in raw &&
-      raw.applied === true &&
-      "title" in raw &&
-      typeof raw.title === "string"
-    ) {
-      return { applied: true, title: raw.title };
-    }
-    if (
-      "applied" in raw &&
-      raw.applied === false &&
-      "reason" in raw &&
-      typeof raw.reason === "string"
-    ) {
-      return { applied: false, reason: raw.reason };
-    }
-    throw new TypeError("Expected a completed auto-layout result.");
-  },
+  parseOutput: (raw): AiToolOutput => raw as AiToolOutput,
   Widget: ApplyAutoLayoutWidget,
 };

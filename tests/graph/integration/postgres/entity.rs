@@ -1,9 +1,10 @@
 use std::collections::HashSet;
 
+use hash_graph_authorization::policies::{Effect, action::ActionName};
 use hash_graph_store::{
     entity::{
-        CreateEntityParams, EntityQuerySorting, EntityStore as _, PatchEntityParams,
-        QueryEntitiesParams, SummarizeEntitiesParams,
+        CreateEntityParams, CreateEntityPolicyParams, EntityQuerySorting, EntityStore as _,
+        PatchEntityParams, QueryEntitiesParams, SummarizeEntitiesParams,
     },
     filter::Filter,
     subgraph::temporal_axes::{
@@ -93,7 +94,7 @@ async fn insert() {
         .expect("could not create entity");
 
     let entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
             temporal_axes: QueryTemporalAxesUnresolved::all(),
@@ -167,7 +168,7 @@ async fn query() {
         .expect("could not create entity");
 
     let queried_organizations = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(entity.metadata.record_id.entity_id),
             temporal_axes: QueryTemporalAxesUnresolved::all(),
@@ -188,6 +189,136 @@ async fn query() {
 
     assert_eq!(queried_organizations.len(), 1);
     assert_eq!(queried_organizations[0].properties, organization);
+}
+
+#[tokio::test]
+#[expect(clippy::too_many_lines)]
+async fn public_actor_reads_only_publicly_permitted_entities() {
+    let organization: PropertyObject =
+        serde_json::from_str(entity::ORGANIZATION_V1).expect("could not parse entity");
+
+    let mut database = DatabaseTestWrapper::new().await;
+    let mut api = database
+        .seed(
+            [data_type::VALUE_V1, data_type::TEXT_V1],
+            [property_type::NAME_V1],
+            [entity_type::ORGANIZATION_V1],
+        )
+        .await
+        .expect("could not seed database");
+
+    let account_id = api.account_id;
+    let create_params = |policies| CreateEntityParams {
+        web_id: WebId::new(account_id),
+        entity_uuid: None,
+        decision_time: None,
+        entity_type_ids: HashSet::from([VersionedUrl {
+            base_url: BaseUrl::new(
+                "https://blockprotocol.org/@alice/types/entity-type/organization/".to_owned(),
+            )
+            .expect("couldn't construct Base URL"),
+            version: OntologyTypeVersion {
+                major: 1,
+                pre_release: None,
+            },
+        }]),
+        properties: PropertyObjectWithMetadata::from_parts(organization.clone(), None)
+            .expect("could not create property with metadata object"),
+        confidence: None,
+        link_data: None,
+        draft: false,
+        policies,
+        provenance: ProvidedEntityEditionProvenance {
+            actor_type: ActorType::User,
+            origin: OriginProvenance::from_empty_type(OriginType::Api),
+            sources: Vec::new(),
+        },
+        read_only: false,
+    };
+
+    let public = api
+        .create_entity(
+            api.account_id,
+            create_params(vec![CreateEntityPolicyParams {
+                name: "entity-test-public-view".to_owned(),
+                effect: Effect::Permit,
+                principal: None,
+                actions: vec![ActionName::ViewEntity],
+            }]),
+        )
+        .await
+        .expect("could not create the publicly viewable entity")
+        .metadata
+        .record_id
+        .entity_id;
+    let private = api
+        .create_entity(api.account_id, create_params(Vec::new()))
+        .await
+        .expect("could not create the private entity")
+        .metadata
+        .record_id
+        .entity_id;
+
+    let query_as_public = |entity_id| QueryEntitiesParams {
+        filter: Filter::for_entity_by_entity_id(entity_id),
+        temporal_axes: QueryTemporalAxesUnresolved::all(),
+        sorting: EntityQuerySorting {
+            paths: Vec::new(),
+            cursor: None,
+        },
+        limit: 1000,
+        conversions: Vec::new(),
+        include_entity_types: None,
+        include_drafts: false,
+        include_permissions: false,
+    };
+
+    let visible = Box::pin(api.query_entities(None, query_as_public(public)))
+        .await
+        .expect("the public read should succeed")
+        .entities;
+    assert_eq!(
+        visible.len(),
+        1,
+        "a policy without a principal constraint should permit the public actor"
+    );
+
+    let hidden = Box::pin(api.query_entities(None, query_as_public(private)))
+        .await
+        .expect("the public read should succeed")
+        .entities;
+    assert!(
+        hidden.is_empty(),
+        "the public actor should not see entities no policy permits it to view"
+    );
+
+    // The subgraph read runs traversal and the permission pass on top of the flat query, so it
+    // exercises the public actor through those paths as well.
+    let mut subgraph_params = query_as_public(public);
+    subgraph_params.include_permissions = true;
+    let subgraph = Box::pin(api.query_entity_subgraph(
+        None,
+        hash_graph_store::entity::QueryEntitySubgraphParams::Paths {
+            traversal_paths: Vec::new(),
+            request: subgraph_params,
+        },
+    ))
+    .await
+    .expect("the public subgraph read should succeed");
+    assert_eq!(
+        subgraph.subgraph.roots.len(),
+        1,
+        "the public actor should see the permitted entity in the subgraph"
+    );
+    let entity_permissions = subgraph
+        .entity_permissions
+        .expect("the response should carry the requested permissions");
+    assert!(
+        entity_permissions
+            .values()
+            .all(|permissions| permissions.update.is_empty()),
+        "the public actor should hold no update permission, got {entity_permissions:?}"
+    );
 }
 
 #[tokio::test]
@@ -292,7 +423,7 @@ async fn update() {
     assert_eq!(num_entities, 2);
 
     let entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
             temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -319,7 +450,7 @@ async fn update() {
         *v1_entity.metadata.temporal_versioning.decision_time.start();
 
     let mut response_v1 = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(v1_entity.metadata.record_id.entity_id),
             temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
@@ -349,7 +480,7 @@ async fn update() {
     let ClosedTemporalBound::Inclusive(entity_v2_timestamp) =
         *v2_entity.metadata.temporal_versioning.decision_time.start();
     let mut response_v2 = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(v2_entity.metadata.record_id.entity_id),
             temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {

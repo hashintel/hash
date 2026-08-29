@@ -1,6 +1,8 @@
 import * as Babel from "@babel/standalone";
 import { createElement, type ReactElement } from "react";
 
+import { runSandboxed, SHADOWED_GLOBALS } from "@hashintel/petrinaut-core";
+
 type VisualizerProps = {
   tokens: Record<string, number | boolean | bigint | string>[];
   parameters: Record<string, number | boolean>;
@@ -59,9 +61,14 @@ export function compileVisualizer(code: string): VisualizerComponent {
       }
     `;
 
-    // Create an executable module-like environment
+    // Create an executable module-like environment with the same hardening
+    // as the scenario compiler: strict mode, browser/environment globals
+    // shadowed to `undefined` for the module body AND (through closure
+    // scope) the component body at render time.
     // The transformed JSX will use React.createElement (classic runtime)
     const executableCode = `
+      "use strict";
+      var ${SHADOWED_GLOBALS};
       ${mockConstructor}
       let __default_export__;
       ${transformedCode.replace(/export\s+default\s+/, "__default_export__ = ")}
@@ -70,10 +77,17 @@ export function compileVisualizer(code: string): VisualizerComponent {
 
     // Use Function constructor to create and execute the module
     // We need to provide React in scope for React.createElement calls
-    // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval, @typescript-eslint/no-unsafe-call
-    const compiledComponent = new Function("React", executableCode)(
-      // Provide a minimal React object with createElement
-      { createElement },
+    // eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
+    const moduleFn = new Function("React", executableCode) as (
+      react: unknown,
+    ) => unknown;
+    // Module-level code runs here; `runSandboxed` masks the
+    // `.constructor`-chain escape route for the duration of the call.
+    const compiledComponent = runSandboxed(() =>
+      moduleFn(
+        // Provide a minimal React object with createElement
+        { createElement },
+      ),
     ) as VisualizerComponent;
 
     if (typeof compiledComponent !== "function") {
@@ -82,7 +96,11 @@ export function compileVisualizer(code: string): VisualizerComponent {
       );
     }
 
-    return compiledComponent;
+    // The component body executes at render, outside the compile call, so
+    // apply the same masking around each render. Like the scenario sandbox,
+    // this is hardening rather than isolation (see `runSandboxed`).
+    return (props: VisualizerProps) =>
+      runSandboxed(() => compiledComponent(props));
   } catch (error) {
     // Provide a detailed error message for debugging
     const errorMessage =

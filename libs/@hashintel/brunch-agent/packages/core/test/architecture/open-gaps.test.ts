@@ -14,7 +14,7 @@ import { OPEN_GAPS } from "./open-gaps";
 // than filed somewhere they would have to think to look. Silent when the ledger
 // is empty, because that is the goal state and not a warning.
 if (OPEN_GAPS.length > 0) {
-  console.warn(
+  process.stderr.write(
     [
       "",
       `⚠ ${OPEN_GAPS.length} verification gaps are open (spec §14.5 and friends):`,

@@ -28,8 +28,19 @@ const layer = (id: string, name = id): Layer => ({
 const edge = (from: string, to: string, count = 1): Edge => ({
   from,
   to,
+  provenance: "imports",
   fileDependencies: count,
   examples: [],
+  crossesPackage: false,
+});
+
+const declaredEdge = (from: string, to: string, protocol: string): Edge => ({
+  from,
+  to,
+  provenance: "declared",
+  protocol,
+  declaredIn: `src/${from}/boundary.ts`,
+  line: 1,
   crossesPackage: false,
 });
 
@@ -81,6 +92,19 @@ describe("buildNeighbourhoodDiagram", () => {
     const diagram = build("core.a", layers, [edge("core", "core.b")]);
 
     expect(diagram).toContain("no dependencies either way");
+  });
+
+  it("draws a declared edge dashed, labelled with its protocol", () => {
+    const diagram = build("core.a", layers, [
+      declaredEdge("core.a", "core.b", "JSON lines over stdio"),
+    ]);
+
+    expect(diagram).toContain(
+      'core_a -> core_b: "JSON lines over stdio" {class: declared',
+    );
+    // The declared neighbour gets a node even though no import reaches it.
+    expect(diagram).toContain("core_b: {class: core");
+    expect(diagram).not.toContain("no dependencies either way");
   });
 
   describe("when a layer has more neighbours than fit", () => {

@@ -10,6 +10,13 @@ use core::{
     slice,
 };
 
+#[cfg(feature = "rayon")]
+use rayon::iter::{
+    FromParallelIterator, IndexedParallelIterator, IntoParallelIterator,
+    IntoParallelRefIterator as _, IntoParallelRefMutIterator as _, ParallelExtend,
+    ParallelIterator as _,
+};
+
 use super::{Id, slice::IdSlice};
 use crate::heap::{FromIteratorIn, TryCloneIn};
 
@@ -149,6 +156,28 @@ where
             _marker: PhantomData,
             raw,
         }
+    }
+
+    /// Consumes the `IdVec` and returns the raw [`Vec`].
+    ///
+    /// The inverse of [`from_raw`](Self::from_raw): the elements and their order are unchanged,
+    /// only the typed index domain is dropped. Intended for the boundaries where a typed
+    /// collection leaves the domain-indexed world, such as handing storage to an external format
+    /// or library that speaks raw indices.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::id::{IdVec, Id as _, newtype};
+    /// # newtype!(struct NodeId(u32 is 0..=100));
+    /// let vec = IdVec::<NodeId, _>::from_raw(vec!["a", "b", "c"]);
+    /// let raw = vec.into_raw();
+    ///
+    /// assert_eq!(raw, vec!["a", "b", "c"]);
+    /// ```
+    #[inline]
+    pub fn into_raw(self) -> Vec<T, A> {
+        self.raw
     }
 
     /// Creates a new, empty `IdVec` with a custom allocator.
@@ -321,6 +350,14 @@ where
         }
 
         Self::from_raw(vec)
+    }
+
+    /// Converts the vector into a boxed [`IdSlice`] without copying its elements.
+    ///
+    /// The allocation and typed index domain are preserved. See [`Vec::into_boxed_slice`] for the
+    /// capacity behavior of the underlying vector.
+    pub fn into_boxed_slice(self) -> Box<IdSlice<I, T>, A> {
+        IdSlice::from_boxed_slice(self.raw.into_boxed_slice())
     }
 
     /// Appends an element to the back of the vector and returns its ID.
@@ -517,6 +554,28 @@ where
     }
 }
 
+#[cfg(feature = "rayon")]
+impl<I, T> IdVec<I, T>
+where
+    I: Id,
+    T: Send,
+{
+    /// Consumes the vector and returns a parallel iterator over ID-element pairs.
+    ///
+    /// The parallel counterpart of [`Self::into_iter_enumerated`]: yields typed IDs instead of
+    /// `usize` indices.
+    #[must_use]
+    pub fn into_par_iter_enumerated(self) -> impl IndexedParallelIterator<Item = (I, T)> {
+        // Elide bound checks from subsequent calls to `I::from_usize`
+        let _: I = I::from_usize(self.len().saturating_sub(1));
+
+        self.raw
+            .into_par_iter()
+            .enumerate()
+            .map(|(index, value)| (I::from_usize(index), value))
+    }
+}
+
 // Map-like APIs for IdVec<I, Option<T>>
 impl<I, T, A: Allocator> IdVec<I, Option<T>, A>
 where
@@ -645,7 +704,7 @@ where
     }
 }
 
-impl<I, T, A> Deref for IdVec<I, T, A>
+const impl<I, T, A> Deref for IdVec<I, T, A>
 where
     I: Id,
     A: Allocator,
@@ -658,7 +717,7 @@ where
     }
 }
 
-impl<I, T, A> DerefMut for IdVec<I, T, A>
+const impl<I, T, A> DerefMut for IdVec<I, T, A>
 where
     I: Id,
     A: Allocator,
@@ -733,6 +792,50 @@ where
     }
 }
 
+#[cfg(feature = "rayon")]
+impl<I, T> IntoParallelIterator for IdVec<I, T>
+where
+    I: Id,
+    T: Send,
+{
+    type Item = T;
+    type Iter = rayon::vec::IntoIter<T>;
+
+    fn into_par_iter(self) -> Self::Iter {
+        self.raw.into_par_iter()
+    }
+}
+
+#[cfg(feature = "rayon")]
+impl<'this, I, T, A> IntoParallelIterator for &'this IdVec<I, T, A>
+where
+    I: Id,
+    T: Sync,
+    A: Allocator,
+{
+    type Item = &'this T;
+    type Iter = rayon::slice::Iter<'this, T>;
+
+    fn into_par_iter(self) -> Self::Iter {
+        self.raw.par_iter()
+    }
+}
+
+#[cfg(feature = "rayon")]
+impl<'this, I, T, A> IntoParallelIterator for &'this mut IdVec<I, T, A>
+where
+    I: Id,
+    T: Send,
+    A: Allocator,
+{
+    type Item = &'this mut T;
+    type Iter = rayon::slice::IterMut<'this, T>;
+
+    fn into_par_iter(self) -> Self::Iter {
+        self.raw.par_iter_mut()
+    }
+}
+
 impl<I, T> Default for IdVec<I, T, Global>
 where
     I: Id,
@@ -763,6 +866,20 @@ where
     }
 }
 
+#[cfg(feature = "rayon")]
+impl<I, T> ParallelExtend<T> for IdVec<I, T>
+where
+    I: Id,
+    T: Send,
+{
+    fn par_extend<U>(&mut self, par_iter: U)
+    where
+        U: IntoParallelIterator<Item = T>,
+    {
+        self.raw.par_extend(par_iter);
+    }
+}
+
 impl<I, T, A, B> TryCloneIn<B> for IdVec<I, T, A>
 where
     I: Id,
@@ -783,6 +900,19 @@ where
     }
 }
 
+impl<I, T> FromIterator<T> for IdVec<I, T>
+where
+    I: Id,
+{
+    #[inline]
+    fn from_iter<U>(iter: U) -> Self
+    where
+        U: IntoIterator<Item = T>,
+    {
+        Self::from_raw(Vec::from_iter(iter))
+    }
+}
+
 impl<I, T, A> FromIteratorIn<T, A> for IdVec<I, T, A>
 where
     I: Id,
@@ -794,5 +924,19 @@ where
         U: IntoIterator<Item = T>,
     {
         Self::from_raw(Vec::from_iter_in(iter, alloc))
+    }
+}
+
+#[cfg(feature = "rayon")]
+impl<I, T> FromParallelIterator<T> for IdVec<I, T>
+where
+    I: Id,
+    T: Send,
+{
+    fn from_par_iter<U>(par_iter: U) -> Self
+    where
+        U: IntoParallelIterator<Item = T>,
+    {
+        Self::from_raw(Vec::from_par_iter(par_iter))
     }
 }

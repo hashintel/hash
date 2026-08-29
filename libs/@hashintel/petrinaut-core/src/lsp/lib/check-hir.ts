@@ -85,6 +85,13 @@ export const HIR_DIAGNOSTIC_CODES: Record<string, number> = {
   "hir:concat-arity": 99036,
   "hir:metric-return": 99064,
   "hir:not-compilable": 99074,
+  "hir:scenario-return": 99075,
+  "hir:unknown-scenario-parameter": 99076,
+  "hir:unknown-scenario-place": 99077,
+  "hir:range-arity": 99078,
+  "hir:range-outside-scenario": 99079,
+  "hir:scenario-outside-scenario": 99080,
+  "hir:mixed-equality": 99081,
 };
 
 const FALLBACK_CODE = 99000;

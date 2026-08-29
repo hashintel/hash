@@ -26,7 +26,7 @@ use type_system::{
     },
     ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     principal::{
-        actor::{ActorEntityUuid, ActorType},
+        actor::{ActorId, ActorType},
         actor_group::WebId,
     },
     provenance::{OriginProvenance, OriginType},
@@ -163,7 +163,7 @@ async fn insert_embedding(
 
 async fn search(
     api: &mut DatabaseApi<'_>,
-    actor_id: ActorEntityUuid,
+    actor_id: ActorId,
     filter: SearchEntitiesFilter,
     maximum_semantic_distance: f64,
     limit: usize,

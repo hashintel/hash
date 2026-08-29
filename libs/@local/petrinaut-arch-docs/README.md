@@ -40,16 +40,17 @@ A declaration is two lines — an id and a one-line role:
  */
 ```
 
-That is the whole vocabulary. `@layerRoot` names the layer this folder _and its
-descendants_ form; `@role` says what it is for. Between them they place a node in
-the graph and label it, which is the whole of what these docs assert — anything
-more would be a claim the generator cannot check.
+`@layerRoot` names the layer this folder _and its descendants_ form; `@role`
+says what it is for. Between them they place a node in the graph and label it.
+One more tag, `@talksTo`, declares an edge no import produces (see below). That
+is the whole vocabulary, because anything more would be a claim the generator
+cannot check.
 
 Tags are read from any block comment, only at the start of a line, so mentioning
 `@layerRoot` in prose declares nothing. A tag's text wraps across lines until the
 next tag or a blank line. Any other tag is ignored — `@param`, `@deprecated`
 and the rest are someone else's business — except a miscasing of one of these
-two, which is reported as a probable typo.
+three, which is reported as a probable typo.
 
 ### Declaring from a README instead
 
@@ -77,6 +78,31 @@ left alone as an ordinary document, and is linked from its layer page under
 Layer ids are dotted and hierarchical, and every ancestor must itself be
 declared — `core.simulation.monte-carlo` requires `core.simulation` and `core`.
 
+### Declaring a protocol edge
+
+Some dependencies cross no import: the Python bindings spawn the CLI and speak
+JSON lines to it over stdio. `@talksTo` records such an edge, in the same doc
+comment or docstring the scanner already reads:
+
+```python
+"""One Petrinaut CLI process, spoken to over JSON lines on stdio.
+
+@talksTo cli via JSON lines over stdio (spawned subprocess)
+"""
+```
+
+The declaring file's own layer is the edge source, the id before `via` is the
+target, and the text after `via` is required and becomes the edge label. The
+tag is repeatable. Declared edges render dashed with their protocol in every
+diagram that shows the pair, and the relations card on a layer page marks them
+with a dashed protocol label, apart from the edges aggregated from imports.
+
+The build fails when the target is not a declared layer, and when the pair is
+already derived from imports; remove the declaration in the second case, since
+the imports already prove the edge. A layer rule applies to a declared edge as
+it does to an imported one: a rule states which layers may couple, whatever
+carries the coupling.
+
 ### Inheritance is what keeps this small
 
 A file with no tags belongs to the nearest ancestor folder that declares a layer.
@@ -93,31 +119,140 @@ Regenerate it whenever you need it; nothing depends on a stored copy.
 The bundle is framework-neutral by design — the Starlight site in
 `apps/petrinaut-docs` and hash.dev are both just consumers.
 
-| File                | What it is                                                       |
-| ------------------- | ---------------------------------------------------------------- |
-| `architecture.json` | The model: layers, edges, enforced rules                         |
-| `architecture.md`   | The whole architecture as one file — the cheapest read for an AI |
-| `manifest.json`     | Page tree for building navigation without crawling `pages/`      |
-| `pages/**.mdx`      | Generated layer pages, plus authored pages merged in             |
-| `components/*.tsx`  | React diagram components imported by authored pages              |
-| `diagrams/**.d2`    | Diagram sources (diffable)                                       |
-| `diagrams/**.svg`   | Rendered diagrams                                                |
+| File                | What it is                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `architecture.json` | The model: layers, edges, enforced rules                                                                      |
+| `architecture.md`   | The whole architecture as one file — the cheapest read for an AI                                              |
+| `manifest.json`     | Page tree for building navigation without crawling `pages/`                                                   |
+| `pages/**.mdx`      | Generated layer pages, plus authored pages merged in                                                          |
+| `components/*.tsx`  | React components: the layer card components every bundle ships, plus diagram components authored pages import |
+| `diagrams/**.d2`    | Diagram sources (diffable)                                                                                    |
+| `diagrams/**.svg`   | Rendered diagrams                                                                                             |
 
-**Generated** MDX is YAML frontmatter plus plain CommonMark — no JSX, no
-imports, no framework components — which is what lets it render in Astro, in
-hash.dev's Next.js MDX pipeline, and as plain text.
+**Generated** MDX is YAML frontmatter plus CommonMark, with one exception: each
+layer page imports the bundle's `LayerFacts` and `LayerRelations` cards and
+passes its facts and edges as structured props, so a host restyles the cards
+rather than re-parsing prose. The same facts stay plain text in
+`architecture.md`, the cheapest read for an agent.
 
-**Authored** pages may additionally import the diagram components below, which is
-where every requirement the bundle places on a host comes from:
+**Authored** pages may additionally import the bundle's diagram components.
+Together that is every requirement the bundle places on a host:
 
-| A host must provide          | For                                                |
-| ---------------------------- | -------------------------------------------------- |
-| A React-capable MDX pipeline | Any authored page that imports a diagram component |
+| A host must provide          | For                                                                           |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| A React-capable MDX pipeline | Generated layer pages, and any authored page that imports a diagram component |
 
 Nothing else — in particular nothing hydrates, so no client-side runtime is
 required. In particular the bundle asks for **no Markdown or Rehype
 plugins** — a host renders it with its Markdown pipeline exactly as configured,
 which is what keeps "render the bundle" a small job rather than a negotiation.
+
+### Source links
+
+Generated pages link back to the source they describe: each layer's "Declared
+in" link, its source root, its further-reading list, and any relative link in a
+declaring README's prose. Those URLs carry a git ref, resolved once per build
+from the first of these variables that holds a value:
+
+| Variable                         | Set by                        |
+| -------------------------------- | ----------------------------- |
+| `PETRINAUT_ARCH_DOCS_SOURCE_REF` | You, overriding the rest      |
+| `VERCEL_GIT_COMMIT_SHA`          | Vercel                        |
+| `GITHUB_SHA`                     | GitHub Actions                |
+| `VERCEL_GIT_COMMIT_REF`          | Vercel (branch name)          |
+| `GITHUB_HEAD_REF`                | GitHub Actions (pull request) |
+| `GITHUB_REF_NAME`                | GitHub Actions (push)         |
+
+A commit SHA beats a branch name, because the link still resolves once the
+branch has moved on or been deleted. The branch-name fallbacks assume the
+branch lives in `hashintel/hash`: on a pull request from a fork,
+`GITHUB_HEAD_REF` names a branch this repository does not have, so those links
+404 — the SHA variables, which win when present, resolve regardless. With none of them set the ref is `main`,
+which is what a local build gets; set `PETRINAUT_ARCH_DOCS_SOURCE_REF` to aim a
+local build at another ref. A preview deployment of `apps/petrinaut-docs`
+reads Vercel's variables, so its links point at the commit it was built from
+instead of at a file `main` may not have yet.
+
+### Highlighting changes against a base ref
+
+A build can compare itself against another version of the repository and mark
+what differs, which is how a PR preview shows a reviewer where to look:
+
+```sh
+# Locally
+yarn workspace @local/petrinaut-arch-docs doc:architecture --diff-base main
+
+# In CI (what vercel-build.sh sets on preview deployments)
+PETRINAUT_ARCH_DOCS_DIFF_BASE=<ref> turbo build --filter '@apps/petrinaut-docs'
+```
+
+Which ref to compare against is the caller's decision, not this package's: the
+generator takes any ref and never knows about pull requests. On Vercel
+previews, `apps/petrinaut-docs/scripts/resolve-diff-base.mjs` resolves the
+PR's _target branch_ (via the GitHub API, anonymously) and sets the variable —
+so a stacked PR is compared against the PR below it and shows only its own
+delta, and a PR targeting `main` is compared against `main`.
+
+The build extracts the covered package trees at the base ref with `git archive`
+and runs the _same_ generator over them — same config, same emitter, same
+source-URL prefix — so nothing but a real change can differ between the two
+sides. No install and no `node_modules` are needed for the base tree: workspace
+imports resolve through aliases derived from each package's `exports` map.
+
+What it produces:
+
+- `manifest.json` gains a `diff` section mapping page slugs to `added`,
+  `changed` or `removed`, for a host to build navigation badges from.
+- Changed pages carry `<DiffMarker>` elements between blocks; the shipped
+  `diff-marker` component and its stylesheet render a green bar on added
+  blocks, a blue bar on edited ones, and removed content as a red, collapsed
+  block in place.
+- A removed page becomes a tombstone stub at its old slug, carrying the
+  removed source, so navigation can show it (struck through) instead of it
+  silently disappearing.
+
+**What counts as a change** is deliberately narrower than a byte diff, because
+a generated page embeds facts that shift whenever _neighbouring_ code moves.
+Masked before comparison: import counts and the count-driven ordering of the
+depends-on list, file and line totals, sidebar positions, and the whole
+"depended on by" list — an incoming edge is the
+importing layer's change and is flagged there, on its `dependsOn` side. A page
+is `changed` when anything else differs: its role, prose, name, declaring
+file, outgoing edges, sub-layers, attached guides — or when the layer's file
+membership moved, the one structural change the masked content cannot show.
+Editing code inside a layer without moving files or edges changes nothing the
+architecture describes, and flags nothing.
+
+The build extracts the base tree from the local clone when it can. When it
+cannot — a Vercel build gets a snapshot of the sources with no usable clone
+behind it — it fetches the ref anonymously from the public repository
+(`VERCEL_GIT_REPO_OWNER`/`VERCEL_GIT_REPO_SLUG` when set, `hashintel/hash`
+otherwise) into a scratch repository: a blobless fetch plus a sparse checkout
+of only the covered directories, so the transfer stays small. The build log
+says `base tree fetched from …` when this path ran.
+
+The built base side is cached under `node_modules/.cache/petrinaut-arch-docs`
+(`PETRINAUT_ARCH_DOCS_CACHE_DIR` relocates it, for a CI whose persisted
+location differs),
+keyed in the entry's file name by a hash of the generator's own sources,
+config and pinned dependencies, then the base commit — CI providers persist
+that directory between builds, so any later commit whose base has not moved
+skips the base build entirely (the log says `base bundle from cache (…)`),
+and builds running different generator versions against one base keep
+separate entries. Every clean build also stores its _own_ side as a future
+base: the CI cache is restored per branch with a fallback to the production
+deployment, so the entry a `main` build writes is what a PR targeting `main`
+finds on its first build — the common case computes no base at all. A cached entry is trusted exactly as far as the build that
+wrote it — its pages are compiled as MDX — which is sound while only this
+project's own builds write the directory; a shared remote cache would need
+this analysis redone. Source-link URLs carry the built
+commit and are masked per side before comparison, which is what makes a base
+side built by an earlier build comparable at all.
+
+The diff decorates the bundle, it never gates it: when the base ref cannot be
+resolved either way (no network, a repository that is not public) the build
+warns and writes a plain bundle. Production builds of `main` never set the
+variable, so they never diff.
 
 ### Embedding the bundle elsewhere
 
@@ -150,8 +285,10 @@ A neighbourhood draws only edges _incident to the focus_. Edges among the
 neighbours are real but belong to those layers' own pages; drawing them rebuilds
 the tangle the overview exists to avoid.
 
-Aggregation never invents a dependency: an edge appears because imports exist,
-and its count sums real `fileDependencies`. Neighbours are capped at twelve, and
+Aggregation never invents a dependency: an import edge appears because imports
+exist, and its count sums real `fileDependencies`. A `@talksTo` edge is the one
+annotation-drawn kind, and it is always dashed with its protocol as the label,
+so the two kinds cannot be confused. Neighbours are capped at twelve, and
 the remainder becomes a single dashed "+N further layers" node carrying their
 combined count — elided where it would be unreadable, never dropped where it
 would read as absent.

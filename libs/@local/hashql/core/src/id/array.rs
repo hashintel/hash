@@ -1,3 +1,8 @@
+#![cfg_attr(
+    feature = "zerocopy",
+    expect(clippy::empty_enums, reason = "zerocopy uses them in the derive")
+)]
+
 use core::{
     array,
     borrow::{Borrow, BorrowMut},
@@ -29,6 +34,17 @@ use super::{Id, IdSlice};
 /// ```
 ///
 /// [`IdVec`]: super::IdVec
+#[cfg_attr(
+    feature = "zerocopy",
+    derive(
+        zerocopy::FromBytes,
+        zerocopy::IntoBytes,
+        zerocopy::KnownLayout,
+        zerocopy::Immutable,
+        zerocopy::Unaligned
+    )
+)]
+#[repr(transparent)]
 pub struct IdArray<I, T, const N: usize> {
     raw: [T; N],
     _marker: PhantomData<fn(&I)>,

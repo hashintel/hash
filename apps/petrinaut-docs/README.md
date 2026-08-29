@@ -47,6 +47,29 @@ Copying sidesteps that, and matches what an embedding host does anyway.
 The copied directories (`src/content/docs`, `src/content/diagrams`) are
 gitignored, as is the bundle they come from. Nothing generated is versioned.
 
+## Preview deployments highlight changes
+
+On a Vercel preview, [`vercel-build.sh`](vercel-build.sh) sets
+`PETRINAUT_ARCH_DOCS_DIFF_BASE` to the PR's target branch — resolved by
+[`scripts/resolve-diff-base.mjs`](scripts/resolve-diff-base.mjs) via the
+GitHub API, falling back to `main` — so the generator builds the bundle in
+diff mode against the right base, and a stacked PR shows only its own delta.
+
+The sidebar badges pages as `new`, `changed` or `removed` (with roll-up counts
+on collapsed groups, so a change deep in a subtree is visible from the top),
+and changed pages mark their differing blocks — green for added, blue for
+edited, red collapsed blocks for removed content. Removed pages keep a
+struck-through entry linking to a stub that carries the removed source. The
+header carries two linked chips saying what is being compared — the deployed
+PR and its base, each with the commit built
+(`src/components/DiffBadges.astro`, resolved at config time and injected as a
+compile-time constant).
+
+Set the variable in the Vercel project to pin a different base; production
+builds of `main` never diff. What counts as a change (and what noise is
+filtered out) is the generator's contract — see its README section
+"Highlighting changes against a base ref".
+
 ## Notes on configuration
 
 Authored pages are optional. When `content/` in the generator package is empty
@@ -63,6 +86,34 @@ them. Astro's generated prerender entry resolves `cookie` from this app's build
 output, which would otherwise reach the root-hoisted `cookie@0.7.2` that
 `express` pins and fail on a missing `parseCookie` export. Nesting keeps Astro on
 its own `cookie@2.x` without changing hoisting for the rest of the monorepo.
+
+## Chrome overrides
+
+[`src/styles/chrome.css`](src/styles/chrome.css), registered as Starlight's
+`customCss`, narrows both side panels to give the content column more width,
+tones down the header, and rounds the corners on markdown images so the embedded
+diagrams match the bordered cards beside them. The left nav takes its own
+`--pnd-sidebar-width` because Starlight sizes both panels from
+`--sl-sidebar-width`, and collapsing the nav has to zero one of them without
+flattening the other. The collapse toggle and resize handle come from
+`components.SiteTitle`, the header's leftmost slot, next to the rail they act
+on — and the fixed header is the one piece of chrome still on screen once the
+nav is gone. Both
+controls remember their state in `localStorage`, restored by a `head` script so
+a collapsed sidebar does not render open and then jump.
+
+## The code font
+
+Code renders in JetBrains Mono, requested through Astro's font support in
+[`astro.config.mjs`](astro.config.mjs) and emitted by `<Font>` in
+[`src/components/Head.astro`](src/components/Head.astro).
+
+A build downloads one variable file covering weights 400 to 700, subsets it to
+latin, and writes it beside the other assets, so a reader makes no request to a
+font host. The head carries a `preload` link and `font-display: swap`, and Astro
+generates a metric-matched fallback, which is what keeps text from shifting when
+the file arrives. The downloaded originals are cached under `.astro/`, which is
+ignored.
 
 ## Deployment
 

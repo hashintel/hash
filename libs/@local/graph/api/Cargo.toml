@@ -21,6 +21,7 @@ hash-graph-embeddings     = { workspace = true, public = true }
 hash-graph-postgres-store = { workspace = true, public = true, features = ["utoipa"] }
 hash-graph-type-fetcher   = { workspace = true, public = true }
 hash-graph-types          = { workspace = true, public = true, features = ["utoipa"] }
+hash-middleware           = { workspace = true, public = true }
 hash-status               = { workspace = true, public = true }
 hash-temporal-client      = { workspace = true, public = true }
 
@@ -31,6 +32,7 @@ futures-channel = { workspace = true, public = true }
 hashql-core     = { workspace = true, public = true }
 http            = { workspace = true, public = true }
 jsonwebtoken    = { workspace = true, public = true, features = ["aws_lc_rs"] }
+opentelemetry   = { workspace = true, public = true, features = ["metrics"] }
 tower-http      = { workspace = true, public = true }
 tracing         = { workspace = true, public = true }
 
@@ -56,41 +58,39 @@ type-system                    = { workspace = true, features = ["utoipa"] }
 clap = { workspace = true, optional = true, features = ["derive", "env"] }
 
 # Private third-party dependencies
-base16ct                           = { workspace = true }
-bytes                              = { workspace = true }
-derive-where                       = { workspace = true }
-derive_more                        = { workspace = true, features = ["display", "error"] }
-error-stack                        = { workspace = true, features = ["futures", "spantrace", "unstable"] }
-frunk                              = { workspace = true }
-futures                            = { workspace = true }
-hyper                              = { workspace = true }
-include_dir                        = { workspace = true }
-md-5                               = { workspace = true }
-mime                               = { workspace = true }
-opentelemetry                      = { workspace = true }
-opentelemetry-semantic-conventions = { workspace = true, features = ["semconv_experimental"] }
-reqwest                            = { workspace = true }
-sentry                             = { workspace = true }
-serde                              = { workspace = true, features = ['derive'] }
-serde_json                         = { workspace = true, features = ["raw_value"] }
-simple-mermaid                     = { workspace = true }
-time                               = { workspace = true }
-tokio                              = { workspace = true }
-tokio-util                         = { workspace = true, features = ["codec", "io"] }
-tower                              = { workspace = true }
-tracing-opentelemetry              = { workspace = true }
-utoipa                             = { workspace = true }
-utoipa-scalar                      = { workspace = true }
-uuid                               = { workspace = true }
+base16ct       = { workspace = true }
+bytes          = { workspace = true }
+derive-where   = { workspace = true }
+derive_more    = { workspace = true, features = ["display", "error"] }
+error-stack    = { workspace = true, features = ["futures", "spantrace", "unstable"] }
+frunk          = { workspace = true }
+futures        = { workspace = true }
+hyper          = { workspace = true }
+include_dir    = { workspace = true }
+md-5           = { workspace = true }
+mime           = { workspace = true }
+reqwest        = { workspace = true }
+sentry         = { workspace = true }
+serde          = { workspace = true, features = ['derive'] }
+serde_json     = { workspace = true, features = ["raw_value"] }
+simple-mermaid = { workspace = true }
+time           = { workspace = true }
+tokio          = { workspace = true, features = ["rt", "time"] }
+tokio-util     = { workspace = true, features = ["codec", "io"] }
+tower          = { workspace = true }
+utoipa         = { workspace = true }
+utoipa-scalar  = { workspace = true }
+uuid           = { workspace = true }
 
 [dev-dependencies]
 hash-graph-authentication = { workspace = true, features = ["test-utils"] }
-tokio                     = { workspace = true, features = ["macros", "rt-multi-thread"] }
+hash-middleware           = { workspace = true, features = ["test-utils"] }
+tokio                     = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
 tower                     = { workspace = true, features = ["util"] }
 uuid                      = { workspace = true, features = ["v4"] }
 
 [features]
-clap                 = ["dep:clap"]
+clap                 = ["dep:clap", "hash-middleware/clap"]
 unsafe-dev-endpoints = []
 
 [lints]

@@ -1,5 +1,7 @@
 import {
   coerceToStoredTokenAttributeValue,
+  createUserKeyedRecord,
+  getOwn,
   type Color,
   type InitialMarking,
   type InitialTokenAttributeValue,
@@ -91,13 +93,15 @@ const migrateTokenRecord = (
   previousById: ReadonlyMap<string, ColorElement>,
   nextElements: readonly ColorElement[],
 ): TokenRecord => {
-  const migrated: TokenRecord = {};
+  // Element names come from the net definition and `record` from stored
+  // session state: no prototype, own-property reads only.
+  const migrated: TokenRecord = createUserKeyedRecord();
   for (const element of nextElements) {
     const previous = previousById.get(element.elementId);
     if (!previous) {
       // Added element: carry over an existing value if one is already
       // present under the new name, otherwise leave it absent.
-      const existing = record[element.name];
+      const existing = getOwn(record, element.name);
       if (existing !== undefined) {
         migrated[element.name] = existing;
       }
@@ -105,7 +109,7 @@ const migrateTokenRecord = (
     }
     // Prefer the pre-rename key; fall back to the new name so hand-edited
     // or already-normalized records don't lose their value on migration.
-    const value = record[previous.name] ?? record[element.name];
+    const value = getOwn(record, previous.name) ?? getOwn(record, element.name);
     if (previous.type !== element.type) {
       migrated[element.name] = coerceStoredValue(element, value);
     } else if (value !== undefined) {

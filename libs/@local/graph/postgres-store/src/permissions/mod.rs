@@ -13,7 +13,7 @@ use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::principal::{
     PrincipalId, PrincipalType,
-    actor::{Actor, ActorEntityUuid, ActorId, AiId, MachineId, UserId},
+    actor::{Actor, ActorId, AiId, MachineId, UserId},
     actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
     role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
 };
@@ -191,7 +191,7 @@ where
     /// - [`GetActorError`] if a database error occurs
     pub async fn get_actor(
         &self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: ActorId,
         id: ActorId,
     ) -> Result<Option<Actor>, Report<GetActorError>> {
         Ok(match id {

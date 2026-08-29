@@ -15,8 +15,25 @@ cd ../..
 # See: https://linear.app/hash/issue/H-3212/clean-up-env-files
 rm -f .env
 
+# Preview deployments highlight what the branch changes against its base:
+# the PR's target branch (so a stacked PR shows only its own delta), or `main`
+# when the target cannot be determined. Which ref to use is decided here, in
+# the deployment layer — the generator only ever receives a ref. Production
+# builds print nothing and never diff. An already-set variable wins, so the
+# Vercel project can pin a different base.
+# `|| true`: a crash in the resolver must cost the highlighting, not the deploy.
+diff_base="$(node apps/petrinaut-docs/scripts/resolve-diff-base.mjs || true)"
+if [[ -n "${diff_base}" ]]; then
+  export PETRINAUT_ARCH_DOCS_DIFF_BASE="${diff_base}"
+  echo "Preview build: highlighting changes against ${diff_base}"
+fi
+
 # Run through Turborepo rather than `yarn workspace ... build`: the package
 # script alone skips `sync:bundle`, and would build whatever content happened to
 # be on disk.
-echo "Building Petrinaut architecture docs"
+#
+# Source links follow the commit being built rather than `main`: the generator
+# reads `VERCEL_GIT_COMMIT_SHA` and `VERCEL_GIT_COMMIT_REF`, declared in
+# `libs/@local/petrinaut-arch-docs/turbo.json`, and logs the prefix it used.
+echo "Building Petrinaut architecture docs from ${VERCEL_GIT_COMMIT_SHA:-a local checkout}"
 turbo build --filter='@apps/petrinaut-docs' --env-mode=loose

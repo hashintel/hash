@@ -10,10 +10,18 @@ use crate::store::postgres::query::{Column, Transpile, table::DatabaseColumn as 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ColumnName<'name>(Identifier<'name>);
 
-impl ColumnName<'_> {
+impl<'name> ColumnName<'name> {
     #[must_use]
     pub fn as_str(&self) -> &str {
         self.0.as_ref()
+    }
+
+    /// Returns the name as a bare identifier, e.g. to alias a select expression.
+    // A `From` impl would collide with the blanket `From<I: Into<Identifier>> for ColumnName`
+    // through the reflexive `From<T> for T`, so the conversion is a method.
+    #[must_use]
+    pub fn into_identifier(self) -> Identifier<'name> {
+        self.0
     }
 }
 

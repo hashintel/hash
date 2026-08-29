@@ -1,0 +1,299 @@
+---
+title: Usage manual
+description: Installing the package, opening a session, run requests, optimization studies, and the exceptions each failure raises.
+sidebar_order: 10
+attachTo: python-bindings
+---
+
+`@local/petrinaut-python` drives the Petrinaut CLI from Python. A
+`PetrinautSession` owns **one long-lived `petrinaut serve` child process** for
+one model, writes requests as JSON lines on its stdin, and reads one response
+line per request from its stdout.
+
+The package's one runtime dependency is pydantic, which validates
+optimization responses against the CLI's published protocol schema; it
+requires Python `>=3.10`. It is **POSIX-only**:
+`os.killpg` for process-group signalling and `select.select` for descriptor
+polling have no Windows fallback.
+
+The child is spawned with a scrubbed environment, so a model expression never
+reads the calling process's credentials: `PATH` is fixed to
+`/usr/local/bin:/usr/bin:/bin`, `LANG` and `LC_ALL` to `C.UTF-8`, `NO_COLOR`
+to `1`, `TZ` to `UTC`. The only variable that passes through is
+`PETRINAUT_CHILD_NODE_OPTIONS`, forwarded as the child's `NODE_OPTIONS`. The
+process also gets its own process group, `umask` `0o077`, and `close_fds`.
+
+## Depending on the package
+
+The package is internal to this monorepo and is consumed as a uv path
+dependency. `apps/petrinaut-opt` is the reference consumer: it names
+`petrinaut-python` in `[project].dependencies` and points uv at the path.
+
+```toml
+[tool.uv.sources]
+petrinaut-python = { path = "../../libs/@local/petrinaut-python", editable = true }
+```
+
+Nothing runs without the CLI bundle at
+`libs/@hashintel/petrinaut-cli/dist/cli.js`. The package declares
+`@hashintel/petrinaut-cli` as a workspace dependency, and the root
+`test:unit` task depends on `^build`, so running the suite through Turborepo
+builds the bundle first:
+
+```bash
+turbo run test:unit --filter @local/petrinaut-python
+```
+
+Plain `uv run pytest` skips the end-to-end tests when the bundle is missing.
+To build it on its own:
+
+```bash
+turbo run build --filter @hashintel/petrinaut-cli
+```
+
+## Opening a session
+
+Two factories name the model source, matching the CLI's two model flags:
+
+| Constructor                              | CLI invocation                 |
+| ---------------------------------------- | ------------------------------ |
+| `PetrinautSession.from_model_file(path)` | `serve --model <path> --stdio` |
+| `PetrinautSession.from_model(model)`     | `serve --model-stdin --stdio`  |
+
+`from_model` serializes the model object to the CLI's first stdin line, which
+suits read-only containers and callers already holding the snapshot. The
+object's shape is the same one `--model-stdin` documents in the
+[CLI usage manual](doc:cli/usage-manual).
+
+Both are context managers: `__enter__` calls `start()` and `__exit__` calls
+`close()`. `start()` writes the bootstrap line if there is one, then waits for
+a stderr line beginning `Petrinaut stdio ready`. Any other line closes the
+process and raises `PetrinautClientError`, quoting the CLI's own message or
+its exit code.
+
+```python
+from petrinaut import PetrinautSession
+
+with PetrinautSession.from_model_file("./sir-model.json") as session:
+    metadata = session.metadata()
+```
+
+Calling `start()` and `close()` by hand works too; `start()` returns
+immediately when the process is already running, and `close()` is safe to call
+repeatedly.
+
+Every keyword argument other than the source is forwarded to the constructor:
+
+| Option                      | Default            | Effect                                               |
+| --------------------------- | ------------------ | ---------------------------------------------------- |
+| `command`                   | `("petrinaut",)`   | The executable, resolved on the child's fixed `PATH` |
+| `bootstrap_timeout_seconds` | `25`               | Spawn to readiness line                              |
+| `request_timeout_seconds`   | `240`              | One protocol response                                |
+| `popen_factory`             | `subprocess.Popen` | Substitutes the spawned process in tests             |
+
+Pass an absolute `command` when the CLI is not installed on that `PATH`, which
+is the normal case in development:
+
+```python
+import shutil
+
+session = PetrinautSession.from_model_file(
+    "./sir-model.json",
+    command=(shutil.which("node"), "libs/@hashintel/petrinaut-cli/dist/cli.js"),
+)
+```
+
+An empty `command`, or one with an empty part, raises `ValueError`, as does a
+timeout of zero or less.
+
+## Run requests
+
+Three methods cover the model-source protocol, and `request` reaches any
+method by name:
+
+| Method                            | Returns                                              |
+| --------------------------------- | ---------------------------------------------------- |
+| `session.healthz()`               | `{"ok": True}`                                       |
+| `session.metadata()`              | The compiled model's parameters, places, and metrics |
+| `session.run(params)`             | One simulation's summary result                      |
+| `session.request(method, params)` | That method's raw `result`                           |
+
+`params` for `run` is the CLI's run config verbatim: `parameters`,
+`initialState` or `scenario`, `metrics`, `maxSteps` or `maxTime`, `dt`, and
+`seed`. Every key, alias-resolution rule, bound, and response field is
+specified in the [CLI usage manual](doc:cli/usage-manual); the Python layer
+passes the mapping through and adds only the transport guarantees:
+
+- Request ids are assigned and checked. The counter starts at `1` and
+  increments per request; a response carrying a different id raises
+  `PetrinautProtocolError`.
+- `healthz`, `metadata`, and `run` require a JSON object result. A non-object
+  closes the session and raises `PetrinautProtocolError`. `request` returns
+  whatever `result` holds, without that check.
+- An error frame becomes `PetrinautRunError` carrying the frame's
+  `error.message`.
+
+Request ids and the stdout buffer are unsynchronized, and the CLI answers
+serially, so one session serves one caller at a time. For parallel work, give
+each worker its own session. The one cross-thread guarantee is `close()`: it
+may be called from another thread, which is how a supervisor cancels a session
+mid-request.
+
+## Optimization studies
+
+`OptimizationSession` subclasses `PetrinautSession` and boots the CLI from an
+optimization manifest instead of a model. A manifest embeds a model, and the
+CLI serves both from one process, so every `PetrinautSession` method works on
+an `OptimizationSession` too; only an `OptimizationSession` can answer the
+`optimization.*` methods. Pick the class by naming what the process serves:
+
+| You have        | Construct                                      | CLI invocation                        |
+| --------------- | ---------------------------------------------- | ------------------------------------- |
+| a model file    | `PetrinautSession.from_model_file(path)`       | `serve --model <path> --stdio`        |
+| a model dict    | `PetrinautSession.from_model(model)`           | `serve --model-stdin --stdio`         |
+| a manifest file | `OptimizationSession.from_manifest_file(path)` | `serve --optimization <path> --stdio` |
+| a manifest dict | `OptimizationSession.from_manifest(manifest)`  | `serve --optimization-stdin --stdio`  |
+
+`OptimizationSession(manifest)` and `OptimizationSession(manifest_path=path)`
+construct the same sessions as the two manifest factories; exactly one source
+is required, or the constructor raises `ValueError`.
+
+The manifest is opaque to Python. The CLI validates it, injects fixed values,
+compiles the scenario, simulates, and evaluates the metric.
+
+| Method                                | Returns                                                 |
+| ------------------------------------- | ------------------------------------------------------- |
+| `session.describe()`                  | The direction, study settings, and non-fixed parameters |
+| `session.evaluate(parameter_values)`  | The full trial result, `replicates` included            |
+| `session.objective(parameter_values)` | The trial's objective as a finite `float`               |
+
+`describe_optimization` remains as an alias for `describe`. `describe` and
+`evaluate` return pydantic models
+(`OptimizationDescribeResult`, `OptimizationEvaluateResult`) generated from the
+CLI's published protocol schema; a response outside that schema raises
+`PetrinautProtocolError` and closes the session.
+
+`describe` also configures the deadline. It reads the manifest's
+`execution.seedsPerTrial`, reported back as `study.seedsPerTrial` in the
+response, defaulting to `1` when the study omits it. The generated model
+bounds it to the CLI's `1`–`100` range, so an out-of-range value fails
+validation and closes the session with `PetrinautProtocolError`. One
+`evaluate` may run that many seeded simulations sequentially, so the
+per-response deadline becomes `request_timeout_seconds × seedsPerTrial`: a
+manifest setting `execution.seedsPerTrial` to `2` gives each response 480
+seconds.
+
+`evaluate` describes once itself when the session has not been described yet,
+because a seeded trial needs the scaled deadline before its first evaluation.
+`objective` calls `evaluate` and reads its `.objective`, raising
+`PetrinautRunError` when the value is not finite, and leaving the session
+usable. A boolean or non-numeric objective fails schema validation first,
+which raises `PetrinautProtocolError` and closes the session.
+With more than one seed the objective is the mean and `evaluate` reports each
+seed's value under `replicates`.
+
+```python
+from petrinaut import OptimizationSession
+
+# `OptimizationSession(manifest_path=...)` reads the manifest from disk instead.
+with OptimizationSession(manifest) as session:
+    description = session.describe()
+    for parameter in description.parameters:
+        print(parameter.identifier, parameter.type)
+
+    value = session.objective({"production_rate": 112.5, "enabled": True})
+```
+
+The [CLI usage manual](doc:cli/usage-manual) carries the manifest contract,
+the parameter-type table with its Optuna suggestion calls, the work budgets,
+and the common-random-numbers seed derivation.
+
+## Errors
+
+Three exception types, and the hierarchy decides whether the session survives:
+
+| Exception                | Base                   | Raised when                                                | Session |
+| ------------------------ | ---------------------- | ---------------------------------------------------------- | ------- |
+| `PetrinautRunError`      | `RuntimeError`         | The CLI answered one request with an error frame           | Usable  |
+| `PetrinautClientError`   | `RuntimeError`         | The process failed to start, bootstrap, or communicate     | Closed  |
+| `PetrinautProtocolError` | `PetrinautClientError` | The response was not valid framing, JSON, UTF-8, or object | Closed  |
+
+`PetrinautRunError` is a sibling of `PetrinautClientError`, not a subclass, so
+catching `PetrinautClientError` catches transport and protocol failures
+without swallowing a rejected request. `objective` also raises
+`PetrinautRunError` for a non-finite objective, leaving the session usable.
+
+`PetrinautClientError` covers the bootstrap process paths as well: a failed
+spawn, unavailable pipes, and a readiness line that never arrives. Caller
+input that fails before anything is written raises the plain built-ins
+instead, leaving the session exactly as it was: request `params`, a model, or
+a manifest that will not serialize to JSON raise `TypeError`, and a bootstrap
+payload over the 8 MiB line cap raises `ValueError`.
+
+## Timeouts, limits, and shutdown
+
+| Bound                             | Value |
+| --------------------------------- | ----- |
+| Bootstrap, spawn to readiness     | 25 s  |
+| One protocol response             | 240 s |
+| Process shutdown, each wait stage | 5 s   |
+| Bootstrap line                    | 8 MiB |
+| Protocol line                     | 8 MiB |
+
+The first two are constructor options; for an optimization session the
+response deadline is scaled as described above. A read that exceeds its
+deadline raises `PetrinautClientError` and closes the session; a line over
+8 MiB raises `PetrinautProtocolError`.
+
+The CLI's stderr is drained on a daemon thread for the life of the session, so
+its diagnostics cannot fill the pipe and block it.
+
+A dead child is reported rather than waited on. `_exchange` checks before
+writing, so a request against a session that was never started or has been
+closed raises `PetrinautClientError` reading `the Petrinaut CLI is not
+running`, and one against an exited process reports its exit code. A process
+that exits mid-request, giving no response line, raises the same type.
+
+`close()` closes stdin first. The graceful default then waits up to 5 seconds
+for the CLI to exit on EOF, which only a CLI that is idle between requests
+will observe. After that, or immediately under `close(graceful=False)`, it
+sends `SIGTERM` to the child's process group, waits 5 seconds, escalates to
+`SIGKILL`, and waits 5 seconds again. Cancellation, timeouts, and every
+failure path inside the session use `graceful=False`.
+
+## End to end
+
+Against a model saved from the editor, from the repository root, with the bundle
+built:
+
+```python
+import shutil
+
+from petrinaut import PetrinautSession
+
+CLI = "libs/@hashintel/petrinaut-cli/dist/cli.js"
+MODEL = "./sir-model.json"
+
+with PetrinautSession.from_model_file(
+    MODEL, command=(shutil.which("node"), CLI)
+) as session:
+    assert session.healthz() == {"ok": True}
+
+    metadata = session.metadata()
+    assert "Infected Fraction" in {metric["name"] for metric in metadata["metrics"]}
+
+    result = session.run(
+        {
+            "parameters": {"infection_rate": 1.5, "recovery_rate": 0.8},
+            "initialState": {"Susceptible": 990, "Infected": 10, "Recovered": 0},
+            "metrics": ["Infected Fraction"],
+            "maxSteps": 50,
+            "dt": 0.1,
+            "seed": 4242,
+        }
+    )
+    print(result["status"], result["metrics"]["Infected Fraction"])
+```
+
+Passing the same `seed` again returns the same metrics, which is what
+`tests/test_e2e_cli.py` asserts.

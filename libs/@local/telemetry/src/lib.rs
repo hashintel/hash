@@ -28,10 +28,12 @@ use std::{
 };
 
 use error_stack::{Report, ResultExt as _};
+use opentelemetry::metrics::{Meter, MeterProvider as _};
 use opentelemetry_sdk::{
     logs::SdkLoggerProvider, metrics::SdkMeterProvider, trace::SdkTracerProvider,
 };
 use tracing::{Dispatch, subscriber::DefaultGuard, warn};
+use tracing_appender::non_blocking::WorkerGuard;
 use tracing_error::ErrorLayer;
 use tracing_flame::{FlameLayer, FlushGuard};
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
@@ -116,7 +118,7 @@ impl TelemetryRegistry {
         self
     }
 
-    fn build(self) -> Result<(impl Into<Dispatch>, impl Drop), Report<InitTracingError>> {
+    fn build(self) -> Result<(impl Into<Dispatch>, Telemetry), Report<InitTracingError>> {
         let error_layer = self.error_layer.then(ErrorLayer::default);
         let console_layer = self
             .console_logging
@@ -166,10 +168,14 @@ impl TelemetryRegistry {
             .transpose()?
             .unzip();
 
-        let guard = TelemetryGuard {
+        let guard = Telemetry {
             otlp_traces_provider,
             otlp_logs_provider,
-            otlp_metrics_provider,
+            metrics_exported: otlp_metrics_provider.is_some(),
+            // Without an OTLP endpoint the provider has no reader, so its instruments discard
+            // every measurement.
+            metrics_provider: otlp_metrics_provider
+                .unwrap_or_else(|| SdkMeterProvider::builder().build()),
             _file_guard: file_guard,
             _flamegraph: flamegraph_guard,
         };
@@ -189,6 +195,9 @@ impl TelemetryRegistry {
 
     /// Initialize the telemetry setup in the current scope.
     ///
+    /// Never registers the meter provider globally: it would replace a global registration and
+    /// shut the provider down when the returned guard drops.
+    ///
     /// # Errors
     ///
     /// - [`InitTracingError`], if initializing the [`tracing_subscriber::Registry`] fails.
@@ -204,60 +213,82 @@ impl TelemetryRegistry {
         let (registry, telemetry_guard) = self.build()?;
         let default_guard = tracing::dispatcher::set_default(&registry.into());
 
-        // We have to wait until logging is initialized before we can print the warning.
-        if std::env::var("RUST_LOG").is_ok() {
-            if std::env::var("HASH_GRAPH_LOG_LEVEL").is_ok() {
-                warn!(
-                    "`HASH_GRAPH_LOG_LEVEL` and `RUST_LOG` are set, `HASH_GRAPH_LOG_LEVEL` has \
-                     been used to determine the logging level."
-                );
-            } else {
-                warn!("`RUST_LOG` is set, please use `HASH_GRAPH_LOG_LEVEL` instead");
-            }
-        }
+        // We have to wait until logging is initialized before we can print the warnings.
+        warn_about_log_level_variables();
+        telemetry_guard.warn_where_metrics_are_discarded();
 
         Ok(DropGuard(telemetry_guard, default_guard))
     }
 
     /// Initialize the telemetry setup.
     ///
+    /// Registers the meter provider globally, so `opentelemetry::global::meter` hands out
+    /// exporting instruments.
+    ///
     /// # Errors
     ///
     /// - [`InitTracingError`], if initializing the [`tracing_subscriber::Registry`] fails.
-    pub fn init_global(self) -> Result<impl Drop, Report<InitTracingError>> {
+    pub fn init_global(self) -> Result<Telemetry, Report<InitTracingError>> {
         let (registry, guard) = self.build()?;
 
         registry.try_init().change_context(InitTracingError)?;
+        opentelemetry::global::set_meter_provider(guard.metrics_provider.clone());
 
-        // We have to wait until logging is initialized before we can print the warning.
-        if std::env::var("RUST_LOG").is_ok() {
-            if std::env::var("HASH_GRAPH_LOG_LEVEL").is_ok() {
-                warn!(
-                    "`HASH_GRAPH_LOG_LEVEL` and `RUST_LOG` are set, `HASH_GRAPH_LOG_LEVEL` has \
-                     been used to determine the logging level."
-                );
-            } else {
-                warn!("`RUST_LOG` is set, please use `HASH_GRAPH_LOG_LEVEL` instead");
-            }
-        }
+        // We have to wait until logging is initialized before we can print the warnings.
+        warn_about_log_level_variables();
+        guard.warn_where_metrics_are_discarded();
 
         Ok(guard)
     }
 }
 
-struct TelemetryGuard<F> {
+fn warn_about_log_level_variables() {
+    if std::env::var("RUST_LOG").is_ok() {
+        if std::env::var("HASH_GRAPH_LOG_LEVEL").is_ok() {
+            warn!(
+                "`HASH_GRAPH_LOG_LEVEL` and `RUST_LOG` are set, `HASH_GRAPH_LOG_LEVEL` has been \
+                 used to determine the logging level."
+            );
+        } else {
+            warn!("`RUST_LOG` is set, please use `HASH_GRAPH_LOG_LEVEL` instead");
+        }
+    }
+}
+
+/// The initialized telemetry pipelines, shutting them down on drop.
+#[must_use = "dropping the guard shuts the telemetry pipelines down"]
+pub struct Telemetry {
     otlp_traces_provider: Option<SdkTracerProvider>,
     otlp_logs_provider: Option<SdkLoggerProvider>,
-    otlp_metrics_provider: Option<SdkMeterProvider>,
-    _file_guard: F,
+    metrics_provider: SdkMeterProvider,
+    metrics_exported: bool,
+    _file_guard: Option<WorkerGuard>,
     _flamegraph: Option<FlushGuard<BufWriter<File>>>,
 }
 
-impl<F> Drop for TelemetryGuard<F> {
+impl Telemetry {
+    /// Returns a [`Meter`] on the held provider.
+    ///
+    /// Instruments built from it export measurements regardless of whether the provider is
+    /// registered globally, so binding them cannot race the registration.
+    #[must_use]
+    pub fn meter(&self, scope: &'static str) -> Meter {
+        self.metrics_provider.meter(scope)
+    }
+
+    fn warn_where_metrics_are_discarded(&self) {
+        if !self.metrics_exported {
+            warn!(
+                "no OTLP endpoint is configured, so metric instruments record into a provider \
+                 with no reader and every measurement is discarded"
+            );
+        }
+    }
+}
+
+impl Drop for Telemetry {
     fn drop(&mut self) {
-        if let Some(provider) = self.otlp_metrics_provider.take()
-            && let Err(error) = provider.shutdown()
-        {
+        if let Err(error) = self.metrics_provider.shutdown() {
             tracing::warn!("Failed to shutdown OpenTelemetry metrics: {error}");
         }
 
@@ -283,7 +314,7 @@ impl<F> Drop for TelemetryGuard<F> {
 pub fn init_tracing(
     config: TracingConfig,
     service_name: &'static str,
-) -> Result<impl Drop, Report<InitTracingError>> {
+) -> Result<Telemetry, Report<InitTracingError>> {
     TelemetryRegistry::default()
         .with_error_layer()
         .with_console_logging(config.logging.console)

@@ -126,7 +126,7 @@ const Page: NextPageWithLayout = () => {
         webId={routeNamespace.webId}
         draftEntityType={draftEntityType}
         entityTypeBaseUrl={entityTypeBaseUrl}
-        key={`${entityTypeBaseUrl}-${requestedVersion?.toString()}`}
+        key={`${draftEntityType?.metadata.recordId.baseUrl ?? entityTypeBaseUrl}-${requestedVersion?.toString()}`}
         requestedVersion={requestedVersion}
       />
       <GlobalStyles

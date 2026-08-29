@@ -35,7 +35,7 @@ async fn create_web() -> Result<(), Box<dyn Error>> {
     assert!(client.is_machine(response.machine_id).await?);
 
     let retrieved = client
-        .get_web_by_id(actor_id.into(), response.web_id)
+        .get_web_by_id(actor_id, response.web_id)
         .await?
         .expect("Web should exist");
     assert_eq!(retrieved.id, response.web_id);
@@ -136,9 +136,7 @@ async fn get_non_existent_web() -> Result<(), Box<dyn Error>> {
     let (client, actor_id) = db.seed().await?;
 
     let non_existent_id = WebId::new(Uuid::new_v4());
-    let result = client
-        .get_web_by_id(actor_id.into(), non_existent_id)
-        .await?;
+    let result = client.get_web_by_id(actor_id, non_existent_id).await?;
 
     assert!(
         result.is_none(),

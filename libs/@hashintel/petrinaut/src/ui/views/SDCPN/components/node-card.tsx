@@ -14,15 +14,19 @@ export type SelectionVariant =
 
 const containerStyle = css({
   position: "relative",
+  height: "full",
 });
 
 /**
  * Shared card style with selection variants.
  * Consumers pass `borderRadius` and color overrides per node type.
+ * The card fills the node wrapper, which React Flow sizes to the node's
+ * declared dimensions (see `RenderNodeDimensions` in petrinaut-core).
  */
 export const nodeCardStyle = cva({
   base: {
-    width: "[180px]",
+    width: "full",
+    height: "full",
     display: "flex",
     alignItems: "center",
     gap: "[8px]",

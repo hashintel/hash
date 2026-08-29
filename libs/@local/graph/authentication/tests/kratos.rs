@@ -21,10 +21,10 @@ use core::{error::Error, time::Duration};
 use hash_graph_authentication::{
     actor::ResolveActor,
     cloudflare::ResolveEmailActor as _,
-    kratos::{KratosAdminConfig, KratosEmailActorResolver},
-    request::AuthenticationError,
+    kratos::{IdentityDeletion, KratosAdminClient, KratosAdminConfig, KratosEmailActorResolver},
 };
 use hash_graph_authorization::policies::store::error::DetermineActorError;
+use hash_middleware::authentication::request::AuthenticationError;
 use reqwest::{Client, Url};
 use serde_json::json;
 use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
@@ -38,9 +38,9 @@ impl ResolveActor for EchoingActorResolver {
     fn resolve_actor(
         &self,
         actor_entity_uuid: ActorEntityUuid,
-    ) -> impl Future<Output = Result<Option<ActorId>, error_stack::Report<DetermineActorError>>> + Send
+    ) -> impl Future<Output = Result<ActorId, error_stack::Report<DetermineActorError>>> + Send
     {
-        core::future::ready(Ok(Some(ActorId::User(UserId::new(actor_entity_uuid)))))
+        core::future::ready(Ok(ActorId::User(UserId::new(actor_entity_uuid))))
     }
 }
 
@@ -221,5 +221,64 @@ async fn address_resolves_regardless_of_case() -> Result<(), Box<dyn Error>> {
     delete_identity(&client, &identity_id).await?;
 
     resolved.expect("an address differing in case should resolve");
+    Ok(())
+}
+
+fn admin_client() -> KratosAdminClient {
+    KratosAdminClient::new(kratos_admin_url(), Duration::from_secs(10))
+}
+
+#[tokio::test]
+async fn identity_read_by_id_yields_the_registered_addresses() -> Result<(), Box<dyn Error>> {
+    let client = Client::new();
+    let email = unique_email();
+    let identity_id = create_identity(&client, &email, false, None).await?;
+
+    let read = admin_client().get_by_id(&identity_id).await;
+
+    delete_identity(&client, &identity_id).await?;
+
+    let identity = read
+        .expect("an existing identity should be readable")
+        .expect("the created identity should be found");
+    assert_eq!(
+        identity.traits.emails,
+        [email],
+        "the read should yield the address the identity was created with"
+    );
+    Ok(())
+}
+
+#[tokio::test]
+async fn identity_read_by_unknown_id_yields_none() {
+    let read = admin_client()
+        .get_by_id(&Uuid::new_v4().to_string())
+        .await
+        .expect("an unknown identity should not fail the read");
+    assert!(
+        read.is_none(),
+        "an unknown identity should read as absent rather than fail"
+    );
+}
+
+#[tokio::test]
+async fn deletion_by_id_reports_the_absent_identity() -> Result<(), Box<dyn Error>> {
+    let client = Client::new();
+    let email = unique_email();
+    let identity_id = create_identity(&client, &email, false, None).await?;
+
+    let first = admin_client().delete_by_id(&identity_id).await?;
+    let second = admin_client().delete_by_id(&identity_id).await?;
+
+    assert_eq!(
+        first,
+        IdentityDeletion::Deleted,
+        "the first deletion should report the identity as deleted"
+    );
+    assert_eq!(
+        second,
+        IdentityDeletion::AlreadyAbsent,
+        "the second deletion should report the identity as already absent"
+    );
     Ok(())
 }

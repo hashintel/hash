@@ -3,7 +3,7 @@ use hash_graph_authorization::policies::store::CreateWebResponse;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use type_system::principal::{
-    actor::{ActorEntityUuid, Ai, AiId, Machine, MachineId, User, UserId},
+    actor::{ActorEntityUuid, ActorId, Ai, AiId, Machine, MachineId, User, UserId},
     actor_group::{ActorGroupId, Team, TeamId, Web, WebId},
 };
 use uuid::Uuid;
@@ -110,7 +110,7 @@ pub trait AccountStore {
     /// - if creation failed, e.g. because the [`ActorEntityUuid`] already exists.
     fn create_user_actor(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: CreateUserActorParams,
     ) -> impl Future<Output = Result<CreateUserActorResponse, Report<AccountInsertionError>>> + Send;
 
@@ -121,7 +121,7 @@ pub trait AccountStore {
     /// - if creation failed, e.g. because the [`ActorEntityUuid`] already exists.
     fn create_machine_actor(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: CreateMachineActorParams,
     ) -> impl Future<Output = Result<MachineId, Report<AccountInsertionError>>> + Send;
 
@@ -132,21 +132,9 @@ pub trait AccountStore {
     /// - [`GetActorError`] if the actor could not be retrieved.
     fn get_user_by_id(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         id: UserId,
     ) -> impl Future<Output = Result<Option<User>, Report<GetActorError>>> + Send;
-
-    /// Returns the [`UserId`] for a user with the given email address.
-    ///
-    /// Looks up the email in entity properties, bypassing property masking.
-    ///
-    /// # Errors
-    ///
-    /// - [`GetActorError`] if the lookup failed.
-    fn get_user_id_by_email(
-        &self,
-        email: &str,
-    ) -> impl Future<Output = Result<Option<UserId>, Report<GetActorError>>> + Send;
 
     /// Returns the Kratos identity ID for a user, read from their entity properties.
     ///
@@ -158,16 +146,6 @@ pub trait AccountStore {
         user_id: UserId,
     ) -> impl Future<Output = Result<Option<String>, Report<GetActorError>>> + Send;
 
-    /// Returns the email addresses for a user, read from their entity properties.
-    ///
-    /// # Errors
-    ///
-    /// - [`GetActorError`] if the lookup failed.
-    fn get_user_emails(
-        &self,
-        user_id: UserId,
-    ) -> impl Future<Output = Result<Vec<String>, Report<GetActorError>>> + Send;
-
     /// Returns a [`Machine`] actor by its [`MachineId`].
     ///
     /// # Errors
@@ -175,7 +153,7 @@ pub trait AccountStore {
     /// - [`GetActorError`] if the actor could not be retrieved.
     fn get_machine_by_id(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         id: MachineId,
     ) -> impl Future<Output = Result<Option<Machine>, Report<GetActorError>>> + Send;
 
@@ -186,7 +164,7 @@ pub trait AccountStore {
     /// - [`GetActorError`] if the actor could not be retrieved.
     fn get_machine_by_identifier(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         identifier: &str,
     ) -> impl Future<Output = Result<Option<Machine>, Report<GetActorError>>> + Send;
 
@@ -197,7 +175,7 @@ pub trait AccountStore {
     /// - [`GetActorError`] if the actor could not be retrieved.
     fn get_ai_by_id(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         id: AiId,
     ) -> impl Future<Output = Result<Option<Ai>, Report<GetActorError>>> + Send;
 
@@ -208,7 +186,7 @@ pub trait AccountStore {
     /// - [`GetActorError`] if the actor could not be retrieved.
     fn get_ai_by_identifier(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         identifier: &str,
     ) -> impl Future<Output = Result<Option<Ai>, Report<GetActorError>>> + Send;
 
@@ -219,7 +197,7 @@ pub trait AccountStore {
     /// - if creation failed, e.g. because the [`ActorEntityUuid`] already exists.
     fn create_ai_actor(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: CreateAiActorParams,
     ) -> impl Future<Output = Result<AiId, Report<AccountInsertionError>>> + Send;
 
@@ -230,7 +208,7 @@ pub trait AccountStore {
     /// - If reading the web failed.
     fn get_web_by_id(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         id: WebId,
     ) -> impl Future<Output = Result<Option<Web>, Report<WebRetrievalError>>> + Send;
 
@@ -243,7 +221,7 @@ pub trait AccountStore {
     /// - [`WebUpdateError::StoreError`] if the underlying store operation failed.
     fn update_web_shortname(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         id: WebId,
         shortname: &str,
     ) -> impl Future<Output = Result<(), Report<WebUpdateError>>> + Send;
@@ -255,7 +233,7 @@ pub trait AccountStore {
     /// - If reading the web failed.
     fn get_web_by_shortname(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         shortname: &str,
     ) -> impl Future<Output = Result<Option<Web>, Report<WebRetrievalError>>> + Send;
 
@@ -266,7 +244,7 @@ pub trait AccountStore {
     /// - if insertion failed, e.g. because the [`WebId`] already exists.
     fn create_org_web(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: CreateOrgWebParams,
     ) -> impl Future<Output = Result<CreateWebResponse, Report<WebInsertionError>>> + Send;
 
@@ -277,7 +255,7 @@ pub trait AccountStore {
     /// - if insertion failed, e.g. because the [`TeamId`] already exists.
     fn create_team(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: CreateTeamParams,
     ) -> impl Future<Output = Result<TeamId, Report<AccountGroupInsertionError>>> + Send;
 
@@ -288,7 +266,7 @@ pub trait AccountStore {
     /// - If reading the team failed.
     fn get_team_by_id(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         id: TeamId,
     ) -> impl Future<Output = Result<Option<Team>, Report<TeamRetrievalError>>> + Send;
 
@@ -299,7 +277,7 @@ pub trait AccountStore {
     /// - If reading the team failed.
     fn get_team_by_name(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         name: &str,
     ) -> impl Future<Output = Result<Option<Team>, Report<TeamRetrievalError>>> + Send;
 }

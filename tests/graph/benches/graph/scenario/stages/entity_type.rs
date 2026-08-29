@@ -33,7 +33,7 @@ use type_system::{
         property_type::schema::PropertyTypeReference,
         provenance::OntologyOwnership,
     },
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{actor::ActorId, actor_group::WebId},
 };
 
 use super::{Runner, web_catalog::InMemoryWebCatalog};
@@ -246,7 +246,7 @@ impl PersistEntityTypesStage {
             .change_context(EntityTypeError::Persist)?;
 
         // Build web->user map from provided user resources
-        let mut web_actor_by_web: HashMap<WebId, ActorEntityUuid> = HashMap::new();
+        let mut web_actor_by_web: HashMap<WebId, ActorId> = HashMap::new();
         for user_key in &self.inputs.web_to_user {
             let Some(users) = runner.resources.users.get(user_key) else {
                 return Err(Report::new(EntityTypeError::MissingConfig {
@@ -563,7 +563,7 @@ impl BuildEntityTypeRegistryStage {
 
         let get_entity_types_response = store
             .query_entity_types(
-                ActorEntityUuid::public_actor(),
+                None,
                 QueryEntityTypesParams {
                     request: CommonQueryEntityTypesParams {
                         filter: Filter::for_entity_type_uuids(&all_entity_types),

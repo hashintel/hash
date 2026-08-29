@@ -1,8 +1,11 @@
 mod array;
 pub mod bit_vec;
 mod index;
+mod matrix;
 mod slice;
 pub mod snapshot_vec;
+#[cfg(test)]
+mod tests;
 mod union_find;
 mod vec;
 
@@ -17,8 +20,8 @@ use ::core::sync::atomic;
 pub use hashql_macros::{Id, define_id as newtype};
 
 pub use self::{
-    array::IdArray, index::IntoSliceIndex, slice::IdSlice, snapshot_vec::IdSnapshotVec,
-    union_find::IdUnionFind, vec::IdVec,
+    array::IdArray, index::IntoSliceIndex, matrix::IdMatrix, slice::IdSlice,
+    snapshot_vec::IdSnapshotVec, union_find::IdUnionFind, vec::IdVec,
 };
 
 /// Represents errors that can occur when converting values to an [`Id`].
@@ -57,6 +60,8 @@ pub const trait Id:
     + Hash
     + Debug
     + Display
+    + Send
+    + Sync
     + [const] TryFrom<u32, Error = IdError>
     + [const] TryFrom<u64, Error = IdError>
     + [const] TryFrom<usize, Error = IdError>
@@ -162,6 +167,17 @@ pub const trait Id:
     #[inline]
     fn decrement_by(&mut self, amount: usize) {
         *self = self.minus(amount);
+    }
+
+    #[inline]
+    fn next(self) -> Option<Self> {
+        match self.as_u64().checked_add(1) {
+            Some(next) => match Self::try_from(next) {
+                Ok(next) => Some(next),
+                Err(_) => None,
+            },
+            None => None,
+        }
     }
 
     /// Returns the previous ID in sequence, if it exists.

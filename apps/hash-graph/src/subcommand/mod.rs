@@ -12,7 +12,7 @@ use std::{sync::Once, thread::available_parallelism, time::Instant};
 
 use clap::Parser;
 use error_stack::{Report, ensure};
-use hash_telemetry::{TracingConfig, init_tracing};
+use hash_telemetry::{Telemetry, TracingConfig, init_tracing};
 use tokio::time::sleep;
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
@@ -227,8 +227,10 @@ pub enum Subcommand {
     ReindexCache(Box<ReindexCacheArgs>),
 }
 
+/// The subcommand runs as a closure over the initialized telemetry, which does not exist before
+/// this initializes it inside the runtime.
 fn block_on(
-    future: impl Future<Output = Result<(), Report<GraphError>>>,
+    run: impl AsyncFnOnce(&Telemetry) -> Result<(), Report<GraphError>>,
     service_name: &'static str,
     tracing_config: TracingConfig,
     worker_threads: WorkerThreads,
@@ -247,10 +249,10 @@ fn block_on(
         .build()
         .expect("failed to create runtime")
         .block_on(async {
-            let _telemetry_guard = init_tracing(tracing_config, service_name)
+            let telemetry = init_tracing(tracing_config, service_name)
                 .expect("should be able to initialize telemetry");
 
-            let result = future.await;
+            let result = run(&telemetry).await;
             if let Err(report) = &result {
                 tracing::error!(error = ?report, "{service_name} exited with a fatal error");
             }
@@ -265,40 +267,48 @@ impl Subcommand {
         worker_threads: WorkerThreads,
     ) -> Result<(), Report<GraphError>> {
         match self {
-            Self::Server(args) => {
-                block_on(server(*args), "Graph API", tracing_config, worker_threads)
-            }
+            Self::Server(args) => block_on(
+                async |telemetry| server(*args, telemetry).await,
+                "Graph API",
+                tracing_config,
+                worker_threads,
+            ),
             Self::AdminServer(args) => block_on(
-                admin_server(*args),
+                async |telemetry| admin_server(*args, telemetry).await,
                 "Graph Admin API",
                 tracing_config,
                 worker_threads,
             ),
             Self::Migrate(args) => block_on(
-                migrate(*args),
+                async |_telemetry| migrate(*args).await,
                 "Graph Migrations",
                 tracing_config,
                 worker_threads,
             ),
             Self::TypeFetcher(args) => block_on(
-                type_fetcher(*args),
+                async |_telemetry| type_fetcher(*args).await,
                 "Type Fetcher",
                 tracing_config,
                 worker_threads,
             ),
-            Self::Atlas(args) => block_on(atlas(*args), "Atlas", tracing_config, worker_threads),
+            Self::Atlas(args) => block_on(
+                async |_telemetry| atlas(*args).await,
+                "Atlas",
+                tracing_config,
+                worker_threads,
+            ),
             Self::Completions(ref args) => {
                 completions(args);
                 Ok(())
             }
             Self::Snapshot(args) => block_on(
-                snapshot(*args),
+                async |_telemetry| snapshot(*args).await,
                 "Graph Snapshot",
                 tracing_config,
                 worker_threads,
             ),
             Self::ReindexCache(args) => block_on(
-                reindex_cache(*args),
+                async |_telemetry| reindex_cache(*args).await,
                 "Graph Indexer",
                 tracing_config,
                 worker_threads,

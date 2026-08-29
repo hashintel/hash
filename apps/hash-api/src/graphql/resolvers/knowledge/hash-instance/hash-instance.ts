@@ -13,16 +13,16 @@ export const hashInstanceSettingsResolver: ResolverFn<
   GraphQLContext,
   Record<string, never>
 > = async (_, __, graphQLContext) => {
-  const { authentication } = graphQLContext;
+  const { authentication, user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const { entity } = await getHashInstance(context, authentication);
 
-  const isUserAdmin = await isUserHashInstanceAdmin(
-    graphQLContextToImpureGraphContext(graphQLContext),
-    graphQLContext.authentication,
-    { userAccountId: authentication.actorId },
-  );
+  const isUserAdmin = user
+    ? await isUserHashInstanceAdmin(context, authentication, {
+        userAccountId: authentication.actorId,
+      })
+    : false;
 
   return {
     entity: entity.toJSON(),

@@ -107,7 +107,7 @@ type Value =
   | MixedOutputValue
   /** `Uuid.generate()` / `Uuid.from(...)` — resolved by the engine sink. */
   | { kind: "uuidSentinel"; mode: "generate" | "from"; code: string }
-  /** The lambda/kernel first parameter (`tokensByPlace`). */
+  /** The lambda/kernel input object. */
   | { kind: "inputRecord" }
   /** A whole input arc slot's token tuple. */
   | { kind: "tokens"; slot: HirArcSlot }

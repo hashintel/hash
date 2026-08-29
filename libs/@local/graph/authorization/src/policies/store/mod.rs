@@ -30,7 +30,7 @@ use self::error::{
 use super::{
     ContextBuilder, Effect, Policy, PolicyId, ResolvedPolicy,
     action::ActionName,
-    principal::{PrincipalConstraint, actor::AuthenticatedActor},
+    principal::PrincipalConstraint,
     resource::{
         DataTypeResource, EntityResource, EntityTypeResource, PropertyTypeResource,
         ResourceConstraint,
@@ -190,7 +190,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: CreatePolicyError::StoreError
     async fn create_policy(
         &mut self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         policy: PolicyCreationParams,
     ) -> Result<PolicyId, Report<CreatePolicyError>>;
 
@@ -203,7 +203,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: GetPoliciesError::StoreError
     async fn get_policy_by_id(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         id: PolicyId,
     ) -> Result<Option<Policy>, Report<GetPoliciesError>>;
 
@@ -226,7 +226,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: GetPoliciesError::StoreError
     async fn query_policies(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         filter: &PolicyFilter,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
 
@@ -252,7 +252,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: GetPoliciesError::StoreError
     async fn resolve_policies_for_actor(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: Option<ActorId>,
         params: ResolvePoliciesParams,
     ) -> Result<Vec<ResolvedPolicy>, Report<GetPoliciesError>>;
 
@@ -273,7 +273,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: UpdatePolicyError::StoreError
     async fn update_policy_by_id(
         &mut self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         policy_id: PolicyId,
         operations: &[PolicyUpdateOperation],
     ) -> Result<Policy, Report<UpdatePolicyError>>;
@@ -289,7 +289,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: RemovePolicyError::StoreError
     async fn archive_policy_by_id(
         &mut self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         policy_id: PolicyId,
     ) -> Result<(), Report<RemovePolicyError>>;
 
@@ -310,7 +310,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: RemovePolicyError::StoreError
     async fn delete_policy_by_id(
         &mut self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         policy_id: PolicyId,
     ) -> Result<(), Report<RemovePolicyError>>;
 
@@ -427,7 +427,7 @@ pub trait PrincipalStore {
     /// [`StoreError`]: WebRoleError::StoreError
     async fn get_web_roles(
         &mut self,
-        actor: ActorEntityUuid,
+        actor: ActorId,
         web_id: WebId,
     ) -> Result<HashMap<WebRoleId, WebRole>, Report<WebRoleError>>;
 
@@ -442,7 +442,7 @@ pub trait PrincipalStore {
     /// [`StoreError`]: TeamRoleError::StoreError
     async fn get_team_roles(
         &mut self,
-        actor: ActorEntityUuid,
+        actor: ActorId,
         team_id: TeamId,
     ) -> Result<HashMap<TeamRoleId, TeamRole>, Report<TeamRoleError>>;
 
@@ -459,7 +459,7 @@ pub trait PrincipalStore {
     /// [`StoreError`]: RoleAssignmentError::StoreError
     async fn assign_role(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         actor_to_assign: ActorEntityUuid,
         actor_group_id: ActorGroupEntityUuid,
         name: RoleName,
@@ -512,15 +512,13 @@ pub trait PrincipalStore {
     /// [`StoreError`]: RoleAssignmentError::StoreError
     async fn unassign_role(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         actor_to_unassign: ActorEntityUuid,
         actor_group_id: ActorGroupEntityUuid,
         name: RoleName,
     ) -> Result<RoleUnassignmentStatus, Report<RoleAssignmentError>>;
 
     /// Determines the type of an actor by its ID.
-    ///
-    /// Returns `None` if the ID is the public actor.
     ///
     /// # Errors
     ///
@@ -532,7 +530,7 @@ pub trait PrincipalStore {
     async fn determine_actor(
         &self,
         actor_entity_uuid: ActorEntityUuid,
-    ) -> Result<Option<ActorId>, Report<DetermineActorError>>;
+    ) -> Result<ActorId, Report<DetermineActorError>>;
 
     /// Builds a context used to evaluate policies for an actor.
     ///
@@ -878,7 +876,9 @@ impl OldPolicyStore for MemoryPolicyStore {
         name: RoleName,
     ) -> Result<(), Report<RoleAssignmentError>> {
         let Some(actor) = self.actors.get_mut(&actor_id) else {
-            bail!(RoleAssignmentError::ActorNotFound { actor_id })
+            bail!(RoleAssignmentError::ActorNotFound {
+                actor_id: actor_id.into()
+            })
         };
         let role_id = self.role_ids.get(&(actor_group_id, name)).ok_or(
             RoleAssignmentError::RoleNotFound {
@@ -908,7 +908,9 @@ impl OldPolicyStore for MemoryPolicyStore {
         name: RoleName,
     ) -> Result<(), Report<RoleAssignmentError>> {
         let Some(actor) = self.actors.get_mut(&actor_id) else {
-            bail!(RoleAssignmentError::ActorNotFound { actor_id })
+            bail!(RoleAssignmentError::ActorNotFound {
+                actor_id: actor_id.into()
+            })
         };
         let role_id = self.role_ids.get(&(actor_group_id, name)).ok_or(
             RoleAssignmentError::RoleNotFound {

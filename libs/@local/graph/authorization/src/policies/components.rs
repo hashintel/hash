@@ -11,16 +11,12 @@ use type_system::{
         VersionedUrl, data_type::DataTypeUuid, entity_type::EntityTypeUuid,
         property_type::PropertyTypeUuid,
     },
-    principal::{
-        actor::{ActorEntityUuid, ActorId},
-        actor_group::WebId,
-    },
+    principal::{actor::ActorId, actor_group::WebId},
 };
 
 use super::{
     Context, ContextBuilder, Effect, PolicySet, ResolvedPolicy,
     action::ActionName,
-    principal::actor::AuthenticatedActor,
     resource::{
         DataTypeResource, DataTypeResourceConstraint, EntityResource, EntityResourceConstraint,
         EntityTypeResource, EntityTypeResourceConstraint, PolicyMetaResource, PropertyTypeResource,
@@ -76,8 +72,8 @@ pub struct PolicyComponents {
 
 impl PolicyComponents {
     #[must_use]
-    pub fn builder<S>(store: &S) -> PolicyComponentsBuilder<'_, S> {
-        PolicyComponentsBuilder::new(store)
+    pub fn builder<S>(store: &S, actor: Option<ActorId>) -> PolicyComponentsBuilder<'_, S> {
+        PolicyComponentsBuilder::new(store, actor)
     }
 
     /// Returns the actor ID for this policy evaluation context.
@@ -318,7 +314,8 @@ impl PolicyComponents {
 
 pub struct PolicyComponentsBuilder<'a, S> {
     store: &'a S,
-    actor: AuthenticatedActor,
+    /// The actor to resolve policies for, or [`None`] for the public actor.
+    actor: Option<ActorId>,
     context: ContextBuilder,
     entity_type_ids: HashSet<Cow<'a, VersionedUrl>>,
     property_type_ids: HashSet<Cow<'a, VersionedUrl>>,
@@ -330,10 +327,10 @@ pub struct PolicyComponentsBuilder<'a, S> {
 
 impl<'a, S> PolicyComponentsBuilder<'a, S> {
     #[must_use]
-    pub fn new(store: &'a S) -> Self {
+    pub fn new(store: &'a S, actor: Option<ActorId>) -> Self {
         Self {
             store,
-            actor: AuthenticatedActor::Uuid(ActorEntityUuid::public_actor()),
+            actor,
             context: ContextBuilder::default(),
             entity_type_ids: HashSet::new(),
             property_type_ids: HashSet::new(),
@@ -341,16 +338,6 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
             entity_edition_ids: HashSet::new(),
             actions: HashMap::new(),
         }
-    }
-
-    pub fn set_actor(&mut self, actor: impl Into<AuthenticatedActor>) {
-        self.actor = actor.into();
-    }
-
-    #[must_use]
-    pub fn with_actor(mut self, actor: impl Into<AuthenticatedActor>) -> Self {
-        self.set_actor(actor);
-        self
     }
 
     pub fn add_entity_type_id(&mut self, entity_type: &'a VersionedUrl) {
@@ -584,16 +571,7 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     fn into_future(mut self) -> Self::IntoFuture {
         async move {
-            let actor_id = match self.actor {
-                AuthenticatedActor::Id(actor_id) => Some(actor_id),
-                AuthenticatedActor::Uuid(actor_uuid) => self
-                    .store
-                    .determine_actor(actor_uuid)
-                    .await
-                    .change_context(ContextCreationError::DetermineActor {
-                        actor_id: actor_uuid,
-                    })?,
-            };
+            let actor_id = self.actor;
 
             if let Some(actor_id) = actor_id {
                 self.store
@@ -696,7 +674,7 @@ where
             } else {
                 self.store
                     .resolve_policies_for_actor(
-                        actor_id.into(),
+                        actor_id,
                         ResolvePoliciesParams {
                             actions: Cow::Borrowed(&actions),
                         },

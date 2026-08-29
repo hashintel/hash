@@ -281,6 +281,8 @@ describe("local capture store", () => {
       }),
     );
 
-    await expect(createLocalCaptureStoreAdapter(path).read()).rejects.toThrow();
+    await expect(createLocalCaptureStoreAdapter(path).read()).rejects.toThrow(
+      Error,
+    );
   });
 });

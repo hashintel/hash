@@ -34,9 +34,14 @@ import { createGherkinElicitationSession } from "../elicitation-session.ts";
  */
 export const GHERKIN_MODEL_ID = "claude-haiku-4-5";
 
+const gherkinElicitorInitialData = v.object({
+  targetDocumentId: v.pipe(v.string(), v.nonEmpty()),
+});
+
 export function GherkinElicitor(props: AgentProps) {
   useModel(`anthropic/${GHERKIN_MODEL_ID}`);
-  const initialData = useInitialData<{ targetDocumentId: string }>();
+  const initialData =
+    useInitialData<v.InferOutput<typeof gherkinElicitorInitialData>>();
   return useElicitation(
     gherkin,
     createGherkinElicitationSession(props.id, initialData.targetDocumentId),
@@ -68,6 +73,4 @@ GherkinElicitor.agentName = "brunch-gherkin-elicitor";
  * to an existing conversation id resumes that session against the current state
  * of its target-document.
  */
-GherkinElicitor.initialData = v.object({
-  targetDocumentId: v.pipe(v.string(), v.nonEmpty()),
-});
+GherkinElicitor.initialData = gherkinElicitorInitialData;

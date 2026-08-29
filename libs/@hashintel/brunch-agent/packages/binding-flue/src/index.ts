@@ -26,25 +26,35 @@ import {
   ASK_TOOL_DESCRIPTION,
   AskInput,
   FreeTextAffordance,
+  SWEEP_RESULT_STATUSES,
   advanceSweepHighWater,
   askProtocolInstructionFragments,
+  buildCompletionCueSignal,
   buildSettlementCheckSignal,
   buildReplyBindingSignalPayload,
   buildSweepExtractionPrompt,
+  buildSweepList,
   buildSweepRepairSignal,
+  completionDemands,
+  completionProtocolInstructionFragments,
   computeUnaccountedAskAdvisories,
   createSweepExtractionResultSchema,
   createInitialSweepState,
   decidePendingAffordance,
   decideSettlementTrigger,
+  evaluateCompletion,
+  foldElicitedModel,
   mintAskAffordance,
   parseSweepState,
   pendingSweepRepair,
+  pluginFileInstructions,
   reopenSweepAfterRefusal,
   settlementProtocolInstructionFragments,
+  slotAssertionExtractionGuidance,
   sweepableRange,
   toolName,
   type CaptureStore,
+  type CaptureStoreSnapshot,
   type FreeTextAffordanceValue,
   type Plugin,
   type SweepState,
@@ -57,7 +67,7 @@ import {
 } from "./history-reader";
 
 const SweepToolOutput = v.looseObject({
-  status: v.picklist(["no-settled-range", "refused", "applied"]),
+  status: v.picklist(SWEEP_RESULT_STATUSES),
 });
 
 export { CAPABILITIES, type Capability, type Provision } from "./capabilities";
@@ -103,6 +113,26 @@ export function useElicitation(
   let pendingAtFinish = pending;
   let sweepState = parseSweepState(storedSweepState);
   const extractionResult = createSweepExtractionResultSchema(plugin);
+  const { file } = plugin;
+  const demands = file === undefined ? undefined : completionDemands(file);
+  // Read-time derivation, never stored: fold the active captures, evaluate
+  // completion over the objective slices, and render the cue (ADR-0003,
+  // ADR-0006). Returned as a tool result so the model sees a harness fact
+  // without any state reaching the instructions.
+  const completionCue = (snapshot: CaptureStoreSnapshot) => {
+    if (file === undefined || demands === undefined) return undefined;
+    const model = foldElicitedModel(snapshot, file);
+    const report = evaluateCompletion(model, demands);
+    const sweepList = buildSweepList(model, report, file.patterns);
+    return {
+      complete: report.complete,
+      revision: report.revision,
+      pluginVersion: report.pluginVersion,
+      unsatisfied: report.failures.length,
+      unmapped: model.unmapped,
+      cue: buildCompletionCueSignal(model, report, sweepList).body,
+    };
+  };
   const writeAffordance = useDataWriter("affordance", {
     schema: FreeTextAffordance,
   });
@@ -162,10 +192,13 @@ export function useElicitation(
             await harness.prompt(
               buildSweepExtractionPrompt(
                 {
-                  targetDomain: plugin.targetDomain,
+                  targetFormalism: plugin.targetFormalism,
                   proposalNames: plugin.proposalCatalog.map(
                     (proposal) => proposal.name,
                   ),
+                  ...(file === undefined
+                    ? {}
+                    : { guidance: slotAssertionExtractionGuidance(file) }),
                 },
                 range,
               ),
@@ -222,6 +255,9 @@ export function useElicitation(
             ...("advisories" in applied.value ? applied.value.advisories : []),
             ...computeUnaccountedAskAdvisories(range, accountedEntryIds),
           ],
+          ...(file === undefined
+            ? {}
+            : { completion: completionCue(applied.snapshot) }),
         },
       };
     },
@@ -257,7 +293,13 @@ export function useElicitation(
   });
 
   return [
-    ...askProtocolInstructionFragments(plugin.targetDomain),
+    ...askProtocolInstructionFragments(plugin.targetFormalism),
     ...settlementProtocolInstructionFragments(),
+    ...(file === undefined
+      ? []
+      : [
+          ...completionProtocolInstructionFragments(),
+          pluginFileInstructions(file),
+        ]),
   ].join("\n\n");
 }

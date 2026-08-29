@@ -2,8 +2,10 @@
 
 Date: 2026-08-18
 Status: accepted
-Amends: [ir-design.md](../planning/process-model-elicitation/ir-design.md) Layer A (the
+Amends: [ir-design.md](../specs/intermediate-representation.md) Layer A (the
 "Definition" paragraph), ratified FE-1364/FE-1397
+Amended by: [ADR-0005](0005-model-assisted-sdcpn-realization.md) — projections remain pure through
+the scaffold and obligation plan; executable code is realized downstream.
 Decided on: FE-1405 (payload-interiors session); ratified by Lu, 2026-08-18
 
 ## Context

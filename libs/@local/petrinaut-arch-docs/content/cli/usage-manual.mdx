@@ -17,7 +17,7 @@ exposes no HTTP or TCP, only stdio (default) or a Unix socket.
 
 ```bash
 turbo --filter @hashintel/petrinaut-cli build
-node libs/@hashintel/petrinaut-cli/dist/cli.js serve --model ./my-model.json
+node libs/@hashintel/petrinaut-cli/dist/cli.js serve --model ./my-model.yaml
 ```
 
 The examples below shorten `node libs/@hashintel/petrinaut-cli/dist/cli.js` to
@@ -38,9 +38,9 @@ Both are produced by the Petrinaut editor:
 
 | Flag                    | Source                                        | Transports    |
 | ----------------------- | --------------------------------------------- | ------------- |
-| `--model <path>`        | Model JSON file                               | stdio, socket |
+| `--model <path>`        | Model file (YAML or JSON)                     | stdio, socket |
 | `--model-stdin`         | Model JSON as the first stdin line            | stdio only    |
-| `--optimization <path>` | Optimization manifest file                    | stdio only    |
+| `--optimization <path>` | Optimization manifest file (YAML or JSON)     | stdio only    |
 | `--optimization-stdin`  | Optimization manifest as the first stdin line | stdio only    |
 
 - `--stdio` (the default) reads requests from stdin and writes responses to
@@ -53,17 +53,20 @@ Both are produced by the Petrinaut editor:
   current snapshot, avoiding a temporary file.
 - Both model sources accept the editor's versioned save format and the older
   unversioned one.
+- The file sources (`--model`, `--optimization`) accept YAML or JSON, detected
+  from the content rather than the file name. The stdin sources read a single
+  JSON line.
 
 ```bash
 # stdio, model from a file
-petrinaut serve --model ./my-model.json
+petrinaut serve --model ./my-model.yaml
 
 # stdio, manifest as the first line
 petrinaut serve --optimization-stdin --stdio
 
 # Unix socket
 petrinaut serve \
-  --model ./my-model.json \
+  --model ./my-model.yaml \
   --socket /tmp/petrinaut.sock
 ```
 
@@ -193,8 +196,8 @@ places created internally by subnet expansion are not part of the contract.
 
 ## Optimization studies
 
-An optimization manifest is a versioned, self-contained JSON document: a
-complete model snapshot with **one scenario** and **one metric**, plus
+An optimization manifest is a versioned, self-contained document (YAML or
+JSON): a complete model snapshot with **one scenario** and **one metric**, plus
 `scenario.parameterBindings` naming every scenario parameter once as either
 `fixed` or `optimize`. Bounds, integer steps, and numeric scales live in the
 manifest — they are transient to that study, not part of the model. The CLI
@@ -310,53 +313,22 @@ experiment-backend interface.
 
 ## Driving the CLI from Python
 
-The CLI speaks one JSON object per line, so a Python driver needs only
-`subprocess` and `json`. The wrapper below starts one CLI process for a
-manifest and turns each response line into a return value or an exception:
+The [python-bindings](layer:python-bindings) package wraps this protocol: a
+session owns one CLI process, each request is a method, and an error frame
+raises. Its [usage manual](doc:python-bindings/usage-manual) covers the session
+lifecycle, the timeouts, and the exception types.
 
 ```python
-import json
-import subprocess
+from petrinaut import OptimizationSession
 
-
-class PetrinautOptimization:
-    def __init__(self, manifest_path: str):
-        self.process = subprocess.Popen(
-            [
-                "petrinaut",
-                "serve",
-                "--optimization",
-                manifest_path,
-                "--stdio",
-            ],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            text=True,
-            bufsize=1,
-        )
-        self.request_id = 0
-
-    def request(self, method: str, params: dict | None = None) -> dict:
-        self.request_id += 1
-        request = {"id": self.request_id, "method": method}
-        if params is not None:
-            request["params"] = params
-
-        assert self.process.stdin and self.process.stdout
-        self.process.stdin.write(json.dumps(request) + "\n")
-        self.process.stdin.flush()
-        response = json.loads(self.process.stdout.readline())
-        if "error" in response:
-            raise RuntimeError(response["error"]["message"])
-        return response["result"]
-
-    def close(self) -> None:
-        self.process.terminate()
-        self.process.wait()
+with OptimizationSession(manifest_path="optimization.json") as session:
+    description = session.describe()
+    print([parameter.identifier for parameter in description.parameters])
+    # Send every — and only — described parameter.
+    value = session.objective({"production_rate": 112.5, "enabled": True})
 ```
 
-An Optuna study calls `optimization.describe` once and maps each described
-parameter to the `suggest_*` call from the table above; its objective function
-sends the suggested values to `optimization.evaluate` and returns the
-`objective` from the response. The manifest and the CLI own the Petrinaut
-types, the scenario compilation, and the fixed values.
+An Optuna study calls `describe()` once and maps each described
+parameter to the `suggest_*` call from the table above. Its objective function
+passes the suggested values to `objective()`. The manifest and the CLI own the
+Petrinaut types, the scenario compilation, and the fixed values.

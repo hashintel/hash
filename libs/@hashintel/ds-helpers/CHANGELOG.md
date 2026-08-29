@@ -1,5 +1,11 @@
 # @hashintel/ds-helpers
 
+## 0.2.2
+
+### Patch Changes
+
+- Ship the generated `styled-system` files in the package tarball. ([@CiaranMn](https://github.com/CiaranMn), [#9328](https://github.com/hashintel/hash/pull/9328))
+
 ## 0.2.1
 
 ### Patch Changes

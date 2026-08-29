@@ -24,6 +24,31 @@ yield: the ir-design plain rendering returned seven strain points where an unins
 round-2 read of the FE-1374 spec renderings had found four by accident (each of which fed a
 real spec change — the practice predates its name).
 
+## Review before commit in an orchestrated frontier
+
+When a thread contributes one step of an ordered proof frontier, its producer stops before commit
+with a fixed review packet: the base commit, the exact issue contract, the uncommitted diff,
+applicable verification commands and results, and a second-register rendering whose grade the
+orchestrator chose for the claim, plus the proof bundle and its evidence references. A reviewer
+other than the producer checks every packet component, records each correctness or legibility
+finding and its disposition in the thread's review record, and judges the claim validated,
+rejected, or narrowed with its consequences for successor work.
+
+The orchestrator owns the review gate and adjudicates disagreements. A confirmed issue-contract
+violation blocks commit until it is fixed or the contract changes in its owning authority and the
+packet is reviewed again; it cannot be relabelled as uncertainty. Other findings must be fixed,
+refused with evidence, or carried into residual uncertainty with the claim and downstream
+consequences narrowed accordingly. Remediation that changes the diff or makes the rendering stale
+requires an updated packet, rerun verification, and reviewer confirmation before authorization.
+Consolidate the review record into the branch's commit and PR description or the indexed proof
+artifact, as appropriate. The commit is the deposit of reviewed understanding, not the checkpoint
+at which review begins.
+
+The orchestrator then deposits the reviewed result and confidence changes in their owning
+authorities and derives the next dispatch brief from those deposits before dispatching a successor.
+An issue moving state or producing a plausible artifact is not evidence that its claim survived
+review.
+
 ## The register dial
 
 The register is a dial, not a single target. One practice, several grades — pick the cheapest
@@ -46,6 +71,18 @@ pass over the filings before the arc closes. The FE-1405/FE-1406 round came from
 first round's own text ("shapes-to-fill" quoted back); the gaps were real and had been deepened
 by the filings meant to close them.
 
+## Point findings may reveal a recurrent class
+
+A point finding is evidence of a possible fault class, not proof that the whole codebase shares
+it. Promote the finding to an audit only when recurrence is plausible, the class is cheaply
+searchable, and missed instances could fail silently. Search both the mechanical family and the
+ownership boundaries where the same contract may be reimplemented. Keep finding and fixing as
+separate steps so a human can confirm the class and scope before repair begins.
+
+When the class is confirmed, make its categorical part executable as a boundary or regression
+check. Put any judgment that cannot be mechanized into review guidance. Do not widen a one-off
+finding into a repository sweep merely for symmetry.
+
 ## Consolidation: capture-as-we-go, reconcile-before-landing
 
 Capture channels (accrual comments, pencil lists, strain appendices, handoffs) guard against
@@ -55,7 +92,7 @@ evaporation, not fragmentation. Two rules keep the yield coherent:
   owning control surface, pencils graduate to issues or planning documents, and strain reports
   become document fixes. A channel with no named target is a leak with a delay.
 - **An arc is not closed until consolidation runs.** The closing step reconciles what the
-  captures established into the durable artifacts (coordination, ledger, docs, issues) — a
+  captures established into the durable artifacts (steering/`STEERING`, ledger, docs, issues) — a
   handoff note alone is a deferral, not a deposit.
 
 ## Deposit: work describes itself at authoring time

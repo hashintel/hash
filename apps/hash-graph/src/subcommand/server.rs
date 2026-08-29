@@ -20,6 +20,7 @@ use hash_graph_api::{
         auth::{CloudflareAccessConfig, KratosSessionConfig},
         entity::ClusteringContext,
         hashql::CompilerContext,
+        rate_limit::RateLimitConfig,
         rest_api_router,
     },
     rpc::Dependencies,
@@ -31,8 +32,10 @@ use hash_graph_postgres_store::store::{
 };
 use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool};
 use hash_graph_type_fetcher::FetchingPool;
+use hash_telemetry::Telemetry;
 use hash_temporal_client::{TemporalClient, TemporalClientConfig};
 use multiaddr::{Multiaddr, Protocol};
+use opentelemetry::metrics::Meter;
 use regex::Regex;
 use reqwest::{Client, Url};
 use tokio::{io, net::TcpListener, signal, time::timeout};
@@ -287,6 +290,9 @@ pub struct ServerConfig {
     pub api_config: ApiConfig,
 
     #[clap(flatten)]
+    pub rate_limit: RateLimitConfig,
+
+    #[clap(flatten)]
     pub session_auth: KratosSessionAuthConfig,
 
     /// Shared secret internal services present to act on behalf of an actor.
@@ -510,6 +516,10 @@ pub(crate) struct AuthenticationSetup {
     pub service_secret: String,
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Every parameter is a distinct resource the one caller assembles."
+)]
 async fn start_server<S>(
     pool: S,
     postgres: PostgresStorePool,
@@ -517,6 +527,7 @@ async fn start_server<S>(
     config: ServerConfig,
     authentication: AuthenticationSetup,
     query_logger: Option<QueryLogger>,
+    meter: Meter,
     lifecycle: &ServerLifecycle,
 ) -> Result<(), Report<GraphError>>
 where
@@ -554,6 +565,8 @@ where
         session_auth: authentication.session_auth,
         cloudflare_access: authentication.cloudflare_access,
         service_secret: authentication.service_secret,
+        rate_limit: config.rate_limit,
+        meter,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
         serve_api_reference: config.serve_api_reference,
@@ -575,7 +588,7 @@ where
     clippy::too_many_lines,
     reason = "Sequential startup flow, no natural split point"
 )]
-pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
+pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), Report<GraphError>> {
     if args.healthcheck.healthcheck {
         return wait_healthcheck(
             || healthcheck(args.config.http_address.clone()),
@@ -637,7 +650,15 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
     let postgres = pool.clone();
 
     if args.embed_admin {
-        start_admin_server(pool.clone(), args.admin, service_secret.clone(), &lifecycle);
+        // The admin surface gets its own meter scope, as running it standalone would, so its
+        // rejections stay a separate series from the public API's.
+        start_admin_server(
+            pool.clone(),
+            args.admin,
+            service_secret.clone(),
+            telemetry.meter("Graph Admin API"),
+            &lifecycle,
+        );
     }
 
     if args.embed_type_fetcher {
@@ -702,6 +723,7 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
             service_secret,
         },
         query_logger,
+        telemetry.meter("Graph API"),
         &lifecycle,
     )
     .await
