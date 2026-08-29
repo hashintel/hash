@@ -15,7 +15,7 @@ fn index() -> io::Result<()> {
     let mut generator = TypeScriptGenerator::new(&settings, &collection);
 
     generator.add_import_declaration(
-        "@blockprotocol/type-system-rs/types",
+        "@blockprotocol/type-system",
         [
             "ActorId",
             "ActorType",
@@ -25,9 +25,9 @@ fn index() -> io::Result<()> {
             "OntologyTypeVersion",
             "RoleId",
             "WebId",
+            "VersionedUrl",
         ],
     );
-    generator.add_import_declaration("@blockprotocol/type-system-rs", ["VersionedUrl"]);
 
     for (type_id, _, type_definition) in collection.iter() {
         if type_definition

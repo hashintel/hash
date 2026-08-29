@@ -30,7 +30,10 @@ fn index() -> io::Result<()> {
     collection.make_branded::<knowledge::entity::id::DraftId>();
     collection.make_branded::<knowledge::entity::id::EntityEditionId>();
 
-    let settings = TypeScriptGeneratorSettings::default();
+    // Importing `Brand` from `@blockprotocol/type-system` would be circular: that package
+    // re-exports this file.
+    let settings =
+        TypeScriptGeneratorSettings::default().with_brand_module("../pkg/type-system.js");
     let mut generator = TypeScriptGenerator::new(&settings, &collection);
 
     generator.add_import_declaration("@rust/hash-codec/types", ["Real"]);

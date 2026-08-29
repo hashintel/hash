@@ -1,7 +1,7 @@
 // This file was generated from `libs/@local/graph/store/tests/codegen.rs`
 
 import type { ActionName, Effect, PrincipalConstraint } from "@rust/hash-graph-authorization/types";
-import type { EntityEditionId } from "@blockprotocol/type-system-rs/types";
+import type { EntityEditionId } from "@blockprotocol/type-system";
 export interface CreateEntityPolicyParams {
 	name: string;
 	effect: Effect;

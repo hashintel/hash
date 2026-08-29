@@ -74,9 +74,6 @@ wasm-bindgen-test = { workspace = true }
 
 
 [package.metadata.sync.turborepo]
-extra-dev-dependencies = [
-    { name = "@local/tsconfig", version = "workspace:*" },
-]
 ignore-dev-dependencies = [
     "hash-graph-test-data",
 ]

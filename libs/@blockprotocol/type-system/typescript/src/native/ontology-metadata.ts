@@ -2,7 +2,7 @@ import type {
   DataTypeMetadata,
   EntityTypeMetadata,
   PropertyTypeMetadata,
-} from "@blockprotocol/type-system-rs";
+} from "../generated/type-system.js";
 
 export type OntologyElementMetadata =
   | EntityTypeMetadata

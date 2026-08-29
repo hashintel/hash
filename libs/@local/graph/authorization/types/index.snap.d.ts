@@ -1,7 +1,6 @@
 // This file was generated from `libs/@local/graph/authorization/tests/codegen.rs`
 
-import type { ActorId, ActorType, ActorGroupId, BaseUrl, EntityUuid, OntologyTypeVersion, RoleId, WebId } from "@blockprotocol/type-system-rs/types";
-import type { VersionedUrl } from "@blockprotocol/type-system-rs";
+import type { ActorId, ActorType, ActorGroupId, BaseUrl, EntityUuid, OntologyTypeVersion, RoleId, WebId, VersionedUrl } from "@blockprotocol/type-system";
 export type Effect = "permit" | "forbid";
 export interface Policy {
 	id: PolicyId;
@@ -11,7 +10,7 @@ export interface Policy {
 	actions: ActionName[];
 	resource: (ResourceConstraint | null);
 }
-import type { Brand } from "@blockprotocol/type-system-rs";
+import type { Brand } from "@blockprotocol/type-system";
 export type PolicyId = Brand<string, "PolicyId">;
 export interface ResolvedPolicy {
 	effect: Effect;

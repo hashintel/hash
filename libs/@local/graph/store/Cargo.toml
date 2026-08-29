@@ -57,6 +57,9 @@ workspace = true
 
 
 [package.metadata.sync.turborepo]
+extra-dependencies = [
+    { name = "@blockprotocol/type-system", version = "workspace:*" },
+]
 extra-dev-dependencies = [
     { name = "@local/tsconfig", version = "workspace:*" },
 ]
