@@ -155,6 +155,7 @@ ena                                = { version = "0.14.3", default-features = fa
 enum-iterator                      = { version = "2.1.0", default-features = false }
 enumflags2                         = { version = "0.7.12", default-features = false }
 expect-test                        = { version = "1.5.1", default-features = false }
+figment                            = { version = "0.10.19", default-features = false }
 foldhash                           = { version = "0.2.0", default-features = false }
 frunk                              = { version = "0.4.4", default-features = false }
 frunk_core                         = { version = "0.4.4", default-features = false }
