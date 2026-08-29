@@ -21,8 +21,11 @@ precomputed for cameras nobody is looking through.
 A **point** selection runs the experiment at that value. A **range**
 selection runs one stochastic experiment over the ranges: each run carries
 its own drawn value per ranged parameter (`sweepRangeRuns`), low-discrepancy
-across the selected value interval and prefix-stable in the global run index
-— the quantized positions bound the interval, they do not grid it. One
+across the selected value interval, rotated by a seed-derived shift
+(Cranley–Patterson, so draws are unbiased over the seed and each experiment
+seed explores its own sequence) and prefix-stable in the seed, axis, and
+global run index — the quantized positions bound the interval, they do not
+grid it. One
 selection is one experiment: full worker-pool parallelism, and the metric
 stream is the experiment's own, so the distribution over the region streams
 from the first frames and sharpens as runs land.
