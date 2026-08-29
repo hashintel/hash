@@ -6,16 +6,20 @@ import { css } from "@hashintel/ds-helpers/css";
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { useUndoRedoShortcuts } from "../../../react/state/use-undo-redo-shortcuts";
+import { ResizeHandle } from "../../resize/resize-handle";
 import { focusLands } from "../../worksheet/focus-flow";
+import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
 import { useFocusStops } from "../../worksheet/use-focus-stops";
 import { CELL_KIND_PLURAL_LABELS, CELL_KINDS } from "./cell-kinds";
 import { CONNECTION_GUTTER_WIDTH, ConnectionLines } from "./connection-lines";
+import { GraphExplorer } from "./graph-explorer";
 import { layoutNetGraph } from "./net-graph-layout";
 import { cellBodyParts, NotebookCell, partStopId } from "./notebook-cell";
 import {
   buildConnectionIndex,
   buildDependentCounts,
   buildNetGraph,
+  buildNodeNeighbourhood,
   buildNotebookCells,
   cellName,
   cellToSelectionItem,
@@ -26,6 +30,7 @@ import { orderCellsTopologically } from "./notebook-order";
 
 import type { FocusStop } from "../../worksheet/use-focus-stops";
 import type {
+  NodeRef,
   NotebookCellKind,
   NotebookCell as NotebookCellModel,
 } from "./notebook-model";
@@ -87,6 +92,23 @@ const cellListContentStyle = css({
   paddingY: "3",
 });
 
+const explorerColumnStyle = css({
+  position: "relative",
+  flexShrink: 0,
+  minWidth: "[0]",
+  // The drag bound is absolute pixels; this keeps a narrow window from letting
+  // the explorer squeeze the cell list to nothing.
+  maxWidth: "[85%]",
+  borderLeftWidth: "[1px]",
+  borderLeftStyle: "solid",
+  borderLeftColor: "neutral.s40",
+  backgroundColor: "neutral.s00",
+});
+
+const DEFAULT_EXPLORER_WIDTH = 520;
+const MIN_EXPLORER_WIDTH = 320;
+const MAX_EXPLORER_WIDTH = 1100;
+
 const emptyStyle = css({
   fontSize: "sm",
   color: "neutral.fg.subtle",
@@ -105,14 +127,14 @@ const emptyStyle = css({
  * ArrowRight/ArrowLeft opens and closes, ArrowUp/ArrowDown moves the
  * selection, and "/" focuses the fuzzy name search. Selecting a cell draws
  * angled connector lines in the gutters to its dependencies (left) and
- * dependents (right) — dependencies span every kind, so a place links to
- * its type and equation
+ * dependents (right), and lists them in the explorer on the right —
+ * dependencies span every kind, so a place links to its type and equation
  * and a transition links to the parameters its code reads. The toolbar
  * controls the cell order (document or topological) and which kinds are listed
  * and searched; rows with dependents end with how many cells depend on them,
  * directly and in total.
  */
-export const NotebookView: React.FC = () => {
+const NotebookViewContent: React.FC = () => {
   const { activeNet } = use(ActiveNetContext);
   const { selection, selectItem } = use(EditorContext);
 
@@ -124,7 +146,9 @@ export const NotebookView: React.FC = () => {
     () => new Set(),
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [explorerWidth, setExplorerWidth] = useState(DEFAULT_EXPLORER_WIDTH);
   const [cellOrder, setCellOrder] = useState<CellOrder>("document");
+  const [focusOnSelection, setFocusOnSelection] = useState(false);
   const [visibleKinds, setVisibleKinds] = useState<
     ReadonlySet<NotebookCellKind>
   >(() => new Set(CELL_KINDS));
@@ -174,11 +198,55 @@ export const NotebookView: React.FC = () => {
       ? undefined
       : cells.find(({ id }) => id === selectedItemId);
   const selectedId = selectedCell?.id ?? null;
+  const selectedName =
+    selectedCell === undefined ? null : cellName(selectedCell);
 
   const selectedConnections =
     selectedCell === undefined
       ? null
       : (connectionIndex.get(selectedCell.id) ?? noConnections());
+
+  // Token-type colour per place, so the diagram can echo the canvas palette.
+  const placeColors = new Map<string, string>(
+    activeNet.places.flatMap((place) => {
+      const color = activeNet.types.find(({ id }) => id === place.colorId);
+      return color === undefined
+        ? []
+        : [[place.id, color.displayColor] as const];
+    }),
+  );
+
+  // The diagram always shows the whole net; a selected place or transition
+  // just decides what gets highlighted within it. Nodes reachable both ways
+  // count as a dependency and a dependent, so they light up on both sides.
+  const neighbourhood =
+    selectedConnections === null
+      ? null
+      : buildNodeNeighbourhood(selectedConnections);
+  const selectedNodeId =
+    selectedCell !== undefined &&
+    (selectedCell.kind === "place" || selectedCell.kind === "transition")
+      ? selectedCell.id
+      : null;
+
+  const explorerGraph = {
+    net: netGraph,
+    selectedId: selectedNodeId,
+    dependencyIds: new Set(
+      [
+        ...(neighbourhood?.dependencies ?? []),
+        ...(neighbourhood?.bidirectional ?? []),
+      ].map(({ id }) => id),
+    ),
+    dependentIds: new Set(
+      [
+        ...(neighbourhood?.dependents ?? []),
+        ...(neighbourhood?.bidirectional ?? []),
+      ].map(({ id }) => id),
+    ),
+    placeColors,
+    focusId: focusOnSelection ? selectedNodeId : null,
+  };
 
   const contentRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -268,10 +336,33 @@ export const NotebookView: React.FC = () => {
     });
   };
 
+  // Navigation can reveal a filtered-out kind, in which case the row to focus
+  // doesn't exist until after the re-render — so a miss is parked here and
+  // retried by the effect below once the row is in the DOM.
+  const pendingFocusCellIdRef = useRef<string | null>(null);
+
+  const focusRowElement = (cellId: string): boolean => {
+    const row = contentRef.current?.querySelector<HTMLElement>(
+      `[data-cell-row="${CSS.escape(cellId)}"]`,
+    );
+    row?.focus({ preventScroll: true });
+    return row !== null && row !== undefined;
+  };
+
+  // One retry is enough: the reveal of the hidden kind lands in the very next
+  // render, and clearing unconditionally means a deleted cell can't leave a
+  // stale id behind to steal focus later.
+  useEffect(() => {
+    if (pendingFocusCellIdRef.current !== null) {
+      focusRowElement(pendingFocusCellIdRef.current);
+      pendingFocusCellIdRef.current = null;
+    }
+  });
+
   const focusCellRow = (cellId: string) => {
-    contentRef.current
-      ?.querySelector<HTMLElement>(`[data-cell-row="${CSS.escape(cellId)}"]`)
-      ?.focus({ preventScroll: true });
+    if (!focusRowElement(cellId)) {
+      pendingFocusCellIdRef.current = cellId;
+    }
   };
 
   const selectCell = (
@@ -282,6 +373,16 @@ export const NotebookView: React.FC = () => {
     if (options?.focus) {
       focusCellRow(cell.id);
     }
+  };
+
+  const navigateToNode = (node: NodeRef) => {
+    // Jumping to a kind the filter hides would select an invisible cell, so
+    // reveal that kind as part of the navigation.
+    if (!visibleKinds.has(node.type)) {
+      setVisibleKinds((previous) => new Set(previous).add(node.type));
+    }
+    selectItem({ type: node.type, id: node.id });
+    focusCellRow(node.id);
   };
 
   /**
@@ -431,7 +532,10 @@ export const NotebookView: React.FC = () => {
                       column: 0,
                     }),
                     onFocus: () => {
-                      listFocus.onFocusTarget({ stopId: cell.id, column: 0 });
+                      listFocus.onFocusTarget({
+                        stopId: cell.id,
+                        column: 0,
+                      });
                       selectCell(cell);
                     },
                     onNavigate: listFocus.onKeyDown({
@@ -477,6 +581,38 @@ export const NotebookView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <div className={explorerColumnStyle} style={{ width: explorerWidth }}>
+        <ResizeHandle
+          edge="left"
+          size={explorerWidth}
+          onResize={setExplorerWidth}
+          minSize={MIN_EXPLORER_WIDTH}
+          maxSize={MAX_EXPLORER_WIDTH}
+          label="Resize the graph explorer"
+        />
+        <GraphExplorer
+          connections={selectedConnections}
+          selectedCellId={selectedId}
+          selectedName={selectedName}
+          graph={explorerGraph}
+          isFocusMode={focusOnSelection}
+          canFocus={selectedNodeId !== null}
+          onToggleFocus={() => setFocusOnSelection((previous) => !previous)}
+          onNavigate={navigateToNode}
+        />
+      </div>
     </div>
   );
 };
+
+export const NotebookView: React.FC = () => (
+  // The stack must sit above the component whose hooks join the flow: a
+  // hook reads the context of its own component's position, so a stack
+  // rendered inside NotebookViewContent could never enrol its list.
+  <FocusRoot>
+    <FocusStack axis="horizontal">
+      <NotebookViewContent />
+    </FocusStack>
+  </FocusRoot>
+);
