@@ -26,16 +26,18 @@ must show either way.
 2. A pointer click activates only a target that was already focused when the
    press began (`document.activeElement` checked in `pointerdown`, consumed
    in `click`). The first click selects; the second acts.
-3. The second click of a double-click lands on an already-focused target, so
-   rule 2 covers double-click without a separate handler. Targets whose
-   activation is idempotent (opening an editor) may add `onDoubleClick`;
-   targets whose activation creates state (phantom cells) must not, or a
-   double-click would create twice.
+3. The second click of a double-click activates through its click count
+   (`event.detail` > 1 in `shouldActivate`, on the target the previous
+   click landed on), so double-click needs no handler of its own, and works
+   in browsers that do not focus buttons on pointer down. A phantom cell's
+   creating activation still fires once (the first click of the pair only
+   selects), and a double-click that clicks through a collapsing overlay
+   does not activate the target revealed underneath.
 
-This grammar is implemented once in
-`spreadsheet/use-select-first.ts` and inline in `ValueEditor`, `BoundCell`,
-and the variable `NameCell`. It applies to value cells, bound cells, name
-cells, phantom cells, and the add-variable line.
+This grammar is implemented once, in the worksheet layer's
+`use-select-first.ts`; `ValueEditor`, `BoundCell`, the variable `NameCell`,
+and the phantom cells consume it. It applies to value cells, bound cells,
+name cells, phantom cells, and the add-variable line.
 
 ## Phantom lines
 
@@ -63,7 +65,7 @@ Each table ends in a dimmed trailing line that creates the next entry.
 10. The row menu opens with the current kind focused; Escape returns focus
     to the gutter, not to the body.
 
-## The keyboard grid and zones
+## The keyboard grid and its members
 
 The movement model is the [worksheet keyboard
 flow](layer:ui.worksheet): grids, headers, and tables are members of
@@ -80,9 +82,9 @@ that layer's contract.
     strip (dynamic rows only) followed by the cells, then the phantom line.
     Passing through a full-width stop returns to the column the move
     started from.
-13. Section and place headers are single-element zones: Up/Down move to the
-    neighbouring zone, Left collapses, Right expands. A collapsed zone
-    fails entry and the walk skips it.
+13. Section and place headers are single-element members: Up/Down move to
+    the neighbouring member, Left collapses, Right expands. A collapsed
+    member fails entry and the walk skips it.
 14. Side-by-side layouts wrap each column in its own vertical `FocusStack`
     inside a horizontal one: vertical arrows stay within a column, and
     horizontal arrows at a table's sides cross into the neighbouring

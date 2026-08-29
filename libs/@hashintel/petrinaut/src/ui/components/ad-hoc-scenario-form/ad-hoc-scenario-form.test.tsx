@@ -617,7 +617,7 @@ describe("AdHocScenarioForm", () => {
     expect(queueCount()).toBe("421");
   });
 
-  it("walks between zones and toggles sections from their headers", async () => {
+  it("walks between the form's members and toggles sections from their headers", async () => {
     render(<Harness />);
 
     // Variables lead the form; down from the parameters grid (one row)
@@ -710,6 +710,32 @@ describe("AdHocScenarioForm", () => {
     expect(
       screen.getByRole("button", { name: "Share column pressure" }),
     ).toBeTruthy();
+  });
+
+  it("re-enters the token table at its remembered position", () => {
+    render(<Harness />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a token row (pressure)" }),
+    );
+
+    // Leave the table upward from the second column's header...
+    const cell = screen.getByRole("button", {
+      name: "Pumps › item 0 › worn",
+    });
+    cell.focus();
+    fireEvent.keyDown(cell, { key: "ArrowUp" });
+    const header = screen.getByRole("button", { name: "Share column worn" });
+    expect(document.activeElement).toBe(header);
+    fireEvent.keyDown(header, { key: "ArrowUp" });
+    const placePhantom = screen.getByRole("button", {
+      name: "Add a variable (Variables of Pumps)",
+    });
+    expect(document.activeElement).toBe(placePhantom);
+
+    // ...and re-enter: the table restores its last-focused part, not the
+    // first header column.
+    fireEvent.keyDown(placePhantom, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(header);
   });
 
   it("navigates through the type select, which offers no empty row", () => {

@@ -35,7 +35,11 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { focusLands } from "../../worksheet/focus-flow";
-import { useFocusMember } from "../../worksheet/use-focus-member";
+import {
+  useFocusStops,
+  type FocusStop,
+  type FocusStopTarget,
+} from "../../worksheet/use-focus-stops";
 import { useRowSelection } from "../../worksheet/use-row-selection";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
 import { AdHocFormContext } from "./form-context";
@@ -146,6 +150,9 @@ const totalTextStyle = css({
   marginTop: "[1px]",
 });
 
+const targetKey = ({ stopId, column }: FocusStopTarget): string =>
+  `${stopId}:${column}`;
+
 export interface TokenTableProps {
   place: Place;
   colour: Color;
@@ -188,119 +195,57 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   const rowSelection = useRowSelection();
   // Phantom cells select on the first click and materialize on the second.
   const phantomActivation = useSelectFirstActivation();
-  const cellRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const gutterRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
-  const stripRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
-  const sharedRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
-  const headerRefs = useRef<Map<number, HTMLButtonElement>>(new Map());
-  // The column a vertical move started from, so passing through a full-width
-  // stop (a count strip) returns to the same column.
-  const lastColumnRef = useRef(0);
+  const targets = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const hasSharedColumns = Object.keys(state.sharedColumns).length > 0;
+  const sharedColumnIndexes = elements.flatMap((element, columnIndex) =>
+    state.sharedColumns[element.name] ? [columnIndex] : [],
+  );
   const total = resolveAdHocPlaceTotal(formState, synthesisContext, place.id);
 
-  // The table hands focus to the neighbouring form zone past its edges, and
-  // receives it at the column headers (top) or the phantom row (bottom).
-  const { attach: attachZone, moveFrom } = useFocusMember((entry) =>
-    entry.direction === "down" || entry.direction === "right"
-      ? focusLands(headerRefs.current.get(0))
-      : focusLands(cellRefs.current.get(`${state.rows.length}-0`)),
-  );
-  const exitZone = (direction: "next" | "previous") =>
-    moveFrom(direction === "next" ? "down" : "up");
-
-  // Every keyboard-reachable line of the table, top to bottom: the column
-  // headers, the shared values, then each row's count strip (dynamic rows)
-  // and cells, then the phantom row. Vertical arrows walk this list;
-  // horizontal arrows walk a line's own parts (gutter, cells).
-  type VerticalStop =
-    | { kind: "header" }
-    | { kind: "shared" }
-    | { kind: "strip"; row: number }
-    | { kind: "cells"; row: number }
-    | { kind: "phantom" };
-  const verticalStops: VerticalStop[] = [
-    { kind: "header" },
-    ...(hasSharedColumns ? [{ kind: "shared" } as const] : []),
-    ...state.rows.flatMap<VerticalStop>((row, index) =>
+  // Every keyboard-reachable line of the table, top to bottom, declared as
+  // worksheet stops: the column headers, the shared values (a sparse line),
+  // then each row's count strip (a full-width stop above a dynamic row's
+  // cells) and cells, then the phantom row. The phantom row declares no
+  // gutter, so the gutter lane ends at the last data row and exits the
+  // table there. Tab stays native everywhere (tabIndexFor unused), matching
+  // the rest of the form.
+  const stops: FocusStop[] = [
+    { id: "header", kind: "row" },
+    ...(hasSharedColumns
+      ? [
+          {
+            id: "shared",
+            kind: "sparse" as const,
+            columns: sharedColumnIndexes,
+          },
+        ]
+      : []),
+    ...state.rows.flatMap<FocusStop>((row, index) =>
       row.kind === "template"
         ? [
-            { kind: "strip", row: index },
-            { kind: "cells", row: index },
+            { id: `strip-${index}`, kind: "full" },
+            { id: `cells-${index}`, kind: "row", gutter: true },
           ]
-        : [{ kind: "cells", row: index }],
+        : [{ id: `cells-${index}`, kind: "row", gutter: true }],
     ),
-    { kind: "phantom" },
+    { id: "phantom", kind: "row" },
   ];
 
-  const focusCell = (row: number, column: number) => {
-    cellRefs.current.get(`${row}-${column}`)?.focus();
-  };
+  const { attach, onKeyDown, onFocusTarget } = useFocusStops({
+    stops,
+    columnCount,
+    focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
+  });
 
-  const focusStop = (index: number, column: number) => {
-    const stop = verticalStops[index];
-    if (!stop) {
-      return;
-    }
-    switch (stop.kind) {
-      case "header":
-        headerRefs.current.get(column)?.focus();
-        break;
-      case "shared": {
-        const sharedColumns = elements
-          .map((element, columnIndex) =>
-            state.sharedColumns[element.name] ? columnIndex : null,
-          )
-          .filter((columnIndex) => columnIndex !== null);
-        // Stale sharedColumns keys (a renamed colour element) can leave no
-        // matching column: a focus no-op, not a reduce over an empty array.
-        if (sharedColumns.length === 0) {
-          break;
-        }
-        const nearest = sharedColumns.reduce((best, candidate) =>
-          Math.abs(candidate - column) < Math.abs(best - column)
-            ? candidate
-            : best,
-        );
-        sharedRefs.current.get(nearest)?.focus();
-        break;
+  const registerTarget =
+    (position: FocusStopTarget) => (element: HTMLButtonElement | null) => {
+      if (element) {
+        targets.current.set(targetKey(position), element);
+      } else {
+        targets.current.delete(targetKey(position));
       }
-      case "strip":
-        stripRefs.current.get(stop.row)?.focus();
-        break;
-      case "cells":
-        focusCell(stop.row, column);
-        break;
-      case "phantom":
-        focusCell(state.rows.length, column);
-        break;
-    }
-  };
-
-  type GridPosition =
-    | { kind: "header"; column: number }
-    | { kind: "cell"; row: number; column: number }
-    | { kind: "phantom"; column: number }
-    | { kind: "strip"; row: number }
-    | { kind: "shared"; column: number }
-    | { kind: "gutter"; row: number };
-
-  const stopIndexOf = (position: GridPosition): number =>
-    verticalStops.findIndex((stop) => {
-      if (position.kind === "cell" || position.kind === "gutter") {
-        return stop.kind === "cells" && stop.row === position.row;
-      }
-      if (position.kind === "strip") {
-        return stop.kind === "strip" && stop.row === position.row;
-      }
-      if (position.kind === "header") {
-        return stop.kind === "header";
-      }
-      return position.kind === "phantom"
-        ? stop.kind === "phantom"
-        : stop.kind === "shared";
-    });
+    };
 
   const deleteRow = (rowIndex: number) => {
     dispatch({ type: "deleteTokenRow", placeId: place.id, row: rowIndex });
@@ -308,123 +253,15 @@ export const TokenTable: React.FC<TokenTableProps> = ({
     // phantom row's first cell when the last row went.
     const remaining = state.rows.length - 1;
     setTimeout(() => {
-      if (remaining > 0) {
-        gutterRefs.current.get(Math.min(rowIndex, remaining - 1))?.focus();
-      } else {
-        focusCell(0, 0);
-      }
+      const survivor =
+        remaining > 0
+          ? {
+              stopId: `cells-${Math.min(rowIndex, remaining - 1)}`,
+              column: "gutter" as const,
+            }
+          : { stopId: "phantom", column: 0 };
+      targets.current.get(targetKey(survivor))?.focus();
     }, 0);
-  };
-
-  const handleGridKeyDown = (
-    event: React.KeyboardEvent<HTMLButtonElement>,
-    position: GridPosition,
-  ) => {
-    const stopIndex = stopIndexOf(position);
-    const column =
-      position.kind === "strip" || position.kind === "gutter"
-        ? lastColumnRef.current
-        : position.column;
-    if (position.kind === "cell" || position.kind === "phantom") {
-      lastColumnRef.current = position.column;
-    }
-    const handled = (action: () => void) => {
-      event.preventDefault();
-      event.stopPropagation();
-      action();
-    };
-
-    // Gutter: vertical moves stay in the gutter, right enters the cells.
-    // Delete is the GutterCell's own affair.
-    if (position.kind === "gutter") {
-      if (event.key === "ArrowRight") {
-        handled(() => focusCell(position.row, 0));
-      } else if (event.key === "ArrowLeft") {
-        handled(() => moveFrom("left", { row: stopIndex, column: 0 }));
-      } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-        const step = event.key === "ArrowDown" ? 1 : -1;
-        const nextRow = position.row + step;
-        if (nextRow >= 0 && nextRow < state.rows.length) {
-          handled(() => gutterRefs.current.get(nextRow)?.focus());
-        } else {
-          handled(() => exitZone(step === 1 ? "next" : "previous"));
-        }
-      }
-      return;
-    }
-
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      const nextIndex = stopIndex + (event.key === "ArrowDown" ? 1 : -1);
-      if (nextIndex >= 0 && nextIndex < verticalStops.length) {
-        handled(() => focusStop(nextIndex, column));
-      } else {
-        handled(() =>
-          exitZone(event.key === "ArrowDown" ? "next" : "previous"),
-        );
-      }
-      return;
-    }
-
-    if (position.kind === "header") {
-      if (event.key === "ArrowRight") {
-        if (position.column < columnCount - 1) {
-          handled(() => headerRefs.current.get(position.column + 1)?.focus());
-        } else {
-          handled(() =>
-            moveFrom("right", { row: stopIndex, column: position.column }),
-          );
-        }
-      } else if (event.key === "ArrowLeft") {
-        if (position.column > 0) {
-          handled(() => headerRefs.current.get(position.column - 1)?.focus());
-        } else {
-          handled(() => moveFrom("left", { row: stopIndex, column: 0 }));
-        }
-      }
-      return;
-    }
-
-    if (position.kind === "strip") {
-      return;
-    }
-
-    if (position.kind === "shared") {
-      const sharedColumns = elements
-        .map((element, columnIndex) =>
-          state.sharedColumns[element.name] ? columnIndex : null,
-        )
-        .filter((columnIndex) => columnIndex !== null);
-      const at = sharedColumns.indexOf(position.column);
-      if (event.key === "ArrowRight" && at < sharedColumns.length - 1) {
-        handled(() => sharedRefs.current.get(sharedColumns[at + 1]!)?.focus());
-      } else if (event.key === "ArrowLeft" && at > 0) {
-        handled(() => sharedRefs.current.get(sharedColumns[at - 1]!)?.focus());
-      }
-      return;
-    }
-
-    // Cells and the phantom row. Horizontal moves past the table's sides
-    // ask the enclosing stack to carry focus to a sibling column.
-    const row = position.kind === "cell" ? position.row : state.rows.length;
-    if (event.key === "ArrowRight") {
-      if (position.column < columnCount - 1) {
-        handled(() => focusCell(row, position.column + 1));
-      } else {
-        handled(() =>
-          moveFrom("right", { row: stopIndex, column: position.column }),
-        );
-      }
-    } else if (event.key === "ArrowLeft") {
-      if (position.column > 0) {
-        handled(() => focusCell(row, position.column - 1));
-      } else if (position.kind === "cell") {
-        handled(() => gutterRefs.current.get(position.row)?.focus());
-      } else {
-        handled(() => moveFrom("left", { row: stopIndex, column: 0 }));
-      }
-    }
-    // Enter falls through: the cell's own click/open handling owns it.
-    // Tab stays native everywhere, matching the rest of the form.
   };
 
   const openSharedEditor = (field: string) => {
@@ -501,16 +338,17 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                     stripEditorStyle,
                     kind === "optimized" && stripEditorOptimizedStyle,
                   )}
-                  triggerRef={(element) => {
-                    if (element) {
-                      stripRefs.current.set(rowIndex, element);
-                    } else {
-                      stripRefs.current.delete(rowIndex);
-                    }
-                  }}
-                  onTriggerKeyDown={(event) =>
-                    handleGridKeyDown(event, { kind: "strip", row: rowIndex })
+                  triggerRef={registerTarget({
+                    stopId: `strip-${rowIndex}`,
+                    column: 0,
+                  })}
+                  onTriggerFocus={() =>
+                    onFocusTarget({ stopId: `strip-${rowIndex}`, column: 0 })
                   }
+                  onTriggerKeyDown={onKeyDown({
+                    stopId: `strip-${rowIndex}`,
+                    column: 0,
+                  })}
                 />
               </div>
             </td>
@@ -576,14 +414,15 @@ export const TokenTable: React.FC<TokenTableProps> = ({
               }
               onOpenMenu={(anchor) => rowSelection.openMenu(rowIndex, anchor)}
               onCloseMenu={rowSelection.closeMenu}
-              buttonRef={(element) => {
-                if (element) {
-                  gutterRefs.current.set(rowIndex, element);
-                } else {
-                  gutterRefs.current.delete(rowIndex);
-                }
-              }}
+              buttonRef={registerTarget({
+                stopId: `cells-${rowIndex}`,
+                column: "gutter",
+              })}
               onFocus={() => {
+                onFocusTarget({
+                  stopId: `cells-${rowIndex}`,
+                  column: "gutter",
+                });
                 rowSelection.setFocusedRow(rowIndex);
                 setFocusedValue({
                   kind: "tokenRow",
@@ -595,9 +434,10 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 rowSelection.setFocusedRow(null);
                 setFocusedValue(null);
               }}
-              onKeyDown={(event) =>
-                handleGridKeyDown(event, { kind: "gutter", row: rowIndex })
-              }
+              onKeyDown={onKeyDown({
+                stopId: `cells-${rowIndex}`,
+                column: "gutter",
+              })}
               onDelete={() => deleteRow(rowIndex)}
             />
           </td>
@@ -646,20 +486,20 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   derived={Boolean(shared)}
                   autoOpen={autoOpen}
                   onOpenDerived={() => openSharedEditor(element.name)}
-                  triggerRef={(el) => {
-                    if (el) {
-                      cellRefs.current.set(`${rowIndex}-${columnIndex}`, el);
-                    } else {
-                      cellRefs.current.delete(`${rowIndex}-${columnIndex}`);
-                    }
-                  }}
-                  onTriggerKeyDown={(event) =>
-                    handleGridKeyDown(event, {
-                      kind: "cell",
-                      row: rowIndex,
+                  triggerRef={registerTarget({
+                    stopId: `cells-${rowIndex}`,
+                    column: columnIndex,
+                  })}
+                  onTriggerFocus={() =>
+                    onFocusTarget({
+                      stopId: `cells-${rowIndex}`,
                       column: columnIndex,
                     })
                   }
+                  onTriggerKeyDown={onKeyDown({
+                    stopId: `cells-${rowIndex}`,
+                    column: columnIndex,
+                  })}
                 />
               </td>
             );
@@ -671,7 +511,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
 
   return (
     <>
-      <FormSpreadsheet attach={attachZone} tone="raised">
+      <FormSpreadsheet attach={attach} tone="raised">
         <thead>
           <tr>
             <th aria-label="Row kind" className={gutterHeaderStyle} />
@@ -690,23 +530,24 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                     }
                   >
                     <button
-                      ref={(el) => {
-                        if (el) {
-                          headerRefs.current.set(columnIndex, el);
-                        } else {
-                          headerRefs.current.delete(columnIndex);
-                        }
-                      }}
+                      ref={registerTarget({
+                        stopId: "header",
+                        column: columnIndex,
+                      })}
                       type="button"
                       className={headerButtonStyle}
                       aria-label={`Share column ${element.name}`}
                       aria-pressed={shared}
-                      onKeyDown={(event) =>
-                        handleGridKeyDown(event, {
-                          kind: "header",
+                      onFocus={() =>
+                        onFocusTarget({
+                          stopId: "header",
                           column: columnIndex,
                         })
                       }
+                      onKeyDown={onKeyDown({
+                        stopId: "header",
+                        column: columnIndex,
+                      })}
                       onClick={() =>
                         dispatch(
                           shared
@@ -762,19 +603,20 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                           ? sharedAutoOpen.nonce
                           : 0
                       }
-                      triggerRef={(el) => {
-                        if (el) {
-                          sharedRefs.current.set(columnIndex, el);
-                        } else {
-                          sharedRefs.current.delete(columnIndex);
-                        }
-                      }}
-                      onTriggerKeyDown={(event) =>
-                        handleGridKeyDown(event, {
-                          kind: "shared",
+                      triggerRef={registerTarget({
+                        stopId: "shared",
+                        column: columnIndex,
+                      })}
+                      onTriggerFocus={() =>
+                        onFocusTarget({
+                          stopId: "shared",
                           column: columnIndex,
                         })
                       }
+                      onTriggerKeyDown={onKeyDown({
+                        stopId: "shared",
+                        column: columnIndex,
+                      })}
                     />
                   </td>
                 );
@@ -803,14 +645,10 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 )}
               >
                 <button
-                  ref={(el) => {
-                    const key = `${state.rows.length}-${columnIndex}`;
-                    if (el) {
-                      cellRefs.current.set(key, el);
-                    } else {
-                      cellRefs.current.delete(key);
-                    }
-                  }}
+                  ref={registerTarget({
+                    stopId: "phantom",
+                    column: columnIndex,
+                  })}
                   type="button"
                   className={phantomCellButtonStyle}
                   aria-label={`Add a token row (${element.name})`}
@@ -820,12 +658,13 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                       materializeRow(columnIndex);
                     }
                   }}
-                  onKeyDown={(event) =>
-                    handleGridKeyDown(event, {
-                      kind: "phantom",
-                      column: columnIndex,
-                    })
+                  onFocus={() =>
+                    onFocusTarget({ stopId: "phantom", column: columnIndex })
                   }
+                  onKeyDown={onKeyDown({
+                    stopId: "phantom",
+                    column: columnIndex,
+                  })}
                 />
               </td>
             ))}

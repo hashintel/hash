@@ -258,6 +258,8 @@ export interface ValueEditorProps {
   triggerRef?: (element: HTMLButtonElement | null) => void;
   /** Keyboard navigation hook; Enter/open behaviour stays internal. */
   onTriggerKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>) => void;
+  /** Reports trigger focus to the owning table's keyboard navigation. */
+  onTriggerFocus?: () => void;
 }
 
 /**
@@ -361,7 +363,6 @@ const BoundCell: React.FC<BoundCellProps> = ({
           onStartEdit();
         }
       }}
-      onDoubleClick={onStartEdit}
       onKeyDown={(event) => {
         if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
           event.preventDefault();
@@ -402,6 +403,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   onOpenDerived,
   triggerRef,
   onTriggerKeyDown,
+  onTriggerFocus,
 }) => {
   const {
     errorFor,
@@ -773,7 +775,10 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
           className,
         )}
         tabIndex={derived ? -1 : 0}
-        onFocus={() => setFocusedValue(target)}
+        onFocus={() => {
+          setFocusedValue(target);
+          onTriggerFocus?.();
+        }}
         onBlur={() => {
           if (!open) {
             setFocusedValue(null);
@@ -786,11 +791,6 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
             return;
           }
           if (triggerActivation.shouldActivate(event)) {
-            setOpenState(true);
-          }
-        }}
-        onDoubleClick={() => {
-          if (!derived) {
             setOpenState(true);
           }
         }}

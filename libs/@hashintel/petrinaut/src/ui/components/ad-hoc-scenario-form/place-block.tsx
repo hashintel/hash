@@ -16,11 +16,7 @@ import { use, useState } from "react";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { resolveAdHocPlaceTotal } from "@hashintel/petrinaut-core";
 
-import { focusLands } from "../../worksheet/focus-flow";
-import {
-  useFocusHeader,
-  useFocusMember,
-} from "../../worksheet/use-focus-member";
+import { useFocusHeader } from "../../worksheet/use-focus-member";
 import { AdHocFormContext } from "./form-context";
 import { tableContainerStyle } from "./spreadsheet/form-table";
 import { TokenTable } from "./token-table";
@@ -229,15 +225,12 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
 }) => {
   const { dense } = use(AdHocFormContext);
   const target = { kind: "count" as const, placeId: place.id, row: null };
-  const [trigger, setTrigger] = useState<HTMLButtonElement | null>(null);
-  const { attach: attachZone, moveFrom } = useFocusMember(() =>
-    focusLands(trigger),
-  );
-  const exitZone = (direction: "next" | "previous") =>
-    moveFrom(direction === "next" ? "down" : "up");
+  // The count cell is a single-element member: vertical arrows leave to the
+  // neighbouring member, horizontal ones cross into a sibling column.
+  const { attach: attachTrigger, onHeaderKeyDown } = useFocusHeader({});
 
   return (
-    <div ref={attachZone} className={cx(blockStyle, dense && denseBlockStyle)}>
+    <div className={cx(blockStyle, dense && denseBlockStyle)}>
       <div className={headerStyle}>
         <span className={placeNameStyle}>
           <span
@@ -254,14 +247,8 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
           target={target}
           kind="count"
           placeholder="0 tokens"
-          triggerRef={setTrigger}
-          onTriggerKeyDown={(event) => {
-            if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-              event.preventDefault();
-              event.stopPropagation();
-              exitZone(event.key === "ArrowUp" ? "previous" : "next");
-            }
-          }}
+          triggerRef={attachTrigger}
+          onTriggerKeyDown={onHeaderKeyDown}
         />
       </div>
     </div>

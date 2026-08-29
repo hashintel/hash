@@ -8,7 +8,7 @@
  * behaves like every other cell: focusing selects it, Enter (or a second
  * click) edits, Escape leaves the edit. Arrow keys move between cells, the
  * type select included (Enter opens it), and continue into the neighbouring
- * form zone past the edges.
+ * worksheet member past the edges.
  */
 
 import { use, useEffect, useRef, useState } from "react";
@@ -188,7 +188,6 @@ const NameCell: React.FC<NameCellProps> = ({
           setEditing(true);
         }
       }}
-      onDoubleClick={() => setEditing(true)}
       onKeyDown={onCellKeyDown}
     >
       <span>{value}</span>
