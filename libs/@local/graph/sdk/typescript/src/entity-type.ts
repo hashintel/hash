@@ -25,6 +25,7 @@ import type {
   ExclusiveUnion,
 } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { ActionName } from "@local/hash-graph-authorization/types";
 import type {
   ClosedEntityType as ClosedEntityTypeGraphApi,
   ClosedMultiEntityTypeMap as ClosedMultiEntityTypeMapGraphApi,
@@ -42,7 +43,6 @@ import type {
   SearchEntityTypesRequest as SearchEntityTypesRequestGraphApi,
   SearchEntityTypesResponse as SearchEntityTypesResponseGraphApi,
 } from "@local/hash-graph-client";
-import type { ActionName } from "@rust/hash-graph-authorization/types";
 
 export const hasPermissionForEntityTypes = (
   graphAPI: GraphApi,

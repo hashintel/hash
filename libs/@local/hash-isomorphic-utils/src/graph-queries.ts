@@ -16,7 +16,7 @@ import type {
 import type { EntityId, Timestamp } from "@blockprotocol/type-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { GraphResolveDepths } from "@rust/hash-graph-store/types";
+import type { GraphResolveDepths } from "@local/hash-graph-store/types";
 
 /**
  * Ontology resolve depths that traverse most relationships fully, except for link constraints.

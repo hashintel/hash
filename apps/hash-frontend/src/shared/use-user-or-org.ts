@@ -21,9 +21,9 @@ import type {
   ActorGroupEntityUuid,
   Entity,
 } from "@blockprotocol/type-system";
+import type { TraversalPath } from "@local/hash-graph-store/types";
 import type { Organization } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { User } from "@local/hash-isomorphic-utils/system-types/user";
-import type { TraversalPath } from "@rust/hash-graph-store/types";
 
 export const useUserOrOrg = (
   params: {

@@ -19,7 +19,7 @@ import type {
   Policy,
   PolicyCreationParams,
   ResolvedPolicy,
-} from "@rust/hash-graph-authorization/types";
+} from "@local/hash-graph-authorization/types";
 
 const logger = new Logger({
   environment: "test",

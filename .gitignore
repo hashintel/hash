@@ -100,6 +100,8 @@ blocks/**/.env
 **/pkg
 libs/@blockprotocol/type-system/typescript/src/generated
 libs/@local/codec/typescript/src/generated
+libs/@local/graph/authorization/typescript/src/generated
+libs/@local/graph/store/typescript/src/generated
 
 # vscode config
 **/.vscode/settings.json
