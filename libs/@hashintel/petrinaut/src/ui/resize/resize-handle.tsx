@@ -36,10 +36,8 @@ const handleStyle = cva({
           content: '""',
           position: "absolute",
           borderRadius: "full",
-          backgroundColor: "[transparent]",
           transition: "[background-color 120ms ease-out]",
         },
-        _hover: { _before: { backgroundColor: "neutral.a40" } },
       },
     },
   },
@@ -53,6 +51,11 @@ const handleStyle = cva({
       appearance: "hidden",
       isResizing: false,
       css: { _hover: { backgroundColor: "neutral.a30" } },
+    },
+    {
+      appearance: "line",
+      isResizing: false,
+      css: { _hover: { _before: { backgroundColor: "neutral.a40" } } },
     },
     {
       appearance: "line",
