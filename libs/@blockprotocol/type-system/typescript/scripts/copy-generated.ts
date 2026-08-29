@@ -21,7 +21,11 @@ const packageRoot = path.resolve(
 const crateRoot = path.join(packageRoot, "..", "rust");
 const targetDir = path.join(packageRoot, "src", "generated");
 
-const sources = [
+const sources: {
+  from: string;
+  to: string;
+  rewrite: Record<string, string>;
+}[] = [
   {
     from: path.join(crateRoot, "pkg", "type-system.d.ts"),
     to: path.join(targetDir, "type-system.d.ts"),
