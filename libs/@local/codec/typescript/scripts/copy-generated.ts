@@ -17,13 +17,7 @@ const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
 );
-const source = path.join(
-  packageRoot,
-  "..",
-  "rust",
-  "types",
-  "index.snap.d.ts",
-);
+const source = path.join(packageRoot, "..", "rust", "types", "index.snap.d.ts");
 const targetDir = path.join(packageRoot, "src", "generated");
 const target = path.join(targetDir, "types.ts");
 
