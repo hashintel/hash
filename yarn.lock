@@ -4253,7 +4253,7 @@ __metadata:
   dependencies:
     "@blockprotocol/type-system-rs": "workspace:^"
     "@local/eslint": "workspace:*"
-    "@local/hash-codec": "workspace:^"
+    "@local/hash-codec": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@rollup/plugin-commonjs": "npm:29.0.0"
     "@rollup/plugin-node-resolve": "npm:16.0.3"
@@ -9545,7 +9545,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/hash-codec@workspace:^, @local/hash-codec@workspace:libs/@local/codec/typescript":
+"@local/hash-codec@workspace:*, @local/hash-codec@workspace:libs/@local/codec/typescript":
   version: 0.0.0-use.local
   resolution: "@local/hash-codec@workspace:libs/@local/codec/typescript"
   dependencies:

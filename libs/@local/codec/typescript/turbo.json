@@ -2,7 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "codegen": {
-      "dependsOn": ["@rust/hash-codec#build:types"],
+      "dependsOn": ["^build", "^build:types"],
       "outputs": ["src/generated/**"]
     }
   }

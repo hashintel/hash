@@ -98,7 +98,7 @@
       "dependsOn": ["codegen", "@local/eslint#build"]
     },
     "lint:tsc": {
-      "dependsOn": ["codegen", "^codegen", "build:types"]
+      "dependsOn": ["codegen", "build:types"]
     },
     // Python linting and type checking. `uv run` syncs the package's
     // environment from its own lockfile, so neither needs a prior task.
