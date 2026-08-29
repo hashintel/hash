@@ -7,15 +7,16 @@
   "type": "module",
   "typesVersions": {
     "*": {
-      "types": [
-        "./src/generated/types.d.ts"
+      "*": [
+        "./dist/*.d.ts"
       ]
     }
   },
   "exports": {
-    "./types": "./src/generated/types.js"
+    "./*": "./dist/*.js"
   },
   "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
     "codegen": "node scripts/copy-generated.ts",
     "lint:tsc": "tsc --noEmit"
   },
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@local/tsconfig": "workspace:*",
+    "rimraf": "6.1.3",
     "typescript": "5.9.3"
   }
 }

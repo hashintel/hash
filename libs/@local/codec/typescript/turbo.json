@@ -4,6 +4,9 @@
     "codegen": {
       "dependsOn": ["^build", "^build:types"],
       "outputs": ["src/generated/**"]
+    },
+    "build": {
+      "outputs": ["dist/**"]
     }
   }
 }

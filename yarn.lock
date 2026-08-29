@@ -9551,6 +9551,7 @@ __metadata:
   dependencies:
     "@local/tsconfig": "workspace:*"
     "@rust/hash-codec": "workspace:*"
+    rimraf: "npm:6.1.3"
     typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
