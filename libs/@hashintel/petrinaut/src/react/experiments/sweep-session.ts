@@ -212,9 +212,11 @@ export function sweepSelectionMidValues(
  * indices `[from, target)`, or undefined when every axis is a point. Each
  * ranged axis draws continuously inside its selected value interval — the
  * quantized positions bound the interval, they do not grid it — via the
- * axis's own low-discrepancy sequence, prefix-stable in the run index.
+ * axis's own seed-shifted low-discrepancy sequence, prefix-stable in the
+ * run index.
  */
 export function sweepRangeRuns(
+  seed: number,
   axes: readonly ExperimentParameterAxis[],
   selection: SweepSelection,
   from: number,
@@ -246,7 +248,8 @@ export function sweepRangeRuns(
     const globalIndex = from + localIndex;
     const parameterValues: Record<string, string> = {};
     for (const { axis, axisIndex, low, high } of ranged) {
-      const raw = low + sweepRunFraction(globalIndex, axisIndex) * (high - low);
+      const raw =
+        low + sweepRunFraction(seed, globalIndex, axisIndex) * (high - low);
       parameterValues[axis.identifier] = String(
         axis.integer ? Math.round(raw) : Number(raw.toPrecision(12)),
       );
@@ -332,6 +335,7 @@ export function createSweepSession(
     };
 
     const runs = sweepRangeRuns(
+      seed,
       axes,
       selection,
       snapshot.runsCompleted,

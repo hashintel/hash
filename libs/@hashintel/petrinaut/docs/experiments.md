@@ -64,7 +64,7 @@ A sweep computes **what you have selected**. The results drawer grows a **Parame
 
 Move a slider and compute immediately restarts on the new selection, like a raytracer dropping its rays when the camera moves. Every position you have visited keeps its results: narrowing a range, collapsing to a point, or sliding back to an earlier value restores its runs and distributions instantly, and refinement resumes where it left off.
 
-Every selection uses the same seed sequence (common random numbers), and a run's parameter draw depends only on its position in the sequence, so differences you see between selections come from the parameters, not from sampling luck.
+Every selection uses the same seed sequence (common random numbers), and a run's parameter draw depends only on the experiment's seed and the run's position in the sequence, so differences you see between selections come from the parameters, not from sampling luck — while experiments with different seeds explore their own value sequences.
 
 #### The surface view
 
