@@ -1,6 +1,5 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["./scripts/"],
   "compilerOptions": {
     "declaration": true,
     "outDir": "dist",
