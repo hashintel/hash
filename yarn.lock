@@ -486,7 +486,6 @@ __metadata:
     "@opentelemetry/api-logs": "npm:0.220.0"
     "@opentelemetry/instrumentation": "npm:0.220.0"
     "@opentelemetry/instrumentation-grpc": "npm:0.220.0"
-    "@rust/hash-graph-api": "workspace:*"
     "@sentry/node": "npm:10.64.0"
     "@temporalio/activity": "npm:1.20.2"
     "@temporalio/common": "npm:1.20.2"

@@ -2,5 +2,6 @@
 .npmignore
 tsconfig.esm.json
 openapi.bundle.json
+openapi.json
 *.ts
 *.sh
