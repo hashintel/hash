@@ -212,9 +212,10 @@ const { onPointerDown, shouldActivate } = useSelectFirstActivation();
 />;
 ```
 
-- Double-click needs no handler of its own: its second click lands on an
-  already-selected target and activates. This matters where activation is
-  not idempotent, such as materializing a phantom row.
+- Double-click needs no handler of its own: a repeated click on the same
+  target activates through its click count (`event.detail`), even in
+  browsers that do not focus buttons on pointer down. This matters where
+  activation is not idempotent, such as materializing a phantom row.
 - One instance serves any number of sibling targets.
 
 `useRowSelection` is the row-selection model gutter tables share. Its
