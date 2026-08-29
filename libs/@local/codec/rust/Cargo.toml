@@ -70,9 +70,3 @@ utoipa = ["dep:utoipa"]
 
 [lints]
 workspace = true
-
-
-[package.metadata.sync.turborepo]
-extra-dev-dependencies = [
-    { name = "@local/tsconfig", version = "workspace:*" },
-]

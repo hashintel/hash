@@ -53,7 +53,7 @@
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "workspace:^",
-    "@rust/hash-codec": "workspace:^",
+    "@local/hash-codec": "workspace:^",
     "semver": "7.7.3",
     "uuid": "14.0.0"
   },

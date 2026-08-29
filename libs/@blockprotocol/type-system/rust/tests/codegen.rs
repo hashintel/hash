@@ -36,7 +36,7 @@ fn index() -> io::Result<()> {
         TypeScriptGeneratorSettings::default().with_brand_module("../pkg/type-system.js");
     let mut generator = TypeScriptGenerator::new(&settings, &collection);
 
-    generator.add_import_declaration("@rust/hash-codec/types", ["Real"]);
+    generator.add_import_declaration("@local/hash-codec/types", ["Real"]);
 
     for (type_id, _, type_definition) in collection.iter() {
         if type_definition.module.starts_with("type_system") {
