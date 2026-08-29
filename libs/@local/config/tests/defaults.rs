@@ -259,8 +259,6 @@ fn load_names_unknown_fields() {
     );
 }
 
-/// A Serde expectation describes the type a visitor accepts. It is handed no value to quote, so
-/// it reaches the report verbatim.
 #[test]
 fn load_reports_serde_expectations() {
     const EXPECTATION: &str = "a port number the registry has not claimed";

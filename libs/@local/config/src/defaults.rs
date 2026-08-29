@@ -10,7 +10,6 @@ use serde_core::Serialize;
 pub(crate) struct Defaults<T>(Serialized<T>);
 
 impl<T> Defaults<T> {
-    /// Records the caller as the layer's source, so an error points at the values it rejected.
     #[track_caller]
     pub(crate) fn new(values: T) -> Self {
         Self(Serialized::defaults(values))
@@ -23,8 +22,7 @@ where
 {
     fn metadata(&self) -> Metadata {
         let mut metadata = self.0.metadata();
-        // `Serialized` names itself after the Rust type it was handed, which says nothing to the
-        // reader of an error. The recorded call site survives on `source`.
+        // `Serialized` names itself after the Rust type it was handed.
         metadata.name = "defaults".into();
         // Figment's default notation prefixes the profile a key was found under.
         metadata.interpolater(|_profile, keys| keys.join("."))

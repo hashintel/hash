@@ -15,7 +15,7 @@ use serde_core::{Serialize, de::DeserializeOwned};
 pub use self::error::LoadError;
 use self::{defaults::Defaults, error::load_report};
 
-/// Builds a configuration from explicitly selected sources.
+/// Builds a configuration from layered sources.
 ///
 /// # Examples
 ///
@@ -38,7 +38,6 @@ pub struct Loader {
 }
 
 impl fmt::Debug for Loader {
-    /// Lists the layers by name. Figment's own `Debug` renders the merged values.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("Loader")
@@ -65,7 +64,7 @@ impl Loader {
     ///
     /// Repeated calls are applied in order: later values replace earlier scalars and arrays, while
     /// maps merge recursively. Each value must serialize to a map; serialization and shape errors
-    /// are reported by [`load`](Self::load), against the call site recorded here.
+    /// are reported by [`load`](Self::load) and name this call.
     #[must_use]
     #[track_caller]
     pub fn with_defaults(mut self, values: impl Serialize) -> Self {
