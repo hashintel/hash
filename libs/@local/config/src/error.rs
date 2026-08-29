@@ -129,7 +129,7 @@ impl From<FigmentKind> for LoadDiagnosticKind {
                 expected: expected.into_boxed_str(),
             },
             FigmentKind::InvalidValue(actual, expected) => Self::InvalidValue {
-                actual: actual.actual_kind(&actual),
+                actual: actual_kind(&actual),
                 expected: expected.into_boxed_str(),
             },
             // The measured length is derived from the value it measured.
