@@ -918,6 +918,7 @@ __metadata:
   resolution: "@apps/petrinaut-website@workspace:apps/petrinaut-website"
   dependencies:
     "@ai-sdk/openai": "npm:3.0.63"
+    "@fast-check/vitest": "npm:0.4.1"
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*"
     "@hashintel/ds-components": "workspace:*"
     "@hashintel/ds-helpers": "workspace:*"
@@ -936,6 +937,7 @@ __metadata:
     "@vitejs/plugin-react": "npm:6.1.0"
     "@whatwg-node/server": "npm:0.10.18"
     ai: "npm:6.0.182"
+    fast-check: "npm:4.9.0"
     immer: "npm:10.1.3"
     oxc-transform-react: "npm:0.145.0"
     oxlint: "npm:1.63.0"
@@ -6278,6 +6280,17 @@ __metadata:
   version: 10.4.0
   resolution: "@faker-js/faker@npm:10.4.0"
   checksum: 10c0/29f15e46f91757d654f6f42ac8313ac4aebb6591e2ebae7fdd8d36d5017490327ea67be37cff06d18303db54abf468524bcc7e4b1de53be4eb884c1f71d571c1
+  languageName: node
+  linkType: hard
+
+"@fast-check/vitest@npm:0.4.1":
+  version: 0.4.1
+  resolution: "@fast-check/vitest@npm:0.4.1"
+  dependencies:
+    fast-check: "npm:^3.0.0 || ^4.0.0"
+  peerDependencies:
+    vitest: ^4.1.0
+  checksum: 10c0/c558f443cbf79cfc18f81372d21129021a13e5d821b57876449d3cac254638ddc5c9736b687fc82dc78f53cf1d948a68787aff7f0d1700704168e1805af088d2
   languageName: node
   linkType: hard
 
@@ -28371,7 +28384,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fast-check@npm:4.9.0":
+"fast-check@npm:4.9.0, fast-check@npm:^3.0.0 || ^4.0.0":
   version: 4.9.0
   resolution: "fast-check@npm:4.9.0"
   dependencies:
