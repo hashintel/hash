@@ -1,7 +1,10 @@
 use core::{error::Error, fmt};
 
 use error_stack::Report;
-use figment::error::{Actual, Error as FigmentError, Kind as FigmentKind};
+use figment::{
+    Profile,
+    error::{Actual, Error as FigmentError, Kind as FigmentKind},
+};
 
 /// What prevented a configuration from loading.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,6 +28,7 @@ impl Error for LoadError {}
 struct LoadDiagnostic {
     provider: Option<String>,
     location: Option<String>,
+    profile: Option<Box<str>>,
     path: Option<Box<str>>,
     kind: LoadDiagnosticKind,
 }
@@ -50,6 +54,13 @@ impl From<FigmentError> for LoadDiagnostic {
             (kind, path) => (kind, path),
         };
 
+        // Every key sits under the default profile until one is selected, which makes naming it
+        // noise rather than information.
+        let profile = error
+            .profile
+            .filter(|profile| *profile != Profile::Default)
+            .map(|profile| profile.to_string().into_boxed_str());
+
         let (provider, location) = error.metadata.map_or((None, None), |metadata| {
             (
                 Some(metadata.name.into_owned()),
@@ -60,6 +71,7 @@ impl From<FigmentError> for LoadDiagnostic {
         Self {
             provider,
             location,
+            profile,
             path,
             kind,
         }
@@ -76,6 +88,10 @@ impl fmt::Display for LoadDiagnostic {
 
         if let Some(provider) = &self.provider {
             write!(formatter, " in `{provider}`")?;
+        }
+
+        if let Some(profile) = &self.profile {
+            write!(formatter, " under profile `{profile}`")?;
         }
 
         if let Some(location) = &self.location {
@@ -242,4 +258,45 @@ pub(crate) fn load_report(error: FigmentError) -> Report<LoadError> {
         report = report.attach(LoadDiagnostic::from(error));
     }
     report
+}
+
+#[cfg(test)]
+mod tests {
+    use figment::{Profile, error::Kind as FigmentKind};
+
+    use super::LoadDiagnostic;
+
+    fn rendered(profile: Option<Profile>) -> String {
+        let mut error = figment::Error::from(FigmentKind::MissingField("port".into()));
+        error.profile = profile;
+
+        LoadDiagnostic::from(error).to_string()
+    }
+
+    #[test]
+    fn diagnostic_names_selected_profile() {
+        assert_eq!(
+            rendered(Some(Profile::new("production"))),
+            "missing field `port` under profile `production`",
+            "a selected profile should reach the diagnostic"
+        );
+    }
+
+    #[test]
+    fn diagnostic_omits_default_profile() {
+        assert_eq!(
+            rendered(Some(Profile::Default)),
+            "missing field `port`",
+            "the default profile should not be named"
+        );
+    }
+
+    #[test]
+    fn diagnostic_omits_absent_profile() {
+        assert_eq!(
+            rendered(None),
+            "missing field `port`",
+            "an error without a profile should render without one"
+        );
+    }
 }
