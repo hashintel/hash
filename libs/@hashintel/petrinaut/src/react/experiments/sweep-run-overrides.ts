@@ -14,7 +14,9 @@
  * direct override, with or without an override expression, matching how
  * the engine has always merged run values by variable name.
  */
+import type { SweepRunDraws } from "./sweep-session";
 import type { MonteCarloRunConfig } from "@hashintel/petrinaut-core";
+import type { ExperimentRunPlan } from "@hashintel/petrinaut-core/experiments";
 
 export type TranslateRangeRunsOptions = {
   /** The batch's runs, keyed by scenario parameter identifier. */
@@ -112,4 +114,170 @@ export function translateRangeRuns(
     }
     return { parameterValues };
   });
+}
+
+export type TranslateRangeDrawsOptions = {
+  /** The batch's per-run draws, keyed by scenario parameter identifier. */
+  draws: SweepRunDraws;
+  /** The batch's midpoint scenario values (every swept axis). */
+  midValues: Readonly<Record<string, number>>;
+  /** Net parameter values the batch compiled at `midValues`, as numbers. */
+  baseParameters: Readonly<Record<string, number | boolean>>;
+  /** Compiles the scenario for one concrete swept assignment, as numbers. */
+  compileRunNumbers: (swept: Readonly<Record<string, number>>) => {
+    parameters: Readonly<Record<string, number | boolean>>;
+  };
+  /** The net's parameter variable names, for direct-override passthrough. */
+  netParameterVariableNames: ReadonlySet<string>;
+};
+
+/**
+ * The record-form fallback: expands the draws and delegates to
+ * `translateRangeRuns`, whose string values carry what a numeric plan
+ * cannot.
+ */
+function translateRangeDrawsAsRuns(
+  options: TranslateRangeDrawsOptions,
+): TranslatedRangeDraws {
+  const { draws, midValues, baseParameters, netParameterVariableNames } =
+    options;
+  const width = draws.identifiers.length;
+  const runCount = draws.values.length / width;
+  const runs: MonteCarloRunConfig[] = Array.from(
+    { length: runCount },
+    (_, run) => {
+      const parameterValues: Record<string, string> = {};
+      for (let column = 0; column < width; column++) {
+        parameterValues[draws.identifiers[column]!] = String(
+          draws.values[run * width + column],
+        );
+      }
+      return { parameterValues };
+    },
+  );
+  const baseParameterValues: Record<string, string> = {};
+  for (const [name, value] of Object.entries(baseParameters)) {
+    baseParameterValues[name] = String(value);
+  }
+  const translated = translateRangeRuns({
+    runs,
+    midValues,
+    baseParameterValues,
+    compileForValues: (swept) => {
+      const { parameters } = options.compileRunNumbers(swept);
+      const parameterValues: Record<string, string> = {};
+      for (const [name, value] of Object.entries(parameters)) {
+        parameterValues[name] = String(value);
+      }
+      return { result: { parameterValues } };
+    },
+    netParameterVariableNames,
+  });
+  return translated === undefined
+    ? undefined
+    : { kind: "runs", runs: translated };
+}
+
+export type TranslatedRangeDraws =
+  | { kind: "plan"; plan: ExperimentRunPlan }
+  | { kind: "runs"; runs: MonteCarloRunConfig[] }
+  | undefined;
+
+/**
+ * `translateRangeRuns` over typed-array draws, producing a typed-array plan.
+ *
+ * Same semantics: each run's draws re-evaluate the scenario's overrides, the
+ * plan carries the union of every name any run changed (runs at a base value
+ * carry it explicitly — one uniform layout), a draw naming a net parameter
+ * passes through directly where no override computed that name, and nothing
+ * changing means no plan. The difference is shape: per-run records and
+ * strings were the second-largest main-thread cost of a million-run batch,
+ * and a plan is columns of doubles filled in place.
+ *
+ * A changed value that is not a number (a boolean override reading a swept
+ * value) cannot ride a numeric plan; those batches fall back to the record
+ * form via `translateRangeRuns`.
+ */
+export function translateRangeDraws(
+  options: TranslateRangeDrawsOptions,
+): TranslatedRangeDraws {
+  const {
+    draws,
+    midValues,
+    baseParameters,
+    compileRunNumbers,
+    netParameterVariableNames,
+  } = options;
+  const width = draws.identifiers.length;
+  const runCount = width === 0 ? 0 : draws.values.length / width;
+  if (runCount === 0) {
+    return undefined;
+  }
+
+  // One column per net name some run changes, pre-filled with the base value
+  // so runs that draw the base carry it without a separate fill pass.
+  const columns = new Map<string, Float64Array>();
+  const columnFor = (name: string, base: number): Float64Array => {
+    let column = columns.get(name);
+    if (column === undefined) {
+      column = new Float64Array(runCount).fill(base);
+      columns.set(name, column);
+    }
+    return column;
+  };
+
+  // The parameter record's key set is identical across compiles (the same
+  // defaults template seeds every call), so the keys are read once.
+  let parameterNames: readonly string[] | null = null;
+
+  const swept: Record<string, number> = { ...midValues };
+  for (let run = 0; run < runCount; run++) {
+    for (let column = 0; column < width; column++) {
+      swept[draws.identifiers[column]!] = draws.values[run * width + column]!;
+    }
+    const { parameters } = compileRunNumbers(swept);
+    parameterNames ??= Object.keys(parameters);
+    for (const name of parameterNames) {
+      const value = parameters[name];
+      const base = baseParameters[name];
+      if (value === base) {
+        continue;
+      }
+      if (typeof value !== "number" || typeof base !== "number") {
+        return translateRangeDrawsAsRuns(options);
+      }
+      columnFor(name, base)[run] = value;
+    }
+    // A direct net-name draw wins only where no override expression computed
+    // the name, matching how the engine merges run values.
+    for (let column = 0; column < width; column++) {
+      const identifier = draws.identifiers[column]!;
+      if (!netParameterVariableNames.has(identifier)) {
+        continue;
+      }
+      const draw = draws.values[run * width + column]!;
+      const base = baseParameters[identifier];
+      if (typeof base !== "number" || draw === base) {
+        continue;
+      }
+      const target = columnFor(identifier, base);
+      if (target[run] === base) {
+        target[run] = draw;
+      }
+    }
+  }
+
+  if (columns.size === 0) {
+    return undefined;
+  }
+
+  const ids = [...columns.keys()].sort();
+  const values = new Float64Array(runCount * ids.length);
+  for (const [index, id] of ids.entries()) {
+    const column = columns.get(id)!;
+    for (let run = 0; run < runCount; run++) {
+      values[run * ids.length + index] = column[run]!;
+    }
+  }
+  return { kind: "plan", plan: { ids, values } };
 }

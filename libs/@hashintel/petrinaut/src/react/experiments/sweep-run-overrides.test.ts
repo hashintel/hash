@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { translateRangeRuns } from "./sweep-run-overrides";
+import { translateRangeDraws, translateRangeRuns } from "./sweep-run-overrides";
 
 /** Overrides: net `rate` = scenario `speed` × 2; net `size` is untouched. */
 const compileForValues = (swept: Readonly<Record<string, number>>) => ({
@@ -72,5 +72,148 @@ describe("translateRangeRuns", () => {
     });
 
     expect(translated).toBeUndefined();
+  });
+});
+
+/** Numeric mirror of `compileForValues` above. */
+const compileRunNumbers = (swept: Readonly<Record<string, number>>) => ({
+  parameters: { rate: (swept.speed ?? 1) * 2, size: 7 },
+});
+const baseParameters = compileRunNumbers({ speed: 1.5 }).parameters;
+
+describe("translateRangeDraws", () => {
+  it("produces a run-major plan with one uniform id set", () => {
+    const translated = translateRangeDraws({
+      draws: { identifiers: ["speed"], values: new Float64Array([3, 1.5]) },
+      midValues: { speed: 1.5 },
+      baseParameters,
+      compileRunNumbers,
+      netParameterVariableNames: new Set(["rate", "size"]),
+    });
+
+    if (translated?.kind !== "plan") {
+      throw new Error("expected a plan");
+    }
+    expect(translated.plan.ids).toEqual(["rate"]);
+    // The second run drew the midpoint; it still carries the shared id with
+    // the base value — backends lay per-run values out in one uniform buffer.
+    expect([...translated.plan.values]).toEqual([6, 3]);
+  });
+
+  it("passes a draw through directly when it names a net parameter", () => {
+    const translated = translateRangeDraws({
+      draws: { identifiers: ["size"], values: new Float64Array([9]) },
+      midValues: {},
+      baseParameters,
+      compileRunNumbers: () => ({ parameters: { ...baseParameters } }),
+      netParameterVariableNames: new Set(["rate", "size"]),
+    });
+
+    if (translated?.kind !== "plan") {
+      throw new Error("expected a plan");
+    }
+    expect(translated.plan.ids).toEqual(["size"]);
+    expect([...translated.plan.values]).toEqual([9]);
+  });
+
+  it("returns undefined when no run changes anything", () => {
+    const translated = translateRangeDraws({
+      draws: { identifiers: ["irrelevant"], values: new Float64Array([5]) },
+      midValues: {},
+      baseParameters,
+      compileRunNumbers: () => ({ parameters: { ...baseParameters } }),
+      netParameterVariableNames: new Set(["rate", "size"]),
+    });
+
+    expect(translated).toBeUndefined();
+  });
+
+  it("falls back to run records when a changed value is not a number", () => {
+    const booleanBase = { rate: 3, armed: false };
+    const translated = translateRangeDraws({
+      draws: { identifiers: ["speed"], values: new Float64Array([3]) },
+      midValues: { speed: 1.5 },
+      baseParameters: booleanBase,
+      compileRunNumbers: (swept) => ({
+        parameters: { rate: 3, armed: (swept.speed ?? 0) > 2 },
+      }),
+      netParameterVariableNames: new Set(["rate", "armed"]),
+    });
+
+    if (translated?.kind !== "runs") {
+      throw new Error("expected the record fallback");
+    }
+    expect(translated.runs[0]!.parameterValues).toEqual({ armed: "true" });
+  });
+
+  it("matches translateRangeRuns exactly across random draw batches", () => {
+    // A seeded LCG, so the property is reproducible.
+    let state = 1234567;
+    const next = () => {
+      state = (state * 1103515245 + 12345) % 2147483648;
+      return state / 2147483648;
+    };
+    const numbers = (swept: Readonly<Record<string, number>>) => ({
+      parameters: {
+        rate: (swept.speed ?? 1) * 2,
+        size: swept.size ?? 7,
+        floor: 3,
+      },
+    });
+    const base = numbers({ speed: 1.5 }).parameters;
+    const strings = (swept: Readonly<Record<string, number>>) => {
+      const parameterValues: Record<string, string> = {};
+      for (const [name, value] of Object.entries(numbers(swept).parameters)) {
+        parameterValues[name] = String(value);
+      }
+      return { result: { parameterValues } };
+    };
+    const baseStrings = strings({ speed: 1.5 }).result.parameterValues;
+
+    for (let batch = 0; batch < 20; batch++) {
+      const runCount = 1 + Math.floor(next() * 6);
+      const values = new Float64Array(runCount * 2);
+      for (let index = 0; index < values.length; index++) {
+        // Draws sometimes exactly at the midpoint, sometimes off it.
+        values[index] = next() < 0.4 ? 1.5 : Number(next().toPrecision(12));
+      }
+      const identifiers = ["speed", "size"];
+      const viaDraws = translateRangeDraws({
+        draws: { identifiers, values },
+        midValues: { speed: 1.5 },
+        baseParameters: base,
+        compileRunNumbers: numbers,
+        netParameterVariableNames: new Set(["rate", "size", "floor"]),
+      });
+      const viaRuns = translateRangeRuns({
+        runs: Array.from({ length: runCount }, (_, run) => ({
+          parameterValues: {
+            speed: String(values[run * 2]),
+            size: String(values[run * 2 + 1]),
+          },
+        })),
+        midValues: { speed: 1.5 },
+        baseParameterValues: baseStrings,
+        compileForValues: strings,
+        netParameterVariableNames: new Set(["rate", "size", "floor"]),
+      });
+
+      if (viaRuns === undefined) {
+        expect(viaDraws).toBeUndefined();
+        continue;
+      }
+      if (viaDraws?.kind !== "plan") {
+        throw new Error("expected a plan");
+      }
+      const ids = viaDraws.plan.ids;
+      expect(ids).toEqual(Object.keys(viaRuns[0]!.parameterValues!).sort());
+      for (let run = 0; run < runCount; run++) {
+        for (const [index, id] of ids.entries()) {
+          expect(String(viaDraws.plan.values[run * ids.length + index])).toBe(
+            viaRuns[run]!.parameterValues![id],
+          );
+        }
+      }
+    }
   });
 });

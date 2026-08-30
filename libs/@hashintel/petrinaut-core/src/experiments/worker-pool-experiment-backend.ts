@@ -1,3 +1,4 @@
+import { createMonteCarloExperiment } from "../simulation/monte-carlo/runtime/experiment";
 /**
  * The experiment backend that runs the buffer-ABI engine across Web Workers.
  *
@@ -15,9 +16,10 @@
  * eventually disagree with the engine. Instead instantiation reports what the
  * engine says, which is the single source of truth.
  */
-import { createMonteCarloExperiment } from "../simulation/monte-carlo/runtime/experiment";
+import { createUserKeyedRecord } from "../validation/record-keys";
 
 import type { WorkerFactory } from "../simulation/api";
+import type { MonteCarloRunConfig } from "../simulation/monte-carlo/types";
 import type {
   ExperimentAssessment,
   ExperimentBlockers,
@@ -47,6 +49,30 @@ export type WorkerPoolExperimentBackendOptions = {
   batchSize?: number;
 };
 
+/**
+ * A run plan as the engine's per-run configs.
+ *
+ * The engine and the shard slicing speak `MonteCarloRunConfig`; a plan is
+ * expanded here, at the last step before the worker pool, so the main-thread
+ * pipeline above never materializes a record per run.
+ */
+function expandRunPlan(
+  plan: NonNullable<ExperimentRequest["runPlan"]>,
+  runCount: number,
+): MonteCarloRunConfig[] {
+  const width = plan.ids.length;
+  return Array.from({ length: runCount }, (_, run) => {
+    // Net parameter variable names are user-authored: no prototype.
+    const parameterValues = createUserKeyedRecord<string>();
+    for (let index = 0; index < width; index++) {
+      parameterValues[plan.ids[index]!] = String(
+        plan.values[run * width + index],
+      );
+    }
+    return { parameterValues };
+  });
+}
+
 function assess(
   request: ExperimentRequest,
   options: WorkerPoolExperimentBackendOptions,
@@ -67,7 +93,11 @@ function assess(
           dt: request.dt,
           maxTime: request.maxTime,
           runCount: request.runCount,
-          ...(request.runs === undefined ? {} : { runs: request.runs }),
+          ...(request.runs !== undefined
+            ? { runs: request.runs }
+            : request.runPlan !== undefined
+              ? { runs: expandRunPlan(request.runPlan, request.runCount) }
+              : {}),
           metricSpecs: request.metricSpecs,
           ...(request.hirArtifacts === undefined
             ? {}
