@@ -103,6 +103,8 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setUseEntitiesTreeView,
     enableNetComponents,
     setEnableNetComponents,
+    enableNotebookView,
+    setEnableNotebookView,
   } = use(UserSettingsContext);
   const { extensions } = use(SDCPNContext);
 
@@ -194,6 +196,23 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
           <Toggle
             value={useEntitiesTreeView}
             onChange={setUseEntitiesTreeView}
+            size="sm"
+          />
+        </SettingRow>
+        <SettingRow
+          label={
+            <>
+              Notebook view{" "}
+              <Chip size="xs" color="orange" variant="outline" shape="round">
+                Experimental
+              </Chip>
+            </>
+          }
+          description="Add a read-only Notebook mode to the top bar, listing the net as expandable cells"
+        >
+          <Toggle
+            value={enableNotebookView}
+            onChange={setEnableNotebookView}
             size="sm"
           />
         </SettingRow>

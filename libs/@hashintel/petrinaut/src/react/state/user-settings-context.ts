@@ -44,6 +44,7 @@ export type UserSettings = {
   partialSelection: boolean;
   useEntitiesTreeView: boolean;
   enableNetComponents: boolean;
+  enableNotebookView: boolean;
   /**
    * Persisted preference controlling whether the product walkthrough opens
    * automatically the next time the app initializes. The live open state is
@@ -72,6 +73,7 @@ export type UserSettingsActions = {
   setPartialSelection: (value: boolean) => void;
   setUseEntitiesTreeView: (value: boolean) => void;
   setEnableNetComponents: (value: boolean) => void;
+  setEnableNotebookView: (value: boolean) => void;
   setShowWalkthroughOnInit: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
@@ -100,6 +102,7 @@ export const defaultUserSettings: UserSettings = {
   partialSelection: true,
   useEntitiesTreeView: false,
   enableNetComponents: false,
+  enableNotebookView: false,
   showWalkthroughOnInit: true,
   subViewPanels: {},
 };
@@ -123,6 +126,7 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setPartialSelection: () => {},
   setUseEntitiesTreeView: () => {},
   setEnableNetComponents: () => {},
+  setEnableNotebookView: () => {},
   setShowWalkthroughOnInit: () => {},
   updateSubViewSection: () => {},
 };
