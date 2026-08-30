@@ -21,9 +21,6 @@
     "build:docker": {
       "cache": false
     },
-    "build:types": {
-      "dependsOn": ["^build:types"]
-    },
     "build:codspeed": {
       "cache": false
     },
@@ -62,7 +59,7 @@
     },
     // Test commands
     "test:unit": {
-      "dependsOn": ["codegen", "^build"],
+      "dependsOn": ["codegen"],
       "env": ["TEST_COVERAGE"]
     },
     "test:integration": {
@@ -98,7 +95,7 @@
       "dependsOn": ["codegen", "@local/eslint#build"]
     },
     "lint:tsc": {
-      "dependsOn": ["codegen", "build:types"]
+      "dependsOn": ["codegen"]
     },
     // Python linting and type checking. `uv run` syncs the package's
     // environment from its own lockfile, so neither needs a prior task.

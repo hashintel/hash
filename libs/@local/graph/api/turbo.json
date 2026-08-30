@@ -1,7 +1,7 @@
 {
   "extends": ["//"],
   "tasks": {
-    "codegen:generate-openapi-specs": {
+    "build:openapi": {
       "outputs": ["openapi/openapi.json", "openapi/models/**"]
     }
   }

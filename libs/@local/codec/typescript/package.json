@@ -20,9 +20,6 @@
     "codegen": "mkdir -p src/generated && cp ../rust/types/index.snap.d.ts src/generated/types.ts",
     "lint:tsc": "tsc --noEmit"
   },
-  "dependencies": {
-    "@rust/hash-codec": "workspace:*"
-  },
   "devDependencies": {
     "@local/tsconfig": "workspace:*",
     "rimraf": "6.1.3",

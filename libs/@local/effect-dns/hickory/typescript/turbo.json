@@ -3,6 +3,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
+      "inputs": ["$TURBO_DEFAULT$", "../rust/src/**", "../rust/Cargo.toml"],
       "outputs": ["./dist/**"]
     },
     "test:unit": {

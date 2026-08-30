@@ -76,10 +76,7 @@ jobs:
           # run that silently builds/deploys nothing. Fail loud instead.
           set -euo pipefail
 
-          SOURCEMAPS_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "sentry:sourcemaps"}}) { items { name path } } }'
-
-          SOURCEMAPS_PACKAGES=$(turbo query "$SOURCEMAPS_QUERY" \
-            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
+          SOURCEMAPS_PACKAGES=$(.github/scripts/affected-packages.sh sentry:sourcemaps)
 
           echo "sourcemaps=$SOURCEMAPS_PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
@@ -168,8 +165,7 @@ jobs:
             AFFECTED_CATALOG=$(jq -c '.' <<<"$CATALOG")
           else
             # App images — turbo affected, excluding the workspace root "//".
-            IMAGES_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "build:docker"}}) { items { name } } }'
-            AFFECTED_PKGS=$(turbo query "$IMAGES_QUERY" | jq -c '[.data.affectedPackages.items[].name | select(. != "//")]')
+            AFFECTED_PKGS=$(.github/scripts/affected-packages.sh build:docker | jq -c '[.include[].name]')
 
             # Fail loudly if turbo flags a `build:docker` package the catalog
             # doesn't know about — otherwise its image would silently never
@@ -270,6 +266,9 @@ jobs:
       id-token: write
       contents: read
     steps:
+      - name: Show selection reason
+        run: echo '${{ toJSON(matrix) }}'
+
       - name: Authenticate Vault
         id: secrets
         uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0

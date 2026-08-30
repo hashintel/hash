@@ -52,7 +52,6 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "workspace:^",
     "semver": "7.7.3",
     "uuid": "14.0.0"
   },

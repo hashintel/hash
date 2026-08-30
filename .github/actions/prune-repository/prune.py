@@ -73,6 +73,17 @@ TURBO_QUERY = """
               name
             }
           }
+          tasks {
+            items {
+              allDependencies {
+                items {
+                  package {
+                    name
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
@@ -80,7 +91,12 @@ TURBO_QUERY = """
 
 
 def turbo_dependency_map() -> dict[str, frozenset[str]]:
-    """Query turbo for all packages and return a map of package name to its dependencies."""
+    """Query turbo for all packages and return a map of package name to its dependencies.
+
+    Covers both the package graph and the task graph: task dependencies cross
+    the package graph (`dependsOn: ["pkg#task"]`), which `turbo prune` does not
+    follow.
+    """
 
     result = subprocess.run(
         ["turbo", "query", TURBO_QUERY],
@@ -92,8 +108,14 @@ def turbo_dependency_map() -> dict[str, frozenset[str]]:
 
     dep_map: dict[str, frozenset[str]] = {}
     for item in data["data"]["packages"]["items"]:
-        deps = frozenset(dep["name"] for dep in item["allDependencies"]["items"])
-        dep_map[item["name"]] = deps
+        deps = {dep["name"] for dep in item["allDependencies"]["items"]}
+        for task in item["tasks"]["items"]:
+            deps.update(
+                dep["package"]["name"] for dep in task["allDependencies"]["items"]
+            )
+        deps.discard(item["name"])
+        deps.discard("//")
+        dep_map[item["name"]] = frozenset(deps)
 
     return dep_map
 
@@ -141,7 +163,11 @@ def expand_scopes(dependencies: Iterable[str]) -> frozenset[str]:
 def fixpoint_expand(
     initial: Iterable[str], dependencies: dict[str, frozenset[str]]
 ) -> frozenset[str]:
-    """Expand scopes to a fixpoint using the pre-built dependency map."""
+    """Expand scopes to a fixpoint using the pre-built dependency map.
+
+    Every dependency becomes an explicit scope: the map carries task-graph
+    edges that `turbo prune` would not follow on its own.
+    """
     scopes: set[str] = set(initial)
     stable: set[str] = set()
 
@@ -154,6 +180,7 @@ def fixpoint_expand(
             stable.add(scope)
             deps: frozenset[str] = dependencies.get(scope, frozenset())
 
+            scopes |= deps
             scopes |= expand_scopes(deps | {scope})
 
     return frozenset(scopes)

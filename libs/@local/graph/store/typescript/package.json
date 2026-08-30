@@ -22,8 +22,7 @@
   },
   "dependencies": {
     "@blockprotocol/type-system": "workspace:*",
-    "@local/hash-graph-authorization": "workspace:*",
-    "@rust/hash-graph-store": "workspace:*"
+    "@local/hash-graph-authorization": "workspace:*"
   },
   "devDependencies": {
     "@local/tsconfig": "workspace:*",

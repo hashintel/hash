@@ -21,8 +21,7 @@
     "lint:tsc": "tsc --noEmit"
   },
   "dependencies": {
-    "@blockprotocol/type-system": "workspace:*",
-    "@rust/hash-graph-authorization": "workspace:*"
+    "@blockprotocol/type-system": "workspace:*"
   },
   "devDependencies": {
     "@local/tsconfig": "workspace:*",
