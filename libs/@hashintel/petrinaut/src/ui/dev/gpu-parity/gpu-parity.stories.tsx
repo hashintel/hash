@@ -157,6 +157,8 @@ function ksStatistic(
 async function runBackend(
   backend: ExperimentBackend,
   request: ExperimentRequest,
+  /** The mount's live-handle slot, so cleanup can cancel an in-flight run. */
+  active: { handle: { cancel: () => void } | null },
 ): Promise<BackendReport | { error: string }> {
   const assessment = await backend.assess(request);
   if (!assessment.eligible) {
@@ -171,18 +173,30 @@ async function runBackend(
     };
   }
   const handle = instantiated.handle;
+  /* eslint-disable no-param-reassign -- `active` is the caller's live-handle
+     slot; writing it is this function's contract with the cleanup. */
+  active.handle = handle;
+  /* eslint-enable no-param-reassign */
   const started = performance.now();
-  const done = new Promise<void>((resolve) => {
-    const off = handle.events.subscribe(() => {
+  const outcome = new Promise<string>((resolve) => {
+    const off = handle.events.subscribe((event) => {
       off();
-      resolve();
+      resolve(event.type);
     });
   });
   handle.start();
-  await done;
+  const terminal = await outcome;
+  /* eslint-disable no-param-reassign -- see above: clearing the slot. */
+  active.handle = null;
+  /* eslint-enable no-param-reassign */
   const frames = [...handle.metrics.get().frames];
   const ms = performance.now() - started;
   handle.dispose();
+  if (terminal !== "complete") {
+    // Partial frames would render as plausible parity numbers; say what
+    // actually happened instead.
+    return { error: `run ended with '${terminal}' after ${Math.round(ms)} ms` };
+  }
   return { frames, ms };
 }
 
@@ -259,7 +273,10 @@ const ParityStory = ({
   const [status, setStatus] = useState("running…");
 
   useEffect(() => {
-    const walk = { cancelled: false };
+    const walk: {
+      cancelled: boolean;
+      handle: { cancel: () => void } | null;
+    } = { cancelled: false, handle: null };
     // Read through a call so the flow analysis cannot pin the flag to its
     // initial value: cleanup flips it from outside this closure.
     const isCancelled = () => walk.cancelled;
@@ -294,9 +311,9 @@ const ParityStory = ({
           shardCount: 4,
         });
         const gpuBackend = createWebGpuExperimentBackend();
-        const cpu = await runBackend(cpuBackend, request);
+        const cpu = await runBackend(cpuBackend, request, walk);
         if (isCancelled()) return;
-        const gpu = await runBackend(gpuBackend, request);
+        const gpu = await runBackend(gpuBackend, request, walk);
         if (isCancelled()) return;
         if ("error" in cpu) {
           results.push({ model: model.title, error: `CPU: ${cpu.error}` });
@@ -314,6 +331,9 @@ const ParityStory = ({
     void run();
     return () => {
       walk.cancelled = true;
+      // Without this, an abandoned mount's runs (a keystroke in a control
+      // remounts the story) keep the pool and the GPU busy to completion.
+      walk.handle?.cancel();
     };
   }, [dt, maxTime, runCount, seed]);
 

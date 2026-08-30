@@ -35,6 +35,14 @@ export type TranslateRangeRunsOptions = {
  * Returns runs whose `parameterValues` are keyed by net parameter variable
  * name, or undefined when no run ends up overriding anything (the whole
  * batch behaves as the midpoint compilation).
+ *
+ * Every returned run carries the SAME key set — the union of every name any
+ * run's draws changed — with runs whose draw compiles back to a base value
+ * carrying that base value explicitly. Backends lay per-run values out in
+ * one uniform buffer, and a batch whose runs override different names (an
+ * integer axis rounding a draw onto the midpoint, say) would otherwise be
+ * refused — or, worse, keyed off a first run that happened to change
+ * nothing and silently dropped.
  */
 export function translateRangeRuns(
   options: TranslateRangeRunsOptions,
@@ -47,7 +55,9 @@ export function translateRangeRuns(
     netParameterVariableNames,
   } = options;
 
-  const translated = runs.map((run) => {
+  // Pass 1: compile each run's draws and collect which net names any run
+  // actually changes (plus direct net-name draws).
+  const compiledRuns = runs.map((run) => {
     const draws = run.parameterValues ?? {};
     const numericDraws: Record<string, number> = {};
     for (const [identifier, value] of Object.entries(draws)) {
@@ -56,34 +66,50 @@ export function translateRangeRuns(
         numericDraws[identifier] = parsed;
       }
     }
+    return {
+      draws,
+      compiledValues: compileForValues({ ...midValues, ...numericDraws }).result
+        .parameterValues,
+    };
+  });
 
-    const compiled = compileForValues({ ...midValues, ...numericDraws });
-    const parameterValues: Record<string, string> = {};
-    for (const [name, value] of Object.entries(
-      compiled.result.parameterValues,
-    )) {
+  const overriddenNames = new Set<string>();
+  for (const { draws, compiledValues } of compiledRuns) {
+    for (const [name, value] of Object.entries(compiledValues)) {
       if (baseParameterValues[name] !== value) {
-        parameterValues[name] = value;
+        overriddenNames.add(name);
       }
     }
-    // Draw identifiers that are net variable names override directly, the
-    // way run values have always merged — unless an override expression
-    // already produced a value for that name.
     for (const [identifier, value] of Object.entries(draws)) {
       if (
         netParameterVariableNames.has(identifier) &&
-        parameterValues[identifier] === undefined &&
         baseParameterValues[identifier] !== value
       ) {
-        parameterValues[identifier] = value;
+        overriddenNames.add(identifier);
       }
     }
+  }
+  if (overriddenNames.size === 0) {
+    return undefined;
+  }
 
+  // Pass 2: every run supplies every overridden name.
+  const names = [...overriddenNames].sort();
+  return compiledRuns.map(({ draws, compiledValues }) => {
+    const parameterValues: Record<string, string> = {};
+    for (const name of names) {
+      // A direct net-name draw wins only where no override expression
+      // computed the name, matching how the engine merges run values.
+      const direct =
+        netParameterVariableNames.has(name) && draws[name] !== undefined
+          ? draws[name]
+          : undefined;
+      parameterValues[name] =
+        compiledValues[name] !== undefined &&
+        compiledValues[name] !== baseParameterValues[name]
+          ? compiledValues[name]
+          : (direct ?? compiledValues[name] ?? baseParameterValues[name] ?? "");
+    }
     return { parameterValues };
   });
-
-  const anyOverrides = translated.some(
-    (run) => Object.keys(run.parameterValues).length > 0,
-  );
-  return anyOverrides ? translated : undefined;
 }

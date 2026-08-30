@@ -133,13 +133,11 @@ function deriveRunParameters(
       reason: `The experiment declares ${runCount} runs but supplies ${runs.length} per-run configurations.`,
     };
   }
-  const first = runs[0]!;
-  const ids = Object.keys(first.parameterValues ?? {}).sort();
-  if (ids.length === 0) {
-    return { ok: true, ids: [] };
-  }
-  const values = new Float32Array(runs.length * ids.length);
-  for (const [runIndex, run] of runs.entries()) {
+  // Validate every run before reading any values: keying off the first run
+  // alone once let a batch whose first run overrode nothing silently drop
+  // every other run's draws (and skip the seed/marking refusal below).
+  const idSet = new Set<string>();
+  for (const run of runs) {
     if (run.seed !== undefined || run.initialMarking !== undefined) {
       return {
         ok: false,
@@ -147,6 +145,16 @@ function deriveRunParameters(
           "The GPU backend cannot run per-run seed or initial-marking overrides; only per-run parameter values are supported.",
       };
     }
+    for (const id of Object.keys(run.parameterValues ?? {})) {
+      idSet.add(id);
+    }
+  }
+  const ids = [...idSet].sort();
+  if (ids.length === 0) {
+    return { ok: true, ids: [] };
+  }
+  const values = new Float32Array(runs.length * ids.length);
+  for (const [runIndex, run] of runs.entries()) {
     const overrides = run.parameterValues ?? {};
     if (
       Object.keys(overrides).length !== ids.length ||
@@ -275,6 +283,26 @@ export async function createGpuMonteCarloExperiment(
   });
 
   const run = async () => {
+    // A marking larger than a typed place's declared capacity has nowhere to
+    // go: the slots are sized from the capacity, and writing past them would
+    // corrupt the neighbouring place's tokens or the next run's header. The
+    // CPU engine grows its buffers dynamically, so the net still runs there.
+    for (const place of backend.profile.places) {
+      const marking = config.initialMarking[place.id];
+      const count = Array.isArray(marking)
+        ? marking.length
+        : typeof marking === "number"
+          ? marking
+          : 0;
+      if (place.capacity > 0 && count > place.capacity) {
+        return {
+          supported: false,
+          cause: "net-unsupported",
+          reason: `Place \`${place.name}\` starts with ${count} tokens but declares a capacity of ${place.capacity}; the GPU backend sizes its buffers from the capacity, so the initial marking must fit. Raise the capacity or run on the CPU.`,
+        };
+      }
+    }
+
     // Typed places start from real token values, not zeroed slots: encode
     // each initial token's attributes in the shader's slot layout (reals as
     // bitcast f32, then integers/booleans as u32), one buffer per place.
