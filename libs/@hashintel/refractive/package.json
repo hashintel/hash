@@ -40,6 +40,8 @@
     "oxc-transform-react": "0.145.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
     "rolldown-plugin-dts": "0.25.0",
     "storybook": "10.2.19",
     "vite": "8.1.0"

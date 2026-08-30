@@ -7872,6 +7872,8 @@ __metadata:
     oxc-transform-react: "npm:0.145.0"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
+    react: "npm:19.2.6"
+    react-dom: "npm:19.2.6"
     rolldown-plugin-dts: "npm:0.25.0"
     storybook: "npm:10.2.19"
     vite: "npm:8.1.0"

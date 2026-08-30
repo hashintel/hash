@@ -23,7 +23,7 @@ RUN apt-get update && \
     /etc/mise/install.sh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    mise install --locked npm:turbo
+    mise install --locked npm:turbo yq
 
 
 FROM bindings-tools AS bindings-pruner
