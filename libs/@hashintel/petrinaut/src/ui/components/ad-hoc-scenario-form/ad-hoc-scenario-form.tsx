@@ -92,13 +92,13 @@ export interface AdHocScenarioFormProps {
   /**
    * Custom arrangement: the host receives each group — already wired to the
    * form's contexts — and lays them out itself (e.g. Simulation Settings
-   * places Parameters and Initial state in separate panel columns). The
-   * groups render without section chrome; a group the props
+   * places Variables + Parameters and Initial state in separate panel
+   * columns). The groups render without section chrome; a group the props
    * withhold (`withVariables`, an empty `netParameters`) is `null`. The
    * host's own chrome may render inside too — the wrapper only carries the
-   * form's keyboard handling. Each group is its own column in the keyboard
-   * flow: vertical arrows chain within a group, and horizontal moves at a
-   * table's side cross into the neighbouring group.
+   * form's keyboard handling. Wrap each visual column of the layout in a
+   * `FormLayoutColumn`: vertical arrows chain the column's groups, and
+   * horizontal moves at a table's side cross into the neighbouring column.
    */
   renderLayout?: (groups: {
     variables: React.ReactNode;
@@ -109,14 +109,16 @@ export interface AdHocScenarioFormProps {
   className?: string;
 }
 
-// Each renderLayout group is its own keyboard panel: hosts lay the groups
-// out side by side. Each becomes its own vertical FocusStack: vertical
-// arrows stay within a column, and a horizontal move at a table's side
-// crosses into the neighbouring column, entering at its remembered
-// position. FocusStack renders display:contents, so the host's layout is
-// untouched.
-const asColumn = (node: React.ReactNode): React.ReactNode =>
-  node === null ? null : <FocusStack axis="vertical">{node}</FocusStack>;
+/**
+ * One keyboard column of a custom layout: hosts wrap each visual column of
+ * their `renderLayout` output in one. Vertical arrows chain the column's
+ * groups top to bottom, and a horizontal move at a table's side crosses
+ * into the neighbouring column, entering at its remembered position. A
+ * FocusStack renders display:contents, so the host's layout is untouched.
+ */
+export const FormLayoutColumn: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => <FocusStack axis="vertical">{children}</FocusStack>;
 
 /**
  * A Section that participates in the form's keyboard walk: its collapse
@@ -336,9 +338,9 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
           {renderLayout ? (
             <FocusStack axis="horizontal">
               {renderLayout({
-                variables: asColumn(variableRows),
-                parameters: asColumn(parameterRows),
-                places: asColumn(placesList),
+                variables: variableRows,
+                parameters: parameterRows,
+                places: placesList,
               })}
             </FocusStack>
           ) : (
