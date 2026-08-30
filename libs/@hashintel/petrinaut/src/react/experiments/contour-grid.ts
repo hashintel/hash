@@ -370,7 +370,6 @@ export function bluesLut(): Uint8ClampedArray {
   return lut;
 }
 
-
 /**
  * One combination's objective: the metric's value on its final frame.
  *

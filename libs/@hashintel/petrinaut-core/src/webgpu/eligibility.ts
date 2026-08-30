@@ -102,7 +102,7 @@ export function assessGpuEligibility(
 
   // Per-run state always carries: one u32 count per place, one u32 elapsed-frame
   // counter and one u32 firing count per transition, plus an RNG word and status.
-  let stateWords = sdcpn.places.length + sdcpn.transitions.length * 2 + 2;
+  let stateWords = sdcpn.places.length + sdcpn.transitions.length + 2;
 
   for (const place of sdcpn.places) {
     const colored = place.colorId !== null;

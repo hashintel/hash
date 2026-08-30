@@ -17,6 +17,7 @@ import {
   createEventStream,
   createReadableStore,
 } from "../simulation/monte-carlo/runtime/experiment-stores";
+import { getMaxFrameNumber } from "../simulation/monte-carlo/time";
 import { requestGpuExperimentBackend } from "./backend";
 import { GPU_HISTOGRAM_BINS } from "./compile-net-shader";
 import { toGpuMetricFrames, toGpuMetricSpecs } from "./gpu-metric-frames";
@@ -211,7 +212,9 @@ export async function createGpuMonteCarloExperiment(
     };
   }
 
-  const frameLimit = Math.max(1, Math.round(config.maxTime / config.dt));
+  // The CPU's rounding: snap within an epsilon of a whole step, else ceil
+  // (`monte-carlo/time.ts`), so both backends step the same frame count.
+  const frameLimit = Math.max(1, getMaxFrameNumber(config.maxTime, config.dt));
   const status = createReadableStore<MonteCarloExperimentState>("Initializing");
   const progress = createReadableStore<MonteCarloWorkerProgress | null>(null);
   const metrics = createReadableStore(createEmptyMetricsState());
@@ -272,6 +275,35 @@ export async function createGpuMonteCarloExperiment(
   });
 
   const run = async () => {
+    // Frame 0 is the initial state, which the device never samples; the
+    // host knows it exactly (every run starts identical), so it is emitted
+    // here — matching the CPU simulator's observation of the initial
+    // marking before any step.
+    const placeIndexById = new Map(
+      backend.profile.places.map((place, index) => [place.id, index]),
+    );
+    const initialHistogramFrames = gpuMetrics.metrics.map((metric) => {
+      const count = placeCounts[placeIndexById.get(metric.placeId) ?? -1] ?? 0;
+      return {
+        frameNumber: 0,
+        metricId: metric.id,
+        bins: [[count, config.runCount]] as [number, number][],
+        sampleCount: config.runCount,
+      };
+    });
+    if (initialHistogramFrames.length > 0) {
+      metrics.set(
+        appendMetricFrames(
+          metrics.get(),
+          toGpuMetricFrames(
+            initialHistogramFrames,
+            config.metricSpecs,
+            config.dt,
+          ),
+        ),
+      );
+    }
+
     const outcome = await runGpuExperiment(backend.handle, backend.shader, {
       runCount: config.runCount,
       frameLimit,
@@ -332,7 +364,11 @@ export async function createGpuMonteCarloExperiment(
     metrics.set(
       appendMetricFrames(
         createEmptyMetricsState(),
-        toGpuMetricFrames(outcome.result.frames, config.metricSpecs, config.dt),
+        toGpuMetricFrames(
+          [...initialHistogramFrames, ...outcome.result.frames],
+          config.metricSpecs,
+          config.dt,
+        ),
       ),
     );
     progress.set({

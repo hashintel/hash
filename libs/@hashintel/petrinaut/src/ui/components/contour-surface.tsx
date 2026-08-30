@@ -163,8 +163,7 @@ function paint(options: {
         for (let px = 0; px < cellsWidth; px++) {
           const value = raster[py * rasterWidth + px]!;
           const t = span > 0 ? (value - min) / span : 0.5;
-          const entry =
-            Math.min(255, Math.max(0, Math.round(t * 255))) * 3;
+          const entry = Math.min(255, Math.max(0, Math.round(t * 255))) * 3;
           const out = (py * cellsWidth + px) * 4;
           pixels[out] = state.lut[entry]!;
           pixels[out + 1] = state.lut[entry + 1]!;
@@ -172,8 +171,7 @@ function paint(options: {
           pixels[out + 3] = 255;
         }
       }
-      const image =
-        state.field?.image ?? document.createElement("canvas");
+      const image = state.field?.image ?? document.createElement("canvas");
       image.width = cellsWidth;
       image.height = cellsHeight;
       image
@@ -294,7 +292,16 @@ export const ContourSurface = ({
     }
     frameHandleRef.current = requestAnimationFrame(() => {
       frameHandleRef.current = null;
-      paint({ canvas, state, width: size.width, height, nx, ny, values, markers });
+      paint({
+        canvas,
+        state,
+        width: size.width,
+        height,
+        nx,
+        ny,
+        values,
+        markers,
+      });
     });
     return () => {
       if (frameHandleRef.current !== null) {

@@ -88,6 +88,11 @@ export type GpuExperimentRequest = {
 };
 
 export type GpuHistogramFrame = {
+  /**
+   * CPU-aligned frame number: frame 0 is the initial state (built by the
+   * host — the device never samples it), and the histogram's bin `f` holds
+   * the state after step `f`, published as frame `f + 1`.
+   */
   frameNumber: number;
   metricId: string;
   /** `[value, frequency]` pairs, ascending, zero bins omitted. */
@@ -680,7 +685,7 @@ export async function runGpuExperiment(
         await chunkReadback.mapAsync(GPUMapMode.READ, 0, chunkBytes);
         const decoded = decodeHistogramFrames({
           data: new Uint32Array(chunkReadback.getMappedRange(0, chunkBytes)),
-          firstFrame: baseFrame,
+          firstFrame: baseFrame + 1,
           frameCount: chunkFrames,
           metricIds: shader.metricIds,
         });
@@ -777,7 +782,7 @@ export async function runGpuExperiment(
 
     const { frames, saturatedSamples } = decodeHistogramFrames({
       data: histogram,
-      firstFrame: 0,
+      firstFrame: 1,
       frameCount: decodedFrameLimit,
       metricIds: shader.metricIds,
     });
