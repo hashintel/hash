@@ -40,8 +40,10 @@ const overlayStyle = css({
   alignItems: "flex-start",
   justifyContent: "center",
   paddingTop: "[12vh]",
-  backgroundColor: "[rgba(15, 18, 24, 0.4)]",
-  zIndex: "[1000]",
+  // Nearly invisible scrim; `modal` sits above every editor panel (the
+  // panels layer around the `sticky` token).
+  backgroundColor: "[rgba(15, 18, 24, 0.08)]",
+  zIndex: "modal",
 });
 
 const paletteStyle = css({
@@ -108,8 +110,14 @@ const paletteShortcutStyle = css({
 });
 
 const paletteKeyStyle = css({
-  minWidth: "[20px]",
-  textAlign: "center",
+  // Square keycaps: single-symbol keys are 20x20; longer labels keep the
+  // height and grow.
+  width: "[20px]",
+  height: "[20px]",
+  flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
   fontSize: "xs",
   fontFamily: "mono",
   color: "neutral.s100",
@@ -118,8 +126,11 @@ const paletteKeyStyle = css({
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",
   borderRadius: "sm",
-  padding: "[1px 5px]",
   boxShadow: "[0 1px 0 {colors.neutral.bd.subtle}]",
+  "&[data-wide='true']": {
+    width: "[auto]",
+    paddingInline: "[5px]",
+  },
 });
 
 const paletteEmptyStyle = css({
@@ -225,7 +236,11 @@ const HostCommandPalette: React.FC = () => {
                 {command.shortcut ? (
                   <span className={paletteShortcutStyle} aria-hidden>
                     {formatShortcutKeys(command.shortcut).map((key) => (
-                      <kbd key={key} className={paletteKeyStyle}>
+                      <kbd
+                        key={key}
+                        data-wide={key.length > 1}
+                        className={paletteKeyStyle}
+                      >
                         {key}
                       </kbd>
                     ))}

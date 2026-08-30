@@ -15,8 +15,8 @@ const overlayStyle: CSSProperties = {
   alignItems: "flex-start",
   justifyContent: "center",
   paddingTop: "12vh",
-  backgroundColor: "rgba(15, 18, 24, 0.4)",
-  zIndex: 1000,
+  backgroundColor: "rgba(15, 18, 24, 0.08)",
+  zIndex: "var(--z-index-modal, 1400)",
 };
 
 const paletteStyle: CSSProperties = {
@@ -75,18 +75,23 @@ const shortcutStyle: CSSProperties = {
   gap: 3,
 };
 
-const keyStyle: CSSProperties = {
+const keyStyle = (isWide: boolean): CSSProperties => ({
+  width: isWide ? undefined : 20,
   minWidth: 20,
-  textAlign: "center",
+  height: 20,
+  flexShrink: 0,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  paddingInline: isWide ? 5 : 0,
   fontSize: 12,
   fontFamily: "monospace",
   color: "#3d4250",
   backgroundColor: "#f2f3f0",
   border: "1px solid #d8dade",
   borderRadius: 4,
-  padding: "1px 5px",
   boxShadow: "0 1px 0 #d8dade",
-};
+});
 
 const matchesQuery = (haystack: string, query: string): boolean =>
   haystack.toLowerCase().includes(query.toLowerCase());
@@ -191,7 +196,7 @@ export const CommandPalette = () => {
                 {command.shortcut ? (
                   <span style={shortcutStyle} aria-hidden>
                     {formatShortcutKeys(command.shortcut).map((key) => (
-                      <kbd key={key} style={keyStyle}>
+                      <kbd key={key} style={keyStyle(key.length > 1)}>
                         {key}
                       </kbd>
                     ))}
