@@ -24,11 +24,19 @@ const raisedContainerStyle = css({
   backgroundColor: "neutral.s05",
 });
 
+// The light frame is one step quieter than the regular one, so an auxiliary
+// table (a place's local Variables) recedes next to the actual data.
+const lightFrameContainerStyle = css({
+  borderColor: "[{colors.neutral.a35}!]",
+});
+
 export interface FormSpreadsheetProps {
   /** Registers the container with the owning table's worksheet hook
    * (`useFocusGrid`/`useFocusStops` attach). */
   attach?: (element: HTMLDivElement | null) => void;
   ariaLabel?: string;
+  /** "light" softens the outer border for auxiliary tables. */
+  frame?: "regular" | "light";
   /** "raised" darkens the grid a step; "plain" (default) stays white. */
   tone?: "plain" | "raised";
   children: ReactNode;
@@ -37,6 +45,7 @@ export interface FormSpreadsheetProps {
 export const FormSpreadsheet: React.FC<FormSpreadsheetProps> = ({
   attach,
   ariaLabel,
+  frame = "regular",
   tone = "plain",
   children,
 }) => (
@@ -44,6 +53,7 @@ export const FormSpreadsheet: React.FC<FormSpreadsheetProps> = ({
     ref={attach}
     className={cx(
       tableContainerStyle,
+      frame === "light" && lightFrameContainerStyle,
       tone === "raised" && raisedContainerStyle,
     )}
     aria-label={ariaLabel}

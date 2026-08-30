@@ -54,7 +54,7 @@ export const tableContainerStyle = css({
   position: "relative",
   borderWidth: "[1px]",
   borderStyle: "solid",
-  borderColor: "neutral.a30",
+  borderColor: "neutral.a45",
   borderRadius: "sm",
   overflowX: "auto",
   width: "[100%]",
@@ -322,6 +322,14 @@ export const phantomGutterButtonStyle = css({
     color: "neutral.s120",
     opacity: "[1]",
   },
+});
+
+/**
+ * Lightens a gutter cell one surface step. The Variables lists wear it so
+ * their gutters read quieter than the token tables'.
+ */
+export const lightGutterCellStyle = css({
+  backgroundColor: "[{colors.neutral.s05}!]",
 });
 
 /**

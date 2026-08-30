@@ -30,6 +30,7 @@ import {
   cellStyle,
   dependencyHighlightStyle as highlightStyle,
   gutterCellStyle,
+  lightGutterCellStyle,
   phantomCellButtonStyle,
   phantomRowCellStyle,
   selectedRowCellStyle,
@@ -280,7 +281,11 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
     };
 
   return (
-    <FormSpreadsheet attach={attach} ariaLabel={scopeLabel}>
+    <FormSpreadsheet
+      attach={attach}
+      ariaLabel={scopeLabel}
+      frame={placeId === null ? "regular" : "light"}
+    >
       <tbody>
         {variables.map((variable, index) => {
           const target = { kind: "variable" as const, placeId, index };
@@ -297,7 +302,12 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
             // eslint-disable-next-line react/no-array-index-key
             <tr key={index} data-highlighted={highlighted || undefined}>
               <td
-                className={cx(gutterCellStyle, gutterColumnStyle, rowHighlight)}
+                className={cx(
+                  gutterCellStyle,
+                  lightGutterCellStyle,
+                  gutterColumnStyle,
+                  rowHighlight,
+                )}
               >
                 <GutterCell
                   glyph={<Icon name="bracketsCurly" size="xs" />}
@@ -462,7 +472,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
         <PhantomLine
           gutterLabel={`Add a variable from the gutter (${scopeLabel})`}
           onMaterialize={materializeVariable}
-          gutterClassName={gutterColumnStyle}
+          gutterClassName={cx(gutterColumnStyle, lightGutterCellStyle)}
         >
           <td
             colSpan={toggleColumn ? 4 : 3}
