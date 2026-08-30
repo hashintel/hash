@@ -474,6 +474,14 @@ export {
   type AdHocActionInput,
   type AdHocActionName,
 } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-actions";
+export {
+  CLASSIC_RUN_ROW_CAP,
+  classicRunParameterValues,
+  classicRunVariables,
+  classicScenarioRunState,
+  initialMarkingToAdHocPlaces,
+  type TruncatedPlace,
+} from "./simulation/authoring/scenario/ad-hoc/materialize-run-state";
 export { adHocScenarioStateSchema } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-state-schema";
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {
