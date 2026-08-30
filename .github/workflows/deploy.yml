@@ -267,7 +267,9 @@ jobs:
       contents: read
     steps:
       - name: Show selection reason
-        run: echo '${{ toJSON(matrix) }}'
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
 
       - name: Authenticate Vault
         id: secrets

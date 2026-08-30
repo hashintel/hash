@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Prints a GitHub Actions matrix of the packages affected for the given turbo
-# tasks: {"name": [...], "include": [{"name", "path", "<task>": "<reason>"}]}.
+# Prints a GitHub Actions matrix of the packages affected since HEAD^ for the
+# given turbo tasks, excluding the workspace root ("//"):
+# {"name": [...], "include": [{"name", "path", "<task>": "<reason>"}]}.
 #
 # `tasks` seeds the `affectedTasks` query rather than filtering it, so the
 # result also carries the tasks needed to run the requested ones; only items
@@ -14,7 +15,17 @@ if [[ $# -eq 0 ]]; then
   exit 64
 fi
 
-TASKS=$(printf '%s\n' "$@" | jq --raw-input . | jq --slurp --compact-output .)
+# The query cannot tell an unknown task from an unaffected one — both come
+# back empty, and the callers treat an empty matrix as "nothing to do".
+ROOT_TURBO_JSON="$(dirname "$0")/../../turbo.json"
+for task in "$@"; do
+  if ! grep -q "^    \"$task\":" "$ROOT_TURBO_JSON"; then
+    echo "task \"$task\" is not defined in the root turbo.json" >&2
+    exit 64
+  fi
+done
+
+TASKS=$(printf '%s\n' "$@" | jq --raw-input --slurp --compact-output 'split("\n") | map(select(length > 0))')
 
 QUERY="query { affectedTasks(base: \"HEAD^\", tasks: $TASKS) { items { name script package { name path } reason { __typename ... on TaskFileChanged { filePath } ... on TaskDependencyTaskChanged { taskName packageName } ... on TaskPackageDependencyChanged { packageName } ... on TaskGlobalFileChanged { filePath } ... on TaskGlobalDepsChanged { filePath } ... on TaskAllChanged { description } } } } }"
 

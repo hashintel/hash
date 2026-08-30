@@ -38,8 +38,8 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          # The steps gate on the per-task keys — the lint tasks are independent
-          # and can differ in what they consider affected.
+          # The steps gate on the per-task keys — the tasks are independent and
+          # can differ in what they consider affected.
           PACKAGES=$(.github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy lint:ruff lint:types)
 
           echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
@@ -77,7 +77,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Show selection reason
-        run: echo '${{ toJSON(matrix) }}'
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
 
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -105,6 +107,12 @@ jobs:
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
 
+          # The codegen step is also the drift check for committed generated
+          # files; those are excluded from the codegen task's own inputs, so a
+          # hand-edit never marks the task affected.
+          HAS_CODEGEN=$(jq -e '.scripts.codegen' "${{ matrix.path }}/package.json" > /dev/null 2>&1 && echo 'true' || echo 'false')
+          echo "has-codegen=$HAS_CODEGEN" | tee -a "$GITHUB_OUTPUT"
+
       - name: Warm up repository
         uses: $/.github/actions/warm-up-repo
 
@@ -112,7 +120,7 @@ jobs:
         run: df -h
 
       - name: Run codegen
-        if: always() && matrix.codegen != null
+        if: always() && steps.lints.outputs.has-codegen == 'true'
         run: |
           set -o pipefail
           turbo run codegen --force --filter "${{ matrix.name }}"
@@ -121,7 +129,7 @@ jobs:
               echo "Checking diff of ${{ matrix.path }}/$line"
               git --no-pager diff --exit-code --color -- "${{ matrix.path }}/$line"
             fi
-          done <<< "$(grep -v '^ *//' ${{ matrix.path }}/turbo.json | jq -r '.pipeline.codegen.outputs | if . == null then "." else .[] end')"
+          done <<< "$(grep -v '^ *//' ${{ matrix.path }}/turbo.json | jq -r '.tasks.codegen.outputs | if . == null then "." else .[] end')"
 
       - name: Show disk usage
         run: df -h

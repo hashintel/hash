@@ -124,7 +124,9 @@ jobs:
       contents: read
     steps:
       - name: Show selection reason
-        run: echo '${{ toJSON(matrix) }}'
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
 
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -227,7 +229,9 @@ jobs:
       contents: read
     steps:
       - name: Show selection reason
-        run: echo '${{ toJSON(matrix) }}'
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
 
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

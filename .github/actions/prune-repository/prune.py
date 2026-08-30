@@ -93,9 +93,10 @@ TURBO_QUERY = """
 def turbo_dependency_map() -> dict[str, frozenset[str]]:
     """Query turbo for all packages and return a map of package name to its dependencies.
 
-    Covers both the package graph and the task graph: task dependencies cross
-    the package graph (`dependsOn: ["pkg#task"]`), which `turbo prune` does not
-    follow.
+    Covers both the package graph and the task graph: task dependencies
+    (`dependsOn: ["pkg#task"]`) create edges `turbo prune` does not follow.
+    The package itself and the workspace root ("//") are dropped from every
+    entry.
     """
 
     result = subprocess.run(
@@ -163,11 +164,7 @@ def expand_scopes(dependencies: Iterable[str]) -> frozenset[str]:
 def fixpoint_expand(
     initial: Iterable[str], dependencies: dict[str, frozenset[str]]
 ) -> frozenset[str]:
-    """Expand scopes to a fixpoint using the pre-built dependency map.
-
-    Every dependency becomes an explicit scope: the map carries task-graph
-    edges that `turbo prune` would not follow on its own.
-    """
+    """Expand scopes to a fixpoint using the pre-built dependency map."""
     scopes: set[str] = set(initial)
     stable: set[str] = set()
 
