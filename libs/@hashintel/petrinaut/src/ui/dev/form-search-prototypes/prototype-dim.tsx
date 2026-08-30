@@ -112,7 +112,9 @@ export const DimPrototype = ({
         onChange={(event) => setQuery(event.target.value)}
       />
       <span className={countStyle}>
-        {query ? `${matchCount} of ${index.length} names match` : `${index.length} names`}
+        {query
+          ? `${matchCount} of ${index.length} names match`
+          : `${index.length} names`}
       </span>
     </div>
   );

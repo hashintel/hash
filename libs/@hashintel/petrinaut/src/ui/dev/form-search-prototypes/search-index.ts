@@ -110,7 +110,9 @@ export function jumpToEntry(root: HTMLElement, entry: SearchEntry): boolean {
   if (!target) {
     return false;
   }
-  target.scrollIntoView({ block: "center", behavior: "smooth" });
+  // Instant, not smooth: the focus that follows can cancel an in-flight
+  // smooth scroll in some browsers, leaving the landing spot off-screen.
+  target.scrollIntoView({ block: "center" });
   target.focus({ preventScroll: true });
   const previousOutline = target.style.outline;
   const previousOffset = target.style.outlineOffset;

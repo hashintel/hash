@@ -13,14 +13,14 @@ import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
 import { LanguageClientProvider } from "../../../react/lsp/provider";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
-import { MonacoProvider } from "../../monaco/provider";
 import { AdHocScenarioForm } from "../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
+import { MonacoProvider } from "../../monaco/provider";
 import { bottlingContext, bottlingState } from "./big-fixture";
 import { buildSearchIndex } from "./search-index";
 
 import type { SDCPNContextValue } from "../../../react/state/sdcpn-context";
-import type { SDCPN } from "@hashintel/petrinaut-core";
 import type { SearchEntry } from "./search-index";
+import type { SDCPN } from "@hashintel/petrinaut-core";
 
 const bottlingSdcpn: SDCPN = {
   places: bottlingContext.places,
