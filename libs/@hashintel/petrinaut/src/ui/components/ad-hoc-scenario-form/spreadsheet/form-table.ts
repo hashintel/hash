@@ -103,7 +103,9 @@ export const gutterCellStyle = css({
   borderBottom: "[1px solid {colors.neutral.a05}]",
   padding: "[0]",
   textAlign: "center",
-  backgroundColor: "[rgb(var(--adhoc-row-rgb, 100 116 139) / 0.14)]",
+  // Near-white fallback: a plain row's gutter blends with the table (the
+  // border still marks the column); only a tinted row colours it.
+  backgroundColor: "[rgb(var(--adhoc-row-rgb, 252 252 252) / 0.14)]",
   height: "[28px]",
 });
 
