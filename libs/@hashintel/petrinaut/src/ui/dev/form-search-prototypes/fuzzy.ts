@@ -29,6 +29,24 @@ function isWordStart(haystack: string, index: number): boolean {
   return /[a-z]/.test(previous) && /[A-Z]/.test(current);
 }
 
+/** Whether `needle` (from `at`) is a subsequence of `haystack` from `from`. */
+function isSubsequenceFrom(
+  needle: string,
+  at: number,
+  haystack: string,
+  from: number,
+): boolean {
+  let position = from;
+  for (let index = at; index < needle.length; index += 1) {
+    position = haystack.indexOf(needle[index]!, position);
+    if (position === -1) {
+      return false;
+    }
+    position += 1;
+  }
+  return true;
+}
+
 /**
  * Matches `query` as an ordered subsequence of `haystack`,
  * case-insensitively, greedily preferring word starts. Returns `null` when
@@ -41,13 +59,21 @@ export function fuzzyMatch(query: string, haystack: string): FuzzyMatch | null {
   }
   const lower = haystack.toLowerCase();
 
-  // Greedy two-pass: first prefer word-start anchors, then fill in order.
+  // Greedy with a feasibility guard: prefer a word-start anchor only when
+  // the rest of the needle still fits after it — otherwise a camelCase
+  // anchor mid-word would strand the remaining characters ("breakroom"
+  // must not die on BreakRoom's capital R).
   const positions: number[] = [];
   let from = 0;
-  for (const char of needle) {
+  for (let at = 0; at < needle.length; at += 1) {
+    const char = needle[at]!;
     let found = -1;
     for (let index = from; index < lower.length; index += 1) {
-      if (lower[index] === char && isWordStart(haystack, index)) {
+      if (
+        lower[index] === char &&
+        isWordStart(haystack, index) &&
+        isSubsequenceFrom(needle, at + 1, lower, index + 1)
+      ) {
         found = index;
         break;
       }
