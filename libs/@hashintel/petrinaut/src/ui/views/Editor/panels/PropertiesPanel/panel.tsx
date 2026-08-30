@@ -1,4 +1,4 @@
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useCallback, useState } from "react";
 
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
@@ -102,11 +102,6 @@ export const PropertiesPanel: React.FC = () => {
     },
     [setPropertiesPanelWidth],
   );
-
-  // Initialize store with starting width
-  useEffect(() => {
-    setPropertiesPanelWidth(DEFAULT_PROPERTIES_PANEL_WIDTH);
-  }, [setPropertiesPanelWidth]);
 
   const isOpen = panelTarget.kind !== "none";
 
