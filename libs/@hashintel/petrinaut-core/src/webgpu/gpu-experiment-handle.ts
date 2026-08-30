@@ -31,6 +31,7 @@ import type {
   MonteCarloExperimentEvent,
   MonteCarloExperimentState,
 } from "../simulation/monte-carlo/runtime/experiment";
+import type { MonteCarloRunConfig } from "../simulation/monte-carlo/types";
 import type { MonteCarloWorkerProgress } from "../simulation/monte-carlo/worker/messages";
 import type { SDCPN } from "../types/sdcpn";
 import type { GpuOdeMethod } from "./compile-net-shader";
@@ -47,6 +48,12 @@ export type CreateGpuMonteCarloExperimentConfig = {
   maxTime: number;
   runCount: number;
   metricSpecs: readonly MonteCarloMetricSpec[];
+  /**
+   * Per-run overrides for a sweep over parameter ranges. Only numeric
+   * `parameterValues` are supported (validated by the backend adapter); each
+   * run's draws are uploaded to the shader's per-run parameter buffer.
+   */
+  runs?: readonly MonteCarloRunConfig[];
   /** Defaults to RK4 — see `backend.ts` for why that is not Euler. */
   odeMethod?: GpuOdeMethod;
   /**
@@ -101,6 +108,69 @@ function initialProgress(runCount: number): MonteCarloWorkerProgress {
 /**
  * Prepares a GPU-backed experiment, or explains why it is not possible.
  */
+type DerivedRunParameters =
+  | { ok: true; ids: readonly string[]; values?: Float32Array }
+  | { ok: false; reason: string };
+
+/**
+ * Turns per-run configs into the shader's parameter buffer: the sorted set
+ * of overridden identifiers, and one f32 draw per (run, identifier),
+ * run-major. Refuses shapes the shader cannot express — per-run seeds or
+ * markings, runs overriding different parameters, non-numeric values — so
+ * the caller reports why instead of computing something else.
+ */
+function deriveRunParameters(
+  runs: readonly MonteCarloRunConfig[] | undefined,
+  runCount: number,
+): DerivedRunParameters {
+  if (runs === undefined || runs.length === 0) {
+    return { ok: true, ids: [] };
+  }
+  if (runs.length !== runCount) {
+    return {
+      ok: false,
+      reason: `The experiment declares ${runCount} runs but supplies ${runs.length} per-run configurations.`,
+    };
+  }
+  const first = runs[0]!;
+  const ids = Object.keys(first.parameterValues ?? {}).sort();
+  if (ids.length === 0) {
+    return { ok: true, ids: [] };
+  }
+  const values = new Float32Array(runs.length * ids.length);
+  for (const [runIndex, run] of runs.entries()) {
+    if (run.seed !== undefined || run.initialMarking !== undefined) {
+      return {
+        ok: false,
+        reason:
+          "The GPU backend cannot run per-run seed or initial-marking overrides; only per-run parameter values are supported.",
+      };
+    }
+    const overrides = run.parameterValues ?? {};
+    if (
+      Object.keys(overrides).length !== ids.length ||
+      ids.some((id) => overrides[id] === undefined)
+    ) {
+      return {
+        ok: false,
+        reason:
+          "Every run must override the same parameters for the GPU backend to lay them out in one buffer.",
+      };
+    }
+    for (const [idIndex, id] of ids.entries()) {
+      const parsed = Number(overrides[id]);
+      if (!Number.isFinite(parsed)) {
+        return {
+          ok: false,
+          reason: `Per-run value \`${overrides[id]}\` for \`${id}\` is not a finite number, which is all the GPU's f32 buffer can carry.`,
+        };
+      }
+      values[runIndex * ids.length + idIndex] = parsed;
+    }
+  }
+  return { ok: true, ids, values };
+}
+
 export async function createGpuMonteCarloExperiment(
   config: CreateGpuMonteCarloExperimentConfig,
 ): Promise<CreateGpuMonteCarloExperimentResult> {
@@ -113,6 +183,15 @@ export async function createGpuMonteCarloExperiment(
     };
   }
 
+  const runParameters = deriveRunParameters(config.runs, config.runCount);
+  if (!runParameters.ok) {
+    return {
+      supported: false,
+      cause: "net-unsupported",
+      reason: runParameters.reason,
+    };
+  }
+
   const backend = await requestGpuExperimentBackend({
     sdcpn: config.sdcpn,
     hirArtifacts: config.hirArtifacts,
@@ -122,6 +201,7 @@ export async function createGpuMonteCarloExperiment(
     metrics: gpuMetrics.metrics,
     odeMethod: config.odeMethod ?? "rk4",
     initialMarking: config.initialMarking,
+    runParameters: runParameters.ids,
   });
   if (!backend.supported) {
     return {
@@ -198,6 +278,9 @@ export async function createGpuMonteCarloExperiment(
       framesPerDispatch: backend.framesPerDispatch,
       seed: config.seed,
       initial: { placeCounts },
+      ...(runParameters.values === undefined
+        ? {}
+        : { runParameterValues: runParameters.values }),
       signal,
       onChunk: ({ framesDone }) => {
         if (disposed) {

@@ -166,14 +166,24 @@ export function emitF32Literal(value: number): string {
     : String(narrowed);
 }
 
+/**
+ * A parameter whose value varies per run: instead of a literal, references
+ * emit the given WGSL identifier — a `let` the shader hoists from the
+ * per-run parameter buffer at the top of `step_runs`.
+ */
+export type WgslPerRunParameter = { perRun: string };
+
+export type WgslParameterValue = number | boolean | WgslPerRunParameter;
+
 export type WgslEmitterOptions = {
   /**
-   * Model parameter values, inlined as literals.
+   * Model parameter values: literals inlined into the WGSL, or per-run
+   * identifiers for parameters a sweep varies across runs.
    *
-   * Parameters are fixed for a run, so binding them as uniforms would cost a
+   * Fixed parameters stay literals — binding them as uniforms would cost a
    * buffer read per access for no flexibility.
    */
-  parameterValues: Readonly<Record<string, number | boolean>>;
+  parameterValues: Readonly<Record<string, WgslParameterValue>>;
   /**
    * WGSL expression yielding the next uniform random f32 in [0, 1).
    *
@@ -299,6 +309,9 @@ export class WgslEmitter {
         const value = this.options.parameterValues[expr.name];
         if (value === undefined) {
           throw new WgslBailError(`unknown parameter \`${expr.name}\``);
+        }
+        if (typeof value === "object") {
+          return { kind: "f32", code: value.perRun };
         }
         return typeof value === "boolean"
           ? { kind: "bool", code: value ? "true" : "false" }

@@ -19,9 +19,9 @@
  *
  * The session is backend-agnostic: it asks an injected `instantiateBatch` for
  * a `MonteCarloExperiment` per batch and only consumes the handle's stores.
- * A range batch carries per-run parameter values (`runs`), which the WebGPU
- * backend refuses — hosts route those to the CPU worker pool; point batches
- * stay GPU-eligible.
+ * A range batch carries per-run parameter values (`runs`); the CPU pool
+ * applies them per run and the WebGPU backend uploads them to a per-run
+ * parameter buffer, so points and ranges are equally backend-eligible.
  *
  * Determinism: a batch covering runs `[from, target)` derives its base seed
  * as `deriveRunSeed(seed, from)` (the first batch keeps `seed` verbatim), and
@@ -82,8 +82,8 @@ export type InstantiateSweepBatch = (options: {
   parameterValues: Readonly<Record<string, number>>;
   /**
    * Per-run parameter values for the batch's runs, present only when some
-   * axis has a non-degenerate range. Backends that bake parameters in cannot
-   * run these; hosts route them to the CPU worker pool at full parallelism.
+   * axis has a non-degenerate range. The CPU pool applies them per run; the
+   * WebGPU backend reads them from a per-run parameter buffer.
    */
   runs?: readonly MonteCarloRunConfig[];
   /** Base seed for this batch (already derived from the batch's run range). */

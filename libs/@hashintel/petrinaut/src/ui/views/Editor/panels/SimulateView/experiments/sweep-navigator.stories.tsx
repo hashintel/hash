@@ -365,8 +365,8 @@ const realSweepHintStyle: React.CSSProperties = {
 /**
  * The navigator against the real experiments provider: a genuine sweep
  * experiment simulates in browser workers, and moving a slider redirects
- * real compute. With the GPU requested, range selections still run on the
- * CPU pool (per-run parameter draws cannot run on the GPU) — collapse both
+ * real compute. With the GPU requested, range selections upload each run's
+ * parameter draw to a per-run buffer and run on the GPU too — collapse both
  * parameters to points and the GPU takes over.
  */
 type RealSweepConfig = {
@@ -444,7 +444,7 @@ const RealSweepSession = ({
           ? ` — ${experiment.computeBackendFallbackReason}`
           : ""}
         {computeBackend === "webgpu"
-          ? " · ranges draw per-run parameter values the GPU cannot run, so they fall back to the CPU pool; switch both parameters to Point and the GPU takes over"
+          ? " · ranges upload each run's parameter draw to the GPU, so range and point selections both run there when the net qualifies"
           : ""}
       </p>
       <SweepNavigator

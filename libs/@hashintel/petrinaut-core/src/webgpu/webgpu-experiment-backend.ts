@@ -70,17 +70,11 @@ function assess(
   request: ExperimentRequest,
   options: WebGpuExperimentBackendOptions,
 ): ExperimentAssessment {
-  if (request.runs !== undefined) {
-    const blockers: ExperimentBlockers = [
-      {
-        code: "per-run-parameters",
-        message:
-          "The GPU backend bakes parameter values into its shader, so it cannot run an experiment whose runs carry their own parameter values (a sweep over a parameter range). It runs on the CPU instead.",
-        origin: "configuration",
-      },
-    ];
-    return { eligible: false, blockers };
-  }
+  // Per-run parameter values (a sweep over a range) are supported: each
+  // run's draws are uploaded to a per-run buffer the shader reads instead of
+  // a baked literal. Shapes the buffer cannot express — per-run seeds or
+  // markings, mismatched override sets, non-numeric values — are refused at
+  // instantiation by `deriveRunParameters`.
   if (request.hirArtifacts === undefined) {
     const blockers: ExperimentBlockers = [
       {
@@ -113,6 +107,7 @@ function assess(
         maxTime: request.maxTime,
         runCount: request.runCount,
         metricSpecs: request.metricSpecs,
+        ...(request.runs === undefined ? {} : { runs: request.runs }),
         ...(options.odeMethod === undefined
           ? {}
           : { odeMethod: options.odeMethod }),
