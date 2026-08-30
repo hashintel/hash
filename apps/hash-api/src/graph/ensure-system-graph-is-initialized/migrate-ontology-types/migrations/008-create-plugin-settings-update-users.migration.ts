@@ -116,6 +116,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has",
+        inverse: {
+          title: "Belongs To",
+        },
         description: "Something that something has",
       },
       webShortname: "h",

@@ -373,15 +373,22 @@ type LinkDestinationConstraint =
   // Some models may reference themselves. This marker is used to stop infinite loops during initialization by telling the initializer to use a self reference
   | "SELF_REFERENCE";
 
-export type EntityTypeDefinition = {
+type GeneratedEntityTypeSchemaField =
+  | "$schema"
+  | "kind"
+  | "type"
+  | "$id"
+  | "allOf"
+  | "properties"
+  | "required"
+  | "links";
+
+export type EntityTypeDefinition = Omit<
+  EntityType,
+  GeneratedEntityTypeSchemaField
+> & {
   allOf?: VersionedUrl[];
   entityTypeId: VersionedUrl;
-  title: string;
-  titlePlural?: string;
-  inverse?: EntityType["inverse"];
-  description: string;
-  labelProperty?: BaseUrl;
-  icon?: string;
   properties?: {
     propertyType: PropertyTypeWithMetadata | VersionedUrl;
     required?: boolean;
@@ -404,9 +411,17 @@ export type EntityTypeDefinition = {
 export const generateSystemEntityTypeSchema = (
   params: EntityTypeDefinition,
 ): EntityType => {
+  const {
+    allOf: parentEntityTypeIds,
+    entityTypeId,
+    outgoingLinks,
+    properties: propertyDefinitions,
+    ...entityTypeMetadata
+  } = params;
+
   /** @todo - clean this up to be more readable */
   const properties =
-    params.properties?.reduce(
+    propertyDefinitions?.reduce(
       (prev, { propertyType, array }) => ({
         ...prev,
         [typeof propertyType === "object"
@@ -432,7 +447,7 @@ export const generateSystemEntityTypeSchema = (
       {},
     ) ?? {};
 
-  const requiredProperties = params.properties
+  const requiredProperties = propertyDefinitions
     ?.filter(({ required }) => !!required)
     .map(({ propertyType }) =>
       typeof propertyType === "object"
@@ -441,7 +456,7 @@ export const generateSystemEntityTypeSchema = (
     );
 
   const links =
-    params.outgoingLinks?.reduce<EntityType["links"]>(
+    outgoingLinks?.reduce<EntityType["links"]>(
       (
         prev,
         { linkEntityType, destinationEntityTypes, minItems, maxItems },
@@ -457,7 +472,7 @@ export const generateSystemEntityTypeSchema = (
                   (entityTypeIdOrReference) => ({
                     $ref:
                       entityTypeIdOrReference === "SELF_REFERENCE"
-                        ? params.entityTypeId
+                        ? entityTypeId
                         : typeof entityTypeIdOrReference === "object"
                           ? entityTypeIdOrReference.schema.$id
                           : entityTypeIdOrReference,
@@ -472,24 +487,21 @@ export const generateSystemEntityTypeSchema = (
       {},
     ) ?? undefined;
 
-  const allOf = params.allOf
-    ? atLeastOne(params.allOf.map((url) => ({ $ref: url })))
+  const allOf = parentEntityTypeIds
+    ? atLeastOne(parentEntityTypeIds.map((url) => ({ $ref: url })))
     : undefined;
 
   return {
+    ...entityTypeMetadata,
     $schema: ENTITY_TYPE_META_SCHEMA,
     kind: "entityType",
-    $id: params.entityTypeId,
+    $id: entityTypeId,
     allOf,
-    title: params.title,
-    description: params.description,
     type: "object",
     properties,
     required: requiredProperties ? atLeastOne(requiredProperties) : undefined,
     links,
-    labelProperty: params.labelProperty,
-    icon: params.icon,
-  };
+  } satisfies EntityType;
 };
 
 export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<

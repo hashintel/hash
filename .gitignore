@@ -100,7 +100,7 @@ blocks/**/.env
 **/pkg
 
 # vscode config
-**/.vscode/settings.json
+**/.vscode/*
 
 # intellij IDEs config
 **/.idea/

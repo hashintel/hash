@@ -93,6 +93,7 @@ const migrate: MigrationFunction = async ({
   await createSystemEntityTypeIfNotExists(context, authentication, {
     entityTypeDefinition: {
       title: "HASH Instance",
+      titlePlural: "HASH Instances",
       description: "An instance of HASH.",
       properties: [
         {
@@ -1287,6 +1288,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Sync Linear Data With",
+        inverse: {
+          title: "Linear Integration For",
+        },
         description: "Something that syncs linear data with something.",
         properties: [
           {
@@ -1365,6 +1369,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Linear Integration",
+        titlePlural: "Linear Integrations",
         description: "An instance of an integration with Linear.",
         properties: [
           {

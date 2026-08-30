@@ -28,6 +28,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Integration",
+        titlePlural: "Integrations",
         description: "An integration with a third-party service.",
         properties: [],
       },
