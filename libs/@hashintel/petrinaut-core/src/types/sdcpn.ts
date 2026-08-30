@@ -136,7 +136,7 @@ export type DifferentialEquation = {
 // in `simulation/authoring/scenario/ad-hoc/`.
 
 /** Optimization settings for one Optimize toggle, kept while toggled off. */
-export interface AdHocOptimizeSettings {
+export type AdHocOptimizeSettings = {
   /** Lower bound; an expression that must resolve to a constant. */
   min: string;
   /** Upper bound; an expression that must resolve to a constant. */
@@ -144,13 +144,13 @@ export interface AdHocOptimizeSettings {
   scale: "linear" | "log";
   /** Integer domains only; an expression resolving to a positive integer. */
   step?: string;
-}
+};
 
 /**
  * One value-carrying slot. `expression` is always kept, so toggling Optimize
  * on and off never destroys what the user typed.
  */
-export interface AdHocValue {
+export type AdHocValue = {
   expression: string;
   /** Non-null while the Optimize toggle is on. */
   optimize: AdHocOptimizeSettings | null;
@@ -159,9 +159,9 @@ export interface AdHocValue {
    * toggling it back restores the previous bounds. Ignored by synthesis.
    */
   retainedOptimize?: AdHocOptimizeSettings;
-}
+};
 
-export interface AdHocVariable extends AdHocValue {
+export type AdHocVariable = AdHocValue & {
   /**
    * A bare JavaScript identifier. Top-level Variables are referenced as
    * `scenario.<name>`; per-place Variables by the bare name.
@@ -178,7 +178,7 @@ export interface AdHocVariable extends AdHocValue {
    * is emitted.
    */
   exposed?: boolean;
-}
+};
 
 /**
  * One spreadsheet row. A fixed row emits one token. A dynamic ("template")
@@ -195,7 +195,7 @@ export type AdHocRow =
     }
   | { kind: "template"; count: AdHocValue; cells: AdHocValue[] };
 
-export interface AdHocColouredPlace {
+export type AdHocColouredPlace = {
   kind: "coloured";
   variables: AdHocVariable[];
   rows: AdHocRow[];
@@ -211,22 +211,22 @@ export interface AdHocColouredPlace {
    * restores the most recent shared value. Ignored by synthesis.
    */
   retainedSharedColumns?: Record<string, AdHocValue>;
-}
+};
 
-export interface AdHocUncolouredPlace {
+export type AdHocUncolouredPlace = {
   kind: "uncoloured";
   /** Token count for the place. */
   count: AdHocValue;
-}
+};
 
 export type AdHocPlaceState = AdHocColouredPlace | AdHocUncolouredPlace;
 
-export interface AdHocNetParameter extends AdHocValue {
+export type AdHocNetParameter = AdHocValue & {
   /** `Parameter.id` of the net parameter this entry overrides. */
   parameterId: string;
-}
+};
 
-export interface AdHocScenarioState {
+export type AdHocScenarioState = {
   /**
    * Top-level Variables, referenced as `scenario.<name>`; they stand in for
    * scenario parameters in this form.
@@ -236,7 +236,7 @@ export interface AdHocScenarioState {
   netParameters: AdHocNetParameter[];
   /** Keyed by `Place.id`; places absent here keep an empty initial state. */
   places: Record<string, AdHocPlaceState>;
-}
+};
 
 /**
  * A parameter scoped to a specific scenario (distinct from net-level Parameters).
