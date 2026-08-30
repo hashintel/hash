@@ -476,7 +476,12 @@ product overflowed 2⁵³ and collapsed the generator to a ~10 500-state cycle),
 all since fixed in
 [FE-1499](https://linear.app/hash/issue/FE-1499/stochastic-transitions-fire-at-inflated-non-exponential-rates):
 both engines now test the per-frame hazard over `dt`, and `seeded-rng.ts`
-computes the LCG recurrence exactly with 32-bit integer arithmetic.
+computes the LCG recurrence exactly with 32-bit integer arithmetic. (The 21%
+figure predates FE-1499: redrawing diverged against the then-inflated CPU
+test. With the CPU fixed, one consumed draw per enabled transition per frame
+is the shared rule, and FE-1553 aligned the shader to it — the committed
+`Dev / GpuParity` Storybook harness now measures the agreement instead of a
+hand-run comparison.)
 
 Still open: run state is one buffer, so run count is bounded by
 `maxBufferSize`. Removing the bound means splitting runs across several
