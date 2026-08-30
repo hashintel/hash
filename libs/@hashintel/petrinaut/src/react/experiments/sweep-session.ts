@@ -31,6 +31,7 @@
  */
 import { deriveRunSeed } from "@hashintel/petrinaut-core";
 
+import { createCooperativeYielder } from "./cooperative-yield";
 import {
   axisValueAt,
   fullSweepSelection,
@@ -213,6 +214,13 @@ export function sweepSelectionMidValues(
   return values;
 }
 
+/** An error the batch machinery recognizes as a deliberate abort. */
+function abortError(): Error {
+  const error = new Error("The batch was aborted.");
+  error.name = "AbortError";
+  return error;
+}
+
 /**
  * One batch's per-run draws: one column per ranged axis, one typed array of
  * run-major values. A record per run was the second-largest main-thread cost
@@ -234,13 +242,14 @@ export type SweepRunDraws = {
  * axis's own seed-shifted low-discrepancy sequence, prefix-stable in the
  * run index.
  */
-export function sweepRangeDraws(
+export async function sweepRangeDraws(
   seed: number,
   axes: readonly ExperimentParameterAxis[],
   selection: SweepSelection,
   from: number,
   target: number,
-): SweepRunDraws | undefined {
+  signal?: { readonly aborted: boolean },
+): Promise<SweepRunDraws | undefined> {
   const ranged = axes
     .map((axis, axisIndex) => {
       const range = selection[axis.identifier] ?? {
@@ -266,7 +275,19 @@ export function sweepRangeDraws(
   const runCount = target - from;
   const width = ranged.length;
   const values = new Float64Array(runCount * width);
+  const yielder = createCooperativeYielder();
   for (let localIndex = 0; localIndex < runCount; localIndex++) {
+    if (localIndex % 4096 === 0) {
+      // Yielding lets a selection change land mid-build; a superseded batch
+      // must stop here rather than finish millions of draws nobody wants.
+      // Checked independently of the yield, which a hidden document skips.
+      if (signal?.aborted) {
+        throw abortError();
+      }
+      if (yielder.shouldYield()) {
+        await yielder.yieldNow();
+      }
+    }
     const globalIndex = from + localIndex;
     for (let column = 0; column < width; column++) {
       const { axis, axisIndex, low, high } = ranged[column]!;
@@ -384,17 +405,26 @@ export function createSweepSession(
     const abortController = new AbortController();
     // Until the handle exists, aborting the controller is all a restart can
     // do; instantiation rejects with AbortError and the stale loop exits.
-    abortCurrent = () => {
+    const abortThisBatch = () => {
       abortController.abort();
     };
+    abortCurrent = abortThisBatch;
 
-    const draws = sweepRangeDraws(
-      seed,
-      axes,
-      selection,
-      snapshot.runsCompleted,
-      target,
-    );
+    let draws: SweepRunDraws | undefined;
+    try {
+      draws = await sweepRangeDraws(
+        seed,
+        axes,
+        selection,
+        snapshot.runsCompleted,
+        target,
+        abortController.signal,
+      );
+    } catch {
+      // Only an abort escapes the draw build, and an abort means a restart
+      // or a dispose already superseded this generation.
+      return "stop";
+    }
 
     let handle: MonteCarloExperiment;
     try {
@@ -511,7 +541,11 @@ export function createSweepSession(
     }
     const finishedFrames = handle.metrics.get().frames;
     handle.dispose();
-    abortCurrent = null;
+    // A stale batch finishing late must not disarm the successor generation's
+    // abort hook.
+    if (abortCurrent === abortThisBatch) {
+      abortCurrent = null;
+    }
 
     if (outcome === "complete") {
       // Fold the batch into the cache even when the user has moved on —

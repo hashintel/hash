@@ -82,8 +82,8 @@ const compileRunNumbers = (swept: Readonly<Record<string, number>>) => ({
 const baseParameters = compileRunNumbers({ speed: 1.5 }).parameters;
 
 describe("translateRangeDraws", () => {
-  it("produces a run-major plan with one uniform id set", () => {
-    const translated = translateRangeDraws({
+  it("produces a run-major plan with one uniform id set", async () => {
+    const translated = await translateRangeDraws({
       draws: { identifiers: ["speed"], values: new Float64Array([3, 1.5]) },
       midValues: { speed: 1.5 },
       baseParameters,
@@ -100,8 +100,8 @@ describe("translateRangeDraws", () => {
     expect([...translated.plan.values]).toEqual([6, 3]);
   });
 
-  it("passes a draw through directly when it names a net parameter", () => {
-    const translated = translateRangeDraws({
+  it("passes a draw through directly when it names a net parameter", async () => {
+    const translated = await translateRangeDraws({
       draws: { identifiers: ["size"], values: new Float64Array([9]) },
       midValues: {},
       baseParameters,
@@ -116,8 +116,8 @@ describe("translateRangeDraws", () => {
     expect([...translated.plan.values]).toEqual([9]);
   });
 
-  it("returns undefined when no run changes anything", () => {
-    const translated = translateRangeDraws({
+  it("returns undefined when no run changes anything", async () => {
+    const translated = await translateRangeDraws({
       draws: { identifiers: ["irrelevant"], values: new Float64Array([5]) },
       midValues: {},
       baseParameters,
@@ -128,9 +128,9 @@ describe("translateRangeDraws", () => {
     expect(translated).toBeUndefined();
   });
 
-  it("falls back to run records when a changed value is not a number", () => {
+  it("falls back to run records when a changed value is not a number", async () => {
     const booleanBase = { rate: 3, armed: false };
-    const translated = translateRangeDraws({
+    const translated = await translateRangeDraws({
       draws: { identifiers: ["speed"], values: new Float64Array([3]) },
       midValues: { speed: 1.5 },
       baseParameters: booleanBase,
@@ -146,7 +146,25 @@ describe("translateRangeDraws", () => {
     expect(translated.runs[0]!.parameterValues).toEqual({ armed: "true" });
   });
 
-  it("matches translateRangeRuns exactly across random draw batches", () => {
+  it("falls back to run records for a direct draw onto a boolean parameter", async () => {
+    // A numeric scenario parameter sharing a boolean net parameter's name:
+    // the plan cannot carry it, and dropping it would sweep an axis with no
+    // effect. The record form carries the raw draw for the engine to refuse.
+    const translated = await translateRangeDraws({
+      draws: { identifiers: ["armed"], values: new Float64Array([0.73]) },
+      midValues: {},
+      baseParameters: { rate: 3, armed: false },
+      compileRunNumbers: () => ({ parameters: { rate: 3, armed: false } }),
+      netParameterVariableNames: new Set(["rate", "armed"]),
+    });
+
+    if (translated?.kind !== "runs") {
+      throw new Error("expected the record fallback");
+    }
+    expect(translated.runs[0]!.parameterValues).toEqual({ armed: "0.73" });
+  });
+
+  it("matches translateRangeRuns exactly across random draw batches", async () => {
     // A seeded LCG, so the property is reproducible.
     let state = 1234567;
     const next = () => {
@@ -160,7 +178,7 @@ describe("translateRangeDraws", () => {
         floor: 3,
       },
     });
-    const base = numbers({ speed: 1.5 }).parameters;
+    const numericBase = numbers({ speed: 1.5 }).parameters;
     const strings = (swept: Readonly<Record<string, number>>) => {
       const parameterValues: Record<string, string> = {};
       for (const [name, value] of Object.entries(numbers(swept).parameters)) {
@@ -178,10 +196,10 @@ describe("translateRangeDraws", () => {
         values[index] = next() < 0.4 ? 1.5 : Number(next().toPrecision(12));
       }
       const identifiers = ["speed", "size"];
-      const viaDraws = translateRangeDraws({
+      const viaDraws = await translateRangeDraws({
         draws: { identifiers, values },
         midValues: { speed: 1.5 },
-        baseParameters: base,
+        baseParameters: numericBase,
         compileRunNumbers: numbers,
         netParameterVariableNames: new Set(["rate", "size", "floor"]),
       });

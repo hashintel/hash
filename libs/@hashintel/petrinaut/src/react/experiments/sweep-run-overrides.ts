@@ -14,6 +14,8 @@
  * direct override, with or without an override expression, matching how
  * the engine has always merged run values by variable name.
  */
+import { createCooperativeYielder } from "./cooperative-yield";
+
 import type { SweepRunDraws } from "./sweep-session";
 import type { MonteCarloRunConfig } from "@hashintel/petrinaut-core";
 import type { ExperimentRunPlan } from "@hashintel/petrinaut-core/experiments";
@@ -119,6 +121,8 @@ export function translateRangeRuns(
 export type TranslateRangeDrawsOptions = {
   /** The batch's per-run draws, keyed by scenario parameter identifier. */
   draws: SweepRunDraws;
+  /** Aborts the translation at the next yield point (a superseded batch). */
+  signal?: { readonly aborted: boolean };
   /** The batch's midpoint scenario values (every swept axis). */
   midValues: Readonly<Record<string, number>>;
   /** Net parameter values the batch compiled at `midValues`, as numbers. */
@@ -136,9 +140,9 @@ export type TranslateRangeDrawsOptions = {
  * `translateRangeRuns`, whose string values carry what a numeric plan
  * cannot.
  */
-function translateRangeDrawsAsRuns(
+async function translateRangeDrawsAsRuns(
   options: TranslateRangeDrawsOptions,
-): TranslatedRangeDraws {
+): Promise<TranslatedRangeDraws> {
   const { draws, midValues, baseParameters, netParameterVariableNames } =
     options;
   const width = draws.identifiers.length;
@@ -198,9 +202,9 @@ export type TranslatedRangeDraws =
  * value) cannot ride a numeric plan; those batches fall back to the record
  * form via `translateRangeRuns`.
  */
-export function translateRangeDraws(
+export async function translateRangeDraws(
   options: TranslateRangeDrawsOptions,
-): TranslatedRangeDraws {
+): Promise<TranslatedRangeDraws> {
   const {
     draws,
     midValues,
@@ -230,8 +234,22 @@ export function translateRangeDraws(
   // defaults template seeds every call), so the keys are read once.
   let parameterNames: readonly string[] | null = null;
 
+  const yielder = createCooperativeYielder();
   const swept: Record<string, number> = { ...midValues };
   for (let run = 0; run < runCount; run++) {
+    // A tighter stride than the draw loop's: an iteration here is a scenario
+    // compile, not a few array writes. The abort check is independent of the
+    // yield, which a hidden document skips.
+    if (run % 256 === 0) {
+      if (options.signal?.aborted) {
+        const aborted = new Error("The batch was aborted.");
+        aborted.name = "AbortError";
+        throw aborted;
+      }
+      if (yielder.shouldYield()) {
+        await yielder.yieldNow();
+      }
+    }
     for (let column = 0; column < width; column++) {
       swept[draws.identifiers[column]!] = draws.values[run * width + column]!;
     }
@@ -244,7 +262,7 @@ export function translateRangeDraws(
         continue;
       }
       if (typeof value !== "number" || typeof base !== "number") {
-        return translateRangeDrawsAsRuns(options);
+        return await translateRangeDrawsAsRuns(options);
       }
       columnFor(name, base)[run] = value;
     }
@@ -257,7 +275,14 @@ export function translateRangeDraws(
       }
       const draw = draws.values[run * width + column]!;
       const base = baseParameters[identifier];
-      if (typeof base !== "number" || draw === base) {
+      if (typeof base !== "number") {
+        // A draw aimed at a boolean net parameter cannot ride a numeric
+        // plan. The record form carries the raw draw, and the engine then
+        // refuses it loudly — silently dropping it here would show a swept
+        // axis that has no effect.
+        return await translateRangeDrawsAsRuns(options);
+      }
+      if (draw === base) {
         continue;
       }
       const target = columnFor(identifier, base);
@@ -274,6 +299,9 @@ export function translateRangeDraws(
   const ids = [...columns.keys()].sort();
   const values = new Float64Array(runCount * ids.length);
   for (const [index, id] of ids.entries()) {
+    if (yielder.shouldYield()) {
+      await yielder.yieldNow();
+    }
     const column = columns.get(id)!;
     for (let run = 0; run < runCount; run++) {
       values[run * ids.length + index] = column[run]!;
