@@ -71,9 +71,9 @@ jobs:
           IS_DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
           SKIP_AMD64: ${{ github.event_name == 'pull_request' }}
         run: |
-          # Without pipefail a failing `turbo query` piped into jq is masked by
-          # jq's exit 0 on empty input — yielding an empty matrix and a green
-          # run that silently builds/deploys nothing. Fail loud instead.
+          # Without pipefail a failing command piped into jq is masked by jq's
+          # exit 0 on empty input — yielding an empty matrix and a green run
+          # that silently builds/deploys nothing. Fail loud instead.
           set -euo pipefail
 
           SOURCEMAPS_PACKAGES=$(.github/scripts/affected-packages.sh sentry:sourcemaps)
@@ -164,7 +164,7 @@ jobs:
           if [[ "$IS_DISPATCH" == "true" ]]; then
             AFFECTED_CATALOG=$(jq -c '.' <<<"$CATALOG")
           else
-            # App images — turbo affected, excluding the workspace root "//".
+            # App images — turbo affected.
             AFFECTED_PKGS=$(.github/scripts/affected-packages.sh build:docker | jq -c '[.include[].name]')
 
             # Fail loudly if turbo flags a `build:docker` package the catalog

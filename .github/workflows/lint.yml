@@ -38,10 +38,8 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          # The matrix is per package; each entry carries one key per lint task
-          # that is affected AND defined for the package, and the steps gate on
-          # those keys — the lint tasks are independent and can differ in what
-          # they consider affected.
+          # The steps gate on the per-task keys — the lint tasks are independent
+          # and can differ in what they consider affected.
           PACKAGES=$(.github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy lint:ruff lint:types)
 
           echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
