@@ -42,6 +42,20 @@ export const adHocVariableKey = (
   name: string,
 ): string => `${placeId ?? "net"}.${name}`;
 
+/**
+ * Whether two focus targets address the same thing. Targets are flat
+ * objects of primitives, recreated per render, so identity never matches.
+ */
+export const sameAdHocFocusTarget = (
+  a: AdHocFocusTarget,
+  b: AdHocFocusTarget,
+): boolean => {
+  const left = a as unknown as Record<string, unknown>;
+  const right = b as unknown as Record<string, unknown>;
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  return [...keys].every((key) => left[key] === right[key]);
+};
+
 interface ExpressionReferences {
   /** Names referenced as `scenario.<name>`. */
   scenario: Set<string>;

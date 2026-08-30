@@ -48,11 +48,11 @@ const gutterColumnStyle = css({
 });
 
 const nameCellStyle = css({
-  width: "[140px]",
+  width: "[110px]",
 });
 
 const typeCellStyle = css({
-  width: "[96px]",
+  width: "[84px]",
   borderLeft: "[1px solid {colors.neutral.a05}]",
 });
 
@@ -471,7 +471,7 @@ export const VariableRows: React.FC<VariableRowsProps> = ({
           gutterClassName={cx(gutterColumnStyle, lightGutterCellStyle)}
         >
           <td
-            colSpan={toggleColumn ? 3 : 2}
+            colSpan={toggleColumn ? 4 : 3}
             className={cx(cellStyle, phantomRowCellStyle)}
           >
             <button

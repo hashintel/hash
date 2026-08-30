@@ -63,12 +63,14 @@ const sharedWashStyle = css({
     "[linear-gradient(rgba(120, 120, 130, 0.07), rgba(120, 120, 130, 0.07))]",
 });
 
+// Row-kind tints, saturated enough to read over the raised table surface
+// and to stay distinguishable under the stronger selection overlay.
 const dynamicRowStyle = css({
-  backgroundColor: "blue.s10",
+  backgroundColor: "[rgba(59, 130, 246, 0.13)]",
 });
 
 const optimizedRowStyle = css({
-  backgroundColor: "purple.s10",
+  backgroundColor: "[rgba(147, 51, 234, 0.10)]",
 });
 
 const headerButtonStyle = css({

@@ -21,8 +21,12 @@ export const tableContainerStyle = css({
   backgroundColor: "neutral.s00",
 });
 
+// The min width keeps a narrow container from crushing the flexible value
+// columns to nothing (fixed layout shares the width): below it, the
+// container scrolls horizontally instead.
 export const tableStyle = css({
   width: "[100%]",
+  minWidth: "[320px]",
   borderCollapse: "collapse",
   fontSize: "xs",
   tableLayout: "fixed",
@@ -183,21 +187,24 @@ export const cellInputStyle = css({
 /**
  * The row-selection highlight, applied to every cell of the row whose gutter
  * holds focus. A background image with `!`, so it composites over row tints
- * and wins over the shared-column wash.
+ * and wins over the shared-column wash; strong enough to read as clearly
+ * darker over the dynamic and optimized tints, which share its hue family.
  */
 export const selectedRowCellStyle = css({
   backgroundImage:
-    "[linear-gradient(rgba(37, 99, 235, 0.11), rgba(37, 99, 235, 0.11))!]",
+    "[linear-gradient(rgba(37, 99, 235, 0.18), rgba(37, 99, 235, 0.18))!]",
 });
 
 /**
  * The dependency highlight: marks the rows a focused expression reads, and
- * the cells that read a focused Variable or Parameter. A background image so
- * it composites over the row tints; the selection overlay still wins.
+ * the cells that read a focused Variable or Parameter. Amber, so it reads
+ * as a marker and never collides with the blue/purple row tints or the red
+ * error underline. A background image so it composites over the row tints;
+ * the selection overlay still wins.
  */
 export const dependencyHighlightStyle = css({
   backgroundImage:
-    "[linear-gradient(rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.12))]",
+    "[linear-gradient(rgba(245, 158, 11, 0.16), rgba(245, 158, 11, 0.16))]",
 });
 
 /** The add-line's cells are a little shorter than content rows. */
@@ -223,21 +230,21 @@ export const phantomCellButtonStyle = css({
   color: "neutral.s60",
   opacity: "[0.55]",
   cursor: "text",
-  transition: "[opacity 0.12s ease]",
-  "tr:hover &": { opacity: "[1]" },
-  _hover: { backgroundColor: "neutral.s10", opacity: "[1]" },
+  transition: "[opacity 0.12s ease, color 0.12s ease]",
+  "tr:hover &, tr:focus-within &": { opacity: "[1]", color: "neutral.s90" },
+  _hover: { backgroundColor: "neutral.s10" },
   _focus: {
     outline: "[2px solid {colors.blue.s70}]",
     outlineOffset: "[-2px]",
     backgroundColor: "blue.s05",
+    color: "neutral.s90",
     opacity: "[1]",
   },
 });
 
-/** The quiet "+" button filling an add-line's gutter; hovering the row
- * brightens it, hovering or focusing the button itself darkens it to the
- * real gutter buttons' hover treatment, and clicking it creates the new
- * entry too. */
+/** The quiet "+" button filling an add-line's gutter; hovering or focusing
+ * anywhere on the row darkens it to the real gutter buttons' hover
+ * treatment, and clicking it creates the new entry too. */
 export const phantomGutterButtonStyle = css({
   display: "flex",
   alignItems: "center",
@@ -253,9 +260,12 @@ export const phantomGutterButtonStyle = css({
   opacity: "[0.55]",
   cursor: "pointer",
   transition: "[opacity 0.12s ease, color 0.12s ease]",
-  "tr:hover &": { opacity: "[1]" },
-  _hover: {
+  "tr:hover &, tr:focus-within &": {
     opacity: "[1]",
+    color: "neutral.s120",
+    fontWeight: "semibold",
+  },
+  _hover: {
     color: "neutral.s120",
     backgroundColor: "neutral.s20",
   },

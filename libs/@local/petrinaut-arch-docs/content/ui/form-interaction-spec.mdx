@@ -58,7 +58,12 @@ Each table ends in a dimmed trailing line that creates the next entry.
 8. Focusing a row's gutter button selects the whole row. The highlight is a
    background-image overlay with `!important`, so it composites over row
    tints (dynamic blue, optimized purple) and wins over the shared-column
-   wash.
+   wash. The dependency highlight is amber, so it never reads as a row
+   tint or an error.
+8a. The dependency highlight lives exactly as long as its value holds
+    focus: closing an editor without focus returning to its cell (an
+    outside click) clears it, and an editor opening on another cell
+    claims it.
 9. On the gutter, Enter opens the row menu (rule 1: a pointer click only
    selects; the `⋯` affordance opens on any click), Delete removes the row,
    and every destructive action also lives in the menu.

@@ -35,6 +35,7 @@ import {
 
 import { CodeEditor } from "../../monaco/code-editor";
 import { useSelectFirstActivation } from "../../worksheet/use-select-first";
+import { sameAdHocFocusTarget } from "./dependency-highlight";
 import { AdHocFormContext, adHocSelectionText } from "./form-context";
 import {
   cellButtonStyle,
@@ -584,6 +585,24 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       measure();
     }
   }, [open]);
+
+  // While the editor is open, the trigger's blur skips clearing the focused
+  // value (focus lives in the editor). When the editor closes without focus
+  // returning to the trigger — an outside click that lands off the form —
+  // the dependency highlight would stay stale: clear it, but only when it
+  // is still this cell's (another editor may already have claimed it).
+  const wasOpenRef = useRef(open);
+  useEffect(() => {
+    const wasOpen = wasOpenRef.current;
+    wasOpenRef.current = open;
+    if (wasOpen && !open && document.activeElement !== buttonRef.current) {
+      setFocusedValue((current) =>
+        current !== null && sameAdHocFocusTarget(current, target)
+          ? null
+          : current,
+      );
+    }
+  }, [open, setFocusedValue, target]);
 
   // The overlay tracks the cell through scrolling and resizes, closes on any
   // pointer press outside itself, and yields when another editor opens.

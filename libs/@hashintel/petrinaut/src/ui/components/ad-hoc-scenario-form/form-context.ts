@@ -54,7 +54,9 @@ export interface AdHocFormServices {
   /** The rows and cells connected to the focused value. */
   highlight: AdHocHighlight;
   /** Reports which value or row holds focus, driving the highlight. */
-  setFocusedValue: (target: AdHocFocusTarget | null) => void;
+  setFocusedValue: React.Dispatch<
+    React.SetStateAction<AdHocFocusTarget | null>
+  >;
   /**
    * Re-prints a valid expression canonically (via the language worker).
    * Resolves null when the code does not lower — the text stays untouched.
