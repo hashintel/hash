@@ -22,7 +22,7 @@ import { ValueEditor } from "./value-editor";
 import type { AdHocNetParameter } from "@hashintel/petrinaut-core";
 
 const parameterNameCellStyle = css({
-  width: "[150px]",
+  width: "[170px]",
   display: "flex",
   alignItems: "center",
   height: "[28px]",
@@ -32,7 +32,9 @@ const parameterNameCellStyle = css({
   color: "neutral.s110",
   overflow: "hidden",
   whiteSpace: "nowrap",
-  textOverflow: "ellipsis",
+  // A long name fades out instead of clipping to an ellipsis.
+  maskImage:
+    "[linear-gradient(to right, black calc(100% - 14px), transparent)]",
 });
 
 // An untouched parameter shows its default quietly: a small uppercase tag,
@@ -103,7 +105,7 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
             <tr key={parameter.id} data-highlighted={highlighted || undefined}>
               <td
                 className={cx(cellStyle, rowHighlight)}
-                style={{ width: 150 }}
+                style={{ width: 170 }}
               >
                 <div className={parameterNameCellStyle}>{parameter.name}</div>
               </td>

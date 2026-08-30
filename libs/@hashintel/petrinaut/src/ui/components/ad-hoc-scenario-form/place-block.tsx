@@ -41,10 +41,14 @@ const denseBlockStyle = css({
   gap: "1",
 });
 
+// One line grammar for places: the fixed title width and line height are
+// shared between an uncoloured place's row and a collapsed coloured
+// place's header, so counts and collapsed summaries start at the same x.
 const headerStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
+  minHeight: "[26px]",
 });
 
 // The place-name trigger pulls itself left by its padding plus the chevron
@@ -69,6 +73,23 @@ const placeNameButtonStyle = css({
     outlineOffset: "[-2px]",
     backgroundColor: "blue.s05",
   },
+});
+
+// Collapsed, the title button takes the shared fixed width (the 20px
+// chevron hang included), so the summary aligns with the uncoloured
+// places' count cells.
+const collapsedTitleButtonStyle = css({
+  width: "[190px]",
+});
+
+const collapsedTitleNameStyle = css({
+  flex: "1",
+  minWidth: "[0]",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textAlign: "left",
+  maskImage:
+    "[linear-gradient(to right, black calc(100% - 14px), transparent)]",
 });
 
 const chevronStyle = css({
@@ -96,6 +117,7 @@ const summaryStyle = css({
   fontFamily: "mono",
   fontSize: "[10px]",
   color: "neutral.s80",
+  whiteSpace: "nowrap",
 });
 
 // Collapse with pure CSS: the wrapper is a one-row grid whose track
@@ -148,10 +170,17 @@ const uncolouredRowStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
+  minHeight: "[26px]",
+});
+
+// A count line reads lighter than a 28px spreadsheet row.
+const uncolouredCountTriggerStyle = css({
+  height: "[24px!]",
+  minHeight: "[24px!]",
 });
 
 const uncolouredTitleStyle = css({
-  width: "[150px]",
+  width: "[170px]",
   flexShrink: "0",
   overflow: "hidden",
   whiteSpace: "nowrap",
@@ -177,7 +206,9 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   state,
 }) => {
   const { formState, synthesisContext, dense } = use(AdHocFormContext);
-  const [collapsed, setCollapsed] = useState(false);
+  // The dense embedding (quick simulation) starts places collapsed: the
+  // panel reads as an overview, one line per place.
+  const [collapsed, setCollapsed] = useState(dense);
   const { attach: attachHeader, onHeaderKeyDown } = useFocusHeader({
     collapse: () => setCollapsed(true),
     expand: () => setCollapsed(false),
@@ -191,7 +222,10 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
         <button
           ref={attachHeader}
           type="button"
-          className={placeNameButtonStyle}
+          className={cx(
+            placeNameButtonStyle,
+            collapsed && collapsedTitleButtonStyle,
+          )}
           aria-expanded={!collapsed}
           aria-label={`${place.name} place`}
           onClick={() => setCollapsed((current) => !current)}
@@ -208,7 +242,14 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
             className={colourDotStyle}
             style={{ backgroundColor: colour.displayColor }}
           />
-          <span className={cx(dense && densePlaceNameStyle)}>{place.name}</span>
+          <span
+            className={cx(
+              dense && densePlaceNameStyle,
+              collapsed && collapsedTitleNameStyle,
+            )}
+          >
+            {place.name}
+          </span>
         </button>
         {collapsed ? (
           <span className={summaryStyle}>
@@ -272,6 +313,7 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
           target={target}
           kind="count"
           placeholder="0 tokens"
+          className={uncolouredCountTriggerStyle}
           triggerRef={attachTrigger}
           onTriggerKeyDown={onHeaderKeyDown}
         />
