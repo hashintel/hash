@@ -137,7 +137,7 @@ Click (or drag across) a timeline chart to inspect single time steps — a popov
 
 ### Actions
 
-In the experiment's view drawer (open it by clicking a row in the list, or any experiment in the top-bar **Active experiments** popover):
+In the experiment's view drawer (open it from the list -- the first click selects a row, a click on the selected row or Enter opens it -- or via any experiment in the top-bar **Active experiments** popover):
 
 - **Cancel** -- stops the experiment. Only available while it is initializing or running.
 - **Remove** -- deletes the record and disposes the experiment's workers. Available after completion, cancellation, or error.
