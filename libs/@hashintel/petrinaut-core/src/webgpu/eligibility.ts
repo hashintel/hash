@@ -100,8 +100,8 @@ export function assessGpuEligibility(
   const typeById = new Map(sdcpn.types.map((type) => [type.id, type]));
   const places: GpuNetProfile["places"] = [];
 
-  // Per-run state always carries: one u32 count per place, one u32 elapsed-frame
-  // counter and one u32 firing count per transition, plus an RNG word and status.
+  // Per-run state always carries: one u32 count per place and one u32 firing
+  // count per transition, plus an RNG word and status.
   let stateWords = sdcpn.places.length + sdcpn.transitions.length + 2;
 
   for (const place of sdcpn.places) {

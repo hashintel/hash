@@ -95,7 +95,7 @@ There is also a ceiling on **run count**, because every run's state lives in one
 
 Two things to know before comparing results:
 
-- **The same seed gives different numbers on the two backends.** They use different random number generators — WebGPU cannot reproduce the CPU one — so the trajectories differ while the distributions agree. On the built-in SIR example the two backends' mean token counts agree to within half a percent. The badge in each experiment's summary records which backend ran it, so results stay attributable after the fact.
+- **The same seed gives different numbers on the two backends.** They deliberately use different random number generators, so the trajectories differ while the distributions agree. On the built-in SIR example the two backends' mean token counts agree to within half a percent. The badge in each experiment's summary records which backend ran it, so results stay attributable after the fact.
 - Continuous dynamics are integrated with a **more accurate method** (Runge-Kutta 4) than the CPU's, so a model with differential equations may show slightly different — better — values, not just different noise.
 - The GPU steps every run to the configured max time, while the CPU stops a run as soon as it can no longer fire anything. So a net that finishes early reports a **higher frame count and simulated time** on the GPU for the same results. Nothing is wrong with either; they just stop counting at different points.
 
