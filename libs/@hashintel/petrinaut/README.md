@@ -27,6 +27,33 @@ For host applications that own their Petri net data, implement a
 guide lives in the architecture docs:
 [Embedding in a host application](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/handle/host-integration.mdx).
 
+## Commands and the palette
+
+Petrinaut declares its user-invocable actions into a **command registry** the
+host owns; the host renders the palette (Petrinaut ships none). Wrap the
+editor in `CommandRegistryProvider`, read the live command list with
+`useCommands()`, and invoke entries with `registry.execute(id)`:
+
+```tsx
+import { CommandRegistryProvider, useCommand } from "@hashintel/petrinaut";
+
+<CommandRegistryProvider>
+  <Petrinaut handle={handle} />
+  <MyCommandPalette /> {/* renders from useCommands() */}
+</CommandRegistryProvider>;
+```
+
+Host components register their own commands with the same
+`useCommand(command, { when })` hook — `when` is a plain boolean, and the
+command leaves the registry the moment it turns false or the component
+unmounts. Non-React code registers imperatively:
+`createCommandRegistry()` / `registry.register(command)` (returns a
+disposer) live in `@hashintel/petrinaut-core`, `createPetrinaut` accepts the
+registry via its `commandRegistry` option, and
+`combineCommandRegistries(...)` merges several sources into one read view
+for the palette. The **Commands / Command palette** Storybook story and the
+demo website's ⌘K palette are reference host implementations.
+
 ## Storybook
 
 Run Petrinaut's component stories from the repository root:

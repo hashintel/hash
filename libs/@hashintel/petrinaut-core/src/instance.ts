@@ -12,6 +12,7 @@ import {
   stripDisabledExtensionData,
 } from "./extensions";
 
+import type { CommandRegistry } from "./command-registry";
 import type {
   PetrinautExtensionSettings,
   ResolvedPetrinautHandleCapabilities,
@@ -83,6 +84,13 @@ export type Petrinaut = {
 export type CreatePetrinautConfig = {
   document: PetrinautDocHandle;
   readonly?: boolean;
+  /**
+   * A palette command registry to register the instance's own commands
+   * into. Registrations live for the instance's lifetime: `dispose()`
+   * removes them. The registry is typically host-owned and shared with the
+   * React layer's `CommandRegistryProvider`.
+   */
+  commandRegistry?: CommandRegistry;
 };
 
 function createDefinitionStore(
@@ -152,7 +160,7 @@ function createPatchStream(handle: PetrinautDocHandle): {
 }
 
 export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
-  const { document: handle, readonly = false } = config;
+  const { document: handle, readonly = false, commandRegistry } = config;
   const handleCapabilities = resolvePetrinautHandleCapabilities(
     handle.capabilities,
   );
@@ -195,6 +203,18 @@ export function createPetrinaut(config: CreatePetrinautConfig): Petrinaut {
     () => definition.get(),
     capabilities.extensions,
   );
+
+  if (commandRegistry && !capabilities.readonly) {
+    disposers.push(
+      commandRegistry.register({
+        id: "petrinaut.net.auto-layout",
+        label: "Auto-layout the net",
+        category: "Net",
+        keywords: ["arrange", "tidy", "layout"],
+        run: () => void commands.applyAutoLayout(),
+      }),
+    );
+  }
 
   return {
     handle,

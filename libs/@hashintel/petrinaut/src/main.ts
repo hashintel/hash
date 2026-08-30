@@ -10,6 +10,14 @@
  * @role The host-facing entry point: the contexts and types an embedder wires up
  */
 
+export {
+  CommandRegistryContext,
+  CommandRegistryProvider,
+  useCommandRegistry,
+  useCommands,
+} from "./commands/context";
+export { useCommand } from "./commands/use-command";
+
 export type { ErrorTracker } from "./react/error-tracker-context";
 export { ErrorTrackerContext } from "./react/error-tracker-context";
 export type { PetrinautOptimization } from "./react/optimization-context";
@@ -44,6 +52,8 @@ export type {
 } from "./ui/types/ai-interactive-tool";
 
 export {
+  combineCommandRegistries,
+  createCommandRegistry,
   createJsonDocHandle,
   createPetrinaut,
   createPetrinautActions,
@@ -52,6 +62,9 @@ export {
   isSDCPNEqual,
   type BackpressureConfig,
   type Color,
+  type Command,
+  type CommandRegistry,
+  type CommandRegistryView,
   type CreateJsonDocHandleOptions,
   type CreatePetrinautConfig,
   type CreateSimulationConfig,

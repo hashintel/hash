@@ -52,6 +52,7 @@ import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 import { SimulateView } from "./panels/SimulateView/simulate-view";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
+import { useEditorCommands } from "./use-editor-commands";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
@@ -191,6 +192,9 @@ export const EditorView = ({
 
   // Clean up stale selections when items are deleted
   useSelectionCleanup();
+
+  // Declare the editor's palette commands (a no-op without a host registry).
+  useEditorCommands();
 
   function handleCreateEmpty() {
     createNewNet({
