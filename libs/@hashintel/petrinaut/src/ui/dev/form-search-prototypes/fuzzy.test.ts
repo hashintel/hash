@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSearchIndex } from "./search-index";
 import { bottlingContext, bottlingState } from "./big-fixture";
 import { fuzzyMatch, rankMatches } from "./fuzzy";
+import { buildSearchIndex } from "./search-index";
 
 describe("fuzzyMatch", () => {
   it("matches ordered subsequences case-insensitively", () => {
@@ -31,6 +31,12 @@ describe("fuzzyMatch", () => {
 
   it("matches across the › separator of place-scoped names", () => {
     expect(fuzzyMatch("fill time", "FillingLine › fill_time")).not.toBeNull();
+  });
+
+  it("does not let a word-start anchor strand the rest of the query", () => {
+    // Greedy-to-R would leave "eakroom" unmatchable in "oom".
+    expect(fuzzyMatch("breakroom", "BreakRoom")).not.toBeNull();
+    expect(fuzzyMatch("washingstation", "WashingStation")).not.toBeNull();
   });
 
   it("empty query matches everything with score 0", () => {
@@ -66,9 +72,9 @@ describe("buildSearchIndex", () => {
     expect(byKind("place")).toHaveLength(12);
     expect(byKind("place variable").length).toBeGreaterThan(4);
 
-    expect(
-      index.find((entry) => entry.text === "Fill Rate")?.ariaLabel,
-    ).toBe("Fill Rate");
+    expect(index.find((entry) => entry.text === "Fill Rate")?.ariaLabel).toBe(
+      "Fill Rate",
+    );
     expect(
       index.find((entry) => entry.text === "EmptyBottles")?.ariaLabel,
     ).toBe("EmptyBottles place");
@@ -82,11 +88,11 @@ describe("buildSearchIndex", () => {
   });
 
   it("shows overrides and defaults in the detail line", () => {
-    expect(
-      index.find((entry) => entry.text === "Fill Rate")?.detail,
-    ).toContain("override");
-    expect(
-      index.find((entry) => entry.text === "Wash Rate")?.detail,
-    ).toContain("default");
+    expect(index.find((entry) => entry.text === "Fill Rate")?.detail).toContain(
+      "override",
+    );
+    expect(index.find((entry) => entry.text === "Wash Rate")?.detail).toContain(
+      "default",
+    );
   });
 });

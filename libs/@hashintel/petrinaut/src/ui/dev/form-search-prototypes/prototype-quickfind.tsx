@@ -106,6 +106,16 @@ export const QuickfindPrototype = ({
     const next = (current + direction + matches.length) % matches.length;
     setPosition(next);
     jumpToEntry(rootRef.current, matches[next]!);
+    // The find bar keeps the keyboard while cycling; the flash marks the
+    // match. Escape (below) hands the focus over to the current match.
+    inputRef.current?.focus({ preventScroll: true });
+  };
+
+  const close = () => {
+    setOpen(false);
+    if (matches[current] && rootRef.current) {
+      jumpToEntry(rootRef.current, matches[current]);
+    }
   };
 
   return (
@@ -127,7 +137,7 @@ export const QuickfindPrototype = ({
             }}
             onKeyDown={(event) => {
               if (event.key === "Escape") {
-                setOpen(false);
+                close();
               }
               if (event.key === "Enter") {
                 event.preventDefault();
@@ -136,15 +146,21 @@ export const QuickfindPrototype = ({
             }}
           />
           <span className={counterStyle}>
-            {matches.length === 0 ? "0 / 0" : `${current + 1} / ${matches.length}`}
+            {matches.length === 0
+              ? "0 / 0"
+              : `${current + 1} / ${matches.length}`}
           </span>
-          <button type="button" onClick={() => step(-1)} aria-label="Previous match">
+          <button
+            type="button"
+            onClick={() => step(-1)}
+            aria-label="Previous match"
+          >
             ↑
           </button>
           <button type="button" onClick={() => step(1)} aria-label="Next match">
             ↓
           </button>
-          <button type="button" onClick={() => setOpen(false)} aria-label="Close find">
+          <button type="button" onClick={close} aria-label="Close find">
             ✕
           </button>
         </div>
