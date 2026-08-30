@@ -1,43 +1,78 @@
-import { use, useId } from "react";
+import { use, useEffect, useEffectEvent, useId, useRef, useState } from "react";
 
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { cycleTint } from "./net-cycles";
-import { useNetGraphTransition } from "./net-graph-animation";
+import { layoutSignature, useNetGraphTransition } from "./net-graph-animation";
 import {
   edgePath,
   layoutNetGraph,
   NET_NODE_HEIGHT,
   NET_NODE_WIDTH,
 } from "./net-graph-layout";
+import {
+  centerViewportOn,
+  fitViewport,
+  panViewport,
+  visibleRegion,
+  zoomViewport,
+} from "./net-graph-viewport";
 
 import type { CycleGroup } from "./net-cycles";
-import type { PositionedNetNode } from "./net-graph-layout";
+import type { NetGraphLayout, PositionedNetNode } from "./net-graph-layout";
+import type { Size, Viewport } from "./net-graph-viewport";
 import type { InitialPlaceGroup } from "./net-siphons";
 import type { NetGraph, NetGraphNode } from "./notebook-model";
 
-/** Fills the pane it is given; the diagram scrolls inside when it overflows. */
-const scrollContainerStyle = css({
+/**
+ * Fills the pane it is given; the diagram is a zoom/pan camera inside
+ * (overview+detail), so nothing scrolls — the minimap shows where you are.
+ */
+const paneStyle = css({
+  position: "relative",
   flex: "[1]",
   minWidth: "[0]",
   minHeight: "[0]",
-  overflow: "auto",
+  overflow: "hidden",
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.s30",
   borderRadius: "md",
   backgroundColor: "neutral.s05",
-  display: "grid",
 });
 
-/**
- * Centres the diagram when it is smaller than the pane, while still letting
- * it grow past the edges (and scroll) when the net is large.
- */
-const svgWrapperStyle = css({
-  margin: "auto",
-  padding: "2",
+const canvasStyle = css({
+  position: "absolute",
+  inset: "[0]",
+  width: "full",
+  height: "full",
+  cursor: "grab",
+  _active: { cursor: "grabbing" },
+});
+
+const minimapStyle = css({
+  position: "absolute",
+  right: "2",
+  bottom: "2",
+  padding: "[3px]",
+  backgroundColor: "neutral.a80",
+  backdropFilter: "[blur(2px)]",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.s40",
+  borderRadius: "sm",
+  cursor: "crosshair",
+  lineHeight: "[0]",
+});
+
+const minimapNodeStyle = css({ fill: "neutral.s60" });
+
+const minimapWindowStyle = css({
+  fill: "[none]",
+  stroke: "blue.s90",
+  strokeWidth: "[1.5]",
+  vectorEffect: "[non-scaling-stroke]",
 });
 
 const shapeStyle = cva({
@@ -198,6 +233,73 @@ const truncate = (name: string, maxChars: number): string =>
 const cornerRadius = (node: NetGraphNode): number =>
   node.kind === "place" ? NET_NODE_HEIGHT / 2 : 3;
 
+const MINIMAP_WIDTH = 132;
+
+/**
+ * The whole layout in a corner thumbnail with the camera's window drawn on
+ * it; pressing (or dragging) re-centres the camera there.
+ */
+const Minimap: React.FC<{
+  layout: NetGraphLayout;
+  viewport: Viewport;
+  pane: Size;
+  onCenter: (layoutPoint: { x: number; y: number }) => void;
+}> = ({ layout, viewport, pane, onCenter }) => {
+  const width = Math.max(layout.width, 1);
+  const height = Math.max(layout.height, 1);
+  // Fit the thumbnail inside a bounded box without distorting the layout.
+  const mapScale = Math.min(MINIMAP_WIDTH / width, 104 / height);
+  const mapWidth = Math.max(24, width * mapScale);
+  const mapHeight = Math.max(24, height * mapScale);
+  const window_ = visibleRegion(viewport, pane);
+
+  const centerAt = (event: React.MouseEvent<SVGSVGElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    onCenter({
+      x: ((event.clientX - rect.left) / rect.width) * width,
+      y: ((event.clientY - rect.top) / rect.height) * height,
+    });
+  };
+
+  return (
+    <div className={minimapStyle} aria-hidden>
+      <svg
+        role="presentation"
+        width={mapWidth}
+        height={mapHeight}
+        viewBox={`0 0 ${width} ${height}`}
+        onMouseDown={(event) => {
+          event.preventDefault();
+          centerAt(event);
+        }}
+        onMouseMove={(event) => {
+          if (event.buttons % 2 === 1) {
+            centerAt(event);
+          }
+        }}
+      >
+        {layout.nodes.map((node) => (
+          <rect
+            key={node.id}
+            x={node.x}
+            y={node.y}
+            width={NET_NODE_WIDTH}
+            height={NET_NODE_HEIGHT}
+            className={minimapNodeStyle}
+          />
+        ))}
+        <rect
+          x={window_.x}
+          y={window_.y}
+          width={window_.width}
+          height={window_.height}
+          className={minimapWindowStyle}
+        />
+      </svg>
+    </div>
+  );
+};
+
 export interface NetGraphViewProps {
   graph: NetGraph;
   /** The selected place or transition, or null when nothing relevant is selected. */
@@ -250,6 +352,99 @@ export const NetGraphView: React.FC<NetGraphViewProps> = ({
     enabled: showAnimations,
   });
 
+  // The camera over the layout. Held as element state (not a ref) so the
+  // measurement and wheel effects re-run if the pane mounts late.
+  const [paneElement, setPaneElement] = useState<HTMLDivElement | null>(null);
+  const [paneSize, setPaneSize] = useState<Size | null>(null);
+  const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, scale: 1 });
+  const panRef = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (paneElement === null) {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      setPaneSize({
+        width: paneElement.clientWidth,
+        height: paneElement.clientHeight,
+      });
+    });
+    observer.observe(paneElement);
+    return () => observer.disconnect();
+  }, [paneElement]);
+
+  // React registers wheel listeners passively, so preventDefault (keeping
+  // the page from scrolling while zooming) needs a native listener.
+  const handleWheel = useEffectEvent((event: WheelEvent) => {
+    if (paneElement === null) {
+      return;
+    }
+    event.preventDefault();
+    const rect = paneElement.getBoundingClientRect();
+    const point = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+    setViewport((current) => zoomViewport(current, point, event.deltaY));
+  });
+  useEffect(() => {
+    if (paneElement === null) {
+      return;
+    }
+    paneElement.addEventListener("wheel", handleWheel, { passive: false });
+    return () => paneElement.removeEventListener("wheel", handleWheel);
+  }, [paneElement]);
+
+  const fitCamera = () => {
+    if (paneSize !== null) {
+      setViewport(
+        fitViewport({ width: layout.width, height: layout.height }, paneSize),
+      );
+    }
+  };
+
+  // Re-fit whenever the nodes land somewhere new (focus re-layout, edits) —
+  // adjusted during render rather than in an effect, so the first paint of a
+  // new layout is already fitted.
+  const signature = layoutSignature(layout);
+  const [fittedSignature, setFittedSignature] = useState<string | null>(null);
+  if (paneSize !== null && fittedSignature !== signature) {
+    setFittedSignature(signature);
+    setViewport(
+      fitViewport({ width: layout.width, height: layout.height }, paneSize),
+    );
+  }
+
+  const beginPan = (event: React.MouseEvent) => {
+    panRef.current = { x: event.clientX, y: event.clientY };
+    const gesture = new AbortController();
+    const stop = () => {
+      panRef.current = null;
+      gesture.abort();
+    };
+    const move = (moveEvent: MouseEvent) => {
+      // A release outside the window must not leave a ghost drag behind.
+      if (moveEvent.buttons === 0) {
+        stop();
+        return;
+      }
+      const last = panRef.current;
+      if (last === null) {
+        return;
+      }
+      panRef.current = { x: moveEvent.clientX, y: moveEvent.clientY };
+      setViewport((current) =>
+        panViewport(
+          current,
+          moveEvent.clientX - last.x,
+          moveEvent.clientY - last.y,
+        ),
+      );
+    };
+    document.addEventListener("mousemove", move, { signal: gesture.signal });
+    document.addEventListener("mouseup", stop, { signal: gesture.signal });
+  };
+
   if (layout.nodes.length === 0) {
     return (
       <p className={emptyHintStyle}>
@@ -293,38 +488,55 @@ export const NetGraphView: React.FC<NetGraphViewProps> = ({
 
   const nodesById = new Map(layout.nodes.map((node) => [node.id, node]));
 
-  return (
-    <div className={scrollContainerStyle}>
-      <div className={svgWrapperStyle}>
-        <svg
-          width={layout.width}
-          height={layout.height}
-          viewBox={`0 0 ${layout.width} ${layout.height}`}
-          // Not role="img": that would hide the clickable node groups from
-          // the accessibility tree.
-          role="group"
-          aria-label="Net structure graph"
-        >
-          <defs>
-            {EDGE_ROLES.map((role) => (
-              <marker
-                key={role}
-                id={markerId(instanceId, role)}
-                viewBox="0 0 8 8"
-                refX="7"
-                refY="4"
-                markerWidth="4.5"
-                markerHeight="4.5"
-                orient="auto-start-reverse"
-              >
-                <path
-                  d="M 0 1 L 7 4 L 0 7 z"
-                  className={arrowFillStyle({ role })}
-                />
-              </marker>
-            ))}
-          </defs>
+  const showLabels = viewport.scale >= 0.55;
 
+  return (
+    <div ref={setPaneElement} className={paneStyle}>
+      <svg
+        className={canvasStyle}
+        // Not role="img": that would hide the clickable node groups from
+        // the accessibility tree.
+        role="group"
+        aria-label="Net structure graph"
+        onMouseDown={(event) => {
+          // Background (or middle-button) drags pan; node clicks stay clicks.
+          if (
+            event.button === 1 ||
+            (event.button === 0 && event.target === event.currentTarget)
+          ) {
+            event.preventDefault();
+            beginPan(event);
+          }
+        }}
+        onDoubleClick={(event) => {
+          if (event.target === event.currentTarget) {
+            fitCamera();
+          }
+        }}
+      >
+        <defs>
+          {EDGE_ROLES.map((role) => (
+            <marker
+              key={role}
+              id={markerId(instanceId, role)}
+              viewBox="0 0 8 8"
+              refX="7"
+              refY="4"
+              markerWidth="4.5"
+              markerHeight="4.5"
+              orient="auto-start-reverse"
+            >
+              <path
+                d="M 0 1 L 7 4 L 0 7 z"
+                className={arrowFillStyle({ role })}
+              />
+            </marker>
+          ))}
+        </defs>
+
+        <g
+          transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.scale})`}
+        >
           {layout.edges.map((edge) => {
             const from = nodesById.get(edge.from);
             const to = nodesById.get(edge.to);
@@ -450,28 +662,44 @@ export const NetGraphView: React.FC<NetGraphViewProps> = ({
                       })}
                     />
                   )}
-                  <text
-                    x={
-                      node.x +
-                      NET_NODE_WIDTH / 2 +
-                      (placeColor === undefined ? 0 : 4) -
-                      (initialGroup === undefined ? 0 : 4)
-                    }
-                    y={node.y + NET_NODE_HEIGHT / 2}
-                    className={labelStyle({ role })}
-                  >
-                    {truncate(
-                      node.name,
-                      MAX_LABEL_CHARS -
-                        (initialGroup === undefined ? 0 : MARKER_LABEL_COST),
-                    )}
-                  </text>
+                  {/* Semantic zoom: labels would be unreadable specks far
+                      out, so the shapes carry the story alone. */}
+                  {showLabels && (
+                    <text
+                      x={
+                        node.x +
+                        NET_NODE_WIDTH / 2 +
+                        (placeColor === undefined ? 0 : 4) -
+                        (initialGroup === undefined ? 0 : 4)
+                      }
+                      y={node.y + NET_NODE_HEIGHT / 2}
+                      className={labelStyle({ role })}
+                    >
+                      {truncate(
+                        node.name,
+                        MAX_LABEL_CHARS -
+                          (initialGroup === undefined ? 0 : MARKER_LABEL_COST),
+                      )}
+                    </text>
+                  )}
                 </g>
               </g>
             );
           })}
-        </svg>
-      </div>
+        </g>
+      </svg>
+      {paneSize !== null && (
+        <Minimap
+          layout={layout}
+          viewport={viewport}
+          pane={paneSize}
+          onCenter={(layoutPoint) =>
+            setViewport((current) =>
+              centerViewportOn(current, layoutPoint, paneSize),
+            )
+          }
+        />
+      )}
     </div>
   );
 };
