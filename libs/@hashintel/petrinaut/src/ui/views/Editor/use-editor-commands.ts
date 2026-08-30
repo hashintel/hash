@@ -2,6 +2,7 @@ import { use } from "react";
 
 import { useCommand } from "../../../commands/use-command";
 import { EditorContext } from "../../../react/state/editor-context";
+import { UndoRedoContext } from "../../../react/state/undo-redo-context";
 import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 
@@ -19,9 +20,33 @@ export function useEditorCommands(): void {
     isLeftSidebarOpen,
     setLeftSidebarOpen,
   } = use(EditorContext);
+  const undoRedo = use(UndoRedoContext);
   const mode = useEffectiveGlobalMode();
   const isReadOnly = useIsReadOnly();
   const canEditNet = mode === "edit" && !isReadOnly;
+
+  // Listed whenever the document handle provides history, matching the
+  // shortcut, which also no-ops when there is nothing to undo.
+  useCommand(
+    {
+      id: "petrinaut.edit.undo",
+      label: "Undo",
+      category: "Edit",
+      shortcut: "mod+z",
+      run: () => undoRedo?.undo(),
+    },
+    { when: undoRedo !== null },
+  );
+  useCommand(
+    {
+      id: "petrinaut.edit.redo",
+      label: "Redo",
+      category: "Edit",
+      shortcut: "mod+shift+z",
+      run: () => undoRedo?.redo(),
+    },
+    { when: undoRedo !== null },
+  );
 
   useCommand({
     id: "petrinaut.tool.select",
