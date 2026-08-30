@@ -1,4 +1,4 @@
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { Button, SegmentedControl, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -32,6 +32,7 @@ import {
   noConnections,
 } from "./notebook-model";
 import { orderCellsTopologically } from "./notebook-order";
+import { useJumpHistory } from "./use-jump-history";
 
 import type { FocusStop } from "../../worksheet/use-focus-stops";
 import type { InitialPlaceGroup } from "./net-siphons";
@@ -405,14 +406,74 @@ const NotebookViewContent: React.FC = () => {
     }
   };
 
-  const navigateToNode = (node: NodeRef) => {
-    // Jumping to a kind the filter hides would select an invisible cell, so
-    // reveal that kind as part of the navigation.
-    if (!visibleKinds.has(node.type)) {
-      setVisibleKinds((previous) => new Set(previous).add(node.type));
+  const jumps = useJumpHistory();
+
+  /**
+   * Teleport to a cell — a reference jump rather than an arrow move. The
+   * target's kind is revealed if the filter hides it, and the jump lands in
+   * the history so back/forward can retrace it.
+   */
+  const jumpToCell = (cellId: string, options?: { recordJump?: boolean }) => {
+    const target = cells.find(({ id }) => id === cellId);
+    if (target === undefined) {
+      return;
     }
-    selectItem({ type: node.type, id: node.id });
-    focusCellRow(node.id);
+    if (options?.recordJump ?? true) {
+      jumps.record(selectedId, cellId);
+    }
+    if (!visibleKinds.has(target.kind)) {
+      setVisibleKinds((previous) => new Set(previous).add(target.kind));
+    }
+    selectCell(target, { focus: true });
+  };
+
+  const goBack = () => {
+    const target = jumps.back(selectedId);
+    if (target !== null) {
+      jumpToCell(target, { recordJump: false });
+    }
+  };
+
+  const goForward = () => {
+    const target = jumps.forward(selectedId);
+    if (target !== null) {
+      jumpToCell(target, { recordJump: false });
+    }
+  };
+
+  // Alt+←/→ retrace jumps from anywhere in the view, browser-style. Inputs
+  // and the code editors keep the combination (word-wise caret movement on
+  // some platforms).
+  const handleHistoryKey = useEffectEvent((event: KeyboardEvent) => {
+    if (
+      !event.altKey ||
+      (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
+    ) {
+      return;
+    }
+    const target = event.target as HTMLElement;
+    if (
+      target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.isContentEditable ||
+      target.closest(".monaco-editor") !== null
+    ) {
+      return;
+    }
+    event.preventDefault();
+    if (event.key === "ArrowLeft") {
+      goBack();
+    } else {
+      goForward();
+    }
+  });
+  useEffect(() => {
+    window.addEventListener("keydown", handleHistoryKey);
+    return () => window.removeEventListener("keydown", handleHistoryKey);
+  }, []);
+
+  const navigateToNode = (node: NodeRef) => {
+    jumpToCell(node.id);
   };
 
   /**
@@ -446,6 +507,26 @@ const NotebookViewContent: React.FC = () => {
     <div className={containerStyle}>
       <div className={cellsColumnStyle}>
         <div className={searchBarStyle}>
+          <Button
+            size="xs"
+            variant="ghost"
+            tone="neutral"
+            iconName="arrowLeft"
+            aria-label="Back to the previous cell"
+            tooltip="Back through jumps (⌥←)"
+            disabled={!jumps.canGoBack}
+            onClick={goBack}
+          />
+          <Button
+            size="xs"
+            variant="ghost"
+            tone="neutral"
+            iconName="arrowRight"
+            aria-label="Forward to the next cell"
+            tooltip="Forward through jumps (⌥→)"
+            disabled={!jumps.canGoForward}
+            onClick={goForward}
+          />
           <TextInput
             className={searchInputStyle}
             size="sm"
@@ -471,7 +552,7 @@ const NotebookViewContent: React.FC = () => {
                   matchesById.has(id),
                 );
                 if (firstMatch) {
-                  selectCell(firstMatch, { focus: true });
+                  jumpToCell(firstMatch.id);
                 }
               } else if (event.key === "Escape") {
                 setSearchQuery("");
@@ -593,12 +674,7 @@ const NotebookViewContent: React.FC = () => {
                         onNavigate: listFocus.onKeyDown({ stopId, column }),
                       };
                     },
-                    navigateToCell: (cellId) => {
-                      const target = cells.find(({ id }) => id === cellId);
-                      if (target) {
-                        selectCell(target, { focus: true });
-                      }
-                    },
+                    navigateToCell: (cellId) => jumpToCell(cellId),
                   }}
                   onFocusSearch={focusSearch}
                 />
