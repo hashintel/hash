@@ -278,6 +278,17 @@ export async function createGpuMonteCarloExperiment(
       framesPerDispatch: backend.framesPerDispatch,
       seed: config.seed,
       initial: { placeCounts },
+      onFrames: (chunkFrames) => {
+        if (disposed) {
+          return;
+        }
+        metrics.set(
+          appendMetricFrames(
+            metrics.get(),
+            toGpuMetricFrames(chunkFrames, config.metricSpecs, config.dt),
+          ),
+        );
+      },
       ...(runParameters.values === undefined
         ? {}
         : { runParameterValues: runParameters.values }),
@@ -307,10 +318,6 @@ export async function createGpuMonteCarloExperiment(
       return;
     }
 
-    // Metric frames arrive in one batch rather than streaming: the histogram is
-    // read back once, after the dispatches. Streaming would add a readback per
-    // chunk to shave milliseconds off a run that takes single-digit
-    // milliseconds in total.
     if (outcome.result.saturatedSamples > 0) {
       // The top bin saturates, so the distribution is wrong above it. Saying so
       // beats presenting a clipped distribution as a result.
@@ -319,9 +326,12 @@ export async function createGpuMonteCarloExperiment(
       );
     }
 
+    // Chunks already streamed most frames; the final decode is the
+    // authoritative set (it trims trailing empty frames), so it replaces
+    // rather than appends.
     metrics.set(
       appendMetricFrames(
-        metrics.get(),
+        createEmptyMetricsState(),
         toGpuMetricFrames(outcome.result.frames, config.metricSpecs, config.dt),
       ),
     );

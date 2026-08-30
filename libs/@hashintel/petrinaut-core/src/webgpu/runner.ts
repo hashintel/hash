@@ -70,6 +70,14 @@ export type GpuExperimentRequest = {
   /** Invoked after each chunk so callers can report progress. */
   onChunk?: (progress: { framesDone: number; frameLimit: number }) => void;
   /**
+   * Invoked after each chunk with that chunk's decoded histogram frames, so
+   * callers can stream metrics while the experiment runs. Frames whose
+   * every metric sampled zero runs are skipped (all runs had finished).
+   * The frames handed to the final result remain authoritative — replace,
+   * do not append, when both are consumed.
+   */
+  onFrames?: (frames: GpuHistogramFrame[]) => void;
+  /**
    * Stops the run at the next chunk boundary.
    *
    * A dispatch cannot be interrupted once submitted, so cancellation is only
@@ -377,6 +385,47 @@ export function describeBufferOverflow({
   return null;
 }
 
+/**
+ * Decodes a contiguous frame range of the histogram buffer into sparse
+ * per-metric frames. `data` starts at `firstFrame`'s bins; saturated counts
+ * are the top bin's, summed across everything decoded.
+ */
+function decodeHistogramFrames(options: {
+  data: Uint32Array;
+  firstFrame: number;
+  frameCount: number;
+  metricIds: readonly string[];
+}): { frames: GpuHistogramFrame[]; saturatedSamples: number } {
+  const { data, firstFrame, frameCount, metricIds } = options;
+  const metricCount = metricIds.length;
+  const frames: GpuHistogramFrame[] = [];
+  let saturatedSamples = 0;
+  for (let frame = 0; frame < frameCount; frame++) {
+    for (const [metricIndex, metricId] of metricIds.entries()) {
+      const offset =
+        frame * GPU_HISTOGRAM_BINS * metricCount +
+        metricIndex * GPU_HISTOGRAM_BINS;
+      const bins: [number, number][] = [];
+      let sampleCount = 0;
+      for (let bin = 0; bin < GPU_HISTOGRAM_BINS; bin++) {
+        const frequency = data[offset + bin] ?? 0;
+        if (frequency > 0) {
+          bins.push([bin, frequency]);
+          sampleCount += frequency;
+        }
+      }
+      saturatedSamples += data[offset + GPU_HISTOGRAM_BINS - 1] ?? 0;
+      frames.push({
+        frameNumber: firstFrame + frame,
+        metricId,
+        bins,
+        sampleCount,
+      });
+    }
+  }
+  return { frames, saturatedSamples };
+}
+
 export async function runGpuExperiment(
   handle: GpuDeviceHandle,
   shader: CompiledNetShader,
@@ -463,6 +512,18 @@ export async function runGpuExperiment(
     size: CONFIG_WORDS * 4,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
+  // One chunk's worth of histogram, re-used for streaming readbacks. Only
+  // allocated when the caller wants frames streamed.
+  const chunkFrameCapacity = Math.min(framesPerDispatch, frameLimit);
+  const chunkHistBytes =
+    chunkFrameCapacity * GPU_HISTOGRAM_BINS * metricCount * 4;
+  const chunkReadback =
+    request.onFrames === undefined || metricCount === 0
+      ? null
+      : device.createBuffer({
+          size: Math.max(4, chunkHistBytes),
+          usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+        });
   // Per-run parameter draws; a placeholder is never created — the binding
   // only exists in shaders compiled with per-run parameters.
   const runParamsBuffer =
@@ -494,6 +555,7 @@ export async function runGpuExperiment(
       buffer.destroy();
     }
     runParamsBuffer?.destroy();
+    chunkReadback?.destroy();
   };
 
   const allocationError = await device.popErrorScope();
@@ -599,8 +661,37 @@ export async function runGpuExperiment(
       // Awaiting per chunk (not per frame) keeps the browser responsive and
       // bounds how far ahead the queue runs, at negligible cost.
       await device.queue.onSubmittedWorkDone();
+      const framesDone = Math.min(baseFrame + framesPerDispatch, frameLimit);
+      if (chunkReadback !== null) {
+        // The histogram is cumulative and every frame's bins are final once
+        // its dispatch retired, so the chunk's range can be read while later
+        // dispatches queue.
+        const chunkFrames = framesDone - baseFrame;
+        const chunkBytes = chunkFrames * GPU_HISTOGRAM_BINS * metricCount * 4;
+        const copyEncoder = device.createCommandEncoder();
+        copyEncoder.copyBufferToBuffer(
+          histBuffer,
+          baseFrame * GPU_HISTOGRAM_BINS * metricCount * 4,
+          chunkReadback,
+          0,
+          chunkBytes,
+        );
+        device.queue.submit([copyEncoder.finish()]);
+        await chunkReadback.mapAsync(GPUMapMode.READ, 0, chunkBytes);
+        const decoded = decodeHistogramFrames({
+          data: new Uint32Array(chunkReadback.getMappedRange(0, chunkBytes)),
+          firstFrame: baseFrame,
+          frameCount: chunkFrames,
+          metricIds: shader.metricIds,
+        });
+        chunkReadback.unmap();
+        const live = decoded.frames.filter((frame) => frame.sampleCount > 0);
+        if (live.length > 0) {
+          request.onFrames?.(live);
+        }
+      }
       request.onChunk?.({
-        framesDone: Math.min(baseFrame + framesPerDispatch, frameLimit),
+        framesDone,
         frameLimit,
       });
     }
@@ -684,26 +775,12 @@ export async function runGpuExperiment(
       }
     }
 
-    const frames: GpuHistogramFrame[] = [];
-    let saturatedSamples = 0;
-    for (let frame = 0; frame < decodedFrameLimit; frame++) {
-      for (const [metricIndex, metricId] of shader.metricIds.entries()) {
-        const offset =
-          frame * GPU_HISTOGRAM_BINS * metricCount +
-          metricIndex * GPU_HISTOGRAM_BINS;
-        const bins: [number, number][] = [];
-        let sampleCount = 0;
-        for (let bin = 0; bin < GPU_HISTOGRAM_BINS; bin++) {
-          const frequency = histogram[offset + bin] ?? 0;
-          if (frequency > 0) {
-            bins.push([bin, frequency]);
-            sampleCount += frequency;
-          }
-        }
-        saturatedSamples += histogram[offset + GPU_HISTOGRAM_BINS - 1] ?? 0;
-        frames.push({ frameNumber: frame, metricId, bins, sampleCount });
-      }
-    }
+    const { frames, saturatedSamples } = decodeHistogramFrames({
+      data: histogram,
+      firstFrame: 0,
+      frameCount: decodedFrameLimit,
+      metricIds: shader.metricIds,
+    });
 
     // Last use of both views; everything returned below is host-owned.
     summaryReadback.unmap();
