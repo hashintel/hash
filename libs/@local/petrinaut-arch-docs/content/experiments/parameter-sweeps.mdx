@@ -63,6 +63,12 @@ interprets the override expressions, and coerces the results. The provider
 prepares one compiler per experiment and every consumer — batch midpoints,
 per-run translation, surface sampling — compiles through it.
 
+Per-run translation compiles less still: `compileParameterValues` runs the
+parameter steps and skips the initial state, which per-run translation never
+reads — per-run initial markings do not exist, and a batch's own marking
+comes from its midpoint `compile`. An initial-state error therefore fails
+the batch, not each of its runs.
+
 ## Determinism
 
 A cell's batch covering runs `[from, target)` seeds itself with

@@ -1184,4 +1184,43 @@ describe("prepareScenarioCompiler", () => {
       }
     }
   });
+
+  it("compiles parameter values without evaluating the initial state", () => {
+    const brokenInitialState = scenario({
+      scenarioParameters: [{ identifier: "speed", type: "real", default: 1 }],
+      parameterOverrides: { p1: "scenario.speed * 2" },
+      // An initial-state expression that fails at evaluation: `compile`
+      // reports it, the values-only entry point never runs it.
+      initialState: { type: "per_place", content: { pl1: "unknown_name" } },
+    });
+    const prepared = prepareScenarioCompiler(
+      brokenInitialState,
+      lowerScenarioToHir(brokenInitialState),
+      [param("p1", "rate", "0.5")],
+      [place("pl1", "Waiting", null)],
+    );
+
+    expect(prepared.compile({ speed: 3 }).ok).toBe(false);
+    const valuesOnly = prepared.compileParameterValues({ speed: 3 });
+    expect(valuesOnly.ok).toBe(true);
+    if (valuesOnly.ok) {
+      expect(valuesOnly.parameterValues.rate).toBe("6");
+    }
+  });
+
+  it("fails compileParameterValues on override errors, like compile", () => {
+    const broken = scenario({
+      parameterOverrides: { p1: "scenario.missing + 1" },
+    });
+    const prepared = prepareScenarioCompiler(
+      broken,
+      lowerScenarioToHir(broken),
+      [param("p1", "rate", "0.5")],
+    );
+    const outcome = prepared.compileParameterValues({});
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) {
+      expect(outcome.errors[0]?.source).toBe("parameterOverride");
+    }
+  });
 });
