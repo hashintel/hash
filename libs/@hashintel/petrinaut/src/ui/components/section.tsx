@@ -248,15 +248,20 @@ export const Section = ({
           <div className={stickyBandStyle}>{renderStickyBand()}</div>
         )}
       </div>
-      <div
-        className={cx(
-          contentStyle,
-          contentPaddingStyle,
-          fillHeight && fillHeightContentStyle,
-        )}
-      >
-        {children}
-      </div>
+      {/* A section whose body lives entirely in the sticky band (the sweep
+          navigator) passes null children; rendering the wrapper anyway left
+          ~20px of dead space under it. */}
+      {children === null ? null : (
+        <div
+          className={cx(
+            contentStyle,
+            contentPaddingStyle,
+            fillHeight && fillHeightContentStyle,
+          )}
+        >
+          {children}
+        </div>
+      )}
     </div>
   );
 };
