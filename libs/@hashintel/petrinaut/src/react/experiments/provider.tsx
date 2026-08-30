@@ -551,6 +551,32 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           ...(translatedRuns === undefined ? {} : { runs: translatedRuns }),
         };
 
+        // The surface's background sampling can start before the navigator's
+        // first batch has finished the backend-selection walk. Running the
+        // walk here too would race it: two batches contending for the pool,
+        // both patching the record's backend fields. Background batches
+        // instead go straight to the single-worker CPU lane until a backend
+        // is chosen (and stay there when the choice lands on the CPU).
+        if (background && !chosenBackend) {
+          backgroundCpuBackend ??= createWorkerPoolExperimentBackend({
+            createWorker: workerFactoryRef.current,
+            shardCount: 1,
+          });
+          const request = await buildRequest({
+            needsHirTrees: backgroundCpuBackend.needsHirTrees,
+            override,
+          });
+          const assessment = await backgroundCpuBackend.assess(request);
+          if (!assessment.eligible) {
+            throw new Error(describeBlockers(assessment.blockers));
+          }
+          const instantiated = await assessment.instantiate({ signal, onNote });
+          if (!instantiated.ok) {
+            throw new Error(describeBlockers(instantiated.blockers));
+          }
+          return instantiated.handle;
+        }
+
         // Range batches carry per-run parameter values (`runs`); the GPU
         // backend uploads them to a per-run buffer, so they walk the same
         // backend selection as point batches instead of being CPU-only.

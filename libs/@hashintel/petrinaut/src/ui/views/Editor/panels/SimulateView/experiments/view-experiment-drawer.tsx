@@ -505,7 +505,11 @@ export const ViewExperimentDrawer = ({
           {experiment.metricSpecs.length > 0 ? (
             <Section title="Metrics" fillHeight>
               <div className={metricsScrollStyle}>
+                {/* Keyed so held ghost frames and size choices never leak
+                    from one experiment into another when the drawer swaps
+                    records in place. */}
                 <ExperimentMetrics
+                  key={experiment.id}
                   experiment={experiment}
                   restreamGhost={restreamGhost}
                 />

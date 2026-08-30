@@ -9,12 +9,13 @@
  * Counter-based RNG.
  *
  * The CPU engine's generator (`../simulation/engine/seeded-rng.ts`) is an
- * exact 31-bit LCG since FE-1499 and could be reproduced in WGSL, but its
- * measured cycle is 10,466 steps — far too short for a run that draws every
- * frame. This backend uses PCG instead: full 2^32 period per stream.
+ * exact 31-bit LCG since FE-1499 and could be reproduced in WGSL bit for
+ * bit. This backend deliberately uses PCG instead — a stronger generator,
+ * and keeping the streams distinct makes cross-backend comparisons
+ * statistical by construction rather than accidentally seed-coupled.
  *
- * The consequence is deliberate and must be stated wherever backends are
- * compared: the GPU backend does not reproduce CPU trajectories seed for seed.
+ * The consequence must be stated wherever backends are compared: the GPU
+ * backend does not reproduce CPU trajectories seed for seed, by choice.
  */
 export const WGSL_RNG = `
 // PCG-RXS-M-XS, 32-bit state and output.
