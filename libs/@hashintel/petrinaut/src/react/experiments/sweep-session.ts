@@ -43,7 +43,6 @@ import {
 import type { ExperimentParameterAxis, SweepSelection } from "./parameter-grid";
 import type {
   MonteCarloExperiment,
-  MonteCarloRunConfig,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
 } from "@hashintel/petrinaut-core";
@@ -81,11 +80,11 @@ export type InstantiateSweepBatch = (options: {
    */
   parameterValues: Readonly<Record<string, number>>;
   /**
-   * Per-run parameter values for the batch's runs, present only when some
+   * Per-run parameter draws for the batch's runs, present only when some
    * axis has a non-degenerate range. The CPU pool applies them per run; the
    * WebGPU backend reads them from a per-run parameter buffer.
    */
-  runs?: readonly MonteCarloRunConfig[];
+  draws?: SweepRunDraws;
   /** Base seed for this batch (already derived from the batch's run range). */
   seed: number;
   /** Runs this batch adds on top of the selection's finished batches. */
@@ -215,20 +214,33 @@ export function sweepSelectionMidValues(
 }
 
 /**
- * Per-run parameter values for a range selection's batch covering global run
+ * One batch's per-run draws: one column per ranged axis, one typed array of
+ * run-major values. A record per run was the second-largest main-thread cost
+ * of instantiating a million-run batch; the array form is written once and
+ * translated without materializing anything per run.
+ */
+export type SweepRunDraws = {
+  /** The drawn identifiers (ranged axes), in axis order. */
+  identifiers: readonly string[];
+  /** `values[run * identifiers.length + i]` is `identifiers[i]`'s draw. */
+  values: Float64Array;
+};
+
+/**
+ * Per-run parameter draws for a range selection's batch covering global run
  * indices `[from, target)`, or undefined when every axis is a point. Each
  * ranged axis draws continuously inside its selected value interval — the
  * quantized positions bound the interval, they do not grid it — via the
  * axis's own seed-shifted low-discrepancy sequence, prefix-stable in the
  * run index.
  */
-export function sweepRangeRuns(
+export function sweepRangeDraws(
   seed: number,
   axes: readonly ExperimentParameterAxis[],
   selection: SweepSelection,
   from: number,
   target: number,
-): MonteCarloRunConfig[] | undefined {
+): SweepRunDraws | undefined {
   const ranged = axes
     .map((axis, axisIndex) => {
       const range = selection[axis.identifier] ?? {
@@ -251,18 +263,23 @@ export function sweepRangeRuns(
     return undefined;
   }
 
-  return Array.from({ length: target - from }, (_, localIndex) => {
+  const runCount = target - from;
+  const width = ranged.length;
+  const values = new Float64Array(runCount * width);
+  for (let localIndex = 0; localIndex < runCount; localIndex++) {
     const globalIndex = from + localIndex;
-    const parameterValues: Record<string, string> = {};
-    for (const { axis, axisIndex, low, high } of ranged) {
+    for (let column = 0; column < width; column++) {
+      const { axis, axisIndex, low, high } = ranged[column]!;
       const raw =
         low + sweepRunFraction(seed, globalIndex, axisIndex) * (high - low);
-      parameterValues[axis.identifier] = String(
-        axis.integer ? Math.round(raw) : Number(raw.toPrecision(12)),
-      );
+      // `toPrecision(12)` matches what the record form stringified, so a
+      // draw is the same number either way and cached rungs stay valid.
+      values[localIndex * width + column] = axis.integer
+        ? Math.round(raw)
+        : Number(raw.toPrecision(12));
     }
-    return { parameterValues };
-  });
+  }
+  return { identifiers: ranged.map((entry) => entry.axis.identifier), values };
 }
 
 /** The base seed of the batch whose first run has global index `from`. */
@@ -371,7 +388,7 @@ export function createSweepSession(
       abortController.abort();
     };
 
-    const runs = sweepRangeRuns(
+    const draws = sweepRangeDraws(
       seed,
       axes,
       selection,
@@ -383,7 +400,7 @@ export function createSweepSession(
     try {
       handle = await instantiateBatch({
         parameterValues: sweepSelectionMidValues(axes, selection),
-        ...(runs === undefined ? {} : { runs }),
+        ...(draws === undefined ? {} : { draws }),
         seed: sweepBatchSeed(seed, snapshot.runsCompleted),
         runCount: target - snapshot.runsCompleted,
         signal: abortController.signal,

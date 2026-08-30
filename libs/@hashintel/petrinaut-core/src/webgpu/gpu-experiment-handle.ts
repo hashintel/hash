@@ -22,6 +22,7 @@ import { requestGpuExperimentBackend } from "./backend";
 import { toGpuMetricFrames, toGpuMetricSpecs } from "./gpu-metric-frames";
 import { runGpuExperiment } from "./runner";
 
+import type { ExperimentRunPlan } from "../experiments/experiment-request";
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirArtifacts } from "../hir-runtime";
 import type { InitialMarking } from "../simulation/api";
@@ -52,8 +53,15 @@ export type CreateGpuMonteCarloExperimentConfig = {
    * Per-run overrides for a sweep over parameter ranges. Only numeric
    * `parameterValues` are supported (validated by the backend adapter); each
    * run's draws are uploaded to the shader's per-run parameter buffer.
+   * At most one of `runs` and `runPlan` may be present.
    */
   runs?: readonly MonteCarloRunConfig[];
+  /**
+   * The compact form of `runs`: per-run numeric values in one run-major
+   * array, converted straight into the shader's per-run buffer with no
+   * per-run records to validate or parse.
+   */
+  runPlan?: ExperimentRunPlan;
   /** Defaults to RK4 — see `backend.ts` for why that is not Euler. */
   odeMethod?: GpuOdeMethod;
   /** Caps runs per tile below the device's limit. For tests and benchmarks. */
@@ -123,8 +131,32 @@ type DerivedRunParameters =
  */
 function deriveRunParameters(
   runs: readonly MonteCarloRunConfig[] | undefined,
+  runPlan: ExperimentRunPlan | undefined,
   runCount: number,
 ): DerivedRunParameters {
+  if (runPlan !== undefined && runPlan.ids.length > 0) {
+    // A plan is uniform by construction; only the length and the values'
+    // finiteness (all the shader's f32 buffer can carry) need checking.
+    const expected = runCount * runPlan.ids.length;
+    if (runPlan.values.length !== expected) {
+      return {
+        ok: false,
+        reason: `The run plan carries ${runPlan.values.length} values but ${runCount} runs × ${runPlan.ids.length} parameters needs ${expected}.`,
+      };
+    }
+    const values = new Float32Array(runPlan.values.length);
+    for (let index = 0; index < runPlan.values.length; index++) {
+      const value = runPlan.values[index]!;
+      if (!Number.isFinite(value)) {
+        return {
+          ok: false,
+          reason: `Per-run value \`${value}\` for \`${runPlan.ids[index % runPlan.ids.length]}\` is not a finite number, which is all the GPU's f32 buffer can carry.`,
+        };
+      }
+      values[index] = value;
+    }
+    return { ok: true, ids: runPlan.ids, values };
+  }
   if (runs === undefined || runs.length === 0) {
     return { ok: true, ids: [] };
   }
@@ -193,7 +225,11 @@ export async function createGpuMonteCarloExperiment(
     };
   }
 
-  const runParameters = deriveRunParameters(config.runs, config.runCount);
+  const runParameters = deriveRunParameters(
+    config.runs,
+    config.runPlan,
+    config.runCount,
+  );
   if (!runParameters.ok) {
     return {
       supported: false,

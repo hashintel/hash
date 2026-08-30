@@ -435,6 +435,18 @@ export type PreparedScenarioCompiler = {
   ):
     | { ok: true; parameterValues: Record<string, string> }
     | { ok: false; errors: ScenarioCompilationError[] };
+  /**
+   * `compileParameterValues` without the string conversion: the resolved
+   * values as the numbers and booleans they evaluated to. A caller that
+   * compares or lays values out numerically (per-run sweep translation fills
+   * typed arrays) round-trips through strings for nothing otherwise. The
+   * returned record is fresh per call and the caller may keep it.
+   */
+  compileParameterNumbers(
+    scenarioParameterValues?: ScenarioParameterValues,
+  ):
+    | { ok: true; parameters: Record<string, number | boolean> }
+    | { ok: false; errors: ScenarioCompilationError[] };
 };
 
 /**
@@ -693,6 +705,20 @@ export function prepareScenarioCompiler(
     };
   };
 
+  const compileParameterNumbers = (
+    scenarioParameterValues?: ScenarioParameterValues,
+  ):
+    | { ok: true; parameters: Record<string, number | boolean> }
+    | { ok: false; errors: ScenarioCompilationError[] } => {
+    const { errors, parametersObj } = evaluateParameters(
+      scenarioParameterValues,
+    );
+    if (errors.length > 0) {
+      return { ok: false, errors };
+    }
+    return { ok: true, parameters: parametersObj };
+  };
+
   const compileParameterValues = (
     scenarioParameterValues?: ScenarioParameterValues,
   ):
@@ -707,7 +733,7 @@ export function prepareScenarioCompiler(
     return { ok: true, parameterValues: stringifyParameters(parametersObj) };
   };
 
-  return { compile, compileParameterValues };
+  return { compile, compileParameterNumbers, compileParameterValues };
 }
 
 /**

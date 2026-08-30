@@ -108,6 +108,7 @@ function assess(
         runCount: request.runCount,
         metricSpecs: request.metricSpecs,
         ...(request.runs === undefined ? {} : { runs: request.runs }),
+        ...(request.runPlan === undefined ? {} : { runPlan: request.runPlan }),
         ...(options.odeMethod === undefined
           ? {}
           : { odeMethod: options.odeMethod }),
