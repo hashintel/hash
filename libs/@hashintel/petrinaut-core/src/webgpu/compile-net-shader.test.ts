@@ -18,11 +18,13 @@ function compileFor(
     metrics = [] as { id: string; placeId: string }[],
     dt = 0.1,
     framesPerDispatch = 300,
+    runParameters,
   }: {
     odeMethod?: GpuOdeMethod;
     metrics?: { id: string; placeId: string }[];
     dt?: number;
     framesPerDispatch?: number;
+    runParameters?: readonly string[];
   } = {},
 ) {
   const eligibility = assessGpuEligibility(sdcpn);
@@ -46,11 +48,64 @@ function compileFor(
     framesPerDispatch,
     metrics,
     odeMethod,
+    ...(runParameters === undefined ? {} : { runParameters }),
   });
 }
 
 const sir = sirModel.petriNetDefinition;
 const satellites = probabilisticSatellitesSDCPN.petriNetDefinition;
+
+describe("per-run parameters", () => {
+  it("reads a swept parameter from the per-run buffer and keeps the rest inlined", () => {
+    const result = compileFor(sir, { runParameters: ["infection_rate"] });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.shader.runParameterIds).toEqual(["infection_rate"]);
+    expect(result.shader.wgsl).toContain(
+      "@group(0) @binding(4) var<storage, read> run_params: array<f32>;",
+    );
+    expect(result.shader.wgsl).toContain(
+      "run_param_0 = run_params[run_index * 1u + 0u];",
+    );
+    // The swept parameter reads the hoisted per-run value...
+    expect(result.shader.wgsl).toContain("run_param_0");
+    // ...while the fixed one stays a literal (recovery_rate defaults to 1).
+    expect(result.shader.wgsl).toContain("1.0");
+  });
+
+  it("lays several swept parameters out run-major in declaration order", () => {
+    const result = compileFor(sir, {
+      runParameters: ["infection_rate", "recovery_rate"],
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.shader.wgsl).toContain(
+      "run_param_0 = run_params[run_index * 2u + 0u];",
+    );
+    expect(result.shader.wgsl).toContain(
+      "run_param_1 = run_params[run_index * 2u + 1u];",
+    );
+  });
+
+  it("declares no per-run binding when nothing varies per run", () => {
+    const result = compileFor(sir);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.shader.runParameterIds).toEqual([]);
+    expect(result.shader.wgsl).not.toContain("run_params");
+  });
+
+  it("refuses a per-run parameter the net does not declare", () => {
+    const result = compileFor(sir, { runParameters: ["not_a_parameter"] });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toContain("not a parameter of this net");
+  });
+});
 
 describe("compileNetShader", () => {
   it("compiles the uncoloured SIR net", () => {

@@ -51,6 +51,7 @@ import {
   fullSweepSelection,
   type ExperimentParameterAxis,
 } from "./parameter-grid";
+import { translateRangeRuns } from "./sweep-run-overrides";
 import {
   createSweepSession,
   type SweepSession,
@@ -437,9 +438,17 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     compileForValues: (
       swept: Readonly<Record<string, number>>,
     ) => Extract<CompileScenarioOutcome, { ok: true }>;
+    /** Net parameter variable names, for direct-override passthrough. */
+    netParameterVariableNames: ReadonlySet<string>;
   }) => {
-    const { experiment, axes, registrations, buildRequest, compileForValues } =
-      options;
+    const {
+      experiment,
+      axes,
+      registrations,
+      buildRequest,
+      compileForValues,
+      netParameterVariableNames,
+    } = options;
     const experimentId = experiment.id;
     let chosenBackend: ExperimentBackend | null = null;
     /**
@@ -448,11 +457,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
      * a sweep whose surface view is never opened spawns nothing extra.
      */
     let backgroundCpuBackend: ExperimentBackend | null = null;
-    /**
-     * Range batches carry per-run parameter values, which the GPU refuses,
-     * so they go straight to the CPU worker pool at full parallelism.
-     */
-    let rangeCpuBackend: ExperimentBackend | null = null;
 
     const onNote = (note: { message: string }) => {
       addNotification({
@@ -478,43 +482,30 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         signal,
       }) => {
         const compiled = compileForValues(parameterValues);
+        // A run's draws are scenario values; the simulation reads net
+        // parameters. Re-evaluate the scenario's overrides at each run's
+        // draws so every backend receives net-keyed per-run values.
+        const translatedRuns =
+          runs === undefined
+            ? undefined
+            : translateRangeRuns({
+                runs,
+                midValues: parameterValues,
+                baseParameterValues: compiled.result.parameterValues,
+                compileForValues,
+                netParameterVariableNames,
+              });
         const override = {
           parameterValues: compiled.result.parameterValues,
           initialMarking: compiled.result.initialState,
           seed,
           runCount,
-          ...(runs === undefined ? {} : { runs }),
+          ...(translatedRuns === undefined ? {} : { runs: translatedRuns }),
         };
 
-        if (runs !== undefined) {
-          // One stochastic experiment over the selected ranges: full worker
-          // pool, no backend walk — per-run parameter values are CPU-only.
-          rangeCpuBackend ??= createWorkerPoolExperimentBackend({
-            createWorker: workerFactoryRef.current,
-            shardCount:
-              shardCountRef.current ?? getDefaultMonteCarloShardCount(),
-          });
-          const request = await buildRequest({
-            needsHirTrees: rangeCpuBackend.needsHirTrees,
-            override,
-          });
-          const assessment = await rangeCpuBackend.assess(request);
-          if (!assessment.eligible) {
-            throw new Error(describeBlockers(assessment.blockers));
-          }
-          const instantiated = await assessment.instantiate({
-            signal,
-            onNote,
-          });
-          if (!instantiated.ok) {
-            throw new Error(describeBlockers(instantiated.blockers));
-          }
-          if (experiment.computeBackend !== "cpu") {
-            patchExperiment(experimentId, { computeBackend: "cpu" });
-          }
-          return instantiated.handle;
-        }
-
+        // Range batches carry per-run parameter values (`runs`); the GPU
+        // backend uploads them to a per-run buffer, so they walk the same
+        // backend selection as point batches instead of being CPU-only.
         if (!chosenBackend) {
           const selection = await selectExperimentBackend({
             registrations,
@@ -849,6 +840,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             registrations,
             buildRequest,
             compileForValues,
+            netParameterVariableNames: new Set(
+              compiledExperimentSdcpn.parameters.map(
+                (parameter) => parameter.variableName,
+              ),
+            ),
           });
           pendingRegistrationsRef.current.delete(experimentId);
           return;

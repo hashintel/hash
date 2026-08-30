@@ -61,6 +61,12 @@ export type GpuExperimentRequest = {
   framesPerDispatch: number;
   seed: number;
   initial: GpuRunnerInitialState;
+  /**
+   * Per-run parameter draws, run-major, `shader.runParameterIds.length` f32
+   * values per run. Required exactly when the shader declares per-run
+   * parameters; its length must be `runCount × runParameterIds.length`.
+   */
+  runParameterValues?: Float32Array;
   /** Invoked after each chunk so callers can report progress. */
   onChunk?: (progress: { framesDone: number; frameLimit: number }) => void;
   /**
@@ -379,8 +385,24 @@ export async function runGpuExperiment(
   { ok: true; result: GpuExperimentResult } | { ok: false; reason: string }
 > {
   const { device } = handle;
-  const { runCount, frameLimit, framesPerDispatch, seed, initial } = request;
+  const {
+    runCount,
+    frameLimit,
+    framesPerDispatch,
+    seed,
+    initial,
+    runParameterValues,
+  } = request;
   const metricCount = shader.metricIds.length;
+
+  const runParameterCount = shader.runParameterIds.length;
+  const expectedRunParameterValues = runParameterCount * runCount;
+  if ((runParameterValues?.length ?? 0) !== expectedRunParameterValues) {
+    return {
+      ok: false,
+      reason: `The shader expects ${expectedRunParameterValues} per-run parameter values (${runParameterCount} per run) but ${runParameterValues?.length ?? 0} were supplied.`,
+    };
+  }
 
   const compiled = await createPipeline(device, shader.wgsl);
   if (!compiled.ok) {
@@ -441,6 +463,15 @@ export async function runGpuExperiment(
     size: CONFIG_WORDS * 4,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
+  // Per-run parameter draws; a placeholder is never created — the binding
+  // only exists in shaders compiled with per-run parameters.
+  const runParamsBuffer =
+    runParameterValues === undefined || runParameterCount === 0
+      ? null
+      : device.createBuffer({
+          size: runParameterValues.byteLength,
+          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        });
   const summaryReadback = device.createBuffer({
     size: summaryBytes,
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
@@ -462,6 +493,7 @@ export async function runGpuExperiment(
     ]) {
       buffer.destroy();
     }
+    runParamsBuffer?.destroy();
   };
 
   const allocationError = await device.popErrorScope();
@@ -511,6 +543,10 @@ export async function runGpuExperiment(
       );
     }
 
+    if (runParamsBuffer !== null && runParameterValues !== undefined) {
+      device.queue.writeBuffer(runParamsBuffer, 0, runParameterValues);
+    }
+
     const bindGroup = device.createBindGroup({
       layout: compiled.pipeline.getBindGroupLayout(0),
       entries: [
@@ -518,6 +554,9 @@ export async function runGpuExperiment(
         { binding: 1, resource: { buffer: histBuffer } },
         { binding: 2, resource: { buffer: configBuffer } },
         { binding: 3, resource: { buffer: summaryBuffer } },
+        ...(runParamsBuffer === null
+          ? []
+          : [{ binding: 4, resource: { buffer: runParamsBuffer } }]),
       ],
     });
 
