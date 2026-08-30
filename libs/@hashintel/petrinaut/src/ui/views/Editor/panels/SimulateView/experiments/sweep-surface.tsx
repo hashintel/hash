@@ -11,7 +11,7 @@
  * collapses both shown parameters to a point at the clicked position.
  * Rendering itself is `ContourSurface`, which is purely presentational.
  */
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -111,6 +111,13 @@ export const SweepSurface = ({
   const [metricId, setMetricId] = useState(experiment.metricSpecs[0]?.id ?? "");
   const [cellValues, setCellValues] = useState<ContourSurfaceValues>(new Map());
   const [walkKey, setWalkKey] = useState("");
+  // Resolved cells buffer here and flush once per animation frame: a walk
+  // over a cached slice resolves its cells back to back, and committing each
+  // one re-rendered the drawer subtree dozens of times with no new picture.
+  const pendingCellsRef = useRef<{
+    entries: [string, number][];
+    scheduled: boolean;
+  }>({ entries: [], scheduled: false });
 
   const xAxis = axes.find((axis) => axis.identifier === xAxisId);
   const yAxis = axes.find((axis) => axis.identifier === yAxisId);
@@ -133,6 +140,7 @@ export const SweepSurface = ({
       return;
     }
     const walk: { stale: boolean } = { stale: false };
+    const pendingCells = pendingCellsRef.current;
     // Read through a call so the flow analysis cannot pin the flag to its
     // initial value: cleanup flips it from outside this closure.
     const isWalkStale = () => walk.stale;
@@ -171,11 +179,25 @@ export const SweepSurface = ({
         if (snapshot) {
           const value = sweepCellObjective(snapshot.metricFrames, metricId);
           if (value !== null) {
-            setCellValues((previous) => {
-              const next = new Map(previous);
-              next.set(contourSurfaceKey(cell.x, cell.y), value);
-              return next;
-            });
+            const pending = pendingCells;
+            pending.entries.push([contourSurfaceKey(cell.x, cell.y), value]);
+            if (!pending.scheduled) {
+              pending.scheduled = true;
+              requestAnimationFrame(() => {
+                pending.scheduled = false;
+                const entries = pending.entries.splice(0);
+                if (entries.length === 0) {
+                  return;
+                }
+                setCellValues((previous) => {
+                  const next = new Map(previous);
+                  for (const [key, cellValue] of entries) {
+                    next.set(key, cellValue);
+                  }
+                  return next;
+                });
+              });
+            }
           }
         }
       }
@@ -184,6 +206,8 @@ export const SweepSurface = ({
 
     return () => {
       walk.stale = true;
+      // Entries the flush has not committed belong to the stale walk.
+      pendingCells.entries.length = 0;
     };
   }, [axes, experimentId, metricId, sampleSweepCell, slice, xAxis, yAxis]);
 
