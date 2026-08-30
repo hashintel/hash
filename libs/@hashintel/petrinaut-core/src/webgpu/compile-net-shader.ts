@@ -98,6 +98,10 @@ export type CompiledNetShader = {
   summaryWordsPerRun: number;
   /** Word offset of each place's token count within a run's state. */
   placeCountOffsets: number[];
+  /** Word offset of each place's token slots; equal to the next place's for an uncoloured place. */
+  placeTokenOffsets: number[];
+  /** Words per token slot, per place; 0 for an uncoloured place. */
+  placeTokenStrides: number[];
   /** Word offset of the status within a run's *summary*. */
   summaryStatusOffset: number;
   /**
@@ -1179,6 +1183,8 @@ export function compileNetShader(
         placeCountOffsets: profile.places.map(
           (_, index) => countsOffset + index,
         ),
+        placeTokenOffsets: [...placeTokenOffsets],
+        placeTokenStrides: [...placeTokenStride],
         summaryStatusOffset: placeCount,
         rngOffset,
         statusOffset,
