@@ -26,23 +26,26 @@ const configurationBodyStyle = css({
 const playbackPositionStyle = css({
   position: "absolute",
   left: "[50%]",
-  bottom: "3",
+  bottom: "2",
   zIndex: "[calc(var(--z-index-sticky) + 1)]",
   transform: "translateX(-50%)",
-  width: "[calc(100% - 24px)]",
-  maxWidth: "[420px]",
-  padding: "1",
+  // Hug the controls while collapsed; only an expanded timeline needs width.
+  width: "[max-content]",
+  maxWidth: "[calc(100% - 16px)]",
+  // Lets supporting browsers animate the max-content <-> full-width switch.
+  interpolateSize: "[allow-keywords]",
+  padding: "0.5",
   overflow: "hidden",
+  // A flat bordered box like the editor's panels: square, opaque, no shadow.
   borderWidth: "thin",
-  borderColor: "neutral.a50",
-  borderRadius: "xl",
-  backgroundColor: "white.a95",
-  boxShadow: "[0 3px 11px rgba(0, 0, 0, 0.12)]",
+  borderColor: "neutral.s40",
+  backgroundColor: "neutral.s00",
   "&[data-expanded='true']": {
+    width: "[calc(100% - 16px)]",
     maxWidth: "[720px]",
   },
   "&[data-animated='true']": {
-    transition: "[max-width 180ms ease-in-out]",
+    transition: "[width 180ms ease-in-out, max-width 180ms ease-in-out]",
     "@media (prefers-reduced-motion: reduce)": {
       transition: "[none]",
     },
@@ -91,8 +94,8 @@ const timelineClipStyle = css({
 const timelineStyle = css({
   height: "[clamp(60px, 20vh, 116px)]",
   minHeight: "0",
-  marginTop: "1",
-  paddingTop: "1",
+  marginTop: "0.5",
+  paddingTop: "0.5",
   borderTopWidth: "thin",
   borderColor: "neutral.bd.subtle",
 });
