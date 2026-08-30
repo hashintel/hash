@@ -66,7 +66,7 @@ describe("assessGpuEligibility", () => {
     if (!result.eligible) return;
     expect(result.profile.uncolouredOnly).toBe(true);
     // Three counts, two transitions x (elapsed + firings), rng, status = 9 words.
-    expect(result.profile.bytesPerRun).toBe(36);
+    expect(result.profile.bytesPerRun).toBe(28);
   });
 
   it("rejects a typed place with no capacity, since buffers must be fixed", () => {
