@@ -3,6 +3,11 @@
   "extends": ["//"],
   "tasks": {
     "build": {
+      "dependsOn": [
+        "^build",
+        // TODO(SRE-989): replace with a build-free upstream dependency
+        "@rust/effect-dns-hickory#build"
+      ],
       "inputs": ["$TURBO_DEFAULT$", "../rust/src/**", "../rust/Cargo.toml"],
       "outputs": ["./dist/**"]
     },

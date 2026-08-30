@@ -5,19 +5,16 @@
       "dependsOn": [
         "^build",
         "@blockprotocol/type-system-rs#build:types",
-        "@blockprotocol/type-system-rs#build:wasm",
+        "@blockprotocol/type-system-rs#build:wasm"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",
         {
           "mode": "dependencyOutputs",
-          "globs": [
-            "types/index.snap.d.ts",
-            "pkg/type-system.d.ts",
-          ],
+          "globs": ["types/index.snap.d.ts", "pkg/type-system.d.ts"],
           "from": [
             "@blockprotocol/type-system-rs#build:types",
-            "@blockprotocol/type-system-rs#build:wasm",
+            "@blockprotocol/type-system-rs#build:wasm"
           ]
         }
       ],

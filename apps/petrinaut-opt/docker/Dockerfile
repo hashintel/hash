@@ -33,7 +33,7 @@ WORKDIR /repo
 COPY . .
 
 RUN mise trust && \
-    turbo prune @local/petrinaut-python --docker
+    turbo prune $(.github/scripts/prune-scopes.sh '@local/petrinaut-python') --docker
 
 
 FROM bindings-tools AS bindings-builder

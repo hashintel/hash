@@ -11,7 +11,7 @@
       "dependsOn": [
         "^build",
         // TODO(SRE-989): replace with a build-free upstream dependency
-        "@rust/hash-graph-api#build",
+        "@rust/hash-graph-api#build"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",

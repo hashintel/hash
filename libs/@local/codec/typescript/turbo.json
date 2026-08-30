@@ -2,22 +2,19 @@
   "extends": ["//"],
   "tasks": {
     "codegen": {
-      "dependsOn": [
-        "^build",
-        "@rust/hash-codec#build:types",
-      ],
+      "dependsOn": ["^build", "@rust/hash-codec#build:types"],
       "inputs": [
         "$TURBO_DEFAULT$",
         {
           "mode": "dependencyOutputs",
           "globs": ["types/index.snap.d.ts"],
-          "from": ["@rust/hash-codec#build:types"],
+          "from": ["@rust/hash-codec#build:types"]
         }
       ],
-      "outputs": ["src/generated/**"],
+      "outputs": ["src/generated/**"]
     },
     "build": {
-      "outputs": ["dist/**"],
+      "outputs": ["dist/**"]
     }
   }
 }

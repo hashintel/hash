@@ -59,7 +59,8 @@
     },
     // Test commands
     "test:unit": {
-      "dependsOn": ["codegen"],
+      // TODO(SRE-989): replace `^build` with a build-free upstream dependency
+      "dependsOn": ["codegen", "^build"],
       "env": ["TEST_COVERAGE"]
     },
     "test:integration": {

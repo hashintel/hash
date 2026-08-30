@@ -2,10 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "codegen": {
-      "dependsOn": [
-        "^build",
-        "@rust/hash-graph-authorization#build:types",
-      ],
+      "dependsOn": ["^build", "@rust/hash-graph-authorization#build:types"],
       "inputs": [
         "$TURBO_DEFAULT$",
         {
