@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 
-import { useCommandRegistry, useCommands } from "@hashintel/petrinaut";
+import {
+  formatShortcutKeys,
+  useCommandRegistry,
+  useCommands,
+} from "@hashintel/petrinaut";
 
 import type { CSSProperties } from "react";
 
@@ -28,13 +32,15 @@ const paletteStyle: CSSProperties = {
   boxShadow: "0 16px 48px rgba(0, 0, 0, 0.25)",
   overflow: "hidden",
   fontSize: 14,
+  fontFamily: "'Inter Variable', system-ui, sans-serif",
 };
 
 const inputStyle: CSSProperties = {
+  font: "inherit",
+  fontSize: 15,
   border: "none",
   outline: "none",
   padding: "14px 16px",
-  fontSize: 15,
   borderBottom: "1px solid #e4e6ea",
 };
 
@@ -65,9 +71,21 @@ const categoryStyle: CSSProperties = {
 };
 
 const shortcutStyle: CSSProperties = {
-  color: "#5a6270",
+  display: "flex",
+  gap: 3,
+};
+
+const keyStyle: CSSProperties = {
+  minWidth: 20,
+  textAlign: "center",
   fontSize: 12,
   fontFamily: "monospace",
+  color: "#3d4250",
+  backgroundColor: "#f2f3f0",
+  border: "1px solid #d8dade",
+  borderRadius: 4,
+  padding: "1px 5px",
+  boxShadow: "0 1px 0 #d8dade",
 };
 
 const matchesQuery = (haystack: string, query: string): boolean =>
@@ -171,7 +189,13 @@ export const CommandPalette = () => {
                 <span style={categoryStyle}>{command.category ?? ""}</span>
                 <span style={{ flex: 1 }}>{command.label}</span>
                 {command.shortcut ? (
-                  <span style={shortcutStyle}>{command.shortcut}</span>
+                  <span style={shortcutStyle} aria-hidden>
+                    {formatShortcutKeys(command.shortcut).map((key) => (
+                      <kbd key={key} style={keyStyle}>
+                        {key}
+                      </kbd>
+                    ))}
+                  </span>
                 ) : null}
               </button>
             ))

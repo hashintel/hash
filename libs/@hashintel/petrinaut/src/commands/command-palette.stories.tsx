@@ -10,6 +10,7 @@ import {
   useCommandRegistry,
   useCommands,
 } from "./context";
+import { formatShortcutKeys } from "./format-shortcut";
 import { useCommand } from "./use-command";
 
 import type { SDCPN } from "@hashintel/petrinaut-core";
@@ -44,6 +45,7 @@ const overlayStyle = css({
 });
 
 const paletteStyle = css({
+  fontFamily: "['Inter Variable', system-ui, sans-serif]",
   width: "[540px]",
   maxWidth: "[90vw]",
   maxHeight: "[60vh]",
@@ -59,6 +61,7 @@ const paletteStyle = css({
 });
 
 const paletteInputStyle = css({
+  font: "[inherit]",
   border: "none",
   outline: "none",
   padding: "[14px 16px]",
@@ -100,9 +103,23 @@ const paletteCategoryStyle = css({
 const paletteLabelStyle = css({ flex: "1" });
 
 const paletteShortcutStyle = css({
-  color: "neutral.s80",
+  display: "flex",
+  gap: "[3px]",
+});
+
+const paletteKeyStyle = css({
+  minWidth: "[20px]",
+  textAlign: "center",
   fontSize: "xs",
   fontFamily: "mono",
+  color: "neutral.s100",
+  backgroundColor: "neutral.s10",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "sm",
+  padding: "[1px 5px]",
+  boxShadow: "[0 1px 0 {colors.neutral.bd.subtle}]",
 });
 
 const paletteEmptyStyle = css({
@@ -206,8 +223,12 @@ const HostCommandPalette: React.FC = () => {
                 </span>
                 <span className={paletteLabelStyle}>{command.label}</span>
                 {command.shortcut ? (
-                  <span className={paletteShortcutStyle}>
-                    {command.shortcut}
+                  <span className={paletteShortcutStyle} aria-hidden>
+                    {formatShortcutKeys(command.shortcut).map((key) => (
+                      <kbd key={key} className={paletteKeyStyle}>
+                        {key}
+                      </kbd>
+                    ))}
                   </span>
                 ) : null}
               </button>
@@ -222,6 +243,7 @@ const HostCommandPalette: React.FC = () => {
 // -- Demo host components registering commands -----------------------------
 
 const hintStyle = css({
+  fontFamily: "['Inter Variable', system-ui, sans-serif]",
   padding: "[16px]",
   fontSize: "sm",
   color: "neutral.s100",
