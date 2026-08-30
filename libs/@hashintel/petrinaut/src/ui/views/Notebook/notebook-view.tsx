@@ -1,7 +1,7 @@
 import { use, useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { Button, SegmentedControl, TextInput } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ActiveNetContext } from "../../../react/state/active-net-context";
 import { EditorContext } from "../../../react/state/editor-context";
@@ -14,6 +14,7 @@ import { CELL_KIND_PLURAL_LABELS, CELL_KINDS } from "./cell-kinds";
 import { CommandPalette } from "./command-palette";
 import { CONNECTION_GUTTER_WIDTH, ConnectionLines } from "./connection-lines";
 import { GraphExplorer } from "./graph-explorer";
+import { hintLabels, matchHint } from "./hint-jump";
 import { buildCycleMembership, findCycleGroups } from "./net-cycles";
 import { layoutNetGraph } from "./net-graph-layout";
 import {
@@ -131,6 +132,32 @@ const hoistInitialPlaces = (
   ...flowOrder.filter((id) => !initialByPlace.has(id)),
 ];
 
+/** The letter chips hint-jump overlays on each visible row. */
+const hintChipStyle = css({
+  position: "absolute",
+  left: "[4px]",
+  zIndex: "[1]",
+  paddingX: "1",
+  borderRadius: "sm",
+  fontSize: "[10px]",
+  fontFamily: "mono",
+  fontWeight: "semibold",
+  backgroundColor: "yellow.s30",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "yellow.s70",
+  color: "neutral.s115",
+  pointerEvents: "none",
+});
+
+const hintChipDeadStyle = css({
+  opacity: "[0.25]",
+});
+
+const hintChipTypedStyle = css({
+  color: "orange.s110",
+});
+
 const emptyStyle = css({
   fontSize: "sm",
   color: "neutral.fg.subtle",
@@ -169,6 +196,12 @@ const NotebookViewContent: React.FC = () => {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [isPaletteOpen, setPaletteOpen] = useState(false);
+  // Hint-jump: targets are measured when the mode is entered, so the chips
+  // stay put even if the list re-renders while a label is being typed.
+  const [hint, setHint] = useState<{
+    typed: string;
+    targets: { cellId: string; top: number }[];
+  } | null>(null);
   const [explorerWidth, setExplorerWidth] = useState(DEFAULT_EXPLORER_WIDTH);
   const [cellOrder, setCellOrder] = useState<CellOrder>("document");
   const [focusOnSelection, setFocusOnSelection] = useState(false);
@@ -444,6 +477,68 @@ const NotebookViewContent: React.FC = () => {
     }
   };
 
+  /** Label every row currently inside the scroll viewport. */
+  const enterHintMode = () => {
+    const content = contentRef.current;
+    const scroller = content?.parentElement;
+    if (!content || !scroller) {
+      return;
+    }
+    const targets = [
+      ...content.querySelectorAll<HTMLElement>("[data-cell-row]"),
+    ]
+      .filter(
+        (row) =>
+          row.offsetTop + row.offsetHeight > scroller.scrollTop &&
+          row.offsetTop < scroller.scrollTop + scroller.clientHeight,
+      )
+      .flatMap((row) =>
+        row.dataset.cellRow === undefined
+          ? []
+          : [{ cellId: row.dataset.cellRow, top: row.offsetTop }],
+      );
+    if (targets.length > 0) {
+      setHint({ typed: "", targets });
+    }
+  };
+
+  // While hint-jump is active every key belongs to it: letters build up a
+  // label, a completed label jumps, anything else leaves the mode.
+  const isHintActive = hint !== null;
+  const handleHintKey = useEffectEvent((event: KeyboardEvent) => {
+    if (hint === null) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (
+      !/^[a-z]$/u.test(event.key) ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.altKey
+    ) {
+      setHint(null);
+      return;
+    }
+    const typed = hint.typed + event.key;
+    const outcome = matchHint(typed, hint.targets.length);
+    if (outcome.kind === "match") {
+      setHint(null);
+      jumpToCell(hint.targets[outcome.index]!.cellId);
+    } else if (outcome.kind === "pending") {
+      setHint({ ...hint, typed });
+    } else {
+      setHint(null);
+    }
+  });
+  useEffect(() => {
+    if (!isHintActive) {
+      return;
+    }
+    window.addEventListener("keydown", handleHintKey, true);
+    return () => window.removeEventListener("keydown", handleHintKey, true);
+  }, [isHintActive]);
+
   // View-level shortcuts. ⌘K opens the palette from anywhere except a code
   // editor (Monaco owns ⌘K chords); Alt+←/→ retrace jumps browser-style,
   // except in inputs and editors (word-wise caret movement on some
@@ -460,18 +555,31 @@ const NotebookViewContent: React.FC = () => {
       setPaletteOpen((open) => !open);
       return;
     }
+    const inTextEntry =
+      target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.isContentEditable ||
+      inCodeEditor;
+    if (
+      event.key === "f" &&
+      !event.metaKey &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !inTextEntry &&
+      !isPaletteOpen &&
+      !isHintActive
+    ) {
+      event.preventDefault();
+      enterHintMode();
+      return;
+    }
     if (
       !event.altKey ||
       (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
     ) {
       return;
     }
-    if (
-      target.tagName === "INPUT" ||
-      target.tagName === "TEXTAREA" ||
-      target.isContentEditable ||
-      inCodeEditor
-    ) {
+    if (inTextEntry) {
       return;
     }
     event.preventDefault();
@@ -753,6 +861,25 @@ const NotebookViewContent: React.FC = () => {
                 ({ id }) => id,
               )}
             />
+            {hint !== null &&
+              hint.targets.map((target, at) => {
+                const label = hintLabels(hint.targets.length)[at]!;
+                const isDead = !label.startsWith(hint.typed);
+                return (
+                  <span
+                    key={target.cellId}
+                    className={cx(
+                      hintChipStyle,
+                      isDead ? hintChipDeadStyle : undefined,
+                    )}
+                    style={{ top: target.top }}
+                    aria-hidden
+                  >
+                    <span className={hintChipTypedStyle}>{hint.typed}</span>
+                    {label.slice(hint.typed.length)}
+                  </span>
+                );
+              })}
           </div>
         </div>
       </div>
