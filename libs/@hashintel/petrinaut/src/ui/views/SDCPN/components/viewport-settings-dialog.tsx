@@ -222,7 +222,7 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
               </Chip>
             </>
           }
-          description="Add a read-only Notebook mode to the top bar, listing the net as expandable cells"
+          description="Add a Notebook mode to the top bar, listing the net as cells editable in place"
         >
           <Toggle
             value={enableNotebookView}

@@ -1,0 +1,106 @@
+---
+title: Notebook navigation explorations
+description: Five prototyped navigation and graph-visualization ideas, where they came from, and how each is built.
+attachTo: ui.views.notebook
+---
+
+The notebook view is an experiment, and this page documents a second round of
+experiments layered on it: five prototypes exploring faster navigation,
+lighter-weight reading, and a more capable net diagram. Each one borrows a
+pattern with an established track record elsewhere; the sources are listed at
+the end.
+
+## 1. Command palette (⌘K)
+
+One keyboard-first surface that fuzzy-matches everything the view can do:
+every cell by name, plus view commands (cell order, kind filters,
+expand/collapse all, graph focus mode). Enter runs the selection; a cell
+match teleports to it through the same jump path as every other reference,
+so the jump history covers it.
+
+Built as a self-contained overlay (`command-palette.tsx`) fed by the view:
+`cells` come in unfiltered so a jump can reveal a hidden kind, and actions
+are plain `{ label, hint, run }` records, so new commands are one array entry.
+The fuzzy matcher and highlight renderer are the ones the search box already
+uses — the palette adds no second matching implementation.
+
+## 2. Jump history (⌥← / ⌥→)
+
+Reference navigation — an arc's place, an explorer row, a palette jump — is a
+teleport, and teleports strand you without a way back. The notebook now keeps
+an IDE-style jump list: every teleport records where you came from,
+back/forward walk the trail, and a fresh jump forks it (the forward leg is
+discarded), exactly like a browser or VS Code's ctrl+O/ctrl+I.
+
+Plain arrow moves and row clicks are deliberately _not_ recorded: they are
+how you look around, not how you got lost. The stacks live in
+`use-jump-history.ts` as a pure hook with unit tests; the toolbar's ‹ ›
+buttons and ⌥←/⌥→ both drive it.
+
+## 3. Hint-jump (`f`)
+
+Vimium/avy-style two-keystroke navigation: press `f` anywhere outside a text
+field and every visible row grows a home-row letter chip; type a chip's
+letters and the selection teleports there. Single letters while nine rows or
+fewer are visible, uniform two-letter labels beyond that — labels are never
+prefixes of each other, so no timeout or Enter is needed.
+
+Targets are measured once on entry (row offsets against the scroll viewport)
+so the chips stay put while a label is typed. Label generation and matching
+are pure (`hint-jump.ts`, tested); the view owns only the overlay and the
+key capture, which swallows every key until the mode exits.
+
+## 4. Graph camera: zoom, pan, minimap
+
+The whole-net diagram previously scrolled; now it is a camera
+(overview+detail): wheel zooms toward the cursor, dragging the background
+pans, double-click refits, and an aspect-correct minimap in the corner shows
+the camera's window over the whole layout — press or drag it to re-centre.
+Labels disappear below half zoom (semantic-zoom lite): at that size they are
+unreadable specks that only add noise.
+
+The camera is pure math over `{ x, y, scale }` (`net-graph-viewport.ts`,
+tested: cursor-anchored zoom, clamped scale, minimap window round-trips).
+The layout animation is untouched — it writes transforms to the node groups
+_inside_ the camera group, so the two compose. A new layout refits the
+camera during render, so the first paint of a re-layout is already framed.
+
+## 5. Peek cards
+
+Hovering or keyboard-focusing any reference — an arc's place, an explorer
+row, a graph node — previews the target cell (kind, name, summary, dependent
+counts) in a floating card without navigating, VS Code's peek-definition
+reduced to a glance. Focus shows it immediately; hover waits a beat; any
+scroll hides it. The card is `pointer-events: none`, so steering toward it
+can never flicker it away.
+
+Wired by delegation: one handler set on the view container reacts to any
+element carrying `data-peek-cell`, so new peekable surfaces are one
+attribute, not new wiring.
+
+## What next
+
+- The palette wants recents-first ordering and scoped sub-menus once it has
+  more commands (the Linear/Raycast "drill in" pattern).
+- Hint-jump could label body parts, not only rows, when a cell is expanded.
+- The minimap could double as a hover target for peek cards.
+- The camera invites hover-neighbourhood dimming (fade all but the n-hop
+  neighbourhood) — the selection highlight already computes the sets.
+
+## Sources
+
+Patterns and prior art consulted while designing these prototypes:
+
+- Jupyter's command-mode navigation and palette:
+  [Notebook basics](https://jupyter-notebook.readthedocs.io/en/stable/examples/Notebook/Notebook%20Basics.html),
+  [recent keyboard-navigation improvements](https://blog.jupyter.org/recent-keyboard-navigation-improvements-in-jupyter-4df32f97628d)
+- Command palette pattern:
+  [uxpatterns.dev on command palettes](https://uxpatterns.dev/patterns/advanced/command-palette),
+  [cmdk](https://codingdunia.com/ui-components/cmdk/)
+- Hint navigation: [Vimium's link hints](https://github.com/gdh1995/vimium-c/wiki/Using-Link-Hints),
+  [avy](https://karthinks.com/software/avy-can-do-anything/)
+- Peek and jump lists: [VS Code code navigation](https://code.visualstudio.com/docs/editing/editingevolved)
+- Overview+detail, zooming and focus+context:
+  [Cockburn, Karlson & Bederson's review](https://www.researchgate.net/publication/220566544_A_Review_of_OverviewDetail_Zooming_and_FocusContext_Interfaces),
+  [semantic zoom and minimaps](https://arxiv.org/pdf/2510.00003)
+- Petri-net tooling context: [Petri Nets World tools database](https://www.informatik.uni-hamburg.de/TGI/PetriNets/tools/quick.html)
