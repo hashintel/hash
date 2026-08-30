@@ -66,7 +66,7 @@ A sweep computes **what you have selected**. The results drawer grows a **Parame
 - **Range** (the default): Petrinaut runs **one stochastic simulation over the ranges** — every run draws its own value for each ranged parameter, spread across the selected interval — and the metric charts stream the live distribution **over the region**, sharpening exactly like a plain experiment's. Resize a range from either end to focus; compute restarts on the new selection. Range selections run on the GPU when the net qualifies — each run's parameter draw is uploaded alongside its state — and otherwise on the CPU at full parallelism; an initial state that a scenario derives from a ranged parameter holds at the range's midpoint, while the simulation itself reads each run's own value.
 - **Point**: switch a parameter's control to Point and its slider collapses to a single value. A point refines in escalating batches (8, 25, 100, … up to your run budget), exactly like a plain experiment at that value — including on the GPU.
 
-Move a slider and compute immediately restarts on the new selection, like a raytracer dropping its rays when the camera moves. Every position you have visited keeps its results: narrowing a range, collapsing to a point, or sliding back to an earlier value restores its runs and distributions instantly, and refinement resumes where it left off.
+Move a slider and compute immediately restarts on the new selection, like a raytracer dropping its rays when the camera moves. While the new selection's first results compute, the charts keep the previous selection's distributions dimmed rather than going blank, and swap the moment fresh data arrives. Every position you have visited keeps its results: narrowing a range, collapsing to a point, or sliding back to an earlier value restores its runs and distributions instantly, and refinement resumes where it left off.
 
 Every selection uses the same seed sequence (common random numbers), and a run's parameter draw depends only on the experiment's seed and the run's position in the sequence, so differences you see between selections come from the parameters, not from sampling luck — while experiments with different seeds explore their own value sequences.
 
@@ -107,15 +107,14 @@ Two things to know before comparing results:
 
 Open an experiment's drawer and its **Summary** section reports:
 
-| Field        | Meaning                                                                                                              |
-| ------------ | -------------------------------------------------------------------------------------------------------------------- |
-| **Status**   | One of the five statuses above.                                                                                      |
-| **Scenario** | The scenario the experiment runs, or `Default`.                                                                      |
-| **Runs**     | How many runs are in flight, and how many have finished.                                                             |
-| **Errors**   | How many individual runs errored. An experiment can complete with some runs errored.                                 |
-| **Frame**    | The frame number reached — the slowest worker's position, so it never runs ahead of the results.                     |
-| **Time**     | Simulated time reached, against the configured maximum. This is model time, not clock time.                          |
-| **Elapsed**  | Clock time the experiment has been simulating. Once it stops, this becomes **Duration** and holds the total it took. |
+| Field        | Meaning                                                                                                                 |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| **Status**   | One of the five statuses above.                                                                                         |
+| **Scenario** | The scenario the experiment runs, or `Default`.                                                                         |
+| **Runs**     | How many runs are in flight, and how many have finished.                                                                |
+| **Errors**   | How many individual runs errored — shown only when at least one has. An experiment can complete with some runs errored. |
+| **Time**     | Simulated time reached, against the configured maximum. This is model time, not clock time.                             |
+| **Elapsed**  | Clock time the experiment has been simulating. Once it stops, this becomes **Duration** and holds the total it took.    |
 
 A badge beside the **Summary** heading shows whether the run used the **CPU** or the **GPU**, and stays visible when the section is collapsed. Hover it for detail — on a CPU-backed experiment that asked for the GPU, the badge explains which requirement the net did not meet.
 

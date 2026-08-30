@@ -48,7 +48,7 @@ const summaryStyle = css({
 
 const summaryGridStyle = css({
   display: "grid",
-  gridTemplateColumns: "[repeat(2, minmax(0, 1fr))]",
+  gridTemplateColumns: "[repeat(3, minmax(0, 1fr))]",
   gap: "3",
 });
 
@@ -78,7 +78,7 @@ const progressBarStyle = css({
   backgroundColor: "neutral.s30",
   borderRadius: "full",
   overflow: "hidden",
-  marginTop: "4",
+  marginTop: "2",
 });
 
 const progressFillStyle = css({
@@ -165,7 +165,7 @@ function formatStatus(experiment: ExperimentRecord): string {
 
 function describeComputeBackend(experiment: ExperimentRecord): string {
   if (experiment.computeBackend === "webgpu") {
-    return "Stepped on the GPU through WebGPU. Results are statistically equivalent to the CPU backend, but not identical for a given seed — the two use different random generators.";
+    return "Stepped on the GPU through WebGPU. Distributions match the CPU backend statistically; individual trajectories differ (different random generators).";
   }
 
   if (experiment.computeBackendFallbackReason !== null) {
@@ -276,14 +276,12 @@ const ExperimentSummary = ({
               : experiment.runCount}
           </span>
         </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Errors</span>
-          <span className={statValueStyle}>{progress?.erroredRuns ?? 0}</span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Frame</span>
-          <span className={statValueStyle}>{progress?.frameNumber ?? 0}</span>
-        </div>
+        {(progress?.erroredRuns ?? 0) > 0 ? (
+          <div className={statStyle}>
+            <span className={statLabelStyle}>Errors</span>
+            <span className={statValueStyle}>{progress?.erroredRuns}</span>
+          </div>
+        ) : null}
         <div className={statStyle}>
           <span className={statLabelStyle}>Time</span>
           <span className={statValueStyle}>
@@ -447,7 +445,7 @@ export const ViewExperimentDrawer = ({
     >
       <Drawer.Header
         title={experiment.name}
-        description="Monte Carlo experiment metrics"
+        description={`${experiment.scenarioName ?? "Default scenario"} · ${experiment.runCount.toLocaleString("en-US")} runs · dt ${experiment.dt}`}
       />
       <Drawer.Body className={drawerBodyStyle}>
         <SectionList>
@@ -496,7 +494,7 @@ export const ViewExperimentDrawer = ({
           {experiment.sweep && experiment.parameterAxes.length >= 2 ? (
             <Section
               title="Surface"
-              tooltip="One metric's final value over two swept parameters, sampled progressively at 8 runs per combination. Click to move the navigator."
+              tooltip="One metric's final value over two swept parameters, with every other parameter held at the middle of its range."
               collapsible
               defaultOpen
               className={fixedSectionStyle}
