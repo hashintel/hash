@@ -470,123 +470,123 @@ export function FakeExperimentsProvider({
   };
 
   const value: ExperimentsContextValue = {
-      experiments,
-      selectedExperimentId,
-      selectedExperiment,
-      setSelectedExperimentId,
-      createExperiment: (input) => {
-        const experiment = createFakeExperiment(input);
-        setExperiments((current) => [experiment, ...current]);
-        return Promise.resolve(experiment.id);
-      },
-      cancelExperiment: (experimentId) => {
-        setExperiments((current) =>
-          current.map((experiment) =>
-            experiment.id === experimentId
-              ? { ...experiment, status: "cancelled" }
-              : experiment,
-          ),
+    experiments,
+    selectedExperimentId,
+    selectedExperiment,
+    setSelectedExperimentId,
+    createExperiment: (input) => {
+      const experiment = createFakeExperiment(input);
+      setExperiments((current) => [experiment, ...current]);
+      return Promise.resolve(experiment.id);
+    },
+    cancelExperiment: (experimentId) => {
+      setExperiments((current) =>
+        current.map((experiment) =>
+          experiment.id === experimentId
+            ? { ...experiment, status: "cancelled" }
+            : experiment,
+        ),
+      );
+    },
+    removeExperiment: (experimentId) => {
+      setExperiments((current) =>
+        current.filter((experiment) => experiment.id !== experimentId),
+      );
+    },
+    sampleDetachedObjective: (request) => {
+      // The same synthetic bump as sampleSweepCell, over the study's real
+      // parameter values, so the optimization surface story fills live.
+      const values = Object.values(request.scenarioParameterValues).filter(
+        (entry): entry is number => typeof entry === "number",
+      );
+      const x = values[0] ?? 0;
+      const y = values[1] ?? 0;
+      const objective =
+        100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
+        6 * Math.sin(x * 9) +
+        y / 4;
+      const frame = {
+        metricId: request.metric.id,
+        label: request.metric.label,
+        outputType: "distribution" as const,
+        frameNumber: 45,
+        time: 45,
+        bins: [
+          [Math.round(objective * 100) / 100, request.runCount],
+        ] as (readonly [number, number])[],
+        value: null,
+        frameValue: null,
+        timeValue: null,
+        runSampleCount: request.runCount,
+        timeSampleCount: request.runCount,
+      };
+      return new Promise((resolve) => {
+        setTimeout(
+          () =>
+            resolve({
+              runsCompleted: request.runCount,
+              metricFrames: [frame],
+            }),
+          100,
         );
-      },
-      removeExperiment: (experimentId) => {
-        setExperiments((current) =>
-          current.filter((experiment) => experiment.id !== experimentId),
+      });
+    },
+    setSweepSelection: (experimentId, selection) => {
+      setExperiments((current) =>
+        current.map((experiment) =>
+          experiment.id === experimentId && experiment.sweep
+            ? restreamOnSelectionChange
+              ? {
+                  ...experiment,
+                  metricFrames: [],
+                  latestMetricFramesById: {},
+                  sweep: {
+                    ...experiment.sweep,
+                    selection,
+                    runsCompleted: 0,
+                    runsSampled: 0,
+                    runTarget: 8,
+                    computing: true,
+                  },
+                }
+              : { ...experiment, sweep: { ...experiment.sweep, selection } }
+            : experiment,
+        ),
+      );
+      if (restreamOnSelectionChange) {
+        restream(experimentId, selection);
+      }
+    },
+    sampleSweepCell: (_experimentId, position) => {
+      // A synthetic objective surface — a smooth bump — so the story's
+      // contour fills in the way a real sweep's would, walk delay included.
+      // Positions are quantized indices; map them back to values.
+      const x = 0.1 + ((position.transmission_rate ?? 0) / 50) * 0.4;
+      const y = 2 + (position.recovery_days ?? 0);
+      const objective =
+        100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
+        6 * Math.sin(x * 9) +
+        y / 4;
+      const frame = {
+        metricId: "infected",
+        label: "Infected",
+        outputType: "distribution" as const,
+        frameNumber: 45,
+        time: 45,
+        bins: [[Math.round(objective), 8]] as (readonly [number, number])[],
+        value: null,
+        frameValue: null,
+        timeValue: null,
+        runSampleCount: 8,
+        timeSampleCount: 8,
+      };
+      return new Promise((resolve) => {
+        setTimeout(
+          () => resolve({ runsCompleted: 8, metricFrames: [frame] }),
+          120,
         );
-      },
-      sampleDetachedObjective: (request) => {
-        // The same synthetic bump as sampleSweepCell, over the study's real
-        // parameter values, so the optimization surface story fills live.
-        const values = Object.values(request.scenarioParameterValues).filter(
-          (entry): entry is number => typeof entry === "number",
-        );
-        const x = values[0] ?? 0;
-        const y = values[1] ?? 0;
-        const objective =
-          100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
-          6 * Math.sin(x * 9) +
-          y / 4;
-        const frame = {
-          metricId: request.metric.id,
-          label: request.metric.label,
-          outputType: "distribution" as const,
-          frameNumber: 45,
-          time: 45,
-          bins: [
-            [Math.round(objective * 100) / 100, request.runCount],
-          ] as (readonly [number, number])[],
-          value: null,
-          frameValue: null,
-          timeValue: null,
-          runSampleCount: request.runCount,
-          timeSampleCount: request.runCount,
-        };
-        return new Promise((resolve) => {
-          setTimeout(
-            () =>
-              resolve({
-                runsCompleted: request.runCount,
-                metricFrames: [frame],
-              }),
-            100,
-          );
-        });
-      },
-      setSweepSelection: (experimentId, selection) => {
-        setExperiments((current) =>
-          current.map((experiment) =>
-            experiment.id === experimentId && experiment.sweep
-              ? restreamOnSelectionChange
-                ? {
-                    ...experiment,
-                    metricFrames: [],
-                    latestMetricFramesById: {},
-                    sweep: {
-                      ...experiment.sweep,
-                      selection,
-                      runsCompleted: 0,
-                      runsSampled: 0,
-                      runTarget: 8,
-                      computing: true,
-                    },
-                  }
-                : { ...experiment, sweep: { ...experiment.sweep, selection } }
-              : experiment,
-          ),
-        );
-        if (restreamOnSelectionChange) {
-          restream(experimentId, selection);
-        }
-      },
-      sampleSweepCell: (_experimentId, position) => {
-        // A synthetic objective surface — a smooth bump — so the story's
-        // contour fills in the way a real sweep's would, walk delay included.
-        // Positions are quantized indices; map them back to values.
-        const x = 0.1 + ((position.transmission_rate ?? 0) / 50) * 0.4;
-        const y = 2 + (position.recovery_days ?? 0);
-        const objective =
-          100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
-          6 * Math.sin(x * 9) +
-          y / 4;
-        const frame = {
-          metricId: "infected",
-          label: "Infected",
-          outputType: "distribution" as const,
-          frameNumber: 45,
-          time: 45,
-          bins: [[Math.round(objective), 8]] as (readonly [number, number])[],
-          value: null,
-          frameValue: null,
-          timeValue: null,
-          runSampleCount: 8,
-          timeSampleCount: 8,
-        };
-        return new Promise((resolve) => {
-          setTimeout(
-            () => resolve({ runsCompleted: 8, metricFrames: [frame] }),
-            120,
-          );
-        });
-      },
+      });
+    },
     ...overrides,
   };
 

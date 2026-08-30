@@ -238,3 +238,18 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
 export const ExperimentsContext = createContext<ExperimentsContextValue>(
   DEFAULT_CONTEXT_VALUE,
 );
+
+/**
+ * The stable action callbacks alone. Streaming experiments patch the full
+ * context on every publish; a consumer that only dispatches actions (the
+ * editor view opening a drawer, say) subscribes here instead and never
+ * re-renders with the stream.
+ */
+export type ExperimentsActionsValue = Pick<
+  ExperimentsContextValue,
+  "setSelectedExperimentId" | "cancelExperiment" | "removeExperiment"
+>;
+
+export const ExperimentsActionsContext = createContext<ExperimentsActionsValue>(
+  DEFAULT_CONTEXT_VALUE,
+);

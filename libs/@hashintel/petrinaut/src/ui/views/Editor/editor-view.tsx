@@ -24,7 +24,7 @@ import {
 
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
-import { ExperimentsContext } from "../../../react/experiments/context";
+import { ExperimentsActionsContext } from "../../../react/experiments/context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
@@ -144,7 +144,7 @@ export const EditorView = ({
     isBottomPanelOpen,
     bottomPanelHeight,
   } = use(EditorContext);
-  const { setSelectedExperimentId } = use(ExperimentsContext);
+  const { setSelectedExperimentId } = use(ExperimentsActionsContext);
   const actualMode = use(ActualModeContext);
 
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<

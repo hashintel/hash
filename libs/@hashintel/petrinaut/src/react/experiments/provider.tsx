@@ -40,6 +40,8 @@ import {
   type ExperimentComputeBackend,
   type ExperimentRecord,
   type ExperimentStatus,
+  ExperimentsActionsContext,
+  type ExperimentsActionsValue,
   ExperimentsContext,
   type ExperimentsContextValue,
   isExperimentActive,
@@ -110,14 +112,27 @@ export function buildSweepAxes(
   return { fixedValues, axes };
 }
 
+/**
+ * The last input/output pair: progress-only publishes reuse the previous
+ * frames array, and rebuilding this map per publish was pure waste.
+ */
+let latestFramesCache: {
+  frames: readonly ExperimentRecord["metricFrames"][number][];
+  latest: Record<string, ExperimentRecord["metricFrames"][number]>;
+} | null = null;
+
 /** Last frame per metric id, the shape the summary cards read. */
 function latestFramesById(
   frames: readonly ExperimentRecord["metricFrames"][number][],
 ): Record<string, ExperimentRecord["metricFrames"][number]> {
+  if (latestFramesCache?.frames === frames) {
+    return latestFramesCache.latest;
+  }
   const latest: Record<string, ExperimentRecord["metricFrames"][number]> = {};
   for (const frame of frames) {
     latest[frame.metricId] = frame;
   }
+  latestFramesCache = { frames, latest };
   return latest;
 }
 
@@ -473,6 +488,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       axes,
       runCount: experiment.runCount,
       seed: experiment.seed,
+      // ~2 publishes per frame at 60fps; the charts cannot show more.
+      publishThrottleMs: 40,
       instantiateBatch: async ({
         parameterValues,
         runs,
@@ -1136,22 +1153,37 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     experiments.find((experiment) => experiment.id === selectedExperimentId) ??
     null;
 
+  const stableSetSelectedExperimentId = useStableCallback(
+    setSelectedExperimentId,
+  );
+  const stableCancelExperiment = useStableCallback(cancelExperiment);
+  const stableRemoveExperiment = useStableCallback(removeExperiment);
+
   const contextValue: ExperimentsContextValue = {
     experiments,
     selectedExperimentId,
     selectedExperiment,
-    setSelectedExperimentId,
+    setSelectedExperimentId: stableSetSelectedExperimentId,
     createExperiment: useStableCallback(createExperiment),
-    cancelExperiment: useStableCallback(cancelExperiment),
-    removeExperiment: useStableCallback(removeExperiment),
+    cancelExperiment: stableCancelExperiment,
+    removeExperiment: stableRemoveExperiment,
     setSweepSelection: useStableCallback(setSweepSelection),
     sampleSweepCell: useStableCallback(sampleSweepCell),
     sampleDetachedObjective: useStableCallback(sampleDetachedObjective),
   };
+  // Every callback is identity-stable, so this object never changes and
+  // actions-only consumers sit out the per-publish re-render storm.
+  const [actionsValue] = useState<ExperimentsActionsValue>(() => ({
+    setSelectedExperimentId: stableSetSelectedExperimentId,
+    cancelExperiment: stableCancelExperiment,
+    removeExperiment: stableRemoveExperiment,
+  }));
 
   return (
     <ExperimentsContext.Provider value={contextValue}>
-      {children}
+      <ExperimentsActionsContext.Provider value={actionsValue}>
+        {children}
+      </ExperimentsActionsContext.Provider>
     </ExperimentsContext.Provider>
   );
 };
