@@ -117,6 +117,19 @@ A badge beside the **Summary** heading shows whether the run used the **CPU** or
 
 **Elapsed** and **Duration** measure simulating only. Compiling the net's user code and starting the workers (or acquiring the GPU device and compiling the shader) happens before the clock starts, so the number is comparable between the two backends. An experiment that fails before it starts simulating shows `—` rather than a duration.
 
+### Metric charts
+
+Each metric gets a chart of its values over simulation time. A scalar metric draws a line. A distribution metric (one value per run) defaults to a **heatmap**: each time step is a column shaded on a pale-to-dark color ramp, where the darkest cell marks the value most runs had at that moment and paler shades mark rarer values. Shading is relative to each time step on its own, so a moment where runs agree and a moment where they spread out are both readable.
+
+The controls under each chart change what is plotted:
+
+- **Heatmap / Percentile lines** switches the distribution view; percentile lines draw the mean, median, and the 10/25/75/90th percentiles as separate lines.
+- **Aggregate runs** collapses each time step's distribution to one statistic (average, median, a percentile, …) and draws it as a line.
+- **Value / Minimum to date / Maximum to date** plots each time step's own value, or the running minimum or maximum up to that point.
+- **Aggregate over time** collapses the whole series: a scalar-like series becomes a single number, and an unaggregated distribution becomes one histogram whose bar heights are the chosen statistic (average, minimum, maximum, or sum) of each value's frequency over time.
+
+Click (or drag across) a timeline chart to inspect single time steps — a popover shows that moment's exact value or per-value histogram.
+
 ### Actions
 
 In the experiment's view drawer (open it by clicking a row in the list, or any experiment in the top-bar **Active experiments** popover):
