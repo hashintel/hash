@@ -60,30 +60,33 @@ const previewRootStyle = css({
   color: "neutral.fg.body",
 });
 
+// The editor's top bar at embed height: the same flat 1px outline, padding
+// rhythm, and title weight, with no shadow.
 const previewHeaderStyle = css({
   position: "relative",
   zIndex: "sticky",
   display: "flex",
   alignItems: "center",
-  gap: "2",
+  gap: "[12px]",
   height: "12",
   flexShrink: "0",
-  paddingX: "3",
-  borderBottomWidth: "thin",
-  borderBottomColor: "neutral.bd.subtle",
+  boxSizing: "border-box",
+  paddingX: "[16px]",
   backgroundColor: "neutral.s00",
-  boxShadow: "[0 1px 3px rgba(0, 0, 0, 0.04)]",
+  outlineWidth: "[1px]",
+  outlineStyle: "solid",
+  outlineColor: "neutral.s40",
 });
 
 const previewTitleStyle = css({
   flex: "1",
   minWidth: "0",
+  marginX: "2",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
-  fontFamily: "[Inter Tight, Inter, sans-serif]",
   fontSize: "sm",
-  fontWeight: "semibold",
+  fontWeight: "medium",
   color: "neutral.fg.heading",
 });
 
@@ -92,15 +95,27 @@ const previewBadgeStyle = css({
   alignItems: "center",
   gap: "1",
   flexShrink: "0",
-  paddingX: "2",
-  paddingY: "1",
-  borderRadius: "full",
+  paddingX: "1.5",
+  paddingY: "0.5",
   backgroundColor: "neutral.s15",
   color: "neutral.s90",
   fontSize: "[10px]",
   fontWeight: "semibold",
   textTransform: "uppercase",
   letterSpacing: "[0.4px]",
+});
+
+// The canvas and the docked inspector share the row; narrow viewports stack
+// the inspector under the canvas instead.
+const previewMainStyle = css({
+  position: "relative",
+  display: "flex",
+  flex: "1",
+  minWidth: "0",
+  minHeight: "0",
+  "@media (max-width: 640px)": {
+    flexDirection: "column",
+  },
 });
 
 const previewCanvasStyle = css({
@@ -199,8 +214,10 @@ export const PetrinautPreview: FunctionComponent<PetrinautPreviewProps> = ({
                   </span>
                   <span className={previewBadgeStyle}>View only</span>
                 </header>
-                <main className={previewCanvasStyle}>
-                  <SDCPNView viewportActions={viewportActions} />
+                <main className={previewMainStyle}>
+                  <div className={previewCanvasStyle}>
+                    <SDCPNView viewportActions={viewportActions} />
+                  </div>
                   <PreviewPropertiesPanel />
                 </main>
               </div>

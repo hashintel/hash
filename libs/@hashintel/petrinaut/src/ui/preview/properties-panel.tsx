@@ -4,33 +4,35 @@ import { usePanelTarget } from "../../react/state/use-selection";
 import { GlassPanel } from "../components/glass-panel";
 import { SelectedItemProperties } from "../views/Editor/panels/PropertiesPanel/selected-item-properties";
 
+// Docked beside the canvas like the editor's inspector: a flat bordered
+// column with square corners, no shadow or blur.
 const previewPanelStyle = css({
-  position: "absolute",
-  zIndex: "[calc(var(--z-index-sticky) - 3)]",
-  top: "2",
-  right: "2",
-  bottom: "[72px]",
-  width: "[clamp(280px, 36vw, 360px)]",
+  flexShrink: "0",
+  width: "[clamp(250px, 34vw, 320px)]",
+  minHeight: "0",
   overflow: "hidden",
-  borderWidth: "thin",
-  borderRadius: "lg",
-  boxShadow: "[0 8px 24px rgba(0, 0, 0, 0.14)]",
+  borderLeftWidth: "thin",
   "@media (max-width: 640px)": {
-    top: "[auto]",
-    left: "2",
     width: "auto",
-    height: "[min(42%, 280px)]",
+    height: "[min(40%, 240px)]",
+    borderLeftWidth: "0",
+    borderTopWidth: "thin",
   },
 });
 
 const previewPanelContentStyle = css({
   overflowY: "auto",
+  // The inspector content is shared with the full editor and sized for it;
+  // rendering it slightly smaller keeps the embed sheet compact without
+  // forking the editor components.
+  zoom: "[0.85]",
 });
 
 /**
  * Space-constrained shell for the shared selected-item property content. It is
- * a side panel at normal embed widths and becomes a bottom sheet on narrow
- * viewports; the entity-specific content is identical to the full editor.
+ * a column docked to the right of the canvas at normal embed widths and a band
+ * under it on narrow viewports; the entity-specific content is identical to
+ * the full editor.
  */
 export const PreviewPropertiesPanel: React.FC<{ className?: string }> = ({
   className,

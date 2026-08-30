@@ -201,7 +201,6 @@ export const NetNavigationList: React.FC<{
     onSelect?.();
   };
 
-
   const startEditing = (subnetId: string, currentName: string) => {
     if (isReadOnly) return;
     setEditingId(subnetId);
@@ -316,9 +315,7 @@ export const NetNavigationList: React.FC<{
                 startEditing(subnet.id, subnet.name);
               }
             }}
-            onKeyDown={onRowKeyDown(subnet.id, () =>
-              handleSelect(subnet.id),
-            )}
+            onKeyDown={onRowKeyDown(subnet.id, () => handleSelect(subnet.id))}
             role="option"
             aria-selected={activeSubnetId === subnet.id}
             tabIndex={tabIndexFor({ stopId: subnet.id, column: 0 })}

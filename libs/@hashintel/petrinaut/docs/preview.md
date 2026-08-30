@@ -15,8 +15,8 @@ elements.
 Select a place, transition, arc, or other supported item to inspect it. The
 preview presents the same property information as Petrinaut's inspector,
 without source editing or other authoring controls. On a wide embed the
-inspector opens as an overlay on the right. On a narrow embed it opens as a
-bottom sheet so the canvas remains usable.
+inspector docks to the right of the canvas. On a narrow embed it sits under
+the canvas so the canvas remains usable.
 
 Use the compact net selector to move between the root net and its subnets. The
 canvas, selection, and inspector update together when you change nets.
