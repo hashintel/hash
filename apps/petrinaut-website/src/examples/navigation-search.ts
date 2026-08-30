@@ -23,10 +23,12 @@ import {
   type SharedSimulateView,
 } from "./example-search";
 
+import type { PetrinautPreviewNavigationState } from "@hashintel/petrinaut/preview";
 import type {
   EditorGlobalMode,
   PetrinautNavigationOverlay,
   PetrinautNavigationState,
+  PetrinautNavigationUpdater,
   SimulateViewMode,
 } from "@hashintel/petrinaut/react";
 
@@ -39,6 +41,14 @@ const scenarioFromSearch = (
   }
   return search.scenario === "none" ? null : search.scenario;
 };
+
+export const previewSearchToNavigationState = (
+  search: SharedExampleSearch,
+): PetrinautPreviewNavigationState => ({
+  scenarioId: scenarioFromSearch(search),
+  subnetId: search.subnet ?? null,
+  selection: selectionFromInput(search as Record<string, unknown>),
+});
 
 const scenarioToSearch = (
   scenarioId: string | null | undefined,
@@ -99,3 +109,24 @@ export const navigationStateToSharedSearch = (
     ...selectionToSearch(state.selection),
   };
 };
+
+/**
+ * The Preview navigates a narrower location than the editor — no mode, no
+ * Simulate section, no overlay — so its projection is only the three fields it
+ * has.
+ */
+export const navigationStateToPreviewSearch = (
+  state: Readonly<PetrinautPreviewNavigationState>,
+): SharedExampleSearch => ({
+  scenario: scenarioToSearch(state.scenarioId),
+  subnet: state.subnetId ?? undefined,
+  ...selectionToSearch(state.selection),
+});
+
+export const applyPreviewNavigationUpdate = (
+  search: SharedExampleSearch,
+  update: PetrinautNavigationUpdater<PetrinautPreviewNavigationState>,
+): SharedExampleSearch =>
+  navigationStateToPreviewSearch(
+    update(previewSearchToNavigationState(search)),
+  );
