@@ -11,11 +11,7 @@ import { TYPE_POLICIES } from "../../engine/type-policies";
 
 import type { HirInterpretBindings, HirValue } from "../../../hir/interpret";
 import type { ScenarioHir, ScenarioHirItem } from "../../../hir/scenario";
-import type {
-  HirScenarioCodeContext,
-  HirScenarioExpressionContext,
-  HirSurfaceContext,
-} from "../../../hir/surface-context";
+import type { HirSurfaceContext } from "../../../hir/surface-context";
 import type { Color, Parameter, Place, Scenario } from "../../../types/sdcpn";
 import type {
   InitialMarking,
@@ -72,16 +68,25 @@ export interface CompileScenarioOptions {
 type NetParameterValues = Record<string, number | boolean>;
 
 /**
- * Type-checks one lowered scenario item against the net and interprets it,
- * or explains why it cannot run. Lowering happens elsewhere
- * (`lowerScenarioToHir`); this half is pure and free of the TypeScript
- * compiler.
+ * One lowered scenario item after the value-independent half of its
+ * evaluation: staleness, lowering diagnostics and the type check depend only
+ * on the item and the net, so a prepared compiler runs them once and each
+ * per-call evaluation only interprets.
  */
-function evaluateScenarioItem(
+type PreparedScenarioItem =
+  | { ok: true; fn: Extract<ScenarioHirItem, { ok: true }>["fn"] }
+  | { ok: false; message: string };
+
+/**
+ * Type-checks one lowered scenario item against the net, or explains why it
+ * cannot run. Lowering happens elsewhere (`lowerScenarioToHir`); this half is
+ * pure, free of the TypeScript compiler, and independent of the values the
+ * item will be evaluated at.
+ */
+function prepareScenarioItem(
   item: ScenarioHirItem | undefined,
   context: HirSurfaceContext,
-  bindings: HirInterpretBindings,
-): { ok: true; value: HirValue } | { ok: false; message: string } {
+): PreparedScenarioItem {
   if (item === undefined) {
     return {
       ok: false,
@@ -107,8 +112,19 @@ function evaluateScenarioItem(
       message: errors.map((diagnostic) => diagnostic.message).join("\n"),
     };
   }
+  return { ok: true, fn: item.fn };
+}
+
+/** Interprets a prepared item at one set of bindings. */
+function interpretPreparedItem(
+  prepared: PreparedScenarioItem,
+  bindings: HirInterpretBindings,
+): { ok: true; value: HirValue } | { ok: false; message: string } {
+  if (!prepared.ok) {
+    return prepared;
+  }
   try {
-    return { ok: true, value: interpretHir(item.fn, bindings) };
+    return { ok: true, value: interpretHir(prepared.fn, bindings) };
   } catch (error) {
     return {
       ok: false,
@@ -221,24 +237,16 @@ function normalizeTokenRecords(
  * `errors`.
  */
 function compileCodeModeInitialState(args: {
-  item: ScenarioHirItem | undefined;
-  context: HirScenarioCodeContext;
+  prepared: PreparedScenarioItem;
   bindings: HirInterpretBindings;
   placeByName: ReadonlyMap<string, Place>;
   typeById: ReadonlyMap<string, Color>;
   initialState: InitialMarking;
   errors: ScenarioCompilationError[];
 }): void {
-  const {
-    bindings,
-    context,
-    errors,
-    initialState,
-    item,
-    placeByName,
-    typeById,
-  } = args;
-  const evaluated = evaluateScenarioItem(item, context, bindings);
+  const { bindings, errors, initialState, placeByName, prepared, typeById } =
+    args;
+  const evaluated = interpretPreparedItem(prepared, bindings);
   if (!evaluated.ok) {
     errors.push({
       source: "initialState",
@@ -288,8 +296,8 @@ function compileCodeModeInitialState(args: {
  */
 function compilePerPlaceInitialState(args: {
   content: Record<string, string | (number | boolean | string)[][]>;
-  hir: ScenarioHir;
-  context: HirScenarioExpressionContext;
+  /** Type-checked place expressions, keyed like `content`'s string entries. */
+  preparedExpressions: ReadonlyMap<string, PreparedScenarioItem>;
   bindings: HirInterpretBindings;
   placeById: ReadonlyMap<string, Place>;
   typeById: ReadonlyMap<string, Color>;
@@ -299,11 +307,10 @@ function compilePerPlaceInitialState(args: {
   const {
     bindings,
     content,
-    context,
     errors,
-    hir,
     initialState,
     placeById,
+    preparedExpressions,
     typeById,
   } = args;
   for (const [placeId, value] of Object.entries(content)) {
@@ -369,9 +376,12 @@ function compilePerPlaceInitialState(args: {
       initialState[placeId] = 0;
       continue;
     }
-    const evaluated = evaluateScenarioItem(
-      getOwn(hir.placeExpressions, placeId),
-      context,
+    const evaluated = interpretPreparedItem(
+      preparedExpressions.get(placeId) ?? {
+        ok: false,
+        message:
+          "This scenario code has not been compiled — the lowered scenario is stale. Recompile it from the current scenario.",
+      },
       bindings,
     );
     if (!evaluated.ok) {
@@ -397,9 +407,26 @@ function compilePerPlaceInitialState(args: {
 // -- Compiler -----------------------------------------------------------------
 
 /**
- * Compile a scenario into concrete parameter values and initial token counts.
+ * A scenario compiler whose value-independent work is already done.
  *
- * Evaluation order (dependencies flow top-down):
+ * `compile` is `compileScenario` for one concrete assignment of the scenario
+ * parameters. Preparation runs the parts that do not depend on those values —
+ * expression contexts, net-parameter default parsing, the lookup maps, and
+ * the type check of every override and initial-state item — so a caller that
+ * compiles the same scenario at many assignments (a parameter sweep compiles
+ * once per run's draws) pays them once instead of per call.
+ */
+export type PreparedScenarioCompiler = {
+  compile(
+    scenarioParameterValues?: ScenarioParameterValues,
+  ): CompileScenarioOutcome;
+};
+
+/**
+ * Prepares `scenario` for repeated compilation. The inputs are captured and
+ * assumed not to mutate; re-prepare after editing the scenario or the net.
+ *
+ * Evaluation order per `compile` call (dependencies flow top-down):
  * 1. Scenario parameter defaults → builds the `scenario` object
  * 2. Parameter overrides → each expression evaluated with `{ parameters, scenario }`
  *    → produces the final `parameters` object
@@ -413,6 +440,220 @@ function compilePerPlaceInitialState(args: {
  * @param places - All places in the SDCPN (needed for code-mode name→ID mapping)
  * @param types - All color types (needed for code-mode token flattening)
  */
+export function prepareScenarioCompiler(
+  scenario: Scenario,
+  hir: ScenarioHir,
+  netParameters: Parameter[],
+  places: Place[] = [],
+  types: Color[] = [],
+): PreparedScenarioCompiler {
+  // Scenario parameter identifiers come from the net definition: no prototype.
+  const scenarioParameters = scenario.scenarioParameters.filter(
+    (sp) => sp.identifier.trim() !== "",
+  );
+
+  // Net-parameter defaults parse once; a default that does not parse fails
+  // identically at every assignment, so its error is precomputed too.
+  const defaultsTemplate: NetParameterValues = createUserKeyedRecord();
+  const defaultErrors: ScenarioCompilationError[] = [];
+  for (const param of netParameters) {
+    try {
+      defaultsTemplate[param.variableName] = parseParameterValue(
+        param,
+        param.defaultValue,
+      );
+    } catch (error) {
+      defaultErrors.push({
+        source: "parameterOverride",
+        itemId: param.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  // Contexts share every model-derived fact; only `expected` varies per item.
+  const expressionContext = buildScenarioExpressionContext(
+    netParameters,
+    scenario.scenarioParameters,
+    "real",
+  );
+  const paramById = new Map(netParameters.map((p) => [p.id, p]));
+  const typeById = new Map(types.map((t) => [t.id, t]));
+
+  // Overrides, type-checked once. Empty expressions keep the default and
+  // unknown parameter ids are ignored, exactly as compilation always has.
+  const preparedOverrides: {
+    itemId: string;
+    param: Parameter;
+    prepared: PreparedScenarioItem;
+  }[] = [];
+  for (const [paramId, expression] of Object.entries(
+    scenario.parameterOverrides,
+  )) {
+    const param = paramById.get(paramId);
+    if (!param || expression.trim() === "") {
+      continue;
+    }
+    preparedOverrides.push({
+      itemId: paramId,
+      param,
+      prepared: prepareScenarioItem(getOwn(hir.parameterOverrides, paramId), {
+        ...expressionContext,
+        expected: param.type,
+      }),
+    });
+  }
+
+  // Initial-state items, type-checked once — exactly those `compile` will
+  // evaluate: the code block when code mode has content, else each
+  // uncoloured place's non-empty expression string.
+  const initialStateSpec = scenario.initialState;
+  const preparedInitialStateCode: PreparedScenarioItem | null =
+    initialStateSpec.type === "code" && initialStateSpec.content.trim() !== ""
+      ? prepareScenarioItem(
+          hir.initialStateCode,
+          buildScenarioCodeContext(
+            netParameters,
+            scenario.scenarioParameters,
+            places,
+            types,
+          ),
+        )
+      : null;
+  const preparedPlaceExpressions = new Map<string, PreparedScenarioItem>();
+  if (initialStateSpec.type !== "code") {
+    for (const [placeId, value] of Object.entries(initialStateSpec.content)) {
+      if (typeof value === "string" && value.trim() !== "") {
+        preparedPlaceExpressions.set(
+          placeId,
+          prepareScenarioItem(
+            getOwn(hir.placeExpressions, placeId),
+            expressionContext,
+          ),
+        );
+      }
+    }
+  }
+
+  const placeById = new Map(places.map((p) => [p.id, p]));
+  const placeByName = new Map(places.map((p) => [p.name, p]));
+
+  const compile = (
+    scenarioParameterValues?: ScenarioParameterValues,
+  ): CompileScenarioOutcome => {
+    const errors: ScenarioCompilationError[] = [];
+
+    // ── Step 1: Build the `scenario` object from scenario parameter defaults ──
+
+    const scenarioObj: NetParameterValues = createUserKeyedRecord();
+    for (const sp of scenarioParameters) {
+      const value =
+        getOwn(scenarioParameterValues, sp.identifier) ?? sp.default;
+      if (!Number.isFinite(value)) {
+        errors.push({
+          source: "scenarioParameter",
+          itemId: sp.identifier,
+          message: `Scenario parameter "${sp.identifier}" must be a finite number.`,
+        });
+        scenarioObj[sp.identifier] =
+          sp.type === "boolean" ? sp.default !== 0 : sp.default;
+        continue;
+      }
+      scenarioObj[sp.identifier] = sp.type === "boolean" ? value !== 0 : value;
+    }
+
+    // ── Step 2: Evaluate parameter overrides ──
+    //
+    // Start with the parsed net-level defaults, then apply each override
+    // expression. Expressions have access to the base `parameters` and
+    // `scenario`.
+
+    const parametersObj: NetParameterValues = Object.assign(
+      createUserKeyedRecord(),
+      defaultsTemplate,
+    );
+    errors.push(...defaultErrors);
+
+    // One binding pair serves every evaluation: the records are mutated in
+    // place, so later expressions see earlier overrides.
+    const bindings: HirInterpretBindings = {
+      parameters: parametersObj,
+      scenario: scenarioObj,
+    };
+
+    for (const { itemId, param, prepared } of preparedOverrides) {
+      const evaluated = interpretPreparedItem(prepared, bindings);
+      if (!evaluated.ok) {
+        errors.push({
+          source: "parameterOverride",
+          itemId,
+          message: `Parameter "${param.name}": ${evaluated.message}`,
+        });
+        continue;
+      }
+      const coerced = coerceOverrideValue(param, evaluated.value);
+      if (!coerced.ok) {
+        errors.push({
+          source: "parameterOverride",
+          itemId,
+          message: `Parameter "${param.name}" ${coerced.message}`,
+        });
+        continue;
+      }
+      parametersObj[param.variableName] = coerced.value;
+    }
+
+    // ── Step 3: Evaluate initial state ──
+
+    // Keyed by place id; in code mode the key set additionally derives from
+    // whatever record the user-authored code block returns: no prototype.
+    const initialState: InitialMarking = createUserKeyedRecord();
+
+    if (initialStateSpec.type === "code") {
+      if (preparedInitialStateCode !== null) {
+        compileCodeModeInitialState({
+          prepared: preparedInitialStateCode,
+          bindings,
+          placeByName,
+          typeById,
+          initialState,
+          errors,
+        });
+      }
+    } else {
+      compilePerPlaceInitialState({
+        content: initialStateSpec.content,
+        preparedExpressions: preparedPlaceExpressions,
+        bindings,
+        placeById,
+        typeById,
+        initialState,
+        errors,
+      });
+    }
+
+    if (errors.length > 0) {
+      return { ok: false, errors };
+    }
+
+    // Convert parameters to string values (simulation worker input format)
+    const parameterValues = createUserKeyedRecord<string>();
+    for (const [key, value] of Object.entries(parametersObj)) {
+      parameterValues[key] = String(value);
+    }
+
+    return { ok: true, result: { parameterValues, initialState } };
+  };
+
+  return { compile };
+}
+
+/**
+ * Compile a scenario into concrete parameter values and initial token counts.
+ *
+ * One-shot form of `prepareScenarioCompiler` — same behaviour, same total
+ * cost. Callers compiling the same scenario repeatedly should prepare once.
+ */
 export function compileScenario(
   scenario: Scenario,
   hir: ScenarioHir,
@@ -421,152 +662,11 @@ export function compileScenario(
   types: Color[] = [],
   options: CompileScenarioOptions = {},
 ): CompileScenarioOutcome {
-  const errors: ScenarioCompilationError[] = [];
-
-  // ── Step 1: Build the `scenario` object from scenario parameter defaults ──
-
-  // Scenario parameter identifiers come from the net definition: no prototype.
-  const scenarioObj: NetParameterValues = createUserKeyedRecord();
-  for (const sp of scenario.scenarioParameters) {
-    if (sp.identifier.trim() === "") {
-      continue;
-    }
-
-    const value =
-      getOwn(options.scenarioParameterValues, sp.identifier) ?? sp.default;
-    if (!Number.isFinite(value)) {
-      errors.push({
-        source: "scenarioParameter",
-        itemId: sp.identifier,
-        message: `Scenario parameter "${sp.identifier}" must be a finite number.`,
-      });
-      scenarioObj[sp.identifier] =
-        sp.type === "boolean" ? sp.default !== 0 : sp.default;
-      continue;
-    }
-
-    scenarioObj[sp.identifier] = sp.type === "boolean" ? value !== 0 : value;
-  }
-
-  // ── Step 2: Evaluate parameter overrides ──
-  //
-  // Start with net-level defaults, then apply each override expression.
-  // Expressions have access to the base `parameters` and `scenario`.
-
-  const parametersObj: NetParameterValues = createUserKeyedRecord();
-  for (const param of netParameters) {
-    try {
-      parametersObj[param.variableName] = parseParameterValue(
-        param,
-        param.defaultValue,
-      );
-    } catch (error) {
-      errors.push({
-        source: "parameterOverride",
-        itemId: param.id,
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  // One binding pair serves every evaluation: the records are mutated in
-  // place, so later expressions see earlier overrides.
-  const bindings: HirInterpretBindings = {
-    parameters: parametersObj,
-    scenario: scenarioObj,
-  };
-  // Contexts share every model-derived fact; only `expected` varies per item.
-  const expressionContext = buildScenarioExpressionContext(
+  return prepareScenarioCompiler(
+    scenario,
+    hir,
     netParameters,
-    scenario.scenarioParameters,
-    "real",
-  );
-
-  // Build a lookup: paramId → Parameter
-  const paramById = new Map(netParameters.map((p) => [p.id, p]));
-
-  for (const [paramId, expression] of Object.entries(
-    scenario.parameterOverrides,
-  )) {
-    const param = paramById.get(paramId);
-    if (!param) {
-      continue;
-    }
-    if (expression.trim() === "") {
-      // No override — keep the default
-      continue;
-    }
-    const evaluated = evaluateScenarioItem(
-      getOwn(hir.parameterOverrides, paramId),
-      { ...expressionContext, expected: param.type },
-      bindings,
-    );
-    if (!evaluated.ok) {
-      errors.push({
-        source: "parameterOverride",
-        itemId: paramId,
-        message: `Parameter "${param.name}": ${evaluated.message}`,
-      });
-      continue;
-    }
-    const coerced = coerceOverrideValue(param, evaluated.value);
-    if (!coerced.ok) {
-      errors.push({
-        source: "parameterOverride",
-        itemId: paramId,
-        message: `Parameter "${param.name}" ${coerced.message}`,
-      });
-      continue;
-    }
-    parametersObj[param.variableName] = coerced.value;
-  }
-
-  // ── Step 3: Evaluate initial state ──
-
-  // Keyed by place id; in code mode the key set additionally derives from
-  // whatever record the user-authored code block returns: no prototype.
-  const initialState: InitialMarking = createUserKeyedRecord();
-  const typeById = new Map(types.map((t) => [t.id, t]));
-
-  if (scenario.initialState.type === "code") {
-    if (scenario.initialState.content.trim() !== "") {
-      compileCodeModeInitialState({
-        item: hir.initialStateCode,
-        context: buildScenarioCodeContext(
-          netParameters,
-          scenario.scenarioParameters,
-          places,
-          types,
-        ),
-        bindings,
-        placeByName: new Map(places.map((p) => [p.name, p])),
-        typeById,
-        initialState,
-        errors,
-      });
-    }
-  } else {
-    compilePerPlaceInitialState({
-      content: scenario.initialState.content,
-      hir,
-      context: expressionContext,
-      bindings,
-      placeById: new Map(places.map((p) => [p.id, p])),
-      typeById,
-      initialState,
-      errors,
-    });
-  }
-
-  if (errors.length > 0) {
-    return { ok: false, errors };
-  }
-
-  // Convert parameters to string values (simulation worker input format)
-  const parameterValues = createUserKeyedRecord<string>();
-  for (const [key, value] of Object.entries(parametersObj)) {
-    parameterValues[key] = String(value);
-  }
-
-  return { ok: true, result: { parameterValues, initialState } };
+    places,
+    types,
+  ).compile(options.scenarioParameterValues);
 }
