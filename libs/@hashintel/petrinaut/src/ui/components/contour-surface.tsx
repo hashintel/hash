@@ -11,20 +11,30 @@
  * caller's business. The plot repaints whenever `values` or `markers`
  * change, so a caller streaming samples in gets a live, progressively
  * sharpening picture.
+ *
+ * Painting is tuned for that streaming: draws coalesce to one per animation
+ * frame (a cache-refill walk resolves dozens of cells back to back), the
+ * interpolation folds only new samples into a persistent accumulator, and
+ * the filled bands blit one raster-resolution image instead of issuing a
+ * `fillRect` and an `rgb(...)` string per cell — so a markers-only change
+ * never recomputes the field at all.
  */
 import { useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
 import {
-  bluesColor,
+  bluesLut,
   contourLevels,
-  idwRaster,
+  createIdwAccumulator,
   marchingSquaresSegments,
 } from "../../react/experiments/contour-grid";
 import { useElementSize } from "../../react/hooks/use-element-size";
 
-import type { ContourSample } from "../../react/experiments/contour-grid";
+import type {
+  ContourSample,
+  IdwAccumulator,
+} from "../../react/experiments/contour-grid";
 
 /** Raster resolution per grid cell, in pixels of interpolation lattice. */
 const RASTER_SUBDIVISION = 8;
@@ -61,8 +71,24 @@ const canvasStyle = css({
   cursor: "crosshair",
 });
 
-function draw(options: {
+/** Everything one plot instance keeps between paints. */
+type PaintState = {
+  lut: Uint8ClampedArray;
+  accumulator: IdwAccumulator | null;
+  accumulatorSize: string;
+  /** The filled field + iso-line geometry of one accumulator version. */
+  field: {
+    version: number;
+    min: number;
+    max: number;
+    image: HTMLCanvasElement;
+    segments: [number, number, number, number][][];
+  } | null;
+};
+
+function paint(options: {
   canvas: HTMLCanvasElement;
+  state: PaintState;
   width: number;
   height: number;
   nx: number;
@@ -70,15 +96,21 @@ function draw(options: {
   values: ContourSurfaceValues;
   markers: readonly ContourSurfaceMarker[];
 }): void {
-  const { canvas, width, height, nx, ny, values, markers } = options;
+  const { canvas, state, width, height, nx, ny, values, markers } = options;
   const pixelRatio = globalThis.devicePixelRatio || 1;
-  canvas.width = Math.max(1, Math.round(width * pixelRatio));
-  canvas.height = Math.max(1, Math.round(height * pixelRatio));
+  const deviceWidth = Math.max(1, Math.round(width * pixelRatio));
+  const deviceHeight = Math.max(1, Math.round(height * pixelRatio));
+  // Assigning width/height reallocates the backing store and implicitly
+  // clears — only pay that when the size actually changed.
+  if (canvas.width !== deviceWidth || canvas.height !== deviceHeight) {
+    canvas.width = deviceWidth;
+    canvas.height = deviceHeight;
+  }
   const context = canvas.getContext("2d");
   if (!context) {
     return;
   }
-  context.scale(pixelRatio, pixelRatio);
+  context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   context.clearRect(0, 0, width, height);
 
   const samples: ContourSample[] = [];
@@ -94,13 +126,18 @@ function draw(options: {
   if (samples.length > 0) {
     const rasterWidth = Math.max(2, (nx - 1) * RASTER_SUBDIVISION + 1);
     const rasterHeight = Math.max(2, (ny - 1) * RASTER_SUBDIVISION + 1);
-    const raster = idwRaster({
-      samples,
-      nx,
-      ny,
-      width: rasterWidth,
-      height: rasterHeight,
-    });
+    const sizeKey = `${nx}|${ny}|${rasterWidth}|${rasterHeight}`;
+    if (state.accumulator === null || state.accumulatorSize !== sizeKey) {
+      state.accumulator = createIdwAccumulator({
+        nx,
+        ny,
+        width: rasterWidth,
+        height: rasterHeight,
+      });
+      state.accumulatorSize = sizeKey;
+      state.field = null;
+    }
+    const raster = state.accumulator.update(samples);
 
     let min = Number.POSITIVE_INFINITY;
     let max = Number.NEGATIVE_INFINITY;
@@ -108,42 +145,73 @@ function draw(options: {
       min = Math.min(min, sample.value);
       max = Math.max(max, sample.value);
     }
+    const span = max - min;
+
+    if (
+      state.field === null ||
+      state.field.version !== state.accumulator.version ||
+      state.field.min !== min ||
+      state.field.max !== max
+    ) {
+      // One RGBA pixel per filled cell (the cell takes its top-left corner's
+      // value, as the fillRect version did), blitted scaled with smoothing
+      // off — the same blocks without 6,400 fillStyle parses.
+      const cellsWidth = rasterWidth - 1;
+      const cellsHeight = rasterHeight - 1;
+      const pixels = new Uint8ClampedArray(cellsWidth * cellsHeight * 4);
+      for (let py = 0; py < cellsHeight; py++) {
+        for (let px = 0; px < cellsWidth; px++) {
+          const value = raster[py * rasterWidth + px]!;
+          const t = span > 0 ? (value - min) / span : 0.5;
+          const entry =
+            Math.min(255, Math.max(0, Math.round(t * 255))) * 3;
+          const out = (py * cellsWidth + px) * 4;
+          pixels[out] = state.lut[entry]!;
+          pixels[out + 1] = state.lut[entry + 1]!;
+          pixels[out + 2] = state.lut[entry + 2]!;
+          pixels[out + 3] = 255;
+        }
+      }
+      const image =
+        state.field?.image ?? document.createElement("canvas");
+      image.width = cellsWidth;
+      image.height = cellsHeight;
+      image
+        .getContext("2d")!
+        .putImageData(new ImageData(pixels, cellsWidth, cellsHeight), 0, 0);
+
+      const segments =
+        span > 0
+          ? contourLevels(min, max, 10).map((level) =>
+              marchingSquaresSegments(raster, rasterWidth, rasterHeight, level),
+            )
+          : [];
+
+      state.field = {
+        version: state.accumulator.version,
+        min,
+        max,
+        image,
+        segments,
+      };
+    }
 
     const cellWidth = width / (rasterWidth - 1);
     const cellHeight = height / (rasterHeight - 1);
-    const span = max - min;
 
-    // Filled bands: each raster point painted by its normalized value.
-    for (let py = 0; py < rasterHeight - 1; py++) {
-      for (let px = 0; px < rasterWidth - 1; px++) {
-        const value = raster[py * rasterWidth + px]!;
-        context.fillStyle = bluesColor(span > 0 ? (value - min) / span : 0.5);
-        context.fillRect(
-          px * cellWidth,
-          py * cellHeight,
-          cellWidth + 1,
-          cellHeight + 1,
-        );
-      }
-    }
+    context.imageSmoothingEnabled = false;
+    context.drawImage(state.field.image, 0, 0, width, height);
+    context.imageSmoothingEnabled = true;
 
-    // Iso-lines over the fill.
-    if (span > 0) {
-      context.strokeStyle = "rgba(15, 23, 42, 0.35)";
-      context.lineWidth = 1;
-      for (const level of contourLevels(min, max, 10)) {
-        context.beginPath();
-        for (const [x1, y1, x2, y2] of marchingSquaresSegments(
-          raster,
-          rasterWidth,
-          rasterHeight,
-          level,
-        )) {
-          context.moveTo(x1 * cellWidth, y1 * cellHeight);
-          context.lineTo(x2 * cellWidth, y2 * cellHeight);
-        }
-        context.stroke();
+    context.strokeStyle = "rgba(15, 23, 42, 0.35)";
+    context.lineWidth = 1;
+    for (const levelSegments of state.field.segments) {
+      context.beginPath();
+      for (const [x1, y1, x2, y2] of levelSegments) {
+        context.moveTo(x1 * cellWidth, y1 * cellHeight);
+        context.lineTo(x2 * cellWidth, y2 * cellHeight);
       }
+      context.stroke();
     }
 
     // Sampled points, so it is visible where data actually exists.
@@ -202,15 +270,38 @@ export const ContourSurface = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const size = useElementSize(frameRef, { debounce: 50 });
+  const paintStateRef = useRef<PaintState | null>(null);
+  const frameHandleRef = useRef<number | null>(null);
 
   // Painting is imperative canvas work driven by measured size — outside
-  // React's render, same as the uPlot charts.
+  // React's render, same as the uPlot charts. One paint per animation frame,
+  // latest props win: a cache-refill walk resolves dozens of cells in a
+  // burst, and painting each intermediate picture is pure waste.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !size || size.width === 0) {
       return;
     }
-    draw({ canvas, width: size.width, height, nx, ny, values, markers });
+    paintStateRef.current ??= {
+      lut: bluesLut(),
+      accumulator: null,
+      accumulatorSize: "",
+      field: null,
+    };
+    const state = paintStateRef.current;
+    if (frameHandleRef.current !== null) {
+      cancelAnimationFrame(frameHandleRef.current);
+    }
+    frameHandleRef.current = requestAnimationFrame(() => {
+      frameHandleRef.current = null;
+      paint({ canvas, state, width: size.width, height, nx, ny, values, markers });
+    });
+    return () => {
+      if (frameHandleRef.current !== null) {
+        cancelAnimationFrame(frameHandleRef.current);
+        frameHandleRef.current = null;
+      }
+    };
   }, [height, markers, nx, ny, size, values]);
 
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
