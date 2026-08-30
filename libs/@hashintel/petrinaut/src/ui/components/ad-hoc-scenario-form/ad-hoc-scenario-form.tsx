@@ -40,6 +40,7 @@ import {
 
 import { LanguageClientContext } from "../../../react/lsp/context";
 import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
+import { useFocusClearance } from "../../worksheet/use-focus-clearance";
 import { useFocusHeader } from "../../worksheet/use-focus-member";
 import { Section, SectionList } from "../section";
 import { computeAdHocHighlight } from "./dependency-highlight";
@@ -57,6 +58,16 @@ import type {
   AdHocSlot,
   AdHocSynthesisContext,
 } from "@hashintel/petrinaut-core";
+
+// The CSS twin of useFocusClearance (which carries the shared 25px
+// constant): scrolls the browser performs itself to reveal a focused
+// trigger respect scroll-margin, parking it clear of the hosts' faded
+// scroll-area edges.
+const focusClearanceStyle = css({
+  "& :is(button, input, select, textarea)": {
+    scrollMargin: "[25px]",
+  },
+});
 
 const placesListStyle = css({
   display: "flex",
@@ -139,6 +150,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   // originates inside the form. Inner editors and menus portal outside the
   // form root, so their own Escape handling is untouched.
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const clearance = useFocusClearance();
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const root = rootRef.current;
@@ -273,7 +285,10 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
           ref={rootRef}
           role="group"
           aria-label="Ad-hoc scenario definition"
+          className={focusClearanceStyle}
           onKeyDownCapture={handleKeyDown}
+          onPointerDownCapture={clearance.onPointerDownCapture}
+          onFocusCapture={clearance.onFocusCapture}
           // Delete/Backspace acts inside the form (clear a cell, delete a
           // row) and must never bubble to the app, where it would hit the
           // canvas's delete-selection shortcut.

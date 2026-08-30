@@ -82,6 +82,16 @@ that layer's contract.
     arrows that run off a table's sides route through the enclosing stacks
     (nothing beside a section leaves focus in place); inside a text field
     they stay with the caret.
+
+11a. A focused element keeps at least 25px of clearance from every
+scrollable ancestor's edges, so the hosts' faded scroll-area edges never
+sit over the selection. Native focus scrolls honour it through
+`scroll-margin`; the worksheet's `use-focus-clearance.ts` nudges the case
+CSS cannot reach (an element already visible inside the faded band). The
+one exception is a focus caused by a fresh pointer press on the element
+itself: the pointer proves visibility, and moving the element between the
+two clicks of a double-click would break click-count activation (rule 3).
+
 12. The token table's vertical stops are, top to bottom: column headers,
     the shared-values line (when a column is shared), then per row a count
     strip (dynamic rows only) followed by the cells, then the phantom line.
