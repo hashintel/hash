@@ -454,6 +454,13 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     compileForValues: (
       swept: Readonly<Record<string, number>>,
     ) => Extract<CompileScenarioOutcome, { ok: true }>;
+    /**
+     * Values-only compile for per-run draws: skips the initial state, which
+     * per-run translation never reads (per-run markings do not exist).
+     */
+    compileRunDraws: (swept: Readonly<Record<string, number>>) => {
+      result: { parameterValues: Record<string, string> };
+    };
     /** Net parameter variable names, for direct-override passthrough. */
     netParameterVariableNames: ReadonlySet<string>;
   }) => {
@@ -463,6 +470,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       registrations,
       buildRequest,
       compileForValues,
+      compileRunDraws,
       netParameterVariableNames,
     } = options;
     const experimentId = experiment.id;
@@ -510,7 +518,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
                 runs,
                 midValues: parameterValues,
                 baseParameterValues: compiled.result.parameterValues,
-                compileForValues,
+                compileForValues: compileRunDraws,
                 netParameterVariableNames,
               });
         const override = {
@@ -668,6 +676,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           swept: Readonly<Record<string, number>>,
         ) => Extract<CompileScenarioOutcome, { ok: true }>)
       | null = null;
+    let compileRunDraws:
+      | ((swept: Readonly<Record<string, number>>) => {
+          result: { parameterValues: Record<string, string> };
+        })
+      | null = null;
 
     if (selectedScenario) {
       const parsedScenarioValues = parseScenarioParameterValues(
@@ -715,6 +728,22 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           );
         }
         return compiled;
+      };
+      compileRunDraws = (swept) => {
+        const compiled = preparedCompiler.compileParameterValues({
+          ...parsedScenarioValues.values,
+          ...swept,
+        });
+        if (!compiled.ok) {
+          throw new Error(
+            compiled.errors
+              .map(
+                (error) => `${error.source}:${error.itemId} ${error.message}`,
+              )
+              .join("\n"),
+          );
+        }
+        return { result: { parameterValues: compiled.parameterValues } };
       };
 
       const compiledScenario = compileForValues({});
@@ -899,13 +928,14 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             ),
         });
 
-        if (axes.length > 0 && compileForValues) {
+        if (axes.length > 0 && compileForValues && compileRunDraws) {
           startSweepSession({
             experiment,
             axes,
             registrations,
             buildRequest,
             compileForValues,
+            compileRunDraws,
             netParameterVariableNames: new Set(
               compiledExperimentSdcpn.parameters.map(
                 (parameter) => parameter.variableName,

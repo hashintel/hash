@@ -420,6 +420,21 @@ export type PreparedScenarioCompiler = {
   compile(
     scenarioParameterValues?: ScenarioParameterValues,
   ): CompileScenarioOutcome;
+  /**
+   * `compile` without the initial state: steps 1–2 only, returning the
+   * resolved parameter values. For callers that compile per run — a range
+   * sweep translates every run's draws, and per-run initial markings do not
+   * exist — evaluating the initial state per call would be pure waste. An
+   * initial-state error does not fail this: the batch's own `compile`
+   * reports any the midpoint assignment produces, and one only a specific
+   * draw produces surfaces nowhere, since the per-run initial state is
+   * never used.
+   */
+  compileParameterValues(
+    scenarioParameterValues?: ScenarioParameterValues,
+  ):
+    | { ok: true; parameterValues: Record<string, string> }
+    | { ok: false; errors: ScenarioCompilationError[] };
 };
 
 /**
@@ -538,9 +553,14 @@ export function prepareScenarioCompiler(
   const placeById = new Map(places.map((p) => [p.id, p]));
   const placeByName = new Map(places.map((p) => [p.name, p]));
 
-  const compile = (
+  /** Steps 1–2 at one assignment; both entry points build on this. */
+  const evaluateParameters = (
     scenarioParameterValues?: ScenarioParameterValues,
-  ): CompileScenarioOutcome => {
+  ): {
+    errors: ScenarioCompilationError[];
+    parametersObj: NetParameterValues;
+    bindings: HirInterpretBindings;
+  } => {
     const errors: ScenarioCompilationError[] = [];
 
     // ── Step 1: Build the `scenario` object from scenario parameter defaults ──
@@ -603,6 +623,27 @@ export function prepareScenarioCompiler(
       parametersObj[param.variableName] = coerced.value;
     }
 
+    return { errors, parametersObj, bindings };
+  };
+
+  /** The worker input format: every resolved value as a string. */
+  const stringifyParameters = (
+    parametersObj: NetParameterValues,
+  ): Record<string, string> => {
+    const parameterValues = createUserKeyedRecord<string>();
+    for (const [key, value] of Object.entries(parametersObj)) {
+      parameterValues[key] = String(value);
+    }
+    return parameterValues;
+  };
+
+  const compile = (
+    scenarioParameterValues?: ScenarioParameterValues,
+  ): CompileScenarioOutcome => {
+    const { errors, parametersObj, bindings } = evaluateParameters(
+      scenarioParameterValues,
+    );
+
     // ── Step 3: Evaluate initial state ──
 
     // Keyed by place id; in code mode the key set additionally derives from
@@ -636,16 +677,30 @@ export function prepareScenarioCompiler(
       return { ok: false, errors };
     }
 
-    // Convert parameters to string values (simulation worker input format)
-    const parameterValues = createUserKeyedRecord<string>();
-    for (const [key, value] of Object.entries(parametersObj)) {
-      parameterValues[key] = String(value);
-    }
-
-    return { ok: true, result: { parameterValues, initialState } };
+    return {
+      ok: true,
+      result: {
+        parameterValues: stringifyParameters(parametersObj),
+        initialState,
+      },
+    };
   };
 
-  return { compile };
+  const compileParameterValues = (
+    scenarioParameterValues?: ScenarioParameterValues,
+  ):
+    | { ok: true; parameterValues: Record<string, string> }
+    | { ok: false; errors: ScenarioCompilationError[] } => {
+    const { errors, parametersObj } = evaluateParameters(
+      scenarioParameterValues,
+    );
+    if (errors.length > 0) {
+      return { ok: false, errors };
+    }
+    return { ok: true, parameterValues: stringifyParameters(parametersObj) };
+  };
+
+  return { compile, compileParameterValues };
 }
 
 /**
