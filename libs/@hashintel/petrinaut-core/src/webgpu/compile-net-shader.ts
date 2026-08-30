@@ -27,7 +27,7 @@ import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirExpr, HirFunction } from "../hir/hir";
 import type { SDCPN } from "../types/sdcpn";
 import type { GpuNetProfile } from "./eligibility";
-import type { WgslValue } from "./emit-wgsl";
+import type { WgslParameterValue, WgslValue } from "./emit-wgsl";
 
 /** Invocations per workgroup. 256 is the guaranteed WebGPU maximum. */
 export const GPU_WORKGROUP_SIZE = 256;
@@ -48,6 +48,13 @@ export type CompileNetShaderInput = {
   profile: GpuNetProfile;
   /** Resolved net parameter values, inlined into the shader as literals. */
   parameterValues: Readonly<Record<string, number | boolean>>;
+  /**
+   * Parameters whose value varies per run (a sweep over a range). Instead of
+   * a literal, their reads come from a per-run f32 buffer the host fills with
+   * each run's draw; each must name a numeric parameter in `parameterValues`
+   * (whose value then only seeds scenario compilation, not the shader).
+   */
+  runParameters?: readonly string[];
   /** Lowered HIR per transition id, when the transition has a lambda. */
   lambdaHir: ReadonlyMap<string, HirFunction>;
   /** Lowered HIR per place id, for places with dynamics. */
@@ -106,6 +113,12 @@ export type CompiledNetShader = {
   statusOffset: number;
   /** Metric ids in histogram order. */
   metricIds: string[];
+  /**
+   * Per-run parameters in buffer order; empty when every parameter is a
+   * baked literal. Non-empty obliges the runner to bind a run-major f32
+   * buffer of `runCount × runParameterIds.length` draws at binding 4.
+   */
+  runParameterIds: readonly string[];
   /** Which transitions got a compiled lambda; the rest are always-enabled. */
   compiledLambdas: string[];
 };
@@ -211,7 +224,7 @@ type KernelOutputWrite = {
  */
 function emitKernel(
   fn: HirFunction,
-  parameterValues: Readonly<Record<string, number | boolean>>,
+  parameterValues: Readonly<Record<string, WgslParameterValue>>,
   tokenSlots: ReadonlyMap<string, readonly TokenReader[]>,
   outputs: readonly {
     slotName: string;
@@ -320,7 +333,7 @@ function emitKernel(
  */
 function emitLambda(
   fn: HirFunction,
-  parameterValues: Readonly<Record<string, number | boolean>>,
+  parameterValues: Readonly<Record<string, WgslParameterValue>>,
   tokenSlots: ReadonlyMap<string, readonly TokenReader[]> = new Map(),
 ): { statements: string[]; expression: string; isPredicate: boolean } {
   const emitter = new WgslEmitter({
@@ -388,7 +401,7 @@ function commentSafe(name: string): string {
 function emitDynamics(
   fn: HirFunction,
   realFields: readonly string[],
-  parameterValues: Readonly<Record<string, number | boolean>>,
+  parameterValues: Readonly<Record<string, WgslParameterValue>>,
   fieldExpression: (fieldName: string) => string,
   /**
    * Distinguishes this stage's hoisted temporaries from the other stages'. Every
@@ -476,9 +489,34 @@ export function compileNetShader(
     odeMethod,
     extensions,
     kernelHir = new Map<string, HirFunction>(),
+    runParameters = [],
   } = input;
 
   try {
+    for (const name of runParameters) {
+      const value = parameterValues[name];
+      if (value === undefined) {
+        throw new WgslBailError(
+          `per-run parameter \`${name}\` is not a parameter of this net`,
+        );
+      }
+      if (typeof value !== "number") {
+        throw new WgslBailError(
+          `per-run parameter \`${name}\` is not numeric; only numeric parameters can vary per run`,
+        );
+      }
+    }
+    // Per-run parameters read a hoisted `let` instead of an inlined literal;
+    // everything else keeps the literal fast path.
+    const emitterParameterValues: Record<string, WgslParameterValue> = {
+      ...parameterValues,
+      ...Object.fromEntries(
+        runParameters.map((name, index) => [
+          name,
+          { perRun: `run_param_${index}` },
+        ]),
+      ),
+    };
     // Attribute types for the discrete (non-`real`) fields, so a lambda reading a
     // boolean gets a WGSL `bool` rather than a 0/1 float. `eligibility.ts` has
     // already refused anything wider than 32 bits.
@@ -556,6 +594,11 @@ export function compileNetShader(
     // its status — a handful of words against hundreds — and the mappable buffer
     // a readback needs is the scarcest memory in the system.
     push(`@group(0) @binding(3) var<storage, read_write> summary: array<u32>;`);
+    if (runParameters.length > 0) {
+      // One f32 per (run, per-run parameter), run-major, host-filled with
+      // each run's parameter draw before the first dispatch.
+      push(`@group(0) @binding(4) var<storage, read> run_params: array<f32>;`);
+    }
     push("");
     push(wgslPrelude());
     push("");
@@ -585,6 +628,9 @@ export function compileNetShader(
     push(`  var firings: array<u32, ${Math.max(transitionCount, 1)}>;`);
     push(`  var rng_state: u32 = 0u;`);
     push(`  var status: u32 = 0u;`);
+    for (let index = 0; index < runParameters.length; index++) {
+      push(`  var run_param_${index}: f32 = 0.0;`);
+    }
     push(`  if (in_range) {`);
     for (let index = 0; index < placeCount; index++) {
       push(`    counts[${index}u] = state[base + ${countsOffset + index}u];`);
@@ -595,6 +641,11 @@ export function compileNetShader(
     }
     push(`    rng_state = state[base + ${rngOffset}u];`);
     push(`    status = state[base + ${statusOffset}u];`);
+    for (let index = 0; index < runParameters.length; index++) {
+      push(
+        `    run_param_${index} = run_params[run_index * ${runParameters.length}u + ${index}u];`,
+      );
+    }
     push(`  }`);
     push("");
 
@@ -650,7 +701,7 @@ export function compileNetShader(
         const { statements, derivatives } = emitDynamics(
           dynamicsHir.get(place.id)!,
           place.realFields,
-          parameterValues,
+          emitterParameterValues,
           (fieldName) => {
             const ordinal = fieldIndex(fieldName);
             if (ordinal < 0) {
@@ -836,7 +887,7 @@ export function compileNetShader(
       const lambda = lambdaHir.get(transition.id);
       let fireCondition: string;
       if (lambda) {
-        const emitted = emitLambda(lambda, parameterValues, tokenSlots);
+        const emitted = emitLambda(lambda, emitterParameterValues, tokenSlots);
         compiledLambdas.push(transition.id);
         push(`      var fires = false;`);
         push(`      if (structurally_enabled) {`);
@@ -925,7 +976,7 @@ export function compileNetShader(
         const kernelContext = buildKernelContext(sdcpn, transition, extensions);
         const emittedKernel = emitKernel(
           kernel,
-          parameterValues,
+          emitterParameterValues,
           // The kernel runs in the fire block, where the chosen tokens are named
           // `sel_*` rather than the scan's `cand_*`.
           selectionTokenSlots,
@@ -1142,6 +1193,7 @@ export function compileNetShader(
         rngOffset,
         statusOffset,
         metricIds: metrics.map((metric) => metric.id),
+        runParameterIds: [...runParameters],
         compiledLambdas,
       },
     };

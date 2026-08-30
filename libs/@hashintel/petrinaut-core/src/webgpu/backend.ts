@@ -72,6 +72,11 @@ export type GpuBackendRequest = {
    */
   odeMethod?: GpuOdeMethod;
   framesPerDispatch?: number;
+  /**
+   * Parameters whose value varies per run; the shader reads them from a
+   * per-run buffer instead of baking a literal. See `CompileNetShaderInput`.
+   */
+  runParameters?: readonly string[];
 };
 
 export type GpuBackend = {
@@ -120,6 +125,7 @@ export async function requestGpuExperimentBackend(
     metrics,
     odeMethod = "rk4",
     framesPerDispatch = DEFAULT_GPU_FRAMES_PER_DISPATCH,
+    runParameters,
   } = request;
 
   // Net eligibility is checked before touching the GPU: it is the most likely
@@ -152,6 +158,7 @@ export async function requestGpuExperimentBackend(
     metrics,
     odeMethod,
     extensions,
+    ...(runParameters === undefined ? {} : { runParameters }),
   });
   if (!compiled.ok) {
     return {

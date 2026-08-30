@@ -29,20 +29,26 @@ describe("nextRandom", () => {
     }
   });
 
-  it("draws values in [0, 1) with a healthy upper tail", () => {
-    let seed = 7;
-    let above = 0;
-    const draws = 100_000;
-    for (let step = 0; step < draws; step++) {
-      const [value, newSeed] = nextRandom(seed);
-      seed = newSeed;
-      expect(value).toBeGreaterThanOrEqual(0);
-      expect(value).toBeLessThan(1);
-      if (value > 0.98) above += 1;
-    }
-    // Expect ~2% ± 4 binomial standard deviations.
-    expect(Math.abs(above - draws * 0.02)).toBeLessThanOrEqual(
-      4 * Math.sqrt(draws * 0.02 * 0.98),
-    );
-  });
+  // 100k draws with two assertions each takes ~5s alone and longer under
+  // suite parallelism, past vitest's 5s default.
+  it(
+    "draws values in [0, 1) with a healthy upper tail",
+    { timeout: 30_000 },
+    () => {
+      let seed = 7;
+      let above = 0;
+      const draws = 100_000;
+      for (let step = 0; step < draws; step++) {
+        const [value, newSeed] = nextRandom(seed);
+        seed = newSeed;
+        expect(value).toBeGreaterThanOrEqual(0);
+        expect(value).toBeLessThan(1);
+        if (value > 0.98) above += 1;
+      }
+      // Expect ~2% ± 4 binomial standard deviations.
+      expect(Math.abs(above - draws * 0.02)).toBeLessThanOrEqual(
+        4 * Math.sqrt(draws * 0.02 * 0.98),
+      );
+    },
+  );
 });
