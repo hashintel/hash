@@ -13,6 +13,7 @@ import { Section, SectionList } from "../../../../../components/section";
 import {
   ExperimentMetricTimeline,
   type MetricSize,
+  type PlotCrossfade,
 } from "./experiment-metric-timeline";
 import { formatDurationMs } from "./format-duration";
 import { SweepNavigator } from "./sweep-navigator";
@@ -129,11 +130,6 @@ const metricItemStyle = css({
   borderColor: "neutral.bd.subtle",
   borderRadius: "md",
   backgroundColor: "neutral.s00",
-});
-
-const metricItemStaleStyle = css({
-  opacity: "[0.55]",
-  transition: "[opacity 150ms ease]",
 });
 
 const metricItemLargeStyle = css({
@@ -314,12 +310,12 @@ const ExperimentSummary = ({
 };
 
 /**
- * How the charts bridge the gap while a sweep restreams a new selection.
- * "dim" keeps the previous selection's distributions up at reduced opacity
- * until the first new frames arrive; "hold" keeps them at full opacity;
- * "off" clears the charts to their empty shells.
+ * How the charts bridge a sweep selection change: the previous picture is
+ * snapshotted and persists through the compute gap — dimmed ("dim") or
+ * as-is ("hold") — then fades out over ~300 ms as the new selection's
+ * first frames render. "off" cuts to the empty shells.
  */
-export type RestreamGhost = "dim" | "hold" | "off";
+export type RestreamGhost = PlotCrossfade;
 
 const ExperimentMetrics = ({
   experiment,
@@ -329,28 +325,13 @@ const ExperimentMetrics = ({
   restreamGhost: RestreamGhost;
 }) => {
   const [sizes, setSizes] = useState<Record<string, MetricSize>>({});
-  // The last non-empty frames, held across a restream so a selection change
-  // never blanks the charts (the session clears frames until the new
-  // selection's first batch streams in).
-  const [heldFrames, setHeldFrames] = useState<
-    ExperimentRecord["metricFrames"]
-  >([]);
-  if (
-    experiment.metricFrames.length > 0 &&
-    experiment.metricFrames !== heldFrames
-  ) {
-    setHeldFrames(experiment.metricFrames);
-  }
-  const ghosting =
-    experiment.metricFrames.length === 0 &&
-    heldFrames.length > 0 &&
-    restreamGhost !== "off";
-  const metricFrameGroups = groupMetricFramesByMetric(
-    ghosting ? heldFrames : experiment.metricFrames,
-  );
+  const metricFrameGroups = groupMetricFramesByMetric(experiment.metricFrames);
   const labelById = new Map(
     experiment.metricSpecs.map((spec) => [spec.id, spec.label]),
   );
+  // What the frames represent: a selection change crossfades the previous
+  // picture inside each plot instead of cutting to the sparse new stream.
+  const contentEpoch = JSON.stringify(experiment.sweep?.selection ?? null);
 
   return (
     <div className={metricGridStyle}>
@@ -365,13 +346,14 @@ const ExperimentMetrics = ({
                 className={cx(
                   metricItemStyle,
                   size === "large" && metricItemLargeStyle,
-                  ghosting && restreamGhost === "dim" && metricItemStaleStyle,
                 )}
               >
                 <ExperimentMetricTimeline
                   frames={frames}
                   label={labelById.get(latestFrame.metricId)}
                   timeDomain={[0, experiment.maxTime]}
+                  contentEpoch={contentEpoch}
+                  crossfade={restreamGhost}
                   displaySize={size}
                   onDisplaySizeChange={(nextSize) =>
                     setSizes((previous) => ({
@@ -399,6 +381,8 @@ const ExperimentMetrics = ({
                   frames={[]}
                   label={spec.label}
                   timeDomain={[0, experiment.maxTime]}
+                  contentEpoch={contentEpoch}
+                  crossfade={restreamGhost}
                   displaySize={size}
                   onDisplaySizeChange={(nextSize) =>
                     setSizes((previous) => ({
