@@ -6,7 +6,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  cafeQueue,
   deploymentPipelineSDCPN,
+  dronePatrol,
   probabilisticSatellitesSDCPN,
   productionMachines,
   sirModel,
@@ -27,6 +29,8 @@ const EXAMPLES: [string, SDCPN][] = [
   ["deployment-pipeline", deploymentPipelineSDCPN.petriNetDefinition],
   ["satellites-launcher", probabilisticSatellitesSDCPN.petriNetDefinition],
   ["sir-model", sirModel.petriNetDefinition],
+  ["cafe-queue", cafeQueue.petriNetDefinition],
+  ["drone-patrol", dronePatrol.petriNetDefinition],
   [
     "supply-chain-with-disruption",
     supplyChainWithDisruption.petriNetDefinition,
