@@ -23,24 +23,24 @@
     "*.css"
   ],
   "main": "dist/main.js",
-  "types": "dist/main.d.d.ts",
+  "types": "dist/main.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/main.d.d.ts",
+      "types": "./dist/main.d.ts",
       "default": "./dist/main.js"
     },
     "./react": {
-      "types": "./dist/react.d.d.ts",
+      "types": "./dist/react.d.ts",
       "default": "./dist/react.js"
     },
     "./ui": {
-      "types": "./dist/ui.d.d.ts",
+      "types": "./dist/ui.d.ts",
       "default": "./dist/ui.js"
     },
     "./styles.css": "./dist/main.css",
     "./dist/main.css": "./dist/main.css",
     "./panda-preset": {
-      "types": "./dist/panda-preset.d.d.ts",
+      "types": "./dist/panda-preset.d.ts",
       "default": "./dist/panda-preset.js"
     },
     "./panda.buildinfo.json": "./dist/panda.buildinfo.json",
@@ -100,10 +100,10 @@
     "oxlint-tsgolint": "0.22.1",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "rolldown": "1.1.2",
-    "rolldown-plugin-dts": "0.25.0",
+    "rolldown": "1.2.6",
+    "rolldown-plugin-dts": "0.28.3",
     "storybook": "10.4.6",
-    "vite": "8.1.0",
+    "vite": "8.2.2",
     "vitest": "4.1.10"
   },
   "peerDependencies": {

@@ -36,8 +36,6 @@ export default defineConfig(({ command }) => ({
     },
     rolldownOptions: {
       external: [
-        // Peer (optional): only the ./hir compiler entry needs it.
-        "typescript",
         "elkjs",
         "immer",
         "js-yaml",
@@ -49,6 +47,12 @@ export default defineConfig(({ command }) => ({
     sourcemap: true,
     minify: true,
     emptyOutDir: true,
+  },
+
+  // rolldown-plugin-dts emits declaration modules that Vite must not
+  // transform as JavaScript. Setting this replaces Vite's default exclusions.
+  oxc: {
+    exclude: [/\.js$/, /\.d\.[cm]?ts$/],
   },
 
   define: {
@@ -71,15 +75,11 @@ export default defineConfig(({ command }) => ({
 
   plugins: [
     esmExternalRequirePlugin({
+      // Peer (optional): only the ./hir compiler entry needs it.
       external: ["typescript"],
     }),
 
-    command === "build" &&
-      dts({ tsgo: true }).map((plugin) =>
-        plugin.name.endsWith("fake-js")
-          ? { ...plugin, enforce: "pre" }
-          : plugin,
-      ),
+    command === "build" && dts({ generator: "tsgo" }),
   ],
 
   experimental: {

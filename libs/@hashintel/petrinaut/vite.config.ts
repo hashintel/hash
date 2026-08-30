@@ -2,14 +2,16 @@ import react from "@vitejs/plugin-react";
 import { dts } from "rolldown-plugin-dts";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
 
+const declarationFilePattern = /\.d\.[cm]?ts$/;
+
 /**
  * Library build config
  */
 export default defineConfig(({ command }) => ({
   build: {
     lib: {
-      // Three entry points: the legacy `main` (back-compat), plus the
-      // React/UI split per RFC 0001. Each emits its own JS + dts bundle.
+      // Keep the legacy `main` entry for back-compat alongside the React/UI
+      // split from RFC 0001 and the preset consumed by host Panda pipelines.
       entry: {
         main: "src/main.ts",
         react: "src/react/index.ts",
@@ -41,18 +43,18 @@ export default defineConfig(({ command }) => ({
         // pushes CJS→ESM interop to the consumer's bundler.
         /^use-sync-external-store(\/.*)?$/,
       ],
-      output: {
-        globals: {
-          react: "React",
-          "react-dom": "ReactDOM",
-        },
-      },
     },
     sourcemap: true,
     minify: true,
     // Vite 8 defaults to LightningCSS which is still unstable.
     // e.g. https://github.com/parcel-bundler/lightningcss/issues/695
     cssMinify: "esbuild",
+  },
+
+  // rolldown-plugin-dts emits declaration modules that Vite must not
+  // transform as JavaScript. Setting this replaces Vite's default exclusions.
+  oxc: {
+    exclude: [/\.js$/, declarationFilePattern],
   },
 
   plugins: [
@@ -72,7 +74,7 @@ export default defineConfig(({ command }) => ({
       exclude: [
         /[\\/]node_modules[\\/]/,
         /[\\/]libs[\\/]@hashintel[\\/][^\\/]+[\\/]dist[\\/]/,
-        /\.d\.ts$/,
+        declarationFilePattern,
         /^0rolldown\/runtime\.js$/,
       ],
       compiler: {
@@ -82,13 +84,7 @@ export default defineConfig(({ command }) => ({
       },
     }),
 
-    command === "build" &&
-      dts({ tsgo: true }).map((plugin) =>
-        // Ensure runs before Vite's native TypeScript transform
-        plugin.name.endsWith("fake-js")
-          ? { ...plugin, enforce: "pre" }
-          : plugin,
-      ),
+    command === "build" && dts({ generator: "tsgo" }),
   ],
 
   experimental: {
