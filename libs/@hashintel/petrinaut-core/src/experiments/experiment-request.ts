@@ -17,6 +17,20 @@ import type { MonteCarloMetricSpec } from "../simulation/monte-carlo/metrics/typ
 import type { MonteCarloRunConfig } from "../simulation/monte-carlo/types";
 import type { SDCPN } from "../types/sdcpn";
 
+/**
+ * Per-run numeric parameter values, run-major.
+ *
+ * Every run carries every id: `values[run * ids.length + i]` is `ids[i]`'s
+ * value for `run`, and `values.length` equals `runCount × ids.length`.
+ * Backends lay per-run values out in one uniform buffer, so a ragged form
+ * is unrepresentable by construction.
+ */
+export type ExperimentRunPlan = {
+  /** Overridden net parameter variable names, sorted. */
+  readonly ids: readonly string[];
+  readonly values: Float64Array;
+};
+
 export type ExperimentRequest = {
   readonly sdcpn: SDCPN;
   readonly extensions?: PetrinautExtensionSettings;
@@ -28,11 +42,20 @@ export type ExperimentRequest = {
   readonly runCount: number;
   /**
    * Per-run overrides, indexed by global run index; `runs.length` must equal
-   * `runCount` when present. A sweep over parameter ranges uses this to give
-   * every run its own drawn parameter values. Backends whose compiled form
-   * bakes parameters in (the WebGPU shader) refuse requests that carry it.
+   * `runCount` when present. Carries what `runPlan` cannot — per-run seeds,
+   * markings, non-numeric values. At most one of `runs` and `runPlan` may be
+   * present.
    */
   readonly runs?: readonly MonteCarloRunConfig[];
+  /**
+   * Per-run numeric parameter values as one typed array — the compact form
+   * of `runs` for the only per-run override sweeps produce. A million runs
+   * as `runs` is a million records of stringified numbers; as a plan it is
+   * one buffer the GPU backend uploads directly and the CPU backend expands
+   * into run configs at the worker-pool boundary. At most one of `runs` and
+   * `runPlan` may be present.
+   */
+  readonly runPlan?: ExperimentRunPlan;
   /**
    * Metrics to record.
    *

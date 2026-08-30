@@ -26,7 +26,10 @@ export type {
   ExperimentBackendRegistration,
   ExperimentSelectionFailure,
 } from "./experiments/experiment-backend";
-export type { ExperimentRequest } from "./experiments/experiment-request";
+export type {
+  ExperimentRequest,
+  ExperimentRunPlan,
+} from "./experiments/experiment-request";
 export {
   selectExperimentBackend,
   type SelectExperimentBackendInput,

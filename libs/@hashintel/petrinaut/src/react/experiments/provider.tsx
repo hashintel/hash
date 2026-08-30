@@ -54,7 +54,7 @@ import {
   fullSweepSelection,
   type ExperimentParameterAxis,
 } from "./parameter-grid";
-import { translateRangeRuns } from "./sweep-run-overrides";
+import { translateRangeDraws } from "./sweep-run-overrides";
 import {
   createSweepSession,
   type SweepSession,
@@ -447,7 +447,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       override?: Partial<
         Pick<
           ExperimentRequest,
-          "parameterValues" | "initialMarking" | "seed" | "runCount" | "runs"
+          | "parameterValues"
+          | "initialMarking"
+          | "seed"
+          | "runCount"
+          | "runs"
+          | "runPlan"
         >
       >;
     }) => Promise<ExperimentRequest>;
@@ -455,11 +460,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       swept: Readonly<Record<string, number>>,
     ) => Extract<CompileScenarioOutcome, { ok: true }>;
     /**
-     * Values-only compile for per-run draws: skips the initial state, which
-     * per-run translation never reads (per-run markings do not exist).
+     * Numbers-only compile for per-run draws: skips the initial state, which
+     * per-run translation never reads (per-run markings do not exist), and
+     * the string conversion, which typed-array plans never want.
      */
-    compileRunDraws: (swept: Readonly<Record<string, number>>) => {
-      result: { parameterValues: Record<string, string> };
+    compileRunNumbers: (swept: Readonly<Record<string, number>>) => {
+      parameters: Readonly<Record<string, number | boolean>>;
     };
     /** Net parameter variable names, for direct-override passthrough. */
     netParameterVariableNames: ReadonlySet<string>;
@@ -470,7 +476,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       registrations,
       buildRequest,
       compileForValues,
-      compileRunDraws,
+      compileRunNumbers,
       netParameterVariableNames,
     } = options;
     const experimentId = experiment.id;
@@ -501,7 +507,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       publishThrottleMs: 40,
       instantiateBatch: async ({
         parameterValues,
-        runs,
+        draws,
         seed,
         runCount,
         background,
@@ -510,15 +516,17 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         const compiled = compileForValues(parameterValues);
         // A run's draws are scenario values; the simulation reads net
         // parameters. Re-evaluate the scenario's overrides at each run's
-        // draws so every backend receives net-keyed per-run values.
-        const translatedRuns =
-          runs === undefined
+        // draws so every backend receives net-keyed per-run values — as a
+        // typed-array plan on the common numeric path, as run records when
+        // a changed value cannot ride one.
+        const translated =
+          draws === undefined
             ? undefined
-            : translateRangeRuns({
-                runs,
+            : translateRangeDraws({
+                draws,
                 midValues: parameterValues,
-                baseParameterValues: compiled.result.parameterValues,
-                compileForValues: compileRunDraws,
+                baseParameters: compileRunNumbers(parameterValues).parameters,
+                compileRunNumbers,
                 netParameterVariableNames,
               });
         const override = {
@@ -526,7 +534,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           initialMarking: compiled.result.initialState,
           seed,
           runCount,
-          ...(translatedRuns === undefined ? {} : { runs: translatedRuns }),
+          ...(translated === undefined
+            ? {}
+            : translated.kind === "plan"
+              ? { runPlan: translated.plan }
+              : { runs: translated.runs }),
         };
 
         // The surface's background sampling can start before the navigator's
@@ -676,9 +688,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           swept: Readonly<Record<string, number>>,
         ) => Extract<CompileScenarioOutcome, { ok: true }>)
       | null = null;
-    let compileRunDraws:
+    let compileRunNumbers:
       | ((swept: Readonly<Record<string, number>>) => {
-          result: { parameterValues: Record<string, string> };
+          parameters: Readonly<Record<string, number | boolean>>;
         })
       | null = null;
 
@@ -729,8 +741,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         }
         return compiled;
       };
-      compileRunDraws = (swept) => {
-        const compiled = preparedCompiler.compileParameterValues({
+      compileRunNumbers = (swept) => {
+        const compiled = preparedCompiler.compileParameterNumbers({
           ...parsedScenarioValues.values,
           ...swept,
         });
@@ -743,7 +755,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
               .join("\n"),
           );
         }
-        return { result: { parameterValues: compiled.parameterValues } };
+        return { parameters: compiled.parameters };
       };
 
       const compiledScenario = compileForValues({});
@@ -928,14 +940,14 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             ),
         });
 
-        if (axes.length > 0 && compileForValues && compileRunDraws) {
+        if (axes.length > 0 && compileForValues && compileRunNumbers) {
           startSweepSession({
             experiment,
             axes,
             registrations,
             buildRequest,
             compileForValues,
-            compileRunDraws,
+            compileRunNumbers,
             netParameterVariableNames: new Set(
               compiledExperimentSdcpn.parameters.map(
                 (parameter) => parameter.variableName,
