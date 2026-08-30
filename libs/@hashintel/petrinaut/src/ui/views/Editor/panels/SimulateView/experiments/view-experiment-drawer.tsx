@@ -131,6 +131,11 @@ const metricItemStyle = css({
   backgroundColor: "neutral.s00",
 });
 
+const metricItemStaleStyle = css({
+  opacity: "[0.55]",
+  transition: "[opacity 150ms ease]",
+});
+
 const metricItemLargeStyle = css({
   gridColumn: "[1 / -1]",
 });
@@ -310,46 +315,103 @@ const ExperimentSummary = ({
   );
 };
 
+/**
+ * How the charts bridge the gap while a sweep restreams a new selection.
+ * "dim" keeps the previous selection's distributions up at reduced opacity
+ * until the first new frames arrive; "hold" keeps them at full opacity;
+ * "off" clears the charts to their empty shells.
+ */
+export type RestreamGhost = "dim" | "hold" | "off";
+
 const ExperimentMetrics = ({
   experiment,
+  restreamGhost,
 }: {
   experiment: ExperimentRecord;
+  restreamGhost: RestreamGhost;
 }) => {
   const [sizes, setSizes] = useState<Record<string, MetricSize>>({});
-  const metricFrameGroups = groupMetricFramesByMetric(experiment.metricFrames);
-
-  if (metricFrameGroups.length === 0) {
-    return null;
+  // The last non-empty frames, held across a restream so a selection change
+  // never blanks the charts (the session clears frames until the new
+  // selection's first batch streams in).
+  const [heldFrames, setHeldFrames] = useState<
+    ExperimentRecord["metricFrames"]
+  >([]);
+  if (
+    experiment.metricFrames.length > 0 &&
+    experiment.metricFrames !== heldFrames
+  ) {
+    setHeldFrames(experiment.metricFrames);
   }
+  const ghosting =
+    experiment.metricFrames.length === 0 &&
+    heldFrames.length > 0 &&
+    restreamGhost !== "off";
+  const metricFrameGroups = groupMetricFramesByMetric(
+    ghosting ? heldFrames : experiment.metricFrames,
+  );
+  const labelById = new Map(
+    experiment.metricSpecs.map((spec) => [spec.id, spec.label]),
+  );
 
   return (
     <div className={metricGridStyle}>
-      {metricFrameGroups.map((frames) => {
-        const latestFrame = frames.at(-1)!;
-        const size = sizes[latestFrame.metricId] ?? "small";
+      {metricFrameGroups.length > 0
+        ? metricFrameGroups.map((frames) => {
+            const latestFrame = frames.at(-1)!;
+            const size = sizes[latestFrame.metricId] ?? "small";
 
-        return (
-          <div
-            key={latestFrame.metricId}
-            className={cx(
-              metricItemStyle,
-              size === "large" && metricItemLargeStyle,
-            )}
-          >
-            <ExperimentMetricTimeline
-              frames={frames}
-              timeDomain={[0, experiment.maxTime]}
-              displaySize={size}
-              onDisplaySizeChange={(nextSize) =>
-                setSizes((previous) => ({
-                  ...previous,
-                  [latestFrame.metricId]: nextSize,
-                }))
-              }
-            />
-          </div>
-        );
-      })}
+            return (
+              <div
+                key={latestFrame.metricId}
+                className={cx(
+                  metricItemStyle,
+                  size === "large" && metricItemLargeStyle,
+                  ghosting && restreamGhost === "dim" && metricItemStaleStyle,
+                )}
+              >
+                <ExperimentMetricTimeline
+                  frames={frames}
+                  label={labelById.get(latestFrame.metricId)}
+                  timeDomain={[0, experiment.maxTime]}
+                  displaySize={size}
+                  onDisplaySizeChange={(nextSize) =>
+                    setSizes((previous) => ({
+                      ...previous,
+                      [latestFrame.metricId]: nextSize,
+                    }))
+                  }
+                />
+              </div>
+            );
+          })
+        : // No frames have ever arrived: stable shells per configured
+          // metric, so the first data causes no layout shift.
+          experiment.metricSpecs.map((spec) => {
+            const size = sizes[spec.id] ?? "small";
+            return (
+              <div
+                key={spec.id}
+                className={cx(
+                  metricItemStyle,
+                  size === "large" && metricItemLargeStyle,
+                )}
+              >
+                <ExperimentMetricTimeline
+                  frames={[]}
+                  label={spec.label}
+                  timeDomain={[0, experiment.maxTime]}
+                  displaySize={size}
+                  onDisplaySizeChange={(nextSize) =>
+                    setSizes((previous) => ({
+                      ...previous,
+                      [spec.id]: nextSize,
+                    }))
+                  }
+                />
+              </div>
+            );
+          })}
     </div>
   );
 };
@@ -358,10 +420,13 @@ export const ViewExperimentDrawer = ({
   open,
   onClose,
   experiment,
+  restreamGhost = "dim",
 }: {
   open: boolean;
   onClose: () => void;
   experiment: ExperimentRecord | undefined;
+  /** Chart behaviour while a sweep restreams; see {@link RestreamGhost}. */
+  restreamGhost?: RestreamGhost;
 }) => {
   const { cancelExperiment, removeExperiment, setSweepSelection } =
     use(ExperimentsContext);
@@ -439,10 +504,13 @@ export const ViewExperimentDrawer = ({
               <SweepSurface experiment={experiment} />
             </Section>
           ) : null}
-          {experiment.metricFrames.length > 0 ? (
+          {experiment.metricSpecs.length > 0 ? (
             <Section title="Metrics" fillHeight>
               <div className={metricsScrollStyle}>
-                <ExperimentMetrics experiment={experiment} />
+                <ExperimentMetrics
+                  experiment={experiment}
+                  restreamGhost={restreamGhost}
+                />
               </div>
             </Section>
           ) : null}
