@@ -30,7 +30,7 @@
 
 import { use, useEffect, useRef, useState } from "react";
 
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocPlaceStateFor,
   adHocSlotKey,
@@ -326,10 +326,9 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
           cell handler; open text fields and Monaco pass through untouched. */}
         <div
           ref={rootRef}
-          className={className}
+          className={cx(focusClearanceStyle, className)}
           role="group"
           aria-label="Ad-hoc scenario definition"
-          className={focusClearanceStyle}
           onKeyDownCapture={handleKeyDown}
           onPointerDownCapture={clearance.onPointerDownCapture}
           onFocusCapture={clearance.onFocusCapture}
