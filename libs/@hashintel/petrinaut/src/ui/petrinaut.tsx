@@ -22,10 +22,14 @@ import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
 import { EditorView } from "./views/Editor/editor-view";
 
+// `clip`, not `hidden`: a hidden-overflow box is still programmatically
+// scrollable, and focusing an element the canvas transform pushed past the
+// edge (a value editor opening) scrolled the whole app sideways with no
+// way back. `clip` forbids all scrolling of the box.
 const editorRootStyle = css({
   position: "relative",
   height: "full",
-  overflow: "hidden",
+  overflow: "clip",
   backgroundColor: "neutral.s25",
 });
 
