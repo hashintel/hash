@@ -1,0 +1,78 @@
+---
+title: GPU histogram sizing
+description: Why metric histograms have a bin ceiling, how the bin count is chosen per shader, and what could widen it further.
+sidebar_order: 31
+attachTo: core.webgpu
+---
+
+The GPU backend never stores per-run metric samples. Each frame, every
+workgroup reduces its runs' place counts into a shared histogram — one bin per
+integer token count — and merges it into a global buffer
+([GPU backend](doc:simulation/gpu-backend)). That fixed layout is what makes the
+memory static and the per-chunk streaming readback possible, and it puts a hard
+ceiling on the counts a chart can distinguish: a count at or past the last bin
+is clamped into it.
+
+## The problem
+
+The bin count was a fixed constant, 256. That produced three distinct failures:
+
+- A sampled count of 256 or more landed in the top bin. The distribution was
+  wrong above 255, reported only by a `saturatedSamples` warning after the run.
+- A sampled place whose initial marking was already 256 or more was refused,
+  because its chart would have been a flat line at the ceiling from frame 0.
+- Seventeen or more metrics made `local_hist` — `bins × metrics` u32 atomics in
+  workgroup storage — exceed the 16 KB `maxComputeWorkgroupStorageSize` that
+  WebGPU guarantees, and pipeline creation failed.
+
+The constant was simultaneously too small for populations and too large for a
+typed place whose capacity caps its count at 16: the per-frame zero and merge
+loops walked 256 slots per metric either way.
+
+## The current solution
+
+`histogramBinCount` in `compile-net-shader.ts` sizes the histogram per shader
+from two inputs, and the result is baked into the WGSL and carried on
+`CompiledNetShader.histogramBins` so the host decodes with the same value.
+
+![How the bin count is chosen](@diagrams/gpu-histogram-sizing.svg)
+
+- **The workgroup-storage budget divides among metrics.**
+  `bins = min(1024, ⌊16384 / (4 × metricCount)⌋)`. Up to four metrics get the
+  full 1024 bins — four times the old range. More metrics get proportionally
+  fewer bins each, and `local_hist` fits the 16 KB budget by construction, so
+  the seventeen-metric pipeline failure cannot occur.
+- **A known count ceiling shrinks the histogram to fit it.** A typed place's
+  count cannot exceed its slot capacity, and a declared capacity on any place
+  is enforced by the shader's eligibility constraints. When every sampled
+  place has such a ceiling, `bins = ceiling + 1` — capacity 16 gets 17 bins,
+  and the per-frame loops shrink accordingly.
+
+The budget is the WebGPU _baseline_ limit rather than the adapter's:
+`requestGpuDevice` raises only the buffer limits, so the created device sits at
+the 16 KB default anyway, and sizing against the baseline keeps the shader
+deterministic and device-independent.
+
+1024 is a cap, not a target. The global histogram buffer and the host decode
+are linear in the bin count — 600 frames × 1024 bins × 3 metrics is 7.4 MB —
+and the merge loop skips empty slots, so unused range costs little; the cap
+mainly bounds the decode and the buffer for long experiments.
+
+Saturation handling is unchanged: the shader clamps counts into the top bin,
+the decode counts what landed there, and a non-zero total produces a warning
+that names the ceiling and recommends the CPU for an exact distribution.
+
+## Potential future solutions
+
+- **Range binning.** A host-declared window maps `bin = (count − lo) × bins /
+(hi − lo)`. Counts in the tens of thousands become representable at reduced
+  resolution. This changes bin semantics from exact counts to intervals, so
+  the decode and the charts must carry the window.
+- **Exact readback for small run counts.** Below a few hundred runs the raw
+  per-run counts are smaller than the histogram; an opt-in exact mode would
+  remove the ceiling entirely where it is cheapest to do so.
+- **Structural bounds.** P-invariants over the incidence matrix give count
+  ceilings for conservative nets with no declared capacities — an SIR
+  population is bounded by its initial total. That would size bins exactly for
+  the common population models and lift the initial-marking refusal, without
+  the modeler declaring anything.

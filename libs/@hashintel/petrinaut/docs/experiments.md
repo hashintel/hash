@@ -86,7 +86,7 @@ The switch is greyed out when the current model cannot run on the GPU; hover it 
 
 The GPU backend handles a **subset** of nets, and it tells you when it cannot take one rather than guessing. It needs:
 
-- **fewer than 256 tokens in any place a metric measures.** Metrics are reduced on the device into a histogram with one bin per token count, so counts of 256 or more cannot be told apart. A net whose measured place already starts above that is refused; one that grows past it mid-run warns you that values above 255 are clamped;
+- **token counts that fit the metric histogram.** Metrics are reduced on the device into a histogram with one bin per token count. Up to four metrics get 1,024 bins each; more metrics share the same fixed budget, so each gets fewer. When every measured place declares a [token capacity](drawing-a-net.md#token-capacity), the histogram shrinks to fit the largest of them instead (it never grows past the shared budget). A net whose measured place already starts at or above the bin count is refused; one that grows past it mid-run warns you that values above the ceiling are clamped;
 - every place that holds typed tokens to declare a [token capacity](drawing-a-net.md#token-capacity), so buffer sizes are known up front;
 - no `string` or `uuid` token attributes, which need more than the 32 bits WebGPU offers;
 - **arcs consuming at most two typed tokens per place.** A condition that reads token attributes runs on the GPU at weight 1 and at weight 2 — a pairwise condition like a collision test is scanned over every pair — but not beyond;

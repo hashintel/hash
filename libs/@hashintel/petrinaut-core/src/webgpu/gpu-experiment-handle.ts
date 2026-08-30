@@ -19,7 +19,6 @@ import {
 } from "../simulation/monte-carlo/runtime/experiment-stores";
 import { getMaxFrameNumber } from "../simulation/monte-carlo/time";
 import { requestGpuExperimentBackend } from "./backend";
-import { GPU_HISTOGRAM_BINS } from "./compile-net-shader";
 import { toGpuMetricFrames, toGpuMetricSpecs } from "./gpu-metric-frames";
 import { runGpuExperiment } from "./runner";
 
@@ -411,7 +410,7 @@ export async function createGpuMonteCarloExperiment(
       // The top bin saturates, so the distribution is wrong above it. Saying so
       // beats presenting a clipped distribution as a result.
       config.onWarning?.(
-        `${outcome.result.saturatedSamples} samples reached the histogram's largest bin (${GPU_HISTOGRAM_BINS - 1} tokens) and were clamped there, so values above it are not accurate. Run on the CPU for an exact distribution.`,
+        `${outcome.result.saturatedSamples} samples reached the histogram's largest bin (${backend.shader.histogramBins - 1} tokens) and were clamped there, so values above it are not accurate. Run on the CPU for an exact distribution.`,
       );
     }
 

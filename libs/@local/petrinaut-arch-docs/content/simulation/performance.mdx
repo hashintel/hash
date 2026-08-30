@@ -382,7 +382,8 @@ Two things were checked rather than assumed:
 
 - **f32 suffices for unranking**: simulating f32 rounding and round-tripping
   every pair is exact through `n = 4096`, first mismatch at `n = 5793`; the
-  metric histogram already caps a measured place at 256 tokens, a ~16× margin.
+  eligibility gate's `maxBytesPerRun` already caps a typed place's capacity
+  around 1024 single-word tokens, a ~4× margin.
 - **Ordering is the real constraint, not throughput**: the engine draws one
   acceptance uniform per transition per frame and fires the **lowest-indexed**
   passing combination, not the one with the largest rate. The GPU scan

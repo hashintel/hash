@@ -12,7 +12,7 @@
  * Instead the host dispatches a chunk of frames, and results come back as
  * per-frame histograms accumulated on the device.
  */
-import { GPU_HISTOGRAM_BINS, GPU_WORKGROUP_SIZE } from "./compile-net-shader";
+import { GPU_WORKGROUP_SIZE } from "./compile-net-shader";
 import { isWebGpuAvailable } from "./support";
 
 import type { AbortSignalLike } from "../environment";
@@ -444,26 +444,27 @@ function decodeHistogramFrames(options: {
   firstFrame: number;
   frameCount: number;
   metricIds: readonly string[];
+  /** Bins per metric per frame — the compiled shader's `histogramBins`. */
+  histogramBins: number;
 }): { frames: GpuHistogramFrame[]; saturatedSamples: number } {
-  const { data, firstFrame, frameCount, metricIds } = options;
+  const { data, firstFrame, frameCount, metricIds, histogramBins } = options;
   const metricCount = metricIds.length;
   const frames: GpuHistogramFrame[] = [];
   let saturatedSamples = 0;
   for (let frame = 0; frame < frameCount; frame++) {
     for (const [metricIndex, metricId] of metricIds.entries()) {
       const offset =
-        frame * GPU_HISTOGRAM_BINS * metricCount +
-        metricIndex * GPU_HISTOGRAM_BINS;
+        frame * histogramBins * metricCount + metricIndex * histogramBins;
       const bins: [number, number][] = [];
       let sampleCount = 0;
-      for (let bin = 0; bin < GPU_HISTOGRAM_BINS; bin++) {
+      for (let bin = 0; bin < histogramBins; bin++) {
         const frequency = data[offset + bin] ?? 0;
         if (frequency > 0) {
           bins.push([bin, frequency]);
           sampleCount += frequency;
         }
       }
-      saturatedSamples += data[offset + GPU_HISTOGRAM_BINS - 1] ?? 0;
+      saturatedSamples += data[offset + histogramBins - 1] ?? 0;
       frames.push({
         frameNumber: firstFrame + frame,
         metricId,
@@ -509,7 +510,10 @@ export async function runGpuExperiment(
 
   const stateWords = shader.stateWordsPerRun * runCount;
   const stateBytes = stateWords * 4;
-  const histWords = Math.max(1, frameLimit * GPU_HISTOGRAM_BINS * metricCount);
+  const histWords = Math.max(
+    1,
+    frameLimit * shader.histogramBins * metricCount,
+  );
   const histBytes = histWords * 4;
   const summaryWords = Math.max(1, shader.summaryWordsPerRun * runCount);
   const summaryBytes = summaryWords * 4;
@@ -565,7 +569,7 @@ export async function runGpuExperiment(
   // allocated when the caller wants frames streamed.
   const chunkFrameCapacity = Math.min(framesPerDispatch, frameLimit);
   const chunkHistBytes =
-    chunkFrameCapacity * GPU_HISTOGRAM_BINS * metricCount * 4;
+    chunkFrameCapacity * shader.histogramBins * metricCount * 4;
   const chunkReadback =
     request.onFrames === undefined || metricCount === 0
       ? null
@@ -726,11 +730,11 @@ export async function runGpuExperiment(
         // its dispatch retired, so the chunk's range can be read while later
         // dispatches queue.
         const chunkFrames = framesDone - baseFrame;
-        const chunkBytes = chunkFrames * GPU_HISTOGRAM_BINS * metricCount * 4;
+        const chunkBytes = chunkFrames * shader.histogramBins * metricCount * 4;
         const copyEncoder = device.createCommandEncoder();
         copyEncoder.copyBufferToBuffer(
           histBuffer,
-          baseFrame * GPU_HISTOGRAM_BINS * metricCount * 4,
+          baseFrame * shader.histogramBins * metricCount * 4,
           chunkReadback,
           0,
           chunkBytes,
@@ -742,6 +746,7 @@ export async function runGpuExperiment(
           firstFrame: baseFrame + 1,
           frameCount: chunkFrames,
           metricIds: shader.metricIds,
+          histogramBins: shader.histogramBins,
         });
         chunkReadback.unmap();
         const live = decoded.frames.filter((frame) => frame.sampleCount > 0);
@@ -824,9 +829,9 @@ export async function runGpuExperiment(
     outer: for (let frame = frameLimit - 1; frame >= 0; frame--) {
       for (let metricIndex = 0; metricIndex < metricCount; metricIndex++) {
         const offset =
-          frame * GPU_HISTOGRAM_BINS * metricCount +
-          metricIndex * GPU_HISTOGRAM_BINS;
-        for (let bin = 0; bin < GPU_HISTOGRAM_BINS; bin++) {
+          frame * shader.histogramBins * metricCount +
+          metricIndex * shader.histogramBins;
+        for (let bin = 0; bin < shader.histogramBins; bin++) {
           if ((histogram[offset + bin] ?? 0) > 0) {
             decodedFrameLimit = frame + 1;
             break outer;
@@ -840,6 +845,7 @@ export async function runGpuExperiment(
       firstFrame: 1,
       frameCount: decodedFrameLimit,
       metricIds: shader.metricIds,
+      histogramBins: shader.histogramBins,
     });
 
     // Last use of both views; everything returned below is host-owned.
