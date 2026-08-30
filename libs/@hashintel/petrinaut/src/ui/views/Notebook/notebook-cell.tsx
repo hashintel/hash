@@ -1297,7 +1297,8 @@ const EquationBody: React.FC<{
   );
 };
 
-const HighlightedName: React.FC<{
+/** Renders `name` with the fuzzy-matched characters marked. */
+export const HighlightedName: React.FC<{
   name: string;
   matchIndices: number[] | null;
 }> = ({ name, matchIndices }) => {

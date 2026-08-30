@@ -11,6 +11,7 @@ import { focusLands } from "../../worksheet/focus-flow";
 import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
 import { useFocusStops } from "../../worksheet/use-focus-stops";
 import { CELL_KIND_PLURAL_LABELS, CELL_KINDS } from "./cell-kinds";
+import { CommandPalette } from "./command-palette";
 import { CONNECTION_GUTTER_WIDTH, ConnectionLines } from "./connection-lines";
 import { GraphExplorer } from "./graph-explorer";
 import { buildCycleMembership, findCycleGroups } from "./net-cycles";
@@ -35,6 +36,7 @@ import { orderCellsTopologically } from "./notebook-order";
 import { useJumpHistory } from "./use-jump-history";
 
 import type { FocusStop } from "../../worksheet/use-focus-stops";
+import type { PaletteAction } from "./command-palette";
 import type { InitialPlaceGroup } from "./net-siphons";
 import type {
   NodeRef,
@@ -166,6 +168,7 @@ const NotebookViewContent: React.FC = () => {
     () => new Set(),
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [isPaletteOpen, setPaletteOpen] = useState(false);
   const [explorerWidth, setExplorerWidth] = useState(DEFAULT_EXPLORER_WIDTH);
   const [cellOrder, setCellOrder] = useState<CellOrder>("document");
   const [focusOnSelection, setFocusOnSelection] = useState(false);
@@ -441,22 +444,33 @@ const NotebookViewContent: React.FC = () => {
     }
   };
 
-  // Alt+←/→ retrace jumps from anywhere in the view, browser-style. Inputs
-  // and the code editors keep the combination (word-wise caret movement on
-  // some platforms).
-  const handleHistoryKey = useEffectEvent((event: KeyboardEvent) => {
+  // View-level shortcuts. ⌘K opens the palette from anywhere except a code
+  // editor (Monaco owns ⌘K chords); Alt+←/→ retrace jumps browser-style,
+  // except in inputs and editors (word-wise caret movement on some
+  // platforms).
+  const handleViewShortcut = useEffectEvent((event: KeyboardEvent) => {
+    const target = event.target as HTMLElement;
+    const inCodeEditor = target.closest(".monaco-editor") !== null;
+    if (
+      (event.metaKey || event.ctrlKey) &&
+      event.key.toLowerCase() === "k" &&
+      !inCodeEditor
+    ) {
+      event.preventDefault();
+      setPaletteOpen((open) => !open);
+      return;
+    }
     if (
       !event.altKey ||
       (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
     ) {
       return;
     }
-    const target = event.target as HTMLElement;
     if (
       target.tagName === "INPUT" ||
       target.tagName === "TEXTAREA" ||
       target.isContentEditable ||
-      target.closest(".monaco-editor") !== null
+      inCodeEditor
     ) {
       return;
     }
@@ -468,8 +482,8 @@ const NotebookViewContent: React.FC = () => {
     }
   });
   useEffect(() => {
-    window.addEventListener("keydown", handleHistoryKey);
-    return () => window.removeEventListener("keydown", handleHistoryKey);
+    window.addEventListener("keydown", handleViewShortcut);
+    return () => window.removeEventListener("keydown", handleViewShortcut);
   }, []);
 
   const navigateToNode = (node: NodeRef) => {
@@ -502,6 +516,54 @@ const NotebookViewContent: React.FC = () => {
     searchInputRef.current?.focus();
     searchInputRef.current?.select();
   };
+
+  const paletteActions: PaletteAction[] = [
+    {
+      id: "toggle-order",
+      label: "Toggle cell order",
+      hint:
+        cellOrder === "document"
+          ? "document → topological"
+          : "topological → document",
+      run: () =>
+        setCellOrder(cellOrder === "document" ? "topological" : "document"),
+    },
+    {
+      id: "expand-all",
+      label: "Expand all cells",
+      run: () => setExpandedIds(new Set(visibleCells.map(({ id }) => id))),
+    },
+    {
+      id: "collapse-all",
+      label: "Collapse all cells",
+      run: () => setExpandedIds(new Set()),
+    },
+    {
+      id: "show-all-kinds",
+      label: "Show all cell kinds",
+      run: () => setVisibleKinds(new Set(CELL_KINDS)),
+    },
+    ...CELL_KINDS.map(
+      (kind): PaletteAction => ({
+        id: `toggle-${kind}`,
+        label: `Toggle ${CELL_KIND_PLURAL_LABELS[kind].toLowerCase()}`,
+        hint: visibleKinds.has(kind) ? "shown" : "hidden",
+        run: () => toggleKind(kind),
+      }),
+    ),
+    {
+      id: "toggle-focus-mode",
+      label: "Organize graph around selection",
+      hint: focusOnSelection ? "on" : "off",
+      run: () => setFocusOnSelection((previous) => !previous),
+    },
+    {
+      id: "focus-search",
+      label: "Search cells",
+      hint: "/",
+      run: () => focusSearch(),
+    },
+  ];
 
   return (
     <div className={containerStyle}>
@@ -694,6 +756,15 @@ const NotebookViewContent: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {isPaletteOpen && (
+        <CommandPalette
+          cells={cells}
+          actions={paletteActions}
+          onJumpToCell={(cellId) => jumpToCell(cellId)}
+          onClose={() => setPaletteOpen(false)}
+        />
+      )}
 
       <div className={explorerColumnStyle} style={{ width: explorerWidth }}>
         <ResizeHandle
