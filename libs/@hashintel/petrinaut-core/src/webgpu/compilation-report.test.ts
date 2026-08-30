@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { cafeQueue } from "../examples/cafe-queue";
+import { dronePatrol } from "../examples/drone-patrol";
 import { probabilisticSatellitesSDCPN } from "../examples/satellites-launcher";
 import { sirModel } from "../examples/sir-model";
 import { compileHirArtifacts } from "../hir";
@@ -20,6 +22,19 @@ function analyze(sdcpn: SDCPN) {
 }
 
 const satellites = probabilisticSatellitesSDCPN.petriNetDefinition;
+
+describe("gpu-ready shipped examples", () => {
+  // The two examples that exist to exercise the GPU out of the box; a
+  // regression that breaks either's eligibility should fail here, not in a
+  // user's hands.
+  it("keeps Café Queue gpu-ready", () => {
+    expect(analyze(cafeQueue.petriNetDefinition).gpuReady).toBe(true);
+  });
+
+  it("keeps Drone Patrol gpu-ready", () => {
+    expect(analyze(dronePatrol.petriNetDefinition).gpuReady).toBe(true);
+  });
+});
 
 describe("analyzeCompilation", () => {
   it("reports an uncoloured net as GPU-ready and keeps the WGSL", () => {

@@ -51,6 +51,13 @@ function now(): number {
 export type GpuRunnerInitialState = {
   /** Initial token count per place, in profile order. */
   placeCounts: readonly number[];
+  /**
+   * Encoded initial token slots per place, in profile order: `count × stride`
+   * u32 words per typed place (reals bitcast from f32, then discretes),
+   * empty for uncoloured places. Without these a typed net's runs would
+   * start with every attribute zero.
+   */
+  placeTokenWords?: readonly Uint32Array[];
 };
 
 export type GpuExperimentRequest = {
@@ -306,16 +313,20 @@ export function fillSeedChunk(
     runsInChunk,
     stateWordsPerRun,
     placeCountOffsets,
+    placeTokenOffsets,
     rngOffset,
     placeCounts,
+    placeTokenWords,
     seed,
   }: {
     firstRun: number;
     runsInChunk: number;
     stateWordsPerRun: number;
     placeCountOffsets: readonly number[];
+    placeTokenOffsets?: readonly number[];
     rngOffset: number;
     placeCounts: readonly number[];
+    placeTokenWords?: readonly Uint32Array[];
     seed: number;
   },
 ): void {
@@ -329,6 +340,14 @@ export function fillSeedChunk(
     const base = run * stateWordsPerRun;
     for (const [placeIndex, offset] of placeCountOffsets.entries()) {
       staging[base + offset] = placeCounts[placeIndex] ?? 0;
+    }
+    if (placeTokenWords !== undefined && placeTokenOffsets !== undefined) {
+      for (const [placeIndex, words] of placeTokenWords.entries()) {
+        const tokenBase = base + (placeTokenOffsets[placeIndex] ?? 0);
+        for (let word = 0; word < words.length; word++) {
+          staging[tokenBase + word] = words[word]!;
+        }
+      }
     }
     // The RNG word sits immediately before the status word, which is last in
     // the fixed header the shader lays out.
@@ -597,8 +616,12 @@ export async function runGpuExperiment(
         runsInChunk,
         stateWordsPerRun: shader.stateWordsPerRun,
         placeCountOffsets: shader.placeCountOffsets,
+        placeTokenOffsets: shader.placeTokenOffsets,
         rngOffset: shader.rngOffset,
         placeCounts: initial.placeCounts,
+        ...(initial.placeTokenWords === undefined
+          ? {}
+          : { placeTokenWords: initial.placeTokenWords }),
         seed,
       });
       device.queue.writeBuffer(

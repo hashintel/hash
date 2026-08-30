@@ -275,6 +275,35 @@ export async function createGpuMonteCarloExperiment(
   });
 
   const run = async () => {
+    // Typed places start from real token values, not zeroed slots: encode
+    // each initial token's attributes in the shader's slot layout (reals as
+    // bitcast f32, then integers/booleans as u32), one buffer per place.
+    const placeTokenWords = backend.profile.places.map((place) => {
+      const marking = config.initialMarking[place.id];
+      if (!Array.isArray(marking)) {
+        return new Uint32Array(0);
+      }
+      const stride = place.realFields.length + place.discreteFields.length;
+      const words = new Uint32Array(marking.length * stride);
+      const floats = new Float32Array(words.buffer);
+      for (const [tokenIndex, token] of marking.entries()) {
+        const base = tokenIndex * stride;
+        for (const [fieldIndex, field] of place.realFields.entries()) {
+          floats[base + fieldIndex] = Number(token[field] ?? 0);
+        }
+        for (const [fieldIndex, field] of place.discreteFields.entries()) {
+          const value = token[field];
+          words[base + place.realFields.length + fieldIndex] =
+            typeof value === "boolean"
+              ? value
+                ? 1
+                : 0
+              : Math.round(Number(value ?? 0));
+        }
+      }
+      return words;
+    });
+
     // Frame 0 is the initial state, which the device never samples; the
     // host knows it exactly (every run starts identical), so it is emitted
     // here — matching the CPU simulator's observation of the initial
@@ -309,7 +338,7 @@ export async function createGpuMonteCarloExperiment(
       frameLimit,
       framesPerDispatch: backend.framesPerDispatch,
       seed: config.seed,
-      initial: { placeCounts },
+      initial: { placeCounts, placeTokenWords },
       onFrames: (chunkFrames) => {
         if (disposed) {
           return;
