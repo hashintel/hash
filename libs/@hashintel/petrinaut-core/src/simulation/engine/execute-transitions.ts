@@ -173,6 +173,14 @@ export function executeTransitions(
   // Map to accumulate all tokens to add: PlaceID -> array of token byte blocks
   const tokensToAdd = new Map<PlaceID, Uint8Array[]>();
 
+  // Output tokens are applied once at the end of the step, so capacity checks
+  // must see what earlier transitions in this step already produced — several
+  // transitions feeding one capped place could otherwise each fit individually
+  // and collectively overflow it. Only allocated for nets declaring capacities.
+  const pendingOutputCounts = simulation.frameLayout.hasPlaceCapacities
+    ? new Uint32Array(simulation.frameLayout.placeCapacities.length)
+    : null;
+
   // Keep track of which transitions fired for updating timeSinceLastFiringMs
   const transitionsFired = new Set<ID>();
 
@@ -190,6 +198,7 @@ export function executeTransitions(
       simulation,
       transitionId,
       currentRngState,
+      pendingOutputCounts,
     );
 
     // Every evaluation's randomness is consumed, fired or not — reusing the
@@ -218,6 +227,14 @@ export function executeTransitions(
         }
         const existingTokens = tokensToAdd.get(placeId)!;
         existingTokens.push(...tokenValues);
+
+        if (pendingOutputCounts) {
+          const placeIndex = simulation.frameLayout.placeIndexById.get(placeId);
+          if (placeIndex !== undefined) {
+            pendingOutputCounts[placeIndex] =
+              (pendingOutputCounts[placeIndex] ?? 0) + tokenValues.length;
+          }
+        }
       }
     }
   }

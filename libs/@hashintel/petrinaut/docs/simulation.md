@@ -66,11 +66,11 @@ Each simulation step proceeds in two phases:
 1. **Continuous dynamics** -- for every place with dynamics enabled, the differential equation is integrated one step (Euler method, step size = dt). This updates all token dimension values.
 
 2. **Discrete transitions** -- transitions are evaluated in definition order (deterministic, not random). For each transition:
-   - Checks structural enablement (enough tokens for standard/read input arcs, inhibitor conditions met).
+   - Checks structural enablement (enough tokens for standard/read input arcs, inhibitor conditions met, and enough room in any output place with a [token capacity](drawing-a-net.md#token-capacity)).
    - Evaluates the lambda when one is active for the transition. If no lambda is active, the transition is treated as enabled once its structural arc conditions are met.
    - If the transition fires, removes standard input tokens **immediately** (subsequent transitions see the updated state). Read and inhibitor arcs do not consume tokens.
 
-   All produced output tokens are added at the end of the step. If no transition kernel is active, uncoloured output tokens are generated from the output arc weights.
+   All produced output tokens are added at the end of the step. If no transition kernel is active, uncoloured output tokens are generated from the output arc weights. Because output is applied at the end of the step, capacity accounts for tokens that transitions earlier in the same step have already produced -- several transitions feeding one capped place cannot collectively overflow it.
 
 Simulation time advances by `dt` each frame.
 
@@ -81,6 +81,8 @@ If no transition fires in a step **and** no transition is structurally enabled (
 This only stops computation: the simulation will continue to playback computed frames until no more are available.
 
 If transitions are structurally enabled but their lambdas prevent firing, the simulation continues stepping.
+
+A transition blocked only because its output place is at [capacity](drawing-a-net.md#token-capacity) is _not_ structurally enabled, so a net whose remaining transitions are all blocked by full places reports deadlock rather than stepping on with nothing happening.
 
 ## Playback controls
 

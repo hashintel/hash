@@ -2,6 +2,7 @@ import {
   createUserKeyedRecord,
   isDangerousRecordKey,
 } from "../../validation/record-keys";
+import { createPlaceCapacities, hasAnyPlaceCapacity } from "../engine/capacity";
 import {
   computeTokenSlotLayout,
   createTokenRegionViews,
@@ -39,6 +40,14 @@ export type EngineFrameLayout = {
   placeStrideBytes: Uint32Array;
   /** Per-place packed token layout (null for uncoloured places). */
   placeTokenLayouts: (TokenSlotLayout | null)[];
+  /**
+   * Per-place token capacity, `PLACE_CAPACITY_UNBOUNDED` where unlimited.
+   *
+   * Dense so capacity checks stay index-based in the stepping loop.
+   */
+  placeCapacities: Uint32Array;
+  /** Whether any place declares a capacity, so nets without any skip the check. */
+  hasPlaceCapacities: boolean;
   transitionIds: readonly ID[];
   transitionIndexById: ReadonlyMap<ID, number>;
 };
@@ -161,11 +170,15 @@ export function createEngineFrameLayout(
     transitionIndexById.set(transition.id, index);
   }
 
+  const placeCapacities = createPlaceCapacities(sdcpn.places);
+
   return {
     placeIds,
     placeIndexById,
     placeStrideBytes,
     placeTokenLayouts,
+    placeCapacities,
+    hasPlaceCapacities: hasAnyPlaceCapacity(placeCapacities),
     transitionIds,
     transitionIndexById,
   };

@@ -1,4 +1,5 @@
 /* eslint-disable no-param-reassign -- Monte Carlo frame buffers are mutable by design. */
+import { hasCapacityHeadroom } from "../engine/capacity";
 import { computePlaceNextState } from "../engine/compute-place-next-state";
 import {
   copyMonteCarloFrameBuffer,
@@ -304,7 +305,10 @@ export function updateTransitionTimers(
  *
  * This is used for deadlock detection after a step where no transition fired.
  * It intentionally ignores lambda probability and only checks input-place
- * token availability, read-arc availability, and inhibitor conditions.
+ * token availability, read-arc availability, inhibitor conditions, and output
+ * place capacity. Capacity has to be included: a net whose only remaining
+ * transitions are blocked by full output places is deadlocked, and omitting the
+ * check would leave it stepping to `maxTime` with nothing happening.
  */
 export function hasStructurallyEnabledTransition(
   run: MonteCarloRunState,
@@ -313,14 +317,21 @@ export function hasStructurallyEnabledTransition(
   const frame = run.currentFrame;
 
   for (const transition of run.simulation.compiledTransitions.values()) {
-    const enabled = transition.inputPlaces.every((inputPlace) => {
-      const placeIndex = getPlaceIndex(frameLayout, inputPlace.placeId);
-      const count = frame.placeCounts[placeIndex] ?? 0;
+    const enabled =
+      transition.inputPlaces.every((inputPlace) => {
+        const placeIndex = getPlaceIndex(frameLayout, inputPlace.placeId);
+        const count = frame.placeCounts[placeIndex] ?? 0;
 
-      return inputPlace.arcType === "inhibitor"
-        ? count < inputPlace.weight
-        : count >= inputPlace.weight;
-    });
+        return inputPlace.arcType === "inhibitor"
+          ? count < inputPlace.weight
+          : count >= inputPlace.weight;
+      }) &&
+      // Nothing else fires this frame, so there is no pending output to fold in.
+      hasCapacityHeadroom(
+        transition.capacityConstraints,
+        frame.placeCounts,
+        null,
+      );
 
     if (enabled) {
       return true;

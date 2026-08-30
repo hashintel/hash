@@ -1,5 +1,6 @@
 import { getArcEndpointPlaceId } from "../../arc-endpoints";
 import { materializeEngineFrame } from "../frames/internal-frame";
+import { computeTransitionCapacityConstraints } from "./capacity";
 
 import type { Transition } from "../../types/sdcpn";
 import type {
@@ -28,8 +29,9 @@ export type TransitionEnablementResult = {
  * Checks if a single transition has its input token requirements satisfied.
  *
  * A transition is structurally enabled when standard/read input places have at
- * least as many tokens as required by their respective arc weights, and
- * inhibitor input places have fewer tokens than their arc weights.
+ * least as many tokens as required by their respective arc weights, inhibitor
+ * input places have fewer tokens than their arc weights, and every output place
+ * with a declared capacity can absorb the tokens this firing would add.
  *
  * Note: This only checks token counts, not lambda conditions. A transition may
  * be structurally enabled but still not fire due to lambda returning 0 or false.
@@ -42,6 +44,7 @@ export type TransitionEnablementResult = {
 function isTransitionStructurallyEnabledSnapshot(
   snapshot: EngineFrameSnapshot,
   transitions: ReadonlyMap<string, Transition>,
+  layout: EngineFrameLayout,
   transitionId: string,
 ): boolean {
   if (!snapshot.transitions[transitionId]) {
@@ -56,7 +59,7 @@ function isTransitionStructurallyEnabledSnapshot(
   }
 
   // Check if all input places satisfy the required arc conditions.
-  return transition.inputArcs.every((arc) => {
+  const hasRequiredInputs = transition.inputArcs.every((arc) => {
     const placeId = getArcEndpointPlaceId(arc);
     if (!placeId) {
       throw new Error(
@@ -72,6 +75,24 @@ function isTransitionStructurallyEnabledSnapshot(
       ? placeState.count < arc.weight
       : placeState.count >= arc.weight;
   });
+
+  if (!hasRequiredInputs || !layout.hasPlaceCapacities) {
+    return hasRequiredInputs;
+  }
+
+  // A transition whose output places are full cannot fire, so it must not count
+  // as enabled — otherwise a net blocked purely by capacity never reports
+  // deadlock.
+  return computeTransitionCapacityConstraints({
+    transition,
+    placeIndexById: layout.placeIndexById,
+    placeCapacities: layout.placeCapacities,
+  }).every((constraint) => {
+    const placeState = snapshot.places[constraint.placeId];
+    const count = placeState?.count ?? 0;
+
+    return count + constraint.delta <= constraint.capacity;
+  });
 }
 
 export const isTransitionStructurallyEnabled = (
@@ -83,6 +104,7 @@ export const isTransitionStructurallyEnabled = (
   return isTransitionStructurallyEnabledSnapshot(
     materializeEngineFrame(layout, frame),
     transitions,
+    layout,
     transitionId,
   );
 };
@@ -128,6 +150,7 @@ export const checkTransitionEnablement = (
     const isEnabled = isTransitionStructurallyEnabledSnapshot(
       snapshot,
       transitions,
+      layout,
       transitionId,
     );
     transitionStatus.set(transitionId, isEnabled);
