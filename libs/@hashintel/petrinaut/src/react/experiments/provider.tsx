@@ -853,6 +853,31 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         // triple the artifact payload structured-cloned to every shard worker,
         // and only a shader-generating backend reads them. `needsHirTrees` comes
         // from the backend itself, so a new backend cannot be forgotten here.
+        // The artifacts are a pure function of the frozen snapshot, but
+        // every batch built a request — and a sweep builds one per rung per
+        // selection — so the language worker re-lowered the whole net each
+        // time. That round trip was most of the delay between moving a
+        // slider and the first new frames. A failed request is not cached,
+        // so a transient worker error stays retryable.
+        const artifactsMemo = new Map<
+          boolean,
+          ReturnType<typeof requestHirArtifacts>
+        >();
+        const requestArtifactsOnce = (needsHirTrees: boolean) => {
+          const cached = artifactsMemo.get(needsHirTrees);
+          if (cached) {
+            return cached;
+          }
+          const pending = requestHirArtifacts(
+            compiledExperimentSdcpn,
+            experimentExtensions,
+            { includeHir: needsHirTrees },
+          );
+          artifactsMemo.set(needsHirTrees, pending);
+          pending.catch(() => artifactsMemo.delete(needsHirTrees));
+          return pending;
+        };
+
         const buildRequest = async ({
           needsHirTrees,
           override,
@@ -866,11 +891,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             >
           >;
         }): Promise<ExperimentRequest> => {
-          const { artifacts, failures } = await requestHirArtifacts(
-            compiledExperimentSdcpn,
-            experimentExtensions,
-            { includeHir: needsHirTrees },
-          );
+          const { artifacts, failures } =
+            await requestArtifactsOnce(needsHirTrees);
 
           const metricSpecs = input.metricSpecs.map((spec) => {
             if (spec.kind !== "expression") {

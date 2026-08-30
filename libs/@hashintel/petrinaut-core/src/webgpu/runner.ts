@@ -19,7 +19,7 @@ import type { AbortSignalLike } from "../environment";
 import type { CompiledNetShader } from "./compile-net-shader";
 
 /** Words in the uniform config block: run_count, base_frame, frame_limit, seed. */
-const CONFIG_WORDS = 4;
+const CONFIG_WORDS = 5;
 
 /**
  * Words of run state staged on the host per `writeBuffer` call, 4 MiB worth.
@@ -410,6 +410,31 @@ export function describeBufferOverflow({
 }
 
 /**
+ * The frame counts of each dispatch chunk: a short ramp (32, 64, 128, ...)
+ * up to `framesPerDispatch`, then steady.
+ *
+ * The first streamed frames should reach the charts in milliseconds even
+ * when the whole run takes seconds; a fixed 300-frame chunk made the first
+ * paint wait for half a typical run. The ramp costs at most three extra
+ * dispatch round-trips per run.
+ */
+export function dispatchChunkFrames(
+  frameLimit: number,
+  framesPerDispatch: number,
+): number[] {
+  const chunks: number[] = [];
+  let next = Math.min(32, framesPerDispatch);
+  let done = 0;
+  while (done < frameLimit) {
+    const chunk = Math.min(next, framesPerDispatch, frameLimit - done);
+    chunks.push(chunk);
+    done += chunk;
+    next *= 2;
+  }
+  return chunks;
+}
+
+/**
  * Decodes a contiguous frame range of the histogram buffer into sparse
  * per-metric frames. `data` starts at `firstFrame`'s bins; saturated counts
  * are the top bin's, summed across everything decoded.
@@ -662,11 +687,11 @@ export async function runGpuExperiment(
     device.pushErrorScope("validation");
 
     let cancelled = false;
-    for (
-      let baseFrame = 0;
-      baseFrame < frameLimit;
-      baseFrame += framesPerDispatch
-    ) {
+    let baseFrame = 0;
+    for (const chunkFrameCount of dispatchChunkFrames(
+      frameLimit,
+      framesPerDispatch,
+    )) {
       // A submitted dispatch cannot be interrupted, so cancellation is observed
       // between chunks. Frames already advanced stay in the histogram, and the
       // caller is told the run was cut short.
@@ -677,7 +702,13 @@ export async function runGpuExperiment(
       device.queue.writeBuffer(
         configBuffer,
         0,
-        new Uint32Array([runCount, baseFrame, frameLimit, seed]),
+        new Uint32Array([
+          runCount,
+          baseFrame,
+          frameLimit,
+          seed,
+          chunkFrameCount,
+        ]),
       );
       const encoder = device.createCommandEncoder();
       const pass = encoder.beginComputePass();
@@ -689,7 +720,7 @@ export async function runGpuExperiment(
       // Awaiting per chunk (not per frame) keeps the browser responsive and
       // bounds how far ahead the queue runs, at negligible cost.
       await device.queue.onSubmittedWorkDone();
-      const framesDone = Math.min(baseFrame + framesPerDispatch, frameLimit);
+      const framesDone = Math.min(baseFrame + chunkFrameCount, frameLimit);
       if (chunkReadback !== null) {
         // The histogram is cumulative and every frame's bins are final once
         // its dispatch retired, so the chunk's range can be read while later
@@ -722,6 +753,7 @@ export async function runGpuExperiment(
         framesDone,
         frameLimit,
       });
+      baseFrame = framesDone;
     }
 
     const dispatchError = await device.popErrorScope();
