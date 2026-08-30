@@ -13,10 +13,16 @@ interface UseElementSizeOptions {
    * Defaults to 0 (no debounce — updates on every ResizeObserver callback).
    */
   debounce?: number;
+  /**
+   * Which box to measure. "content" (the default) excludes padding and
+   * border; "border" is the element's full rendered size — what layout
+   * math against other elements (e.g. popover placement) needs.
+   */
+  box?: "content" | "border";
 }
 
 /**
- * Returns the content-box size of a DOM element, kept in sync via ResizeObserver.
+ * Returns the size of a DOM element, kept in sync via ResizeObserver.
  *
  * Returns `null` until the element is mounted and the first observation fires,
  * and again while the element is unmounted — the element may mount later than
@@ -40,6 +46,7 @@ export function useElementSize(
   "use no memo"; // imperative observer + timer management
   const [size, setSize] = useState<ElementSize | null>(null);
   const debounceMs = options?.debounce ?? 0;
+  const box = options?.box ?? "content";
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const observedRef = useRef<HTMLElement | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -79,7 +86,11 @@ export function useElementSize(
       if (!entry) {
         return;
       }
-      const { width, height } = entry.contentRect;
+      const borderBox = entry.borderBoxSize[0];
+      const { width, height } =
+        box === "border" && borderBox
+          ? { width: borderBox.inlineSize, height: borderBox.blockSize }
+          : entry.contentRect;
       if (debounceMs > 0) {
         if (timerRef.current != null) {
           clearTimeout(timerRef.current);
