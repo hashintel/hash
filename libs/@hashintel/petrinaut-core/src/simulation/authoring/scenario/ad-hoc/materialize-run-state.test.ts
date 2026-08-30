@@ -7,8 +7,8 @@ import {
   initialMarkingToAdHocPlaces,
 } from "./materialize-run-state";
 
-import type { InitialMarking } from "../../../api";
 import type { Color, Place, Scenario } from "../../../../types/sdcpn";
+import type { InitialMarking } from "../../../api";
 
 const place = (id: string, name: string, colorId: string | null): Place => ({
   id,
@@ -63,10 +63,7 @@ describe("initialMarkingToAdHocPlaces", () => {
   };
 
   it("converts tokens to literal fixed rows in colour-element order", () => {
-    const { places, truncated } = initialMarkingToAdHocPlaces(
-      marking,
-      CONTEXT,
-    );
+    const { places, truncated } = initialMarkingToAdHocPlaces(marking, CONTEXT);
     expect(truncated).toEqual([]);
     const space = places["place-space"]!;
     expect(space.kind).toBe("coloured");
@@ -104,9 +101,7 @@ describe("initialMarkingToAdHocPlaces", () => {
     const { places, truncated } = initialMarkingToAdHocPlaces(long, CONTEXT);
     const space = places["place-space"]!;
     expect(space.kind === "coloured" && space.rows.length).toBe(100);
-    expect(truncated).toEqual([
-      { placeName: "Space", shown: 100, total: 130 },
-    ]);
+    expect(truncated).toEqual([{ placeName: "Space", shown: 100, total: 130 }]);
   });
 
   it("skips places absent from the marking", () => {
@@ -173,7 +168,10 @@ describe("classicRunParameterValues", () => {
       stateWith({ initialAltitude: "42", night_mode: "true" }),
       SCENARIO,
     );
-    expect(values).toContainEqual({ identifier: "initialAltitude", value: "42" });
+    expect(values).toContainEqual({
+      identifier: "initialAltitude",
+      value: "42",
+    });
     expect(values).toContainEqual({ identifier: "night_mode", value: "1" });
     expect(values).toContainEqual({ identifier: "launch_rate", value: "0.3" });
   });
