@@ -22,6 +22,32 @@ The classic Susceptible-Infected-Recovered compartmental model from epidemiology
 
 <img width="1104" height="412" alt="SIR" src="https://github.com/user-attachments/assets/b8ad69cb-687c-452a-8394-d5100db3e198" />
 
+## Café Queue
+
+A small service system: customers arrive, wait, are served by a limited staff pool, and leave. Built to run on the **GPU compute backend out of the box** — every place is untyped, and the interesting measurements are plain token counts.
+
+**Demonstrates:**
+
+- **GPU-ready modelling**: no typed tokens, no expression metrics — create an experiment measuring **Waiting** or **Served** and the GPU switch works as shipped.
+- Rate parameters (`arrival_rate`, `begin_rate`, `service_rate`) a sweep can range over: the **Morning Rush** scenario exposes `arrival_rate` and `service_rate` as scenario parameters wired straight to the net's rates, so a two-parameter sweep explores under- and over-staffed regimes.
+- A conserved staff pool (**FreeStaff** + **Serving** always totals the staff count).
+
+**Suggested initial state:** pick **Morning Rush** and create an experiment measuring **Waiting** — then sweep `arrival_rate` against `service_rate` and watch the queue-explosion boundary appear on the surface plot.
+
+## Drone Patrol
+
+A typed fleet of drones cycling between the hangar and the air: launch, drain battery while airborne, return, recharge. Built to exercise the **GPU backend's typed-token path out of the box** — kernels, continuous dynamics, and token-reading rates all compile to the shader.
+
+**Demonstrates:**
+
+- **Typed tokens with capacities**: both places declare `capacity: 16`, which the GPU needs to size its buffers.
+- **Kernels** writing every attribute of produced tokens (launch altitude sampled from a Gaussian; a recharge on return).
+- **Continuous dynamics** on airborne drones (battery drains at `drain_rate`).
+- **Token-reading rates**: launch tempo scales with the candidate drone's battery, and returns become more likely as the battery falls.
+- The **Standard Patrol** scenario exposes `launch_rate` and `drain_rate` for sweeping.
+
+**Suggested initial state:** pick **Standard Patrol** and create an experiment measuring **Airborne**; on the GPU, sweeping `launch_rate` against `drain_rate` streams the fleet's equilibrium as a distribution.
+
 ## Supply Chain with Disruption
 
 An end-to-end manufacturing and distribution network (loaded from the **Supply Chai with Disruption** menu item). Raw materials are sourced from two suppliers with different cost/reliability trade-offs, converted into finished goods by a factory machine that wears down over time, then sold to customers whose orders age, back-order, get fulfilled, or are cancelled.
