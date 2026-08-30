@@ -36,6 +36,7 @@ type LabArgs = {
   transform: DensityTransform;
   normalization: DensityNormalization;
   smoothingSigma: number;
+  displayGamma: number;
   colormap: ColormapId;
   smooth: boolean;
 };
@@ -49,8 +50,9 @@ const labArgTypes = {
     control: "select",
     options: ["linear", "sqrt", "log", "equalize"],
   },
-  normalization: { control: "select", options: ["column", "global"] },
+  normalization: { control: "select", options: ["column", "global", "share"] },
   smoothingSigma: { control: { type: "number", min: 0, max: 6, step: 0.5 } },
+  displayGamma: { control: { type: "number", min: 0.1, max: 1, step: 0.05 } },
   colormap: { control: "select", options: COLORMAP_IDS },
   smooth: { control: "boolean" },
 } as const;
@@ -63,6 +65,7 @@ const defaultLabArgs: LabArgs = {
   transform: "linear",
   normalization: "column",
   smoothingSigma: 0,
+  displayGamma: 1,
   colormap: "ink",
   smooth: false,
 };
@@ -164,6 +167,7 @@ const LabStory = (args: LabArgs & { renderer: RendererId }) => {
         transform: args.transform,
         normalization: args.normalization,
         smoothingSigma: args.smoothingSigma,
+        displayGamma: args.displayGamma,
       });
       setBuilt({ grid, buildMs: performance.now() - started });
     });
@@ -178,6 +182,7 @@ const LabStory = (args: LabArgs & { renderer: RendererId }) => {
     args.transform,
     args.normalization,
     args.smoothingSigma,
+    args.displayGamma,
   ]);
 
   if (!built) {
@@ -219,6 +224,7 @@ const CompareStory = (args: LabArgs) => {
     transform: args.transform,
     normalization: args.normalization,
     smoothingSigma: args.smoothingSigma,
+    displayGamma: args.displayGamma,
   });
 
   return (
@@ -263,7 +269,15 @@ const CompareStory = (args: LabArgs) => {
 };
 
 export const Compare: StoryObj<LabArgs> = {
-  args: { ...defaultLabArgs, smooth: true, transform: "log" },
+  args: {
+    ...defaultLabArgs,
+    smooth: false,
+    transform: "log",
+    distribution: "sir-wave",
+    colormap: "magma",
+    smoothingSigma: 1,
+    normalization: "column",
+  },
   argTypes: labArgTypes,
   render: (args) => <CompareStory key={JSON.stringify(args)} {...args} />,
 };
@@ -298,6 +312,7 @@ const BenchmarkStory = (args: LabArgs & { iterations: number }) => {
         transform: args.transform,
         normalization: args.normalization,
         smoothingSigma: args.smoothingSigma,
+        displayGamma: args.displayGamma,
       });
       setBuildMs(performance.now() - buildStart);
       const lut = colormapLut(args.colormap);
@@ -357,6 +372,7 @@ const BenchmarkStory = (args: LabArgs & { iterations: number }) => {
     args.transform,
     args.normalization,
     args.smoothingSigma,
+    args.displayGamma,
     args.colormap,
     args.smooth,
     args.iterations,

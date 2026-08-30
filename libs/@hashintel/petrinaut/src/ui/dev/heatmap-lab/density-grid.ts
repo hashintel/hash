@@ -13,8 +13,10 @@
  *    compress heavy tails, `equalize` (histogram equalization) spends the
  *    whole ramp on the values that occur.
  * 4. Normalize — against each column's own maximum (every column readable,
- *    columns not comparable) or the global maximum (comparable, sparse
- *    columns fade).
+ *    columns not comparable), the global maximum (comparable, sparse
+ *    columns fade), or each column's sum (`share`: with a linear transform
+ *    a cell is the probability of that value at that time, so a spread-out
+ *    column's mode is genuinely lighter than a concentrated one's).
  */
 
 export type DistributionColumn = {
@@ -24,7 +26,7 @@ export type DistributionColumn = {
 };
 
 export type DensityTransform = "linear" | "sqrt" | "log" | "equalize";
-export type DensityNormalization = "column" | "global";
+export type DensityNormalization = "column" | "global" | "share";
 
 export type DensityGridOptions = {
   /** Grid rows along the value axis. */
@@ -33,6 +35,15 @@ export type DensityGridOptions = {
   normalization: DensityNormalization;
   /** Gaussian sigma along the value axis, in rows. 0 disables smoothing. */
   smoothingSigma: number;
+  /**
+   * Display-only exponent applied to the normalized densities: rendered
+   * density is `density ** displayGamma`. 1 is off. Values below 1 lift
+   * small densities into the visible ramp without reordering anything —
+   * the fix for `share`, whose honest bin probabilities of a few percent
+   * would otherwise render near-white. Data-independent, so two charts
+   * with the same gamma stay comparable.
+   */
+  displayGamma: number;
 };
 
 export type DensityGrid = {
@@ -132,11 +143,28 @@ function equalize(
   return out;
 }
 
+/** `density ** gamma` in place; 1 is the identity. */
+function applyDisplayGamma(
+  densities: Float32Array<ArrayBuffer>,
+  gamma: number,
+): Float32Array<ArrayBuffer> {
+  if (gamma !== 1) {
+    /* eslint-disable no-param-reassign -- gamma is applied in place: the
+       array is freshly built by the caller and never shared. */
+    for (let index = 0; index < densities.length; index++) {
+      densities[index] = densities[index]! ** gamma;
+    }
+    /* eslint-enable no-param-reassign */
+  }
+  return densities;
+}
+
 export function buildDensityGrid(
   distributionColumns: readonly DistributionColumn[],
   options: DensityGridOptions,
 ): DensityGrid {
-  const { rows, transform, normalization, smoothingSigma } = options;
+  const { rows, transform, normalization, smoothingSigma, displayGamma } =
+    options;
   const columns = distributionColumns.length;
   const [valueMin, valueMax] = valueRange(distributionColumns);
   const span = valueMax - valueMin;
@@ -163,7 +191,7 @@ export function buildDensityGrid(
     return {
       columns,
       rows,
-      densities: equalize(counts),
+      densities: applyDisplayGamma(equalize(counts), displayGamma),
       valueMin,
       valueMax,
     };
@@ -191,6 +219,21 @@ export function buildDensityGrid(
         densities[index] = shaped[index]! / max;
       }
     }
+  } else if (normalization === "share") {
+    // Each column becomes a probability mass function: cells sum to 1, so
+    // full darkness means "every run had this value" and nothing else does.
+    for (let column = 0; column < columns; column++) {
+      let sum = 0;
+      for (let row = 0; row < rows; row++) {
+        sum += shaped[row * columns + column]!;
+      }
+      if (sum > 0) {
+        for (let row = 0; row < rows; row++) {
+          const index = row * columns + column;
+          densities[index] = shaped[index]! / sum;
+        }
+      }
+    }
   } else {
     for (let column = 0; column < columns; column++) {
       let max = 0;
@@ -206,5 +249,11 @@ export function buildDensityGrid(
     }
   }
 
-  return { columns, rows, densities, valueMin, valueMax };
+  return {
+    columns,
+    rows,
+    densities: applyDisplayGamma(densities, displayGamma),
+    valueMin,
+    valueMax,
+  };
 }
