@@ -23,10 +23,15 @@ those Variables as its tunable parameters. Optimize selections write the
 `optimize` settings object; expose writes the boolean `exposed` flag. In
 that consumer alone the definition persists (see **The persisted format**
 below); everywhere else the generated scenario stays ephemeral. A fourth
-consumer reuses the component in `mode="run"`: Simulation Settings with a
-saved ad-hoc scenario selected shows the definition read-only, with only
-the exposed Variables' values editable; each edit resolves to an ordinary
-scenario-parameter value for the run.
+consumer reuses the component in `mode="run"`: Simulation Settings shows
+every selected scenario through the form read-only, with only the scenario
+parameters' values editable; each edit resolves to an ordinary
+scenario-parameter value for the run. An ad-hoc scenario renders its stored
+definition; a classic (`code` or `per_place`) scenario has none, so its
+compiled initial marking is materialized into literal fixed rows
+(`classicScenarioRunState` in petrinaut-core), recomputed per parameter
+edit and capped per place, with the scenario parameters named by their
+identifiers verbatim so value pushes bypass the ad-hoc snake_case mapping.
 
 The design is the scenario **code editor's model, constrained**: everything
 the form can express synthesizes to code-mode scenario source that the

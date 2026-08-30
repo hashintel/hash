@@ -10,9 +10,17 @@ import {
   Toggle,
 } from "@hashintel/ds-components";
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
-import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
+import {
+  classicRunParameterValues,
+  classicRunVariables,
+  classicScenarioRunState,
+  compileScenario,
+  createUserKeyedRecord,
+  EMPTY_AD_HOC_STATE,
+} from "@hashintel/petrinaut-core";
 
 import { SimulationContext } from "../../../../../../react/simulation/context";
+import { useScenarioHir } from "../../../../../../react/simulation/use-scenario-hir";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
@@ -313,6 +321,20 @@ const emptyMessageStyle = css({
   fontStyle: "italic",
 });
 
+// The classic-scenario preview's status line: why the Initial state section
+// is not (fully) showing yet — compiling, a compilation error, or a row cap.
+const runNoticeStyle = css({
+  fontSize: "xs",
+  color: "neutral.s90",
+  backgroundColor: "[rgb(217 119 6 / 0.08)]",
+  border: "1px solid",
+  borderColor: "[rgb(217 119 6 / 0.35)]",
+  borderRadius: "sm",
+  paddingX: "2",
+  paddingY: "1.5",
+  marginBottom: "2",
+});
+
 // Error callout shown when the selected scenario fails to compile, so a
 // broken scenario is never silently ignored. It docks at the panel's bottom,
 // below the columns: appearing takes height from the content grid — whose
@@ -428,6 +450,15 @@ const SimulationSettingsContent: React.FC = () => {
     enableAdHocScenarios && selectedScenario?.initialState.type === "adhoc"
       ? selectedScenario
       : undefined;
+  // Any other selected scenario shows through the same form: its scenario
+  // parameters stay editable, and the right column previews the state the
+  // run will actually start with — the compiled initial marking,
+  // materialized into literal read-only rows.
+  const selectedClassicScenario =
+    enableAdHocScenarios && selectedScenario && !selectedAdHocScenario
+      ? selectedScenario
+      : undefined;
+  const classicHir = useScenarioHir(selectedClassicScenario);
   const [scenarioRun, setScenarioRun] = useState<{
     scenarioId: string;
     state: AdHocScenarioState;
@@ -443,6 +474,24 @@ const SimulationSettingsContent: React.FC = () => {
         selectedAdHocScenario.initialState.content,
         scenarioParameterValues,
       ),
+    });
+  }
+  if (
+    selectedClassicScenario &&
+    scenarioRun?.scenarioId !== selectedClassicScenario.id
+  ) {
+    // Only the Variables (the editable scenario parameters) live in local
+    // state; the overrides and places are derived from compilation below.
+    setScenarioRun({
+      scenarioId: selectedClassicScenario.id,
+      state: {
+        variables: classicRunVariables(
+          selectedClassicScenario,
+          scenarioParameterValues,
+        ),
+        netParameters: [],
+        places: {},
+      },
     });
   }
   const adHocFormContext = {
@@ -465,6 +514,121 @@ const SimulationSettingsContent: React.FC = () => {
       setScenarioParameterValue(identifier, value);
     }
   };
+  const onClassicRunChange = (next: AdHocScenarioState) => {
+    if (!selectedClassicScenario) {
+      return;
+    }
+    setScenarioRun({
+      scenarioId: selectedClassicScenario.id,
+      state: { variables: next.variables, netParameters: [], places: {} },
+    });
+    for (const { identifier, value } of classicRunParameterValues(
+      next,
+      selectedClassicScenario,
+    )) {
+      setScenarioParameterValue(identifier, value);
+    }
+  };
+
+  // What the run-mode branch renders, for either scenario kind. A classic
+  // scenario's places come from compiling its initial state with the
+  // current parameter values; until that preview is ready (or when it
+  // fails) the notice explains and the Initial state section stays empty.
+  const scenarioRunView: {
+    state: AdHocScenarioState;
+    onChange: (next: AdHocScenarioState) => void;
+    notice: string | null;
+    previewReady: boolean;
+  } | null = (() => {
+    if (
+      selectedAdHocScenario &&
+      scenarioRun?.scenarioId === selectedAdHocScenario.id
+    ) {
+      return {
+        state: scenarioRun.state,
+        onChange: onScenarioRunChange,
+        notice: null,
+        previewReady: true,
+      };
+    }
+    if (
+      !selectedClassicScenario ||
+      scenarioRun?.scenarioId !== selectedClassicScenario.id
+    ) {
+      return null;
+    }
+    const withoutPreview = (notice: string) => ({
+      state: {
+        variables: scenarioRun.state.variables,
+        netParameters: Object.entries(
+          selectedClassicScenario.parameterOverrides,
+        ).map(([parameterId, expression]) => ({
+          parameterId,
+          expression,
+          optimize: null,
+        })),
+        places: {},
+      },
+      onChange: onClassicRunChange,
+      notice,
+      previewReady: false,
+    });
+    if (classicHir.error !== null) {
+      return withoutPreview(
+        `The initial state preview could not be compiled: ${classicHir.error}`,
+      );
+    }
+    if (classicHir.hir === null) {
+      return withoutPreview("Compiling the initial state preview…");
+    }
+    const numericValues = createUserKeyedRecord<number>();
+    for (const [identifier, value] of Object.entries(
+      scenarioParameterValues,
+    )) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        numericValues[identifier] = parsed;
+      }
+    }
+    const outcome = compileScenario(
+      selectedClassicScenario,
+      classicHir.hir,
+      globalParameters,
+      places,
+      adHocFormContext.types,
+      { scenarioParameterValues: numericValues },
+    );
+    if (!outcome.ok) {
+      return withoutPreview(
+        `The initial state preview could not be computed: ${outcome.errors
+          .map((error) => error.message)
+          .join(" · ")}`,
+      );
+    }
+    const materialized = classicScenarioRunState(
+      selectedClassicScenario,
+      outcome.result.initialState,
+      { places, types: adHocFormContext.types },
+      scenarioParameterValues,
+    );
+    return {
+      state: {
+        ...materialized.state,
+        variables: scenarioRun.state.variables,
+      },
+      onChange: onClassicRunChange,
+      notice:
+        materialized.truncated.length > 0
+          ? `Preview truncated: ${materialized.truncated
+              .map(
+                (cut) =>
+                  `${cut.placeName} shows ${cut.shown} of ${cut.total} rows`,
+              )
+              .join(" · ")}`
+          : null,
+      previewReady: true,
+    };
+  })();
 
   // When a scenario is selected, show its scenario parameters + overridden net params.
   // When no scenario, show net-level parameters.
@@ -703,14 +867,14 @@ const SimulationSettingsContent: React.FC = () => {
             </div>
           )}
         />
-      ) : selectedAdHocScenario && scenarioRun ? (
+      ) : scenarioRunView ? (
         /* A selected ad-hoc scenario, shown through the form in run mode:
            the scenario's parameters (its exposed Variables) take value
            edits in the left column; Parameters and Initial state sit
            read-only in the right one, still walkable and selectable. */
         <AdHocScenarioForm
-          state={scenarioRun.state}
-          onChange={onScenarioRunChange}
+          state={scenarioRunView.state}
+          onChange={scenarioRunView.onChange}
           context={adHocFormContext}
           selection="none"
           mode="run"
@@ -769,7 +933,12 @@ const SimulationSettingsContent: React.FC = () => {
                           <div className={sectionTitleStyle}>Initial state</div>
                           <HelpTooltip content="The initial marking the scenario defines. Read-only here." />
                         </div>
-                        {placesList}
+                        {scenarioRunView.notice === null ? null : (
+                          <div className={runNoticeStyle}>
+                            {scenarioRunView.notice}
+                          </div>
+                        )}
+                        {scenarioRunView.previewReady ? placesList : null}
                       </div>
                     </div>
                   </ParametersScrollArea>
