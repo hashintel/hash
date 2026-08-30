@@ -217,13 +217,18 @@ const PlaceBlockContents: React.FC<ColouredPlaceBlockProps> = ({
   colour,
   state,
 }) => {
+  const { mode } = use(AdHocFormContext);
   return (
     <>
-      <VariableRows
-        scopeLabel={`Variables of ${place.name}`}
-        placeId={place.id}
-        variables={state.variables}
-      />
+      {/* Run mode shows no auxiliary Variables — they are the saved
+          definition's internals, not something a run adjusts. */}
+      {mode === "run" ? null : (
+        <VariableRows
+          scopeLabel={`Variables of ${place.name}`}
+          placeId={place.id}
+          variables={state.variables}
+        />
+      )}
       <TokenTable place={place} colour={colour} state={state} />
     </>
   );
@@ -324,7 +329,7 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
   place,
   state,
 }) => {
-  const { dense } = use(AdHocFormContext);
+  const { mode, dense } = use(AdHocFormContext);
   const target = { kind: "count" as const, placeId: place.id, row: null };
   // The count cell is a single-element member: vertical arrows leave to the
   // neighbouring member, horizontal ones cross into a sibling column.
@@ -351,6 +356,7 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
           value={state.count}
           target={target}
           kind="count"
+          readOnly={mode === "run"}
           placeholder="0 tokens"
           className={uncolouredCountTriggerStyle}
           triggerRef={attachTrigger}

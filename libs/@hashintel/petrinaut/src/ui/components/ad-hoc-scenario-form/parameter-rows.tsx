@@ -15,27 +15,13 @@ import { FormSpreadsheet } from "./spreadsheet/form-spreadsheet";
 import {
   cellStyle,
   dependencyHighlightStyle as highlightStyle,
+  staticNameCellStyle,
+  staticTypeCellStyle,
 } from "./spreadsheet/form-table";
 import { OptimizeToggle } from "./spreadsheet/optimize-toggle";
 import { ValueEditor } from "./value-editor";
 
 import type { AdHocNetParameter } from "@hashintel/petrinaut-core";
-
-const parameterNameCellStyle = css({
-  width: "[170px]",
-  display: "flex",
-  alignItems: "center",
-  height: "[28px]",
-  paddingX: "2",
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s110",
-  overflow: "hidden",
-  whiteSpace: "nowrap",
-  // A long name fades out instead of clipping to an ellipsis.
-  maskImage:
-    "[linear-gradient(to right, black calc(100% - 14px), transparent)]",
-});
 
 // An untouched parameter shows its default quietly: a small uppercase tag,
 // then the value — both lighter than an actual override.
@@ -56,19 +42,6 @@ const defaultTagStyle = css({
   color: "neutral.s80",
 });
 
-// Matches the variables' type-select face: same width, plain (non-code)
-// capitalized text, so the two columns read as one grammar.
-const parameterTypeCellStyle = css({
-  width: "[84px]",
-  display: "flex",
-  alignItems: "center",
-  height: "[28px]",
-  paddingX: "2",
-  fontSize: "xs",
-  color: "neutral.s80",
-  textTransform: "capitalize",
-});
-
 const parameterOptimizeCellStyle = css({
   width: "[92px]",
   paddingX: "1",
@@ -80,8 +53,14 @@ export interface ParameterRowsProps {
 }
 
 export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
-  const { synthesisContext, selection, highlight, setFocusedValue, dispatch } =
-    use(AdHocFormContext);
+  const {
+    mode,
+    synthesisContext,
+    selection,
+    highlight,
+    setFocusedValue,
+    dispatch,
+  } = use(AdHocFormContext);
   const { register, onKeyDown, attach } = useFocusGrid();
 
   const entryFor = (parameterId: string): AdHocNetParameter =>
@@ -107,10 +86,10 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
                 className={cx(cellStyle, rowHighlight)}
                 style={{ width: 170 }}
               >
-                <div className={parameterNameCellStyle}>{parameter.name}</div>
+                <div className={staticNameCellStyle}>{parameter.name}</div>
               </td>
               <td className={cx(cellStyle, rowHighlight)} style={{ width: 84 }}>
-                <div className={parameterTypeCellStyle}>{parameter.type}</div>
+                <div className={staticTypeCellStyle}>{parameter.type}</div>
               </td>
               <td className={cx(cellStyle, rowHighlight)}>
                 <ValueEditor
@@ -127,6 +106,7 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
                         )
                   }
                   kind={parameter.type}
+                  readOnly={mode === "run"}
                   placeholder={parameter.defaultValue}
                   triggerRef={register(parameterIndex, 0)}
                   onTriggerKeyDown={onKeyDown(parameterIndex, 0)}

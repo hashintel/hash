@@ -107,6 +107,24 @@ two clicks of a double-click would break click-count activation (rule 3).
     column, entering it at its remembered position. The default stacked
     layout is a single vertical stack chaining top to bottom.
 
+## Run mode
+
+The form's `mode="run"` shows a saved ad-hoc scenario for a run (the
+Simulation Settings panel with an ad-hoc scenario selected).
+
+14a. Only the exposed top-level Variables render, as scenario parameters:
+static name, static type, editable value. Auxiliary top-level and per-place
+Variables do not render at all.
+
+14b. Every other cell is read-only: activation selects but opens no editor,
+Delete clears nothing, typing overwrites nothing, and the structural
+affordances (phantom lines, row menus, the dots affordance, column-share
+toggles) are gone or inert.
+
+14c. Read-only cells stay focusable and selectable, and the keyboard walk is
+the author mode's: grids, gutters, headers, and columns move exactly as they
+do when editing.
+
 ## The editor slab
 
 Opening a value cell replaces it in place with a fixed-position slab: a path

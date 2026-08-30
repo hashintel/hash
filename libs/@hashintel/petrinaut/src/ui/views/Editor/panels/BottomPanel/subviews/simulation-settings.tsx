@@ -23,8 +23,13 @@ import {
 import { Slider } from "../../../../../components/slider";
 import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
 import { ViewScenarioDrawer } from "../../SimulateView/scenarios/view-scenario-drawer";
+import {
+  scenarioRunParameterValues,
+  seedScenarioRunState,
+} from "./scenario-run-state";
 
 import type { SubView } from "../../../../../components/sub-view/types";
+import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -415,6 +420,52 @@ const SimulationSettingsContent: React.FC = () => {
   // the feature.
   const adHocActive = enableAdHocScenarios && !selectedScenario;
 
+  // A selected ad-hoc scenario shows through the form too, in run mode:
+  // the panel edits a local copy whose only writable slots are the exposed
+  // Variables (the scenario's parameters); every edit resolves to ordinary
+  // scenario-parameter values, so the run path is the selected scenario's.
+  const selectedAdHocScenario =
+    enableAdHocScenarios && selectedScenario?.initialState.type === "adhoc"
+      ? selectedScenario
+      : undefined;
+  const [scenarioRun, setScenarioRun] = useState<{
+    scenarioId: string;
+    state: AdHocScenarioState;
+  } | null>(null);
+  if (
+    selectedAdHocScenario &&
+    selectedAdHocScenario.initialState.type === "adhoc" &&
+    scenarioRun?.scenarioId !== selectedAdHocScenario.id
+  ) {
+    setScenarioRun({
+      scenarioId: selectedAdHocScenario.id,
+      state: seedScenarioRunState(
+        selectedAdHocScenario.initialState.content,
+        scenarioParameterValues,
+      ),
+    });
+  }
+  const adHocFormContext = {
+    // The quick-sim embedding sees the overlaid parameters the run compiles
+    // against (the raw panel inputs are hidden while it is live); a selected
+    // scenario keeps the net's own defaults — its overrides rule.
+    netParameters: adHocActive ? adHocNetParameters : globalParameters,
+    places,
+    types: extensions.colors ? types : [],
+  };
+  const onScenarioRunChange = (next: AdHocScenarioState) => {
+    if (!selectedAdHocScenario) {
+      return;
+    }
+    setScenarioRun({ scenarioId: selectedAdHocScenario.id, state: next });
+    for (const { identifier, value } of scenarioRunParameterValues(
+      next,
+      adHocFormContext,
+    )) {
+      setScenarioParameterValue(identifier, value);
+    }
+  };
+
   // When a scenario is selected, show its scenario parameters + overridden net params.
   // When no scenario, show net-level parameters.
   const displayParams: Array<{
@@ -575,14 +626,7 @@ const SimulationSettingsContent: React.FC = () => {
         <AdHocScenarioForm
           state={adHocScenario ?? EMPTY_AD_HOC_STATE}
           onChange={setAdHocScenario}
-          context={{
-            // The overlaid parameters the run compiles against, so the
-            // defaults the form displays are the ones the run resolves —
-            // the raw panel inputs are hidden while this embedding is live.
-            netParameters: adHocNetParameters,
-            places,
-            types: extensions.colors ? types : [],
-          }}
+          context={adHocFormContext}
           selection="none"
           className={adHocFormRootStyle}
           renderLayout={({
@@ -652,6 +696,81 @@ const SimulationSettingsContent: React.FC = () => {
                       className={cx(isSimulationActive && lockedFormStyle)}
                     >
                       {placesList}
+                    </div>
+                  </ParametersScrollArea>
+                </div>
+              </FormLayoutColumn>
+            </div>
+          )}
+        />
+      ) : selectedAdHocScenario && scenarioRun ? (
+        /* A selected ad-hoc scenario, shown through the form in run mode:
+           the scenario's parameters (its exposed Variables) take value
+           edits in the left column; Parameters and Initial state sit
+           read-only in the right one, still walkable and selectable. */
+        <AdHocScenarioForm
+          state={scenarioRun.state}
+          onChange={onScenarioRunChange}
+          context={adHocFormContext}
+          selection="none"
+          mode="run"
+          className={adHocFormRootStyle}
+          renderLayout={({
+            variables: scenarioParameterRows,
+            parameters: parameterRows,
+            places: placesList,
+          }) => (
+            <div className={cx(containerStyle, adHocColumnsContainerStyle)}>
+              <FormLayoutColumn>
+                <div className={cx(sectionStyle, fillSectionStyle)}>
+                  <ParametersScrollArea>
+                    <div
+                      inert={isSimulationActive}
+                      className={cx(isSimulationActive && lockedFormStyle)}
+                    >
+                      <div className={initialStateTitleRowStyle}>
+                        <div className={sectionTitleStyle}>
+                          Scenario parameters
+                        </div>
+                        <HelpTooltip content="The scenario's tunable parameters. Change a value for this run; the scenario itself stays untouched." />
+                      </div>
+                      {scenarioParameterRows ?? (
+                        <div className={emptyMessageStyle}>
+                          This scenario exposes no parameters
+                        </div>
+                      )}
+                    </div>
+                  </ParametersScrollArea>
+                </div>
+              </FormLayoutColumn>
+              <FormLayoutColumn>
+                <div className={cx(sectionStyle, fillSectionStyle)}>
+                  <ParametersScrollArea>
+                    <div
+                      inert={isSimulationActive}
+                      className={cx(
+                        leftColumnSectionsStyle,
+                        isSimulationActive && lockedFormStyle,
+                      )}
+                    >
+                      <div>
+                        <div className={initialStateTitleRowStyle}>
+                          <div className={sectionTitleStyle}>Parameters</div>
+                          <HelpTooltip content="The parameter overrides the scenario fixes. Read-only here." />
+                        </div>
+                        {parameterRows ?? (
+                          <div className={emptyMessageStyle}>
+                            No parameters defined
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <div className={initialStateTitleRowStyle}>
+                          <div className={sectionTitleStyle}>Initial state</div>
+                          <HelpTooltip content="The initial marking the scenario defines. Read-only here." />
+                        </div>
+                        {placesList}
+                      </div>
                     </div>
                   </ParametersScrollArea>
                 </div>

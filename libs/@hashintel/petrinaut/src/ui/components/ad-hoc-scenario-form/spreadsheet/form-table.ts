@@ -327,6 +327,38 @@ export const phantomGutterButtonStyle = css({
 });
 
 /**
+ * A read-structure name cell (a parameter's or scenario parameter's name):
+ * plain face, fading out under a mask when it overflows.
+ */
+export const staticNameCellStyle = css({
+  display: "flex",
+  alignItems: "center",
+  height: "[28px]",
+  paddingX: "2",
+  fontSize: "xs",
+  fontWeight: "medium",
+  color: "neutral.s110",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  maskImage:
+    "[linear-gradient(to right, black calc(100% - 14px), transparent)]",
+});
+
+/**
+ * A read-structure type cell, matching the variables' type-select face:
+ * plain capitalized text at the same width.
+ */
+export const staticTypeCellStyle = css({
+  display: "flex",
+  alignItems: "center",
+  height: "[28px]",
+  paddingX: "2",
+  fontSize: "xs",
+  color: "neutral.s80",
+  textTransform: "capitalize",
+});
+
+/**
  * Lightens a gutter cell one surface step. The Variables lists wear it so
  * their gutters read quieter than the token tables'.
  */
