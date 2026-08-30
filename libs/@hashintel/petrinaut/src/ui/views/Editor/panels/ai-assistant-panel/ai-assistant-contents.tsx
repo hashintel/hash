@@ -1,17 +1,11 @@
-import {
-  memo,
-  type PointerEvent as ReactPointerEvent,
-  type RefObject,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { memo, type RefObject, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
+import { ResizeHandle } from "../../../../resize/resize-handle";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
   PromptChips,
@@ -76,31 +70,14 @@ const shellStyle = css({
   },
 });
 
-const resizeHandleStyle = css({
+// Tracks the card's inset within the padded shell, so the resize handle
+// straddles the card's visible left border rather than the shell edge.
+const resizeAnchorStyle = css({
   position: "absolute",
   top: "2",
   bottom: "2",
-  left: "0",
-  width: "[10px]",
-  cursor: "ew-resize",
-  zIndex: "[1]",
-  touchAction: "none",
-  _before: {
-    content: '""',
-    position: "absolute",
-    top: "[12px]",
-    bottom: "[12px]",
-    left: "[4px]",
-    width: "[2px]",
-    borderRadius: "full",
-    backgroundColor: "[transparent]",
-    transition: "[background-color 120ms ease-out]",
-  },
-  _hover: {
-    _before: {
-      backgroundColor: "neutral.a40",
-    },
-  },
+  left: "2",
+  width: "[0]",
 });
 
 const cardStyle = css({
@@ -452,30 +429,6 @@ export const AiAssistantContents = ({
     handlersRef.current = { onInteractiveToolSubmit, onSelectToolTarget };
   });
 
-  const onResizeStart = (event: ReactPointerEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const startX = event.clientX;
-    const startWidth = assistantWidth;
-    const maxWidth = Math.min(window.innerWidth - 32, 720);
-
-    const onPointerMove = (moveEvent: PointerEvent) => {
-      setAssistantWidth(
-        Math.min(
-          Math.max(startWidth + startX - moveEvent.clientX, 320),
-          maxWidth,
-        ),
-      );
-    };
-
-    const onPointerUp = () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-    };
-
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-  };
-
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
@@ -520,12 +473,20 @@ export const AiAssistantContents = ({
       style={{ right: rightOffset, width: assistantWidth }}
       aria-label="AI assistant"
     >
-      <div
-        aria-label="Resize AI assistant"
-        className={resizeHandleStyle}
-        onPointerDown={onResizeStart}
-        role="separator"
-      />
+      {/* Zero-width anchor on the card's left edge: the handle must straddle
+          the visible card border, but the card clips overflow and the shell's
+          padding pushes the shell edge away from it. */}
+      <div className={resizeAnchorStyle}>
+        <ResizeHandle
+          edge="left"
+          appearance="line"
+          size={assistantWidth}
+          onResize={setAssistantWidth}
+          minSize={320}
+          maxSize={720}
+          label="Resize AI assistant"
+        />
+      </div>
       <div className={cardStyle}>
         <div className={headerStyle}>
           <div className={tabStyle({ active: true })}>AI</div>
