@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 
+import { dronePatrol } from "../examples/drone-patrol";
 import { probabilisticSatellitesSDCPN } from "../examples/satellites-launcher";
 import { sirModel } from "../examples/sir-model";
 import { compileHirArtifacts } from "../hir";
 import { resolveNetParameterValues } from "../parameter-values";
-import { compileNetShader } from "./compile-net-shader";
+import {
+  compileNetShader,
+  GPU_HISTOGRAM_MAX_BINS,
+  histogramBinCount,
+} from "./compile-net-shader";
 import { assessGpuEligibility } from "./eligibility";
 import { hirFromArtifacts } from "./hir-from-artifacts";
 
@@ -294,6 +299,65 @@ describe("compileNetShader", () => {
  * token array — leaving every run sharing one RNG stream while reporting
  * confidently. These pin the offsets against the shader's own writes.
  */
+describe("histogram sizing", () => {
+  it("spends the whole baseline workgroup budget on an unbounded metric", () => {
+    // One metric: floor(16384 / 4) = 4096 slots, capped at the max.
+    expect(histogramBinCount(1, null)).toBe(GPU_HISTOGRAM_MAX_BINS);
+    expect(histogramBinCount(4, null)).toBe(GPU_HISTOGRAM_MAX_BINS);
+  });
+
+  it("shrinks bins as metrics divide the workgroup budget", () => {
+    expect(histogramBinCount(5, null)).toBe(819);
+    // 17 metrics used to overflow the 16 KB budget at a fixed 256 bins and
+    // fail pipeline creation; now they fit at fewer bins each.
+    expect(histogramBinCount(17, null)).toBe(240);
+    expect(17 * histogramBinCount(17, null) * 4).toBeLessThanOrEqual(16384);
+  });
+
+  it("sizes to the sampled places' count ceiling plus a top bin", () => {
+    expect(histogramBinCount(1, 16)).toBe(17);
+    expect(histogramBinCount(1, 0)).toBe(2);
+    expect(histogramBinCount(1, 100000)).toBe(GPU_HISTOGRAM_MAX_BINS);
+  });
+
+  it("gives an unbounded sampled place the full budget in a compiled shader", () => {
+    const result = compileFor(sir, {
+      metrics: [{ id: "infected", placeId: "place__infected" }],
+    });
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+    expect(result.shader.histogramBins).toBe(GPU_HISTOGRAM_MAX_BINS);
+    expect(result.shader.wgsl).toContain(
+      `const HIST_BINS: u32 = ${GPU_HISTOGRAM_MAX_BINS}u;`,
+    );
+  });
+
+  it("sizes a typed sampled place's bins from its capacity", () => {
+    const result = compileFor(dronePatrol.petriNetDefinition, {
+      metrics: [{ id: "airborne", placeId: "place__airborne" }],
+    });
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+    // Capacity 16 → counts 0..16 plus nothing else representable.
+    expect(result.shader.histogramBins).toBe(17);
+    // The top bin holds an exact, reachable count — reporting its mass as
+    // clamped would warn on every at-capacity sample.
+    expect(result.shader.histogramTopBinSaturates).toBe(false);
+  });
+
+  it("marks the top bin as saturating when counts can exceed it", () => {
+    const result = compileFor(sir, {
+      metrics: [{ id: "infected", placeId: "place__infected" }],
+    });
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+    expect(result.shader.histogramTopBinSaturates).toBe(true);
+  });
+});
+
 describe("state layout offsets", () => {
   /** A typed place with one real attribute, so the layout has token words. */
   const typedNet = (): SDCPN => ({

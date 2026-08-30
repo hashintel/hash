@@ -18,7 +18,10 @@
  */
 import { getArcEndpointPlaceId } from "../arc-endpoints";
 import { buildKernelContext, buildLambdaContext } from "../hir/surface-context";
-import { computeTransitionCapacityConstraints } from "../simulation/engine/capacity";
+import {
+  computeTransitionCapacityConstraints,
+  PLACE_CAPACITY_UNBOUNDED,
+} from "../simulation/engine/capacity";
 import { WgslBailError, WgslEmitter, emitF32Literal } from "./emit-wgsl";
 import { emitPairScanWgsl } from "./pair-selection";
 import { wgslPrelude } from "./wgsl-prelude";
@@ -32,8 +35,48 @@ import type { WgslParameterValue, WgslValue } from "./emit-wgsl";
 /** Invocations per workgroup. 256 is the guaranteed WebGPU maximum. */
 export const GPU_WORKGROUP_SIZE = 256;
 
-/** Histogram bins per metric per frame. */
-export const GPU_HISTOGRAM_BINS = 256;
+/** Most bins any shader allocates, however generous the budget. */
+export const GPU_HISTOGRAM_MAX_BINS = 1024;
+
+/**
+ * `maxComputeWorkgroupStorageSize` every conformant WebGPU device supports.
+ *
+ * The per-workgroup histogram (`local_hist`) lives in workgroup storage, so
+ * this budget is what bounds the bin count. `requestGpuDevice` asks only for
+ * larger *buffer* limits, which leaves the created device at exactly this
+ * default — so sizing against the baseline is sizing against the actual
+ * device, and the shader stays device-independent and deterministic.
+ */
+export const GPU_BASELINE_WORKGROUP_STORAGE_BYTES = 16384;
+
+/**
+ * Histogram bins per metric per frame, for one compiled shader.
+ *
+ * One bin per integer token count, so the bin count is the largest count the
+ * charts can distinguish plus one saturating top bin. Two inputs size it:
+ *
+ * - The workgroup-storage budget: `local_hist` holds `bins × metricCount`
+ *   u32 atomics, so more metrics mean fewer bins. Up to four metrics get the
+ *   full `GPU_HISTOGRAM_MAX_BINS`; a fixed 256 both wasted the budget below
+ *   five metrics and exceeded it (failing pipeline creation) above sixteen.
+ * - The sampled places' count ceiling, when every sampled place has one
+ *   (a typed place's slot capacity, or a declared capacity the shader
+ *   enforces): counts past the ceiling cannot occur, so bins past it would
+ *   only slow the per-frame zero/merge loops.
+ */
+export function histogramBinCount(
+  metricCount: number,
+  sampledCountCeiling: number | null,
+): number {
+  const budget = Math.floor(
+    GPU_BASELINE_WORKGROUP_STORAGE_BYTES / (4 * Math.max(1, metricCount)),
+  );
+  const bins = Math.max(2, Math.min(GPU_HISTOGRAM_MAX_BINS, budget));
+  if (sampledCountCeiling === null) {
+    return bins;
+  }
+  return Math.max(2, Math.min(bins, sampledCountCeiling + 1));
+}
 
 export type GpuOdeMethod = "euler" | "rk2" | "rk4";
 
@@ -117,6 +160,18 @@ export type CompiledNetShader = {
   statusOffset: number;
   /** Metric ids in histogram order. */
   metricIds: string[];
+  /**
+   * Histogram bins per metric per frame, from `histogramBinCount`. Baked into
+   * the WGSL, so the host must decode with exactly this value.
+   */
+  histogramBins: number;
+  /**
+   * Whether counts above the top bin's index can occur (and are clamped into
+   * it). False when the bins cover every reachable count — capacity-sized
+   * histograms — where top-bin mass is an exact sample, not clamping, and
+   * must not be reported as saturation.
+   */
+  histogramTopBinSaturates: boolean;
   /**
    * Per-run parameters in buffer order; empty when every parameter is a
    * baked literal. Non-empty obliges the runner to bind a run-major f32
@@ -545,6 +600,31 @@ export function compileNetShader(
       profile.places.map((place, index) => [place.id, index]),
     );
 
+    // The largest count any sampled place can reach, or null when one is
+    // unbounded. A typed place's count never exceeds its slot capacity, and a
+    // declared capacity is enforced by the eligibility constraints emitted
+    // below, so both are hard ceilings.
+    let sampledCountCeiling: number | null = 0;
+    for (const metric of metrics) {
+      const place = profile.places[placeIndexById.get(metric.placeId) ?? -1];
+      const ceiling = place?.colored
+        ? place.capacity
+        : place?.declaredCapacity === PLACE_CAPACITY_UNBOUNDED
+          ? null
+          : (place?.declaredCapacity ?? null);
+      if (ceiling === null) {
+        sampledCountCeiling = null;
+        break;
+      }
+      sampledCountCeiling = Math.max(sampledCountCeiling, ceiling);
+    }
+    const histogramBins = histogramBinCount(
+      metrics.length,
+      sampledCountCeiling,
+    );
+    const histogramTopBinSaturates =
+      sampledCountCeiling === null || histogramBins < sampledCountCeiling + 1;
+
     // --- State layout -------------------------------------------------------
     // counts | firing counts | rng | status | token values
     const placeCount = profile.places.length;
@@ -578,7 +658,7 @@ export function compileNetShader(
       `// One invocation per run; up to ${framesPerDispatch} frames per dispatch.`,
     );
     push(`const STATE_WORDS: u32 = ${stateWordsPerRun}u;`);
-    push(`const HIST_BINS: u32 = ${GPU_HISTOGRAM_BINS}u;`);
+    push(`const HIST_BINS: u32 = ${histogramBins}u;`);
     push(`const DT: f32 = ${emitF32Literal(dt)};`);
     push("");
     push(`struct Config {`);
@@ -615,7 +695,7 @@ export function compileNetShader(
     // because runs in a workgroup collide on the same bin constantly.
     if (metrics.length > 0) {
       push(
-        `var<workgroup> local_hist: array<atomic<u32>, ${GPU_HISTOGRAM_BINS * metrics.length}>;`,
+        `var<workgroup> local_hist: array<atomic<u32>, ${histogramBins * metrics.length}>;`,
       );
       push("");
     }
@@ -1115,7 +1195,7 @@ export function compileNetShader(
     if (metrics.length > 0) {
       push(`    // per-frame histograms, reduced in workgroup memory`);
       push(
-        `    for (var b: u32 = lid; b < ${GPU_HISTOGRAM_BINS * metrics.length}u; b = b + ${GPU_WORKGROUP_SIZE}u) {`,
+        `    for (var b: u32 = lid; b < ${histogramBins * metrics.length}u; b = b + ${GPU_WORKGROUP_SIZE}u) {`,
       );
       push(`      atomicStore(&local_hist[b], 0u);`);
       push(`    }`);
@@ -1132,18 +1212,18 @@ export function compileNetShader(
         // completes, because its status flips before the observation.
         push(`    if (running && status == 0u) {`);
         push(
-          `      atomicAdd(&local_hist[${metricIndex * GPU_HISTOGRAM_BINS}u + min(counts[${placeIndex}u], HIST_BINS - 1u)], 1u);`,
+          `      atomicAdd(&local_hist[${metricIndex * histogramBins}u + min(counts[${placeIndex}u], HIST_BINS - 1u)], 1u);`,
         );
         push(`    }`);
       }
       push(`    workgroupBarrier();`);
       push(
-        `    for (var b: u32 = lid; b < ${GPU_HISTOGRAM_BINS * metrics.length}u; b = b + ${GPU_WORKGROUP_SIZE}u) {`,
+        `    for (var b: u32 = lid; b < ${histogramBins * metrics.length}u; b = b + ${GPU_WORKGROUP_SIZE}u) {`,
       );
       push(`      let v = atomicLoad(&local_hist[b]);`);
       push(`      if (v > 0u) {`);
       push(
-        `        atomicAdd(&hist[absolute_frame * ${GPU_HISTOGRAM_BINS * metrics.length}u + b], v);`,
+        `        atomicAdd(&hist[absolute_frame * ${histogramBins * metrics.length}u + b], v);`,
       );
       push(`      }`);
       push(`    }`);
@@ -1193,6 +1273,8 @@ export function compileNetShader(
         rngOffset,
         statusOffset,
         metricIds: metrics.map((metric) => metric.id),
+        histogramBins,
+        histogramTopBinSaturates,
         runParameterIds: [...runParameters],
         compiledLambdas,
       },
