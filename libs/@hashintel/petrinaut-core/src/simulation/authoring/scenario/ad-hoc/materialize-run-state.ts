@@ -12,7 +12,6 @@
  * mapping — a camelCase identifier must round-trip unchanged.
  */
 
-import type { InitialMarking } from "../../../api";
 import type {
   AdHocPlaceState,
   AdHocScenarioState,
@@ -21,6 +20,7 @@ import type {
   Place,
   Scenario,
 } from "../../../../types/sdcpn";
+import type { InitialMarking } from "../../../api";
 
 /** Places longer than this render only their first rows in the preview. */
 export const CLASSIC_RUN_ROW_CAP = 100;

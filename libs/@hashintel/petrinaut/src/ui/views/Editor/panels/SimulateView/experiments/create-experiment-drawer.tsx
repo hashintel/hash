@@ -41,6 +41,7 @@ import {
   getExperimentMetricDiagnosticError,
   type MetricLspDiagnosticSummary,
 } from "./experiment-metric-lsp-validation";
+import { ExperimentScenarioRun } from "./experiment-scenario-run";
 
 import type {
   AdHocScenarioState,
@@ -1071,7 +1072,32 @@ export const CreateExperimentDrawer = ({
             </div>
 
             {selectedScenario ? (
-              selectedScenario.scenarioParameters.length === 0 ? (
+              enableAdHocScenarios ? (
+                // The selected scenario shows through the ad-hoc form in run
+                // mode: scenario parameters editable in worksheet style, and
+                // a collapsed "Computed state" preview of the exact values
+                // and tokens each run starts with.
+                <ExperimentScenarioRun
+                  scenario={selectedScenario}
+                  context={{
+                    netParameters: extensions.parameters
+                      ? petriNetDefinition.parameters
+                      : [],
+                    places: petriNetDefinition.places,
+                    types: extensions.colors ? petriNetDefinition.types : [],
+                  }}
+                  values={paramValues}
+                  onValuesChange={(updates) =>
+                    setParamValues((prev) => {
+                      const next = { ...prev };
+                      for (const update of updates) {
+                        next[update.identifier] = update.value;
+                      }
+                      return next;
+                    })
+                  }
+                />
+              ) : selectedScenario.scenarioParameters.length === 0 ? (
                 <div className={emptyParamsStyle}>No scenario parameters</div>
               ) : (
                 selectedScenario.scenarioParameters.map((param) => (

@@ -582,9 +582,7 @@ const SimulationSettingsContent: React.FC = () => {
       return withoutPreview("Compiling the initial state preview…");
     }
     const numericValues = createUserKeyedRecord<number>();
-    for (const [identifier, value] of Object.entries(
-      scenarioParameterValues,
-    )) {
+    for (const [identifier, value] of Object.entries(scenarioParameterValues)) {
       const parsed = Number(value);
       if (Number.isFinite(parsed)) {
         numericValues[identifier] = parsed;
