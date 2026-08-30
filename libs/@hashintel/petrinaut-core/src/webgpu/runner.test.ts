@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   deriveGpuRunSeed,
+  dispatchChunkFrames,
   describeAllocationFailure,
   describeBufferOverflow,
   fillSeedChunk,
@@ -320,5 +321,33 @@ describe("describeAllocationFailure", () => {
     });
 
     expect(reason).toContain("Failed to allocate memory for buffer mapping");
+  });
+});
+
+describe("dispatchChunkFrames", () => {
+  it("ramps short chunks first, then holds the configured size", () => {
+    expect(dispatchChunkFrames(1_000, 300)).toEqual([
+      32, 64, 128, 256, 300, 220,
+    ]);
+  });
+
+  it("never exceeds the frame limit or the configured chunk", () => {
+    expect(dispatchChunkFrames(40, 300)).toEqual([32, 8]);
+    expect(dispatchChunkFrames(10, 4)).toEqual([4, 4, 2]);
+  });
+
+  it("covers exactly the frame limit", () => {
+    for (const [limit, per] of [
+      [1, 300],
+      [600, 300],
+      [601, 300],
+      [299, 300],
+    ] as const) {
+      const total = dispatchChunkFrames(limit, per).reduce(
+        (sum, chunk) => sum + chunk,
+        0,
+      );
+      expect(total).toBe(limit);
+    }
   });
 });

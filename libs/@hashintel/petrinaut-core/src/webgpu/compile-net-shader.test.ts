@@ -130,7 +130,7 @@ describe("compileNetShader", () => {
     // The frame loop must be inside the shader; a host-driven per-frame dispatch
     // would cost more in readback than the work itself.
     expect(result.shader.wgsl).toContain(
-      "for (var frame: u32 = 0u; frame < 300u;",
+      "for (var frame: u32 = 0u; frame < config.chunk_frames;",
     );
   });
 

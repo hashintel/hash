@@ -1309,8 +1309,12 @@ export const CreateExperimentDrawer = ({
             </div>
             <div className={gridStyle}>
               <div className={fieldStyle}>
+                {/* A sweep refines each selection progressively (8, 25, 100,
+                    ... 1000, 5000, ...) up to this budget, so for sweeps this
+                    is a ceiling, not a batch size — 100,000 is a reasonable
+                    value on the GPU. */}
                 <span className={labelStyle}>
-                  {sweepSummary ? "Runs per combination" : "Runs"}
+                  {sweepSummary ? "Max runs per selection" : "Runs"}
                 </span>
                 <NumberInput
                   size="sm"
