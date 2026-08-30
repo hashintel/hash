@@ -107,6 +107,13 @@ export type CreateSweepSessionOptions = {
   initialSelection?: SweepSelection;
   instantiateBatch: InstantiateSweepBatch;
   onUpdate: (update: SweepSessionUpdate) => void;
+  /**
+   * Coalesces in-flight publishes: after a leading publish, further store
+   * ticks inside this window fold into one trailing publish. 0 (the
+   * default) publishes on every tick. Terminal publishes (batch end,
+   * saturation, errors) are never delayed.
+   */
+  publishThrottleMs?: number;
   /** A failed batch stops the session; the owner decides how to surface it. */
   onError: (message: string) => void;
 };
@@ -283,6 +290,36 @@ export function createSweepSession(
   const snapshotFor = (key: string): SweepCellSnapshot =>
     cache.get(key) ?? { runsCompleted: 0, metricFrames: [] };
 
+  /**
+   * The last live merge, keyed by both inputs' identities. Progress ticks
+   * re-publish the same frame arrays, and the full re-merge — every cached
+   * frame against every in-flight frame — was the sweep lane's hottest
+   * main-thread cost.
+   */
+  let mergeCache: {
+    cached: readonly MonteCarloUserDefinedMetricFrame[];
+    inFlight: readonly MonteCarloUserDefinedMetricFrame[];
+    result: readonly MonteCarloUserDefinedMetricFrame[];
+  } | null = null;
+
+  const mergeLive = (
+    cached: readonly MonteCarloUserDefinedMetricFrame[],
+    inFlight: readonly MonteCarloUserDefinedMetricFrame[],
+  ): readonly MonteCarloUserDefinedMetricFrame[] => {
+    if (
+      mergeCache === null ||
+      mergeCache.cached !== cached ||
+      mergeCache.inFlight !== inFlight
+    ) {
+      mergeCache = {
+        cached,
+        inFlight,
+        result: mergeMetricFramesAcrossCells([cached, inFlight]),
+      };
+    }
+    return mergeCache.result;
+  };
+
   const publish = (update: {
     inFlightFrames?: readonly MonteCarloUserDefinedMetricFrame[];
     inFlightRuns?: number;
@@ -299,7 +336,7 @@ export function createSweepSession(
       selection,
       metricFrames:
         inFlight.length > 0
-          ? mergeMetricFramesAcrossCells([snapshot.metricFrames, inFlight])
+          ? mergeLive(snapshot.metricFrames, inFlight)
           : snapshot.metricFrames,
       runsSampled: snapshot.runsCompleted + (update.inFlightRuns ?? 0),
       runsCompleted: snapshot.runsCompleted,
@@ -388,8 +425,36 @@ export function createSweepSession(
         computing: true,
       });
     };
-    const offMetrics = handle.metrics.subscribe(publishLive);
-    const offProgress = handle.progress.subscribe(publishLive);
+    // Leading-edge publish with trailing coalescing: with many shards each
+    // message wave fires metrics and progress ticks back to back, and every
+    // one re-rendered the whole drawer.
+    const throttleMs = options.publishThrottleMs ?? 0;
+    // In an object so reads go through a property the narrowing-based lint
+    // treats as opaque: the fields flip inside timer callbacks.
+    const throttle: {
+      timer: ReturnType<typeof setTimeout> | null;
+      pending: boolean;
+    } = { timer: null, pending: false };
+    const publishLiveThrottled = () => {
+      if (throttleMs === 0) {
+        publishLive();
+        return;
+      }
+      if (throttle.timer !== null) {
+        throttle.pending = true;
+        return;
+      }
+      publishLive();
+      throttle.timer = setTimeout(() => {
+        throttle.timer = null;
+        if (throttle.pending) {
+          throttle.pending = false;
+          publishLiveThrottled();
+        }
+      }, throttleMs);
+    };
+    const offMetrics = handle.metrics.subscribe(publishLiveThrottled);
+    const offProgress = handle.progress.subscribe(publishLiveThrottled);
     const offEvents = handle.events.subscribe((event) => {
       if (event.type === "complete") {
         resolveDone("complete");
@@ -414,6 +479,13 @@ export function createSweepSession(
     offMetrics();
     offProgress();
     offEvents();
+    // A trailing tick after the fold would re-merge the batch's frames on
+    // top of a cache that already contains them — double counting.
+    if (throttle.timer !== null) {
+      clearTimeout(throttle.timer);
+      throttle.timer = null;
+    }
+    throttle.pending = false;
 
     if (failed && !isStale(loopGeneration)) {
       // The session idles after a failure; leave the last good frames up

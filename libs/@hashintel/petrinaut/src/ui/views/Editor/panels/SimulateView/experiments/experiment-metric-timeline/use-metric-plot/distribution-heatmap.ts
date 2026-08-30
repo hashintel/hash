@@ -208,29 +208,59 @@ export function createDistributionHeatmapPlugin(framesRef: {
   // One cell-resolution scratch canvas per plugin (per uPlot instance),
   // created lazily so importing this module stays DOM-free.
   let cellCanvas: HTMLCanvasElement | null = null;
+  // uPlot redraws for reasons besides new data (size, scale, cursor lock);
+  // the same frames at the same plot height reuse the rasterized cells.
+  let rasterCache: {
+    frames: readonly MetricFrame[];
+    bboxHeight: number;
+    grid: HeatmapDensityGrid;
+    timeFirst: number;
+    timeLast: number;
+  } | null = null;
 
   return {
     hooks: {
       draw: (u) => {
-        const frames = distributionFramesFrom(framesRef.current);
-        if (frames.length === 0) {
+        const sourceFrames = framesRef.current;
+        if (
+          rasterCache === null ||
+          rasterCache.frames !== sourceFrames ||
+          rasterCache.bboxHeight !== u.bbox.height
+        ) {
+          const frames = distributionFramesFrom(sourceFrames);
+          if (frames.length === 0) {
+            return;
+          }
+          const built = buildHeatmapDensityGrid(frames, u.bbox.height);
+          if (!built) {
+            return;
+          }
+          rasterCache = {
+            frames: sourceFrames,
+            bboxHeight: u.bbox.height,
+            grid: built,
+            timeFirst: frames[0]!.time,
+            timeLast: frames.at(-1)!.time,
+          };
+
+          cellCanvas ??= document.createElement("canvas");
+          cellCanvas.width = built.columns;
+          cellCanvas.height = built.rows;
+          const cellContext = cellCanvas.getContext("2d")!;
+          cellContext.putImageData(
+            new ImageData(
+              rasterizeHeatmap(built, lut),
+              built.columns,
+              built.rows,
+            ),
+            0,
+            0,
+          );
+        }
+        if (cellCanvas === null) {
           return;
         }
-
-        const grid = buildHeatmapDensityGrid(frames, u.bbox.height);
-        if (!grid) {
-          return;
-        }
-
-        cellCanvas ??= document.createElement("canvas");
-        cellCanvas.width = grid.columns;
-        cellCanvas.height = grid.rows;
-        const cellContext = cellCanvas.getContext("2d")!;
-        cellContext.putImageData(
-          new ImageData(rasterizeHeatmap(grid, lut), grid.columns, grid.rows),
-          0,
-          0,
-        );
+        const { grid, timeFirst, timeLast } = rasterCache;
 
         // Cell centers sit on the frame times and grid-row values, so the
         // image extends half a cell beyond the outermost centers. All
@@ -242,8 +272,8 @@ export function createDistributionHeatmapPlugin(framesRef: {
           grid.rows > 1
             ? (yBottom - yTop) / (grid.rows - 1)
             : 8 * uPlot.pxRatio;
-        const xFirst = u.valToPos(frames[0]!.time, "x", true);
-        const xLast = u.valToPos(frames.at(-1)!.time, "x", true);
+        const xFirst = u.valToPos(timeFirst, "x", true);
+        const xLast = u.valToPos(timeLast, "x", true);
         const cellWidth =
           grid.columns > 1
             ? (xLast - xFirst) / (grid.columns - 1)
