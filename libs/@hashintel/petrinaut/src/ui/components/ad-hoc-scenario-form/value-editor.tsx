@@ -243,6 +243,12 @@ export interface ValueEditorProps {
    * editing is delegated to the shared column's own editor by the parent.
    */
   derived?: boolean;
+  /**
+   * The cell never opens an editor or accepts an edit — Delete and
+   * type-to-overwrite included — but stays focusable, selectable, and part
+   * of the keyboard walk (the form's run mode).
+   */
+  readOnly?: boolean;
   /** Extra classname for the trigger. */
   className?: string;
   /** Overrides the trigger content (defaults to the expression). */
@@ -402,6 +408,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   target,
   kind,
   derived = false,
+  readOnly = false,
   className,
   display,
   placeholder,
@@ -580,7 +587,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
   const [seenAutoOpen, setSeenAutoOpen] = useState(autoOpen);
   if (autoOpen !== seenAutoOpen) {
     setSeenAutoOpen(autoOpen);
-    if (autoOpen > 0) {
+    if (autoOpen > 0 && !readOnly) {
       setMountSelection("all");
       setOpenState(true);
     }
@@ -829,7 +836,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
             onOpenDerived?.();
             return;
           }
-          if (triggerActivation.shouldActivate(event)) {
+          if (triggerActivation.shouldActivate(event) && !readOnly) {
             setMountSelection("all");
             setOpenState(true);
           }
@@ -840,14 +847,19 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
           if (event.key === "Delete" || event.key === "Backspace") {
             event.preventDefault();
             event.stopPropagation();
-            if (!derived && !optimized && value.expression !== "") {
+            if (
+              !derived &&
+              !readOnly &&
+              !optimized &&
+              value.expression !== ""
+            ) {
               dispatch({ type: "setExpression", target, expression: "" });
             }
             return;
           }
           // Typing on a selected cell overwrites it, spreadsheet-style: the
           // typed character replaces the value and the editor opens on it.
-          if (!derived && !optimized && isOverwriteKey(event)) {
+          if (!derived && !readOnly && !optimized && isOverwriteKey(event)) {
             event.preventDefault();
             event.stopPropagation();
             dispatch({

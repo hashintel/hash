@@ -93,7 +93,9 @@ Optimized values follow the same rules as [scenario parameter domains](optimizat
 
 With the feature enabled, [creating a scenario](scenarios.md#creating-a-scenario) opens the same form -- name and description above it -- as the one authoring surface (there is no "Define as code" toggle in this mode). Each top-level Variable's row carries a **Scenario Parameter** toggle: an exposed Variable becomes one of the saved scenario's tunable parameters, named after the Variable in snake_case (`baseLoad` becomes `base_load`), defaulting to its expression's value -- which must therefore be a constant. Everyone running the scenario can then adjust it wherever scenario parameters appear, without editing the scenario.
 
-Saving keeps your form entries as the scenario's definition, so editing the scenario reopens exactly the form you left. A scenario authored this way always edits through the ad-hoc form, whatever the setting says -- the classical form cannot represent it.
+Saving keeps your form entries as the scenario's definition, so editing the scenario reopens exactly the form you left.
+
+Selecting a saved ad-hoc scenario in Simulation Settings shows it through the same form, read-only: only the scenario parameters (the exposed Variables) take value edits, for that run alone; auxiliary Variables stay hidden, and the parameter overrides and initial state can be browsed with the usual keyboard navigation but not changed. A scenario authored this way always edits through the ad-hoc form, whatever the setting says -- the classical form cannot represent it.
 
 ## Errors
 

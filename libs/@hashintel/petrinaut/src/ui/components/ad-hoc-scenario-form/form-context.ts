@@ -33,7 +33,18 @@ export type AdHocFormSelection = "none" | "optimize" | "expose";
 export const adHocSelectionText = (selection: AdHocFormSelection): string =>
   selection === "expose" ? "Scenario Parameter" : "Optimize";
 
+/**
+ * What the form lets the user change. "author" is the full editor. "run"
+ * shows a saved scenario for a run: only the exposed top-level Variables
+ * (the scenario's parameters) accept value edits; auxiliary Variables are
+ * hidden, and everything else is read-only yet stays keyboard-navigable
+ * and selectable.
+ */
+export type AdHocFormMode = "author" | "run";
+
 export interface AdHocFormServices {
+  /** What the form lets the user change; see {@link AdHocFormMode}. */
+  mode: AdHocFormMode;
   /** The whole form state, as currently edited. */
   formState: AdHocScenarioState;
   /**
@@ -82,6 +93,7 @@ export interface AdHocFormServices {
 }
 
 export const AdHocFormContext = createContext<AdHocFormServices>({
+  mode: "author",
   formState: { variables: [], netParameters: [], places: {} },
   dispatch: () => {},
   synthesisContext: { netParameters: [], places: [], types: [] },
