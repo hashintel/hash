@@ -113,8 +113,8 @@ describe("compileNetShader", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    // 3 counts + 2 x (elapsed + firings) + rng + status.
-    expect(result.shader.stateWordsPerRun).toBe(9);
+    // 3 counts + 2 firings + rng + status.
+    expect(result.shader.stateWordsPerRun).toBe(7);
     expect(result.shader.compiledLambdas).toStrictEqual([
       "transition__infection",
       "transition__recovery",
@@ -134,22 +134,19 @@ describe("compileNetShader", () => {
     );
   });
 
-  it("commits the generator state only when a transition fires", () => {
-    // This mirrors the CPU engine, where `advance-run.ts` skips the `rngState`
-    // assignment for a transition that does not fire. Holding `u` fixed until it
-    // is consumed makes firing an exponential waiting time; redrawing every frame
-    // would be a Bernoulli trial and fire measurably sooner. Verified against
-    // the CPU engine: redrawing produced a 21% divergence by frame 599.
+  it("consumes the acceptance draw every enabled frame, fired or not", () => {
+    // This mirrors the CPU engine, where `advance-run.ts` commits the run's
+    // RNG state after every transition evaluation ("Every evaluation's
+    // randomness is consumed, fired or not") and the acceptance is a
+    // memoryless per-frame Bernoulli over dt. Holding the draw until it
+    // fires accumulated the hazard over a transition's idle window instead —
+    // structurally divergent for any intermittently enabled net.
     const result = compileFor(sir);
     if (!result.ok) throw new Error(result.reason);
 
-    expect(result.shader.wgsl).toContain("var rng_candidate = rng_state;");
-    expect(result.shader.wgsl).toContain(
-      "let u = rng_next_f32(&rng_candidate);",
-    );
-    expect(result.shader.wgsl).toContain(
-      "if (fires) { rng_state = rng_candidate; }",
-    );
+    expect(result.shader.wgsl).toContain("let u = rng_next_f32(&rng_state);");
+    expect(result.shader.wgsl).not.toContain("rng_candidate");
+    expect(result.shader.wgsl).toContain("accepts_firing");
   });
 
   it("applies removals immediately and additions at end of frame", () => {
@@ -292,7 +289,7 @@ describe("compileNetShader", () => {
  * The host reads a run's RNG state and status out of the state buffer by word
  * offset. Those offsets used to be derived by counting back from
  * `stateWordsPerRun`, which is only correct for a net with no token attributes:
- * the layout is `counts | elapsed | firings | rng | status | tokens`, so on a
+ * the layout is `counts | firings | rng | status | tokens`, so on a
  * typed net the seed landed in a token attribute and the status came out of the
  * token array — leaving every run sharing one RNG stream while reporting
  * confidently. These pin the offsets against the shader's own writes.
@@ -412,7 +409,7 @@ describe("typed token consumption", () => {
       throw new Error(compiled.reason);
     }
     const { wgsl } = compiled.shader;
-    const drawIndex = wgsl.indexOf("let u = rng_next_f32(&rng_candidate);");
+    const drawIndex = wgsl.indexOf("let u = rng_next_f32(&rng_state);");
     const scanIndex = wgsl.indexOf("for (var cand_0:");
 
     expect(drawIndex).toBeGreaterThan(-1);

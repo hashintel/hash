@@ -104,7 +104,7 @@ export type CompiledNetShader = {
    * Word offset of the run's RNG state and status.
    *
    * Exposed rather than derived by the host: the layout is
-   * `counts | elapsed | firings | rng | status | tokens`, so counting back from
+   * `counts | firings | rng | status | tokens`, so counting back from
    * `stateWordsPerRun` only finds them when a net has no token attributes at all.
    * A typed net seeded a token attribute and read its status out of the token
    * array, which left every run sharing one RNG stream.
@@ -542,12 +542,11 @@ export function compileNetShader(
     );
 
     // --- State layout -------------------------------------------------------
-    // counts | elapsed frames | firing counts | rng | status | token values
+    // counts | firing counts | rng | status | token values
     const placeCount = profile.places.length;
     const transitionCount = sdcpn.transitions.length;
     const countsOffset = 0;
-    const elapsedOffset = countsOffset + placeCount;
-    const firingsOffset = elapsedOffset + transitionCount;
+    const firingsOffset = countsOffset + placeCount;
     const rngOffset = firingsOffset + transitionCount;
     const statusOffset = rngOffset + 1;
     const tokensOffset = statusOffset + 1;
@@ -563,7 +562,7 @@ export function compileNetShader(
     }
     const stateWordsPerRun = tokensOffset + tokenWords;
     // One word per place count, plus the status. Deliberately not the whole run
-    // header: `elapsed`, `firings` and the RNG word are device-side bookkeeping
+    // header: `firings` and the RNG word are device-side bookkeeping
     // the host never decodes.
     const summaryWordsPerRun = placeCount + 1;
 
@@ -624,7 +623,6 @@ export function compileNetShader(
     // Load state into registers. Out-of-range invocations still execute so they
     // reach the workgroup barriers the histogram flush needs.
     push(`  var counts: array<u32, ${Math.max(placeCount, 1)}>;`);
-    push(`  var elapsed: array<u32, ${Math.max(transitionCount, 1)}>;`);
     push(`  var firings: array<u32, ${Math.max(transitionCount, 1)}>;`);
     push(`  var rng_state: u32 = 0u;`);
     push(`  var status: u32 = 0u;`);
@@ -636,7 +634,6 @@ export function compileNetShader(
       push(`    counts[${index}u] = state[base + ${countsOffset + index}u];`);
     }
     for (let index = 0; index < transitionCount; index++) {
-      push(`    elapsed[${index}u] = state[base + ${elapsedOffset + index}u];`);
       push(`    firings[${index}u] = state[base + ${firingsOffset + index}u];`);
     }
     push(`    rng_state = state[base + ${rngOffset}u];`);
@@ -892,20 +889,20 @@ export function compileNetShader(
         push(`      var fires = false;`);
         push(`      if (structurally_enabled) {`);
 
-        // The CPU draws its acceptance uniform once per transition per frame,
-        // before walking combinations, and reuses it for every one
-        // (`monte-carlo/transition-effect.ts`). Drawing inside the scan would give
-        // a place holding more tokens more chances to clear the threshold, so it
-        // would fire measurably sooner. It also only commits the generator state
-        // when the transition fires, which makes the wait an exponential rather
-        // than a per-frame Bernoulli trial — hence the candidate state.
+        // The CPU draws its acceptance uniform once per enabled transition
+        // per frame, before walking combinations, reuses it for every one,
+        // and consumes it whether or not the transition fires
+        // (`monte-carlo/transition-effect.ts`). Drawing inside the scan
+        // would give a place holding more tokens more chances to clear the
+        // threshold, so it would fire measurably sooner; not consuming the
+        // draw would accumulate the hazard over the idle window instead of
+        // testing a memoryless per-frame Bernoulli over dt.
         const isStochastic = !emitted.isPredicate;
         if (isStochastic) {
-          push(`        var rng_candidate = rng_state;`);
-          push(`        let u = rng_next_f32(&rng_candidate);`);
+          push(`        let u = rng_next_f32(&rng_state);`);
         }
         const acceptance = isStochastic
-          ? `accepts_firing(${emitted.expression}, f32(elapsed[${transitionIndex}u]) * DT, u)`
+          ? `accepts_firing(${emitted.expression}, DT, u)`
           : emitted.expression;
 
         if (typedWeight === 2) {
@@ -941,9 +938,6 @@ export function compileNetShader(
           push(`        fires = ${acceptance};`);
         }
 
-        if (isStochastic) {
-          push(`        if (fires) { rng_state = rng_candidate; }`);
-        }
         push(`      }`);
         fireCondition = "fires";
       } else {
@@ -1085,15 +1079,10 @@ export function compileNetShader(
           `        pending[${index}u] = pending[${index}u] + ${arc.weight};`,
         );
       }
-      push(`        elapsed[${transitionIndex}u] = 0u;`);
       push(
         `        firings[${transitionIndex}u] = firings[${transitionIndex}u] + 1u;`,
       );
       push(`        any_fired = true;`);
-      push(`      } else if (running) {`);
-      push(
-        `        elapsed[${transitionIndex}u] = elapsed[${transitionIndex}u] + 1u;`,
-      );
       push(`      }`);
       push(`    }`);
     }
@@ -1130,8 +1119,10 @@ export function compileNetShader(
             `metric \`${metric.id}\` references unknown place ${metric.placeId}`,
           );
         }
-        // Samples only active runs, matching the CPU metric default.
-        push(`    if (running) {`);
+        // Samples only runs still active after this frame's step: the CPU
+        // metric default excludes a run in the frame it deadlocks or
+        // completes, because its status flips before the observation.
+        push(`    if (running && status == 0u) {`);
         push(
           `      atomicAdd(&local_hist[${metricIndex * GPU_HISTOGRAM_BINS}u + min(counts[${placeIndex}u], HIST_BINS - 1u)], 1u);`,
         );
@@ -1160,7 +1151,6 @@ export function compileNetShader(
       push(`    state[base + ${countsOffset + index}u] = counts[${index}u];`);
     }
     for (let index = 0; index < transitionCount; index++) {
-      push(`    state[base + ${elapsedOffset + index}u] = elapsed[${index}u];`);
       push(`    state[base + ${firingsOffset + index}u] = firings[${index}u];`);
     }
     push(`    state[base + ${rngOffset}u] = rng_state;`);
