@@ -141,6 +141,13 @@ export type CodeEditorProps = Omit<EditorProps, "theme"> & {
    * hosts that draw the frame themselves (the ad-hoc form's editor slab).
    */
   frameless?: boolean;
+  /**
+   * Where the caret lands on mount: "end" puts it after the content (typing
+   * continues), "all" selects the whole content (typing replaces). Omitted,
+   * the caret is only positioned when the reused per-path model needed a
+   * value sync (the pre-existing behaviour).
+   */
+  mountSelection?: "all" | "end";
 };
 
 // -- Inner component ----------------------------------------------------------
@@ -155,6 +162,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   onSubmit,
   value,
   onChange,
+  mountSelection,
   ...props
 }) => {
   const { Editor } = use(use(MonacoContext));
@@ -177,19 +185,27 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
     // instead of the committed (possibly re-formatted) value. Sync once on
     // mount; while focused the model stays authoritative (see below).
     const mountedModel = editorInstance.getModel();
-    if (
+    const synced =
       value !== undefined &&
-      mountedModel &&
-      mountedModel.getValue() !== value
-    ) {
+      mountedModel !== null &&
+      mountedModel.getValue() !== value;
+    if (synced) {
       mountedModel.setValue(value);
-      // Typing continues where the synced text ends (a type-to-overwrite
-      // character, a re-formatted commit).
-      const lastLine = mountedModel.getLineCount();
-      editorInstance.setPosition({
-        lineNumber: lastLine,
-        column: mountedModel.getLineMaxColumn(lastLine),
-      });
+    }
+    // A fresh model mounts with the caret at the start; a reused one keeps
+    // its stale position. `mountSelection` makes the landing explicit —
+    // otherwise a synced model still gets the caret moved to the end so a
+    // type-to-overwrite character keeps typing where it left off.
+    if (mountedModel && (mountSelection !== undefined || synced)) {
+      if (mountSelection === "all") {
+        editorInstance.setSelection(mountedModel.getFullModelRange());
+      } else {
+        const lastLine = mountedModel.getLineCount();
+        editorInstance.setPosition({
+          lineNumber: lastLine,
+          column: mountedModel.getLineMaxColumn(lastLine),
+        });
+      }
     }
 
     if (singleLine) {

@@ -60,10 +60,10 @@ Each table ends in a dimmed trailing line that creates the next entry.
    tints (dynamic blue, optimized purple) and wins over the shared-column
    wash. The dependency highlight is amber, so it never reads as a row
    tint or an error.
-8a. The dependency highlight lives exactly as long as its value holds
-    focus: closing an editor without focus returning to its cell (an
-    outside click) clears it, and an editor opening on another cell
-    claims it.
+   8a. The dependency highlight lives exactly as long as its value holds
+   focus: closing an editor without focus returning to its cell (an
+   outside click) clears it, and an editor opening on another cell
+   claims it.
 9. On the gutter, Enter opens the row menu (rule 1: a pointer click only
    selects; the `⋯` affordance opens on any click), Delete removes the row,
    and every destructive action also lives in the menu.
@@ -118,6 +118,10 @@ rectangle, and, in optimize mode, an Optimize bar below.
     form never closes from an Escape aimed at the editor.
 19. Every close path commits: Enter, Escape, a pointer press outside the
     slab, yielding to another editor, and the trigger leaving view.
+    19a. Where the caret lands follows how the editor opened: an activation
+    (Enter, a second click, an auto-open) selects the whole content, so
+    typing replaces it; type-to-overwrite places the caret after the typed
+    character, so typing continues. Bound cells follow the same rule.
 
 ## Value stepping
 

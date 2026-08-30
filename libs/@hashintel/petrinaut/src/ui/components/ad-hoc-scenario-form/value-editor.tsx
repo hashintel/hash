@@ -324,6 +324,8 @@ const BoundCell: React.FC<BoundCellProps> = ({
   onEditorMount,
 }) => {
   const activation = useSelectFirstActivation();
+  // Activation selects the whole bound; type-to-overwrite keeps typing.
+  const [mountSelection, setMountSelection] = useState<"all" | "end">("all");
 
   if (editing) {
     return (
@@ -334,6 +336,7 @@ const BoundCell: React.FC<BoundCellProps> = ({
           language="typescript"
           path={uri}
           value={bound}
+          mountSelection={mountSelection}
           onMount={(editorInstance) => {
             onEditorMount(editorInstance);
             editorInstance.focus();
@@ -361,6 +364,7 @@ const BoundCell: React.FC<BoundCellProps> = ({
       onPointerDown={activation.onPointerDown}
       onClick={(event) => {
         if (activation.shouldActivate(event)) {
+          setMountSelection("all");
           onStartEdit();
         }
       }}
@@ -383,6 +387,7 @@ const BoundCell: React.FC<BoundCellProps> = ({
           event.preventDefault();
           event.stopPropagation();
           onChange(event.key);
+          setMountSelection("end");
           onStartEdit();
         }
       }}
@@ -556,12 +561,19 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     height: number;
   } | null>(null);
 
+  // How the editor was opened decides where its caret lands: an activation
+  // (Enter, a second click, an auto-open) selects the whole content so
+  // typing replaces it; type-to-overwrite puts the caret after the typed
+  // character so typing continues.
+  const [mountSelection, setMountSelection] = useState<"all" | "end">("all");
+
   // Render-adjusted state: a fresh auto-open nonce opens the editor without
   // an effect (materialized phantom rows, derived-cell click-through).
   const [seenAutoOpen, setSeenAutoOpen] = useState(autoOpen);
   if (autoOpen !== seenAutoOpen) {
     setSeenAutoOpen(autoOpen);
     if (autoOpen > 0) {
+      setMountSelection("all");
       setOpenState(true);
     }
   }
@@ -810,6 +822,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
             return;
           }
           if (triggerActivation.shouldActivate(event)) {
+            setMountSelection("all");
             setOpenState(true);
           }
         }}
@@ -834,6 +847,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
               target,
               expression: event.key,
             });
+            setMountSelection("end");
             setOpenState(true);
             return;
           }
@@ -966,6 +980,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
                     language="typescript"
                     path={uriFor(expressionSlot) || undefined}
                     value={value.expression}
+                    mountSelection={mountSelection}
                     placeholder={triggerPlaceholder}
                     onMount={(editorInstance) => {
                       monacoRef.current = editorInstance;
