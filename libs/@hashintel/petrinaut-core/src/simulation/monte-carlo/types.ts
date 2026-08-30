@@ -27,6 +27,18 @@ export type MonteCarloSimulatorConfig = {
   dt: number;
   maxTime: number;
   runs?: readonly MonteCarloRunConfig[];
+  /**
+   * Index of this simulator's first run within a larger logical experiment.
+   *
+   * Default seeds derive from `runIndexOffset + localIndex`, so an experiment
+   * split across several simulators (one per worker shard) gives run *i* the
+   * same seed regardless of which shard owns it. Shard layout therefore never
+   * changes an experiment's results.
+   *
+   * `runs[].seed`, `getRunSummary(index)` and `MonteCarloRunSummary.index` all
+   * stay shard-local; only seed derivation uses the global index.
+   */
+  runIndexOffset?: number;
   /** Initial token region capacity per run, in bytes. */
   initialTokenByteCapacity?: number;
   metrics?: readonly MonteCarloFrameMetric[];
