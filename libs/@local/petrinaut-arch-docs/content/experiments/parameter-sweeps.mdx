@@ -38,11 +38,30 @@ and resumes from its cached rung.
 
 Per-run parameter values travel as `ExperimentRequest.runs`, which the
 simulator, the experiment runtime, and the shard slicing already carry. The
-WebGPU backend refuses requests with per-run values — its shader bakes
-parameters in — so the provider routes range batches straight to the CPU
-worker pool; point batches keep the chosen backend. Scenario compilation
+WebGPU backend uploads them to a per-run buffer its shader reads, so range
+and point batches walk the same backend selection. Scenario compilation
 needs one value per parameter, so an initial state derived from a ranged
 parameter holds at the range midpoint while runtime reads vary per run.
+
+## What a batch costs on the main thread
+
+Everything between a slider commit and the first dispatch runs on the main
+thread: drawing per-run values, translating them through the scenario, and
+building the backend request. At large rungs that work is what the user
+feels — profiled at a 1,000,000-run range batch, the page's two longest
+main-thread tasks (1.16 s and 1.45 s) were batch instantiation, and most of
+that was scenario compilation: `translateRangeRuns` compiles the scenario
+once per run's draws.
+
+Draws are continuous inside the selected interval, so per-draw results
+cannot be cached — almost every assignment is new. What repeats is the
+value-independent half of each compile: type-checking every override and
+initial-state item, building expression contexts, parsing net-parameter
+defaults. `prepareScenarioCompiler` (`compile-scenario.ts`, core) runs that
+half once, and each `compile(values)` call only merges the assignment,
+interprets the override expressions, and coerces the results. The provider
+prepares one compiler per experiment and every consumer — batch midpoints,
+per-run translation, surface sampling — compiles through it.
 
 ## Determinism
 
