@@ -13,6 +13,7 @@
 
 import { use, useState } from "react";
 
+import { Icon } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 import { resolveAdHocPlaceTotal } from "@hashintel/petrinaut-core";
 
@@ -56,7 +57,7 @@ const placeNameButtonStyle = css({
   border: "none",
   background: "[transparent]",
   padding: "[2px 4px]",
-  marginLeft: "[-18px]",
+  marginLeft: "[-20px]",
   borderRadius: "xs",
   fontSize: "sm",
   fontWeight: "semibold",
@@ -71,9 +72,11 @@ const placeNameButtonStyle = css({
 });
 
 const chevronStyle = css({
-  fontSize: "[9px]",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
   color: "neutral.s70",
-  width: "[10px]",
+  width: "[12px]",
   transition: "[transform 0.12s ease]",
 });
 
@@ -137,11 +140,29 @@ const headerSpacerStyle = css({
   flex: "1",
 });
 
-// An uncoloured place's count is one full-width cell in the same bordered
-// shell as the spreadsheets, so it reads as part of the same grammar
-// instead of an inline aside.
+// An uncoloured place is one line: a fixed-width title, then the count
+// cell filling the rest in the same bordered shell as the spreadsheets.
+// Every uncoloured place's count starts at the same x; a long name fades
+// out under a mask instead of pushing the cell.
+const uncolouredRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+});
+
+const uncolouredTitleStyle = css({
+  width: "[150px]",
+  flexShrink: "0",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  maskImage:
+    "[linear-gradient(to right, black calc(100% - 14px), transparent)]",
+});
+
 const countBoxStyle = css({
   display: "flex",
+  flex: "1",
+  minWidth: "[0]",
 });
 
 export interface ColouredPlaceBlockProps {
@@ -180,7 +201,7 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
             aria-hidden="true"
             className={cx(chevronStyle, collapsed && collapsedChevronStyle)}
           >
-            ▼
+            <Icon name="chevronDown" size="xxs" />
           </span>
           <span
             aria-hidden="true"
@@ -230,17 +251,21 @@ export const UncolouredPlaceBlock: React.FC<UncolouredPlaceBlockProps> = ({
   const { attach: attachTrigger, onHeaderKeyDown } = useFocusHeader({});
 
   return (
-    <div className={cx(blockStyle, dense && denseBlockStyle)}>
-      <div className={headerStyle}>
-        <span className={placeNameStyle}>
-          <span
-            aria-hidden="true"
-            className={colourDotStyle}
-            style={{ backgroundColor: "#ccc" }}
-          />
-          <span className={cx(dense && densePlaceNameStyle)}>{place.name}</span>
-        </span>
-      </div>
+    <div className={uncolouredRowStyle}>
+      <span
+        className={cx(
+          placeNameStyle,
+          uncolouredTitleStyle,
+          dense && densePlaceNameStyle,
+        )}
+      >
+        <span
+          aria-hidden="true"
+          className={colourDotStyle}
+          style={{ backgroundColor: "#ccc" }}
+        />
+        <span className={cx(dense && densePlaceNameStyle)}>{place.name}</span>
+      </span>
       <div className={cx(tableContainerStyle, countBoxStyle)}>
         <ValueEditor
           value={state.count}

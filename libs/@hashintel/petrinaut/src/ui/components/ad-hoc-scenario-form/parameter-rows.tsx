@@ -22,12 +22,11 @@ import { ValueEditor } from "./value-editor";
 import type { AdHocNetParameter } from "@hashintel/petrinaut-core";
 
 const parameterNameCellStyle = css({
-  width: "[140px]",
+  width: "[150px]",
   display: "flex",
   alignItems: "center",
   height: "[28px]",
   paddingX: "2",
-  fontFamily: "mono",
   fontSize: "xs",
   fontWeight: "medium",
   color: "neutral.s110",
@@ -55,15 +54,17 @@ const defaultTagStyle = css({
   color: "neutral.s80",
 });
 
+// Matches the variables' type-select face: same width, plain (non-code)
+// capitalized text, so the two columns read as one grammar.
 const parameterTypeCellStyle = css({
-  width: "[96px]",
+  width: "[84px]",
   display: "flex",
   alignItems: "center",
   height: "[28px]",
   paddingX: "2",
-  fontFamily: "mono",
   fontSize: "xs",
   color: "neutral.s80",
+  textTransform: "capitalize",
 });
 
 const parameterOptimizeCellStyle = css({
@@ -102,11 +103,11 @@ export const ParameterRows: React.FC<ParameterRowsProps> = ({ entries }) => {
             <tr key={parameter.id} data-highlighted={highlighted || undefined}>
               <td
                 className={cx(cellStyle, rowHighlight)}
-                style={{ width: 140 }}
+                style={{ width: 150 }}
               >
                 <div className={parameterNameCellStyle}>{parameter.name}</div>
               </td>
-              <td className={cx(cellStyle, rowHighlight)} style={{ width: 96 }}>
+              <td className={cx(cellStyle, rowHighlight)} style={{ width: 84 }}>
                 <div className={parameterTypeCellStyle}>{parameter.type}</div>
               </td>
               <td className={cx(cellStyle, rowHighlight)}>

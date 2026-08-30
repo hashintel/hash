@@ -51,6 +51,9 @@ import {
   gutterHeaderStyle,
   phantomCellButtonStyle,
   phantomRowCellStyle,
+  rowPaletteVars,
+  rowTintCellStyle,
+  rowTintStrongStyle,
   selectedRowCellStyle,
 } from "./spreadsheet/form-table";
 import { GutterCell } from "./spreadsheet/gutter-cell";
@@ -61,16 +64,6 @@ import { ValueEditor } from "./value-editor";
 const sharedWashStyle = css({
   backgroundImage:
     "[linear-gradient(rgba(120, 120, 130, 0.07), rgba(120, 120, 130, 0.07))]",
-});
-
-// Row-kind tints, saturated enough to read over the raised table surface
-// and to stay distinguishable under the stronger selection overlay.
-const dynamicRowStyle = css({
-  backgroundColor: "[rgba(59, 130, 246, 0.13)]",
-});
-
-const optimizedRowStyle = css({
-  backgroundColor: "[rgba(147, 51, 234, 0.10)]",
 });
 
 const headerButtonStyle = css({
@@ -306,12 +299,6 @@ export const TokenTable: React.FC<TokenTableProps> = ({
     const isDynamic = row.kind === "template";
     const selected =
       rowSelection.selectedRow === rowIndex && selectedRowCellStyle;
-    const tint =
-      kind === "optimized"
-        ? optimizedRowStyle
-        : kind === "dynamic"
-          ? dynamicRowStyle
-          : false;
     const countTarget = {
       kind: "count" as const,
       placeId: place.id,
@@ -319,15 +306,28 @@ export const TokenTable: React.FC<TokenTableProps> = ({
     };
 
     return (
-      <tbody key={rowIndex}>
+      // The row kind's palette variables scope to the tbody, so the count
+      // strip, the gutter, the cells, and every interactive shade on them
+      // derive from one colour.
+      <tbody key={rowIndex} style={rowPaletteVars[kind]}>
         {isDynamic ? (
           <tr>
             <td
-              className={cx(gutterCellStyle, stripCellStyle, tint, selected)}
+              className={cx(
+                gutterCellStyle,
+                stripCellStyle,
+                rowTintStrongStyle,
+                selected,
+              )}
             />
             <td
               colSpan={columnCount}
-              className={cx(cellStyle, stripCellStyle, tint, selected)}
+              className={cx(
+                cellStyle,
+                stripCellStyle,
+                rowTintStrongStyle,
+                selected,
+              )}
             >
               <div className={stripInnerStyle}>
                 <span className={stripMarkStyle}>×</span>
@@ -357,7 +357,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
           </tr>
         ) : null}
         <tr>
-          <td className={cx(gutterCellStyle, tint, selected)}>
+          <td className={cx(gutterCellStyle, selected)}>
             <GutterCell
               glyph={
                 <span
@@ -466,7 +466,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 key={element.elementId}
                 className={cx(
                   cellStyle,
-                  tint,
+                  rowTintCellStyle,
                   shared && sharedWashStyle,
                   selected,
                 )}

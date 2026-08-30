@@ -10,11 +10,51 @@ import { css } from "@hashintel/ds-helpers/css";
 
 export const CELL_HEIGHT = 28;
 
+/**
+ * The row palette, centralized. A row kind sets two custom properties on
+ * its `<tr>` (via `rowPaletteVars`): `--adhoc-row-rgb`, the kind's tint,
+ * and `--adhoc-accent-rgb`, the base every interactive shade derives from.
+ * Every row state below is then a shade of one colour — the tint at
+ * `/ 0.08` on data cells and `/ 0.16` on the gutter and count strip, the
+ * row-selection overlay at `/ 0.14`, hover at `/ 0.08`, and the focused
+ * cell's wash at `/ 0.10` — so combinations (dynamic + selected,
+ * optimized + hovered) compose without per-combination styles. Plain rows
+ * leave the variables unset and the `var()` fallbacks supply the neutral
+ * gutter and the blue selection.
+ */
+const BLUE_RGB = "59 130 246";
+const PURPLE_RGB = "147 51 234";
+
+export const rowPaletteVars: Record<
+  "fixed" | "dynamic" | "optimized",
+  React.CSSProperties | undefined
+> = {
+  fixed: undefined,
+  dynamic: {
+    "--adhoc-row-rgb": BLUE_RGB,
+    "--adhoc-accent-rgb": BLUE_RGB,
+  } as React.CSSProperties,
+  optimized: {
+    "--adhoc-row-rgb": PURPLE_RGB,
+    "--adhoc-accent-rgb": PURPLE_RGB,
+  } as React.CSSProperties,
+};
+
+/** A data cell's share of the row tint, lighter than gutter and strip. */
+export const rowTintCellStyle = css({
+  backgroundColor: "[rgb(var(--adhoc-row-rgb, 255 255 255) / 0.08)]",
+});
+
+/** The gutter's and the count strip's stronger share of the row tint. */
+export const rowTintStrongStyle = css({
+  backgroundColor: "[rgb(var(--adhoc-row-rgb, 255 255 255) / 0.16)!]",
+});
+
 export const tableContainerStyle = css({
   position: "relative",
   borderWidth: "[1px]",
   borderStyle: "solid",
-  borderColor: "neutral.bd.subtle",
+  borderColor: "neutral.a30",
   borderRadius: "sm",
   overflowX: "auto",
   width: "[100%]",
@@ -63,7 +103,7 @@ export const gutterCellStyle = css({
   borderBottom: "[1px solid {colors.neutral.a05}]",
   padding: "[0]",
   textAlign: "center",
-  backgroundColor: "neutral.s10",
+  backgroundColor: "[rgb(var(--adhoc-row-rgb, 100 116 139) / 0.14)]",
   height: "[28px]",
 });
 
@@ -90,11 +130,14 @@ export const gutterButtonStyle = css({
   fontSize: "[10px]",
   color: "neutral.s80",
   cursor: "pointer",
-  _hover: { color: "neutral.s120", backgroundColor: "neutral.s20" },
+  _hover: {
+    color: "neutral.s120",
+    backgroundColor: "[rgb(var(--adhoc-accent-rgb, 100 116 139) / 0.14)]",
+  },
   _focus: {
-    outline: "[2px solid {colors.blue.s70}]",
+    outline: "[2px solid rgb(var(--adhoc-accent-rgb, 37 99 235))]",
     outlineOffset: "[-2px]",
-    backgroundColor: "blue.s05",
+    backgroundColor: "[rgb(var(--adhoc-accent-rgb, 37 99 235) / 0.10)]",
   },
 });
 
@@ -148,11 +191,13 @@ export const cellButtonStyle = css({
   overflow: "hidden",
   whiteSpace: "nowrap",
   textOverflow: "ellipsis",
-  _hover: { backgroundColor: "neutral.s10" },
+  _hover: {
+    backgroundColor: "[rgb(var(--adhoc-accent-rgb, 100 116 139) / 0.10)]",
+  },
   _focus: {
-    outline: "[2px solid {colors.blue.s70}]",
+    outline: "[2px solid rgb(var(--adhoc-accent-rgb, 37 99 235))]",
     outlineOffset: "[-2px]",
-    backgroundColor: "blue.s05",
+    backgroundColor: "[rgb(var(--adhoc-accent-rgb, 37 99 235) / 0.10)]",
   },
 });
 
@@ -178,21 +223,22 @@ export const cellInputStyle = css({
   backgroundColor: "[transparent]",
   boxSizing: "border-box",
   _focus: {
-    outline: "[2px solid {colors.blue.s70}]",
+    outline: "[2px solid rgb(var(--adhoc-accent-rgb, 37 99 235))]",
     outlineOffset: "[-2px]",
-    backgroundColor: "blue.s05",
+    backgroundColor: "[rgb(var(--adhoc-accent-rgb, 37 99 235) / 0.10)]",
   },
 });
 
 /**
  * The row-selection highlight, applied to every cell of the row whose gutter
- * holds focus. A background image with `!`, so it composites over row tints
- * and wins over the shared-column wash; strong enough to read as clearly
- * darker over the dynamic and optimized tints, which share its hue family.
+ * holds focus — the gutter included. A background image with `!`, so it
+ * composites over row tints and wins over the shared-column wash; it shades
+ * the row's own accent, so a selected dynamic row darkens blue and a
+ * selected optimized row darkens purple.
  */
 export const selectedRowCellStyle = css({
   backgroundImage:
-    "[linear-gradient(rgba(37, 99, 235, 0.18), rgba(37, 99, 235, 0.18))!]",
+    "[linear-gradient(rgb(var(--adhoc-accent-rgb, 37 99 235) / 0.14), rgb(var(--adhoc-accent-rgb, 37 99 235) / 0.14))!]",
 });
 
 /**
@@ -279,14 +325,6 @@ export const phantomGutterButtonStyle = css({
 });
 
 /**
- * Lightens a gutter cell one surface step. The Variables list wears it so
- * the whole block reads lighter than the raised token table beneath it.
- */
-export const lightGutterCellStyle = css({
-  backgroundColor: "[{colors.neutral.s05}!]",
-});
-
-/**
  * Renders a cell's Select as a square spreadsheet cell rather than a
  * control. Applied to the owning `<td>` — the Select drops `className` — and
  * the visible box is an unnamed div under `[data-part='root']` styled by
@@ -301,11 +339,13 @@ export const cellSelectStyle = css({
     minHeight: "[0!]",
     "--base-input-border-radius": "0px",
     "--base-input-background-color": "transparent",
-    _hover: { backgroundColor: "neutral.s10" },
+    _hover: {
+      backgroundColor: "[rgb(var(--adhoc-accent-rgb, 100 116 139) / 0.10)]",
+    },
     _focusWithin: {
-      outline: "[2px solid {colors.blue.s70}]",
+      outline: "[2px solid rgb(var(--adhoc-accent-rgb, 37 99 235))]",
       outlineOffset: "[-2px]",
-      backgroundColor: "blue.s05",
+      backgroundColor: "[rgb(var(--adhoc-accent-rgb, 37 99 235) / 0.10)]",
     },
   },
   "& [data-part='root'] div": {
@@ -316,11 +356,21 @@ export const cellSelectStyle = css({
     boxShadow: "[none!]",
     backgroundColor: "[transparent!]",
   },
+  // The trigger fills its cell so every select is the same width and the
+  // chevron sits at the same x; plain (non-code) face, quiet indicator.
   "& [data-part='trigger']": {
-    fontFamily: "mono",
+    width: "[100%!]",
+    justifyContent: "space-between",
     fontSize: "xs",
     height: "[28px!]",
     minHeight: "[0!]",
     paddingY: "[0!]",
+  },
+  "& [data-part='indicator']": {
+    color: "neutral.s60",
+  },
+  "& [data-part='indicator'] svg": {
+    width: "[11px]",
+    height: "[11px]",
   },
 });
