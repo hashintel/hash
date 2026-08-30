@@ -40,8 +40,9 @@ from two inputs, and the result is baked into the WGSL and carried on
 - **The workgroup-storage budget divides among metrics.**
   `bins = min(1024, ⌊16384 / (4 × metricCount)⌋)`. Up to four metrics get the
   full 1024 bins — four times the old range. More metrics get proportionally
-  fewer bins each, and `local_hist` fits the 16 KB budget by construction, so
-  the seventeen-metric pipeline failure cannot occur.
+  fewer bins each, and `local_hist` fits the 16 KB budget for any metric
+  count up to 2,048 (the two-bin floor sets that ceiling), so the
+  seventeen-metric pipeline failure cannot occur.
 - **A known count ceiling shrinks the histogram to fit it.** A typed place's
   count cannot exceed its slot capacity, and a declared capacity on any place
   is enforced by the shader's eligibility constraints. When every sampled
@@ -58,9 +59,13 @@ are linear in the bin count — 600 frames × 1024 bins × 3 metrics is 7.4 MB �
 and the merge loop skips empty slots, so unused range costs little; the cap
 mainly bounds the decode and the buffer for long experiments.
 
-Saturation handling is unchanged: the shader clamps counts into the top bin,
-the decode counts what landed there, and a non-zero total produces a warning
-that names the ceiling and recommends the CPU for an exact distribution.
+Saturation handling follows the sizing: the shader clamps counts into the top
+bin, and when counts past it can occur — budget-sized bins — the decode counts
+what landed there and a non-zero total produces a warning that names the
+ceiling and recommends the CPU. A capacity-sized histogram's top bin holds an
+exact, reachable count (a place sitting at its capacity), so
+`CompiledNetShader.histogramTopBinSaturates` records which case the shader is
+in and exact top-bin mass is never reported as clamping.
 
 ## Potential future solutions
 
@@ -75,4 +80,6 @@ that names the ceiling and recommends the CPU for an exact distribution.
   ceilings for conservative nets with no declared capacities — an SIR
   population is bounded by its initial total. That would size bins exactly for
   the common population models and lift the initial-marking refusal, without
-  the modeler declaring anything.
+  the modeler declaring anything. See
+  [GPU run tiling](doc:simulation/gpu-run-tiling) for the same idea applied to
+  state memory.

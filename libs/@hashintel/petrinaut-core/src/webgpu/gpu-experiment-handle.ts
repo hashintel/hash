@@ -56,6 +56,8 @@ export type CreateGpuMonteCarloExperimentConfig = {
   runs?: readonly MonteCarloRunConfig[];
   /** Defaults to RK4 — see `backend.ts` for why that is not Euler. */
   odeMethod?: GpuOdeMethod;
+  /** Caps runs per tile below the device's limit. For tests and benchmarks. */
+  maxRunsPerTile?: number;
   /**
    * Called with problems only detectable once the run has finished — today, a
    * histogram whose top bin saturated. The `warnings` returned at creation are
@@ -360,40 +362,91 @@ export async function createGpuMonteCarloExperiment(
       );
     }
 
+    // A tiled experiment re-delivers earlier frame numbers with cumulative
+    // bins (see `runsPerTile`), which the append-only store would duplicate.
+    // Streamed keys are remembered (keys only — retaining the frames would
+    // duplicate the whole store's data for the experiment's lifetime); the
+    // first re-delivery flips to merging each chunk into the store by key,
+    // latest delivery winning. A single-tile experiment never re-delivers and
+    // keeps the cheap append.
+    let seenFrameKeys: Set<string> | null = new Set<string>();
+    let cumulativeStream = false;
+    const frameKey = (frame: { metricId: string; frameNumber: number }) =>
+      `${frame.metricId}\u0000${frame.frameNumber}`;
     const outcome = await runGpuExperiment(backend.handle, backend.shader, {
       runCount: config.runCount,
       frameLimit,
       framesPerDispatch: backend.framesPerDispatch,
       seed: config.seed,
       initial: { placeCounts, placeTokenWords },
+      ...(config.maxRunsPerTile === undefined
+        ? {}
+        : { maxRunsPerTile: config.maxRunsPerTile }),
       onFrames: (chunkFrames) => {
         if (disposed) {
           return;
         }
+        const converted = toGpuMetricFrames(
+          chunkFrames,
+          config.metricSpecs,
+          config.dt,
+        );
+        if (!cumulativeStream && seenFrameKeys !== null) {
+          let redelivered = false;
+          for (const frame of chunkFrames) {
+            const key = frameKey(frame);
+            if (seenFrameKeys.has(key)) {
+              redelivered = true;
+            }
+            seenFrameKeys.add(key);
+          }
+          if (!redelivered) {
+            metrics.set(appendMetricFrames(metrics.get(), converted));
+            return;
+          }
+          cumulativeStream = true;
+          seenFrameKeys = null;
+        }
+        // Merge at the converted level: the store already holds every earlier
+        // delivery (initial frames included), so replacing by key needs no
+        // second copy of the histogram data.
+        const merged = new Map(
+          metrics.get().frames.map((frame) => [frameKey(frame), frame]),
+        );
+        for (const frame of converted) {
+          merged.set(frameKey(frame), frame);
+        }
         metrics.set(
-          appendMetricFrames(
-            metrics.get(),
-            toGpuMetricFrames(chunkFrames, config.metricSpecs, config.dt),
-          ),
+          appendMetricFrames(createEmptyMetricsState(), [...merged.values()]),
         );
       },
       ...(runParameters.values === undefined
         ? {}
         : { runParameterValues: runParameters.values }),
       signal,
-      onChunk: ({ framesDone }) => {
+      onChunk: ({ framesDone, runsCompleted, runsInTile }) => {
         if (disposed) {
           return;
         }
+        // Overall position, monotone across tiles: finished tiles count as
+        // full passes, the running tile as its frame fraction. A single-tile
+        // experiment reduces to `framesDone` exactly. Reporting the raw
+        // per-tile `framesDone` made the progress bar and the time display
+        // snap back to zero at every tile boundary.
+        const overallFrames = Math.round(
+          ((runsCompleted + runsInTile * (framesDone / frameLimit)) /
+            config.runCount) *
+            frameLimit,
+        );
         progress.set({
-          activeRuns: config.runCount,
-          advancedRuns: config.runCount,
+          activeRuns: config.runCount - runsCompleted,
+          advancedRuns: runsCompleted + runsInTile,
           allFinished: false,
-          completedRuns: 0,
+          completedRuns: runsCompleted,
           erroredRuns: 0,
-          frameNumber: framesDone,
+          frameNumber: overallFrames,
           runCount: config.runCount,
-          time: framesDone * config.dt,
+          time: overallFrames * config.dt,
         });
       },
     });

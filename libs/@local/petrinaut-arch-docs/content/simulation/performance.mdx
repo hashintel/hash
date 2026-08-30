@@ -484,13 +484,12 @@ is the shared rule, and FE-1553 aligned the shader to it — the committed
 `Dev / GpuParity` Storybook harness now measures the agreement instead of a
 hand-run comparison.)
 
-Still open: run state is one buffer, so run count is bounded by
-`maxBufferSize`. Removing the bound means splitting runs across several
-dispatches and merging the metric histograms across them — tractable because
-runs are independent and histograms are a commutative monoid, but a real
-change to the dispatch loop. A cheaper GPU idea also remains unexplored: using
-WebGPU only for _rendering_ large token populations and distribution charts,
-which has no numerical-fidelity question at all.
+The run-count bound is gone: an experiment larger than the device's buffers
+runs as sequential tiles over one shared histogram buffer, which merges itself
+because histogram bins are sums —
+[GPU run tiling](doc:simulation/gpu-run-tiling). A cheaper GPU idea remains
+unexplored: using WebGPU only for _rendering_ large token populations and
+distribution charts, which has no numerical-fidelity question at all.
 
 ## The remaining plan
 

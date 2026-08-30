@@ -75,15 +75,34 @@ export type GpuExperimentRequest = {
    */
   runParameterValues?: Float32Array;
   /** Invoked after each chunk so callers can report progress. */
-  onChunk?: (progress: { framesDone: number; frameLimit: number }) => void;
+  onChunk?: (progress: {
+    /** Frames the current tile has advanced. Restarts per tile. */
+    framesDone: number;
+    frameLimit: number;
+    /** Runs whose tiles have fully finished; 0 until the first tile ends. */
+    runsCompleted: number;
+    /** Runs the currently executing tile holds. */
+    runsInTile: number;
+    runCount: number;
+  }) => void;
   /**
    * Invoked after each chunk with that chunk's decoded histogram frames, so
    * callers can stream metrics while the experiment runs. Frames whose
    * every metric sampled zero runs are skipped (all runs had finished).
    * The frames handed to the final result remain authoritative — replace,
    * do not append, when both are consumed.
+   *
+   * When the experiment runs in several tiles (see `runsPerTile`), later
+   * tiles re-deliver earlier frame numbers with *cumulative* bins — the
+   * histogram sums across tiles — so a frame's latest delivery supersedes
+   * every earlier one.
    */
   onFrames?: (frames: GpuHistogramFrame[]) => void;
+  /**
+   * Caps how many runs execute per tile, below what the device allows.
+   * For tests and benchmarks; production callers let the device decide.
+   */
+  maxRunsPerTile?: number;
   /**
    * Stops the run at the next chunk boundary.
    *
@@ -279,9 +298,9 @@ export function describeAllocationFailure({
   const gib = (bytes: number) => (bytes / 1024 ** 3).toFixed(2);
   // Readback doubles it: the state lives on the device and again in a mappable
   // buffer, and the mappable one is what runs out.
-  return `The GPU could not allocate memory for ${runCount} runs: ${bytesPerRun} bytes per run is ${gib(
+  return `The GPU could not allocate memory for a tile of ${runCount} runs: ${bytesPerRun} bytes per run is ${gib(
     stateBytes,
-  )} GiB of run state, and reading it back needs that much again in host-visible memory. Try fewer runs, or lower the token capacities that set the per-run size. (${message.trim()})`;
+  )} GiB of run state, and reading it back needs that much again in host-visible memory. Lower the token capacities that set the per-run size. (${message.trim()})`;
 }
 
 /** How many runs to stage per `writeBuffer`, at least one however large a run is. */
@@ -357,30 +376,60 @@ export function fillSeedChunk(
 /* eslint-enable no-param-reassign */
 
 /**
- * Why this experiment's buffers will not fit on this device, or `null` if they
- * will.
+ * How many runs one tile can hold on this device.
  *
- * Pure, and separate from `runGpuExperiment`, because the arithmetic is the part
- * users actually hit and a real `GPUDevice` cannot be had in a unit test.
+ * Run state is one buffer of `bytesPerRun × runs`, so the buffer ceiling —
+ * the smaller of `maxStorageBufferBindingSize` (per binding) and
+ * `maxBufferSize` (per allocation, and the defaults are 128 MiB and 256 MiB,
+ * so checking only the first moves the wall instead of finding it) — bounds
+ * the runs per tile. So does the dispatch width: one invocation per run,
+ * `maxComputeWorkgroupsPerDimension × GPU_WORKGROUP_SIZE` invocations per
+ * dispatch. An experiment larger than a tile runs as several sequential
+ * tiles over the same histogram buffer (see `runGpuExperiment`).
  *
- * Two device limits bind independently. `maxStorageBufferBindingSize` caps a
- * single binding and `maxBufferSize` caps the allocation; the defaults are
- * 128 MiB and 256 MiB, so checking only the first moves the wall instead of
- * finding it and the allocation fails later as a raw WebGPU validation error.
- * Neither default reflects the hardware — see `requestGpuDevice`, which now asks
- * for the adapter's own limits.
+ * Pure, and separate from `runGpuExperiment`, because the arithmetic is the
+ * part users actually hit and a real `GPUDevice` cannot be had in a unit test.
  */
-export function describeBufferOverflow({
-  stateBytes,
-  histBytes,
+export function runsPerTile({
   bytesPerRun,
-  runCount,
   limits,
 }: {
-  stateBytes: number;
+  bytesPerRun: number;
+  limits: Pick<
+    GPUSupportedLimits,
+    | "maxStorageBufferBindingSize"
+    | "maxBufferSize"
+    | "maxComputeWorkgroupsPerDimension"
+  >;
+}): number {
+  const ceiling = Math.min(
+    limits.maxStorageBufferBindingSize,
+    limits.maxBufferSize,
+  );
+  const byMemory =
+    bytesPerRun > 0
+      ? Math.floor(ceiling / bytesPerRun)
+      : Number.MAX_SAFE_INTEGER;
+  const byDispatch =
+    limits.maxComputeWorkgroupsPerDimension * GPU_WORKGROUP_SIZE;
+  return Math.min(byMemory, byDispatch);
+}
+
+/**
+ * Why this experiment cannot fit on this device even one tile at a time, or
+ * `null` when it can.
+ *
+ * Tiling removes the run count from the equation, so only two shapes remain
+ * unschedulable: a single run whose state exceeds the buffer ceiling, and a
+ * histogram (frames × bins × metrics, run-count-independent) that does.
+ */
+export function describeBufferOverflow({
+  histBytes,
+  bytesPerRun,
+  limits,
+}: {
   histBytes: number;
   bytesPerRun: number;
-  runCount: number;
   limits: Pick<
     GPUSupportedLimits,
     "maxStorageBufferBindingSize" | "maxBufferSize"
@@ -392,14 +441,10 @@ export function describeBufferOverflow({
   );
   const mb = (bytes: number) => Math.round(bytes / 1e6);
 
-  if (stateBytes > ceiling) {
-    // Say what would fit rather than "use fewer runs", which left the author to
-    // bisect. Run state is exactly linear in the run count, so the number is
-    // both computable and correct.
-    const runsThatFit = bytesPerRun > 0 ? Math.floor(ceiling / bytesPerRun) : 0;
-    return `Run state needs ${mb(stateBytes)} MB but this device caps a buffer at ${mb(
+  if (bytesPerRun > ceiling) {
+    return `One run's state needs ${mb(bytesPerRun)} MB but this device caps a buffer at ${mb(
       ceiling,
-    )} MB. At ${bytesPerRun} bytes per run that is ${runsThatFit} runs; this experiment asked for ${runCount}.`;
+    )} MB. Lower the token capacities that set the per-run size.`;
   }
   if (histBytes > ceiling) {
     return `Metric histograms need ${mb(histBytes)} MB but this device caps a buffer at ${mb(
@@ -446,8 +491,21 @@ function decodeHistogramFrames(options: {
   metricIds: readonly string[];
   /** Bins per metric per frame — the compiled shader's `histogramBins`. */
   histogramBins: number;
+  /**
+   * The compiled shader's `histogramTopBinSaturates`. A capacity-sized
+   * histogram's top bin holds an exact, reachable count; reporting it as
+   * saturation would warn on every at-capacity sample.
+   */
+  topBinSaturates: boolean;
 }): { frames: GpuHistogramFrame[]; saturatedSamples: number } {
-  const { data, firstFrame, frameCount, metricIds, histogramBins } = options;
+  const {
+    data,
+    firstFrame,
+    frameCount,
+    metricIds,
+    histogramBins,
+    topBinSaturates,
+  } = options;
   const metricCount = metricIds.length;
   const frames: GpuHistogramFrame[] = [];
   let saturatedSamples = 0;
@@ -464,7 +522,9 @@ function decodeHistogramFrames(options: {
           sampleCount += frequency;
         }
       }
-      saturatedSamples += data[offset + histogramBins - 1] ?? 0;
+      if (topBinSaturates) {
+        saturatedSamples += data[offset + histogramBins - 1] ?? 0;
+      }
       frames.push({
         frameNumber: firstFrame + frame,
         metricId,
@@ -508,26 +568,41 @@ export async function runGpuExperiment(
     return compiled;
   }
 
-  const stateWords = shader.stateWordsPerRun * runCount;
-  const stateBytes = stateWords * 4;
+  const bytesPerRun = shader.stateWordsPerRun * 4;
   const histWords = Math.max(
     1,
     frameLimit * shader.histogramBins * metricCount,
   );
   const histBytes = histWords * 4;
-  const summaryWords = Math.max(1, shader.summaryWordsPerRun * runCount);
-  const summaryBytes = summaryWords * 4;
 
   const tooLarge = describeBufferOverflow({
-    stateBytes,
     histBytes,
-    bytesPerRun: shader.stateWordsPerRun * 4,
-    runCount,
+    bytesPerRun,
     limits: device.limits,
   });
   if (tooLarge !== null) {
     return { ok: false, reason: tooLarge };
   }
+
+  // An experiment larger than the device's buffers or dispatch width runs as
+  // sequential tiles: per-run state and summaries are sized for one tile and
+  // re-seeded per tile, while every tile's dispatches accumulate into the one
+  // histogram buffer — bins are sums, so the merge is free. Within a tile a
+  // run's seed comes from its absolute index, so a tiled experiment draws the
+  // same per-run streams as an untiled one.
+  const tileRunCapacity = Math.max(
+    1,
+    Math.min(
+      runCount,
+      runsPerTile({ bytesPerRun, limits: device.limits }),
+      request.maxRunsPerTile ?? Number.MAX_SAFE_INTEGER,
+    ),
+  );
+  const tileCount = Math.ceil(runCount / tileRunCapacity);
+
+  const stateBytes = shader.stateWordsPerRun * tileRunCapacity * 4;
+  const summaryWords = Math.max(1, shader.summaryWordsPerRun * tileRunCapacity);
+  const summaryBytes = summaryWords * 4;
 
   // Buffer allocation is the failure nobody was told about. Dawn reports an
   // out-of-memory `createBuffer` by returning an *error buffer* rather than
@@ -578,12 +653,13 @@ export async function runGpuExperiment(
           usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
   // Per-run parameter draws; a placeholder is never created — the binding
-  // only exists in shaders compiled with per-run parameters.
+  // only exists in shaders compiled with per-run parameters. Sized for one
+  // tile and rewritten per tile with that tile's slice.
   const runParamsBuffer =
     runParameterValues === undefined || runParameterCount === 0
       ? null
       : device.createBuffer({
-          size: runParameterValues.byteLength,
+          size: tileRunCapacity * runParameterCount * 4,
           usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         });
   const summaryReadback = device.createBuffer({
@@ -619,52 +695,19 @@ export async function runGpuExperiment(
       reason: describeAllocationFailure({
         message: allocationError.message,
         stateBytes,
-        bytesPerRun: shader.stateWordsPerRun * 4,
-        runCount,
+        bytesPerRun,
+        runCount: tileRunCapacity,
       }),
     };
   }
 
   try {
-    // Seed initial state on the host: counts from the initial marking, a
-    // per-run RNG stream, everything else zero.
-    //
-    // Written in chunks rather than as one array. A single `Uint32Array` of the
-    // whole state is the largest allocation the host makes — at 2 KB per run,
-    // a million runs is ~2 GiB in one contiguous ArrayBuffer, which the browser
-    // refuses with "Array buffer allocation failed" before a single frame runs.
-    // The GPU itself is fine with that size; only the host mirror was the
-    // problem. Runs are independent and laid out contiguously, so the staging
-    // array can be small and reused.
-    const runsPerChunk = seedRunsPerChunk(shader.stateWordsPerRun, runCount);
-    const staging = new Uint32Array(runsPerChunk * shader.stateWordsPerRun);
-    for (let firstRun = 0; firstRun < runCount; firstRun += runsPerChunk) {
-      const runsInChunk = Math.min(runsPerChunk, runCount - firstRun);
-      fillSeedChunk(staging, {
-        firstRun,
-        runsInChunk,
-        stateWordsPerRun: shader.stateWordsPerRun,
-        placeCountOffsets: shader.placeCountOffsets,
-        placeTokenOffsets: shader.placeTokenOffsets,
-        rngOffset: shader.rngOffset,
-        placeCounts: initial.placeCounts,
-        ...(initial.placeTokenWords === undefined
-          ? {}
-          : { placeTokenWords: initial.placeTokenWords }),
-        seed,
-      });
-      device.queue.writeBuffer(
-        stateBuffer,
-        firstRun * shader.stateWordsPerRun * 4,
-        staging,
-        0,
-        runsInChunk * shader.stateWordsPerRun,
-      );
-    }
-
-    if (runParamsBuffer !== null && runParameterValues !== undefined) {
-      device.queue.writeBuffer(runParamsBuffer, 0, runParameterValues);
-    }
+    const placeCount = shader.placeCountOffsets.length;
+    const finalPlaceCounts = new Uint32Array(runCount * placeCount);
+    let deadlockedRuns = 0;
+    let completedRuns = 0;
+    let cancelled = false;
+    let dispatchMs = 0;
 
     const bindGroup = device.createBindGroup({
       layout: compiled.pipeline.getBindGroupLayout(0),
@@ -679,86 +722,194 @@ export async function runGpuExperiment(
       ],
     });
 
-    const workgroups = Math.ceil(runCount / GPU_WORKGROUP_SIZE);
-    if (workgroups > device.limits.maxComputeWorkgroupsPerDimension) {
-      return {
-        ok: false,
-        reason: `${runCount} runs needs ${workgroups} workgroups, above this device's per-dispatch limit of ${device.limits.maxComputeWorkgroupsPerDimension}.`,
-      };
-    }
-
-    const start = now();
     device.pushErrorScope("validation");
 
-    let cancelled = false;
-    let baseFrame = 0;
-    for (const chunkFrameCount of dispatchChunkFrames(
-      frameLimit,
-      framesPerDispatch,
-    )) {
-      // A submitted dispatch cannot be interrupted, so cancellation is observed
-      // between chunks. Frames already advanced stay in the histogram, and the
-      // caller is told the run was cut short.
-      if (request.signal?.aborted) {
-        cancelled = true;
+    // The staging array is sized for one seeding chunk and reused across
+    // every tile. Written in chunks rather than as one array: a single
+    // `Uint32Array` of a tile's state is the largest allocation the host
+    // makes — at 2 KB per run, a million runs is ~2 GiB in one contiguous
+    // ArrayBuffer, which the browser refuses with "Array buffer allocation
+    // failed" before a single frame runs.
+    const runsPerChunk = seedRunsPerChunk(
+      shader.stateWordsPerRun,
+      tileRunCapacity,
+    );
+    const staging = new Uint32Array(runsPerChunk * shader.stateWordsPerRun);
+
+    for (let tileIndex = 0; tileIndex < tileCount; tileIndex++) {
+      const tileFirstRun = tileIndex * tileRunCapacity;
+      const runsInTile = Math.min(tileRunCapacity, runCount - tileFirstRun);
+      if (cancelled) {
         break;
       }
-      device.queue.writeBuffer(
-        configBuffer,
-        0,
-        new Uint32Array([
-          runCount,
-          baseFrame,
-          frameLimit,
+
+      // Seed the tile's initial state on the host: counts from the initial
+      // marking, a per-run RNG stream, everything else zero. A run's seed
+      // comes from its absolute index, so the chunking and the tiling must
+      // not renumber it.
+      for (let firstRun = 0; firstRun < runsInTile; firstRun += runsPerChunk) {
+        const runsInChunk = Math.min(runsPerChunk, runsInTile - firstRun);
+        fillSeedChunk(staging, {
+          firstRun: tileFirstRun + firstRun,
+          runsInChunk,
+          stateWordsPerRun: shader.stateWordsPerRun,
+          placeCountOffsets: shader.placeCountOffsets,
+          placeTokenOffsets: shader.placeTokenOffsets,
+          rngOffset: shader.rngOffset,
+          placeCounts: initial.placeCounts,
+          ...(initial.placeTokenWords === undefined
+            ? {}
+            : { placeTokenWords: initial.placeTokenWords }),
           seed,
-          chunkFrameCount,
-        ]),
-      );
-      const encoder = device.createCommandEncoder();
-      const pass = encoder.beginComputePass();
-      pass.setPipeline(compiled.pipeline);
-      pass.setBindGroup(0, bindGroup);
-      pass.dispatchWorkgroups(workgroups);
-      pass.end();
-      device.queue.submit([encoder.finish()]);
-      // Awaiting per chunk (not per frame) keeps the browser responsive and
-      // bounds how far ahead the queue runs, at negligible cost.
-      await device.queue.onSubmittedWorkDone();
-      const framesDone = Math.min(baseFrame + chunkFrameCount, frameLimit);
-      if (chunkReadback !== null) {
-        // The histogram is cumulative and every frame's bins are final once
-        // its dispatch retired, so the chunk's range can be read while later
-        // dispatches queue.
-        const chunkFrames = framesDone - baseFrame;
-        const chunkBytes = chunkFrames * shader.histogramBins * metricCount * 4;
-        const copyEncoder = device.createCommandEncoder();
-        copyEncoder.copyBufferToBuffer(
-          histBuffer,
-          baseFrame * shader.histogramBins * metricCount * 4,
-          chunkReadback,
-          0,
-          chunkBytes,
-        );
-        device.queue.submit([copyEncoder.finish()]);
-        await chunkReadback.mapAsync(GPUMapMode.READ, 0, chunkBytes);
-        const decoded = decodeHistogramFrames({
-          data: new Uint32Array(chunkReadback.getMappedRange(0, chunkBytes)),
-          firstFrame: baseFrame + 1,
-          frameCount: chunkFrames,
-          metricIds: shader.metricIds,
-          histogramBins: shader.histogramBins,
         });
-        chunkReadback.unmap();
-        const live = decoded.frames.filter((frame) => frame.sampleCount > 0);
-        if (live.length > 0) {
-          request.onFrames?.(live);
+        device.queue.writeBuffer(
+          stateBuffer,
+          firstRun * shader.stateWordsPerRun * 4,
+          staging,
+          0,
+          runsInChunk * shader.stateWordsPerRun,
+        );
+      }
+
+      if (runParamsBuffer !== null && runParameterValues !== undefined) {
+        device.queue.writeBuffer(
+          runParamsBuffer,
+          0,
+          runParameterValues,
+          tileFirstRun * runParameterCount,
+          runsInTile * runParameterCount,
+        );
+      }
+
+      const workgroups = Math.ceil(runsInTile / GPU_WORKGROUP_SIZE);
+      const start = now();
+
+      let baseFrame = 0;
+      for (const chunkFrameCount of dispatchChunkFrames(
+        frameLimit,
+        framesPerDispatch,
+      )) {
+        // A submitted dispatch cannot be interrupted, so cancellation is
+        // observed between chunks. Frames already advanced stay in the
+        // histogram, and the caller is told the run was cut short.
+        if (request.signal?.aborted) {
+          cancelled = true;
+          break;
+        }
+        device.queue.writeBuffer(
+          configBuffer,
+          0,
+          new Uint32Array([
+            runsInTile,
+            baseFrame,
+            frameLimit,
+            seed,
+            chunkFrameCount,
+          ]),
+        );
+        const encoder = device.createCommandEncoder();
+        const pass = encoder.beginComputePass();
+        pass.setPipeline(compiled.pipeline);
+        pass.setBindGroup(0, bindGroup);
+        pass.dispatchWorkgroups(workgroups);
+        pass.end();
+        device.queue.submit([encoder.finish()]);
+        // Awaiting per chunk (not per frame) keeps the browser responsive and
+        // bounds how far ahead the queue runs, at negligible cost.
+        await device.queue.onSubmittedWorkDone();
+        const framesDone = Math.min(baseFrame + chunkFrameCount, frameLimit);
+        if (chunkReadback !== null) {
+          // The histogram is cumulative and every frame's bins are final once
+          // its dispatch retired, so the chunk's range can be read while later
+          // dispatches queue. Later tiles re-read ranges earlier tiles already
+          // streamed; the re-decoded frames carry every tile's samples so far,
+          // and the caller replaces by frame number.
+          const chunkFrames = framesDone - baseFrame;
+          const chunkBytes =
+            chunkFrames * shader.histogramBins * metricCount * 4;
+          const copyEncoder = device.createCommandEncoder();
+          copyEncoder.copyBufferToBuffer(
+            histBuffer,
+            baseFrame * shader.histogramBins * metricCount * 4,
+            chunkReadback,
+            0,
+            chunkBytes,
+          );
+          device.queue.submit([copyEncoder.finish()]);
+          await chunkReadback.mapAsync(GPUMapMode.READ, 0, chunkBytes);
+          const decoded = decodeHistogramFrames({
+            data: new Uint32Array(chunkReadback.getMappedRange(0, chunkBytes)),
+            firstFrame: baseFrame + 1,
+            frameCount: chunkFrames,
+            metricIds: shader.metricIds,
+            histogramBins: shader.histogramBins,
+            topBinSaturates: shader.histogramTopBinSaturates,
+          });
+          chunkReadback.unmap();
+          const live = decoded.frames.filter((frame) => frame.sampleCount > 0);
+          if (live.length > 0) {
+            request.onFrames?.(live);
+          }
+        }
+        request.onChunk?.({
+          framesDone,
+          frameLimit,
+          runsCompleted: tileFirstRun,
+          runsInTile,
+          runCount,
+        });
+        baseFrame = framesDone;
+      }
+
+      dispatchMs += now() - start;
+
+      if (baseFrame === 0) {
+        // Cancelled before this tile dispatched anything: the summary buffer
+        // still holds the previous tile's runs, and decoding it here would
+        // credit those results to this tile's run indices.
+        break;
+      }
+
+      // The summary buffer holds one tile and the next tile overwrites it, so
+      // it is decoded here, into the experiment-wide arrays at the tile's
+      // absolute run offsets. The shader gathered a few words per run, so this
+      // walks those rather than the whole run state.
+      const tileSummaryBytes = runsInTile * shader.summaryWordsPerRun * 4;
+      const encoder = device.createCommandEncoder();
+      encoder.copyBufferToBuffer(
+        summaryBuffer,
+        0,
+        summaryReadback,
+        0,
+        tileSummaryBytes,
+      );
+      device.queue.submit([encoder.finish()]);
+      await summaryReadback.mapAsync(GPUMapMode.READ, 0, tileSummaryBytes);
+      const summary = new Uint32Array(
+        summaryReadback.getMappedRange(0, tileSummaryBytes),
+      );
+      for (let run = 0; run < runsInTile; run++) {
+        const base = run * shader.summaryWordsPerRun;
+        const status = summary[base + shader.summaryStatusOffset] ?? 0;
+        // Both 1 (deadlocked) and 2 (reached the frame limit) are finished
+        // runs, and the CPU engine reports either as `complete` — a run that
+        // deadlocks has completed, it just stopped early. Counting only 2 made
+        // a net where every run deadlocks report "0 complete" while its status
+        // said Complete. `deadlockedRuns` stays separate for diagnostics.
+        if (status === 1) {
+          deadlockedRuns++;
+          completedRuns++;
+        } else if (status === 2) {
+          completedRuns++;
+        }
+        // Counts lead the summary in place order, so the place index is the
+        // offset.
+        for (let placeIndex = 0; placeIndex < placeCount; placeIndex++) {
+          finalPlaceCounts[(tileFirstRun + run) * placeCount + placeIndex] =
+            summary[base + placeIndex] ?? 0;
         }
       }
-      request.onChunk?.({
-        framesDone,
-        frameLimit,
-      });
-      baseFrame = framesDone;
+      summaryReadback.unmap();
     }
 
     const dispatchError = await device.popErrorScope();
@@ -768,56 +919,16 @@ export async function runGpuExperiment(
         reason: `GPU dispatch failed: ${dispatchError.message}`,
       };
     }
-    const dispatchMs = now() - start;
 
-    const encoder = device.createCommandEncoder();
-    encoder.copyBufferToBuffer(
-      summaryBuffer,
-      0,
-      summaryReadback,
-      0,
-      summaryBytes,
-    );
-    encoder.copyBufferToBuffer(histBuffer, 0, histReadback, 0, histBytes);
-    device.queue.submit([encoder.finish()]);
+    const histEncoder = device.createCommandEncoder();
+    histEncoder.copyBufferToBuffer(histBuffer, 0, histReadback, 0, histBytes);
+    device.queue.submit([histEncoder.finish()]);
 
-    await Promise.all([
-      summaryReadback.mapAsync(GPUMapMode.READ),
-      histReadback.mapAsync(GPUMapMode.READ),
-    ]);
-    // Read through the mapped ranges rather than copying them: `.slice(0)`
+    await histReadback.mapAsync(GPUMapMode.READ);
+    // Read through the mapped range rather than copying it: `.slice(0)`
     // doubled the host cost of every experiment for a copy thrown away
-    // immediately. Both stay mapped until the decode loops below are done.
-    const summary = new Uint32Array(summaryReadback.getMappedRange());
+    // immediately. It stays mapped until the decode loops below are done.
     const histogram = new Uint32Array(histReadback.getMappedRange());
-
-    // Decode: per-run status, per-run final counts, per-frame histograms. The
-    // shader gathered the first two into `summary`, so this walks a few words per
-    // run rather than the whole run state.
-    let deadlockedRuns = 0;
-    let completedRuns = 0;
-    const placeCount = shader.placeCountOffsets.length;
-    const finalPlaceCounts = new Uint32Array(runCount * placeCount);
-    for (let run = 0; run < runCount; run++) {
-      const base = run * shader.summaryWordsPerRun;
-      const status = summary[base + shader.summaryStatusOffset] ?? 0;
-      // Both 1 (deadlocked) and 2 (reached the frame limit) are finished runs,
-      // and the CPU engine reports either as `complete` — a run that deadlocks
-      // has completed, it just stopped early. Counting only 2 made a net where
-      // every run deadlocks report "0 complete" while its status said Complete.
-      // `deadlockedRuns` stays separate for diagnostics.
-      if (status === 1) {
-        deadlockedRuns++;
-        completedRuns++;
-      } else if (status === 2) {
-        completedRuns++;
-      }
-      // Counts lead the summary in place order, so the place index is the offset.
-      for (let placeIndex = 0; placeIndex < placeCount; placeIndex++) {
-        finalPlaceCounts[run * placeCount + placeIndex] =
-          summary[base + placeIndex] ?? 0;
-      }
-    }
 
     // Frames past the last recorded sample carry no data: every run had
     // finished (all deadlocked, say) or the experiment was cancelled between
@@ -846,10 +957,10 @@ export async function runGpuExperiment(
       frameCount: decodedFrameLimit,
       metricIds: shader.metricIds,
       histogramBins: shader.histogramBins,
+      topBinSaturates: shader.histogramTopBinSaturates,
     });
 
-    // Last use of both views; everything returned below is host-owned.
-    summaryReadback.unmap();
+    // Last use of the view; everything returned below is host-owned.
     histReadback.unmap();
 
     return {
