@@ -9,6 +9,7 @@ import { v4 as generateUuid } from "uuid";
 import {
   compileScenario,
   getOwn,
+  prepareScenarioCompiler,
   synthesizeAdHocScenario,
   type CompileScenarioOutcome,
   type InitialMarking,
@@ -724,21 +725,21 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         places: sdcpn.places,
         types: sdcpn.types,
       });
-      const scenario = selectedScenario;
+      // Prepared once per experiment: a sweep compiles the scenario per
+      // batch and per run's draws, and preparation carries the type checks
+      // and context building those calls would otherwise repeat.
+      const preparedCompiler = prepareScenarioCompiler(
+        selectedScenario,
+        scenarioHir,
+        globalParameters,
+        sdcpn.places,
+        sdcpn.types,
+      );
       compileForValues = (swept) => {
-        const compiled = compileScenario(
-          scenario,
-          scenarioHir,
-          globalParameters,
-          sdcpn.places,
-          sdcpn.types,
-          {
-            scenarioParameterValues: {
-              ...parsedScenarioValues.values,
-              ...swept,
-            },
-          },
-        );
+        const compiled = preparedCompiler.compile({
+          ...parsedScenarioValues.values,
+          ...swept,
+        });
         if (!compiled.ok) {
           throw new Error(
             compiled.errors

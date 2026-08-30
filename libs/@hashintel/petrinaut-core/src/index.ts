@@ -409,6 +409,7 @@ export {
 } from "./default-codes";
 export {
   compileScenario,
+  prepareScenarioCompiler,
   type CompiledPlaceMarking,
   type CompiledScenarioResult,
   type CompileScenarioOptions,
