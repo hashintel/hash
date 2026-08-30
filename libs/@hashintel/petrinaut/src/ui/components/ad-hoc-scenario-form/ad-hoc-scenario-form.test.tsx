@@ -17,7 +17,7 @@ import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
 } from "../../../react/lsp/context";
-import { AdHocScenarioForm } from "./ad-hoc-scenario-form";
+import { AdHocScenarioForm, FormLayoutColumn } from "./ad-hoc-scenario-form";
 
 import type { AdHocFormSelection } from "./form-context";
 import type {
@@ -1069,14 +1069,18 @@ describe("AdHocScenarioForm", () => {
     expect(latest?.variables).toHaveLength(1);
   });
 
-  it("renderLayout groups are columns: vertical arrows stay, horizontal ones cross with memory", () => {
+  it("renderLayout columns: vertical arrows stay, horizontal ones cross with memory", () => {
     render(
       <Harness
         withVariables={false}
         renderLayout={({ parameters, places }) => (
           <div>
-            <div>{parameters}</div>
-            <div>{places}</div>
+            <div>
+              <FormLayoutColumn>{parameters}</FormLayoutColumn>
+            </div>
+            <div>
+              <FormLayoutColumn>{places}</FormLayoutColumn>
+            </div>
           </div>
         )}
       />,

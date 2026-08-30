@@ -16,7 +16,10 @@ import { SimulationContext } from "../../../../../../react/simulation/context";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
-import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
+import {
+  AdHocScenarioForm,
+  FormLayoutColumn,
+} from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { Slider } from "../../../../../components/slider";
 import { useScrollOverflow } from "../../../../../hooks/use-scroll-overflow";
 import { CreateScenarioDrawer } from "../../SimulateView/scenarios/create-scenario-drawer";
@@ -114,6 +117,14 @@ const parametersOnlyContainerStyle = css({
 
 const adHocColumnsContainerStyle = css({
   gridTemplateColumns: "[1fr 1.4fr]",
+});
+
+// The left ad-hoc column stacks Variables above Parameters in one scroll
+// area; the gap separates the two titled blocks.
+const leftColumnSectionsStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "6",
 });
 
 // The form wraps the whole grid when the ad-hoc embedding is live, so its
@@ -555,11 +566,12 @@ const SimulationSettingsContent: React.FC = () => {
       </div>
 
       {adHocActive ? (
-        /* The ad-hoc embedding: Parameters become the form's override
-           spreadsheet and Initial state its places, laid out as panel
-           columns through renderLayout — the form's keyboard handling
-           wraps the whole grid. This embedding still offers no scenario
-           Variables and no Optimize/expose toggles. */
+        /* The ad-hoc embedding: Variables and Parameters share the left
+           panel column, Initial state fills the right one, laid out
+           through renderLayout — the form's keyboard handling wraps the
+           whole grid, and each visual column is one FormLayoutColumn in
+           the keyboard flow. This embedding offers no Optimize/expose
+           toggles. */
         <AdHocScenarioForm
           state={adHocScenario ?? EMPTY_AD_HOC_STATE}
           onChange={setAdHocScenario}
@@ -569,59 +581,78 @@ const SimulationSettingsContent: React.FC = () => {
             types: extensions.colors ? types : [],
           }}
           selection="none"
-          withVariables={false}
           className={adHocFormRootStyle}
-          renderLayout={({ parameters: parameterRows, places: placesList }) => (
+          renderLayout={({
+            variables: variableRows,
+            parameters: parameterRows,
+            places: placesList,
+          }) => (
             <div className={cx(containerStyle, adHocColumnsContainerStyle)}>
-              <div className={cx(sectionStyle, fillSectionStyle)}>
-                <div className={initialStateTitleRowStyle}>
-                  <div className={sectionTitleStyle}>Parameters</div>
-                  <HelpTooltip content="Override a parameter's value for this run with an expression. Empty keeps the default. Expressions may read parameters.<name>." />
-                </div>
-                {parameterRows ? (
+              <FormLayoutColumn>
+                <div className={cx(sectionStyle, fillSectionStyle)}>
                   <ParametersScrollArea>
+                    <div
+                      inert={isSimulationActive}
+                      className={cx(
+                        leftColumnSectionsStyle,
+                        isSimulationActive && lockedFormStyle,
+                      )}
+                    >
+                      <div>
+                        <div className={initialStateTitleRowStyle}>
+                          <div className={sectionTitleStyle}>Variables</div>
+                          <HelpTooltip content="Named values written scenario.<name> in every expression, to drive many values from one number." />
+                        </div>
+                        {variableRows}
+                      </div>
+                      <div>
+                        <div className={initialStateTitleRowStyle}>
+                          <div className={sectionTitleStyle}>Parameters</div>
+                          <HelpTooltip content="Override a parameter's value for this run with an expression. Empty keeps the default. Expressions may read parameters.<name>." />
+                        </div>
+                        {parameterRows ?? (
+                          <div className={emptyMessageStyle}>
+                            No parameters defined
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </ParametersScrollArea>
+                </div>
+              </FormLayoutColumn>
+
+              <FormLayoutColumn>
+                <div className={cx(sectionStyle, fillSectionStyle)}>
+                  <div className={initialStateTitleRowStyle}>
+                    <div className={sectionTitleStyle}>Initial state</div>
+                    <HelpTooltip content="Token counts and values for this run, without saving a scenario. Every value is an expression and may read parameters.<name>." />
+                    <span className={initialStateSpacerStyle} />
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      tone="neutral"
+                      iconName="rotateLeft"
+                      className={quietClearButtonStyle}
+                      disabled={adHocScenario === null || isSimulationActive}
+                      onClick={() => setAdHocScenario(null)}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  <ParametersScrollArea>
+                    {/* Like every input in this panel, the definition locks
+                        while a simulation is live — an edit would dispose the
+                        run. The scroll container stays interactive so the
+                        content can still be reviewed mid-run. */}
                     <div
                       inert={isSimulationActive}
                       className={cx(isSimulationActive && lockedFormStyle)}
                     >
-                      {parameterRows}
+                      {placesList}
                     </div>
                   </ParametersScrollArea>
-                ) : (
-                  <div className={emptyMessageStyle}>No parameters defined</div>
-                )}
-              </div>
-
-              <div className={cx(sectionStyle, fillSectionStyle)}>
-                <div className={initialStateTitleRowStyle}>
-                  <div className={sectionTitleStyle}>Initial state</div>
-                  <HelpTooltip content="Token counts and values for this run, without saving a scenario. Every value is an expression and may read parameters.<name>." />
-                  <span className={initialStateSpacerStyle} />
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    tone="neutral"
-                    iconName="rotateLeft"
-                    className={quietClearButtonStyle}
-                    disabled={adHocScenario === null || isSimulationActive}
-                    onClick={() => setAdHocScenario(null)}
-                  >
-                    Clear
-                  </Button>
                 </div>
-                <ParametersScrollArea>
-                  {/* Like every input in this panel, the definition locks
-                      while a simulation is live — an edit would dispose the
-                      run. The scroll container stays interactive so the
-                      content can still be reviewed mid-run. */}
-                  <div
-                    inert={isSimulationActive}
-                    className={cx(isSimulationActive && lockedFormStyle)}
-                  >
-                    {placesList}
-                  </div>
-                </ParametersScrollArea>
-              </div>
+              </FormLayoutColumn>
             </div>
           )}
         />
