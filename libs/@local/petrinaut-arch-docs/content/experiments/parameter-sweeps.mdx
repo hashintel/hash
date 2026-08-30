@@ -77,9 +77,19 @@ Nothing else in the per-run pipeline materializes a record per run either:
 `sweepRangeDraws` writes one typed array of draws, and `translateRangeDraws`
 compares each run's compiled numbers against the base and fills per-name
 `Float64Array` columns, pre-filled with the base value so the uniform layout
-falls out. A million-run batch allocates a handful of arrays instead of a
-million records of stringified numbers, and the garbage collector stays out
-of the profile.
+falls out. A million-run batch's plumbing allocates a handful of arrays
+instead of a million records of stringified numbers (each run's scenario
+compile still builds its own small binding records), and the garbage
+collector drops out of the profile's top entries.
+
+What remains is still linear in the run count, so the draw and translation
+loops yield cooperatively (`cooperative-yield.ts`): every few thousand
+iterations they check an 8 ms budget and hand the thread back —
+`scheduler.yield()` where the browser has it, a macrotask elsewhere. The
+loops' total cost is unchanged; no single task holds the main thread through
+it. Measured end to end at the same 1,000,000-run batch, the pipeline's
+blocking went from two tasks of 1.16 s and 1.45 s to 178 ms in total with no
+task over ~130 ms.
 
 ## Determinism
 

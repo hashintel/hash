@@ -522,8 +522,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         const translated =
           draws === undefined
             ? undefined
-            : translateRangeDraws({
+            : await translateRangeDraws({
                 draws,
+                signal,
                 midValues: parameterValues,
                 baseParameters: compileRunNumbers(parameterValues).parameters,
                 compileRunNumbers,
@@ -567,9 +568,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           return instantiated.handle;
         }
 
-        // Range batches carry per-run parameter values (`runs`); the GPU
-        // backend uploads them to a per-run buffer, so they walk the same
-        // backend selection as point batches instead of being CPU-only.
+        // Range batches carry per-run parameter values (`runPlan`, or `runs`
+        // for the non-numeric fallback); the GPU backend uploads them to a
+        // per-run buffer, so they walk the same backend selection as point
+        // batches instead of being CPU-only.
         if (!chosenBackend) {
           const selection = await selectExperimentBackend({
             registrations,
