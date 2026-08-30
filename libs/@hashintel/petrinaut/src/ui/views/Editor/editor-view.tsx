@@ -14,7 +14,9 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
+  cafeQueue,
   deploymentPipelineSDCPN,
+  dronePatrol,
   probabilisticSatellitesSDCPN,
   productionMachines,
   sirModel,
@@ -370,6 +372,22 @@ export const EditorView = ({
                 text: "SIR Model",
                 onClick: () => {
                   createNewNet(sirModel);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-cafe-queue",
+                text: "Café Queue",
+                onClick: () => {
+                  createNewNet(cafeQueue);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-drone-patrol",
+                text: "Drone Patrol",
+                onClick: () => {
+                  createNewNet(dronePatrol);
                   clearSelection();
                 },
               },
