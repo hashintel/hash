@@ -10,7 +10,7 @@
  * @role Generates a WGSL compute shader from a net's HIR and runs its experiment runs on the GPU
  */
 import { resolveNetParameterValues } from "../parameter-values";
-import { compileNetShader, GPU_HISTOGRAM_BINS } from "./compile-net-shader";
+import { compileNetShader } from "./compile-net-shader";
 import { assessGpuEligibility, formatGpuIneligibility } from "./eligibility";
 import { hirFromArtifacts } from "./hir-from-artifacts";
 import { requestGpuDevice } from "./runner";
@@ -179,7 +179,7 @@ export async function requestGpuExperimentBackend(
       const initialCount = initialTokenCount(
         request.initialMarking[metric.placeId],
       );
-      if (initialCount >= GPU_HISTOGRAM_BINS) {
+      if (initialCount >= compiled.shader.histogramBins) {
         const placeName =
           eligibility.profile.places.find(
             (place) => place.id === metric.placeId,
@@ -187,7 +187,7 @@ export async function requestGpuExperimentBackend(
         return {
           supported: false,
           cause: "net-unsupported",
-          reason: `Place \`${placeName}\` starts with ${initialCount} tokens, and the GPU backend reduces metrics into a histogram of ${GPU_HISTOGRAM_BINS} bins — one per token count — so counts of ${GPU_HISTOGRAM_BINS} or more cannot be told apart.`,
+          reason: `Place \`${placeName}\` starts with ${initialCount} tokens, and the GPU backend reduces metrics into a histogram of ${compiled.shader.histogramBins} bins — one per token count — so counts of ${compiled.shader.histogramBins} or more cannot be told apart.`,
         };
       }
     }
