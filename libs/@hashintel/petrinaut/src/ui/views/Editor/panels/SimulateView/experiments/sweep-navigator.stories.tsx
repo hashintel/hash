@@ -317,8 +317,8 @@ export const FullySampled: Story = {
  * rates through `parameterOverrides` — so ranging them genuinely changes
  * each run's dynamics. (The stock scenarios' parameters only shape the
  * initial marking, which a range holds at its midpoint.) Token counts stay
- * under the GPU backend's 256-per-measured-place limit, so point
- * selections are GPU-eligible.
+ * well inside the metric histogram's bin range, so point selections are
+ * GPU-eligible.
  */
 const REAL_SWEEP_SCENARIO_ID = "scenario__story_rate_sweep";
 
@@ -516,7 +516,7 @@ const realSweepArgs: RealSweepConfig = {
   dt: 0.5,
 };
 const realSweepArgTypes = {
-  runCount: { control: { type: "number", min: 8, max: 100_000, step: 1 } },
+  runCount: { control: { type: "number", min: 8, max: 10_000_000, step: 1 } },
   maxTime: { control: { type: "number", min: 5, max: 600, step: 5 } },
   dt: { control: { type: "number", min: 0.05, max: 5, step: 0.05 } },
 } as const;
