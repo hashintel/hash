@@ -197,9 +197,14 @@ const LinkTypeRow = ({
         <TableCell sx={{ py: "0 !important" }}>
           <DestinationEntityTypeSelector linkIndex={linkIndex} />
         </TableCell>
-        <MultipleValuesCell index={linkIndex} variant="link" />
+        <MultipleValuesCell
+          index={linkIndex}
+          typeTitle={linkSchema.title}
+          variant="link"
+        />
         <TypeMenuCell
           typeId={linkSchema.$id}
+          typeTitle={linkSchema.title}
           editButtonProps={bindTrigger(editModalPopupState)}
           editButtonDisabled={editDisabledReason}
           variant="link"

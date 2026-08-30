@@ -146,13 +146,23 @@ export const PropertyTypeRow = ({
         isArray={isArray}
         isRequired={isRequired}
         allowArraysTableCell={
-          <MultipleValuesCell index={propertyIndex} variant="property" />
+          <MultipleValuesCell
+            index={propertyIndex}
+            typeTitle={propertySchema.title}
+            variant="property"
+          />
         }
         requiredTableCell={
           <EntityTypeTableCenteredCell width={REQUIRED_CELL_WIDTH}>
             <Controller
               render={({ field: { value, ...field } }) => (
-                <Checkbox {...field} checked={value} />
+                <Checkbox
+                  {...field}
+                  checked={value}
+                  inputProps={{
+                    "aria-label": `Required: ${propertySchema.title}`,
+                  }}
+                />
               )}
               control={control}
               name={`properties.${propertyIndex}.required`}
@@ -164,6 +174,7 @@ export const PropertyTypeRow = ({
             editButtonProps={bindTrigger(editModalPopupState)}
             onRemove={onRemove}
             typeId={propertySchema.$id}
+            typeTitle={propertySchema.title}
             variant="property"
             editButtonDisabled={editDisabledReason}
           />

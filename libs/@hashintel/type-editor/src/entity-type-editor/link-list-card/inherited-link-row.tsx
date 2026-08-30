@@ -97,7 +97,12 @@ export const InheritedLinkRow = ({
         </MultipleValuesControlContainer>
       </TableCell>
 
-      <TypeMenuCell editable={false} typeId={$id} variant="link" />
+      <TypeMenuCell
+        editable={false}
+        typeId={$id}
+        typeTitle={linkSchema.title}
+        variant="link"
+      />
     </EntityTypeTableRow>
   );
 };

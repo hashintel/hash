@@ -60,6 +60,7 @@ const NoMaxWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
 
 export const TypeMenuCell = ({
   typeId,
+  typeTitle,
   variant,
   editable = true,
   editButtonProps,
@@ -67,6 +68,7 @@ export const TypeMenuCell = ({
   editButtonDisabled,
 }: {
   typeId: VersionedUrl;
+  typeTitle: string;
   variant: "property" | "link";
   editable?: boolean;
   editButtonDisabled?: string;
@@ -135,14 +137,17 @@ export const TypeMenuCell = ({
       width={70}
       sx={{
         [`.${iconButtonClasses.root}`]: {
-          opacity: 0,
+          opacity: popupState.isOpen ? 1 : 0,
           [`.${tableRowClasses.root}:hover > &`]: {
             opacity: 1,
           },
         },
       }}
     >
-      <IconButton {...bindTrigger(popupState)}>
+      <IconButton
+        aria-label={`Options for ${typeTitle}`}
+        {...bindTrigger(popupState)}
+      >
         <FontAwesomeIcon
           icon={faEllipsis}
           sx={(theme) => ({
@@ -153,8 +158,11 @@ export const TypeMenuCell = ({
       </IconButton>
       <Menu
         {...bindMenu(popupState)}
-        // We need the table's hover state to stay correct when this opens
-        disablePortal
+        /**
+         * The menu is portalled out of the editor, so it needs the font scale
+         * the editor sets on its own subtree.
+         */
+        className={fluidFontClassName}
         anchorOrigin={{
           vertical: "bottom",
           horizontal: "right",
