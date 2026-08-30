@@ -34,6 +34,7 @@ import {
   noConnections,
 } from "./notebook-model";
 import { orderCellsTopologically } from "./notebook-order";
+import { PeekCard, peekPosition } from "./peek-card";
 import { useJumpHistory } from "./use-jump-history";
 
 import type { FocusStop } from "../../worksheet/use-focus-stops";
@@ -196,6 +197,13 @@ const NotebookViewContent: React.FC = () => {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [isPaletteOpen, setPaletteOpen] = useState(false);
+  // Peek preview over a hovered/focused reference, IDE-style.
+  const [peek, setPeek] = useState<{
+    cellId: string;
+    position: { left: number; top: number };
+  } | null>(null);
+  const peekTimerRef = useRef<number | null>(null);
+
   // Hint-jump: targets are measured when the mode is entered, so the chips
   // stay put even if the list re-renders while a label is being typed.
   const [hint, setHint] = useState<{
@@ -598,6 +606,46 @@ const NotebookViewContent: React.FC = () => {
     jumpToCell(node.id);
   };
 
+  const schedulePeek = (anchor: HTMLElement, delayMs: number) => {
+    const cellId = anchor.dataset.peekCell;
+    if (cellId === undefined) {
+      return;
+    }
+    if (peekTimerRef.current !== null) {
+      window.clearTimeout(peekTimerRef.current);
+    }
+    peekTimerRef.current = window.setTimeout(() => {
+      peekTimerRef.current = null;
+      const rect = anchor.getBoundingClientRect();
+      setPeek({
+        cellId,
+        position: peekPosition(rect, {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        }),
+      });
+    }, delayMs);
+  };
+
+  const cancelPeek = () => {
+    if (peekTimerRef.current !== null) {
+      window.clearTimeout(peekTimerRef.current);
+      peekTimerRef.current = null;
+    }
+    setPeek(null);
+  };
+
+  // The card must not outlive what it is anchored to: any scroll hides it.
+  const isPeekOpen = peek !== null;
+  const handleAnyScroll = useEffectEvent(() => cancelPeek());
+  useEffect(() => {
+    if (!isPeekOpen) {
+      return;
+    }
+    window.addEventListener("scroll", handleAnyScroll, true);
+    return () => window.removeEventListener("scroll", handleAnyScroll, true);
+  }, [isPeekOpen]);
+
   /**
    * Step the selection to the next/previous navigable cell without moving
    * focus, so arrows work from the search box while typing continues.
@@ -673,8 +721,54 @@ const NotebookViewContent: React.FC = () => {
     },
   ];
 
+  const peekCell =
+    peek === null ? undefined : cells.find(({ id }) => id === peek.cellId);
+
   return (
-    <div className={containerStyle}>
+    <div
+      className={containerStyle}
+      // Peeking is wired by delegation: any element carrying
+      // `data-peek-cell` (arc places, explorer rows, graph nodes) previews
+      // its target on hover after a beat, immediately on keyboard focus.
+      onMouseOver={(event) => {
+        const anchor = (event.target as HTMLElement).closest<HTMLElement>(
+          "[data-peek-cell]",
+        );
+        if (anchor !== null) {
+          schedulePeek(anchor, 350);
+        }
+      }}
+      onMouseOut={(event) => {
+        const from = (event.target as HTMLElement).closest<HTMLElement>(
+          "[data-peek-cell]",
+        );
+        const to =
+          event.relatedTarget instanceof HTMLElement
+            ? event.relatedTarget.closest<HTMLElement>("[data-peek-cell]")
+            : null;
+        if (from !== null && from !== to) {
+          cancelPeek();
+        }
+      }}
+      onFocus={(event) => {
+        const target = event.target as HTMLElement;
+        const anchor =
+          target.closest<HTMLElement>("[data-peek-cell]") ??
+          (target.dataset.cellPart !== undefined
+            ? target.querySelector<HTMLElement>("[data-peek-cell]")
+            : null);
+        if (anchor !== null) {
+          schedulePeek(anchor, 0);
+        } else {
+          cancelPeek();
+        }
+      }}
+      onBlur={(event) => {
+        if (event.relatedTarget === null) {
+          cancelPeek();
+        }
+      }}
+    >
       <div className={cellsColumnStyle}>
         <div className={searchBarStyle}>
           <Button
@@ -883,6 +977,15 @@ const NotebookViewContent: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {peekCell !== undefined && peek !== null && (
+        <PeekCard
+          net={activeNet}
+          cell={peekCell}
+          dependentCount={dependentCounts.get(peekCell.id)}
+          position={peek.position}
+        />
+      )}
 
       {isPaletteOpen && (
         <CommandPalette

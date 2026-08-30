@@ -906,6 +906,7 @@ const ArcLine: React.FC<{
           tabIndex={-1}
           className={arcJumpStyle}
           title="Jump to this place"
+          data-peek-cell={placeId}
           onClick={() => parts.navigateToCell(placeId)}
         >
           {placeName(net, placeId)}
@@ -1295,6 +1296,25 @@ const EquationBody: React.FC<{
       />
     </>
   );
+};
+
+/** The one-line summary a cell's row shows — reused by peek previews. */
+export const cellSummary = (
+  net: ActiveNetDefinition,
+  cell: NotebookCellModel,
+): string => {
+  switch (cell.kind) {
+    case "place":
+      return placeSummary(net, cell.place);
+    case "transition":
+      return transitionSummary(net, cell.transition);
+    case "type":
+      return colorSummary(cell.color);
+    case "differentialEquation":
+      return equationSummary(net, cell.equation);
+    case "parameter":
+      return parameterSummary(cell.parameter);
+  }
 };
 
 /** Renders `name` with the fuzzy-matched characters marked. */

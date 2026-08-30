@@ -171,6 +171,7 @@ const NodeRow: React.FC<{
       ref={grid.register(index, 0)}
       tabIndex={grid.tabIndexFor(index, 0)}
       className={nodeRowStyle}
+      data-peek-cell={node.id}
       onClick={() => onNavigate(node)}
       onKeyDown={grid.onKeyDown(index, 0)}
       onFocus={() => grid.onFocusCell(index, 0)}

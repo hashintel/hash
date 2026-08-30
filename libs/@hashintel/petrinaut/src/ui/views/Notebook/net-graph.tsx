@@ -384,6 +384,7 @@ export const NetGraphView: React.FC<NetGraphViewProps> = ({
                     cycle === undefined ? undefined : () => onHoverCycle(null)
                   }
                   role="button"
+                  data-peek-cell={node.id}
                   // Out of the tab order: the explorer's list rows are the
                   // keyboard path to these nodes, matching the worksheet's
                   // one-tab-stop model.
