@@ -26,6 +26,14 @@ const UPlot = uPlot;
 /** Where on screen a frame was picked, in viewport coordinates. */
 export type FrameSelectPointer = { clientX: number; clientY: number };
 
+/**
+ * How the plot bridges a content change (a sweep selection moving): the old
+ * picture is snapshotted into an overlay that persists through the compute
+ * gap — dimmed ("dim") or as-is ("hold") — and fades out over ~300 ms once
+ * the new content's first frames render. "off" cuts hard.
+ */
+export type PlotCrossfade = "dim" | "hold" | "off";
+
 /** "number" renders no plot; the other two share one uPlot instance. */
 export type MetricDisplayMode = "chart" | "distribution" | "number";
 
@@ -43,6 +51,8 @@ export function useMetricPlot({
   timeDomainEnd,
   frames,
   plotData,
+  contentEpoch,
+  crossfade = "dim",
   onFrameSelect,
 }: {
   chartRootRef: RefObject<HTMLDivElement | null>;
@@ -58,6 +68,12 @@ export function useMetricPlot({
   timeDomainEnd: number | undefined;
   frames: readonly MetricFrame[];
   plotData: uPlot.AlignedData;
+  /**
+   * Identity of what the data REPRESENTS (a sweep's selection key). When it
+   * changes, the previous picture crossfades out instead of cutting.
+   */
+  contentEpoch?: string;
+  crossfade?: PlotCrossfade;
   /** Called as the pointer picks (or scrubs across) timeline frames. */
   onFrameSelect: (frame: MetricFrame, pointer: FrameSelectPointer) => void;
 }): void {
@@ -200,11 +216,82 @@ export function useMetricPlot({
     timeTrace,
   ]);
 
+  const epochRef = useRef(contentEpoch);
+  const overlayRef = useRef<HTMLCanvasElement | null>(null);
+  const overlayFadingRef = useRef(false);
+
   useEffect(() => {
-    if (!plotRef.current) {
+    const epochChanged = contentEpoch !== epochRef.current;
+    epochRef.current = contentEpoch;
+    const plot = plotRef.current;
+    if (!plot) {
       return;
     }
 
-    plotRef.current.setData(plotData);
-  }, [plotData]);
+    // A new epoch with old content still on the canvas: freeze that picture
+    // into an overlay before the new data repaints under it. "Still on the
+    // canvas" is read from the plot itself (`plot.data` predates the
+    // `setData` below) — a drag crosses several empty epochs before frames
+    // arrive, and those must keep the existing overlay, not blank it.
+    if (epochChanged) {
+      const plotShowsContent = plot.data[0]!.length > 0;
+      if (crossfade !== "off" && plotShowsContent) {
+        let overlay = overlayRef.current;
+        if (!overlay || !plot.over.contains(overlay)) {
+          overlay = document.createElement("canvas");
+          overlay.style.position = "absolute";
+          overlay.style.inset = "0";
+          overlay.style.width = "100%";
+          overlay.style.height = "100%";
+          overlay.style.pointerEvents = "none";
+          plot.over.appendChild(overlay);
+          overlayRef.current = overlay;
+        }
+        overlay.width = Math.max(1, Math.round(plot.bbox.width));
+        overlay.height = Math.max(1, Math.round(plot.bbox.height));
+        overlay
+          .getContext("2d")!
+          .drawImage(
+            plot.ctx.canvas,
+            plot.bbox.left,
+            plot.bbox.top,
+            plot.bbox.width,
+            plot.bbox.height,
+            0,
+            0,
+            overlay.width,
+            overlay.height,
+          );
+        overlay.style.transition = "none";
+        overlay.style.display = "block";
+        overlay.style.opacity = crossfade === "dim" ? "0.55" : "1";
+        overlayFadingRef.current = false;
+      }
+    }
+
+    plot.setData(plotData);
+    const hasData = plotData[0]!.length > 0;
+
+    // The new content's first frames are on screen: fade the old picture
+    // out quickly instead of having already cut to the sparse new one.
+    const overlay = overlayRef.current;
+    if (
+      hasData &&
+      overlay !== null &&
+      overlay.style.display !== "none" &&
+      !overlayFadingRef.current
+    ) {
+      overlayFadingRef.current = true;
+      const fadingOverlay = overlay;
+      requestAnimationFrame(() => {
+        fadingOverlay.style.transition = "opacity 300ms ease-out";
+        fadingOverlay.style.opacity = "0";
+      });
+      const hide = () => {
+        fadingOverlay.style.display = "none";
+        fadingOverlay.removeEventListener("transitionend", hide);
+      };
+      fadingOverlay.addEventListener("transitionend", hide);
+    }
+  }, [contentEpoch, crossfade, plotData]);
 }
