@@ -750,12 +750,14 @@ export class VoiceTurnController {
       return;
     }
 
+    if (this.#snapshot.phase === "transcribing") {
+      this.#setMicrophoneEnabled(false);
+      return;
+    }
+
     if (!this.#canAcceptInterviewAnswer) {
       this.#setMicrophoneEnabled(false);
-      if (
-        this.#snapshot.phase !== "transcribing" &&
-        this.#snapshot.phase !== "delivering"
-      ) {
+      if (this.#snapshot.phase !== "delivering") {
         this.#update({ phase: "waiting" });
       }
       return;
@@ -770,11 +772,6 @@ export class VoiceTurnController {
         this.#answerReadyQuestionId = this.#activeQuestionId();
         this.#recordLatency("answer-ready", this.#activeQuestionId());
       }
-      return;
-    }
-
-    if (this.#snapshot.phase === "transcribing") {
-      this.#session.setMicrophoneEnabled(false);
       return;
     }
 

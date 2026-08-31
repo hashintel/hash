@@ -184,6 +184,42 @@ describe("VoiceTurnController", () => {
     });
   });
 
+  test("keeps capture closed while an answer transcript settles", async () => {
+    const harness = createHarness();
+    const question = {
+      ...canonicalSegment("ask-transcribing", "Who approves it?"),
+      source: "brunch-ask" as const,
+    };
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question],
+      status: "streaming",
+    });
+    await harness.controller.start();
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().phase).toBe("listening"),
+    );
+
+    harness.emit({
+      connectionEpoch: 1,
+      itemId: "answer-transcribing",
+      type: "input-committed",
+    });
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question],
+      status: "streaming",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      microphoneEnabled: false,
+      phase: "transcribing",
+    });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+  });
+
   test("records answer-to-question visibility and speech latency", async () => {
     const harness = createHarness();
     await harness.controller.start();
@@ -1072,6 +1108,8 @@ describe("VoiceTurnController", () => {
       text: "The request is assigned to the shift lead.",
       type: "completed",
     });
+    expect(harness.submitText).not.toHaveBeenCalled();
+    updateChatStatus(harness.controller, "ready");
     await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
     updateChatStatus(harness.controller, "streaming");
     updateChatStatus(harness.controller, "ready");
