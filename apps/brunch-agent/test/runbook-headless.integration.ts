@@ -22,15 +22,15 @@ import {
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
 import {
-  createHeadlessPetrinautClient,
-  isPetrinautConstructionToolName,
-} from "../src/headless-petrinaut-client.ts";
-import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
-import { loadBuiltBrunchApplication } from "../src/load-built-application.ts";
-import {
   interviewerToolNamesFrom,
   skillResourcePathsFrom,
-} from "../src/runbook-artifacts.ts";
+} from "../src/evaluations/runbook/artifacts.ts";
+import {
+  createHeadlessPetrinautClient,
+  isPetrinautConstructionToolName,
+} from "../src/evaluations/runbook/headless-petrinaut-client.ts";
+import { loadBuiltBrunchApplication } from "../src/evaluations/runbook/load-built-application.ts";
+import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
 
 const CHAT_MODEL_ID = "claude-haiku-4-5";
 const RUNBOOK_SKILL_NAME = "sdcpn-modelling";

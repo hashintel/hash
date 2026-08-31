@@ -4,7 +4,7 @@
  * Petrinaut client and never emits free-form net JSON.
  *
  * Build first, then run:
- *   yarn turbo run build --filter @apps/brunch-agent
+ *   yarn exec turbo run build --filter @apps/brunch-agent
  *   yarn workspace @apps/brunch-agent runbook:headless
  */
 
@@ -16,27 +16,27 @@ import { fileURLToPath } from "node:url";
 import { observe } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 
-import { VALIDATED_CONSTRUCTION_MODE } from "./agents/chat-agent/tools/petrinaut-construction.ts";
+import { VALIDATED_CONSTRUCTION_MODE } from "../../agents/chat-agent/tools/petrinaut-construction.ts";
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isAwaitingClient,
-} from "./conversation/client-tools.ts";
+} from "../../conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "./conversation/identity.ts";
+} from "../../conversation/identity.ts";
+import { CHAT_AGENT_ROUTE } from "../../http/routes.ts";
+import {
+  interviewerToolNamesFrom,
+  skillResourcePathsFrom,
+} from "./artifacts.ts";
 import {
   createHeadlessPetrinautClient,
   isPetrinautConstructionToolName,
   type HeadlessPetrinautToolCall,
   type HeadlessPetrinautToolResult,
 } from "./headless-petrinaut-client.ts";
-import { CHAT_AGENT_ROUTE } from "./http/routes.ts";
 import { loadBuiltBrunchApplication } from "./load-built-application.ts";
-import {
-  interviewerToolNamesFrom,
-  skillResourcePathsFrom,
-} from "./runbook-artifacts.ts";
 
 import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
 
@@ -49,13 +49,13 @@ const MAX_CLIENT_ROUNDS = Number(
 
 const irPath = fileURLToPath(
   new URL(
-    "../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/runbook-headless-2026-08-28T11-03-53-683Z.ir.md",
+    "../../../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/runbook-headless-2026-08-28T11-03-53-683Z.ir.md",
     import.meta.url,
   ),
 );
 const defaultOutputDirectory = fileURLToPath(
   new URL(
-    "../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/",
+    "../../../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/",
     import.meta.url,
   ),
 );
@@ -325,7 +325,7 @@ try {
       cost: totalFrom(turnUsage.map((turn) => turn.cost)),
     },
     transcript: (
-      await import("./conversation/transcript.ts")
+      await import("../../conversation/transcript.ts")
     ).formatFlueTranscript(snapshot),
   };
 

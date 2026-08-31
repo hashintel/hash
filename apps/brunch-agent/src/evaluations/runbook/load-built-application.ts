@@ -13,7 +13,8 @@ type BuiltApplicationModule = {
  */
 export const loadBuiltBrunchApplication =
   async (): Promise<BuiltBrunchApplication> => {
-    const applicationUrl = new URL("../dist/app.mjs", import.meta.url).href;
+    const applicationUrl = new URL("../../../dist/app.mjs", import.meta.url)
+      .href;
     const builtModule = (await import(
       applicationUrl
     )) as BuiltApplicationModule;

@@ -2,7 +2,7 @@
 
 ## Status
 
-Live. This file is execution authority for [FE-1563](https://linear.app/hash/issue/FE-1563/redesign-the-elicitation-runbook-and-workpiece-against-the-frozen). Mission 3's frozen prospective campaign is the immutable control: one invalid runtime member, two valid independently graded workpieces, and an adjudicated range recorded in [`docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md`](docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md). This branch must not alter that instrument or its observed artifacts.
+Live. This file is execution authority for [FE-1563](https://linear.app/hash/issue/FE-1563/redesign-the-elicitation-runbook-and-workpiece-against-the-frozen). Mission 3's frozen prospective campaign is the immutable control: one invalid runtime member, two valid independently graded workpieces, and an adjudicated range recorded in [`docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md`](docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md). Its observed artifacts and source revision `b738aa1be1a62a9f9cdde89ced78558f04293a77` remain the exact instrument of record; current source may be relocated, but no relocated branch-tip file may be represented as the frozen v1 instrument.
 
 Later projection, provenance, bounded revision, observer, host-continuity, and optimisation concerns remain in [`MISSION.next.md`](MISSION.next.md). They are not implementation authority here.
 
@@ -53,7 +53,7 @@ Prefer one coherent candidate and a discriminating comparison over many lightly 
 
 ## Constraints
 
-- Preserve the Mission 3 prospective baseline files, prompts, case, ruler, committed instrument, and artifacts unchanged. Candidate runs use a new versioned campaign.
+- Preserve the Mission 3 prospective baseline artifacts unchanged and treat source revision `b738aa1be1a62a9f9cdde89ced78558f04293a77` as the committed v1 instrument. Current source may move without compatibility wrappers; candidate runs must record the relocated files under a new versioned campaign and may not write into the v1 output location.
 - Treat the authoritative elicitation research synthesis as evidence and decision support, not a backlog to implement wholesale. Shared-source repetition is not independent corroboration.
 - The owner leads semantic and editorial choices. The agent presents alternatives, traces consequences, edits accepted decisions, and runs probes; it does not infer approval or silently choose the final package.
 - Work one observed strain or owner-supplied edge at a time. Prefer subtraction, relocation, and clearer authority before adding another catalog, abstraction, or artifact.
@@ -84,7 +84,7 @@ Resolve each at the smallest real or paper boundary and record the decision befo
 
 Stop and surface the evidence if:
 
-- the redesign edits or overwrites the frozen baseline instrument, case, graders, ruler, or artifacts;
+- the redesign edits or overwrites the frozen baseline artifacts, case, graders, ruler, or source revision, or presents relocated current source as the v1 instrument;
 - the agent produces a wholesale replacement before the owner works through its consequential choices;
 - headings or typologies become a scripted intake form or dictate the interview's opening order;
 - uncertainty is handled by inventing more mandatory fields rather than preserving it honestly;

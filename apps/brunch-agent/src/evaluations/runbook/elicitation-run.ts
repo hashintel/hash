@@ -3,7 +3,7 @@
  * second model, then emits a Markdown runbook IR without entering construction.
  *
  * Build first, then run:
- *   yarn turbo run build --filter @apps/brunch-agent
+ *   yarn exec turbo run build --filter @apps/brunch-agent
  *   yarn workspace @apps/brunch-agent runbook:elicit
  */
 
@@ -21,15 +21,15 @@ import { createFlueClient } from "@flue/sdk";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "./conversation/identity.ts";
-import { formatFlueTranscript } from "./conversation/transcript.ts";
-import { CHAT_AGENT_ROUTE } from "./http/routes.ts";
-import { loadBuiltBrunchApplication } from "./load-built-application.ts";
+} from "../../conversation/identity.ts";
+import { formatFlueTranscript } from "../../conversation/transcript.ts";
+import { CHAT_AGENT_ROUTE } from "../../http/routes.ts";
 import {
   interviewerToolNamesFrom,
   recoverRunbookIr,
   skillResourcePathsFrom,
-} from "./runbook-artifacts.ts";
+} from "./artifacts.ts";
+import { loadBuiltBrunchApplication } from "./load-built-application.ts";
 
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Provider } from "@earendil-works/pi-ai";
@@ -38,15 +38,16 @@ import type { FlueConversationSnapshot } from "@flue/sdk";
 process.env["BRUNCH_CHAT_MODEL"] ??= "claude-sonnet-4-5";
 
 const execFileAsync = promisify(execFile);
-const repositoryRoot = new URL("../../../", import.meta.url);
+const FROZEN_V1_SOURCE_COMMIT = "b738aa1be1a62a9f9cdde89ced78558f04293a77";
+const repositoryRoot = new URL("../../../../../", import.meta.url);
 const repositoryRootPath = fileURLToPath(repositoryRoot);
 const evaluationRoot = new URL(
-  "../../../libs/@hashintel/brunch-agent/evaluations/",
+  "../../../../../libs/@hashintel/brunch-agent/evaluations/",
   import.meta.url,
 );
 const caseDirectory = new URL("cases/vestera-scheduling/", evaluationRoot);
 const defaultOutputDirectory = new URL(
-  "../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-prospective-baseline-v1/",
+  "../../../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-prospective-baseline-v1/",
   import.meta.url,
 ).pathname;
 
@@ -93,8 +94,8 @@ if (outputDirectory === defaultOutputDirectory && !usesFrozenV1Configuration) {
 const instrumentFiles = [
   "apps/brunch-agent/package.json",
   "apps/brunch-agent/src/agents/chat-agent/agent.ts",
-  "apps/brunch-agent/src/runbook-artifacts.ts",
-  "apps/brunch-agent/src/runbook-elicitation-run.ts",
+  "apps/brunch-agent/src/evaluations/runbook/artifacts.ts",
+  "apps/brunch-agent/src/evaluations/runbook/elicitation-run.ts",
   "apps/brunch-agent/src/agents/chat-agent/skills/sdcpn-modelling/SKILL.md",
   "apps/brunch-agent/src/agents/chat-agent/skills/sdcpn-modelling/elicitation.md",
   "apps/brunch-agent/src/agents/chat-agent/skills/sdcpn-modelling/ir-template.md",
@@ -128,6 +129,14 @@ const { stdout: commitOutput } = await execFileAsync(
   { cwd: repositoryRootPath },
 );
 const sourceCommit = commitOutput.trim();
+if (
+  outputDirectory === defaultOutputDirectory &&
+  sourceCommit !== FROZEN_V1_SOURCE_COMMIT
+) {
+  throw new Error(
+    `vestera-prospective-baseline-v1 belongs to source commit ${FROZEN_V1_SOURCE_COMMIT}; set BRUNCH_RUNBOOK_OUTPUT_DIR for relocated or redesigned source.`,
+  );
+}
 const { stdout: statusOutput } = await execFileAsync(
   "git",
   ["status", "--short", "--", ...instrumentFiles],
@@ -357,7 +366,7 @@ try {
   ];
   const transcript = formatFlueTranscript(snapshot);
   const builtArtifact = await readFile(
-    new URL("../dist/app.mjs", import.meta.url),
+    new URL("../../../dist/app.mjs", import.meta.url),
   );
   const record = {
     runId,

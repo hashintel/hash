@@ -5,7 +5,7 @@ import {
   recoverRunbookIr,
   RUNBOOK_IR_FENCE,
   skillResourcePathsFrom,
-} from "../src/runbook-artifacts.ts";
+} from "../src/evaluations/runbook/artifacts.ts";
 
 import type { FlueConversationSnapshot } from "@flue/sdk";
 

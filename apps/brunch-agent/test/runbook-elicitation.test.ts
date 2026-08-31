@@ -7,6 +7,26 @@ import { expect, test } from "vitest";
 import { runNodeScript } from "./run-node-script";
 
 const testDirectory = import.meta.dirname;
+const runnerPath = join(
+  testDirectory,
+  "../src/evaluations/runbook/elicitation-run.ts",
+);
+const repositoryRoot = join(testDirectory, "../../..");
+
+test("relocated source cannot write into the frozen v1 campaign", async () => {
+  const { exitCode, stderr } = await runNodeScript(runnerPath, repositoryRoot, {
+    ANTHROPIC_API_KEY: "not-used-before-source-guard",
+    BRUNCH_CHAT_MODEL: "claude-sonnet-4-5",
+    BRUNCH_RUNBOOK_EXPERT_MODEL: "claude-sonnet-4-5",
+    BRUNCH_RUNBOOK_HARD_STOP: "8",
+    BRUNCH_RUNBOOK_LATENCY_STOP_MS: "180000",
+  });
+
+  expect(exitCode).not.toBe(0);
+  expect(stderr).toContain(
+    "vestera-prospective-baseline-v1 belongs to source commit",
+  );
+});
 
 test("the prospective runner records a recoverable IR without construction or capture machinery", async () => {
   const outputDirectory = await mkdtemp(
@@ -14,8 +34,8 @@ test("the prospective runner records a recoverable IR without construction or ca
   );
   try {
     const { exitCode, stdout, stderr } = await runNodeScript(
-      join(testDirectory, "../src/runbook-elicitation-run.ts"),
-      join(testDirectory, "../../.."),
+      runnerPath,
+      repositoryRoot,
       {
         BRUNCH_CHAT_MODEL: "claude-haiku-4-5",
         BRUNCH_RUNBOOK_EXPERT_MODEL: "faux-vestera-expert",

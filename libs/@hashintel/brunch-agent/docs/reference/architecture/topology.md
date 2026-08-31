@@ -1,11 +1,6 @@
 # Topology: verification and specification
 
-**Status: ratified 2026-08-17 (Lu) — recorded as [ADR-0002](../../adr/0002-topology-and-placement-rules.md);
-this file remains the living reference.** Verifies
-the current app/package topology against the three-lane model (cheatsheet, boundary summary),
-spec §12.2, and Flue's project-layout guide; then specifies where upcoming work lands. Pseudo-
-style: tree nodes with rules; `✓` complies today, `✗` violates, `→` normative rule for what's
-next.
+**Status: ratified 2026-08-17 (Lu), application layout updated 2026-08-31 — recorded as [ADR-0002](../../adr/0002-topology-and-placement-rules.md); this file remains the living reference.** Verifies the current app/package topology against the three-lane model (cheatsheet, boundary summary), spec §12.2, and Flue's project-layout guide; then specifies where upcoming work lands. Pseudo-style: tree nodes with rules; `✓` complies today, `✗` violates, `→` normative rule for what's next.
 
 ## Verification — the tree as it stands
 
@@ -60,21 +55,26 @@ packages/plugin-gherkin            LANE 3 (target policy)
                          Never: harness mechanism, substrate imports, storage.
 
 apps/brunch-agent                  LANE 1 SHELL + remote server (imported from apps/dev)
-├─ src/app.ts         ✓  single fetch entry; explicit mounts; assets beside agents
-├─ src/routes.ts      ✓  the one shared mount constant (doctrine per routing guide)
-├─ src/agents/gherkin-elicitor.ts ✓ thin directive-marked host (§12.1); flat file OK until
-│                        the second agent (then per-agent folders, FE-1385)
-├─ src/elicitation-session.ts, target-document-path.ts ✓ host-owned session/document binding,
-│                        full mount URL/transport, and opaque local target path
-├─ src/petrinaut-chat.ts ✓ thin Flue→harness-event→AI SDK composition; `/api/chat` mount and
-│                        opt-in JSONL inspection. No second conversation renderer.
-├─ src/db.ts, db-path.ts ✓ convention entry + separately testable path logic, deliberately split
-├─ src/ui/chat.tsx    ~  hand-rolled client; tolerated ONLY until FE-1385 adopts @flue/react
+├─ src/app.ts, db.ts  ✓  Flue convention authorities: one route map and one conversation adapter
+├─ src/db-path.ts     ✓  testable package-relative path policy kept at source root because the
+│                        same relative URL must survive Flue's flattened `dist/` bundle
+├─ src/agents/chat-agent/
+│  ├─ agent.ts        ✓  sole directive-marked model-facing agent
+│  ├─ skills/         ✓  agent-owned, progressively disclosed Mission 3 runbook experiment
+│  └─ tools/          ✓  capabilities mounted only by that agent
+├─ src/http/          ✓  HTTP authority: assets, route names, ownership guard, local origins,
+│                        and `/api/chat` composition
+├─ src/conversation/  ✓  identity and projection authority: shared payload, client-tool signal,
+│                        Flue-history transcript, and AI SDK stream projection
+├─ src/capture/       ✓  Mission 2 application composition over binding-owned history/store ports;
+│                        no elicitation policy
+├─ src/evaluations/runbook/ ✓ runbook experiment drivers, artifact recovery, and headless client;
+│                        not product runtime authority
+├─ src/diagnostics/   ✓  operator-facing transcript CLI
+├─ src/ui/            ~  hand-rolled client; tolerated ONLY until FE-1385 adopts @flue/react
 │                        (divergence risk 1). Never: growing new part-rendering features here.
 └─ test/              ✓  reviewed substrate inventory; child-process eval (audited: composed
                          from documented parts; do-not-weaken pins live here)
-
-evaluations/protocols/legacy-baseline/run.ts   EXPERIMENT PROTOCOL
 ```
 
 ## Specification — where what's next lands
@@ -86,20 +86,14 @@ evaluations/protocols/legacy-baseline/run.ts   EXPERIMENT PROTOCOL
   refusal), prompt content, and advisory semantics;
   `useElicitation` contributes only Flue projection, hooks, persistent-state, private-prompt,
   refresh, and durable-step wiring. A future `binding-pi` reuses both protocol modules.
-- **N2 (plugin cells and the repertoire; amended by ADR-0007 and ADR-0008).** Plugin-owned content
-  lives in plugin packages; never in per-agent app `skills/` directories, which would put lane-3
-  policy inside lane-1 and outside the boundary gates. Harness-owned teaching lives in core and is
-  exported only from `@hashintel/brunch-agent/prompts`; bindings and evaluation composition may
-  import it, plugins may not. The committed YAML remains directly assertable outside the bundle.
+- **N2 (plugin cells, repertoire, and the proving runbook; amended by ADR-0007, ADR-0008, and Mission 3).** Reusable plugin-owned policy lives in plugin packages, and harness-owned repertoire teaching lives in core behind `@hashintel/brunch-agent/prompts`; bindings and evaluation composition may import it, plugins may not. Mission 3 deliberately did not reactivate that runtime: its directly authored, single-consumer SDCPN runbook is agent-owned under `src/agents/chat-agent/skills/` while the structural-prose experiment remains proving. A second real consumer or a return to plugin composition must re-establish reusable ownership rather than copying the app skill. The committed YAML remains directly assertable outside the bundle.
 - **N3 (application composition; amended by ADR-0004 / FE-1437).** There is no dedicated demo
   shell. The standalone `apps/dev` was imported as `apps/brunch-agent`, which owns the remote
   Brunch server, target gallery, and diagnostics. `apps/petrinaut-website` owns the user-facing
   integration.
   Applications may compose Brunch and Petrinaut public surfaces; reusable libraries may not know
   about one another.
-- **N4 (experiments).** Experiment runners (FE-1404, future condition reruns) stay beside their
-  the JS-API pattern with `observe()` accounting — never in
-  `packages/` (they are instruments, not product) and never a bespoke daemon.
+- **N4 (experiments).** Experiment runners live under the consuming app's `src/evaluations/`, use the JS-API pattern with `observe()` accounting, and never enter `packages/` or become bespoke daemons. Reusable cases, oracles, and protocols remain under the context-root `evaluations/`; observed output remains under `docs/evidence/evaluations/`.
 - **N5 (storage-port implementations; local target discharged by FE-1391).** One per (binding ×
   deploy target), always in the binding package, always implementing core's `CaptureStore` +
   parse-on-read. The local implementation provisions a versioned target-document record around
@@ -108,9 +102,4 @@ evaluations/protocols/legacy-baseline/run.ts   EXPERIMENT PROTOCOL
 - **N6 (plugin-assurance, when chartered).** `packages/plugin-assurance`, same shape as
   gherkin; its existence is FE-1387's contract-freeze instrument, not a feature.
 
-Ratification note: N1 was the only item that changed existing code; FE-1422 extracted the ask
-protocol and FE-1392 continued the same repair for sweep mechanism.
-N2–N6 constrain future placement. ADR-0002 records the ratification. The boundary gates in
-`test/boundaries.test.ts` should learn the enforceable parts as their packages arrive (N2's
-"no plugin content in app skills dirs" and N5's "port implementations only in bindings" are
-both mechanically checkable).
+Ratification note: N1 was the only item that changed existing code in the original 2026-08-17 ratification; FE-1422 extracted the ask protocol and FE-1392 continued the same repair for sweep mechanism. Mission 3 later narrowed N2's blanket app-skill prohibition for one directly authored proving instrument without reactivating plugin composition. N2–N6 otherwise constrain future placement. ADR-0002 records the original ratification. The boundary gates in `test/boundaries.test.ts` should learn enforceable package rules as their packages arrive; N5's "port implementations only in bindings" remains mechanically checkable.
