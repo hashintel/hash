@@ -480,7 +480,7 @@ This can run as a parallel feasibility track. Promote it into FE-1476 acceptance
 
 Undecided. It is the converse of the current door—resume a harness session by chat id. Flue already owns that session; `transport-aisdk` is the UI adapter. A Pi / Claude Code harness would be another substrate, which `binding-flue` isolates, or a Flue replacement. It is not the watch-sims surface and not part of FE-1476 without new evidence.
 
-# Mission 3 close record and carried inputs
+# Closed runbook/workpiece mission record and carried inputs
 
 Mission 3 locked one off-canvas PN JSON result, Petrinaut validation, manual load as sufficient inspection, and no canvas tools. It closed with the runbook/workpiece path accepted and real-model semantic construction false on the exercised route.
 
