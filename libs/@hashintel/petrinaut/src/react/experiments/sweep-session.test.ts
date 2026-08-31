@@ -420,17 +420,23 @@ describe("createSweepSession", () => {
     session.dispose();
   });
 
-  it("samples background cells up the same seed ladder, one at a time", async () => {
+  it("samples background cells concurrently, bounded to a few in flight", async () => {
     const { session, batches, settle } = makeHarness(100, point(0, 0));
     await settle();
     expect(batches).toHaveLength(1); // the navigator's own first rung
 
-    const first = session.sampleCell({ x: 2, y: 1 }, 8);
-    const second = session.sampleCell({ x: 1, y: 1 }, 8);
+    const cells = [
+      session.sampleCell({ x: 2, y: 1 }, 8),
+      session.sampleCell({ x: 1, y: 1 }, 8),
+      session.sampleCell({ x: 3, y: 1 }, 8),
+      session.sampleCell({ x: 4, y: 1 }, 8),
+      session.sampleCell({ x: 5, y: 1 }, 8),
+    ];
+    await settle();
     await settle();
 
-    // Serialized: the second background batch waits for the first.
-    expect(batches).toHaveLength(2);
+    // Four batches run at once; the fifth waits for a slot.
+    expect(batches).toHaveLength(5);
     expect(batches[1]!.request).toMatchObject({
       parameterValues: { x: 2, y: 20 },
       seed: 42,
@@ -438,15 +444,20 @@ describe("createSweepSession", () => {
       background: true,
     });
 
-    batches[1]!.stream([frame(8, [[5, 8]])]);
-    batches[1]!.complete();
-    await expect(first).resolves.toMatchObject({ runsCompleted: 8 });
+    for (const batch of batches.slice(1, 5)) {
+      batch.stream([frame(8, [[5, 8]])]);
+      batch.complete();
+    }
     await settle();
-
-    expect(batches).toHaveLength(3);
-    batches[2]!.stream([frame(8, [[6, 8]])]);
-    batches[2]!.complete();
-    await expect(second).resolves.toMatchObject({ runsCompleted: 8 });
+    await settle();
+    expect(batches).toHaveLength(6);
+    batches[5]!.stream([frame(8, [[6, 8]])]);
+    batches[5]!.complete();
+    await Promise.all(
+      cells.map((cell) =>
+        expect(cell).resolves.toMatchObject({ runsCompleted: 8 }),
+      ),
+    );
 
     // Sampled cells are readable like navigator-visited ones.
     expect(session.getCell({ x: 2, y: 1 })).toMatchObject({
