@@ -1,3 +1,6 @@
+# Code ownership
+/.github/CODEOWNERS @hashintel/infra-admins
+
 # Legal
 LICENSE @hashintel/legal
 LICENSE.txt @hashintel/legal
@@ -6,3 +9,6 @@ LICENSE.md @hashintel/legal
 # Database migrations
 /libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/backend
 /libs/@local/graph/migrations/graph-migrations/ @hashintel/backend
+
+# Turborepo configuration
+turbo.json @hashintel/infra
