@@ -329,10 +329,7 @@ export class RealtimeBrunchBridge {
   }
 
   #handleResponseTerminal(
-    event: Extract<
-      OpenAIRealtimeSessionEvent,
-      { type: "response-terminal" }
-    >,
+    event: Extract<OpenAIRealtimeSessionEvent, { type: "response-terminal" }>,
   ): void {
     const responseKey = `${event.connectionEpoch}:${event.responseId}`;
     const matchingStreams = [...this.#argumentDeltas].filter(

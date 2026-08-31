@@ -88,10 +88,7 @@ const responseTerminal = (
   connectionEpoch: number,
   status: "cancelled" | "completed" | "failed" | "incomplete",
   responseId = "response-1",
-): Extract<
-  OpenAIRealtimeSessionEvent,
-  { type: "response-terminal" }
-> => ({
+): Extract<OpenAIRealtimeSessionEvent, { type: "response-terminal" }> => ({
   connectionEpoch,
   responseId,
   status,
