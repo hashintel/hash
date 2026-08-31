@@ -398,6 +398,7 @@ const SimulationSettingsContent: React.FC = () => {
     scenarioCompilationErrors,
     adHocScenario,
     setAdHocScenario,
+    adHocNetParameters,
   } = use(SimulationContext);
 
   const { enableAdHocScenarios } = use(UserSettingsContext);
@@ -576,7 +577,10 @@ const SimulationSettingsContent: React.FC = () => {
           state={adHocScenario ?? EMPTY_AD_HOC_STATE}
           onChange={setAdHocScenario}
           context={{
-            netParameters: globalParameters,
+            // The overlaid parameters the run compiles against, so the
+            // defaults the form displays are the ones the run resolves —
+            // the raw panel inputs are hidden while this embedding is live.
+            netParameters: adHocNetParameters,
             places,
             types: extensions.colors ? types : [],
           }}
