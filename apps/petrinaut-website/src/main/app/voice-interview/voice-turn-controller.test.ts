@@ -228,7 +228,7 @@ describe("VoiceTurnController", () => {
   test("queues a late finalized transcript until Brunch is ready", async () => {
     const harness = createHarness();
     await harness.controller.start();
-    harness.controller.updateChatStatus("streaming");
+    updateChatStatus(harness.controller, "streaming");
     expect(harness.controller.getSnapshot().phase).toBe("waiting");
 
     harness.emit({
@@ -249,7 +249,7 @@ describe("VoiceTurnController", () => {
       phase: "waiting",
     });
 
-    harness.controller.updateChatStatus("ready");
+    updateChatStatus(harness.controller, "ready");
 
     await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
     expect(harness.submitText).toHaveBeenCalledWith(
@@ -297,7 +297,7 @@ describe("VoiceTurnController", () => {
   test("retries a finalized transcript rejected by a concurrent Brunch turn", async () => {
     const harness = createHarness();
     harness.submitText.mockImplementationOnce(async () => {
-      harness.controller.updateChatStatus("streaming");
+      updateChatStatus(harness.controller, "streaming");
       throw new Error("Brunch became busy");
     });
     await harness.controller.start();
@@ -313,7 +313,7 @@ describe("VoiceTurnController", () => {
     );
     expect(harness.controller.getSnapshot().errorMessage).toBe("");
 
-    harness.controller.updateChatStatus("ready");
+    updateChatStatus(harness.controller, "ready");
 
     await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledTimes(2));
     expect(harness.submitText).toHaveBeenLastCalledWith(
@@ -464,7 +464,7 @@ describe("VoiceTurnController", () => {
     expect(harness.controller.getSnapshot().phase).toBe("listening");
   });
 
-  test("finishes an in-flight transcript when Brunch becomes busy", async () => {
+  test("queues an in-flight transcript when Brunch becomes busy", async () => {
     const harness = createHarness();
     await harness.controller.start();
     harness.emit({
@@ -486,6 +486,15 @@ describe("VoiceTurnController", () => {
       text: "The support lead triages it.",
       type: "completed",
     });
+
+    expect(harness.submitText).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      lastCommittedText: "The support lead triages it.",
+      phase: "waiting",
+    });
+
+    updateChatStatus(harness.controller, "ready");
+
     await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
     expect(harness.submitText).toHaveBeenCalledWith(
       expect.objectContaining({ text: "The support lead triages it." }),
@@ -529,6 +538,40 @@ describe("VoiceTurnController", () => {
     expect(harness.submitText).toHaveBeenCalledWith(
       expect.objectContaining({ text: "The support lead triages it." }),
     );
+  });
+
+  test("starts queued speech after an empty transcript finishes", async () => {
+    const harness = createHarness();
+    const response = canonicalSegment(
+      "canonical-speech:queued:text%3A0:fnv1a32:12345678",
+    );
+    await harness.controller.start();
+    harness.emit({
+      connectionEpoch: 1,
+      itemId: "empty-item",
+      type: "input-committed",
+    });
+    harness.controller.updateChat({
+      canonicalSegments: [response],
+      status: "ready",
+    });
+
+    expect(harness.controller.getSnapshot().phase).toBe("transcribing");
+    expect(harness.playback.play).not.toHaveBeenCalled();
+
+    harness.emit({
+      key: key(1, "empty-item"),
+      text: "   ",
+      type: "completed",
+    });
+
+    await vi.waitFor(() =>
+      expect(harness.playback.play).toHaveBeenCalledWith(
+        response,
+        expect.any(Object),
+      ),
+    );
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledWith(false);
   });
 
   test("rejects events from a stopped epoch after reconnect", async () => {

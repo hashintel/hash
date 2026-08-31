@@ -523,14 +523,18 @@ export class VoiceTurnController {
     if (
       this.#activeEpoch === null ||
       this.#snapshot.phase === "recoverable-error" ||
-      this.#speechLoopGeneration !== null ||
-      this.#speechQueue.length > 0
+      this.#speechLoopGeneration !== null
     ) {
       return;
     }
 
     if (this.#snapshot.phase === "transcribing") {
       this.#session.setMicrophoneEnabled(false);
+      return;
+    }
+
+    if (this.#speechQueue.length > 0) {
+      this.#startSpeechQueueIfNeeded();
       return;
     }
 
