@@ -53,6 +53,29 @@ const groupStyle = css({
   gap: "1.5",
 });
 
+// The computed state is a preview, not part of the form: a net with many
+// places (or a coloured place with many token rows) would otherwise push
+// Metrics and the drawer's own footer out of view. Parameters and initial
+// state share one bounded region and scroll together, tinted so the preview
+// reads as a panel the form writes into rather than more form. The left
+// padding covers the 20px the place headers hang their chevron into, plus a
+// gutter, so the hang is not clipped by the region's own overflow.
+const computedStatePreviewStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "3",
+  maxHeight: "[320px]",
+  overflowY: "auto",
+  backgroundColor: "neutral.s20",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  borderRadius: "md",
+  paddingY: "2",
+  paddingRight: "2",
+  paddingLeft: "[28px]",
+});
+
 const noticeStyle = css({
   fontSize: "xs",
   color: "neutral.s90",
@@ -214,7 +237,7 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
               <div className={noticeStyle}>{computed.notice}</div>
             )}
             {computed?.ready ? (
-              <>
+              <div className={computedStatePreviewStyle}>
                 <div className={groupStyle}>
                   <div className={groupTitleStyle}>Parameters</div>
                   {parameters ?? (
@@ -225,7 +248,7 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
                   <div className={groupTitleStyle}>Initial state</div>
                   {places}
                 </div>
-              </>
+              </div>
             ) : null}
           </Section>
         </FormLayoutColumn>
