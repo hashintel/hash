@@ -14,16 +14,28 @@ the surface and a cell the navigator visited are the same cell.
 
 ## The view drives the sampling
 
-While the section is open, the component samples the X×Y grid coarse-to-fine —
-corners and lattice midpoints before their neighbours — in chunks of 24
-cells, each chunk one request through the session's background lane at eight
-runs per cell. Where the swept parameters only drive rates, a chunk becomes a
-**single experiment**: the session lays every cell's values out as per-run
-parameter draws (each cell's values repeated eight times), runs one batch of
-`cells × 8` runs, and folds the per-run metric values back into per-cell
-means. One batch setup per chunk replaces one per cell — batch setup, not
-compute, dominated a cell's wall time, which is why the earlier design needed
-four concurrent per-cell lanes to fill an 11×11 surface in ~4 s.
+While the section is open, the component samples the X×Y grid in quad-tree
+order (`quadTreeLevels`): level 0 is the four corners, and each further level
+splits every region in two over x and over y — the `i / 2^level` lattice
+rounded onto the grid — so every completed level is a full (coarse) picture
+of the surface, not a partially swept one. Chunks align with levels (split
+at 24 cells within a level) and three chunks run concurrently, pulled from
+one queue by parallel lanes, each chunk one request through the session's
+background lane at eight runs per cell. Where the swept parameters only
+drive rates, a chunk becomes a **single experiment**: the session lays every
+cell's values out as per-run parameter draws (each cell's values repeated
+eight times), runs one batch of `cells × 8` runs, and folds the per-run
+metric values back into per-cell means. One batch setup per chunk replaces
+one per cell — batch setup, not compute, dominated a cell's wall time, which
+is why the earlier design needed four concurrent per-cell lanes to fill an
+11×11 surface in ~4 s.
+
+The navigator's own selection outranks all of this. Every chunk dispatch
+awaits `session.whenSelectionStreamed()` — a gate that opens once the
+current selection has streamed its first frames (or has cached runs, or
+failed) and re-arms on every selection change — so the metric charts start
+filling before any surface batch competes for workers, on first open and
+after every slider move alike.
 
 The batch trick has a semantic precondition: every run in a batch shares one
 compiled initial marking, so it is only valid when no swept axis shapes that
