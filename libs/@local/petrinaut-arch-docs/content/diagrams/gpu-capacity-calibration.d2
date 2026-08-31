@@ -1,0 +1,23 @@
+# Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
+direction: right
+
+probe: "probe\nfew runs, generous slabs\n(4× the initial tokens)\nframes stream to the charts" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+device: "GPU device" {
+  style.stroke-dash: 4
+  track: "per-run max count\nper derived place\n+ overflow status" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+}
+
+decide: "decide per place" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+grow: "overflowed?\ndouble the slabs,\nrecompile, probe again" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+fit: "max ≈ typical\nslab = 1.5 × observed max\nrecompile, run in full" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+arena: "max ≫ typical and\nslab too big — the token\narena's case (planned):\nrun on the CPU instead" {style.fill: "#fdeaea"; style.stroke: "#b83636"}
+rerun: "overflow mid-run?\ndouble, recompile,\nre-run (same seeds)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+probe -> device.track
+device.track -> grow: any run overflowed
+grow -> probe
+device.track -> decide: "max + mean of per-run maxima"
+decide -> fit
+decide -> arena
+fit -> rerun

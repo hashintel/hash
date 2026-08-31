@@ -146,6 +146,17 @@ export type GpuExperimentResult = {
   /** Runs that ended deadlocked (status 1) and completed (status 2). */
   deadlockedRuns: number;
   completedRuns: number;
+  /**
+   * Runs that overflowed a derived-capacity slab (status 3). Any overflow
+   * invalidates the attempt: the caller grows the slab and re-runs.
+   */
+  overflowRuns: number;
+  /**
+   * Per derived-capacity place (in `shader.derivedCapacityPlaceIndices`
+   * order): the largest per-run maximum count, and the mean of the per-run
+   * maxima — the inputs to the capacity decision.
+   */
+  derivedPlaceMaxes: { max: number; meanRunMax: number }[];
   /** Wall-clock time spent inside dispatches, excluding setup. */
   dispatchMs: number;
   /**
@@ -511,6 +522,10 @@ function decodeHistogramFrames(options: {
   for (let frame = 0; frame < frameCount; frame++) {
     for (const [metricIndex, metricId] of metricIds.entries()) {
       const window = windows[metricIndex] ?? { lo: 0, stride: 1 };
+      // A bin covers `stride` counts; reporting its middle keeps a wide
+      // window's means unbiased where the low edge skewed them down by
+      // (stride − 1) / 2. Exact (offset 0) at stride 1.
+      const binMidpoint = Math.floor((window.stride - 1) / 2);
       const offset =
         frame * histogramBins * metricCount + metricIndex * histogramBins;
       const bins: [number, number][] = [];
@@ -518,7 +533,7 @@ function decodeHistogramFrames(options: {
       for (let bin = 0; bin < histogramBins; bin++) {
         const frequency = data[offset + bin] ?? 0;
         if (frequency > 0) {
-          bins.push([window.lo + bin * window.stride, frequency]);
+          bins.push([window.lo + bin * window.stride + binMidpoint, frequency]);
           sampleCount += frequency;
         }
       }
@@ -734,8 +749,13 @@ export async function runGpuExperiment(
   try {
     const placeCount = shader.placeCountOffsets.length;
     const finalPlaceCounts = new Uint32Array(runCount * placeCount);
+    const derivedCount = shader.derivedCapacityPlaceIndices.length;
+    const derivedMax = new Array<number>(derivedCount).fill(0);
+    const derivedSum = new Array<number>(derivedCount).fill(0);
+    let derivedRuns = 0;
     let deadlockedRuns = 0;
     let completedRuns = 0;
+    let overflowRuns = 0;
     let cancelled = false;
     let dispatchMs = 0;
 
@@ -937,7 +957,15 @@ export async function runGpuExperiment(
           completedRuns++;
         } else if (status === 2) {
           completedRuns++;
+        } else if (status === 3) {
+          overflowRuns++;
         }
+        for (let slot = 0; slot < derivedCount; slot++) {
+          const runMax = summary[base + placeCount + 1 + slot] ?? 0;
+          derivedMax[slot] = Math.max(derivedMax[slot]!, runMax);
+          derivedSum[slot] = derivedSum[slot]! + runMax;
+        }
+        derivedRuns++;
         // Counts lead the summary in place order, so the place index is the
         // offset.
         for (let placeIndex = 0; placeIndex < placeCount; placeIndex++) {
@@ -1031,6 +1059,11 @@ export async function runGpuExperiment(
         finalPlaceCounts,
         deadlockedRuns,
         completedRuns,
+        overflowRuns,
+        derivedPlaceMaxes: derivedMax.map((max, slot) => ({
+          max,
+          meanRunMax: derivedRuns === 0 ? 0 : derivedSum[slot]! / derivedRuns,
+        })),
         dispatchMs,
         metricRanges,
       },
