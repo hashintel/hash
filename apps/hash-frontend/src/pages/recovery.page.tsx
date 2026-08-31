@@ -8,6 +8,7 @@ import { TextField } from "@hashintel/design-system";
 import { getPlainLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 import { AuthHeading } from "./shared/auth-heading";
+import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { AuthPaper } from "./shared/auth-paper";
 import {
@@ -44,6 +45,8 @@ const RecoveryPage: NextPageWithLayout = () => {
   // Get ?flow=... from the URL
   const router = useRouter();
 
+  const { authenticatedUser } = useAuthInfo();
+
   const { return_to: returnTo, flow: flowId } = router.query;
 
   const [flow, setFlow] = useState<RecoveryFlow>();
@@ -78,6 +81,12 @@ const RecoveryPage: NextPageWithLayout = () => {
       return;
     }
 
+    // Kratos rejects a new recovery flow with `session_already_available`
+    // while a session is active.
+    if (authenticatedUser) {
+      return;
+    }
+
     // Otherwise we initialize it
     oryKratosClient
       .createBrowserRecoveryFlow({
@@ -95,7 +104,15 @@ const RecoveryPage: NextPageWithLayout = () => {
         setCode("");
       })
       .catch(handleFlowError);
-  }, [flowId, router, router.isReady, returnTo, flow, handleFlowError]);
+  }, [
+    authenticatedUser,
+    flowId,
+    router,
+    router.isReady,
+    returnTo,
+    flow,
+    handleFlowError,
+  ]);
 
   const handleSubmitEmail: FormEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault();
@@ -179,6 +196,27 @@ const RecoveryPage: NextPageWithLayout = () => {
 
   const hasSubmittedEmail = flow && flow.state !== "choose_method";
 
+  if (authenticatedUser && !flow) {
+    return (
+      <AuthLayout>
+        <AuthPaper
+          sx={{
+            maxWidth: 600,
+          }}
+        >
+          <AuthHeading>Account Recovery</AuthHeading>
+          <Typography variant="regularTextParagraphs">
+            You are logged in as{" "}
+            <strong>{authenticatedUser.emails[0]?.address}</strong>
+          </Typography>
+          <Typography variant="regularTextParagraphs" sx={{ mt: 2 }}>
+            If you want to recover a different account, please log out first
+          </Typography>
+        </AuthPaper>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout>
       <AuthPaper
@@ -217,7 +255,7 @@ const RecoveryPage: NextPageWithLayout = () => {
           <Collapse in={!hasSubmittedEmail} sx={{ width: "100%" }}>
             <Button
               type="submit"
-              disabled={hasSubmittedEmail}
+              disabled={!flow || hasSubmittedEmail}
               sx={{ width: "100%" }}
             >
               Recover account

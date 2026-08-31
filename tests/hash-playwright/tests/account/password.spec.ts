@@ -109,3 +109,32 @@ test("user can recover account and set a new password", async ({ page }) => {
   });
   await expectSignedIn(page);
 });
+
+test("recovery page tells an already signed-in user to log out", async ({
+  page,
+}) => {
+  const credentials = await createUserAndCompleteSignup(
+    page,
+    testUsers.pwRecoverySignedIn,
+  );
+
+  await page.goto("/recovery");
+
+  await expect(
+    page.getByRole("heading", { name: "Account Recovery" }),
+  ).toBeVisible({ timeout: 10_000 });
+
+  await expect(
+    page.getByText(`You are logged in as ${credentials.email}`),
+  ).toBeVisible({ timeout: 10_000 });
+
+  await expect(
+    page.getByText(
+      "If you want to recover a different account, please log out first",
+    ),
+  ).toBeVisible();
+
+  await expect(
+    page.getByRole("button", { name: "Recover account" }),
+  ).toBeHidden();
+});

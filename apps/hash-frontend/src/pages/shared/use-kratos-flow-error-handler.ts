@@ -54,7 +54,6 @@ export const useKratosErrorHandler = <K extends keyof Flows>(props: {
             return;
           }
           case "session_already_available":
-            // If user is already signed in, redirect them home
             if (flowType === "login") {
               if (!authenticatedUser) {
                 throw new Error(
@@ -62,7 +61,11 @@ export const useKratosErrorHandler = <K extends keyof Flows>(props: {
                 );
               }
               await router.push("/");
+              return;
             }
+            setErrorMessage(
+              "You are already signed in. Please sign out first.",
+            );
             return;
           case "session_refresh_required": {
             // We need to re-authenticate to perform this action
