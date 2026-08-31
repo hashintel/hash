@@ -134,7 +134,7 @@ export const gutterButtonStyle = css({
   cursor: "pointer",
   _hover: {
     color: "neutral.s120",
-    backgroundColor: "[rgb(var(--adhoc-accent-rgb, 100 116 139) / 0.14)]",
+    backgroundColor: "[rgb(var(--adhoc-accent-rgb, 100 116 139) / 0.10)]",
   },
   _focus: {
     outline: "[2px solid rgb(var(--adhoc-accent-rgb, 37 99 235))]",
@@ -194,12 +194,12 @@ export const cellButtonStyle = css({
   whiteSpace: "nowrap",
   textOverflow: "ellipsis",
   _hover: {
-    backgroundColor: "[rgb(var(--adhoc-accent-rgb, 100 116 139) / 0.10)]",
+    backgroundColor: "[rgb(var(--adhoc-accent-rgb, 100 116 139) / 0.06)]",
   },
   _focus: {
     outline: "[2px solid rgb(var(--adhoc-accent-rgb, 37 99 235))]",
     outlineOffset: "[-2px]",
-    backgroundColor: "[rgb(var(--adhoc-accent-rgb, 37 99 235) / 0.10)]",
+    backgroundColor: "[rgb(var(--adhoc-accent-rgb, 37 99 235) / 0.08)]",
   },
 });
 
@@ -245,14 +245,14 @@ export const selectedRowCellStyle = css({
 
 /**
  * The dependency highlight: marks the rows a focused expression reads, and
- * the cells that read a focused Variable or Parameter. Amber, so it reads
- * as a marker and never collides with the blue/purple row tints or the red
- * error underline. A background image so it composites over the row tints;
- * the selection overlay still wins.
+ * the cells that read a focused Variable or Parameter. A neutral slate
+ * wash — quiet enough not to fight the blue/purple row tints or the red
+ * error underline, still clearly a marker. A background image so it
+ * composites over the row tints; the selection overlay still wins.
  */
 export const dependencyHighlightStyle = css({
   backgroundImage:
-    "[linear-gradient(rgba(245, 158, 11, 0.16), rgba(245, 158, 11, 0.16))]",
+    "[linear-gradient(rgba(100, 116, 139, 0.12), rgba(100, 116, 139, 0.12))]",
 });
 
 /** The add-line's cells are a little shorter than content rows. */
@@ -315,7 +315,7 @@ export const phantomGutterButtonStyle = css({
   },
   _hover: {
     color: "neutral.s120",
-    backgroundColor: "neutral.s20",
+    backgroundColor: "neutral.s10",
   },
   _focus: {
     outline: "[2px solid {colors.blue.s70}]",
