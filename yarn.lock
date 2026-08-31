@@ -15008,7 +15008,6 @@ __metadata:
     "@rust/hash-graph-postgres-store": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
     "@rust/hash-graph-temporal-versioning": "workspace:*"
-    "@rust/hash-graph-type-defs": "workspace:*"
     "@rust/hash-graph-type-fetcher": "workspace:*"
     "@rust/hash-graph-types": "workspace:*"
     "@rust/hash-graph-validation": "workspace:*"
@@ -15173,20 +15172,6 @@ __metadata:
     "@rust/error-stack": "workspace:*"
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-graph-store": "workspace:*"
-  languageName: unknown
-  linkType: soft
-
-"@rust/hash-graph-type-defs@workspace:*, @rust/hash-graph-type-defs@workspace:libs/@local/graph/type-defs":
-  version: 0.0.0-use.local
-  resolution: "@rust/hash-graph-type-defs@workspace:libs/@local/graph/type-defs"
-  dependencies:
-    "@local/eslint": "workspace:*"
-    "@local/status": "workspace:*"
-    "@rust/hash-status": "workspace:*"
-    eslint: "npm:9.39.4"
-    quicktype: "npm:16.0.43"
-    tsx: "npm:4.20.6"
-    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -17621,7 +17606,6 @@ __metadata:
     "@local/hash-isomorphic-utils": "workspace:*"
     "@local/status": "workspace:*"
     "@local/tsconfig": "workspace:*"
-    "@rust/hash-graph-type-defs": "workspace:*"
     "@types/node-fetch": "npm:2.6.13"
     "@vitest/coverage-istanbul": "npm:4.1.10"
     eslint: "npm:9.39.4"

@@ -1,3 +1,9 @@
+//! The status payloads the REST API answers with, and their conversion into responses.
+//!
+//! The payload types follow the [Google Cloud error model].
+//!
+//! [Google Cloud error model]: https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto
+
 use core::{error::Error, mem};
 use std::collections::HashMap;
 
@@ -5,8 +11,47 @@ use axum::response::{IntoResponse, Response};
 use error_stack::Report;
 use hash_graph_postgres_store::store::error::BaseUrlAlreadyExists;
 use hash_graph_store::entity::EntityValidationReport;
-use hash_status::{Status, StatusCode};
-use serde::Serialize;
+use hash_status::{Status as HashStatus, StatusCode};
+use serde::{Deserialize, Serialize};
+
+/// Generalized information about an error, covering its cause, its origin and a collection of
+/// weakly-typed metadata.
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ErrorInfo {
+    /// The proximate cause of the error.
+    ///
+    /// A constant value, unique within its [`domain`], of at most 63 characters matching
+    /// `[A-Z][A-Z0-9_]+[A-Z0-9]`.
+    ///
+    /// [`domain`]: Self::domain
+    pub reason: String,
+    /// The logical grouping the [`reason`] belongs to, typically the registered service name of
+    /// the tool or product raising the error.
+    ///
+    /// [`reason`]: Self::reason
+    pub domain: String,
+    /// Additional structured details about this error.
+    ///
+    /// Keys match `[a-zA-Z0-9-_]` and are limited to 64 characters. Units belong in the key
+    /// rather than the value, so an exceeded limit reads `{"instanceLimitPerRequest": "100"}`
+    /// rather than `{"instanceLimit": "100/request"}`.
+    pub metadata: HashMap<String, serde_json::Value>,
+}
+
+impl ErrorInfo {
+    #[must_use]
+    pub fn new(metadata: HashMap<String, serde_json::Value>, reason: String) -> Self {
+        Self {
+            domain: "HASH Graph".to_owned(),
+            metadata,
+            reason,
+        }
+    }
+}
+
+/// The status the REST API answers errors with.
+pub type Status = HashStatus<ErrorInfo>;
 
 /// A boxed [`Response`], keeping the types that carry one small.
 pub struct BoxedResponse(Box<Response>);
@@ -23,13 +68,13 @@ impl From<Response> for BoxedResponse {
     }
 }
 
-/// Converts a [`Status`] into the response it answers with.
+/// Converts a [`HashStatus`] into the response it answers with.
 ///
 /// # Panics
 ///
-/// Panics if the [`Status`] code does not map to a valid HTTP status code.
+/// Panics if the [`HashStatus`] code does not map to a valid HTTP status code.
 #[must_use]
-pub fn status_to_response<T>(status: Status<T>) -> BoxedResponse
+pub fn status_to_response<T>(status: HashStatus<T>) -> BoxedResponse
 where
     T: Serialize + Send + Sync + core::fmt::Debug,
 {
@@ -82,13 +127,13 @@ where
             status_code
         };
 
-        status_to_response(Status::new(
+        status_to_response(HashStatus::new(
             status_code,
             Some(message),
             vec![ValidationContent { validation, report }],
         ))
     } else {
         tracing::error!(error = ?report, tags.code = ?status_code.to_http_code());
-        status_to_response(Status::new(status_code, Some(message), vec![report]))
+        status_to_response(HashStatus::new(status_code, Some(message), vec![report]))
     }
 }

@@ -23,7 +23,6 @@
     "@local/hash-graph-store": "workspace:*",
     "@local/hash-isomorphic-utils": "workspace:*",
     "@local/status": "workspace:*",
-    "@rust/hash-graph-type-defs": "workspace:*",
     "execa": "9.6.0",
     "fractional-indexing": "3.2.0",
     "graphql": "16.11.0",

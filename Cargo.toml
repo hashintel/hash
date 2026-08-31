@@ -21,7 +21,6 @@ members = [
     "libs/@local/graph/postgres-store",
     "libs/@local/graph/store/rust",
     "libs/@local/graph/temporal-versioning",
-    "libs/@local/graph/type-defs",
     "libs/@local/graph/type-fetcher",
     "libs/@local/graph/types",
     "libs/@local/graph/validation",
@@ -88,7 +87,6 @@ hash-graph-postgres-store.path      = "libs/@local/graph/postgres-store"
 hash-graph-store.path               = "libs/@local/graph/store/rust"
 hash-graph-temporal-versioning.path = "libs/@local/graph/temporal-versioning"
 hash-graph-test-data.path           = "tests/graph/test-data/rust"
-hash-graph-type-defs.path           = "libs/@local/graph/type-defs"
 hash-graph-type-fetcher.path        = "libs/@local/graph/type-fetcher"
 hash-graph-types.path               = "libs/@local/graph/types"
 hash-graph-validation.path          = "libs/@local/graph/validation"
