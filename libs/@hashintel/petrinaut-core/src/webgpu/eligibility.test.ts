@@ -69,7 +69,7 @@ describe("assessGpuEligibility", () => {
     expect(result.profile.bytesPerRun).toBe(28);
   });
 
-  it("rejects a typed place with no capacity, since buffers must be fixed", () => {
+  it("derives a capacity for a typed place that declares none", () => {
     const result = assessGpuEligibility(
       net({
         types: [color("c", [{ elementId: "x", name: "x", type: "real" }])],
@@ -78,11 +78,14 @@ describe("assessGpuEligibility", () => {
       }),
     );
 
-    expect(result.eligible).toBe(false);
-    if (result.eligible) return;
-    expect(result.reasons.map((reason) => reason.code)).toContain(
-      "colored-place-without-capacity",
-    );
+    // No refusal: the backend probes a slab and calibrates it — see
+    // `gpu-experiment-handle.ts`. The profile marks the place so the shader
+    // detects overflow instead of blocking firings.
+    expect(result.eligible).toBe(true);
+    if (!result.eligible) return;
+    const typed = result.profile.places.find((entry) => entry.id === "p");
+    expect(typed?.capacitySource).toBe("derived");
+    expect(typed?.capacity).toBe(0);
   });
 
   it("accepts a typed place once it declares a capacity", () => {
@@ -224,16 +227,38 @@ describe("assessGpuEligibility", () => {
     );
   });
 
-  it("reports every reason a real net is ineligible, not just the first", () => {
-    // This example has typed places with dynamics and no capacities set.
+  it("derives capacities for a real net whose typed places declare none", () => {
+    // This example's typed places set no capacities; that used to be its
+    // blocker, and its slabs now derive by probing instead.
     const result = assessGpuEligibility(
       supplyChainWithDisruption.petriNetDefinition,
+    );
+
+    expect(result.eligible).toBe(true);
+    if (!result.eligible) return;
+    expect(
+      result.profile.places.some((entry) => entry.capacitySource === "derived"),
+    ).toBe(true);
+  });
+
+  it("reports every reason a net is ineligible, not just the first", () => {
+    const result = assessGpuEligibility(
+      net({
+        types: [
+          color("c", [
+            { elementId: "x", name: "x", type: "string" },
+            { elementId: "y", name: "y", type: "uuid" },
+          ]),
+        ],
+        places: [place("p", { colorId: "c" })],
+        transitions: [transition("t", [], [{ placeId: "p", weight: 1 }])],
+      }),
     );
 
     expect(result.eligible).toBe(false);
     if (result.eligible) return;
     expect(result.reasons.length).toBeGreaterThan(1);
     // The message has to name the place, or a user cannot act on it.
-    expect(formatGpuIneligibility(result.reasons)).toMatch(/capacity/i);
+    expect(formatGpuIneligibility(result.reasons)).toMatch(/attribute/i);
   });
 });

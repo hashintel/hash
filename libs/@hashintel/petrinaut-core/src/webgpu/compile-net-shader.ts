@@ -158,6 +158,11 @@ export type CompiledNetShader = {
    */
   rngOffset: number;
   statusOffset: number;
+  /**
+   * Profile indices of derived-capacity places, in summary order: each
+   * appends its per-run maximum count after the status word.
+   */
+  derivedCapacityPlaceIndices: number[];
   /** Metric ids in histogram order. */
   metricIds: string[];
   /**
@@ -624,7 +629,14 @@ export function compileNetShader(
     const firingsOffset = countsOffset + placeCount;
     const rngOffset = firingsOffset + transitionCount;
     const statusOffset = rngOffset + 1;
-    const tokensOffset = statusOffset + 1;
+    // Places whose capacity the backend derives by probing: each tracks its
+    // per-run maximum live count (for capacity decisions) and detects slab
+    // overflow instead of blocking a firing the CPU would allow.
+    const derivedPlaceIndices = profile.places.flatMap((place, index) =>
+      place.capacitySource === "derived" && place.colored ? [index] : [],
+    );
+    const maxesOffset = statusOffset + 1;
+    const tokensOffset = maxesOffset + derivedPlaceIndices.length;
 
     let tokenWords = 0;
     const placeTokenOffsets: number[] = [];
@@ -636,10 +648,11 @@ export function compileNetShader(
       tokenWords += place.capacity * stride;
     }
     const stateWordsPerRun = tokensOffset + tokenWords;
-    // One word per place count, plus the status. Deliberately not the whole run
-    // header: `firings` and the RNG word are device-side bookkeeping
-    // the host never decodes.
-    const summaryWordsPerRun = placeCount + 1;
+    // One word per place count, the status, then each derived place's
+    // per-run maximum count. Deliberately not the whole run header:
+    // `firings` and the RNG word are device-side bookkeeping the host never
+    // decodes.
+    const summaryWordsPerRun = placeCount + 1 + derivedPlaceIndices.length;
 
     const lines: string[] = [];
     const push = (line: string) => lines.push(line);
@@ -724,6 +737,9 @@ export function compileNetShader(
     push(`  var firings: array<u32, ${Math.max(transitionCount, 1)}>;`);
     push(`  var rng_state: u32 = 0u;`);
     push(`  var status: u32 = 0u;`);
+    for (const [slot] of derivedPlaceIndices.entries()) {
+      push(`  var max_count_${slot}: u32 = 0u;`);
+    }
     for (let index = 0; index < runParameters.length; index++) {
       push(`  var run_param_${index}: f32 = 0.0;`);
     }
@@ -736,6 +752,9 @@ export function compileNetShader(
     }
     push(`    rng_state = state[base + ${rngOffset}u];`);
     push(`    status = state[base + ${statusOffset}u];`);
+    for (const [slot] of derivedPlaceIndices.entries()) {
+      push(`    max_count_${slot} = state[base + ${maxesOffset + slot}u];`);
+    }
     for (let index = 0; index < runParameters.length; index++) {
       push(
         `    run_param_${index} = run_params[run_index * ${runParameters.length}u + ${index}u];`,
@@ -1198,6 +1217,20 @@ export function compileNetShader(
     push(
       `      if (absolute_frame + 1u >= config.frame_limit) { status = 2u; }`,
     );
+    // Derived capacities detect overflow instead of blocking: the highest
+    // slot a frame writes is its post-fold count minus one, so a post-fold
+    // count past the slab means this frame wrote out of bounds (harmlessly —
+    // robust buffer access clamps, and any overflow discards the attempt).
+    // Status 3 halts the run and tells the host to grow the slab and re-run.
+    for (const [slot, placeIndex] of derivedPlaceIndices.entries()) {
+      const place = profile.places[placeIndex]!;
+      push(
+        `      max_count_${slot} = max(max_count_${slot}, counts[${placeIndex}u]);`,
+      );
+      push(
+        `      if (counts[${placeIndex}u] > ${place.capacity}u) { status = 3u; }`,
+      );
+    }
     push(`    }`);
     push("");
 
@@ -1289,6 +1322,9 @@ export function compileNetShader(
     }
     push(`    state[base + ${rngOffset}u] = rng_state;`);
     push(`    state[base + ${statusOffset}u] = status;`);
+    for (const [slot] of derivedPlaceIndices.entries()) {
+      push(`    state[base + ${maxesOffset + slot}u] = max_count_${slot};`);
+    }
     push("");
 
     // The compact result the host reads back, written from the same registers
@@ -1301,6 +1337,11 @@ export function compileNetShader(
       push(`    summary[summary_base + ${index}u] = counts[${index}u];`);
     }
     push(`    summary[summary_base + ${placeCount}u] = status;`);
+    for (const [slot] of derivedPlaceIndices.entries()) {
+      push(
+        `    summary[summary_base + ${placeCount + 1 + slot}u] = max_count_${slot};`,
+      );
+    }
     push(`  }`);
     push(`}`);
 
@@ -1318,6 +1359,7 @@ export function compileNetShader(
         summaryStatusOffset: placeCount,
         rngOffset,
         statusOffset,
+        derivedCapacityPlaceIndices: [...derivedPlaceIndices],
         metricIds: metrics.map((metric) => metric.id),
         histogramBins,
         runParameterIds: [...runParameters],

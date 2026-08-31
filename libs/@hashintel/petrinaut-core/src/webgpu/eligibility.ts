@@ -54,6 +54,14 @@ export type GpuNetProfile = {
     /** Token *slots* to allocate; 0 for uncoloured places, which store only a count. */
     capacity: number;
     /**
+     * Where the slot count comes from. A declared capacity is the modeler's
+     * own bound, enforced as blocking semantics on both backends. A derived
+     * capacity is a buffer size the backend measures by probing — the
+     * shader detects overflow and the handle grows it, never blocking a
+     * firing the CPU would allow.
+     */
+    capacitySource: "declared" | "derived";
+    /**
      * The place's declared #9177 token limit in its dense runtime form
      * (`PLACE_CAPACITY_UNBOUNDED` when absent). Distinct from `capacity`:
      * an uncoloured place allocates no slots but may still be capped, and
@@ -128,22 +136,20 @@ export function assessGpuEligibility(
       }
 
       // A coloured place needs a fixed token slot count to live in a buffer.
+      // A declared capacity supplies it; without one the backend derives it
+      // by probing (`gpu-experiment-handle.ts`), so the place is eligible
+      // with a placeholder the compile substitutes.
       const capacity = place.capacity;
-      if (capacity === undefined || capacity === null) {
-        reasons.push({
-          code: "colored-place-without-capacity",
-          itemId: place.id,
-          message: `Place \`${place.name}\` holds typed tokens but has no token capacity. The GPU backend needs a fixed upper bound to size its buffers — set a capacity on this place.`,
-        });
-        continue;
+      const derived = capacity === undefined || capacity === null;
+      if (!derived) {
+        stateWords +=
+          capacity * wordsPerToken(realFields.length, discreteFields.length);
       }
-
-      stateWords +=
-        capacity * wordsPerToken(realFields.length, discreteFields.length);
       places.push({
         id: place.id,
         name: place.name,
-        capacity,
+        capacity: derived ? 0 : capacity,
+        capacitySource: derived ? "derived" : "declared",
         declaredCapacity: normalizePlaceCapacity(place.capacity),
         realFields,
         discreteFields,
@@ -154,6 +160,7 @@ export function assessGpuEligibility(
         id: place.id,
         name: place.name,
         capacity: 0,
+        capacitySource: "declared",
         declaredCapacity: normalizePlaceCapacity(place.capacity),
         realFields: [],
         discreteFields: [],

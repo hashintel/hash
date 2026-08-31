@@ -74,12 +74,12 @@ untiled, refused before only by the previous sizing — completed in ~32 s.
 
 ## Potential future solutions
 
-- **Structural bounds instead of declared capacities.** The per-run size is
-  set by declared capacities, which the GPU requires even where the modeler
-  wants no semantic cap. P-invariants over the incidence matrix bound many
-  places from the net's structure; a sizing-only bound would decouple "how
-  much memory" from "blocking semantics" and remove the declaration burden.
-  The same analysis would size metric histograms — see
+- **Structural bounds instead of measured ones.** Typed places without
+  declared capacities now derive sizing-only slabs by probing
+  ([GPU capacity calibration](doc:simulation/gpu-capacity-calibration)).
+  P-invariants over the incidence matrix would bound many places from the
+  net's structure instead, replacing the probe where derivable. The same
+  analysis would size metric histograms — see
   [GPU histogram sizing](doc:simulation/gpu-histogram-sizing).
 - **A shared per-run token arena.** Sizing each place for its own worst case
   overstates what peaks can coincide: conservation laws mean the sum of
