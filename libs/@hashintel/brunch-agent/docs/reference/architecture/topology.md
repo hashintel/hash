@@ -6,9 +6,8 @@
 
 ```text
 packages/core                      CORE HARNESS + Flue-native agent contribution
-├─ agent/
-│  ├─ system-prompt.ts ✓ stable Brunch system prompt
-│  └─ index.ts         ✓ `useModel` composition; owns no formalism-specific prompt, skill, or tool
+├─ agent/index.ts     ✓ `useModel` plus the short stable Brunch system prompt inline; owns no
+│                        formalism-specific prompt, skill, or tool
 ├─ capture-store.ts   ✓  the storage port's contract + pure command surface; owns envelope
 │                        invariants. Never: substrate imports, IO, per-substrate shapes.
 ├─ session-log.ts     ✓  substrate-neutral archive/version/anchoring rules; archive ordinals
@@ -60,8 +59,7 @@ packages/plugin-sdcpn              TARGET POLICY + Flue-native production contri
 ├─ index.ts,
 │  plugin.yaml        ○  generalized typed definition/proposal path; compiled and tested but
 │                        not imported by the production ChatAgent
-├─ system-instructions.ts ✓ visible SDCPN always-on and construction-mode prompt material
-├─ flue.ts            ✓  SDCPN instruction, skill, and conditional tool mounts
+├─ flue.ts            ✓  SDCPN instructions inline with their skill and conditional tool mounts
 ├─ skills/sdcpn-modelling/ ✓ progressively disclosed lifecycle, elicitation, workpiece,
 │                        construction, and check material
 └─ tools/petrinaut-construction.ts ✓ bounded, schema-validated SDCPN realization tools

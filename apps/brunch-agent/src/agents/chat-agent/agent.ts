@@ -16,7 +16,6 @@ import {
 import sdcpnModellingSkill from "@hashintel/brunch-agent-plugin-sdcpn/skills/sdcpn-modelling/SKILL.md";
 import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
 
-import { PETRINAUT_HOST_INSTRUCTIONS } from "./host-instructions.ts";
 import { ping } from "./tools/ping.ts";
 import { readPetrinautDoc } from "./tools/read-petrinaut-doc.ts";
 
@@ -31,7 +30,13 @@ export function ChatAgent() {
   const coreSystemPrompt = useBrunchAgent(`anthropic/${CHAT_MODEL_ID}`);
   useSdcpnPlugin(sdcpnModellingSkill);
 
-  useInstruction(PETRINAUT_HOST_INSTRUCTIONS);
+  useInstruction(
+    [
+      "Call ping when you need to confirm the server tool path.",
+      "When the user asks how Petrinaut's UI works, call readPetrinautDoc.",
+      "A client-tool-result signal is JSON [{ toolCallId, toolName, output }]. Treat output as the browser's result for that call and continue helping the user.",
+    ].join("\n"),
+  );
   useTool(ping);
   useTool(readPetrinautDoc);
 

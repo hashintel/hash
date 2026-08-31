@@ -13,10 +13,6 @@ import {
 import { setProvider } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
-import { SDCPN_SYSTEM_INSTRUCTIONS } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { BRUNCH_CORE_SYSTEM_PROMPT } from "@hashintel/brunch-agent/flue";
-
-import { PETRINAUT_HOST_INSTRUCTIONS } from "../src/agents/chat-agent/host-instructions.ts";
 import { PING_TOOL_NAME } from "../src/agents/chat-agent/tools/ping.ts";
 import { READ_PETRINAUT_DOC_TOOL_NAME } from "../src/agents/chat-agent/tools/read-petrinaut-doc.ts";
 import { applyCaptureSweep } from "../src/capture/apply-sweep.ts";
@@ -138,9 +134,12 @@ try {
       (context) => {
         const request = JSON.stringify(context);
         for (const instruction of [
-          BRUNCH_CORE_SYSTEM_PROMPT,
-          ...SDCPN_SYSTEM_INSTRUCTIONS.split("\n"),
-          ...PETRINAUT_HOST_INSTRUCTIONS.split("\n"),
+          "You are the Brunch modelling assistant inside the Petrinaut editor.",
+          "Activate the `sdcpn-modelling` skill before interviewing or constructing a process model.",
+          "The Markdown IR is the shared workpiece of one looping lifecycle.",
+          "Call ping when you need to confirm the server tool path.",
+          "When the user asks how Petrinaut's UI works, call readPetrinautDoc.",
+          "A client-tool-result signal is JSON [{ toolCallId, toolName, output }]. Treat output as the browser's result for that call and continue helping the user.",
         ]) {
           if (!request.includes(instruction)) {
             throw new Error(

@@ -1,9 +1,5 @@
 import { useModel } from "@flue/runtime";
 
-import { BRUNCH_CORE_SYSTEM_PROMPT } from "./system-prompt";
-
-export { BRUNCH_CORE_SYSTEM_PROMPT };
-
 /**
  * Mount the capabilities owned by Brunch core and return its system prompt.
  *
@@ -12,5 +8,5 @@ export { BRUNCH_CORE_SYSTEM_PROMPT };
  */
 export function useBrunchAgent(model: string): string {
   useModel(model);
-  return BRUNCH_CORE_SYSTEM_PROMPT;
+  return "You are the Brunch modelling assistant inside the Petrinaut editor.";
 }

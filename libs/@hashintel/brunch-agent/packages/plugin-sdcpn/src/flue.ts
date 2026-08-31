@@ -7,16 +7,7 @@ import {
 } from "@flue/runtime";
 import * as v from "valibot";
 
-import {
-  SDCPN_CONSTRUCTION_INSTRUCTIONS,
-  SDCPN_SYSTEM_INSTRUCTIONS,
-} from "./system-instructions";
 import { petrinautConstructionTools } from "./tools/petrinaut-construction";
-
-export {
-  SDCPN_CONSTRUCTION_INSTRUCTIONS,
-  SDCPN_SYSTEM_INSTRUCTIONS,
-} from "./system-instructions";
 
 export const VALIDATED_CONSTRUCTION_MODE = "validated-construction";
 
@@ -32,11 +23,18 @@ export type SdcpnInitialData = v.InferOutput<typeof sdcpnInitialDataSchema>;
 export function useSdcpnPlugin(sdcpnModellingSkill: Skill): void {
   const initialData = useInitialData<SdcpnInitialData>();
 
-  useInstruction(SDCPN_SYSTEM_INSTRUCTIONS);
+  useInstruction(
+    [
+      "Activate the `sdcpn-modelling` skill before interviewing or constructing a process model.",
+      "The Markdown IR is the shared workpiece of one looping lifecycle.",
+    ].join("\n"),
+  );
   useSkill(sdcpnModellingSkill);
 
   if (initialData?.mode === VALIDATED_CONSTRUCTION_MODE) {
-    useInstruction(SDCPN_CONSTRUCTION_INSTRUCTIONS);
+    useInstruction(
+      "This is a construct-only headless conversation. Use only the supplied runbook IR as modelling input, do not interview, and build the net through the mounted Petrinaut tools instead of emitting net JSON.",
+    );
     for (const constructionTool of petrinautConstructionTools) {
       useTool(constructionTool);
     }
