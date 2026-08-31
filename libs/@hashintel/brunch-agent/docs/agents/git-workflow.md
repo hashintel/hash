@@ -25,6 +25,13 @@ in-flight agents. If another agent may be active, use a separate worktree instea
 shared one; never stash, reset, clean, or otherwise claim work you did not create. Restore the
 branch you found after the stack operation unless the user asks to leave the worktree elsewhere.
 
+A recorded **partition** gets one reusable worktree per effort; see
+[`partition-worktrees.md`](partition-worktrees.md). Those directories outlive a single ticket.
+The unit of branching is still the Linear issue: `gt create` inside the effort's worktree when
+work on an issue starts. A holding branch is allowed only so a cut-now effort without an issue
+yet can occupy a worktree; it is not submitted. Re-braid when the partition declares it, not at
+a fixed ticket depth ([`partition-worktrees.md`](partition-worktrees.md)).
+
 ## Naming
 
 - **Branch**: `{prefix}/{issue-id}-{keywords}` (e.g. `ln/fe-1362-demo-vehicle`).

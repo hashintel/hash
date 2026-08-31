@@ -2,7 +2,8 @@
  * The cue — what the harness tells the interviewer after it has read the model.
  *
  * A sweep list is the completion report's failures plus the patterns whose
- * kind-index matches a node that still has one. It is a harness fact, so it
+ * kind-index matches a node that still has one (an empty index matches every
+ * kind, as the plugin contract documents). It is a harness fact, so it
  * reaches the model as a tool result or a signal entry, never interpolated
  * into instructions (Flue routing: "you need the model to see a harness fact").
  * Patterns are surfaced, never mandated; the interviewer decides.
@@ -10,7 +11,7 @@
 
 import { type CompletionFailure, type CompletionReport } from "./completion";
 import { type ElicitedModel } from "./elicited-model";
-import { type PatternRow } from "./plugin-file";
+import { type PatternRow } from "./plugin-definition";
 
 export interface PatternCue {
   readonly id: string;
@@ -37,7 +38,7 @@ export const buildSweepList = (
   for (const node of model.nodes) {
     if (!failingNodeIds.has(node.id)) continue;
     for (const pattern of patterns) {
-      if (pattern.kinds.includes(node.kind)) {
+      if (pattern.kinds.length === 0 || pattern.kinds.includes(node.kind)) {
         cues.push({ id: pattern.id, nodeId: node.id, ask: pattern.ask });
       }
     }
@@ -104,8 +105,3 @@ export const buildCompletionCueSignal = (
     body: parts.join("\n\n"),
   };
 };
-
-export const completionProtocolInstructionFragments = (): readonly string[] => [
-  "After each applied sweep the harness folds the active captures into the model and reports which demanded slots are unsatisfied and why, with the patterns whose trigger may apply. Read it as a map of what is still unknown, not as an instruction to ask.",
-  "A slot is satisfied only by what the expert said or confirmed, at the precision the row demands. Never state a value the expert did not give; record what you would assume in the assumption ledger and ask.",
-];

@@ -1,0 +1,208 @@
+# The harness repertoire (ADR-0007 decisions 3, 7, 8).
+#
+# The harness's own filling of every guidance and runbook key — what the
+# interviewer is taught before any plugin says a word. Every entry names its
+# source; admission is by evidence (a run, a replay, a verified literature
+# finding, or an accepted decision), not by plausibility. Entries are written
+# in the harness's terms and name no formalism and no domain; a plugin's cell
+# under the same key adds to what is here and never overrides it.
+#
+# Paths are relative to the Brunch context root.
+
+repertoire:
+  version: repertoire/2026-08-25.1
+  purpose: |
+    Teach the interviewer how an expert-knowledge interview goes right and
+    wrong, independent of what is being modelled: what to attend to, how to
+    deepen an answer, the two shapes a stretch of interview takes, what is
+    permitted, what recurs, what smells, where not to dig, how the interview
+    fails, and how each job begins, proceeds, and ends.
+
+guidance:
+  lenses:
+    - name: Vague terms and quantifiers
+      text: '"Usually", "roughly", "mostly fine", "sometimes" each hide either a distribution or an exception. When one appears, the answer is not yet usable; deepen it before recording it.'
+      source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Probe); docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-14
+    - name: Policy versus practice
+      text: 'An answer in normative language — "we would", "the rule is", "you are supposed to" — reports a policy, not what happens. It is an occasion to ask when that last actually happened and what was done.'
+      source: docs/reference/research/elicitation/elicitation-strategy-literature.md §2.3 (policy-vs-practice detector); docs/archive/specs/cps-interview-guidance-2026-08-25.md CPS-Q05
+    - name: Two answers in tension
+      text: When something just said does not fit something said earlier, the tension is evidence — of a distinction not yet drawn, a condition not yet named, or an error. Say so and ask; do not pick one silently.
+      source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (check consistency); docs/reference/research/elicitation/elicitation-strategy-literature.md §5.1 (consistency probe)
+    - name: Cues the expert relies on
+      text: 'After any substantive answer, the expert''s basis is worth more than the answer: "how would you know that — what are you actually looking at?" and "how would this be hard for someone less experienced?" surface what the expert did not think to say.'
+      source: docs/reference/research/elicitation/elicitation-strategy-literature.md §2.2 (universal cue follow-up rule, ACTA)
+    - name: Burden and impatience
+      text: A cue that the expert is pressed, bored, or burdened is a fact about the interview, not a permission to stop. Notice it, name what is still missing, and let the expert choose; never let it end the interview by itself.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-04; evaluations/protocols/process-model-elicitation/baseline/condition-3-prompt.md HINT-RESPECTFUL-CLOSE
+  techniques:
+    - name: Ask for the last time
+      text: Prefer "when did that last happen, and what did you do?" to any generalisation. A story yields the sequence, the cues, and the exception; a generalisation yields the policy.
+      source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (last-time-it-happened stories); docs/reference/research/elicitation/elicitation-strategy-literature.md §2.2 (CDM incident probe)
+    - name: No bare why
+      text: 'Never ask "why do you do it this way?" as the primary probe; experts cannot report the basis of practised judgment on demand. Ask for an occasion and for what was attended to.'
+      source: docs/reference/research/elicitation/elicitation-strategy-literature.md §2.4 (no-bare-why rule)
+    - name: Mean or tail
+      text: Before eliciting any quantity, ask whether what matters is the typical case or the bad one — a mean or a tail. The answer decides whether a single figure, a range, or a spread is being asked for.
+      source: docs/reference/research/elicitation/elicitation-strategy-literature.md §1.3 (mean-or-tail router)
+    - name: Quantiles, never three points
+      text: 'For anything that varies, ask "typically?", then "one time in ten, worse than?", then "one time in ten, better than?". Never ask for minimum, most likely, and maximum — the three-point habit yields overconfident answers. If a min/mode/max triple arrives unprompted, ask the confidence question and record whether the middle value is a mode or a mean.'
+      source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (category 4); docs/reference/research/elicitation/elicitation-strategy-literature.md §1.4 (IDEA four-step interval, anti-triangular guard)
+    - name: The clairvoyant test
+      text: A quantity is well enough defined only when someone who could see everything could report it without asking a clarifying question. If the slot's name would need one, ask the clarifying question first.
+      source: docs/reference/research/elicitation/elicitation-strategy-literature.md §1.4 (Howard's clairvoyant test)
+    - name: Consistency probe
+      text: '"You said earlier that ___, but then you told me ___. How do you explain that?" — stated plainly, without choosing between the two.'
+      source: docs/reference/research/elicitation/elicitation-strategy-literature.md §5.1 (consistency probe)
+    - name: Premortem
+      text: 'For anything rare or catastrophic, ask the expert to imagine it has already gone wrong — "it is a year from now and this has been the worst month on record; what happened?" — and demand mechanism and sequence, not sentiment.'
+      source: docs/reference/research/elicitation/elicitation-strategy-literature.md §2.2 (premortem card)
+    - name: Restate to check
+      text: '"So you are saying that ___?" — a restatement in your own words, offered for correction. Use it to fix an answer in its context, never to put words in the expert''s mouth; a correction is a capture, assent to your phrasing is not.'
+      source: docs/reference/research/elicitation/elicitation-strategy-literature.md §5.1 (check-reflect / restatement); docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-15
+  movements:
+    slice:
+      - name: One concrete case end to end
+        text: 'Before sweeping anything, walk one real case from beginning to end — "walk me through one, from when it arrives to when it leaves". The slice exposes the structure and the vocabulary; everything the sweeps later ask about, they ask about because the slice revealed it.'
+        source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Slice, then sweep); docs/reference/research/elicitation/elicitation-strategy-literature.md §1.2 (bounded task-diagram opener)
+      - name: Escalate hypotheticals only from a real case
+        text: A what-if is useful only when anchored to an incident already on record; vary the real case. A free-floating hypothetical returns the expert's policy, not their practice.
+        source: docs/reference/research/elicitation/elicitation-strategy-literature.md §2.3 (hypothetical-escalation card)
+    sweep:
+      - name: One property across one stratum
+        text: A sweep makes one property hold across one class of node the slice revealed — every step has a duration, every resource has a count. Sweep after the slice, and one property at a time, so the expert can answer from a single frame.
+        source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Slice, then sweep); docs/control/SPEC-LEDGER.md §11.5
+      - name: Ask for absences
+        text: 'Near the end of each topic ask "is there anything that never happens?" and "what have I not asked about that matters here?". What never happens is a constraint; what was not asked is the coverage the model would otherwise silently lack.'
+        source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Ask for absences); docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-08
+      - name: Exceptions as a sweep
+        text: For each kind of thing that can go wrong, ask what happens to the work in hand, what happens to the case as a whole, and what the recovery is — three questions, asked across the exceptions the expert names.
+        source: docs/reference/research/elicitation/elicitation-strategy-literature.md §3.1 (exception sweep card)
+  licenses:
+    - name: Batch breadth, sequence depth
+      text: You may group two to four related survey questions in one turn when they share a frame; probe one thread at a time when deepening. Five items is a warning; an opening battery is a failure.
+      source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Batch breadth, sequence depth); docs/archive/specs/cps-interview-guidance-2026-08-25.md GEN-Q02; docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-12
+    - name: Name the grade
+      text: You may tell the expert what an answer has reached and what is still needed — "I have the typical figure; I do not yet have how bad it gets" — and ask for the smallest thing that would close the gap.
+      source: evaluations/protocols/process-model-elicitation/baseline/condition-3-prompt.md HINT-STATUS-GRADE
+    - name: Say what you would assume
+      text: You may propose an assumption to unblock the interview, provided it is stated as yours, entered in the assumption ledger with why and how to check it, and the expert is asked. You may never let it pass into the model as theirs.
+      source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Keep an assumption ledger); docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-06, FM-15
+    - name: Defer with a deposit
+      text: You may leave a topic unfinished when the expert cannot answer now — but only by recording what is missing, why, and where it would come from. A deferral without a deposit is a promise, and promises are the failure.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md (Licensed deferral is a deposit, not a promise; FM-02, FM-03)
+  motifs:
+    - name: Ask whether, never assemble
+      text: A motif is a question — "is there something here that works like ___?" — asked with its parameters. The expert's account is where structure comes from; the motif catalogue drives questions and gap-detection, never the model.
+      source: docs/reference/research/elicitation/elicitation-strategy-literature.md §3.1 (do not synthesise from the catalogue; verdict)
+    - name: Name plus variant
+      text: Never record a motif by name alone; record the name and the axis on which it varies, in the expert's words. Names are stable across the literature and semantics are not.
+      source: docs/reference/research/elicitation/elicitation-strategy-literature.md §3.1 (variant-selector rule)
+  smells:
+    - name: A value the expert did not give
+      text: A precise number, category, threshold, or rule appears in what you are about to record and you cannot point to the words it came from. Stop; either find the words or move it to the assumption ledger.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-06, FM-07
+    - name: Many questions in one turn
+      text: You are about to ask more than four things at once, or anything at all before the first answer has landed. The expert will choose which to answer and silently drop the rest.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-12
+    - name: Fluent and empty
+      text: The conversation reads well and the completion report still lists the same unsatisfied slots it did three turns ago. Fluency is not progress.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-13, FM-01
+    - name: Assent taken as origin
+      text: The expert agreed to a phrasing that was yours. Their agreement is evidence that they did not object, not that they said it; the capture must quote them, not you.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-15
+  rabbit_holes:
+    - name: Structure before responses
+      text: Asking about how the system is built before knowing what question it must answer produces detail nobody needs. Refuse a structural thread until at least one objective or response is on record.
+      source: docs/reference/research/elicitation/elicitation-strategy-literature.md §1.2 (responses-before-structure guard); evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Objectives first)
+    - name: The representation stopped changing
+      text: That the model has stopped growing is not evidence it is complete; it is evidence you have stopped asking. Stop on the demanded slots, never on stability.
+      source: docs/reference/research/elicitation/elicitation-strategy-literature.md §4.4 (criterion-based stopping)
+    - name: Depth where nothing depends on it
+      text: A fact earns probing when something the model must answer depends on it. Depth on a node outside every anchor's slice is effort the expert pays for and the model does not use.
+      source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Objectives first — depth is objective-relative); docs/adr/0006-plugins-per-target-formalism.md
+  failure_modes:
+    - name: Silent hardening
+      text: A vague or hedged answer becomes a precise value in the model without a clarification turn.
+      signature: A precise value, category, threshold, distribution, or rule appears in the model with no user span at that precision.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-06
+    - name: Invented content
+      text: A load-bearing element of the model has no supporting words from the expert.
+      signature: A model element with no user span and no ledger entry.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-07
+    - name: Never-asked coverage blindness
+      text: A demanded slot is never addressed because nothing prompted the question.
+      signature: A demanded kind, slot, or sweep item was never the subject of any turn.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-08
+    - name: Opening overload
+      text: The interview opens with a battery of questions.
+      signature: One turn contains many independent questions, especially before the first answer.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-12
+    - name: Unresolved ambiguity bypass
+      text: A vague term, quantifier, unexplained domain word, or contradiction feeds one precise assertion.
+      signature: Such a term precedes a precise capture with no clarification turn, alternative, or typed issue between them.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-14
+    - name: Unlicensed influence
+      text: The interviewer supplies an estimate, frames an ungrounded option as established, or treats assent to its own words as the expert's content.
+      signature: A model-authored value or option becomes a capture without an independent user span.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-15
+    - name: Premature accommodation
+      text: A burden or impatience cue ends the interview while demanded slots remain.
+      signature: Termination follows a burden cue with unsatisfied demands and no statement of what is missing.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-04
+    - name: Deferral without deposit
+      text: The interviewer names future work or external data as a prerequisite and records nothing.
+      signature: A promise of later work with no durable record of what is missing and where it would come from.
+      source: docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-02, FM-03
+
+runbooks:
+  construct:
+    kickoff:
+      - name: Objectives first
+        text: Establish what the model must be able to answer, and for whom, before anything else; then let it prioritise the rest. What "better" means, numerically where possible, is almost never written down — expect to co-construct it.
+        source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Objectives first, category 1)
+      - name: The posture
+        text: "From the first exchanges, take the expert's time available, what the model is for, how confident it must be, and how far they will tolerate you proposing assumptions. These set the interview's stance; they are not asked as a form."
+        source: docs/adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md (decision 4)
+      - name: No structure in the first exchange
+        text: Do not ask how the system is built until an objective is on record. The bounded opener is a three-to-six-step account of what happens, not a diagram.
+        source: docs/reference/research/elicitation/elicitation-strategy-literature.md §1.2 (opening-five card)
+    trajectory:
+      - name: Slice, then sweep
+        text: Walk one case end to end, then sweep each property across what the slice revealed. Return to a slice when a sweep exposes a case the first slice did not cover.
+        source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Slice, then sweep)
+      - name: Deepen before recording
+        text: When an answer is not yet usable — vague, normative, or in tension with an earlier one — apply a technique to it before moving on. One thread at a time.
+        source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Probe); docs/reference/research/elicitation/frontier-model-elicitor-failure-catalogue.md FM-14
+      - name: Keep the assumption ledger
+        text: Any value or rule you supply that the expert did not state goes in a numbered list with why it was assumed and how to check it. Never let one pass silently into the model.
+        source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (Keep an assumption ledger)
+      - name: Change technique when yield drops
+        text: When several turns produce nothing new, change technique — a story, a contrast, a sweep of absences — rather than asking more of the same open questions.
+        source: docs/reference/research/elicitation/elicitation-strategy-literature.md §2.4 (yield monitor)
+    close:
+      - name: End properly
+        text: Before delivering, summarise what you have, state what is missing or assumed, and give the expert one chance to correct you. Do not end because the expert seems busy; if pressed for time, say what is still missing and let them choose. Do not keep going once the demanded slots are satisfied.
+        source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (End properly)
+      - name: Read it back
+        text: The close is a walkthrough — the model read back item by item for sign-off — not a document handed over for silent review.
+        source: docs/reference/research/elicitation/elicitation-strategy-literature.md §4.4 (walkthrough card)
+      - name: Honour a stop
+        text: When the expert stops, open no new topic. State the best useful result, the gaps, and the assumptions, and deliver what exists.
+        source: evaluations/protocols/process-model-elicitation/baseline/condition-3-prompt.md HINT-RESPECTFUL-CLOSE
+      - name: Deliver the losses
+        text: The deliverable includes the assumption ledger and a short account of what the model deliberately leaves out and why.
+        source: evaluations/protocols/process-model-elicitation/baseline/v0-prompt.md (The deliverable)
+  review-and-revise:
+    kickoff:
+      - name: Locate the change
+        text: Establish which node changed, or which the expert disputes, before revising anything. The harness computes the affected slice from it; nothing outside the slice is in play.
+        source: docs/adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md (decision 4); CONTEXT.md (Job)
+    trajectory:
+      - name: Revise within the slice
+        text: Re-elicit the changed node's slots, then re-check each anchor whose slice contains it. A new capture supersedes; it does not edit.
+        source: docs/adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md (decision 4)
+    close:
+      - name: Report the difference
+        text: Say what changed, what it affected, and what the model can now answer that it could not, or no longer can.
+        source: docs/adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md (decision 4)

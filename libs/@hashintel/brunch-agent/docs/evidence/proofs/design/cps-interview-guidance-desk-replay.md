@@ -6,7 +6,7 @@ utterance available before condition 2's eleventh interviewer response.
 
 ## Fixed inputs and method
 
-- guidance under test: [`cps-interview-guidance.md`](../../../archive/specs/cps-interview-guidance-2026-08-25.md) (archived 2026-08-25; its cards are now patterns in [`plugin-sdcpn/plugin.md`](../../../../packages/plugin-sdcpn/plugin.md))
+- guidance under test: [`cps-interview-guidance.md`](../../../archive/specs/cps-interview-guidance-2026-08-25.md) (archived 2026-08-25; its cards are now patterns in [`plugin-sdcpn/plugin.yaml`](../../../../packages/plugin-sdcpn/plugin.yaml))
 - completion oracle: `cps-baseline-replay/2026-08-24.3` from the FE-1402 rehearsal
 - failure signatures: the reviewed FE-1407 catalogue
 - transcripts: FE-1361 condition 1 and condition 2, one run each

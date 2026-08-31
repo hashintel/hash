@@ -34,8 +34,11 @@
             "message": "Brunch libraries must not depend on Petrinaut implementations."
           },
           {
-            "group": ["@hashintel/brunch-agent-*"],
-            "message": "A binding may depend inward on the harness, not on Brunch extensions."
+            "group": [
+              "@hashintel/brunch-agent-*",
+              "!@hashintel/brunch-agent-repertoire"
+            ],
+            "message": "A binding may depend inward on the harness and render its repertoire, not depend on other Brunch extensions."
           }
         ]
       }

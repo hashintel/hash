@@ -43,7 +43,8 @@ workspace.
 Route by trigger; load only the applicable compact protocol:
 
 - Start or resume without a proof target, or when objectives, pressure, proof, authority, external
-  gates, frontier value, or arc-close findings change: `docs/agents/steering.md`.
+  gates, frontier value, or arc-close findings change: invoke `/ds-steer`, which consults the Brunch
+  supplement at `docs/agents/steering.md`.
 - Create, mutate, triage, or structure issues: `docs/agents/issue-tracker.md`,
   `docs/agents/issue-writing.md`, and `docs/agents/triage-labels.md`.
 - Add, move, settle, or index documents: `docs/agents/documentation.md`.
@@ -52,5 +53,6 @@ Route by trigger; load only the applicable compact protocol:
 - Produce a significant agent-authored artifact or proof: `docs/agents/legibility.md`.
 - Make an architecture-sensitive move: `docs/agents/posture.md`.
 - Operate on branches, stacks, commits, or PRs: `docs/agents/git-workflow.md`.
+- Create or refresh worktrees for a recorded partition: `docs/agents/partition-worktrees.md`.
 - Close a work arc: run the context-local `arc-close` skill and
   `docs/agents/arc-close.md`.

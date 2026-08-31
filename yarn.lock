@@ -7543,6 +7543,7 @@ __metadata:
     "@flue/runtime": "npm:2.0.3"
     "@flue/sdk": "npm:2.0.3"
     "@hashintel/brunch-agent": "workspace:*"
+    "@hashintel/brunch-agent-repertoire": "workspace:*"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     oxlint: "npm:1.63.0"
@@ -7583,6 +7584,20 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@hashintel/brunch-agent-repertoire@workspace:*, @hashintel/brunch-agent-repertoire@workspace:libs/@hashintel/brunch-agent/packages/repertoire":
+  version: 0.0.0-use.local
+  resolution: "@hashintel/brunch-agent-repertoire@workspace:libs/@hashintel/brunch-agent/packages/repertoire"
+  dependencies:
+    "@hashintel/brunch-agent": "workspace:*"
+    "@types/node": "npm:22.18.13"
+    "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
+    oxlint: "npm:1.63.0"
+    oxlint-tsgolint: "npm:0.22.1"
+    vite: "npm:8.1.0"
+    vitest: "npm:4.1.10"
+  languageName: unknown
+  linkType: soft
+
 "@hashintel/brunch-agent-transport-aisdk@workspace:*, @hashintel/brunch-agent-transport-aisdk@workspace:libs/@hashintel/brunch-agent/packages/transport-aisdk":
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-transport-aisdk@workspace:libs/@hashintel/brunch-agent/packages/transport-aisdk"
@@ -7606,12 +7621,14 @@ __metadata:
     "@anthropic-ai/sdk": "npm:0.74.0"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
+    "@valibot/to-json-schema": "npm:1.7.1"
     fast-check: "npm:4.9.0"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
     valibot: "npm:1.4.2"
     vite: "npm:8.1.0"
     vitest: "npm:4.1.10"
+    yaml: "npm:2.9.0"
   languageName: unknown
   linkType: soft
 
@@ -19937,7 +19954,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@valibot/to-json-schema@npm:^1.3.0":
+"@valibot/to-json-schema@npm:1.7.1, @valibot/to-json-schema@npm:^1.3.0":
   version: 1.7.1
   resolution: "@valibot/to-json-schema@npm:1.7.1"
   peerDependencies:

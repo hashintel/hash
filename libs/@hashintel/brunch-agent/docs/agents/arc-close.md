@@ -64,8 +64,8 @@ that `STEERING` references it. No-op reconciliation persists nothing.
 
 ### 5. Reconcile steering and proof when triggered
 
-If a steering trigger fired, run and reconcile [the steering protocol](steering.md), including its
-completion criteria. Do not copy its loop here.
+If a steering trigger fired, invoke `/ds-steer`. It consults the Brunch
+[steering supplement](steering.md); do not copy its procedure here.
 
 If no trigger fired, continue the current proof frontier without a no-op steering update.
 
@@ -85,5 +85,5 @@ Arc close is complete when:
 3. touched issue references are current;
 4. affected spec-ledger rows are current;
 5. affected steering soft edges, roots, strategy, gates, and frontier are current; and
-6. any triggered steering pass meets `steering.md`'s completion criteria; and
+6. any triggered steering pass meets `/ds-steer`'s completion criterion; and
 7. changed planning prose reads correctly after landing.

@@ -68,7 +68,8 @@ shared prerequisite.
 
 **Supersedes:** none
 
-**Evidence links:** [STEERING execution tree](STEERING.md#execution-tree), FE-1479
+**Evidence links:** [STEERING](STEERING.md) (the execution tree of that date; the section was
+folded into "Epicentres and lanes" on 2026-08-26), FE-1479
 
 ### S-004
 
@@ -126,7 +127,8 @@ contract from later three-target ratification.
 
 **Supersedes:** S-002
 
-**Evidence links:** [STEERING selected frontier](STEERING.md#selected-frontier-design-convergence),
+**Evidence links:** [STEERING](STEERING.md) (the design-convergence frontier of that date, closed by
+S-007; no current section),
 [plugin contract](../specs/plugin-contract.md), FE-1407, FE-1402, FE-1403, FE-1404, FE-1406,
 FE-1431
 
@@ -153,7 +155,8 @@ decision that the FE-1431 handoff failed to settle.
 
 **Supersedes:** none
 
-**Evidence links:** [STEERING selected frontier](STEERING.md#selected-frontier-design-convergence),
+**Evidence links:** [STEERING](STEERING.md) (the design-convergence frontier of that date, closed by
+S-007; no current section),
 FE-1407, FE-1404, FE-1406, FE-1431
 
 ### S-007
@@ -179,7 +182,7 @@ instrument as definition of done".
 
 **Decision:** Invert S-005 and S-006: implement the vertical slice and design only what the slice
 forces. Adopt [ADR-0006](../adr/0006-plugins-per-target-formalism.md): plugins are per target
-formalism, authored as one sectioned Markdown file; `packages/plugin-sdcpn/plugin.md` is the exemplar.
+formalism, authored as one sectioned Markdown file; `packages/plugin-sdcpn/plugin.yaml` is the exemplar.
 Close the design-convergence queue: FE-1407, FE-1402, and FE-1403 are reclassified as test-bed
 material; FE-1404 is redefined as the skeleton run — condition 3 as the protocol originally
 defined it (kernel harness + real plugin), not the shadow-harness instrument; FE-1406 shrinks to
@@ -211,7 +214,7 @@ heading the contract does not have (ADR-0006's condition).
 **Supersedes:** S-005, S-006
 
 **Evidence links:** [ADR-0006](../adr/0006-plugins-per-target-formalism.md),
-[sdcpn plugin file](../../packages/plugin-sdcpn/plugin.md),
+[sdcpn plugin file](../../packages/plugin-sdcpn/plugin.yaml),
 [IR spec Layer B](../specs/intermediate-representation.md#layer-b--the-cps-plugins-ir),
 [archived drafts](../archive/specs/),
 [baseline situation pack](../../evaluations/cases/process-model-elicitation/baseline/situation-pack.md),
@@ -269,7 +272,7 @@ than the plugin it teaches (the instrument-larger-than-the-thing heuristic, appl
 **Evidence links:** [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md),
 [lineage audit](../evidence/proofs/audits/harness-teaching-lineage-audit.md),
 [penciled directions 2026-08-14](../archive/planning-inputs/penciled-directions-2026-08-14.md),
-[SDCPN plugin file](../../packages/plugin-sdcpn/plugin.md), FE-1406, FE-1431, FE-1393, FE-1497
+[SDCPN plugin file](../../packages/plugin-sdcpn/plugin.yaml), FE-1406, FE-1431, FE-1393, FE-1497
 
 ### S-009
 
@@ -308,3 +311,136 @@ one-schema premise fails); or a run contradicts what a review call plausible.
 
 **Evidence links:** [ADR-0007 decision 9](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md),
 [S-008](#s-008), [grilling inputs](../archive/planning-inputs/), FE-1482, FE-1406, FE-1431, FE-1393
+
+### S-010
+
+**Date:** 2026-08-25 (decision), recorded 2026-08-26
+
+**Trigger/evidence:** The first S-009 cycle reached its "run" step and the baseline protocol had to
+say what a run is. Condition 4 (the rendered ADR-0007 teaching layer as a prompt only, run and
+scored 2026-08-25) showed the inherited delivery classifier producing a false negative — a
+regex over the interviewer's text judging whether a model had been delivered — which is the
+instrument weakness S-007 named, recurring in miniature. Condition 3's preregistered instrument
+(operator, projection schema, lock) had never run and would have measured a hand-operated
+projection of completion machinery the harness now ships. The harness itself exposes facts a
+classifier can only guess at: captures applied, sweeps refused and why, completion computed
+over the store after each turn. Lu's direction: "Retire 3, freeze 1 and 2, and start on
+condition 5 now."
+
+**Decision:** The baseline protocol's arms are re-cut. Conditions 1 and 2 are **frozen** as the
+2026-08-13 reference; condition 3 is **retired, never run**, its preregistration and lock kept as
+the record of what was planned; conditions 4 and 5 are the **live arms, rerun once per authoring
+cycle**. Condition 5 puts the shipped harness in the loop: the runner starts the Flue runtime
+in-process with the production SDCPN elicitor and the same simulated expert, and its deliverable
+is the capture store, not a delivered text — **harness facts replace the classifier** as the
+instrument for anything the harness can report. This amends S-007's sentence "running condition 3
+with the shadow harness … would measure an instrument the product will never ship": the run
+S-007 wanted is condition 5; the number 3 stays with the retired instrument. Rejected: running the
+condition-3 instrument once "for the record", because it would measure the instrument; and
+scoring condition 5 with the text classifier, because condition 4 had just shown it wrong.
+
+**Consequences/cuts:** The first condition-5 run (2026-08-25) is committed as evidence; STEERING
+records its result under Proof 1 and its latency as an immediate concern with its own assessment.
+FE-1404 is that run under a different number; its Linear body and its salvage-and-delete
+expectation for the condition-3 instrument are unreconciled (Linear edit pending approval; the
+instrument is frozen in place with an amendment). _Addendum 2026-08-26:_ the instrument was
+deleted the next day on Lu's decision, salvage assessed as none; the preregistration and prompt
+remain. The runner's `stalled` stop label misnames a
+deliberate interviewer self-stop and is renamed when the runner is next touched. No spec, key,
+or sequencing cut changes.
+
+**Revisit when:** a condition-5 rerun needs a judgment the harness cannot report (then a scoring
+step is added to the protocol, not a classifier); or the frozen conditions 1–2 stop being a fair
+reference because the expert or situation pack changes.
+
+**Supersedes:** none
+
+**Evidence links:** [baseline protocol](../../evaluations/protocols/process-model-elicitation/baseline/protocol.md),
+[condition-3 preregistration (amended)](../../evaluations/protocols/process-model-elicitation/baseline/condition-3-preregistration.md),
+[condition-5 transcript](../evidence/evaluations/process-model-elicitation/baseline/transcripts/condition-5.md),
+[condition-4 read-out](../evidence/evaluations/process-model-elicitation/baseline/readout.md),
+[turn latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md),
+FE-1404, FE-1431, FE-1361
+
+### S-011
+
+**Date:** 2026-08-26
+
+**Trigger/evidence:** The first condition-5 run left the harness able to conduct an elicitation
+but not to converge one, at ~145 s per turn, with its only witnesses a transcript and a JSON store.
+Lu's direction after the arc close: the frontier must reach the full end-to-end flow — "the black
+triangle" — before any stream is worked for its own sake, for team visibility, CEO and PM
+confidence, and a stable surface for the voice-mode work (H-6763, which already bridges finalized
+speech turns into `/api/chat` and consumes `brunch_ask`). A wiring sweep the same day found the
+triangle closer on one edge than STEERING implied — the real Petrinaut panel already reaches
+`apps/brunch-agent` locally over `/api/chat` — and further on the others: the handler is hard-wired
+to the Gherkin elicitor, the target document is identified with the conversation, no principal
+exists, and deployment was Linear-gated behind gherkin (FE-1441 ← FE-1423 ← FE-1396 ← FE-1394 ←
+FE-1393). Lu also corrected the objective's framing and named two further design concerns.
+
+**Decision:**
+
+1. **Two jobs, one order.** Construct and review-and-revise are both target jobs; cold-start
+   construction must be possible. This amends S-001's sentence that review-and-revise is *the*
+   current proof: the current proof is the construct job through the panel (Proof 0), with the
+   review-and-revise acceptance run on top of it. The belief that each job needs its own
+   comprehensive runbook is demoted to an assumption under test — early passes over the plugin
+   schema suggest the jobs share most of one runbook.
+2. **The black triangle is the selected frontier (G0, FE-1503):** from a checkout, documented
+   commands bring up the Brunch server and the Petrinaut panel on local dev services; the panel's
+   assistant is the SDCPN elicitor; a human conducts a real elicitation; captures persist to a
+   target document owned by a principal and survive reload; completion accounting is
+   human-readable; every turn records time per purpose. Cut: no deployment, client-side net tools,
+   realization, Postgres, gherkin, voice code, or quality claim. Then a **sequence**: G1 the usable
+   triangle (latency floor R1, identity in the fold, resume), G2 the demo triangle (client tools,
+   deployment, the acceptance run).
+3. **Streams are parallel work.** Inside G0: wiring, persistence modelled, latency floor (R0),
+   legible surface. Beside G0, not blocking it: the plugin design loop (is the plugin API a viable,
+   understandable way to specify a domain plugin, and does it come together as effective
+   prompt- and context-engineering material — conditions 4 and 5 rerun per cycle); and package
+   topology remediation (below).
+4. **Package topology is remediated, by ADR.** Lu's judgment: `repertoire` is a core concern, as
+   are the types and schemas that binding-, transport-, and plugin- packages consume; the envisioned
+   core layout is `loop / prompts (repertoire) / skills? / schemas`. No further package split
+   without an ADR; an ADR amending ADR-0007's package decision is the owner of the accepted shape.
+   Rejected: moving code before the ADR — the last two splits show what unrecorded topology costs.
+5. **Tool inventory is pinned** in STEERING as current truth against intent: today `brunch_ask`
+   and `brunch_sweep` on the server (prefix from `PRODUCT_NAME`), Petrinaut's fine-grained
+   `petrinautAiTools` on the client; intended `ba_sweep`, `ba_check`, `ba_ask` (possibly not yet
+   needed) and `pn_read`, `pn_mutate` with a `pn_infer_slots` post-update to fill TypeScript from
+   injected comments. No tool is added, renamed, or promised in prose outside that table.
+6. **Legibility is defined on the human**: observable interactions with visible state change and
+   data flow, plain-language accounts, recordings; desk evidence, hidden runs, and machine-only
+   artefacts never stand alone as proof. Recorded in `docs/agents/legibility.md`; a stream with
+   only such evidence is not done.
+7. **The voice edge attaches at `/api/chat`.** The AI SDK UI-message stream, the `brunch_ask`
+   schema, and the principal identity are the stable surface; they change with notice. Provider
+   choice (OpenAI Realtime is Kostandin's first choice) is an external gate, not a Brunch decision.
+
+**Consequences/cuts:** FE-1503 created under FE-1476 as G0's projection; the stale FE-1396 → FE-1423
+blocker removed (FE-1394 ← FE-1393 remains, in the build map). The latency targets adopted
+provisionally on 2026-08-26 stay; the isolating spike is no longer "first task of the next arc" —
+R0 lands inside G0, R1 opens G1, and the spike runs when a human at the panel cannot get a question
+within target. The condition-5 read-out stays deferred behind the spike. The epicentre lanes of
+S-007 remain valid context and are subordinated to the triangle. No key, spec, or ADR text
+changes here; the topology ADR and the surface statement in the Petrinaut integration spec are the
+successor writes. _Addendum 2026-08-26:_ decision 3 misnames the work inside G0 — wiring,
+persistence, latency floor, and legible surface share one proof and are therefore **moves joined
+at Proof 0**, not streams; "stream" is reserved for separately proven parallel work (P1, P2), and
+G0 → G1 → G2 is a **sequence**. Terms defined in `CONTEXT.md` under Strategic control.
+
+**Revisit when:** the first human run through the panel lands (G0's proof); the topology ADR is
+accepted; the voice-provider decision is recorded; or use-case confirmation from Dora changes the
+demo scenario.
+
+**Supersedes:** none
+
+**Evidence links:** [FE-1503](https://linear.app/hash/issue/FE-1503), [FE-1476](https://linear.app/hash/issue/FE-1476),
+the H-6763 prototype plan — `docs/planning/process-model-elicitation/spikes/h-6763-realtime-audio-prototype-2026-08-24.md`
+on branch `kostandin/h-6763-support-for-realtime-audio-interviewing-of-domain-experts` only, not
+on this branch or `main`, so no relative link resolves until it merges —
+[ADR-0004](../adr/0004-in-petrinaut-staging-and-the-monorepo-import.md),
+[Petrinaut integration spec](../specs/petrinaut-integration.md),
+[ledger §9](SPEC-LEDGER.md#sessions--durability-9),
+[turn latency assessment](../evidence/evaluations/process-model-elicitation/baseline/condition-5-turn-latency.md),
+[legibility protocol](../agents/legibility.md)

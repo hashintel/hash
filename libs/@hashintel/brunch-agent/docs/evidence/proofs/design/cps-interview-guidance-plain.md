@@ -1,7 +1,7 @@
 # CPS interview guidance in plain language
 
 This is the second-register rendering of the provisional
-[CPS interview-guidance contract](../../../archive/specs/cps-interview-guidance-2026-08-25.md) (archived 2026-08-25 under ADR-0006; its cards are now patterns in [`plugin-sdcpn/plugin.md`](../../../../packages/plugin-sdcpn/plugin.md)). A separate renderer
+[CPS interview-guidance contract](../../../archive/specs/cps-interview-guidance-2026-08-25.md) (archived 2026-08-25 under ADR-0006; its cards are now patterns in [`plugin-sdcpn/plugin.yaml`](../../../../packages/plugin-sdcpn/plugin.yaml)). A separate renderer
 received the spec and desk replay without the producing trajectory. The rendering is
 reviewer-facing; the specification remains the required-behavior authority.
 

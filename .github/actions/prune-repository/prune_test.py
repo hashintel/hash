@@ -31,11 +31,19 @@ class BrunchRequestedExtras(unittest.TestCase):
         self.assertEqual(
             extra_paths_for_requested({CORE}),
             [
+                ".config/oxlint/brunch",
                 "libs/@hashintel/brunch-agent/AGENTS.md",
                 "libs/@hashintel/brunch-agent/CONTEXT.md",
                 "libs/@hashintel/brunch-agent/docs",
+                "libs/@hashintel/brunch-agent/evaluations",
                 "libs/@hashintel/brunch-agent/scripts",
             ],
+        )
+
+    def test_app_job_adds_the_baseline_evaluation_paths(self) -> None:
+        self.assertEqual(
+            extra_paths_for_requested({APP}),
+            ["libs/@hashintel/brunch-agent/evaluations"],
         )
 
     def test_sibling_or_website_job_does_not_add_brunch_extras(self) -> None:

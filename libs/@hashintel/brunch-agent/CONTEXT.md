@@ -34,7 +34,7 @@ The artifact family a plugin projects into (Gherkin scenarios, SDCPNs, assurance
 _Avoid_: target-domain (retired — "domain" now names the expert's operational system, below), target-paradigm; bare "target" where family/instance is ambiguous
 
 **Domain**:
-The operational system the expert knows and the model describes — a packaging line, a truck fleet, a coating plant. Unknown before the conversation starts and discovered during it; never a plugin unit, a heading, a row, or a noun in a plugin file.
+The operational system the expert knows and the model describes — a packaging line, a truck fleet, a coating plant. Unknown before the conversation starts and discovered during it; never a plugin unit, a key, a row, or a noun in a plugin definition.
 _Avoid_: target-domain, use case (as a synonym), scenario (a scenario is assembled from boundary conditions at simulation time)
 
 **Target-document**:
@@ -152,6 +152,94 @@ The narrow injected context through which a plugin receives harness capabilities
 
 **Storage port**:
 The harness-defined contract for the capture store (atomic sweep application, envelope invariants as store-level refusals), implemented by the binding for its deploy target. Plugins are storage-blind. In code the port's type is `CaptureStore` (`packages/core/src/capture-store.ts`) — grep for that, not for "storage port". Scope includes the **session-log archive** (archive-on-read; spec §9.6): session logs live with the target-document, retained indefinitely — the substrate's conversation store is the live transport copy, never the provenance record.
+
+### Strategic control
+
+**Concern**:
+A durable question, invariant, risk, assumption, design axis, or obligation that can govern work
+across several temporary activities.
+_Avoid_: issue (an issue can be one temporary activity acting on a concern)
+
+**Steering projection**:
+A bounded map, issue, proof, or decision activity created to investigate or act on a concern. The
+qualified term keeps steering usage distinct from the IR's projection register.
+_Avoid_: projection (unqualified in strategic-control prose), concern record
+
+**Operative force**:
+What a governing concern presently requires work to preserve, avoid, test, or account for.
+_Avoid_: status, priority
+
+**Commission**:
+The relationship by which a strategic owner gives a map its intended contribution, governing
+concerns, and related-map context.
+_Avoid_: request, assignment
+
+**Landing**:
+A map's terminal account of its outcome, strategic changes, durable dispositions, affected maps,
+and residual uncertainty. Landing precedes reconciliation and does not itself close a commissioned
+map or resolve its concerns.
+_Avoid_: closure, completion report
+
+**Journey**:
+The causal strategic change between a map's commission and landing that future navigation still
+needs, excluding operational chronology.
+_Avoid_: history, activity log
+
+**Move**:
+One bounded change within a selected frontier, with its own landing but not necessarily its own
+proof. Several moves are **joined** when they are proven together by one named proof (the
+`ds-steering` join): they may be built in parallel worktrees, but none is done until the joint
+proof runs. G0's wiring, persistence, latency-floor, and legible-surface work are joined moves.
+_Avoid_: stream (for work that shares a proof), phase, task, effort (an effort is a checkout)
+
+**Stream**:
+A line of work that runs in parallel with the selected frontier, has its own projection and its
+own proof, and neither blocks nor is blocked by the frontier's joint proof. The plugin design loop
+and the package-topology ADR are streams beside G0. The epicentre map's older word for the same
+thing is "lane"; it is retained there and not used for new writing.
+_Avoid_: lane (new writing), workstream, track, effort
+
+**Partition**:
+Brunch execution layout, made after the proof frontier is selected: which **efforts** get
+worktrees, their write sets, join points, re-braid points, and base. Moves and streams do not map
+one-to-one onto efforts (W1 carries G0.1 and G0.2; the driver retains G0.4). Recorded in
+`docs/control/STEERING.md` and revised at every steering pass; it never changes which frontier is
+selected. Brunch extension of `/ds-steer` step 5 (`docs/agents/steering.md`). Not Dogsled
+vocabulary.
+_Avoid_: plan (the partition is one section of the strategic control, not a plan document),
+breakdown (that is ticket decomposition, `/ds-write-tickets`), parallelisation
+
+**Effort**:
+The checkout unit of a partition: a worktree with a disjoint write set except at named join
+points. It may carry one or more joined moves, or a stream; those remain proof and strategy, not
+the effort. Deferred work is not an effort. The partition is recorded in
+`docs/control/STEERING.md`.
+_Avoid_: stream, move, branch (the effort is the worktree, not its Git ref)
+
+**Driver**:
+The worktree that owns control documents and Linear. Other efforts deposit through issue comments,
+commit and PR bodies, and evidence under their own path; the driver reconciles at each landing.
+The current HASH clone is the driver until a partition says otherwise.
+_Avoid_: main worktree, primary, orchestrator
+
+**Join point**:
+A file, package, or manifest two efforts both write, with the order in which they land. Control
+documents and Linear are written only from the driver worktree and are therefore never join points.
+_Avoid_: conflict (a join point is planned; a conflict is what happens when it was not)
+
+**Re-braid**:
+The planned moment when diverging effort branches are restacked onto a shared base and conflicts
+resolved, before they diverge again. Brunch-local; not a Dogsled term. How long a line may run
+unbraided follows how fine the tickets are, not a ticket count. Three relationships stay distinct:
+the **proof join** (moves demonstrated together), the **join point** (shared file, landing order),
+and the **re-braid** (git-line meeting).
+_Avoid_: rebase (the git verb a re-braid uses), sync, integrate, restack checkpoint (the generic
+gloss; keep re-braid here)
+
+**Sequence**:
+Ordered goals where each goal's proof is the precondition of the next (G0 → G1 → G2). Ordering
+inside a sequence is strategic, not mechanical availability.
+_Avoid_: roadmap, phases, streams
 
 ### September demo
 

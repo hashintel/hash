@@ -6,6 +6,7 @@
   "license": "AGPL-3.0",
   "type": "module",
   "scripts": {
+    "baseline:harness": "node --experimental-strip-types ../../libs/@hashintel/brunch-agent/evaluations/protocols/process-model-elicitation/baseline/harness-run.ts",
     "build": "vite build && vite build --config vite.client.config.ts",
     "dev": "vite dev",
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",

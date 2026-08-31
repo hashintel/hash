@@ -19,7 +19,7 @@ import {
   type CaptureStoreSnapshot,
   type EpistemicStatus,
 } from "./capture-store";
-import { type PluginFile, type PrecisionWord } from "./plugin-file";
+import { type PluginDefinition, type PrecisionWord } from "./plugin-definition";
 import {
   createSlotAssertionSchema,
   nodeId,
@@ -196,12 +196,12 @@ const settleSlot = (
 const isEvidenced = (capture: CaptureEnvelope): boolean =>
   "evidence" in capture && capture.evidence.length > 0;
 
-/** Fold the active captures of one snapshot into the model a plugin file describes. */
+/** Fold the active captures of one snapshot into the model a plugin definition describes. */
 export function foldElicitedModel(
   snapshot: CaptureStoreSnapshot,
-  file: PluginFile,
+  definition: PluginDefinition,
 ): ElicitedModel {
-  const assertionSchema = createSlotAssertionSchema(file);
+  const assertionSchema = createSlotAssertionSchema(definition);
   const active = snapshot.captures.filter(
     (capture) => deriveCaptureStatus(snapshot, capture.id) === "active",
   );
@@ -276,12 +276,12 @@ export function foldElicitedModel(
     canonical({
       active: [...activeCaptureIds].sort(),
       conflicts: openConflictIssues.map((issue) => issue.id).sort(),
-      plugin: file.version,
+      plugin: definition.version,
     }),
   );
 
   return {
-    pluginVersion: file.version,
+    pluginVersion: definition.version,
     revision,
     nodes,
     unmapped,

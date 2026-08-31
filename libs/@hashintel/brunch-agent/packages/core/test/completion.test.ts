@@ -19,18 +19,18 @@ import {
   absence,
   assertionCapture,
   completeCaptures,
-  fixturePluginFile,
+  fixturePluginDefinition,
   snapshotOf,
   value,
 } from "./slot-fixtures";
 
 import type { CaptureEnvelope } from "../src/capture-store";
 
-const file = fixturePluginFile();
-const demands = completionDemands(file);
+const definition = fixturePluginDefinition();
+const demands = completionDemands(definition);
 
 const modelOf = (captures: readonly CaptureEnvelope[]): ElicitedModel =>
-  foldElicitedModel(snapshotOf(captures), file);
+  foldElicitedModel(snapshotOf(captures), definition);
 
 const without = (id: string): CaptureEnvelope[] =>
   completeCaptures().filter((capture) => capture.id !== id);
@@ -204,6 +204,35 @@ describe("the rule (3–7)", () => {
     expect(report.sliceNodeIds).toEqual(["objective:throughput"]);
   });
 
+  test("6. a single kind:node string in the dependency slot still forms a slice", () => {
+    const report = evaluateCompletion(
+      modelOf(
+        replacing(
+          "c-objective-deps",
+          assertionCapture(
+            "c-objective-deps",
+            value(
+              "objective",
+              "throughput",
+              "the nodes it depends on",
+              "named",
+              "step:stamp",
+            ),
+          ),
+        ),
+      ),
+      demands,
+    );
+    expect(
+      report.failures.filter(
+        (failure) => failure.diagnostic === "unsupported-active-objective",
+      ),
+    ).toEqual([]);
+    expect(report.sliceNodeIds).toEqual(
+      expect.arrayContaining(["objective:throughput", "step:stamp"]),
+    );
+  });
+
   test("6. an objective with no dependency slot at all is unsupported; the floor does not substitute", () => {
     expect(diagnosticsOf(without("c-objective-deps"))).toEqual([
       [
@@ -242,7 +271,7 @@ describe("what counts as a value (8–14)", () => {
     expect(diagnosticsOf(inferred)).toEqual([
       ["inadmissible-status", "step:stamp", "how long it takes"],
     ]);
-    const permissive = completionDemands(file, {
+    const permissive = completionDemands(definition, {
       acceptedStatuses: ["explicit", "inferred"],
     });
     expect(evaluateCompletion(modelOf(inferred), permissive).complete).toBe(

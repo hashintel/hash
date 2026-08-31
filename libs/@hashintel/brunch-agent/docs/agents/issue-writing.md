@@ -40,10 +40,11 @@ specification language for execution.**
 
 ## Who carries the contract
 
-The test is authorship, not parentage. Every issue an agent authors from this repo on behalf of
-the human driving the work carries the contract, including every sub-issue. A teammate-authored
-issue outside this workflow keeps its author's structure; comment, relate, and record verdicts
-without rewriting its title or body unless that author delegates the change.
+The test is parentage. Every root issue carries the contract. A child issue inherits legibility
+from its parent, keeps the shape its driving workflow requires, and carries `dogsled:unframed` so
+team-facing views can filter it out. A teammate-authored issue outside this workflow keeps its
+author's structure; comment, relate, and record verdicts without rewriting its title or body unless
+that author delegates the change.
 
 Before changing an issue that carries the contract, fetch its current raw body and read the
 human-owned summary.
@@ -87,13 +88,17 @@ available.
 
 ## Wayfinder maps
 
-A map is an aggregating issue, so it carries both layers: a **plain-prose preamble**
+A map is an aggregating root issue, so it carries both layers: a **plain-prose preamble**
 (the context layer, written so a non-engineer understands what the effort is, why, and where it
-stands), then, inside `🏗️ Agent notes`, the wayfinder working sections (Destination / Notes /
-Decisions so far / Not yet specified / Out of scope) as the execution record. The map's
-list-shaped sections are earned — enumerating many children's state is the
-information; `Not yet specified` is the map's one home for known-unknowns. When resolving a
-ticket updates the map, refresh the preamble's status sentence in the same edit.
+stands), then, inside `🏗️ Agent notes`, the Wayfinder working sections (Destination / Strategic
+context / Notes / Landing evidence / Decisions so far / Not yet specified / Out of scope) as the
+execution record. Every Brunch map is commissioned by `docs/control/STEERING.md`, so Strategic
+context is required. Append Landing when the route is clear. The map's list-shaped sections are
+earned — enumerating many children's state is the information; `Not yet specified` is the map's
+one home for known-unknowns. When resolving a ticket updates the map, refresh the preamble's status
+sentence in the same edit. At commissioned-map close, `/ds-steer` empties the mutable map sections,
+posts an immutable resolution comment that points to both Landing and the reconciled strategic
+owner, then closes the root. Each Linear write remains separately approval-gated.
 
 ## The execution record
 

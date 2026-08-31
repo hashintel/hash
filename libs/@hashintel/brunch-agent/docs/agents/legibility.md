@@ -10,6 +10,25 @@ The protocol serves one thesis, the same one the CI gates and the capture store 
 with itself; re-rendered into a different register, every claim must survive translation, and
 the places where it doesn't are findings.
 
+## What counts as legible
+
+Legibility is measured on the human, not the artifact (Lu, 2026-08-26). A proof is legible when
+a person can watch it and decide something afterwards. The bar, in order of preference:
+
+1. **Observable interactions** — a web or terminal UI where the state changes and the data flow
+   are visible as they happen, in the style of a logic prototype: the person sees the capture
+   land, the completion report move, the question appear.
+2. **Plain-language account** — what happened, what it shows, what it does not show, written for
+   a teammate who did not run it.
+3. **Recordings** — a screen recording of 1 is evidence; a transcript file alone is not.
+
+Desk evidence, background or headless test runs, and machine-only-readable artefacts (JSON
+stores, raw checkpoints, logs) are kept to a minimum and never stand alone as the proof of a
+claim; they support a proof of kind 1–3. Naming this bar has not been enough to hold it — arcs
+have drifted to desk proofs and hidden runs while calling them legible — so a move, stream, or arc
+whose only evidence is of that kind is **not done**, and the steering supplement's proxy-completion
+trigger fires.
+
 ## The move: render and read the strain
 
 At the close of an arc, re-render its central artifact into another register and instruct the
