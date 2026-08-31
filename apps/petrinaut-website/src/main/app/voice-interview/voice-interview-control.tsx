@@ -1359,6 +1359,14 @@ const AvailableVoiceInterviewControl = ({
     }
   }, [setInteractionMode, snapshot.phase]);
 
+  useEffect(() => {
+    if (!snapshot.lastCommittedText) {
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- A new question invalidates any correction for the previous answer.
+      setCorrection("");
+      setEditing(false);
+    }
+  }, [snapshot.lastCommittedText]);
+
   useEffect(
     () => () => {
       void store.controller.end();
@@ -1367,6 +1375,7 @@ const AvailableVoiceInterviewControl = ({
   );
 
   const end = () => {
+    setCorrection("");
     setEditing(false);
     context.setActive(false);
     context.setInteractionMode("chat");

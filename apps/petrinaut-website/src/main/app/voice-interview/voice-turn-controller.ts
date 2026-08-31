@@ -269,7 +269,9 @@ export class VoiceTurnController {
   }
 
   public async reconnect(): Promise<void> {
-    const pendingQuestionId = this.#currentQuestionId;
+    const pendingQuestionId = this.#questionAnswered
+      ? null
+      : this.#currentQuestionId;
     await this.end();
     if (
       pendingQuestionId !== null &&

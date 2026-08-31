@@ -1049,6 +1049,45 @@ describe("VoiceTurnController", () => {
     expect(harness.session.connect).toHaveBeenCalledTimes(2);
   });
 
+  test("does not replay an answered question after reconnecting", async () => {
+    const harness = createHarness();
+    const question = {
+      ...canonicalSegment(
+        "ask-answered-reconnect",
+        "What happens after approval?",
+      ),
+      source: "brunch-ask" as const,
+    };
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question],
+      status: "streaming",
+    });
+    await harness.controller.start();
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().phase).toBe("listening"),
+    );
+    harness.emit({
+      key: key(1, "answered-item"),
+      text: "The request is assigned to the shift lead.",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+    updateChatStatus(harness.controller, "streaming");
+    updateChatStatus(harness.controller, "ready");
+
+    harness.emit({
+      code: "network",
+      message: "The voice connection failed. Try reconnecting.",
+      requestId: "voice-request-answered-reconnect",
+      type: "error",
+    });
+    await harness.controller.reconnect();
+
+    expect(harness.playback.play).toHaveBeenCalledOnce();
+    expect(harness.session.connect).toHaveBeenCalledTimes(2);
+  });
+
   test("replays a pending question after ending and restarting", async () => {
     const harness = createHarness();
     const question = {
