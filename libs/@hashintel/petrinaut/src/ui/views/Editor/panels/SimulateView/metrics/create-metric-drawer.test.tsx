@@ -46,6 +46,7 @@ function makeLanguageClientValue(): LanguageClientContextValue {
         placeExpressions: {},
       }),
     ),
+    requestFormatExpression: vi.fn(() => Promise.resolve(null)),
     requestHirArtifacts: vi.fn(() =>
       Promise.resolve({
         artifacts: {
@@ -65,6 +66,9 @@ function makeLanguageClientValue(): LanguageClientContextValue {
     initializeMetricSession: vi.fn(),
     updateMetricSession: vi.fn(),
     killMetricSession: vi.fn(),
+    initializeAdHocSession: vi.fn(),
+    updateAdHocSession: vi.fn(),
+    killAdHocSession: vi.fn(),
   };
 }
 

@@ -1,0 +1,219 @@
+---
+title: Form interaction contract
+description: The testable behaviour of the ad-hoc form's spreadsheets, keyboard navigation, and expression editor.
+sidebar_order: 15
+attachTo: ui.adhoc-form
+---
+
+This page is the behavioural contract for the ad-hoc form's tables, its
+keyboard model, and the expression editor. [Building a
+spreadsheet](doc:ui/building-a-spreadsheet) explains how to compose a new
+table from the [kit](layer:ui.adhoc-form.spreadsheet); this page specifies
+what any such table must do. Each numbered invariant is a test target:
+several already have unit tests in `ad-hoc-scenario-form.test.tsx` and
+`print.test.ts`, and a regression in any of them is a bug even where no test
+exists yet.
+
+## Cell selection and activation
+
+Every value in the form renders as a button (the trigger) whose focus is the
+selection. Selection uses plain `:focus` styling (2px blue outline, blue
+wash), never `:focus-visible`: a pointer click selects, and the selection
+must show either way.
+
+1. A keyboard "click" (Enter or Space, `event.detail === 0`) always
+   activates the target.
+2. A pointer click activates only a target that was already focused when the
+   press began (`document.activeElement` checked in `pointerdown`, consumed
+   in `click`). The first click selects; the second acts.
+3. The second click of a double-click activates through its click count
+   (`event.detail` > 1 in `shouldActivate`, on the target the previous
+   click landed on), so double-click needs no handler of its own, and works
+   in browsers that do not focus buttons on pointer down. A phantom cell's
+   creating activation still fires once (the first click of the pair only
+   selects), and a double-click that clicks through a collapsing overlay
+   does not activate the target revealed underneath.
+
+This grammar is implemented once, in the worksheet layer's
+`use-select-first.ts`; `ValueEditor`, `BoundCell`, the variable `NameCell`,
+and the phantom cells consume it. It applies to value cells, bound cells,
+name cells, phantom cells, and the add-variable line.
+
+## Phantom lines
+
+Each table ends in a dimmed trailing line that creates the next entry.
+
+4. Its cells register in the keyboard grid at row `rows.length`, so
+   ArrowDown from any cell of the last data row reaches them, and Enter
+   there creates the entry (rule 1).
+5. Its `+` gutter button creates directly on any click. It is `tabIndex={-1}`
+   and outside the grid: pointer-only, so rule 2 does not apply to it.
+6. Materializing opens the fresh entry's editor (value cell) or name edit
+   (variable) through a nonce, so materializing again after undo re-opens it.
+7. Deleting the last row or variable moves focus to the phantom line, never
+   to the document body.
+
+## Row selection and the gutter
+
+8. Focusing a row's gutter button selects the whole row. The highlight is a
+   background-image overlay with `!important`, so it composites over row
+   tints (dynamic blue, optimized purple) and wins over the shared-column
+   wash. The dependency highlight is a neutral slate wash, so it never
+   reads as a row tint or an error.
+   8a. The dependency highlight lives exactly as long as its value holds
+   focus: closing an editor without focus returning to its cell (an
+   outside click) clears it, and an editor opening on another cell
+   claims it.
+9. On the gutter, Enter opens the row menu (rule 1: a pointer click only
+   selects; the `⋯` affordance opens on any click), Delete removes the row,
+   and every destructive action also lives in the menu.
+10. The row menu opens with the current kind focused; Escape returns focus
+    to the gutter, not to the body.
+
+## The keyboard grid and its members
+
+The movement model is the [worksheet keyboard
+flow](layer:ui.worksheet): grids, headers, and tables are members of
+`FocusStack` groups, and the rules below are this form's instantiation of
+that layer's contract.
+
+11. The form's sections chain in one vertical stack: ArrowUp/ArrowDown at a
+    grid edge move to the neighbouring member in document order. Horizontal
+    arrows that run off a table's sides route through the enclosing stacks
+    (nothing beside a section leaves focus in place); inside a text field
+    they stay with the caret.
+
+11a. A focused element keeps at least 25px of clearance from every
+scrollable ancestor's edges, so the hosts' faded scroll-area edges never
+sit over the selection. Native focus scrolls honour it through
+`scroll-margin`; the worksheet's `use-focus-clearance.ts` nudges the case
+CSS cannot reach (an element already visible inside the faded band). The
+one exception is a focus caused by a fresh pointer press on the element
+itself: the pointer proves visibility, and moving the element between the
+two clicks of a double-click would break click-count activation (rule 3).
+
+12. The token table's vertical stops are, top to bottom: column headers,
+    the shared-values line (when a column is shared), then per row a count
+    strip (dynamic rows only) followed by the cells, then the phantom line.
+    Passing through a full-width stop returns to the column the move
+    started from.
+13. Section and place headers are single-element members: Up/Down move to
+    the neighbouring member, Left collapses, Right expands. A collapsed
+    member fails entry and the walk skips it. A collapsed place mounts no
+    content — its tables mount on first expand and stay mounted after.
+14. Side-by-side layouts wrap each column in its own vertical `FocusStack`
+    inside a horizontal one: vertical arrows stay within a column, and
+    horizontal arrows at a table's sides cross into the neighbouring
+    column, entering it at its remembered position. The default stacked
+    layout is a single vertical stack chaining top to bottom.
+
+## The editor slab
+
+Opening a value cell replaces it in place with a fixed-position slab: a path
+bar above (`Space › item 0 › x`), the Monaco editor at exactly the cell's
+rectangle, and, in optimize mode, an Optimize bar below.
+
+15. The path bar and the Optimize bar carry the same 1px ring as the editor
+    body, so all three read as one frame of equal width. Outward corners
+    round slightly (3px) wherever a bar does not cover them: the path bar on
+    top, the Optimize bar on the bottom, and the body's own bottom when
+    there is no Optimize bar.
+16. One slab at a time: opening dispatches a window event and every other
+    open slab commits and closes.
+17. The slab tracks its trigger through scrolling and resizing. When the
+    trigger scrolls out of its clipped container (intersection below 5%),
+    the slab commits and closes rather than floating detached.
+18. Escape peels exactly one layer, innermost first: a visible suggest or
+    parameter-hints widget, then an open bound edit, then the slab itself.
+    It is consumed at window capture, so a drawer or dialog hosting the
+    form never closes from an Escape aimed at the editor.
+19. Every close path commits: Enter, Escape, a pointer press outside the
+    slab, yielding to another editor, and the trigger leaving view.
+    19a. Where the caret lands follows how the editor opened: an activation
+    (Enter, a second click, an auto-open) selects the whole content, so
+    typing replaces it; type-to-overwrite places the caret after the typed
+    character, so typing continues. Bound cells follow the same rule.
+
+## Value stepping
+
+20. What ArrowUp/ArrowDown step derives from the cell's `kind`: numeric
+    cells (`real`, `integer`, counts) step a bare numeric literal by 1 (10
+    with Shift) preserving its decimal shape (`0.50` steps to `1.50`), and
+    step empty content from 0 (Up gives `1`, Down `-1`); boolean cells set
+    `true` on Up and `false` on Down from empty or boolean content; string
+    and UUID cells never step. The arithmetic is the pure
+    `stepAdHocValue` in `step-value.ts`.
+21. Stepping yields to the suggest widget (arrows navigate completions
+    while it is visible) and requires the editor itself to hold focus. Any
+    other content leaves the arrows to Monaco.
+
+## Format on commit
+
+22. Closing the slab sends the committed expression to the language worker,
+    which lowers it to HIR and prints it back canonically
+    (`hir/print.ts`): single spaces around binary operators, parentheses
+    only where precedence or associativity requires them, `===`/`!==`,
+    double-quoted strings, `(x) => ...` callbacks.
+23. Numeric literals print their preserved raw text byte for byte (`1e-9`,
+    `0x10`, `1_000` survive).
+24. An expression that does not lower, or has no single-expression form,
+    formats to `null` and the user's text stays untouched. Formatting never
+    invents an error.
+25. A format response landing after the slab reopened, or after a newer
+    commit, is discarded (a nonce per commit).
+26. Printing is a right inverse of lowering: re-lowering the printed text
+    yields a structurally identical tree, and printing twice yields the
+    same text (enforced over a corpus in `print.test.ts`).
+
+## Text input integrity
+
+27. While a Monaco editor has focus, its model is the source of truth: the
+    wrapper withholds the controlled `value`, so a render carrying a
+    one-keystroke-stale value cannot reset the content and teleport the
+    cursor to the end mid-typing.
+28. EditContext is disabled in every `CodeEditor`: macOS smart punctuation
+    rewrites code through the EditContext path (a double space becomes a
+    period), and the textarea path is immune.
+29. A reopened editor shows the committed text. Monaco keeps one model per
+    document path, and reopening reuses it, so the wrapper syncs the model
+    to the committed value on mount: without the sync, a formatted commit
+    (rule 22) would show stale text on the next open.
+30. Single-line editors strip newlines reactively (paste included) and
+    treat the resulting Enter as submit; vertical scroll stays pinned to 0.
+
+## Values and display
+
+31. Every value is an expression, and edits dispatch live per keystroke:
+    closing the editor, Escape included, never discards typed text. Escape
+    means "stop editing", not "revert".
+32. An empty expression is legal, never an error: it synthesizes as the
+    cell's neutral value (0 for numbers, `false` for booleans, `""` for
+    text, the nil UUID; an empty dynamic-row count means 1 token and an
+    empty place count 0), and the cell shows that neutral grayed as its
+    placeholder (fresh cells seed empty). Two emptinesses keep their own
+    meaning: an empty parameter override keeps the default, and a cleared
+    Optimize bound stays an error.
+33. An untouched parameter shows its default with a small `default` tag
+    (the value a step darker than the tag), lighter than an override.
+34. A Variable name must be a plain identifier, not reserved, not
+    `__adhoc`-prefixed, and not a dangerous record key (`__proto__` and
+    kin): generated code stores values by that name on plain objects.
+35. Cell content renders in the code font (the `mono` token, the same face
+    Monaco uses). Labels around the grid (section titles, help) stay in the
+    UI face.
+36. The Variables table reads one surface step lighter than the token table
+    beneath it: plain container, `s05` gutter, and a hairline frame against
+    the token table's raised container, `s10` gutter, `s15` headers, and
+    regular frame.
+
+## History
+
+37. Every edit is a serializable action applied by the pure reducer in
+    petrinaut-core and recorded as an undo step. Cmd/Ctrl+Z anywhere in the
+    form walks the snapshots, except inside an open text field or Monaco
+    editor, which own their own undo. The formatted re-print of rule 22 is
+    itself an undo step: undo after commit restores the text as typed.
+38. Dispatch always applies to the latest committed state, never a render
+    snapshot: an action arriving from an async continuation (the format
+    round-trip) must not roll back edits made elsewhere while it was in
+    flight.
