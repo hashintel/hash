@@ -142,6 +142,33 @@ describe("setExpression", () => {
     ]);
   });
 
+  it("onlyIfExpression drops a replace whose slot moved on", () => {
+    const target = {
+      kind: "cell",
+      placeId: "place-pumps",
+      row: 0,
+      column: 0,
+    } as const;
+    // The slot holds "wear + 1"; a guarded replace expecting stale content
+    // is a no-op (same reference), while a matching guard lands.
+    const before = baseState();
+    const stale = apply(before, {
+      type: "setExpression",
+      target,
+      expression: "wear+2",
+      onlyIfExpression: "wear + 2",
+    });
+    expect(stale).toBe(before);
+
+    const applied = apply(before, {
+      type: "setExpression",
+      target,
+      expression: "wear + one",
+      onlyIfExpression: "wear + 1",
+    });
+    expect(pumps(applied).rows[0]!.cells[0]!.expression).toBe("wear + one");
+  });
+
   it("edits variables at both scopes", () => {
     const topLevel = apply(baseState(), {
       type: "setExpression",

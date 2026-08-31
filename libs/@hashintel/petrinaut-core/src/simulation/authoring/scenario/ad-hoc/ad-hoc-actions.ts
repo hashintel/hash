@@ -70,6 +70,13 @@ export const adHocActionInputSchemas = {
     .strictObject({
       target: adHocValueTargetSchema,
       expression: z.string(),
+      /**
+       * Replace only while the slot still holds exactly this expression.
+       * An async continuation (the format-on-commit round-trip) uses it so
+       * a response landing after an undo or a newer edit becomes a no-op
+       * instead of clobbering that state with a new history step.
+       */
+      onlyIfExpression: z.string().optional(),
     })
     .meta({ description: "Set the expression a value slot holds." }),
   setDomainField: z
@@ -734,7 +741,9 @@ export function applyAdHocAction(
   switch (action.type) {
     case "setExpression":
       return updateValueAt(state, context, action.target, (value) =>
-        value.expression === action.expression
+        value.expression === action.expression ||
+        (action.onlyIfExpression !== undefined &&
+          value.expression !== action.onlyIfExpression)
           ? value
           : { ...value, expression: action.expression },
       );
