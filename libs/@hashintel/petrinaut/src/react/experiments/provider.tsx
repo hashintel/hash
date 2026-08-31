@@ -1278,6 +1278,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       if (!session || positions.length === 0) {
         return null;
       }
+      // The navigator's selection always comes first: hold secondary chunks
+      // until the current selection has streamed its first frames (the gate
+      // re-arms on every selection change), so the metric charts fill before
+      // surface sampling competes for workers.
+      await session.whenSelectionStreamed();
       // One batch shares one compiled initial marking, so batch only when
       // every cell in this chunk compiles to the same marking as the first
       // (checked at the actual cell values — no synthetic probe points).
