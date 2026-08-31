@@ -441,7 +441,8 @@ export class VoiceTurnController {
     if (
       this.#speechLoopGeneration !== null ||
       this.#speechQueue.length === 0 ||
-      this.#activeEpoch === null
+      this.#activeEpoch === null ||
+      this.#snapshot.phase === "transcribing"
     ) {
       return;
     }
@@ -525,6 +526,11 @@ export class VoiceTurnController {
       this.#speechLoopGeneration !== null ||
       this.#speechQueue.length > 0
     ) {
+      return;
+    }
+
+    if (this.#snapshot.phase === "transcribing") {
+      this.#session.setMicrophoneEnabled(false);
       return;
     }
 

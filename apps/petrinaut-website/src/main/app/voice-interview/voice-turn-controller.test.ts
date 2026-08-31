@@ -492,6 +492,45 @@ describe("VoiceTurnController", () => {
     );
   });
 
+  test("finishes an in-flight transcript when a ready chat update arrives", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emit({
+      connectionEpoch: 1,
+      itemId: "item-a",
+      type: "input-committed",
+    });
+    harness.emit({
+      key: key(1, "item-a"),
+      text: "The support",
+      type: "partial",
+    });
+
+    harness.controller.updateChat({
+      canonicalSegments: [
+        canonicalSegment("canonical-speech:ready:text%3A0:fnv1a32:12345678"),
+      ],
+      status: "ready",
+    });
+
+    expect(harness.controller.getSnapshot().phase).toBe("transcribing");
+    expect(harness.playback.play).not.toHaveBeenCalled();
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+
+    harness.emit({
+      key: key(1, "item-a"),
+      text: "The support lead triages it.",
+      type: "completed",
+    });
+
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+    expect(harness.submitText).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "The support lead triages it." }),
+    );
+  });
+
   test("rejects events from a stopped epoch after reconnect", async () => {
     const harness = createHarness();
     await harness.controller.start();
