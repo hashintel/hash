@@ -72,7 +72,7 @@ Every selection uses the same seed sequence (common random numbers), and a run's
 
 #### The surface view
 
-A sweep with two or more swept parameters grows a **Surface** section between the parameter strip and the metric charts: a contour plot of one metric's final value over two parameters you pick, with every other parameter held at the middle of its selected range. The plot fills in live — points are sampled a few runs at a time (8 runs each), coarse shape first — and **clicking the surface moves the navigator**: both shown parameters collapse to a point at the clicked position, which then refines with more runs. Changing the fixed parameters, the axes, or the metric restarts the fill for the new slice.
+A sweep with two or more swept parameters grows a **Surface** section between the parameter strip and the metric charts: a contour plot of one metric's final value over two parameters you pick, with every other parameter held at the middle of its selected range. The plot fills in live — cells are sampled in chunks a few runs at a time (8 runs each), coarse shape first — and **clicking the surface moves the navigator**: both shown parameters collapse to a point at the clicked position, which then refines with more runs. Every metric is measured on the same samples, so switching the shown metric repaints instantly from what was already computed; changing the fixed parameters or the axes restarts the fill for the new slice.
 
 The summary, the parameter strip, and the surface hold still at the top of the drawer; the metric charts scroll on their own below them, so the graphs stay in view while you browse the charts.
 
