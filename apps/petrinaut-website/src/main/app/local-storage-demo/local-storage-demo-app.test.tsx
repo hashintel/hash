@@ -45,10 +45,6 @@ describe("local storage demo Brunch voice integration", () => {
       setVoiceActive: vi.fn(),
       status: "ready",
       stop: vi.fn(async () => undefined),
-      submitVoiceInput: vi.fn(async () => ({
-        kind: "message" as const,
-        messageId: "message-1",
-      })),
       submitText: vi.fn(async () => ({
         kind: "message" as const,
         messageId: "message-1",
