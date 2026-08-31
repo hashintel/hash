@@ -42,7 +42,9 @@ complete voice telemetry and final projection contracts are not production-ready
    response with no available tools. Initial and keyboard-triggered canonical segments use the
    same constrained response path. Realtime is instructed to speak only those strings in order;
    the visible Brunch text remains authoritative because generated speech is not guaranteed to be
-   lexically identical.
+   lexically identical. Canonical `response.create` requests are serialized behind Realtime
+   response terminal events. Cancelled argument streams are discarded by response identity, and
+   only exactly correlated provider no-op errors are treated as recoverable.
 6. **The interaction is duplex.** The microphone stays active while the interviewer speaks and
    while Brunch handles a tool call. Semantic VAD finalizes turns without a required button.
    Speech during assistant audio interrupts playback and WebRTC truncates unheard provider audio;

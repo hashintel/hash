@@ -62,6 +62,12 @@ export type OpenAIRealtimeSessionEvent =
       readonly responseId: string;
       readonly type: "output-interrupted";
     }
+  | {
+      readonly connectionEpoch: number;
+      readonly responseId: string;
+      readonly status: "cancelled" | "completed" | "failed" | "incomplete";
+      readonly type: "response-terminal";
+    }
   | (RealtimeToolEventIdentity & {
       readonly delta: string;
       readonly type: "tool-arguments-delta";
@@ -105,6 +111,21 @@ interface RequestTiming {
   readonly requestId: string;
   readonly startedAt: number;
 }
+
+interface CanonicalSpeechRequest {
+  readonly response: Record<string, unknown>;
+  readonly speechRequestId: string;
+}
+
+type PendingClientEvent =
+  | {
+      readonly kind: "response-cancel";
+      readonly responseId: string;
+    }
+  | {
+      readonly kind: "response-create";
+      readonly request: CanonicalSpeechRequest;
+    };
 
 type SessionListener = (event: OpenAIRealtimeSessionEvent) => void;
 
@@ -165,9 +186,12 @@ const waitForAbort = <Value>(
 
 export class OpenAIRealtimeSession {
   readonly #dependencies: OpenAIRealtimeSessionDependencies;
+  readonly #activeResponseIds = new Set<string>();
   readonly #listeners = new Set<SessionListener>();
   readonly #authorizedResponseIds = new Set<string>();
   readonly #canonicalResponseIds = new Set<string>();
+  readonly #canonicalSpeechQueue: CanonicalSpeechRequest[] = [];
+  readonly #pendingClientEvents = new Map<string, PendingClientEvent>();
   readonly #pendingSpeechRequests = new Map<string, RequestTiming>();
   readonly #remoteStreams = new Set<MediaStream>();
   readonly #speechTimings = new Map<string, RequestTiming>();
@@ -178,6 +202,7 @@ export class OpenAIRealtimeSession {
   #audioContext: AudioContext | null = null;
   #connected = false;
   #connectedAt: number | null = null;
+  #clientEventSequence = 0;
   #connectionRequestId: string | null = null;
   #dataChannel: RTCDataChannel | null = null;
   #epoch = 0;
@@ -190,9 +215,11 @@ export class OpenAIRealtimeSession {
   #microphoneTrack: MediaStreamTrack | null = null;
   #peerConnection: RTCPeerConnection | null = null;
   #remoteAudio: RemoteAudio | null = null;
+  #responseCreateEventId: string | null = null;
   #speakingResponseId: string | null = null;
   #speechRequestSequence = 0;
   #unexpectedCloseListener: (() => void) | null = null;
+  #waitingForResponseTerminal = false;
 
   public constructor(dependencies: OpenAIRealtimeSessionDependencies) {
     this.#dependencies = dependencies;
@@ -387,10 +414,18 @@ export class OpenAIRealtimeSession {
   }
 
   public cancelOutput(): void {
-    if (!this.#connected || this.#dataChannel?.readyState !== "open") {
+    if (
+      !this.#connected ||
+      this.#dataChannel?.readyState !== "open" ||
+      !this.#speakingResponseId
+    ) {
       return;
     }
-    this.#send({ type: "response.cancel" });
+    this.#cancelOutputResponse(this.#speakingResponseId);
+  }
+
+  #cancelOutputResponse(responseId: string): void {
+    this.#cancelResponse(responseId);
     this.#send({ type: "output_audio_buffer.clear" });
   }
 
@@ -448,10 +483,70 @@ export class OpenAIRealtimeSession {
         petrinaut_request_id: speechRequestId,
       },
     };
+    const request = { response, speechRequestId };
+    this.#canonicalSpeechQueue.push(request);
     try {
-      this.#send({ type: "response.create", response });
+      this.#sendNextCanonicalSpeech();
     } catch (error) {
+      const queuedRequestIndex = this.#canonicalSpeechQueue.indexOf(request);
+      if (queuedRequestIndex >= 0) {
+        this.#canonicalSpeechQueue.splice(queuedRequestIndex, 1);
+      }
       this.#pendingSpeechRequests.delete(speechRequestId);
+      throw error;
+    }
+  }
+
+  #cancelResponse(responseId: string): void {
+    const eventId = this.#createClientEventId();
+    this.#pendingClientEvents.set(eventId, {
+      kind: "response-cancel",
+      responseId,
+    });
+    try {
+      this.#send({
+        event_id: eventId,
+        response_id: responseId,
+        type: "response.cancel",
+      });
+    } catch (error) {
+      this.#pendingClientEvents.delete(eventId);
+      throw error;
+    }
+  }
+
+  #createClientEventId(): string {
+    return `petrinaut-${this.#activeEpoch}-${++this.#clientEventSequence}`;
+  }
+
+  #sendNextCanonicalSpeech(): void {
+    if (
+      this.#activeResponseIds.size > 0 ||
+      this.#responseCreateEventId !== null ||
+      this.#waitingForResponseTerminal
+    ) {
+      return;
+    }
+    const request = this.#canonicalSpeechQueue.shift();
+    if (!request) {
+      return;
+    }
+
+    const eventId = this.#createClientEventId();
+    this.#responseCreateEventId = eventId;
+    this.#pendingClientEvents.set(eventId, {
+      kind: "response-create",
+      request,
+    });
+    try {
+      this.#send({
+        event_id: eventId,
+        response: request.response,
+        type: "response.create",
+      });
+    } catch (error) {
+      this.#responseCreateEventId = null;
+      this.#pendingClientEvents.delete(eventId);
       throw error;
     }
   }
@@ -469,7 +564,7 @@ export class OpenAIRealtimeSession {
       return;
     }
     if (parsed.type === "error") {
-      this.#handleConnectionFailure("invalid-response", "connection");
+      this.#handleProviderError(parsed);
       return;
     }
     if (parsed.type === "response.created") {
@@ -535,15 +630,19 @@ export class OpenAIRealtimeSession {
   #handleResponseCreated(event: Record<string, unknown>): void {
     const response = asRecord(event.response);
     const responseId = nonEmptyString(response?.id);
+    if (!responseId) {
+      return;
+    }
+    this.#activeResponseIds.add(responseId);
     const metadata = asRecord(response?.metadata);
     const speechRequestId = nonEmptyString(metadata?.petrinaut_request_id);
     if (
-      !responseId ||
       metadata?.petrinaut_kind !== "canonical-speech" ||
       !speechRequestId
     ) {
       return;
     }
+    this.#completeResponseCreateEvent(speechRequestId);
     const timing = this.#pendingSpeechRequests.get(speechRequestId);
     if (!timing) {
       return;
@@ -552,6 +651,60 @@ export class OpenAIRealtimeSession {
     this.#authorizedResponseIds.add(responseId);
     this.#canonicalResponseIds.add(responseId);
     this.#speechTimings.set(responseId, timing);
+  }
+
+  #completeResponseCreateEvent(speechRequestId: string): void {
+    if (!this.#responseCreateEventId) {
+      return;
+    }
+    const pendingEvent = this.#pendingClientEvents.get(
+      this.#responseCreateEventId,
+    );
+    if (
+      pendingEvent?.kind !== "response-create" ||
+      pendingEvent.request.speechRequestId !== speechRequestId
+    ) {
+      return;
+    }
+    this.#pendingClientEvents.delete(this.#responseCreateEventId);
+    this.#responseCreateEventId = null;
+  }
+
+  #handleProviderError(event: Record<string, unknown>): void {
+    const providerError = asRecord(event.error);
+    const errorType = nonEmptyString(providerError?.type);
+    const errorCode = nonEmptyString(providerError?.code);
+    const sourceEventId = nonEmptyString(providerError?.event_id);
+    const pendingEvent = sourceEventId
+      ? this.#pendingClientEvents.get(sourceEventId)
+      : undefined;
+
+    if (
+      errorType === "invalid_request_error" &&
+      errorCode === "response_cancel_not_active" &&
+      pendingEvent?.kind === "response-cancel" &&
+      sourceEventId
+    ) {
+      this.#pendingClientEvents.delete(sourceEventId);
+      return;
+    }
+
+    if (
+      errorType === "invalid_request_error" &&
+      errorCode === "conversation_already_has_active_response" &&
+      pendingEvent?.kind === "response-create" &&
+      sourceEventId
+    ) {
+      this.#pendingClientEvents.delete(sourceEventId);
+      if (this.#responseCreateEventId === sourceEventId) {
+        this.#responseCreateEventId = null;
+      }
+      this.#canonicalSpeechQueue.unshift(pendingEvent.request);
+      this.#waitingForResponseTerminal = true;
+      return;
+    }
+
+    this.#handleConnectionFailure("invalid-response", "connection");
   }
 
   #handleResponseDone(
@@ -564,6 +717,19 @@ export class OpenAIRealtimeSession {
     if (!response || !responseId || typeof status !== "string") {
       return;
     }
+    if (
+      status !== "completed" &&
+      status !== "cancelled" &&
+      status !== "failed" &&
+      status !== "incomplete"
+    ) {
+      this.#handleConnectionFailure("invalid-response", "connection");
+      return;
+    }
+    this.#activeResponseIds.delete(responseId);
+    this.#clearResponseCancelEvents(responseId);
+    this.#waitingForResponseTerminal = false;
+
     if (status === "completed") {
       const output = response.output;
       if (!Array.isArray(output)) {
@@ -608,6 +774,13 @@ export class OpenAIRealtimeSession {
           type: "tool-arguments-done",
         });
       }
+      this.#emit({
+        connectionEpoch,
+        responseId,
+        status,
+        type: "response-terminal",
+      });
+      this.#resumeCanonicalSpeechQueue();
       return;
     }
     if (status === "cancelled") {
@@ -618,17 +791,45 @@ export class OpenAIRealtimeSession {
           type: "output-interrupted",
         });
       }
+      this.#emit({
+        connectionEpoch,
+        responseId,
+        status,
+        type: "response-terminal",
+      });
       this.#finishSpeech(responseId, "request-aborted");
+      this.#resumeCanonicalSpeechQueue();
       return;
     }
-    if (status === "failed" || status === "incomplete") {
-      if (this.#authorizedResponseIds.has(responseId)) {
-        this.#finishSpeech(responseId, "invalid-response");
-      }
-      this.#handleConnectionFailure("invalid-response", "connection");
-      return;
+    this.#emit({
+      connectionEpoch,
+      responseId,
+      status,
+      type: "response-terminal",
+    });
+    if (this.#authorizedResponseIds.has(responseId)) {
+      this.#finishSpeech(responseId, "invalid-response");
     }
     this.#handleConnectionFailure("invalid-response", "connection");
+  }
+
+  #clearResponseCancelEvents(responseId: string): void {
+    for (const [eventId, pendingEvent] of this.#pendingClientEvents) {
+      if (
+        pendingEvent.kind === "response-cancel" &&
+        pendingEvent.responseId === responseId
+      ) {
+        this.#pendingClientEvents.delete(eventId);
+      }
+    }
+  }
+
+  #resumeCanonicalSpeechQueue(): void {
+    try {
+      this.#sendNextCanonicalSpeech();
+    } catch {
+      this.#handleConnectionFailure("network", "speech");
+    }
   }
 
   #handleOutputBufferEvent(
@@ -639,7 +840,7 @@ export class OpenAIRealtimeSession {
     if (!responseId) return;
     if (event.type === "output_audio_buffer.started") {
       if (!this.#authorizedResponseIds.has(responseId)) {
-        this.cancelOutput();
+        this.#cancelOutputResponse(responseId);
         this.#handleConnectionFailure("invalid-response", "connection");
         return;
       }
@@ -992,11 +1193,16 @@ export class OpenAIRealtimeSession {
       );
     }
     this.#transcriptionTimings.clear();
+    this.#activeResponseIds.clear();
+    this.#canonicalSpeechQueue.length = 0;
+    this.#pendingClientEvents.clear();
     this.#pendingSpeechRequests.clear();
     this.#speechTimings.clear();
     this.#authorizedResponseIds.clear();
     this.#canonicalResponseIds.clear();
+    this.#responseCreateEventId = null;
     this.#speakingResponseId = null;
+    this.#waitingForResponseTerminal = false;
     this.#activeEpoch = null;
     this.#connected = false;
     this.#connectedAt = null;

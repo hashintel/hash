@@ -120,6 +120,7 @@ export class RealtimeBrunchBridge {
     input: SubmitInterviewAnswerInput,
   ) => Promise<SubmitInterviewAnswerResult>;
   readonly #seenSegmentIds = new Set<string>();
+  readonly #terminalResponseIds = new Set<string>();
   #activeEpoch: number | null = null;
   #activeSubmission: ActiveSubmission | null = null;
   #chat: ChatUpdate = {
@@ -150,6 +151,7 @@ export class RealtimeBrunchBridge {
     this.#argumentDeltas.clear();
     this.#processedCalls.clear();
     this.#seenSegmentIds.clear();
+    this.#terminalResponseIds.clear();
     for (const segment of this.#chat.canonicalSegments) {
       this.#seenSegmentIds.add(segment.id);
     }
@@ -169,6 +171,7 @@ export class RealtimeBrunchBridge {
     this.#activeEpoch = null;
     this.#activeSubmission = null;
     this.#argumentDeltas.clear();
+    this.#terminalResponseIds.clear();
   }
 
   public updateChat(update: ChatUpdate): void {
@@ -228,13 +231,26 @@ export class RealtimeBrunchBridge {
 
   #handleSessionEvent(event: OpenAIRealtimeSessionEvent): void {
     if (
-      (event.type !== "tool-arguments-delta" &&
-        event.type !== "tool-arguments-done") ||
+      !("connectionEpoch" in event) ||
       event.connectionEpoch !== this.#activeEpoch
     ) {
       return;
     }
+    if (event.type === "response-terminal") {
+      this.#handleResponseTerminal(event);
+      return;
+    }
+    if (
+      event.type !== "tool-arguments-delta" &&
+      event.type !== "tool-arguments-done"
+    ) {
+      return;
+    }
 
+    const responseKey = `${event.connectionEpoch}:${event.responseId}`;
+    if (this.#terminalResponseIds.has(responseKey)) {
+      return;
+    }
     const callKey = `${event.connectionEpoch}:${event.callId}`;
     if (this.#processedCalls.has(callKey)) {
       return;
@@ -310,6 +326,28 @@ export class RealtimeBrunchBridge {
     };
     this.#emit({ answer, callId: event.callId, type: "submission-started" });
     void this.#submit(event, answer, generation);
+  }
+
+  #handleResponseTerminal(
+    event: Extract<
+      OpenAIRealtimeSessionEvent,
+      { type: "response-terminal" }
+    >,
+  ): void {
+    const responseKey = `${event.connectionEpoch}:${event.responseId}`;
+    const matchingStreams = [...this.#argumentDeltas].filter(
+      ([, stream]) => stream.responseId === event.responseId,
+    );
+    if (event.status === "completed" && matchingStreams.length > 0) {
+      this.#fail(INVALID_BRIDGE_EVENT);
+      return;
+    }
+
+    for (const [callKey] of matchingStreams) {
+      this.#argumentDeltas.delete(callKey);
+      this.#processedCalls.add(callKey);
+    }
+    this.#terminalResponseIds.add(responseKey);
   }
 
   async #submit(

@@ -321,6 +321,12 @@ describe("OpenAIRealtimeSession", () => {
         responseId: "response-tool",
         type: "tool-arguments-done",
       },
+      {
+        connectionEpoch: 1,
+        responseId: "response-tool",
+        status: "completed",
+        type: "response-terminal",
+      },
     ]);
 
     harness.session.completeFunctionCall("call-1", [
@@ -346,6 +352,130 @@ describe("OpenAIRealtimeSession", () => {
         tools: [],
       },
     });
+  });
+
+  test("queues canonical speech behind an active Realtime response", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    channel.receive({
+      response: { id: "response-active" },
+      type: "response.created",
+    });
+
+    harness.session.speakCanonical([
+      canonicalSegment("question", "Canonical question"),
+    ]);
+
+    expect(sentEvents(channel)).toEqual([]);
+    channel.receive({
+      response: {
+        id: "response-active",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    expect(sentEvents(channel)).toHaveLength(1);
+    expect(sentEvents(channel)[0]).toMatchObject({
+      type: "response.create",
+      response: {
+        metadata: { petrinaut_kind: "canonical-speech" },
+      },
+    });
+    expect(harness.events).toContainEqual({
+      connectionEpoch: 1,
+      responseId: "response-active",
+      status: "completed",
+      type: "response-terminal",
+    });
+  });
+
+  test("retries a correlated canonical response after the active response ends", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    harness.session.speakCanonical([
+      canonicalSegment("question", "Canonical question"),
+    ]);
+    const firstCreate = sentEvents(channel)[0]!;
+
+    channel.receive({
+      error: {
+        code: "conversation_already_has_active_response",
+        event_id: firstCreate.event_id,
+        message: "private provider detail",
+        type: "invalid_request_error",
+      },
+      type: "error",
+    });
+    channel.receive({
+      response: { id: "response-active" },
+      type: "response.created",
+    });
+    channel.receive({
+      response: {
+        id: "response-active",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    const responseCreates = sentEvents(channel).filter(
+      ({ type }) => type === "response.create",
+    );
+    expect(responseCreates).toHaveLength(2);
+    expect(responseCreates[1]?.response).toEqual(firstCreate.response);
+    expect(harness.events).not.toContainEqual(
+      expect.objectContaining({ type: "error" }),
+    );
+    expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
+  });
+
+  test("ignores a correlated cancel for an already-finished response", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    harness.session.speakCanonical([
+      canonicalSegment("question", "Canonical question"),
+    ]);
+    const responseCreate = sentEvents(channel)[0]!;
+    channel.receive({
+      response: {
+        id: "response-canonical",
+        metadata: (responseCreate.response as Record<string, unknown>).metadata,
+      },
+      type: "response.created",
+    });
+    channel.receive({
+      response_id: "response-canonical",
+      type: "output_audio_buffer.started",
+    });
+
+    harness.session.cancelOutput();
+    const cancelEvent = sentEvents(channel).findLast(
+      ({ type }) => type === "response.cancel",
+    )!;
+    expect(cancelEvent).toMatchObject({
+      response_id: "response-canonical",
+      type: "response.cancel",
+    });
+    channel.receive({
+      error: {
+        code: "response_cancel_not_active",
+        event_id: cancelEvent.event_id,
+        message: "private provider detail",
+        type: "invalid_request_error",
+      },
+      type: "error",
+    });
+
+    expect(harness.events).not.toContainEqual(
+      expect.objectContaining({ type: "error" }),
+    );
+    expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
   });
 
   test("rejects malformed completed function calls without exposing provider data", async () => {
@@ -512,10 +642,13 @@ describe("OpenAIRealtimeSession", () => {
       type: "output_audio_buffer.started",
     });
 
-    expect(sentEvents(harness.channels[0]!)).toEqual([
-      { type: "response.cancel" },
-      { type: "output_audio_buffer.clear" },
-    ]);
+    const [cancelEvent, clearEvent] = sentEvents(harness.channels[0]!);
+    expect(cancelEvent).toMatchObject({
+      response_id: "response-unauthorized",
+      type: "response.cancel",
+    });
+    expect(typeof cancelEvent?.event_id).toBe("string");
+    expect(clearEvent).toEqual({ type: "output_audio_buffer.clear" });
     expect(harness.events.at(-1)).toMatchObject({
       code: "invalid-response",
       type: "error",

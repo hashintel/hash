@@ -234,6 +234,13 @@ describe("controlled voice preview", () => {
       item_id: "user-item",
       type: "input_audio_buffer.speech_started",
     });
+    dataChannel.receive({
+      response: {
+        id: "response-initial-question",
+        status: "cancelled",
+      },
+      type: "response.done",
+    });
     expect(controller.getSnapshot()).toMatchObject({
       input: "listening",
       microphoneEnabled: true,

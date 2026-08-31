@@ -84,6 +84,20 @@ const toolDone = (
   type: "tool-arguments-done",
 });
 
+const responseTerminal = (
+  connectionEpoch: number,
+  status: "cancelled" | "completed" | "failed" | "incomplete",
+  responseId = "response-1",
+): Extract<
+  OpenAIRealtimeSessionEvent,
+  { type: "response-terminal" }
+> => ({
+  connectionEpoch,
+  responseId,
+  status,
+  type: "response-terminal",
+});
+
 describe("RealtimeBrunchBridge", () => {
   test("speaks the current canonical turn without replaying history", () => {
     const harness = createHarness();
@@ -308,6 +322,64 @@ describe("RealtimeBrunchBridge", () => {
     expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
     expect(harness.events).toEqual([
       expect.objectContaining({ type: "error" }),
+    ]);
+  });
+
+  test("discards a cancelled argument stream without poisoning the next answer", async () => {
+    const harness = createHarness();
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [segment("ask-current", "Question")],
+      status: "ready",
+    });
+    harness.bridge.start(3);
+    harness.emit(toolDelta(3, '{"answer":"Cancelled"}'));
+    harness.emit(responseTerminal(3, "cancelled"));
+    harness.emit(toolDone(3, '{"answer":"Cancelled"}'));
+
+    harness.emit({
+      ...toolDelta(3, '{"answer":"Accepted"}'),
+      callId: "call-2",
+      itemId: "function-item-2",
+      responseId: "response-2",
+    });
+    harness.emit({
+      ...toolDone(3, '{"answer":"Accepted"}'),
+      callId: "call-2",
+      itemId: "function-item-2",
+      responseId: "response-2",
+    });
+
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith({
+      id: createRealtimeSubmissionId(3, "call-2"),
+      text: "Accepted",
+    });
+    expect(harness.events).not.toContainEqual(
+      expect.objectContaining({ type: "error" }),
+    );
+  });
+
+  test("rejects an unfinished argument stream from a completed response", () => {
+    const harness = createHarness();
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [segment("ask-current", "Question")],
+      status: "ready",
+    });
+    harness.bridge.start(3);
+    harness.emit(toolDelta(3, '{"answer":"Incomplete'));
+
+    harness.emit(responseTerminal(3, "completed"));
+
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+    expect(harness.events).toEqual([
+      expect.objectContaining({
+        code: "interview-correlation",
+        type: "error",
+      }),
     ]);
   });
 
