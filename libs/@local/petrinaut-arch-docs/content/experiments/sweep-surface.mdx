@@ -51,8 +51,11 @@ Restarting` story demonstrates the cycle.
 
 ## Eight runs is a sketch
 
-A surface cell's value is the mean over eight runs — enough for the shape,
-not for reading precise values. Clicking a region moves the navigator to the
+A surface cell's value is the mean over the last _sampled_ frame's
+distribution — a terminating net finishes its runs before `maxTime`, so the
+final frames legitimately carry no samples, and reading only the literal
+last frame once discarded every cell of such a net's surface. Eight runs is
+enough for the shape, not for reading precise values. Clicking a region moves the navigator to the
 nearest combination, whose ladder then refines it properly; the deeper result
 flows back into the same cache and the surface repaints with it.
 
