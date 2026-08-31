@@ -169,35 +169,51 @@ export const createOpenAISpeechHandler =
       return response("Not found.", 404);
     }
 
+    const abortController = new AbortController();
+    const abortForRequest = () => abortController.abort();
+    request.signal.addEventListener("abort", abortForRequest, { once: true });
+    if (request.signal.aborted) {
+      abortForRequest();
+    }
+    const removeRequestAbortListener = () => {
+      request.signal.removeEventListener("abort", abortForRequest);
+    };
+
     let parsedBody: unknown;
     try {
+      abortController.signal.throwIfAborted();
       const body = await readRequestBody(request);
+      abortController.signal.throwIfAborted();
       if (body instanceof Response) {
+        removeRequestAbortListener();
         return body;
       }
       parsedBody = JSON.parse(body);
     } catch {
+      removeRequestAbortListener();
+      if (abortController.signal.aborted) {
+        return response(SPEECH_ERROR_MESSAGE, 502);
+      }
       return response("The speech request is invalid.", 400);
     }
 
     if (!isSpeechRequest(parsedBody)) {
+      removeRequestAbortListener();
       return response("The speech request is invalid.", 400);
     }
 
-    const abortController = new AbortController();
     const abortForTimeout = () => abortController.abort(timeoutError);
-    const abortForRequest = () => abortController.abort();
     const timeout = globalThis.setTimeout(
       abortForTimeout,
       OPENAI_SPEECH_TIMEOUT_MS,
     );
-    request.signal.addEventListener("abort", abortForRequest, { once: true });
     const cleanup = () => {
       globalThis.clearTimeout(timeout);
-      request.signal.removeEventListener("abort", abortForRequest);
+      removeRequestAbortListener();
     };
 
     try {
+      abortController.signal.throwIfAborted();
       const upstreamResponse = await fetch(OPENAI_SPEECH_ENDPOINT, {
         body: JSON.stringify({
           input: parsedBody.text,

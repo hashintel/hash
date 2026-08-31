@@ -100,6 +100,57 @@ describe("OpenAI Speech handler", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  test("does not contact OpenAI for a pre-aborted request", async () => {
+    const requestAbortController = new AbortController();
+    requestAbortController.abort();
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    const handler = createOpenAISpeechHandler({
+      environment: enabledEnvironment,
+      fetch,
+    });
+
+    const response = await handler(
+      createRequest(undefined, { signal: requestAbortController.signal }),
+    );
+
+    expect(response.status).toBe(502);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test("does not contact OpenAI when the request aborts while its body is read", async () => {
+    const requestAbortController = new AbortController();
+    const encodedRequest = new TextEncoder().encode(
+      JSON.stringify(validSpeechRequest),
+    );
+    let finishBody: (() => void) | undefined;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        finishBody = () => {
+          controller.enqueue(encodedRequest);
+          controller.close();
+        };
+      },
+    });
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    const handler = createOpenAISpeechHandler({
+      environment: enabledEnvironment,
+      fetch,
+    });
+
+    const responsePromise = handler(
+      createRequest(body, {
+        duplex: "half",
+        signal: requestAbortController.signal,
+      } as RequestInit),
+    );
+    requestAbortController.abort();
+    finishBody?.();
+    const response = await responsePromise;
+
+    expect(response.status).toBe(502);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   test("streams audio for the exact canonical text with fixed server policy", async () => {
     const firstChunk = new Uint8Array([1, 2, 3]);
     const secondChunk = new Uint8Array([4, 5]);
