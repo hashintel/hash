@@ -420,6 +420,73 @@ describe("OpenAIRealtimeSession", () => {
     );
   });
 
+  test("preserves a peer failure while the realtime call is pending", async () => {
+    const harness = createHarness();
+    harness.fetch.mockImplementationOnce(
+      (_input, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new DOMException("aborted", "AbortError"));
+          });
+        }),
+    );
+    const connection = harness.session.connect();
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+
+    harness.peers[0]!.connectionState = "failed";
+    harness.peers[0]!.onconnectionstatechange?.();
+
+    await expect(connection).rejects.toMatchObject({
+      code: "network",
+      requestId: "voice-request-1",
+    });
+    expect(harness.reportDiagnostic).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        errorCode: "network",
+        outcome: "failure",
+      }),
+    );
+  });
+
+  test("preserves a provider failure while waiting for the data channel", async () => {
+    const harness = createHarness();
+    let resolveFetch: ((response: Response) => void) | undefined;
+    harness.fetch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    const connection = harness.session.connect();
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+    harness.peers[0]!.setRemoteDescription.mockResolvedValueOnce(undefined);
+    resolveFetch?.(
+      new Response("v=0\r\no=OpenAI answer", {
+        headers: { "content-type": "application/sdp" },
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(harness.peers[0]!.setRemoteDescription).toHaveBeenCalledOnce(),
+    );
+    await Promise.resolve();
+
+    harness.channels[0]!.receive({
+      error: { message: "private provider diagnostic" },
+      type: "error",
+    });
+
+    await expect(connection).rejects.toMatchObject({
+      code: "invalid-response",
+      requestId: "voice-request-1",
+    });
+    expect(harness.reportDiagnostic).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        errorCode: "invalid-response",
+        outcome: "failure",
+      }),
+    );
+  });
+
   test("rejects a data channel already closed after negotiation", async () => {
     const harness = createHarness(1_000);
     let resolveFetch: ((response: Response) => void) | undefined;

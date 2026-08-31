@@ -321,12 +321,14 @@ export class OpenAIRealtimeSession {
       const voiceError =
         abortController.signal.reason === timeoutError
           ? new VoiceError("connection", "timeout", requestId)
-          : error instanceof VoiceError
-            ? error
-            : abortController.signal.aborted ||
-                (error instanceof DOMException && error.name === "AbortError")
-              ? new VoiceError("connection", "request-aborted", requestId)
-              : new VoiceError("connection", "invalid-response", requestId);
+          : abortController.signal.reason instanceof VoiceError
+            ? abortController.signal.reason
+            : error instanceof VoiceError
+              ? error
+              : abortController.signal.aborted ||
+                  (error instanceof DOMException && error.name === "AbortError")
+                ? new VoiceError("connection", "request-aborted", requestId)
+                : new VoiceError("connection", "invalid-response", requestId);
       if (this.#activeEpoch === connectionEpoch) {
         this.#releaseResources();
       }
@@ -605,7 +607,7 @@ export class OpenAIRealtimeSession {
         if (event.type === "open") {
           resolve();
         } else if (event.type === "abort") {
-          reject(new DOMException("Connection aborted", "AbortError"));
+          reject(signal.reason);
         } else {
           reject(new VoiceError("connection", "network", requestId));
         }
