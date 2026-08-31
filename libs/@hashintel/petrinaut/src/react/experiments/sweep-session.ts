@@ -134,6 +134,13 @@ export type CreateSweepSessionOptions = {
 export type SweepSession = {
   setSelection: (selection: SweepSelection) => void;
   /**
+   * Resolves once the CURRENT selection has streamed data — its first
+   * in-flight frames, a cache hit with runs, or a failure (nothing to wait
+   * for). Re-arms on every selection change, so awaiting it before secondary
+   * work keeps the navigator's own point first in line at all times.
+   */
+  whenSelectionStreamed: () => Promise<void>;
+  /**
    * Reads a point's finished-batch snapshot, by quantized position.
    * The surface sampler uses this to reuse navigator work.
    */
@@ -382,6 +389,22 @@ export function createSweepSession(
     return mergeCache.result;
   };
 
+  /**
+   * Generation whose selection has visibly streamed (see
+   * `whenSelectionStreamed`); `restart` bumping `generation` re-arms the
+   * gate without touching this.
+   */
+  let streamedGeneration = -1;
+  let streamedWaiters: (() => void)[] = [];
+  const markSelectionStreamed = () => {
+    streamedGeneration = generation;
+    const waiters = streamedWaiters;
+    streamedWaiters = [];
+    for (const waiter of waiters) {
+      waiter();
+    }
+  };
+
   const publish = (update: {
     inFlightFrames?: readonly MonteCarloUserDefinedMetricFrame[];
     inFlightRuns?: number;
@@ -394,6 +417,11 @@ export function createSweepSession(
     }
     const snapshot = snapshotFor(sweepSelectionKey(axes, selection));
     const inFlight = update.inFlightFrames ?? [];
+    // Data on screen for the current selection — cached runs or the first
+    // in-flight frames — opens the gate for secondary (surface) sampling.
+    if (snapshot.runsCompleted + (update.inFlightRuns ?? 0) > 0) {
+      markSelectionStreamed();
+    }
     onUpdate({
       selection,
       metricFrames:
@@ -468,6 +496,9 @@ export function createSweepSession(
         error instanceof Error ? error.message : "Failed to start a batch",
       );
       publish({ runTarget: target, computing: false });
+      // Nothing more will stream for this selection; unblock waiters so the
+      // surface's own attempts can run (and refuse) instead of hanging.
+      markSelectionStreamed();
       return "stop";
     }
 
@@ -806,6 +837,14 @@ export function createSweepSession(
   };
 
   return {
+    whenSelectionStreamed() {
+      if (disposed || failed || streamedGeneration === generation) {
+        return Promise.resolve();
+      }
+      return new Promise<void>((resolve) => {
+        streamedWaiters.push(resolve);
+      });
+    },
     setSelection(next) {
       if (disposed) {
         return;
@@ -844,6 +883,7 @@ export function createSweepSession(
     dispose() {
       disposed = true;
       generation += 1;
+      markSelectionStreamed();
       abortCurrent?.();
       abortCurrent = null;
     },

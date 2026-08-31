@@ -504,6 +504,73 @@ describe("createSweepSession", () => {
   });
 });
 
+describe("whenSelectionStreamed", () => {
+  const trackResolved = (promise: Promise<void>) => {
+    const state = { resolved: false };
+    void promise.then(() => {
+      state.resolved = true;
+    });
+    return state;
+  };
+
+  it("resolves when the current selection streams its first frames", async () => {
+    const { session, batches, settle } = makeHarness(25, point(0, 0));
+    await settle();
+
+    const gate = trackResolved(session.whenSelectionStreamed());
+    await settle();
+    expect(gate.resolved).toBe(false);
+
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    await settle();
+    expect(gate.resolved).toBe(true);
+  });
+
+  it("re-arms on a selection change and resolves for the new selection", async () => {
+    const { session, batches, settle } = makeHarness(25, point(0, 0));
+    await settle();
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    await settle();
+
+    session.setSelection(point(1, 0));
+    await settle();
+    const gate = trackResolved(session.whenSelectionStreamed());
+    await settle();
+    expect(gate.resolved).toBe(false);
+
+    batches.at(-1)!.stream([frame(8, [[2, 8]])]);
+    await settle();
+    expect(gate.resolved).toBe(true);
+  });
+
+  it("resolves immediately for a selection already sampled from cache", async () => {
+    const { session, batches, settle } = makeHarness(8, point(0, 0));
+    await settle();
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    batches[0]!.complete();
+    await settle();
+
+    // Move away and back: the cached selection publishes its runs at once.
+    session.setSelection(point(1, 0));
+    await settle();
+    session.setSelection(point(0, 0));
+    await settle();
+
+    const gate = trackResolved(session.whenSelectionStreamed());
+    await settle();
+    expect(gate.resolved).toBe(true);
+  });
+
+  it("resolves on dispose so waiters never hang", async () => {
+    const { session, settle } = makeHarness(25, point(0, 0));
+    await settle();
+    const gate = trackResolved(session.whenSelectionStreamed());
+    session.dispose();
+    await settle();
+    expect(gate.resolved).toBe(true);
+  });
+});
+
 describe("sampleCells", () => {
   const CELLS = [
     { x: 0, y: 0 },
