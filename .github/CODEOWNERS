@@ -6,3 +6,6 @@ LICENSE.md @hashintel/legal
 # Database migrations
 /libs/@local/graph/postgres-store/postgres_migrations/ @hashintel/backend
 /libs/@local/graph/migrations/graph-migrations/ @hashintel/backend
+
+# Turborepo configuration
+turbo.json @hashintel/infra-admins
