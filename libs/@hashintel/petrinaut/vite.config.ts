@@ -4,6 +4,27 @@ import { defineConfig, esmExternalRequirePlugin } from "vite";
 
 const declarationFilePattern = /\.d\.[cm]?ts$/;
 
+const externalDependencies = [
+  "@hashintel/ds-components",
+  "@hashintel/ds-helpers",
+  /^@hashintel\/petrinaut-core(\/.*)?$/,
+  "react",
+  "react-dom",
+  "@xyflow/react",
+  "@babel/standalone",
+  // Pure-CJS dep pulled in transitively by @tanstack/react-form →
+  // @tanstack/react-store. Rolldown can't safely transform its
+  // `require("react")` when react is external, so it falls back to a
+  // runtime require helper that throws in the browser. Externalising it
+  // pushes CJS→ESM interop to the consumer's bundler.
+  /^use-sync-external-store(\/.*)?$/,
+] as const;
+
+const isExternalDependency = (id: string) =>
+  externalDependencies.some((dependency) =>
+    typeof dependency === "string" ? id === dependency : dependency.test(id),
+  );
+
 /**
  * Library build config
  */
@@ -28,21 +49,13 @@ export default defineConfig(({ command }) => ({
       formats: ["es"],
     },
     rolldownOptions: {
-      external: [
-        "@hashintel/ds-components",
-        "@hashintel/ds-helpers",
-        /^@hashintel\/petrinaut-core(\/.*)?$/,
-        "react",
-        "react-dom",
-        "@xyflow/react",
-        "@babel/standalone",
-        // Pure-CJS dep pulled in transitively by @tanstack/react-form →
-        // @tanstack/react-store. Rolldown can't safely transform its
-        // `require("react")` when react is external, so it falls back to a
-        // runtime require helper that throws in the browser. Externalising it
-        // pushes CJS→ESM interop to the consumer's bundler.
-        /^use-sync-external-store(\/.*)?$/,
-      ],
+      external: (id, importer) =>
+        isExternalDependency(id) ||
+        // Keep the AI SDK's transitive declaration graph out of Petrinaut's
+        // bundled types without externalizing its runtime JavaScript.
+        (id === "ai" &&
+          importer !== undefined &&
+          declarationFilePattern.test(importer)),
     },
     sourcemap: true,
     minify: true,
