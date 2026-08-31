@@ -7,8 +7,24 @@ publish.workspace = true
 version.workspace = true
 
 [dependencies]
+# Public workspace dependencies
+error-stack = { workspace = true, public = true, features = ["std"] }
+
+# Public third-party dependencies
+serde_core = { workspace = true, public = true }
+
 # Private third-party dependencies
+figment        = { workspace = true }
 simple-mermaid = { workspace = true }
+
+[dev-dependencies]
+serde      = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+
+[[example]]
+doc-scrape-examples = true
+name                = "defaults"
+test                = true
 
 [lints]
 workspace = true
