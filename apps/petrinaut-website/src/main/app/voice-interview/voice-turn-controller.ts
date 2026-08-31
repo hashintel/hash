@@ -1,3 +1,5 @@
+import { VoiceError, type VoiceErrorCode } from "../../../voice-diagnostics";
+
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type {
   OpenAIRealtimeSessionEvent,
@@ -16,7 +18,9 @@ export type VoiceTurnPhase =
   | "recoverable-error";
 
 export interface VoiceTurnSnapshot {
+  readonly errorCode: VoiceErrorCode | null;
   readonly errorMessage: string;
+  readonly errorRequestId: string;
   readonly lastCommittedText: string;
   readonly partialText: string;
   readonly phase: VoiceTurnPhase;
@@ -75,7 +79,9 @@ export const createVoiceMessageId = (
   ].join(":");
 
 const initialSnapshot: VoiceTurnSnapshot = {
+  errorCode: null,
   errorMessage: "",
+  errorRequestId: "",
   lastCommittedText: "",
   partialText: "",
   phase: "idle",
@@ -159,12 +165,15 @@ export class VoiceTurnController {
       if (generation !== this.#generation) {
         return;
       }
+      const voiceError =
+        error instanceof VoiceError
+          ? error
+          : new VoiceError("connection", "invalid-response", "");
       this.#session.setMicrophoneEnabled(false);
       this.#update({
-        errorMessage:
-          error instanceof Error
-            ? error.message
-            : "Voice input could not be started. Try reconnecting.",
+        errorCode: voiceError.code,
+        errorMessage: voiceError.message,
+        errorRequestId: voiceError.requestId,
         phase: "recoverable-error",
       });
     }
@@ -359,7 +368,12 @@ export class VoiceTurnController {
       this.#speechQueue.length = 0;
       this.#playback.cancel();
       this.#session.setMicrophoneEnabled(false);
-      this.#update({ errorMessage: event.message, phase: "recoverable-error" });
+      this.#update({
+        errorCode: event.code,
+        errorMessage: event.message,
+        errorRequestId: event.requestId,
+        phase: "recoverable-error",
+      });
       return;
     }
     if (this.#pendingDelivery !== null) {
@@ -487,20 +501,25 @@ export class VoiceTurnController {
             }
           },
         });
-      } catch {
+      } catch (error) {
         if (
           generation !== this.#generation ||
           this.#speechLoopGeneration !== generation
         ) {
           return;
         }
+        const voiceError =
+          error instanceof VoiceError
+            ? error
+            : new VoiceError("speech", "invalid-response", "");
         this.#activeSpeechSegmentId = null;
         this.#speechLoopGeneration = null;
         this.#speechQueue.length = 0;
         this.#session.setMicrophoneEnabled(false);
         this.#update({
-          errorMessage:
-            "The response could not be spoken. Read the visible text instead.",
+          errorCode: voiceError.code,
+          errorMessage: voiceError.message,
+          errorRequestId: voiceError.requestId,
           phase: "recoverable-error",
         });
         return;
@@ -570,7 +589,11 @@ export class VoiceTurnController {
   }
 
   #update(update: Partial<VoiceTurnSnapshot>): void {
-    this.#snapshot = { ...this.#snapshot, ...update };
+    const clearedError =
+      update.errorMessage !== undefined && !("errorCode" in update)
+        ? { errorCode: null, errorRequestId: "" }
+        : {};
+    this.#snapshot = { ...this.#snapshot, ...clearedError, ...update };
     for (const listener of this.#listeners) {
       listener(this.#snapshot);
     }

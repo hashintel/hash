@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
+  VOICE_ERROR_CODE_HEADER,
+  VOICE_REQUEST_ID_HEADER,
+} from "../../voice-diagnostics";
+import {
   createOpenAISpeechHandler,
   OPENAI_SPEECH_TIMEOUT_MS,
 } from "./openai-speech";
@@ -10,6 +14,7 @@ const enabledEnvironment = {
   PETRINAUT_OPENAI_VOICE_ENABLED: "true",
   VERCEL_ENV: "preview",
 };
+const requestId = "00000000-0000-4000-8000-000000000003";
 
 const validSpeechRequest = {
   segmentId: "canonical-speech:assistant-1:text%3A0:fnv1a32:69f1e741",
@@ -25,6 +30,7 @@ const createRequest = (
     headers: {
       "content-type": "application/json",
       origin: "https://petrinaut.test",
+      [VOICE_REQUEST_ID_HEADER]: requestId,
     },
     method: "POST",
     ...overrides,
@@ -152,6 +158,7 @@ describe("OpenAI Speech handler", () => {
   });
 
   test("streams audio for the exact canonical text with fixed server policy", async () => {
+    const reportDiagnostic = vi.fn();
     const firstChunk = new Uint8Array([1, 2, 3]);
     const secondChunk = new Uint8Array([4, 5]);
     const fetch = vi.fn<typeof globalThis.fetch>(
@@ -170,6 +177,8 @@ describe("OpenAI Speech handler", () => {
     const handler = createOpenAISpeechHandler({
       environment: enabledEnvironment,
       fetch,
+      now: () => 100,
+      reportDiagnostic,
     });
 
     const response = await handler(createRequest());
@@ -177,6 +186,10 @@ describe("OpenAI Speech handler", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("content-type")).toBe("audio/mpeg");
+    expect(response.headers.get(VOICE_REQUEST_ID_HEADER)).toBe(requestId);
+    expect(response.headers.get("server-timing")).toBe(
+      "petrinaut_voice_speech;dur=0",
+    );
     expect(fetch).toHaveBeenCalledOnce();
     const [url, request] = fetch.mock.calls[0]!;
     expect(url).toBe("https://api.openai.com/v1/audio/speech");
@@ -204,6 +217,17 @@ describe("OpenAI Speech handler", () => {
     expect(JSON.stringify(upstreamBody)).not.toContain("response.create");
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(
       new Uint8Array([1, 2, 3, 4, 5]),
+    );
+    expect(reportDiagnostic).toHaveBeenCalledWith({
+      durationMs: 0,
+      operation: "speech",
+      outcome: "success",
+      requestId,
+      stage: "server",
+      status: 200,
+    });
+    expect(JSON.stringify(reportDiagnostic.mock.calls)).not.toContain(
+      validSpeechRequest.text,
     );
   });
 
@@ -233,7 +257,10 @@ describe("OpenAI Speech handler", () => {
     for (const response of [upstreamFailure, nonAudio, wrongAudioFormat]) {
       expect(response.status).toBe(502);
       expect(await response.text()).toBe(
-        "The response could not be spoken. Read the visible text instead.",
+        "The speech service returned an invalid response. Read the visible response instead. Try again; if it continues, give the diagnostic reference to an operator.",
+      );
+      expect(response.headers.get(VOICE_ERROR_CODE_HEADER)).toBe(
+        "invalid-response",
       );
       expect(response.headers.get("cache-control")).toBe("no-store");
     }
@@ -260,8 +287,9 @@ describe("OpenAI Speech handler", () => {
     const response = await responsePromise;
     expect(response.status).toBe(504);
     expect(await response.text()).toBe(
-      "The response could not be spoken. Read the visible text instead.",
+      "The speech service timed out. Read the visible response instead.",
     );
+    expect(response.headers.get(VOICE_ERROR_CODE_HEADER)).toBe("timeout");
   });
 
   test("does not apply the response timeout to an active audio stream", async () => {
@@ -319,6 +347,78 @@ describe("OpenAI Speech handler", () => {
     const response = await responsePromise;
     expect(fetch.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
     expect(response.status).toBe(502);
+    expect(response.headers.get(VOICE_ERROR_CODE_HEADER)).toBe(
+      "request-aborted",
+    );
+  });
+
+  test("does not start an unabortable synthesis for a pre-aborted request", async () => {
+    const requestAbortController = new AbortController();
+    requestAbortController.abort();
+    const fetch = vi.fn<typeof globalThis.fetch>(async (_input, init) => {
+      expect(init?.signal?.aborted).toBe(true);
+      throw new DOMException("aborted", "AbortError");
+    });
+    const handler = createOpenAISpeechHandler({
+      environment: enabledEnvironment,
+      fetch,
+    });
+
+    const response = await handler(
+      createRequest(undefined, { signal: requestAbortController.signal }),
+    );
+
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(response.status).toBe(502);
+    expect(response.headers.get(VOICE_ERROR_CODE_HEADER)).toBe(
+      "request-aborted",
+    );
+  });
+
+  test("classifies a browser abort while streaming as interrupted", async () => {
+    const requestAbortController = new AbortController();
+    let upstreamController:
+      | ReadableStreamDefaultController<Uint8Array>
+      | undefined;
+    const reportDiagnostic = vi.fn();
+    const fetch = vi.fn<typeof globalThis.fetch>(async (_input, init) => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          upstreamController = controller;
+          init?.signal?.addEventListener("abort", () => {
+            controller.error(init.signal!.reason);
+          });
+        },
+      });
+      return new Response(body, {
+        headers: { "content-type": "audio/mpeg" },
+      });
+    });
+    const handler = createOpenAISpeechHandler({
+      environment: enabledEnvironment,
+      fetch,
+      reportDiagnostic,
+    });
+    const response = await handler(
+      createRequest(undefined, { signal: requestAbortController.signal }),
+    );
+    const reader = response.body!.getReader();
+    const read = reader.read();
+
+    requestAbortController.abort();
+
+    await expect(read).rejects.toMatchObject({ name: "AbortError" });
+    expect(upstreamController).toBeDefined();
+    expect(reportDiagnostic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorCode: "request-aborted",
+        operation: "speech",
+        outcome: "aborted",
+        requestId,
+        stage: "server",
+        status: 200,
+      }),
+    );
   });
 
   test("cancels the OpenAI stream when browser playback stops reading", async () => {
@@ -347,5 +447,29 @@ describe("OpenAI Speech handler", () => {
 
     expect(fetch.mock.calls[0]?.[1]?.signal?.aborted).toBe(true);
     expect(upstreamCancel).toHaveBeenCalledWith("playback stopped");
+  });
+
+  test("classifies network failures without exposing upstream diagnostics", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => {
+      throw new Error("private speech network diagnostics");
+    });
+    const reportDiagnostic = vi.fn();
+    const handler = createOpenAISpeechHandler({
+      environment: enabledEnvironment,
+      fetch,
+      now: () => 100,
+      reportDiagnostic,
+    });
+
+    const response = await handler(createRequest());
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get(VOICE_ERROR_CODE_HEADER)).toBe("network");
+    expect(await response.text()).toBe(
+      "The speech service could not be reached. Read the visible response instead.",
+    );
+    expect(JSON.stringify(reportDiagnostic.mock.calls)).not.toContain(
+      "private speech network diagnostics",
+    );
   });
 });

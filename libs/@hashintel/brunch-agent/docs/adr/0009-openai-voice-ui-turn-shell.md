@@ -17,10 +17,11 @@ either preserve that boundary or create a second conversation authority in the a
 Only the first choice preserves Brunch's durable history, captures, pending asks, completion, and
 projection contracts.
 
-The first rollout is a disabled preview. The production contracts for authenticated ownership,
-distributed quotas, telemetry, replay, and final Petrinaut projection do not all exist yet. The
-preview therefore needs a boundary that permits input and output experiments without claiming
-production recovery or public availability.
+The first rollout is a disabled preview. FE-1505's privacy-safe Brunch spans exist in this
+ancestry, but the production contracts for authenticated ownership, distributed quotas, complete
+voice telemetry, replay, and final Petrinaut projection do not all exist yet. The preview
+therefore needs a boundary that permits input and output experiments without claiming production
+recovery or public availability.
 
 ## Decision
 
@@ -54,8 +55,8 @@ production recovery or public availability.
 7. **The preview fails closed and is disabled by default.** Voice is unavailable when server
    policy, credentials, or the Brunch transport are unavailable. Text chat remains available.
    Public production remains disabled until FE-1439, FE-1420, platform authentication,
-   distributed quotas, FE-1505 telemetry, and FE-1438/FE-1440 completion and projection contracts
-   are available and consumed.
+   distributed quotas, production voice telemetry building on FE-1505, and FE-1438/FE-1440
+   completion and projection contracts are available and consumed.
 
 ## Consequences
 
@@ -92,6 +93,27 @@ production recovery or public availability.
 - The preview visibly discloses that spoken responses use an AI-generated OpenAI voice. Speech
   failure keeps the canonical response visible, closes the microphone, and requires an explicit
   recovery action.
+
+## Controlled-preview reliability follow-up evidence
+
+- Browser and server failures use only actionable categories: microphone permission, microphone
+  device, interrupted request, network, timeout, invalid provider response, and unavailable or
+  disabled. Provider bodies and thrown details remain suppressed; the UI gives recovery guidance
+  plus a sanitized code and request reference where applicable.
+- Realtime connection and Speech requests share a validated random `x-request-id` across browser
+  and website server diagnostics. Transcript completion has a content-free browser timing, voice
+  routes expose `Server-Timing`, and the existing Petrinaut-to-Brunch transport supplies
+  `x-request-id` to FE-1505's content-suppressed Brunch inspection path. Events contain only
+  operation, stage, outcome, duration, request ID, and optional status or error code—never audio,
+  SDP, transcripts, prompts, canonical speech text, credentials, or provider response bodies.
+- Focused tests cover startup, permission/device and network failures, abort, timeout, malformed
+  provider responses, reconnect, and media/playback cleanup. One local integration test exercises
+  browser session setup through both app-owned voice handlers, a completed transcript at the
+  Brunch composer boundary, canonical response selection, Speech streaming, and playback using
+  only local fakes.
+- This evidence is a reliability follow-up above Voice PR 3, not production PR 4. It does not test
+  real OpenAI media or write to a configured remote Brunch conversation, does not add recovery or
+  rollout infrastructure, and does not change the production-disabled policy.
 
 ## Revisit condition
 

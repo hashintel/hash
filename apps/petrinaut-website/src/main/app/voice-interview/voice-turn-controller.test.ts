@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
+import { VoiceError } from "../../../voice-diagnostics";
 import {
   createVoiceMessageId,
   VoiceTurnController,
@@ -655,12 +656,18 @@ describe("VoiceTurnController", () => {
     await harness.controller.start();
 
     harness.emit({
-      message: "The voice connection failed. Try reconnecting.",
+      code: "network",
+      message:
+        "The voice connection could not be reached. Check your connection, then reconnect voice input.",
+      requestId: "voice-request-network",
       type: "error",
     });
 
     expect(harness.controller.getSnapshot()).toMatchObject({
-      errorMessage: "The voice connection failed. Try reconnecting.",
+      errorCode: "network",
+      errorMessage:
+        "The voice connection could not be reached. Check your connection, then reconnect voice input.",
+      errorRequestId: "voice-request-network",
       phase: "recoverable-error",
     });
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
@@ -686,7 +693,9 @@ describe("VoiceTurnController", () => {
     await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
 
     harness.emit({
+      code: "network",
       message: "The voice connection failed. Try reconnecting.",
+      requestId: "voice-request-late-delivery",
       type: "error",
     });
     finishDelivery?.();
@@ -903,9 +912,7 @@ describe("VoiceTurnController", () => {
   test("keeps the microphone closed and visible text available when speech fails", async () => {
     const harness = createHarness();
     harness.playback.play.mockRejectedValueOnce(
-      new Error(
-        "The response could not be spoken. Read the visible text instead.",
-      ),
+      new VoiceError("speech", "network", "voice-request-speech"),
     );
     await harness.controller.start();
     const response = canonicalSegment(
@@ -920,8 +927,10 @@ describe("VoiceTurnController", () => {
 
     await vi.waitFor(() =>
       expect(harness.controller.getSnapshot()).toMatchObject({
+        errorCode: "network",
         errorMessage:
-          "The response could not be spoken. Read the visible text instead.",
+          "The speech service could not be reached. Read the visible response instead.",
+        errorRequestId: "voice-request-speech",
         phase: "recoverable-error",
       }),
     );
@@ -931,21 +940,25 @@ describe("VoiceTurnController", () => {
     );
   });
 
-  test("does not overwrite a speech failure when delivery resolves later", async () => {
+  test("does not let late delivery completion overwrite active speech", async () => {
     const harness = createHarness();
     let finishDelivery: (() => void) | undefined;
-    const delivery = new Promise<{ kind: "message" }>((resolve) => {
-      finishDelivery = () => resolve({ kind: "message" });
-    });
-    harness.submitText.mockImplementationOnce(() => delivery);
-    harness.playback.play.mockRejectedValueOnce(
-      new Error(
-        "The response could not be spoken. Read the visible text instead.",
-      ),
+    let finishPlayback: (() => void) | undefined;
+    harness.submitText.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishDelivery = () => resolve({ kind: "message" as const });
+        }),
     );
+    harness.playback.play.mockImplementationOnce(async (_segment, events) => {
+      events?.onPlaying?.();
+      await new Promise<void>((resolve) => {
+        finishPlayback = resolve;
+      });
+    });
     await harness.controller.start();
     harness.emit({
-      key: key(1, "answer"),
+      key: key(1, "deferred-delivery"),
       text: "A finalized answer",
       type: "completed",
     });
@@ -956,21 +969,73 @@ describe("VoiceTurnController", () => {
     });
     harness.controller.updateChat({
       canonicalSegments: [
-        canonicalSegment("canonical-speech:failed:text%3A0:fnv1a32:12345678"),
+        canonicalSegment("canonical-speech:deferred:text%3A0:fnv1a32:12345678"),
       ],
       status: "ready",
     });
     await vi.waitFor(() =>
-      expect(harness.controller.getSnapshot().phase).toBe("recoverable-error"),
+      expect(harness.controller.getSnapshot().phase).toBe("playing"),
     );
 
     finishDelivery?.();
-    await delivery;
+    await Promise.resolve();
+
+    expect(harness.controller.getSnapshot().phase).toBe("playing");
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+
+    finishPlayback?.();
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().phase).toBe("listening"),
+    );
+  });
+
+  test("does not let late delivery completion clear a speech failure", async () => {
+    const harness = createHarness();
+    let finishDelivery: (() => void) | undefined;
+    harness.submitText.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishDelivery = () => resolve({ kind: "message" as const });
+        }),
+    );
+    harness.playback.play.mockRejectedValueOnce(
+      new VoiceError("speech", "network", "voice-request-speech-failure"),
+    );
+    await harness.controller.start();
+    harness.emit({
+      key: key(1, "deferred-delivery"),
+      text: "A finalized answer",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+    harness.controller.updateChat({
+      canonicalSegments: [],
+      status: "streaming",
+    });
+    harness.controller.updateChat({
+      canonicalSegments: [
+        canonicalSegment(
+          "canonical-speech:failed-deferred:text%3A0:fnv1a32:12345678",
+        ),
+      ],
+      status: "ready",
+    });
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        errorCode: "network",
+        errorRequestId: "voice-request-speech-failure",
+        phase: "recoverable-error",
+      }),
+    );
+
+    finishDelivery?.();
     await Promise.resolve();
 
     expect(harness.controller.getSnapshot()).toMatchObject({
-      errorMessage:
-        "The response could not be spoken. Read the visible text instead.",
+      errorCode: "network",
+      errorRequestId: "voice-request-speech-failure",
       phase: "recoverable-error",
     });
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(

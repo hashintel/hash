@@ -35,6 +35,13 @@ working or a response is playing. Spoken responses use an AI-generated OpenAI vo
 in the voice status panel. If speech fails, the response remains visible to read and the voice
 control offers recovery instead of changing or regenerating the text.
 
+If voice cannot continue, the status panel identifies the kind of problem. For microphone
+permission or device errors, allow access or connect/select a microphone before reconnecting. For
+an interrupted request, network error, or timeout, check the connection and choose **Reconnect
+voice input**. If the preview is unavailable, continue with the text composer. An invalid service
+response includes a diagnostic reference you can give to an operator; that reference and its
+diagnostic record do not contain your transcript or the response being spoken.
+
 **Clear AI chat** via the delete button in the top right of the panel: wipes the conversation, stops any in-flight stream, and tells the host app to forget the messages (if the host persists them).
 
 ## What the assistant can do

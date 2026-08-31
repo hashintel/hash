@@ -54,7 +54,9 @@ describe("voice interview control", () => {
         onStart={vi.fn()}
         onSubmitCorrection={vi.fn()}
         snapshot={{
+          errorCode: null,
           errorMessage: "",
+          errorRequestId: "",
           lastCommittedText: "",
           partialText: "",
           phase: "idle",
@@ -77,7 +79,9 @@ describe("voice interview control", () => {
         onStart={vi.fn()}
         onSubmitCorrection={vi.fn()}
         snapshot={{
+          errorCode: null,
           errorMessage: "",
+          errorRequestId: "",
           lastCommittedText: "The support lead closes it.",
           partialText: "The next activity",
           phase: "listening",
@@ -106,7 +110,10 @@ describe("voice interview control", () => {
         onStart={vi.fn()}
         onSubmitCorrection={vi.fn()}
         snapshot={{
-          errorMessage: "Microphone access is required.",
+          errorCode: "microphone-permission",
+          errorMessage:
+            "Allow microphone access in your browser settings, then reconnect voice input.",
+          errorRequestId: "voice-request-permission",
           lastCommittedText: "",
           partialText: "",
           phase: "recoverable-error",
@@ -114,7 +121,11 @@ describe("voice interview control", () => {
       />,
     );
 
-    expect(html).toContain("Microphone off. Microphone access is required.");
+    expect(html).toContain(
+      "Microphone off. Allow microphone access in your browser settings, then reconnect voice input.",
+    );
+    expect(html).toContain("Error code: microphone-permission.");
+    expect(html).toContain("Diagnostic reference: voice-request-permission.");
     expect(html).toContain("Reconnect voice input");
   });
 
@@ -166,7 +177,7 @@ describe("voice interview control", () => {
 
       expect(getUserMedia).toHaveBeenCalledOnce();
       expect(container.textContent).toContain(
-        "Microphone access is required to start voice input.",
+        "Allow microphone access in your browser settings, then reconnect voice input.",
       );
       expect(
         container.querySelector('button[aria-label="Reconnect voice input"]'),
@@ -188,7 +199,9 @@ describe("voice interview control", () => {
           onStart={vi.fn()}
           onSubmitCorrection={vi.fn()}
           snapshot={{
+            errorCode: null,
             errorMessage: "",
+            errorRequestId: "",
             lastCommittedText: "",
             partialText: "",
             phase,
