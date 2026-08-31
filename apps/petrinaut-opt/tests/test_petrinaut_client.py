@@ -75,7 +75,7 @@ def test_bootstraps_an_opaque_manifest_and_uses_optimization_methods(
     model.start()
 
     assert model.describe_optimization() == optimization_description
-    assert model.evaluate_runs({"rate": 1.25, "count": 6, "enabled": False}) == 12.5
+    assert model.objective({"rate": 1.25, "count": 6, "enabled": False}) == 12.5
     lines = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
 
     assert invocation["command"] == [
@@ -314,9 +314,9 @@ def test_cli_error_during_evaluation_is_recoverable(
     model.start()
 
     with pytest.raises(PetrinautRunError, match="scenario failed"):
-        model.evaluate_runs({"rate": 1})
+        model.objective({"rate": 1})
 
-    assert model.evaluate_runs({"rate": 2}) == 7.0
+    assert model.objective({"rate": 2}) == 7.0
     model.close()
 
 
@@ -333,7 +333,7 @@ def test_rejects_a_non_finite_numeric_objective(
     model.start()
 
     with pytest.raises(PetrinautRunError, match="not a finite number"):
-        model.evaluate_runs({"rate": 1})
+        model.objective({"rate": 1})
 
     model.close()
 
@@ -349,7 +349,7 @@ def test_rejects_a_mismatched_protocol_response(
     model.start()
 
     with pytest.raises(PetrinautProtocolError, match="mismatched response id"):
-        model.evaluate_runs({"rate": 1})
+        model.objective({"rate": 1})
 
     assert process.returncode == 0
     model.close()
