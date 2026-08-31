@@ -350,7 +350,7 @@ export class OpenAIRealtimeSession {
       this.#reportDiagnostic("connection", requestId, startedAt);
       return connectionEpoch;
     } catch (error) {
-      const abortReason = abortController.signal.reason;
+      const abortReason: unknown = abortController.signal.reason;
       const voiceError =
         abortReason === timeoutError
           ? new VoiceError("connection", "timeout", requestId)
