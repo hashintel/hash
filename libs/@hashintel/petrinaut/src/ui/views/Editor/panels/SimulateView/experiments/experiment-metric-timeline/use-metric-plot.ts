@@ -217,81 +217,113 @@ export function useMetricPlot({
   ]);
 
   const epochRef = useRef(contentEpoch);
+  /**
+   * An epoch change seen but not yet painted. Latched separately from the
+   * scheduled frame: a same-epoch data tick can cancel the epoch-change
+   * run's frame before it fires, and the transition (the overlay freeze)
+   * must survive into whichever frame finally runs.
+   */
+  const pendingEpochChangeRef = useRef(false);
   const overlayRef = useRef<HTMLCanvasElement | null>(null);
   const overlayFadingRef = useRef(false);
+  const dataFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const epochChanged = contentEpoch !== epochRef.current;
-    epochRef.current = contentEpoch;
-    const plot = plotRef.current;
-    if (!plot) {
-      return;
-    }
+    function applyData(hadEpochChange: boolean): void {
+      const plot = plotRef.current;
+      if (!plot) {
+        return;
+      }
 
-    // A new epoch with old content still on the canvas: freeze that picture
-    // into an overlay before the new data repaints under it. "Still on the
-    // canvas" is read from the plot itself (`plot.data` predates the
-    // `setData` below) — a drag crosses several empty epochs before frames
-    // arrive, and those must keep the existing overlay, not blank it.
-    if (epochChanged) {
-      const plotShowsContent = plot.data[0]!.length > 0;
-      if (crossfade !== "off" && plotShowsContent) {
-        let overlay = overlayRef.current;
-        if (!overlay || !plot.over.contains(overlay)) {
-          overlay = document.createElement("canvas");
-          overlay.style.position = "absolute";
-          overlay.style.inset = "0";
-          overlay.style.width = "100%";
-          overlay.style.height = "100%";
-          overlay.style.pointerEvents = "none";
-          plot.over.appendChild(overlay);
-          overlayRef.current = overlay;
+      // A new epoch with old content still on the canvas: freeze that picture
+      // into an overlay before the new data repaints under it. "Still on the
+      // canvas" is read from the plot itself (`plot.data` predates the
+      // `setData` below) — a drag crosses several empty epochs before frames
+      // arrive, and those must keep the existing overlay, not blank it.
+      if (hadEpochChange) {
+        const plotShowsContent = plot.data[0]!.length > 0;
+        if (crossfade !== "off" && plotShowsContent) {
+          let overlay = overlayRef.current;
+          if (!overlay || !plot.over.contains(overlay)) {
+            overlay = document.createElement("canvas");
+            overlay.style.position = "absolute";
+            overlay.style.inset = "0";
+            overlay.style.width = "100%";
+            overlay.style.height = "100%";
+            overlay.style.pointerEvents = "none";
+            plot.over.appendChild(overlay);
+            overlayRef.current = overlay;
+          }
+          overlay.width = Math.max(1, Math.round(plot.bbox.width));
+          overlay.height = Math.max(1, Math.round(plot.bbox.height));
+          overlay
+            .getContext("2d")!
+            .drawImage(
+              plot.ctx.canvas,
+              plot.bbox.left,
+              plot.bbox.top,
+              plot.bbox.width,
+              plot.bbox.height,
+              0,
+              0,
+              overlay.width,
+              overlay.height,
+            );
+          overlay.style.transition = "none";
+          overlay.style.display = "block";
+          overlay.style.opacity = crossfade === "dim" ? "0.55" : "1";
+          overlayFadingRef.current = false;
         }
-        overlay.width = Math.max(1, Math.round(plot.bbox.width));
-        overlay.height = Math.max(1, Math.round(plot.bbox.height));
-        overlay
-          .getContext("2d")!
-          .drawImage(
-            plot.ctx.canvas,
-            plot.bbox.left,
-            plot.bbox.top,
-            plot.bbox.width,
-            plot.bbox.height,
-            0,
-            0,
-            overlay.width,
-            overlay.height,
-          );
-        overlay.style.transition = "none";
-        overlay.style.display = "block";
-        overlay.style.opacity = crossfade === "dim" ? "0.55" : "1";
-        overlayFadingRef.current = false;
+      }
+
+      plot.setData(plotData);
+      const hasData = plotData[0]!.length > 0;
+
+      // The new content's first frames are on screen: fade the old picture
+      // out quickly instead of having already cut to the sparse new one.
+      const overlay = overlayRef.current;
+      if (
+        hasData &&
+        overlay !== null &&
+        overlay.style.display !== "none" &&
+        !overlayFadingRef.current
+      ) {
+        overlayFadingRef.current = true;
+        const fadingOverlay = overlay;
+        requestAnimationFrame(() => {
+          fadingOverlay.style.transition = "opacity 300ms ease-out";
+          fadingOverlay.style.opacity = "0";
+        });
+        const hide = () => {
+          fadingOverlay.style.display = "none";
+          fadingOverlay.removeEventListener("transitionend", hide);
+        };
+        fadingOverlay.addEventListener("transitionend", hide);
       }
     }
 
-    plot.setData(plotData);
-    const hasData = plotData[0]!.length > 0;
-
-    // The new content's first frames are on screen: fade the old picture
-    // out quickly instead of having already cut to the sparse new one.
-    const overlay = overlayRef.current;
-    if (
-      hasData &&
-      overlay !== null &&
-      overlay.style.display !== "none" &&
-      !overlayFadingRef.current
-    ) {
-      overlayFadingRef.current = true;
-      const fadingOverlay = overlay;
-      requestAnimationFrame(() => {
-        fadingOverlay.style.transition = "opacity 300ms ease-out";
-        fadingOverlay.style.opacity = "0";
-      });
-      const hide = () => {
-        fadingOverlay.style.display = "none";
-        fadingOverlay.removeEventListener("transitionend", hide);
-      };
-      fadingOverlay.addEventListener("transitionend", hide);
+    // The epoch is tracked eagerly (a drag crosses several epochs between
+    // paints), but the data applies once per animation frame, latest wins:
+    // a streaming batch can tick the store faster than the screen refreshes,
+    // and every `setData` redraws the whole chart, heatmap raster included.
+    if (contentEpoch !== epochRef.current) {
+      epochRef.current = contentEpoch;
+      pendingEpochChangeRef.current = true;
     }
+    if (dataFrameRef.current !== null) {
+      cancelAnimationFrame(dataFrameRef.current);
+    }
+    dataFrameRef.current = requestAnimationFrame(() => {
+      dataFrameRef.current = null;
+      const hadEpochChange = pendingEpochChangeRef.current;
+      pendingEpochChangeRef.current = false;
+      applyData(hadEpochChange);
+    });
+    return () => {
+      if (dataFrameRef.current !== null) {
+        cancelAnimationFrame(dataFrameRef.current);
+        dataFrameRef.current = null;
+      }
+    };
   }, [contentEpoch, crossfade, plotData]);
 }
