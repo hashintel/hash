@@ -1,3 +1,4 @@
+import { PLACE_CAPACITY_UNBOUNDED } from "../simulation/engine/capacity";
 /**
  * Presents a GPU run as a `MonteCarloExperiment`, so callers need no branch.
  *
@@ -20,6 +21,11 @@ import {
 import { getMaxFrameNumber } from "../simulation/monte-carlo/time";
 import { requestGpuExperimentBackend } from "./backend";
 import { toGpuMetricFrames, toGpuMetricSpecs } from "./gpu-metric-frames";
+import {
+  anyEscapes,
+  planInitialWindows,
+  windowsFromObserved,
+} from "./metric-windows";
 import { runGpuExperiment } from "./runner";
 
 import type { ExperimentRunPlan } from "../experiments/experiment-request";
@@ -36,6 +42,7 @@ import type { MonteCarloRunConfig } from "../simulation/monte-carlo/types";
 import type { MonteCarloWorkerProgress } from "../simulation/monte-carlo/worker/messages";
 import type { SDCPN } from "../types/sdcpn";
 import type { GpuOdeMethod } from "./compile-net-shader";
+import type { MetricWindow } from "./metric-windows";
 
 export type CreateGpuMonteCarloExperimentConfig = {
   sdcpn: SDCPN;
@@ -100,6 +107,13 @@ export type CreateGpuMonteCarloExperimentResult =
         | "shader-generation"
         | "metrics-unsupported";
     };
+
+/**
+ * Runs the window probe executes before a large run with guessed windows.
+ * Small enough to finish in milliseconds, large enough that its observed
+ * range plus margin almost always covers the full run's.
+ */
+const GPU_WINDOW_PROBE_RUNS = 128;
 
 /** Progress with no runs advanced yet. */
 function initialProgress(runCount: number): MonteCarloWorkerProgress {
@@ -266,6 +280,9 @@ export async function createGpuMonteCarloExperiment(
   const events = createEventStream<MonteCarloExperimentEvent>();
 
   let disposed = false;
+  // Read through a function where control flow crosses awaits, so the
+  // narrowing-based lint cannot claim the flag is constant.
+  const isDisposed = (): boolean => disposed;
   let running = false;
   let aborted = false;
   // A minimal `AbortSignalLike`: the runner only reads `aborted`, and building
@@ -409,85 +426,164 @@ export async function createGpuMonteCarloExperiment(
     let cumulativeStream = false;
     const frameKey = (frame: { metricId: string; frameNumber: number }) =>
       `${frame.metricId}\u0000${frame.frameNumber}`;
-    const outcome = await runGpuExperiment(backend.handle, backend.shader, {
-      runCount: config.runCount,
-      frameLimit,
-      framesPerDispatch: backend.framesPerDispatch,
-      seed: config.seed,
-      initial: { placeCounts, placeTokenWords },
-      ...(config.maxRunsPerTile === undefined
-        ? {}
-        : { maxRunsPerTile: config.maxRunsPerTile }),
-      onFrames: (chunkFrames) => {
-        if (disposed) {
-          return;
-        }
-        const converted = toGpuMetricFrames(
-          chunkFrames,
-          config.metricSpecs,
-          config.dt,
-        );
-        if (!cumulativeStream && seenFrameKeys !== null) {
-          let redelivered = false;
-          for (const frame of chunkFrames) {
-            const key = frameKey(frame);
-            if (seenFrameKeys.has(key)) {
-              redelivered = true;
-            }
-            seenFrameKeys.add(key);
-          }
-          if (!redelivered) {
-            metrics.set(appendMetricFrames(metrics.get(), converted));
-            return;
-          }
-          cumulativeStream = true;
-          seenFrameKeys = null;
-        }
-        // Merge at the converted level: the store already holds every earlier
-        // delivery (initial frames included), so replacing by key needs no
-        // second copy of the histogram data.
-        const merged = new Map(
-          metrics.get().frames.map((frame) => [frameKey(frame), frame]),
-        );
-        for (const frame of converted) {
-          merged.set(frameKey(frame), frame);
-        }
-        metrics.set(
-          appendMetricFrames(createEmptyMetricsState(), [...merged.values()]),
-        );
-      },
-      ...(runParameters.values === undefined
-        ? {}
-        : { runParameterValues: runParameters.values }),
-      signal,
-      onChunk: ({ framesDone, runsCompleted, runsInTile }) => {
-        if (disposed) {
-          return;
-        }
-        // Overall position, monotone across tiles: finished tiles count as
-        // full passes, the running tile as its frame fraction. A single-tile
-        // experiment reduces to `framesDone` exactly. Reporting the raw
-        // per-tile `framesDone` made the progress bar and the time display
-        // snap back to zero at every tile boundary.
-        const overallFrames = Math.round(
-          ((runsCompleted + runsInTile * (framesDone / frameLimit)) /
-            config.runCount) *
-            frameLimit,
-        );
-        progress.set({
-          activeRuns: config.runCount - runsCompleted,
-          advancedRuns: runsCompleted + runsInTile,
-          allFinished: false,
-          completedRuns: runsCompleted,
-          erroredRuns: 0,
-          frameNumber: overallFrames,
-          runCount: config.runCount,
-          time: overallFrames * config.dt,
-        });
-      },
+
+    // What window planning knows per metric: the sampled place's initial
+    // count, and its hard ceiling when it has one (a ceiling makes the
+    // window exact by construction — no calibration needed).
+    const windowInputs = gpuMetrics.metrics.map((metric) => {
+      const placeIndex = placeIndexById.get(metric.placeId) ?? -1;
+      const place = backend.profile.places[placeIndex];
+      const countCeiling = place
+        ? place.colored
+          ? place.capacity
+          : place.declaredCapacity === PLACE_CAPACITY_UNBOUNDED
+            ? null
+            : place.declaredCapacity
+        : null;
+      return { initialCount: placeCounts[placeIndex] ?? 0, countCeiling };
     });
 
-    if (disposed) {
+    const executeAttempt = (
+      attemptRunCount: number,
+      metricWindows: readonly MetricWindow[],
+    ) =>
+      runGpuExperiment(backend.handle, backend.shader, {
+        runCount: attemptRunCount,
+        frameLimit,
+        framesPerDispatch: backend.framesPerDispatch,
+        seed: config.seed,
+        initial: { placeCounts, placeTokenWords },
+        metricWindows,
+        ...(config.maxRunsPerTile === undefined
+          ? {}
+          : { maxRunsPerTile: config.maxRunsPerTile }),
+        onFrames: (chunkFrames) => {
+          if (disposed) {
+            return;
+          }
+          const converted = toGpuMetricFrames(
+            chunkFrames,
+            config.metricSpecs,
+            config.dt,
+          );
+          if (!cumulativeStream && seenFrameKeys !== null) {
+            let redelivered = false;
+            for (const frame of chunkFrames) {
+              const key = frameKey(frame);
+              if (seenFrameKeys.has(key)) {
+                redelivered = true;
+              }
+              seenFrameKeys.add(key);
+            }
+            if (!redelivered) {
+              metrics.set(appendMetricFrames(metrics.get(), converted));
+              return;
+            }
+            cumulativeStream = true;
+            seenFrameKeys = null;
+          }
+          // Merge at the converted level: the store already holds every earlier
+          // delivery (initial frames included), so replacing by key needs no
+          // second copy of the histogram data.
+          const merged = new Map(
+            metrics.get().frames.map((frame) => [frameKey(frame), frame]),
+          );
+          for (const frame of converted) {
+            merged.set(frameKey(frame), frame);
+          }
+          metrics.set(
+            appendMetricFrames(createEmptyMetricsState(), [...merged.values()]),
+          );
+        },
+        ...(runParameters.values === undefined
+          ? {}
+          : { runParameterValues: runParameters.values }),
+        signal,
+        onChunk: ({ framesDone, runsCompleted, runsInTile }) => {
+          if (disposed) {
+            return;
+          }
+          // Overall position, monotone across tiles: finished tiles count as
+          // full passes, the running tile as its frame fraction. A single-tile
+          // experiment reduces to `framesDone` exactly. Reporting the raw
+          // per-tile `framesDone` made the progress bar and the time display
+          // snap back to zero at every tile boundary.
+          const overallFrames = Math.round(
+            ((runsCompleted + runsInTile * (framesDone / frameLimit)) /
+              config.runCount) *
+              frameLimit,
+          );
+          progress.set({
+            activeRuns: config.runCount - runsCompleted,
+            advancedRuns: runsCompleted + runsInTile,
+            allFinished: false,
+            completedRuns: runsCompleted,
+            erroredRuns: 0,
+            frameNumber: overallFrames,
+            runCount: config.runCount,
+            time: overallFrames * config.dt,
+          });
+        },
+      });
+
+    // The window calibration loop. Guessed windows (any sampled place
+    // without a ceiling) probe with a small prefix of the runs first — their
+    // frames stream to the charts and are replaced as the full attempt
+    // re-delivers — then the full attempt runs at the observed range plus
+    // margin. Escapes recalibrate once more from that attempt's own observed
+    // range: seeds derive from absolute run indices, so the re-run
+    // reproduces the same trajectories and cannot escape again.
+    const bins = backend.shader.histogramBins;
+    let windows = planInitialWindows(windowInputs, bins);
+    const guessedWindows = windowInputs.some(
+      (input) => input.countCeiling === null,
+    );
+    if (
+      guessedWindows &&
+      config.runCount > GPU_WINDOW_PROBE_RUNS &&
+      gpuMetrics.metrics.length > 0 &&
+      !aborted
+    ) {
+      const probe = await executeAttempt(GPU_WINDOW_PROBE_RUNS, windows);
+      if (isDisposed()) {
+        return;
+      }
+      if (!probe.ok) {
+        fail(probe.reason);
+        return;
+      }
+      if (probe.result.cancelled) {
+        finish("cancelled");
+        return;
+      }
+      windows = windowsFromObserved(
+        probe.result.metricRanges,
+        windows,
+        bins,
+        0.25,
+      );
+    }
+
+    let outcome = await executeAttempt(config.runCount, windows);
+    if (isDisposed()) {
+      return;
+    }
+    if (
+      outcome.ok &&
+      !outcome.result.cancelled &&
+      anyEscapes(outcome.result.metricRanges) &&
+      !aborted
+    ) {
+      windows = windowsFromObserved(
+        outcome.result.metricRanges,
+        windows,
+        bins,
+        1 / 64,
+      );
+      outcome = await executeAttempt(config.runCount, windows);
+    }
+
+    if (isDisposed()) {
       return;
     }
     if (!outcome.ok) {
@@ -495,11 +591,11 @@ export async function createGpuMonteCarloExperiment(
       return;
     }
 
-    if (outcome.result.saturatedSamples > 0) {
-      // The top bin saturates, so the distribution is wrong above it. Saying so
-      // beats presenting a clipped distribution as a result.
+    if (anyEscapes(outcome.result.metricRanges)) {
+      // Unreachable when the recalibrated re-run executed (same seeds, same
+      // trajectories, exact observed range) — kept as the honest safety net.
       config.onWarning?.(
-        `${outcome.result.saturatedSamples} samples reached the histogram's largest bin (${backend.shader.histogramBins - 1} tokens) and were clamped there, so values above it are not accurate. Run on the CPU for an exact distribution.`,
+        "Some samples fell outside the histogram's calibrated range, so the distribution's edges are clamped.",
       );
     }
 
