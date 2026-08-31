@@ -161,7 +161,9 @@ class TestStringNodes:
         )
 
     def test_string_methods_evaluate(self) -> None:
-        lit = lambda value: self._node("stringLit", value=value)
+        def lit(value: str) -> dict[str, object]:
+            return self._node("stringLit", value=value)
+
         for fn, target, argument, expected in (
             ("startsWith", "pump-3", "pump", True),
             ("endsWith", "pump-3", "-3", True),
@@ -169,7 +171,9 @@ class TestStringNodes:
             ("includes", "pump-3", "xyz", False),
         ):
             case = self._constraint(
-                self._node("stringCall", fn=fn, target=lit(target), argument=lit(argument))
+                self._node(
+                    "stringCall", fn=fn, target=lit(target), argument=lit(argument)
+                )
             )
             assert case(scenario={}) is expected, (fn, target, argument)
 
