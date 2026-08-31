@@ -428,8 +428,6 @@ impl ServeCommand {
             None
         };
 
-        // The meter the budgets and rejections are counted on — the hosting binary's global
-        // telemetry init makes it real, and it degrades to a no-op where none is installed.
         let meter = opentelemetry::global::meter("hash-graph-atlas");
         let limiters = RateLimiters::start(&rate_limit, &meter);
 
