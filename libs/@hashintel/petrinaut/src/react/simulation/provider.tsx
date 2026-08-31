@@ -442,7 +442,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
       ? currentState.parameterValues
       : {};
     // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-    const scenarioToCompile = tweakedScenarioRef.current;
+    const namedScenarioToCompile = tweakedScenarioRef.current;
+    // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
+    const adHocScenarioToCompile = adHocRunScenarioRef.current;
+    const scenarioToCompile = namedScenarioToCompile ?? adHocScenarioToCompile;
+    const adHocRun =
+      namedScenarioToCompile === null && adHocScenarioToCompile !== null;
 
     // Dispose any active simulation before starting a new one. Update both
     // the ref and React state so same-tick callers see the cleared handle.
@@ -468,10 +473,23 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
         if (initializationGenerationRef.current !== generation) {
           return;
         }
+        // The ad-hoc definition reads net parameters at the panel's current
+        // values (the render path compiles it the same way); a named
+        // scenario keeps the parameters' own defaults, its overrides rule.
+        const compileParameters = simulationExtensions.parameters
+          ? adHocRun
+            ? sdcpn.parameters.map((parameter) => ({
+                ...parameter,
+                defaultValue:
+                  manualParameterValues[parameter.variableName] ??
+                  parameter.defaultValue,
+              }))
+            : sdcpn.parameters
+          : [];
         const outcome = compileScenario(
           scenarioToCompile,
           scenarioHir,
-          simulationExtensions.parameters ? sdcpn.parameters : [],
+          compileParameters,
           sdcpn.places,
           sdcpn.types,
         );
@@ -780,6 +798,12 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
 
   // Snapshot for `initialize`, which compiles the scenario itself.
   const tweakedScenarioRef = useLatest(tweakedScenario);
+  // The quick-sim ad-hoc definition, synthesized to an ordinary scenario:
+  // Play compiles it exactly like a selected scenario, so the run starts
+  // from the defined tokens rather than the manual marking.
+  const adHocRunScenarioRef = useLatest(
+    adHocSynthesized?.ok ? adHocSynthesized.scenario : null,
+  );
 
   const contextValue: SimulationContextValue = {
     state: simulationState,
