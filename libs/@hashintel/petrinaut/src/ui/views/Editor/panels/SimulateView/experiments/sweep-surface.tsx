@@ -3,17 +3,22 @@
  * parameters, filling in live as points are sampled.
  *
  * This component owns the sampling: while it is open, it samples an X×Y
- * sub-grid of the two shown parameters in coarse-to-fine chunks through the
- * sweep's background lane — each chunk one request carrying many cells (8
- * runs per point), batched into a single experiment where the scenario
- * allows it — so the coarse shape of the surface appears with the first
- * chunk and sharpens from there. Every metric's value comes back per cell,
- * so switching the shown metric re-reads the same samples instead of
- * re-simulating. Parameters outside the two shown axes hold at the middle
- * of their selected ranges — moving them restarts the sampling for the new
- * slice — and clicking the plot collapses both shown parameters to a point
- * at the clicked position. Rendering itself is `ContourSurface`, which is
- * purely presentational.
+ * sub-grid of the two shown parameters in quad-tree order — the four
+ * corners, then each level splitting every region in two over x and y — in
+ * level-aligned chunks through the sweep's background lane, several chunks
+ * in flight at once. Each chunk is one request carrying many cells (8 runs
+ * per point), batched into a single experiment where the scenario allows
+ * it, so a complete coarse picture lands with the first levels and sharpens
+ * from there. The navigator's own selection always samples first: chunks
+ * wait for the current selection's first streamed frames (the session
+ * re-arms that gate on every selection change), so the metric charts fill
+ * before the surface competes for workers. Every metric's value comes back
+ * per cell, so switching the shown metric re-reads the same samples instead
+ * of re-simulating. Parameters outside the two shown axes hold at the
+ * middle of their selected ranges — moving them restarts the sampling for
+ * the new slice — and clicking the plot collapses both shown parameters to
+ * a point at the clicked position. Rendering itself is `ContourSurface`,
+ * which is purely presentational.
  */
 import { use, useEffect, useState } from "react";
 
@@ -21,7 +26,7 @@ import { Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
-import { coarseToFineOrder } from "../../../../../../react/experiments/contour-grid";
+import { quadTreeLevels } from "../../../../../../react/experiments/contour-grid";
 import {
   ContourSurface,
   contourSurfaceKey,
@@ -38,9 +43,17 @@ const SURFACE_CELL_RUNS = 8;
  * Cells per sampling request. Small enough that the first chunk paints the
  * coarse shape quickly, big enough that a full grid is a handful of
  * requests — each of which the provider turns into one batched experiment
- * where the scenario allows it, instead of one batch per cell.
+ * where the scenario allows it, instead of one batch per cell. Chunks never
+ * span quad-tree levels, so each level paints as a unit.
  */
 const SURFACE_CHUNK_CELLS = 24;
+
+/**
+ * Chunks dispatched concurrently. The session holds four background-batch
+ * slots; keeping one in reserve leaves navigator-click refinement a lane of
+ * its own while the fill still overlaps chunk setup with compute.
+ */
+const SURFACE_CHUNKS_IN_FLIGHT = 3;
 
 /**
  * Sampled positions per axis on the surface's sub-grid: a subset of the
@@ -161,55 +174,77 @@ export const SweepSurface = ({
 
     const xPositions = surfacePositions(xAxis);
     const yPositions = surfacePositions(yAxis);
-    const order = coarseToFineOrder(xPositions.length, yPositions.length);
+    // Level-aligned chunks in quad-tree order: coarse levels are whole
+    // chunks, finer levels split at the size cap.
+    const chunks = quadTreeLevels(xPositions.length, yPositions.length).flatMap(
+      (level) => {
+        const parts: { x: number; y: number }[][] = [];
+        for (
+          let start = 0;
+          start < level.length;
+          start += SURFACE_CHUNK_CELLS
+        ) {
+          parts.push(level.slice(start, start + SURFACE_CHUNK_CELLS));
+        }
+        return parts;
+      },
+    );
 
-    const run = async () => {
-      for (let start = 0; start < order.length; start += SURFACE_CHUNK_CELLS) {
-        if (isWalkStale()) {
+    const sampleChunk = async (chunk: readonly { x: number; y: number }[]) => {
+      const positions = chunk.map((cell) => {
+        const position: Record<string, number> = {
+          [xAxis.identifier]: xPositions[cell.x]!,
+          [yAxis.identifier]: yPositions[cell.y]!,
+        };
+        for (const [identifier, positionText] of fixedEntries) {
+          position[identifier] = Number(positionText);
+        }
+        return position;
+      });
+
+      const cells = await sampleSurfaceCells(
+        experimentId,
+        positions,
+        SURFACE_CELL_RUNS,
+      );
+      // A refused chunk is a hole in the surface, not the end of the fill —
+      // later chunks may still land (a disposed session keeps refusing
+      // cheaply until the cleanup flips the stale flag).
+      if (isWalkStale() || !cells) {
+        return;
+      }
+      setGrid((previous) => {
+        if (previous.walkKey !== walkKey) {
+          return previous;
+        }
+        const next = new Map(previous.values);
+        for (const [index, values] of cells.entries()) {
+          const cell = chunk[index];
+          if (cell && values) {
+            next.set(contourSurfaceKey(cell.x, cell.y), values);
+          }
+        }
+        return { walkKey: previous.walkKey, values: next };
+      });
+    };
+
+    // Parallel lanes pulling from one queue: chunks stream back roughly in
+    // quad-tree order while setup and compute overlap across lanes.
+    const queue = { index: 0 };
+    const lane = async () => {
+      while (!isWalkStale()) {
+        const chunkIndex = queue.index;
+        queue.index += 1;
+        const chunk = chunks[chunkIndex];
+        if (!chunk) {
           return;
         }
-        const chunk = order.slice(start, start + SURFACE_CHUNK_CELLS);
-        const positions = chunk.map((cell) => {
-          const position: Record<string, number> = {
-            [xAxis.identifier]: xPositions[cell.x]!,
-            [yAxis.identifier]: yPositions[cell.y]!,
-          };
-          for (const [identifier, positionText] of fixedEntries) {
-            position[identifier] = Number(positionText);
-          }
-          return position;
-        });
-
-        const cells = await sampleSurfaceCells(
-          experimentId,
-          positions,
-          SURFACE_CELL_RUNS,
-        );
-        if (isWalkStale()) {
-          return;
-        }
-        // A refused chunk is a hole in the surface, not the end of the
-        // fill — later chunks may still land (a disposed session keeps
-        // refusing cheaply until the cleanup flips the stale flag).
-        if (!cells) {
-          continue;
-        }
-        setGrid((previous) => {
-          if (previous.walkKey !== walkKey) {
-            return previous;
-          }
-          const next = new Map(previous.values);
-          for (const [index, values] of cells.entries()) {
-            const cell = chunk[index];
-            if (cell && values) {
-              next.set(contourSurfaceKey(cell.x, cell.y), values);
-            }
-          }
-          return { walkKey: previous.walkKey, values: next };
-        });
+        await sampleChunk(chunk);
       }
     };
-    void run();
+    for (let i = 0; i < SURFACE_CHUNKS_IN_FLIGHT; i++) {
+      void lane();
+    }
 
     return () => {
       walk.stale = true;

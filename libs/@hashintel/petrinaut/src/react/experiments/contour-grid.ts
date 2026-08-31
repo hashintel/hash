@@ -62,6 +62,47 @@ export function coarseToFineOrder(
 }
 
 /**
+ * The cells of an `nx × ny` grid grouped into quad-tree refinement levels:
+ * level 0 is the four corners, and each further level splits every region in
+ * two over x and over y — the lattice `i / 2^level`, rounded onto the grid —
+ * keeping only the cells no earlier level produced. Sampling level by level
+ * paints a complete (coarse) picture after every level instead of sweeping
+ * the grid in one fixed order; the recursion ends at the depth where the
+ * lattice covers every grid index.
+ */
+export function quadTreeLevels(
+  nx: number,
+  ny: number,
+): { x: number; y: number }[][] {
+  const axisLevels = (count: number): number[] => {
+    const levels = new Array<number>(count).fill(-1);
+    let assigned = 0;
+    for (let depth = 0; assigned < count && depth <= 30; depth++) {
+      const points = 2 ** depth;
+      for (let i = 0; i <= points; i++) {
+        const index = Math.round((i / points) * (count - 1));
+        if (levels[index] === -1) {
+          levels[index] = depth;
+          assigned += 1;
+        }
+      }
+    }
+    return levels;
+  };
+
+  const xLevels = axisLevels(nx);
+  const yLevels = axisLevels(ny);
+  const byLevel: { x: number; y: number }[][] = [];
+  for (let y = 0; y < ny; y++) {
+    for (let x = 0; x < nx; x++) {
+      const level = Math.max(xLevels[x]!, yLevels[y]!);
+      (byLevel[level] ??= []).push({ x, y });
+    }
+  }
+  return byLevel.filter((level) => level.length > 0);
+}
+
+/**
  * Interpolates the sampled points onto a `width × height` raster spanning the
  * grid's index space, by inverse distance weighting (power 2).
  *
