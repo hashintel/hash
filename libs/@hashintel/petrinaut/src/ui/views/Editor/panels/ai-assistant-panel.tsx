@@ -864,7 +864,9 @@ export const AiAssistantPanel = ({
           throw submissionError;
         }
 
-        setInput("");
+        if (source !== "voice") {
+          setInput("");
+        }
         setStreamError(null);
         setStopped(false);
         stopRequestedRef.current = false;
@@ -896,7 +898,9 @@ export const AiAssistantPanel = ({
       }
 
       const messageId = id ?? generateId();
-      setInput("");
+      if (source !== "voice") {
+        setInput("");
+      }
       setStreamError(null);
       setStopped(false);
       stopRequestedRef.current = false;

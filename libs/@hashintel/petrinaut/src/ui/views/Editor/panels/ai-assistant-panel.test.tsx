@@ -1729,7 +1729,7 @@ describe("AiAssistantPanel composer submissions", () => {
     });
   });
 
-  test("persists voice provenance on an ordinary user message", async () => {
+  test("persists voice provenance without clearing an ordinary message draft", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const onMessages = vi.fn();
     const transport: PetrinautAiTransport = {
@@ -1763,11 +1763,16 @@ describe("AiAssistantPanel composer submissions", () => {
       },
     });
 
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Typed follow-up draft" } });
     fireEvent.click(
       screen.getByRole("button", { name: "Submit voice message" }),
     );
     await screen.findByText("Voice message accepted");
 
+    expect(textarea.value).toBe("Typed follow-up draft");
     expect(requestMessages).toHaveLength(1);
     expect(requestMessages[0]?.filter(({ role }) => role === "user")).toEqual([
       expect.objectContaining({
@@ -1846,11 +1851,16 @@ describe("AiAssistantPanel composer submissions", () => {
     });
     await screen.findByText("Who approves it?");
 
+    const textarea = screen.getByRole<HTMLTextAreaElement>("textbox", {
+      name: "Message AI assistant",
+    });
+    fireEvent.change(textarea, { target: { value: "Typed correction draft" } });
     fireEvent.click(
       screen.getByRole("button", { name: "Submit voice answer" }),
     );
     await screen.findByText("Voice answer accepted");
 
+    expect(textarea.value).toBe("Typed correction draft");
     expect(requestMessages).toHaveLength(2);
     const containingMessage = requestMessages[1]?.find((message) =>
       message.parts.some(
