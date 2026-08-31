@@ -300,18 +300,24 @@ describe("compileNetShader", () => {
  * confidently. These pin the offsets against the shader's own writes.
  */
 describe("histogram sizing", () => {
-  it("spends the whole baseline workgroup budget on an unbounded metric", () => {
-    // One metric: floor(16384 / 4) = 4096 slots, capped at the max.
+  it("spends the baseline workgroup budget on an unbounded metric", () => {
+    // One metric: floor((16384 − 8) / 4) = 4094 slots, capped at the max.
     expect(histogramBinCount(1, null)).toBe(GPU_HISTOGRAM_MAX_BINS);
-    expect(histogramBinCount(4, null)).toBe(GPU_HISTOGRAM_MAX_BINS);
+    expect(histogramBinCount(3, null)).toBe(GPU_HISTOGRAM_MAX_BINS);
+    // Four metrics no longer reach the cap: the min/max reduction's eight
+    // bytes per metric share the budget.
+    expect(histogramBinCount(4, null)).toBe(1022);
   });
 
   it("shrinks bins as metrics divide the workgroup budget", () => {
-    expect(histogramBinCount(5, null)).toBe(819);
+    expect(histogramBinCount(5, null)).toBe(817);
     // 17 metrics used to overflow the 16 KB budget at a fixed 256 bins and
-    // fail pipeline creation; now they fit at fewer bins each.
-    expect(histogramBinCount(17, null)).toBe(240);
-    expect(17 * histogramBinCount(17, null) * 4).toBeLessThanOrEqual(16384);
+    // fail pipeline creation; now they fit at fewer bins each — histogram
+    // plus the per-metric min/max atomics.
+    expect(histogramBinCount(17, null)).toBe(238);
+    expect(17 * histogramBinCount(17, null) * 4 + 17 * 8).toBeLessThanOrEqual(
+      16384,
+    );
   });
 
   it("sizes to the sampled places' count ceiling plus a top bin", () => {
