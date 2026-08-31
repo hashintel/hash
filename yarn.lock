@@ -440,7 +440,9 @@ __metadata:
     "@flue/runtime": "npm:2.0.3"
     "@flue/sdk": "npm:2.0.3"
     "@flue/vite": "npm:2.0.3"
+    "@hashintel/brunch-agent": "workspace:*"
     "@hashintel/brunch-agent-binding-flue": "workspace:*"
+    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*"
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"
     "@opentelemetry/api": "npm:1.9.1"
@@ -7419,11 +7421,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn":
+"@hashintel/brunch-agent-plugin-sdcpn@workspace:*, @hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn":
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn"
   dependencies:
+    "@flue/runtime": "npm:2.0.3"
     "@hashintel/brunch-agent": "workspace:*"
+    "@hashintel/petrinaut-core": "workspace:*"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     oxlint: "npm:1.63.0"
@@ -7454,6 +7458,7 @@ __metadata:
   resolution: "@hashintel/brunch-agent@workspace:libs/@hashintel/brunch-agent/packages/core"
   dependencies:
     "@anthropic-ai/sdk": "npm:0.74.0"
+    "@flue/runtime": "npm:2.0.3"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     "@valibot/to-json-schema": "npm:1.7.1"

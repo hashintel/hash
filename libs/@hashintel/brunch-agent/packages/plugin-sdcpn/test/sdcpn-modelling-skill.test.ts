@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 
 const skillDirectory = new URL(
-  "../src/agents/chat-agent/skills/sdcpn-modelling/",
+  "../src/skills/sdcpn-modelling/",
   import.meta.url,
 );
 const resourceFiles = [

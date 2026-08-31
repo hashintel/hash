@@ -34,8 +34,9 @@ import {
 const PACKAGES = workspacePackages();
 
 const CORE = "@hashintel/brunch-agent";
-/** Any substrate package. The harness may never name one; a binding must. */
+/** Flue is the selected agent runtime; lower-level Pi packages remain binding/test concerns. */
 const SUBSTRATE_SCOPES = ["@flue/", "@earendil-works/"];
+const FLUE_RUNTIME = "@flue/runtime";
 
 const isSubstrate = (name: string): boolean =>
   SUBSTRATE_SCOPES.some((scope) => name.startsWith(scope));
@@ -116,18 +117,20 @@ describe("role prefixes name what a package is architecturally (spec §12.2)", (
   });
 });
 
-describe("dependency direction (spec §4, §12.2)", () => {
-  test("the harness imports no substrate", () => {
+describe("dependency direction", () => {
+  test("core's only agent-runtime dependency is Flue", () => {
     const core = PACKAGES.find((pkg) => pkg.name === CORE);
     expect(core).toBeDefined();
-    expect(allDependencies(core!).filter(isSubstrate)).toEqual([]);
+    expect(allDependencies(core!).filter(isSubstrate)).toEqual([FLUE_RUNTIME]);
     for (const file of sourceFiles(core!)) {
-      const substrateImports = importedPackages(file).filter((s) =>
-        isSubstrate(packageOf(s)),
+      const substrateImports = importedPackages(file).filter((specifier) =>
+        isSubstrate(packageOf(specifier)),
       );
       expect({ file: file.relPath, substrateImports }).toEqual({
         file: file.relPath,
-        substrateImports: [],
+        substrateImports: file.relPath.endsWith("/src/agent/index.ts")
+          ? [FLUE_RUNTIME]
+          : [],
       });
     }
   });
@@ -141,7 +144,7 @@ describe("dependency direction (spec §4, §12.2)", () => {
     }
   });
 
-  test("plugins resolve core only — never the binding, never Flue", () => {
+  test("plugins depend inward on core and may contribute through Flue directly", () => {
     const plugins = byRole("plugin");
     expect(plugins.length).toBeGreaterThan(0);
     for (const plugin of plugins) {
@@ -149,12 +152,17 @@ describe("dependency direction (spec §4, §12.2)", () => {
         dependency.startsWith("@hashintel/brunch-agent"),
       );
       expect(workspaceDeps).toEqual([CORE]);
-      expect(allDependencies(plugin).filter(isSubstrate)).toEqual([]);
+      expect(
+        allDependencies(plugin).filter(
+          (dependency) =>
+            isSubstrate(dependency) && dependency !== FLUE_RUNTIME,
+        ),
+      ).toEqual([]);
 
       for (const file of sourceFiles(plugin)) {
         for (const specifier of importedPackages(file)) {
           const pkg = packageOf(specifier);
-          expect(isSubstrate(pkg)).toBe(false);
+          expect(isSubstrate(pkg) && pkg !== FLUE_RUNTIME).toBe(false);
           expect(pkg.startsWith("@hashintel/brunch-agent") ? pkg : CORE).toBe(
             CORE,
           );
@@ -423,12 +431,13 @@ describe("recorded Flue constraints hold by construction (spec §10)", () => {
   });
 });
 
-describe("core auxiliary subpaths stay in their assigned lanes (spec §12.2)", () => {
-  test("core exposes browser contracts, prompts, storage support and testing as explicit subpaths", () => {
+describe("core auxiliary subpaths stay in their assigned lanes", () => {
+  test("core exposes Flue composition, browser contracts, prompts, storage support and testing as explicit subpaths", () => {
     const core = PACKAGES.find((pkg) => pkg.name === CORE)!;
     expect(Object.keys(core.manifest.exports ?? {})).toEqual([
       ".",
       "./client-tools",
+      "./flue",
       "./prompts",
       "./storage",
       "./testing",

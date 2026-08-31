@@ -6,6 +6,10 @@ Live. This file is execution authority for [FE-1563](https://linear.app/hash/iss
 
 Later projection, provenance, bounded revision, observer, host-continuity, and optimisation concerns remain in [`MISSION.next.md`](MISSION.next.md). They are not implementation authority here.
 
+### Accepted design decision — Flue-native package ownership
+
+**Observed strain:** the app-local `ChatAgent` mixed the core Brunch prompt, SDCPN steering and runbook resources, SDCPN construction tools, Petrinaut host tools, and transport conventions, making none of their package authorities visible. **Local obligation:** follow Flue's native distinction between the agent's returned core instructions, `useInstruction` contributions, progressively disclosed `useSkill` resources, and `useTool` capabilities while exposing core and SDCPN ownership directly. **Alternatives:** preserving a substrate-neutral core would have kept agent composition in `binding-flue`, contrary to the intended split; making core and plugin Flue-native keeps the app as the required directive-marked registration and host composition point. **Owner acceptance:** the owner explicitly selected the Flue-native core/plugin alternative before implementation. This decision relocates the existing instrument without changing its runbook semantics and does not reactivate the generalized repertoire/`useElicitation()` runtime.
+
 ## Imperative
 
 Manually reshape the technically viable Mission 3 elicitation runbook and Markdown workpiece into a stronger, research-informed candidate that the owner understands and endorses one consequential decision at a time.
@@ -16,7 +20,7 @@ This is not an autonomous rewrite and not a statistical claim of universal super
 
 ## Throughline
 
-One stepwise redesign through the existing production package:
+One stepwise redesign through the production core-agent and SDCPN-plugin package seam:
 
 ```text
 research synthesis + historical workpieces + current authored resources
@@ -31,7 +35,7 @@ research synthesis + historical workpieces + current authored resources
 → compare candidate evidence with Mission 3's frozen control
 ```
 
-The likely edit surface is the existing SDCPN-modelling skill: `SKILL.md`, `elicitation.md`, `ir-template.md`, and only the construction/check material whose phase ownership is directly implicated. Amend the structural-typing specification only when an accepted redesign decision contradicts it. Keep changes reviewable in small semantic steps rather than replacing the package wholesale.
+The semantic edit surface is the SDCPN plugin's existing modelling skill: `SKILL.md`, `elicitation.md`, `ir-template.md`, and only the construction/check material whose phase ownership is directly implicated. Brunch core owns the stable Flue agent prompt; plugin-sdcpn owns its additional prompt material, runbook skill, and target-specific tools; the app owns only the directive-marked registration point and Petrinaut host composition. Amend the structural-typing specification only when an accepted redesign decision contradicts it. Keep changes reviewable in small semantic steps rather than replacing the package wholesale.
 
 The baseline is available as a comparison input, not a design prescription. Its observed range and dispositions must be considered before the candidate instrument is frozen or any improvement claim is made. Candidate runs use a new versioned protocol/output location and preserve their own instrument manifest; they never write into or modify the baseline campaign.
 
@@ -58,8 +62,8 @@ Prefer one coherent candidate and a discriminating comparison over many lightly 
 - The owner leads semantic and editorial choices. The agent presents alternatives, traces consequences, edits accepted decisions, and runs probes; it does not infer approval or silently choose the final package.
 - Work one observed strain or owner-supplied edge at a time. Prefer subtraction, relocation, and clearer authority before adding another catalog, abstraction, or artifact.
 - Keep universal elicitation, SDCPN investigation, workpiece structure, and PN construction distinct enough that each can change without turning questions into schema slots.
-- Preserve one model-facing agent, one runbook skill, Flue's native `useSkill` and resource disclosure, and the production `ChatAgent` door. Do not add a loader, workflow engine, second agent, or TUI.
-- Do not add a comprehensive ontology, closed claim kinds, typed completion algebra, plugin/repertoire runtime, observer fold, projection engine, capture-store join, or live Petrinaut mutation path.
+- Preserve one model-facing agent, one runbook skill, Flue's native returned instructions, `useInstruction`, `useSkill`, `useTool`, resource disclosure, and the production `ChatAgent` door. Do not add a loader, workflow engine, second agent, or TUI.
+- Do not add a comprehensive ontology, closed claim kinds, typed completion algebra, generalized plugin/repertoire runtime, observer fold, projection engine, capture-store join, or live Petrinaut mutation path. The statically composed Flue-native core and SDCPN package contributions are the production path, not a reactivation of generalized `useElicitation()`.
 - Preserve exact expert evidence and honest authorship. Normalized prose, agent assumptions, unasked material, and explicit user unknowns remain distinguishable.
 - Do not tune reusable guidance only to Vestera. Scenario facts and owner examples may test the package but do not enter reusable teaching as universal facts.
 - Keep construction outside ordinary elicitation. Move construction-owned material only when the redesign can observe the effect; do not broaden into Mission 5's provider-schema problem.

@@ -2,7 +2,7 @@
   "name": "@hashintel/brunch-agent",
   "version": "0.0.0-private",
   "private": true,
-  "description": "The harness: mechanism and orchestration. Its public export surface is the plugin SDK.",
+  "description": "The Brunch harness, plugin SDK, and Flue-native core agent contribution.",
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {
@@ -13,6 +13,10 @@
     "./client-tools": {
       "types": "./src/client-tools.ts",
       "import": "./dist/client-tools.js"
+    },
+    "./flue": {
+      "types": "./src/agent/index.ts",
+      "import": "./dist/flue.js"
     },
     "./prompts": {
       "types": "./src/prompts.ts",
@@ -37,6 +41,7 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
+    "@flue/runtime": "2.0.3",
     "valibot": "1.4.2",
     "yaml": "2.9.0"
   },

@@ -1,11 +1,8 @@
 import { defineTool } from "@flue/runtime";
 import * as v from "valibot";
 
+import { AWAITING_CLIENT } from "@hashintel/brunch-agent/client-tools";
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
-
-import { AWAITING_CLIENT } from "../../../conversation/client-tools.ts";
-
-export const VALIDATED_CONSTRUCTION_MODE = "validated-construction";
 
 export const PETRINAUT_CONSTRUCTION_TOOL_NAMES = [
   "getLatestNetDefinition",

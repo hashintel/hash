@@ -12,7 +12,8 @@ import {
 import { setProvider } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 
-import { VALIDATED_CONSTRUCTION_MODE } from "../src/agents/chat-agent/tools/petrinaut-construction.ts";
+import { VALIDATED_CONSTRUCTION_MODE } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isAwaitingClient,

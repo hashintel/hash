@@ -9,9 +9,11 @@
  * addressed to a kind, node, and slot the definition names. The definition
  * names no domain, and neither does this code.
  *
- * **This package resolves `@hashintel/brunch-agent` and nothing else** — never the
- * binding, never Flue, and it is storage-blind (spec §9.6). `project` and
- * `validate` (ADR-0005) land with the realization slice.
+ * This substrate-neutral descriptor depends inward on `@hashintel/brunch-agent`
+ * and remains storage-blind. It is compiled and tested but not imported by the
+ * production ChatAgent. The package's `./flue` subpath separately owns its
+ * active prompt, skill, and tool contribution. `project` and `validate`
+ * (ADR-0005) land with the realization slice.
  */
 
 import * as v from "valibot";

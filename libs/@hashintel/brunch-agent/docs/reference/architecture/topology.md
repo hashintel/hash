@@ -5,7 +5,10 @@
 ## Verification — the tree as it stands
 
 ```text
-packages/core                      LANE 3 (harness; substrate-free)
+packages/core                      CORE HARNESS + Flue-native agent contribution
+├─ agent/
+│  ├─ system-prompt.ts ✓ stable Brunch system prompt
+│  └─ index.ts         ✓ `useModel` composition; owns no formalism-specific prompt, skill, or tool
 ├─ capture-store.ts   ✓  the storage port's contract + pure command surface; owns envelope
 │                        invariants. Never: substrate imports, IO, per-substrate shapes.
 ├─ session-log.ts     ✓  substrate-neutral archive/version/anchoring rules; archive ordinals
@@ -19,11 +22,11 @@ packages/core                      LANE 3 (harness; substrate-free)
 │  repertoire.yaml    ✓  guarded `./prompts` subpath: validated harness-default teaching;
 │                        binding/evaluation composition only, never a plugin import (ADR-0008)
 ├─ testing/           ✓  test utilities subpath (mirrors Flue's own store-contract pattern)
-├─ ask-protocol.ts    ✓  substrate-free ask/suspension mechanism: affordance minting, guard,
-│                        reply-binding signal, and instruction fragments (FE-1422). See N1.
-└─ sweep-protocol.ts  ✓  substrate-free settlement/sweep mechanism: trigger/high-water facts,
-                         replayable settled range, repair continuation, quote-only extraction,
-                         and affordance-bound accounting advisories (FE-1392). See N1.
+├─ ask-protocol.ts    ○  compiled generalized ask/suspension mechanism; currently not mounted
+├─ sweep-protocol.ts  ○  compiled generalized settlement/sweep mechanism; currently not mounted
+└─ instructions.ts,
+   elicited-model.ts,
+   completion.ts      ○  compiled typed elicitation/fold/completion path; currently not mounted
 
 packages/binding-flue              LANE 2 (translate harness ↔ Flue dialect)
 ├─ capabilities.ts    ✓  capability declaration — the binding's contract-of-record
@@ -34,10 +37,9 @@ packages/binding-flue              LANE 2 (translate harness ↔ Flue dialect)
 │                        cannot inject pre-classified archive entries.
 ├─ capture-accounting.ts ✓ recovers active-session Flue ids from session-qualified archived
 │                        evidence pointers; contains no accounting policy.
-├─ index.ts           ✓  useElicitation is Flue HOOK WIRING (useTool, usePersistentState,
-│                        useAgentStart/useAgentFinish, useDataWriter, harness.prompt, durable
-│                        step.do, ctx.append) and calls core's ask/sweep protocols (FE-1422/92).
-│                        Never: elicitation semantics, store rules, prompt content.
+├─ index.ts           ✓  active public history, reply-projection, and local-store adapters only
+├─ suspended/typed-elicitation.ts ○ retained generalized `useElicitation` hook wiring; compiled
+│                        but neither exported nor mounted by the production agent
 └─ local-capture-store.ts ✓ versioned storage-port implementation (capture store + session-log
                          archive, legacy provisioning, parse-on-read, tmp+rename, per-path
                          queue). One per deploy target per binding. Never: business rules.
@@ -49,19 +51,29 @@ packages/transport-aisdk           UI REPLY WIRE (substrate-neutral)
                          out-of-band. Never: binding/Flue imports, inference, conversation
                          rendering, or diagnostics dispatched as user evidence.
 
-packages/plugin-gherkin            LANE 3 (target policy)
+packages/plugin-gherkin            TARGET POLICY
 └─ index.ts           ✓  identity + one `statement-noted` ConditionStated verbatim floor;
                          strict schema forbids parsed structure and silent hardening.
-                         Never: harness mechanism, substrate imports, storage.
+                         Never: harness mechanism or storage.
+
+packages/plugin-sdcpn              TARGET POLICY + Flue-native production contribution
+├─ index.ts,
+│  plugin.yaml        ○  generalized typed definition/proposal path; compiled and tested but
+│                        not imported by the production ChatAgent
+├─ system-instructions.ts ✓ visible SDCPN always-on and construction-mode prompt material
+├─ flue.ts            ✓  SDCPN instruction, skill, and conditional tool mounts
+├─ skills/sdcpn-modelling/ ✓ progressively disclosed lifecycle, elicitation, workpiece,
+│                        construction, and check material
+└─ tools/petrinaut-construction.ts ✓ bounded, schema-validated SDCPN realization tools
 
 apps/brunch-agent                  LANE 1 SHELL + remote server (imported from apps/dev)
 ├─ src/app.ts, db.ts  ✓  Flue convention authorities: one route map and one conversation adapter
 ├─ src/db-path.ts     ✓  testable package-relative path policy kept at source root because the
 │                        same relative URL must survive Flue's flattened `dist/` bundle
 ├─ src/agents/chat-agent/
-│  ├─ agent.ts        ✓  sole directive-marked model-facing agent
-│  ├─ skills/         ✓  agent-owned, progressively disclosed Mission 3 runbook experiment
-│  └─ tools/          ✓  capabilities mounted only by that agent
+│  ├─ agent.ts        ✓  sole directive-marked registration and composition point: core prompt,
+│  │                     SDCPN plugin contribution, and Petrinaut host contribution
+│  └─ tools/          ✓  app-only diagnostics and Petrinaut host capabilities
 ├─ src/http/          ✓  HTTP authority: assets, route names, ownership guard, local origins,
 │                        and `/api/chat` composition
 ├─ src/conversation/  ✓  identity and projection authority: shared payload, client-tool signal,
@@ -86,7 +98,7 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
   refusal), prompt content, and advisory semantics;
   `useElicitation` contributes only Flue projection, hooks, persistent-state, private-prompt,
   refresh, and durable-step wiring. A future `binding-pi` reuses both protocol modules.
-- **N2 (plugin cells, repertoire, and the proving runbook; amended by ADR-0007, ADR-0008, and Mission 3).** Reusable plugin-owned policy lives in plugin packages, and harness-owned repertoire teaching lives in core behind `@hashintel/brunch-agent/prompts`; bindings and evaluation composition may import it, plugins may not. Mission 3 deliberately did not reactivate that runtime: its directly authored, single-consumer SDCPN runbook is agent-owned under `src/agents/chat-agent/skills/` while the structural-prose experiment remains proving. A second real consumer or a return to plugin composition must re-establish reusable ownership rather than copying the app skill. The committed YAML remains directly assertable outside the bundle.
+- **N2 (plugin cells, repertoire, and the proving runbook; amended by ADR-0007, ADR-0008, Mission 3, and FE-1563).** Reusable plugin-owned policy lives in plugin packages, and harness-owned repertoire teaching lives in core behind `@hashintel/brunch-agent/prompts`; plugins may not import that guarded prompt data. FE-1563 established a separate Flue-native production seam: core's `./flue` subpath supplies the stable agent prompt, while plugin-sdcpn's `./flue` subpath and exported `SKILL.md` supply SDCPN prompt material, progressive teaching, and target-specific tools. This does not reactivate the generalized repertoire/`useElicitation()` runtime. The app retains only the directive-marked registration point and host-specific capabilities. The committed YAML remains directly assertable outside the bundle.
 - **N3 (application composition; amended by ADR-0004 / FE-1437).** There is no dedicated demo
   shell. The standalone `apps/dev` was imported as `apps/brunch-agent`, which owns the remote
   Brunch server, target gallery, and diagnostics. `apps/petrinaut-website` owns the user-facing

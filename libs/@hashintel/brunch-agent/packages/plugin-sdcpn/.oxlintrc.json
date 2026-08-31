@@ -38,12 +38,12 @@
             "message": "Brunch libraries must remain independent of unpublished HASH packages."
           },
           {
-            "group": ["@hashintel/petrinaut/*", "@hashintel/petrinaut-*"],
-            "message": "Brunch libraries must not depend on Petrinaut implementations."
+            "group": ["@hashintel/petrinaut/*"],
+            "message": "Brunch libraries must not depend on Petrinaut implementations; plugin tools may consume published @hashintel/petrinaut-core contracts."
           },
           {
-            "group": ["@flue/*", "@earendil-works/*"],
-            "message": "Brunch plugins must remain substrate-independent."
+            "group": ["@earendil-works/*"],
+            "message": "Flue is the plugin's production runtime; lower-level Pi packages remain outside the plugin."
           },
           {
             "group": ["@hashintel/brunch-agent-*"],

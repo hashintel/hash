@@ -13,6 +13,9 @@ export type { ToolName } from "./naming";
 export const ASK_TOOL_NAME = toolName("ask");
 export const SWEEP_TOOL_NAME = toolName("sweep");
 
+/** A Flue tool result that delegates execution to the connected client. */
+export const AWAITING_CLIENT = "client" as const;
+
 export type BrunchAskInput = v.InferOutput<typeof AskInput>;
 export type BrunchAskOutput = v.InferOutput<typeof AskSubmission>;
 

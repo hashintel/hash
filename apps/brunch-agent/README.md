@@ -10,14 +10,7 @@ yarn dev:brunch
 
 The first step builds the Petrinaut libraries the panel imports (`dist/` and design-system
 codegen). Then it starts the Brunch server at `http://127.0.0.1:4321` and the real Petrinaut
-website at `http://127.0.0.1:4915`. The website proxies `/api/chat` to Brunch. The panel talks to one Flue
-chat agent: streamed text and reasoning, one server `ping` tool, one
-modelling runbook skill (`sdcpn-modelling`, activated via `activate_skill`,
-with supporting resources via `read_skill_resource`), and the existing
-Petrinaut `readPetrinautDoc` client tool. There is no elicitation loop,
-sweep tool, or `brunch_ask` on this path. Capture is a harness-side pipe:
-an explicit settled range of Flue history is applied into a JSON store
-beside the conversation database, not by the interviewer.
+website at `http://127.0.0.1:4915`. The website proxies `/api/chat` to Brunch. The panel talks to one Flue chat agent composed from the core prompt in `@hashintel/brunch-agent/flue`, the SDCPN instructions and modelling runbook skill in `@hashintel/brunch-agent-plugin-sdcpn`, and app-owned Petrinaut host capabilities. The skill is activated via `activate_skill`, with supporting resources disclosed via `read_skill_resource`; app-owned tools are the server diagnostic `ping` and the existing Petrinaut `readPetrinautDoc` client tool. There is no generalized elicitation loop, sweep tool, or `brunch_ask` on this path. Capture is a harness-side pipe: an explicit settled range of Flue history is applied into a JSON store beside the conversation database, not by the interviewer.
 
 A headless Mission 3 drive (simulated expert, same `ChatAgent` door):
 

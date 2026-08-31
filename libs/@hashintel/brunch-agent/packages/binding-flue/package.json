@@ -2,7 +2,7 @@
   "name": "@hashintel/brunch-agent-binding-flue",
   "version": "0.0.0-private",
   "private": true,
-  "description": "The Flue binding: implements the substrate-capability list and owns the storage-port implementation.",
+  "description": "Active Flue history, reply-projection, and local capture-store adapters; generalized typed elicitation remains suspended.",
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {

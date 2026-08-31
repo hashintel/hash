@@ -1,4 +1,8 @@
 import {
+  PETRINAUT_CONSTRUCTION_TOOL_NAMES,
+  type PetrinautConstructionToolName,
+} from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import {
   createJsonDocHandle,
   createPetrinaut,
   parseSDCPNFile,
@@ -7,11 +11,6 @@ import {
   createPetrinautAiWritableCallbacks,
   getLatestNetDefinitionToolName,
 } from "@hashintel/petrinaut-core/ai";
-
-import {
-  PETRINAUT_CONSTRUCTION_TOOL_NAMES,
-  type PetrinautConstructionToolName,
-} from "../../agents/chat-agent/tools/petrinaut-construction.ts";
 
 import type { Petrinaut } from "@hashintel/petrinaut-core";
 

@@ -5,9 +5,10 @@
  * envelope, the issue queue, sweep bookkeeping. Its public export surface *is*
  * the plugin SDK (spec §12.2).
  *
- * **The harness imports no substrate.** A binding imports both this package and
- * its substrate; plugins resolve this package only. That direction is enforced
- * mechanically — see `test/boundaries.test.ts` at the repo root.
+ * The substrate-neutral SDK remains on this main export. The `./flue` subpath
+ * owns the production agent-runtime contribution; plugins may likewise expose
+ * Flue-native resources while depending inward on this package. That direction
+ * is enforced mechanically in the architecture tests.
  */
 
 export {

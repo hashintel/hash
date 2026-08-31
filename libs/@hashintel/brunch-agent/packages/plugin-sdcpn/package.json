@@ -2,14 +2,19 @@
   "name": "@hashintel/brunch-agent-plugin-sdcpn",
   "version": "0.0.0-private",
   "private": true,
-  "description": "The SDCPN target formalism: the process-model plugin definition and its slot-assertion proposal type.",
+  "description": "The SDCPN target formalism: plugin definition, Flue instructions, runbook skill, and construction tools.",
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {
     ".": {
       "types": "./src/index.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./flue": {
+      "types": "./src/flue.ts",
+      "import": "./dist/flue.js"
+    },
+    "./skills/sdcpn-modelling/SKILL.md": "./src/skills/sdcpn-modelling/SKILL.md"
   },
   "scripts": {
     "build": "vite build",
@@ -19,7 +24,9 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
+    "@flue/runtime": "2.0.3",
     "@hashintel/brunch-agent": "workspace:*",
+    "@hashintel/petrinaut-core": "workspace:*",
     "valibot": "1.4.2"
   },
   "devDependencies": {

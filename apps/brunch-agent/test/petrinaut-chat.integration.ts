@@ -13,6 +13,10 @@ import {
 import { setProvider } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
+import { SDCPN_SYSTEM_INSTRUCTIONS } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { BRUNCH_CORE_SYSTEM_PROMPT } from "@hashintel/brunch-agent/flue";
+
+import { PETRINAUT_HOST_INSTRUCTIONS } from "../src/agents/chat-agent/host-instructions.ts";
 import { PING_TOOL_NAME } from "../src/agents/chat-agent/tools/ping.ts";
 import { READ_PETRINAUT_DOC_TOOL_NAME } from "../src/agents/chat-agent/tools/read-petrinaut-doc.ts";
 import { applyCaptureSweep } from "../src/capture/apply-sweep.ts";
@@ -131,17 +135,31 @@ try {
     };
 
     faux.setResponses([
-      fauxAssistantMessage(
-        [
-          fauxThinking("Load the modelling runbook skill."),
-          fauxToolCall(
-            ACTIVATE_SKILL_TOOL_NAME,
-            { name: RUNBOOK_SKILL_NAME },
-            { id: "tool-skill-1" },
-          ),
-        ],
-        { stopReason: "toolUse" },
-      ),
+      (context) => {
+        const request = JSON.stringify(context);
+        for (const instruction of [
+          BRUNCH_CORE_SYSTEM_PROMPT,
+          ...SDCPN_SYSTEM_INSTRUCTIONS.split("\n"),
+          ...PETRINAUT_HOST_INSTRUCTIONS.split("\n"),
+        ]) {
+          if (!request.includes(instruction)) {
+            throw new Error(
+              `Model request omitted instruction: ${instruction}`,
+            );
+          }
+        }
+        return fauxAssistantMessage(
+          [
+            fauxThinking("Load the modelling runbook skill."),
+            fauxToolCall(
+              ACTIVATE_SKILL_TOOL_NAME,
+              { name: RUNBOOK_SKILL_NAME },
+              { id: "tool-skill-1" },
+            ),
+          ],
+          { stopReason: "toolUse" },
+        );
+      },
       (context) =>
         fauxAssistantMessage(
           [

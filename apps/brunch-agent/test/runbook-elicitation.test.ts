@@ -107,7 +107,7 @@ test("the prospective runner records a recoverable IR without construction or ca
       "libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/opening-message.md",
     );
     expect(record.instrument.fileSha256).toHaveProperty(
-      "apps/brunch-agent/src/agents/chat-agent/skills/sdcpn-modelling/SKILL.md",
+      "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md",
     );
     expect(record.finalizationMessage).toContain("not expert evidence");
   } finally {
