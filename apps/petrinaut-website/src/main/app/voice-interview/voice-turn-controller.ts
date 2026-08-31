@@ -76,6 +76,7 @@ export class VoiceTurnController {
   #awaitingChatCycle = false;
   #chatStatus: ChatStatus = "ready";
   #generation = 0;
+  #pendingDelivery: SubmitTextInput | null = null;
   #sawBusyChatStatus = false;
   #snapshot = initialSnapshot;
 
@@ -150,6 +151,7 @@ export class VoiceTurnController {
     this.#activeItemId = null;
     this.#activeKey = null;
     this.#awaitingChatCycle = false;
+    this.#pendingDelivery = null;
     this.#sawBusyChatStatus = false;
     this.#session.setMicrophoneEnabled(false);
     await this.#session.disconnect();
@@ -187,9 +189,18 @@ export class VoiceTurnController {
   public updateChatStatus(status: ChatStatus): void {
     this.#chatStatus = status;
     if (!this.#awaitingChatCycle) {
+      if (status === "ready" && this.#pendingDelivery !== null) {
+        const pendingDelivery = this.#pendingDelivery;
+        this.#pendingDelivery = null;
+        this.#session.setMicrophoneEnabled(false);
+        this.#update({ errorMessage: "", phase: "delivering" });
+        void this.#deliver(pendingDelivery);
+        return;
+      }
       if (
         (status === "submitted" || status === "streaming") &&
-        this.#snapshot.phase === "listening"
+        (this.#snapshot.phase === "listening" ||
+          this.#snapshot.phase === "transcribing")
       ) {
         this.#session.setMicrophoneEnabled(false);
         this.#update({ phase: "waiting" });
@@ -230,6 +241,13 @@ export class VoiceTurnController {
   }
 
   async #deliver(input: SubmitTextInput): Promise<void> {
+    if (!this.#isChatReady()) {
+      this.#pendingDelivery = input;
+      this.#session.setMicrophoneEnabled(false);
+      this.#update({ phase: "waiting" });
+      return;
+    }
+
     const generation = this.#generation;
     this.#awaitingChatCycle = true;
     this.#sawBusyChatStatus = false;
@@ -245,6 +263,13 @@ export class VoiceTurnController {
       this.#reopenListeningIfReady();
     } catch {
       if (generation !== this.#generation) {
+        return;
+      }
+      if (!this.#isChatReady()) {
+        this.#pendingDelivery = input;
+        this.#awaitingChatCycle = false;
+        this.#session.setMicrophoneEnabled(false);
+        this.#update({ phase: "waiting" });
         return;
       }
       this.#awaitingChatCycle = false;
@@ -272,6 +297,7 @@ export class VoiceTurnController {
       this.#activeItemId = null;
       this.#activeKey = null;
       this.#awaitingChatCycle = false;
+      this.#pendingDelivery = null;
       this.#sawBusyChatStatus = false;
       this.#session.setMicrophoneEnabled(false);
       this.#update({ errorMessage: event.message, phase: "recoverable-error" });
@@ -282,7 +308,8 @@ export class VoiceTurnController {
         event.connectionEpoch !== this.#activeEpoch ||
         (this.#activeItemId !== null && this.#activeItemId !== event.itemId) ||
         (this.#snapshot.phase !== "listening" &&
-          this.#snapshot.phase !== "transcribing")
+          this.#snapshot.phase !== "transcribing" &&
+          this.#snapshot.phase !== "waiting")
       ) {
         return;
       }
@@ -295,7 +322,8 @@ export class VoiceTurnController {
     if (
       event.key.connectionEpoch !== this.#activeEpoch ||
       (this.#snapshot.phase !== "listening" &&
-        this.#snapshot.phase !== "transcribing")
+        this.#snapshot.phase !== "transcribing" &&
+        this.#snapshot.phase !== "waiting")
     ) {
       return;
     }
@@ -337,16 +365,22 @@ export class VoiceTurnController {
     }
 
     this.#session.setMicrophoneEnabled(false);
+    const input = {
+      id: createVoiceMessageId(this.#conversationId, event.key),
+      text: finalText,
+    };
+    const canDeliver = this.#isChatReady();
     this.#update({
       errorMessage: "",
       lastCommittedText: finalText,
       partialText: "",
-      phase: "delivering",
+      phase: canDeliver ? "delivering" : "waiting",
     });
-    void this.#deliver({
-      id: createVoiceMessageId(this.#conversationId, event.key),
-      text: finalText,
-    });
+    if (canDeliver) {
+      void this.#deliver(input);
+    } else {
+      this.#pendingDelivery = input;
+    }
   }
 
   #reopenListeningIfReady(): void {

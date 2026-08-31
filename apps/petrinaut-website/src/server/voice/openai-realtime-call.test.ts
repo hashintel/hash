@@ -162,6 +162,50 @@ describe("OpenAI Realtime call handler", () => {
     );
   });
 
+  test("sanitizes failures while reading the SDP offer", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    const handler = createOpenAIRealtimeCallHandler({
+      environment: enabledEnvironment,
+      fetch,
+    });
+    const request = createRequest();
+    vi.spyOn(request, "arrayBuffer").mockRejectedValue(
+      new DOMException("client disconnected", "AbortError"),
+    );
+
+    const response = await handler(request);
+
+    expect(response.status).toBe(502);
+    expect(await response.text()).toBe(
+      "The voice connection could not be established.",
+    );
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  test("does not contact OpenAI when the request aborts while its body is read", async () => {
+    const requestAbortController = new AbortController();
+    const fetch = vi.fn<typeof globalThis.fetch>();
+    const handler = createOpenAIRealtimeCallHandler({
+      environment: enabledEnvironment,
+      fetch,
+    });
+    const request = createRequest(undefined, {
+      signal: requestAbortController.signal,
+    });
+    const encodedOffer = new TextEncoder().encode(
+      "v=0\r\no=- 0 0 IN IP4 127.0.0.1\r\n",
+    );
+    vi.spyOn(request, "arrayBuffer").mockImplementation(() => {
+      requestAbortController.abort();
+      return Promise.resolve(encodedOffer.buffer);
+    });
+
+    const response = await handler(request);
+
+    expect(response.status).toBe(502);
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   test("aborts a slow upstream call after the server timeout", async () => {
     vi.useFakeTimers();
     const fetch = vi.fn<typeof globalThis.fetch>(

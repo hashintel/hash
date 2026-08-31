@@ -152,6 +152,65 @@ describe("VoiceTurnController", () => {
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
   });
 
+  test("queues a late finalized transcript until Brunch is ready", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.controller.updateChatStatus("streaming");
+    expect(harness.controller.getSnapshot().phase).toBe("waiting");
+
+    harness.emit({
+      connectionEpoch: 1,
+      itemId: "late-item",
+      type: "input-committed",
+    });
+    harness.emit({
+      key: key(1, "late-item"),
+      text: "The support lead triages it.",
+      type: "completed",
+    });
+
+    expect(harness.submitText).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      lastCommittedText: "The support lead triages it.",
+      partialText: "",
+      phase: "waiting",
+    });
+
+    harness.controller.updateChatStatus("ready");
+
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+    expect(harness.submitText).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "The support lead triages it." }),
+    );
+  });
+
+  test("retries a finalized transcript rejected by a concurrent Brunch turn", async () => {
+    const harness = createHarness();
+    harness.submitText.mockImplementationOnce(async () => {
+      harness.controller.updateChatStatus("streaming");
+      throw new Error("Brunch became busy");
+    });
+    await harness.controller.start();
+
+    harness.emit({
+      key: key(1, "racing-item"),
+      text: "The incident manager owns it.",
+      type: "completed",
+    });
+
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().phase).toBe("waiting"),
+    );
+    expect(harness.controller.getSnapshot().errorMessage).toBe("");
+
+    harness.controller.updateChatStatus("ready");
+
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledTimes(2));
+    expect(harness.submitText).toHaveBeenLastCalledWith(
+      expect.objectContaining({ text: "The incident manager owns it." }),
+    );
+  });
+
   test("closes the microphone when a partial transcript arrives", async () => {
     const harness = createHarness();
     await harness.controller.start();

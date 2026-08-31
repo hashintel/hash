@@ -76,16 +76,6 @@ export const createOpenAIRealtimeCallHandler =
       return response("Not found.", 404);
     }
 
-    const sdp = await readSdpOffer(request);
-    if (sdp instanceof Response) {
-      return sdp;
-    }
-
-    const session = createOpenAITranscriptionSession();
-    const form = new FormData();
-    form.set("sdp", sdp);
-    form.set("session", JSON.stringify(session));
-
     const abortController = new AbortController();
     const abortForTimeout = () => abortController.abort(timeoutError);
     const abortForRequest = () => abortController.abort();
@@ -94,8 +84,24 @@ export const createOpenAIRealtimeCallHandler =
       OPENAI_REALTIME_CONNECTION_TIMEOUT_MS,
     );
     request.signal.addEventListener("abort", abortForRequest, { once: true });
+    if (request.signal.aborted) {
+      abortForRequest();
+    }
 
     try {
+      abortController.signal.throwIfAborted();
+
+      const sdp = await readSdpOffer(request);
+      abortController.signal.throwIfAborted();
+      if (sdp instanceof Response) {
+        return sdp;
+      }
+
+      const session = createOpenAITranscriptionSession();
+      const form = new FormData();
+      form.set("sdp", sdp);
+      form.set("session", JSON.stringify(session));
+
       const upstreamResponse = await fetch(OPENAI_REALTIME_CALLS_ENDPOINT, {
         body: form,
         headers: {
