@@ -1,5 +1,6 @@
 //! Resolution of a request's credentials to the acting principal.
 
+use alloc::sync::Arc;
 use core::{
     fmt,
     ops::ControlFlow,
@@ -433,7 +434,7 @@ pub async fn resolve_request_actor<P, C>(
     provider: &P,
     headers: &HeaderMap,
     metrics: &AuthenticationMetrics,
-) -> Result<C, Report<AuthenticationError>>
+) -> Result<C, Arc<Report<AuthenticationError>>>
 where
     P: AuthenticationProvider<C>,
     C: Caller,
@@ -466,7 +467,7 @@ where
             C::anonymous().map_err(|error| {
                 let report = Report::new(error);
                 AuthenticationError::ensure_logged(&report);
-                report
+                Arc::new(report)
             })
         }
     }
@@ -578,12 +579,11 @@ mod tests {
         fn authenticate(
             &self,
             _headers: &HeaderMap,
-        ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send
+        ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send
         {
-            core::future::ready(ControlFlow::Break(Err(Report::new(
-                AuthenticationError::new((self.0)()),
-            )
-            .attach(PROVIDER_DETAIL))))
+            core::future::ready(ControlFlow::Break(Err(Arc::new(
+                Report::new(AuthenticationError::new((self.0)())).attach(PROVIDER_DETAIL),
+            ))))
         }
     }
 

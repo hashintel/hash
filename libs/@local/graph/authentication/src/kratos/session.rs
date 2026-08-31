@@ -1,5 +1,6 @@
 //! Kratos session verification against the public API.
 
+use alloc::sync::Arc;
 use core::{ops::ControlFlow, time::Duration};
 
 use cookie::Cookie;
@@ -205,10 +206,10 @@ where
     async fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
+    ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
         let credential = match extract_session_credential(headers) {
             None => return ControlFlow::Continue(()),
-            Some(Err(report)) => return ControlFlow::Break(Err(report)),
+            Some(Err(report)) => return ControlFlow::Break(Err(Arc::new(report))),
             Some(Ok(credential)) => credential,
         };
 
@@ -220,7 +221,8 @@ where
         ControlFlow::Break(
             resolution
                 .await
-                .map(|user_id| C::from_actor(ActorId::User(user_id))),
+                .map(|user_id| C::from_actor(ActorId::User(user_id)))
+                .map_err(Arc::new),
         )
     }
 }

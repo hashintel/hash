@@ -163,8 +163,8 @@ impl Drop for AuthenticationRejection {
 /// The resolved authentication of a request, stored as a request extension, alongside the
 /// metrics the rejections it leads to are recorded on.
 ///
-/// A rejection carries the full report. The [`Arc`] is what lets it live in an extension:
-/// [`Report`] is not [`Clone`], and an extension value has to be.
+/// A rejection carries the full report, shared as the resolution handed it out: [`Report`] is
+/// not [`Clone`], and an extension value has to be.
 #[derive(Clone)]
 pub(crate) struct ResolvedAuthentication {
     outcome: Result<Option<ActorId>, Arc<Report<AuthenticationError>>>,
@@ -338,7 +338,7 @@ fn store_outcome<B>(
 /// #     async fn authenticate(
 /// #         &self,
 /// #         _headers: &HeaderMap,
-/// #     ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
+/// #     ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
 /// #         ControlFlow::Continue(())
 /// #     }
 /// # }
@@ -456,8 +456,7 @@ where
         Either::Left(async move {
             let outcome = resolve_request_actor(&*provider, req.headers(), &metrics)
                 .await
-                .map(Caller::into_actor)
-                .map_err(Arc::new);
+                .map(Caller::into_actor);
 
             let outcome = match outcome {
                 Err(report)
