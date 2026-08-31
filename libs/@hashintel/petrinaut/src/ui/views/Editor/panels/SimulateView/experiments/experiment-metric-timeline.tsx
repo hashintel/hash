@@ -340,14 +340,14 @@ export const ExperimentMetricTimeline = ({
   const timeDomainStart = timeDomain?.[0];
   const timeDomainEnd = timeDomain?.[1];
   const hasPlotData = plotData[0]!.length > 0;
-  // Once a metric has shown data, an empty re-stream keeps the plot mounted
-  // (axes and grid intact) rather than falling back to the waiting state —
-  // possible only with a pinned time domain, since empty data pins nothing.
   const hasEverHadData = lastOutputType !== null;
+  // A pinned time domain draws real axes with no data at all, so the chart
+  // frame mounts the moment the drawer opens — the full layout is on screen
+  // before the first frame streams, and nothing shifts when data lands. An
+  // empty re-stream keeps the plot mounted the same way. Without a pinned
+  // domain, empty data pins nothing and the waiting state stands in.
   const keepsAxesWhileEmpty =
-    hasEverHadData &&
-    timeDomainStart !== undefined &&
-    timeDomainEnd !== undefined;
+    timeDomainStart !== undefined && timeDomainEnd !== undefined;
   const canPlot =
     displayMode !== "number" && (hasPlotData || keepsAxesWhileEmpty);
 
