@@ -263,6 +263,77 @@ class TestJsMathEdges:
         assert self._math("round", math.inf) == math.inf
 
 
+class TestNanMargins:
+    """A NaN slack resolves at the comparison leaf with the boolean's sign,
+    so `min`/`max` in compounds can never drop it by argument order."""
+
+    @staticmethod
+    def _node(kind: str, **fields: object) -> dict[str, object]:
+        return {"kind": kind, "id": 0, "span": {"start": 0, "length": 1}, **fields}
+
+    def _constraint(self, body: dict[str, object]) -> Constraint:
+        return Constraint(
+            {
+                "id": "nan-margins",
+                "code": "<inline>",
+                "hir": {
+                    "hirVersion": 1,
+                    "surface": "scenario-expression",
+                    "params": [],
+                    "body": body,
+                },
+            }
+        )
+
+    def _num(self, value: float) -> dict[str, object]:
+        return self._node("numberLit", value=value, raw=repr(value))
+
+    def _nan_leaf(self) -> dict[str, object]:
+        # Math.sqrt(-1) > 2 — false in JS, its slack NaN in Python.
+        return self._node(
+            "binary",
+            op=">",
+            left=self._node("mathCall", fn="sqrt", args=[self._num(-1)]),
+            right=self._num(2),
+        )
+
+    def _sat_leaf(self) -> dict[str, object]:
+        return self._node("binary", op="<", left=self._num(5), right=self._num(9))
+
+    def test_and_with_nan_slack_reads_unsatisfied(self) -> None:
+        for left, right in (
+            (self._nan_leaf(), self._sat_leaf()),
+            (self._sat_leaf(), self._nan_leaf()),
+        ):
+            case = self._constraint(
+                self._node("binary", op="&&", left=left, right=right)
+            )
+            assert case(scenario={}) is False
+            assert case.margin(scenario={}) < 0
+
+    def test_or_with_nan_slack_follows_the_boolean(self) -> None:
+        rescued = self._constraint(
+            self._node("binary", op="||", left=self._nan_leaf(), right=self._sat_leaf())
+        )
+        assert rescued(scenario={}) is True
+        assert rescued.margin(scenario={}) >= 0
+
+    def test_negated_nan_comparison_reads_satisfied(self) -> None:
+        negated = self._constraint(
+            self._node("unary", op="!", operand=self._nan_leaf())
+        )
+        assert negated(scenario={}) is True
+        assert negated.margin(scenario={}) >= 0
+
+    def test_nan_equality_margins(self) -> None:
+        sqrt_neg = self._node("mathCall", fn="sqrt", args=[self._num(-1)])
+        unequal = self._constraint(
+            self._node("binary", op="!=", left=sqrt_neg, right=self._num(5))
+        )
+        assert unequal(scenario={}) is True
+        assert unequal.margin(scenario={}) >= 0
+
+
 class TestRejections:
     def test_unknown_node_kind_raises(self) -> None:
         with pytest.raises(HirEvaluationError, match="mystery"):
