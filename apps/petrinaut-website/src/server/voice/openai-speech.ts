@@ -232,7 +232,9 @@ export const createOpenAISpeechHandler =
       if (abortController.signal.aborted) {
         return voiceFailure("request-aborted", 502);
       }
-      return diagnostics.respond(response("The speech request is invalid.", 400));
+      return diagnostics.respond(
+        response("The speech request is invalid.", 400),
+      );
     }
 
     if (!isSpeechRequest(parsedBody)) {
