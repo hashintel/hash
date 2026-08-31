@@ -7,6 +7,7 @@ export default defineConfig({
     target: "esnext",
   },
   test: {
+    // eslint-disable-next-line unicorn/prevent-abbreviations -- Vitest configuration property
     dir: "tests",
     coverage: {
       enabled: process.env.TEST_COVERAGE === "true",
