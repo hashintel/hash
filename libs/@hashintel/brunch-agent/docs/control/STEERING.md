@@ -17,9 +17,11 @@ superseding capture while an unrelated region stays stable. Preserve runnable an
 evidence under [proof evidence](../evidence/proofs/).
 
 Governing strategic decisions: [S-001](STRATEGY-LOG.md#s-001), [S-004](STRATEGY-LOG.md#s-004),
-and [S-007](STRATEGY-LOG.md#s-007). Governing architecture:
+[S-007](STRATEGY-LOG.md#s-007), and [S-008](STRATEGY-LOG.md#s-008). Governing architecture:
 [ADR-0003](../adr/0003-three-register-ir.md), [ADR-0005](../adr/0005-model-assisted-sdcpn-realization.md),
-[ADR-0006](../adr/0006-plugins-per-target-formalism.md).
+[ADR-0006](../adr/0006-plugins-per-target-formalism.md),
+[ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md) (accepted
+2026-08-25; its key catalogue is a working set converging under decision 9).
 
 ## Selected frontier: the vertical slice, worked outward from its epicentres
 
@@ -29,7 +31,7 @@ open is answered by what the slice forces, and answered in code. The design-conv
 closed: its outputs are test-bed material, and its one durable design result is the plugin file
 [`plugin-sdcpn/plugin.md`](../../packages/plugin-sdcpn/plugin.md) ratified by ADR-0006.
 
-The slice has four epicentres, ordered by the size of the gap they close. Work starts at the
+The slice has five epicentres, ordered by the size of the gap they close. Work starts at the
 centre of each and moves outward; edges (SDK generality, affordance catalogues, UI breadth,
 evaluation apparatus) are not worked until an epicentre needs them.
 
@@ -39,6 +41,7 @@ evaluation apparatus) are not worked until an epicentre needs them.
 | **E2 — the SDCPN plugin in code** | The plugin file exists as a spec; nothing parses its three tables, folds captures onto its kinds, or projects from them. | FE-1482 (gist: CPS plugin, redefined as the skeleton epicentre) |
 | **E3 — targeted correction** | `supersedes` is unreachable from extraction; no affected-slice computation; no delta; the target-document is still identified with the conversation. | FE-1479 (targeted re-elicitation), FE-1478 (provenance read), FE-1439 (durable session / document boundary) |
 | **E4 — the real entry** | Client-tool results do not return to the elicitor; retry/abandonment semantics unproven; realization gated. | FE-1438, FE-1420, FE-1480 |
+| **E5 — the teaching layer** | The harness teaches eight sentences; the plugin runbook carries five-sixths harness method that gherkin would repeat; the parser reads the floor and anchor from prose by convention. Opened by E1's landing ([S-008](STRATEGY-LOG.md#s-008)); designed by [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md); converged by co-authoring both plugins ([S-009](STRATEGY-LOG.md#s-009)). | FE-1431 (authoring surface: schema, `plugin.yaml`, key reader), FE-1406 (`packages/repertoire`), FE-1393 (zero new keys) |
 
 ```text
 skeleton (construct job; proves the loop, produces fixtures)
@@ -49,15 +52,19 @@ reviewer lane (review-and-revise job; the acceptance proof)
 FE-1420 retry/abandonment safety -> FE-1438 client-tool return -> FE-1439 durable session
 FE-1478 provenance read -> FE-1480 scaffold/realization -> FE-1479 targeted correction join
 
-after the skeleton runs
-FE-1393 gherkin under the same six headings (generality check)
-FE-1406 lift harness-generic patterns into a harness repertoire
-FE-1431 residue: parser + heading contract
+authoring lane (E5; a convergence cycle alongside the skeleton run, joining it at a run over the migrated plugin)
+each cycle: write schema + plugin-sdcpn/plugin.yaml + plugin-gherkin/plugin.yaml + repertoire together
+  -> review: does every key plausibly serve both? press against the CPS edge material
+  -> run where a run exists -> edit; the catalogue freezes when a cycle changes no key
+FE-1431 (schema, plugin.yaml, key reader) | FE-1406 (packages/repertoire) | FE-1393 (gherkin, zero keys) advance together
 ```
 
 Arrows are strategic order. The skeleton lane and the reviewer lane run in parallel; they join at
 FE-1479, whose "affected slice", "re-evaluate", and "delta" moves consume E1's fold and completion.
-No hard blocker chain remains from the retired design queue.
+No hard blocker chain remains from the retired design queue. The authoring lane's sizing
+(FE-1406 as a package, FE-1431 as the authoring surface) is [S-008](STRATEGY-LOG.md#s-008)'s; its
+method — both plugins written together, the catalogue converging — is [S-009](STRATEGY-LOG.md#s-009)'s.
+Linear reflects both as of 2026-08-25.
 
 ### Proof bundle for the selected frontier
 
@@ -113,7 +120,8 @@ The read-only Linear graph supplies mechanical availability, never priority.
 | --- | --- | --- |
 | Kind-level rows express the coatings case. | Medium-high; the twenty domain-keyed rows of the FE-1402 rehearsal collapse onto eight kind rows on paper. | Proof 1's first half. |
 | The truck-fleet case adds zero headings and zero rows. | Medium; Layer B was validated against it, but never through this file. | Proof 1's second half. |
-| The controller read path is small. | The tripwire fired: E1 landed on FE-1497 (#9325) at 1055 code lines (excluding comments) against the plugin file's 225 non-blank lines — 378 parse the file and narrow the proposal schema, 677 are the fold, completion, and cue. Rules 17–19 are deferred (see gates). | Look before E3: is the 378-line parser an argument for a stricter plugin-file format (YAML or front matter for the machine-read tables) so the parser shrinks to a schema? Watch whether FE-1479's affected-slice and delta moves fit inside the 677-line engine. |
+| The controller read path is small. | The tripwire fired: E1 landed on FE-1497 (#9325) at 1055 code lines (excluding comments) against the plugin file's 225 non-blank lines — 378 parse the file and narrow the proposal schema, 677 are the fold, completion, and cue. Rules 17–19 are deferred (see gates). The parser question is answered: ADR-0007 decision 8 makes the contract schema-validated data (E5). | Watch whether FE-1479's affected-slice and delta moves fit inside the 677-line engine, and whether FE-1431's key reader lands well under 378 lines. |
+| Harness teaching that has a package survives rescoping. | Low; the [lineage audit](../evidence/proofs/audits/harness-teaching-lineage-audit.md) shows four prose-only rescopings since 2026-08-11, none citing run evidence, and no test of the converse yet. | The first arc after `packages/repertoire` lands: does any rescoping of it cite a run? |
 | Field-local code obligations support localized realization and repair. | Low-medium; the corpus and Petrinaut diagnostics are field-addressed, but no Brunch run exists. | Realize one stochastic transition without rewriting an unrelated field. |
 | Five turns yield a scoped correction. | Low; unrehearsed. The review-and-revise runbook in the plugin file is the first concrete trajectory. | Run two bounded rehearsals against a fixture model. |
 | Ask carries durable client-tool results. | Medium-low; machine results refused today. | Run one correlated FE-1438 round trip. |
@@ -133,6 +141,11 @@ The read-only Linear graph supplies mechanical availability, never priority.
   plugin freeze) before September.
 - Defer broad UI/ontology/gallery/affordances/voice/scenarios/telemetry until the loop closes.
 - Fixtures supply domain state, never product wiring; provenance and the real entrypoint are gates.
+- The teaching layer is built as topology — a package, fixed keys, a schema, gates — with each layer
+  paired with the document that states its intent, never as spec prose alone; and it is not
+  rescoped without run evidence ([S-008](STRATEGY-LOG.md#s-008), [ADR-0007](../adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md)).
+- The key catalogue is a working set until a cycle changes no key: fix it by writing both plugins
+  against it, not by decree ([S-009](STRATEGY-LOG.md#s-009), ADR-0007 decision 9).
 
 ## Stop or replan
 
@@ -147,6 +160,8 @@ The read-only Linear graph supplies mechanical availability, never priority.
 - Two rehearsals fail the five-turn correction.
 - FE-1438 loses correlation, durability, or evidence semantics.
 - Production remains undeployable after FE-1479; seek a demo-surface decision, not test wiring.
+- The teaching layer is rescoped again without run evidence, or `packages/repertoire` grows larger
+  than the plugin it teaches.
 
 ## Exceptional roots
 

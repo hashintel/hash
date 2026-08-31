@@ -20,7 +20,7 @@ _Avoid_: kernel, core, elicitor (as a shell name — "elicitor" may name the who
 
 
 **Plugin**:
-The innermost shell: target-defining policy, one per **target formalism** (`gherkin`, `sdcpn`) and never per domain — the domain is unknown when a conversation starts. Authored as one sectioned Markdown file under the fixed headings `Purpose · Kinds · Must know · Patterns · Moves · Deliverable`, plus the `project` / `validate` code operations (ADR-0006). Receives harness capabilities by injection; mechanism stays in the harness.
+The innermost shell: target-defining policy, one per **target formalism** (`gherkin`, `sdcpn`) and never per domain — the domain is unknown when a conversation starts. Authored as cells under the harness-owned **keys** (ADR-0007): contract data (`ontology`, `schema`, `patterns`), guidance cells, runbook cells, and the `checks` / `tools` machinery, with `project` / `validate` as code (ADR-0005, ADR-0006). A plugin fills cells and adds no key; what it leaves blank, the **repertoire** supplies. Receives harness capabilities by injection; mechanism stays in the harness.
 _Avoid_: extension, pack (a pack is a unit _within_ a plugin), domain plugin, scenario plugin
 
 **Binding**:
@@ -114,22 +114,37 @@ _Avoid_: advisory (a different thing, below)
 A computed, ephemeral, non-blocking fact the harness surfaces to the agent (unaccounted ask, unswept tail, world-moved delta). Never stored in the capture store; never gates anything.
 
 **Pack**:
-A unit within a plugin: **ElicitationPack** (the plugin file's `Purpose`, `Must know`, `Patterns`, `Moves`, and `Deliverable` sections) or **ProjectionPack** (`project` + `validate`, optional `reconcile`, annotated shapes, typed loss reports). Packs are shapes-to-fill plus behavioral guidance, per Principle v2.
+A unit within a plugin: **ElicitationPack** (retired as a name under ADR-0007 — the guidance and runbook cells replace it) or **ProjectionPack** (`project` + `validate`, optional `reconcile`, annotated shapes, typed loss reports). Packs are shapes-to-fill plus behavioral guidance, per Principle v2.
 
 **Demand row**:
-One row of a plugin's `Must know` table: a slot on a kind, its required precision, whether "not applicable" is accepted, and why the model needs it. Kind-level only — every node of that kind discovered in conversation is checked against it (ADR-0006).
+One row of a plugin's `schema` key (the `Must know` table under ADR-0006): a slot on a kind, its required precision, whether "not applicable" is accepted, and why the model needs it. Kind-level only — every node of that kind discovered in conversation is checked against it (ADR-0006).
 _Avoid_: demand clause, scope expression, objective row
 
 **Pattern**:
-A discretionary, kind-indexed heuristic in a plugin's `Patterns` table: the model situation that triggers it and the question that resolves it. Surfaced by the harness when a node matches the trigger and the relevant slot is unsatisfied; the interviewer decides whether to use it. Never names a domain.
+A discretionary, kind-indexed heuristic under a plugin's `patterns` key with a **machine-matchable trigger on node state**: the model situation that triggers it and the question that resolves it. A trigger the harness cannot match against node state (a vague quantifier, an expert who does not know) is guidance — a technique or a movement — not a pattern (ADR-0007). Surfaced by the harness when a node matches the trigger and the relevant slot is unsatisfied; the interviewer decides whether to use it. Never names a domain.
 _Avoid_: card, kernel card (retired — ADR-0006 replaced Detects/Goal/Questions/Artifacts cards with pattern rows), technique card
 
 **Runbook**:
-The `Moves` for one **job** a plugin supports (`construct`, `review and revise`): kickoff, trajectory, checks, and stopping, over the plugin's one `Kinds` / `Must know` set. A plugin carries one runbook per job.
+The three runbook keys — `kickoff`, `trajectory`, `close` — for one **job** (`construct`, `review and revise`), the harness default for each interleaved with the plugin's cell. The one place procedure is stated; `kickoff` produces a **posture**, `trajectory` names movements by bias, `close` is honest stopping and never the decision to stop (completion rule 15). Jobs are harness vocabulary; a plugin fills one set of runbook cells per job it supports (ADR-0007).
 _Avoid_: mandate (as the unit name), mode, workflow
 
+**Key**:
+One of the fixed, harness-owned headings of plugin authoring (ADR-0007): the harness defines the concept it names, teaches it, and ships a default; a plugin specialises it in a cell written in the harness's terms and never a domain's. Rendered key → harness default → plugin cell. Keys come in four groups — contract data, guidance, runbook, machinery — and the catalogue is a working set until a co-authoring cycle changes none (decision 9).
+_Avoid_: heading (for the authoring unit), section, property (unqualified)
+
+**Repertoire**:
+The harness's own filling of every guidance and runbook key — what it teaches every plugin about interviewing — shipped as `packages/repertoire`, rendered by bindings, never imported by a plugin. Admitted by evidence, not by plausibility; never rescoped without run evidence.
+_Avoid_: quiver (retired name), strategy library, kernel
+
+**Mechanism type**:
+How a guidance key works on the interviewer: a **license** permits what the model would otherwise hedge on; a **technique** is a form of question or move; an **attention** key names what to notice; an **anchor** is a stated judgment to check against. Each guidance key has exactly one (ADR-0007 decision 3).
+
+**Posture**:
+The interaction stance `kickoff` produces from the expert's appetite, time, intended use, and tolerance for proposed assumptions — explore, synthesise-and-invite-correction, or propose-and-question-only-high-impact. Varies the trajectory; continuously re-read; never stored (ADR-0007). Not a state machine.
+_Avoid_: mode (as a stored state), appetite (for the stance itself)
+
 **Kernel card**:
-Retired (ADR-0006). The pack-content unit of elicitation guidance — Detects / Goal / contrastive Questions / Artifacts, brunch `BEHAVIORAL_KERNELS.md` lineage — is replaced by **pattern** rows in the plugin file; the harness-shipped **generic strategy quiver** named in spec §11.5 becomes harness-generic patterns lifted out of plugin files (FE-1406), still not designed.
+Retired (ADR-0006). The pack-content unit of elicitation guidance — Detects / Goal / contrastive Questions / Artifacts, brunch `BEHAVIORAL_KERNELS.md` lineage — is replaced by **pattern** rows and by guidance cells; the harness-shipped **generic strategy quiver** named in spec §11.5 is designed as the **repertoire** (ADR-0007), which is not pattern-shaped.
 _Avoid_: card, kernel card (in new writing)
 
 **PluginContext**:
