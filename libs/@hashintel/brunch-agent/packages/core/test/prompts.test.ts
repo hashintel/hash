@@ -2,12 +2,17 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, test } from "vitest";
 
-import { GUIDANCE_KEYS, JOBS, MOVEMENTS, RUNBOOK_KEYS } from "../src/keys";
+import {
+  GUIDANCE_KEYS,
+  JOBS,
+  MOVEMENTS,
+  RUNBOOK_KEYS,
+} from "../src/plugin/keys";
 import {
   guidanceEntries,
   readPluginDefinition,
   runbookEntries,
-} from "../src/plugin-definition";
+} from "../src/plugin/plugin-definition";
 import { repertoire } from "../src/prompts";
 
 /** Words that would mean the repertoire teaches a formalism or a domain. */

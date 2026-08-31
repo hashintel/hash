@@ -2,11 +2,11 @@ import * as v from "valibot";
 
 import { toolName } from "./naming";
 
+import type { CaptureInputProposal } from "../evidence/capture-store";
+import type { SessionEntryKind } from "../evidence/session-log";
+import type { Plugin } from "../plugin/plugin";
+import type { ReadonlyDeep } from "../readonly-deep";
 import type { FreeTextAffordance } from "./affordance";
-import type { CaptureInputProposal } from "./capture-store";
-import type { Plugin } from "./plugin";
-import type { ReadonlyDeep } from "./readonly-deep";
-import type { SessionEntryKind } from "./session-log";
 
 const nonEmptyString = v.pipe(v.string(), v.nonEmpty());
 

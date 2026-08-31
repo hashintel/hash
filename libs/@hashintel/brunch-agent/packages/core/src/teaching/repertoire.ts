@@ -10,7 +10,13 @@
 
 import * as v from "valibot";
 
-import { GUIDANCE_KEYS, JOBS, MOVEMENTS, RUNBOOK_KEYS, type Job } from "./keys";
+import {
+  GUIDANCE_KEYS,
+  JOBS,
+  MOVEMENTS,
+  RUNBOOK_KEYS,
+  type Job,
+} from "../plugin/keys";
 import {
   PRECISION_WORDS,
   PluginDefinitionError,
@@ -18,7 +24,7 @@ import {
   type GuidanceCells,
   type GuidanceItem,
   type RunbookCells,
-} from "./plugin-definition";
+} from "../plugin/plugin-definition";
 
 export interface Repertoire {
   readonly version: string;

@@ -11,14 +11,14 @@ import {
   type CaptureIssue,
   type CaptureStoreEvent,
   type CaptureStoreSnapshot,
-} from "../src/capture-store";
+} from "../src/evidence/capture-store";
 import {
   readPluginDefinition,
   type PluginDefinition,
-} from "../src/plugin-definition";
+} from "../src/plugin/plugin-definition";
 
 import type { JsonValue } from "../src/json-value";
-import type { SlotAssertion } from "../src/slot-assertion";
+import type { SlotAssertion } from "../src/plugin/slot-assertion";
 
 export const FIXTURE_PLUGIN_YAML = `plugin:
   id: fixture

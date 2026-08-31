@@ -181,7 +181,7 @@ capabilities. Its entire world at runtime; the four operations stay pure.
 
 **Storage port** — the harness-defined contract for the capture store (atomic sweep application,
 envelope invariants as store-level refusals), implemented by the binding. Plugins are
-storage-blind. In code its type is `CaptureStore` (`packages/core/src/capture-store.ts`).
+storage-blind. In code its type is `CaptureStore` (`packages/core/src/evidence/capture-store.ts`).
 
 ## Simulation and evaluation
 

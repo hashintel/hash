@@ -9,21 +9,21 @@
  * here is persisted and a later capture can turn `complete` back to `false`.
  */
 
-import { type EpistemicStatus } from "./capture-store";
-import {
-  type ElicitedModel,
-  type ElicitedNode,
-  type SlotState,
-} from "./elicited-model";
+import { type EpistemicStatus } from "../evidence/capture-store";
 import {
   formatPrecisionDemand,
   type FloorRow,
   type MustKnowRow,
   type PluginDefinition,
   type PrecisionWord,
-} from "./plugin-definition";
+} from "../plugin/plugin-definition";
+import {
+  type ElicitedModel,
+  type ElicitedNode,
+  type SlotState,
+} from "./elicited-model";
 
-import type { JsonValue } from "./json-value";
+import type { JsonValue } from "../json-value";
 
 export const COMPLETION_DIAGNOSTICS = [
   "version-mismatch",

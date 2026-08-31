@@ -15,7 +15,7 @@ export {
   AskInput,
   FreeTextAffordance,
   type FreeTextAffordance as FreeTextAffordanceValue,
-} from "./affordance";
+} from "./conversation/affordance";
 export {
   ASK_TOOL_DESCRIPTION,
   askAffordanceId,
@@ -29,25 +29,25 @@ export {
   type AskReplyAdmission,
   type PendingAffordanceDecision,
   type ReplyBindingSignalPayload,
-} from "./ask-protocol";
+} from "./conversation/ask-protocol";
 export {
   OPERATIONS,
   PRODUCT_NAME,
   toolName,
   toolPrefix,
   type Operation,
-} from "./naming";
+} from "./conversation/naming";
 export {
   type HarnessReplyEvent,
   type ReplyPartKind,
   type ToolExecution,
-} from "./reply-protocol";
+} from "./conversation/reply-protocol";
 export {
   definePlugin,
   PluginDescriptor,
   type Plugin,
   type PluginProposalType,
-} from "./plugin";
+} from "./plugin/plugin";
 export {
   GUIDANCE_KEY_DESCRIPTIONS,
   GUIDANCE_KEYS,
@@ -62,7 +62,7 @@ export {
   type MechanismType,
   type Movement,
   type RunbookKey,
-} from "./keys";
+} from "./plugin/keys";
 export {
   guidanceEntries,
   GuidanceCellsSchema,
@@ -92,19 +92,19 @@ export {
   type PrecisionWord,
   type ProposalDeclaration,
   type RunbookCells,
-} from "./plugin-definition";
+} from "./plugin/plugin-definition";
 export {
   readRepertoire,
   RepertoireSchema,
   type Repertoire,
-} from "./repertoire";
+} from "./teaching/repertoire";
 export {
   HARNESS_PREAMBLE,
   renderContract,
   renderGuidance,
   renderInstructions,
   renderRunbook,
-} from "./instructions";
+} from "./teaching/instructions";
 export {
   createSlotAssertionSchema,
   nodeId,
@@ -113,7 +113,7 @@ export {
   SOURCE_REGIMES,
   type SlotAssertion,
   type SourceRegime,
-} from "./slot-assertion";
+} from "./plugin/slot-assertion";
 export {
   findNode,
   foldElicitedModel,
@@ -122,7 +122,7 @@ export {
   type SlotReading,
   type SlotState,
   type UnmappedCapture,
-} from "./elicited-model";
+} from "./interpretation/elicited-model";
 export {
   COMPLETION_DIAGNOSTICS,
   completionDemands,
@@ -134,14 +134,14 @@ export {
   type CompletionFailure,
   type CompletionReport,
   type OutsideSliceNode,
-} from "./completion";
+} from "./interpretation/completion";
 export {
   buildCompletionCueSignal,
   buildSweepList,
   type CompletionCueSignal,
   type PatternCue,
   type SweepList,
-} from "./cue";
+} from "./interpretation/cue";
 export {
   ABSENCE_STATES,
   CaptureInputProposalSchema,
@@ -175,7 +175,7 @@ export {
   type IssueOrigin,
   type IssueType,
   type JsonValue,
-} from "./capture-store";
+} from "./evidence/capture-store";
 export {
   EvidenceQuoteSchema,
   SESSION_ENTRY_KINDS,
@@ -186,7 +186,7 @@ export {
   type EvidenceResolutionResult,
   type MultipleEvidenceMatchesAdvisory,
   type SessionEntryKind,
-} from "./session-log";
+} from "./evidence/session-log";
 export {
   SWEEP_RESULT_STATUSES,
   advanceSweepHighWater,
@@ -213,4 +213,4 @@ export {
   type SweepSessionEntry,
   type SweepState,
   type UnaccountedAskAdvisory,
-} from "./sweep-protocol";
+} from "./conversation/sweep-protocol";

@@ -1,9 +1,15 @@
 import { describe, expect, test } from "vitest";
 
-import { completionDemands, evaluateCompletion } from "../src/completion";
-import { buildCompletionCueSignal, buildSweepList } from "../src/cue";
-import { foldElicitedModel } from "../src/elicited-model";
-import { HARNESS_PREAMBLE } from "../src/instructions";
+import {
+  completionDemands,
+  evaluateCompletion,
+} from "../src/interpretation/completion";
+import {
+  buildCompletionCueSignal,
+  buildSweepList,
+} from "../src/interpretation/cue";
+import { foldElicitedModel } from "../src/interpretation/elicited-model";
+import { HARNESS_PREAMBLE } from "../src/teaching/instructions";
 import {
   assertionCapture,
   completeCaptures,

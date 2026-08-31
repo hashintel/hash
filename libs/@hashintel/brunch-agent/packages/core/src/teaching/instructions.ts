@@ -19,14 +19,14 @@ import {
   RUNBOOK_KEY_DESCRIPTIONS,
   RUNBOOK_KEYS,
   type Job,
-} from "./keys";
+} from "../plugin/keys";
 import {
   formatPrecisionDemand,
   PRECISION_LADDER,
   type GuidanceItem,
   type PluginDefinition,
   type PrecisionWord,
-} from "./plugin-definition";
+} from "../plugin/plugin-definition";
 import { type Repertoire } from "./repertoire";
 
 /**

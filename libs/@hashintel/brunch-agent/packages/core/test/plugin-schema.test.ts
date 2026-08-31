@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { expect, test } from "vitest";
 
-import { pluginJsonSchema } from "../src/plugin-json-schema";
+import { pluginJsonSchema } from "../src/plugin/plugin-json-schema";
 
 const target = fileURLToPath(
   new URL("../schema/plugin.schema.json", import.meta.url),

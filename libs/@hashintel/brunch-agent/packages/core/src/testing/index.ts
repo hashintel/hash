@@ -12,7 +12,7 @@
 
 import * as v from "valibot";
 
-import { definePlugin, type Plugin } from "../plugin";
+import { definePlugin, type Plugin } from "../plugin/plugin";
 
 const fixtureProposalSchema = v.strictObject({
   evidence: v.pipe(

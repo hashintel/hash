@@ -1,5 +1,5 @@
-import { readRepertoire } from "./repertoire";
-import repertoireYaml from "./repertoire.yaml?raw";
+import { readRepertoire } from "./teaching/repertoire";
+import repertoireYaml from "./teaching/repertoire.yaml?raw";
 
 /**
  * The harness's validated default teaching.

@@ -9,9 +9,9 @@
  * Patterns are surfaced, never mandated; the interviewer decides.
  */
 
+import { type PatternRow } from "../plugin/plugin-definition";
 import { type CompletionFailure, type CompletionReport } from "./completion";
 import { type ElicitedModel } from "./elicited-model";
-import { type PatternRow } from "./plugin-definition";
 
 export interface PatternCue {
   readonly id: string;

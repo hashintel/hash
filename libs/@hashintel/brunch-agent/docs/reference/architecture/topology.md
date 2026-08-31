@@ -7,25 +7,21 @@
 ```text
 packages/core                      CORE HARNESS + Flue-native agent contribution
 ├─ SYSTEM.md          ✓ authoritative context- and formalism-independent Brunch system prompt
-├─ agent/index.ts     ✓ `useModel` composition; owns no editor-specific prompt, skill, or tool
-├─ capture-store.ts   ✓  the storage port's contract + pure command surface; owns envelope
-│                        invariants. Never: substrate imports, IO, per-substrate shapes.
-├─ session-log.ts     ✓  substrate-neutral archive/version/anchoring rules; archive ordinals
-│                        are evidence identity, substrate ids remain provenance only.
-├─ storage.ts         ✓  binding-only storage support subpath; not part of the plugin SDK.
-├─ affordance.ts      ✓  envelope schemas (free-text form)
-├─ naming.ts          ✓  identity/tool-name policy (ADR-0001)
-├─ plugin.ts          ✓  plugin identity + one declared proposal floor (FE-1392); grows the
-│                        full catalog/tables/ops contract at FE-1393
-├─ prompts.ts,
-│  repertoire.yaml    ✓  guarded `./prompts` subpath: validated harness-default teaching;
-│                        binding/evaluation composition only, never a plugin import (ADR-0008)
-├─ testing/           ✓  test utilities subpath (mirrors Flue's own store-contract pattern)
-├─ ask-protocol.ts    ○  compiled generalized ask/suspension mechanism; currently not mounted
-├─ sweep-protocol.ts  ○  compiled generalized settlement/sweep mechanism; currently not mounted
-└─ instructions.ts,
-   elicited-model.ts,
-   completion.ts      ○  compiled typed elicitation/fold/completion path; currently not mounted
+├─ agent/             ✓ Flue `useModel` composition and prompt loading
+├─ evidence/          ✓ active capture-store and archived-session evidence authority
+├─ conversation/      ○ compiled ask, reply, affordance, settlement, and sweep protocols;
+│                        currently not mounted by the production agent
+├─ plugin/            ○ compiled plugin declaration, definition, schema, key, and slot-assertion
+│                        contracts; not imported by the production agent path
+├─ interpretation/    ○ compiled fold, completion, and cue derivation; currently not mounted
+├─ teaching/          ○ compiled repertoire and renderer; currently not mounted
+├─ client-tools.ts    ✓ public browser/client contract subpath
+├─ prompts.ts         ○ guarded public facade over `teaching/repertoire.yaml`
+├─ storage.ts         ✓ binding-only public facade over archived-session evidence
+├─ index.ts           ✓ substrate-neutral plugin SDK facade over authority directories
+├─ json-value.ts,
+│  readonly-deep.ts   ✓ package-wide representation primitives, not a generic utility directory
+└─ testing/           ✓ test utilities subpath; excluded from production bundles
 
 packages/binding-flue              LANE 2 (translate harness ↔ Flue dialect)
 ├─ capabilities.ts    ✓  capability declaration — the binding's contract-of-record
@@ -92,8 +88,8 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
 ## Specification — where what's next lands
 
 - **N1 (the structural repair, discharged by FE-1422 + FE-1392).**
-  `packages/core/src/ask-protocol.ts` now owns pure affordance minting, the one-live guard,
-  reply-binding signal payload, and instruction fragments. `packages/core/src/sweep-protocol.ts`
+  `packages/core/src/conversation/ask-protocol.ts` now owns pure affordance minting, the one-live guard,
+  reply-binding signal payload, and instruction fragments. `packages/core/src/conversation/sweep-protocol.ts`
   owns range selection, trigger/repair decisions (including reopening the loop guard after a
   refusal), prompt content, and advisory semantics;
   `useElicitation` contributes only Flue projection, hooks, persistent-state, private-prompt,

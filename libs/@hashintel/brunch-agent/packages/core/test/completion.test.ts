@@ -13,9 +13,12 @@ import {
   evaluateCompletion,
   precisionSatisfies,
   type CompletionDemands,
-} from "../src/completion";
-import { foldElicitedModel, type ElicitedModel } from "../src/elicited-model";
-import { readPluginDefinition } from "../src/plugin-definition";
+} from "../src/interpretation/completion";
+import {
+  foldElicitedModel,
+  type ElicitedModel,
+} from "../src/interpretation/elicited-model";
+import { readPluginDefinition } from "../src/plugin/plugin-definition";
 import {
   FIXTURE_PLUGIN_YAML,
   absence,
@@ -26,7 +29,7 @@ import {
   value,
 } from "./slot-fixtures";
 
-import type { CaptureEnvelope } from "../src/capture-store";
+import type { CaptureEnvelope } from "../src/evidence/capture-store";
 
 const definition = fixturePluginDefinition();
 const demands = completionDemands(definition);

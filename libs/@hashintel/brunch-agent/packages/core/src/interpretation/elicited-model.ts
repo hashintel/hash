@@ -18,16 +18,19 @@ import {
   type CaptureEnvelope,
   type CaptureStoreSnapshot,
   type EpistemicStatus,
-} from "./capture-store";
-import { type PluginDefinition, type PrecisionWord } from "./plugin-definition";
+} from "../evidence/capture-store";
+import {
+  type PluginDefinition,
+  type PrecisionWord,
+} from "../plugin/plugin-definition";
 import {
   createSlotAssertionSchema,
   nodeId,
   type SlotAssertion,
   type SourceRegime,
-} from "./slot-assertion";
+} from "../plugin/slot-assertion";
 
-import type { JsonValue } from "./json-value";
+import type { JsonValue } from "../json-value";
 
 export interface SlotReading {
   readonly captureId: string;

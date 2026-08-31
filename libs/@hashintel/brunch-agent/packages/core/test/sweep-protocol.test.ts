@@ -16,7 +16,7 @@ import {
   unsweptTail,
   type SweepRefusalFact,
   type SweepSessionEntry,
-} from "../src/sweep-protocol";
+} from "../src/conversation/sweep-protocol";
 
 const entries: readonly SweepSessionEntry[] = [
   {

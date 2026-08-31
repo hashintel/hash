@@ -10,9 +10,9 @@ import {
   decidePendingAffordance,
   mintAskAffordance,
   pendingAskAffordanceId,
-} from "../src/ask-protocol";
+} from "../src/conversation/ask-protocol";
 
-import type { SweepSessionEntry } from "../src/sweep-protocol";
+import type { SweepSessionEntry } from "../src/conversation/sweep-protocol";
 
 const firstAffordance = mintAskAffordance(
   "What outcome should the scenario describe?",

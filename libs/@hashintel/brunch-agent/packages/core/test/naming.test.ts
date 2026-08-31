@@ -7,7 +7,7 @@ import {
   toolPrefix,
   type Operation,
   type ToolName,
-} from "../src/naming";
+} from "../src/conversation/naming";
 
 // Spec §12.3: architectural strings name identity, not function. The tool
 // prefix derives from the product name so the unresolved name-fog costs one

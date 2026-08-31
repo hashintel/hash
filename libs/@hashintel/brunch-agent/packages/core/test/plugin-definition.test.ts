@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, test } from "vitest";
 
-import { GUIDANCE_KEYS, RUNBOOK_KEYS } from "../src/keys";
+import { GUIDANCE_KEYS, RUNBOOK_KEYS } from "../src/plugin/keys";
 import {
   guidanceEntries,
   mustKnowRowsFor,
@@ -11,7 +11,7 @@ import {
   readPluginDefinition,
   runbookEntries,
   type PluginDefinition,
-} from "../src/plugin-definition";
+} from "../src/plugin/plugin-definition";
 import { CONTEXT_ROOT, contextRootPresent } from "./architecture/context-root";
 import { FIXTURE_PLUGIN_YAML, fixturePluginDefinition } from "./slot-fixtures";
 

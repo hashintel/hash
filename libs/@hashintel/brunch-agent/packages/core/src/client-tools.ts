@@ -4,11 +4,14 @@
 
 import * as v from "valibot";
 
-import { AskInput, AskSubmission } from "./ask-tool-contract";
-import { toolName } from "./naming";
+import {
+  AskInput,
+  AskSubmission,
+} from "./conversation/ask-tool-contract";
+import { toolName } from "./conversation/naming";
 
 export { AskInput, AskSubmission, toolName };
-export type { ToolName } from "./naming";
+export type { ToolName } from "./conversation/naming";
 
 export const ASK_TOOL_NAME = toolName("ask");
 export const SWEEP_TOOL_NAME = toolName("sweep");

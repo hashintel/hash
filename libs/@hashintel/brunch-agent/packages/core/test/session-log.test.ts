@@ -6,7 +6,7 @@ import {
   readArchivedEntryRange,
   resolveEvidenceQuotes,
   type SessionLogRead,
-} from "../src/session-log";
+} from "../src/evidence/session-log";
 
 const read = (
   offset: string,

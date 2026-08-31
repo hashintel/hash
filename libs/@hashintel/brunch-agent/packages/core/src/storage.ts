@@ -15,4 +15,4 @@ export {
   type SessionLogArchive,
   type SessionLogEntrySnapshot,
   type SessionLogRead,
-} from "./session-log";
+} from "./evidence/session-log";

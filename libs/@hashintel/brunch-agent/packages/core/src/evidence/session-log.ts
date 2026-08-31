@@ -1,10 +1,10 @@
 import * as v from "valibot";
 
-import { JsonValueSchema, isJsonValue } from "./json-value";
+import { JsonValueSchema, isJsonValue } from "../json-value";
 
+import type { JsonValue } from "../json-value";
+import type { ReadonlyDeep } from "../readonly-deep";
 import type { EvidenceSpan } from "./capture-store";
-import type { JsonValue } from "./json-value";
-import type { ReadonlyDeep } from "./readonly-deep";
 
 export const SESSION_ENTRY_KINDS = [
   "user",

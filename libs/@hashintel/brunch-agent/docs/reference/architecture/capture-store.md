@@ -1,7 +1,7 @@
 # The capture store, in plain terms
 
 A plain-prose rendering of what the top of the stack establishes: the capture store
-(FE-1390, `packages/core/src/capture-store.ts` + `packages/binding-flue/src/local-capture-store.ts`)
+(FE-1390, `packages/core/src/evidence/capture-store.ts` + `packages/binding-flue/src/local-capture-store.ts`)
 and the ask/reply machinery it will eventually serve (FE-1389, where the two touch). Rendered
 from the code first, with the kernel spec (§5, §9.6, §14.1) and CONTEXT.md as the claimed
 semantics the code is read against. The strain report at the end is the review yield: every

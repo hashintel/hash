@@ -3,7 +3,7 @@
 The key catalogue is a working set until a co-authoring cycle changes no key
 (ADR-0007 decision 9). Each cycle records here what it added, merged, dropped,
 or left alone, and why, with the evidence that moved it. `plugin.schema.json`
-is derived from `PluginDefinitionSchema` in `src/plugin-definition.ts`; a test
+is derived from `PluginDefinitionSchema` in `src/plugin/plugin-definition.ts`; a test
 fails when the two drift.
 
 ## Cycle 1 — 2026-08-25
@@ -57,7 +57,7 @@ written against.
   `kinds.includes(node.kind)`, which is false for an empty list, while the
   contract documents "empty means any node". sdcpn `P08` (source-regime
   divergence) therefore never reached the interviewer as a harness fact.
-  Fixed in `src/cue.ts`; `test/cue.test.ts` now covers a pattern indexed on no
+  Fixed in `src/interpretation/cue.ts`; `test/cue.test.ts` now covers a pattern indexed on no
   kind firing on a failing node of another kind.
 
 ### Shape changes proposed (inside existing keys)

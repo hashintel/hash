@@ -1,19 +1,19 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  HARNESS_PREAMBLE,
-  renderGuidance,
-  renderInstructions,
-  renderRunbook,
-} from "../src/instructions";
-import {
   GUIDANCE_KEY_DESCRIPTIONS,
   GUIDANCE_KEYS,
   RUNBOOK_KEY_DESCRIPTIONS,
   RUNBOOK_KEYS,
-} from "../src/keys";
-import { readPluginDefinition } from "../src/plugin-definition";
-import { readRepertoire, type Repertoire } from "../src/repertoire";
+} from "../src/plugin/keys";
+import { readPluginDefinition } from "../src/plugin/plugin-definition";
+import {
+  HARNESS_PREAMBLE,
+  renderGuidance,
+  renderInstructions,
+  renderRunbook,
+} from "../src/teaching/instructions";
+import { readRepertoire, type Repertoire } from "../src/teaching/repertoire";
 import { FIXTURE_PLUGIN_YAML, fixturePluginDefinition } from "./slot-fixtures";
 
 const item = (name: string) =>

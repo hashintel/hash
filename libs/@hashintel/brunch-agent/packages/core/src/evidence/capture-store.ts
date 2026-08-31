@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import * as v from "valibot";
 
-import { JsonValueSchema } from "./json-value";
+import { JsonValueSchema } from "../json-value";
 import {
   EvidenceQuoteSchema,
   resolveEvidenceQuotes,
@@ -13,10 +13,10 @@ import {
   type SessionLogArchive,
 } from "./session-log";
 
-import type { JsonValue } from "./json-value";
-import type { ReadonlyDeep } from "./readonly-deep";
+import type { JsonValue } from "../json-value";
+import type { ReadonlyDeep } from "../readonly-deep";
 
-export type { JsonValue } from "./json-value";
+export type { JsonValue } from "../json-value";
 
 export const ABSENCE_STATES = [
   "unknown-to-user",

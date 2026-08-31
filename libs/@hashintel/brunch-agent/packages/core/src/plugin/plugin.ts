@@ -1,6 +1,6 @@
 import * as v from "valibot";
 
-import type { CaptureInputProposal } from "./capture-store";
+import type { CaptureInputProposal } from "../evidence/capture-store";
 import type { PluginDefinition } from "./plugin-definition";
 
 /**

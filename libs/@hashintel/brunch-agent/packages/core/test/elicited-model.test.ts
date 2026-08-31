@@ -1,6 +1,9 @@
 import { describe, expect, test } from "vitest";
 
-import { findNode, foldElicitedModel } from "../src/elicited-model";
+import {
+  findNode,
+  foldElicitedModel,
+} from "../src/interpretation/elicited-model";
 import {
   absence,
   assertionCapture,
