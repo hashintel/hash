@@ -273,9 +273,7 @@ class _Evaluator:
         if kind == "length":
             target = self.eval(node["target"])
             if not isinstance(target, (list, str)):
-                raise HirEvaluationError(
-                    ".length target is not an array or string"
-                )
+                raise HirEvaluationError(".length target is not an array or string")
             return len(target)
         if kind == "stringCall":
             target = self.eval(node["target"])
@@ -444,14 +442,10 @@ class _Evaluator:
             if op == "||":
                 return max(self.margin(node["left"]), self.margin(node["right"]))
             if op in ("<", "<="):
-                slack = float(self.eval(node["right"])) - float(
-                    self.eval(node["left"])
-                )
+                slack = float(self.eval(node["right"])) - float(self.eval(node["left"]))
                 return slack if op == "<=" else _strict_slack(slack)
             if op in (">", ">="):
-                slack = float(self.eval(node["left"])) - float(
-                    self.eval(node["right"])
-                )
+                slack = float(self.eval(node["left"])) - float(self.eval(node["right"]))
                 return slack if op == ">=" else _strict_slack(slack)
             if op == "==":
                 left, right = self.eval(node["left"]), self.eval(node["right"])
