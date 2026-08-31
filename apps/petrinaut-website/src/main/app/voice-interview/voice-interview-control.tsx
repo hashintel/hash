@@ -9,8 +9,6 @@ import {
   useSyncExternalStore,
 } from "react";
 import {
-  FaArrowRotateLeft,
-  FaCheck,
   FaCircleCheck,
   FaCircleNotch,
   FaKeyboard,
@@ -36,11 +34,10 @@ import {
   selectInterviewCoverage,
 } from "./interview-coverage";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
-import { SpeechPlaybackController } from "./speech-playback-controller";
+import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import {
   VoiceTurnController,
   type VoiceLatencyEvent,
-  type VoiceTurnPhase,
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
@@ -496,29 +493,22 @@ const liveRegionStyle = css({
 });
 
 const statusText = (snapshot: VoiceTurnSnapshot): string => {
-  switch (snapshot.phase) {
-    case "idle":
-      return "Microphone off · Interview not started";
-    case "connecting":
-      return "Microphone off · Joining the interview";
-    case "listening":
-      return "Microphone on · Listening";
-    case "paused":
-      return "Microphone off · Paused";
-    case "transcribing":
-      return "Microphone off · Finishing your answer";
-    case "delivering":
-      return "Microphone off · Answer recorded";
-    case "waiting":
-      return "Microphone off · Writing that down";
-    case "synthesizing":
-      return "Microphone off · Preparing the next question";
-    case "playing":
-      return "Microphone off · Interviewer speaking";
-    case "recoverable-error": {
-      return `Microphone off · ${snapshot.errorMessage}`;
-    }
-  }
+  if (snapshot.connection === "idle")
+    return "Microphone off · Interview not started";
+  if (snapshot.connection === "connecting")
+    return "Microphone off · Joining the interview";
+  if (snapshot.connection === "error")
+    return `Microphone off · ${snapshot.errorMessage}`;
+  if (snapshot.input === "paused") return "Microphone off · Paused";
+  if (snapshot.output === "speaking")
+    return "Microphone on · Interviewer speaking · Speak to interrupt";
+  if (snapshot.input === "submitting")
+    return "Microphone on · Answer recorded · Writing that down";
+  if (snapshot.output === "waiting-for-tool")
+    return "Microphone on · Preparing the next question";
+  if (snapshot.output === "interrupted")
+    return "Microphone on · Listening after interruption";
+  return "Microphone on · Listening";
 };
 
 type RecoveryErrorFamily = "connection" | "interview" | "microphone";
@@ -540,36 +530,23 @@ const recoveryErrorFamily = (
 };
 
 const shortStatusText = (snapshot: VoiceTurnSnapshot): string => {
-  switch (snapshot.phase) {
-    case "idle":
-      return "Ready";
-    case "connecting":
-      return "Connecting";
-    case "listening":
-      return "Listening";
-    case "paused":
-      return "Paused";
-    case "transcribing":
-      return "Finishing answer";
-    case "delivering":
-      return "Answer recorded";
-    case "waiting":
-      return "Writing that down";
-    case "synthesizing":
-      return "Preparing next question";
-    case "playing":
-      return "Interviewer speaking";
-    case "recoverable-error": {
-      switch (recoveryErrorFamily(snapshot.errorCode)) {
-        case "microphone":
-          return "Microphone unavailable";
-        case "connection":
-          return "Connection paused";
-        case "interview":
-          return "Interview paused";
-      }
+  if (snapshot.connection === "idle") return "Ready";
+  if (snapshot.connection === "connecting") return "Connecting";
+  if (snapshot.connection === "error") {
+    switch (recoveryErrorFamily(snapshot.errorCode)) {
+      case "microphone":
+        return "Microphone unavailable";
+      case "connection":
+        return "Connection paused";
+      case "interview":
+        return "Interview paused";
     }
   }
+  if (snapshot.input === "paused") return "Paused";
+  if (snapshot.output === "speaking") return "Interviewer speaking";
+  if (snapshot.input === "submitting") return "Writing that down";
+  if (snapshot.output === "waiting-for-tool") return "Preparing next question";
+  return "Listening";
 };
 
 const inputLevelText = (level: number): string =>
@@ -605,44 +582,31 @@ const Meter = ({ snapshot }: { snapshot: VoiceTurnSnapshot }) => {
   );
 };
 
-const focalIcon = (phase: VoiceTurnPhase): ReactNode => {
-  switch (phase) {
-    case "listening":
-      return <FaMicrophone aria-hidden="true" />;
-    case "paused":
-      return <FaMicrophoneSlash aria-hidden="true" />;
-    case "playing":
-      return <FaVolumeHigh aria-hidden="true" />;
-    case "delivering":
-      return <FaCircleCheck aria-hidden="true" />;
-    case "recoverable-error":
-      return <FaTriangleExclamation aria-hidden="true" />;
-    case "idle":
-    case "connecting":
-    case "transcribing":
-    case "waiting":
-    case "synthesizing":
-      return <FaCircleNotch aria-hidden="true" />;
-  }
+const focalIcon = (snapshot: VoiceTurnSnapshot): ReactNode => {
+  if (snapshot.connection === "error")
+    return <FaTriangleExclamation aria-hidden="true" />;
+  if (snapshot.connection === "connecting")
+    return <FaCircleNotch aria-hidden="true" />;
+  if (snapshot.input === "paused")
+    return <FaMicrophoneSlash aria-hidden="true" />;
+  if (snapshot.output === "speaking")
+    return <FaVolumeHigh aria-hidden="true" />;
+  if (snapshot.input === "submitting")
+    return <FaCircleCheck aria-hidden="true" />;
+  return <FaMicrophone aria-hidden="true" />;
 };
 
-const focalTone = (phase: VoiceTurnPhase) => {
-  switch (phase) {
-    case "recoverable-error":
-      return "error";
-    case "delivering":
-      return "success";
-    case "listening":
-      return "active";
-    default:
-      return "idle";
-  }
+const focalTone = (snapshot: VoiceTurnSnapshot) => {
+  if (snapshot.connection === "error") return "error";
+  if (snapshot.input === "submitting") return "success";
+  if (snapshot.microphoneEnabled) return "active";
+  return "idle";
 };
 
 const VoiceFocal = ({ snapshot }: { snapshot: VoiceTurnSnapshot }) => {
-  const active = snapshot.phase === "listening";
-  const tone = focalTone(snapshot.phase);
-  const icon = focalIcon(snapshot.phase);
+  const active = snapshot.microphoneEnabled;
+  const tone = focalTone(snapshot);
+  const icon = focalIcon(snapshot);
 
   return (
     <div className={focalAreaStyle}>
@@ -704,11 +668,9 @@ const deliveryStatus = (
 
 const TranscriptStrip = ({
   onEdit,
-  onRedo,
   snapshot,
 }: {
   onEdit: () => void;
-  onRedo: () => void;
   snapshot: VoiceTurnSnapshot;
 }) => {
   const recording = Boolean(snapshot.partialText);
@@ -738,17 +700,6 @@ const TranscriptStrip = ({
       <span>{text}</span>
       {!recording && (
         <div className={transcriptActionsStyle}>
-          <Button
-            aria-label="Redo answer"
-            disabled={!snapshot.canReviseLastAnswer}
-            prefix={<FaArrowRotateLeft aria-hidden="true" />}
-            shape="round"
-            size="xs"
-            tooltip="Redo answer"
-            type="button"
-            variant="ghost"
-            onClick={onRedo}
-          />
           <Button
             aria-label="Edit text"
             disabled={!snapshot.canReviseLastAnswer}
@@ -806,15 +757,12 @@ export interface VoiceInterviewControlViewProps {
   readonly onCheckMicrophone: () => void;
   readonly onConsentChange: (consented: boolean) => void;
   readonly onCorrectionChange: (value: string) => void;
-  readonly onDoneSpeaking: () => void;
   readonly onEdit: () => void;
   readonly onEnd: () => void;
   readonly onExpand: () => void;
-  readonly onInterrupt: () => void;
   readonly onMinimize: () => void;
   readonly onPause: () => void;
   readonly onReconnect: () => void;
-  readonly onRedo: () => void;
   readonly onResume: () => void;
   readonly onStart: () => void;
   readonly onSubmitCorrection: () => void;
@@ -833,15 +781,12 @@ export const VoiceInterviewControlView = ({
   onCheckMicrophone,
   onConsentChange,
   onCorrectionChange,
-  onDoneSpeaking,
   onEdit,
   onEnd,
   onExpand,
-  onInterrupt,
   onMinimize,
   onPause,
   onReconnect,
-  onRedo,
   onResume,
   onStart,
   onSubmitCorrection,
@@ -877,8 +822,9 @@ export const VoiceInterviewControlView = ({
             />
           </header>
           <p className={statusStyle}>
-            Your speech is transcribed by OpenAI. Petrinaut keeps finalized
-            answers in this conversation, not the audio.
+            OpenAI processes live audio and speaks the interviewer’s words.
+            Petrinaut keeps finalized answers in this conversation, not the
+            audio.
           </p>
           <label className={statusStyle}>
             <input
@@ -905,8 +851,6 @@ export const VoiceInterviewControlView = ({
   const effectivePresentation =
     placement === "detached" ? "detached" : presentation;
   const status = statusText(snapshot);
-  const isSpeaking =
-    snapshot.phase === "playing" || snapshot.phase === "synthesizing";
   const compactQuestionContext = snapshot.currentQuestion
     ? ` Question: ${snapshot.currentQuestion}`
     : "";
@@ -942,20 +886,10 @@ export const VoiceInterviewControlView = ({
               )}
             </span>
           </button>
-          {snapshot.phase === "listening" && (
-            <>
-              <Button
-                aria-label="Done speaking"
-                prefix={<FaCheck aria-hidden="true" />}
-                shape="round"
-                size="xs"
-                tooltip="Done speaking"
-                type="button"
-                onClick={onDoneSpeaking}
-              />
+          {snapshot.connection === "connected" &&
+            snapshot.input !== "paused" && (
               <Button
                 aria-label="Pause"
-                disabled={!snapshot.microphoneEnabled}
                 prefix={<FaPause aria-hidden="true" />}
                 shape="round"
                 size="xs"
@@ -964,32 +898,20 @@ export const VoiceInterviewControlView = ({
                 variant="subtle"
                 onClick={onPause}
               />
-            </>
-          )}
-          {snapshot.phase === "paused" && (
-            <Button
-              aria-label="Resume listening"
-              prefix={<FaPlay aria-hidden="true" />}
-              shape="round"
-              size="xs"
-              tooltip="Resume listening"
-              type="button"
-              onClick={onResume}
-            />
-          )}
-          {(snapshot.phase === "synthesizing" ||
-            snapshot.phase === "playing") && (
-            <Button
-              aria-label="Interrupt and speak"
-              prefix={<FaMicrophone aria-hidden="true" />}
-              shape="round"
-              size="xs"
-              tooltip="Interrupt and speak"
-              type="button"
-              onClick={onInterrupt}
-            />
-          )}
-          {snapshot.phase === "recoverable-error" && (
+            )}
+          {snapshot.connection === "connected" &&
+            snapshot.input === "paused" && (
+              <Button
+                aria-label="Resume listening"
+                prefix={<FaPlay aria-hidden="true" />}
+                shape="round"
+                size="xs"
+                tooltip="Resume listening"
+                type="button"
+                onClick={onResume}
+              />
+            )}
+          {snapshot.connection === "error" && (
             <Button
               aria-label="Reconnect"
               prefix={<FaRotate aria-hidden="true" />}
@@ -1073,7 +995,7 @@ export const VoiceInterviewControlView = ({
 
         <VoiceFocal snapshot={snapshot} />
 
-        {snapshot.phase === "recoverable-error" && (
+        {snapshot.connection === "error" && (
           <div className={recoveryStyle}>
             <strong>{recoveryHeading(snapshot.errorCode)}</strong>
             <span>{snapshot.errorMessage}</span>
@@ -1091,7 +1013,7 @@ export const VoiceInterviewControlView = ({
           </div>
         )}
 
-        <TranscriptStrip onEdit={onEdit} onRedo={onRedo} snapshot={snapshot} />
+        <TranscriptStrip onEdit={onEdit} snapshot={snapshot} />
 
         {editing && (
           <form className={actionsStyle} onSubmit={submitCorrection}>
@@ -1118,7 +1040,7 @@ export const VoiceInterviewControlView = ({
         )}
 
         <div className={actionsStyle}>
-          {snapshot.phase === "recoverable-error" && (
+          {snapshot.connection === "error" && (
             <Button
               aria-label="Reconnect"
               prefix={<FaRotate aria-hidden="true" />}
@@ -1138,28 +1060,8 @@ export const VoiceInterviewControlView = ({
             variant="ghost"
             onClick={onTypeInstead}
           />
-          {isSpeaking && (
-            <Button
-              aria-label="Interrupt and speak"
-              prefix={<FaMicrophone aria-hidden="true" />}
-              shape="round"
-              size="md"
-              tooltip="Interrupt and speak"
-              type="button"
-              onClick={onInterrupt}
-            />
-          )}
-          {snapshot.phase === "listening" && (
-            <>
-              <Button
-                aria-label="Done speaking"
-                prefix={<FaCheck aria-hidden="true" />}
-                shape="round"
-                size="md"
-                tooltip="Done speaking"
-                type="button"
-                onClick={onDoneSpeaking}
-              />
+          {snapshot.connection === "connected" &&
+            snapshot.input !== "paused" && (
               <Button
                 aria-label="Pause"
                 prefix={<FaPause aria-hidden="true" />}
@@ -1170,19 +1072,19 @@ export const VoiceInterviewControlView = ({
                 variant="subtle"
                 onClick={onPause}
               />
-            </>
-          )}
-          {snapshot.phase === "paused" && (
-            <Button
-              aria-label="Resume listening"
-              prefix={<FaPlay aria-hidden="true" />}
-              shape="round"
-              size="md"
-              tooltip="Resume listening"
-              type="button"
-              onClick={onResume}
-            />
-          )}
+            )}
+          {snapshot.connection === "connected" &&
+            snapshot.input === "paused" && (
+              <Button
+                aria-label="Resume listening"
+                prefix={<FaPlay aria-hidden="true" />}
+                shape="round"
+                size="md"
+                tooltip="Resume listening"
+                type="button"
+                onClick={onResume}
+              />
+            )}
         </div>
 
         <Coverage coverage={coverage} />
@@ -1207,18 +1109,18 @@ export const VoiceInterviewControlView = ({
  */
 const selectVisiblePresentation = ({
   active,
+  connection,
   interactionMode,
-  phase,
   placement,
   presentation,
 }: {
   readonly active: boolean;
+  readonly connection: VoiceTurnSnapshot["connection"];
   readonly interactionMode: PetrinautAiInterviewStageContext["interactionMode"];
-  readonly phase: VoiceTurnPhase;
   readonly placement: PetrinautAiInterviewStageContext["placement"];
   readonly presentation: Presentation;
 }): Presentation | null => {
-  if (phase === "recoverable-error") {
+  if (connection === "error") {
     return interactionMode === "chat" ? "mini" : "full";
   }
   if (placement === "detached" || interactionMode === "chat") {
@@ -1251,6 +1153,7 @@ const AvailableVoiceInterviewControl = ({
       cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
       createAudioContext: () => new AudioContext(),
+      createRemoteAudio: () => new Audio(),
       createPeerConnection: () => new RTCPeerConnection(),
       fetch: globalThis.fetch.bind(globalThis),
       getUserMedia: (constraints) =>
@@ -1259,17 +1162,13 @@ const AvailableVoiceInterviewControl = ({
       requestAnimationFrame: (callback) =>
         globalThis.requestAnimationFrame(callback),
     });
-    const playback = new SpeechPlaybackController({
-      createAudio: (source) => new Audio(source),
-      createObjectURL: (blob) => URL.createObjectURL(blob),
-      fetch: globalThis.fetch.bind(globalThis),
-      reportDiagnostic: reportVoiceDiagnostic,
-      revokeObjectURL: (url) => URL.revokeObjectURL(url),
+    const bridge = new RealtimeBrunchBridge({
+      session,
+      submitInterviewAnswer: context.submitInterviewAnswer,
     });
     const controller = new VoiceTurnController({
-      conversationId: context.conversationId,
+      bridge,
       onLatencyEvent: recordLatency,
-      playback,
       session,
       submitText: context.submitInterviewAnswer,
     });
@@ -1315,7 +1214,7 @@ const AvailableVoiceInterviewControl = ({
     store,
   ]);
 
-  const active = !endRequested && snapshot.phase !== "idle";
+  const active = !endRequested && snapshot.connection !== "idle";
 
   useEffect(() => {
     setActive(active);
@@ -1346,11 +1245,11 @@ const AvailableVoiceInterviewControl = ({
   }, [active, endRequested, interactionMode, setActive, store]);
 
   useEffect(() => {
-    if (snapshot.phase === "recoverable-error") {
+    if (snapshot.connection === "error") {
       setInteractionMode("interview");
       openSidebarRef.current();
     }
-  }, [setInteractionMode, snapshot.phase]);
+  }, [setInteractionMode, snapshot.connection]);
 
   useEffect(() => {
     if (!snapshot.lastCommittedText) {
@@ -1399,8 +1298,8 @@ const AvailableVoiceInterviewControl = ({
 
   const visiblePresentation = selectVisiblePresentation({
     active,
+    connection: snapshot.connection,
     interactionMode: context.interactionMode,
-    phase: snapshot.phase,
     placement: context.placement,
     presentation,
   });
@@ -1428,18 +1327,15 @@ const AvailableVoiceInterviewControl = ({
       }}
       onConsentChange={setConsented}
       onCorrectionChange={setCorrection}
-      onDoneSpeaking={() => store.controller.doneSpeaking()}
       onEdit={() => setEditing(true)}
       onEnd={end}
       onExpand={expand}
-      onInterrupt={() => store.controller.interruptAndSpeak()}
       onMinimize={minimize}
       onPause={() => store.controller.pause()}
       onReconnect={() => {
         setPresentation("full");
         void store.controller.reconnect();
       }}
-      onRedo={() => store.controller.redoAnswer()}
       onResume={() => store.controller.resume()}
       onStart={() => {
         acknowledgeVoiceInterviewDisclosure();

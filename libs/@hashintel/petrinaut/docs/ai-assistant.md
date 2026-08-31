@@ -31,12 +31,12 @@ finishes and is submitted when the conversation is ready.
 When the Brunch voice preview is enabled and available, **Chat** and **Interview** tabs appear on
 the first-run card and in the assistant panel header. If voice is unavailable, **Interview** is not
 shown. On the first-run card, select **Interview** and then **Start interview** to open the panel at
-the existing one-time disclosure. Review that OpenAI transcribes your speech and Petrinaut keeps
-finalized answers in the conversation rather than the audio, optionally check your microphone,
-confirm that you understand it, then select **Start interview** in the disclosure. Petrinaut
-remembers that acknowledgement in this browser for the current disclosure version, so later
-selections of **Interview** start directly. If browser storage is unavailable or the disclosure
-changes, Petrinaut asks again.
+the existing one-time disclosure. Review that OpenAI processes live audio and speaks the
+interviewer's words while Petrinaut keeps finalized answers in the conversation rather than the
+audio. You can check your microphone before confirming that you understand and selecting **Start
+interview**. Petrinaut remembers that acknowledgement in this browser for the current disclosure
+version, so later selections of **Interview** start directly. If browser storage is unavailable or
+the disclosure changes, Petrinaut asks again.
 
 The full Interview stage keeps the current question above a circular microphone control. While
 Petrinaut is listening, waveform bars respond to your microphone and a short **Listening** status
@@ -47,21 +47,24 @@ Partial words appear in a compact **Live transcript** strip with a **Recording**
 finalization, the strip changes to **Your answer**. It reads **Sending** while the answer is on its
 way to the interview and **Sent** once the interview has accepted it; if delivery fails, it reads
 **Not sent** so you know to retry rather than assuming the answer arrived. Icon controls provide
-**Use text instead**, **Done speaking**, **Pause**, and the other actions valid for the current
-phase; hover or focus an icon to see its title.
+**Use text instead**, **Pause**, and the other actions valid for the current state; hover or focus an
+icon to see its title.
 
 The stage names the microphone state and shows input activity only while the microphone is really
-on. During interviewer playback, **Interrupt and speak** first stops playback and then opens the
-microphone; it does not listen and play at the same time. While listening, a natural pause lets
-voice detection finish the answer automatically. Choose **Done speaking** to close capture so it
-can finish sooner, or **Pause** to turn the microphone off temporarily without submitting.
-Provisional transcript updates do not turn off the microphone. **Pause**,
-**Minimize**, **End interview**, and **Interrupt and speak** are separate actions. The header uses
-icon-only controls with tooltips **Minimize** and **End interview**. After an answer is recorded
-and the interviewer is ready, use **Redo answer** to say an explicit correction or **Edit text** to
-type one. These correction controls remain unavailable while the previous answer is still being
-written down. Choose **Use text instead** to switch to the generic message composer as a keyboard
-fallback.
+on. The microphone stays on while the interviewer speaks, so speaking naturally interrupts the
+audio and starts listening to you; you do not need to select an interrupt action. Semantic voice
+detection finishes each answer automatically after a natural pause and is tuned to allow longer
+thinking pauses. There is no required done-speaking action. Choose **Pause** to turn the microphone
+off temporarily without submitting. Provisional transcript updates, answer submission and
+interviewer playback do not turn the microphone off. **Pause**, **Minimize**, and **End interview**
+remain separate actions. The header uses icon-only controls with tooltips **Minimize** and **End
+interview**. After an answer is recorded and before the interview advances, **Edit text** can send an
+explicit correction; it remains unavailable while the previous answer is still being written down.
+Choose **Use text instead** to switch to the generic message composer as a keyboard fallback.
+
+The question and finalized response shown in the Petrinaut conversation are authoritative. Spoken
+audio is generated from that Brunch text but may not be verbatim. Interrupting audio does not undo
+the visible response or change the interview's saved history.
 
 Selecting **Chat** or **Minimize** hides the full stage. If the interview is active, the same session
 continues in a compact bar above the composer; expanding the bar reopens the sidebar and selects

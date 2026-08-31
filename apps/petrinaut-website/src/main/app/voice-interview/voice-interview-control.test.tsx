@@ -10,7 +10,7 @@ import {
 } from "@testing-library/react";
 import { StrictMode, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import {
@@ -28,17 +28,19 @@ import type { PetrinautAiInterviewStageContext } from "@hashintel/petrinaut/ui";
 
 const snapshot = {
   canReviseLastAnswer: false,
+  connection: "connected",
   currentQuestion: "What happens after approval?",
   errorCode: null,
   errorMessage: "",
   errorRequestId: "",
+  input: "listening",
   lastAnswerDelivery: "none" as const,
   lastCommittedText: "",
   microphoneEnabled: true,
   microphoneLevel: 0.24,
+  output: "idle",
   partialText: "The request goes to",
-  phase: "listening" as const,
-};
+} satisfies VoiceTurnSnapshot;
 
 const config = { available: true as const, connectionTimeoutMs: 15_000 };
 
@@ -53,15 +55,12 @@ const viewProps = (
   onCheckMicrophone: vi.fn(),
   onConsentChange: vi.fn(),
   onCorrectionChange: vi.fn(),
-  onDoneSpeaking: vi.fn(),
   onEdit: vi.fn(),
   onEnd: vi.fn(),
   onExpand: vi.fn(),
-  onInterrupt: vi.fn(),
   onMinimize: vi.fn(),
   onPause: vi.fn(),
   onReconnect: vi.fn(),
-  onRedo: vi.fn(),
   onResume: vi.fn(),
   onStart: vi.fn(),
   onSubmitCorrection: vi.fn(),
@@ -156,10 +155,27 @@ const stubUnavailableMicrophone = () => {
   return getUserMedia;
 };
 
+beforeEach(() => {
+  const values = new Map<string, string>();
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: {
+      clear: () => values.clear(),
+      getItem: (key: string) => values.get(key) ?? null,
+      key: (index: number) => [...values.keys()][index] ?? null,
+      get length() {
+        return values.size;
+      },
+      removeItem: (key: string) => values.delete(key),
+      setItem: (key: string, value: string) => values.set(key, value),
+    } satisfies Storage,
+  });
+});
+
 afterEach(() => {
   cleanup();
-  vi.unstubAllGlobals();
   window.localStorage.clear();
+  vi.unstubAllGlobals();
 });
 
 describe("voice interview stage", () => {
@@ -233,7 +249,7 @@ describe("voice interview stage", () => {
 
     expect(html).toContain("Voice interview");
     expect(html).toContain("Talk through your process with AI");
-    expect(html).toContain("transcribed by OpenAI");
+    expect(html).toContain("OpenAI processes live audio");
     expect(html).toContain("keeps finalized answers");
     expect(html).toContain("not the audio");
     expect(html.indexOf("Start interview")).toBeLessThan(
@@ -259,14 +275,16 @@ describe("voice interview stage", () => {
         {...viewProps({
           snapshot: {
             ...snapshot,
+            connection: "error",
             errorCode: "microphone-permission",
             errorMessage:
               "Allow microphone access in your browser settings, then reconnect voice input.",
             errorRequestId: "voice-request-permission",
+            input: "paused",
             microphoneEnabled: false,
             microphoneLevel: 0,
+            output: "idle",
             partialText: "",
-            phase: "recoverable-error",
           },
         })}
       />,
@@ -522,7 +540,8 @@ describe("voice interview stage", () => {
     expect(html).toContain("Live transcript");
     expect(html).toContain("Listening");
     expect(html).toContain("Microphone input level: Medium");
-    expect(html).toContain('aria-label="Done speaking"');
+    expect(html).not.toContain('aria-label="Done speaking"');
+    expect(html).not.toContain('aria-label="Interrupt and speak"');
     expect(html).toContain("motionReduce:vis_hidden");
     expect(html).toContain("pos_relative");
     expect(html).not.toContain("pos_fixed");
@@ -560,10 +579,7 @@ describe("voice interview stage", () => {
             ...snapshot,
             lastAnswerDelivery: "delivered",
             lastCommittedText: "The shift lead assigns an owner.",
-            microphoneEnabled: false,
-            microphoneLevel: 0,
             partialText: "",
-            phase: "waiting",
           },
         })}
       />,
@@ -580,12 +596,11 @@ describe("voice interview stage", () => {
         {...viewProps({
           snapshot: {
             ...snapshot,
+            input: "submitting",
             lastAnswerDelivery: "pending",
             lastCommittedText: "The shift lead assigns an owner.",
-            microphoneEnabled: false,
-            microphoneLevel: 0,
+            output: "waiting-for-tool",
             partialText: "",
-            phase: "delivering",
           },
         })}
       />,
@@ -602,15 +617,17 @@ describe("voice interview stage", () => {
         {...viewProps({
           snapshot: {
             ...snapshot,
+            connection: "error",
             errorCode: null,
             errorMessage:
               "The interview could not accept that answer. Use the composer to retry.",
+            input: "paused",
             lastAnswerDelivery: "failed",
             lastCommittedText: "The shift lead assigns an owner.",
             microphoneEnabled: false,
             microphoneLevel: 0,
+            output: "idle",
             partialText: "",
-            phase: "recoverable-error",
           },
         })}
       />,
@@ -624,31 +641,26 @@ describe("voice interview stage", () => {
   test("uses voice-app icon controls while listening", () => {
     render(<VoiceInterviewControlView {...viewProps()} />);
 
-    for (const name of ["Use text instead", "Done speaking", "Pause"]) {
+    for (const name of ["Use text instead", "Pause"]) {
       const button = screen.getByRole("button", { name });
       expect(button.querySelector("svg")).not.toBeNull();
       expect(button.parentElement?.getAttribute("data-scope")).toBe("tooltip");
     }
-
+    expect(screen.queryByRole("button", { name: "Done speaking" })).toBeNull();
     expect(
-      screen
-        .getByRole("button", { name: "Done speaking" })
-        .textContent.replaceAll("\u200B", "")
-        .trim(),
-    ).toBe("");
+      screen.queryByRole("button", { name: "Interrupt and speak" }),
+    ).toBeNull();
   });
 
-  test("orders the full listening actions as keyboard, done speaking, then pause", () => {
+  test("orders the full listening actions as keyboard then pause", () => {
     const html = renderToStaticMarkup(
       <VoiceInterviewControlView {...viewProps()} />,
     );
 
     expect(html.indexOf('aria-label="Use text instead"')).toBeLessThan(
-      html.indexOf('aria-label="Done speaking"'),
-    );
-    expect(html.indexOf('aria-label="Done speaking"')).toBeLessThan(
       html.indexOf('aria-label="Pause"'),
     );
+    expect(html).not.toContain('aria-label="Done speaking"');
   });
 
   test("offers only resume and keyboard actions while paused", () => {
@@ -657,10 +669,10 @@ describe("voice interview stage", () => {
         {...viewProps({
           snapshot: {
             ...snapshot,
+            input: "paused",
             microphoneEnabled: false,
             microphoneLevel: 0,
             partialText: "",
-            phase: "paused",
           },
         })}
       />,
@@ -680,28 +692,34 @@ describe("voice interview stage", () => {
     ).toBeNull();
   });
 
-  test("shows the waveform only while the microphone is listening", () => {
+  test("shows the waveform whenever the continuous microphone is active", () => {
     const rendered = render(<VoiceInterviewControlView {...viewProps()} />);
 
     expect(screen.getByTestId("voice-waveform")).not.toBeNull();
 
-    for (const phase of ["paused", "playing", "waiting"] as const) {
-      rendered.rerender(
-        <VoiceInterviewControlView
-          {...viewProps({
-            snapshot: {
-              ...snapshot,
-              microphoneEnabled: false,
-              microphoneLevel: 0,
-              partialText: "",
-              phase,
-            },
-          })}
-        />,
-      );
-      expect(screen.queryByTestId("voice-waveform")).toBeNull();
-      expect(screen.queryByText(/Microphone input level:/u)).toBeNull();
-    }
+    rendered.rerender(
+      <VoiceInterviewControlView
+        {...viewProps({ snapshot: { ...snapshot, output: "speaking" } })}
+      />,
+    );
+    expect(screen.getByTestId("voice-waveform")).not.toBeNull();
+    expect(screen.getByText("Interviewer speaking")).not.toBeNull();
+
+    rendered.rerender(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            input: "paused",
+            microphoneEnabled: false,
+            microphoneLevel: 0,
+            partialText: "",
+          },
+        })}
+      />,
+    );
+    expect(screen.queryByTestId("voice-waveform")).toBeNull();
+    expect(screen.queryByText(/Microphone input level:/u)).toBeNull();
   });
 
   test("keeps reconnect visible and makes secondary recovery icon-only", () => {
@@ -710,14 +728,16 @@ describe("voice interview stage", () => {
         {...viewProps({
           snapshot: {
             ...snapshot,
+            connection: "error",
             errorCode: "microphone-permission",
             errorMessage:
               "Allow microphone access in your browser settings, then reconnect voice input.",
             errorRequestId: "voice-request-permission",
+            input: "paused",
             microphoneEnabled: false,
             microphoneLevel: 0,
+            output: "idle",
             partialText: "",
-            phase: "recoverable-error",
           },
         })}
       />,
@@ -746,12 +766,14 @@ describe("voice interview stage", () => {
         {...viewProps({
           snapshot: {
             ...snapshot,
+            connection: "error",
             errorCode,
             errorMessage,
+            input: "paused",
             microphoneEnabled: false,
             microphoneLevel: 0,
+            output: "idle",
             partialText: "",
-            phase: "recoverable-error",
           },
         })}
       />
@@ -807,12 +829,7 @@ describe("voice interview stage", () => {
   test("renders icons for the listening controls", () => {
     render(<VoiceInterviewControlView {...viewProps()} />);
 
-    for (const name of [
-      "Minimize voice interview",
-      "End interview",
-      "Done speaking",
-      "Pause",
-    ]) {
+    for (const name of ["Minimize voice interview", "End interview", "Pause"]) {
       expect(
         screen.getByRole("button", { name }).querySelector("svg"),
       ).not.toBeNull();
@@ -825,10 +842,10 @@ describe("voice interview stage", () => {
         {...viewProps({
           snapshot: {
             ...snapshot,
+            input: "paused",
             microphoneEnabled: false,
             microphoneLevel: 0,
             partialText: "",
-            phase: "waiting",
           },
         })}
       />,
@@ -839,17 +856,14 @@ describe("voice interview stage", () => {
     );
   });
 
-  test("renders committed repair actions separately from pause, minimize, and end", () => {
+  test("renders committed edit separately from pause, minimize, and end", () => {
     const html = renderToStaticMarkup(
       <VoiceInterviewControlView
         {...viewProps({
           snapshot: {
             ...snapshot,
             lastCommittedText: "The shift lead approves it.",
-            microphoneEnabled: false,
-            microphoneLevel: 0,
             partialText: "",
-            phase: "waiting",
           },
         })}
       />,
@@ -858,7 +872,6 @@ describe("voice interview stage", () => {
     for (const name of [
       "Minimize voice interview",
       "End interview",
-      "Redo answer",
       "Edit text",
       "Use text instead",
     ]) {
@@ -874,20 +887,12 @@ describe("voice interview stage", () => {
             ...snapshot,
             canReviseLastAnswer: false,
             lastCommittedText: "The shift lead approves it.",
-            microphoneEnabled: false,
-            microphoneLevel: 0,
             partialText: "",
-            phase: "waiting",
           },
         })}
       />,
     );
 
-    expect(
-      screen
-        .getByRole("button", { name: "Redo answer" })
-        .hasAttribute("disabled"),
-    ).toBe(true);
     expect(
       screen
         .getByRole("button", { name: "Edit text" })
@@ -909,34 +914,29 @@ describe("voice interview stage", () => {
 
     expect(
       screen
-        .getByRole("button", { name: "Redo answer" })
-        .hasAttribute("disabled"),
-    ).toBe(false);
-    expect(
-      screen
         .getByRole("button", { name: "Edit text" })
         .hasAttribute("disabled"),
     ).toBe(false);
   });
 
-  test("offers deterministic interrupt instead of listening during playback", () => {
+  test("keeps listening and offers no manual interrupt during playback", () => {
     const html = renderToStaticMarkup(
       <VoiceInterviewControlView
         {...viewProps({
           snapshot: {
             ...snapshot,
-            microphoneEnabled: false,
-            microphoneLevel: 0,
+            output: "speaking",
             partialText: "",
-            phase: "playing",
           },
         })}
       />,
     );
 
-    expect(html).toContain("Microphone off · Interviewer speaking");
-    expect(html).toContain('aria-label="Interrupt and speak"');
-    expect(html).not.toContain(">Pause<");
+    expect(html).toContain(
+      "Microphone on · Interviewer speaking · Speak to interrupt",
+    );
+    expect(html).not.toContain('aria-label="Interrupt and speak"');
+    expect(html).toContain('aria-label="Pause"');
   });
 
   test("uses a detached bottom mini bar with independent expand, type, pause, and end controls", () => {
@@ -957,9 +957,6 @@ describe("voice interview stage", () => {
     expect(screen.getByText("Listening")).not.toBeNull();
     expect(screen.queryByText("Microphone on · Listening")).toBeNull();
     expect(screen.getByText("What happens after approval?")).not.toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Done speaking" }),
-    ).not.toBeNull();
     expect(screen.getByRole("button", { name: "Pause" })).not.toBeNull();
     expect(
       screen.getByRole("button", { name: "Use text instead" }),
@@ -968,12 +965,7 @@ describe("voice interview stage", () => {
       screen.getByRole("button", { name: "End interview" }),
     ).not.toBeNull();
 
-    for (const name of [
-      "Done speaking",
-      "Pause",
-      "Use text instead",
-      "End interview",
-    ]) {
+    for (const name of ["Pause", "Use text instead", "End interview"]) {
       const button = screen.getByRole("button", { name });
       expect(button.querySelector("svg")).not.toBeNull();
       expect(button.parentElement?.getAttribute("data-scope")).toBe("tooltip");
@@ -993,7 +985,11 @@ describe("voice interview stage", () => {
     const rendered = render(
       <VoiceInterviewControlView
         {...viewProps({
-          snapshot: { ...snapshot, microphoneEnabled: false, phase: "paused" },
+          snapshot: {
+            ...snapshot,
+            input: "paused",
+            microphoneEnabled: false,
+          },
           presentation: "mini",
         })}
       />,
@@ -1017,25 +1013,23 @@ describe("voice interview stage", () => {
     rendered.rerender(
       <VoiceInterviewControlView
         {...viewProps({
-          snapshot: { ...snapshot, microphoneEnabled: false, phase: "playing" },
+          snapshot: { ...snapshot, output: "speaking" },
           presentation: "mini",
         })}
       />,
     );
+    expect(screen.getByRole("button", { name: "Pause" })).not.toBeNull();
     expect(
-      screen.getByRole("button", { name: "Interrupt and speak" }),
-    ).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
-    expect(
-      screen
-        .getByRole("button", { name: "Interrupt and speak" })
-        .querySelector("svg"),
+      screen.getByRole("button", { name: "Pause" }).querySelector("svg"),
     ).not.toBeNull();
     expect(
       screen
-        .getByRole("button", { name: "Interrupt and speak" })
+        .getByRole("button", { name: "Pause" })
         .parentElement?.getAttribute("data-scope"),
     ).toBe("tooltip");
+    expect(
+      screen.queryByRole("button", { name: "Interrupt and speak" }),
+    ).toBeNull();
   });
 
   test("announces compact question and provisional transcript context", () => {

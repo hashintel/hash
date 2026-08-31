@@ -1,0 +1,372 @@
+import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
+
+type ChatStatus = "ready" | "submitted" | "streaming" | "error";
+
+interface ChatUpdate {
+  readonly canAcceptInterviewAnswer: boolean;
+  readonly canonicalSegments: CanonicalSpeechSegment[];
+  readonly status: ChatStatus;
+}
+
+interface RealtimeBridgeSession {
+  completeFunctionCall(
+    callId: string,
+    segments: CanonicalSpeechSegment[],
+  ): void;
+  speakCanonical(segments: CanonicalSpeechSegment[]): void;
+  subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
+}
+
+interface SubmitInterviewAnswerInput {
+  readonly id: string;
+  readonly text: string;
+}
+
+type SubmitInterviewAnswerResult =
+  | { readonly kind: "interactive-tool"; readonly toolCallId: string }
+  | { readonly kind: "message"; readonly messageId: string };
+
+interface RealtimeBrunchBridgeDependencies {
+  readonly session: RealtimeBridgeSession;
+  readonly submitInterviewAnswer: (
+    input: SubmitInterviewAnswerInput,
+  ) => Promise<SubmitInterviewAnswerResult>;
+}
+
+interface ActiveSubmission {
+  readonly baselineSegmentIds: ReadonlySet<string>;
+  readonly callId: string;
+  readonly epoch: number;
+  readonly pendingQuestionId: string;
+  correlated: boolean;
+  sawBusyChatStatus: boolean;
+}
+
+interface ArgumentStream {
+  readonly chunks: string[];
+  readonly itemId: string;
+  readonly responseId: string;
+}
+
+export type RealtimeBrunchBridgeEvent =
+  | {
+      readonly answer: string;
+      readonly callId: string;
+      readonly type: "submission-started";
+    }
+  | {
+      readonly answer: string;
+      readonly callId: string;
+      readonly type: "submission-accepted";
+    }
+  | {
+      readonly callId: string;
+      readonly segments: CanonicalSpeechSegment[];
+      readonly type: "canonical-response-ready";
+    }
+  | { readonly message: string; readonly type: "error" };
+
+type BridgeListener = (event: RealtimeBrunchBridgeEvent) => void;
+
+const INVALID_BRIDGE_EVENT =
+  "The voice response could not be matched to the interview. Reconnect voice or use text instead.";
+const ANSWER_LIMIT = 32_000;
+
+export const createRealtimeSubmissionId = (
+  connectionEpoch: number,
+  callId: string,
+): string => `voice-realtime:${connectionEpoch}:${encodeURIComponent(callId)}`;
+
+const latestPendingQuestion = (
+  segments: CanonicalSpeechSegment[],
+): CanonicalSpeechSegment | undefined =>
+  segments.findLast(({ source }) => source === "brunch-ask");
+
+const parseContinueInterviewArguments = (
+  argumentsJson: string,
+): string | null => {
+  try {
+    const value: unknown = JSON.parse(argumentsJson);
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      return null;
+    }
+    const record = value as Record<string, unknown>;
+    if (Object.keys(record).length !== 1 || typeof record.answer !== "string") {
+      return null;
+    }
+    const answer = record.answer.trim();
+    return answer && Array.from(answer).length <= ANSWER_LIMIT ? answer : null;
+  } catch {
+    return null;
+  }
+};
+
+export class RealtimeBrunchBridge {
+  readonly #argumentDeltas = new Map<string, ArgumentStream>();
+  readonly #listeners = new Set<BridgeListener>();
+  readonly #processedCalls = new Set<string>();
+  readonly #session: RealtimeBridgeSession;
+  readonly #submitInterviewAnswer: (
+    input: SubmitInterviewAnswerInput,
+  ) => Promise<SubmitInterviewAnswerResult>;
+  readonly #seenSegmentIds = new Set<string>();
+  #activeEpoch: number | null = null;
+  #activeSubmission: ActiveSubmission | null = null;
+  #chat: ChatUpdate = {
+    canAcceptInterviewAnswer: false,
+    canonicalSegments: [],
+    status: "ready",
+  };
+  #generation = 0;
+
+  public constructor({
+    session,
+    submitInterviewAnswer,
+  }: RealtimeBrunchBridgeDependencies) {
+    this.#session = session;
+    this.#submitInterviewAnswer = submitInterviewAnswer;
+    session.subscribe((event) => this.#handleSessionEvent(event));
+  }
+
+  public subscribe(listener: BridgeListener): () => void {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  }
+
+  public start(connectionEpoch: number): void {
+    ++this.#generation;
+    this.#activeEpoch = connectionEpoch;
+    this.#activeSubmission = null;
+    this.#argumentDeltas.clear();
+    this.#processedCalls.clear();
+    this.#seenSegmentIds.clear();
+    for (const segment of this.#chat.canonicalSegments) {
+      this.#seenSegmentIds.add(segment.id);
+    }
+
+    const question = latestPendingQuestion(this.#chat.canonicalSegments);
+    if (question) {
+      this.#session.speakCanonical(
+        this.#chat.canonicalSegments.filter(
+          ({ messageId }) => messageId === question.messageId,
+        ),
+      );
+    }
+  }
+
+  public stop(): void {
+    ++this.#generation;
+    this.#activeEpoch = null;
+    this.#activeSubmission = null;
+    this.#argumentDeltas.clear();
+  }
+
+  public updateChat(update: ChatUpdate): void {
+    this.#chat = update;
+    if (this.#activeEpoch === null) {
+      return;
+    }
+    if (update.status === "error") {
+      this.#fail(
+        "The interview could not complete that turn. Use the composer to retry.",
+      );
+      return;
+    }
+    if (this.#activeSubmission) {
+      if (update.status === "submitted" || update.status === "streaming") {
+        this.#activeSubmission.sawBusyChatStatus = true;
+      }
+      this.#completeCorrelatedSubmission();
+      return;
+    }
+    if (update.status !== "ready") {
+      return;
+    }
+
+    const newSegments = update.canonicalSegments.filter(
+      ({ id }) => !this.#seenSegmentIds.has(id),
+    );
+    if (newSegments.length === 0) {
+      return;
+    }
+    try {
+      this.#session.speakCanonical(newSegments);
+      for (const segment of newSegments) {
+        this.#seenSegmentIds.add(segment.id);
+      }
+    } catch {
+      this.#fail(INVALID_BRIDGE_EVENT);
+    }
+  }
+
+  #emit(event: RealtimeBrunchBridgeEvent): void {
+    for (const listener of this.#listeners) {
+      listener(event);
+    }
+  }
+
+  #fail(message: string): void {
+    ++this.#generation;
+    this.#activeSubmission = null;
+    this.#argumentDeltas.clear();
+    this.#emit({ message, type: "error" });
+  }
+
+  #handleSessionEvent(event: OpenAIRealtimeSessionEvent): void {
+    if (
+      (event.type !== "tool-arguments-delta" &&
+        event.type !== "tool-arguments-done") ||
+      event.connectionEpoch !== this.#activeEpoch
+    ) {
+      return;
+    }
+
+    const callKey = `${event.connectionEpoch}:${event.callId}`;
+    if (this.#processedCalls.has(callKey)) {
+      return;
+    }
+    if (event.type === "tool-arguments-delta") {
+      const stream = this.#argumentDeltas.get(callKey);
+      if (!stream && this.#argumentDeltas.size > 0) {
+        this.#processedCalls.add(callKey);
+        this.#fail(INVALID_BRIDGE_EVENT);
+        return;
+      }
+      if (
+        stream &&
+        (stream.itemId !== event.itemId ||
+          stream.responseId !== event.responseId)
+      ) {
+        this.#processedCalls.add(callKey);
+        this.#fail(INVALID_BRIDGE_EVENT);
+        return;
+      }
+      if (stream) {
+        stream.chunks.push(event.delta);
+      } else {
+        this.#argumentDeltas.set(callKey, {
+          chunks: [event.delta],
+          itemId: event.itemId,
+          responseId: event.responseId,
+        });
+      }
+      return;
+    }
+
+    this.#processedCalls.add(callKey);
+    const stream = this.#argumentDeltas.get(callKey);
+    if (!stream && this.#argumentDeltas.size > 0) {
+      this.#fail(INVALID_BRIDGE_EVENT);
+      return;
+    }
+    this.#argumentDeltas.delete(callKey);
+    if (
+      this.#activeSubmission ||
+      event.name !== "continue_interview" ||
+      (stream !== undefined &&
+        (stream.itemId !== event.itemId ||
+          stream.responseId !== event.responseId ||
+          stream.chunks.join("") !== event.arguments))
+    ) {
+      this.#fail(INVALID_BRIDGE_EVENT);
+      return;
+    }
+
+    const answer = parseContinueInterviewArguments(event.arguments);
+    const question = latestPendingQuestion(this.#chat.canonicalSegments);
+    if (!answer || !question || !this.#chat.canAcceptInterviewAnswer) {
+      this.#fail(INVALID_BRIDGE_EVENT);
+      return;
+    }
+
+    const generation = this.#generation;
+    this.#activeSubmission = {
+      baselineSegmentIds: new Set(
+        this.#chat.canonicalSegments.map(({ id }) => id),
+      ),
+      callId: event.callId,
+      correlated: false,
+      epoch: event.connectionEpoch,
+      pendingQuestionId: question.partId,
+      sawBusyChatStatus: false,
+    };
+    this.#emit({ answer, callId: event.callId, type: "submission-started" });
+    void this.#submit(event, answer, generation);
+  }
+
+  async #submit(
+    event: Extract<OpenAIRealtimeSessionEvent, { type: "tool-arguments-done" }>,
+    answer: string,
+    generation: number,
+  ): Promise<void> {
+    try {
+      const result = await this.#submitInterviewAnswer({
+        id: createRealtimeSubmissionId(event.connectionEpoch, event.callId),
+        text: answer,
+      });
+      const active = this.#activeSubmission;
+      if (
+        generation !== this.#generation ||
+        !active ||
+        active.callId !== event.callId ||
+        active.epoch !== event.connectionEpoch
+      ) {
+        return;
+      }
+      if (
+        result.kind !== "interactive-tool" ||
+        result.toolCallId !== active.pendingQuestionId
+      ) {
+        this.#fail(INVALID_BRIDGE_EVENT);
+        return;
+      }
+      active.correlated = true;
+      this.#emit({
+        answer,
+        callId: event.callId,
+        type: "submission-accepted",
+      });
+      this.#completeCorrelatedSubmission();
+    } catch {
+      if (generation === this.#generation) {
+        this.#fail(
+          "The interview could not accept that answer. Use the composer to retry.",
+        );
+      }
+    }
+  }
+
+  #completeCorrelatedSubmission(): void {
+    const active = this.#activeSubmission;
+    if (
+      !active?.correlated ||
+      !active.sawBusyChatStatus ||
+      this.#chat.status !== "ready"
+    ) {
+      return;
+    }
+    const responseSegments = this.#chat.canonicalSegments.filter(
+      ({ id }) => !active.baselineSegmentIds.has(id),
+    );
+    if (responseSegments.length === 0) {
+      return;
+    }
+
+    try {
+      this.#session.completeFunctionCall(active.callId, responseSegments);
+    } catch {
+      this.#fail(INVALID_BRIDGE_EVENT);
+      return;
+    }
+    for (const segment of responseSegments) {
+      this.#seenSegmentIds.add(segment.id);
+    }
+    this.#activeSubmission = null;
+    this.#emit({
+      callId: active.callId,
+      segments: responseSegments,
+      type: "canonical-response-ready",
+    });
+  }
+}

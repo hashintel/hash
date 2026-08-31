@@ -1,14 +1,13 @@
 import { describe, expect, test, vi } from "vitest";
 
 import { createOpenAIRealtimeCallHandler } from "../../../server/voice/openai-realtime-call";
-import { createOpenAISpeechHandler } from "../../../server/voice/openai-speech";
 import {
   VOICE_REQUEST_ID_HEADER,
   type VoiceDiagnosticEvent,
 } from "../../../voice-diagnostics";
 import { selectCanonicalSpeechSegments } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
-import { SpeechPlaybackController } from "./speech-playback-controller";
+import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import { VoiceTurnController } from "./voice-turn-controller";
 
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
@@ -16,8 +15,9 @@ import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 const origin = "https://petrinaut.test";
 const browserOffer = "v=0\r\na=private-browser-sdp\r\n";
 const providerAnswer = "v=0\r\na=private-provider-sdp\r\n";
-const finalizedTranscript = "Private finalized transcript.";
-const canonicalSpeech = "Private canonical assistant response.";
+const spokenAnswer = "The supervisor approves it.";
+const canonicalReply = "Thanks. I have recorded that.";
+const canonicalQuestion = "Who is informed next?";
 const requestIds = [
   "00000000-0000-4000-8000-000000000011",
   "00000000-0000-4000-8000-000000000012",
@@ -26,6 +26,7 @@ const requestIds = [
 
 class FakeDataChannel extends EventTarget {
   public readyState: RTCDataChannelState = "connecting";
+  public readonly send = vi.fn();
 
   public close(): void {
     this.readyState = "closed";
@@ -43,33 +44,63 @@ class FakeDataChannel extends EventTarget {
   }
 }
 
-const createAudioHarness = () => {
-  const listeners = new Map<string, Set<() => void>>();
-  const audio = {
-    addEventListener: vi.fn((type: string, listener: () => void) => {
-      const eventListeners = listeners.get(type) ?? new Set();
-      eventListeners.add(listener);
-      listeners.set(type, eventListeners);
-    }),
-    pause: vi.fn(),
-    play: vi.fn(async () => undefined),
-    removeEventListener: vi.fn((type: string, listener: () => void) => {
-      listeners.get(type)?.delete(listener);
-    }),
-  };
+const sentEvents = (channel: FakeDataChannel): Record<string, unknown>[] =>
+  channel.send.mock.calls.map(([payload]) => JSON.parse(payload as string));
 
-  return {
-    audio,
-    end: () => {
-      for (const listener of listeners.get("ended") ?? []) {
-        listener();
-      }
-    },
-  };
+const authorizeLatestSpeechResponse = (
+  channel: FakeDataChannel,
+  responseId: string,
+): void => {
+  const responseCreate = sentEvents(channel).findLast(
+    ({ type }) => type === "response.create",
+  )!;
+  const response = responseCreate.response as Record<string, unknown>;
+  channel.receive({
+    response: { id: responseId, metadata: response.metadata },
+    type: "response.created",
+  });
 };
 
+const initialMessages = [
+  {
+    id: "initial-question-message",
+    parts: [
+      {
+        input: { question: "What happens after approval?" },
+        state: "input-available",
+        toolCallId: "ask-current",
+        toolName: "brunch_ask",
+        type: "dynamic-tool",
+      },
+    ],
+    role: "assistant",
+  },
+] satisfies PetrinautAiMessage[];
+
+const responseMessages = [
+  ...initialMessages,
+  {
+    id: "canonical-response-message",
+    parts: [{ state: "done", text: canonicalReply, type: "text" }],
+    role: "assistant",
+  },
+  {
+    id: "next-question-message",
+    parts: [
+      {
+        input: { question: canonicalQuestion },
+        state: "input-available",
+        toolCallId: "ask-next",
+        toolName: "brunch_ask",
+        type: "dynamic-tool",
+      },
+    ],
+    role: "assistant",
+  },
+] satisfies PetrinautAiMessage[];
+
 describe("controlled voice preview", () => {
-  test("crosses the mocked browser, voice, Brunch, and canonical-speech boundaries", async () => {
+  test("bridges one Realtime tool call through Brunch and back to canonical duplex audio", async () => {
     const diagnostics: VoiceDiagnosticEvent[] = [];
     const reportDiagnostic = (event: VoiceDiagnosticEvent) =>
       diagnostics.push(event);
@@ -79,14 +110,8 @@ describe("controlled voice preview", () => {
           headers: { "content-type": "text/plain" },
         }),
     );
-    const upstreamSpeechFetch = vi.fn<typeof globalThis.fetch>(
-      async () =>
-        new Response(new Uint8Array([1, 2, 3]), {
-          headers: { "content-type": "audio/mpeg" },
-        }),
-    );
     const environment = {
-      OPENAI_VOICE_API_KEY: "private-provider-credential",
+      OPENAI_VOICE_API_KEY: "[REDACTED:api-key]",
       PETRINAUT_OPENAI_VOICE_ENABLED: "true",
       VERCEL_ENV: "preview",
     };
@@ -98,17 +123,10 @@ describe("controlled voice preview", () => {
       now: clock,
       reportDiagnostic,
     });
-    const speechHandler = createOpenAISpeechHandler({
-      environment,
-      fetch: upstreamSpeechFetch,
-      now: clock,
-      reportDiagnostic,
-    });
     const browserRequests: Array<{
       readonly path: string;
       readonly requestId: string | null;
       readonly responseRequestId: string | null;
-      readonly serverTiming: string | null;
     }> = [];
     const browserFetch = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       const url = new URL(
@@ -122,25 +140,27 @@ describe("controlled voice preview", () => {
       const headers = new Headers(init?.headers);
       headers.set("origin", origin);
       const request = new Request(url, { ...init, headers });
-      const response =
-        url.pathname === "/api/voice/realtime-call"
-          ? await realtimeHandler(request)
-          : await speechHandler(request);
+      const response = await realtimeHandler(request);
       browserRequests.push({
         path: url.pathname,
         requestId: request.headers.get(VOICE_REQUEST_ID_HEADER),
         responseRequestId: response.headers.get(VOICE_REQUEST_ID_HEADER),
-        serverTiming: response.headers.get("server-timing"),
       });
       return response;
     });
 
     const dataChannel = new FakeDataChannel();
-    const track = { enabled: true, stop: vi.fn() };
+    const track = { enabled: true, kind: "audio", stop: vi.fn() };
     const mediaStream = {
       getAudioTracks: () => [track],
       getTracks: () => [track],
     } as unknown as MediaStream;
+    const remoteAudio = {
+      autoplay: false,
+      pause: vi.fn(),
+      play: vi.fn(async () => undefined),
+      srcObject: null as MediaStream | null,
+    };
     const peer = {
       addTrack: vi.fn(),
       close: vi.fn(),
@@ -148,10 +168,11 @@ describe("controlled voice preview", () => {
       createDataChannel: vi.fn(() => dataChannel),
       createOffer: vi.fn(async () => ({
         sdp: browserOffer,
-        type: "offer",
+        type: "offer" as RTCSdpType,
       })),
       localDescription: null as RTCSessionDescription | null,
       onconnectionstatechange: null as (() => void) | null,
+      ontrack: null as ((event: RTCTrackEvent) => void) | null,
       setLocalDescription: vi.fn(
         async (description: RTCSessionDescriptionInit) => {
           peer.localDescription = description as RTCSessionDescription;
@@ -161,19 +182,21 @@ describe("controlled voice preview", () => {
     };
     let requestNumber = 0;
     const createRequestId = () => requestIds[requestNumber++]!;
-    const audioContext = {
-      close: vi.fn(async () => undefined),
-      createAnalyser: vi.fn(() => ({
-        fftSize: 0,
-        getByteTimeDomainData: vi.fn(),
-      })),
-      createMediaStreamSource: vi.fn(() => ({ connect: vi.fn() })),
-    };
     const session = new OpenAIRealtimeSession({
       cancelAnimationFrame: vi.fn(),
       connectionTimeoutMs: 15_000,
-      createAudioContext: () => audioContext as unknown as AudioContext,
+      createAudioContext: () =>
+        ({
+          close: vi.fn(async () => undefined),
+          createAnalyser: vi.fn(() => ({
+            fftSize: 0,
+            getByteTimeDomainData: vi.fn(),
+          })),
+          createMediaStreamSource: vi.fn(() => ({ connect: vi.fn() })),
+          state: "running",
+        }) as unknown as AudioContext,
       createPeerConnection: () => peer as unknown as RTCPeerConnection,
+      createRemoteAudio: () => remoteAudio,
       createRequestId,
       fetch: browserFetch,
       getUserMedia: async () => mediaStream,
@@ -181,132 +204,174 @@ describe("controlled voice preview", () => {
       reportDiagnostic,
       requestAnimationFrame: vi.fn(() => 1),
     });
-    const audio = createAudioHarness();
-    const revokeObjectURL = vi.fn();
-    const playback = new SpeechPlaybackController({
-      createAudio: () => audio.audio,
-      createObjectURL: () => "blob:voice-integration",
-      createRequestId,
-      fetch: browserFetch,
-      now: clock,
-      reportDiagnostic,
-      revokeObjectURL,
-    });
-    const submitText = vi.fn(async () => ({
-      kind: "message" as const,
-      messageId: "voice-message",
+    const submitInterviewAnswer = vi.fn(async () => ({
+      kind: "interactive-tool" as const,
+      toolCallId: "ask-current",
     }));
-    const controller = new VoiceTurnController({
-      conversationId: "preview-conversation",
-      playback,
+    const bridge = new RealtimeBrunchBridge({
       session,
-      submitText,
+      submitInterviewAnswer,
+    });
+    const controller = new VoiceTurnController({
+      bridge,
+      session,
+      submitText: submitInterviewAnswer,
+    });
+    controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: selectCanonicalSpeechSegments(initialMessages),
+      status: "ready",
     });
 
     await controller.start();
+    authorizeLatestSpeechResponse(dataChannel, "response-initial-question");
     dataChannel.receive({
-      item_id: "provider-item",
-      type: "input_audio_buffer.committed",
+      response_id: "response-initial-question",
+      type: "output_audio_buffer.started",
     });
     dataChannel.receive({
-      content_index: 0,
-      item_id: "provider-item",
-      transcript: finalizedTranscript,
-      type: "conversation.item.input_audio_transcription.completed",
+      audio_start_ms: 300,
+      item_id: "user-item",
+      type: "input_audio_buffer.speech_started",
     });
-    await vi.waitFor(() => expect(submitText).toHaveBeenCalledOnce());
-    expect(submitText).toHaveBeenCalledWith({
-      id: "voice:preview-conversation:1:provider-item:0",
-      text: finalizedTranscript,
+    expect(controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      microphoneEnabled: true,
+      output: "interrupted",
     });
 
-    controller.updateChat({ canonicalSegments: [], status: "submitted" });
-    const messages = [
-      {
-        id: "assistant-message",
-        parts: [{ state: "done", text: canonicalSpeech, type: "text" }],
-        role: "assistant",
+    dataChannel.receive({
+      call_id: "call-1",
+      delta: `{"answer":"${spokenAnswer}"}`,
+      item_id: "function-item-1",
+      output_index: 0,
+      response_id: "response-tool-1",
+      type: "response.function_call_arguments.delta",
+    });
+    dataChannel.receive({
+      response: {
+        id: "response-tool-1",
+        output: [
+          {
+            arguments: `{"answer":"${spokenAnswer}"}`,
+            call_id: "call-1",
+            id: "function-item-1",
+            name: "continue_interview",
+            status: "completed",
+            type: "function_call",
+          },
+        ],
+        status: "completed",
       },
-    ] satisfies PetrinautAiMessage[];
-    const canonicalSegments = selectCanonicalSpeechSegments(messages);
-    controller.updateChat({ canonicalSegments, status: "streaming" });
-    controller.updateChat({ canonicalSegments, status: "ready" });
+      type: "response.done",
+    });
 
-    await vi.waitFor(() => expect(audio.audio.play).toHaveBeenCalledOnce());
-    expect(controller.getSnapshot().phase).toBe("playing");
-    audio.end();
     await vi.waitFor(() =>
-      expect(controller.getSnapshot().phase).toBe("listening"),
+      expect(submitInterviewAnswer).toHaveBeenCalledWith({
+        id: "voice-realtime:1:call-1",
+        text: spokenAnswer,
+      }),
     );
+    expect(controller.getSnapshot()).toMatchObject({
+      input: "submitting",
+      lastAnswerDelivery: "delivered",
+      microphoneEnabled: true,
+      output: "waiting-for-tool",
+    });
 
-    expect(
-      browserRequests.map(({ serverTiming: _, ...request }) => request),
-    ).toEqual([
+    controller.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: selectCanonicalSpeechSegments(initialMessages),
+      status: "streaming",
+    });
+    controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: selectCanonicalSpeechSegments(responseMessages),
+      status: "ready",
+    });
+
+    const [functionOutput, responseCreate] = sentEvents(dataChannel).slice(-2);
+    expect(functionOutput).toEqual({
+      type: "conversation.item.create",
+      item: {
+        type: "function_call_output",
+        call_id: "call-1",
+        output: JSON.stringify({
+          response_text: [canonicalReply, canonicalQuestion],
+        }),
+      },
+    });
+    expect(responseCreate).toMatchObject({
+      type: "response.create",
+      response: {
+        output_modalities: ["audio"],
+        tool_choice: "none",
+        tools: [],
+      },
+    });
+
+    authorizeLatestSpeechResponse(dataChannel, "response-canonical-reply");
+    dataChannel.receive({
+      response_id: "response-canonical-reply",
+      type: "output_audio_buffer.started",
+    });
+    expect(controller.getSnapshot()).toMatchObject({
+      currentQuestion: canonicalQuestion,
+      input: "listening",
+      microphoneEnabled: true,
+      output: "speaking",
+    });
+
+    const remoteTrack = { kind: "audio", stop: vi.fn() };
+    const remoteStream = {
+      getTracks: () => [remoteTrack],
+    } as unknown as MediaStream;
+    peer.ontrack?.({
+      streams: [remoteStream],
+      track: remoteTrack,
+    } as unknown as RTCTrackEvent);
+    expect(remoteAudio).toMatchObject({
+      autoplay: true,
+      srcObject: remoteStream,
+    });
+    expect(remoteAudio.play).toHaveBeenCalledOnce();
+
+    expect(browserRequests).toEqual([
       {
         path: "/api/voice/realtime-call",
         requestId: requestIds[0],
         responseRequestId: requestIds[0],
       },
-      {
-        path: "/api/voice/speech",
-        requestId: requestIds[2],
-        responseRequestId: requestIds[2],
-      },
     ]);
-    expect(browserRequests[0]?.serverTiming).toMatch(
-      /^petrinaut_voice_connection;dur=\d+(?:\.\d+)?$/u,
-    );
-    expect(browserRequests[1]?.serverTiming).toMatch(
-      /^petrinaut_voice_speech;dur=\d+(?:\.\d+)?$/u,
-    );
-    expect(upstreamRealtimeFetch).toHaveBeenCalledOnce();
     const realtimeForm = upstreamRealtimeFetch.mock.calls[0]?.[1]
       ?.body as FormData;
     expect(realtimeForm.get("sdp")).toBe(browserOffer);
-    expect(upstreamSpeechFetch).toHaveBeenCalledOnce();
-    expect(
-      JSON.parse(upstreamSpeechFetch.mock.calls[0]?.[1]?.body as string),
-    ).toMatchObject({ input: canonicalSpeech });
+    expect(JSON.parse(realtimeForm.get("session") as string)).toMatchObject({
+      model: "gpt-realtime-2",
+      audio: {
+        input: {
+          turn_detection: {
+            type: "semantic_vad",
+            eagerness: "low",
+            create_response: true,
+            interrupt_response: true,
+          },
+        },
+      },
+    });
     expect(diagnostics).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          operation: "connection",
-          requestId: requestIds[0],
-          stage: "browser",
-        }),
-        expect.objectContaining({
-          operation: "connection",
-          requestId: requestIds[0],
-          stage: "server",
-        }),
-        expect.objectContaining({
-          operation: "transcription",
-          requestId: requestIds[1],
-          stage: "browser",
-        }),
-        expect.objectContaining({
-          operation: "speech",
-          requestId: requestIds[2],
-          stage: "browser",
-        }),
-        expect.objectContaining({
-          operation: "speech",
-          requestId: requestIds[2],
-          stage: "server",
-        }),
-        expect.objectContaining({
-          operation: "speech",
-          requestId: requestIds[2],
-          stage: "playback",
-        }),
+        expect.objectContaining({ operation: "connection", stage: "browser" }),
+        expect.objectContaining({ operation: "connection", stage: "server" }),
       ]),
     );
     const serializedDiagnostics = JSON.stringify(diagnostics);
     for (const privateValue of [
       browserOffer,
       providerAnswer,
-      finalizedTranscript,
-      canonicalSpeech,
+      spokenAnswer,
+      canonicalReply,
+      canonicalQuestion,
       environment.OPENAI_VOICE_API_KEY,
     ]) {
       expect(serializedDiagnostics).not.toContain(privateValue);
@@ -314,7 +379,8 @@ describe("controlled voice preview", () => {
 
     await controller.end();
     expect(track.stop).toHaveBeenCalledOnce();
+    expect(remoteTrack.stop).toHaveBeenCalledOnce();
+    expect(remoteAudio.pause).toHaveBeenCalledOnce();
     expect(peer.close).toHaveBeenCalledOnce();
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:voice-integration");
   });
 });
