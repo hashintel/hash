@@ -158,6 +158,7 @@ const TestProviders = ({
             removeExperiment: () => {},
             setSweepSelection: () => {},
             sampleSweepCell: () => Promise.resolve(null),
+            sampleSurfaceCells: () => Promise.resolve(null),
             sampleDetachedObjective: () => Promise.resolve(null),
           }}
         >
