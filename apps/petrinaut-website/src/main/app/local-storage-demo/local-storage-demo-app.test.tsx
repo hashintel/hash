@@ -30,6 +30,10 @@ describe("local storage demo Brunch voice integration", () => {
         kind: "message" as const,
         messageId: "message-1",
       })),
+      submitVoiceInput: vi.fn(async () => ({
+        kind: "message" as const,
+        messageId: "voice-message-1",
+      })),
     });
 
     expect(isValidElement(control)).toBe(true);

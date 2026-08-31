@@ -1,6 +1,7 @@
 import {
   type FormEvent,
   useEffect,
+  useLayoutEffect,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -313,7 +314,7 @@ const AvailableVoiceInterviewControl = ({
     const controller = new VoiceTurnController({
       conversationId: context.conversationId,
       session,
-      submitText: context.submitText,
+      submitText: context.submitVoiceInput,
     });
     return {
       controller,
@@ -329,7 +330,7 @@ const AvailableVoiceInterviewControl = ({
   );
   const [correction, setCorrection] = useState("");
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     store.controller.updateChatStatus(context.status);
   }, [context.status, store]);
 

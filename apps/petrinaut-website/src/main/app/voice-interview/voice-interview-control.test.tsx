@@ -146,6 +146,10 @@ describe("voice interview control", () => {
                 kind: "message" as const,
                 messageId: "message-1",
               }))}
+              submitVoiceInput={vi.fn(async () => ({
+                kind: "message" as const,
+                messageId: "voice-message-1",
+              }))}
             />
           </StrictMode>,
         );
