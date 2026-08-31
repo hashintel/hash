@@ -1,18 +1,22 @@
 {
   "extends": ["//"],
   "tasks": {
-    // "build": {
-    //   @todo - this introduces a dependency on building the graph to `yarn install` this causes problems in Vercel deployment builds
-    //   "dependsOn": ["@apps/hash-graph#codegen:generate-openapi-specs"]
-    // },
     "build": {
       "outputs": ["./dist/**"]
     },
+    // The spec is read from its checked-in copy. `@rust/hash-graph-api#build:openapi`
+    // writes it and that package's `test:unit` diffs it, so depending on the task
+    // here would only add a Graph API compile to every consumer's build.
     "codegen": {
+      "dependsOn": [
+        "^build",
+        // TODO(SRE-989): replace with a build-free upstream dependency
+        "@rust/hash-graph-api#build"
+      ],
       "inputs": [
+        "$TURBO_DEFAULT$",
         "../../api/openapi/openapi.json",
-        "../../api/openapi/models/**",
-        "opeenapitools.json"
+        "../../api/openapi/models/**"
       ],
       "outputs": [
         ".npmignore",

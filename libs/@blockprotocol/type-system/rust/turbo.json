@@ -2,10 +2,13 @@
   "extends": ["//"],
   "tasks": {
     "build:wasm": {
+      // TODO(SRE-989): replace with a build-free upstream dependency
+      "dependsOn": ["^build"],
       "outputs": ["pkg/**"]
     },
     "build:types": {
-      "dependsOn": ["build:wasm", "^build:types"],
+      // TODO(SRE-989): replace with a build-free upstream dependency
+      "dependsOn": ["^build"],
       "outputs": ["types/**"]
     }
   }

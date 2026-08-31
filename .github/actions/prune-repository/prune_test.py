@@ -62,5 +62,19 @@ class DarwinPrefix(unittest.TestCase):
         self.assertIn("@rust/darwin-kperf-events", extras)
 
 
+TYPE_SYSTEM = "@blockprotocol/type-system"
+TYPE_SYSTEM_RS = "@blockprotocol/type-system-rs"
+
+
+class DependencyScopes(unittest.TestCase):
+    def test_dependencies_become_scopes_and_trigger_extras(self) -> None:
+        expanded = fixpoint_expand(
+            {TYPE_SYSTEM}, {TYPE_SYSTEM: frozenset({TYPE_SYSTEM_RS})}
+        )
+        self.assertIn(TYPE_SYSTEM_RS, expanded)
+        # The rust twin in scope also fires its EXTRA_DEPENDENCIES rule.
+        self.assertIn("@rust/hash-graph-test-data", expanded)
+
+
 if __name__ == "__main__":
     unittest.main()

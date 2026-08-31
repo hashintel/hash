@@ -56,13 +56,8 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          UNIT_BENCH_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "bench:unit"}}) { items { name path } } }'
-          INTEGRATION_BENCH_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "bench:integration"}}) { items { name path } } }'
-
-          UNIT_BENCH_PACKAGES=$(turbo query "$UNIT_BENCH_QUERY" \
-            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
-          INTEGRATION_BENCH_PACKAGES=$(turbo query "$INTEGRATION_BENCH_QUERY" \
-            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
+          UNIT_BENCH_PACKAGES=$(.github/scripts/affected-packages.sh bench:unit)
+          INTEGRATION_BENCH_PACKAGES=$(.github/scripts/affected-packages.sh bench:integration)
 
           echo "unit=$UNIT_BENCH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
           echo "integration=$INTEGRATION_BENCH_PACKAGES" | tee -a "$GITHUB_OUTPUT"
@@ -101,6 +96,11 @@ jobs:
     if: needs.setup.outputs.unit != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
     steps:
+      - name: Show selection reason
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
+
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -217,6 +217,11 @@ jobs:
     if: needs.setup.outputs.integration != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
     steps:
+      - name: Show selection reason
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
+
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

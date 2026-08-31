@@ -4231,7 +4231,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockprotocol/type-system-rs@workspace:*, @blockprotocol/type-system-rs@workspace:^, @blockprotocol/type-system-rs@workspace:libs/@blockprotocol/type-system/rust":
+"@blockprotocol/type-system-rs@workspace:*, @blockprotocol/type-system-rs@workspace:libs/@blockprotocol/type-system/rust":
   version: 0.0.0-use.local
   resolution: "@blockprotocol/type-system-rs@workspace:libs/@blockprotocol/type-system/rust"
   dependencies:
@@ -4253,7 +4253,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blockprotocol/type-system@workspace:libs/@blockprotocol/type-system/typescript"
   dependencies:
-    "@blockprotocol/type-system-rs": "workspace:^"
     "@local/eslint": "workspace:*"
     "@local/hash-codec": "workspace:*"
     "@local/tsconfig": "workspace:*"
@@ -7873,6 +7872,8 @@ __metadata:
     oxc-transform-react: "npm:0.145.0"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
+    react: "npm:19.2.6"
+    react-dom: "npm:19.2.6"
     rolldown-plugin-dts: "npm:0.25.0"
     storybook: "npm:10.2.19"
     vite: "npm:8.1.0"
@@ -9391,7 +9392,6 @@ __metadata:
   dependencies:
     "@local/eslint": "workspace:*"
     "@local/tsconfig": "workspace:*"
-    "@rust/effect-dns-hickory": "workspace:*"
     "@vitest/coverage-istanbul": "npm:4.1.10"
     eslint: "npm:9.39.4"
     rimraf: "npm:6.1.3"
@@ -9464,7 +9464,6 @@ __metadata:
     "@local/tsconfig": "workspace:*"
     "@multiformats/dns": "npm:1.0.10"
     "@multiformats/multiaddr": "npm:13.0.1"
-    "@rust/harpc-wire-protocol": "workspace:*"
     "@types/node": "npm:22.18.13"
     "@vitest/coverage-istanbul": "npm:4.1.10"
     effect: "npm:3.21.0"
@@ -9553,7 +9552,6 @@ __metadata:
   resolution: "@local/hash-codec@workspace:libs/@local/codec/typescript"
   dependencies:
     "@local/tsconfig": "workspace:*"
-    "@rust/hash-codec": "workspace:*"
     rimraf: "npm:6.1.3"
     typescript: "npm:5.9.3"
   languageName: unknown
@@ -9565,7 +9563,6 @@ __metadata:
   dependencies:
     "@blockprotocol/type-system": "workspace:*"
     "@local/tsconfig": "workspace:*"
-    "@rust/hash-graph-authorization": "workspace:*"
     rimraf: "npm:6.1.3"
     typescript: "npm:5.9.3"
   languageName: unknown
@@ -9577,7 +9574,6 @@ __metadata:
   dependencies:
     "@local/tsconfig": "workspace:*"
     "@openapitools/openapi-generator-cli": "npm:2.38.0"
-    "@rust/hash-graph-api": "workspace:*"
     "@types/node": "npm:22.18.13"
     axios: "npm:1.18.0"
     fix-esm-import-path: "npm:1.10.3"
@@ -9617,7 +9613,6 @@ __metadata:
     "@blockprotocol/type-system": "workspace:*"
     "@local/hash-graph-authorization": "workspace:*"
     "@local/tsconfig": "workspace:*"
-    "@rust/hash-graph-store": "workspace:*"
     rimraf: "npm:6.1.3"
     typescript: "npm:5.9.3"
   languageName: unknown
@@ -14860,7 +14855,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/effect-dns-hickory@workspace:*, @rust/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory/rust":
+"@rust/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory/rust":
   version: 0.0.0-use.local
   resolution: "@rust/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory/rust"
   languageName: unknown

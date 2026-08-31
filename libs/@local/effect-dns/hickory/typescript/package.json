@@ -20,7 +20,6 @@
   "devDependencies": {
     "@local/eslint": "workspace:*",
     "@local/tsconfig": "workspace:*",
-    "@rust/effect-dns-hickory": "workspace:*",
     "@vitest/coverage-istanbul": "4.1.10",
     "eslint": "9.39.4",
     "rimraf": "6.1.3",

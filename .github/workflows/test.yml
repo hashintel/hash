@@ -54,13 +54,8 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          UNIT_TEST_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "test:unit"}}) { items { name path } } }'
-          INTEGRATION_TEST_QUERY='query { affectedPackages(base: "HEAD^", filter: {has: {field: TASK_NAME, value: "test:integration"}}) { items { name path } } }'
-
-          UNIT_TEST_PACKAGES=$(turbo query "$UNIT_TEST_QUERY" \
-            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
-          INTEGRATION_TEST_PACKAGES=$(turbo query "$INTEGRATION_TEST_QUERY" \
-            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
+          UNIT_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:unit)
+          INTEGRATION_TEST_PACKAGES=$(.github/scripts/affected-packages.sh test:integration)
 
           PUBLISH_PACKAGES=[]
           while IFS= read -r file; do
@@ -128,6 +123,11 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Show selection reason
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
+
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -226,6 +226,11 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Show selection reason
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
+
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
