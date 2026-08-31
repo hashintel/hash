@@ -433,7 +433,14 @@ class _Evaluator:
         """Robustness of a boolean expression: ``>= 0`` iff it evaluates to
         ``True``, with magnitude measuring the distance to the boundary.
         Comparisons yield signed slack; ``&&`` = ``min``, ``||`` = ``max``,
-        ``!`` negates; a plain boolean is ``±inf`` (no boundary to measure)."""
+        ``!`` negates; a plain boolean is ``±inf`` (no boundary to measure).
+
+        A NaN slack (an operand like ``Math.sqrt`` of a negative) never
+        leaves a comparison: every JS comparison with NaN is false, so the
+        leaf resolves to ``-inf`` (``!=`` to ``+inf`` — NaN differs from
+        everything). ``min``/``max`` would otherwise drop the NaN by
+        argument order and let a compound read satisfied while the boolean
+        is false."""
         kind = node.get("kind")
         if kind == "binary":
             op = node["op"]
@@ -443,20 +450,30 @@ class _Evaluator:
                 return max(self.margin(node["left"]), self.margin(node["right"]))
             if op in ("<", "<="):
                 slack = float(self.eval(node["right"])) - float(self.eval(node["left"]))
+                if math.isnan(slack):
+                    return -math.inf
                 return slack if op == "<=" else _strict_slack(slack)
             if op in (">", ">="):
                 slack = float(self.eval(node["left"])) - float(self.eval(node["right"]))
+                if math.isnan(slack):
+                    return -math.inf
                 return slack if op == ">=" else _strict_slack(slack)
             if op == "==":
                 left, right = self.eval(node["left"]), self.eval(node["right"])
                 if isinstance(left, bool) or isinstance(right, bool):
                     return math.inf if _strict_equal(left, right) else -math.inf
-                return -abs(float(left) - float(right))
+                distance = abs(float(left) - float(right))
+                if math.isnan(distance):
+                    return -math.inf
+                return -distance
             if op == "!=":
                 left, right = self.eval(node["left"]), self.eval(node["right"])
                 if isinstance(left, bool) or isinstance(right, bool):
                     return math.inf if not _strict_equal(left, right) else -math.inf
-                return _strict_slack(abs(float(left) - float(right)))
+                distance = abs(float(left) - float(right))
+                if math.isnan(distance):
+                    return math.inf
+                return _strict_slack(distance)
         if kind == "unary" and node["op"] == "!":
             return -self.margin(node["operand"])
         if kind == "cond":
