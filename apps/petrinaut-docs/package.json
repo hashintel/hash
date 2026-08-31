@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "build": "astro build",
-    "dev": "astro dev",
+    "dev": "astro dev --port ${PORT:-4321}",
     "lint:tsc": "astro check --minimumSeverity error",
     "preview": "astro preview",
     "sync:bundle": "node scripts/sync-bundle.mjs"
