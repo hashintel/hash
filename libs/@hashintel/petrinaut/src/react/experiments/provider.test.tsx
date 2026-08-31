@@ -507,8 +507,11 @@ describe("ExperimentsProvider", () => {
       expect(worker.sent.map((message) => message.type)).toEqual([
         "init",
         "cancel",
+        // The lease's reset: the worker returns to the provider's pool for
+        // the next batch instead of being terminated.
+        "cancel",
       ]);
-      expect(worker.terminated).toBe(true);
+      expect(worker.terminated).toBe(false);
       expect(getValue().experiments).toEqual([]);
       expect(getValue().selectedExperimentId).toBeNull();
     } finally {
@@ -544,8 +547,10 @@ describe("ExperimentsProvider", () => {
       expect(worker.sent.map((message) => message.type)).toEqual([
         "init",
         "cancel",
+        // The lease's reset before the worker returns to the pool.
+        "cancel",
       ]);
-      expect(worker.terminated).toBe(true);
+      expect(worker.terminated).toBe(false);
       expect(getValue().selectedExperiment).toMatchObject({
         id: experimentId,
         status: "cancelled",
@@ -700,7 +705,9 @@ describe("ExperimentsProvider", () => {
 
     expect(getValue().selectedExperiment?.status).toBe("cancelled");
     expect(getValue().selectedExperiment?.progress).toEqual(cancelledProgress);
-    expect(worker.terminated).toBe(true);
+    // Pooled, not terminated: the lease reset the worker for the next batch.
+    expect(worker.terminated).toBe(false);
+    expect(worker.sent.at(-1)?.type).toBe("cancel");
 
     await act(async () => {
       getValue().removeExperiment(experimentId);
@@ -710,6 +717,105 @@ describe("ExperimentsProvider", () => {
     expect(getValue().selectedExperimentId).toBeNull();
 
     renderResult.unmount();
+  });
+
+  it("reuses the pooled worker for the next experiment instead of spawning", async () => {
+    // A worker that acknowledges `cancel` synchronously, like the in-process
+    // worker — pooling completes within the same act() that released it.
+    const workers: FakeMonteCarloWorker[] = [];
+    const createAutoAckWorker = () => {
+      const worker = new FakeMonteCarloWorker();
+      workers.push(worker);
+      const facade: WorkerLike<
+        MonteCarloToWorkerMessage,
+        MonteCarloToMainMessage
+      > = {
+        postMessage: (message) => {
+          worker.postMessage(message);
+          if (message.type === "cancel") {
+            worker.emit({ type: "cancelled", progress: makeProgress() });
+          }
+        },
+        addEventListener: (type, listener) => {
+          worker.addEventListener(type, listener);
+        },
+        removeEventListener: (type, listener) => {
+          worker.removeEventListener(type, listener);
+        },
+        terminate: worker.terminate,
+      };
+      return facade;
+    };
+
+    const valueHolder = { current: null as ExperimentsContextValue | null };
+    const renderResult = render(
+      <NotificationsContext
+        value={{ addNotification: () => "", dismissNotification: () => {} }}
+      >
+        <SDCPNContext.Provider value={sdcpnContextValue}>
+          <LanguageClientOverride requestHirArtifacts={undefined}>
+            <ExperimentsProvider
+              workerFactory={createAutoAckWorker}
+              experimentShardCount={1}
+            >
+              <ExperimentsContextConsumer
+                onContextValue={(value) => {
+                  valueHolder.current = value;
+                }}
+              />
+            </ExperimentsProvider>
+          </LanguageClientOverride>
+        </SDCPNContext.Provider>
+      </NotificationsContext>,
+    );
+    const getValue = () => valueHolder.current!;
+
+    const runExperiment = async () => {
+      let experimentId = "";
+      await act(async () => {
+        const createPromise = getValue().createExperiment({
+          name: "Pooled",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        await flushWorkerSetup();
+        workers.at(-1)!.emit({ type: "ready" });
+        experimentId = await createPromise;
+      });
+      await act(async () => {
+        workers.at(-1)!.emit({
+          type: "complete",
+          progress: makeProgress({
+            activeRuns: 0,
+            allFinished: true,
+            completedRuns: 1,
+          }),
+        });
+      });
+      await act(async () => {
+        getValue().removeExperiment(experimentId);
+      });
+    };
+
+    await runExperiment();
+    await runExperiment();
+
+    // One worker served both experiments: released, reset, and re-leased.
+    expect(workers).toHaveLength(1);
+    const initCount = workers[0]!.sent.filter(
+      (message) => message.type === "init",
+    ).length;
+    expect(initCount).toBe(2);
+    expect(workers[0]!.terminated).toBe(false);
+
+    renderResult.unmount();
+    // Unmount shuts the pool: the idle worker dies with it.
+    expect(workers[0]!.terminated).toBe(true);
   });
 
   it("prevents window unload while a Monte Carlo experiment is active", async () => {

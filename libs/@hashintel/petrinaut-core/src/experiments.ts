@@ -40,3 +40,7 @@ export {
   WORKER_POOL_BACKEND_ID,
   type WorkerPoolExperimentBackendOptions,
 } from "./experiments/worker-pool-experiment-backend";
+export {
+  createReusableWorkerFactory,
+  type ReusableWorkerFactory,
+} from "./simulation/runtime/reusable-worker-factory";
