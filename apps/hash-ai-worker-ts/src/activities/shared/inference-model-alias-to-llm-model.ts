@@ -14,4 +14,5 @@ export const inferenceModelAliasToSpecificModel = {
   "claude-3-haiku": "claude-haiku-4-5-20251001",
   "claude-3-sonnet": "claude-sonnet-4-6",
   "claude-3-opus": "claude-opus-4-6",
+  "orcarouter": "orcarouter/auto",
 } as const satisfies Record<InferenceModelName, LlmParams["model"]>;

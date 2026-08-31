@@ -108,6 +108,7 @@ mise --version           # ≥ 2026.6.13
    ```sh
    OPENAI_API_KEY=dummy
    ANTHROPIC_API_KEY=dummy
+   ORCAROUTER_API_KEY=dummy
    HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=dummy
    HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY=dummy
    ```

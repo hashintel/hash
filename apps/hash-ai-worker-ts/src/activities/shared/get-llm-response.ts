@@ -10,10 +10,12 @@ import { getFlowContext } from "./get-flow-context.js";
 import { getAnthropicResponse } from "./get-llm-response/get-anthropic-response.js";
 import { getGoogleAiResponse } from "./get-llm-response/get-google-ai-response.js";
 import { getOpenAiResponse } from "./get-llm-response/get-openai-reponse.js";
+import { getOrcaRouterResponse } from "./get-llm-response/get-orcarouter-response.js";
 import { logLlmRequest } from "./get-llm-response/log-llm-request.js";
 import {
   isLlmParamsAnthropicLlmParams,
   isLlmParamsGoogleAiParams,
+  isLlmParamsOrcaRouterLlmParams,
 } from "./get-llm-response/types.js";
 
 import type {
@@ -88,7 +90,9 @@ export const getLlmResponse = async <T extends LlmParams>(
         ? "anthropic"
         : isLlmParamsGoogleAiParams(llmParams)
           ? "google-vertex-ai"
-          : "openai",
+          : isLlmParamsOrcaRouterLlmParams(llmParams)
+            ? "orcarouter"
+            : "openai",
     };
   }
 
@@ -120,7 +124,9 @@ export const getLlmResponse = async <T extends LlmParams>(
     ? await getAnthropicResponse(llmParams, metadata)
     : isLlmParamsGoogleAiParams(llmParams)
       ? await getGoogleAiResponse(llmParams, metadata)
-      : await getOpenAiResponse(llmParams, metadata);
+      : isLlmParamsOrcaRouterLlmParams(llmParams)
+        ? await getOrcaRouterResponse(llmParams, metadata)
+        : await getOpenAiResponse(llmParams, metadata);
 
   const timeAfterApiCall = Date.now();
 

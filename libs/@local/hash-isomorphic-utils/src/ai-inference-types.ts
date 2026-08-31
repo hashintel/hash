@@ -19,6 +19,7 @@ export const inferenceModelNames = [
   "claude-3-haiku",
   "claude-3-sonnet",
   "claude-3-opus",
+  "orcarouter",
 ] as const;
 
 export type InferenceModelName = (typeof inferenceModelNames)[number];

@@ -11,6 +11,10 @@ import {
 } from "./google-vertex-ai-client.js";
 
 import type { PermittedOpenAiModel } from "../openai-client.js";
+import {
+  isPermittedOrcaRouterModel,
+  type PermittedOrcaRouterModel,
+} from "../orcarouter-client.js";
 import type { LlmAssistantMessage, LlmMessage } from "./llm-message.js";
 import type { GenerateContentResponse } from "@google/genai";
 import type { OpenAI } from "openai";
@@ -53,7 +57,8 @@ export type CommonLlmParams<ToolName extends string = string> = {
   model:
     | PermittedAnthropicModel
     | PermittedOpenAiModel
-    | PermittedGoogleAiModel;
+    | PermittedGoogleAiModel
+    | PermittedOrcaRouterModel;
   tools?: LlmToolDefinition<ToolName>[];
   systemPrompt?: string;
   messages: LlmMessage[];
@@ -97,10 +102,27 @@ export type OpenAiLlmParams<ToolName extends string = string> =
       "tools" | "messages" | "tool_choice"
     >;
 
+/**
+ * OrcaRouter exposes an OpenAI-compatible chat completions API, so the params
+ * mirror {@link OpenAiLlmParams} apart from the model namespace.
+ */
+export type OrcaRouterLlmParams<ToolName extends string = string> =
+  CommonLlmParams<ToolName> & {
+    model: PermittedOrcaRouterModel;
+    trimMessageAtIndex?: number;
+    previousInvalidResponses?: (OpenAI.ChatCompletion & {
+      requestTime: number;
+    })[];
+  } & Omit<
+      OpenAI.ChatCompletionCreateParams,
+      "tools" | "messages" | "tool_choice"
+    >;
+
 export type LlmParams<ToolName extends string = string> =
   | AnthropicLlmParams<ToolName>
   | OpenAiLlmParams<ToolName>
-  | GoogleAiParams<ToolName>;
+  | GoogleAiParams<ToolName>
+  | OrcaRouterLlmParams<ToolName>;
 
 export type LlmRequestMetadata = {
   requestId: string;
@@ -108,7 +130,11 @@ export type LlmRequestMetadata = {
   taskName?: string;
 };
 
-export type LlmProvider = AnthropicApiProvider | "openai" | "google-vertex-ai";
+export type LlmProvider =
+  | AnthropicApiProvider
+  | "openai"
+  | "google-vertex-ai"
+  | "orcarouter";
 
 export type LlmLog = LlmRequestMetadata & {
   finalized: boolean;
@@ -135,6 +161,10 @@ export const isLlmParamsAnthropicLlmParams = (
 export const isLlmParamsGoogleAiParams = (
   params: LlmParams,
 ): params is GoogleAiParams => isPermittedGoogleAiModel(params.model);
+
+export const isLlmParamsOrcaRouterLlmParams = (
+  params: LlmParams,
+): params is OrcaRouterLlmParams => isPermittedOrcaRouterModel(params.model);
 
 export type AnthropicResponse = Omit<
   AnthropicMessagesCreateResponse,
