@@ -14,7 +14,7 @@ metadata:
       - rust log
     intent-patterns:
       - "\\b(tracing|instrument|span)\\b"
-      - "\\b(info|debug|trace|warn|error)!\\b"
+      - "\\b(info|debug|trace|warn|error)!"
 ---
 
 # Rust Tracing Practices

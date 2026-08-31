@@ -1,4 +1,4 @@
-import { mkdir, symlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 // eslint-disable-next-line id-length
@@ -36,6 +36,22 @@ const copyTemplate = async (
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     console.error(chalk.red(`❌ Error creating ${actualName}: ${error}`));
     return false;
+  }
+};
+
+export const createSymlinkIfMissing = async (
+  target: string,
+  linkPath: string,
+): Promise<void> => {
+  try {
+    await lstat(linkPath);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      await symlink(target, linkPath);
+      return;
+    }
+
+    throw error;
   }
 };
 
@@ -99,12 +115,10 @@ const run = async (unverifiedName: string) => {
 
   if (success) {
     const claudeAlias = path.join(await findClaudeSkillsDir(), name);
-    if (!(await pathExists(claudeAlias))) {
-      await symlink(
-        path.relative(path.dirname(claudeAlias), skillDir),
-        claudeAlias,
-      );
-    }
+    await createSymlinkIfMissing(
+      path.relative(path.dirname(claudeAlias), skillDir),
+      claudeAlias,
+    );
 
     console.log(chalk.green(`\nSkill '${name}' created at ${skillDir}`));
     console.log(chalk.dim("\nNext steps:"));

@@ -50,5 +50,23 @@ describe("Skill Activation Snapshots", () => {
 
   it("open a pull request", ({ task }) => createSnapshot(task.name));
 
+  it("activates tracing guidance for a Rust logging macro", () => {
+    expect(testSkillActivation("add an info! call")).toContain(
+      "rust-tracing-practices",
+    );
+  });
+
+  it("activates Rust style guidance for Rust work", () => {
+    expect(testSkillActivation("add a rust function")).toContain(
+      "rust-coding-style",
+    );
+  });
+
+  it("does not activate Rust style guidance for other languages", () => {
+    expect(testSkillActivation("review this TypeScript enum")).not.toContain(
+      "rust-coding-style",
+    );
+  });
+
   it("what is the weather today", ({ task }) => createSnapshot(task.name));
 });

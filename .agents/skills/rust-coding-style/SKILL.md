@@ -12,8 +12,8 @@ metadata:
       - rustfmt
       - clippy
     intent-patterns:
-      - "\\b(write|review|refactor|style|format)\\b.*?\\brust\\b"
-      - "\\b(impl|trait|struct|enum|clippy|rustfmt)\\b"
+      - "\\b(write|add|change|fix|implement|review|refactor|style|format)\\b.*?\\brust\\b"
+      - "\\brust\\b.*?\\b(code|function|method|type|impl|trait|struct|enum|write|add|change|fix|implement|review|refactor|style|format)\\b"
 ---
 
 # Rust Coding Style

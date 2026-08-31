@@ -201,8 +201,8 @@
       "promptTriggers": {
         "keywords": ["rust coding style", "rustfmt", "clippy"],
         "intentPatterns": [
-          "\\b(write|review|refactor|style|format)\\b.*?\\brust\\b",
-          "\\b(impl|trait|struct|enum|clippy|rustfmt)\\b"
+          "\\b(write|add|change|fix|implement|review|refactor|style|format)\\b.*?\\brust\\b",
+          "\\brust\\b.*?\\b(code|function|method|type|impl|trait|struct|enum|write|add|change|fix|implement|review|refactor|style|format)\\b"
         ]
       },
       "fileTriggers": {
@@ -244,7 +244,7 @@
         "keywords": ["tracing", "instrument", "span", "rust log"],
         "intentPatterns": [
           "\\b(tracing|instrument|span)\\b",
-          "\\b(info|debug|trace|warn|error)!\\b"
+          "\\b(info|debug|trace|warn|error)!"
         ]
       },
       "fileTriggers": {
