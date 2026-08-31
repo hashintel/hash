@@ -6,8 +6,8 @@
 
 ```text
 packages/core                      CORE HARNESS + Flue-native agent contribution
-├─ agent/index.ts     ✓ `useModel` plus the context- and formalism-independent Brunch elicitation
-│                        identity; owns no editor-specific prompt, skill, or tool
+├─ SYSTEM.md          ✓ authoritative context- and formalism-independent Brunch system prompt
+├─ agent/index.ts     ✓ `useModel` composition; owns no editor-specific prompt, skill, or tool
 ├─ capture-store.ts   ✓  the storage port's contract + pure command surface; owns envelope
 │                        invariants. Never: substrate imports, IO, per-substrate shapes.
 ├─ session-log.ts     ✓  substrate-neutral archive/version/anchoring rules; archive ordinals

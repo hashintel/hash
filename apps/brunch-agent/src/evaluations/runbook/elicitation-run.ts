@@ -98,6 +98,7 @@ const instrumentFiles = [
   "apps/brunch-agent/src/evaluations/runbook/artifacts.ts",
   "apps/brunch-agent/src/evaluations/runbook/elicitation-run.ts",
   "libs/@hashintel/brunch-agent/packages/core/package.json",
+  "libs/@hashintel/brunch-agent/packages/core/src/SYSTEM.md",
   "libs/@hashintel/brunch-agent/packages/core/src/agent/index.ts",
   "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/package.json",
   "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/flue.ts",

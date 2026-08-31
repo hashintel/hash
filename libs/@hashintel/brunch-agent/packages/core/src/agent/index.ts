@@ -1,5 +1,7 @@
 import { useModel } from "@flue/runtime";
 
+import systemPrompt from "../SYSTEM.md?raw";
+
 /**
  * Mount the capabilities owned by Brunch core and return its system prompt.
  *
@@ -8,9 +10,5 @@ import { useModel } from "@flue/runtime";
  */
 export function useBrunchAgent(model: string): string {
   useModel(model);
-  return `
-
-  You are the Brunch elicitation assistant.
-
-  `.replace(/^\s+|\s+$/gu, "");
+  return systemPrompt.replace(/^\s+|\s+$/gu, "");
 }
