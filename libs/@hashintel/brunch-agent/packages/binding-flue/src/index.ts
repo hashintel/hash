@@ -59,7 +59,7 @@ import {
   type Plugin,
   type SweepState,
 } from "@hashintel/brunch-agent";
-import { repertoire } from "@hashintel/brunch-agent-repertoire";
+import { repertoire } from "@hashintel/brunch-agent/prompts";
 
 import { capturedUserEntryIdsForSession } from "./capture-accounting";
 import {

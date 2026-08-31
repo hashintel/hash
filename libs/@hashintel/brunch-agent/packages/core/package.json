@@ -14,6 +14,10 @@
       "types": "./src/client-tools.ts",
       "import": "./dist/client-tools.js"
     },
+    "./prompts": {
+      "types": "./src/prompts.ts",
+      "import": "./dist/prompts.js"
+    },
     "./storage": {
       "types": "./src/storage.ts",
       "import": "./dist/storage.js"

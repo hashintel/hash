@@ -2,11 +2,10 @@
  * The repertoire's shape: the harness's own filling of every guidance and
  * runbook key (ADR-0007 decisions 3, 7, 8).
  *
- * The repertoire is shipped by `packages/repertoire`, which depends only on
- * this package; this module is the type and the reader, so that the harness
- * can define what a repertoire must be without importing one. Two rules the
- * reader enforces that a plugin definition does not: every key is filled, and
- * every entry names its source — admission is by evidence, not plausibility.
+ * The repertoire is shipped from this package's guarded `./prompts` subpath;
+ * this module is the type and the reader. Two rules the reader enforces that a
+ * plugin definition does not: every key is filled, and every entry names its
+ * source — admission is by evidence, not plausibility.
  */
 
 import * as v from "valibot";

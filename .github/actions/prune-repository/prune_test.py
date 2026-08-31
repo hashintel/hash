@@ -16,7 +16,6 @@ CORE = "@hashintel/brunch-agent"
 TRANSPORT = "@hashintel/brunch-agent-transport-aisdk"
 APP = "@apps/brunch-agent"
 WEBSITE = "@apps/petrinaut-website"
-REPERTOIRE = "@hashintel/brunch-agent-repertoire"
 
 
 class BrunchRequestedExtras(unittest.TestCase):
@@ -45,15 +44,6 @@ class BrunchRequestedExtras(unittest.TestCase):
         self.assertEqual(
             extra_paths_for_requested({APP}),
             ["libs/@hashintel/brunch-agent/evaluations"],
-        )
-
-    def test_repertoire_job_copies_sibling_plugin_yaml(self) -> None:
-        self.assertEqual(
-            extra_paths_for_requested({REPERTOIRE}),
-            [
-                "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/plugin.yaml",
-                "libs/@hashintel/brunch-agent/packages/plugin-gherkin/plugin.yaml",
-            ],
         )
 
     def test_sibling_or_website_job_does_not_add_brunch_extras(self) -> None:

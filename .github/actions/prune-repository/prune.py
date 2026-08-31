@@ -64,11 +64,6 @@ REQUESTED_PATHS: dict[str, list[str]] = {
     # The app's condition-5 test executes the evaluation runner as a child
     # process; the context root is not a workspace and must be copied explicitly.
     "@apps/brunch-agent": ["libs/@hashintel/brunch-agent/evaluations"],
-    # Repertoire tests read sibling plugin.yaml files by relative URL.
-    "@hashintel/brunch-agent-repertoire": [
-        "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/plugin.yaml",
-        "libs/@hashintel/brunch-agent/packages/plugin-gherkin/plugin.yaml",
-    ],
 }
 
 TURBO_QUERY = """

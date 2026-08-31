@@ -8,8 +8,9 @@
 #
 # Migrated from plugin.md (sdcpn/2026-08-25.1) with no semantic change to the three tables. The
 # guidance the v0 prompt contributed — open with objectives, slice then sweep, probe, keep the
-# ledger, close honestly — has moved to the repertoire (packages/repertoire), where every plugin
-# inherits it; what remains here is what is true of this formalism and not of interviewing.
+# ledger, close honestly — has moved to the repertoire (`@hashintel/brunch-agent/prompts`), where
+# every plugin inherits it; what remains here is what is true of this formalism and not of
+# interviewing.
 
 plugin:
   id: sdcpn

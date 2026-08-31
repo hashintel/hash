@@ -22,7 +22,6 @@
     "@flue/runtime": "2.0.3",
     "@flue/sdk": "2.0.3",
     "@hashintel/brunch-agent": "workspace:*",
-    "@hashintel/brunch-agent-repertoire": "workspace:*",
     "valibot": "1.4.2"
   },
   "devDependencies": {

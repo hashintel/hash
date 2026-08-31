@@ -12,6 +12,7 @@ export default defineConfig({
           new URL("src/client-tools.ts", import.meta.url),
         ),
         index: fileURLToPath(new URL("src/index.ts", import.meta.url)),
+        prompts: fileURLToPath(new URL("src/prompts.ts", import.meta.url)),
         storage: fileURLToPath(new URL("src/storage.ts", import.meta.url)),
         "testing/index": fileURLToPath(
           new URL("src/testing/index.ts", import.meta.url),

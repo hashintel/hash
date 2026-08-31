@@ -2,17 +2,13 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, test } from "vitest";
 
+import { GUIDANCE_KEYS, JOBS, MOVEMENTS, RUNBOOK_KEYS } from "../src/keys";
 import {
-  GUIDANCE_KEYS,
   guidanceEntries,
-  JOBS,
-  MOVEMENTS,
   readPluginDefinition,
-  RUNBOOK_KEYS,
   runbookEntries,
-} from "@hashintel/brunch-agent";
-
-import { repertoire } from "../src/index";
+} from "../src/plugin-definition";
+import { repertoire } from "../src/prompts";
 
 /** Words that would mean the repertoire teaches a formalism or a domain. */
 const FORMALISM_OR_DOMAIN =

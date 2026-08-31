@@ -90,7 +90,7 @@ describe("role prefixes name what a package is architecturally (spec §12.2)", (
   test("every package under packages/ is core or carries a role prefix", () => {
     for (const pkg of PACKAGES.filter((p) => p.kind === "package")) {
       expect(pkg.dir).toMatch(
-        /^(core|repertoire|plugin-[a-z0-9-]+|binding-[a-z0-9-]+|transport-[a-z0-9-]+)$/,
+        /^(core|plugin-[a-z0-9-]+|binding-[a-z0-9-]+|transport-[a-z0-9-]+)$/,
       );
     }
   });
@@ -159,6 +159,7 @@ describe("dependency direction (spec §4, §12.2)", () => {
             CORE,
           );
           expect(specifier).not.toBe(`${CORE}/storage`);
+          expect(specifier).not.toBe(`${CORE}/prompts`);
         }
       }
     }
@@ -182,16 +183,26 @@ describe("dependency direction (spec §4, §12.2)", () => {
     }
   });
 
-  test("the repertoire depends on core only, and only bindings depend on it (ADR-0007)", () => {
-    const repertoire = PACKAGES.find((pkg) => pkg.dir === "repertoire");
-    expect(repertoire).toBeDefined();
-    expect(runtimeDependencies(repertoire!)).toEqual([CORE]);
-    for (const pkg of PACKAGES) {
-      if (pkg.dir === "repertoire" || pkg.dir.startsWith("binding-")) continue;
-      expect({
-        pkg: pkg.dir,
-        dependsOnRepertoire: allDependencies(pkg).includes(repertoire!.name),
-      }).toEqual({ pkg: pkg.dir, dependsOnRepertoire: false });
+  test("repertoire defaults are guarded core prompt data (ADR-0008)", () => {
+    expect(PACKAGES.map((pkg) => pkg.dir)).not.toContain("repertoire");
+
+    const promptImporters = PACKAGES.flatMap((pkg) =>
+      sourceFiles(pkg)
+        .filter((file) => importedPackages(file).includes(`${CORE}/prompts`))
+        .map((file) => ({ pkg: pkg.dir, file: file.relPath })),
+    );
+    expect(promptImporters.length).toBeGreaterThan(0);
+    for (const importer of promptImporters) {
+      expect(importer.pkg).toMatch(/^binding-/u);
+    }
+
+    // Plugin-only CI lints the plugin and does not run this suite. The
+    // oxlint path ban is the gate that fires then; this assertion keeps
+    // that gate from disappearing while the suite still runs.
+    for (const plugin of byRole("plugin")) {
+      expect(
+        readFileSync(join(plugin.path, ".oxlintrc.json"), "utf8"),
+      ).toContain(`"name": "${CORE}/prompts"`);
     }
   });
 
@@ -413,14 +424,22 @@ describe("recorded Flue constraints hold by construction (spec §10)", () => {
 });
 
 describe("core auxiliary subpaths stay in their assigned lanes (spec §12.2)", () => {
-  test("core exposes browser contracts, storage support and testing as explicit subpaths", () => {
+  test("core exposes browser contracts, prompts, storage support and testing as explicit subpaths", () => {
     const core = PACKAGES.find((pkg) => pkg.name === CORE)!;
     expect(Object.keys(core.manifest.exports ?? {})).toEqual([
       ".",
       "./client-tools",
+      "./prompts",
       "./storage",
       "./testing",
     ]);
+    expect(core.manifest.exports?.["./prompts"]).toEqual({
+      types: "./src/prompts.ts",
+      import: "./dist/prompts.js",
+    });
+
+    const rootEntry = readFileSync(join(core.path, "src/index.ts"), "utf8");
+    expect(rootEntry).not.toMatch(/\bfrom\s+["']\.\/prompts["']/u);
   });
 
   test("no package source imports core/testing", () => {
