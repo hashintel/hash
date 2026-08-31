@@ -486,7 +486,14 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
       ) {
         return;
       }
-      dispatch({ type: "setExpression", target, expression: formatted });
+      // Guarded: if the slot moved on meanwhile (an undo, another edit),
+      // the reducer drops this re-print instead of clobbering that state.
+      dispatch({
+        type: "setExpression",
+        target,
+        expression: formatted,
+        onlyIfExpression: expression,
+      });
     });
   };
   // The overlay effect's close paths call through an effect event, so the
