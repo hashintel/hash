@@ -21,12 +21,14 @@ import {
   type ScenarioParameter,
 } from "@hashintel/petrinaut-core";
 import {
+  createReusableWorkerFactory,
   createWorkerPoolExperimentBackend,
   selectExperimentBackend,
   WORKER_POOL_BACKEND_ID,
   type ExperimentBackend,
   type ExperimentBackendRegistration,
   type ExperimentRequest,
+  type ReusableWorkerFactory,
 } from "@hashintel/petrinaut-core/experiments";
 import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
 
@@ -264,6 +266,38 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
   const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
+  // One worker pool per provider: batches lease workers instead of spawning
+  // and killing a pool's worth per ladder rung and per surface cell. The
+  // base factory is read at call time, so an injected factory stays live;
+  // changing it drains the old pool below.
+  const reusableWorkerFactoryRef = useRef<ReusableWorkerFactory | null>(null);
+  reusableWorkerFactoryRef.current ??= createReusableWorkerFactory(
+    () => workerFactoryRef.current(),
+    {
+      // A sweep commit releases the sharded foreground batch and several
+      // background lanes at once; the pool must hold that working set or
+      // every commit terminates the overflow and respawns it a moment later.
+      maxIdle: (experimentShardCount ?? getDefaultMonteCarloShardCount()) + 8,
+    },
+  );
+  const reusableWorkerFactory = reusableWorkerFactoryRef.current;
+  // Factory change: flush pooled workers built from the old base factory
+  // (leases in flight finish on it and re-pool; the next lease is fresh).
+  useEffect(() => {
+    const pool = reusableWorkerFactoryRef.current;
+    return () => {
+      pool?.drain();
+    };
+  }, [workerFactory]);
+  // Unmount: shut the pool for good. Handles released by later cleanups (and
+  // in-flight leases finishing afterwards) must terminate their workers
+  // rather than pool them where nothing will ever lease or drain again.
+  useEffect(() => {
+    const pool = reusableWorkerFactoryRef.current;
+    return () => {
+      pool?.dispose();
+    };
+  }, []);
   const shardCountRef = useLatest(experimentShardCount);
   const registrationsRef = useRef(
     new Map<string, ExperimentHandleRegistration>(),
@@ -550,7 +584,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         // is chosen (and stay there when the choice lands on the CPU).
         if (background && !chosenBackend) {
           backgroundCpuBackend ??= createWorkerPoolExperimentBackend({
-            createWorker: workerFactoryRef.current,
+            createWorker: reusableWorkerFactory,
             shardCount: 1,
           });
           const request = await buildRequest({
@@ -605,7 +639,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         let batchBackend = chosenBackend;
         if (background && chosenBackend.id === WORKER_POOL_BACKEND_ID) {
           backgroundCpuBackend ??= createWorkerPoolExperimentBackend({
-            createWorker: workerFactoryRef.current,
+            createWorker: reusableWorkerFactory,
             shardCount: 1,
           });
           batchBackend = backgroundCpuBackend;
@@ -933,7 +967,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           load: () =>
             Promise.resolve(
               createWorkerPoolExperimentBackend({
-                createWorker: workerFactoryRef.current,
+                createWorker: reusableWorkerFactory,
                 // The experiment never inspects the host, so the provider — the
                 // piece that knows this is a browser — states the parallelism.
                 shardCount:
@@ -1173,7 +1207,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       }
 
       detachedCpuBackendRef.current ??= createWorkerPoolExperimentBackend({
-        createWorker: workerFactoryRef.current,
+        createWorker: reusableWorkerFactory,
         shardCount: 1,
       });
       const backend = detachedCpuBackendRef.current;
