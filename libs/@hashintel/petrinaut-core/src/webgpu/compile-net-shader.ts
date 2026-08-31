@@ -166,13 +166,6 @@ export type CompiledNetShader = {
    */
   histogramBins: number;
   /**
-   * Whether counts above the top bin's index can occur (and are clamped into
-   * it). False when the bins cover every reachable count — capacity-sized
-   * histograms — where top-bin mass is an exact sample, not clamping, and
-   * must not be reported as saturation.
-   */
-  histogramTopBinSaturates: boolean;
-  /**
    * Per-run parameters in buffer order; empty when every parameter is a
    * baked literal. Non-empty obliges the runner to bind a run-major f32
    * buffer of `runCount × runParameterIds.length` draws at binding 4.
@@ -622,8 +615,6 @@ export function compileNetShader(
       metrics.length,
       sampledCountCeiling,
     );
-    const histogramTopBinSaturates =
-      sampledCountCeiling === null || histogramBins < sampledCountCeiling + 1;
 
     // --- State layout -------------------------------------------------------
     // counts | firing counts | rng | status | token values
@@ -670,6 +661,13 @@ export function compileNetShader(
     // host ramps early dispatches short so first frames stream in
     // milliseconds; a compile-time bound would step past the ramp.
     push(`  chunk_frames: u32,`);
+    // Each metric's histogram window: bin i covers counts
+    // [lo + i*stride, lo + (i+1)*stride). Uniforms, not constants, so the
+    // host recalibrates the window between attempts without recompiling.
+    for (const [metricIndex] of metrics.entries()) {
+      push(`  m${metricIndex}_lo: u32,`);
+      push(`  m${metricIndex}_stride: u32,`);
+    }
     push(`};`);
     push(`@group(0) @binding(0) var<storage, read_write> state: array<u32>;`);
     push(
@@ -686,6 +684,14 @@ export function compileNetShader(
       // each run's parameter draw before the first dispatch.
       push(`@group(0) @binding(4) var<storage, read> run_params: array<f32>;`);
     }
+    if (metrics.length > 0) {
+      // Per metric: [observed min, observed max, escapes below, escapes
+      // above]. Min/max drive window recalibration; the escape counters say
+      // whether any sample was clamped into an edge bin.
+      push(
+        `@group(0) @binding(5) var<storage, read_write> range: array<atomic<u32>>;`,
+      );
+    }
     push("");
     push(wgslPrelude());
     push("");
@@ -697,6 +703,10 @@ export function compileNetShader(
       push(
         `var<workgroup> local_hist: array<atomic<u32>, ${histogramBins * metrics.length}>;`,
       );
+      // Workgroup-reduced observed range, flushed once per frame per
+      // workgroup — the same trick as local_hist, for the same reason.
+      push(`var<workgroup> local_min: array<atomic<u32>, ${metrics.length}>;`);
+      push(`var<workgroup> local_max: array<atomic<u32>, ${metrics.length}>;`);
       push("");
     }
 
@@ -1199,6 +1209,12 @@ export function compileNetShader(
       );
       push(`      atomicStore(&local_hist[b], 0u);`);
       push(`    }`);
+      push(
+        `    for (var m: u32 = lid; m < ${metrics.length}u; m = m + ${GPU_WORKGROUP_SIZE}u) {`,
+      );
+      push(`      atomicStore(&local_min[m], 0xffffffffu);`);
+      push(`      atomicStore(&local_max[m], 0u);`);
+      push(`    }`);
       push(`    workgroupBarrier();`);
       for (const [metricIndex, metric] of metrics.entries()) {
         const placeIndex = placeIndexById.get(metric.placeId);
@@ -1210,9 +1226,28 @@ export function compileNetShader(
         // Samples only runs still active after this frame's step: the CPU
         // metric default excludes a run in the frame it deadlocks or
         // completes, because its status flips before the observation.
+        // A sample outside the window clamps into the edge bin and is
+        // counted as an escape, which triggers a recalibrated re-run — the
+        // clamped picture is only ever an intermediate.
         push(`    if (running && status == 0u) {`);
+        push(`      let c${metricIndex} = counts[${placeIndex}u];`);
+        push(`      atomicMin(&local_min[${metricIndex}u], c${metricIndex});`);
+        push(`      atomicMax(&local_max[${metricIndex}u], c${metricIndex});`);
+        push(`      var bin${metricIndex}: u32;`);
+        push(`      if (c${metricIndex} < config.m${metricIndex}_lo) {`);
+        push(`        atomicAdd(&range[${metricIndex * 4 + 2}u], 1u);`);
+        push(`        bin${metricIndex} = 0u;`);
+        push(`      } else {`);
         push(
-          `      atomicAdd(&local_hist[${metricIndex * histogramBins}u + min(counts[${placeIndex}u], HIST_BINS - 1u)], 1u);`,
+          `        bin${metricIndex} = (c${metricIndex} - config.m${metricIndex}_lo) / config.m${metricIndex}_stride;`,
+        );
+        push(`        if (bin${metricIndex} >= HIST_BINS) {`);
+        push(`          atomicAdd(&range[${metricIndex * 4 + 3}u], 1u);`);
+        push(`          bin${metricIndex} = HIST_BINS - 1u;`);
+        push(`        }`);
+        push(`      }`);
+        push(
+          `      atomicAdd(&local_hist[${metricIndex * histogramBins}u + bin${metricIndex}], 1u);`,
         );
         push(`    }`);
       }
@@ -1224,6 +1259,17 @@ export function compileNetShader(
       push(`      if (v > 0u) {`);
       push(
         `        atomicAdd(&hist[absolute_frame * ${histogramBins * metrics.length}u + b], v);`,
+      );
+      push(`      }`);
+      push(`    }`);
+      push(
+        `    for (var m: u32 = lid; m < ${metrics.length}u; m = m + ${GPU_WORKGROUP_SIZE}u) {`,
+      );
+      push(`      let lo = atomicLoad(&local_min[m]);`);
+      push(`      if (lo != 0xffffffffu) {`);
+      push(`        atomicMin(&range[m * 4u], lo);`);
+      push(
+        `        atomicMax(&range[m * 4u + 1u], atomicLoad(&local_max[m]));`,
       );
       push(`      }`);
       push(`    }`);
@@ -1274,7 +1320,6 @@ export function compileNetShader(
         statusOffset,
         metricIds: metrics.map((metric) => metric.id),
         histogramBins,
-        histogramTopBinSaturates,
         runParameterIds: [...runParameters],
         compiledLambdas,
       },

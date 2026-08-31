@@ -54,12 +54,9 @@ export type GpuBackendRequest = {
   dt: number;
   metrics: readonly GpuMetricSpec[];
   /**
-   * Initial marking, keyed by place id.
-   *
-   * Used to refuse a net whose sampled places already exceed the histogram's
-   * range. Keyed rather than ordered because the caller cannot know
-   * `profile.places` order until this call returns. Optional, so callers that only
-   * want a shader need not supply it.
+   * Initial marking, keyed by place id. Keyed rather than ordered because
+   * the caller cannot know `profile.places` order until this call returns.
+   * Optional, so callers that only want a shader need not supply it.
    */
   initialMarking?: InitialMarking;
   /**
@@ -100,19 +97,6 @@ export type GpuBackendUnavailable = {
 /**
  * Prepares the GPU backend for one net, or explains why it is unavailable.
  */
-/**
- * Token count a place's initial marking represents: uncoloured places carry a
- * plain number, typed places an array of token records.
- */
-function initialTokenCount(
-  marking: InitialMarking[string] | undefined,
-): number {
-  if (typeof marking === "number") {
-    return marking;
-  }
-  return Array.isArray(marking) ? marking.length : 0;
-}
-
 export async function requestGpuExperimentBackend(
   request: GpuBackendRequest,
 ): Promise<GpuBackend | GpuBackendUnavailable> {
@@ -166,31 +150,6 @@ export async function requestGpuExperimentBackend(
       cause: "shader-generation",
       reason: `This net's user code cannot be compiled to a GPU shader: ${compiled.reason}`,
     };
-  }
-
-  // Metrics are reduced on the device into a histogram with one bin per integer
-  // token count, and the shader clamps that index to the top bin. A sampled place
-  // that already starts at or above the ceiling reports the ceiling from frame 0 —
-  // a flat line rather than a trajectory — so refuse instead of producing it.
-  // Counts that climb past the ceiling mid-run cannot be caught here;
-  // `saturatedSamples` reports those after the run.
-  if (request.initialMarking !== undefined) {
-    for (const metric of metrics) {
-      const initialCount = initialTokenCount(
-        request.initialMarking[metric.placeId],
-      );
-      if (initialCount >= compiled.shader.histogramBins) {
-        const placeName =
-          eligibility.profile.places.find(
-            (place) => place.id === metric.placeId,
-          )?.name ?? metric.placeId;
-        return {
-          supported: false,
-          cause: "net-unsupported",
-          reason: `Place \`${placeName}\` starts with ${initialCount} tokens, and the GPU backend reduces metrics into a histogram of ${compiled.shader.histogramBins} bins — one per token count — so counts of ${compiled.shader.histogramBins} or more cannot be told apart.`,
-        };
-      }
-    }
   }
 
   const device = await requestGpuDevice();
