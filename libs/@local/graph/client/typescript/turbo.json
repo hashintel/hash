@@ -21,7 +21,8 @@
         "common.ts",
         "configuration.ts",
         "git_push.sh",
-        "index.ts"
+        "index.ts",
+        "openapi.json"
       ]
     }
   }
