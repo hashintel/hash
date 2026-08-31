@@ -11,7 +11,7 @@ members = [
     "libs/@local/codec/rust",
     "libs/@local/codegen",
     "libs/@local/config",
-    "libs/@local/effect-dns/hickory",
+    "libs/@local/effect-dns/hickory/rust",
     "libs/@local/graph/api",
     "libs/@local/graph/authentication/",
     "libs/@local/graph/authorization/rust",

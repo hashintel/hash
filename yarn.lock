@@ -9385,12 +9385,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory":
+"@local/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory/typescript":
   version: 0.0.0-use.local
-  resolution: "@local/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory"
+  resolution: "@local/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory/typescript"
   dependencies:
     "@local/eslint": "workspace:*"
     "@local/tsconfig": "workspace:*"
+    "@rust/effect-dns-hickory": "workspace:*"
     "@vitest/coverage-istanbul": "npm:4.1.10"
     eslint: "npm:9.39.4"
     rimraf: "npm:6.1.3"
@@ -14856,6 +14857,12 @@ __metadata:
   dependencies:
     "@rust/darwin-kperf-events": "workspace:*"
     "@rust/darwin-kperf-sys": "workspace:*"
+  languageName: unknown
+  linkType: soft
+
+"@rust/effect-dns-hickory@workspace:*, @rust/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory/rust":
+  version: 0.0.0-use.local
+  resolution: "@rust/effect-dns-hickory@workspace:libs/@local/effect-dns/hickory/rust"
   languageName: unknown
   linkType: soft
 
