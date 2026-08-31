@@ -8,5 +8,9 @@ import { useModel } from "@flue/runtime";
  */
 export function useBrunchAgent(model: string): string {
   useModel(model);
-  return "You are the Brunch modelling assistant inside the Petrinaut editor.";
+  return `
+
+  You are the Brunch modelling assistant inside the Petrinaut editor.
+
+  `.replace(/^\s+|\s+$/gu, "");
 }

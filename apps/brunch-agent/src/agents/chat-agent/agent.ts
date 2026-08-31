@@ -31,11 +31,11 @@ export function ChatAgent() {
   useSdcpnPlugin(sdcpnModellingSkill);
 
   useInstruction(
-    [
-      "Call ping when you need to confirm the server tool path.",
-      "When the user asks how Petrinaut's UI works, call readPetrinautDoc.",
-      "A client-tool-result signal is JSON [{ toolCallId, toolName, output }]. Treat output as the browser's result for that call and continue helping the user.",
-    ].join("\n"),
+    `
+Call ping when you need to confirm the server tool path.
+When the user asks how Petrinaut's UI works, call readPetrinautDoc.
+A client-tool-result signal is JSON [{ toolCallId, toolName, output }]. Treat output as the browser's result for that call and continue helping the user.
+`.replace(/^\s+|\s+$/gu, ""),
   );
   useTool(ping);
   useTool(readPetrinautDoc);

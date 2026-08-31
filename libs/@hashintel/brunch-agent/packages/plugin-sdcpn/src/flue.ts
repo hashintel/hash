@@ -24,16 +24,18 @@ export function useSdcpnPlugin(sdcpnModellingSkill: Skill): void {
   const initialData = useInitialData<SdcpnInitialData>();
 
   useInstruction(
-    [
-      "Activate the `sdcpn-modelling` skill before interviewing or constructing a process model.",
-      "The Markdown IR is the shared workpiece of one looping lifecycle.",
-    ].join("\n"),
+    `
+Activate the \`sdcpn-modelling\` skill before interviewing or constructing a process model.
+The Markdown IR is the shared workpiece of one looping lifecycle.
+`.replace(/^\s+|\s+$/gu, ""),
   );
   useSkill(sdcpnModellingSkill);
 
   if (initialData?.mode === VALIDATED_CONSTRUCTION_MODE) {
     useInstruction(
-      "This is a construct-only headless conversation. Use only the supplied runbook IR as modelling input, do not interview, and build the net through the mounted Petrinaut tools instead of emitting net JSON.",
+      `
+This is a construct-only headless conversation. Use only the supplied runbook IR as modelling input, do not interview, and build the net through the mounted Petrinaut tools instead of emitting net JSON.
+`.replace(/^\s+|\s+$/gu, ""),
     );
     for (const constructionTool of petrinautConstructionTools) {
       useTool(constructionTool);
