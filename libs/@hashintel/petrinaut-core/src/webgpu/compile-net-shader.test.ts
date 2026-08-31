@@ -342,19 +342,26 @@ describe("histogram sizing", () => {
     }
     // Capacity 16 → counts 0..16 plus nothing else representable.
     expect(result.shader.histogramBins).toBe(17);
-    // The top bin holds an exact, reachable count — reporting its mass as
-    // clamped would warn on every at-capacity sample.
-    expect(result.shader.histogramTopBinSaturates).toBe(false);
   });
 
-  it("marks the top bin as saturating when counts can exceed it", () => {
+  it("bins through a per-metric window carried as uniforms", () => {
     const result = compileFor(sir, {
       metrics: [{ id: "infected", placeId: "place__infected" }],
     });
     if (!result.ok) {
       throw new Error(result.reason);
     }
-    expect(result.shader.histogramTopBinSaturates).toBe(true);
+    // The window lives in the config, so recalibration needs no recompile.
+    expect(result.shader.wgsl).toContain("m0_lo: u32,");
+    expect(result.shader.wgsl).toContain("m0_stride: u32,");
+    expect(result.shader.wgsl).toContain(
+      "(c0 - config.m0_lo) / config.m0_stride",
+    );
+    // Observed range and escape counters, for the calibration loop.
+    expect(result.shader.wgsl).toContain(
+      "@group(0) @binding(5) var<storage, read_write> range: array<atomic<u32>>;",
+    );
+    expect(result.shader.wgsl).toContain("atomicMin(&local_min[0u], c0);");
   });
 });
 
