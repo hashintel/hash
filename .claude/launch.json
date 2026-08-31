@@ -5,13 +5,15 @@
       "name": "@hashintel/petrinaut (storybook)",
       "runtimeExecutable": "yarn",
       "runtimeArgs": ["workspace", "@hashintel/petrinaut", "dev"],
-      "port": 6006
+      "port": 6006,
+      "autoPort": true
     },
     {
       "name": "@apps/petrinaut-website",
       "runtimeExecutable": "yarn",
       "runtimeArgs": ["workspace", "@apps/petrinaut-website", "dev"],
-      "port": 5173
+      "port": 5173,
+      "autoPort": true
     },
     {
       "name": "@apps/petrinaut-docs",
@@ -24,7 +26,8 @@
         "--filter",
         "@apps/petrinaut-docs"
       ],
-      "port": 4321
+      "port": 4321,
+      "autoPort": true
     }
   ]
 }
