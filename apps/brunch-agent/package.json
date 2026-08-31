@@ -20,6 +20,7 @@
     "@flue/react": "2.0.3",
     "@flue/runtime": "2.0.3",
     "@flue/sdk": "2.0.3",
+    "@hashintel/brunch-agent-binding-flue": "workspace:*",
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*",
     "@hashintel/petrinaut-core": "workspace:*",
     "@opentelemetry/api": "1.9.1",

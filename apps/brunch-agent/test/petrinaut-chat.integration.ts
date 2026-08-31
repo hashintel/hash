@@ -13,7 +13,13 @@ import {
 import { sqlite, start } from "@flue/runtime/node";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
-import { CHAT_MODEL_ID, ChatAgent } from "../src/agents/chat-agent.ts";
+import {
+  ACTIVATE_SKILL_TOOL_NAME,
+  CHAT_MODEL_ID,
+  ChatAgent,
+  STUB_SKILL_NAME,
+} from "../src/agents/chat-agent.ts";
+import { applyCaptureSweep } from "../src/capture-sweep.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -110,6 +116,17 @@ try {
     faux.setResponses([
       fauxAssistantMessage(
         [
+          fauxThinking("Load the mount confirmation skill."),
+          fauxToolCall(
+            ACTIVATE_SKILL_TOOL_NAME,
+            { name: STUB_SKILL_NAME },
+            { id: "tool-skill-1" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage(
+        [
           fauxThinking("Confirm the server path, then read the guide."),
           fauxText("Checking the server, then the docs."),
           fauxToolCall(
@@ -177,6 +194,14 @@ try {
           chunk.type === "tool-input-available" &&
           chunk.toolName === PING_TOOL_NAME,
       ) ?? null;
+    const activateSkillCall =
+      initialChunks.find(
+        (
+          chunk,
+        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
+          chunk.type === "tool-input-available" &&
+          chunk.toolName === ACTIVATE_SKILL_TOOL_NAME,
+      ) ?? null;
     const pingOutputChunk = initialChunks.find(
       (chunk) =>
         chunk.type === "tool-output-available" &&
@@ -225,6 +250,22 @@ try {
     );
     const resumedChunks = chunksFrom(await resumeResponse.text());
     const snapshot = await historyClient.history();
+    const userEntryIds = snapshot.messages
+      .filter(
+        (message) => message.role === "user" && message.purpose === "user",
+      )
+      .map((message) => message.id);
+    const firstSweep = await applyCaptureSweep(identity, userEntryIds);
+    const secondSweep = await applyCaptureSweep(identity, userEntryIds);
+    const interviewerToolNames = [
+      ...new Set(
+        snapshot.messages.flatMap((message) =>
+          message.parts
+            .filter((part) => part.type === "dynamic-tool")
+            .map((part) => part.toolName),
+        ),
+      ),
+    ];
     let unauthenticatedHistoryStatus = 0;
     try {
       await createFlueClient({
@@ -320,6 +361,19 @@ try {
       transcript: formatFlueTranscript(snapshot),
       instanceId,
       dbPath: dbFile,
+      activateSkillCall,
+      interviewerToolNames,
+      captureUserText: userTextFromHistory(
+        snapshot.messages.map((message) => ({
+          role: message.role,
+          parts: message.parts,
+        })),
+      ),
+      captureIds: firstSweep.captures.map((capture) => capture.id),
+      recaptureIds: secondSweep.captures.map((capture) => capture.id),
+      skippedDedupKeys: secondSweep.skippedDedupKeys,
+      capturePayloads: firstSweep.captures.map((capture) => capture.payload),
+      captureExcerpts: firstSweep.captures.map((capture) => capture.excerpt),
     };
     process.stdout.write(`PETRINAUT_CHAT_RESULT ${JSON.stringify(result)}\n`);
   }

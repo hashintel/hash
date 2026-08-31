@@ -16,18 +16,21 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, test } from "vitest";
 
-import { conversationDbPath } from "../src/db-path";
+import { conversationDbPath, captureStorePath } from "../src/db-path";
 
 const appDir = fileURLToPath(new URL("..", import.meta.url));
 
 describe("the conversation store path", () => {
   const originalCwd = process.cwd();
   const originalOverride = process.env.BRUNCH_DEV_DB_PATH;
+  const originalChatDb = process.env.BRUNCH_CHAT_DB_PATH;
 
   afterEach(() => {
     process.chdir(originalCwd);
     if (originalOverride === undefined) delete process.env.BRUNCH_DEV_DB_PATH;
     else process.env.BRUNCH_DEV_DB_PATH = originalOverride;
+    if (originalChatDb === undefined) delete process.env.BRUNCH_CHAT_DB_PATH;
+    else process.env.BRUNCH_CHAT_DB_PATH = originalChatDb;
   });
 
   test("is anchored to the package, wherever the process was launched from", () => {
@@ -52,6 +55,33 @@ describe("the conversation store path", () => {
     process.env.BRUNCH_DEV_DB_PATH = "";
     expect(conversationDbPath()).toBe(
       join(appDir, ".data-wipe-me", "conversations.db"),
+    );
+  });
+});
+
+describe("the capture store path", () => {
+  const originalChatDb = process.env.BRUNCH_CHAT_DB_PATH;
+  const originalOverride = process.env.BRUNCH_DEV_DB_PATH;
+
+  afterEach(() => {
+    if (originalChatDb === undefined) delete process.env.BRUNCH_CHAT_DB_PATH;
+    else process.env.BRUNCH_CHAT_DB_PATH = originalChatDb;
+    if (originalOverride === undefined) delete process.env.BRUNCH_DEV_DB_PATH;
+    else process.env.BRUNCH_DEV_DB_PATH = originalOverride;
+  });
+
+  test("sits beside the conversation database, named by Flue instance id", () => {
+    delete process.env.BRUNCH_CHAT_DB_PATH;
+    delete process.env.BRUNCH_DEV_DB_PATH;
+    expect(captureStorePath("flue-instance-1")).toBe(
+      join(appDir, ".data-wipe-me", "flue-instance-1.json"),
+    );
+  });
+
+  test("follows the hermetic chat database directory", () => {
+    process.env.BRUNCH_CHAT_DB_PATH = join(tmpdir(), "conversations.db");
+    expect(captureStorePath("flue-instance-1")).toBe(
+      join(tmpdir(), "flue-instance-1.json"),
     );
   });
 });
