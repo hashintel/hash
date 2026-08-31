@@ -368,7 +368,7 @@ describe("OpenAI Speech handler", () => {
       createRequest(undefined, { signal: requestAbortController.signal }),
     );
 
-    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).not.toHaveBeenCalled();
     expect(response.status).toBe(502);
     expect(response.headers.get(VOICE_ERROR_CODE_HEADER)).toBe(
       "request-aborted",
