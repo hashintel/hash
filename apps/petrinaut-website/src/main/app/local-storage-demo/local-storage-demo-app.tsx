@@ -1,6 +1,7 @@
 import { produce } from "immer";
 import { useEffect, useMemo, useState } from "react";
 
+import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import {
   createJsonDocHandle,
   type MinimalNetMetadata,
@@ -18,6 +19,7 @@ import {
 
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
+import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import {
   type SDCPNInLocalStorage,
@@ -83,6 +85,9 @@ const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
 const petrinautAiChatTransport: PetrinautAiChatTransport =
   new DefaultChatTransport({
     api: "/api/chat",
+    headers: () => ({
+      [BRUNCH_PRINCIPAL_HEADER]: getOrCreateBrunchPrincipal(),
+    }),
   });
 
 const getStoredSDCPNsForDisplay = (

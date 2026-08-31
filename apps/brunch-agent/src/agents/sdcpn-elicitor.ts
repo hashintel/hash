@@ -33,6 +33,7 @@ export const SDCPN_MODEL_ID =
   process.env["BRUNCH_SDCPN_MODEL"] || "claude-haiku-4-5";
 
 const sdcpnElicitorInitialData = v.object({
+  ownerKey: v.optional(v.pipe(v.string(), v.nonEmpty())),
   targetDocumentId: v.pipe(v.string(), v.nonEmpty()),
 });
 
@@ -42,7 +43,11 @@ export function SdcpnElicitor(props: AgentProps) {
     useInitialData<v.InferOutput<typeof sdcpnElicitorInitialData>>();
   return useElicitation(
     sdcpn,
-    createSdcpnElicitationSession(props.id, initialData.targetDocumentId),
+    createSdcpnElicitationSession(
+      props.id,
+      initialData.targetDocumentId,
+      initialData.ownerKey,
+    ),
   );
 }
 

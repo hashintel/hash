@@ -1,4 +1,5 @@
 /** Host-owned wiring for the local Flue binding's history transport and store. */
+import { createHash } from "node:crypto";
 
 import {
   createFlueHistoryReader,
@@ -9,6 +10,20 @@ import {
 
 import { AGENT_ROUTES, type AgentTarget } from "./routes.ts";
 import { targetDocumentPath } from "./target-document-path.ts";
+
+export const resolvePetrinautSessionIdentity = (
+  principalKey: string,
+  conversationId: string,
+) => {
+  const sessionDigest = createHash("sha256")
+    .update(JSON.stringify([principalKey, conversationId]))
+    .digest("hex");
+  return {
+    ownerKey: principalKey,
+    sessionId: `petrinaut-local:${sessionDigest}`,
+    targetDocumentId: `petrinaut-local:${principalKey}`,
+  } as const;
+};
 
 const appTransport: FlueHistoryReaderOptions["transport"] = async (
   input,
@@ -27,9 +42,11 @@ const createElicitationSession = (
   target: AgentTarget,
   sessionId: string,
   targetDocumentId: string,
+  ownerKey?: string,
 ): ElicitationSession => {
   const captureStore = createLocalCaptureStore(
     targetDocumentPath(targetDocumentId),
+    ownerKey === undefined ? {} : { ownerKey },
   );
   return {
     sessionId,
@@ -46,11 +63,13 @@ const createElicitationSession = (
 export const createGherkinElicitationSession = (
   sessionId: string,
   targetDocumentId: string,
+  ownerKey?: string,
 ): ElicitationSession =>
-  createElicitationSession("gherkin", sessionId, targetDocumentId);
+  createElicitationSession("gherkin", sessionId, targetDocumentId, ownerKey);
 
 export const createSdcpnElicitationSession = (
   sessionId: string,
   targetDocumentId: string,
+  ownerKey?: string,
 ): ElicitationSession =>
-  createElicitationSession("sdcpn", sessionId, targetDocumentId);
+  createElicitationSession("sdcpn", sessionId, targetDocumentId, ownerKey);

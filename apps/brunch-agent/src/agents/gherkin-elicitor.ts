@@ -35,6 +35,7 @@ import { createGherkinElicitationSession } from "../elicitation-session.ts";
 export const GHERKIN_MODEL_ID = "claude-haiku-4-5";
 
 const gherkinElicitorInitialData = v.object({
+  ownerKey: v.optional(v.pipe(v.string(), v.nonEmpty())),
   targetDocumentId: v.pipe(v.string(), v.nonEmpty()),
 });
 
@@ -44,7 +45,11 @@ export function GherkinElicitor(props: AgentProps) {
     useInitialData<v.InferOutput<typeof gherkinElicitorInitialData>>();
   return useElicitation(
     gherkin,
-    createGherkinElicitationSession(props.id, initialData.targetDocumentId),
+    createGherkinElicitationSession(
+      props.id,
+      initialData.targetDocumentId,
+      initialData.ownerKey,
+    ),
   );
 }
 

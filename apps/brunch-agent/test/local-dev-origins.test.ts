@@ -13,6 +13,26 @@ import {
 const readAppFile = (relativePath: string): string =>
   readFileSync(new URL(`../${relativePath}`, import.meta.url), "utf8");
 
+const readRepoFile = (relativePath: string): string =>
+  readFileSync(new URL(`../../../${relativePath}`, import.meta.url), "utf8");
+
+test("one documented root command starts the Brunch server and Petrinaut panel", () => {
+  const rootPackage = JSON.parse(readRepoFile("package.json")) as {
+    scripts: Record<string, string>;
+  };
+
+  expect(rootPackage.scripts["dev:brunch"]).toBe(
+    "npm-run-all --parallel dev:brunch:server dev:brunch:panel",
+  );
+  expect(rootPackage.scripts["dev:brunch:server"]).toBe(
+    "yarn workspace @apps/brunch-agent dev",
+  );
+  expect(rootPackage.scripts["dev:brunch:panel"]).toBe(
+    'PETRINAUT_WEBSITE_ROOT="$PWD/apps/petrinaut-website" yarn workspace @apps/brunch-agent petrinaut:dev',
+  );
+  expect(readAppFile("README.md")).toContain("yarn dev:brunch");
+});
+
 test("dev listens on the chat origin the panel proxy already assumes", () => {
   expect(defaultChatOrigin).toBe("http://127.0.0.1:4321");
   expect(localChatListen).toEqual({

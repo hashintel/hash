@@ -16,8 +16,11 @@ import {
   type TransportInspectionEvent,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { GherkinElicitor } from "./agents/gherkin-elicitor.ts";
-import { createGherkinElicitationSession } from "./elicitation-session.ts";
+import { SdcpnElicitor } from "./agents/sdcpn-elicitor.ts";
+import {
+  createSdcpnElicitationSession,
+  resolvePetrinautSessionIdentity,
+} from "./elicitation-session.ts";
 import { defaultPanelOrigins } from "./local-dev-origins.ts";
 
 const inspect =
@@ -29,20 +32,23 @@ const inspect =
       }
     : undefined;
 
-// FE-1439 replaces this local one-conversation/one-document identity
-// with principal-owned private session lookup. Keep it opaque here.
-const targetDocumentIdFor = (conversationId: string): string =>
-  `petrinaut-local:${conversationId}`;
-
 const streamElicitorTurn = async (
+  principalKey: string,
   conversationId: string,
   dispatch: { readonly message: string; readonly idempotencyKey: string },
   emit: (event: HarnessReplyEvent) => void,
 ): Promise<void> => {
-  const agent = init(GherkinElicitor, { id: conversationId });
+  const identity = resolvePetrinautSessionIdentity(
+    principalKey,
+    conversationId,
+  );
+  const agent = init(SdcpnElicitor, { id: identity.sessionId });
   const receipt = await agent.dispatch({
     ...dispatch,
-    initialData: { targetDocumentId: targetDocumentIdFor(conversationId) },
+    initialData: {
+      ownerKey: identity.ownerKey,
+      targetDocumentId: identity.targetDocumentId,
+    },
   });
   const projector = createFlueReplyProjector({
     submissionId: receipt.submissionId,
@@ -61,6 +67,7 @@ export const petrinautChatHandler = createAiSdkChatHandler({
   inspect,
   runTurn: (input, emit) =>
     streamElicitorTurn(
+      input.principalKey,
       input.conversationId,
       { message: input.userMessage.text, idempotencyKey: input.idempotencyKey },
       emit,
@@ -70,12 +77,17 @@ export const petrinautChatHandler = createAiSdkChatHandler({
     // submission resumes the conversation only when its tool-call id
     // correlates with the one ask still awaiting a reply.
     async admit(input) {
-      const session = createGherkinElicitationSession(
+      const identity = resolvePetrinautSessionIdentity(
+        input.principalKey,
         input.conversationId,
-        targetDocumentIdFor(input.conversationId),
+      );
+      const session = createSdcpnElicitationSession(
+        identity.sessionId,
+        identity.targetDocumentId,
+        identity.ownerKey,
       );
       const entries = projectFlueHistoryForSweep(
-        await session.historyReader.peek(input.conversationId),
+        await session.historyReader.peek(identity.sessionId),
       );
       return decideAskReplyAdmission(
         pendingAskAffordanceId(entries),
@@ -86,6 +98,7 @@ export const petrinautChatHandler = createAiSdkChatHandler({
     // binds it to the pending affordance, making it the user-affordance reply.
     run: (input, emit) =>
       streamElicitorTurn(
+        input.principalKey,
         input.conversationId,
         { message: input.ask.answer, idempotencyKey: input.idempotencyKey },
         emit,

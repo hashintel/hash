@@ -25,18 +25,23 @@ import {
 
 import { registerArchiveWriter } from "./archive-capability";
 
-const FORMAT_VERSION = 1 as const;
+const FORMAT_VERSION = 2 as const;
+const LEGACY_FORMAT_VERSION = 1 as const;
 
 interface TargetDocumentRecord {
   readonly formatVersion: typeof FORMAT_VERSION;
+  readonly ownerKey: string | null;
   readonly captureStore: CaptureStoreSnapshot;
   readonly sessionLogArchive: SessionLogArchive;
 }
 
 const writesByPath = new Map<string, Promise<void>>();
 
-const createEmptyTargetDocument = (): TargetDocumentRecord => ({
+const createEmptyTargetDocument = (
+  ownerKey: string | null,
+): TargetDocumentRecord => ({
   formatVersion: FORMAT_VERSION,
+  ownerKey,
   captureStore: createEmptyCaptureStoreSnapshot(),
   sessionLogArchive: createEmptySessionLogArchive(),
 });
@@ -47,20 +52,41 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const parseTargetDocument = (input: unknown): TargetDocumentRecord => {
   if (isRecord(input) && "formatVersion" in input) {
     const fields = Object.keys(input).sort();
+    if (input.formatVersion === FORMAT_VERSION) {
+      if (
+        JSON.stringify(fields) !==
+          JSON.stringify([
+            "captureStore",
+            "formatVersion",
+            "ownerKey",
+            "sessionLogArchive",
+          ]) ||
+        (typeof input.ownerKey !== "string" && input.ownerKey !== null)
+      ) {
+        throw new TypeError("Invalid target-document ownership record.");
+      }
+      return {
+        formatVersion: FORMAT_VERSION,
+        ownerKey: input.ownerKey,
+        captureStore: parseCaptureStoreSnapshot(input.captureStore),
+        sessionLogArchive: parseSessionLogArchive(input.sessionLogArchive),
+      };
+    }
     if (
-      input.formatVersion !== FORMAT_VERSION ||
-      JSON.stringify(fields) !==
+      input.formatVersion === LEGACY_FORMAT_VERSION &&
+      JSON.stringify(fields) ===
         JSON.stringify(["captureStore", "formatVersion", "sessionLogArchive"])
     ) {
-      throw new TypeError(
-        `Unsupported target-document format version ${String(input.formatVersion)}.`,
-      );
+      return {
+        formatVersion: FORMAT_VERSION,
+        ownerKey: null,
+        captureStore: parseCaptureStoreSnapshot(input.captureStore),
+        sessionLogArchive: parseSessionLogArchive(input.sessionLogArchive),
+      };
     }
-    return {
-      formatVersion: FORMAT_VERSION,
-      captureStore: parseCaptureStoreSnapshot(input.captureStore),
-      sessionLogArchive: parseSessionLogArchive(input.sessionLogArchive),
-    };
+    throw new TypeError(
+      `Unsupported target-document format version ${String(input.formatVersion)}.`,
+    );
   }
 
   // FE-1390 files predate the archive slot. Reading that exact capture-store
@@ -68,16 +94,28 @@ const parseTargetDocument = (input: unknown): TargetDocumentRecord => {
   // rewrites it atomically in the current format.
   return {
     formatVersion: FORMAT_VERSION,
+    ownerKey: null,
     captureStore: parseCaptureStoreSnapshot(input),
     sessionLogArchive: createEmptySessionLogArchive(),
   };
 };
 
+class TargetDocumentOwnerMismatchError extends Error {
+  readonly code = "target-document-owner-mismatch";
+
+  constructor() {
+    super("The target document is owned by a different principal.");
+    this.name = "TargetDocumentOwnerMismatchError";
+  }
+}
+
 class LocalCaptureStore implements CaptureStore {
+  readonly #ownerKey: string | null;
   readonly #path: string;
 
-  constructor(path: string) {
+  constructor(path: string, ownerKey: string | null) {
     this.#path = resolve(path);
+    this.#ownerKey = ownerKey;
     registerArchiveWriter(this, (read) => this.#archiveSessionLog(read));
   }
 
@@ -163,16 +201,20 @@ class LocalCaptureStore implements CaptureStore {
 
   async #readFile(): Promise<TargetDocumentRecord> {
     try {
-      return parseTargetDocument(
+      const document = parseTargetDocument(
         JSON.parse(await readFile(this.#path, "utf8")),
       );
+      if (document.ownerKey !== this.#ownerKey) {
+        throw new TargetDocumentOwnerMismatchError();
+      }
+      return document;
     } catch (error) {
       if (
         error instanceof Error &&
         "code" in error &&
         (error as NodeJS.ErrnoException).code === "ENOENT"
       ) {
-        return createEmptyTargetDocument();
+        return createEmptyTargetDocument(this.#ownerKey);
       }
       throw error;
     }
@@ -193,5 +235,12 @@ class LocalCaptureStore implements CaptureStore {
   }
 }
 
-export const createLocalCaptureStore = (path: string): CaptureStore =>
-  new LocalCaptureStore(path);
+export const createLocalCaptureStore = (
+  path: string,
+  options: { readonly ownerKey?: string } = {},
+): CaptureStore => {
+  if (options.ownerKey !== undefined && options.ownerKey.length === 0) {
+    throw new TypeError("A target-document owner key cannot be empty.");
+  }
+  return new LocalCaptureStore(path, options.ownerKey ?? null);
+};

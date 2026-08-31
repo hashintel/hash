@@ -19,11 +19,13 @@ import {
 } from "@hashintel/brunch-agent";
 
 import { ASK_TOOL_NAME, type BrunchAskOutput } from "./client-tools";
+import { BRUNCH_PRINCIPAL_HEADER } from "./headers";
 
 export {
   type AskReplyAdmission,
   type HarnessReplyEvent,
 } from "@hashintel/brunch-agent";
+export { BRUNCH_PRINCIPAL_HEADER } from "./headers";
 export {
   ASK_TOOL_NAME,
   type BrunchAskInput,
@@ -35,6 +37,7 @@ export {
 export interface HarnessTurnInput {
   readonly conversationId: string;
   readonly idempotencyKey: string;
+  readonly principalKey: string;
   readonly userMessage: {
     readonly id: string;
     readonly text: string;
@@ -65,6 +68,7 @@ export interface HarnessAskReplyInput {
   /** Existing assistant UI message whose pending tool call this continues. */
   readonly assistantMessageId: string;
   readonly idempotencyKey: string;
+  readonly principalKey: string;
   readonly ask: BrunchAskOutput & {
     readonly toolCallId: string;
   };
@@ -183,6 +187,11 @@ const transportRequestRefusals = {
     status: 400,
     error: "invalid_chat_request",
   },
+  invalidPrincipal: {
+    reason: "invalid-principal",
+    status: 400,
+    error: "invalid_principal",
+  },
   toolResultFollowUpNotSupported: {
     reason: "tool-result-follow-up-not-supported",
     status: 422,
@@ -213,7 +222,7 @@ const corsHeaders = (origin: string): Headers =>
   new Headers({
     "access-control-allow-origin": origin,
     "access-control-allow-methods": "POST, OPTIONS",
-    "access-control-allow-headers": "content-type, x-request-id",
+    "access-control-allow-headers": `content-type, x-request-id, ${BRUNCH_PRINCIPAL_HEADER}`,
     vary: "Origin",
   });
 
@@ -258,7 +267,10 @@ const isAnsweredAskPart = (
  * Petrinaut mutation outputs, the synthetic diagnostics message — remains
  * the machine-input protocol this transport still refuses (FE-1438 owns it).
  */
-const parseAskReplyTurn = (body: PanelPostBody): ParsedTransportRequest => {
+const parseAskReplyTurn = (
+  body: PanelPostBody,
+  principalKey: string,
+): ParsedTransportRequest => {
   if (
     typeof body.id !== "string" ||
     body.id.length === 0 ||
@@ -306,12 +318,16 @@ const parseAskReplyTurn = (body: PanelPostBody): ParsedTransportRequest => {
       // Keyed by the ask itself: concurrent duplicate submissions of the same
       // pending ask collapse to one dispatch at the substrate.
       idempotencyKey: `${body.id}:ask:${askPart.toolCallId}`,
+      principalKey,
       ask: { toolCallId: askPart.toolCallId, answer: submission.output.answer },
     },
   };
 };
 
-const parseInitialTurn = (body: PanelPostBody): ParsedTransportRequest => {
+const parseInitialTurn = (
+  body: PanelPostBody,
+  principalKey: string,
+): ParsedTransportRequest => {
   if (
     typeof body.id !== "string" ||
     body.id.length === 0 ||
@@ -354,6 +370,7 @@ const parseInitialTurn = (body: PanelPostBody): ParsedTransportRequest => {
     value: {
       conversationId: body.id,
       idempotencyKey: `${body.id}:${message.id}`,
+      principalKey,
       userMessage: { id: message.id, text },
     },
   };
@@ -512,17 +529,30 @@ export const createAiSdkChatHandler =
       );
     }
     const postBody = validatedBody.output;
+    const principalKey = request.headers.get(BRUNCH_PRINCIPAL_HEADER)?.trim();
+    if (
+      principalKey === undefined ||
+      principalKey.length === 0 ||
+      principalKey.length > 256
+    ) {
+      const refusal = transportRequestRefusals.invalidPrincipal;
+      return jsonResponse(
+        { error: refusal.error },
+        refusal.status,
+        crossOriginHeaders,
+      );
+    }
     // The follow-up admits exactly the pending ask's correlated human answer;
     // absent an application ask-reply seam, every follow-up stays refused.
     const parsed =
       postBody.messageId !== undefined && options.askReply !== undefined
-        ? parseAskReplyTurn(postBody)
+        ? parseAskReplyTurn(postBody, principalKey)
         : postBody.messageId !== undefined
           ? ({
               kind: "refused",
               refusal: transportRequestRefusals.toolResultFollowUpNotSupported,
             } as const)
-          : parseInitialTurn(postBody);
+          : parseInitialTurn(postBody, principalKey);
     if (parsed.kind === "refused") {
       return jsonResponse(
         { error: parsed.refusal.error },
