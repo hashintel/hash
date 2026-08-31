@@ -1,6 +1,11 @@
 //! Resolution of a request's credentials to the acting principal.
 
-use core::{ops::ControlFlow, str::FromStr as _};
+use core::{
+    fmt,
+    ops::ControlFlow,
+    str::FromStr as _,
+    sync::{atomic, atomic::Atomic},
+};
 
 use error_stack::Report;
 use http::{HeaderMap, StatusCode};
@@ -40,7 +45,7 @@ impl FaultDomain {
 
 /// Errors that can occur while authenticating a request.
 #[derive(Debug, Clone, derive_more::Display)]
-pub enum AuthenticationError {
+pub enum AuthenticationErrorKind {
     /// No credentials were provided with the request.
     #[display("no credentials provided")]
     MissingCredentials,
@@ -100,9 +105,7 @@ pub enum AuthenticationError {
     StoreError,
 }
 
-impl core::error::Error for AuthenticationError {}
-
-impl AuthenticationError {
+impl AuthenticationErrorKind {
     /// Returns the status code reported to the client for this error.
     #[must_use]
     pub const fn status_code(&self) -> StatusCode {
@@ -191,20 +194,175 @@ impl AuthenticationError {
     }
 }
 
-/// Reports a rejection at the level its [`FaultDomain`] calls for.
-///
-/// The one place a rejection is reported, so a report reaching a response has been logged exactly
-/// once, wherever it was produced.
-pub(crate) fn log_rejection(report: &Report<AuthenticationError>) {
-    match report.current_context().fault_domain() {
-        FaultDomain::Service => tracing::error!(error = ?report, "credential verification failed"),
-        FaultDomain::Operator => tracing::warn!(
-            error = ?report,
-            "credential rejected, pointing at provisioning or deployment configuration"
-        ),
-        FaultDomain::Caller => tracing::debug!(error = ?report, "credential rejected"),
+#[derive(Debug)]
+pub struct AuthenticationError {
+    pub kind: AuthenticationErrorKind,
+    logged: Atomic<bool>,
+}
+
+impl AuthenticationError {
+    #[must_use]
+    pub const fn new(kind: AuthenticationErrorKind) -> Self {
+        Self {
+            kind,
+            logged: Atomic::<bool>::new(false),
+        }
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::MissingCredentials`].
+    #[must_use]
+    pub const fn missing_credentials() -> Self {
+        Self::new(AuthenticationErrorKind::MissingCredentials)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::MalformedCredential`].
+    #[must_use]
+    pub const fn malformed_credential() -> Self {
+        Self::new(AuthenticationErrorKind::MalformedCredential)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::InvalidActorIdHeader`].
+    #[must_use]
+    pub const fn invalid_actor_id_header() -> Self {
+        Self::new(AuthenticationErrorKind::InvalidActorIdHeader)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::MissingServiceSecret`].
+    #[must_use]
+    pub const fn missing_service_secret() -> Self {
+        Self::new(AuthenticationErrorKind::MissingServiceSecret)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::InvalidServiceSecret`].
+    #[must_use]
+    pub const fn invalid_service_secret() -> Self {
+        Self::new(AuthenticationErrorKind::InvalidServiceSecret)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::MissingDelegatedActor`].
+    #[must_use]
+    pub const fn missing_delegated_actor() -> Self {
+        Self::new(AuthenticationErrorKind::MissingDelegatedActor)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::ProviderUnreachable`].
+    #[must_use]
+    pub const fn provider_unreachable() -> Self {
+        Self::new(AuthenticationErrorKind::ProviderUnreachable)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::ProviderRejection`].
+    #[must_use]
+    pub const fn provider_rejection() -> Self {
+        Self::new(AuthenticationErrorKind::ProviderRejection)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::InvalidProviderResponse`].
+    #[must_use]
+    pub const fn invalid_provider_response() -> Self {
+        Self::new(AuthenticationErrorKind::InvalidProviderResponse)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::InvalidSession`].
+    #[must_use]
+    pub const fn invalid_session() -> Self {
+        Self::new(AuthenticationErrorKind::InvalidSession)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::InvalidAccessToken`].
+    #[must_use]
+    pub const fn invalid_access_token() -> Self {
+        Self::new(AuthenticationErrorKind::InvalidAccessToken)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::IdentityWithoutActor`].
+    #[must_use]
+    pub const fn identity_without_actor() -> Self {
+        Self::new(AuthenticationErrorKind::IdentityWithoutActor)
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::NotProvisioned`].
+    #[must_use]
+    pub fn not_provisioned(identity_id: impl Into<String>) -> Self {
+        Self::new(AuthenticationErrorKind::NotProvisioned {
+            identity_id: identity_id.into(),
+        })
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::ActorNotFound`].
+    #[must_use]
+    pub const fn actor_not_found(actor_id: ActorEntityUuid) -> Self {
+        Self::new(AuthenticationErrorKind::ActorNotFound { actor_id })
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::NotAUser`].
+    #[must_use]
+    pub const fn not_a_user(actor_id: ActorEntityUuid) -> Self {
+        Self::new(AuthenticationErrorKind::NotAUser { actor_id })
+    }
+
+    /// Creates an error for [`AuthenticationErrorKind::StoreError`].
+    #[must_use]
+    pub const fn store_error() -> Self {
+        Self::new(AuthenticationErrorKind::StoreError)
+    }
+
+    pub fn log(report: &Report<Self>) {
+        let this = report.current_context();
+
+        // Claim the log, but only if it hasn't been logged yet.
+        // `Relaxed` is fine here, as it's only used to avoid duplicate logs.
+        if this
+            .logged
+            .compare_exchange(
+                false,
+                true,
+                atomic::Ordering::Relaxed,
+                atomic::Ordering::Relaxed,
+            )
+            .is_err()
+        {
+            return;
+        }
+
+        match this.kind.fault_domain() {
+            FaultDomain::Service => {
+                tracing::error!(error = ?report, "credential verification failed");
+            }
+
+            FaultDomain::Operator => tracing::warn!(
+                error = ?report,
+                "credential rejected, pointing at provisioning or deployment configuration"
+            ),
+            FaultDomain::Caller => tracing::debug!(error = ?report, "credential rejected"),
+        }
     }
 }
+
+impl core::ops::Deref for AuthenticationError {
+    type Target = AuthenticationErrorKind;
+
+    fn deref(&self) -> &Self::Target {
+        &self.kind
+    }
+}
+
+impl From<AuthenticationErrorKind> for AuthenticationError {
+    fn from(kind: AuthenticationErrorKind) -> Self {
+        Self {
+            kind,
+            logged: Atomic::<bool>::new(false),
+        }
+    }
+}
+
+impl fmt::Display for AuthenticationError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.kind, fmt)
+    }
+}
+
+impl core::error::Error for AuthenticationError {}
 
 /// Resolves the acting principal from the request headers.
 ///
@@ -235,7 +393,8 @@ where
     match provider.authenticate(headers).await {
         ControlFlow::Break(Ok(caller)) => Ok(caller),
         ControlFlow::Break(Err(report)) => {
-            log_rejection(&report);
+            AuthenticationError::log(&report);
+
             // A verified rejection degrades to anonymous where the chain serves anonymous
             // callers — never to another credential: an ambient credential must not take over
             // an expired explicit choice.
@@ -255,7 +414,7 @@ where
             }
             C::anonymous().map_err(|error| {
                 let report = Report::new(error);
-                log_rejection(&report);
+                AuthenticationError::log(&report);
                 report
             })
         }
@@ -271,26 +430,26 @@ where
 pub(crate) fn every_error(
     identity_id: &str,
     actor_id: ActorEntityUuid,
-) -> [AuthenticationError; core::mem::variant_count::<AuthenticationError>()] {
+) -> [AuthenticationError; core::mem::variant_count::<AuthenticationErrorKind>()] {
     let errors = [
-        AuthenticationError::MissingCredentials,
-        AuthenticationError::MalformedCredential,
-        AuthenticationError::InvalidActorIdHeader,
-        AuthenticationError::MissingServiceSecret,
-        AuthenticationError::InvalidServiceSecret,
-        AuthenticationError::MissingDelegatedActor,
-        AuthenticationError::ProviderUnreachable,
-        AuthenticationError::ProviderRejection,
-        AuthenticationError::InvalidProviderResponse,
-        AuthenticationError::InvalidSession,
-        AuthenticationError::InvalidAccessToken,
-        AuthenticationError::IdentityWithoutActor,
-        AuthenticationError::NotProvisioned {
+        AuthenticationErrorKind::MissingCredentials,
+        AuthenticationErrorKind::MalformedCredential,
+        AuthenticationErrorKind::InvalidActorIdHeader,
+        AuthenticationErrorKind::MissingServiceSecret,
+        AuthenticationErrorKind::InvalidServiceSecret,
+        AuthenticationErrorKind::MissingDelegatedActor,
+        AuthenticationErrorKind::ProviderUnreachable,
+        AuthenticationErrorKind::ProviderRejection,
+        AuthenticationErrorKind::InvalidProviderResponse,
+        AuthenticationErrorKind::InvalidSession,
+        AuthenticationErrorKind::InvalidAccessToken,
+        AuthenticationErrorKind::IdentityWithoutActor,
+        AuthenticationErrorKind::NotProvisioned {
             identity_id: identity_id.to_owned(),
         },
-        AuthenticationError::ActorNotFound { actor_id },
-        AuthenticationError::NotAUser { actor_id },
-        AuthenticationError::StoreError,
+        AuthenticationErrorKind::ActorNotFound { actor_id },
+        AuthenticationErrorKind::NotAUser { actor_id },
+        AuthenticationErrorKind::StoreError,
     ];
 
     for (index, error) in errors.iter().enumerate() {
@@ -300,7 +459,7 @@ pub(crate) fn every_error(
         assert!(!repeated, "`{error}` should appear exactly once");
     }
 
-    errors
+    errors.map(AuthenticationError::from)
 }
 
 /// Parses the actor from the unverified actor-ID header.
@@ -315,14 +474,18 @@ pub(crate) fn every_error(
 pub fn actor_id_from_header(headers: &HeaderMap) -> Result<ActorEntityUuid, AuthenticationError> {
     let header_value = headers
         .get(ACTOR_ID_HEADER)
-        .ok_or(AuthenticationError::MissingDelegatedActor)?;
+        .ok_or(AuthenticationError::new(
+            AuthenticationErrorKind::MissingDelegatedActor,
+        ))?;
 
     header_value
         .to_str()
         .ok()
         .and_then(|header_string| Uuid::from_str(header_string).ok())
         .map(ActorEntityUuid::new)
-        .ok_or(AuthenticationError::InvalidActorIdHeader)
+        .ok_or(AuthenticationError::new(
+            AuthenticationErrorKind::InvalidActorIdHeader,
+        ))
 }
 
 #[cfg(test)]
@@ -339,8 +502,9 @@ mod tests {
     use uuid::Uuid;
 
     use super::{AuthenticationError, FaultDomain, every_error, resolve_request_actor};
-    use crate::authentication::provider::{
-        AuthenticationProvider, Caller, StaticAuthenticationProvider,
+    use crate::authentication::{
+        provider::{AuthenticationProvider, Caller, StaticAuthenticationProvider},
+        request::AuthenticationErrorKind,
     };
 
     /// The attachment the rejecting provider adds, standing in for what a real provider records
@@ -348,7 +512,7 @@ mod tests {
     const PROVIDER_DETAIL: &str = "provider response (401): session expired";
 
     /// A provider rejecting every request with the given error, carrying an attachment.
-    struct RejectingProvider(fn() -> AuthenticationError);
+    struct RejectingProvider(fn() -> AuthenticationErrorKind);
 
     impl<C: Caller> AuthenticationProvider<C> for RejectingProvider {
         fn authenticate(
@@ -356,9 +520,10 @@ mod tests {
             _headers: &HeaderMap,
         ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send
         {
-            core::future::ready(ControlFlow::Break(Err(
-                Report::new((self.0)()).attach(PROVIDER_DETAIL)
-            )))
+            core::future::ready(ControlFlow::Break(Err(Report::new(
+                AuthenticationError::new((self.0)()),
+            )
+            .attach(PROVIDER_DETAIL))))
         }
     }
 
@@ -420,8 +585,9 @@ mod tests {
                 .expect_err(
                     "a rejected credential should fail even when an actor-ID header is present"
                 )
-                .current_context(),
-            AuthenticationError::InvalidSession,
+                .current_context()
+                .kind,
+            AuthenticationErrorKind::InvalidSession,
             "the rejection should carry the provider's reason"
         );
     }
@@ -438,8 +604,9 @@ mod tests {
                 .expect_err(
                     "the actor-ID header should not resolve without a provider recognizing it"
                 )
-                .current_context(),
-            AuthenticationError::MissingCredentials,
+                .current_context()
+                .kind,
+            AuthenticationErrorKind::MissingCredentials,
             "the rejection should name the missing credentials"
         );
     }
@@ -469,8 +636,9 @@ mod tests {
             matches!(
                 outcome
                     .expect_err("an unverifiable credential should fail the request")
-                    .current_context(),
-                AuthenticationError::ProviderUnreachable
+                    .current_context()
+                    .kind,
+                AuthenticationErrorKind::ProviderUnreachable
             ),
             "the rejection should carry the verification failure"
         );
@@ -497,8 +665,9 @@ mod tests {
             matches!(
                 required
                     .expect_err("the expired credential should fail where an actor is required")
-                    .current_context(),
-                AuthenticationError::InvalidSession
+                    .current_context()
+                    .kind,
+                AuthenticationErrorKind::InvalidSession
             ),
             "the rejection should carry the expired credential's reason"
         );
@@ -513,8 +682,9 @@ mod tests {
         assert_matches!(
             outcome
                 .expect_err("a request without credentials should fail authentication")
-                .current_context(),
-            AuthenticationError::MissingCredentials,
+                .current_context()
+                .kind,
+            AuthenticationErrorKind::MissingCredentials,
             "the rejection should name the missing credentials"
         );
     }
@@ -546,15 +716,16 @@ mod tests {
     async fn rejections_log_at_their_domains_level() {
         let cases = [
             (
-                (|| AuthenticationError::ProviderUnreachable) as fn() -> AuthenticationError,
+                (|| AuthenticationErrorKind::ProviderUnreachable)
+                    as fn() -> AuthenticationErrorKind,
                 tracing::Level::ERROR,
             ),
             (
-                || AuthenticationError::IdentityWithoutActor,
+                || AuthenticationErrorKind::IdentityWithoutActor,
                 tracing::Level::WARN,
             ),
             (
-                || AuthenticationError::InvalidSession,
+                || AuthenticationErrorKind::InvalidSession,
                 tracing::Level::DEBUG,
             ),
         ];
@@ -612,7 +783,7 @@ mod tests {
     /// rejection cannot be diagnosed from the report alone.
     #[tokio::test]
     async fn rejection_carries_the_providers_attachment() {
-        let provider = RejectingProvider(|| AuthenticationError::InvalidSession);
+        let provider = RejectingProvider(|| AuthenticationErrorKind::InvalidSession);
 
         let report = resolve_request_actor::<_, ActorId>(&provider, &HeaderMap::new())
             .await
@@ -642,17 +813,17 @@ mod tests {
         let actor_id = ActorEntityUuid::new(Uuid::new_v4());
         let errors = [
             (
-                AuthenticationError::NotProvisioned {
+                AuthenticationErrorKind::NotProvisioned {
                     identity_id: identity_id.to_owned(),
                 },
                 identity_id.to_owned(),
             ),
             (
-                AuthenticationError::ActorNotFound { actor_id },
+                AuthenticationErrorKind::ActorNotFound { actor_id },
                 actor_id.to_string(),
             ),
             (
-                AuthenticationError::NotAUser { actor_id },
+                AuthenticationErrorKind::NotAUser { actor_id },
                 actor_id.to_string(),
             ),
         ];

@@ -20,10 +20,7 @@ pub use hash_graph_authentication::{
 };
 use hash_graph_authorization::policies::store::PrincipalStore;
 use hash_graph_store::pool::StorePool;
-pub use hash_middleware::authentication::{
-    AuthenticatedActorId, AuthenticationMetrics, authentication_middleware,
-    service_secret_middleware,
-};
+pub use hash_middleware::authentication::{AuthenticatedActorId, AuthenticationMetrics};
 
 /// Configuration for Cloudflare Access authentication.
 #[derive(Debug, Clone)]
@@ -99,8 +96,10 @@ where
 
 /// Returns whether the path is a bootstrap route.
 ///
-/// [`authentication_middleware`] takes this as its bootstrap predicate: these routes require the
+/// [`AuthenticationLayer`] takes this as its bootstrap predicate: these routes require the
 /// service secret regardless of any actor credential, and pass without an actor.
+///
+/// [`AuthenticationLayer`]: hash_middleware::authentication::AuthenticationLayer
 #[must_use]
 pub fn is_bootstrap_route(path: &str) -> bool {
     if path == "/policies/seed" {
@@ -117,23 +116,22 @@ mod tests {
     use core::ops::ControlFlow;
     use std::collections::HashMap;
 
-    use axum::{Router, body::Body, middleware, routing::get};
+    use axum::{Router, body::Body, routing::get};
     use error_stack::Report;
     use hash_graph_authentication::{
         actor::tests::FixedActorResolver, delegation::ServiceDelegationProvider,
     };
     use hash_middleware::authentication::{
+        AuthenticationLayer,
         provider::{AuthenticationProvider, Caller},
-        request::AuthenticationError,
+        request::{AuthenticationError, AuthenticationErrorKind},
     };
     use http::{HeaderMap, Request, StatusCode};
     use tower::ServiceExt as _;
     use type_system::principal::actor::ActorId;
     use uuid::Uuid;
 
-    use super::{
-        AuthenticatedActorId, AuthenticationMetrics, authentication_middleware, is_bootstrap_route,
-    };
+    use super::{AuthenticatedActorId, AuthenticationMetrics, is_bootstrap_route};
 
     fn request(uri: &str) -> Request<Body> {
         Request::builder()
@@ -213,19 +211,13 @@ mod tests {
         let metrics = Arc::new(AuthenticationMetrics::new(&opentelemetry::global::meter(
             "test",
         )));
-        routes().layer(middleware::from_fn(move |request, next| {
-            let provider = Arc::clone(&provider);
-            let service_secret = Arc::clone(&service_secret);
-            let metrics = Arc::clone(&metrics);
-            authentication_middleware::<_, Option<ActorId>>(
-                provider,
-                service_secret,
-                metrics,
-                is_bootstrap_route,
-                request,
-                next,
-            )
-        }))
+        routes().layer(AuthenticationLayer {
+            provider,
+            service_secret,
+            metrics,
+            bootstrap_route: is_bootstrap_route,
+            caller: core::marker::PhantomData::<Option<ActorId>>,
+        })
     }
 
     #[tokio::test]
@@ -318,7 +310,7 @@ mod tests {
     }
 
     /// A provider rejecting every request with the error under test.
-    struct FailingProvider(AuthenticationError);
+    struct FailingProvider(AuthenticationErrorKind);
 
     impl<C: Caller> AuthenticationProvider<C> for FailingProvider {
         fn authenticate(
@@ -326,7 +318,9 @@ mod tests {
             _headers: &HeaderMap,
         ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send
         {
-            core::future::ready(ControlFlow::Break(Err(Report::new(self.0.clone()))))
+            core::future::ready(ControlFlow::Break(Err(Report::new(
+                AuthenticationError::new(self.0.clone()),
+            ))))
         }
     }
 
@@ -334,10 +328,10 @@ mod tests {
     #[tokio::test]
     async fn rejection_bodies_carry_the_client_message() {
         let cases = [
-            (AuthenticationError::InvalidActorIdHeader, 400),
-            (AuthenticationError::InvalidSession, 401),
-            (AuthenticationError::ProviderUnreachable, 503),
-            (AuthenticationError::InvalidProviderResponse, 500),
+            (AuthenticationErrorKind::InvalidActorIdHeader, 400),
+            (AuthenticationErrorKind::InvalidSession, 401),
+            (AuthenticationErrorKind::ProviderUnreachable, 503),
+            (AuthenticationErrorKind::InvalidProviderResponse, 500),
         ];
 
         for (error, status) in cases {
@@ -346,24 +340,15 @@ mod tests {
             }))
             .expect("the error document should serialize");
 
-            let provider = Arc::new(FailingProvider(error));
-            let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
-            let metrics = Arc::new(AuthenticationMetrics::new(&opentelemetry::global::meter(
-                "test",
-            )));
-            let router = routes().layer(middleware::from_fn(move |request, next| {
-                let provider = Arc::clone(&provider);
-                let service_secret = Arc::clone(&service_secret);
-                let metrics = Arc::clone(&metrics);
-                authentication_middleware::<_, ActorId>(
-                    provider,
-                    service_secret,
-                    metrics,
-                    is_bootstrap_route,
-                    request,
-                    next,
-                )
-            }));
+            let router = routes().layer(AuthenticationLayer {
+                provider: Arc::new(FailingProvider(error)),
+                service_secret: Arc::from(SERVICE_SECRET),
+                metrics: Arc::new(AuthenticationMetrics::new(&opentelemetry::global::meter(
+                    "test",
+                ))),
+                bootstrap_route: is_bootstrap_route,
+                caller: core::marker::PhantomData::<ActorId>,
+            });
 
             let response = router
                 .oneshot(request("/protected"))

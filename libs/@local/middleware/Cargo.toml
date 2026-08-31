@@ -25,6 +25,7 @@ clap = { workspace = true, optional = true, features = ["derive"] }
 # Private third-party dependencies
 bytes                              = { workspace = true }
 derive_more                        = { workspace = true, features = ["display", "error"] }
+futures.workspace                  = true
 governor                           = { workspace = true }
 opentelemetry-semantic-conventions = { workspace = true, features = ["semconv_experimental"] }
 serde                              = { workspace = true, features = ["derive"] }

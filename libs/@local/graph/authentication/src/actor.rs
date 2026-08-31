@@ -64,8 +64,8 @@ where
 /// - [`ActorNotFound`] if the actor does not exist
 /// - [`StoreError`] if the underlying store returns an error
 ///
-/// [`ActorNotFound`]: AuthenticationError::ActorNotFound
-/// [`StoreError`]: AuthenticationError::StoreError
+/// [`ActorNotFound`]: hash_middleware::authentication::request::AuthenticationErrorKind::ActorNotFound
+/// [`StoreError`]: hash_middleware::authentication::request::AuthenticationErrorKind::StoreError
 pub(crate) async fn resolve_actor<R>(
     actor_resolver: &R,
     actor_id: ActorEntityUuid,
@@ -78,10 +78,10 @@ where
         .await
         .map_err(|report| match report.current_context() {
             DetermineActorError::ActorNotFound { .. } => {
-                report.change_context(AuthenticationError::ActorNotFound { actor_id })
+                report.change_context(AuthenticationError::actor_not_found(actor_id))
             }
             DetermineActorError::StoreError => {
-                report.change_context(AuthenticationError::StoreError)
+                report.change_context(AuthenticationError::store_error())
             }
         })
 }
@@ -94,9 +94,9 @@ where
 /// - [`ActorNotFound`] if the actor does not exist
 /// - [`StoreError`] if the underlying store returns an error
 ///
-/// [`NotAUser`]: AuthenticationError::NotAUser
-/// [`ActorNotFound`]: AuthenticationError::ActorNotFound
-/// [`StoreError`]: AuthenticationError::StoreError
+/// [`NotAUser`]: hash_middleware::authentication::request::AuthenticationErrorKind::NotAUser
+/// [`ActorNotFound`]: hash_middleware::authentication::request::AuthenticationErrorKind::ActorNotFound
+/// [`StoreError`]: hash_middleware::authentication::request::AuthenticationErrorKind::StoreError
 pub(crate) async fn resolve_user_actor<R>(
     actor_resolver: &R,
     actor_id: ActorEntityUuid,
@@ -107,7 +107,7 @@ where
     match resolve_actor(actor_resolver, actor_id).await? {
         ActorId::User(user_id) => Ok(user_id),
         ActorId::Machine(_) | ActorId::Ai(_) => {
-            Err(Report::new(AuthenticationError::NotAUser { actor_id }))
+            Err(Report::new(AuthenticationError::not_a_user(actor_id)))
         }
     }
 }

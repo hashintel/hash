@@ -27,20 +27,20 @@
 //! limiter — requests traverse them in that order — with the tracing layer on the outside:
 //!
 //! ```
-//! use core::{num::NonZeroU32, ops::ControlFlow};
+//! use core::{marker::PhantomData, num::NonZeroU32, ops::ControlFlow};
 //! use std::sync::Arc;
 //!
-//! use axum::{Router, middleware, routing::get};
+//! use axum::{Router, routing::get};
 //! use error_stack::Report;
 //! use hash_middleware::{
 //!     authentication::{
-//!         AuthenticatedActorId, AuthenticationMetrics, authentication_middleware,
+//!         AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics,
 //!         provider::{AuthenticationProvider, Caller},
 //!         request::AuthenticationError,
 //!     },
 //!     rate_limit::{
-//!         ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters, ip_gate_middleware,
-//!         principal_limit_middleware,
+//!         ClientIpSource, IpGateLayer, PrincipalLimitLayer, RateLimitConfig, RateLimitMode,
+//!         RateLimiters,
 //!     },
 //!     telemetry::HttpTracingLayer,
 //! };
@@ -82,43 +82,25 @@
 //!     &meter,
 //! );
 //!
-//! let provider = Arc::new(Verifier);
 //! let service_secret: Arc<str> = Arc::from("service-secret");
-//! let auth_secret = Arc::clone(&service_secret);
-//! let auth_metrics = Arc::new(AuthenticationMetrics::new(&meter));
-//! let principal_limiters = Arc::clone(&limiters);
-//! let principal_secret = Arc::clone(&service_secret);
-//! let gate_limiters = Arc::clone(&limiters);
-//! let gate_secret = Arc::clone(&service_secret);
 //!
 //! let router: Router = Router::new()
 //!     .route("/whoami", get(whoami))
-//!     .route_layer(middleware::from_fn(move |request, next| {
-//!         principal_limit_middleware(
-//!             Arc::clone(&principal_limiters),
-//!             Arc::clone(&principal_secret),
-//!             request,
-//!             next,
-//!         )
-//!     }))
-//!     .route_layer(middleware::from_fn(move |request, next| {
-//!         authentication_middleware::<_, ActorId>(
-//!             Arc::clone(&provider),
-//!             Arc::clone(&auth_secret),
-//!             Arc::clone(&auth_metrics),
-//!             |_path| false,
-//!             request,
-//!             next,
-//!         )
-//!     }))
-//!     .layer(middleware::from_fn(move |request, next| {
-//!         ip_gate_middleware(
-//!             Arc::clone(&gate_limiters),
-//!             Arc::clone(&gate_secret),
-//!             request,
-//!             next,
-//!         )
-//!     }))
+//!     .route_layer(PrincipalLimitLayer {
+//!         limiters: Arc::clone(&limiters),
+//!         service_secret: Arc::clone(&service_secret),
+//!     })
+//!     .route_layer(AuthenticationLayer::<_, ActorId> {
+//!         provider: Arc::new(Verifier),
+//!         service_secret: Arc::clone(&service_secret),
+//!         metrics: Arc::new(AuthenticationMetrics::new(&meter)),
+//!         bootstrap_route: |_path| false,
+//!         caller: PhantomData,
+//!     })
+//!     .layer(IpGateLayer {
+//!         limiters,
+//!         service_secret,
+//!     })
 //!     .layer(HttpTracingLayer::new(|path| path == "/health"));
 //!
 //! // Serve the router with `into_make_service_with_connect_info::<SocketAddr>()`, so the gate
@@ -129,7 +111,7 @@
 //!
 //! # Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
-#![feature(impl_trait_in_assoc_type)]
+#![feature(impl_trait_in_assoc_type, generic_atomic)]
 #![cfg_attr(test, feature(variant_count))]
 
 extern crate alloc;

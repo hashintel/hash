@@ -4060,6 +4060,7 @@ dependencies = [
  "clap",
  "derive_more",
  "error-stack",
+ "futures",
  "governor",
  "http 1.4.2",
  "opentelemetry",

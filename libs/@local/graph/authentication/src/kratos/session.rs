@@ -44,7 +44,7 @@ fn extract_session_credential(
             token
                 .to_str()
                 .map(SessionCredential::Token)
-                .change_context(AuthenticationError::MalformedCredential),
+                .change_context(AuthenticationError::malformed_credential()),
         );
     }
 
@@ -160,13 +160,13 @@ where
         let response = request
             .send()
             .await
-            .change_context(AuthenticationError::ProviderUnreachable)?;
+            .change_context(AuthenticationError::provider_unreachable())?;
 
         // Kratos answers an unknown or expired session with 401 or 403, which is a credential
         // failure rather than a provider fault.
         let status = response.status();
         if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
-            return Err(Report::new(AuthenticationError::InvalidSession)
+            return Err(Report::new(AuthenticationError::invalid_session())
                 .attach(provider_response(status, response.text().await)));
         }
 
@@ -175,11 +175,11 @@ where
         // bodies that do get attached, here and in `read_response_body`, are Kratos error
         // responses without identity data.
         let whoami: WhoamiResponse = serde_json::from_str(&body)
-            .change_context(AuthenticationError::InvalidProviderResponse)?;
+            .change_context(AuthenticationError::invalid_provider_response())?;
 
         // The schema does not require `active`, so only an explicit `true` passes.
         if whoami.active != Some(true) {
-            return Err(Report::new(AuthenticationError::InvalidSession)
+            return Err(Report::new(AuthenticationError::invalid_session())
                 .attach(format!("whoami reported active = {:?}", whoami.active)));
         }
 
@@ -188,9 +188,9 @@ where
             .metadata_public
             .and_then(|metadata| metadata.graph_actor_id)
         else {
-            return Err(Report::new(AuthenticationError::NotProvisioned {
-                identity_id: whoami.identity.id,
-            }));
+            return Err(Report::new(AuthenticationError::not_provisioned(
+                whoami.identity.id,
+            )));
         };
         Ok(ActorEntityUuid::new(actor_uuid))
     }
@@ -227,13 +227,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use core::{ops::ControlFlow, time::Duration};
+    use core::{assert_matches, ops::ControlFlow, time::Duration};
     use std::collections::HashMap;
 
     use axum::{Json, Router, response::IntoResponse as _, routing::get};
     use hash_middleware::authentication::{
         provider::{AuthenticationProvider as _, expect_rejection},
-        request::{ACTOR_ID_HEADER, AuthenticationError},
+        request::{ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind},
         service_secret::SERVICE_AUTH_SCHEME,
     };
     use http::{HeaderMap, HeaderValue, StatusCode};
@@ -417,11 +417,9 @@ mod tests {
         );
 
         let report = expect_rejection::<ActorId>(provider.authenticate(&headers).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::MalformedCredential
-            ),
+        assert_matches!(
+            report.current_context().kind,
+            AuthenticationErrorKind::MalformedCredential,
             "a non-ASCII session token should be rejected as malformed, not ignored"
         );
     }
@@ -441,27 +439,27 @@ mod tests {
     #[case::unprovisioned_identity(
         FakeSession::unprovisioned(),
         HashMap::new(),
-        |error: &AuthenticationError| matches!(error, AuthenticationError::NotProvisioned { .. })
+        |error: &AuthenticationError| matches!(error.kind, AuthenticationErrorKind::NotProvisioned { .. })
     )]
     #[case::unknown_actor(
         FakeSession::active_for(case_actor()),
         HashMap::new(),
-        |error: &AuthenticationError| matches!(error, AuthenticationError::ActorNotFound { .. })
+        |error: &AuthenticationError| matches!(error.kind, AuthenticationErrorKind::ActorNotFound { .. })
     )]
     #[case::machine_actor(
         FakeSession::active_for(case_actor()),
         HashMap::from([(case_actor(), ActorId::Machine(MachineId::new(case_actor())))]),
-        |error: &AuthenticationError| matches!(error, AuthenticationError::NotAUser { .. })
+        |error: &AuthenticationError| matches!(error.kind, AuthenticationErrorKind::NotAUser { .. })
     )]
     #[case::inactive_session(
         FakeSession::inactive_for(case_actor()),
         known_user(case_actor()),
-        |error: &AuthenticationError| matches!(error, AuthenticationError::InvalidSession)
+        |error: &AuthenticationError| matches!(error.kind, AuthenticationErrorKind::InvalidSession)
     )]
     #[case::session_without_active_flag(
         FakeSession::without_active_flag(case_actor()),
         known_user(case_actor()),
-        |error: &AuthenticationError| matches!(error, AuthenticationError::InvalidSession)
+        |error: &AuthenticationError| matches!(error.kind, AuthenticationErrorKind::InvalidSession)
     )]
     #[tokio::test]
     async fn invalid_session_fails_authentication(
@@ -530,11 +528,9 @@ mod tests {
 
         let report =
             expect_rejection::<ActorId>(provider.authenticate(&session_token_header()).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidSession
-            ),
+        assert_matches!(
+            report.current_context().kind,
+            AuthenticationErrorKind::InvalidSession,
             "a forbidden session should fail as an invalid session, not as provider unavailability"
         );
     }
@@ -545,11 +541,9 @@ mod tests {
 
         let report =
             expect_rejection::<ActorId>(provider.authenticate(&session_token_header()).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::ProviderUnreachable
-            ),
+        assert_matches!(
+            report.current_context().kind,
+            AuthenticationErrorKind::ProviderUnreachable,
             "a redirecting provider should fail verification instead of being followed"
         );
     }
@@ -564,11 +558,9 @@ mod tests {
 
         let report =
             expect_rejection::<ActorId>(provider.authenticate(&session_token_header()).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::ProviderRejection
-            ),
+        assert_matches!(
+            report.current_context().kind,
+            AuthenticationErrorKind::ProviderRejection,
             "a rate-limited provider should fail as a provider rejection, not as an invalid \
              session"
         );
@@ -594,11 +586,9 @@ mod tests {
 
         let report =
             expect_rejection::<ActorId>(provider.authenticate(&session_token_header()).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::ProviderUnreachable
-            ),
+        assert_matches!(
+            report.current_context().kind,
+            AuthenticationErrorKind::ProviderUnreachable,
             "a provider exceeding the HTTP timeout should fail as provider unavailability"
         );
     }
@@ -610,11 +600,9 @@ mod tests {
 
         let report =
             expect_rejection::<ActorId>(provider.authenticate(&session_token_header()).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidProviderResponse
-            ),
+        assert_matches!(
+            report.current_context().kind,
+            AuthenticationErrorKind::InvalidProviderResponse,
             "an undeserializable whoami response should fail as an invalid provider response"
         );
         assert!(
@@ -656,11 +644,9 @@ mod tests {
 
         let report = expect_rejection::<ActorId>(chain.authenticate(&headers).await);
 
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidSession
-            ),
+        assert_matches!(
+            report.current_context().kind,
+            AuthenticationErrorKind::InvalidSession,
             "an invalid session should reject even when a valid delegation pair is present"
         );
     }
