@@ -28,7 +28,10 @@ eight times), runs one batch of `cells × 8` runs, and folds the per-run
 metric values back into per-cell means. One batch setup per chunk replaces
 one per cell — batch setup, not compute, dominated a cell's wall time, which
 is why the earlier design needed four concurrent per-cell lanes to fill an
-11×11 surface in ~4 s.
+11×11 surface in ~4 s. Cells do not wait for the whole chunk either: CPU
+workers report per-run values as each shard completes, so a sharded chunk
+streams its cells in slices (`sampleCells`'s partial listener), and the
+per-cell fallback reports each resolved cell the same way.
 
 The navigator's own selection outranks all of this. Every chunk dispatch
 awaits `session.whenSelectionStreamed()` — a gate that opens once the

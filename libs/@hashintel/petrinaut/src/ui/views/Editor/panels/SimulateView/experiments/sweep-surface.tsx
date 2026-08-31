@@ -202,10 +202,35 @@ export const SweepSurface = ({
         return position;
       });
 
+      const mergeCells = (
+        cells: readonly (Readonly<Record<string, number>> | null)[],
+      ) => {
+        setGrid((previous) => {
+          if (previous.walkKey !== walkKey) {
+            return previous;
+          }
+          const next = new Map(previous.values);
+          for (const [index, values] of cells.entries()) {
+            const cell = chunk[index];
+            if (cell && values) {
+              next.set(contourSurfaceKey(cell.x, cell.y), values);
+            }
+          }
+          return { walkKey: previous.walkKey, values: next };
+        });
+      };
+
       const cells = await sampleSurfaceCells(
         experimentId,
         positions,
         SURFACE_CELL_RUNS,
+        // Cells paint as each shard (or fallback cell) completes, instead of
+        // waiting for the whole chunk.
+        (partialCells) => {
+          if (!isWalkStale()) {
+            mergeCells(partialCells);
+          }
+        },
       );
       // A refused chunk is a hole in the surface, not the end of the fill —
       // later chunks may still land (a disposed session keeps refusing
@@ -213,19 +238,7 @@ export const SweepSurface = ({
       if (isWalkStale() || !cells) {
         return;
       }
-      setGrid((previous) => {
-        if (previous.walkKey !== walkKey) {
-          return previous;
-        }
-        const next = new Map(previous.values);
-        for (const [index, values] of cells.entries()) {
-          const cell = chunk[index];
-          if (cell && values) {
-            next.set(contourSurfaceKey(cell.x, cell.y), values);
-          }
-        }
-        return { walkKey: previous.walkKey, values: next };
-      });
+      mergeCells(cells);
     };
 
     // Parallel lanes pulling from one queue: chunks stream back roughly in
