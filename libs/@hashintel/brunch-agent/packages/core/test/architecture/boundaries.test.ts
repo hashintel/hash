@@ -492,6 +492,12 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
       "Types Flue conversation-stream chunks so the AI SDK projector can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
     "apps/brunch-agent/test/petrinaut-chat.integration.ts":
       "Boots the plain Flue chat agent on Flue's node runtime with pi-ai's faux provider, drives the committed /api/chat door over app.fetch, and proves streamed reasoning/text, one server tool, one stub skill activation, one read-only client-tool resume, GET history ownership, SQLite restart, and harness-side idempotent apply-sweep into a capture store keyed by Flue conversation identity — no provider key, no socket, no extraction model call. Run as a child process by petrinaut-chat.test.ts.",
+    "apps/brunch-agent/test/runbook-artifacts.test.ts":
+      "Types Flue's public conversation snapshot so runbook artifact recovery can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
+    "apps/brunch-agent/test/runbook-elicitation-faux-provider.ts":
+      "Defines the scripted pi-ai faux provider loaded only by the hermetic prospective-runner test — no provider key, no socket, and no network model call.",
+    "apps/brunch-agent/test/runbook-headless.integration.ts":
+      "Boots the built Flue ChatAgent with pi-ai's faux provider and a headless Petrinaut client to prove validated construct-only tool flow without a provider key, socket, or network model call.",
     "apps/brunch-agent/test/turn-timing.test.ts":
       "Types recorded Flue observations and model requests so the condition-5 purpose splitter can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
   };
