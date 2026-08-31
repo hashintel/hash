@@ -21,10 +21,10 @@ import { createFlueClient } from "@flue/sdk";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "./conversation-identity.ts";
-import { formatFlueTranscript } from "./flue-transcript.ts";
+} from "./conversation/identity.ts";
+import { formatFlueTranscript } from "./conversation/transcript.ts";
+import { CHAT_AGENT_ROUTE } from "./http/routes.ts";
 import { loadBuiltBrunchApplication } from "./load-built-application.ts";
-import { CHAT_AGENT_ROUTE } from "./routes.ts";
 import {
   interviewerToolNamesFrom,
   recoverRunbookIr,

@@ -6,7 +6,7 @@ import {
   BRUNCH_CONVERSATION_HEADER,
   BRUNCH_PRINCIPAL_HEADER,
   identityPayload,
-} from "./conversation-payload.ts";
+} from "./payload.ts";
 
 import type { ConversationIdentity } from "@hashintel/brunch-agent-transport-aisdk";
 
@@ -14,7 +14,7 @@ export {
   BRUNCH_CONVERSATION_HEADER,
   BRUNCH_PRINCIPAL_HEADER,
   LOCAL_UI_PRINCIPAL,
-} from "./conversation-payload.ts";
+} from "./payload.ts";
 export type { ConversationIdentity };
 
 export const flueConversationId = (

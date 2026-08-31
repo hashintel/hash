@@ -2,7 +2,7 @@
 
 import { type ConversationStreamChunk } from "@flue/sdk";
 
-import { providerExecutedFor } from "./client-tool.ts";
+import { providerExecutedFor } from "./client-tools.ts";
 
 import type { UIMessageChunk } from "ai";
 

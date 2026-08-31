@@ -11,15 +11,18 @@ import {
   type TransportInspectionEvent,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { ChatAgent } from "./agents/chat-agent/agent.ts";
-import { clientToolNames, CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool.ts";
+import { ChatAgent } from "../agents/chat-agent/agent.ts";
+import {
+  clientToolNames,
+  CLIENT_TOOL_RESULT_SIGNAL,
+} from "../conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "./conversation-identity.ts";
-import { snapshotToUiMessages } from "./flue-transcript.ts";
-import { createFlueUiStream } from "./flue-ui-stream.ts";
-import { defaultPanelOrigins } from "./local-dev-origins.ts";
+} from "../conversation/identity.ts";
+import { snapshotToUiMessages } from "../conversation/transcript.ts";
+import { createFlueUiStream } from "../conversation/ui-stream.ts";
+import { defaultPanelOrigins } from "./local-origins.ts";
 import { CHAT_AGENT_ROUTE } from "./routes.ts";
 
 import type { UIMessageChunk } from "ai";
@@ -32,7 +35,7 @@ const inspect =
     : undefined;
 
 const appTransport: typeof fetch = async (input, init) => {
-  const { default: app } = await import("./app.ts");
+  const { default: app } = await import("../app.ts");
   return app.fetch(input instanceof Request ? input : new Request(input, init));
 };
 

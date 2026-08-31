@@ -1,6 +1,6 @@
 /** Browser-safe instance-id hash; must match `flueConversationId` byte-for-byte. */
 
-import { hexFromDigest, identityPayload } from "./conversation-payload.ts";
+import { hexFromDigest, identityPayload } from "./payload.ts";
 
 export const flueConversationIdWeb = async (
   principalKey: string,

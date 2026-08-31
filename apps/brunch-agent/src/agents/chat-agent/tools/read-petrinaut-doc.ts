@@ -6,7 +6,7 @@ import {
   readPetrinautDocToolName,
 } from "@hashintel/petrinaut-core/ai";
 
-import { AWAITING_CLIENT } from "../../../client-tool.ts";
+import { AWAITING_CLIENT } from "../../../conversation/client-tools.ts";
 
 export const READ_PETRINAUT_DOC_TOOL_NAME = readPetrinautDocToolName;
 

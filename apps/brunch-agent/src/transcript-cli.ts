@@ -15,10 +15,10 @@ import { createFlueClient } from "@flue/sdk";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "./conversation-identity.ts";
-import { formatFlueTranscript } from "./flue-transcript.ts";
-import { defaultChatOrigin } from "./local-dev-origins.ts";
-import { CHAT_AGENT_ROUTE } from "./routes.ts";
+} from "./conversation/identity.ts";
+import { formatFlueTranscript } from "./conversation/transcript.ts";
+import { defaultChatOrigin } from "./http/local-origins.ts";
+import { CHAT_AGENT_ROUTE } from "./http/routes.ts";
 
 const readFlag = (
   argv: readonly string[],

@@ -2,8 +2,8 @@
 
 import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 
-import { ownsFlueInstance } from "./conversation-identity.ts";
-import { BRUNCH_CONVERSATION_HEADER } from "./conversation-payload.ts";
+import { ownsFlueInstance } from "../conversation/identity.ts";
+import { BRUNCH_CONVERSATION_HEADER } from "../conversation/payload.ts";
 
 import type { MiddlewareHandler } from "hono";
 

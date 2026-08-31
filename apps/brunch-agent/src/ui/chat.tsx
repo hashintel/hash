@@ -6,13 +6,13 @@ import {
 } from "@flue/sdk";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
-import { flueConversationIdWeb } from "../conversation-identity-web.ts";
+import { flueConversationIdWeb } from "../conversation/identity-web.ts";
 import {
   BRUNCH_CONVERSATION_HEADER,
   BRUNCH_PRINCIPAL_HEADER,
   LOCAL_UI_PRINCIPAL,
-} from "../conversation-payload.ts";
-import { CHAT_AGENT_ROUTE } from "../routes.ts";
+} from "../conversation/payload.ts";
+import { CHAT_AGENT_ROUTE } from "../http/routes.ts";
 
 function VisibleMessage({ message }: { message: FlueConversationMessage }) {
   if (

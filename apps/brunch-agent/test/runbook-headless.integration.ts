@@ -16,17 +16,17 @@ import { VALIDATED_CONSTRUCTION_MODE } from "../src/agents/chat-agent/tools/petr
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isAwaitingClient,
-} from "../src/client-tool.ts";
+} from "../src/conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../src/conversation-identity.ts";
+} from "../src/conversation/identity.ts";
 import {
   createHeadlessPetrinautClient,
   isPetrinautConstructionToolName,
 } from "../src/headless-petrinaut-client.ts";
+import { CHAT_AGENT_ROUTE } from "../src/http/routes.ts";
 import { loadBuiltBrunchApplication } from "../src/load-built-application.ts";
-import { CHAT_AGENT_ROUTE } from "../src/routes.ts";
 import {
   interviewerToolNamesFrom,
   skillResourcePathsFrom,

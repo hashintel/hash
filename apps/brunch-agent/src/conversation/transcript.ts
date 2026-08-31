@@ -10,7 +10,7 @@ import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isAwaitingClient,
   providerExecutedFor,
-} from "./client-tool.ts";
+} from "./client-tools.ts";
 
 type UiMessagePart =
   | { readonly type: "text"; readonly text: string; readonly state: "done" }

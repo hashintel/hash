@@ -3,7 +3,7 @@ import * as v from "valibot";
 
 import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 
-import { AWAITING_CLIENT } from "../../../client-tool.ts";
+import { AWAITING_CLIENT } from "../../../conversation/client-tools.ts";
 
 export const VALIDATED_CONSTRUCTION_MODE = "validated-construction";
 

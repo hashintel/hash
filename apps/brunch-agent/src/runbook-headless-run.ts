@@ -17,19 +17,22 @@ import { observe } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 
 import { VALIDATED_CONSTRUCTION_MODE } from "./agents/chat-agent/tools/petrinaut-construction.ts";
-import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tool.ts";
+import {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  isAwaitingClient,
+} from "./conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "./conversation-identity.ts";
+} from "./conversation/identity.ts";
 import {
   createHeadlessPetrinautClient,
   isPetrinautConstructionToolName,
   type HeadlessPetrinautToolCall,
   type HeadlessPetrinautToolResult,
 } from "./headless-petrinaut-client.ts";
+import { CHAT_AGENT_ROUTE } from "./http/routes.ts";
 import { loadBuiltBrunchApplication } from "./load-built-application.ts";
-import { CHAT_AGENT_ROUTE } from "./routes.ts";
 import {
   interviewerToolNamesFrom,
   skillResourcePathsFrom,
@@ -321,9 +324,9 @@ try {
       totalTokens: totalFrom(turnUsage.map((turn) => turn.totalTokens)),
       cost: totalFrom(turnUsage.map((turn) => turn.cost)),
     },
-    transcript: (await import("./flue-transcript.ts")).formatFlueTranscript(
-      snapshot,
-    ),
+    transcript: (
+      await import("./conversation/transcript.ts")
+    ).formatFlueTranscript(snapshot),
   };
 
   const artifactBase = `${outputDirectory}/${conversationId}`;

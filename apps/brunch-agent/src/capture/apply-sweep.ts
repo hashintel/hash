@@ -15,9 +15,9 @@ import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
   type ConversationIdentity,
-} from "./conversation-identity.ts";
-import { captureStorePath } from "./db-path.ts";
-import { CHAT_AGENT_ROUTE } from "./routes.ts";
+} from "../conversation/identity.ts";
+import { captureStorePath } from "../db-path.ts";
+import { CHAT_AGENT_ROUTE } from "../http/routes.ts";
 
 export interface CaptureSweepCapture {
   readonly id: string;
@@ -35,7 +35,7 @@ const conversationUrl = (instanceId: string): string =>
   `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`;
 
 const sourceAppTransport: typeof fetch = async (input, init) => {
-  const { default: app } = await import("./app.ts");
+  const { default: app } = await import("../app.ts");
   return app.fetch(input instanceof Request ? input : new Request(input, init));
 };
 
