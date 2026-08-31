@@ -2,19 +2,14 @@ Self-contained canonical capture repository for upcoming missions: what we curre
 
 Plausible future missions are the ordered `# Mission N — …` headings. Imperative, Throughline, Proof, and Status wait until a cluster is cut into `MISSION.md`. Constraints, fog, and stop lines appear where prior discussion already earned them. Spikes, standing locks, out-of-scope decisions, and a live mission's leftovers get unnumbered headings — they are not fake missions. Update this file while planning context is active; it must carry full capture fidelity without relying on a transcript. When cutting or regrouping, compare this draft before and after: every item must either move into the live mission or remain here at the same fidelity.
 
-Live Mission 3 is the runbook / Markdown workpiece / headless construction experiment. Archived Mission 2 is the mechanical capture pipe. The owner has accepted a split close posture: Mission 3's real Flue runbook and elicitation-to-workpiece leg worked technically, while its real-model construction leg failed at the provider-schema boundary. Mission 3 closes after the frozen prospective campaign supplies its three runs, independent grader reports, and human adjudication; those results establish the control rather than retroactively changing the mission's construction result.
+Archived Mission 2 is the mechanical capture pipe. Mission 3 is closed with a split result: the real Flue runbook and elicitation-to-workpiece path is the accepted control, while real-model semantic construction failed at the provider-schema boundary. Its frozen prospective campaign contains one invalid runtime member and two valid independently graded members; the campaign adjudication is the comparison input, not permission to rewrite observed artifacts.
 
-The prospective campaign and the next mission may proceed in parallel because the baseline instrument is frozen and clean. The redesign must not modify the control files or consume partial campaign output as if it were a completed baseline. Do not leave two live missions on one branch: Mission 3 remains authority in its current worktree; a concurrently launched successor needs its own issue, branch/worktree, and `MISSION.md`.
-
-The Mission 4–7 numbering below is **proposed successor numbering**. Live `MISSION.md` still deposits host continuity under the old Mission 4 label, typed map/read-write under Mission 5, and capture improvement under Mission 6. The proposed spine regroups those concerns around owner-led runbook redesign and FE-1476; until missions are cut, the old labels remain aliases rather than a second execution plan.
+Live Mission 4 is the owner-led runbook/workpiece redesign in [`MISSION.md`](MISSION.md), tracked by FE-1563. Do not implement another numbered cluster on this branch. The detailed Mission 5–7 clusters below are provisional based on current evidence; Mission 4's manual redesign may alter their workpiece assumptions and join contracts before they are cut.
 
 ```text
-M1 chat (done)    M2 mechanical capture (archived)    M3 runbook/workpiece (closing)
-                                                            ├─ frozen prospective control
-                                                            └─ independent grading + adjudication
-
-Parallel successor
-M4 owner-led, research-informed runbook/workpiece redesign → versioned variant evidence
+M1 chat (done)    M2 mechanical capture (archived)    M3 runbook/workpiece (closed)
+                                                            └─ frozen prospective control
+M4 owner-led, research-informed runbook/workpiece redesign (live)
                                                             ↓ informs the prepared artifact and seam
 FE-1476 delivery spine
 ├─ M5 traceable prebuilt workpiece → live SDCPN → provenance answer       beats 1–3
@@ -213,66 +208,6 @@ Useful measurements remain support coverage, synthesis fan-in, capture utility, 
 
 The former recommendation was production independence plus offline shadow mapping. FE-1476 supersedes independence only as a sufficient **delivery posture**, because visible provenance and revision are now owner-required. It does not prove a capture-store fold, one-artifact merger, live in-loop support linker, or comprehensive statement-identity system. The observer and derivation-record tracks are the smallest new probes against that changed obligation.
 
-# Mission 4 — owner-led runbook and workpiece redesign
-
-Mission 3 proved that the runbook approach technically works, not that its authored guidance or Markdown workpiece is optimal. The next mission is a design-and-evidence mission led step by step with the owner: use the completed research synthesis, historical artifacts, and frozen prospective control to manually reshape how the runbook elicits, organizes, qualifies, and presents operational knowledge. The owner expects the act of remodeling to expose edge cases and modelling assumptions that an autonomous rewrite would miss.
-
-This mission may start while Mission 3's baseline campaign runs because it begins from already-frozen inputs and does not mutate the control. Comparison claims wait for the completed baseline and adjudication. The mission should record each consequential redesign choice before implementing it, inspect the affected resource in context, make the smallest coherent edit, and walk concrete and adversarial examples through the changed shape before moving on. It is not a one-shot agent-generated replacement.
-
-The candidate throughline is:
-
-```text
-research synthesis + historical workpieces + current authored resources
-→ owner/agent inspect one observed strain or edge case
-→ agree the local obligation and smallest structural or teaching change
-→ manually revise the runbook/workpiece package
-→ walk known and owner-supplied cases through the revision
-→ freeze a versioned candidate instrument
-→ run a prospective candidate campaign
-→ compare against the frozen Mission 3 control with the same ruler
-```
-
-The likely edit surface is the existing one-skill package—`SKILL.md`, `elicitation.md`, `ir-template.md`, and only the construction/check material whose phase ownership is directly implicated. The current structural-typing specification may also need revision if an observed design decision contradicts it. The mission does not presume assertion cards, an observer, a graph, or a new runtime.
-
-Candidate evidence obligations:
-
-- The owner can review and explain each consequential change and the edge case or observed strain it answers.
-- The revised package remains one real Flue skill with progressive disclosure and keeps ordinary elicitation in operational rather than PN/schema vocabulary.
-- The workpiece gives one authoritative home to evidence, agent inference, assumptions with reason/how-to-check, unresolved or declined material, conflicts/corrections, and construction-opened losses without turning headings into an opening questionnaire.
-- Concrete and adversarial walkthroughs cover at least opening overload, policy versus practice, contextual quantities, scarce-resource reservation/release, hidden waiting, directional loss, correction versus contextual coexistence, and genuine unknown versus not-yet-asked.
-- A versioned prospective candidate run produces a recoverable inspectable workpiece through the production Flue door. The frozen ruler and independent cold/omniscient review identify gains, regressions, and remaining uncertainty relative to Mission 3's baseline.
-- The result is suitable for preparing FE-1476's prebuilt artifact, but projection success is not fabricated as a redesign result.
-
-## Constraints already earned
-
-- Keep the prospective baseline files, prompts, case, ruler, and committed instrument immutable. Candidate runs write to a new versioned campaign and record their own manifest.
-- Treat research as evidence and prompts for judgment, not a specification to implement wholesale. Shared-source repetition is not independent corroboration.
-- The owner leads semantic and editorial decisions. The agent may present alternatives, trace consequences, edit accepted choices, and run probes; it must not silently decide the final runbook shape.
-- Prefer subtraction, relocation, and clearer authority before adding more catalogs. Existing duplication and vague guidance are part of the observed strain.
-- Keep universal elicitation, SDCPN investigation, workpiece structure, and PN construction distinct enough that one can change without turning every question into a schema slot.
-- Do not add a comprehensive ontology, closed claim kinds, typed completion algebra, plugin runtime, observer fold, projection engine, or capture-store join to make the redesign feel rigorous.
-- Preserve exact expert evidence and honest authorship. A normalized summary, agent assumption, unasked item, and explicit user unknown must not collapse into one label.
-- Do not tune only to Vestera. Owner-supplied counterexamples may be used as walkthroughs, but reusable guidance must remain scenario-neutral.
-
-## Fog-line
-
-- Whether the best first change is primarily teaching order/dosage, workpiece structure, authorship/epistemic treatment, or a smaller combination. Decide one strain at a time rather than replacing the package wholesale.
-- Whether the current broad headings survive, collapse into a case/process spine plus ledger, or become objective slices with supporting cases. Versioned assertion clusters remain a later possibility, not the redesign default.
-- Whether batching guidance belongs in always-on routing, the skill body, or elicitation resources. The baseline must first show whether historical opening overload replicates.
-- How much construction language should move out of elicitation and whether `Projection losses` should be opened only during construction.
-- How to represent correction, contextual coexistence, declined/deferred material, and directional/context-dependent values without requiring per-statement semantic typing.
-- The smallest candidate campaign that can reveal regression without pretending one scenario establishes universal superiority. Pin this after the redesigned instrument and baseline variance are visible.
-- Which manually discovered edges belong in reusable guidance, a grader/probe catalog, the workpiece shape, or only mission evidence.
-
-## Stop or reorient
-
-- Stop if the redesign begins editing the frozen baseline instrument or grading prompts.
-- Stop if the agent produces a wholesale replacement before the owner has worked through the consequential choices.
-- Stop if headings or typologies become a scripted intake form or dictate the interview's opening order.
-- Stop if uncertainty is handled by inventing more mandatory fields rather than preserving it honestly.
-- Stop if construction, provenance, observer scheduling, or live net mutation expands into this mission merely because later missions need them.
-- Stop if a candidate is called better from fluency, parser shape, or one favorable anecdote without the frozen comparison ruler and explicit regressions.
-
 # Mission 5 — traceable projection through the real panel
 
 The first unproven boundary is not a complete requirements graph. It is one evidence-backed workpiece item becoming one semantically meaningful live-net region whose provenance a reviewer can inspect through the production panel.
@@ -393,7 +328,7 @@ These tracks can begin before the numbered mission that may consume them. Produc
 
 | Track | Can start from | Produces | Join gate | Does not block |
 | --- | --- | --- | --- | --- |
-| Frozen prospective baseline | Current committed runner and instrument | Three runs, independent grader reports, human adjudication | Mission 4 may begin manual decisions in parallel; reconcile before freezing or claiming improvement of the candidate instrument | Mission 5's projection tracer |
+| Frozen prospective baseline | Completed Mission 3 control: one invalid runtime member and two valid graded members | Immutable artifacts plus campaign adjudication | Mission 4 consumes the observed range before freezing or claiming improvement of its candidate instrument | Mission 5's projection tracer |
 | Inferential observer fold | Fixed historical transcript and expected source excerpts | Evidence-backed consolidated revisions plus latency/failure observations | Decision report before Mission 6: admit observer-derived state only if evidence preservation, ordering, latency, and flush behavior pass; otherwise select foreground phase-boundary synthesis or reorient | Missions 4–5; Mission 6 is informed by this spike but does not require it to succeed |
 | Provider-visible schema path | Existing failed paid run, canonical Petrinaut Zod schemas, live client-tool route | One real-model canonical nested tool call or a crisp upstream blocker | A successful canonical call admits Mission 5 construction; a crisp upstream blocker triggers Mission 5 stop/reorientation and does not count as satisfying the join | Baseline and Mission 4 redesign |
 | Provenance interaction fixture | Fixed workpiece item and a tiny versioned derivation-record fixture | Reviewer-visible “why?” interaction | Freeze the smallest fixture contract before Mission 5 projection and UI branches diverge; both must consume that exact version | Provider/model construction while fixtures are used honestly |
@@ -545,20 +480,20 @@ This can run as a parallel feasibility track. Promote it into FE-1476 acceptance
 
 Undecided. It is the converse of the current door—resume a harness session by chat id. Flue already owns that session; `transport-aisdk` is the UI adapter. A Pi / Claude Code harness would be another substrate, which `binding-flue` isolates, or a Flue replacement. It is not the watch-sims surface and not part of FE-1476 without new evidence.
 
-# Live-mission leftovers and close inputs
+# Mission 3 close record and carried inputs
 
-Live Mission 3 locked one off-canvas PN JSON result, Petrinaut validation, manual load as sufficient inspection, and no canvas tools. Its completed evidence and residual failures must be recorded before the next mission is cut.
+Mission 3 locked one off-canvas PN JSON result, Petrinaut validation, manual load as sufficient inspection, and no canvas tools. It closed with the runbook/workpiece path accepted and real-model semantic construction false on the exercised route.
 
 - The runbook skill packages and discloses universal elicitation, the Markdown workpiece, PN construction, and checks through the production Flue agent.
-- Two historical real runs produced useful workpieces but are calibration only. The frozen prospective three-run campaign is ready and remains a parallel evidence track.
-- Opening overload of 4–10 numbered questions appeared in both historical runs. The system/resource placement question remains unresolved; do not edit teaching before the frozen baseline if doing so would invalidate that baseline.
+- Two historical real runs remain calibration only. The frozen prospective campaign contains one invalid runtime member and two valid independently graded workpieces; its authoritative range and dispositions are in `docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md`.
+- Opening overload of 4–10 numbered questions appeared in both historical runs but did not recur in either valid prospective member. The system/resource placement question remains unresolved; do not turn either observation into a universal rule.
 - One-shot construction ran 162–271 seconds, a distinct budget from healthy 5–23 second teaching turns.
 - The validated construction side quest proved packaging, canonical callback validation, and a hermetic non-empty net. Its construct-only agent mounted exactly `getLatestNetDefinition`, `addType`, `addParameter`, `addPlace`, `addTransition`, and `addArc` through immutable Flue `initialData`; those tools remained absent from ordinary panel conversations. The one paid real-model run failed because provider-visible schemas erased nested shape: nine `addType.elements` calls encoded the array as a string. Parser acceptance of the resulting empty document was vacuous.
 - Construction-discovered-gap return was unexercised. The agent delivered `partial-with-named-gaps` rather than asking the smallest next question.
 - Periodic PN generation, programmatic loading, and a validated live patch remain successor concerns; they are not retroactive Mission 3 success.
 - The six `Transform to PN` children still reside under elicitation despite construction owning that knowledge. Move them only in a teaching variant or mission that can observe the effect.
 
-The close decision should distinguish “runbook/workpiece path accepted” from “real-model semantic construction false.” Do not rewrite Mission 3 as if all original proof items passed; equally, do not keep it live merely because its falsified construction route has now become Mission 5's first boundary.
+The close decision is “runbook/workpiece path accepted; real-model semantic construction false.” Do not rewrite Mission 3 as if all original proof items passed. Its falsified construction route is now Mission 5's first boundary.
 
 # Standing decisions
 
