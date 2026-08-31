@@ -5985,6 +5985,7 @@ dependencies = [
  "memchr",
  "memmap2",
  "moka",
+ "opentelemetry",
  "pin-project-lite",
  "proptest",
  "rancor",
