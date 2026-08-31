@@ -41,6 +41,7 @@ import {
   createInitialSweepState,
   decidePendingAffordance,
   decideSettlementTrigger,
+  deriveCaptureStatus,
   evaluateCompletion,
   foldElicitedModel,
   mintAskAffordance,
@@ -132,9 +133,7 @@ export function useElicitation(
     const report = evaluateCompletion(model, demands);
     const sweepList = buildSweepList(model, report, slotModel.patterns);
     return {
-      complete: report.complete,
-      revision: report.revision,
-      pluginVersion: report.pluginVersion,
+      ...report,
       unsatisfied: report.failures.length,
       unmapped: model.unmapped,
       cue: buildCompletionCueSignal(model, report, sweepList).body,
@@ -247,13 +246,16 @@ export function useElicitation(
         applied.snapshot,
         session.sessionId,
       );
+      const appliedCaptureIds =
+        "appliedCaptureIds" in applied.value
+          ? applied.value.appliedCaptureIds
+          : [];
+      const completion =
+        slotModel === undefined ? undefined : completionCue(applied.snapshot);
       return {
         output: {
           status: "applied" as const,
-          appliedCaptureIds:
-            "appliedCaptureIds" in applied.value
-              ? applied.value.appliedCaptureIds
-              : [],
+          appliedCaptureIds,
           skippedDedupKeys:
             "skippedDedupKeys" in applied.value
               ? applied.value.skippedDedupKeys
@@ -262,9 +264,12 @@ export function useElicitation(
             ...("advisories" in applied.value ? applied.value.advisories : []),
             ...computeUnaccountedAskAdvisories(range, accountedEntryIds),
           ],
-          ...(slotModel === undefined
-            ? {}
-            : { completion: completionCue(applied.snapshot) }),
+          captures: applied.snapshot.captures.map((capture) =>
+            Object.assign({}, capture, {
+              status: deriveCaptureStatus(applied.snapshot, capture.id),
+            }),
+          ),
+          ...(completion === undefined ? {} : { completion }),
         },
       };
     },
