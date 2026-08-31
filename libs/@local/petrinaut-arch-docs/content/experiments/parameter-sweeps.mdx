@@ -32,9 +32,15 @@ from the first frames and sharpens as runs land.
 
 Either kind climbs the ladder — 8, 25, 100, 500, 1000, then ×5/×2, capped by
 the run budget — in batches that fold into a cache keyed by the whole
-selection (a point is a degenerate range). A batch cancelled by a selection
-change is discarded whole; revisiting any earlier selection restores its runs
-and resumes from its cached rung.
+selection (a point is a degenerate range). The climb is **pipelined**: run
+ranges are disjoint and draws and seeds are prefix-stable in the run index,
+so as soon as a rung streams its first frames the next rung starts alongside
+it — at most two in flight, which hides each rung's setup and straggler tail
+without committing the whole ladder up front. Folds stay strictly ordered: a
+rung folds only after every earlier rung folded, and a rung cancelled by a
+selection change discards its started successor whole (a gap can never enter
+the cache). Revisiting any earlier selection restores its runs and resumes
+from its cached rung.
 
 Per-run parameter values travel as `ExperimentRequest.runPlan` — one
 run-major `Float64Array` plus the overridden names, uniform by construction.
