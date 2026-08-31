@@ -281,10 +281,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   reusableWorkerFactoryRef.current ??= createReusableWorkerFactory(
     () => workerFactoryRef.current(),
     {
-      // A sweep commit releases the sharded foreground batch and several
-      // background lanes at once; the pool must hold that working set or
-      // every commit terminates the overflow and respawns it a moment later.
-      maxIdle: (experimentShardCount ?? getDefaultMonteCarloShardCount()) + 8,
+      // A sweep commit releases the whole working set at once: TWO sharded
+      // foreground batches (the ladder pipelines its rungs) plus the surface
+      // lanes. The pool must hold that set or every commit terminates the
+      // overflow and respawns it a moment later.
+      maxIdle:
+        2 * (experimentShardCount ?? getDefaultMonteCarloShardCount()) + 8,
     },
   );
   const reusableWorkerFactory = reusableWorkerFactoryRef.current;
