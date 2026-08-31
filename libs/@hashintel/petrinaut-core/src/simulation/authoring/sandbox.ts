@@ -1,9 +1,11 @@
 /**
  * Shared hardening helpers for evaluating user-authored JavaScript with
- * `new Function`. The place visualizer (`compile-visualizer.ts` in the UI
- * package) is the only consumer: every other user-code surface — dynamics,
- * lambdas, kernels, metrics, and scenario code — compiles through the HIR
- * and never executes raw user text.
+ * `new Function`. Two consumers: the place visualizer
+ * (`compile-visualizer.ts` in the UI package) and the ad-hoc form's
+ * constant evaluation (`evaluateConstant` in `ad-hoc-scenario.ts`, for
+ * bounds, exposed defaults, and place totals). Every other user-code
+ * surface — dynamics, lambdas, kernels, metrics, and scenario code —
+ * compiles through the HIR and never executes raw user text.
  *
  * @layerRoot core.simulation.authoring
  * @role Compiles the code users write inside a net and hardens the surfaces that evaluate it as raw JavaScript
