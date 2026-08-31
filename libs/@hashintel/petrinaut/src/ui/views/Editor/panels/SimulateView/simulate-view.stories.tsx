@@ -59,11 +59,16 @@ const rootStyle = css({
   backgroundColor: "neutral.s00",
 });
 
+// Covers the story, so presses fall through to it — but the portalled
+// surfaces themselves are this layer's children and have to stay clickable.
 const portalContainerStyle = css({
   position: "absolute",
   inset: "[0]",
   zIndex: "modal",
   pointerEvents: "none",
+  "& > *": {
+    pointerEvents: "auto",
+  },
 });
 
 type StoryExample = {
