@@ -545,10 +545,7 @@ export class VoiceTurnController {
 
     if (!this.#isChatReady()) {
       this.#session.setMicrophoneEnabled(false);
-      if (
-        this.#snapshot.phase !== "transcribing" &&
-        this.#snapshot.phase !== "delivering"
-      ) {
+      if (this.#snapshot.phase !== "delivering") {
         this.#update({ phase: "waiting" });
       }
       return;
