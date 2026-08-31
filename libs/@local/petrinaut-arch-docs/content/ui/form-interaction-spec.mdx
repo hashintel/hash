@@ -99,7 +99,8 @@ two clicks of a double-click would break click-count activation (rule 3).
     started from.
 13. Section and place headers are single-element members: Up/Down move to
     the neighbouring member, Left collapses, Right expands. A collapsed
-    member fails entry and the walk skips it.
+    member fails entry and the walk skips it. A collapsed place mounts no
+    content — its tables mount on first expand and stay mounted after.
 14. Side-by-side layouts wrap each column in its own vertical `FocusStack`
     inside a horizontal one: vertical arrows stay within a column, and
     horizontal arrows at a table's sides cross into the neighbouring

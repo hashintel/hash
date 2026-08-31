@@ -72,7 +72,7 @@ const focusClearanceStyle = css({
 const placesListStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "3",
+  gap: "1.5",
 });
 
 export interface AdHocScenarioFormProps {

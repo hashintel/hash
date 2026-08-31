@@ -32,6 +32,8 @@ import type {
 } from "@hashintel/petrinaut-core";
 
 const blockStyle = css({
+  contentVisibility: "auto",
+  containIntrinsicSize: "[auto 200px]",
   display: "flex",
   flexDirection: "column",
   gap: "1.5",
@@ -120,6 +122,12 @@ const summaryStyle = css({
   whiteSpace: "nowrap",
 });
 
+// A place that actually holds tokens must be pickable out of the list at a
+// glance: its summary reads in full ink, empty places stay quiet.
+const summaryFilledStyle = css({
+  color: "neutral.s110",
+});
+
 // Collapse with pure CSS: the wrapper is a one-row grid whose track
 // animates 1fr -> 0fr; the inner clips. `inert` removes the collapsed
 // content from focus and the accessibility tree, so the keyboard walk
@@ -200,6 +208,27 @@ export interface ColouredPlaceBlockProps {
   state: AdHocColouredPlace;
 }
 
+/**
+ * The expanded body of a coloured place — split out so a collapsed place
+ * mounts none of it.
+ */
+const PlaceBlockContents: React.FC<ColouredPlaceBlockProps> = ({
+  place,
+  colour,
+  state,
+}) => {
+  return (
+    <>
+      <VariableRows
+        scopeLabel={`Variables of ${place.name}`}
+        placeId={place.id}
+        variables={state.variables}
+      />
+      <TokenTable place={place} colour={colour} state={state} />
+    </>
+  );
+};
+
 export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   place,
   colour,
@@ -209,6 +238,13 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
   // The dense embedding (quick simulation) starts places collapsed: the
   // panel reads as an overview, one line per place.
   const [collapsed, setCollapsed] = useState(dense);
+  // The tables mount on first expand and stay mounted after (the collapse
+  // animation needs live content), so a never-opened place costs one line
+  // of DOM instead of a whole spreadsheet.
+  const [everExpanded, setEverExpanded] = useState(!dense);
+  if (!collapsed && !everExpanded) {
+    setEverExpanded(true);
+  }
   const { attach: attachHeader, onHeaderKeyDown } = useFocusHeader({
     collapse: () => setCollapsed(true),
     expand: () => setCollapsed(false),
@@ -252,7 +288,13 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
           </span>
         </button>
         {collapsed ? (
-          <span className={summaryStyle}>
+          <span
+            className={cx(
+              summaryStyle,
+              (state.rows.length > 0 || (total.resolved && total.total > 0)) &&
+                summaryFilledStyle,
+            )}
+          >
             {state.rows.length} row{state.rows.length === 1 ? "" : "s"} ·{" "}
             {totalText} tokens
           </span>
@@ -264,12 +306,9 @@ export const ColouredPlaceBlock: React.FC<ColouredPlaceBlockProps> = ({
         data-collapsed={collapsed || undefined}
       >
         <div className={collapseInnerStyle} inert={collapsed}>
-          <VariableRows
-            scopeLabel={`Variables of ${place.name}`}
-            placeId={place.id}
-            variables={state.variables}
-          />
-          <TokenTable place={place} colour={colour} state={state} />
+          {everExpanded ? (
+            <PlaceBlockContents place={place} colour={colour} state={state} />
+          ) : null}
         </div>
       </div>
     </div>
