@@ -11,7 +11,7 @@ import {
   type TransportInspectionEvent,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { ChatAgent } from "./agents/chat-agent.ts";
+import { ChatAgent } from "./agents/chat-agent/agent.ts";
 import { clientToolNames, CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool.ts";
 import {
   agentOwnershipHeaders,

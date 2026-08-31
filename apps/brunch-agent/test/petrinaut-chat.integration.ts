@@ -13,6 +13,8 @@ import {
 import { setProvider } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
+import { PING_TOOL_NAME } from "../src/agents/chat-agent/tools/ping.ts";
+import { READ_PETRINAUT_DOC_TOOL_NAME } from "../src/agents/chat-agent/tools/read-petrinaut-doc.ts";
 import { applyCaptureSweep } from "../src/capture-sweep.ts";
 import { CLIENT_TOOL_RESULT_SIGNAL } from "../src/client-tool.ts";
 import {
@@ -22,8 +24,6 @@ import {
 import { formatFlueTranscript } from "../src/flue-transcript.ts";
 import { loadBuiltBrunchApplication } from "../src/load-built-application.ts";
 import { CHAT_AGENT_ROUTE } from "../src/routes.ts";
-import { PING_TOOL_NAME } from "../src/tools/ping.ts";
-import { READ_PETRINAUT_DOC_TOOL_NAME } from "../src/tools/read-petrinaut-doc.ts";
 
 import type {
   PetrinautChatResult,

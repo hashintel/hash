@@ -11,7 +11,7 @@ import {
 import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   type PetrinautConstructionToolName,
-} from "./tools/petrinaut-construction.ts";
+} from "./agents/chat-agent/tools/petrinaut-construction.ts";
 
 import type { Petrinaut } from "@hashintel/petrinaut-core";
 

@@ -9,13 +9,13 @@
 import { useInitialData, useModel, useSkill, useTool } from "@flue/runtime";
 import * as v from "valibot";
 
-import sdcpnModellingSkill from "../skills/sdcpn-modelling/SKILL.md";
+import sdcpnModellingSkill from "./skills/sdcpn-modelling/SKILL.md";
 import {
   petrinautConstructionTools,
   VALIDATED_CONSTRUCTION_MODE,
-} from "../tools/petrinaut-construction.ts";
-import { ping } from "../tools/ping.ts";
-import { readPetrinautDoc } from "../tools/read-petrinaut-doc.ts";
+} from "./tools/petrinaut-construction.ts";
+import { ping } from "./tools/ping.ts";
+import { readPetrinautDoc } from "./tools/read-petrinaut-doc.ts";
 
 export const CHAT_MODEL_ID =
   process.env["BRUNCH_CHAT_MODEL"] || "claude-haiku-4-5";

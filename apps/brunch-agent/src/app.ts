@@ -15,7 +15,7 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
 import { agentOwnershipGuard } from "./agent-ownership.ts";
-import { ChatAgent } from "./agents/chat-agent.ts";
+import { ChatAgent } from "./agents/chat-agent/agent.ts";
 import { assetHandler } from "./assets.ts";
 import { petrinautChatHandler } from "./petrinaut-chat.ts";
 import { CHAT_AGENT_ROUTE, PETRINAUT_CHAT_ROUTE } from "./routes.ts";

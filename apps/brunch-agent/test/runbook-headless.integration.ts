@@ -12,6 +12,7 @@ import {
 import { setProvider } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 
+import { VALIDATED_CONSTRUCTION_MODE } from "../src/agents/chat-agent/tools/petrinaut-construction.ts";
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isAwaitingClient,
@@ -30,7 +31,6 @@ import {
   interviewerToolNamesFrom,
   skillResourcePathsFrom,
 } from "../src/runbook-artifacts.ts";
-import { VALIDATED_CONSTRUCTION_MODE } from "../src/tools/petrinaut-construction.ts";
 
 const CHAT_MODEL_ID = "claude-haiku-4-5";
 const RUNBOOK_SKILL_NAME = "sdcpn-modelling";

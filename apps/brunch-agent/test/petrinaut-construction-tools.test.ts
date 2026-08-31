@@ -6,7 +6,7 @@ import { petrinautAiTools } from "@hashintel/petrinaut-core/ai";
 import {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   petrinautConstructionTools,
-} from "../src/tools/petrinaut-construction";
+} from "../src/agents/chat-agent/tools/petrinaut-construction";
 
 const toolByName = (toolName: string) => {
   const constructionTool = petrinautConstructionTools.find(

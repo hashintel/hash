@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { observe } from "@flue/runtime";
 import { createFlueClient } from "@flue/sdk";
 
+import { VALIDATED_CONSTRUCTION_MODE } from "./agents/chat-agent/tools/petrinaut-construction.ts";
 import { CLIENT_TOOL_RESULT_SIGNAL, isAwaitingClient } from "./client-tool.ts";
 import {
   agentOwnershipHeaders,
@@ -33,7 +34,6 @@ import {
   interviewerToolNamesFrom,
   skillResourcePathsFrom,
 } from "./runbook-artifacts.ts";
-import { VALIDATED_CONSTRUCTION_MODE } from "./tools/petrinaut-construction.ts";
 
 import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
 

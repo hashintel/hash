@@ -41,7 +41,10 @@ beforeAll(() => {
 /** The pinned identity of every agent module in the app, read from source. */
 function declaredAgentIdentities(): string[] {
   const agentsDirectory = join(DEV_APP, "src/agents");
-  return readdirSync(agentsDirectory)
+  return readdirSync(agentsDirectory, {
+    recursive: true,
+    encoding: "utf8",
+  })
     .filter((entry) => entry.endsWith(".ts"))
     .flatMap((entry) =>
       Array.from(
