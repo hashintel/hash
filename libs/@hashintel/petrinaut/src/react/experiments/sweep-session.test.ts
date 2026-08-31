@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { deriveRunSeed } from "@hashintel/petrinaut-core";
+
 import {
   createSweepSession,
   sweepBatchSeed,
@@ -71,6 +73,8 @@ function makeFakeBatch(request: {
   seed: number;
   runCount: number;
   background?: boolean;
+  requiresRunResults?: boolean;
+  runSeeds?: readonly number[];
 }) {
   let metricListeners: ((value: {
     frames: readonly MonteCarloUserDefinedMetricFrame[];
@@ -83,6 +87,7 @@ function makeFakeBatch(request: {
   let progress: MonteCarloWorkerProgress | null = null;
   let cancelled = false;
   let started = false;
+  let runResults = new Map<number, Readonly<Record<string, number>>>();
 
   const handle: MonteCarloExperiment = {
     status: { get: () => "Running", subscribe: () => () => {} },
@@ -101,7 +106,7 @@ function makeFakeBatch(request: {
         };
       },
     },
-    runResults: { get: () => new Map(), subscribe: () => () => {} },
+    runResults: { get: () => runResults, subscribe: () => () => {} },
     events: {
       subscribe: (listener) => {
         eventListeners.push(listener);
@@ -122,6 +127,9 @@ function makeFakeBatch(request: {
   return {
     request,
     handle,
+    setRunResults(next: ReadonlyMap<number, Readonly<Record<string, number>>>) {
+      runResults = new Map(next);
+    },
     get cancelled() {
       return cancelled;
     },
@@ -493,5 +501,77 @@ describe("createSweepSession", () => {
     });
     expect(session.getCell({ x: 2, y: 1 })).toBeUndefined();
     session.dispose();
+  });
+});
+
+describe("sampleCells", () => {
+  const CELLS = [
+    { x: 0, y: 0 },
+    { x: 2, y: 1 },
+  ];
+
+  async function sampleTwoCells(runsPerCell: number) {
+    const harness = makeHarness(1000);
+    const resultPromise = harness.session.sampleCells(CELLS, runsPerCell);
+    await harness.settle();
+    // batches[0] is the navigator's initial full-space batch; the chunk is
+    // the latest background batch.
+    const chunk = harness.batches.at(-1)!;
+    return { ...harness, chunk, resultPromise };
+  }
+
+  it("lays every cell out as per-run draws with pinned per-cell seeds", async () => {
+    const { chunk } = await sampleTwoCells(2);
+
+    expect(chunk.request).toMatchObject({
+      parameterValues: { x: 0, y: 10 },
+      seed: 42,
+      runCount: 4,
+      background: true,
+      requiresRunResults: true,
+    });
+    expect(chunk.request.draws?.identifiers).toEqual(["x", "y"]);
+    // Cell values repeated runsPerCell times, in cell order.
+    expect([...chunk.request.draws!.values]).toEqual([
+      0, 10, 0, 10, 2, 20, 2, 20,
+    ]);
+    // Every cell pins the SAME seed sequence — the one the per-cell ladder's
+    // first batch derives — so values are chunk-layout-independent.
+    const cellSeeds = [deriveRunSeed(42, 0), deriveRunSeed(42, 1)];
+    expect(chunk.request.runSeeds).toEqual([...cellSeeds, ...cellSeeds]);
+  });
+
+  it("groups per-run results into index-aligned per-cell means", async () => {
+    const { chunk, resultPromise, settle } = await sampleTwoCells(2);
+
+    chunk.setRunResults(
+      new Map([
+        [0, { m: 1 }],
+        [1, { m: 3 }],
+        [2, { m: 10 }],
+        [3, { m: 20 }],
+      ]),
+    );
+    chunk.stream([frame(4, [[1, 4]])]);
+    chunk.complete();
+    await settle();
+
+    expect(await resultPromise).toEqual([{ m: 2 }, { m: 15 }]);
+  });
+
+  it("returns null for a cell with no finished runs", async () => {
+    const { chunk, resultPromise, settle } = await sampleTwoCells(2);
+
+    chunk.setRunResults(
+      new Map([
+        [0, { m: 1 }],
+        [1, { m: 3 }],
+      ]),
+    );
+    chunk.stream([frame(2, [[1, 2]])]);
+    chunk.complete();
+    await settle();
+
+    expect(await resultPromise).toEqual([{ m: 2 }, null]);
   });
 });

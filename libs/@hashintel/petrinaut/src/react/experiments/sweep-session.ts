@@ -95,6 +95,19 @@ export type InstantiateSweepBatch = (options: {
    * single worker so the navigator's batch keeps the cores.
    */
   background?: boolean;
+  /**
+   * The batch's consumer reads per-run metric values (`runResults`), which
+   * only the CPU workers report — hosts route such a batch to the CPU lane
+   * even when the experiment's chosen backend is the GPU.
+   */
+  requiresRunResults?: boolean;
+  /**
+   * Explicit per-run seeds (one per run, aligned with `draws`). Batched
+   * surface cells pin these so a cell's runs use the same seeds regardless
+   * of which chunk (and chunk slot) sampled it — and the same seeds the
+   * per-cell ladder's first batch would use.
+   */
+  runSeeds?: readonly number[];
   signal: AbortSignal;
 }) => Promise<MonteCarloExperiment>;
 
@@ -142,6 +155,17 @@ export type SweepSession = {
     position: Readonly<Record<string, number>>,
     minRuns: number,
   ) => Promise<SweepCellSnapshot | null>;
+  /**
+   * Samples many cells as one batch and returns each cell's per-metric mean,
+   * index-aligned with `positions` (null for a cell with no finished runs).
+   * Requires a marking the swept parameters do not shape — the host decides;
+   * see `sampleCellsBatch`. Resolves null when the session is disposed or
+   * the batch is refused.
+   */
+  sampleCells: (
+    positions: readonly Readonly<Record<string, number>>[],
+    runsPerCell: number,
+  ) => Promise<readonly (Readonly<Record<string, number>> | null)[] | null>;
   dispose: () => void;
 };
 
@@ -680,6 +704,107 @@ export function createSweepSession(
     return snapshotFor(key);
   };
 
+  /**
+   * Samples many cells as ONE batch: every cell's values become per-run
+   * parameter draws (`runsPerCell` runs each), and the per-run metric values
+   * the CPU workers report are grouped back into per-cell means. One batch
+   * instantiation where the per-cell walk paid one per cell — but a single
+   * initial marking: callers must only batch cells whose marking the swept
+   * parameters do not shape (the host checks; a marking-shaping scenario
+   * keeps the per-cell path).
+   */
+  const sampleCellsBatch = async (
+    positions: readonly Readonly<Record<string, number>>[],
+    runsPerCell: number,
+  ): Promise<readonly (Readonly<Record<string, number>> | null)[] | null> => {
+    if (disposed || failed || positions.length === 0) {
+      return null;
+    }
+    const identifiers = axes.map((axis) => axis.identifier);
+    const width = identifiers.length;
+    const runCountTotal = positions.length * runsPerCell;
+    const values = new Float64Array(runCountTotal * width);
+    // Every cell pins the SAME seed sequence — the one the per-cell ladder's
+    // first batch derives implicitly — so a cell's value is independent of
+    // which chunk sampled it and matches the navigator's own runs.
+    const cellSeeds = Array.from({ length: runsPerCell }, (_, run) =>
+      deriveRunSeed(seed, run),
+    );
+    const runSeeds: number[] = [];
+    for (const [cellIndex, position] of positions.entries()) {
+      const cellValues = sweepCellValues(axes, position);
+      for (let run = 0; run < runsPerCell; run++) {
+        const base = (cellIndex * runsPerCell + run) * width;
+        for (let column = 0; column < width; column++) {
+          values[base + column] = cellValues[identifiers[column]!]!;
+        }
+        runSeeds.push(cellSeeds[run]!);
+      }
+    }
+
+    const abortController = new AbortController();
+    let handle: MonteCarloExperiment;
+    try {
+      handle = await instantiateBatch({
+        parameterValues: sweepCellValues(axes, positions[0]!),
+        draws: { identifiers, values },
+        seed,
+        runCount: runCountTotal,
+        background: true,
+        requiresRunResults: true,
+        runSeeds,
+        signal: abortController.signal,
+      });
+    } catch {
+      // A refused batch is a hole in the surface, not a failed sweep.
+      return null;
+    }
+    if (isDisposed()) {
+      handle.dispose();
+      return null;
+    }
+
+    const done = new Promise<boolean>((resolve) => {
+      const offEvents = handle.events.subscribe((event) => {
+        offEvents();
+        resolve(event.type === "complete");
+      });
+    });
+    handle.start();
+    const completed = await done;
+    const runResults = handle.runResults.get();
+    handle.dispose();
+    if (!completed || isDisposed()) {
+      return null;
+    }
+
+    // Group per-run values back into per-cell means, per metric,
+    // index-aligned with the requested positions.
+    const accumulators = positions.map(
+      (): Record<string, { sum: number; n: number }> => ({}),
+    );
+    for (const [runIndex, metricValues] of runResults) {
+      const cell = accumulators[Math.floor(runIndex / runsPerCell)];
+      if (!cell) {
+        continue;
+      }
+      for (const [metricId, value] of Object.entries(metricValues)) {
+        const entry = (cell[metricId] ??= { sum: 0, n: 0 });
+        entry.sum += value;
+        entry.n += 1;
+      }
+    }
+    return accumulators.map((cell) => {
+      const entries = Object.entries(cell);
+      if (entries.length === 0) {
+        return null;
+      }
+      return Object.fromEntries(
+        entries.map(([metricId, { sum, n }]) => [metricId, sum / n]),
+      );
+    });
+  };
+
   return {
     setSelection(next) {
       if (disposed) {
@@ -704,6 +829,14 @@ export function createSweepSession(
       await acquireBackgroundSlot();
       try {
         return await runBackgroundBatch({ ...position }, minRuns);
+      } finally {
+        releaseBackgroundSlot();
+      }
+    },
+    async sampleCells(positions, runsPerCell) {
+      await acquireBackgroundSlot();
+      try {
+        return await sampleCellsBatch(positions, runsPerCell);
       } finally {
         releaseBackgroundSlot();
       }

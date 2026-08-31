@@ -2,25 +2,26 @@
  * The sweep surface: a contour of one metric's final value over two swept
  * parameters, filling in live as points are sampled.
  *
- * This component owns the sampling: while it is open, it walks an X×Y
- * sub-grid of the two shown parameters coarse-to-fine through the sweep's
- * background lane (8 runs per point), so the coarse shape of the surface
- * appears within the first few points and sharpens from there. Parameters
- * outside the two shown axes hold at the middle of their selected ranges —
- * moving them restarts the walk for the new slice — and clicking the plot
- * collapses both shown parameters to a point at the clicked position.
- * Rendering itself is `ContourSurface`, which is purely presentational.
+ * This component owns the sampling: while it is open, it samples an X×Y
+ * sub-grid of the two shown parameters in coarse-to-fine chunks through the
+ * sweep's background lane — each chunk one request carrying many cells (8
+ * runs per point), batched into a single experiment where the scenario
+ * allows it — so the coarse shape of the surface appears with the first
+ * chunk and sharpens from there. Every metric's value comes back per cell,
+ * so switching the shown metric re-reads the same samples instead of
+ * re-simulating. Parameters outside the two shown axes hold at the middle
+ * of their selected ranges — moving them restarts the sampling for the new
+ * slice — and clicking the plot collapses both shown parameters to a point
+ * at the clicked position. Rendering itself is `ContourSurface`, which is
+ * purely presentational.
  */
-import { use, useEffect, useRef, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import { Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
-import {
-  coarseToFineOrder,
-  sweepCellObjective,
-} from "../../../../../../react/experiments/contour-grid";
+import { coarseToFineOrder } from "../../../../../../react/experiments/contour-grid";
 import {
   ContourSurface,
   contourSurfaceKey,
@@ -34,13 +35,12 @@ import type { ContourSurfaceValues } from "../../../../../components/contour-sur
 const SURFACE_CELL_RUNS = 8;
 
 /**
- * Cells sampled in flight at once. Each cell instantiates its own small
- * batch, and most of a cell's wall time is that setup rather than compute —
- * sampling strictly one at a time filled an 11×11 surface in ~15 s where
- * four lanes fill it in ~4 s. The lanes pull from one coarse-to-fine queue,
- * so the early picture keeps its coarse-first shape.
+ * Cells per sampling request. Small enough that the first chunk paints the
+ * coarse shape quickly, big enough that a full grid is a handful of
+ * requests — each of which the provider turns into one batched experiment
+ * where the scenario allows it, instead of one batch per cell.
  */
-const SURFACE_WALK_LANES = 4;
+const SURFACE_CHUNK_CELLS = 24;
 
 /**
  * Sampled positions per axis on the surface's sub-grid: a subset of the
@@ -113,20 +113,20 @@ export const SweepSurface = ({
 }: {
   experiment: ExperimentRecord;
 }) => {
-  const { sampleSweepCell, setSweepSelection } = use(ExperimentsContext);
+  const { sampleSurfaceCells, setSweepSelection } = use(ExperimentsContext);
   const axes = experiment.parameterAxes;
   const [xAxisId, setXAxisId] = useState(axes[0]?.identifier ?? "");
   const [yAxisId, setYAxisId] = useState(axes[1]?.identifier ?? "");
   const [metricId, setMetricId] = useState(experiment.metricSpecs[0]?.id ?? "");
-  const [cellValues, setCellValues] = useState<ContourSurfaceValues>(new Map());
-  const [walkKey, setWalkKey] = useState("");
-  // Resolved cells buffer here and flush once per animation frame: a walk
-  // over a cached slice resolves its cells back to back, and committing each
-  // one re-rendered the drawer subtree dozens of times with no new picture.
-  const pendingCellsRef = useRef<{
-    entries: [string, number][];
-    scheduled: boolean;
-  }>({ entries: [], scheduled: false });
+  // Sampled values per grid cell, per metric — metric-agnostic, so switching
+  // the shown metric re-reads instead of re-sampling. The state carries the
+  // walk it belongs to: a chunk resolved after a restart (the old effect's
+  // stale flag flips only in the passive-effects flush, after the clear
+  // below has committed) must not merge old-slice values into the new grid.
+  const [grid, setGrid] = useState<{
+    walkKey: string;
+    values: ReadonlyMap<string, Readonly<Record<string, number>>>;
+  }>({ walkKey: "", values: new Map() });
 
   const xAxis = axes.find((axis) => axis.identifier === xAxisId);
   const yAxis = axes.find((axis) => axis.identifier === yAxisId);
@@ -134,22 +134,22 @@ export const SweepSurface = ({
   const experimentId = experiment.id;
   const sweepSelection = experiment.sweep?.selection;
 
-  // A new slice/axes/metric identity restarts the walk; clearing the sampled
-  // values during render (not in the effect) repaints without a stale frame.
-  const nextWalkKey = `${experimentId}|${xAxisId}|${yAxisId}|${metricId}|${slice}`;
-  if (walkKey !== nextWalkKey) {
-    setWalkKey(nextWalkKey);
-    setCellValues(new Map());
+  // A new slice or axes identity restarts the sampling; a metric change
+  // does not (every metric's value is already in the samples). Clearing
+  // during render (not in the effect) repaints without a stale frame.
+  const walkKey = `${experimentId}|${xAxisId}|${yAxisId}|${slice}`;
+  if (grid.walkKey !== walkKey) {
+    setGrid({ walkKey, values: new Map() });
   }
 
-  // The sampling walk: restarts whenever the slice, the shown axes, or the
-  // metric changes; stops when the section unmounts.
+  // The sampling: restarts whenever the slice or the shown axes change;
+  // stops when the section unmounts. Chunks go out sequentially so the
+  // coarse picture lands first and a restart wastes at most one chunk.
   useEffect(() => {
-    if (!xAxis || !yAxis || xAxis === yAxis || metricId === "") {
+    if (!xAxis || !yAxis || xAxis === yAxis) {
       return;
     }
     const walk: { stale: boolean } = { stale: false };
-    const pendingCells = pendingCellsRef.current;
     // Read through a call so the flow analysis cannot pin the flag to its
     // initial value: cleanup flips it from outside this closure.
     const isWalkStale = () => walk.stale;
@@ -161,69 +161,60 @@ export const SweepSurface = ({
 
     const xPositions = surfacePositions(xAxis);
     const yPositions = surfacePositions(yAxis);
-    const queue = coarseToFineOrder(xPositions.length, yPositions.length);
-    let nextCell = 0;
-    const sampleOne = async (cell: { x: number; y: number }) => {
-      const position: Record<string, number> = {
-        [xAxis.identifier]: xPositions[cell.x]!,
-        [yAxis.identifier]: yPositions[cell.y]!,
-      };
-      for (const [identifier, positionText] of fixedEntries) {
-        position[identifier] = Number(positionText);
-      }
+    const order = coarseToFineOrder(xPositions.length, yPositions.length);
 
-      const snapshot = await sampleSweepCell(
-        experimentId,
-        position,
-        SURFACE_CELL_RUNS,
-      );
-      if (isWalkStale() || !snapshot) {
-        return;
-      }
-      const value = sweepCellObjective(snapshot.metricFrames, metricId);
-      if (value === null) {
-        return;
-      }
-      const pending = pendingCells;
-      pending.entries.push([contourSurfaceKey(cell.x, cell.y), value]);
-      if (!pending.scheduled) {
-        pending.scheduled = true;
-        requestAnimationFrame(() => {
-          pending.scheduled = false;
-          const entries = pending.entries.splice(0);
-          if (entries.length === 0) {
-            return;
+    const run = async () => {
+      for (let start = 0; start < order.length; start += SURFACE_CHUNK_CELLS) {
+        if (isWalkStale()) {
+          return;
+        }
+        const chunk = order.slice(start, start + SURFACE_CHUNK_CELLS);
+        const positions = chunk.map((cell) => {
+          const position: Record<string, number> = {
+            [xAxis.identifier]: xPositions[cell.x]!,
+            [yAxis.identifier]: yPositions[cell.y]!,
+          };
+          for (const [identifier, positionText] of fixedEntries) {
+            position[identifier] = Number(positionText);
           }
-          setCellValues((previous) => {
-            const next = new Map(previous);
-            for (const [key, cellValue] of entries) {
-              next.set(key, cellValue);
+          return position;
+        });
+
+        const cells = await sampleSurfaceCells(
+          experimentId,
+          positions,
+          SURFACE_CELL_RUNS,
+        );
+        if (isWalkStale()) {
+          return;
+        }
+        // A refused chunk is a hole in the surface, not the end of the
+        // fill — later chunks may still land (a disposed session keeps
+        // refusing cheaply until the cleanup flips the stale flag).
+        if (!cells) {
+          continue;
+        }
+        setGrid((previous) => {
+          if (previous.walkKey !== walkKey) {
+            return previous;
+          }
+          const next = new Map(previous.values);
+          for (const [index, values] of cells.entries()) {
+            const cell = chunk[index];
+            if (cell && values) {
+              next.set(contourSurfaceKey(cell.x, cell.y), values);
             }
-            return next;
-          });
+          }
+          return { walkKey: previous.walkKey, values: next };
         });
       }
     };
-    const lane = async () => {
-      while (!isWalkStale()) {
-        const cell = queue[nextCell];
-        nextCell += 1;
-        if (cell === undefined) {
-          return;
-        }
-        await sampleOne(cell);
-      }
-    };
-    for (let index = 0; index < SURFACE_WALK_LANES; index++) {
-      void lane();
-    }
+    void run();
 
     return () => {
       walk.stale = true;
-      // Entries the flush has not committed belong to the stale walk.
-      pendingCells.entries.length = 0;
     };
-  }, [axes, experimentId, metricId, sampleSweepCell, slice, xAxis, yAxis]);
+  }, [experimentId, sampleSurfaceCells, slice, walkKey, xAxis, yAxis]);
 
   if (axes.length < 2 || !experiment.sweep) {
     return null;
@@ -252,6 +243,12 @@ export const SweepSurface = ({
     });
   };
 
+  const cellValues: ContourSurfaceValues = new Map(
+    [...grid.values.entries()].flatMap(([key, values]) => {
+      const value = values[metricId];
+      return value === undefined ? [] : [[key, value] as [string, number]];
+    }),
+  );
   const sampledCount = cellValues.size;
   const totalCells =
     xAxis && yAxis
