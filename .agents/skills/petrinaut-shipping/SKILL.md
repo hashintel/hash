@@ -9,17 +9,9 @@ metadata:
     priority: high
     keywords:
       - petrinaut
-      - changeset
-      - SDCPN
-      - petri net
     intent-patterns:
       - "\\b(implement|create|fix|add|ship|change)\\b.*?\\bpetrinaut\\b"
       - "\\bpetrinaut\\b.*?\\b(PR|tests?|lint|CI|checks?)\\b"
-    files:
-      include:
-        - "libs/@hashintel/petrinaut*/**"
-        - "apps/petrinaut-opt/**"
-        - "apps/petrinaut-website/**"
 ---
 
 # Shipping a Petrinaut change

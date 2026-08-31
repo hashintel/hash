@@ -199,18 +199,14 @@
       "priority": "high",
       "description": "End-to-end procedure for shipping a change to the Petrinaut packages (libs/@hashintel/petrinaut, petrinaut-core, petrinaut-cli, apps/petrinaut-opt, apps/petrinaut-website): the verification gates per package, the changeset step, docs sync, pre-PR hygiene checks, and CI expectations from draft to ready. Use when implementing any change in these packages, when creating a PR for Petrinaut work, when running tests or lints for them, or when checking CI on a Petrinaut PR.",
       "promptTriggers": {
-        "keywords": ["petrinaut", "changeset", "SDCPN", "petri net"],
+        "keywords": ["petrinaut"],
         "intentPatterns": [
           "\\b(implement|create|fix|add|ship|change)\\b.*?\\bpetrinaut\\b",
           "\\bpetrinaut\\b.*?\\b(PR|tests?|lint|CI|checks?)\\b"
         ]
       },
       "fileTriggers": {
-        "include": [
-          "libs/@hashintel/petrinaut*/**",
-          "apps/petrinaut-opt/**",
-          "apps/petrinaut-website/**"
-        ],
+        "include": [],
         "exclude": [],
         "content": [],
         "create-only": false
