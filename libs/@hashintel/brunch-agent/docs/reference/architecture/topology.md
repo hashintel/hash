@@ -6,8 +6,8 @@
 
 ```text
 packages/core                      CORE HARNESS + Flue-native agent contribution
-├─ agent/index.ts     ✓ `useModel` plus the short stable Brunch system prompt inline; owns no
-│                        formalism-specific prompt, skill, or tool
+├─ agent/index.ts     ✓ `useModel` plus the context- and formalism-independent Brunch elicitation
+│                        identity; owns no editor-specific prompt, skill, or tool
 ├─ capture-store.ts   ✓  the storage port's contract + pure command surface; owns envelope
 │                        invariants. Never: substrate imports, IO, per-substrate shapes.
 ├─ session-log.ts     ✓  substrate-neutral archive/version/anchoring rules; archive ordinals
@@ -59,19 +59,21 @@ packages/plugin-sdcpn              TARGET POLICY + Flue-native production contri
 ├─ index.ts,
 │  plugin.yaml        ○  generalized typed definition/proposal path; compiled and tested but
 │                        not imported by the production ChatAgent
-├─ flue.ts            ✓  SDCPN instructions inline with their skill and conditional tool mounts
+├─ flue.ts            ✓  SDCPN/Petrinaut instructions inline with skill and tool mounts
 ├─ skills/sdcpn-modelling/ ✓ progressively disclosed lifecycle, elicitation, workpiece,
 │                        construction, and check material
-└─ tools/petrinaut-construction.ts ✓ bounded, schema-validated SDCPN realization tools
+└─ tools/
+   ├─ petrinaut-construction.ts ✓ bounded, schema-validated SDCPN realization tools
+   └─ read-petrinaut-doc.ts     ✓ Petrinaut editor guidance exposed as a client-executed tool
 
 apps/brunch-agent                  LANE 1 SHELL + remote server (imported from apps/dev)
 ├─ src/app.ts, db.ts  ✓  Flue convention authorities: one route map and one conversation adapter
 ├─ src/db-path.ts     ✓  testable package-relative path policy kept at source root because the
 │                        same relative URL must survive Flue's flattened `dist/` bundle
 ├─ src/agents/chat-agent/
-│  ├─ agent.ts        ✓  sole directive-marked registration and composition point: core prompt,
-│  │                     SDCPN plugin contribution, and Petrinaut host contribution
-│  └─ tools/          ✓  app-only diagnostics and Petrinaut host capabilities
+│  ├─ agent.ts        ✓  sole directive-marked registration and composition point: generic core,
+│  │                     selected SDCPN/Petrinaut plugin, and deployment instructions
+│  └─ tools/ping.ts   ✓  app-only server-path diagnostic
 ├─ src/http/          ✓  HTTP authority: assets, route names, ownership guard, local origins,
 │                        and `/api/chat` composition
 ├─ src/conversation/  ✓  identity and projection authority: shared payload, client-tool signal,

@@ -13,8 +13,9 @@ import {
 import { setProvider } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
+import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+
 import { PING_TOOL_NAME } from "../src/agents/chat-agent/tools/ping.ts";
-import { READ_PETRINAUT_DOC_TOOL_NAME } from "../src/agents/chat-agent/tools/read-petrinaut-doc.ts";
 import { applyCaptureSweep } from "../src/capture/apply-sweep.ts";
 import { CLIENT_TOOL_RESULT_SIGNAL } from "../src/conversation/client-tools.ts";
 import {
@@ -134,7 +135,8 @@ try {
       (context) => {
         const request = JSON.stringify(context);
         for (const instruction of [
-          "You are the Brunch modelling assistant inside the Petrinaut editor.",
+          "You are the Brunch elicitation assistant.",
+          "You are eliciting a process model as an SDCPN for the Petrinaut editor.",
           "Activate the `sdcpn-modelling` skill before interviewing or constructing a process model.",
           "The Markdown IR is the shared workpiece of one looping lifecycle.",
           "Call ping when you need to confirm the server tool path.",

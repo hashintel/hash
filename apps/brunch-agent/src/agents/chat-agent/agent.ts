@@ -2,9 +2,9 @@
 /**
  * Register and compose the Brunch agent for this Flue application.
  *
- * Brunch core owns the stable agent prompt. The SDCPN plugin owns its prompt
- * contribution, runbook skill, and construction tools. This application owns
- * Petrinaut host tools and transport-specific instructions.
+ * Brunch core owns the context-independent agent prompt. The SDCPN plugin owns
+ * its Petrinaut-facing prompt, runbook skill, and tools. This application owns
+ * deployment diagnostics and transport-specific instructions.
  */
 
 import { useInstruction, useTool } from "@flue/runtime";
@@ -17,7 +17,6 @@ import sdcpnModellingSkill from "@hashintel/brunch-agent-plugin-sdcpn/skills/sdc
 import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
 
 import { ping } from "./tools/ping.ts";
-import { readPetrinautDoc } from "./tools/read-petrinaut-doc.ts";
 
 export const CHAT_MODEL_ID =
   process.env["BRUNCH_CHAT_MODEL"] || "claude-haiku-4-5";
@@ -33,12 +32,10 @@ export function ChatAgent() {
   useInstruction(
     `
 Call ping when you need to confirm the server tool path.
-When the user asks how Petrinaut's UI works, call readPetrinautDoc.
 A client-tool-result signal is JSON [{ toolCallId, toolName, output }]. Treat output as the browser's result for that call and continue helping the user.
 `.replace(/^\s+|\s+$/gu, ""),
   );
   useTool(ping);
-  useTool(readPetrinautDoc);
 
   return coreSystemPrompt;
 }

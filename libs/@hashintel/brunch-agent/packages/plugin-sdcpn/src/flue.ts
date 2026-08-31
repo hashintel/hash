@@ -8,6 +8,10 @@ import {
 import * as v from "valibot";
 
 import { petrinautConstructionTools } from "./tools/petrinaut-construction";
+import {
+  READ_PETRINAUT_DOC_TOOL_NAME,
+  readPetrinautDoc,
+} from "./tools/read-petrinaut-doc";
 
 export const VALIDATED_CONSTRUCTION_MODE = "validated-construction";
 
@@ -25,11 +29,14 @@ export function useSdcpnPlugin(sdcpnModellingSkill: Skill): void {
 
   useInstruction(
     `
+You are eliciting a process model as an SDCPN for the Petrinaut editor.
 Activate the \`sdcpn-modelling\` skill before interviewing or constructing a process model.
 The Markdown IR is the shared workpiece of one looping lifecycle.
+When the user asks how Petrinaut's UI works, call readPetrinautDoc.
 `.replace(/^\s+|\s+$/gu, ""),
   );
   useSkill(sdcpnModellingSkill);
+  useTool(readPetrinautDoc);
 
   if (initialData?.mode === VALIDATED_CONSTRUCTION_MODE) {
     useInstruction(
@@ -43,6 +50,7 @@ This is a construct-only headless conversation. Use only the supplied runbook IR
   }
 }
 
+export { READ_PETRINAUT_DOC_TOOL_NAME, readPetrinautDoc };
 export {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   petrinautConstructionTools,
