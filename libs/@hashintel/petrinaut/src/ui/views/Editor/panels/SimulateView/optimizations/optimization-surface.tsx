@@ -558,6 +558,7 @@ export const OptimizationSurface = ({
         <ContourSurface
           nx={surfacePositions(xAxis).length}
           ny={surfacePositions(yAxis).length}
+          contentKey={`${xAxisId}|${yAxisId}`}
           values={cellValues}
           markers={trialMarkers}
           onClickFraction={handleClickFraction}
