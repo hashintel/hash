@@ -241,9 +241,12 @@ describe("OpenAI Realtime call handler", () => {
 
     const response = await handler(request);
 
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(400);
     expect(await response.text()).toBe(
-      "The voice connection could not be established.",
+      "The voice connection returned an invalid response. Try again; if it continues, give the diagnostic reference to an operator.",
+    );
+    expect(response.headers.get(VOICE_ERROR_CODE_HEADER)).toBe(
+      "invalid-response",
     );
     expect(fetch).not.toHaveBeenCalled();
   });
@@ -347,7 +350,7 @@ describe("OpenAI Realtime call handler", () => {
       createRequest(undefined, { signal: requestAbortController.signal }),
     );
 
-    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).not.toHaveBeenCalled();
     expect(response.status).toBe(502);
     expect(response.headers.get(VOICE_ERROR_CODE_HEADER)).toBe(
       "request-aborted",
