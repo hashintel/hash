@@ -36,12 +36,18 @@ The keys fall in four groups (ADR-0007 decision 2), under an identity block `plu
 | machinery   | `checks` · `tools`                                                                                | identifiers of harness or plugin machinery; unconsumed in cycle one |
 
 Every guidance and runbook cell is a list of `{name, text, signature?, source?}` items. A cell
-adds to the default; it never overrides it and never restates what the harness enforces. A plugin
-may leave any cell blank — the default is then the whole of the key — and may add no key: an
+adds to the default; it never overrides or repeats it and never restates what the harness
+enforces. A plugin may leave any cell blank — the default is then the whole of the key — and may
+add no key: an
 unknown key anywhere fails to load. The catalogue of keys, and the one-paragraph definition the
 interviewer reads above each, lives in `packages/core/src/keys.ts`; the catalogue is a working set
 until a co-authoring cycle changes no key (ADR-0007 decision 9), with changes recorded in
 `packages/core/schema/CHANGELOG.md`.
+
+The repertoire may additionally give an item `for_precision`, a non-empty list of harness
+precision words. Such an item is rendered only when at least one plugin demand names a listed
+word. This conditions generic teaching on the plugin contract without allowing a plugin to
+override the repertoire.
 
 Domain-neutrality rule: nothing in the definition may name a domain. A new case that seems to
 need a new row is a finding about the abstraction, decided by review, never content added to a
@@ -68,21 +74,24 @@ Shapes are fixed by the schema; the exemplars are normative for value vocabulari
 | `ontology.attributes` | `name`, `on`, `values?`, `text`                                          | cross-kind attributes (`quantity`, `source-regime`, `rationale`, `status`); a plugin may not scope them to some kinds |
 | `schema.anchor`     | `kind`, `depends_on`                                                       | the completion anchor, declared: the kind whose named slot is the dependency slice (was `objective` by convention) |
 | `schema.floor`      | `kind`, `at_least`                                                         | the static floor as counts                                                                                       |
-| `schema.must_know`  | `kind`, `slot`, `precision`, `not_applicable`, `why`                       | one demand row per (kind, slot); `precision` is a harness precision word or `at least N`                          |
+| `schema.must_know`  | `kind`, `slot`, `precision`, `not_applicable`, `why`                       | one demand row per (kind, slot); `precision` is one harness precision word, a non-empty any-of list, or `at least N` |
 | `schema.proposals`  | `type`, `payload`                                                          | the proposal types the plugin's code declares (`slot-asserted`/`slot-assertion` for a kind-and-slot plugin)        |
-| `patterns.items`    | `id`, `on`, `when`, `ask`                                                  | discretionary interviewing patterns indexed by the kinds in `on`; surfaced when a node matches and a slot is unsatisfied |
+| `patterns.items`    | `id`, `on`, `slot?`, `when`, `ask`                                         | discretionary interviewing patterns indexed by the kinds in `on`; a slot-scoped pattern surfaces only while that slot is unsatisfied |
 
 Rules the reader enforces beyond the schema:
 
 - Every `must_know` row names a kind present in `kinds`; every kind has at least one row.
 - The anchor's `depends_on` is a `must_know` row on the anchor kind demanding `at least N`.
 - `precision` is harness vocabulary (`named`, `number`, `range`, `spread`, `spelled out`,
-  `at least N`; `PRECISION_LADDER` in core), rendered for every plugin. Grade means narrowing of
-  interpretation space, never claim strength. A plugin no longer declares its own precision table.
+  `at least N`; `PRECISION_LADDER` in core), rendered for every plugin. A non-empty list accepts
+  any listed word for one semantic slot. Grade means narrowing of interpretation space, never
+  claim strength. A plugin no longer declares its own precision table.
 - The completion rule itself is fixed by [`elicitation-completion.md`](elicitation-completion.md);
   the plugin supplies only the floor and the anchor.
 - Runbooks may be given only for jobs the identity block declares.
-- Patterns are never mandates. The harness surfaces; the interviewer decides.
+- A pattern's optional `slot` must be demanded by every explicitly indexed kind, or by at least
+  one kind when `on` is empty. Patterns are never mandates. The harness surfaces; the interviewer
+  decides.
 
 ## Version binding
 
@@ -182,7 +191,8 @@ Full text survives in the
 - **Typed `ScopeExpr` / `where` / `inSupport` algebra:** demands are now per (kind, slot), and
   the anchor's dependency slice replaces `inSupport`; the algebra had nothing left to select.
 - **`ProposalType.affordance.firesWhen` (closed 7-value enum):** patterns are surfaced by a
-  node matching `when` with an unsatisfied slot, which needs no per-proposal predicate.
+  matching kind plus an optional unsatisfied demanded slot; `when` remains explanatory prose for
+  interviewer judgment, so no per-proposal predicate is needed.
 - **`NodeKind.completionAnchor`:** replaced first by rule, then by the declared `schema.anchor`.
 - **Typed `foldTable` / `demandTable` / `variantDimension` / `lossCategories` declaration:** the
   fold derives from the `must_know` rows, the demand list *is* that key, `source-regime` is a

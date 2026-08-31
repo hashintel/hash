@@ -61,7 +61,7 @@ schema:
 patterns:
   preamble: Patterns fire on nodes.
   items:
-    - { id: P01, on: [step], when: a step is an event, ask: ask how often }
+    - { id: P01, on: [step], slot: how long it takes, when: a step is an event, ask: ask how often }
     - { id: P02, on: [thing], when: more than one thing competes, ask: ask which wins }
     - { id: P03, on: [], when: the expert says they do not know, ask: ask for a source }
 

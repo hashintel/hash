@@ -37,10 +37,22 @@ export const PRECISION_WORDS = [
 ] as const;
 export type PrecisionWord = (typeof PRECISION_WORDS)[number];
 
-/** What a row demands: a precision word, or a count of nodes present. */
+/** What a row demands: one or more alternative precision words, or a node count. */
 export type PrecisionDemand =
   | { readonly kind: "word"; readonly word: PrecisionWord }
+  | { readonly kind: "any-of"; readonly words: readonly PrecisionWord[] }
   | { readonly kind: "at-least"; readonly count: number };
+
+export const formatPrecisionDemand = (demand: PrecisionDemand): string => {
+  switch (demand.kind) {
+    case "word":
+      return demand.word;
+    case "any-of":
+      return demand.words.join(" or ");
+    case "at-least":
+      return `at least ${demand.count}`;
+  }
+};
 
 /** What each precision word means; harness vocabulary, rendered for every plugin. */
 export const PRECISION_LADDER: Readonly<
@@ -81,6 +93,8 @@ export interface PatternRow {
   readonly ask: string;
   /** The kinds whose nodes can trigger it; empty means any node. */
   readonly kinds: readonly string[];
+  /** When present, the pattern applies only while this demanded slot fails. */
+  readonly slot?: string;
 }
 
 /** The completion anchor, declared: the kind whose dependency slot is the slice. */
@@ -93,6 +107,8 @@ export interface Anchor {
 export interface GuidanceItem {
   readonly name: string;
   readonly text: string;
+  /** Repertoire-only applicability; omitted entries apply to every plugin. */
+  readonly forPrecision?: readonly PrecisionWord[];
   /** For failure modes: how the failure is detected. */
   readonly signature?: string;
   /** Where the entry comes from; required of the repertoire, optional for a plugin. */
@@ -175,8 +191,10 @@ const version = v.pipe(
     "expected `<id>/<yyyy-mm-dd>.<n>`",
   ),
 );
+const precisionWord = v.picklist(PRECISION_WORDS);
 const precision = v.union([
-  v.picklist(PRECISION_WORDS),
+  precisionWord,
+  v.pipe(v.array(precisionWord), v.minLength(1)),
   v.pipe(v.string(), v.regex(/^at least [1-9]\d*$/u)),
 ]);
 
@@ -265,6 +283,7 @@ export const PluginDefinitionSchema = v.strictObject({
       v.strictObject({
         id: v.pipe(v.string(), v.regex(/^P\d{2}$/u)),
         on: v.array(text),
+        slot: v.optional(text),
         when: text,
         ask: text,
       }),
@@ -285,12 +304,17 @@ export type PluginDefinitionInput = v.InferInput<typeof PluginDefinitionSchema>;
 
 // ── The reader ──────────────────────────────────────────────────────────────
 
-const parsePrecision = (word: string): PrecisionDemand => {
-  const atLeast = /^at least (\d+)$/u.exec(word);
+const parsePrecision = (
+  input: v.InferOutput<typeof precision>,
+): PrecisionDemand => {
+  if (Array.isArray(input)) {
+    return { kind: "any-of", words: input };
+  }
+  const atLeast = /^at least (\d+)$/u.exec(input);
   if (atLeast?.[1] !== undefined) {
     return { kind: "at-least", count: Number(atLeast[1]) };
   }
-  return { kind: "word", word: word as PrecisionWord };
+  return { kind: "word", word: input as PrecisionWord };
 };
 
 const fail = (message: string): never => {
@@ -395,7 +419,34 @@ export function readPluginDefinition(yamlText: string): PluginDefinition {
   }
   const patterns: PatternRow[] = input.patterns.items.map((row) => {
     for (const kind of row.on) knownKind(kind, `pattern ${row.id}`);
-    return { id: row.id, when: row.when, ask: row.ask, kinds: row.on };
+    if (row.slot !== undefined) {
+      if (
+        row.on.length === 0 &&
+        !mustKnow.some((demand) => demand.slot === row.slot)
+      ) {
+        fail(
+          `pattern ${row.id} names slot \`${row.slot}\`, which no kind demands`,
+        );
+      }
+      const kindWithoutSlot = row.on.find(
+        (kind) =>
+          !mustKnow.some(
+            (demand) => demand.kind === kind && demand.slot === row.slot,
+          ),
+      );
+      if (kindWithoutSlot !== undefined) {
+        fail(
+          `pattern ${row.id} names slot \`${row.slot}\`, which \`${kindWithoutSlot}\` does not demand`,
+        );
+      }
+    }
+    return {
+      id: row.id,
+      when: row.when,
+      ask: row.ask,
+      kinds: row.on,
+      ...(row.slot === undefined ? {} : { slot: row.slot }),
+    };
   });
 
   const jobs = input.plugin.jobs;

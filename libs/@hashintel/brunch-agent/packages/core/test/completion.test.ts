@@ -15,7 +15,9 @@ import {
   type CompletionDemands,
 } from "../src/completion";
 import { foldElicitedModel, type ElicitedModel } from "../src/elicited-model";
+import { readPluginDefinition } from "../src/plugin-definition";
 import {
+  FIXTURE_PLUGIN_YAML,
   absence,
   assertionCapture,
   completeCaptures,
@@ -335,6 +337,49 @@ describe("what counts as a value (8–14)", () => {
     expect(precisionSatisfies("number", "spelled out")).toBe(false);
     expect(precisionSatisfies("spelled out", "spelled out")).toBe(true);
     expect(precisionSatisfies("spelled out", "named")).toBe(true);
+  });
+
+  test("12. any listed precision satisfies one semantic slot", () => {
+    const anyOfDefinition = readPluginDefinition(
+      FIXTURE_PLUGIN_YAML.replace(
+        "precision: spread",
+        "precision: [spread, spelled out]",
+      ),
+    );
+    const anyOfDemands = completionDemands(anyOfDefinition);
+    const reportAt = (precision: "range" | "spread" | "spelled out") =>
+      evaluateCompletion(
+        foldElicitedModel(
+          snapshotOf(
+            replacing(
+              "c-stamp-duration",
+              assertionCapture(
+                "c-stamp-duration",
+                value(
+                  "step",
+                  "stamp",
+                  "how long it takes",
+                  precision,
+                  precision === "spelled out"
+                    ? { calendar: "weekday shift" }
+                    : { low: 2, high: 5 },
+                ),
+              ),
+            ),
+          ),
+          anyOfDefinition,
+        ),
+        anyOfDemands,
+      );
+
+    expect(reportAt("spread").complete).toBe(true);
+    expect(reportAt("spelled out").complete).toBe(true);
+    expect(reportAt("range").failures).toEqual([
+      expect.objectContaining({
+        diagnostic: "below-required-precision",
+        requirement: "spread or spelled out",
+      }),
+    ]);
   });
 
   test("13. conflict and divergence fail conservatively", () => {

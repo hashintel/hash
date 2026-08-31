@@ -50,6 +50,21 @@ describe("the sweep list", () => {
     ]);
   });
 
+  test("a slot-scoped pattern does not fire for another failure on the same node", () => {
+    const model = foldElicitedModel(
+      snapshotOf(
+        completeCaptures().filter((capture) => capture.id !== "c-stamp-actor"),
+      ),
+      definition,
+    );
+    const report = evaluateCompletion(model, demands);
+    const list = buildSweepList(model, report, definition.patterns);
+    expect(list.unsatisfied.map((failure) => failure.slot)).toEqual([
+      "who performs it",
+    ]);
+    expect(list.patterns.map((cue) => cue.id)).toEqual(["P03"]);
+  });
+
   test("surfaces nothing for a complete model", () => {
     const model = foldElicitedModel(snapshotOf(completeCaptures()), definition);
     const list = buildSweepList(

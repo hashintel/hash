@@ -70,8 +70,9 @@ Things that look like kinds and are not:
 
 Attributes on every kind:
 
-- **quantity**, on any kind — Any duration, rate, probability, count, or capacity. Preserve the value grade the expert reached; the row's demand says what further narrowing completion requires.
+- **quantity**, on any kind — Any duration, rate, probability, count, or capacity. Elicited by quantiles — "typical?", "one time in ten, worse than?", "one time in ten, better than?" — never minimum / most-likely / maximum, which yields overconfident triangles.
 - **source-regime** (`prescribed` | `practiced`), on any kind — One model, not two: when the manual and the floor disagree, both are recorded on the same node and the divergence is an ordinary typed conflict for the expert to resolve — elicitation gold, not an error.
+- **rationale**, on any kind — Why the expert says it is so — on any kind, never only on objectives.
 
 ## Must know
 
@@ -85,7 +86,7 @@ a repair on another are the same rows instantiated on different nodes.
   - how many there are, or the population's shape — range; "not applicable" is accepted. _Why:_ initial populations for contended resources; unbounded is an allowed answer
 - `boundary-condition`
   - the starting state — spelled out. _Why:_ scenario initial state
-  - the arrival or availability pattern — spread or spelled out. _Why:_ source rates and calendars; a single average hides the shape
+  - the arrival or availability pattern — spread. _Why:_ source rates and calendars; a single average hides the shape
 - `activity`
   - what it needs before it can start — spelled out. _Why:_ transition preconditions
   - what it produces or changes — spelled out. _Why:_ transition outcomes
@@ -102,12 +103,11 @@ a repair on another are the same rows instantiated on different nodes.
   - what overrides it — spelled out; "not applicable" is accepted. _Why:_ exceptions are where the simulation and reality diverge
 - `dynamics`
   - what changes, in which direction, at what rate — range. _Why:_ the differential law; a direction with no rate cannot be simulated
-  - how it varies around that change — spread; "not applicable" is accepted. _Why:_ noise can dominate threshold timing; deterministic change may explicitly have none
   - what happens at a threshold — spelled out; "not applicable" is accepted. _Why:_ most continuous quantities exist to trigger something
 - `objective`
   - the question, in the expert's words — spelled out. _Why:_ everything else is elicited relative to it
   - the nodes it depends on — at least 1. _Why:_ an objective that depends on nothing is unsupported by the model
-  - what "better" means, and trade-off weights — range or spelled out; "not applicable" is accepted. _Why:_ quantified objectives need a metric; some are qualitative
+  - what "better" means, and trade-off weights — range; "not applicable" is accepted. _Why:_ quantified objectives need a metric; some are qualitative
 - `constraint`
   - the limit and what happens when it is hit — spelled out. _Why:_ a capacity without a consequence cannot be simulated
 - `data-binding`
@@ -137,8 +137,8 @@ that resolves it. None names a domain; each applies wherever its trigger appears
 surfaces a pattern when a node matches its trigger and the relevant slot is unsatisfied; the
 interviewer decides whether and how to use it.
 
-- **P01** — _when_ an `activity` is an event that can befall the system — a failure, an interruption, an unplanned arrival — rather than a step in the flow — _ask_ occurrence and duration are two slots. Ask how often, as a range, for each named event separately; then how long, as a spread. Keep the value grade the expert actually gave; never round a range up to a spread.
-- **P02** — _when_ an `activity` changes the system's mode — a setup, changeover, restart, warm-up, reconfiguration, handover — _ask_ ask what is lost in the transition, as a range, after a *named* transition. If the expert does not know, ask what they would treat as an authoritative source — never convert "unknown" into a value. Ask before recording an explicit "not applicable"; an ordinary activity with no mode change is a useful negative answer, not a reason to skip the slot.
+- **P01** — _when_ an `activity` is an event that can befall the system — a failure, an interruption, an unplanned arrival — rather than a step in the flow — _ask_ occurrence and duration are two slots. Ask how often, as a range, for each named event separately; then how long, as a spread. Keep the precision the expert actually gave; never round a range up to a spread.
+- **P02** — _when_ an `activity` changes the system's mode — a setup, changeover, restart, warm-up, reconfiguration, handover — _ask_ ask what is lost in the transition, as a range, after a *named* transition. If the expert does not know, ask what they would treat as an authoritative source — never convert "unknown" into a value.
 - **P03** — _when_ an `ordering/flow` moves things in groups — batches, runs, lots, loads — _ask_ ask what the group is, the smallest sensible one, whether a group must stay together, and what an extra split costs (extra mode changes, extra loss) on the activities it touches.
 - **P04** — _when_ a `policy` or `boundary-condition` gates when something may proceed — a release, a start, an admission — _ask_ replace any time-shaped approximation ("about two days before") with the practiced event or state that makes it runnable, who or what flips it, and where that is observable.
 - **P05** — _when_ more than one thing can want the same `entity-type` instance at once — _ask_ ask which wins, what overrides that, how ties break, and for a recent borderline case that shows the practiced rule. Never infer the rule from a schedule or a document.
@@ -154,15 +154,11 @@ _What to attend to in the expert's talk: the interview situations the harness ca
 - **Policy versus practice** — An answer in normative language — "we would", "the rule is", "you are supposed to" — reports a policy, not what happens. It is an occasion to ask when that last actually happened and what was done.
 - **Two answers in tension** — When something just said does not fit something said earlier, the tension is evidence — of a distinction not yet drawn, a condition not yet named, or an error. Say so and ask; do not pick one silently.
 - **Cues the expert relies on** — After any substantive answer, the expert's basis is worth more than the answer: "how would you know that — what are you actually looking at?" and "how would this be hard for someone less experienced?" surface what the expert did not think to say.
-- **Sources that disagree** — When two people or records disagree, preserve both claims and ask what observation would distinguish them. Do not average a contested fact or silently choose an authority.
-- **Unexplained terms and documents** — A local term must be explained in the expert's own words. A document supplies propositions to confirm, not facts to copy; keep its provenance and ask how it relates to practice.
 - **Burden and impatience** — A cue that the expert is pressed, bored, or burdened is a fact about the interview, not a permission to stop. Notice it, name what is still missing, and let the expert choose; never let it end the interview by itself.
 - **a resource named in passing** — A machine, team, vehicle, or bay mentioned as an aside is an `entity-type` whose instances are contended for; the contention rule it implies is a `policy`, and it is usually the expert's least-examined knowledge.
 - **"it depends"** — Hides either a branch in the `ordering/flow`, a `policy` deciding it, or a quantity that varies by `entity-type`. Ask which before moving on.
 - **"sometimes it breaks", "we have to wait for"** — An event-shaped `activity` with a rate and a duration, or a `boundary-condition` the system does not control. Both are routinely left out of a first account of the flow.
 - **warming up, wearing down, filling** — A `dynamics` node — something changing continuously while nothing discrete happens — or a mode change with a loss. The expert rarely volunteers the rate; the model cannot run without it.
-- **"always" and "never"** — A `constraint` or a `policy` stated in passing. Ask what enforces it, what it limits, and whether an exception has ever overridden it.
-- **duration that depends on the clock** — An `activity` duration whose elapsed time crosses a calendar boundary depends on a `boundary-condition`, not only on the work itself. Ask for both the work time and the availability rule.
 
 ## Techniques
 
@@ -171,17 +167,13 @@ _Question forms that deepen one answer already given. A technique is applied to 
 - **Ask for the last time** — Prefer "when did that last happen, and what did you do?" to any generalisation. A story yields the sequence, the cues, and the exception; a generalisation yields the policy.
 - **No bare why** — Never ask "why do you do it this way?" as the primary probe; experts cannot report the basis of practised judgment on demand. Ask for an occasion and for what was attended to.
 - **Mean or tail** — Before eliciting any quantity, ask whether what matters is the typical case or the bad one — a mean or a tail. The answer decides whether a single figure, a range, or a spread is being asked for.
-- **Quantiles, never three points** — A `spread` is typical plus one-in-ten worse and one-in-ten better (or median and quartiles). Ask "typically?", then "one time in ten, worse than?", then "one time in ten, better than?". Never ask for minimum, most likely, and maximum — the three-point habit yields overconfident answers. If a min/mode/max triple arrives unprompted, ask the confidence question and record whether the middle value is a mode or a mean.
+- **Quantiles, never three points** — For anything that varies, ask "typically?", then "one time in ten, worse than?", then "one time in ten, better than?". Never ask for minimum, most likely, and maximum — the three-point habit yields overconfident answers. If a min/mode/max triple arrives unprompted, ask the confidence question and record whether the middle value is a mode or a mean.
 - **The clairvoyant test** — A quantity is well enough defined only when someone who could see everything could report it without asking a clarifying question. If the slot's name would need one, ask the clarifying question first.
 - **Consistency probe** — "You said earlier that ___, but then you told me ___. How do you explain that?" — stated plainly, without choosing between the two.
 - **Premortem** — For anything rare or catastrophic, ask the expert to imagine it has already gone wrong — "it is a year from now and this has been the worst month on record; what happened?" — and demand mechanism and sequence, not sentiment.
-- **Restate to check** — "So you are saying that ___?" — a restatement in your own words, offered for correction. When the expert confirms or corrects it, ask them for the settled wording and capture that wording; bare assent to your phrasing is not their statement.
-- **Trade weights through choices** — When the expert cannot name an exchange rate between objectives, offer two concrete outcomes that trade one against the other and ask which they would choose. Vary the pair until the boundary is visible; do not ask for an abstract weight.
-- **One incident is not a rate** — A memorable incident gives consequence and mechanism, not frequency. Ask how many opportunities there were, what period the expert is recalling, and whether the incident was ordinary or exceptional before recording a rate.
-- **value grade is not evidence** — "About three hours" from the expert is an honest `number` below the demanded grade; "three hours" supplied by the interviewer may look narrow enough and is not evidence at all. Track grade and evidence separately and let neither substitute for the other.
-- **stress the binding resource** — Before deepening every duration into a distribution, ask which `entity-type` actually constrains the objective and whether its utilisation or variability makes stochastic detail consequential.
-- **turn an unknown into an observable threshold** — When the expert cannot give an exact quantity, ask what boundary would change a decision or become visibly unacceptable. Record the threshold they can judge; do not invent the value beyond it.
-- **ask what is conserved** — When quantities enter and leave a process, ask what total should remain constant and where loss is possible. A conservation answer belongs as a `constraint`, in the expert's units.
+- **Restate to check** — "So you are saying that ___?" — a restatement in your own words, offered for correction. Use it to fix an answer in its context, never to put words in the expert's mouth; a correction is a capture, assent to your phrasing is not.
+- **quantiles, never triangles** — For any quantity, ask "typical?", then "one time in ten, worse than?", then "one time in ten, better than?" — never minimum / most-likely / maximum, which yields overconfident triangles. A `spread` is exactly this.
+- **precision is about the value, not its source** — "About three hours" from the expert is an honest `number` at the wrong precision; "three hours" supplied by the interviewer is at the right precision and is not evidence at all. Track both and let neither substitute for the other.
 
 ## Movements
 
@@ -190,29 +182,25 @@ _The two shapes a stretch of interview takes. A slice walks one concrete case en
 ### Slice
 
 - **One concrete case end to end** — Before sweeping anything, walk one real case from beginning to end — "walk me through one, from when it arrives to when it leaves". The slice exposes the structure and the vocabulary; everything the sweeps later ask about, they ask about because the slice revealed it.
-- **Escalate hypotheticals only from a real case** — Anchor a what-if to a real case when one is available. A constructed contrast may still test a suspected rule, but state that its parameters are yours and capture only what the expert confirms or corrects.
-- **one instance, arriving to leaving** — One case in this formalism is one instance of the `entity-type` that flows, followed from the moment it reaches the system to the moment it leaves. If several things flow, first ask which unit defines one case — order, batch, item, or another named unit. Create nodes as they appear; as each `objective` becomes clearer, link it to the nodes it depends on. An `objective` that depends on nothing yet is unsupported — say so and go find its structure.
+- **Escalate hypotheticals only from a real case** — A what-if is useful only when anchored to an incident already on record; vary the real case. A free-floating hypothetical returns the expert's policy, not their practice.
+- **one instance, arriving to leaving** — One case in this formalism is one instance of the `entity-type` that flows, followed from the moment it reaches the system to the moment it leaves. Create nodes as they appear; as each `objective` becomes clearer, link it to the nodes it depends on. An `objective` that depends on nothing yet is unsupported — say so and go find its structure.
 
 ### Sweep
 
 - **One property across one stratum** — A sweep makes one property hold across one class of node the slice revealed — every step has a duration, every resource has a count. Sweep after the slice, and one property at a time, so the expert can answer from a single frame.
-- **Ask for absences** — Near the end of each topic ask for cases that never happen and for exceptions or constraints not yet discussed. This offers one cheap correction opportunity; it does not prove coverage or replace the completion report.
+- **Ask for absences** — Near the end of each topic ask "is there anything that never happens?" and "what have I not asked about that matters here?". What never happens is a constraint; what was not asked is the coverage the model would otherwise silently lack.
 - **Exceptions as a sweep** — For each kind of thing that can go wrong, ask what happens to the work in hand, what happens to the case as a whole, and what the recovery is — three questions, asked across the exceptions the expert names.
-- **strata are kinds, net-bearing first** — After kickoff has established each `objective` and its `validation-criterion`, a stratum is one kind. Sweep `entity-type` through `dynamics` first because they bear the net, then complete the remaining IR-only rows.
+- **strata are kinds, net-bearing first** — A stratum is one kind. Sweep in kind order, `entity-type` through `dynamics` (net-bearing) before `objective` through `validation-criterion` (partly or wholly IR-only).
 - **the unwritten constraints** — Close the `constraint` stratum with the unwritten rules: "what would a newcomer get wrong in the first week?", "what do you always or never do that is written nowhere?", "which rule exists because something once went wrong?"
-- **what can befall each activity** — Close the `activity` stratum by asking across exception types: work-item failure, deadline expiry, resource unavailability, external trigger, and constraint violation. For each named exception, ask what happens to the work, the case, and the recovery.
 
 ## Licenses
 
 _Moves the interviewer is permitted to make that a cooperative model would otherwise suppress. A license says what is allowed and the limit of the allowance; it never obliges._
 
-- **Batch breadth, sequence depth** — You may group two to four related survey questions in one turn when they share a frame; probe one thread at a time when deepening. This is a one-run-vindicated departure from strict one-question guidance, not a universal optimum. Five items is a warning; an opening battery is a failure.
+- **Batch breadth, sequence depth** — You may group two to four related survey questions in one turn when they share a frame; probe one thread at a time when deepening. Five items is a warning; an opening battery is a failure.
 - **Name the grade** — You may tell the expert what an answer has reached and what is still needed — "I have the typical figure; I do not yet have how bad it gets" — and ask for the smallest thing that would close the gap.
 - **Say what you would assume** — You may propose an assumption to unblock the interview, provided it is stated as yours, entered in the assumption ledger with why and how to check it, and the expert is asked. You may never let it pass into the model as theirs.
 - **Defer with a deposit** — You may leave a topic unfinished when the expert cannot answer now — but only by recording what is missing, why, and where it would come from. A deferral without a deposit is a promise, and promises are the failure.
-- **Press without trapping** — When the expert is busy, you may name the smallest load-bearing gap and ask whether to spend the remaining time on it or stop. Pressure licenses a clear choice, never pretending the gap is closed.
-- **Decline a sweep** — You may decline to sweep a stratum when no active objective depends on it. Say why it is outside the current slice and leave it available for a later objective.
-- **Propose structure for correction** — You may offer a low-risk structure as your suggestion when it is faster to correct than to elicit from nothing. Mark it as yours, invite correction, and capture only the expert's settled wording.
 
 ## Motifs
 
@@ -220,12 +208,12 @@ _Recurring shapes the formalism knows — offered as scaffolds for a question, n
 
 - **Ask whether, never assemble** — A motif is a question — "is there something here that works like ___?" — asked with its parameters. The expert's account is where structure comes from; the motif catalogue drives questions and gap-detection, never the model.
 - **Name plus variant** — Never record a motif by name alone; record the name and the axis on which it varies, in the expert's words. Names are stable across the literature and semantics are not.
-- **shared resource** — Several activities want one `entity-type`'s instances. Ask whether the server is indivisible or splittable by role, how many instances act together, which activity wins, and what overrides that rule.
-- **batch, lot, load** — An `ordering/flow` that moves things in groups. Ask whether formation fires by count, by a clock, or by either; whether the group must stay together; and what a split costs.
-- **gate or release** — A `policy` or `boundary-condition` that lets things proceed. Ask whether the gate is a state, an event, or a person's decision; where it is observed; and what overrides it.
-- **mode change** — A setup, changeover, restart, or warm-up. Ask whether loss depends on direction, whether the change is local or cascading, and which time, material, or capacity components are lost.
-- **event, not step** — A failure or interruption that befalls the system. Ask occurrence and duration separately, then whether the rate is independent or changes with a named state.
-- **threshold on a continuous quantity** — A `dynamics` node. Ask what it triggers, which `activity` resets it, and — when several components evolve — whether they combine additively or the weakest component decides.
+- **shared resource** — several activities want one `entity-type`'s instances — ask which wins and what overrides.
+- **batch, lot, load** — an `ordering/flow` that moves things in groups — ask what the group is and what a split costs.
+- **gate or release** — a `policy` or `boundary-condition` that lets things proceed — ask for the practiced event, not the approximate time.
+- **mode change** — a setup, changeover, restart, or warm-up — ask what is lost, after a named transition.
+- **event, not step** — a failure or interruption that befalls the system — ask rate and duration separately.
+- **threshold on a continuous quantity** — a `dynamics` node — ask what it triggers and which `activity` resets it.
 
 ## Smells
 
@@ -235,8 +223,6 @@ _Signs in the interviewer's own output — not the expert's — that the intervi
 - **Many questions in one turn** — You are about to ask more than four things at once, or anything at all before the first answer has landed. The expert will choose which to answer and silently drop the rest.
 - **Fluent and empty** — The conversation reads well and the completion report still lists the same unsatisfied slots it did three turns ago. Fluency is not progress.
 - **Assent taken as origin** — The expert agreed to a phrasing that was yours. Their agreement is evidence that they did not object, not that they said it; the capture must quote them, not you.
-- **Schema-shaped questioning** — Your questions follow the model's headings or fields instead of the thread the expert is answering. The resulting coverage looks orderly while concrete structure and tacit distinctions remain hidden.
-- **Correction recorded twice** — A corrected or sharpened statement is about to be appended beside its earlier form instead of superseding it. The model will treat a correction as two competing facts.
 - **a quantity for one type and no other** — given for one `entity-type` when others exist and never asked whether it varies (P07).
 - **a continuous quantity that triggers nothing** — a `dynamics` node with no threshold and no consequence usually does not belong in the model.
 - **a queue as a node** — a buffer or waiting state elicited as if it were an activity; it is implied and emerges in projection.
@@ -251,14 +237,9 @@ _Where not to dig, and what looks like progress and is not. Anti-guidance, kept 
 - **Structure before responses** — Asking about how the system is built before knowing what question it must answer produces detail nobody needs. Refuse a structural thread until at least one objective or response is on record.
 - **The representation stopped changing** — That the model has stopped growing is not evidence it is complete; it is evidence you have stopped asking. Stop on the demanded slots, never on stability.
 - **Depth where nothing depends on it** — A fact earns probing when something the model must answer depends on it. Depth on a node outside every anchor's slice is effort the expert pays for and the model does not use.
-- **Clearinghouse as coverage** — Asking what you failed to ask may offer a final correction, but it cannot discover an omission the expert also does not notice. Never use a clearinghouse answer as evidence that coverage is complete.
-- **Whole-model restatement as progress** — Repeatedly summarising the whole model during elicitation consumes time without deepening the active thread. Reserve one complete read-back for close; use local restatement for correction.
-- **Document treated as practice** — A schedule, procedure, or spreadsheet states one source's claim. Do not take it for the practised rule; confirm when it holds, when it does not, and whose observation would distinguish the two.
 - **building the net in conversation** — Places, transitions, arcs, and colours are projection output. Naming them to the expert buys nothing and costs the expert's vocabulary.
 - **eliciting queues or scenarios** — Neither is a node. Ask about the activities on either side of a wait; assemble scenarios from `boundary-condition` nodes at simulation time.
-- **depth on IR-only kinds** — Establish the `validation-criterion` and accuracy bar at kickoff even though they do not project today. For `data-binding`, stop after the variable, source, and any evidence gap; implementation detail belongs in the loss report.
-- **grade finer than what the expert observes** — Do not decompose a quantity below the granularity the expert can observe. Record the coarser value and a deposit naming where finer evidence could come from.
-- **eliciting the objective's answer** — The interview builds what the model needs to answer an `objective`; it does not ask the expert to predict that answer and store the prediction as model structure.
+- **depth on IR-only kinds** — `data-binding` and `validation-criterion` project to nothing today; name them and record them for the loss report, do not elaborate them.
 
 ## Failure modes
 
@@ -274,6 +255,7 @@ _Named ways an interview of this kind fails, each with the signature by which it
 - **Deferral without deposit** — The interviewer names future work or external data as a prerequisite and records nothing. _Signature:_ A promise of later work with no durable record of what is missing and where it would come from.
 - **dead net** — the floor catches presence; only the sweep catches an order that was never actually stated. _Signature:_ no `ordering/flow` with its order spelled out; activities exist but nothing connects them
 - **unsupported objective** — the model cannot answer the question it was built for; the slice never reached it. _Signature:_ an `objective` whose dependency slot names no node in the model
+- **overconfident triangle** — the expert was asked the wrong three questions; re-ask as quantiles. _Signature:_ a duration or rate captured as minimum / most-likely / maximum
 
 ## Job: construct — no model exists
 
@@ -281,13 +263,10 @@ _Named ways an interview of this kind fails, each with the signature by which it
 
 _What to establish before any structure, and how. Kickoff produces a posture — the stance the rest of the interview takes from the expert's time, intended use, required confidence, and tolerance for proposed assumptions. It is a form the interviewer fills implicitly, never an opening battery of questions._
 
-- **Objectives first** — Establish what the model must be able to answer, and for whom, before anything else; then let it prioritise the rest.
-- **Quantify better when relevant** — Where the plugin demands a numeric objective, ask what "better" means and expect to co-construct the comparison rather than receive a ready-made metric.
+- **Objectives first** — Establish what the model must be able to answer, and for whom, before anything else; then let it prioritise the rest. What "better" means, numerically where possible, is almost never written down — expect to co-construct it.
 - **The posture** — From the first exchanges, take the expert's time available, what the model is for, how confident it must be, and how far they will tolerate you proposing assumptions. These set the interview's stance; they are not asked as a form.
-- **Define the boundary and horizon** — Establish what is inside, what is outside, why that boundary serves the objective, and how far in time the model must remain useful before asking for structure.
-- **Name factors and the accuracy bar** — Ask what the expert may vary, what response decides success, and what observation or replay would make the result accurate enough for its intended use.
-- **Purpose before structure** — Do not ask how the system is built until an objective, boundary, and accuracy bar are on record. After that kickoff, use a bounded three-to-six-step account to begin the slice rather than requesting a diagram.
-- **what "no model exists" means here** — The user knows the system; the interviewer knows the kinds. Capture each thing the user wants the model to answer or decide as an `objective` node. Recast an optimisation request as a comparison among candidate policies, and name the time resolution over which the answer must remain useful.
+- **No structure in the first exchange** — Do not ask how the system is built until an objective is on record. The bounded opener is a three-to-six-step account of what happens, not a diagram.
+- **what "no model exists" means here** — The user knows the system; the interviewer knows the kinds. Capture each thing the user wants the model to answer or decide as an `objective` node. Expect to co-construct: these are almost never written down. Ask what "better" means and whether it can be quantified.
 
 ### Trajectory
 
@@ -297,7 +276,6 @@ _Which movements in which bias, varied by posture. Stated as postures the interv
 - **Deepen before recording** — When an answer is not yet usable — vague, normative, or in tension with an earlier one — apply a technique to it before moving on. One thread at a time.
 - **Keep the assumption ledger** — Any value or rule you supply that the expert did not state goes in a numbered list with why it was assumed and how to check it. Never let one pass silently into the model.
 - **Change technique when yield drops** — When several turns produce nothing new, change technique — a story, a contrast, a sweep of absences — rather than asking more of the same open questions.
-- **Select by posture** — When appetite is high, explore openly and follow a concrete slice. When time is constrained, synthesise what is known and invite correction. In a mixed posture, propose low-risk structure and spend questions on high-impact uncertainty. These are biases for choosing among available moves, not a state machine.
 - **kind order** — Slice one instance end to end first; the shape of the model comes from the slice. Then sweep the nodes the slice revealed in kind order, net-bearing kinds before IR-only ones, checking each node's rows and every pattern its state matches.
 
 ### Close
@@ -308,11 +286,8 @@ _How to end honestly. Completion is computed by the harness from the model, neve
 - **Read it back** — The close is a walkthrough — the model read back item by item for sign-off — not a document handed over for silent review.
 - **Honour a stop** — When the expert stops, open no new topic. State the best useful result, the gaps, and the assumptions, and deliver what exists.
 - **Deliver the losses** — The deliverable includes the assumption ledger and a short account of what the model deliberately leaves out and why.
-- **Name the stopping outcome** — State whether the model completed its demanded slice, the expert stopped, the time budget ended, or a partial result was delivered for another reason. A smooth conversation or a document in hand is not completion.
-- **Separate assumptions from simplifications** — List unknown claims supplied provisionally as assumptions separately from deliberate exclusions or collapsed detail. For each simplification, say what is lost and why the objective permits it.
-- **the deliverable** — Summarise per kind. Deliver the model with every node in the expert's own vocabulary, each slot's value grade as actually obtained and its source-regime where both were given; the assumption ledger; and a loss section — what the model deliberately leaves out, which slots are open and why, which objectives are unsupported, and which kinds the net cannot carry.
+- **the deliverable** — Summarise per kind. Deliver the model with every node in the expert's own vocabulary, each slot's value and precision as actually obtained and its source-regime where both were given; the assumption ledger; and a loss section — what the model deliberately leaves out, which slots are open and why, which objectives are unsupported, and which kinds the net cannot carry.
 - **what the interviewer does not claim** — The SDCPN scaffold, the code-obligation sidecar, and the typed loss report are derived by the plugin's projection. The interviewer does not write them and must not claim the model is loadable, compiled, or simulated.
-- **stopping outcomes** — Named and distinct: `complete-under-declared-demands`, `partial-with-open-slots`, `unsupported-objective`, `data-deposit-required`, `expert-stopped`.
 
 ## Job: review and revise — a model exists
 

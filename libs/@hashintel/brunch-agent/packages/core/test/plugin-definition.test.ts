@@ -58,6 +58,23 @@ describe("the synthetic fixture definition", () => {
     );
   });
 
+  test("reads a list of alternative demanded precision words", () => {
+    const withAlternatives = readPluginDefinition(
+      FIXTURE_PLUGIN_YAML.replace(
+        "precision: spread",
+        "precision: [spread, spelled out]",
+      ),
+    );
+    expect(
+      mustKnowRowsFor(withAlternatives, "step").find(
+        (row) => row.slot === "how long it takes",
+      )?.precision,
+    ).toEqual({
+      kind: "any-of",
+      words: ["spread", "spelled out"],
+    });
+  });
+
   test("reads the anchor as a declaration, not a convention", () => {
     expect(definition.anchor).toEqual({
       kind: "objective",
@@ -76,6 +93,13 @@ describe("the synthetic fixture definition", () => {
       ["P02", ["thing"]],
       ["P03", []],
     ]);
+  });
+
+  test("reads a pattern predicate on one of its kinds' demanded slots", () => {
+    expect(definition.patterns.at(0)).toMatchObject({
+      id: "P01",
+      slot: "how long it takes",
+    });
   });
 
   test("flattens guidance and runbook cells with their key paths", () => {
@@ -145,6 +169,22 @@ describe("contract violations fail to load", () => {
       /pattern P01 names kind `queue`/u,
     ],
     [
+      "a pattern predicate on a slot its kind does not demand",
+      FIXTURE_PLUGIN_YAML.replace(
+        "on: [step], slot: how long it takes",
+        "on: [step], slot: queue capacity",
+      ),
+      /pattern P01 names slot `queue capacity`, which `step` does not demand/u,
+    ],
+    [
+      "a wildcard pattern predicate on a slot no kind demands",
+      FIXTURE_PLUGIN_YAML.replace(
+        "id: P03, on: [], when:",
+        "id: P03, on: [], slot: queue capacity, when:",
+      ),
+      /pattern P03 names slot `queue capacity`, which no kind demands/u,
+    ],
+    [
       "a runbook for an undeclared job",
       FIXTURE_PLUGIN_YAML.replace(
         "runbooks:\n",
@@ -212,5 +252,49 @@ describe.skipIf(!contextRootPresent)("the shipped plugin definitions", () => {
     const gherkin = readShipped("plugin-gherkin");
     expect(sdcpn.anchor.kind).not.toBe(gherkin.anchor.kind);
     expect(sdcpn.proposals.map((p) => p.type)).toEqual(["slot-asserted"]);
+  });
+
+  test("SDCPN accepts structural alternatives to numeric precision where the slot permits either", () => {
+    const sdcpn = readShipped("plugin-sdcpn");
+    expect(
+      sdcpn.mustKnow
+        .filter((row) =>
+          [
+            'what "better" means, and trade-off weights',
+            "the arrival or availability pattern",
+          ].includes(row.slot),
+        )
+        .map((row) => [row.slot, row.precision]),
+    ).toEqual([
+      [
+        'what "better" means, and trade-off weights',
+        { kind: "any-of", words: ["range", "spelled out"] },
+      ],
+      [
+        "the arrival or availability pattern",
+        { kind: "any-of", words: ["spread", "spelled out"] },
+      ],
+    ]);
+  });
+
+  test("ambiguous kind-indexed patterns declare the slot that keeps them live", () => {
+    const sdcpn = readShipped("plugin-sdcpn");
+    const gherkin = readShipped("plugin-gherkin");
+    expect(
+      sdcpn.patterns
+        .filter((pattern) => ["P01", "P02"].includes(pattern.id))
+        .map((pattern) => [pattern.id, pattern.slot]),
+    ).toEqual([
+      ["P01", "how often it occurs, if it is an event rather than a step"],
+      ["P02", "what is lost when it changes the system's mode"],
+    ]);
+    expect(
+      gherkin.patterns
+        .filter((pattern) => ["P01", "P03"].includes(pattern.id))
+        .map((pattern) => [pattern.id, pattern.slot]),
+    ).toEqual([
+      ["P01", "the examples that illustrate it"],
+      ["P03", "the observable outcome"],
+    ]);
   });
 });

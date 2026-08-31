@@ -1,17 +1,14 @@
 # Baseline control — read-out (FE-1361)
 
 Scored 2026-08-13, against the transcripts in [`transcripts/`](transcripts/). Design and
-mechanics in the executable
+mechanics are in the executable
 [protocol](../../../../../evaluations/protocols/process-model-elicitation/baseline/protocol.md).
-Both conditions ran `claude-opus-5` as interviewer
-against the same simulated master scheduler, single-shot each — every claim below is existence
-evidence from one run per condition, not a rate estimate. Condition 4 (the ADR-0007 teaching
-layer rendered as a prompt only, run and scored 2026-08-25) is appended at the end under its own
-heading; the sections between are the 2026-08-13 read-out of conditions 1 and 2, unchanged.
-Condition 5 (the shipped harness in the loop) ran on 2026-08-25; its transcript, raw record, and
-folded store are in [`transcripts/`](transcripts/) and its
-[turn latency assessment](condition-5-turn-latency.md) is written, but its read-out on the
-dimensions below is **pending review** and not part of this document yet.
+All conditions ran `claude-opus-5` as interviewer against the same simulated master scheduler,
+single-shot each — every claim below is existence evidence, not a rate estimate. The sections
+through the first condition-4 review are the 2026-08-13 / 2026-08-25 read-out unchanged.
+Cycle-one live-arm artifacts are archived under [`transcripts/cycle-1/`](transcripts/cycle-1/);
+the current condition-4 and condition-5 artifacts are the cycle-two runs from 2026-08-26. Their
+catalogue verdict is appended at the end.
 
 ## Headline findings
 
@@ -264,13 +261,13 @@ What one page of guidance demonstrably cannot fix, each observed in the stronges
 
 ## Condition 4 — the teaching layer as prompt only (scored 2026-08-25)
 
-Scored against [`transcripts/condition-4.md`](transcripts/condition-4.md) (22 interviewer
+Scored against [`transcripts/cycle-1/condition-4.md`](transcripts/cycle-1/condition-4.md) (22 interviewer
 turns, stop reason `delivered-after-forced-wrap`), the assembled system prompt
-[`transcripts/condition-4-system.md`](transcripts/condition-4-system.md) (the condition-4
+[`transcripts/cycle-1/condition-4-system.md`](transcripts/cycle-1/condition-4-system.md) (the condition-4
 framing + the rendered `repertoire.yaml` + `plugin-sdcpn/plugin.yaml`, ≈280 lines), and the
-delivered model [`transcripts/condition-4-model.txt`](transcripts/condition-4-model.txt).
+delivered model [`transcripts/cycle-1/condition-4-model.txt`](transcripts/cycle-1/condition-4-model.txt).
 Interviewer `claude-opus-5`, same simulated master scheduler, single shot — existence evidence
-from one run, not a rate. Line references are `condition-4.md:LINE`; interviewer turns are
+from one run, not a rate. Line references are `cycle-1/condition-4.md:LINE`; interviewer turns are
 numbered T1–T22 (T1 at line 22, T9 at 202, T10 at 236, T11–T20 at 462–598, T21 at 610, T22 at
 958). The impatience probe was appended to the expert's T8 reply (line 198); the forced-wrap
 line was appended after T20 (line 606) and again after T21 (line 954), as the runner also did in
@@ -281,7 +278,7 @@ that is not visible in the Markdown transcript and is taken from the run record.
 
 **1. The teaching layer produced the best-disciplined nine questioning turns of any condition,
 and the thinnest model.** Objectives first with a demand for a real case ("Give me a real one
-you've argued about recently, not a general category" — `condition-4.md:28`), a bounded
+you've argued about recently, not a general category" — `cycle-1/condition-4.md:28`), a bounded
 five-or-six-step slice (`:68`), one to three questions per turn, quantile elicitation on all four
 changeover types, a resource-in-passing lens that caught the changeover crew (`:188`), a
 last-time probe that got the practiced contention rule with its borderline case and its override
@@ -538,7 +535,8 @@ What the keys bought (observed, one run each):
 6. **`source-regime` used as designed.** "*Prescribed form:* **none exists** — *"there's no
    posted rule at all."*" (`:1119`); "prescribed and practiced coincide — she reports no
    divergence, which is itself the finding" (`:635`).
-7. **Read-back in the expert's words.** 204 quotation marks in `condition-4-model.txt` versus 24
+7. **Read-back in the expert's words.** 204 quotation marks in
+   `cycle-1/condition-4-model.txt` versus 24
    in `condition-2-model.txt`; the model's declared convention is "Quoted text is hers" (`:966`).
    Condition 2's attribution was narrative; condition 4's is per slot.
 8. **The stop honoured, the losses delivered, the net not claimed.** `Honour a stop` produced
@@ -584,7 +582,7 @@ strain; the last group lists what fired as designed, so the next cycle does not 
 - `plugin.schema.must_know[activity]."what is lost when it changes the system's mode"` +
   `plugin.patterns.P02` + `plugin.guidance.motifs."mode change"` — three restatements of one
   ask; none fired. Ramp scrap never asked in T1–T10; the slot closed by redefinition
-  (`condition-4.md:1054`, `:723`). P02's second sentence ("If the expert does not know, ask what
+  (`cycle-1/condition-4.md:1054`, `:723`). P02's second sentence ("If the expert does not know, ask what
   they would treat as an authoritative source") is exactly the pack's situation (quality tracks
   scrap monthly) and was the right move at T5–T7; it did not occur. The row's phrasing "what is
   lost" reads as time lost when the neighbouring row is "how long it takes"; say "material,
@@ -629,7 +627,7 @@ strain; the last group lists what fired as designed, so the next cycle does not 
 
 **Duplication in the render**
 
-- Quantiles ×3: `plugin.ontology.attributes.quantity`, `repertoire.guidance.techniques."Quantiles, never three points"`, `plugin.guidance.techniques."quantiles, never triangles"` (`condition-4-system.md:71, 166, 171`).
+- Quantiles ×3: `plugin.ontology.attributes.quantity`, `repertoire.guidance.techniques."Quantiles, never three points"`, `plugin.guidance.techniques."quantiles, never triangles"` (`cycle-1/condition-4-system.md:71, 166, 171`).
 - Batching ×3: `repertoire.guidance.licenses."Batch breadth, sequence depth"`, `repertoire.guidance.smells."Many questions in one turn"`, `repertoire.guidance.failure_modes."Opening overload"`.
 - Queues ×3: `plugin.ontology.not_kinds`, `plugin.guidance.rabbit_holes."eliciting queues or scenarios"`, `plugin.guidance.smells."a queue as a node"`.
 - Mode-change loss ×3, vary-by-type ×3, shared-resource ×3 (`plugin.ontology.not_kinds.resource`, `plugin.patterns.P05`, `plugin.guidance.motifs."shared resource"`), unwritten rules ×2 (`plugin.ontology.kinds.constraint` "written or unwritten", `plugin.guidance.movements.sweep."the unwritten constraints"`).
@@ -673,7 +671,7 @@ strain; the last group lists what fired as designed, so the next cycle does not 
   classifier prompt must accept a deliverable with declared gaps, or the harness's computed
   completion (absent in a prompt-only condition) must be the stop signal — which is the
   ADR-0007 position anyway.
-- **The raw record keeps the classifier's usage but not its verdicts.** `condition-4.raw.json`
+- **The raw record keeps the classifier's usage but not its verdicts.** `cycle-1/condition-4.raw.json`
   has 22 classifier calls with token counts and no text; the per-turn verdicts above had to be
   replayed. `run.ts` should record the verdict per turn.
 - **The forced-wrap line was injected twice** (`:606`, `:954`), as in condition 2, producing
@@ -681,3 +679,60 @@ strain; the last group lists what fired as designed, so the next cycle does not 
 - **The condition-4 framing asked for "the most faithful representation the target formalism
   allows"** while the plugin says the interviewer does not build the net; the plugin won. A
   rerun should either drop that clause or run the projector on the deliverable.
+
+## Cycle 2 live-arm review and catalogue verdict (2026-08-26)
+
+Cycle two reran both live arms against `sdcpn/2026-08-26.2` and
+`repertoire/2026-08-26.2`.
+
+### What the runs established
+
+- **Condition 4 exercised the revised teaching but retained the known prompt-only stop defect.**
+  It ran all 24 turns and stopped at the hard limit
+  ([transcript](transcripts/condition-4.md):1–8), despite delivering a gap-declaring model more
+  than once. Its 1,006,344 input and 57,851 output tokens across 67 calls make the cost of that
+  classifier false negative material, but do not identify a missing plugin key.
+- **Condition 5 stopped honestly with an incomplete engagement.** The expert left after ten
+  turns; the interviewer delivered `expert-stopped, partial-with-open-slots`, named the source
+  for each deferred item, and did not claim to have built a net
+  ([transcript](transcripts/condition-5.md):275–316). The folded store contains 166 active
+  captures, 51 nodes, 0 unmapped captures, and 93 unsatisfied demands
+  ([model](transcripts/condition-5-model.md):7–10). The unsatisfied rows are visible rather than
+  silently filled.
+- **The evidence boundary held.** Five sweep attempts were refused when quotations were not
+  verbatim or occurred only in non-user entries
+  ([transcript](transcripts/condition-5.md):255, 379–384); the closing sweep admitted only two
+  deposits grounded in the expert's words (`:420–422`). This cost turns, but it did not corrupt
+  the store.
+- **Node identity remains the dominant harness defect.** One wash-versus-idle question became
+  six near-duplicate objective nodes plus a separate exchange-rate objective
+  ([model](transcripts/condition-5-model.md):163–196); entity types, policies, constraints, and
+  activities show the same naming drift. The interviewer itself identified duplicate
+  changeover nodes ([transcript](transcripts/condition-5.md):369–373). This is register
+  identity/deduplication in the sweep/fold path, not vocabulary a plugin key can supply.
+- **Session termination remains harness control.** After the expert accepted the handover, the
+  runner dispatched two more non-question turns and classified the result as `stalled`
+  ([transcript](transcripts/condition-5.md):318–422). Guidance correctly described the stopping
+  outcome; the runtime lacks a terminal act for an incomplete, expert-stopped engagement.
+
+### Catalogue decision
+
+**The fixed key catalogue freezes at cycle two.** The cycle added, merged, and dropped no key.
+The revised surface expressed the evidence the runs needed: structural or numeric objective and
+arrival demands, explicit absences with deposits, mode-change loss, dynamics noise, validation
+criteria, source bindings, and a typed partial close. No observed fact required a new guidance,
+runbook, ontology, schema, pattern, or machinery key. Missing model content is represented by
+existing unsatisfied rows; adding keys would not repair it.
+
+The final third-formalism check also fills cells only. Reapplying the cycle-one
+[formal-verification sketch](../../../proofs/design/plugin-keys-pressure-review-cycle-1.md#14-flexibility--formal-verification-sketch-tlamodel-checking-properties-not-written-to-a-file)
+to the cycle-two contract leaves its five kinds, anchor, and guidance cells unchanged. Its demands
+use only `spelled out`, `named`, and `at least N`, all still accepted; the new applicability facet
+omits the quantity and policy-versus-practice defaults that the sketch identified as noise. It
+needs neither another key nor a contradiction of the default.
+
+Freeze means the authoring interface is stable, not that the harness is finished. Node
+identity/deduplication, quote-repair efficiency, the condition-4 delivery classifier, and the
+condition-5 terminal act remain follow-up evidence for the FE-1383 harness work. They do not
+reopen FE-1431's key catalogue unless a later target formalism proves that an existing key cannot
+express required authoring content.

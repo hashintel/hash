@@ -121,7 +121,7 @@ One row of a plugin's `schema` key (the `Must know` table under ADR-0006): a slo
 _Avoid_: demand clause, scope expression, objective row
 
 **Pattern**:
-A discretionary, kind-indexed heuristic under a plugin's `patterns` key with a **machine-matchable trigger on node state**: the model situation that triggers it and the question that resolves it. A trigger the harness cannot match against node state (a vague quantifier, an expert who does not know) is guidance — a technique or a movement — not a pattern (ADR-0007). Surfaced by the harness when a node matches the trigger and the relevant slot is unsatisfied; the interviewer decides whether to use it. Never names a domain.
+A discretionary, kind-indexed heuristic under a plugin's `patterns` key. Its machine trigger is the declared kind plus, when present, one unsatisfied demanded slot; its `when` text explains when the surfaced candidate applies and its `ask` text gives the resolving question. A trigger the harness cannot narrow to node kind and slot state (a vague quantifier, an expert who does not know) is guidance — a technique or a movement — not a pattern (ADR-0007). The interviewer decides whether to use a surfaced candidate. Never names a domain.
 _Avoid_: card, kernel card (retired — ADR-0006 replaced Detects/Goal/Questions/Artifacts cards with pattern rows), technique card
 
 **Runbook**:
@@ -133,7 +133,7 @@ One of the fixed, harness-owned headings of plugin authoring (ADR-0007): the har
 _Avoid_: heading (for the authoring unit), section, property (unqualified)
 
 **Repertoire**:
-The harness's own filling of every guidance and runbook key — what it teaches every plugin about interviewing — shipped as `packages/repertoire`, rendered by bindings, never imported by a plugin. Admitted by evidence, not by plausibility; never rescoped without run evidence.
+The harness's own filling of every guidance and runbook key — what it can teach any plugin about interviewing — shipped as `packages/repertoire`, rendered by bindings, never imported by a plugin. An entry may declare the value grades it applies to; the harness derives applicability from the plugin's demand rows. Admitted by evidence, not by plausibility; never rescoped without run evidence.
 _Avoid_: quiver (retired name), strategy library, kernel
 
 **Mechanism type**:

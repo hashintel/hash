@@ -12,6 +12,9 @@ Two rules the reader enforces here and not on a plugin: every key is filled,
 and every entry names its `source` — a run, a replay, a verified literature
 finding, or an accepted decision. Admission is by evidence (ADR-0007
 decision 7). Entries name no formalism and no domain; the test checks.
+An entry may declare `for_precision`, a non-empty list of harness precision
+words. The renderer includes it only for plugins that demand at least one of
+those words.
 
 ## Topology
 

@@ -16,10 +16,10 @@ import {
   type SlotState,
 } from "./elicited-model";
 import {
+  formatPrecisionDemand,
   type FloorRow,
   type MustKnowRow,
   type PluginDefinition,
-  type PrecisionDemand,
   type PrecisionWord,
 } from "./plugin-definition";
 
@@ -141,9 +141,6 @@ export const precisionSatisfies = (
   return LADDER[given]! >= LADDER[demanded]!;
 };
 
-const describeDemand = (precision: PrecisionDemand): string =>
-  precision.kind === "word" ? precision.word : `at least ${precision.count}`;
-
 const isEmptySelection = (value: JsonValue): boolean =>
   value === null ||
   value === "" ||
@@ -179,7 +176,7 @@ const evaluateRow = (
     nodeId: node.id,
     kind: node.kind,
     slot: row.slot,
-    requirement: describeDemand(row.precision),
+    requirement: formatPrecisionDemand(row.precision),
     actual: describeSlot(slot),
     captureIds: slot?.captureIds ?? [],
   };
@@ -251,10 +248,17 @@ const evaluateRow = (
           `"${row.slot}" on ${node.id} lists ${count}; at least ${row.precision.count} needed.`,
         );
   }
-  if (!precisionSatisfies(slot.precision, row.precision.word)) {
+  const demandedWords =
+    row.precision.kind === "word" ? [row.precision.word] : row.precision.words;
+  if (
+    !demandedWords.some((demanded) =>
+      precisionSatisfies(slot.precision, demanded),
+    )
+  ) {
+    const requirement = formatPrecisionDemand(row.precision);
     return fail(
       "below-required-precision",
-      `"${row.slot}" on ${node.id} is known as a ${slot.precision}; the model needs ${row.precision.word}. Smallest delta: move it from ${slot.precision} to ${row.precision.word}.`,
+      `"${row.slot}" on ${node.id} is known as a ${slot.precision}; the model needs ${requirement}. Smallest delta: move it from ${slot.precision} to ${row.precision.kind === "word" ? row.precision.word : `one of ${requirement}`}.`,
     );
   }
   return null;

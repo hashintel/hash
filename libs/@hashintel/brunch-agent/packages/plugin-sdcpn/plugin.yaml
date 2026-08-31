@@ -13,7 +13,7 @@
 
 plugin:
   id: sdcpn
-  version: sdcpn/2026-08-25.2
+  version: sdcpn/2026-08-26.2
   formalism: stochastic dynamic coloured Petri nets (Petrinaut)
   jobs: [construct, review-and-revise]
   purpose: |
@@ -96,9 +96,8 @@ ontology:
     - name: quantity
       on: any kind
       text: >-
-        Any duration, rate, probability, count, or capacity. Elicited by quantiles — "typical?",
-        "one time in ten, worse than?", "one time in ten, better than?" — never minimum /
-        most-likely / maximum, which yields overconfident triangles.
+        Any duration, rate, probability, count, or capacity. Preserve the value grade the expert
+        reached; the row's demand says what further narrowing completion requires.
     - name: source-regime
       on: any kind
       values: [prescribed, practiced]
@@ -106,9 +105,6 @@ ontology:
         One model, not two: when the manual and the floor disagree, both are recorded on the same
         node and the divergence is an ordinary typed conflict for the expert to resolve —
         elicitation gold, not an error.
-    - name: rationale
-      on: any kind
-      text: Why the expert says it is so — on any kind, never only on objectives.
 
 schema:
   preamble: |
@@ -136,7 +132,7 @@ schema:
       why: "an objective that depends on nothing is unsupported by the model"
     - kind: objective
       slot: 'what "better" means, and trade-off weights'
-      precision: range
+      precision: [range, spelled out]
       not_applicable: true
       why: "quantified objectives need a metric; some are qualitative"
     - kind: entity-type
@@ -161,7 +157,7 @@ schema:
       why: "scenario initial state"
     - kind: boundary-condition
       slot: "the arrival or availability pattern"
-      precision: spread
+      precision: [spread, spelled out]
       not_applicable: false
       why: "source rates and calendars; a single average hides the shape"
     - kind: activity
@@ -225,6 +221,11 @@ schema:
       not_applicable: false
       why: "the differential law; a direction with no rate cannot be simulated"
     - kind: dynamics
+      slot: "how it varies around that change"
+      precision: spread
+      not_applicable: true
+      why: "noise can dominate threshold timing; deterministic change may explicitly have none"
+    - kind: dynamics
       slot: "what happens at a threshold"
       precision: spelled out
       not_applicable: true
@@ -257,22 +258,25 @@ patterns:
   items:
     - id: P01
       on: [activity]
+      slot: "how often it occurs, if it is an event rather than a step"
       when: >-
         an `activity` is an event that can befall the system — a failure, an interruption, an
         unplanned arrival — rather than a step in the flow
       ask: >-
         occurrence and duration are two slots. Ask how often, as a range, for each named event
-        separately; then how long, as a spread. Keep the precision the expert actually gave; never
+        separately; then how long, as a spread. Keep the value grade the expert actually gave; never
         round a range up to a spread.
     - id: P02
       on: [activity]
+      slot: "what is lost when it changes the system's mode"
       when: >-
         an `activity` changes the system's mode — a setup, changeover, restart, warm-up,
         reconfiguration, handover
       ask: >-
         ask what is lost in the transition, as a range, after a *named* transition. If the expert
         does not know, ask what they would treat as an authoritative source — never convert
-        "unknown" into a value.
+        "unknown" into a value. Ask before recording an explicit "not applicable"; an ordinary
+        activity with no mode change is a useful negative answer, not a reason to skip the slot.
     - id: P03
       on: [ordering/flow]
       when: an `ordering/flow` moves things in groups — batches, runs, lots, loads
@@ -333,49 +337,88 @@ guidance:
         A `dynamics` node — something changing continuously while nothing discrete happens — or a
         mode change with a loss. The expert rarely volunteers the rate; the model cannot run
         without it.
+    - name: '"always" and "never"'
+      text: >-
+        A `constraint` or a `policy` stated in passing. Ask what enforces it, what it limits, and
+        whether an exception has ever overridden it.
+    - name: duration that depends on the clock
+      text: >-
+        An `activity` duration whose elapsed time crosses a calendar boundary depends on a
+        `boundary-condition`, not only on the work itself. Ask for both the work time and the
+        availability rule.
   techniques:
-    - name: quantiles, never triangles
+    - name: value grade is not evidence
       text: >-
-        For any quantity, ask "typical?", then "one time in ten, worse than?", then "one time in
-        ten, better than?" — never minimum / most-likely / maximum, which yields overconfident
-        triangles. A `spread` is exactly this.
-    - name: precision is about the value, not its source
+        "About three hours" from the expert is an honest `number` below the demanded grade; "three
+        hours" supplied by the interviewer may look narrow enough and is not evidence at all. Track
+        grade and evidence separately and let neither substitute for the other.
+    - name: stress the binding resource
       text: >-
-        "About three hours" from the expert is an honest `number` at the wrong precision; "three
-        hours" supplied by the interviewer is at the right precision and is not evidence at all.
-        Track both and let neither substitute for the other.
+        Before deepening every duration into a distribution, ask which `entity-type` actually
+        constrains the objective and whether its utilisation or variability makes stochastic detail
+        consequential.
+    - name: turn an unknown into an observable threshold
+      text: >-
+        When the expert cannot give an exact quantity, ask what boundary would change a decision or
+        become visibly unacceptable. Record the threshold they can judge; do not invent the value
+        beyond it.
+    - name: ask what is conserved
+      text: >-
+        When quantities enter and leave a process, ask what total should remain constant and where
+        loss is possible. A conservation answer belongs as a `constraint`, in the expert's units.
   movements:
     slice:
       - name: one instance, arriving to leaving
         text: >-
           One case in this formalism is one instance of the `entity-type` that flows, followed from
-          the moment it reaches the system to the moment it leaves. Create nodes as they appear; as
-          each `objective` becomes clearer, link it to the nodes it depends on. An `objective` that
-          depends on nothing yet is unsupported — say so and go find its structure.
+          the moment it reaches the system to the moment it leaves. If several things flow, first
+          ask which unit defines one case — order, batch, item, or another named unit. Create nodes
+          as they appear; as each `objective` becomes clearer, link it to the nodes it depends on.
+          An `objective` that depends on nothing yet is unsupported — say so and go find its
+          structure.
     sweep:
       - name: strata are kinds, net-bearing first
         text: >-
-          A stratum is one kind. Sweep in kind order, `entity-type` through `dynamics` (net-bearing)
-          before `objective` through `validation-criterion` (partly or wholly IR-only).
+          After kickoff has established each `objective` and its `validation-criterion`, a stratum
+          is one kind. Sweep `entity-type` through `dynamics` first because they bear the net, then
+          complete the remaining IR-only rows.
       - name: the unwritten constraints
         text: >-
           Close the `constraint` stratum with the unwritten rules: "what would a newcomer get wrong
           in the first week?", "what do you always or never do that is written nowhere?", "which rule
           exists because something once went wrong?"
+      - name: what can befall each activity
+        text: >-
+          Close the `activity` stratum by asking across exception types: work-item failure, deadline
+          expiry, resource unavailability, external trigger, and constraint violation. For each
+          named exception, ask what happens to the work, the case, and the recovery.
   licenses: []
   motifs:
     - name: shared resource
-      text: several activities want one `entity-type`'s instances — ask which wins and what overrides.
+      text: >-
+        Several activities want one `entity-type`'s instances. Ask whether the server is indivisible
+        or splittable by role, how many instances act together, which activity wins, and what
+        overrides that rule.
     - name: batch, lot, load
-      text: an `ordering/flow` that moves things in groups — ask what the group is and what a split costs.
+      text: >-
+        An `ordering/flow` that moves things in groups. Ask whether formation fires by count, by a
+        clock, or by either; whether the group must stay together; and what a split costs.
     - name: gate or release
-      text: a `policy` or `boundary-condition` that lets things proceed — ask for the practiced event, not the approximate time.
+      text: >-
+        A `policy` or `boundary-condition` that lets things proceed. Ask whether the gate is a state,
+        an event, or a person's decision; where it is observed; and what overrides it.
     - name: mode change
-      text: a setup, changeover, restart, or warm-up — ask what is lost, after a named transition.
+      text: >-
+        A setup, changeover, restart, or warm-up. Ask whether loss depends on direction, whether the
+        change is local or cascading, and which time, material, or capacity components are lost.
     - name: event, not step
-      text: a failure or interruption that befalls the system — ask rate and duration separately.
+      text: >-
+        A failure or interruption that befalls the system. Ask occurrence and duration separately,
+        then whether the rate is independent or changes with a named state.
     - name: threshold on a continuous quantity
-      text: a `dynamics` node — ask what it triggers and which `activity` resets it.
+      text: >-
+        A `dynamics` node. Ask what it triggers, which `activity` resets it, and — when several
+        components evolve — whether they combine additively or the weakest component decides.
   smells:
     - name: a quantity for one type and no other
       text: given for one `entity-type` when others exist and never asked whether it varies (P07).
@@ -400,8 +443,17 @@ guidance:
         from `boundary-condition` nodes at simulation time.
     - name: depth on IR-only kinds
       text: >-
-        `data-binding` and `validation-criterion` project to nothing today; name them and record
-        them for the loss report, do not elaborate them.
+        Establish the `validation-criterion` and accuracy bar at kickoff even though they do not
+        project today. For `data-binding`, stop after the variable, source, and any evidence gap;
+        implementation detail belongs in the loss report.
+    - name: grade finer than what the expert observes
+      text: >-
+        Do not decompose a quantity below the granularity the expert can observe. Record the coarser
+        value and a deposit naming where finer evidence could come from.
+    - name: eliciting the objective's answer
+      text: >-
+        The interview builds what the model needs to answer an `objective`; it does not ask the
+        expert to predict that answer and store the prediction as model structure.
   failure_modes:
     - name: dead net
       signature: no `ordering/flow` with its order spelled out; activities exist but nothing connects them
@@ -409,9 +461,6 @@ guidance:
     - name: unsupported objective
       signature: an `objective` whose dependency slot names no node in the model
       text: the model cannot answer the question it was built for; the slice never reached it.
-    - name: overconfident triangle
-      signature: a duration or rate captured as minimum / most-likely / maximum
-      text: the expert was asked the wrong three questions; re-ask as quantiles.
 
 # ─── Runbooks ─────────────────────────────────────────────────────────────────────────────────────
 # One cell set per job this plugin supports. The harness default runbook for each job comes first;
@@ -423,8 +472,9 @@ runbooks:
       - name: what "no model exists" means here
         text: >-
           The user knows the system; the interviewer knows the kinds. Capture each thing the user
-          wants the model to answer or decide as an `objective` node. Expect to co-construct: these
-          are almost never written down. Ask what "better" means and whether it can be quantified.
+          wants the model to answer or decide as an `objective` node. Recast an optimisation request
+          as a comparison among candidate policies, and name the time resolution over which the
+          answer must remain useful.
     trajectory:
       - name: kind order
         text: >-
@@ -435,7 +485,7 @@ runbooks:
       - name: the deliverable
         text: >-
           Summarise per kind. Deliver the model with every node in the expert's own vocabulary,
-          each slot's value and precision as actually obtained and its source-regime where both were
+          each slot's value grade as actually obtained and its source-regime where both were
           given; the assumption ledger; and a loss section — what the model deliberately leaves
           out, which slots are open and why, which objectives are unsupported, and which kinds the
           net cannot carry.
@@ -444,6 +494,10 @@ runbooks:
           The SDCPN scaffold, the code-obligation sidecar, and the typed loss report are derived by
           the plugin's projection. The interviewer does not write them and must not claim the model
           is loadable, compiled, or simulated.
+      - name: stopping outcomes
+        text: >-
+          Named and distinct: `complete-under-declared-demands`, `partial-with-open-slots`,
+          `unsupported-objective`, `data-deposit-required`, `expert-stopped`.
   review-and-revise:
     kickoff:
       - name: what "a model exists" means here

@@ -151,3 +151,70 @@ written against.
 - `movements` fixed to `{slice, sweep}` — every formalism examined fits the
   pair; a single-walkthrough formalism would leave `sweep` empty, which the
   schema allows for plugins.
+
+## Cycle 2 — implementation, 2026-08-26
+
+- Added optional `patterns.items[*].slot`. The reader rejects a slot that an
+  explicitly indexed kind does not demand; the cue surfaces a slot-scoped
+  pattern only for a failure on that slot. SDCPN P01/P02 and Gherkin P01/P03
+  now declare the predicates identified by the cycle-1 pressure review.
+- Extended `schema.must_know[*].precision` to accept a non-empty list of
+  alternative precision words. Completion accepts a value that satisfies any
+  listed word and renders the alternatives explicitly. SDCPN's objective
+  metric accepts `range` or `spelled out`; its arrival pattern accepts `spread`
+  or `spelled out`, covering numeric distributions and structural rules without
+  splitting either semantic slot.
+- Added repertoire-item `for_precision`, a non-empty list of precision words.
+  Rendering now omits an annotated default unless the plugin demands at least
+  one listed word. The eight quantity and observed-practice entries identified
+  by the cycle review use the facet, so Gherkin is no longer taught numeric or
+  retrospective elicitation merely because it shares the fixed key catalogue.
+- Completed the cycle-two content pass without adding or removing a key. The
+  repertoire now consumes posture in trajectory selection; fills the ADR's
+  missing licenses, smells, rabbit holes, kickoff scope, and stopping outcomes;
+  and states its choices on clearinghouse probes, quantile order, batching,
+  hypotheticals, confirmed restatements, and structure after kickoff. SDCPN
+  motifs now name their variant axes, its cells no longer repeat generic
+  quantile teaching, and its demand rows, sweep, and anti-guidance cover
+  dynamics noise and the missed edge material. Gherkin's duplicate
+  rule-without-example failure mode was removed. A gate now rejects exact
+  sentence repetition between repertoire defaults and plugin cells.
+
+### Cycle-two review dispositions
+
+- Objective identity and deduplication do not change the key catalogue. They are
+  register semantics: plugins name the `objective` kind and its slots, while the
+  harness must decide whether a later statement refers to an existing objective
+  or creates another one.
+- Removed the SDCPN `rationale` attribute. The cycle found no evidence that
+  rationale should be collected on every kind, so a universal plugin facet
+  would create noise; targeted "why" questions remain available in patterns and
+  guidance where they resolve a known model gap.
+- Recounted the cycle-one condition-five evidence before considering finer
+  `must_know` rows. Its 267 captures use 22 unique slot names, all exact names
+  declared by the plugin; the larger observed count was slot instances across
+  nodes, not undeclared slot vocabulary. The catalogue therefore keeps the
+  current slot granularity until a run demonstrates a recurring unresolved
+  sub-slot.
+- Clarified that pattern matching is kind plus optional unsatisfied demanded
+  slot. Pattern prose explains why the surfaced candidate applies; it does not
+  add a hidden machine predicate.
+- Restricted "One incident is not a rate" to plugins demanding `range` or
+  `spread`, removed unqualified grade terminology from SDCPN prose, and shared
+  demand formatting between completion diagnostics and rendered instructions.
+
+### Catalogue freeze
+
+Conditions 4 and 5 completed against the cycle-two definitions on 2026-08-26.
+The review found no fact that required adding, merging, or dropping a key. The
+formal-verification sketch still fills cells only against the final contract:
+its `named`, `spelled out`, and `at least N` demands remain accepted, while the
+applicability facet omits the quantity and policy-versus-practice defaults it
+identified as noise. The fixed catalogue therefore freezes at cycle two.
+
+The runs did expose residual harness work: node identity and deduplication,
+quote-repair efficiency, prompt-only delivery classification, and a terminal act
+for an incomplete engagement after the expert stops. Those findings belong to
+the sweep/fold, evaluation, and session-control machinery; none is repaired by a
+new plugin-authoring key. The evidence and full verdict are recorded in the
+[baseline read-out](../../../docs/evidence/evaluations/process-model-elicitation/baseline/readout.md).

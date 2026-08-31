@@ -10,7 +10,7 @@
 
 plugin:
   id: gherkin
-  version: gherkin/2026-08-25.1
+  version: gherkin/2026-08-26.2
   formalism: Gherkin — executable specifications as features, rules, and examples
   jobs: [construct, review-and-revise]
   purpose: |
@@ -114,7 +114,7 @@ schema:
       slot: the known step it binds to
       precision: named
       not_applicable: true
-      why: A phrase the team already automates needs no new code; a new phrase is a cost the person should know about.
+      why: Ask the person to name the known team step; without an available lexicon, record the phrase as new rather than inventing a binding.
   proposals:
     - { type: statement-noted, payload: statement }
 
@@ -125,6 +125,7 @@ patterns:
   items:
     - id: P01
       on: [rule]
+      slot: the examples that illustrate it
       when: a rule has a statement but no example.
       ask: Ask for the last time this rule mattered — what was the situation, what happened, what was seen.
     - id: P02
@@ -133,7 +134,8 @@ patterns:
       ask: Ask what distinguishes the two situations; the difference is a missing part of the context or a missing rule.
     - id: P03
       on: [example]
-      when: an outcome is stated as an intention ("should work", "is handled") rather than something observable.
+      slot: the observable outcome
+      when: the observable-outcome slot is unsatisfied; intentions such as "should work" and "is handled" are common below-grade forms.
       ask: Ask what someone watching would see, and where.
     - id: P04
       on: [step]
@@ -181,9 +183,6 @@ guidance:
     - name: Organising the suite
       text: Tags, file layout, and naming conventions are not behaviour.
   failure_modes:
-    - name: Rule without example
-      text: A general statement is recorded as if it were checkable.
-      signature: A rule node whose examples slot is unsatisfied at close.
     - name: Untethered example
       text: An example illustrates no stated rule and no one knows what it proves.
       signature: An example whose rule slot is neither named nor marked not applicable.

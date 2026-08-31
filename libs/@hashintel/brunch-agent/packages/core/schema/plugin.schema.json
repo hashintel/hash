@@ -182,6 +182,20 @@
                     "type": "string"
                   },
                   {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "named",
+                        "number",
+                        "range",
+                        "spread",
+                        "spelled out"
+                      ],
+                      "type": "string"
+                    },
+                    "minItems": 1
+                  },
+                  {
                     "type": "string",
                     "pattern": "^at least [1-9]\\d*$"
                   }
@@ -245,6 +259,10 @@
                   "type": "string",
                   "minLength": 1
                 }
+              },
+              "slot": {
+                "type": "string",
+                "minLength": 1
               },
               "when": {
                 "type": "string",

@@ -70,10 +70,42 @@ describe("the SDCPN plugin", () => {
   test("is the parsed file plus one slot-assertion proposal type", () => {
     expect(sdcpn.targetFormalism).toBe("sdcpn");
     expect(sdcpn.definition).toBe(sdcpnDefinition);
-    expect(sdcpnDefinition.version).toBe("sdcpn/2026-08-25.2");
+    expect(sdcpnDefinition.version).toBe("sdcpn/2026-08-26.2");
     expect(sdcpn.proposalCatalog.map((proposal) => proposal.name)).toEqual([
       "slot-asserted",
     ]);
+  });
+
+  test("keeps motif variants specific without repeating generic quantile teaching", () => {
+    const motifs = new Map(
+      sdcpnDefinition.guidance.motifs.map((motif) => [motif.name, motif.text]),
+    );
+    expect(motifs.get("shared resource")).toMatch(/indivisible.*splittable/iu);
+    expect(motifs.get("batch, lot, load")).toMatch(/count.*clock/iu);
+    expect(motifs.get("threshold on a continuous quantity")).toMatch(
+      /weakest|combine/iu,
+    );
+    expect(
+      sdcpnDefinition.guidance.techniques.map((technique) => technique.name),
+    ).not.toContain("quantiles, never triangles");
+    expect(
+      sdcpnDefinition.guidance.failure_modes.map(
+        (failureMode) => failureMode.name,
+      ),
+    ).not.toContain("overconfident triangle");
+    expect(
+      sdcpnDefinition.mustKnow.find(
+        (row) =>
+          row.kind === "dynamics" &&
+          row.slot === "how it varies around that change",
+      )?.precision,
+    ).toEqual({ kind: "word", word: "spread" });
+  });
+
+  test("does not collect unsupported rationale on every kind", () => {
+    expect(
+      sdcpnDefinition.ontology.attributes.map((attribute) => attribute.name),
+    ).not.toContain("rationale");
   });
 
   test("accepts an assertion addressed to a kind and slot the file names", () => {
