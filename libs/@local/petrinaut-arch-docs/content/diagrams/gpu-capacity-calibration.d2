@@ -9,10 +9,10 @@ device: "GPU device" {
 }
 
 decide: "decide per place" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
-grow: "overflowed?\ndouble the slabs,\nrecompile, probe again" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+grow: "overflowed?\nquadruple the slabs,\nrecompile, probe again" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 fit: "max ≈ typical\nslab = 1.5 × observed max\nrecompile, run in full" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 arena: "max ≫ typical and\nslab too big — the token\narena's case (planned):\nrun on the CPU instead" {style.fill: "#fdeaea"; style.stroke: "#b83636"}
-rerun: "overflow mid-run?\ndouble, recompile,\nre-run (same seeds)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+rerun: "overflow mid-run?\ngrow, recompile,\nre-run (same seeds)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
 
 probe -> device.track
 device.track -> grow: any run overflowed
