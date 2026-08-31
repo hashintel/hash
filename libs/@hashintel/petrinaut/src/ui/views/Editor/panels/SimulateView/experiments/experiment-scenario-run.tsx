@@ -81,19 +81,27 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
 }) => {
   const hirState = useScenarioHir(scenario, context);
   const [computedOpen, setComputedOpen] = useState(false);
+  // `seededFrom` is the persisted scenario object the variables came from:
+  // saving an edit to it replaces the object, so the drawer reseeds to the
+  // new definition. `seed` keys the form so a reseed (or scenario switch)
+  // remounts it, discarding an undo history from another definition.
   const [run, setRun] = useState<{
     scenarioId: string;
+    seededFrom: Scenario;
+    seed: number;
     variables: AdHocVariable[];
   } | null>(null);
-  if (run?.scenarioId !== scenario.id) {
+  if (run?.scenarioId !== scenario.id || run.seededFrom !== scenario) {
     setRun({
       scenarioId: scenario.id,
+      seededFrom: scenario,
+      seed: (run?.seed ?? 0) + 1,
       variables: classicRunVariables(scenario, values),
     });
   }
 
   const onFormChange = (next: AdHocScenarioState) => {
-    setRun({ scenarioId: scenario.id, variables: next.variables });
+    setRun((current) => current && { ...current, variables: next.variables });
     const updates = classicRunParameterValues(next, scenario);
     if (updates.length > 0) {
       onValuesChange(updates);
@@ -181,6 +189,7 @@ export const ExperimentScenarioRun: React.FC<ExperimentScenarioRunProps> = ({
 
   return (
     <AdHocScenarioForm
+      key={`${run?.scenarioId}:${run?.seed}`}
       state={renderState}
       onChange={onFormChange}
       context={context}

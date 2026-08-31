@@ -37,7 +37,7 @@ import {
 } from "./scenario-run-state";
 
 import type { SubView } from "../../../../../components/sub-view/types";
-import type { AdHocScenarioState } from "@hashintel/petrinaut-core";
+import type { AdHocScenarioState, Scenario } from "@hashintel/petrinaut-core";
 
 // -- Styles -------------------------------------------------------------------
 
@@ -459,17 +459,28 @@ const SimulationSettingsContent: React.FC = () => {
       ? selectedScenario
       : undefined;
   const classicHir = useScenarioHir(selectedClassicScenario);
+  // `seededFrom` is the persisted scenario object the run state came from:
+  // saving an edit to the selected scenario replaces that object, so the
+  // form reseeds to the new definition instead of showing the old one while
+  // the run compiles the new. `seed` counts reseeds — it keys the form so a
+  // reseed (or a scenario switch) remounts it, discarding an undo history
+  // whose snapshots belong to another definition.
   const [scenarioRun, setScenarioRun] = useState<{
     scenarioId: string;
+    seededFrom: Scenario;
+    seed: number;
     state: AdHocScenarioState;
   } | null>(null);
   if (
     selectedAdHocScenario &&
     selectedAdHocScenario.initialState.type === "adhoc" &&
-    scenarioRun?.scenarioId !== selectedAdHocScenario.id
+    (scenarioRun?.scenarioId !== selectedAdHocScenario.id ||
+      scenarioRun.seededFrom !== selectedAdHocScenario)
   ) {
     setScenarioRun({
       scenarioId: selectedAdHocScenario.id,
+      seededFrom: selectedAdHocScenario,
+      seed: (scenarioRun?.seed ?? 0) + 1,
       state: seedScenarioRunState(
         selectedAdHocScenario.initialState.content,
         scenarioParameterValues,
@@ -478,12 +489,15 @@ const SimulationSettingsContent: React.FC = () => {
   }
   if (
     selectedClassicScenario &&
-    scenarioRun?.scenarioId !== selectedClassicScenario.id
+    (scenarioRun?.scenarioId !== selectedClassicScenario.id ||
+      scenarioRun.seededFrom !== selectedClassicScenario)
   ) {
     // Only the Variables (the editable scenario parameters) live in local
     // state; the overrides and places are derived from compilation below.
     setScenarioRun({
       scenarioId: selectedClassicScenario.id,
+      seededFrom: selectedClassicScenario,
+      seed: (scenarioRun?.seed ?? 0) + 1,
       state: {
         variables: classicRunVariables(
           selectedClassicScenario,
@@ -506,7 +520,7 @@ const SimulationSettingsContent: React.FC = () => {
     if (!selectedAdHocScenario) {
       return;
     }
-    setScenarioRun({ scenarioId: selectedAdHocScenario.id, state: next });
+    setScenarioRun((current) => current && { ...current, state: next });
     for (const { identifier, value } of scenarioRunParameterValues(
       next,
       adHocFormContext,
@@ -518,10 +532,13 @@ const SimulationSettingsContent: React.FC = () => {
     if (!selectedClassicScenario) {
       return;
     }
-    setScenarioRun({
-      scenarioId: selectedClassicScenario.id,
-      state: { variables: next.variables, netParameters: [], places: {} },
-    });
+    setScenarioRun(
+      (current) =>
+        current && {
+          ...current,
+          state: { variables: next.variables, netParameters: [], places: {} },
+        },
+    );
     for (const { identifier, value } of classicRunParameterValues(
       next,
       selectedClassicScenario,
@@ -871,6 +888,7 @@ const SimulationSettingsContent: React.FC = () => {
            edits in the left column; Parameters and Initial state sit
            read-only in the right one, still walkable and selectable. */
         <AdHocScenarioForm
+          key={`${scenarioRun?.scenarioId}:${scenarioRun?.seed}`}
           state={scenarioRunView.state}
           onChange={scenarioRunView.onChange}
           context={adHocFormContext}
