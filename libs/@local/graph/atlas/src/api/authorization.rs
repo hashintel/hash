@@ -16,7 +16,9 @@ use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts},
     http::request::Parts,
 };
-use hash_middleware::authentication::{AuthenticatedActorId, AuthenticatedActorIdRejection};
+use hash_middleware::authentication::{
+    AuthenticatedActorId, AuthenticationRejection, request::AuthenticationError,
+};
 use type_system::principal::actor::ActorId;
 
 use super::{
@@ -34,8 +36,8 @@ use crate::{
 /// request resolves its caller once however many extractors ask. An entry inserted before the
 /// first extraction supplies the resolution itself, which is what lets a test drive the
 /// extractors without the middleware's layer.
-#[derive(Debug, Clone)]
-struct ActorCache(Result<Actor, AuthenticatedActorIdRejection>);
+#[derive(Clone)]
+struct ActorCache(Result<Actor, AuthenticationRejection>);
 
 /// The authenticated caller, anonymous included.
 ///
@@ -64,11 +66,16 @@ where
 
         match resolution {
             Ok(actor) => Ok(actor),
-            Err(AuthenticatedActorIdRejection::MissingLayer) => Err(Problem::internal(
+            Err(AuthenticationRejection::Misconfigured) => Err(Problem::internal(
                 "`Actor` extracted on a route without the authentication middleware",
                 "the caller's authentication was never resolved",
             )),
-            Err(AuthenticatedActorIdRejection::Authentication(error)) => Err(error.into()),
+            // The rejection is answered as a `Problem` rather than through the rejection's own
+            // response, so the middleware's rejection counter does not see it.
+            Err(AuthenticationRejection::Authentication { metrics: _, report }) => {
+                AuthenticationError::log(&report);
+                Err(report.current_context().into())
+            }
         }
     }
 }

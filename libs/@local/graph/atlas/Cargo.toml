@@ -51,6 +51,7 @@ kiddo                     = { workspace = true, features = ["rkyv_08", "simd", "
 memchr                    = { workspace = true }
 memmap2                   = { workspace = true }
 moka                      = { workspace = true, features = ["future"] }
+opentelemetry             = { workspace = true, features = ["metrics"] }
 pin-project-lite          = { workspace = true }
 rancor                    = { workspace = true, public = true }
 rand_core_06              = { workspace = true }

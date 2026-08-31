@@ -67,7 +67,9 @@ use hash_graph_postgres_store::store::{
 use hash_middleware::{
     authentication::{
         provider::AuthenticationProvider,
-        request::{ACTOR_ID_HEADER, AuthenticationError, actor_id_from_header},
+        request::{
+            ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind, actor_id_from_header,
+        },
     },
     rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode},
 };
@@ -92,7 +94,10 @@ impl AuthenticationProvider<Option<ActorId>> for HeaderDelegation {
     {
         core::future::ready(match actor_id_from_header(headers) {
             Ok(actor) => ControlFlow::Break(Ok(Some(ActorId::User(UserId::new(actor))))),
-            Err(AuthenticationError::MissingDelegatedActor) => ControlFlow::Continue(()),
+            Err(AuthenticationError {
+                kind: AuthenticationErrorKind::MissingDelegatedActor,
+                ..
+            }) => ControlFlow::Continue(()),
             Err(error) => ControlFlow::Break(Err(Report::new(error))),
         })
     }

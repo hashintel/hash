@@ -148,6 +148,16 @@ impl From<AuthenticationError> for Problem<'static> {
     }
 }
 
+impl From<&AuthenticationError> for Problem<'static> {
+    fn from(error: &AuthenticationError) -> Self {
+        Self::new(
+            error.status_code(),
+            ProblemType::Unauthenticated,
+            error.client_message(),
+        )
+    }
+}
+
 impl IntoResponse for Problem<'_> {
     fn into_response(self) -> Response {
         (

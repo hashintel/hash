@@ -7,8 +7,10 @@ use axum::Router;
 use clap::Args;
 use hash_graph_postgres_store::store::PostgresStorePool;
 use hash_middleware::{
-    authentication::{authentication_middleware, provider::AuthenticationProvider},
-    rate_limit::{RateLimitConfig, RateLimiters, ip_gate_middleware, principal_limit_middleware},
+    authentication::{
+        AuthenticationLayer, AuthenticationMetrics, provider::AuthenticationProvider,
+    },
+    rate_limit::{IpGateLayer, PrincipalLimitLayer, RateLimitConfig, RateLimiters},
     telemetry::HttpTracingLayer,
 };
 use rand::rngs::SysRng;
@@ -426,44 +428,32 @@ impl ServeCommand {
             None
         };
 
-        let principal_limiters = Arc::new(RateLimiters::new(&rate_limit));
-        principal_limiters.spawn_maintenance();
-
-        let gate_limiters = Arc::clone(&principal_limiters);
-        let principal_secret = Arc::clone(&service_secret);
-        let auth_secret = Arc::clone(&service_secret);
+        // The meter the budgets and rejections are counted on — the hosting binary's global
+        // telemetry init makes it real, and it degrades to a no-op where none is installed.
+        let meter = opentelemetry::global::meter("hash-graph-atlas");
+        let limiters = RateLimiters::start(&rate_limit, &meter);
 
         // A layer covers only the routes added before it. The api routes sit behind all three
         // request middlewares, while the liveness route, added after the budgets, spends none of
         // them. The tracing layer covers everything and its predicate skips the liveness path.
         let router = api::router(atlas, self.limits, details, pool, visibility, epoch, cell)
-            .route_layer(axum::middleware::from_fn(move |request, next| {
-                principal_limit_middleware(
-                    Arc::clone(&principal_limiters),
-                    Arc::clone(&principal_secret),
-                    request,
-                    next,
-                )
-            }))
-            .route_layer(axum::middleware::from_fn(move |request, next| {
+            .route_layer(PrincipalLimitLayer {
+                limiters: Arc::clone(&limiters),
+                service_secret: Arc::clone(&service_secret),
+            })
+            .route_layer(AuthenticationLayer {
+                provider,
+                service_secret: Arc::clone(&service_secret),
+                metrics: Arc::new(AuthenticationMetrics::new(&meter)),
                 // The atlas names no bootstrap route, so no route answers on the service
                 // secret alone.
-                authentication_middleware::<_, Option<ActorId>>(
-                    Arc::clone(&provider),
-                    Arc::clone(&auth_secret),
-                    |_path| false,
-                    request,
-                    next,
-                )
-            }))
-            .layer(axum::middleware::from_fn(move |request, next| {
-                ip_gate_middleware(
-                    Arc::clone(&gate_limiters),
-                    Arc::clone(&service_secret),
-                    request,
-                    next,
-                )
-            }))
+                bootstrap_route: |_path| false,
+                caller: core::marker::PhantomData::<Option<ActorId>>,
+            })
+            .layer(IpGateLayer {
+                limiters,
+                service_secret,
+            })
             .route(
                 STATUS_PATH,
                 axum::routing::get(async || axum::http::StatusCode::OK),
