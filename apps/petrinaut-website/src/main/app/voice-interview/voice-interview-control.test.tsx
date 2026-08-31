@@ -12,6 +12,7 @@ import { StrictMode, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import {
   acknowledgeVoiceInterviewDisclosure,
   isVoiceInterviewDisclosureAcknowledged,
@@ -372,6 +373,42 @@ describe("voice interview stage", () => {
         screen.queryByRole("region", { name: "Voice interview mini bar" }),
       ).toBeNull();
     });
+  });
+
+  test("restarts when Interview is reselected before teardown completes", async () => {
+    window.localStorage.setItem(
+      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      "acknowledged",
+    );
+    const connect = vi
+      .spyOn(OpenAIRealtimeSession.prototype, "connect")
+      .mockResolvedValue(1);
+    let finishDisconnect: (() => void) | undefined;
+    vi.spyOn(OpenAIRealtimeSession.prototype, "disconnect")
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            finishDisconnect = resolve;
+          }),
+      )
+      .mockResolvedValue(undefined);
+    vi.spyOn(
+      OpenAIRealtimeSession.prototype,
+      "setMicrophoneEnabled",
+    ).mockImplementation(() => {});
+    render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
+    await screen.findByText("Listening");
+    fireEvent.click(screen.getByRole("button", { name: "End interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
+
+    expect(connect).toHaveBeenCalledOnce();
+    finishDisconnect?.();
+
+    await waitFor(() => expect(connect).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Interview active")).not.toBeNull();
+    expect(screen.getByText("Listening")).not.toBeNull();
   });
 
   test("records acknowledgement only when the interview starts", async () => {

@@ -467,6 +467,7 @@ export class VoiceTurnController {
       ) {
         return false;
       }
+      this.#questionAnswered = true;
       if (this.#snapshot.phase === "delivering") {
         this.#update({ phase: "waiting" });
       }
@@ -616,7 +617,6 @@ export class VoiceTurnController {
     const previousText = this.#snapshot.lastCommittedText;
     const redoing = this.#redoing;
     this.#redoing = false;
-    this.#questionAnswered = true;
     this.#answerFinalizedAt = this.#now();
     const input = redoing
       ? {

@@ -1085,6 +1085,50 @@ describe("VoiceTurnController", () => {
     expect(harness.session.connect).toHaveBeenCalledTimes(2);
   });
 
+  test("keeps the current question after failed answer delivery and reconnect", async () => {
+    const harness = createHarness();
+    const question = {
+      ...canonicalSegment(
+        "ask-failed-delivery",
+        "What happens after approval?",
+      ),
+      source: "brunch-ask" as const,
+    };
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question],
+      status: "ready",
+    });
+    await harness.controller.start();
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().phase).toBe("listening"),
+    );
+    harness.submitText.mockRejectedValueOnce(
+      new Error("Concurrent Brunch turn"),
+    );
+
+    harness.emit({
+      key: key(1, "failed-answer"),
+      text: "The shift lead approves it.",
+      type: "completed",
+    });
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().phase).toBe("recoverable-error"),
+    );
+
+    await harness.controller.reconnect();
+
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        currentQuestion: "What happens after approval?",
+        microphoneEnabled: true,
+        phase: "listening",
+      }),
+    );
+    expect(harness.playback.play).toHaveBeenCalledTimes(2);
+    expect(harness.session.connect).toHaveBeenCalledTimes(2);
+  });
+
   test("does not replay an answered question after reconnecting", async () => {
     const harness = createHarness();
     const question = {
