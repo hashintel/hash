@@ -8,15 +8,17 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { deriveTrialSeeds } from "../runtime/optimization";
 import { MAX_REQUEST_LINE_BYTES } from "../runtime/protocol";
+import { createOptimizationManifest } from "./optimization-manifest.fixtures";
 import { serve } from "./serve";
 import { MAX_STDIN_SOURCE_LINE_BYTES, serveStdio } from "./stdio";
 
 const modelPath = fileURLToPath(
-  new URL("../../examples/sir-model.json", import.meta.url),
+  new URL("../../test-fixtures/sir-model.json", import.meta.url),
 );
 const coloredModelPath = fileURLToPath(
-  new URL("../../examples/satellites-launcher.json", import.meta.url),
+  new URL("../../test-fixtures/satellites-launcher.json", import.meta.url),
 );
 const temporaryDirectories: string[] = [];
 
@@ -151,47 +153,7 @@ describe("CLI transports", () => {
       stderr += chunk;
     });
 
-    const legacyModel = JSON.parse(await readFile(modelPath, "utf8")) as {
-      title: string;
-      scenarios: { id: string }[];
-      metrics: { id: string }[];
-      [key: string]: unknown;
-    };
-    const { title, ...definition } = legacyModel;
-    const manifest = {
-      kind: "petrinaut-optimization",
-      version: 1,
-      name: "Minimize infected fraction",
-      model: {
-        title,
-        definition: {
-          ...definition,
-          scenarios: [legacyModel.scenarios[0]],
-          metrics: [legacyModel.metrics[0]],
-        },
-      },
-      scenario: {
-        id: "scenario__seasonal_flu",
-        parameterBindings: {
-          population: { kind: "fixed", value: 200 },
-          infected_ratio: {
-            kind: "optimize",
-            domain: {
-              kind: "continuous",
-              minimum: 0.01,
-              maximum: 0.5,
-              scale: "log",
-            },
-          },
-        },
-      },
-      objective: {
-        metricId: "metric__infected_fraction",
-        direction: "minimize",
-      },
-      execution: { seed: 42, dt: 1, maxTime: Number.MIN_VALUE },
-      study: { trials: 20, sampler: "tpe" },
-    };
+    const manifest = await createOptimizationManifest();
 
     const serving = serveStdio({
       optimizationStdin: true,
@@ -221,7 +183,7 @@ describe("CLI transports", () => {
         id: 1,
         result: {
           direction: "minimize",
-          study: { trials: 20, sampler: "tpe", seed: 42 },
+          study: { trials: 20, sampler: "tpe", seed: 42, seedsPerTrial: 1 },
           parameters: [
             {
               identifier: "infected_ratio",
@@ -235,6 +197,56 @@ describe("CLI transports", () => {
         },
       },
       { id: 2, result: { objective: 0.1 } },
+    ]);
+  });
+
+  it("runs every trial seed and reports the per-seed objectives", async () => {
+    const input = new PassThrough();
+    const output = new PassThrough();
+    let stdout = "";
+    output.setEncoding("utf8");
+    output.on("data", (chunk: string) => {
+      stdout += chunk;
+    });
+
+    const manifest = await createOptimizationManifest({ seedsPerTrial: 3 });
+
+    const serving = serveStdio({
+      optimizationStdin: true,
+      input,
+      output,
+      errorOutput: new PassThrough(),
+    });
+    input.end(
+      [
+        JSON.stringify(manifest),
+        JSON.stringify({ id: 1, method: "optimization.describe" }),
+        JSON.stringify({
+          id: 2,
+          method: "optimization.evaluate",
+          params: { parameterValues: { infected_ratio: 0.1 } },
+        }),
+        "",
+      ].join("\n"),
+    );
+    await serving;
+
+    const seeds = deriveTrialSeeds(42, 3);
+    expect(seeds[0]).toBe(42);
+    expect(parseResponses(stdout)).toEqual([
+      {
+        id: 1,
+        result: expect.objectContaining({
+          study: { trials: 20, sampler: "tpe", seed: 42, seedsPerTrial: 3 },
+        }),
+      },
+      {
+        id: 2,
+        result: {
+          objective: expect.closeTo(0.1, 12) as number,
+          replicates: seeds.map((seed) => ({ seed, objective: 0.1 })),
+        },
+      },
     ]);
   });
 

@@ -1,3 +1,8 @@
+/**
+ * @layerRoot core.playback
+ * @role Picks the viewed frame over time and defines the per-play-mode backpressure profiles
+ */
+
 export {
   createPlayback,
   formatPlaybackSpeed,

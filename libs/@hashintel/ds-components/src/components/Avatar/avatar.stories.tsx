@@ -15,10 +15,6 @@ type AvatarProps = React.ComponentProps<typeof Avatar>;
 
 export default {
   title: "Components/Avatar",
-  parameters: {
-    layout: "centered",
-    controls: { disabled: true },
-  },
 } satisfies StoryDefault<AvatarProps>;
 
 const grid = css({

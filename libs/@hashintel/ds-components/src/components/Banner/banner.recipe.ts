@@ -28,7 +28,8 @@ export const styles = sva({
       alignItems: "flex-start",
       padding: "[12px]",
       borderRadius: "xl",
-      border: "1px solid",
+      borderWidth: "1px",
+      borderStyle: "solid",
       textStyle: "sm",
       gap: "[4px]",
       // Query container so `content` can respond to the banner's own width.

@@ -8,7 +8,6 @@ use axum::{
     routing::{post, put},
 };
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_postgres_store::{
     ontology::patch_id_and_parse,
     store::error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
@@ -48,7 +47,7 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::status::BoxedResponse;
 use crate::rest::{
-    ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
+    ApiConfig, AuthenticatedActorId, OpenApiQuery, QueryLogger, RestApiStore,
     json::Json,
     resolve_limit,
     status::{report_to_response, status_to_response},
@@ -166,7 +165,7 @@ struct CreateDataTypeRequest {
     ),
 )]
 async fn create_data_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
@@ -272,7 +271,7 @@ enum LoadExternalDataTypeRequest {
     ),
 )]
 async fn load_external_data_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
@@ -359,7 +358,7 @@ where
     )
 )]
 async fn query_data_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -369,6 +368,7 @@ async fn query_data_types<S>(
 where
     S: StorePool + Send + Sync,
 {
+    let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(actor_id, OpenApiQuery::GetDataTypes(&request));
     }
@@ -429,7 +429,7 @@ struct QueryDataTypeSubgraphResponse {
     )
 )]
 async fn query_data_type_subgraph<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -439,6 +439,7 @@ async fn query_data_type_subgraph<S>(
 where
     S: StorePool + Send + Sync,
 {
+    let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(actor_id, OpenApiQuery::GetDataTypeSubgraph(&request));
     }
@@ -498,7 +499,7 @@ where
     )
 )]
 async fn find_data_type_conversion_targets<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(request): Json<FindDataTypeConversionTargetsParams>,
@@ -510,7 +511,10 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .find_data_type_conversion_targets(actor_id, request)
+        .find_data_type_conversion_targets(
+            actor_id.map(|AuthenticatedActorId(actor_id)| actor_id),
+            request,
+        )
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -543,7 +547,7 @@ struct UpdateDataTypeRequest {
     request_body = UpdateDataTypeRequest,
 )]
 async fn update_data_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdateDataTypeRequest>,
@@ -598,7 +602,7 @@ where
     request_body = [UpdateDataTypeRequest],
 )]
 async fn update_data_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     bodies: Json<Vec<UpdateDataTypeRequest>>,
@@ -655,7 +659,7 @@ where
     request_body = UpdateDataTypeEmbeddingParams,
 )]
 async fn update_data_type_embeddings<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -698,7 +702,7 @@ where
     request_body = ArchiveDataTypeParams,
 )]
 async fn archive_data_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -750,7 +754,7 @@ where
     request_body = UnarchiveDataTypeParams,
 )]
 async fn unarchive_data_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -799,7 +803,7 @@ where
     )
 )]
 async fn has_permission_for_data_types<S>(
-    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor): AuthenticatedActorId,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<HasPermissionForDataTypesParams<'static>>,
@@ -812,7 +816,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .has_permission_for_data_types(AuthenticatedActor::from(actor), params)
+        .has_permission_for_data_types(actor, params)
         .await
         .map(Json)
         .map_err(report_to_response)

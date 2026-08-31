@@ -1,0 +1,334 @@
+# This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
+#
+# Requires a running Kratos (public API on 4433, admin API on 4434) next to the Graph.
+
+### Seed default policies
+GET http://127.0.0.1:4000/policies/seed
+Content-Type: application/json
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 204, "Response status is not 204");
+  });
+%}
+
+### Get system user
+GET http://127.0.0.1:4000/actors/machine/identifier/system/h
+Content-Type: application/json
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("system_machine_id", response.body);
+%}
+
+### Create account
+POST http://127.0.0.1:4000/actors/user
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
+
+{
+  "shortname": "kratos-alice",
+  "registrationComplete": true
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("user_id", response.body.userId);
+%}
+
+### Create a Kratos identity provisioned for the account
+POST http://127.0.0.1:4434/admin/identities
+Content-Type: application/json
+
+{
+  "schema_id": "default",
+  "traits": {
+    "emails": ["kratos-session-{{$uuid}}@example.com"]
+  },
+  "metadata_public": {
+    "graph_actor_id": "{{user_id}}"
+  },
+  "credentials": {
+    "password": {
+      "config": {
+        "password": "kratos-session-test-pw!"
+      }
+    }
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 201, "Response status is not 201");
+  });
+  client.global.set("session_email", response.body.traits.emails[0]);
+%}
+
+### Create a login flow
+GET http://127.0.0.1:4433/self-service/login/api
+Content-Type: application/json
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("login_flow_id", response.body.id);
+%}
+
+### Log in to obtain a session token
+POST http://127.0.0.1:4433/self-service/login?flow={{login_flow_id}}
+Content-Type: application/json
+
+{
+  "method": "password",
+  "identifier": "{{session_email}}",
+  "password": "kratos-session-test-pw!"
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("session_token", response.body.session_token);
+%}
+
+### Session token authenticates as the provisioned account
+GET http://127.0.0.1:4000/actors/machine/identifier/h
+Content-Type: application/json
+X-Session-Token: {{session_token}}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+### Session actor is subject to user policies
+POST http://127.0.0.1:4000/actors/user
+Content-Type: application/json
+X-Session-Token: {{session_token}}
+
+{
+  "registrationComplete": false
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 403, "Response status is not 403");
+  });
+%}
+
+### Session does not authenticate on the admin API
+# The admin API erases entities and deletes users, and its handlers do not authorize beyond
+# requiring some actor. Operators reach it through Cloudflare Access, services through the secret —
+# an end-user session must not be a credential there.
+POST http://127.0.0.1:4001/users/delete
+Content-Type: application/json
+Authorization: <omit>
+X-Session-Token: {{session_token}}
+
+{
+  "email": "must-not-be-reached@example.com"
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+  client.test("message", function() {
+    client.assert(
+      response.body.message === "no credentials provided",
+      `Unexpected message: ${response.body.message}`
+    );
+  });
+%}
+
+### Session without the service secret does not reach bootstrap routes
+GET http://127.0.0.1:4000/actors/machine/identifier/system/h
+Content-Type: application/json
+Authorization: <omit>
+X-Session-Token: {{session_token}}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+%}
+
+### Invalid session token reads as anonymous
+# The verified rejection degrades to anonymous, so an endpoint requiring an actor answers as it
+# would a request without credentials — not with the invalid-session text.
+GET http://127.0.0.1:4000/actors/machine/identifier/h
+Content-Type: application/json
+X-Session-Token: invalid-session-token
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+  client.test("invalid session degrades to anonymous", function() {
+    client.assert(
+      response.body.message === "no credentials provided",
+      `Unexpected message: ${response.body.message}`
+    );
+  });
+%}
+
+### Invalid session token does not fall back to the actor-ID header
+GET http://127.0.0.1:4000/actors/machine/identifier/h
+Content-Type: application/json
+X-Session-Token: invalid-session-token
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+%}
+
+### Create a Kratos identity without a provisioned account
+POST http://127.0.0.1:4434/admin/identities
+Content-Type: application/json
+
+{
+  "schema_id": "default",
+  "traits": {
+    "emails": ["kratos-unprovisioned-{{$uuid}}@example.com"]
+  },
+  "credentials": {
+    "password": {
+      "config": {
+        "password": "kratos-session-test-pw!"
+      }
+    }
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 201, "Response status is not 201");
+  });
+  client.global.set("unprovisioned_email", response.body.traits.emails[0]);
+%}
+
+### Create a login flow for the unprovisioned identity
+GET http://127.0.0.1:4433/self-service/login/api
+Content-Type: application/json
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("unprovisioned_login_flow_id", response.body.id);
+%}
+
+### Log in as the unprovisioned identity
+POST http://127.0.0.1:4433/self-service/login?flow={{unprovisioned_login_flow_id}}
+Content-Type: application/json
+
+{
+  "method": "password",
+  "identifier": "{{unprovisioned_email}}",
+  "password": "kratos-session-test-pw!"
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("unprovisioned_session_token", response.body.session_token);
+%}
+
+### Session of an unprovisioned identity is rejected
+GET http://127.0.0.1:4000/actors/machine/identifier/h
+Content-Type: application/json
+X-Session-Token: {{unprovisioned_session_token}}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+  client.test("message carries no identifier", function() {
+    client.assert(
+      response.body.message === "identity has no Graph actor provisioned",
+      "Response message is not the client-safe text"
+    );
+  });
+%}
+
+### Create a Kratos identity provisioned for an unknown actor
+POST http://127.0.0.1:4434/admin/identities
+Content-Type: application/json
+
+{
+  "schema_id": "default",
+  "traits": {
+    "emails": ["kratos-unknown-actor-{{$uuid}}@example.com"]
+  },
+  "metadata_public": {
+    "graph_actor_id": "{{$uuid}}"
+  },
+  "credentials": {
+    "password": {
+      "config": {
+        "password": "kratos-session-test-pw!"
+      }
+    }
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 201, "Response status is not 201");
+  });
+  client.global.set("unknown_actor_email", response.body.traits.emails[0]);
+%}
+
+### Create a login flow for the unknown-actor identity
+GET http://127.0.0.1:4433/self-service/login/api
+Content-Type: application/json
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("unknown_actor_login_flow_id", response.body.id);
+%}
+
+### Log in as the unknown-actor identity
+POST http://127.0.0.1:4433/self-service/login?flow={{unknown_actor_login_flow_id}}
+Content-Type: application/json
+
+{
+  "method": "password",
+  "identifier": "{{unknown_actor_email}}",
+  "password": "kratos-session-test-pw!"
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("unknown_actor_session_token", response.body.session_token);
+%}
+
+### Session provisioned for an unknown actor is rejected
+GET http://127.0.0.1:4000/actors/machine/identifier/h
+Content-Type: application/json
+X-Session-Token: {{unknown_actor_session_token}}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+  client.test("message carries no identifier", function() {
+    client.assert(
+      response.body.message === "actor does not exist",
+      "Response message is not the client-safe text"
+    );
+  });
+%}

@@ -1,7 +1,9 @@
-import { NumberInput, Toggle } from "@hashintel/ds-components";
+import {
+  NumberInput,
+  SegmentedControl,
+  Toggle,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-
-import { SegmentGroup } from "../../../../../components/segment-group";
 
 import type { ScenarioParameter } from "@hashintel/petrinaut-core";
 
@@ -306,11 +308,11 @@ export const OptimizationParameterRow = ({
                 <div className={fieldStyle}>
                   <span className={fieldLabelStyle}>Scale</span>
                   <div className={scaleControlStyle}>
-                    <SegmentGroup
+                    <SegmentedControl
                       disabled={!optimizing}
                       size="sm"
                       value={draft.scale}
-                      options={[
+                      items={[
                         { value: "linear", label: "Linear" },
                         { value: "log", label: "Log" },
                       ]}

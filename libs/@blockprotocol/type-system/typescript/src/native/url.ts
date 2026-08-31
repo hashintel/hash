@@ -6,11 +6,8 @@ import type {
   ParseVersionedUrlError,
   Result,
   VersionedUrl,
-} from "@blockprotocol/type-system-rs";
-import type {
-  BaseUrl,
-  OntologyTypeVersion,
-} from "@blockprotocol/type-system-rs/types";
+} from "../generated/type-system.js";
+import type { BaseUrl, OntologyTypeVersion } from "../generated/types.js";
 import type { SemVer } from "semver";
 
 /**

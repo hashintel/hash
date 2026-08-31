@@ -271,7 +271,7 @@ where
                     provider
                         .store
                         .as_client()
-                        .query_raw(&statement, parameters.iter().copied())
+                        .query_raw(&statement, parameters)
                         .instrument(tracing::info_span!(
                             "SELECT",
                             otel.kind = "client",

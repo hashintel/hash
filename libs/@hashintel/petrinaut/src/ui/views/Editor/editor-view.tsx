@@ -1,8 +1,18 @@
+/**
+ * @layerRoot ui.views.editor
+ * @role Arranges the panels, toolbars and dialogs around the canvas
+ */
+
 import { use, useState } from "react";
 
 import { type MenuItem } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
-import { calculateGraphLayout, type SDCPN } from "@hashintel/petrinaut-core";
+import {
+  calculateGraphLayout,
+  layoutNodeDimensions,
+  type DocumentFormat,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
 import {
   deploymentPipelineSDCPN,
   probabilisticSatellitesSDCPN,
@@ -17,6 +27,7 @@ import { ActualModeContext } from "../../../react/actual-mode-context";
 import { ExperimentsContext } from "../../../react/experiments/context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
 import { Box } from "../../components/box";
@@ -29,10 +40,7 @@ import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dial
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
-import {
-  classicNodeDimensions,
-  compactNodeDimensions,
-} from "../SDCPN/node-dimensions";
+import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
@@ -74,8 +82,13 @@ const formatRelativeTime = (isoTimestamp: string): string => {
   }).format(new Date(isoTimestamp));
 };
 
+// The remaining space under the TopBar, never 100% of the root: a full-height
+// row overflows the root by the TopBar's height, and although the root hides
+// overflow, scrollIntoView can still scroll it programmatically — pushing the
+// TopBar out of view.
 const rowContainerStyle = css({
-  height: "full",
+  flex: "[1]",
+  minHeight: "[0]",
   userSelect: "none",
 });
 
@@ -125,7 +138,6 @@ export const EditorView = ({
 
   // Get editor context
   const {
-    globalMode: mode,
     isAiAssistantOpen,
     setGlobalMode,
     editionMode,
@@ -146,10 +158,16 @@ export const EditorView = ({
   >(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
 
-  const { compactNodes, showWalkthroughOnInit, setShowWalkthroughOnInit } =
-    use(UserSettingsContext);
+  const {
+    enableNotebookView,
+    showWalkthroughOnInit,
+    setShowWalkthroughOnInit,
+  } = use(UserSettingsContext);
   const walkthrough = use(WalkthroughContext);
-  const dims = compactNodes ? compactNodeDimensions : classicNodeDimensions;
+
+  // Shared with useReadOnlyReason so the rendered view and the mutation
+  // rules never disagree.
+  const effectiveMode = useEffectiveGlobalMode();
 
   // Live open state for the walkthrough. Seeded once from the persisted
   // "show on init" preference, so toggling that preference only takes effect
@@ -191,12 +209,12 @@ export const EditorView = ({
     handleCreateEmpty();
   }
 
-  function handleExport() {
-    exportSDCPN({ petriNetDefinition, title });
+  function handleExport(format: DocumentFormat) {
+    exportSDCPN({ petriNetDefinition, title, format });
   }
 
-  function handleExportWithoutVisualInfo() {
-    exportSDCPN({ petriNetDefinition, title, removeVisualInfo: true });
+  function handleExportWithoutVisualInfo(format: DocumentFormat) {
+    exportSDCPN({ petriNetDefinition, title, removeVisualInfo: true, format });
   }
 
   function handleExportTikZ() {
@@ -227,7 +245,10 @@ export const EditorView = ({
     // We must do this before createNewNet because after createNewNet triggers a
     // re-render, the mutatePetriNetDefinition closure would be stale.
     if (hadMissingPositions) {
-      const positions = await calculateGraphLayout(sdcpnToLoad, dims);
+      const positions = await calculateGraphLayout(
+        sdcpnToLoad,
+        layoutNodeDimensions,
+      );
 
       if (Object.keys(positions).length > 0) {
         sdcpnToLoad = {
@@ -287,14 +308,24 @@ export const EditorView = ({
       text: "Export",
       subItems: [
         {
-          id: "export-json",
-          text: "JSON",
-          onClick: handleExport,
+          id: "export-yaml",
+          text: "YAML",
+          onClick: () => handleExport("yaml"),
         },
         {
-          id: "export-without-visuals",
+          id: "export-yaml-without-visuals",
+          text: "YAML without visual info",
+          onClick: () => handleExportWithoutVisualInfo("yaml"),
+        },
+        {
+          id: "export-json",
+          text: "JSON",
+          onClick: () => handleExport("json"),
+        },
+        {
+          id: "export-json-without-visuals",
           text: "JSON without visual info",
-          onClick: handleExportWithoutVisualInfo,
+          onClick: () => handleExportWithoutVisualInfo("json"),
         },
         {
           id: "export-tikz",
@@ -415,11 +446,12 @@ export const EditorView = ({
       {/* Top Bar - always visible */}
       <TopBar
         actualModeAvailable={actualMode.available}
+        notebookViewAvailable={enableNotebookView}
         menuItems={menuItems}
         title={title}
         onTitleChange={setTitle}
         hideNetManagementControls={hideNetManagementControls}
-        mode={mode}
+        mode={effectiveMode}
         onModeChange={setGlobalMode}
         onRunningExperimentClick={(experiment) =>
           handleRunningExperimentClick(experiment.id)
@@ -428,8 +460,10 @@ export const EditorView = ({
       />
 
       <Stack direction="row" className={rowContainerStyle}>
-        {mode === "simulate" ? (
+        {effectiveMode === "simulate" ? (
           <SimulateView />
+        ) : effectiveMode === "notebook" ? (
+          <NotebookView key={petriNetId ?? "no-net"} />
         ) : (
           <Box className={canvasContainerStyle}>
             {/* Left Sidebar - Tools and content panels */}
@@ -456,7 +490,7 @@ export const EditorView = ({
             <BottomPanel />
 
             <BottomBar
-              mode={mode}
+              mode={effectiveMode}
               editionMode={editionMode}
               onEditionModeChange={setEditionMode}
               cursorMode={cursorMode}

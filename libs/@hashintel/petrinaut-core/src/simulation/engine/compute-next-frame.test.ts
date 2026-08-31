@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "../../hir";
+import { materializeEngineFrame } from "../frames/internal-frame";
 import { buildSimulation as buildSimulationRaw } from "./build-simulation";
 import { computeNextFrame } from "./compute-next-frame";
 import { decodePlaceTokens } from "./token-layout.test-helpers";
@@ -23,6 +24,68 @@ function buildSimulation(
 }
 
 describe("computeNextFrame", () => {
+  it("holds a place's capacity when two transitions feed it in one step", () => {
+    // Mirrors `monte-carlo/capacity.test.ts`: output is applied once at the
+    // end of the step, so the second producer's check has to see the first
+    // producer's pending output or the capped place overflows.
+    const uncolouredPlace = (id: string, capacity?: number) => ({
+      id,
+      name: id,
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+      ...(capacity === undefined ? {} : { capacity }),
+    });
+    const alwaysFiring = (id: string, from: string) => ({
+      id,
+      name: id,
+      inputArcs: [{ placeId: from, weight: 1, type: "standard" as const }],
+      outputArcs: [{ placeId: "shared", weight: 1 }],
+      lambdaType: "predicate" as const,
+      lambdaCode: "export default Lambda(() => true);",
+      transitionKernelCode: "export default TransitionKernel(() => ({}));",
+      x: 0,
+      y: 0,
+    });
+    const sdcpn: SDCPN = {
+      types: [],
+      differentialEquations: [],
+      parameters: [],
+      places: [
+        uncolouredPlace("left"),
+        uncolouredPlace("right"),
+        uncolouredPlace("shared", 1),
+      ],
+      transitions: [
+        alwaysFiring("fromLeft", "left"),
+        alwaysFiring("fromRight", "right"),
+      ],
+    };
+
+    const simulation = buildSimulation({
+      sdcpn,
+      initialMarking: { left: 5, right: 5, shared: 0 },
+      parameterValues: {},
+      seed: 42,
+      dt: 0.1,
+      maxTime: null,
+    });
+
+    const result = computeNextFrame(simulation);
+    const snapshot = materializeEngineFrame(
+      result.simulation.frameLayout,
+      result.simulation.frames[1]!,
+    );
+
+    expect(snapshot.places.shared?.count).toBe(1);
+    // Exactly one producer consumed a token; the other was blocked.
+    expect(
+      (snapshot.places.left?.count ?? 0) + (snapshot.places.right?.count ?? 0),
+    ).toBe(9);
+  });
+
   it("should compute next frame with dynamics and transitions", () => {
     // GIVEN a simple SDCPN with one place and one transition
     const sdcpn: SDCPN = {
@@ -201,12 +264,11 @@ describe("computeNextFrame", () => {
       { id: parseUuid(otherUuid), x: 2.0 },
     ]);
 
-    // Step until the transition fires: each step integrates dynamics and
-    // copies the frame; the firing step consumes one token (removal +
-    // compaction). Elapsed time is 0 on the first step, so the Infinity-rate
-    // transition fires on the second.
-    let result = computeNextFrame(simulation);
-    result = computeNextFrame(result.simulation);
+    // One step integrates dynamics, and the Infinity-rate transition fires
+    // in it (the firing test's exposure window is the frame's dt, so there
+    // is no elapsed-time warm-up), consuming one token (removal +
+    // compaction).
+    const result = computeNextFrame(simulation);
     expect(result.transitionFired).toBe(true);
 
     const lastFrame =

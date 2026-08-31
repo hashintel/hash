@@ -9,7 +9,7 @@ import type {
   HasIndexedContentProperties,
 } from "./system-types/shared.js";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityTraversalPath } from "@rust/hash-graph-store/types";
+import type { EntityTraversalPath } from "@local/hash-graph-store/types";
 
 /**
  * Get the `hasLeftEntity` and `hasRightEntity` resolve depths for a block

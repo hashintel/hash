@@ -26,6 +26,15 @@ pub struct EmptyVecError;
 impl Error for EmptyVecError {}
 
 impl<T> NonEmptyVec<T> {
+    pub fn from_array<U, const N: usize>(value: [U; N]) -> Self
+    where
+        U: Into<T>,
+    {
+        const { assert!(N != 0) };
+
+        Self(value.into_iter().map(Into::into).collect())
+    }
+
     pub fn push(&mut self, value: T) {
         self.0.push(value);
     }

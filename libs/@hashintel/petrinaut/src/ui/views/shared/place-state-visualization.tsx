@@ -3,7 +3,9 @@ import { use, useMemo } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   coerceTokenAttributeValue,
+  createUserKeyedRecord,
   defaultTokenAttributeValue,
+  getOwn,
 } from "@hashintel/petrinaut-core";
 
 import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
@@ -84,12 +86,12 @@ export const PlaceStateVisualization: React.FC<
       // data predating a schema edit) falls back to the element's default
       // instead of crashing the panel.
       for (const token of marking) {
-        const coerced: TokenRecord = {};
+        const coerced: TokenRecord = createUserKeyedRecord();
         for (const element of placeType.elements) {
           try {
             coerced[element.name] = coerceTokenAttributeValue(
               element,
-              token[element.name],
+              getOwn(token, element.name),
               `Initial marking for place ${place.name}`,
             );
           } catch {

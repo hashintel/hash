@@ -24,7 +24,7 @@ The bottom panel also includes an **Events** tab. It shows the received transiti
 
 Choose **Export Stream** to download the received event stream. Brunch stream exports preserve the raw JSON payloads received from the SSE endpoint instead of the normalized SDCPN used internally for rendering.
 
-Choose **Export Net** to download a normal Petrinaut JSON net file. This file contains the read-only Petri net currently shown in Actual mode and can be imported back into Petrinaut like other net exports.
+Choose **Export Net** to download a normal Petrinaut net file (YAML). This file contains the read-only Petri net currently shown in Actual mode and can be imported back into Petrinaut like other net exports.
 
 For Brunch, the export is a JSON object with an `events` array. Each item stores the SSE event name and the parsed JSON payload exactly as Petrinaut received it. Transition payloads store the firing effect rather than a full before/after snapshot. The `input` and `output` fields are numeric count maps keyed by place id:
 

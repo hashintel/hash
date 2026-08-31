@@ -209,15 +209,29 @@ describe("SDCPNLanguageServer completions", () => {
   });
 
   describe("top-level completions (no dot)", () => {
-    it("returns globals and declared identifiers at top level", () => {
+    it("returns globals, locals, and ambient names in a bare body", () => {
       const names = getCompletionNames(baseSdcpn, `const a = 42;\n${CURSOR}`, {
         type: "transition-lambda",
       });
 
-      // Should include user-defined and prefix-declared identifiers
+      // Should include user-defined identifiers and the ambient inputs
       expect(names).toContain("a");
-      expect(names).toContain("Lambda");
+      expect(names).toContain("input");
+      expect(names).toContain("parameters");
+      // The module-form constructor is not in scope in a bare body
+      expect(names).not.toContain("Lambda");
       // Should include globals
+      expect(names).toContain("Array");
+    });
+
+    it("returns the constructor at the top level of module-form code", () => {
+      const names = getCompletionNames(
+        baseSdcpn,
+        `export default Lambda((input, parameters) => true);\n${CURSOR}`,
+        { type: "transition-lambda" },
+      );
+
+      expect(names).toContain("Lambda");
       expect(names).toContain("Array");
     });
   });
@@ -254,6 +268,50 @@ describe("SDCPNLanguageServer completions", () => {
       expect(names).toContain("indexOf");
       // Should NOT have Number methods
       expect(names).not.toContain("toFixed");
+    });
+
+    it("re-wraps the file when an update switches authoring form", () => {
+      // Start in module form
+      const server = createServer({
+        ...baseSdcpn,
+        transitions: [
+          {
+            ...baseSdcpn.transitions[0]!,
+            lambdaCode: `export default Lambda((input, parameters) => true);`,
+          },
+        ],
+      });
+      const filePath = getItemFilePath("transition-lambda-code", {
+        transitionId: "t1",
+      });
+
+      // Switch to a bare body: the ambient input object must now resolve
+      const body = parseCursor(`return input.${CURSOR};`);
+      server.updateDocumentContent(filePath, body.code);
+      const bodyCompletions = server.getCompletionsAtPosition(
+        filePath,
+        body.offset,
+        undefined,
+      );
+      const bodyNames = (bodyCompletions?.entries ?? []).map(
+        (entry) => entry.name,
+      );
+      expect(bodyNames).toContain("Source");
+
+      // Switch back to module form: the constructor must resolve again
+      const moduleForm = parseCursor(
+        `export default Lambda((input, parameters) => input.${CURSOR});`,
+      );
+      server.updateDocumentContent(filePath, moduleForm.code);
+      const moduleCompletions = server.getCompletionsAtPosition(
+        filePath,
+        moduleForm.offset,
+        undefined,
+      );
+      const moduleNames = (moduleCompletions?.entries ?? []).map(
+        (entry) => entry.name,
+      );
+      expect(moduleNames).toContain("Source");
     });
 
     it("reflects new content after multiple updates", () => {

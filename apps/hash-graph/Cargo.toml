@@ -30,10 +30,12 @@ type-system               = { workspace = true }
 axum           = { workspace = true }
 clap           = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete  = { workspace = true }
+derive_more    = { workspace = true, features = ["debug"] }
 futures        = { workspace = true }
 jsonwebtoken   = { workspace = true }
 mimalloc       = { workspace = true }
 multiaddr      = { workspace = true }
+opentelemetry  = { workspace = true, features = ["metrics"] }
 rayon          = { workspace = true }
 regex          = { workspace = true }
 reqwest        = { workspace = true, features = ["rustls"] }
@@ -43,6 +45,9 @@ tokio          = { workspace = true, features = ["signal", "io-std"] }
 tokio-postgres = { workspace = true }
 tokio-util     = { workspace = true, features = ["codec"] }
 tracing        = { workspace = true }
+
+[features]
+unsafe-dev-endpoints = ["hash-graph-api/unsafe-dev-endpoints"]
 
 [lints]
 workspace = true

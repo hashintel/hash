@@ -1,5 +1,4 @@
 import type { AuthenticationContext } from "./authentication-context.js";
-import type { GraphApi } from "@local/hash-graph-client";
 import type {
   Policy,
   PolicyCreationParams,
@@ -8,7 +7,8 @@ import type {
   PolicyUpdateOperation,
   ResolvedPolicy,
   ResolvePoliciesParams,
-} from "@rust/hash-graph-authorization/types";
+} from "@local/hash-graph-authorization/types";
+import type { GraphApi } from "@local/hash-graph-client";
 
 /**
  * Creates a new policy in the backing store.

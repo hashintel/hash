@@ -160,7 +160,7 @@ async fn properties_add() {
     .expect("could not patch entity");
 
     let entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(entity_id),
             temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -247,7 +247,7 @@ async fn properties_remove() {
     .expect("could not patch entity");
 
     let entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(entity_id),
             temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -336,7 +336,7 @@ async fn properties_replace() {
     .expect("could not patch entity");
 
     let entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(entity_id),
             temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -418,7 +418,7 @@ async fn type_ids() {
     .expect("could not patch entity");
 
     let entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(entity_id),
             temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -467,7 +467,7 @@ async fn type_ids() {
     .expect("could not patch entity");
 
     let entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(entity_id),
             temporal_axes: QueryTemporalAxesUnresolved::live_only(),
@@ -518,7 +518,7 @@ async fn type_ids() {
     .expect("could not patch entity");
 
     let entities = Box::pin(api.query_entities(
-        api.account_id,
+        Some(api.account_id),
         QueryEntitiesParams {
             filter: Filter::for_entity_by_entity_id(entity_id),
             temporal_axes: QueryTemporalAxesUnresolved::live_only(),

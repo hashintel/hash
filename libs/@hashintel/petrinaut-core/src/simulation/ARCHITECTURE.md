@@ -1,8 +1,8 @@
 # Simulation Architecture
 
-> For the illustrated deep-dive (memory maps, sequence diagrams, protocols),
-> open [`../../docs/architecture/index.html`](../../docs/architecture/index.html)
-> in a browser — no build step needed.
+> For the deep-dive (memory model, frame format, protocols, Monte Carlo), see
+> the architecture docs, added by #9205 under
+> `libs/@local/petrinaut-arch-docs/content/simulation/`.
 
 The simulation module is split into five boundaries:
 

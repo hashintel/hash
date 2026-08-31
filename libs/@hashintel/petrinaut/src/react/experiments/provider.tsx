@@ -1,9 +1,15 @@
+/**
+ * @layerRoot react.experiments
+ * @role Tracks Monte Carlo experiment handles and their streamed metric results
+ */
+
 import { use, useEffect, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
 import {
   createMonteCarloExperiment,
   compileScenario,
+  getOwn,
   type InitialMarking,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
@@ -30,6 +36,15 @@ import {
 
 type ExperimentsProviderProps = React.PropsWithChildren<{
   workerFactory?: WorkerFactory;
+  /**
+   * How many workers each experiment splits its runs across.
+   *
+   * Defaults to one per logical core minus one. Sharding never changes an
+   * experiment's results, only how quickly it finishes, so this exists for hosts
+   * that need to cap CPU use (or pin behaviour in tests) rather than to affect
+   * output.
+   */
+  experimentShardCount?: number;
 }>;
 
 type ExperimentHandleRegistration = {
@@ -158,13 +173,17 @@ function assertExperimentInput(input: CreateExperimentInput): void {
 export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   children,
   workerFactory,
+  experimentShardCount,
 }) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
-  const { requestHirArtifacts } = use(LanguageClientContext);
+  const { requestHirArtifacts, requestScenarioHir } = use(
+    LanguageClientContext,
+  );
   const { addNotification } = use(NotificationsContext);
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
   const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
+  const shardCountRef = useLatest(experimentShardCount);
   const registrationsRef = useRef(
     new Map<string, ExperimentHandleRegistration>(),
   );
@@ -313,8 +332,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         throw new Error(parsedScenarioValues.errors.join("\n"));
       }
 
+      const scenarioHir = await requestScenarioHir(selectedScenario);
       const compiledScenario = compileScenario(
         selectedScenario,
+        scenarioHir,
         globalParameters,
         sdcpn.places,
         sdcpn.types,
@@ -391,7 +412,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           if (spec.kind !== "expression") {
             return spec;
           }
-          const artifact = artifacts.metrics[spec.id];
+          const artifact = getOwn(artifacts.metrics, spec.id);
           if (!artifact) {
             const diagnostics = failures
               .filter(
@@ -428,6 +449,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         const handle = await createMonteCarloExperiment({
           ...experimentConfigBase,
           createWorker: workerFactoryRef.current,
+          ...(shardCountRef.current === undefined
+            ? {}
+            : { shardCount: shardCountRef.current }),
           metricSpecs,
           signal: abortController.signal,
         });

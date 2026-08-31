@@ -1,0 +1,55 @@
+{
+  "name": "@hashintel/brunch-agent",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "The harness: mechanism and orchestration. Its public export surface is the plugin SDK.",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.js"
+    },
+    "./client-tools": {
+      "types": "./src/client-tools.ts",
+      "import": "./dist/client-tools.js"
+    },
+    "./prompts": {
+      "types": "./src/prompts.ts",
+      "import": "./dist/prompts.js"
+    },
+    "./storage": {
+      "types": "./src/storage.ts",
+      "import": "./dist/storage.js"
+    },
+    "./testing": {
+      "types": "./src/testing/index.ts",
+      "import": "./dist/testing/index.js"
+    }
+  },
+  "scripts": {
+    "baseline:run": "node --experimental-strip-types ../../evaluations/protocols/process-model-elicitation/baseline/run.ts",
+    "build": "vite build",
+    "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
+    "linear:graph": "node --experimental-strip-types ../../scripts/linear-project-graph.ts",
+    "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
+    "lint:tsc": "tsgo --noEmit",
+    "schema:emit": "PLUGIN_SCHEMA_EMIT=1 vitest run test/plugin-schema.test.ts",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "valibot": "1.4.2",
+    "yaml": "2.9.0"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "0.74.0",
+    "@types/node": "22.18.13",
+    "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "@valibot/to-json-schema": "1.7.1",
+    "fast-check": "4.9.0",
+    "oxlint": "1.63.0",
+    "oxlint-tsgolint": "0.22.1",
+    "vite": "8.1.0",
+    "vitest": "4.1.10"
+  }
+}

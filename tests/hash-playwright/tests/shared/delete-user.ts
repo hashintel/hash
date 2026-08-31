@@ -1,5 +1,22 @@
 const graphAdminPort = process.env.HASH_GRAPH_ADMIN_PORT ?? "4001";
-const systemActorId = "00000000-0000-0000-0000-000000000000";
+const graphPort = process.env.HASH_GRAPH_HTTP_PORT ?? "4000";
+
+const serviceSecret =
+  process.env.HASH_GRAPH_SERVICE_SECRET ?? "hash-svc-local-dev-secret";
+
+/** Reads the system machine from the bootstrap route, which takes the secret and no actor. */
+const fetchSystemMachineActorId = async (): Promise<string> => {
+  const response = await fetch(
+    `http://127.0.0.1:${graphPort}/actors/machine/identifier/system/h`,
+    { headers: { Authorization: `HASH-Service ${serviceSecret}` } },
+  );
+  if (!response.ok) {
+    throw new Error(
+      `Failed to get the system machine: HTTP ${response.status} ${await response.text()}`,
+    );
+  }
+  return (await response.json()) as string;
+};
 
 /**
  * Delete a user (Kratos identity + owned Graph entities + Hydra sessions)
@@ -20,7 +37,8 @@ export const deleteUserByEmail = async (email: string): Promise<void> => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Authenticated-User-Actor-Id": systemActorId,
+        Authorization: `HASH-Service ${serviceSecret}`,
+        "X-Authenticated-User-Actor-Id": await fetchSystemMachineActorId(),
       },
       body: JSON.stringify({ email }),
     },

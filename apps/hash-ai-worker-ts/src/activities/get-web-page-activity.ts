@@ -16,6 +16,7 @@ import type {
   FlowInternetAccessSettings,
   WebPage,
 } from "@local/hash-isomorphic-utils/flows/types";
+import type { Browser, Page } from "puppeteer-core";
 
 const sliceContentForLlmConsumption = (params: {
   content: string;
@@ -172,8 +173,8 @@ const getWebPageFromRemoteBrowser = async (
 ): Promise<WebPage | { error: string }> => {
   await acquireSessionSlot();
 
-  let browser: puppeteer.Browser | undefined;
-  let page: puppeteer.Page | undefined;
+  let browser: Browser | undefined;
+  let page: Page | undefined;
 
   try {
     browser = await puppeteer.connect({

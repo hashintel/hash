@@ -18,8 +18,9 @@ mod grammar {
     };
 
     use crate::grammar::{
-        AngleTokenTree, Attribute, KConst, KCrate, KDerive, KDisplay, KEnum, KId, KIs, KStep,
-        KStruct, KU8, KU16, KU32, KU64, KU128, ModPath, VerbatimUntil, Visibility,
+        AngleTokenTree, Attribute, KBig, KConst, KCrate, KDerive, KDisplay, KEndian, KEnum, KId,
+        KIs, KLittle, KNative, KStep, KStruct, KU8, KU16, KU32, KU64, KU128, KUnaligned, ModPath,
+        VerbatimUntil, Visibility,
     };
 
     pub(super) type AttributeIdBody = CommaDelimitedVec<IdAttribute>;
@@ -46,6 +47,13 @@ mod grammar {
             Format(TokenTree)
         }
 
+        /// The value after `endian =`: a byte-order name.
+        pub(super) enum EndianValue {
+            Little(KLittle),
+            Big(KBig),
+            Native(KNative)
+        }
+
         /// A single key-value entry inside `#[id(...)]`.
         pub(super) enum IdAttribute {
             /// `crate = path`: overrides the path to `hashql_core` in generated code.
@@ -70,6 +78,17 @@ mod grammar {
                 _eq: Assign,
 
                 format: IdDisplay
+            },
+            /// `endian = little|big|native`: byte order of the stored value.
+            Endian {
+                _endian: KEndian,
+                _eq: Assign,
+
+                value: EndianValue
+            },
+            /// `unaligned`: stores the id as its byte encoding with alignment 1.
+            Unaligned {
+                _unaligned: KUnaligned
             }
         }
 
@@ -88,14 +107,19 @@ mod grammar {
             U128(KU128),
         }
 
-        /// The parenthesized body of a struct: `(u32 is 0..=MAX)`.
-        pub(super) struct StructBody {
-            pub r#type: StructScalar,
+        /// The bounds clause in a struct body: `is start..=end` or `is start..end`.
+        pub(super) struct StructBounds {
             pub _is: KIs,
 
             pub start: VerbatimUntil<RangeOp>,
             pub op: RangeOp,
             pub end: Vec<AngleTokenTree>
+        }
+
+        /// The parenthesized body of a struct: `(u32 is 0..=MAX)` or `(u32)`.
+        pub(super) struct StructBody {
+            pub r#type: StructScalar,
+            pub bounds: Option<StructBounds>
         }
 
         /// A complete struct definition for `define_id!`.

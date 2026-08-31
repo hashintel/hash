@@ -16,7 +16,7 @@ from src.optimization_runs import CANCELLED_FRAME, RunState
 
 
 class RecordingModel:
-    """Track how the CLI adapter is shut down."""
+    """Track how the session is shut down."""
 
     def __init__(self) -> None:
         self.close_calls: list[bool] = []
@@ -98,7 +98,7 @@ def test_initialization_failure_log_omits_the_raw_error_message(
     monkeypatch,
     caplog,
 ) -> None:
-    """The CLI error string can embed user content, so it must not be logged."""
+    """The backend error string can embed user content, so it must not be logged."""
     secret = "Petrinaut failed to load the optimization manifest: user_secret_xyz"
 
     def initialize(_manifest: dict[str, Any], **_kwargs: Any) -> FakeOptimizer:
@@ -106,9 +106,11 @@ def test_initialization_failure_log_omits_the_raw_error_message(
 
     monkeypatch.setattr(optimization_api, "initialize_optimizer", initialize)
 
-    with caplog.at_level("ERROR", logger="pn_api"):
-        with TestClient(optimization_api.app) as client:
-            response = client.post("/optimize/runs", json=optimization_manifest)
+    with (
+        caplog.at_level("ERROR", logger="pn_api"),
+        TestClient(optimization_api.app) as client,
+    ):
+        response = client.post("/optimize/runs", json=optimization_manifest)
 
     failures = [r for r in caplog.records if r.event == "initialization_failed"]
     assert failures
@@ -146,16 +148,18 @@ def test_capacity_rejection_is_logged_with_the_request_id(
     optimization_manifest: dict,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    with caplog.at_level(logging.WARNING, logger="pn_api"):
-        with TestClient(optimization_api.app) as client:
-            optimization_api.app.state.active_optimizations = (
-                optimization_api.MAX_ACTIVE_OPTIMIZATIONS
-            )
-            response = client.post(
-                "/optimize/runs",
-                json=optimization_manifest,
-                headers={"x-hash-request-id": "request-cap-1"},
-            )
+    with (
+        caplog.at_level(logging.WARNING, logger="pn_api"),
+        TestClient(optimization_api.app) as client,
+    ):
+        optimization_api.app.state.active_optimizations = (
+            optimization_api.MAX_ACTIVE_OPTIMIZATIONS
+        )
+        response = client.post(
+            "/optimize/runs",
+            json=optimization_manifest,
+            headers={"x-hash-request-id": "request-cap-1"},
+        )
 
     assert response.status_code == 429
     rejection = next(
@@ -199,7 +203,7 @@ def test_admitted_run_cleanup_releases_the_slot_exactly_once() -> None:
     assert optimizer.pn_model.close_calls == [False]  # type: ignore[attr-defined]
 
 
-def test_cancellation_during_initialization_closes_cli_and_releases_slot(
+def test_cancellation_during_initialization_closes_session_and_releases_slot(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -244,11 +248,11 @@ def test_cancellation_during_initialization_closes_cli_and_releases_slot(
     assert test_app.state.active_optimizations == 0
 
 
-def test_second_cancellation_still_closes_an_abandoned_cli(
+def test_second_cancellation_still_closes_an_abandoned_session(
     optimization_manifest: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """A cancel racing the init-cancel recovery must not orphan the CLI."""
+    """A cancel racing the init-cancel recovery must not orphan the session."""
     test_app = _admitted_test_app(active_optimizations=1)
     optimizer = _optimizer_with_recording_model()
     started = threading.Event()
@@ -275,7 +279,7 @@ def test_second_cancellation_still_closes_an_abandoned_cli(
         finish.set()
         with pytest.raises(asyncio.CancelledError):
             await task
-        # The abandoned CLI is closed by the initializer's done-callback,
+        # The abandoned session is closed by the initializer's done-callback,
         # which hands off to a daemon thread.
         for _ in range(100):
             if optimizer.pn_model.close_calls:  # type: ignore[attr-defined]
@@ -434,11 +438,9 @@ def test_create_detached_run_returns_201_and_holds_the_slot_until_terminal(
         assert run.state is RunState.running
 
         optimizer.release.set()
-        _wait_until(
-            lambda: optimization_api.app.state.active_optimizations == 0
-        )
+        _wait_until(lambda: optimization_api.app.state.active_optimizations == 0)
         _wait_until(lambda: run.state is RunState.completed)
-        # The pump closed the CLI gracefully; the idempotent run cleanup adds
+        # The pump closed the session gracefully; the idempotent run cleanup adds
         # its prompt close, which the real adapter treats as a no-op.
         assert optimizer.pn_model.close_calls == [True, False]
 
@@ -622,7 +624,7 @@ def test_delete_cancels_a_detached_run_and_is_idempotent(
         assert run is not None
         assert run.state is RunState.cancelled
         assert run.events[-1] == (2, CANCELLED_FRAME)
-        # The pump closed the CLI promptly and the cleanup added its
+        # The pump closed the session promptly and the cleanup added its
         # idempotent prompt close; neither waited for a graceful EOF.
         assert optimizer.pn_model.close_calls == [False, False]
         assert optimization_api.app.state.active_optimizations == 0
@@ -643,26 +645,24 @@ def test_the_reaper_cancels_a_run_nobody_attached_to(
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    monkeypatch.setenv(
-        optimization_runs.DETACH_GRACE_ENVIRONMENT_VARIABLE, "0.05"
-    )
+    monkeypatch.setenv(optimization_runs.DETACH_GRACE_ENVIRONMENT_VARIABLE, "0.05")
     optimizer = ScriptedDetachedOptimizer(hold=True)
     monkeypatch.setattr(
         optimization_api, "initialize_optimizer", lambda _manifest, **_kwargs: optimizer
     )
 
-    with caplog.at_level(logging.WARNING, logger="pn_runs"):
-        with TestClient(optimization_api.app) as client:
-            run_id = client.post(
-                "/optimize/runs", json=optimization_manifest
-            ).json()["run_id"]
-            run = optimization_api.app.state.optimization_runs.get(run_id)
-            assert run is not None
-            _wait_until(lambda: run.state is RunState.cancelled)
-            _wait_until(
-                lambda: optimization_api.app.state.active_optimizations == 0
-            )
-            assert run.events[-1] == (2, CANCELLED_FRAME)
+    with (
+        caplog.at_level(logging.WARNING, logger="pn_runs"),
+        TestClient(optimization_api.app) as client,
+    ):
+        run_id = client.post("/optimize/runs", json=optimization_manifest).json()[
+            "run_id"
+        ]
+        run = optimization_api.app.state.optimization_runs.get(run_id)
+        assert run is not None
+        _wait_until(lambda: run.state is RunState.cancelled)
+        _wait_until(lambda: optimization_api.app.state.active_optimizations == 0)
+        assert run.events[-1] == (2, CANCELLED_FRAME)
 
     reaped = next(
         record
@@ -789,7 +789,7 @@ def test_create_detached_run_reports_initialization_failure_with_the_run_id(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def initialize(_manifest: dict[str, Any], **_kwargs: Any) -> Any:
-        raise RuntimeError("manifest rejected by CLI")
+        raise RuntimeError("manifest rejected by the backend")
 
     monkeypatch.setattr(optimization_api, "initialize_optimizer", initialize)
 
@@ -802,11 +802,11 @@ def test_create_detached_run_reports_initialization_failure_with_the_run_id(
         run_status = client.get(f"/status/{run_id}")
 
     assert response.status_code == 500
-    assert "manifest rejected by CLI" in response.json()["detail"]
+    assert "manifest rejected by the backend" in response.json()["detail"]
     assert statuses.json() == [
         {
             "phase": "error",
-            "detail": "Petrinaut CLI and Optimization Model could NOT be initialized",
+            "detail": "Petrinaut session and Optimization Model could NOT be initialized",
             "updated_at": statuses.json()[0]["updated_at"],
             "run_id": run_id,
         }
@@ -867,9 +867,7 @@ def test_owned_runs_enforce_account_single_flight_and_visibility(
                 == 404
             )
             assert (
-                client.delete(
-                    f"/optimize/runs/{run_id}", headers=headers
-                ).status_code
+                client.delete(f"/optimize/runs/{run_id}", headers=headers).status_code
                 == 404
             )
 
@@ -945,9 +943,7 @@ def test_openapi_exposes_the_detached_run_paths() -> None:
     assert "500" in create["responses"]
 
     events = schema["paths"]["/optimize/runs/{run_id}/events"]["get"]
-    stream_schema = events["responses"]["200"]["content"]["text/event-stream"][
-        "schema"
-    ]
+    stream_schema = events["responses"]["200"]["content"]["text/event-stream"]["schema"]
     assert stream_schema["type"] == "string"
     assert "event: cancelled" in events["responses"]["200"]["description"]
     assert "404" in events["responses"]

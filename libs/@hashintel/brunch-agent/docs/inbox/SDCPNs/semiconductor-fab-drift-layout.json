@@ -1,0 +1,1509 @@
+{
+  "places": [
+    {
+      "id": "place__fab_entrance",
+      "name": "FabEntrance",
+      "colorId": "type__lot",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__aging",
+      "showAsInitialState": false,
+      "x": 2360,
+      "y": 423.5
+    },
+    {
+      "id": "place__wip_queue",
+      "name": "WIPQueue",
+      "colorId": "type__lot",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__aging",
+      "showAsInitialState": false,
+      "x": -255,
+      "y": 1515
+    },
+    {
+      "id": "place__batch_queue",
+      "name": "BatchQueue",
+      "colorId": "type__lot",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__batch_wait",
+      "showAsInitialState": false,
+      "x": 375,
+      "y": 1515
+    },
+    {
+      "id": "place__in_process",
+      "name": "InProcess",
+      "colorId": "type__lot",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__processing",
+      "showAsInitialState": false,
+      "x": 975,
+      "y": 1515
+    },
+    {
+      "id": "place__post_process",
+      "name": "PostProcess",
+      "colorId": "type__lot",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__aging",
+      "showAsInitialState": false,
+      "x": 1800,
+      "y": 569.3333333333334
+    },
+    {
+      "id": "place__in_inspection",
+      "name": "InInspection",
+      "colorId": "type__lot",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__processing",
+      "showAsInitialState": false,
+      "x": 930,
+      "y": 585
+    },
+    {
+      "id": "place__finished",
+      "name": "Finished",
+      "colorId": "type__lot",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2360,
+      "y": 256
+    },
+    {
+      "id": "place__scrapped",
+      "name": "Scrapped",
+      "colorId": "type__lot",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2355,
+      "y": 885
+    },
+    {
+      "id": "place__wip_permits",
+      "name": "WIPPermits",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2355,
+      "y": 1110
+    },
+    {
+      "id": "place__chambers_available",
+      "name": "ChambersAvailable",
+      "colorId": "type__chamber",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 0,
+      "y": 1020
+    },
+    {
+      "id": "place__chambers_processing",
+      "name": "ChambersProcessing",
+      "colorId": "type__chamber",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__chamber_processing",
+      "showAsInitialState": false,
+      "x": 930,
+      "y": 1020
+    },
+    {
+      "id": "place__chambers_in_maintenance",
+      "name": "ChambersInMaintenance",
+      "colorId": "type__chamber",
+      "dynamicsEnabled": true,
+      "differentialEquationId": "de__chamber_maintenance",
+      "showAsInitialState": false,
+      "x": 1875,
+      "y": 1515
+    },
+    {
+      "id": "place__chambers_broken",
+      "name": "ChambersBroken",
+      "colorId": "type__chamber",
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1800,
+      "y": 930
+    },
+    {
+      "id": "place__maintenance_crew",
+      "name": "MaintenanceCrew",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": true,
+      "x": 1260,
+      "y": 1230
+    },
+    {
+      "id": "place__maintenance_events",
+      "name": "MaintenanceEvents",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1800,
+      "y": 1080
+    },
+    {
+      "id": "place__breakdown_events",
+      "name": "BreakdownEvents",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 1800,
+      "y": 1231
+    },
+    {
+      "id": "place__lots_released",
+      "name": "LotsReleased",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2925,
+      "y": 1110
+    },
+    {
+      "id": "place__lots_completed",
+      "name": "LotsCompleted",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2360,
+      "y": 106
+    },
+    {
+      "id": "place__calibrations",
+      "name": "Calibrations",
+      "colorId": null,
+      "dynamicsEnabled": false,
+      "differentialEquationId": null,
+      "showAsInitialState": false,
+      "x": 2505,
+      "y": 1515
+    }
+  ],
+  "transitions": [
+    {
+      "id": "transition__demand_logic",
+      "name": "Demand arrives (logic)",
+      "inputArcs": [],
+      "outputArcs": [
+        {
+          "placeId": "place__fab_entrance",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.demand_rate * 0.5;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  return {\n    FabEntrance: [{ product_type: 0, layer: 0, priority: 1.0, age: 0, defect_count: 0, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0, batch_wait: 0 }],\n  };\n});",
+      "x": 2080,
+      "y": 456
+    },
+    {
+      "id": "transition__demand_memory",
+      "name": "Demand arrives (memory)",
+      "inputArcs": [],
+      "outputArcs": [
+        {
+          "placeId": "place__fab_entrance",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.demand_rate * 0.35;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  return {\n    FabEntrance: [{ product_type: 1, layer: 0, priority: 1.0, age: 0, defect_count: 0, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0, batch_wait: 0 }],\n  };\n});",
+      "x": 2080,
+      "y": 156
+    },
+    {
+      "id": "transition__demand_analog",
+      "name": "Demand arrives (analog)",
+      "inputArcs": [],
+      "outputArcs": [
+        {
+          "placeId": "place__fab_entrance",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  return parameters.demand_rate * 0.15;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  return {\n    FabEntrance: [{ product_type: 2, layer: 0, priority: 1.0, age: 0, defect_count: 0, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0, batch_wait: 0 }],\n  };\n});",
+      "x": 2080,
+      "y": 356
+    },
+    {
+      "id": "transition__release_lot",
+      "name": "Release lot into fab",
+      "inputArcs": [
+        {
+          "placeId": "place__fab_entrance",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__wip_permits",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__wip_queue",
+          "weight": 1
+        },
+        {
+          "placeId": "place__lots_released",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda(() => true);",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const lot = input.FabEntrance[0];\n  return {\n    WIPQueue: [{ product_type: lot.product_type, layer: lot.layer, priority: lot.priority, age: lot.age, defect_count: lot.defect_count, process_remaining: lot.process_remaining, wait_time: lot.wait_time, due_date: lot.due_date, process_bias: lot.process_bias, batch_wait: lot.batch_wait }],\n  };\n});",
+      "x": 2595,
+      "y": 1110
+    },
+    {
+      "id": "transition__priority_update",
+      "name": "Update lot priority toward deadline",
+      "inputArcs": [
+        {
+          "placeId": "place__wip_queue",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__wip_queue",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const lot = input.WIPQueue[0];\n  return lot.wait_time >= parameters.priority_update_interval;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const lot = input.WIPQueue[0];\n  const remaining = lot.due_date - lot.age;\n  const urgency = remaining <= 0 ? 10 : parameters.target_cycle_time / remaining;\n  const newPriority = Math.max(urgency, 1.0);\n  return {\n    WIPQueue: [{ product_type: lot.product_type, layer: lot.layer, priority: newPriority, age: lot.age, defect_count: lot.defect_count, process_remaining: lot.process_remaining, wait_time: 0, due_date: lot.due_date, process_bias: lot.process_bias, batch_wait: lot.batch_wait }],\n  };\n});",
+      "x": -255,
+      "y": 1110
+    },
+    {
+      "id": "transition__extend_deadline",
+      "name": "Renegotiate deadline (lot past due)",
+      "inputArcs": [
+        {
+          "placeId": "place__wip_queue",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__wip_queue",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const lot = input.WIPQueue[0];\n  return lot.age > lot.due_date + parameters.deadline_grace_period;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const lot = input.WIPQueue[0];\n  return {\n    WIPQueue: [{ product_type: lot.product_type, layer: lot.layer, priority: 1.0, age: lot.age, defect_count: lot.defect_count, process_remaining: lot.process_remaining, wait_time: 0, due_date: lot.age + parameters.target_cycle_time, process_bias: lot.process_bias, batch_wait: lot.batch_wait }],\n  };\n});",
+      "x": -255,
+      "y": 1290
+    },
+    {
+      "id": "transition__dispatch_litho",
+      "name": "Dispatch lot to litho chamber",
+      "inputArcs": [
+        {
+          "placeId": "place__wip_queue",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__chambers_available",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__in_process",
+          "weight": 1
+        },
+        {
+          "placeId": "place__chambers_processing",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const lot = input.WIPQueue[0];\n  const chamber = input.ChambersAvailable[0];\n  const qualOk = chamber.qualification === 0\n    || (chamber.qualification === 1 && lot.product_type <= 1)\n    || (chamber.qualification === 2 && lot.product_type === 2);\n  return chamber.machine_group === 0 && qualOk && (lot.layer === 0 || lot.layer === 4 || lot.layer === 9 || lot.layer === 12 || lot.layer === 16 || lot.layer === 20 || lot.layer === 24);\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const lot = input.WIPQueue[0];\n  const chamber = input.ChambersAvailable[0];\n  const productFactor = lot.product_type === 0 ? 1.0\n    : lot.product_type === 1 ? 0.85 : 1.15;\n  return {\n    InProcess: [{ product_type: lot.product_type, layer: lot.layer, priority: lot.priority, age: lot.age, defect_count: lot.defect_count, process_remaining: Distribution.Lognormal(Math.log(parameters.litho_time * productFactor), parameters.process_sigma), wait_time: 0, due_date: lot.due_date, process_bias: lot.process_bias, batch_wait: 0 }],\n    ChambersProcessing: [{ condition: chamber.condition, particle_count: chamber.particle_count, hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: chamber.maintenance_remaining, diffusion_clock: parameters.diffusion_step, lots_processed: chamber.lots_processed, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: chamber.process_drift, batch_count: chamber.batch_count }],\n  };\n});",
+      "x": 465,
+      "y": 1125
+    },
+    {
+      "id": "transition__dispatch_etch",
+      "name": "Dispatch lot to etch chamber",
+      "inputArcs": [
+        {
+          "placeId": "place__wip_queue",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__chambers_available",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__in_process",
+          "weight": 1
+        },
+        {
+          "placeId": "place__chambers_processing",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const lot = input.WIPQueue[0];\n  const chamber = input.ChambersAvailable[0];\n  const qualOk = chamber.qualification === 0\n    || (chamber.qualification === 1 && lot.product_type <= 1)\n    || (chamber.qualification === 2 && lot.product_type === 2);\n  return chamber.machine_group === 1 && qualOk && (lot.layer === 1 || lot.layer === 5 || lot.layer === 8 || lot.layer === 10 || lot.layer === 13 || lot.layer === 15 || lot.layer === 17 || lot.layer === 21 || lot.layer === 25 || lot.layer === 27);\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const lot = input.WIPQueue[0];\n  const chamber = input.ChambersAvailable[0];\n  const productFactor = lot.product_type === 0 ? 1.0\n    : lot.product_type === 1 ? 0.85 : 1.15;\n  return {\n    InProcess: [{ product_type: lot.product_type, layer: lot.layer, priority: lot.priority, age: lot.age, defect_count: lot.defect_count, process_remaining: Distribution.Lognormal(Math.log(parameters.etch_time * productFactor), parameters.process_sigma), wait_time: 0, due_date: lot.due_date, process_bias: lot.process_bias, batch_wait: 0 }],\n    ChambersProcessing: [{ condition: chamber.condition, particle_count: chamber.particle_count, hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: chamber.maintenance_remaining, diffusion_clock: parameters.diffusion_step, lots_processed: chamber.lots_processed, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: chamber.process_drift, batch_count: chamber.batch_count }],\n  };\n});",
+      "x": 465,
+      "y": 915
+    },
+    {
+      "id": "transition__enter_batch_queue",
+      "name": "Lot enters furnace batch queue",
+      "inputArcs": [
+        {
+          "placeId": "place__wip_queue",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__batch_queue",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  const lot = input.WIPQueue[0];\n  return lot.layer === 2 || lot.layer === 7 || lot.layer === 14 || lot.layer === 19 || lot.layer === 22 || lot.layer === 26;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const lot = input.WIPQueue[0];\n  return {\n    BatchQueue: [{ product_type: lot.product_type, layer: lot.layer, priority: lot.priority, age: lot.age, defect_count: lot.defect_count, process_remaining: lot.process_remaining, wait_time: lot.wait_time, due_date: lot.due_date, process_bias: lot.process_bias, batch_wait: 0 }],\n  };\n});",
+      "x": 105,
+      "y": 1515
+    },
+    {
+      "id": "transition__load_furnace",
+      "name": "Load lot into furnace batch",
+      "inputArcs": [
+        {
+          "placeId": "place__batch_queue",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__chambers_available",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__in_process",
+          "weight": 1
+        },
+        {
+          "placeId": "place__chambers_available",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const lot = input.BatchQueue[0];\n  const chamber = input.ChambersAvailable[0];\n  const qualOk = chamber.qualification === 0\n    || (chamber.qualification === 1 && lot.product_type <= 1)\n    || (chamber.qualification === 2 && lot.product_type === 2);\n  return chamber.machine_group === 2 && qualOk\n    && chamber.batch_count < parameters.batch_size;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const lot = input.BatchQueue[0];\n  const chamber = input.ChambersAvailable[0];\n  const productFactor = lot.product_type === 0 ? 1.0\n    : lot.product_type === 1 ? 0.85 : 1.15;\n  return {\n    InProcess: [{ product_type: lot.product_type, layer: lot.layer, priority: lot.priority, age: lot.age, defect_count: lot.defect_count, process_remaining: Distribution.Lognormal(Math.log(parameters.furnace_time * productFactor), parameters.process_sigma), wait_time: 0, due_date: lot.due_date, process_bias: lot.process_bias, batch_wait: 0 }],\n    ChambersAvailable: [{ condition: chamber.condition, particle_count: chamber.particle_count, hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: chamber.maintenance_remaining, diffusion_clock: chamber.diffusion_clock, lots_processed: chamber.lots_processed, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: chamber.process_drift, batch_count: chamber.batch_count + 1 }],\n  };\n});",
+      "x": 660,
+      "y": 1515
+    },
+    {
+      "id": "transition__start_furnace_full",
+      "name": "Start furnace (batch full)",
+      "inputArcs": [
+        {
+          "placeId": "place__chambers_available",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__chambers_processing",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const chamber = input.ChambersAvailable[0];\n  return chamber.machine_group === 2\n    && chamber.batch_count >= parameters.batch_size;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const chamber = input.ChambersAvailable[0];\n  return {\n    ChambersProcessing: [{ condition: chamber.condition, particle_count: chamber.particle_count, hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: chamber.maintenance_remaining, diffusion_clock: parameters.diffusion_step, lots_processed: chamber.lots_processed, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: chamber.process_drift, batch_count: chamber.batch_count }],\n  };\n});",
+      "x": 465,
+      "y": 1020
+    },
+    {
+      "id": "transition__start_furnace_timeout",
+      "name": "Start furnace (batch timeout)",
+      "inputArcs": [
+        {
+          "placeId": "place__chambers_available",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__batch_queue",
+          "weight": 1,
+          "type": "read"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__chambers_processing",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const chamber = input.ChambersAvailable[0];\n  const lot = input.BatchQueue[0];\n  return chamber.machine_group === 2\n    && chamber.batch_count > 0\n    && chamber.batch_count < parameters.batch_size\n    && lot.batch_wait >= parameters.batch_timeout;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const chamber = input.ChambersAvailable[0];\n  return {\n    ChambersProcessing: [{ condition: chamber.condition, particle_count: chamber.particle_count, hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: chamber.maintenance_remaining, diffusion_clock: parameters.diffusion_step, lots_processed: chamber.lots_processed, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: chamber.process_drift, batch_count: chamber.batch_count }],\n  };\n});",
+      "x": 465,
+      "y": 1215
+    },
+    {
+      "id": "transition__dispatch_inspect",
+      "name": "Dispatch lot to inspection",
+      "inputArcs": [
+        {
+          "placeId": "place__wip_queue",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__chambers_available",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__in_inspection",
+          "weight": 1
+        },
+        {
+          "placeId": "place__chambers_processing",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const lot = input.WIPQueue[0];\n  const chamber = input.ChambersAvailable[0];\n  return chamber.machine_group === 3 && (lot.layer === 3 || lot.layer === 6 || lot.layer === 11 || lot.layer === 18 || lot.layer === 23);\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const lot = input.WIPQueue[0];\n  const chamber = input.ChambersAvailable[0];\n  return {\n    InInspection: [{ product_type: lot.product_type, layer: lot.layer, priority: lot.priority, age: lot.age, defect_count: lot.defect_count, process_remaining: Distribution.Lognormal(Math.log(parameters.inspect_time), parameters.process_sigma), wait_time: 0, due_date: lot.due_date, process_bias: lot.process_bias, batch_wait: lot.batch_wait }],\n    ChambersProcessing: [{ condition: chamber.condition, particle_count: chamber.particle_count, hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: chamber.maintenance_remaining, diffusion_clock: parameters.diffusion_step, lots_processed: chamber.lots_processed, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: chamber.process_drift, batch_count: chamber.batch_count }],\n  };\n});",
+      "x": 465,
+      "y": 810
+    },
+    {
+      "id": "transition__process_complete_ok",
+      "name": "Processing complete, chamber ok",
+      "inputArcs": [
+        {
+          "placeId": "place__in_process",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__chambers_processing",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__post_process",
+          "weight": 1
+        },
+        {
+          "placeId": "place__chambers_available",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const lot = input.InProcess[0];\n  const chamber = input.ChambersProcessing[0];\n  return lot.process_remaining <= 0 && chamber.condition < parameters.maintenance_threshold;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const lot = input.InProcess[0];\n  const chamber = input.ChambersProcessing[0];\n  const defectRate = parameters.base_defect_rate\n    * (1 + parameters.condition_sensitivity * chamber.condition)\n    * (1 + parameters.particle_sensitivity * chamber.particle_count)\n    * (1 + parameters.drift_defect_factor * Math.abs(chamber.process_drift));\n  return {\n    PostProcess: [{ product_type: lot.product_type, layer: lot.layer + 1, priority: lot.priority, age: lot.age, defect_count: Distribution.Lognormal(Math.log(Math.max(lot.defect_count + defectRate, 0.001)), 0.5), process_remaining: lot.process_remaining, wait_time: lot.wait_time, due_date: lot.due_date, process_bias: lot.process_bias + chamber.process_drift, batch_wait: lot.batch_wait }],\n    ChambersAvailable: [{ condition: chamber.condition, particle_count: chamber.particle_count, hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: chamber.maintenance_remaining, diffusion_clock: chamber.diffusion_clock, lots_processed: chamber.lots_processed + 1, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: chamber.process_drift, batch_count: 0 }],\n  };\n});",
+      "x": 1530,
+      "y": 690
+    },
+    {
+      "id": "transition__process_complete_maintenance",
+      "name": "Processing complete, chamber needs maintenance",
+      "inputArcs": [
+        {
+          "placeId": "place__in_process",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__chambers_processing",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__post_process",
+          "weight": 1
+        },
+        {
+          "placeId": "place__chambers_in_maintenance",
+          "weight": 1
+        },
+        {
+          "placeId": "place__maintenance_events",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const lot = input.InProcess[0];\n  const chamber = input.ChambersProcessing[0];\n  return lot.process_remaining <= 0 && chamber.condition >= parameters.maintenance_threshold;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const lot = input.InProcess[0];\n  const chamber = input.ChambersProcessing[0];\n  const defectRate = parameters.base_defect_rate\n    * (1 + parameters.condition_sensitivity * chamber.condition)\n    * (1 + parameters.particle_sensitivity * chamber.particle_count)\n    * (1 + parameters.drift_defect_factor * Math.abs(chamber.process_drift));\n  return {\n    PostProcess: [{ product_type: lot.product_type, layer: lot.layer + 1, priority: lot.priority, age: lot.age, defect_count: Distribution.Lognormal(Math.log(Math.max(lot.defect_count + defectRate, 0.001)), 0.5), process_remaining: lot.process_remaining, wait_time: lot.wait_time, due_date: lot.due_date, process_bias: lot.process_bias + chamber.process_drift, batch_wait: lot.batch_wait }],\n    ChambersInMaintenance: [{ condition: chamber.condition, particle_count: chamber.particle_count, hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: Distribution.Lognormal(Math.log(parameters.maintenance_duration), parameters.maintenance_sigma), diffusion_clock: 0, lots_processed: chamber.lots_processed, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: chamber.process_drift, batch_count: chamber.batch_count }],\n  };\n});",
+      "x": 1530,
+      "y": 915
+    },
+    {
+      "id": "transition__route_to_queue",
+      "name": "Route lot back to WIP queue",
+      "inputArcs": [
+        {
+          "placeId": "place__post_process",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__wip_queue",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  const lot = input.PostProcess[0];\n  return lot.layer < 28;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const lot = input.PostProcess[0];\n  return {\n    WIPQueue: [{ product_type: lot.product_type, layer: lot.layer, priority: lot.priority, age: lot.age, defect_count: lot.defect_count, process_remaining: lot.process_remaining, wait_time: 0, due_date: lot.due_date, process_bias: lot.process_bias, batch_wait: lot.batch_wait }],\n  };\n});",
+      "x": 2085,
+      "y": 570
+    },
+    {
+      "id": "transition__lot_passes",
+      "name": "Lot passes final test",
+      "inputArcs": [
+        {
+          "placeId": "place__post_process",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__finished",
+          "weight": 1
+        },
+        {
+          "placeId": "place__wip_permits",
+          "weight": 1
+        },
+        {
+          "placeId": "place__lots_completed",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const lot = input.PostProcess[0];\n  return lot.layer >= 28 && lot.defect_count < parameters.scrap_threshold;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const lot = input.PostProcess[0];\n  return {\n    Finished: [{ product_type: lot.product_type, layer: lot.layer, priority: lot.priority, age: lot.age, defect_count: lot.defect_count, process_remaining: lot.process_remaining, wait_time: lot.wait_time, due_date: lot.due_date, process_bias: lot.process_bias, batch_wait: lot.batch_wait }],\n  };\n});",
+      "x": 2080,
+      "y": 256
+    },
+    {
+      "id": "transition__lot_fails",
+      "name": "Lot fails final test",
+      "inputArcs": [
+        {
+          "placeId": "place__post_process",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__scrapped",
+          "weight": 1
+        },
+        {
+          "placeId": "place__wip_permits",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const lot = input.PostProcess[0];\n  return lot.layer >= 28 && lot.defect_count >= parameters.scrap_threshold;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const lot = input.PostProcess[0];\n  return {\n    Scrapped: [{ product_type: lot.product_type, layer: lot.layer, priority: lot.priority, age: lot.age, defect_count: lot.defect_count, process_remaining: lot.process_remaining, wait_time: lot.wait_time, due_date: lot.due_date, process_bias: lot.process_bias, batch_wait: lot.batch_wait }],\n  };\n});",
+      "x": 2080,
+      "y": 772
+    },
+    {
+      "id": "transition__inspection_complete",
+      "name": "Inspection complete",
+      "inputArcs": [
+        {
+          "placeId": "place__in_inspection",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__chambers_processing",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__wip_queue",
+          "weight": 1
+        },
+        {
+          "placeId": "place__chambers_available",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  const lot = input.InInspection[0];\n  return lot.process_remaining <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input) => {\n  const lot = input.InInspection[0];\n  const chamber = input.ChambersProcessing[0];\n  return {\n    WIPQueue: [{ product_type: lot.product_type, layer: lot.layer + 1, priority: lot.priority, age: lot.age, defect_count: lot.defect_count, process_remaining: lot.process_remaining, wait_time: 0, due_date: lot.due_date, process_bias: lot.process_bias, batch_wait: lot.batch_wait }],\n    ChambersAvailable: [{ condition: chamber.condition, particle_count: chamber.particle_count, hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: chamber.maintenance_remaining, diffusion_clock: chamber.diffusion_clock, lots_processed: chamber.lots_processed + 1, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: chamber.process_drift, batch_count: 0 }],\n  };\n});",
+      "x": 1185,
+      "y": 585
+    },
+    {
+      "id": "transition__start_maintenance",
+      "name": "Start preventive maintenance",
+      "inputArcs": [
+        {
+          "placeId": "place__chambers_available",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__maintenance_crew",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__chambers_in_maintenance",
+          "weight": 1
+        },
+        {
+          "placeId": "place__maintenance_events",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const chamber = input.ChambersAvailable[0];\n  return chamber.condition >= parameters.maintenance_threshold;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const chamber = input.ChambersAvailable[0];\n  return {\n    ChambersInMaintenance: [{ condition: chamber.condition, particle_count: chamber.particle_count, hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: Distribution.Lognormal(Math.log(parameters.maintenance_duration), parameters.maintenance_sigma), diffusion_clock: 0, lots_processed: chamber.lots_processed, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: chamber.process_drift, batch_count: chamber.batch_count }],\n  };\n});",
+      "x": 1515,
+      "y": 1395
+    },
+    {
+      "id": "transition__maintenance_complete",
+      "name": "Maintenance complete (drift recalibrated)",
+      "inputArcs": [
+        {
+          "placeId": "place__chambers_in_maintenance",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__chambers_available",
+          "weight": 1
+        },
+        {
+          "placeId": "place__maintenance_crew",
+          "weight": 1
+        },
+        {
+          "placeId": "place__calibrations",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.ChambersInMaintenance[0].maintenance_remaining <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const chamber = input.ChambersInMaintenance[0];\n  return {\n    ChambersAvailable: [{ condition: 0, particle_count: 0.05, hours_since_maintenance: 0, maintenance_remaining: 0, diffusion_clock: chamber.diffusion_clock, lots_processed: 0, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: Distribution.Gaussian(0, parameters.calibration_residual), batch_count: 0 }],\n  };\n});",
+      "x": 2190,
+      "y": 1515
+    },
+    {
+      "id": "transition__breakdown",
+      "name": "Chamber breakdown",
+      "inputArcs": [
+        {
+          "placeId": "place__chambers_processing",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__in_process",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__maintenance_crew",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__chambers_in_maintenance",
+          "weight": 1
+        },
+        {
+          "placeId": "place__scrapped",
+          "weight": 1
+        },
+        {
+          "placeId": "place__breakdown_events",
+          "weight": 1
+        },
+        {
+          "placeId": "place__wip_permits",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const chamber = input.ChambersProcessing[0];\n  return parameters.breakdown_base_rate\n    * Math.exp(parameters.breakdown_condition_factor * chamber.condition);\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const chamber = input.ChambersProcessing[0];\n  const lot = input.InProcess[0];\n  return {\n    ChambersInMaintenance: [{ condition: chamber.condition, particle_count: chamber.particle_count, hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: Distribution.Lognormal(Math.log(parameters.breakdown_repair_time), parameters.breakdown_sigma), diffusion_clock: 0, lots_processed: chamber.lots_processed, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: chamber.process_drift, batch_count: chamber.batch_count }],\n    Scrapped: [{ product_type: lot.product_type, layer: lot.layer, priority: lot.priority, age: lot.age, defect_count: lot.defect_count, process_remaining: lot.process_remaining, wait_time: lot.wait_time, due_date: lot.due_date, process_bias: lot.process_bias, batch_wait: lot.batch_wait }],\n  };\n});",
+      "x": 1305,
+      "y": 1515
+    },
+    {
+      "id": "transition__breakdown_no_crew",
+      "name": "Chamber breakdown (no crew available)",
+      "inputArcs": [
+        {
+          "placeId": "place__chambers_processing",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__in_process",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__maintenance_crew",
+          "weight": 1,
+          "type": "inhibitor"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__chambers_broken",
+          "weight": 1
+        },
+        {
+          "placeId": "place__scrapped",
+          "weight": 1
+        },
+        {
+          "placeId": "place__breakdown_events",
+          "weight": 1
+        },
+        {
+          "placeId": "place__wip_permits",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "stochastic",
+      "lambdaCode": "export default Lambda((input, parameters) => {\n  const chamber = input.ChambersProcessing[0];\n  return parameters.breakdown_base_rate\n    * Math.exp(parameters.breakdown_condition_factor * chamber.condition);\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const chamber = input.ChambersProcessing[0];\n  const lot = input.InProcess[0];\n  return {\n    ChambersBroken: [{ condition: chamber.condition, particle_count: chamber.particle_count, hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: chamber.lots_processed, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: chamber.process_drift, batch_count: chamber.batch_count }],\n    Scrapped: [{ product_type: lot.product_type, layer: lot.layer, priority: lot.priority, age: lot.age, defect_count: lot.defect_count, process_remaining: lot.process_remaining, wait_time: lot.wait_time, due_date: lot.due_date, process_bias: lot.process_bias, batch_wait: lot.batch_wait }],\n  };\n});",
+      "x": 1530,
+      "y": 1020
+    },
+    {
+      "id": "transition__crew_reaches_broken",
+      "name": "Crew reaches broken chamber",
+      "inputArcs": [
+        {
+          "placeId": "place__chambers_broken",
+          "weight": 1,
+          "type": "standard"
+        },
+        {
+          "placeId": "place__maintenance_crew",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__chambers_in_maintenance",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda(() => true);",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const chamber = input.ChambersBroken[0];\n  return {\n    ChambersInMaintenance: [{ condition: chamber.condition, particle_count: chamber.particle_count, hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: Distribution.Lognormal(Math.log(parameters.breakdown_repair_time), parameters.breakdown_sigma), diffusion_clock: chamber.diffusion_clock, lots_processed: chamber.lots_processed, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: chamber.process_drift, batch_count: chamber.batch_count }],\n  };\n});",
+      "x": 2080,
+      "y": 1256
+    },
+    {
+      "id": "transition__drift_diffusion",
+      "name": "Process noise injection (diffusion step)",
+      "inputArcs": [
+        {
+          "placeId": "place__chambers_processing",
+          "weight": 1,
+          "type": "standard"
+        }
+      ],
+      "outputArcs": [
+        {
+          "placeId": "place__chambers_processing",
+          "weight": 1
+        }
+      ],
+      "lambdaType": "predicate",
+      "lambdaCode": "export default Lambda((input) => {\n  return input.ChambersProcessing[0].diffusion_clock <= 0;\n});",
+      "transitionKernelCode": "export default TransitionKernel((input, parameters) => {\n  const chamber = input.ChambersProcessing[0];\n  const step = parameters.diffusion_step;\n  return {\n    ChambersProcessing: [{ condition: chamber.condition, particle_count: Distribution.Gaussian(Math.max(chamber.particle_count, 0), parameters.particle_volatility * Math.sqrt(step)), hours_since_maintenance: chamber.hours_since_maintenance, maintenance_remaining: chamber.maintenance_remaining, diffusion_clock: parameters.diffusion_step, lots_processed: chamber.lots_processed, machine_group: chamber.machine_group, tool_id: chamber.tool_id, chamber_idx: chamber.chamber_idx, qualification: chamber.qualification, process_drift: Distribution.Gaussian(chamber.process_drift, parameters.drift_volatility * Math.sqrt(step)), batch_count: chamber.batch_count }],\n  };\n});",
+      "x": 1530,
+      "y": 810
+    }
+  ],
+  "types": [
+    {
+      "id": "type__lot",
+      "name": "Lot",
+      "iconSlug": "circle",
+      "displayColor": "#8b5cf6",
+      "elements": [
+        {
+          "elementId": "type__lot__product_type",
+          "name": "product_type",
+          "type": "integer"
+        },
+        {
+          "elementId": "type__lot__layer",
+          "name": "layer",
+          "type": "integer"
+        },
+        {
+          "elementId": "type__lot__priority",
+          "name": "priority",
+          "type": "real"
+        },
+        {
+          "elementId": "type__lot__age",
+          "name": "age",
+          "type": "real"
+        },
+        {
+          "elementId": "type__lot__defect_count",
+          "name": "defect_count",
+          "type": "real"
+        },
+        {
+          "elementId": "type__lot__process_remaining",
+          "name": "process_remaining",
+          "type": "real"
+        },
+        {
+          "elementId": "type__lot__wait_time",
+          "name": "wait_time",
+          "type": "real"
+        },
+        {
+          "elementId": "type__lot__due_date",
+          "name": "due_date",
+          "type": "real"
+        },
+        {
+          "elementId": "type__lot__process_bias",
+          "name": "process_bias",
+          "type": "real"
+        },
+        {
+          "elementId": "type__lot__batch_wait",
+          "name": "batch_wait",
+          "type": "real"
+        }
+      ]
+    },
+    {
+      "id": "type__chamber",
+      "name": "Chamber",
+      "iconSlug": "circle",
+      "displayColor": "#06b6d4",
+      "elements": [
+        {
+          "elementId": "type__chamber__condition",
+          "name": "condition",
+          "type": "real"
+        },
+        {
+          "elementId": "type__chamber__particle_count",
+          "name": "particle_count",
+          "type": "real"
+        },
+        {
+          "elementId": "type__chamber__hours_since_maintenance",
+          "name": "hours_since_maintenance",
+          "type": "real"
+        },
+        {
+          "elementId": "type__chamber__maintenance_remaining",
+          "name": "maintenance_remaining",
+          "type": "real"
+        },
+        {
+          "elementId": "type__chamber__diffusion_clock",
+          "name": "diffusion_clock",
+          "type": "real"
+        },
+        {
+          "elementId": "type__chamber__lots_processed",
+          "name": "lots_processed",
+          "type": "integer"
+        },
+        {
+          "elementId": "type__chamber__machine_group",
+          "name": "machine_group",
+          "type": "integer"
+        },
+        {
+          "elementId": "type__chamber__tool_id",
+          "name": "tool_id",
+          "type": "integer"
+        },
+        {
+          "elementId": "type__chamber__chamber_idx",
+          "name": "chamber_idx",
+          "type": "integer"
+        },
+        {
+          "elementId": "type__chamber__qualification",
+          "name": "qualification",
+          "type": "integer"
+        },
+        {
+          "elementId": "type__chamber__process_drift",
+          "name": "process_drift",
+          "type": "real"
+        },
+        {
+          "elementId": "type__chamber__batch_count",
+          "name": "batch_count",
+          "type": "integer"
+        }
+      ]
+    }
+  ],
+  "differentialEquations": [
+    {
+      "id": "de__aging",
+      "name": "Lot urgency escalation (+ age, wait clocks)",
+      "colorId": "type__lot",
+      "code": "export default Dynamics((tokens, parameters) => {\n  return tokens.map((lot) => ({\n    priority: lot.priority < parameters.max_priority\n      ? (lot.priority * lot.priority) / parameters.target_cycle_time\n      : 0,\n    age: 1, defect_count: 0, process_remaining: 0, wait_time: 1, due_date: 0, process_bias: 0, batch_wait: 0\n  }));\n});"
+    },
+    {
+      "id": "de__processing",
+      "name": "Clock: process countdown (+ age)",
+      "colorId": "type__lot",
+      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({\n    priority: 0, age: 1, defect_count: 0, process_remaining: -1, wait_time: 0, due_date: 0, process_bias: 0, batch_wait: 0\n  }));\n});"
+    },
+    {
+      "id": "de__chamber_processing",
+      "name": "Chamber wear and contamination (coupled)",
+      "colorId": "type__chamber",
+      "code": "export default Dynamics((tokens, parameters) => {\n  return tokens.map((chamber) => {\n    const particleTarget = parameters.particle_baseline\n      + parameters.particle_drift * chamber.hours_since_maintenance\n      + parameters.particle_condition_factor * chamber.condition;\n    return {\n      condition: parameters.degradation_rate\n        * (1 + chamber.particle_count / parameters.particle_threshold),\n      particle_count: parameters.particle_reversion\n        * (particleTarget - chamber.particle_count),\n      hours_since_maintenance: 1,\n      maintenance_remaining: 0,\n      diffusion_clock: -1,\n      process_drift: -parameters.drift_reversion * chamber.process_drift\n    };\n  });\n});"
+    },
+    {
+      "id": "de__chamber_maintenance",
+      "name": "Clock: maintenance countdown",
+      "colorId": "type__chamber",
+      "code": "export default Dynamics((tokens) => {\n  return tokens.map(() => ({\n    condition: 0, particle_count: 0, hours_since_maintenance: 0, maintenance_remaining: -1, diffusion_clock: 0, process_drift: 0\n  }));\n});"
+    },
+    {
+      "id": "de__batch_wait",
+      "name": "Lot urgency escalation in batch queue (+ age, wait, batch clocks)",
+      "colorId": "type__lot",
+      "code": "export default Dynamics((tokens, parameters) => {\n  return tokens.map((lot) => ({\n    priority: lot.priority < parameters.max_priority\n      ? (lot.priority * lot.priority) / parameters.target_cycle_time\n      : 0,\n    age: 1, defect_count: 0, process_remaining: 0, wait_time: 1, due_date: 0, process_bias: 0, batch_wait: 1\n  }));\n});"
+    }
+  ],
+  "parameters": [
+    {
+      "id": "param__litho_time",
+      "name": "Litho process time (hours)",
+      "variableName": "litho_time",
+      "type": "real",
+      "defaultValue": "2.0"
+    },
+    {
+      "id": "param__etch_time",
+      "name": "Etch process time (hours)",
+      "variableName": "etch_time",
+      "type": "real",
+      "defaultValue": "1.5"
+    },
+    {
+      "id": "param__furnace_time",
+      "name": "Furnace process time (hours)",
+      "variableName": "furnace_time",
+      "type": "real",
+      "defaultValue": "5.0"
+    },
+    {
+      "id": "param__inspect_time",
+      "name": "Inspection time (hours)",
+      "variableName": "inspect_time",
+      "type": "real",
+      "defaultValue": "0.5"
+    },
+    {
+      "id": "param__process_sigma",
+      "name": "Process time lognormal sigma",
+      "variableName": "process_sigma",
+      "type": "real",
+      "defaultValue": "0.25"
+    },
+    {
+      "id": "param__degradation_rate",
+      "name": "Chamber degradation rate (per hour)",
+      "variableName": "degradation_rate",
+      "type": "real",
+      "defaultValue": "0.004"
+    },
+    {
+      "id": "param__maintenance_threshold",
+      "name": "Condition triggering maintenance",
+      "variableName": "maintenance_threshold",
+      "type": "real",
+      "defaultValue": "0.85"
+    },
+    {
+      "id": "param__maintenance_duration",
+      "name": "Maintenance duration median (hours)",
+      "variableName": "maintenance_duration",
+      "type": "real",
+      "defaultValue": "18"
+    },
+    {
+      "id": "param__maintenance_sigma",
+      "name": "Maintenance duration sigma",
+      "variableName": "maintenance_sigma",
+      "type": "real",
+      "defaultValue": "0.35"
+    },
+    {
+      "id": "param__breakdown_base_rate",
+      "name": "Breakdown base rate (per hour)",
+      "variableName": "breakdown_base_rate",
+      "type": "real",
+      "defaultValue": "0.0003"
+    },
+    {
+      "id": "param__breakdown_condition_factor",
+      "name": "Breakdown exponential factor",
+      "variableName": "breakdown_condition_factor",
+      "type": "real",
+      "defaultValue": "4.0"
+    },
+    {
+      "id": "param__breakdown_repair_time",
+      "name": "Breakdown repair median (hours)",
+      "variableName": "breakdown_repair_time",
+      "type": "real",
+      "defaultValue": "36"
+    },
+    {
+      "id": "param__breakdown_sigma",
+      "name": "Breakdown repair sigma",
+      "variableName": "breakdown_sigma",
+      "type": "real",
+      "defaultValue": "0.4"
+    },
+    {
+      "id": "param__base_defect_rate",
+      "name": "Base defect rate per step",
+      "variableName": "base_defect_rate",
+      "type": "real",
+      "defaultValue": "0.01"
+    },
+    {
+      "id": "param__condition_sensitivity",
+      "name": "Defect sensitivity to condition",
+      "variableName": "condition_sensitivity",
+      "type": "real",
+      "defaultValue": "8.0"
+    },
+    {
+      "id": "param__particle_sensitivity",
+      "name": "Defect sensitivity to particles",
+      "variableName": "particle_sensitivity",
+      "type": "real",
+      "defaultValue": "5.0"
+    },
+    {
+      "id": "param__drift_defect_factor",
+      "name": "Defect sensitivity to process drift",
+      "variableName": "drift_defect_factor",
+      "type": "real",
+      "defaultValue": "3.0"
+    },
+    {
+      "id": "param__scrap_threshold",
+      "name": "Cumulative defects causing scrap",
+      "variableName": "scrap_threshold",
+      "type": "real",
+      "defaultValue": "1.5"
+    },
+    {
+      "id": "param__particle_baseline",
+      "name": "Particle count baseline",
+      "variableName": "particle_baseline",
+      "type": "real",
+      "defaultValue": "0.1"
+    },
+    {
+      "id": "param__particle_drift",
+      "name": "Particle drift per hour since maintenance",
+      "variableName": "particle_drift",
+      "type": "real",
+      "defaultValue": "0.003"
+    },
+    {
+      "id": "param__particle_reversion",
+      "name": "Particle OU reversion rate",
+      "variableName": "particle_reversion",
+      "type": "real",
+      "defaultValue": "0.4"
+    },
+    {
+      "id": "param__particle_volatility",
+      "name": "Particle OU volatility",
+      "variableName": "particle_volatility",
+      "type": "real",
+      "defaultValue": "0.08"
+    },
+    {
+      "id": "param__drift_reversion",
+      "name": "Process drift OU reversion rate",
+      "variableName": "drift_reversion",
+      "type": "real",
+      "defaultValue": "0.1"
+    },
+    {
+      "id": "param__drift_volatility",
+      "name": "Process drift OU volatility",
+      "variableName": "drift_volatility",
+      "type": "real",
+      "defaultValue": "0.02"
+    },
+    {
+      "id": "param__calibration_residual",
+      "name": "Residual drift sigma after calibration",
+      "variableName": "calibration_residual",
+      "type": "real",
+      "defaultValue": "0.005"
+    },
+    {
+      "id": "param__diffusion_step",
+      "name": "Diffusion step interval (hours)",
+      "variableName": "diffusion_step",
+      "type": "real",
+      "defaultValue": "0.5"
+    },
+    {
+      "id": "param__demand_rate",
+      "name": "Demand arrival rate (lots/hour)",
+      "variableName": "demand_rate",
+      "type": "real",
+      "defaultValue": "0.12"
+    },
+    {
+      "id": "param__wip_cap",
+      "name": "WIP lot cap",
+      "variableName": "wip_cap",
+      "type": "integer",
+      "defaultValue": "50"
+    },
+    {
+      "id": "param__target_cycle_time",
+      "name": "Target cycle time (hours)",
+      "variableName": "target_cycle_time",
+      "type": "real",
+      "defaultValue": "180"
+    },
+    {
+      "id": "param__priority_update_interval",
+      "name": "Priority recalculation interval (hours)",
+      "variableName": "priority_update_interval",
+      "type": "real",
+      "defaultValue": "2.0"
+    },
+    {
+      "id": "param__deadline_grace_period",
+      "name": "Hours past due before renegotiation",
+      "variableName": "deadline_grace_period",
+      "type": "real",
+      "defaultValue": "30"
+    },
+    {
+      "id": "param__batch_size",
+      "name": "Furnace batch size",
+      "variableName": "batch_size",
+      "type": "integer",
+      "defaultValue": "4"
+    },
+    {
+      "id": "param__batch_timeout",
+      "name": "Batch timeout (hours)",
+      "variableName": "batch_timeout",
+      "type": "real",
+      "defaultValue": "3.0"
+    },
+    {
+      "id": "param__particle_threshold",
+      "name": "Particle count that doubles the wear rate",
+      "variableName": "particle_threshold",
+      "type": "real",
+      "defaultValue": "0.5"
+    },
+    {
+      "id": "param__particle_condition_factor",
+      "name": "Extra particle equilibrium per unit of chamber wear",
+      "variableName": "particle_condition_factor",
+      "type": "real",
+      "defaultValue": "0.15"
+    },
+    {
+      "id": "param__max_priority",
+      "name": "Priority ceiling for continuous escalation",
+      "variableName": "max_priority",
+      "type": "real",
+      "defaultValue": "10"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "scenario__normal",
+      "name": "Normal operation",
+      "description": "16 chambers (4 litho, 6 etch, 4 furnace, 2 inspection) across 7 physical tools. Each chamber drifts independently.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "wip_cap",
+          "default": 50
+        },
+        {
+          "type": "real",
+          "identifier": "demand_rate",
+          "default": 0.12
+        },
+        {
+          "type": "real",
+          "identifier": "maintenance_threshold",
+          "default": 0.85
+        }
+      ],
+      "parameterOverrides": {
+        "param__wip_cap": "scenario.wip_cap",
+        "param__demand_rate": "scenario.demand_rate",
+        "param__maintenance_threshold": "scenario.maintenance_threshold"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  FabEntrance: [],\n  WIPQueue: [\n    { product_type: 0, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 1, layer: 7, priority: 1.11, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 2, layer: 14, priority: 1.0, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 0, layer: 21, priority: 1.22, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 1, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 2, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 0, layer: 14, priority: 1.09, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 1, layer: 21, priority: 1.41, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 2, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 0, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 1, layer: 14, priority: 1.24, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 2, layer: 21, priority: 1.0, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 0, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 1, layer: 7, priority: 1.11, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 2, layer: 14, priority: 1.0, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 0, layer: 21, priority: 1.22, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 1, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 2, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 0, layer: 14, priority: 1.09, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 1, layer: 21, priority: 1.41, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 2, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 0, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 1, layer: 14, priority: 1.24, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 2, layer: 21, priority: 1.0, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 0, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 1, layer: 7, priority: 1.11, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 2, layer: 14, priority: 1.0, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 0, layer: 21, priority: 1.22, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 1, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 2, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 0, layer: 14, priority: 1.09, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 1, layer: 21, priority: 1.41, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 2, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 0, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 1, layer: 14, priority: 1.24, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.042, batch_wait: 0 }\n  ],\n  BatchQueue: [],\n  InProcess: [],\n  PostProcess: [],\n  InInspection: [],\n  Finished: [],\n  Scrapped: [],\n  WIPPermits: 15,\n  ChambersAvailable: [\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.01, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 0, chamber_idx: 1, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.16, particle_count: 0.22, hours_since_maintenance: 40.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 1, chamber_idx: 0, qualification: 1, process_drift: 0.0, batch_count: 0 },\n    { condition: 0.24, particle_count: 0.28, hours_since_maintenance: 60.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 1, chamber_idx: 1, qualification: 2, process_drift: 0.005, batch_count: 0 },\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.015, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 0, chamber_idx: 1, qualification: 0, process_drift: -0.01, batch_count: 0 },\n    { condition: 0.16, particle_count: 0.22, hours_since_maintenance: 40.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 1, chamber_idx: 0, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.24, particle_count: 0.28, hours_since_maintenance: 60.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 1, chamber_idx: 1, qualification: 0, process_drift: 0.0, batch_count: 0 },\n    { condition: 0.32, particle_count: 0.34, hours_since_maintenance: 80.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 2, chamber_idx: 0, qualification: 1, process_drift: 0.005, batch_count: 0 },\n    { condition: 0.4, particle_count: 0.4, hours_since_maintenance: 100.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 2, chamber_idx: 1, qualification: 2, process_drift: 0.01, batch_count: 0 },\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.01, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 0, chamber_idx: 1, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.16, particle_count: 0.22, hours_since_maintenance: 40.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 1, chamber_idx: 0, qualification: 1, process_drift: 0.0, batch_count: 0 },\n    { condition: 0.24, particle_count: 0.28, hours_since_maintenance: 60.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 1, chamber_idx: 1, qualification: 2, process_drift: 0.005, batch_count: 0 },\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 3, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 3, tool_id: 1, chamber_idx: 0, qualification: 0, process_drift: 0.0, batch_count: 0 }\n  ],\n  ChambersProcessing: [],\n  ChambersInMaintenance: [],\n  ChambersBroken: [],\n  MaintenanceCrew: 3,\n  MaintenanceEvents: 0,\n  BreakdownEvents: 0,\n  LotsReleased: 0,\n  LotsCompleted: 0,\n  Calibrations: 0,\n};"
+      }
+    },
+    {
+      "id": "scenario__high_drift",
+      "name": "High process drift",
+      "description": "Drift volatility doubled (0.04 vs 0.02). Chambers diverge faster from nominal, increasing defect rate and yield loss.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "wip_cap",
+          "default": 50
+        },
+        {
+          "type": "real",
+          "identifier": "demand_rate",
+          "default": 0.12
+        },
+        {
+          "type": "real",
+          "identifier": "maintenance_threshold",
+          "default": 0.85
+        }
+      ],
+      "parameterOverrides": {
+        "param__wip_cap": "scenario.wip_cap",
+        "param__demand_rate": "scenario.demand_rate",
+        "param__maintenance_threshold": "scenario.maintenance_threshold",
+        "param__drift_volatility": "0.04"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  FabEntrance: [],\n  WIPQueue: [\n    { product_type: 0, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 1, layer: 7, priority: 1.11, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 2, layer: 14, priority: 1.0, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 0, layer: 21, priority: 1.22, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 1, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 2, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 0, layer: 14, priority: 1.09, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 1, layer: 21, priority: 1.41, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 2, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 0, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 1, layer: 14, priority: 1.24, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 2, layer: 21, priority: 1.0, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 0, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 1, layer: 7, priority: 1.11, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 2, layer: 14, priority: 1.0, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 0, layer: 21, priority: 1.22, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 1, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 2, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 0, layer: 14, priority: 1.09, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 1, layer: 21, priority: 1.41, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 2, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 0, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 1, layer: 14, priority: 1.24, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 2, layer: 21, priority: 1.0, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 0, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 1, layer: 7, priority: 1.11, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 2, layer: 14, priority: 1.0, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 0, layer: 21, priority: 1.22, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 1, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 2, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 0, layer: 14, priority: 1.09, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 1, layer: 21, priority: 1.41, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 2, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 0, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 1, layer: 14, priority: 1.24, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.042, batch_wait: 0 }\n  ],\n  BatchQueue: [],\n  InProcess: [],\n  PostProcess: [],\n  InInspection: [],\n  Finished: [],\n  Scrapped: [],\n  WIPPermits: 15,\n  ChambersAvailable: [\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.01, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 0, chamber_idx: 1, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.16, particle_count: 0.22, hours_since_maintenance: 40.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 1, chamber_idx: 0, qualification: 1, process_drift: 0.0, batch_count: 0 },\n    { condition: 0.24, particle_count: 0.28, hours_since_maintenance: 60.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 1, chamber_idx: 1, qualification: 2, process_drift: 0.005, batch_count: 0 },\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.015, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 0, chamber_idx: 1, qualification: 0, process_drift: -0.01, batch_count: 0 },\n    { condition: 0.16, particle_count: 0.22, hours_since_maintenance: 40.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 1, chamber_idx: 0, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.24, particle_count: 0.28, hours_since_maintenance: 60.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 1, chamber_idx: 1, qualification: 0, process_drift: 0.0, batch_count: 0 },\n    { condition: 0.32, particle_count: 0.34, hours_since_maintenance: 80.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 2, chamber_idx: 0, qualification: 1, process_drift: 0.005, batch_count: 0 },\n    { condition: 0.4, particle_count: 0.4, hours_since_maintenance: 100.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 2, chamber_idx: 1, qualification: 2, process_drift: 0.01, batch_count: 0 },\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.01, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 0, chamber_idx: 1, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.16, particle_count: 0.22, hours_since_maintenance: 40.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 1, chamber_idx: 0, qualification: 1, process_drift: 0.0, batch_count: 0 },\n    { condition: 0.24, particle_count: 0.28, hours_since_maintenance: 60.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 1, chamber_idx: 1, qualification: 2, process_drift: 0.005, batch_count: 0 },\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 3, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 3, tool_id: 1, chamber_idx: 0, qualification: 0, process_drift: 0.0, batch_count: 0 }\n  ],\n  ChambersProcessing: [],\n  ChambersInMaintenance: [],\n  ChambersBroken: [],\n  MaintenanceCrew: 3,\n  MaintenanceEvents: 0,\n  BreakdownEvents: 0,\n  LotsReleased: 0,\n  LotsCompleted: 0,\n  Calibrations: 0,\n};"
+      }
+    },
+    {
+      "id": "scenario__frequent_calibration",
+      "name": "Frequent calibration",
+      "description": "Maintenance threshold lowered to 0.6. Chambers are serviced more often, keeping drift low but reducing available capacity.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "wip_cap",
+          "default": 50
+        },
+        {
+          "type": "real",
+          "identifier": "demand_rate",
+          "default": 0.12
+        },
+        {
+          "type": "real",
+          "identifier": "maintenance_threshold",
+          "default": 0.6
+        }
+      ],
+      "parameterOverrides": {
+        "param__wip_cap": "scenario.wip_cap",
+        "param__demand_rate": "scenario.demand_rate",
+        "param__maintenance_threshold": "scenario.maintenance_threshold"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  FabEntrance: [],\n  WIPQueue: [\n    { product_type: 0, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 1, layer: 7, priority: 1.11, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 2, layer: 14, priority: 1.0, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 0, layer: 21, priority: 1.22, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 1, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 2, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 0, layer: 14, priority: 1.09, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 1, layer: 21, priority: 1.41, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 2, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 0, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 1, layer: 14, priority: 1.24, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 2, layer: 21, priority: 1.0, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 0, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 1, layer: 7, priority: 1.11, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 2, layer: 14, priority: 1.0, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 0, layer: 21, priority: 1.22, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 1, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 2, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 0, layer: 14, priority: 1.09, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 1, layer: 21, priority: 1.41, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 2, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 0, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 1, layer: 14, priority: 1.24, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 2, layer: 21, priority: 1.0, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 0, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 1, layer: 7, priority: 1.11, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 2, layer: 14, priority: 1.0, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 0, layer: 21, priority: 1.22, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 1, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 2, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 0, layer: 14, priority: 1.09, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 1, layer: 21, priority: 1.41, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 2, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 0, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 1, layer: 14, priority: 1.24, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.042, batch_wait: 0 }\n  ],\n  BatchQueue: [],\n  InProcess: [],\n  PostProcess: [],\n  InInspection: [],\n  Finished: [],\n  Scrapped: [],\n  WIPPermits: 15,\n  ChambersAvailable: [\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.01, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 0, chamber_idx: 1, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.16, particle_count: 0.22, hours_since_maintenance: 40.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 1, chamber_idx: 0, qualification: 1, process_drift: 0.0, batch_count: 0 },\n    { condition: 0.24, particle_count: 0.28, hours_since_maintenance: 60.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 1, chamber_idx: 1, qualification: 2, process_drift: 0.005, batch_count: 0 },\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.015, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 0, chamber_idx: 1, qualification: 0, process_drift: -0.01, batch_count: 0 },\n    { condition: 0.16, particle_count: 0.22, hours_since_maintenance: 40.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 1, chamber_idx: 0, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.24, particle_count: 0.28, hours_since_maintenance: 60.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 1, chamber_idx: 1, qualification: 0, process_drift: 0.0, batch_count: 0 },\n    { condition: 0.32, particle_count: 0.34, hours_since_maintenance: 80.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 2, chamber_idx: 0, qualification: 1, process_drift: 0.005, batch_count: 0 },\n    { condition: 0.4, particle_count: 0.4, hours_since_maintenance: 100.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 2, chamber_idx: 1, qualification: 2, process_drift: 0.01, batch_count: 0 },\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.01, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 0, chamber_idx: 1, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.16, particle_count: 0.22, hours_since_maintenance: 40.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 1, chamber_idx: 0, qualification: 1, process_drift: 0.0, batch_count: 0 },\n    { condition: 0.24, particle_count: 0.28, hours_since_maintenance: 60.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 1, chamber_idx: 1, qualification: 2, process_drift: 0.005, batch_count: 0 },\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 3, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 3, tool_id: 1, chamber_idx: 0, qualification: 0, process_drift: 0.0, batch_count: 0 }\n  ],\n  ChambersProcessing: [],\n  ChambersInMaintenance: [],\n  ChambersBroken: [],\n  MaintenanceCrew: 3,\n  MaintenanceEvents: 0,\n  BreakdownEvents: 0,\n  LotsReleased: 0,\n  LotsCompleted: 0,\n  Calibrations: 0,\n};"
+      }
+    },
+    {
+      "id": "scenario__half_crew",
+      "name": "Reduced maintenance crew",
+      "description": "Only 2 technicians instead of 3. When one chamber of a multi-chamber tool is down, the other keeps running but drift accumulates.",
+      "scenarioParameters": [
+        {
+          "type": "integer",
+          "identifier": "wip_cap",
+          "default": 50
+        },
+        {
+          "type": "real",
+          "identifier": "demand_rate",
+          "default": 0.12
+        },
+        {
+          "type": "real",
+          "identifier": "maintenance_threshold",
+          "default": 0.85
+        }
+      ],
+      "parameterOverrides": {
+        "param__wip_cap": "scenario.wip_cap",
+        "param__demand_rate": "scenario.demand_rate",
+        "param__maintenance_threshold": "scenario.maintenance_threshold"
+      },
+      "initialState": {
+        "type": "code",
+        "content": "return {\n  FabEntrance: [],\n  WIPQueue: [\n    { product_type: 0, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 1, layer: 7, priority: 1.11, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 2, layer: 14, priority: 1.0, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 0, layer: 21, priority: 1.22, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 1, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 2, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 0, layer: 14, priority: 1.09, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 1, layer: 21, priority: 1.41, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 2, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 0, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 1, layer: 14, priority: 1.24, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 2, layer: 21, priority: 1.0, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 0, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 1, layer: 7, priority: 1.11, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 2, layer: 14, priority: 1.0, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 0, layer: 21, priority: 1.22, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 1, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 2, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 0, layer: 14, priority: 1.09, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 1, layer: 21, priority: 1.41, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 2, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 0, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 1, layer: 14, priority: 1.24, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 2, layer: 21, priority: 1.0, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 0, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 1, layer: 7, priority: 1.11, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 2, layer: 14, priority: 1.0, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 0, layer: 21, priority: 1.22, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 1, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 2, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 0, layer: 14, priority: 1.09, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.042, batch_wait: 0 },\n    { product_type: 1, layer: 21, priority: 1.41, age: 52.5, defect_count: 0.378, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.063, batch_wait: 0 },\n    { product_type: 2, layer: 0, priority: 1.0, age: 0.0, defect_count: 0.0, process_remaining: 0, wait_time: 0, due_date: 250, process_bias: 0.0, batch_wait: 0 },\n    { product_type: 0, layer: 7, priority: 1.0, age: 17.5, defect_count: 0.126, process_remaining: 0, wait_time: 0, due_date: 200, process_bias: 0.021, batch_wait: 0 },\n    { product_type: 1, layer: 14, priority: 1.24, age: 35.0, defect_count: 0.252, process_remaining: 0, wait_time: 0, due_date: 180, process_bias: 0.042, batch_wait: 0 }\n  ],\n  BatchQueue: [],\n  InProcess: [],\n  PostProcess: [],\n  InInspection: [],\n  Finished: [],\n  Scrapped: [],\n  WIPPermits: 15,\n  ChambersAvailable: [\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.01, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 0, chamber_idx: 1, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.16, particle_count: 0.22, hours_since_maintenance: 40.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 1, chamber_idx: 0, qualification: 1, process_drift: 0.0, batch_count: 0 },\n    { condition: 0.24, particle_count: 0.28, hours_since_maintenance: 60.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 0, tool_id: 1, chamber_idx: 1, qualification: 2, process_drift: 0.005, batch_count: 0 },\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.015, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 0, chamber_idx: 1, qualification: 0, process_drift: -0.01, batch_count: 0 },\n    { condition: 0.16, particle_count: 0.22, hours_since_maintenance: 40.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 1, chamber_idx: 0, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.24, particle_count: 0.28, hours_since_maintenance: 60.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 1, chamber_idx: 1, qualification: 0, process_drift: 0.0, batch_count: 0 },\n    { condition: 0.32, particle_count: 0.34, hours_since_maintenance: 80.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 2, chamber_idx: 0, qualification: 1, process_drift: 0.005, batch_count: 0 },\n    { condition: 0.4, particle_count: 0.4, hours_since_maintenance: 100.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 1, tool_id: 2, chamber_idx: 1, qualification: 2, process_drift: 0.01, batch_count: 0 },\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.01, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 0, chamber_idx: 1, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.16, particle_count: 0.22, hours_since_maintenance: 40.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 1, chamber_idx: 0, qualification: 1, process_drift: 0.0, batch_count: 0 },\n    { condition: 0.24, particle_count: 0.28, hours_since_maintenance: 60.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 2, tool_id: 1, chamber_idx: 1, qualification: 2, process_drift: 0.005, batch_count: 0 },\n    { condition: 0.0, particle_count: 0.1, hours_since_maintenance: 0.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 3, tool_id: 0, chamber_idx: 0, qualification: 0, process_drift: -0.005, batch_count: 0 },\n    { condition: 0.08, particle_count: 0.16, hours_since_maintenance: 20.0, maintenance_remaining: 0, diffusion_clock: 0, lots_processed: 0, machine_group: 3, tool_id: 1, chamber_idx: 0, qualification: 0, process_drift: 0.0, batch_count: 0 }\n  ],\n  ChambersProcessing: [],\n  ChambersInMaintenance: [],\n  ChambersBroken: [],\n  MaintenanceCrew: 2,\n  MaintenanceEvents: 0,\n  BreakdownEvents: 0,\n  LotsReleased: 0,\n  LotsCompleted: 0,\n  Calibrations: 0,\n};"
+      }
+    }
+  ],
+  "metrics": [
+    {
+      "id": "metric__throughput",
+      "name": "Throughput",
+      "description": "Lots completing all layers.",
+      "code": "return state.places.Finished.count;"
+    },
+    {
+      "id": "metric__yield",
+      "name": "Yield",
+      "description": "Fraction of exiting lots that pass.",
+      "code": "const finished = state.places.Finished.count;\nconst scrapped = state.places.Scrapped.count;\nconst total = finished + scrapped;\nreturn total === 0 ? 1 : finished / total;"
+    },
+    {
+      "id": "metric__avg_cycle_time",
+      "name": "Average cycle time (hours)",
+      "description": "Mean age of finished lots.",
+      "code": "const lots = state.places.Finished.tokens;\nif (lots.length === 0) return 0;\nreturn lots.reduce((sum, lot) => sum + lot.age, 0) / lots.length;"
+    },
+    {
+      "id": "metric__on_time_delivery",
+      "name": "On-time delivery rate",
+      "description": "Fraction of finished lots within original due date.",
+      "code": "const lots = state.places.Finished.tokens;\nif (lots.length === 0) return 1;\nconst onTime = lots.reduce((n, lot) => lot.age <= lot.due_date ? n + 1 : n, 0);\nreturn onTime / lots.length;"
+    },
+    {
+      "id": "metric__avg_process_bias",
+      "name": "Average process bias",
+      "description": "Mean absolute accumulated drift across finished lots.",
+      "code": "const lots = state.places.Finished.tokens;\nif (lots.length === 0) return 0;\nreturn lots.reduce((sum, lot) => sum + Math.abs(lot.process_bias), 0) / lots.length;"
+    },
+    {
+      "id": "metric__max_drift",
+      "name": "Maximum chamber drift",
+      "description": "Worst-case absolute process drift across all active chambers.",
+      "code": "const all = state.places.ChambersAvailable.tokens.concat(state.places.ChambersProcessing.tokens);\nif (all.length === 0) return 0;\nreturn all.reduce((mx, c) => Math.max(mx, Math.abs(c.process_drift)), 0);"
+    },
+    {
+      "id": "metric__chamber_utilisation",
+      "name": "Chamber utilisation",
+      "description": "Fraction of chambers currently processing.",
+      "code": "const processing = state.places.ChambersProcessing.count;\nconst available = state.places.ChambersAvailable.count;\nconst inMaint = state.places.ChambersInMaintenance.count;\nconst broken = state.places.ChambersBroken.count;\nconst total = processing + available + inMaint + broken;\nreturn total === 0 ? 0 : processing / total;"
+    },
+    {
+      "id": "metric__maintenance_events",
+      "name": "Maintenance events",
+      "description": "Cumulative maintenance starts.",
+      "code": "return state.places.MaintenanceEvents.count;"
+    },
+    {
+      "id": "metric__breakdowns",
+      "name": "Unplanned breakdowns",
+      "description": "Cumulative breakdowns.",
+      "code": "return state.places.BreakdownEvents.count;"
+    },
+    {
+      "id": "metric__calibrations",
+      "name": "Calibrations",
+      "description": "Drift recalibrations (completed maintenance).",
+      "code": "return state.places.Calibrations.count;"
+    },
+    {
+      "id": "metric__wip_level",
+      "name": "WIP level",
+      "description": "Lots currently in the fab.",
+      "code": "return state.places.WIPQueue.count + state.places.InProcess.count + state.places.InInspection.count + state.places.PostProcess.count + state.places.BatchQueue.count;"
+    },
+    {
+      "id": "metric__batch_queue_size",
+      "name": "Batch queue size",
+      "description": "Lots waiting for furnace batch.",
+      "code": "return state.places.BatchQueue.count;"
+    }
+  ],
+  "subnets": [],
+  "componentInstances": [],
+  "version": 1,
+  "meta": {
+    "generator": "Petrinaut"
+  },
+  "title": "Semiconductor fab \u2014 process drift & multi-chamber tools (v2)"
+}

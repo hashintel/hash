@@ -330,7 +330,8 @@ describe("Petrinaut core actions", () => {
     const transitionKernelCode =
       instance.definition.get().transitions[0]!.transitionKernelCode;
 
-    expect(transitionKernelCode).toContain("export default TransitionKernel");
+    expect(transitionKernelCode).not.toContain("export default");
+    expect(transitionKernelCode).toContain("return {");
     expect(transitionKernelCode).toContain("Output: [");
     expect(transitionKernelCode.match(/Mass: 0/g)).toHaveLength(2);
   });
@@ -410,7 +411,8 @@ describe("Petrinaut core actions", () => {
     const transitionKernelCode =
       instance.definition.get().transitions[0]!.transitionKernelCode;
 
-    expect(transitionKernelCode).toContain("export default TransitionKernel");
+    expect(transitionKernelCode).not.toContain("export default");
+    expect(transitionKernelCode).toContain("return {");
     expect(transitionKernelCode).toContain("PortOutput: [");
     expect(transitionKernelCode).toContain("Mass: 0");
   });

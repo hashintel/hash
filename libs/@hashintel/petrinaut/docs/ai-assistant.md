@@ -29,6 +29,13 @@ The assistant has tools for inspecting and modifying the current net. You'll see
 - **Mutation tools** (green for additions/updates, red for deletions) -- "Added place X", "Updated transition Y", "Removed metric Z", and so on. Multiple successive mutations group under a collapsible "N changes" header.
 - **`setNetTitle`** -- renames the net.
 - **`applyAutoLayout`** -- rearranges places and transitions on the canvas. If the assistant calls this on a net you've already arranged, it asks you first via an inline widget with **Yes, auto-layout** / **No, keep current layout** buttons. Otherwise it'll run it without asking.
+- **Host-specific questions and actions** -- an application embedding Petrinaut
+  may add interactive widgets. For example, an elicitation assistant can ask a
+  structured question inline and continue after you submit the answer. The
+  control stays visible as a read-only record of your submitted value. During
+  elicitation, inline sweep cards may also list the facts captured so far,
+  whether earlier facts were superseded or retracted, and any requirements that
+  still prevent completion.
 
 Clicking a mutation card usually selects the entity it touched (place, transition, scenario, metric, etc.) so you can inspect what changed.
 

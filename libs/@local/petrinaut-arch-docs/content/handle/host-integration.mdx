@@ -1,0 +1,435 @@
+---
+title: Embedding in a host application
+description: Implementing a PetrinautDocHandle over your own document store, and what the editor requires of it.
+attachTo: core.handle
+sidebar_order: 10
+---
+
+import { Sequence } from "@diagrams/sequence";
+import { Pipeline } from "@diagrams/pipeline";
+
+The editor reads and writes documents through one interface,
+`PetrinautDocHandle` in `petrinaut-core/src/handle/types.ts`. The host owns
+storage and synchronisation; the editor owns editing. Everything on this page
+is about implementing that interface over a store the host controls, which is
+what an external application (TOPOS integrating Petrinaut into CatCollab, the
+HASH frontend embedding it over entity storage) has to do.
+
+```ts
+interface PetrinautDocHandle {
+  readonly id: DocumentId;
+  readonly capabilities?: PetrinautHandleCapabilities;
+  readonly state: ReadableStore<DocHandleState>;
+  whenReady(): Promise<void>;
+  doc(): SDCPN | undefined;
+  change(fn: (draft: SDCPN) => void): void;
+  subscribe(listener: (event: DocChangeEvent) => void): () => void;
+  readonly history?: PetrinautHistory;
+}
+
+type DocChangeEvent = {
+  next: SDCPN;
+  patches?: PetrinautPatch[];
+  source?: "local" | "remote";
+};
+```
+
+<Sequence
+  title="One document, two directions of change"
+  actors={["Host adapter (handle)", "Editor"]}
+  rows={[
+    { phase: "Mount" },
+    {
+      direction: "left",
+      label: "`doc()`",
+      note: "Pulled synchronously. `undefined` renders as an empty net, no loading screen.",
+    },
+    { phase: "Editor-originated edit" },
+    {
+      direction: "left",
+      label: "`change(fn)`",
+      note: "`fn` mutates a draft; the adapter applies it and maps it back into the host store",
+    },
+    {
+      direction: "right",
+      label: '`DocChangeEvent { source: "local" }`',
+      note: "The editor re-renders from `next`",
+    },
+    { phase: "Host-originated update (another tab, a server, a collaborator)" },
+    {
+      direction: "right",
+      label: '`DocChangeEvent { source: "remote" }`',
+      note: "The editor re-renders; the adapter's own persistence listener skips these",
+    },
+  ]}
+/>
+
+## What the editor does with each member
+
+Per member, on the current code:
+
+| Member         | Consumption                                                                                                                                                                |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `doc()`        | Read by the definition store in `petrinaut-core/src/instance.ts`, sanitized per extensions, cached by object identity. `undefined` falls back to an empty net.             |
+| `subscribe`    | Two internal subscribers: the definition store (re-render pipeline) and the patch stream (`instance.patches`). Events without `patches` are dropped from the patch stream. |
+| `change(fn)`   | The single write path. Every mutation and command in the editor funnels through it; commands capture return values inside `fn`.                                            |
+| `capabilities` | Resolved once at instance creation and merged with the `readonly` prop. Drives extension sanitization and the readonly check.                                              |
+| `id`           | Keys per-net worker state: the simulation and language-server providers remount when it changes. Also shown to the UI as the net id.                                       |
+| `history`      | Adapted to the undo/redo UI (buttons, Cmd/Ctrl+Z, version-history menu). When absent, that UI disappears and the shortcuts are inert.                                      |
+| `state`        | Not consumed by the editor today. `useDocumentState()` / `useIsDocumentReady()` are exported for hosts.                                                                    |
+| `whenReady()`  | Never called by the editor today.                                                                                                                                          |
+
+## Requirements a custom handle must keep
+
+The editor relies on these, and the type does not express them. A violation
+appears as a failure far from the handle implementation, so check each one
+against yours.
+[Contract gaps](doc:handle/contract-gaps) tracks moving them into the contract
+proper.
+
+- **`change(fn)` is synchronous and atomic.** `fn` must run before `change()`
+  returns, and `doc()` must reflect the result at that point. Commands such as
+  clipboard paste capture ids assigned inside `fn` and return them on the next
+  line. `fn` may also throw (paste validation does); a throw must leave the
+  document unchanged and emit nothing.
+- **`doc()` is referentially stable.** Return the same object until the
+  document changes, and a new object after each change. The definition store
+  caches sanitization on object identity, and React's `useSyncExternalStore`
+  loops if every call returns a fresh object. Materialising the SDCPN from the
+  host model on each `doc()` call is the natural implementation and it is
+  wrong; cache the current snapshot.
+- **Emit one `DocChangeEvent` per applied change**, including changes the host
+  applies from outside. Nothing notifies the editor on `state` transitions, so
+  a handle that loads asynchronously must emit an event when the document
+  first becomes available; otherwise the editor stays on the empty net until
+  something unrelated forces a re-render.
+- **`id` is unique per document and immutable for the handle's lifetime.**
+  Reusing one id across documents leaks simulation and language-server state
+  between them; deriving it from mutable state resets that state mid-session.
+- **`subscribe` returns an unsubscribe function** and tolerates it being
+  called after disposal.
+
+## Map your model to SDCPN
+
+Petrinaut edits `SDCPN` documents. Hosts usually have their own model, so the
+first piece to write is a pair of mapping functions. `SDCPNInput` is the
+authoring-friendly variant of `SDCPN`: extension fields may be omitted, and
+`normalizeSDCPN()` fills plain-net defaults. A complete `SDCPN` is a valid
+`SDCPNInput`, so round-tripping is safe.
+
+```ts
+import type { SDCPNInput } from "@hashintel/petrinaut-core";
+
+type WorkflowGraph = {
+  id: string;
+  title: string;
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+};
+
+function toSDCPN(graph: WorkflowGraph): SDCPNInput {
+  return {
+    places: graph.nodes.map((node) => ({
+      id: node.id,
+      name: node.label,
+      x: node.x,
+      y: node.y,
+    })),
+    transitions: graph.edges.map((edge) => ({
+      id: edge.id,
+      name: edge.label,
+      inputArcs: [{ placeId: edge.sourceId }],
+      outputArcs: [{ placeId: edge.targetId }],
+      x: edge.x ?? 0,
+      y: edge.y ?? 0,
+    })),
+  };
+}
+```
+
+Required fields for a plain net:
+
+| Entity     | Required fields                                   |
+| ---------- | ------------------------------------------------- |
+| Place      | `id`, `name`, `x`, `y`                            |
+| Transition | `id`, `name`, `inputArcs`, `outputArcs`, `x`, `y` |
+| Arc        | `placeId` (or an explicit `endpoint`)             |
+
+Defaults filled by `normalizeSDCPN()`: arc `weight: 1`, input arc
+`type: "standard"`, place `colorId: null`, `dynamicsEnabled: false`, and
+`differentialEquationId: null`,
+transition `lambdaType: "predicate"` with empty lambda and kernel code, and
+empty top-level `types`, `parameters`, and `differentialEquations` arrays.
+Optional fields (`scenarios`, `metrics`, `subnets`, `componentInstances`,
+place `isPort`, `visualizerCode`, `showAsInitialState`) pass through only when
+present, so a normalized document compares equal to what the editor itself
+produces (`isSDCPNEqual`).
+
+Arcs name their target place in one of two forms. `placeId` is the shorthand
+for a plain place. `endpoint` is the explicit form and is required for
+component ports: `{ kind: "place", placeId }` or
+`{ kind: "componentPort", componentInstanceId, portPlaceId }`.
+
+`normalizeSDCPN()` fills defaults and checks nothing: an arc naming a missing
+place, a duplicate id, or a non-finite weight passes through and fails later,
+inside the simulation engine. The file-import path
+(`parseSDCPNFile`) validates; the handle path does not. See
+[Contract gaps](doc:handle/contract-gaps#validation-and-versioning).
+
+The reverse mapping is host-specific:
+
+```ts
+import type { SDCPN } from "@hashintel/petrinaut-core";
+
+function fromSDCPN(sdcpn: SDCPN, base: WorkflowGraph): WorkflowGraph {
+  return {
+    ...base,
+    nodes: sdcpn.places.map((place) => ({
+      id: place.id,
+      label: place.name,
+      x: place.x,
+      y: place.y,
+    })),
+    edges: sdcpn.transitions.map((transition) => ({
+      id: transition.id,
+      label: transition.name,
+      sourceId: transition.inputArcs[0]?.placeId ?? "",
+      targetId: transition.outputArcs[0]?.placeId ?? "",
+    })),
+  };
+}
+```
+
+## When `createJsonDocHandle` is enough
+
+`createJsonDocHandle()` is the in-memory reference implementation: Immer-backed,
+emits patches, ships undo/redo history, and sanitizes for disabled extensions.
+Use it when Petrinaut can own the working copy and the host only seeds it and
+saves snapshots.
+
+```ts
+import { createJsonDocHandle } from "@hashintel/petrinaut-core";
+
+const handle = createJsonDocHandle({
+  id: graph.id,
+  initial: toSDCPN(graph), // SDCPNInput; normalized internally
+  capabilities: { disabledExtensions: ["colors", "stochasticity"] },
+  historyLimit: 50, // default 50; 0 disables history entirely
+});
+```
+
+Every event it emits carries `source: "local"`, and it has no method for
+injecting an external update. Two consequences:
+
+- To save, subscribe and persist `event.next` (the local-storage demo in
+  `apps/petrinaut-website` saves on every event; the HASH frontend embed
+  deep-compares against the last saved snapshot to drive a dirty flag and an
+  explicit save button).
+- To load different content, create a new handle and pass it to the component.
+  Swapping the `handle` prop rebuilds the editor instance; keeping one handle
+  per document alive (as the Storybook provider does) preserves each
+  document's undo history across switches.
+
+If the host store must stay the source of truth while the editor is open,
+write a custom adapter.
+
+## A custom adapter
+
+The adapter translates in both directions and tags each event with its origin.
+The editor does not read `source` today, and the tag is still required: the
+host's own persistence listener uses it to skip updates it already has, which
+is what prevents an echo loop through the host store.
+
+<Pipeline
+  title="Both write paths converge on one snapshot"
+  steps={[
+    { label: "`change(fn)`", note: "editor edit, applied via `produce`" },
+    {
+      label: "`current: SDCPN`",
+      note: "one cached snapshot; `doc()` returns it",
+    },
+    {
+      label: "`emit(event)`",
+      note: "`local` from `change`, `remote` from `applyExternal`",
+    },
+  ]}
+/>
+
+```ts
+import { produce } from "immer";
+import {
+  isSDCPNEqual,
+  normalizeSDCPN,
+  type DocChangeEvent,
+  type DocHandleState,
+  type PetrinautDocHandle,
+  type ReadableStore,
+  type SDCPN,
+} from "@hashintel/petrinaut-core";
+
+type WorkflowHandle = PetrinautDocHandle & {
+  applyExternal(graph: WorkflowGraph): void;
+};
+
+// The store factory is not exported from petrinaut-core, so a constant
+// "ready" store is hand-rolled. See "Contract gaps".
+function readyStore(): ReadableStore<DocHandleState> {
+  return { get: () => "ready", subscribe: () => () => {} };
+}
+
+function createWorkflowHandle(
+  initialGraph: WorkflowGraph,
+  onGraphChange: (graph: WorkflowGraph) => void,
+): WorkflowHandle {
+  let current: SDCPN = normalizeSDCPN(toSDCPN(initialGraph));
+  let latestGraph = initialGraph;
+  const subscribers = new Set<(event: DocChangeEvent) => void>();
+
+  const emit = (event: DocChangeEvent) => {
+    for (const subscriber of subscribers) {
+      subscriber(event);
+    }
+  };
+
+  return {
+    id: initialGraph.id,
+    state: readyStore(),
+    whenReady: () => Promise.resolve(),
+    doc: () => current,
+    change(fn) {
+      const next = produce(current, fn);
+      if (next === current) {
+        return; // structural no-op: emit nothing
+      }
+      current = next;
+      latestGraph = fromSDCPN(current, latestGraph);
+      emit({ next: current, source: "local" });
+      onGraphChange(latestGraph);
+    },
+    subscribe(listener) {
+      subscribers.add(listener);
+      return () => {
+        subscribers.delete(listener);
+      };
+    },
+    applyExternal(graph) {
+      const next = normalizeSDCPN(toSDCPN(graph));
+      if (isSDCPNEqual(next, current)) {
+        return; // the update round-tripped from our own change(): no event
+      }
+      current = next;
+      latestGraph = graph;
+      emit({ next: current, source: "remote" });
+    },
+  };
+}
+```
+
+The `isSDCPNEqual` guard in `applyExternal` closes the loop: when
+`onGraphChange` updates the host store and the new graph flows back in as a
+prop, it normalizes to a document equal to `current` and no event fires.
+
+This adapter omits `history`, so the editor shows no undo/redo controls.
+Implement `PetrinautHistory` only when the backing store can support it; the
+[Contract gaps](doc:handle/contract-gaps#history-under-collaboration) page
+covers why that is hard over a synced store.
+
+## Mount the editor
+
+```tsx
+import { Petrinaut } from "@hashintel/petrinaut";
+import { useEffect, useMemo } from "react";
+
+export function WorkflowEditor({
+  graph,
+  onGraphChange,
+}: {
+  graph: WorkflowGraph;
+  onGraphChange: (graph: WorkflowGraph) => void;
+}) {
+  // One handle per document. A new id tears down and rebuilds the editor
+  // instance, including simulation and language-server workers.
+  const handle = useMemo(
+    () => createWorkflowHandle(graph, onGraphChange),
+    [graph.id],
+  );
+
+  // Later host-store updates for the same document. The initial call after
+  // mount is a structural no-op thanks to the isSDCPNEqual guard.
+  useEffect(() => {
+    handle.applyExternal(graph);
+  }, [graph, handle]);
+
+  return (
+    <Petrinaut
+      handle={handle}
+      title={graph.title}
+      setTitle={(title) => onGraphChange({ ...graph, title })}
+      hideNetManagementControls="except-title"
+    />
+  );
+}
+```
+
+The document carries no title; `title` and `setTitle` are host state. The
+full prop list, from `petrinaut/src/ui/petrinaut.tsx`:
+
+| Prop                                                                     | Purpose                                                                                                                                  |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `handle`                                                                 | The document handle. Required; all other props are optional.                                                                             |
+| `title`, `setTitle`                                                      | Host-owned title shown in the top bar.                                                                                                   |
+| `readonly`                                                               | Disables editing. ORed with `capabilities.readonly` from the handle.                                                                     |
+| `hideNetManagementControls`                                              | `"except-title"` hides the net-management menu items (New, Open, Import, Load example); `"all"` also hides the title.                    |
+| `existingNets`, `createNewNet`, `loadPetriNet`                           | Multi-net management hooks backing the burger menu. Omit them when the host owns navigation.                                             |
+| `aiAssistant`                                                            | Transport, message store, and interactive tools for the AI assistant panel. Omitting it hides the panel.                                 |
+| `viewportActions`                                                        | Extra buttons appended to the canvas zoom/fit controls.                                                                                  |
+| `slots`                                                                  | Host components injected into the top bar (`topBarStart`, `topBarEnd`) plus `titleStyle`.                                                |
+| `simulationWorkerFactory`, `monteCarloWorkerFactory`, `lspWorkerFactory` | Worker construction for hosts consuming the published dist, typically via the bundler's `?worker` import. Omitted: inlined-blob workers. |
+
+## Capabilities
+
+`capabilities` on the handle restricts what the editor exposes and what the
+document may contain:
+
+```ts
+import type { PetrinautHandleCapabilities } from "@hashintel/petrinaut-core";
+
+const capabilities: PetrinautHandleCapabilities = {
+  readonly: false,
+  disabledExtensions: [
+    "colors",
+    "stochasticity",
+    "dynamics",
+    "parameters",
+    "subnets",
+  ],
+};
+```
+
+The five extensions are `"colors"`, `"stochasticity"`, `"dynamics"`,
+`"parameters"`, and `"subnets"`. Two derivation rules: disabling `"colors"`
+also disables `"dynamics"`, and disabling `"subnets"` removes component-port
+arcs along with `subnets` and `componentInstances`.
+
+Sanitization is destructive and runs early. `createJsonDocHandle` strips
+disabled-extension data from the initial document at construction and after
+every change: type and equation and parameter arrays are emptied, lambda and
+kernel code is blanked where no longer applicable, scenario overrides are
+cleared. A host that loads a full document into a restricted handle and then
+persists `doc()` writes the stripped version back. Restrict capabilities only
+on handles whose persisted document should also be restricted; for a read-only
+view of a richer document, prefer `readonly: true` with all extensions
+enabled.
+
+## Reference implementations in this repo
+
+| Pattern                                                               | Where                                                                               |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| In-memory handle, explicit save button, dirty flag via `isSDCPNEqual` | `apps/hash-frontend/src/pages/processes/[uuid]/embed.page/embed-content.tsx`        |
+| Persist on every change event to localStorage                         | `apps/petrinaut-website/src/main/app/local-storage-demo/local-storage-demo-app.tsx` |
+| Read-only mirror of a streamed definition                             | `apps/petrinaut-website/src/main/app/brunch-demo/brunch-petrinaut.tsx`              |
+| One live handle per net, history survives switching                   | `petrinaut/src/ui/petrinaut-story-provider.tsx`                                     |
+
+All of them wrap `createJsonDocHandle`; no adapter over an external store has
+shipped yet, which is part of why the contract still has the gaps the
+[next page](doc:handle/contract-gaps) lists.

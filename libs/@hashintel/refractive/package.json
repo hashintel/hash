@@ -28,21 +28,24 @@
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
+    "prepack": "node ../../../scripts/check-package-payload.mjs",
     "prepublishOnly": "yarn build"
   },
   "devDependencies": {
-    "@rolldown/plugin-babel": "0.2.1",
-    "@storybook/react-vite": "10.2.19",
+    "@storybook/react-vite": "10.4.6",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
-    "@vitejs/plugin-react": "6.0.1",
-    "babel-plugin-react-compiler": "1.0.0",
+    "@vitejs/plugin-react": "6.1.0",
+    "oxc-transform-react": "0.145.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
-    "rolldown-plugin-dts": "0.25.0",
-    "storybook": "10.2.19",
-    "vite": "8.1.0"
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "rolldown": "1.2.6",
+    "rolldown-plugin-dts": "0.28.3",
+    "storybook": "10.4.6",
+    "vite": "8.2.2"
   },
   "peerDependencies": {
     "react": "^19.0.0",

@@ -1,0 +1,181 @@
+import { Portal } from "@ark-ui/react/portal";
+import { Tooltip as ArkTooltip } from "@ark-ui/react/tooltip";
+import { useEffect, useRef } from "react";
+
+import { cx } from "@hashintel/ds-helpers/css";
+
+import { usePortalContainerRef } from "../../util/portal-container-context";
+import { positionerStyles, triggerStyles } from "./base-tooltip.recipe";
+
+type Direction = "bottom" | "top" | "left" | "right";
+export type Position = Direction | `${Direction}-${"start" | "end"}`;
+export type Delay = "fast" | "medium" | "slow" | "none";
+
+const openDelayMsMap = {
+  none: 0,
+  fast: 200,
+  medium: 500,
+  slow: 1000,
+};
+
+const closeDelayMsMap = {
+  none: 0,
+  fast: 100,
+  medium: 200,
+  slow: 300,
+};
+
+function isDomFocusable(el: HTMLElement): boolean {
+  if (el.tabIndex < 0) {
+    return false;
+  }
+  if ("disabled" in el && (el as HTMLButtonElement).disabled) {
+    return false;
+  }
+  return true;
+}
+
+// Whether the trigger itself, or anything inside it, is keyboard-reachable.
+// E.g. a label wrapping a hidden radio is not focusable itself, but focusing
+// the radio still opens the tooltip (focus events bubble to the trigger), so
+// the wrapper must not become an extra tab stop.
+function containsDomFocusable(el: HTMLElement): boolean {
+  if (isDomFocusable(el)) {
+    return true;
+  }
+  return Array.from(
+    el.querySelectorAll<HTMLElement>(
+      "input, button, select, textarea, a[href], [tabindex]",
+    ),
+  ).some(isDomFocusable);
+}
+
+function getPositioningOffset(position: Position, gapX: number, gapY: number) {
+  const direction = position.split("-")[0] ?? "bottom";
+  const isVertical = direction === "top" || direction === "bottom";
+
+  return {
+    mainAxis: isVertical ? gapY : gapX,
+  };
+}
+
+export type BaseTooltipProps = {
+  className?: string;
+  /** The tooltip trigger */
+  children: React.ReactNode;
+  /** The content that triggers the tooltip */
+  content: React.ReactNode;
+  /** The preferred position of the tooltip - depending on the viewport, trigger and content another position may be chosen for better fit */
+  position?: Position;
+  /** Whether to disable the tooltip */
+  disableTooltip?: boolean;
+  /** How long before the the tooltip is opened on hover/focus */
+  openDelay?: Delay;
+  /** How long before the the tooltip is opened when leaving hover/focus */
+  closeDelay?: Delay;
+  /** The X distance the tooltip will be from the trigger in px */
+  gapX?: number;
+  /** The Y distance the tooltip will be from the trigger in px */
+  gapY?: number;
+  /**
+   * Whether clicking the trigger closes the tooltip (defaults to true).
+   * Disable for triggers whose keyboard activation dispatches a native click
+   * (e.g. radios checked via arrow keys), which would otherwise instantly
+   * dismiss the tooltip that just opened on focus.
+   */
+  closeOnClick?: boolean;
+  onOpen?: () => void;
+  onClose?: () => void;
+};
+
+/**
+ * Unstyled tooltip primitive handling all tooltip behaviour: trigger wrapping,
+ * focus management, positioning, portalling and open/close delays.
+ *
+ * @remarks
+ * This component intentionally does not style the tooltip overlay itself. The
+ * content element is rendered via `asChild`, so `content` must be a single React
+ * element that carries its own styling. Use {@link Tooltip} for the standard
+ * light/dark styled variants.
+ */
+export const BaseTooltip = ({
+  className,
+  children,
+  content,
+  position = "top",
+  disableTooltip,
+  openDelay = "medium",
+  closeDelay = "medium",
+  gapX = 8,
+  gapY = 8,
+  closeOnClick = true,
+  onOpen,
+  onClose,
+}: BaseTooltipProps) => {
+  const portalContainerRef = usePortalContainerRef();
+  const triggerRef = useRef<HTMLSpanElement>(null);
+  // If the child is not focusable, add a tabindex to the wrapper element to focus it.
+  // When the child becomes focusable or the tooltip is disabled, clean up so the
+  // wrapper doesn't remain an unexpected tab stop.
+  useEffect(() => {
+    const wrapper = triggerRef.current;
+    if (!wrapper) {
+      return;
+    }
+
+    const triggerEl = wrapper.firstElementChild as HTMLElement | null;
+    const needsFocus =
+      !disableTooltip &&
+      ((!triggerEl && wrapper.textContent) ||
+        (triggerEl && !containsDomFocusable(triggerEl)));
+
+    if (needsFocus) {
+      wrapper.tabIndex = 0;
+      wrapper.setAttribute("data-no-autofocus", "");
+    } else {
+      wrapper.removeAttribute("tabindex");
+      wrapper.removeAttribute("data-no-autofocus");
+    }
+  }, [children, disableTooltip]);
+
+  const wrappedChildren = (
+    <span ref={triggerRef} className={cx(triggerStyles, className)}>
+      {children}
+    </span>
+  );
+
+  if (disableTooltip) {
+    return wrappedChildren;
+  }
+
+  const offset = getPositioningOffset(position, gapX, gapY);
+
+  return (
+    <ArkTooltip.Root
+      openDelay={openDelayMsMap[openDelay]}
+      closeDelay={closeDelayMsMap[closeDelay]}
+      closeOnClick={closeOnClick}
+      positioning={{ placement: position, offset }}
+      onOpenChange={
+        onOpen || onClose
+          ? ({ open }) => {
+              if (open) {
+                onOpen?.();
+              } else {
+                onClose?.();
+              }
+            }
+          : undefined
+      }
+      unmountOnExit
+      lazyMount
+    >
+      <ArkTooltip.Trigger asChild>{wrappedChildren}</ArkTooltip.Trigger>
+      <Portal container={portalContainerRef}>
+        <ArkTooltip.Positioner className={positionerStyles}>
+          <ArkTooltip.Content asChild>{content}</ArkTooltip.Content>
+        </ArkTooltip.Positioner>
+      </Portal>
+    </ArkTooltip.Root>
+  );
+};

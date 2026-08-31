@@ -105,6 +105,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
           noLinkStyle
           href={pagePath}
           tabIndex={0}
+          draggable={false}
           sx={({ palette, transitions }) => ({
             ...style,
             display: "flex",

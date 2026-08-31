@@ -21,8 +21,9 @@ use crate::{
 /// Rejects purge with [`LinkDeletionBehavior::Error`] when incoming links exist.
 ///
 /// Creates A, B, and link entity L (A→B). L has an immutable `entity_edge` row with `source=L,
-/// target=B`. Purging B with `Error` behavior triggers `count_incoming_links`, which finds L's edge
-/// targeting B (L is outside the deletion batch) and returns [`DeletionError::IncomingLinksExist`].
+/// target=B`. Purging B with `Error` behavior triggers `count_incoming_link_edges`, which finds
+/// L's edge targeting B (L is outside the deletion batch) and returns
+/// [`DeletionError::IncomingLinksExist`].
 #[tokio::test]
 async fn purge_error_rejects_with_incoming_links() {
     let mut database = DatabaseTestWrapper::new().await;
@@ -38,7 +39,7 @@ async fn purge_error_rejects_with_incoming_links() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -89,7 +90,7 @@ async fn purge_ignore_succeeds_with_incoming_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -126,9 +127,11 @@ async fn purge_ignore_succeeds_with_incoming_links() {
 
 /// Rejects erase when incoming links exist, regardless of link behavior.
 ///
-/// [`DeletionScope::Erase`] always runs `count_incoming_links` because `delete_entity_ids` would
-/// violate the FK `entity_edge.target → entity_ids` if incoming edges exist. The explicit check
-/// provides a clean [`DeletionError::IncomingLinksExist`] instead of a raw PostgreSQL FK violation.
+/// [`DeletionScope::Erase`] always runs `count_incoming_link_edges` because `delete_entity_ids`
+/// would violate the FK from `entity_edge.target` to `entity_ids` if incoming edges exist. The
+/// explicit
+/// check provides a clean [`DeletionError::IncomingLinksExist`] instead of a raw PostgreSQL FK
+/// violation.
 #[tokio::test]
 async fn erase_rejects_with_incoming_links() {
     let mut database = DatabaseTestWrapper::new().await;
@@ -144,7 +147,7 @@ async fn erase_rejects_with_incoming_links() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -209,7 +212,7 @@ async fn purge_link_entity_removes_all_edges() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_link),
                 include_drafts: false,
@@ -256,9 +259,10 @@ async fn purge_link_entity_removes_all_edges() {
 /// Links within the deletion batch are excluded from the incoming-link count.
 ///
 /// Creates A, B, and link L (A→B). Purges all three together with `Error` behavior.
-/// `count_incoming_links` uses `(target_web_id, target_entity_uuid) IN (batch) AND (source_web_id,
-/// source_entity_uuid) NOT IN (batch)`. Since L (the source of the edge to B) is also in the
-/// deletion batch, L's edge is excluded from the count and B's deletion is not blocked.
+/// `count_incoming_link_edges` uses `(target_web_id, target_entity_uuid) IN (batch) AND
+/// (source_web_id, source_entity_uuid) NOT IN (batch)`. Since L (the source of the edge to B)
+/// is also in the deletion batch, L's edge is excluded from the count and B's deletion is not
+/// blocked.
 ///
 /// **Note**: `entity_edge` stores reversed (incoming-direction) rows. For L in the batch, its
 /// reversed rows have `source=A/B, target=L`. If A and B are also in the batch, those sources are
@@ -279,7 +283,7 @@ async fn self_referential_batch_not_counted() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -358,7 +362,7 @@ async fn draft_deletion_skips_link_check() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(draft_entity_id),
                 include_drafts: true,
@@ -390,7 +394,7 @@ async fn draft_deletion_skips_link_check() {
 
 /// Verifies [`DeletionError::IncomingLinksExist`] reports the correct count.
 ///
-/// Creates multiple distinct link entities pointing to the same target. `count_incoming_links`
+/// Creates multiple distinct link entities pointing to the same target. `count_incoming_link_edges`
 /// returns `COUNT(*)` from `entity_edge` (as `i64` cast to `u64`). The `count` field in the error
 /// must match the actual number of incoming `entity_edge` rows from sources outside the deletion
 /// batch.
@@ -419,7 +423,7 @@ async fn incoming_link_count_is_accurate() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -442,9 +446,9 @@ async fn incoming_link_count_is_accurate() {
 /// Handles a self-loop: entity A links to itself via link L.
 ///
 /// L has `entity_edge` rows with `source=L, target=A` (outgoing) and `source=A, target=L`
-/// (incoming/reversed). Deleting A alone with `Error`: L is outside the batch, L's outgoing edge
-/// targets A → `count_incoming_links` finds it → blocked. Deleting A + L together with `Error`:
-/// L is in the batch, so L's edge is excluded from the count → succeeds.
+/// (incoming/reversed). Deleting A alone with `Error` is blocked: L is outside the batch, so its
+/// outgoing edge targets A and `count_incoming_link_edges` finds it. Deleting A + L together with
+/// `Error` succeeds: L is in the batch, so L's edge is excluded from the count.
 #[tokio::test]
 async fn self_loop_link() {
     let mut database = DatabaseTestWrapper::new().await;
@@ -460,7 +464,7 @@ async fn self_loop_link() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -483,7 +487,7 @@ async fn self_loop_link() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -536,7 +540,7 @@ async fn chain_deletion() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -559,7 +563,7 @@ async fn chain_deletion() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -611,7 +615,7 @@ async fn bidirectional_links() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -634,7 +638,7 @@ async fn bidirectional_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -666,8 +670,8 @@ async fn bidirectional_links() {
 /// Erasing A+B+L together succeeds — in-batch link sources are excluded from the count.
 ///
 /// Same setup as [`self_referential_batch_not_counted`] but with [`DeletionScope::Erase`] instead
-/// of Purge. Erase always runs `count_incoming_links`; the batch-exclusion logic (`source NOT IN
-/// batch`) must work here too. After erase, all three `entity_ids` rows are deleted (not
+/// of Purge. Erase always runs `count_incoming_link_edges`; the batch-exclusion logic (`source
+/// NOT IN batch`) must work here too. After erase, all three `entity_ids` rows are deleted (not
 /// tombstoned) and no FK violation occurs because `delete_entity_edge` removes all edge rows
 /// before `delete_entity_ids`.
 #[tokio::test]
@@ -686,7 +690,7 @@ async fn erase_batch_excludes_in_batch_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -726,10 +730,10 @@ async fn erase_batch_excludes_in_batch_links() {
 /// Erasing a link entity alone succeeds — denormalized edges are not real incoming links.
 ///
 /// `entity_edge` stores `direction = 'incoming'` rows (source=endpoint, target=L) as denormalized
-/// copies for query optimization. `count_incoming_links` only counts `direction = 'outgoing'` edges
-/// (real link relationships from other link entities). Since no other link entity points TO L,
-/// the count is 0 and erase proceeds. `delete_entity_edge` cleans up all 4 rows (both outgoing
-/// and incoming-direction) before `delete_entity_ids` removes L's row.
+/// copies for query optimization. `count_incoming_link_edges` only counts `direction =
+/// 'outgoing'` edges (real link relationships from other link entities). Since no other link
+/// entity points TO L, the count is 0 and erase proceeds. `delete_entity_edge` cleans up all
+/// 4 rows (both outgoing and incoming-direction) before `delete_entity_ids` removes L's row.
 #[tokio::test]
 async fn erase_link_entity_alone_succeeds() {
     let mut database = DatabaseTestWrapper::new().await;
@@ -752,7 +756,7 @@ async fn erase_link_entity_alone_succeeds() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_link),
                 include_drafts: false,
@@ -817,7 +821,7 @@ async fn purge_archive_archives_incoming_link() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -892,7 +896,7 @@ async fn purge_archive_multiple_incoming_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -941,7 +945,7 @@ async fn purge_archive_batch_links_not_archived() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -986,7 +990,7 @@ async fn purge_archive_no_incoming_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id),
                 include_drafts: false,
@@ -1034,7 +1038,7 @@ async fn purge_archive_chain() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -1080,7 +1084,7 @@ async fn purge_archive_self_loop() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -1159,7 +1163,7 @@ async fn purge_archive_includes_draft_link_versions() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -1219,7 +1223,7 @@ async fn erase_rejects_archived_incoming_links() {
     // Purge A with Archive → L gets archived
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -1241,7 +1245,7 @@ async fn erase_rejects_archived_incoming_links() {
     let err = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -1278,7 +1282,7 @@ async fn purge_error_ignores_archived_links() {
     // Archive L by purging A
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: false,
@@ -1298,7 +1302,7 @@ async fn purge_error_ignores_archived_links() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -1361,7 +1365,7 @@ async fn archive_creates_historical_temporal_rows() {
 
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -1422,7 +1426,7 @@ async fn broad_temporal_axes_find_archived_entities() {
     // Archive L by purging B
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_b),
                 include_drafts: false,
@@ -1440,7 +1444,7 @@ async fn broad_temporal_axes_find_archived_entities() {
     let summary_live = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_link),
                 include_drafts: false,
@@ -1460,7 +1464,7 @@ async fn broad_temporal_axes_find_archived_entities() {
     let summary_all = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_link),
                 include_drafts: false,
@@ -1508,7 +1512,7 @@ async fn user_deletion_then_reset_graph() {
     // "User deletion": purge A with Archive
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a),
                 include_drafts: true,
@@ -1528,7 +1532,7 @@ async fn user_deletion_then_reset_graph() {
     let summary = api
         .store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::Any(vec![
                     Filter::for_entity_by_entity_id(id_a),
@@ -1593,7 +1597,7 @@ async fn archive_already_archived_link_is_noop() {
     // Purge A1 with Archive -> L1 archived
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a1),
                 include_drafts: false,
@@ -1621,7 +1625,7 @@ async fn archive_already_archived_link_is_noop() {
     // Purge A2 with Archive -> L2 archived, L1 untouched
     api.store
         .delete_entities(
-            api.account_id.into(),
+            api.account_id,
             DeleteEntitiesParams {
                 filter: Filter::for_entity_by_entity_id(id_a2),
                 include_drafts: false,

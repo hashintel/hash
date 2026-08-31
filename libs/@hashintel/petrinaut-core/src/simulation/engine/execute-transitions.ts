@@ -173,6 +173,14 @@ export function executeTransitions(
   // Map to accumulate all tokens to add: PlaceID -> array of token byte blocks
   const tokensToAdd = new Map<PlaceID, Uint8Array[]>();
 
+  // Output tokens are applied once at the end of the step, so capacity checks
+  // must see what earlier transitions in this step already produced — several
+  // transitions feeding one capped place could otherwise each fit individually
+  // and collectively overflow it. Only allocated for nets declaring capacities.
+  const pendingOutputCounts = simulation.frameLayout.hasPlaceCapacities
+    ? new Uint32Array(simulation.frameLayout.placeCapacities.length)
+    : null;
+
   // Keep track of which transitions fired for updating timeSinceLastFiringMs
   const transitionsFired = new Set<ID>();
 
@@ -185,24 +193,26 @@ export function executeTransitions(
   // Iterate through all transitions in the frame
   for (const transitionId of simulation.frameLayout.transitionIds) {
     // Compute if this transition can fire based on the current state
-    const result = computePossibleTransition(
+    const { firing, newRngState } = computePossibleTransition(
       currentFrame,
       simulation,
       transitionId,
       currentRngState,
+      pendingOutputCounts,
     );
 
-    if (result !== null) {
+    // Every evaluation's randomness is consumed, fired or not — reusing the
+    // state would re-test the same draw next frame and freeze the outcome.
+    currentRngState = newRngState;
+
+    if (firing !== null) {
       // Transition fired!
       transitionsFired.add(transitionId);
-
-      // Update RNG state for deterministic randomness
-      currentRngState = result.newRngState;
 
       // Immediately remove tokens from the current frame
       // Convert the result.remove Record to a Map
       const tokensToRemove = new Map<PlaceID, Set<number> | number>(
-        Object.entries(result.remove),
+        Object.entries(firing.remove),
       );
       currentFrame = removeTokensFromSimulationFrame(
         currentFrame,
@@ -211,19 +221,29 @@ export function executeTransitions(
       );
 
       // Accumulate tokens to add
-      for (const [placeId, tokenValues] of Object.entries(result.add)) {
+      for (const [placeId, tokenValues] of Object.entries(firing.add)) {
         if (!tokensToAdd.has(placeId)) {
           tokensToAdd.set(placeId, []);
         }
         const existingTokens = tokensToAdd.get(placeId)!;
         existingTokens.push(...tokenValues);
+
+        if (pendingOutputCounts) {
+          const placeIndex = simulation.frameLayout.placeIndexById.get(placeId);
+          if (placeIndex !== undefined) {
+            pendingOutputCounts[placeIndex] =
+              (pendingOutputCounts[placeIndex] ?? 0) + tokenValues.length;
+          }
+        }
       }
     }
   }
 
-  // If no transitions fired, return the original frame with unchanged RNG state
+  // If no transitions fired, return the original frame. The RNG state still
+  // moves forward: every evaluated transition consumed a draw, and restoring
+  // the pre-frame state would hand the next frame the same draws again.
   if (transitionsFired.size === 0) {
-    return { frame, rngState, transitionFired: false };
+    return { frame, rngState: currentRngState, transitionFired: false };
   }
 
   // Add all new tokens at once

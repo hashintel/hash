@@ -29,7 +29,7 @@ import type {
   Entity,
   Timestamp,
 } from "@blockprotocol/type-system";
-import type { TraversalPath } from "@rust/hash-graph-store/types";
+import type { TraversalPath } from "@local/hash-graph-store/types";
 
 const createRequest = ({
   traversalPaths,

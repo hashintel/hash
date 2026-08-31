@@ -13,15 +13,16 @@ pub mod property_type;
 pub mod status;
 
 pub mod admin;
-pub mod http_tracing_layer;
-pub mod jwt;
+pub mod auth;
 pub mod probe;
+pub mod rate_limit;
+pub mod telemetry;
 
 pub mod hashql;
 mod json;
 mod utoipa_typedef;
 use alloc::{borrow::Cow, sync::Arc};
-use core::{error::Error, str::FromStr as _};
+use core::error::Error;
 use std::{
     fs,
     io::{self, Write as _},
@@ -70,6 +71,7 @@ use hash_graph_temporal_versioning::{
 };
 use hash_graph_type_fetcher::TypeFetcher;
 use hash_graph_types::Embedding;
+use hash_middleware::authentication::provider::{AuthenticationProvider, Caller};
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
@@ -89,7 +91,7 @@ use type_system::{
             OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
         },
     },
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{actor::ActorId, actor_group::WebId},
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,
@@ -99,8 +101,8 @@ use utoipa::{
     },
 };
 use utoipa_scalar::Scalar;
-use uuid::Uuid;
 
+pub use self::auth::AuthenticatedActorId;
 use self::{
     entity::ClusteringContext,
     status::{BoxedResponse, report_to_response, status_to_response},
@@ -114,37 +116,6 @@ use self::{
         },
     },
 };
-
-pub struct AuthenticatedUserHeader(pub ActorEntityUuid);
-
-impl AuthenticatedUserHeader {
-    fn from_request_parts_impl(parts: &Parts) -> Result<Self, (StatusCode, Cow<'static, str>)> {
-        if let Some(header_value) = parts.headers.get("X-Authenticated-User-Actor-Id") {
-            let header_string = header_value
-                .to_str()
-                .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
-            let uuid = Uuid::from_str(header_string)
-                .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
-            Ok(Self(ActorEntityUuid::new(uuid)))
-        } else {
-            Err((
-                StatusCode::BAD_REQUEST,
-                Cow::Borrowed("`X-Authenticated-User-Actor-Id` header is missing"),
-            ))
-        }
-    }
-}
-
-impl<S: Sync> FromRequestParts<S> for AuthenticatedUserHeader {
-    type Rejection = (StatusCode, Cow<'static, str>);
-
-    fn from_request_parts(
-        parts: &mut Parts,
-        _state: &S,
-    ) -> impl Future<Output = Result<Self, Self::Rejection>> + Send {
-        core::future::ready(Self::from_request_parts_impl(parts))
-    }
-}
 
 pub struct InteractiveHeader(pub bool);
 
@@ -214,7 +185,7 @@ pub trait RestApiStore:
 {
     fn load_external_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> impl Future<Output = Result<OntologyTypeMetadata, BoxedResponse>> + Send;
@@ -232,7 +203,7 @@ where
 {
     async fn load_external_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
     ) -> Result<OntologyTypeMetadata, BoxedResponse> {
@@ -311,13 +282,18 @@ impl QueryLogger {
     }
 
     #[expect(clippy::missing_panics_doc)]
-    pub fn capture(&mut self, actor: ActorEntityUuid, query: OpenApiQuery<'_>) {
+    pub fn capture(&mut self, actor: Option<ActorId>, query: OpenApiQuery<'_>) {
         let mut record = serde_json::to_value(query)
             .change_context(QueryLoggingError)
             .expect("query should be serializable");
-        record
-            .as_object_mut()
-            .map(|object| object.insert("actor".to_owned(), JsonValue::String(actor.to_string())));
+        record.as_object_mut().map(|object| {
+            object.insert(
+                "actor".to_owned(),
+                actor.map_or(JsonValue::Null, |actor| {
+                    JsonValue::String(actor.to_string())
+                }),
+            )
+        });
         self.value = Some(record);
         self.created_at = Instant::now();
     }
@@ -545,6 +521,11 @@ where
     pub domain_regex: DomainValidator,
     pub query_logger: Option<QueryLogger>,
     pub api_config: ApiConfig,
+    pub session_auth: auth::KratosSessionConfig,
+    pub cloudflare_access: Option<auth::CloudflareAccessConfig>,
+    pub service_secret: String,
+    pub rate_limit: rate_limit::RateLimitConfig,
+    pub meter: opentelemetry::metrics::Meter,
     pub compiler: Arc<hashql::CompilerContext>,
     pub clustering: Arc<ClusteringContext>,
     /// Whether to serve an interactive rendering of the `OpenAPI` specification.
@@ -553,8 +534,8 @@ where
     pub serve_api_reference: bool,
 }
 
-/// A [`Router`] that only serves the `OpenAPI` specification (JSON, and necessary subschemas) for
-/// the REST API.
+/// A [`Router`] serving the `OpenAPI` specification (JSON, and necessary subschemas) for the
+/// REST API.
 ///
 /// The specification is served at `/openapi.json`. It references its subschemas by relative path
 /// (`./models/…`), so `/models/{path}` has to stay a sibling of the specification for those
@@ -570,7 +551,6 @@ pub fn openapi_only_router(serve_api_reference: bool) -> Router {
         serve_api_reference.then(|| Html(Scalar::new(open_api_doc.clone()).to_html()));
 
     let mut router = Router::new()
-        .merge(probe::router())
         .route("/openapi.json", get(|| async { Json(open_api_doc) }))
         .route("/models/{*path}", get(serve_static_schema));
 
@@ -581,47 +561,126 @@ pub fn openapi_only_router(serve_api_reference: bool) -> Router {
     router
 }
 
+/// Attaches the three request middlewares, which requests traverse as address gate,
+/// authentication, principal limiter.
+///
+/// `route_layer` keeps the 404 fallback outside authentication and the principal limiter, so an
+/// unmatched path is answered without resolving a credential or drawing on a principal budget.
+/// The gate is a `layer` and so covers the fallback too, which puts a request for an unmatched
+/// path on the same address budget as any other.
+///
+/// `unauthenticated` is merged between the two, so its routes carry the address gate but neither
+/// authentication nor a principal budget. Routes merged after this call carry none of the three.
+fn attach_request_middlewares<P, C>(
+    routes: Router,
+    unauthenticated: Router,
+    provider: Arc<P>,
+    service_secret: Arc<str>,
+    authentication_metrics: Arc<auth::AuthenticationMetrics>,
+    rate_limiters: Arc<rate_limit::RateLimiters>,
+) -> Router
+where
+    P: AuthenticationProvider<C> + Send + Sync + 'static,
+    C: Caller + Send + 'static,
+{
+    let auth_secret = Arc::clone(&service_secret);
+    let gate_secret = Arc::clone(&service_secret);
+    let gate_limiters = Arc::clone(&rate_limiters);
+
+    routes
+        .route_layer(axum::middleware::from_fn(move |request, next| {
+            rate_limit::principal_limit_middleware(
+                Arc::clone(&rate_limiters),
+                Arc::clone(&service_secret),
+                request,
+                next,
+            )
+        }))
+        .route_layer(axum::middleware::from_fn(move |request, next| {
+            auth::authentication_middleware::<_, C>(
+                Arc::clone(&provider),
+                Arc::clone(&auth_secret),
+                Arc::clone(&authentication_metrics),
+                auth::is_bootstrap_route,
+                request,
+                next,
+            )
+        }))
+        .merge(unauthenticated)
+        .layer(axum::middleware::from_fn(move |request, next| {
+            rate_limit::ip_gate_middleware(
+                Arc::clone(&gate_limiters),
+                Arc::clone(&gate_secret),
+                request,
+                next,
+            )
+        }))
+}
+
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
+///
+/// # Panics
+///
+/// Panics when called outside a Tokio runtime.
 pub fn rest_api_router<S>(dependencies: RestRouterDependencies<S>) -> Router
 where
     S: StorePool + Send + Sync + 'static,
     for<'p> S::Store<'p>: RestApiStore + PrincipalStore + PolicyStore,
 {
+    let authentication_provider = Arc::new(auth::build_authentication_provider(
+        dependencies.session_auth,
+        dependencies.cloudflare_access,
+        dependencies.service_secret.clone(),
+        &dependencies.store,
+    ));
+    let service_secret: Arc<str> = Arc::from(dependencies.service_secret);
+    let authentication_metrics = Arc::new(auth::AuthenticationMetrics::new(&dependencies.meter));
+
+    let rate_limiters =
+        rate_limit::RateLimiters::start(&(&dependencies.rate_limit).into(), &dependencies.meter);
+
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S>()
         .into_iter()
         .fold(Router::new(), Router::merge)
         .merge(hashql::HashQlResource::routes())
         .fallback(|| {
-            tracing::error!("404: Not found");
+            tracing::debug!("404: Not found");
             async { StatusCode::NOT_FOUND }
         });
 
     // super-router can then be used as any other router.
     // Make sure extensions are added at the end so they are made available to merged routers.
-    // The `OpenAPI` endpoints are merged in afterwards as we don't want any layers or handlers to
-    // apply to them. We use a `ServiceBuilder` to add the layers in the correct order.
-    let mut router = merged_routes
-        .layer(
-            ServiceBuilder::new()
-                .layer(NewSentryLayer::new_from_top())
-                .layer(SentryHttpLayer::default().enable_transaction()),
-        )
-        .layer(http_tracing_layer::HttpTracingLayer)
-        .layer(Extension(dependencies.store))
-        .layer(Extension(Arc::new(dependencies.postgres)))
-        .layer(Extension(dependencies.temporal_client))
-        .layer(Extension(dependencies.embedding_client))
-        .layer(Extension(dependencies.domain_regex))
-        .layer(Extension(dependencies.api_config))
-        .layer(Extension(dependencies.compiler))
-        .layer(Extension(dependencies.clustering));
+    let mut router = attach_request_middlewares::<_, Option<ActorId>>(
+        merged_routes,
+        openapi_only_router(dependencies.serve_api_reference),
+        authentication_provider,
+        service_secret,
+        authentication_metrics,
+        rate_limiters,
+    )
+    .layer(
+        ServiceBuilder::new()
+            .layer(NewSentryLayer::new_from_top())
+            .layer(SentryHttpLayer::default().enable_transaction()),
+    )
+    .layer(telemetry::layer())
+    .layer(Extension(dependencies.store))
+    .layer(Extension(Arc::new(dependencies.postgres)))
+    .layer(Extension(dependencies.temporal_client))
+    .layer(Extension(dependencies.embedding_client))
+    .layer(Extension(dependencies.domain_regex))
+    .layer(Extension(dependencies.api_config))
+    .layer(Extension(dependencies.compiler))
+    .layer(Extension(dependencies.clustering));
 
     if let Some(query_logger) = dependencies.query_logger {
         router = router.layer(Extension(query_logger));
     }
 
-    router.merge(openapi_only_router(dependencies.serve_api_reference))
+    // The health probe is merged after the layers, so it is served outside the middlewares and
+    // carries no budget.
+    router.merge(probe::router())
 }
 
 async fn serve_static_schema(Path(path): Path<String>) -> Result<Response, StatusCode> {

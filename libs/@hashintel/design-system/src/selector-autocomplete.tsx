@@ -173,6 +173,8 @@ export const SelectorAutocomplete = <
   Multiple extends boolean | undefined = undefined,
 >({
   open,
+  onOpen,
+  onClose,
   isOptionEqualToValue,
   optionToRenderData,
   sx,
@@ -203,6 +205,9 @@ export const SelectorAutocomplete = <
 
   const [anchorEl, setAnchorEl] = useState<HTMLDivElement | null>(null);
 
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = open ?? internalOpen;
+
   const height = inputHeight ?? TYPE_SELECTOR_HEIGHT;
 
   const dropdownContextValue = useMemo(
@@ -220,6 +225,14 @@ export const SelectorAutocomplete = <
         <Autocomplete
           multiple={multiple}
           open={open}
+          onOpen={(event) => {
+            setInternalOpen(true);
+            onOpen?.(event);
+          }}
+          onClose={(event, reason) => {
+            setInternalOpen(false);
+            onClose?.(event, reason);
+          }}
           sx={[{ width: "100%" }, ...(Array.isArray(sx) ? sx : [sx])]}
           /**
            * By default, the anchor element for an autocomplete dropdown is the
@@ -245,6 +258,16 @@ export const SelectorAutocomplete = <
               onKeyDown={(event) => {
                 if (event.key === "Backspace") {
                   event.stopPropagation();
+                }
+                /**
+                 * Stop an open dropdown from submitting the surrounding form on
+                 * Enter. MUI only calls preventDefault() on Enter when an option
+                 * is highlighted, so an open menu with nothing highlighted would
+                 * otherwise trigger the form's implicit submission. We don't
+                 * stopPropagation so MUI can still select a highlighted option.
+                 */
+                if (event.key === "Enter" && isOpen) {
+                  event.preventDefault();
                 }
               }}
               InputProps={{

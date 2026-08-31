@@ -1,3 +1,8 @@
+/**
+ * @layerRoot react.lsp
+ * @role Exposes the core language client to the editor as React context
+ */
+
 import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import {
@@ -105,6 +110,7 @@ export const LanguageClientProvider: React.FC<{
     requestHover: client.requestHover,
     requestSignatureHelp: client.requestSignatureHelp,
     requestHirArtifacts: client.requestHirArtifacts,
+    requestScenarioHir: client.requestScenarioHir,
     initializeScenarioSession: client.initializeScenarioSession,
     updateScenarioSession: client.updateScenarioSession,
     killScenarioSession: client.killScenarioSession,

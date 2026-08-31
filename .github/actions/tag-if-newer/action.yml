@@ -4,7 +4,9 @@ description: >
   `candidate-sha` is a strict descendant of the commit the mutable tag currently
   points at. This stops an out-of-order CI run — `queue: max` serializes the
   concurrency group but does NOT guarantee FIFO order — from moving a mutable
-  tag *backwards* onto an older commit. The guard relies on the surrounding
+  tag *backwards* onto an older commit. A revision that is not a commit in this
+  repository fails the action: it can never satisfy the ancestry check, so the
+  tag would silently stop advancing for good. The guard relies on the surrounding
   job's `concurrency: { queue: max }` for the check-then-set to be race-free
   (serialized); without it the read/compare/write is a TOCTOU race.
 
@@ -94,12 +96,18 @@ runs:
           advance=true
         elif [[ "$current_sha" == "$CANDIDATE_SHA" ]]; then
           echo "::notice ::$MUTABLE_TAG already at $CANDIDATE_SHA; nothing to do"
-        elif git merge-base --is-ancestor "$current_sha" "$CANDIDATE_SHA" 2>/dev/null; then
+        elif ! git cat-file -e "$current_sha^{commit}" 2>/dev/null; then
+          # No later run can advance the tag either: the revision is not going to
+          # become resolvable, so every one of them would take this branch. Fail
+          # rather than skip, or a frozen tag reads as a successful deploy.
+          echo "::error ::$MUTABLE_TAG points at $current_sha, which is not a commit in this repository. Move the tag onto a current image by hand."
+          exit 1
+        elif git merge-base --is-ancestor "$current_sha" "$CANDIDATE_SHA"; then
           # current is an ancestor of candidate → candidate is strictly newer.
           advance=true
         else
-          # candidate is an ancestor of current, they diverged, or current is
-          # unreachable (shallow clone / force-pushed). Leave the tag untouched.
+          # candidate is an ancestor of current, or they diverged. Leave the tag
+          # untouched.
           echo "::notice ::$MUTABLE_TAG at $current_sha is not older than $CANDIDATE_SHA; skipping"
         fi
         echo "advanced=$advance" >> "$GITHUB_OUTPUT"

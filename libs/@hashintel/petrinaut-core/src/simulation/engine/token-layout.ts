@@ -1,3 +1,4 @@
+import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
 import {
   coerceTokenAttributeValue,
   decodeTokenAttributeValue,
@@ -195,7 +196,8 @@ export function readTokenRecord(
 ): TokenRecord {
   assertTokenAligned(tokenByteOffset);
   const { f64, u8, u64 } = views;
-  const token: TokenRecord = {};
+  // Element names come from the net definition: no prototype.
+  const token = createUserKeyedRecord<TokenRecord[string]>();
   for (const field of layout.fields) {
     if (field.kind === "u64") {
       if (!stringPool) {
@@ -284,7 +286,7 @@ export function encodeTokenValuesToBytes(
       field,
       views,
       0,
-      encodedValuesByName[field.element.name] ??
+      getOwn(encodedValuesByName, field.element.name) ??
         (field.kind === "u64x2" ? NIL_UUID : 0),
     );
   }
@@ -317,7 +319,7 @@ export function encodeTokenToBytes(
       }
       const coerced = coerceTokenAttributeValue(
         field.element,
-        record[field.element.name],
+        getOwn(record, field.element.name),
         `${context}.${field.element.name}`,
       );
       writeTokenValue(
@@ -330,7 +332,7 @@ export function encodeTokenToBytes(
     }
     const encodedValue = encodeTokenAttributeValue(
       field.element,
-      record[field.element.name],
+      getOwn(record, field.element.name),
       `${context}.${field.element.name}`,
     );
     writeTokenValue(field, views, 0, encodedValue);

@@ -1,3 +1,4 @@
+import type { PetrinautAiInteractiveToolWidgetProps } from "../../../../../types/ai-interactive-tool";
 import type { ComponentType } from "react";
 
 /**
@@ -5,19 +6,8 @@ import type { ComponentType } from "react";
  * the AI chat while a tool call is awaiting human input, then becomes a
  * read-only summary once the user submits.
  */
-export type InteractiveToolWidgetProps<Input, Output> = {
-  /** Validated input the AI passed to the tool. */
-  input: Input;
-  /**
-   * Submit a tool output to the chat. After submission, the widget remains
-   * mounted in `submitted` state with the chosen output visible.
-   */
-  submit: (output: Output) => void;
-  /** "awaiting" while the user has not yet picked; "submitted" afterwards. */
-  state: "awaiting" | "submitted";
-  /** Output that was submitted (only set when `state === "submitted"`). */
-  submittedOutput?: Output;
-};
+export type InteractiveToolWidgetProps<Input, Output> =
+  PetrinautAiInteractiveToolWidgetProps<Input, Output>;
 
 /**
  * Descriptor for an AI tool that requires synchronous user input rendered
@@ -37,5 +27,7 @@ export type InteractiveToolDefinition<Input = unknown, Output = unknown> = {
   shouldHandle: (input: unknown) => boolean;
   /** Parse the raw input into the widget's typed input. */
   parseInput: (raw: unknown) => Input;
+  /** Parse the widget's output before submitting it to the AI SDK. */
+  parseOutput: (raw: unknown) => Output;
   Widget: ComponentType<InteractiveToolWidgetProps<Input, Output>>;
 };

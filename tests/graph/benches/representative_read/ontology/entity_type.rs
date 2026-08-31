@@ -6,7 +6,7 @@ use hash_graph_store::{
 };
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
-use type_system::{ontology::VersionedUrl, principal::actor::ActorEntityUuid};
+use type_system::{ontology::VersionedUrl, principal::actor::ActorId};
 
 use crate::util::Store;
 
@@ -14,7 +14,7 @@ pub fn bench_get_entity_type_by_id(
     bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store,
-    actor_id: ActorEntityUuid,
+    actor_id: ActorId,
     entity_type_ids: &[VersionedUrl],
 ) {
     bencher.to_async(runtime).iter_batched(
@@ -28,7 +28,7 @@ pub fn bench_get_entity_type_by_id(
         |entity_type_id| async move {
             store
                 .query_entity_types(
-                    actor_id,
+                    Some(actor_id),
                     QueryEntityTypesParams {
                         request: CommonQueryEntityTypesParams {
                             filter: Filter::for_versioned_url(entity_type_id),

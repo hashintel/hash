@@ -24,7 +24,7 @@ pub use self::request::{
     QueryEntitiesRequest, QueryEntitySubgraphError, QueryEntitySubgraphRequest,
 };
 use crate::rest::{
-    ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger,
+    ApiConfig, AuthenticatedActorId, OpenApiQuery, QueryLogger,
     json::Json,
     resolve_limit,
     status::{BoxedResponse, report_to_response},
@@ -51,7 +51,7 @@ use crate::rest::{
     )
 )]
 pub(super) async fn query_entities<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -61,6 +61,7 @@ pub(super) async fn query_entities<S>(
 where
     S: StorePool + Send + Sync,
 {
+    let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(actor_id, OpenApiQuery::GetEntities(&request));
     }
@@ -129,7 +130,7 @@ pub(super) struct QueryEntitySubgraphResponse<'r> {
     )
 )]
 pub(super) async fn query_entity_subgraph<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -139,6 +140,7 @@ pub(super) async fn query_entity_subgraph<S>(
 where
     S: StorePool + Send + Sync,
 {
+    let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(actor_id, OpenApiQuery::GetEntitySubgraph(&request));
     }
@@ -196,7 +198,7 @@ where
     )
 )]
 pub(super) async fn summarize_entities<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
@@ -206,7 +208,7 @@ where
     S: StorePool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::SummarizeEntities(&request));
+        query_logger.capture(Some(actor_id), OpenApiQuery::SummarizeEntities(&request));
     }
 
     let store = store_pool
@@ -250,7 +252,7 @@ where
     )
 )]
 pub(super) async fn query_entities_table<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     Extension(api_config): Extension<ApiConfig>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,

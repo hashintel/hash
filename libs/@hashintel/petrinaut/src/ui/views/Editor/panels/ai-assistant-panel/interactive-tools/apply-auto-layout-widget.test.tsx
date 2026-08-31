@@ -6,39 +6,46 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { applyAutoLayoutInteractiveTool } from "./apply-auto-layout-widget";
 
-import type { AiToolOutput } from "../tool-summaries";
+import type { ComponentProps } from "react";
 
 const Widget = applyAutoLayoutInteractiveTool.Widget;
+type ApplyAutoLayoutOutput = Parameters<
+  ComponentProps<typeof Widget>["submit"]
+>[0];
 
 afterEach(cleanup);
 
 describe("ApplyAutoLayoutWidget", () => {
-  test("invokes submit with applied: true when the user confirms", () => {
-    const submit = vi.fn<(output: AiToolOutput) => void>();
+  test("submits an apply decision when the user confirms", () => {
+    const submit = vi.fn<(output: ApplyAutoLayoutOutput) => void>();
 
     render(
       <Widget
         input={{ askUserFirst: true }}
         submit={submit}
         state="awaiting"
+        toolCallId="apply-auto-layout-1"
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: /Yes, auto-layout/i }));
 
     expect(submit).toHaveBeenCalledTimes(1);
-    const output: AiToolOutput = submit.mock.calls[0]![0];
-    expect(output).toMatchObject({ applied: true });
+    expect(submit.mock.calls[0]![0]).toEqual({
+      applied: true,
+      title: "Auto-layout requested",
+    });
   });
 
-  test("invokes submit with applied: false when the user declines", () => {
-    const submit = vi.fn<(output: AiToolOutput) => void>();
+  test("submits a decline decision when the user declines", () => {
+    const submit = vi.fn<(output: ApplyAutoLayoutOutput) => void>();
 
     render(
       <Widget
         input={{ askUserFirst: true }}
         submit={submit}
         state="awaiting"
+        toolCallId="apply-auto-layout-2"
       />,
     );
 
@@ -47,8 +54,7 @@ describe("ApplyAutoLayoutWidget", () => {
     );
 
     expect(submit).toHaveBeenCalledTimes(1);
-    const output: AiToolOutput = submit.mock.calls[0]![0];
-    expect(output).toEqual({
+    expect(submit.mock.calls[0]![0]).toEqual({
       applied: false,
       reason: "User declined auto-layout.",
     });
@@ -61,6 +67,7 @@ describe("ApplyAutoLayoutWidget", () => {
         submit={() => {}}
         state="submitted"
         submittedOutput={{ applied: true, title: "Auto-laid out 3 nodes" }}
+        toolCallId="apply-auto-layout-3"
       />,
     );
 

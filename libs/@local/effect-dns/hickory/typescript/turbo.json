@@ -1,0 +1,29 @@
+{
+  "$schema": "https://turborepo.org/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "^build",
+        // TODO(SRE-989): replace with a build-free upstream dependency
+        "@rust/effect-dns-hickory#build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../rust/src/**",
+        "../rust/build.rs",
+        "../rust/Cargo.toml"
+      ],
+      "outputs": ["./dist/**"]
+    },
+    "test:unit": {
+      "dependsOn": ["build"]
+    },
+    "lint:eslint": {
+      "dependsOn": ["build"]
+    },
+    "lint:tsc": {
+      "dependsOn": ["build"]
+    }
+  }
+}

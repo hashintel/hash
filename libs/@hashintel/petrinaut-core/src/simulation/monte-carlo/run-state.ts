@@ -23,9 +23,11 @@ import type {
  * explicit per-run seed.
  *
  * This keeps runs reproducible while avoiding identical RNG streams across the
- * default run set.
+ * default run set. The CLI's optimization protocol reuses this derivation for
+ * a trial's non-first replicate seeds (its first replicate keeps the base
+ * seed itself).
  */
-function deriveRunSeed(baseSeed: number, runIndex: number): number {
+export function deriveRunSeed(baseSeed: number, runIndex: number): number {
   return (
     Math.abs(Math.trunc(baseSeed + (runIndex + 1) * 2_654_435_761)) %
     2_147_483_648
@@ -81,7 +83,11 @@ export function createRunState(
   runConfig: MonteCarloRunConfig | undefined,
   index: number,
 ): MonteCarloRunState {
-  const seed = runConfig?.seed ?? deriveRunSeed(config.seed ?? 1, index);
+  // Seeds derive from the run's *global* index so that sharding an experiment
+  // across workers reassigns runs without changing which seeds run.
+  const seed =
+    runConfig?.seed ??
+    deriveRunSeed(config.seed ?? 1, (config.runIndexOffset ?? 0) + index);
   const initialMarking = runConfig?.initialMarking ?? config.initialMarking;
   const inputParameterValues = {
     ...config.parameterValues,
@@ -141,6 +147,9 @@ export function createRunState(
     completionReason: null,
     error: null,
     reallocations: 0,
+    pendingOutputCounts: simulation.frameLayout.hasPlaceCapacities
+      ? new Uint32Array(simulation.frameLayout.placeIds.length)
+      : null,
   };
 }
 

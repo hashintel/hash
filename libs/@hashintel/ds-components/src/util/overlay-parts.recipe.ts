@@ -59,9 +59,12 @@ export const overlayPartsStyles = sva({
     header: {
       flex: "[0 0 auto]",
       backgroundColor: "white",
-      border: "[1px solid {colors.neutral.s50}]",
+      borderTop: "[1px solid {colors.neutral.s50}]",
+      borderInline: "[1px solid {colors.neutral.s50}]",
       borderTopRadius: "lg",
-      borderBottom: "[1px solid {colors.neutral.s30}]",
+      borderBottomWidth: "1px",
+      borderBottomStyle: "solid",
+      borderBottomColor: "neutral.s30",
       paddingX: "[var(--panel-horizontal-padding)]",
       paddingTop: "[var(--panel-top-padding)]",
       paddingBottom: "3.5",
@@ -126,8 +129,8 @@ export const overlayPartsStyles = sva({
       overflow: "auto",
       scrollbarWidth: "[thin]",
       background: "white",
-      border: "[1px solid {colors.neutral.s50}]",
-      borderTop: "none",
+      borderInline: "[1px solid {colors.neutral.s50}]",
+      borderBottom: "[1px solid {colors.neutral.s50}]",
       color: "fg.body",
       textStyle: "sm",
       paddingX: "[var(--panel-horizontal-padding)]",
@@ -283,9 +286,10 @@ export const overlayPartsStyles = sva({
         },
         footer: {
           backgroundColor: "white",
-          border: "[1px solid {colors.neutral.s50}]",
-          borderBottomRadius: "lg",
           borderTop: "[1px solid {colors.neutral.s20}]",
+          borderInline: "[1px solid {colors.neutral.s50}]",
+          borderBottom: "[1px solid {colors.neutral.s50}]",
+          borderBottomRadius: "lg",
         },
       },
     },
@@ -304,7 +308,8 @@ export const overlayPartsStyles = sva({
       },
       popover: {
         body: {
-          border: "none",
+          borderInline: "none",
+          borderBottom: "none",
           borderRadius: "lg",
           boxShadow:
             "[0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 1px -0.5px rgba(0, 0, 0, 0.04)]",
@@ -337,7 +342,7 @@ export const overlayPartsStyles = sva({
       true: {
         header: {
           paddingBottom: "0",
-          borderBottom: "none",
+          borderBottomWidth: "0",
         },
         closeButton: {
           marginBottom: "-1.5",

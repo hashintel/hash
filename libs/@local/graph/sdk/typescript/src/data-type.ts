@@ -18,6 +18,7 @@ import type {
   ExclusiveUnion,
 } from "@local/advanced-types/distribute";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { ActionName } from "@local/hash-graph-authorization/types";
 import type {
   DataTypeConversionTargets as GraphApiDataTypeConversionTargets,
   DataTypeWithMetadata as DataTypeWithMetadataGraphApi,
@@ -28,7 +29,6 @@ import type {
   QueryDataTypeSubgraphParams as QueryDataTypeSubgraphParamsGraphApi,
   QueryDataTypeSubgraphResponse as QueryDataTypeSubgraphResponseGraphApi,
 } from "@local/hash-graph-client";
-import type { ActionName } from "@rust/hash-graph-authorization/types";
 
 export const hasPermissionForDataTypes = (
   graphAPI: GraphApi,

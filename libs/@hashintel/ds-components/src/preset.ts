@@ -156,6 +156,14 @@ export function createPreset(options?: PresetOptions) {
             from: { opacity: "1", transform: "scale(1)" },
             to: { opacity: "0", transform: "scale(0.98)" },
           },
+          tooltipIn: {
+            from: { opacity: "0", transform: "scale(0.96)" },
+            to: { opacity: "1", transform: "scale(1)" },
+          },
+          tooltipOut: {
+            from: { opacity: "1", transform: "scale(1)" },
+            to: { opacity: "0", transform: "scale(0.96)" },
+          },
           rotateRight: {
             from: { transform: "rotate(0deg)" },
             to: { transform: "rotate(360deg)" },

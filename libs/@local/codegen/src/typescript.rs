@@ -17,13 +17,33 @@ use crate::{
     },
 };
 
-#[derive(Default)]
 #[non_exhaustive]
 pub struct TypeScriptGeneratorSettings {
     allocator: Allocator,
+    brand_module: String,
 }
 
-#[expect(dead_code)]
+impl Default for TypeScriptGeneratorSettings {
+    fn default() -> Self {
+        Self {
+            allocator: Allocator::default(),
+            brand_module: "@blockprotocol/type-system".to_owned(),
+        }
+    }
+}
+
+impl TypeScriptGeneratorSettings {
+    /// Sets the module that `Brand` is imported from.
+    ///
+    /// Crates that are themselves re-exported by `@blockprotocol/type-system` have to point at the
+    /// declarations directly, as importing from the package would be circular.
+    #[must_use]
+    pub fn with_brand_module(mut self, module: impl Into<String>) -> Self {
+        self.brand_module = module.into();
+        self
+    }
+}
+
 pub struct TypeScriptGenerator<'a, 'c> {
     settings: &'a TypeScriptGeneratorSettings,
     collection: &'c TypeCollection,
@@ -185,7 +205,8 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             if definition.branded {
                 if !self.has_branded_types {
                     self.has_branded_types = true;
-                    self.add_import_declaration("@blockprotocol/type-system-rs", ["Brand"]);
+                    let brand_module = self.settings.brand_module.clone();
+                    self.add_import_declaration(&brand_module, ["Brand"]);
                 }
 
                 // This extends the `UserId` type by intersecting it with the `WebId` type. We

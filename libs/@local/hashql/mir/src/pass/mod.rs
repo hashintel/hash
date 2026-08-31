@@ -255,7 +255,7 @@ impl<A: Allocator> OwnedGlobalTransformState<A> {
     ///
     /// This allows passing the state to [`GlobalTransformPass::run`] while retaining
     /// ownership for subsequent iterations.
-    pub fn as_mut(&mut self) -> GlobalTransformState<'_> {
+    pub const fn as_mut(&mut self) -> GlobalTransformState<'_> {
         GlobalTransformState::new(&mut self.changed)
     }
 }

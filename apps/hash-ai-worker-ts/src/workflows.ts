@@ -7,7 +7,6 @@ import {
 } from "@temporalio/workflow";
 
 import { splitEntityId } from "@blockprotocol/type-system";
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { deserializeQueryEntitiesResponse } from "@local/hash-graph-sdk/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -436,7 +435,7 @@ export const updateAllDataTypeEmbeddings =
   async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> =>
     await updateDataTypeEmbeddings({
       authentication: {
-        actorId: publicUserAccountId,
+        actorId: await graphActivities.getSystemMachineActorId(),
       },
       filter: {
         equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -447,7 +446,7 @@ export const updateAllPropertyTypeEmbeddings =
   async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> =>
     await updatePropertyTypeEmbeddings({
       authentication: {
-        actorId: publicUserAccountId,
+        actorId: await graphActivities.getSystemMachineActorId(),
       },
       filter: {
         equal: [{ path: ["version"] }, { parameter: "latest" }],
@@ -458,7 +457,7 @@ export const updateAllEntityTypeEmbeddings =
   async (): Promise<OpenAI.CreateEmbeddingResponse.Usage> =>
     await updateEntityTypeEmbeddings({
       authentication: {
-        actorId: publicUserAccountId,
+        actorId: await graphActivities.getSystemMachineActorId(),
       },
       filter: {
         equal: [{ path: ["version"] }, { parameter: "latest" }],

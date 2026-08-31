@@ -1,0 +1,808 @@
+# Coatings Plant Scheduling Model — v1.0
+
+**Delivered:** first cut, built on interview only. No plant data has been loaded yet.
+
+**Status:** structurally complete, numerically unvalidated. Read page one before quoting any number from this model to anyone.
+
+---
+
+# PAGE ONE — ASSUMPTIONS REGISTER
+
+## A. Confirmed by you in interview
+
+| # | Statement |
+|---|---|
+| C1 | Four stages: mix → mill → tint/letdown → fill & pack. Same order for all products. |
+| C2 | 3 filling lines, 14 SKUs, 3 families (base whites, tinted colours, specialty clears). |
+| C3 | Lines 1 & 2 run 06:00–22:00. Line 3 runs 06:00–14:00. |
+| C4 | Changeover techs: 2 people, 06:00–14:00 only, shared across all three lines. |
+| C5 | Rinses (same-family, ~25 min) are done by line operators — **no tech required**. |
+| C6 | Family switches (≥45 min, wash chemicals + QA signoff) **require a tech**. |
+| C7 | Tint→white = ~180 min, 2 techs. White→tint = ~45 min. Specialty in/out = ~120 min, either direction. |
+| C8 | A wash is not started unless it can finish before 14:00 (≤15 min overrun tolerated). |
+| C9 | QA hold is **after** fill, 4 h typical / ~24 h specialty, 2 lab staff. Delays shipment only; does not block upstream. |
+| C10 | Meridian white orders always run on Line 2. |
+| C11 | Specialty runs Line 1 only in current practice (Line 3 not qualified). |
+| C12 | VW-02 must not follow a dark tint, wash or no wash. |
+| C13 | Priority: Meridian never late > distributors (±2 days) > small accounts (±7 days). Then changeover hours, then utilisation. |
+| C14 | Line 3 overtime requires ops director signoff; rare. |
+| C15 | One mill per line, not shared *(you flagged you'd double-check)*. |
+
+## B. UNVALIDATED — my assumptions, not your statements
+
+**Every row below will produce confident-looking output. None of it is evidence.**
+
+| # | Assumption | Basis | How it gets retired |
+|---|---|---|---|
+| **A2** | `D` = dark-tint→light-tint changeover is **60 min, resource class unknown** | Pure guess. You retracted your "rinse" answer. | Tick sheet: duration + "done by" column |
+| **A5** | Ramp scrap: 0 same-family; parameterised for family switches; largest tint→white | Invented. Swept, not asserted. | Floor-lead eyeball, next tint→white and next rinse |
+| **A6** | Line 2 MTBF ≈ 10 days, repair 0.5–4 h (triangular) | Your "every week or two, half hour to half a shift" | Maintenance log |
+| **A7** | Line 1 mill motor modelled as a **named scenario**, not a random failure | Too rare to sample in a 6-week run — you'd get noise, not signal | n/a — design choice, but say so out loud |
+| **A8** | Line 3 breakdowns = zero | Your answer. "New" ≠ "reliable" at 18 months. | Revisit in 6 months |
+| **A9** | Batch→fill run is 1:1; multi-pack-size splits ignored in v1 | Your "minority case" | ERP export will show actual frequency |
+| **A10** | Lab is day-shift, FIFO, no priority for Meridian | **Never asked you. Straight guess.** | One question to QA |
+| **A13** | Operators always available during line hours, so rinses never queue | Convenience assumption | Tick sheet |
+| **A14** | Rate matrix values | **Placeholders. Not real numbers.** | Your rate matrix |
+| **A15** | Tank capacities K₁, K₂, K₃ | **Placeholders.** K₁ is the disputed one. | Engineering spec sheet + stopwatch |
+| **A16** | Which two tint SKUs Line 3 is not qualified for (assumed the two deepest reds) | Your recollection, unconfirmed | Qualification list |
+| **A17** | Order arrival pattern and Meridian's share (assumed ⅓ of white volume) | Your estimate | ERP export |
+| **A18** | Washdown durations identical on all three lines | Your answer, plausible, untested | Tick sheet |
+| **A19** | Operators never perform family switches informally | Policy, not observation. **You said "not allowed and never happens aren't the same thing."** | Tick sheet "done by" column |
+
+**A19 is the one to watch.** A single contrary row retires a hard guard and changes what the baseline predicts. Send it the same day it appears.
+
+## C. What this model cannot do
+
+1. **It will not compute an optimal reshuffle.** It races policies you specify. The output is a *reflex* you can defend at the huddle, not a schedule.
+2. **It cannot settle the Line 1 tank argument on current inputs.** Whatever I assume about K₁ and Line 1's rate, the model will reproduce faithfully and appear to prove someone right. Run the inversion (§7.3) only after the stopwatch measurement, and do not take it into a room with engineering before then.
+3. **It has no first-pass-yield data.** Scrap is a swept parameter presented as thresholds, never as a point estimate.
+
+---
+
+# 1. Scope and resolution
+
+| Area | Detail level | Why |
+|---|---|---|
+| Fill & pack, all 3 lines | **Full** | Your bottleneck |
+| Changeover crew and calendar | **Full** | Your sore spot; the real constraint |
+| Mix / mill / tint | Single timed transition per line feeding a holding tank | You care less; tank capacity kept explicit for the Flag 2 inversion |
+| QA hold | Capacity-2 queue, post-fill | Affects OTIF only |
+| Raw materials | Assumed always available | Never raised as a driver |
+
+**Time base:** minutes. **Run length:** 6 weeks + 1 week warm-up. **Replications:** 30 per policy arm (breakdowns are stochastic; single runs will mislead you).
+
+---
+
+# 2. Colour sets
+
+| Set | Values |
+|---|---|
+| `FAMILY` | `WHITE` \| `TINT` \| `SPECIALTY` |
+| `SHADE` | `0`(white) \| `1..5` light→dark (tints) \| `X`(specialty) |
+| `TIER` | `MERIDIAN` \| `DISTRIBUTOR` \| `SMALL` |
+| `SKU` | 14 values; each carries `(family, shade, qualifiedLines[])` |
+| `ORDER` | `⟨id, sku, qty, tier, dueTime, releaseTime⟩` |
+| `LINESTATE` | `⟨lineId, lastSKU, lastFamily, lastShade, up:bool⟩` |
+| `BATCH` | `⟨sku, qty⟩` |
+| `LOT` | `⟨orderId, sku, qty, tier, dueTime, fillEndTime⟩` |
+
+---
+
+# 3. Places
+
+### 3.1 Shared
+
+| Place | Type | Init | Meaning |
+|---|---|---|---|
+| `P_Demand` | ORDER | from ERP | Order arrival stream |
+| `P_Ready` | ORDER | ∅ | Released, awaiting line assignment |
+| `P_Techs` | unit | 2 | Techs **on shift and free** |
+| `P_TechsOff` | unit | 0 | Techs off shift |
+| `P_TechShiftOpen` | unit | 0 | Marked 06:00–14:00 |
+| `P_LineOpen_1`, `_2` | unit | 0 | Marked 06:00–22:00 |
+| `P_LineOpen_3` | unit | 0 | Marked 06:00–14:00 (+OT lever) |
+| `P_Lab` | unit | 2 | Free lab capacity |
+| `P_LabOpen` | unit | 0 | Marked during lab hours (A10) |
+| `P_QAQueue` | LOT | ∅ | Awaiting QA |
+| `P_Shipped` | LOT | ∅ | Completed |
+| `P_Clock` | int | 1 | Calendar cycle token |
+
+### 3.2 Per line L ∈ {1,2,3}
+
+| Place | Type | Init | Meaning |
+|---|---|---|---|
+| `P_UpIdle_L` | unit | 1 | Upstream (mix/mill/tint) free |
+| `P_UpBusy_L` | BATCH | ∅ | Upstream in progress |
+| `P_Tank_L` | BATCH | ∅ | Holding tank contents |
+| `P_TankFree_L` | unit | K_L | Remaining tank slots (complementary place) |
+| `P_LineIdle_L` | LINESTATE | 1 | Line free, carrying its last-run identity |
+| `P_LineFilling_L` | ORDER×LINESTATE | ∅ | Fill in progress |
+| `P_ChangeoverDue_L` | ⟨from,to⟩ | ∅ | Changeover raised, not started |
+| `P_Rinsing_L` | ⟨from,to⟩ | ∅ | Operator rinse in progress |
+| `P_Washing_L` | ⟨from,to⟩ | ∅ | Tech wash in progress |
+| `P_Down_L` | unit | 0 | Line failed |
+
+---
+
+# 4. Transitions
+
+## 4.1 Calendar subnet (drives everything)
+
+| Transition | Fires at | Effect |
+|---|---|---|
+| `T_TechShiftStart` | 06:00 daily | `P_TechsOff` → `P_Techs`; mark `P_TechShiftOpen` |
+| `T_TechShiftEnd` | 14:00 daily | Unmark `P_TechShiftOpen`; return free techs to `P_TechsOff` |
+| `T_Line12Open` / `T_Line12Close` | 06:00 / 22:00 | Mark/unmark `P_LineOpen_1`, `P_LineOpen_2` |
+| `T_Line3Open` / `T_Line3Close` | 06:00 / 14:00 (22:00 if OT) | Mark/unmark `P_LineOpen_3` |
+| `T_LabOpen` / `T_LabClose` | per A10 | Mark/unmark `P_LabOpen` |
+
+*Weekends: all calendar transitions gated off unless the weekend-working lever is set.*
+
+## 4.2 Production
+
+| Transition | Delay | Guard |
+|---|---|---|
+| `T_UpStart_L` | — | `P_UpIdle_L` marked ∧ `P_TankFree_L` ≥ 1 ∧ a job is assigned to L |
+| `T_UpEnd_L` | `upstream_time[family]` (specialty longest) | — |
+| `T_Assign_L` | — | **Policy layer, §5** |
+| `T_StartFill_L` | — | `P_LineOpen_L` ∧ ¬`P_Down_L` ∧ batch present in `P_Tank_L` ∧ `lastSKU` prep matches job (no changeover outstanding) ∧ `sku ∈ qualified(L)` |
+| `T_EndFill_L` | `qty / rate[sku][L]` | — |
+| **`T_Interrupt_L`** | — | Fires at line close if fill incomplete; fill **pauses**, resumes at next open *(assumption: fills are interruptible at shift end — flag if wrong)* |
+
+## 4.3 Changeover — the detailed part
+
+| Transition | Delay | Resource | Guard |
+|---|---|---|---|
+| `T_RaiseChangeover_L` | — | — | Next job's prep ≠ line's current prep. **Deferred by wait-rule W, §5.2** |
+| `T_StartRinse_L` | — | none | `class(from,to) = OPERATOR` ∧ `P_LineOpen_L` |
+| `T_EndRinse_L` | 25 min | — | — |
+| `T_StartWash_L` | — | **n(from,to) tech tokens** | `P_TechShiftOpen` ∧ `P_Techs ≥ n` ∧ **`now + dur ≤ 14:00 + grace(15 min)`** (C8) ∧ **VW-02 guard (C12)** |
+| `T_EndWash_L` | `dur(from,to)` | releases techs | — |
+
+### Changeover matrix
+
+Duration in minutes / resource class / techs required.
+
+| From ↓ To → | WHITE | TINT light (1–2) | TINT dark (3–5) | SPECIALTY |
+|---|---|---|---|---|
+| **WHITE** | 25 / op | 45 / tech ×1 | 45 / tech ×1 | 120 / tech ×2 |
+| **TINT light** | **180 / tech ×2** | 25 / op | 25 / op | 120 / tech ×2 |
+| **TINT dark** | **180 / tech ×2** | **`D` = 60 / class ? — A2** | 25 / op | 120 / tech ×2 |
+| **SPECIALTY** | 120 / tech ×2 | 120 / tech ×2 | 120 / tech ×2 | 25 / op |
+
+**Hard guard, not a duration:** `to_sku = VW-02 ∧ from_shade ≥ 4` → transition disabled. No wash clears it.
+
+### Latest feasible start (derived from C4 + C8)
+
+| Changeover | Duration | Latest start |
+|---|---|---|
+| White → tint | 45 | **13:15** |
+| Specialty in/out | 120 | **12:00** |
+| Tint → white | 180 | **11:00** |
+| Rinse (operator) | 25 | any time the line is open |
+
+**Consequence, hard-coded by the calendar:** after 13:15, no line can cross families until 06:00 next day. Lines 1 and 2 run to 22:00 locked to whatever family they held at lunchtime.
+
+## 4.4 Failure and QA
+
+| Transition | Delay | Notes |
+|---|---|---|
+| `T_Fail_L` | `Exp(MTBF_L)` | A6/A8. Line 1 mill motor is a **scenario injection**, not sampled (A7) |
+| `T_Repair_L` | `Tri(min,mode,max)` | Fill resumes where interrupted |
+| `T_QAStart` | — | `P_Lab ≥ 1` ∧ `P_LabOpen` |
+| `T_QAEnd` | 240 min; 1440 specialty | — |
+| `T_Ship` | — | `lateness = max(0, now − dueTime)` recorded by tier |
+
+---
+
+# 5. Policy layer
+
+This is what you tune. Everything above is plant physics; everything here is a decision.
+
+## 5.1 Baseline — reproduces you
+
+```
+1. Meridian white orders  → Line 2 (C10, absolute)
+2. Specialty orders       → Line 1 (C11, currently the only qualified line)
+3. Otherwise: prefer the line whose lastFamily == order.family
+              tie-break: earliest available
+4. Within line: sort by TIER (Meridian, Distributor, Small), then dueTime
+5. Overnight-strand rule: do not start a job that ends after the
+   tech window if it leaves the line needing a wash
+6. VW-02 guard (C12)
+```
+
+## 5.2 Variants to race against it
+
+| Variant | Description | Answers |
+|---|---|---|
+| **Wait-rule `W(t)`** | Hold line idle up to `W` hours for a same-family order rather than raise a wash. **Time-of-day dependent** — after 13:15 the choice doesn't exist, so sweep only 06:00–13:15. | **Q2** |
+| **Fill-the-shift** | Do not commit a morning family switch unless there is enough work in that family to run through line close | Q2/Q3 |
+| **Breakdown reflex A/B/C** | A: push all to remaining lines. B: hold the tint block, pull whites forward. C: split across 1 & 3, absorb the specialty changeover. | **Q1** |
+| **Tech shift position** | 06:00–14:00 (status quo) / 10:00–18:00 / 14:00–22:00 / one tech per shift | Q3 + headcount case |
+| **Third tech** | Add one head to the existing window | Q3 |
+| **Line 3 OT** | Purchasable lever, 0–5 days/week | Q1 |
+| **Meridian-priority QA** | Non-FIFO lab queue | Free OTIF experiment |
+
+**Note on the split-shift arm:** with one tech per shift, no ≥120-min wash can ever run (they need two). I expect that arm to fail badly. Run it anyway — showing your ops director *why* a cheap option fails is worth more than asserting it, and it demonstrates you looked at rota changes before asking for headcount.
+
+---
+
+# 6. KPIs
+
+## 6.1 Service (primary)
+
+| Metric | Definition |
+|---|---|
+| **Meridian late count** | Any lot shipped after `dueTime`. Target zero (C13) |
+| Distributor late | Shipped > 48 h after due |
+| Small-account late | Shipped > 168 h after due |
+| Meridian lateness hours | Total, for severity |
+
+## 6.2 Changeover — reported as three separate numbers
+
+**Do not merge these.** A single "dirty hours" figure will be attacked as inflated the first time someone notices it counts unscheduled hours.
+
+| Metric | Definition | Framing |
+|---|---|---|
+| Clock-dirty hours | Wall-clock from changeover raised to complete | Report, label **not a loss** |
+| Wash hours | Actual cleaning time | Largely unavoidable |
+| **Lost production hours** | Dirty time that overlapped **scheduled line hours** | **The number to argue with** |
+| — split by cause | `techs_off_shift` vs `techs_busy_elsewhere` | Different fixes: rota vs headcount |
+| **Family-lock hours** | Per line per day, time during which no family switch is possible | Explains *why* the losses occurred |
+| Family switches per week | Plant-wide count | Validation target |
+
+*Worked example — wash raised 14:30 on Line 2, executed 06:00–09:00:*
+clock-dirty 18.5 h · wash 3 h · **lost production 7.5 h** (cause: techs off shift).
+
+## 6.3 Secondary
+
+Ramp scrap units (by changeover type) · per-line utilisation · **tank-blocked hours** (Flag 2) · tech utilisation % of the 16 tech-hours/day · QA queue length, Fri/Mon split.
+
+---
+
+# 7. How to use it
+
+## 7.1 Run this first — the reproduction check
+
+Before any experiment, before anything goes to your ops director:
+
+| Check | Target | If it misses |
+|---|---|---|
+| Weekly output per line | Within ±10% of ERP actuals | Rate matrix or tank capacity wrong |
+| Family switches/week | Your estimate: ~8 | Changeover matrix or policy wrong |
+| Late-order pattern by tier | Matches history | Priority logic wrong |
+| Line 3 idle mornings | Should appear spontaneously | Tech contention modelled wrong |
+
+**If it misses, that is the finding.** The gap points at a register row and we fix the model before it says anything about Tuesdays.
+
+## 7.2 Then, in order
+
+1. **Q3 — where do changeover hours go.** Baseline only. Decompose lost production hours by cause and by line. Cheapest result, no new policy needed.
+2. **Q2 — the wait-vs-wash question.** Sweep `W(t)`. Expected output shape: *"before 09:00 wait up to N hours; 09:00–11:00 never wait; after 11:00 wait as long as you like."*
+3. **Q1 — the breakdown reflex.** Inject Line 2 failure at 06:00 Tue, Line 1 mill motor at 06:00 Mon (4 days). Race reflexes A/B/C over 30 reps. Output is a rule, not a schedule.
+4. **Rota and headcount.** Only after the tick sheet lands.
+
+## 7.3 The Line 1 tank inversion — after the stopwatch, not before
+
+Fix Line 1's fill rate to the measured value. Sweep K₁ downward. Find the largest K₁ that reproduces observed blocking.
+
+- If that K₁ is **below** the spec-sheet volume → the tank is not the constraint; the rate is.
+- If it is **at or above** → your instinct holds.
+
+Without the measured rate, both parameters are free and the inversion identifies neither. It will still produce a confident-looking answer. Do not use it.
+
+---
+
+# 8. Parameter file
+
+Everything below is data, not structure. Hand this to whoever fills it in; the net does not change.
+
+```csv
+# === lines.csv ===
+line_id,open_time,close_time,ot_available,mtbf_hours,repair_min,repair_mode,repair_max,tank_capacity_K
+1,06:00,22:00,no,PLACEHOLDER,PLACEHOLDER,PLACEHOLDER,PLACEHOLDER,K1_PLACEHOLDER
+2,06:00,22:00,no,240,30,90,240,K2_PLACEHOLDER
+3,06:00,14:00,yes_signoff,99999,0,0,0,K3_PLACEHOLDER
+
+# === skus.csv ===
+sku_id,family,shade,qual_L1,qual_L2,qual_L3
+VW-01,WHITE,0,1,1,1
+VW-02,WHITE,0,1,1,1          # C12 guard applies
+T-01..T-09,TINT,1..5,1,1,mostly-1   # two deep reds = 0 on L3 (A16)
+S-01..S-03,SPECIALTY,X,1,0,0        # C11: L1 only in practice
+
+# === rates.csv ===   units/hr, PLACEHOLDER = A14
+sku_id,rate_L1,rate_L2,rate_L3
+
+# === changeover.csv ===
+from_family,from_shade,to_family,to_shade,minutes,resource,techs
+WHITE,*,WHITE,*,25,OPERATOR,0
+WHITE,*,TINT,*,45,TECH,1
+WHITE,*,SPECIALTY,*,120,TECH,2
+TINT,*,WHITE,*,180,TECH,2
+TINT,1-2,TINT,*,25,OPERATOR,0
+TINT,3-5,TINT,3-5,25,OPERATOR,0
+TINT,3-5,TINT,1-2,60,UNKNOWN,?     # A2 — sweep 25..180, both resource classes
+TINT,*,SPECIALTY,*,120,TECH,2
+SPECIALTY,*,*,*,120,TECH,2
+SPECIALTY,*,SPECIALTY,*,25,OPERATOR,0
+
+# === ramp_scrap.csv ===   A5 — swept, not asserted
+changeover_type,scrap_units
+same_family,0
+white_to_tint,SWEEP_0_200
+specialty_switch,SWEEP_0_200
+tint_to_white,SWEEP_0_400
+
+# === resources.csv ===
+resource,count,open,close
+tech,2,06:00,14:00
+lab,2,PLACEHOLDER,PLACEHOLDER      # A10
+
+# === tiers.csv ===
+tier,tolerance_hours
+MERIDIAN,0
+DISTRIBUTOR,48
+SMALL,168
+```
+
+---
+
+# 9. PNML
+
+**Dialect note.** Your tooling question never came back, so this is built to load anywhere: the graph structure is plain P/T-net so any PNML reader will open it, and all colour, guard, timing and resource information is carried in `<toolspecific>` blocks and inscriptions. If your tool is coloured + timed, map the annotations onto the colour sets in §2 — that is a mechanical translation, roughly an hour's work. If it is plain P/T, the net runs as-is with `SHADE` folded out; you lose the `D` question and the VW-02 guard has to become a separate forbidden-pair place per SKU.
+
+**Coverage.** Shared resources, the calendar subnet, and **Line 1 in full**. Lines 2 and 3 are structurally identical: duplicate the `_L1` block, change the id suffix, and substitute from `lines.csv`. I've done it this way so the file stays readable — a 3× copy is ten minutes of work and impossible to get wrong, whereas a 900-line file nobody reads is a different kind of risk.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<pnml xmlns="http://www.pnml.org/version-2009/grammar/pnml">
+  <net id="coatings_sched_v1"
+       type="http://www.pnml.org/version-2009/grammar/ptnet">
+    <name><text>Coatings Plant Scheduling Model v1.0</text></name>
+    <toolspecific tool="spec" version="1.0">
+      <timeUnit>minutes</timeUnit>
+      <runLength>60480</runLength>
+      <warmup>10080</warmup>
+      <replications>30</replications>
+      <note>Colour sets, guards and policy layer defined in accompanying
+            spec sections 2-5. Parameter values in parameter file section 8.
+            UNVALIDATED assumptions listed on page one.</note>
+    </toolspecific>
+    <page id="top">
+
+      <!-- ============ CALENDAR SUBNET ============ -->
+      <place id="P_Clock">
+        <name><text>Calendar cycle</text></name>
+        <initialMarking><text>1</text></initialMarking>
+        <graphics><position x="40" y="40"/></graphics>
+      </place>
+      <place id="P_TechShiftOpen">
+        <name><text>Tech shift open 06:00-14:00</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="200" y="40"/></graphics>
+      </place>
+      <place id="P_LineOpen_L1">
+        <name><text>Line 1 open 06:00-22:00</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="360" y="40"/></graphics>
+      </place>
+      <place id="P_LineOpen_L2">
+        <name><text>Line 2 open 06:00-22:00</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="520" y="40"/></graphics>
+      </place>
+      <place id="P_LineOpen_L3">
+        <name><text>Line 3 open 06:00-14:00 (OT lever)</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="680" y="40"/></graphics>
+      </place>
+      <place id="P_LabOpen">
+        <name><text>Lab open (A10 UNVALIDATED)</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="840" y="40"/></graphics>
+      </place>
+
+      <transition id="T_ShiftStart">
+        <name><text>06:00 daily open</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <schedule>daily 06:00, weekdays</schedule>
+          <effect>mark P_TechShiftOpen, P_LineOpen_L1/2/3, P_LabOpen;
+                  move 2 tokens P_TechsOff -> P_Techs</effect>
+        </toolspecific>
+        <graphics><position x="120" y="120"/></graphics>
+      </transition>
+      <transition id="T_TechShiftEnd">
+        <name><text>14:00 tech shift end</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <schedule>daily 14:00</schedule>
+          <effect>unmark P_TechShiftOpen; free techs -> P_TechsOff</effect>
+        </toolspecific>
+        <graphics><position x="280" y="120"/></graphics>
+      </transition>
+      <transition id="T_Line3Close">
+        <name><text>14:00 Line 3 close</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <schedule>daily 14:00 unless OT lever set</schedule>
+        </toolspecific>
+        <graphics><position x="440" y="120"/></graphics>
+      </transition>
+      <transition id="T_Line12Close">
+        <name><text>22:00 Lines 1-2 close</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <schedule>daily 22:00</schedule>
+        </toolspecific>
+        <graphics><position x="600" y="120"/></graphics>
+      </transition>
+
+      <arc id="a01" source="P_Clock" target="T_ShiftStart"/>
+      <arc id="a02" source="T_ShiftStart" target="P_TechShiftOpen"/>
+      <arc id="a03" source="T_ShiftStart" target="P_LineOpen_L1"/>
+      <arc id="a04" source="T_ShiftStart" target="P_LineOpen_L2"/>
+      <arc id="a05" source="T_ShiftStart" target="P_LineOpen_L3"/>
+      <arc id="a06" source="T_ShiftStart" target="P_LabOpen"/>
+      <arc id="a07" source="P_TechShiftOpen" target="T_TechShiftEnd"/>
+      <arc id="a08" source="P_LineOpen_L3" target="T_Line3Close"/>
+      <arc id="a09" source="P_LineOpen_L1" target="T_Line12Close"/>
+      <arc id="a10" source="P_LineOpen_L2" target="T_Line12Close"/>
+      <arc id="a11" source="T_Line12Close" target="P_Clock"/>
+
+      <!-- ============ SHARED RESOURCES ============ -->
+      <place id="P_Techs">
+        <name><text>Techs on shift and free</text></name>
+        <initialMarking><text>2</text></initialMarking>
+        <toolspecific tool="spec" version="1.0">
+          <lever>count = 2 (baseline) | 3 (third-tech arm)</lever>
+        </toolspecific>
+        <graphics><position x="200" y="220"/></graphics>
+      </place>
+      <place id="P_TechsOff">
+        <name><text>Techs off shift</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="200" y="300"/></graphics>
+      </place>
+      <place id="P_Lab">
+        <name><text>Lab capacity</text></name>
+        <initialMarking><text>2</text></initialMarking>
+        <graphics><position x="840" y="220"/></graphics>
+      </place>
+      <place id="P_Demand">
+        <name><text>Order arrivals (ERP stream)</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <toolspecific tool="spec" version="1.0">
+          <colour>ORDER = id,sku,qty,tier,dueTime</colour>
+          <source>ERP export, 4-6 weeks. A17 until loaded.</source>
+        </toolspecific>
+        <graphics><position x="40" y="380"/></graphics>
+      </place>
+      <place id="P_Ready">
+        <name><text>Released, awaiting assignment</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="180" y="380"/></graphics>
+      </place>
+
+      <transition id="T_Release">
+        <name><text>Release order</text></name>
+        <graphics><position x="110" y="380"/></graphics>
+      </transition>
+      <arc id="a12" source="P_Demand" target="T_Release"/>
+      <arc id="a13" source="T_Release" target="P_Ready"/>
+
+      <!-- ============ LINE 1 SUBNET ============ -->
+      <!-- duplicate this block for L2, L3; substitute ids and parameters -->
+
+      <place id="P_UpIdle_L1">
+        <name><text>L1 upstream idle (mix/mill/tint)</text></name>
+        <initialMarking><text>1</text></initialMarking>
+        <graphics><position x="300" y="460"/></graphics>
+      </place>
+      <place id="P_UpBusy_L1">
+        <name><text>L1 upstream in progress</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="380" y="460"/></graphics>
+      </place>
+      <place id="P_Tank_L1">
+        <name><text>L1 holding tank (DISPUTED CAPACITY - A15)</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <toolspecific tool="spec" version="1.0">
+          <capacity>K1 = PLACEHOLDER</capacity>
+          <note>Flag 2. Do not run the inversion before Line 1 fill rate
+                is measured with a non-empty tank.</note>
+        </toolspecific>
+        <graphics><position x="460" y="460"/></graphics>
+      </place>
+      <place id="P_TankFree_L1">
+        <name><text>L1 tank free slots</text></name>
+        <initialMarking><text>K1</text></initialMarking>
+        <graphics><position x="460" y="540"/></graphics>
+      </place>
+      <place id="P_LineIdle_L1">
+        <name><text>L1 idle, carrying lastSKU/lastFamily/lastShade</text></name>
+        <initialMarking><text>1</text></initialMarking>
+        <toolspecific tool="spec" version="1.0">
+          <colour>LINESTATE = lineId,lastSKU,lastFamily,lastShade,up</colour>
+        </toolspecific>
+        <graphics><position x="560" y="460"/></graphics>
+      </place>
+      <place id="P_LineFilling_L1">
+        <name><text>L1 filling</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="660" y="460"/></graphics>
+      </place>
+      <place id="P_ChangeoverDue_L1">
+        <name><text>L1 changeover raised, not started</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="560" y="620"/></graphics>
+      </place>
+      <place id="P_Rinsing_L1">
+        <name><text>L1 rinsing (operator, no tech)</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="480" y="700"/></graphics>
+      </place>
+      <place id="P_Washing_L1">
+        <name><text>L1 washing (tech, QA signoff)</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="640" y="700"/></graphics>
+      </place>
+      <place id="P_Down_L1">
+        <name><text>L1 down</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="760" y="540"/></graphics>
+      </place>
+
+      <transition id="T_Assign_L1">
+        <name><text>Assign order to L1</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <guard>POLICY LAYER - spec section 5.
+                 Baseline: Meridian white -> L2 only; specialty -> L1;
+                 else prefer matching lastFamily; sort TIER then dueTime.</guard>
+        </toolspecific>
+        <graphics><position x="240" y="380"/></graphics>
+      </transition>
+      <transition id="T_UpStart_L1">
+        <name><text>L1 start upstream</text></name>
+        <graphics><position x="340" y="460"/></graphics>
+      </transition>
+      <transition id="T_UpEnd_L1">
+        <name><text>L1 end upstream</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <delay>upstream_time[family]; specialty slowest (thick, slow mill)</delay>
+        </toolspecific>
+        <graphics><position x="420" y="460"/></graphics>
+      </transition>
+      <transition id="T_StartFill_L1">
+        <name><text>L1 start fill</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <guard>P_LineOpen_L1 marked AND NOT P_Down_L1 AND batch in tank
+                 AND no changeover outstanding AND sku qualified on L1
+                 (specialty: L1 only - C11)</guard>
+        </toolspecific>
+        <graphics><position x="610" y="460"/></graphics>
+      </transition>
+      <transition id="T_EndFill_L1">
+        <name><text>L1 end fill</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <delay>qty / rate[sku][L1]  (A14 placeholder)</delay>
+          <effect>emit LOT to P_QAQueue, less ramp_scrap if run followed
+                  a family switch (A5, swept)</effect>
+        </toolspecific>
+        <graphics><position x="720" y="460"/></graphics>
+      </transition>
+      <transition id="T_RaiseChangeover_L1">
+        <name><text>L1 raise changeover</text
+```xml
+      <transition id="T_RaiseChangeover_L1">
+        <name><text>L1 raise changeover</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <guard>next job prep != line current prep</guard>
+          <delay>DEFERRED by wait-rule W(t) - spec 5.2.
+                 Morning only; after 13:15 the choice does not exist.</delay>
+        </toolspecific>
+        <graphics><position x="560" y="540"/></graphics>
+      </transition>
+      <transition id="T_StartRinse_L1">
+        <name><text>L1 start rinse (operator)</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <guard>class(from,to) = OPERATOR AND P_LineOpen_L1 marked</guard>
+          <note>C5 - no tech token consumed. Available to 22:00.</note>
+        </toolspecific>
+        <graphics><position x="480" y="620"/></graphics>
+      </transition>
+      <transition id="T_EndRinse_L1">
+        <name><text>L1 end rinse</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <delay>25</delay>
+        </toolspecific>
+        <graphics><position x="400" y="700"/></graphics>
+      </transition>
+      <transition id="T_StartWash_L1">
+        <name><text>L1 start wash (tech)</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <guard>class(from,to) = TECH
+                 AND P_TechShiftOpen marked
+                 AND P_Techs >= n(from,to)
+                 AND now + dur(from,to) &lt;= 14:00 + grace(15)   [C8]
+                 AND NOT (to_sku = VW-02 AND from_shade &gt;= 4)   [C12]</guard>
+          <consumes>n(from,to) tokens from P_Techs</consumes>
+        </toolspecific>
+        <graphics><position x="640" y="620"/></graphics>
+      </transition>
+      <transition id="T_EndWash_L1">
+        <name><text>L1 end wash</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <delay>dur(from,to) per changeover matrix, spec 4.3</delay>
+          <effect>release n techs to P_Techs; set lastFamily/lastShade := to</effect>
+        </toolspecific>
+        <graphics><position x="720" y="700"/></graphics>
+      </transition>
+      <transition id="T_Fail_L1">
+        <name><text>L1 fail</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <delay>Exp(MTBF_L1) - A6 PLACEHOLDER</delay>
+          <note>A7: mill motor 4-day outage is a SCENARIO INJECTION,
+                not sampled. Too rare for a 6-week run.</note>
+        </toolspecific>
+        <graphics><position x="800" y="460"/></graphics>
+      </transition>
+      <transition id="T_Repair_L1">
+        <name><text>L1 repair</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <delay>Tri(min,mode,max) - A6</delay>
+          <effect>fill resumes from interruption point</effect>
+        </toolspecific>
+        <graphics><position x="800" y="620"/></graphics>
+      </transition>
+      <transition id="T_Interrupt_L1">
+        <name><text>L1 shift-end interrupt</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <schedule>fires at line close if fill incomplete</schedule>
+          <note>ASSUMPTION: fills are interruptible at shift end and resume
+                next open. Never confirmed - flag if wrong.</note>
+        </toolspecific>
+        <graphics><position x="720" y="380"/></graphics>
+      </transition>
+
+      <arc id="b01" source="P_Ready" target="T_Assign_L1"/>
+      <arc id="b02" source="T_Assign_L1" target="P_UpIdle_L1"/>
+      <arc id="b03" source="P_UpIdle_L1" target="T_UpStart_L1"/>
+      <arc id="b04" source="P_TankFree_L1" target="T_UpStart_L1"/>
+      <arc id="b05" source="T_UpStart_L1" target="P_UpBusy_L1"/>
+      <arc id="b06" source="P_UpBusy_L1" target="T_UpEnd_L1"/>
+      <arc id="b07" source="T_UpEnd_L1" target="P_Tank_L1"/>
+      <arc id="b08" source="T_UpEnd_L1" target="P_UpIdle_L1"/>
+      <arc id="b09" source="P_Tank_L1" target="T_StartFill_L1"/>
+      <arc id="b10" source="P_LineIdle_L1" target="T_StartFill_L1"/>
+      <arc id="b11" source="P_LineOpen_L1" target="T_StartFill_L1">
+        <inscription><text>test arc - not consumed</text></inscription>
+      </arc>
+      <arc id="b12" source="T_StartFill_L1" target="P_LineFilling_L1"/>
+      <arc id="b13" source="T_StartFill_L1" target="P_TankFree_L1"/>
+      <arc id="b14" source="P_LineFilling_L1" target="T_EndFill_L1"/>
+      <arc id="b15" source="T_EndFill_L1" target="P_LineIdle_L1"/>
+      <arc id="b16" source="T_EndFill_L1" target="P_QAQueue"/>
+      <arc id="b17" source="P_LineIdle_L1" target="T_RaiseChangeover_L1"/>
+      <arc id="b18" source="T_RaiseChangeover_L1" target="P_ChangeoverDue_L1"/>
+      <arc id="b19" source="P_ChangeoverDue_L1" target="T_StartRinse_L1"/>
+      <arc id="b20" source="T_StartRinse_L1" target="P_Rinsing_L1"/>
+      <arc id="b21" source="P_Rinsing_L1" target="T_EndRinse_L1"/>
+      <arc id="b22" source="T_EndRinse_L1" target="P_LineIdle_L1"/>
+      <arc id="b23" source="P_ChangeoverDue_L1" target="T_StartWash_L1"/>
+      <arc id="b24" source="P_Techs" target="T_StartWash_L1">
+        <inscription><text>n(from,to)  [1 or 2]</text></inscription>
+      </arc>
+      <arc id="b25" source="P_TechShiftOpen" target="T_StartWash_L1">
+        <inscription><text>test arc - not consumed</text></inscription>
+      </arc>
+      <arc id="b26" source="T_StartWash_L1" target="P_Washing_L1"/>
+      <arc id="b27" source="P_Washing_L1" target="T_EndWash_L1"/>
+      <arc id="b28" source="T_EndWash_L1" target="P_LineIdle_L1"/>
+      <arc id="b29" source="T_EndWash_L1" target="P_Techs">
+        <inscription><text>n(from,to)</text></inscription>
+      </arc>
+      <arc id="b30" source="P_LineFilling_L1" target="T_Fail_L1"/>
+      <arc id="b31" source="T_Fail_L1" target="P_Down_L1"/>
+      <arc id="b32" source="P_Down_L1" target="T_Repair_L1"/>
+      <arc id="b33" source="T_Repair_L1" target="P_LineFilling_L1"/>
+      <arc id="b34" source="P_LineFilling_L1" target="T_Interrupt_L1"/>
+      <arc id="b35" source="T_Interrupt_L1" target="P_LineFilling_L1">
+        <inscription><text>paused; resumes at next line open</text></inscription>
+      </arc>
+
+      <!-- ============ QA AND SHIPPING ============ -->
+      <place id="P_QAQueue">
+        <name><text>Awaiting QA (post-fill hold)</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <toolspecific tool="spec" version="1.0">
+          <note>C9 - delays shipment only, does not block upstream.
+                Watch Fri/Mon queue length: your Friday slip mechanism.</note>
+        </toolspecific>
+        <graphics><position x="900" y="380"/></graphics>
+      </place>
+      <place id="P_InQA">
+        <name><text>In QA</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="900" y="460"/></graphics>
+      </place>
+      <place id="P_Shipped">
+        <name><text>Shipped</text></name>
+        <initialMarking><text>0</text></initialMarking>
+        <graphics><position x="900" y="620"/></graphics>
+      </place>
+
+      <transition id="T_QAStart">
+        <name><text>Start QA</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <guard>P_Lab >= 1 AND P_LabOpen marked</guard>
+          <policy>BASELINE FIFO (A10). Variant: Meridian-priority queue.</policy>
+        </toolspecific>
+        <graphics><position x="900" y="420"/></graphics>
+      </transition>
+      <transition id="T_QAEnd">
+        <name><text>End QA</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <delay>240 min; 1440 min if family = SPECIALTY</delay>
+        </toolspecific>
+        <graphics><position x="900" y="500"/></graphics>
+      </transition>
+      <transition id="T_Ship">
+        <name><text>Ship and record lateness</text></name>
+        <toolspecific tool="spec" version="1.0">
+          <effect>lateness = max(0, now - dueTime); bucket by TIER;
+                  MERIDIAN tolerance 0, DISTRIBUTOR 2880, SMALL 10080 min</effect>
+        </toolspecific>
+        <graphics><position x="900" y="570"/></graphics>
+      </transition>
+
+      <arc id="c01" source="P_QAQueue" target="T_QAStart"/>
+      <arc id="c02" source="P_Lab" target="T_QAStart"/>
+      <arc id="c03" source="T_QAStart" target="P_InQA"/>
+      <arc id="c04" source="P_InQA" target="T_QAEnd"/>
+      <arc id="c05" source="T_QAEnd" target="P_Lab"/>
+      <arc id="c06" source="T_QAEnd" target="P_Shipped"/>
+      <arc id="c07" source="P_Shipped" target="T_Ship"/>
+
+    </page>
+  </net>
+</pnml>
+```
+
+---
+
+# 10. Building Lines 2 and 3
+
+Copy the Line 1 block; change the `_L1` suffix throughout; substitute from `lines.csv`. The only structural differences:
+
+| | Line 2 | Line 3 |
+|---|---|---|
+| Calendar place | `P_LineOpen_L2`, 06:00–22:00 | `P_LineOpen_L3`, 06:00–**14:00** |
+| Qualification | Specialty SKUs excluded (C11) | Specialty excluded; two deep-red tints excluded (A16) |
+| Assignment guard | **Meridian whites forced here** (C10) | No forced work |
+| Failure | MTBF ≈ 240 h, repair Tri(30,90,240) (A6) | Zero (A8) |
+| OT lever | none | `T_Line3Close` deferred to 22:00 when set |
+
+**One consequence worth checking against the model's own output:** Line 3's entire operating day sits inside the tech window. Its changeovers compete head-on with the morning wash queue for Lines 1 and 2. A tint→white wash starting 06:00 on Line 2 holds both techs to 09:00, during which Line 3 cannot cross families — three of its eight hours, clean and staffed and waiting. If that pattern doesn't emerge spontaneously in the reproduction check, the tech contention is modelled wrong.
+
+---
+
+# 11. What happens next
+
+**Blocking, from you:** spreadsheet, rate matrix, ERP export. Nothing runs until the rate matrix lands — `A14` placeholders make every duration in the model fictional.
+
+**Then, in order:** reproduction check (§7.1) → Q3 decomposition → Q2 sweep → Q1 reflexes. Rota and headcount arms only after the tick sheet.
+
+**Send early, don't batch:** any tick-sheet row showing an operator performing a family switch. That retires A19, changes a hard guard, and I'd rather rework in week one than build a fortnight on it.
+
+**Still unanswered:** the PNML dialect, A10 (lab hours and queue discipline — I never asked and it drives your Friday slips), A15 (tank capacities), whether fills are interruptible at shift end (§4.2), and A16 (which two tints Line 3 can't run).
+
+---
+
+# 12. Two lines that don't depend on any of this
+
+Both fall out of your own shift pattern — C3, C4, C6, C8 — not from anything I've modelled. They were true before this document existed and stay true whatever the data says:
+
+> **After 13:15, no line can cross families. The morning decides the day.**
+
+> **A wash raised at 22:00 costs nothing. One raised at 14:30 costs the evening.**
+
+Everything else in here — the switches-per-week ceiling, the capacity-versus-timing hypothesis, Line 3's idle mornings, and every number in §8 — is arithmetic on recollection. Hold it back until the sheet earns it.

@@ -10,9 +10,9 @@ from typing import Any
 import optuna
 import pytest
 from fastapi import FastAPI
+from petrinaut import PetrinautClientError, PetrinautRunError
 
 from src import petrinaut_optimizer
-from src.petrinaut_client import PetrinautClientError, PetrinautRunError
 from src.petrinaut_optimizer import PetrinautOptimizer
 from src.utils import Phase, StatusStore
 
@@ -26,7 +26,7 @@ class FakeModel:
         self.closed = False
         self.close_calls: list[bool] = []
 
-    def describe_optimization(self) -> dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return self.description
 
     def objective(self, parameter_values: dict[str, Any]) -> float:
@@ -61,7 +61,7 @@ class StubbornModel(FakeModel):
     def objective(self, parameter_values: dict[str, Any]) -> float:
         self.entered.set()
         self.release.wait()
-        raise PetrinautClientError("CLI closed")
+        raise PetrinautClientError("session closed")
 
 
 def test_maps_float_integer_step_and_boolean_descriptors_to_optuna(
@@ -104,9 +104,7 @@ def test_objective_prunes_only_evaluation_errors(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     sensitive_detail = "secret user-authored expression"
-    model = FailingModel(
-        optimization_description, PetrinautRunError(sensitive_detail)
-    )
+    model = FailingModel(optimization_description, PetrinautRunError(sensitive_detail))
     optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
     trial = optuna.trial.FixedTrial({"rate": 1.25, "count": 8, "enabled": True})
 
@@ -136,7 +134,7 @@ def test_objective_propagates_transport_errors(
         optimizer.objective(trial)
 
 
-def test_uses_the_cli_supplied_seed_for_deterministic_sampling(
+def test_uses_the_session_supplied_seed_for_deterministic_sampling(
     optimization_description: dict,
 ) -> None:
     first = PetrinautOptimizer(  # type: ignore[arg-type]
@@ -155,7 +153,7 @@ def test_uses_the_cli_supplied_seed_for_deterministic_sampling(
         {"direction": "up"},
         {"study": {"trials": 0, "sampler": "random", "seed": 42}},
         # The service-side trial cap bounds every run's event log even when
-        # the CLI's reported study is huge.
+        # the reported study is huge.
         {
             "study": {
                 "trials": petrinaut_optimizer.MAX_STUDY_TRIALS + 1,
@@ -190,7 +188,7 @@ def test_uses_the_cli_supplied_seed_for_deterministic_sampling(
         },
     ],
 )
-def test_rejects_invalid_cli_descriptions(
+def test_rejects_invalid_session_descriptions(
     optimization_description: dict,
     change: dict[str, Any],
 ) -> None:
@@ -373,9 +371,7 @@ def test_max_study_seconds_environment_parsing(
 def test_max_study_seconds_rejects_non_finite_values(
     monkeypatch: pytest.MonkeyPatch, raw: str
 ) -> None:
-    monkeypatch.setenv(
-        petrinaut_optimizer.MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE, raw
-    )
+    monkeypatch.setenv(petrinaut_optimizer.MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE, raw)
     assert petrinaut_optimizer.max_study_seconds_from_environment() == 900.0
 
 
@@ -437,9 +433,7 @@ def test_pump_events_completed_before_the_ceiling_is_not_misreported(
     optimization_description: dict,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv(
-        petrinaut_optimizer.MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE, "5"
-    )
+    monkeypatch.setenv(petrinaut_optimizer.MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE, "5")
     model = FakeModel(optimization_description)
     optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
     app, run_id = _status_app_with_run()
@@ -499,9 +493,7 @@ def test_pump_events_drains_a_queued_completion_after_the_deadline(
         worker.start()
         return worker, petrinaut_optimizer.tracer.start_span("test-study")
 
-    monkeypatch.setattr(
-        PetrinautOptimizer, "_start_study_worker", preloaded_worker
-    )
+    monkeypatch.setattr(PetrinautOptimizer, "_start_study_worker", preloaded_worker)
     model = FakeModel(optimization_description)
     optimizer = PetrinautOptimizer(model)  # type: ignore[arg-type]
     app, run_id = _status_app_with_run()

@@ -6,6 +6,7 @@ import {
 } from "../extensions";
 import { compileHirArtifacts } from "../hir";
 import { resolveNetParameterValues } from "../parameter-values";
+import { getOwn } from "../validation/record-keys";
 import { buildSimulation } from "./engine/build-simulation";
 import { computeNextFrame } from "./engine/compute-next-frame";
 import { readTokenRecord } from "./engine/token-layout";
@@ -136,7 +137,7 @@ function validateMetricIdentities(sdcpn: SDCPN): void {
 
 function validateCompiledMetrics(sdcpn: SDCPN, artifacts: HirArtifacts): void {
   for (const metric of sdcpn.metrics ?? []) {
-    if (!artifacts.metrics[metric.id]) {
+    if (!getOwn(artifacts.metrics, metric.id)) {
       throw new Error(
         `Metric "${metric.name}" has not been compiled. Check the model's metric diagnostics.`,
       );
@@ -284,7 +285,7 @@ function resolveMetrics(args: {
 
   return metricNamesOrIds.map((metricNameOrId) => {
     const metric = findMetric(sdcpn, metricNameOrId);
-    const artifact = artifacts.metrics[metric.id];
+    const artifact = getOwn(artifacts.metrics, metric.id);
     if (!artifact) {
       throw new Error(
         `Metric "${metric.name}" has not been compiled. Check the model's metric diagnostics.`,

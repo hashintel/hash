@@ -29,7 +29,7 @@ export const PopoverHeader = ({
   actions,
   hideCloseButton,
 }: PopoverHeaderProps) => {
-  const { onClose } = useOverlayContext();
+  const { onClose, closeOnInteractOutside } = useOverlayContext();
 
   const showCloseButton = !hideCloseButton && !!onClose;
 
@@ -47,6 +47,7 @@ export const PopoverHeader = ({
               iconName="close"
               tooltip="Close"
               onClick={() => onClose()}
+              autoFocus={closeOnInteractOutside === false ? undefined : "never"}
             />
           )}
         </div>

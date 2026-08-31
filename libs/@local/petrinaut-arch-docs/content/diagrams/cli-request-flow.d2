@@ -1,0 +1,14 @@
+# Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
+direction: right
+
+caller: Caller {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+commands: "commands\n(transport loop)" {style.fill: "#fbe3e8"; style.stroke: "#ad3a5b"}
+runtime: "runtime\n(parse + dispatch)" {style.fill: "#fbe3e8"; style.stroke: "#ad3a5b"}
+model: "compiled model\n(core)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+caller -> commands: one JSON line in
+commands -> runtime: complete line
+runtime -> model: run config
+model -> runtime: result
+runtime -> commands: response
+commands -> caller: one JSON line out

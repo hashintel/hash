@@ -12,9 +12,6 @@ const variants: LoadingSpinnerVariant[] = ["default", "bars"];
 
 export default {
   title: "Components/LoadingSpinner",
-  parameters: {
-    layout: "centered",
-  },
   argTypes: {
     size: {
       control: { type: "select" },
@@ -69,11 +66,6 @@ export const Default: Story<LoadingSpinnerProps> = (args) => (
     </div>
   </div>
 );
-
-Default.parameters = {
-  controls: { exclude: ["size"] },
-};
-
 export const Bars: Story<LoadingSpinnerProps> = (args) => (
   <div
     className={css({
@@ -110,7 +102,3 @@ export const Bars: Story<LoadingSpinnerProps> = (args) => (
     </div>
   </div>
 );
-
-Bars.parameters = {
-  controls: { exclude: ["size", "variant"] },
-};

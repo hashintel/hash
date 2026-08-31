@@ -5,6 +5,7 @@ import { useId, useMemo, useRef } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { resolveAutoFocusProps } from "../../util/form-shared";
 import { usePortalContainerRef } from "../../util/portal-container-context";
 import { useFieldId } from "../Form/field-id-context";
 import { Icon } from "../Icon/icon";
@@ -385,7 +386,7 @@ export const Select = <TValue extends string>({
         <div className={classes.triggerWrapper}>
           <ArkSelect.Trigger
             id={inputId}
-            autoFocus={autoFocus === true ? true : undefined}
+            {...resolveAutoFocusProps(autoFocus)}
             ref={internalRef as React.Ref<HTMLButtonElement>}
             className={classes.trigger}
             data-part="trigger"

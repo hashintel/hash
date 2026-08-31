@@ -37,6 +37,8 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 vec![Relation::RightEntity]
             }
             Self::Properties(_)
+            | Self::ScalarProperties
+            | Self::PropertyCount
             | Self::Label { .. }
             | Self::EditionProvenance(_)
             | Self::EditionCreatedById
@@ -46,6 +48,9 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 vec![Relation::EntityEditions]
             }
             Self::DirectTypeCount
+            | Self::FirstTypeTitle
+            | Self::FirstLabel
+            | Self::FirstLabelProperty
             | Self::EntityTypeEdge {
                 edge_kind: SharedEdgeKind::IsOfType,
                 path:
@@ -102,7 +107,6 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             })
             .chain(path.relations())
             .collect(),
-            Self::FirstTypeTitle | Self::FirstLabel => vec![Relation::EntityEditionCache],
         }
     }
 
@@ -210,6 +214,14 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityEditions(EntityEditions::Properties),
                 path.as_ref().map(JsonField::JsonPath),
             ),
+            Self::ScalarProperties => (
+                Column::EntityEditions(EntityEditions::Properties),
+                Some(JsonField::ScalarEntries),
+            ),
+            Self::PropertyCount => (
+                Column::EntityEditions(EntityEditions::Properties),
+                Some(JsonField::EntryCount),
+            ),
             Self::Label { inheritance_depth } => (
                 Column::EntityEditions(EntityEditions::Properties),
                 Some(JsonField::Label {
@@ -251,6 +263,10 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
             ),
             Self::FirstLabel => (
                 Column::EntityEditionCache(EntityEditionCache::Labels),
+                Some(JsonField::ArrayElement(1)),
+            ),
+            Self::FirstLabelProperty => (
+                Column::EntityEditionCache(EntityEditionCache::LabelProperties),
                 Some(JsonField::ArrayElement(1)),
             ),
         }

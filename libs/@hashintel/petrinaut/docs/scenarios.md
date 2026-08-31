@@ -72,7 +72,11 @@ return {
 - `range(start, end)` -- from `start` (inclusive) to `end` (exclusive).
 - `range(start, end, step)` -- stepping by `step`; a negative step counts down.
 
-`range` mirrors Python's `range` and is handy with `.map` for building token arrays, e.g. `range(scenario.number_of_satellites).map((i) => ({ x: 10 * i, y: 10 * i }))`. Standard JavaScript array methods (`.map`, `.filter`, ...) and `Math` work as usual. A single `range` call is capped at 1,000,000 elements; larger calls fail with an error rather than freezing the editor.
+`range` mirrors Python's `range` and is handy with `.map` for building token arrays, e.g. `range(scenario.number_of_satellites).map((i) => ({ x: 10 * i, y: 10 * i }))`. A single `range` call is capped at 1,000,000 elements; larger calls fail with an error rather than freezing the editor.
+
+Scenario code compiles through the same restricted TypeScript subset as the other code surfaces (lambdas, kernels, dynamics, metrics) — it never runs as raw JavaScript. The subset covers `const` bindings, arithmetic and comparisons, ternaries and guard `if`s, `Math.*`, object and array literals, `.map(...)` (with an optional index parameter), `.reduce(...)`, `.concat(...)`, `range(...)`, and `Array.from({ length: n }, ...)`. Other constructs — loops, `.filter`/`.slice`/spread, template literals, `let` — are rejected with an error pointing at the offending code.
+
+The subset is strict about booleans and equality: conditions and `&&`/`||` take booleans (write `parameters.x > 0`, not `parameters.x`), `==` is strict (comparing a boolean with a number is flagged as always false — use the boolean directly, e.g. `scenario.enabled ? 1 : 0`), and arithmetic takes numbers.
 
 For each returned key:
 
@@ -80,7 +84,7 @@ For each returned key:
 - A **coloured** place takes an array of token objects, with one property per type element.
 
 > Place keys are **names** in code mode, but **IDs** in per-place mode. This asymmetry is by design.
-> Unknown place names in code mode are **silently ignored** -- there is no warning if you typo a name.
+> A key that is not a place name is a compile error ("`<name>` is not a place in this net"), so a typo'd name fails the scenario instead of being silently ignored.
 
 The TypeScript editor type-checks against the current net's place names and types as you write, so unrecognised names show up as compile errors before save. Leaving the code editor empty is not an error: empty code defines no scenario-specific initial state, so every place keeps the initial marking entered manually on the canvas. Note that this differs from per-place mode, where clearing a place's expression sets that place to **zero** tokens rather than leaving it alone.
 

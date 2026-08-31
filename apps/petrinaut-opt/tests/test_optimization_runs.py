@@ -3,13 +3,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 from fastapi import FastAPI
 
 from src import optimization_runs
-from src.petrinaut_optimizer import PetrinautOptimizer
 from src.optimization_runs import (
     CANCELLED_FRAME,
     DETACH_GRACE_ENVIRONMENT_VARIABLE,
@@ -19,8 +18,8 @@ from src.optimization_runs import (
     attachment_event_stream,
     detach_grace_seconds_from_environment,
 )
+from src.petrinaut_optimizer import PetrinautOptimizer
 from src.utils import Phase, StatusStore
-
 
 FIRST_FRAME = (
     'data: {"step": 0, "params": {"rate": 1.0}, '
@@ -30,7 +29,7 @@ DONE_FRAME = "event: done\ndata: {}\n\n"
 
 
 class ConnectedRequest:
-    headers: dict[str, str] = {}
+    headers: ClassVar[dict[str, str]] = {}
 
     async def is_disconnected(self) -> bool:
         return False
@@ -99,7 +98,7 @@ class CompletedThenBlockedPumpOptimizer:
     """Pump double stuck in its (cancellable) teardown after deciding.
 
     Mirrors the real engine's shape: the done frame is appended and the
-    outcome recorded before the CLI-shutdown ``finally`` — a cancellable
+    outcome recorded before the session-shutdown ``finally`` — a cancellable
     window in which ``registry.shutdown()`` may land its cancellation.
     """
 
@@ -478,7 +477,7 @@ def test_shutdown_during_pump_teardown_keeps_the_decided_outcome() -> None:
 
 
 class SlowCloseStudyModel:
-    """Real-optimizer model whose CLI close blocks until released."""
+    """Real-optimizer model whose session close blocks until released."""
 
     def __init__(self, description: dict[str, Any]) -> None:
         self.description = description
@@ -486,7 +485,7 @@ class SlowCloseStudyModel:
         self.close_release = threading.Event()
         self.close_calls: list[bool] = []
 
-    def describe_optimization(self) -> dict[str, Any]:
+    def describe(self) -> dict[str, Any]:
         return self.description
 
     def objective(self, _parameter_values: dict[str, Any]) -> float:
@@ -498,7 +497,7 @@ class SlowCloseStudyModel:
         self.close_calls.append(graceful)
 
 
-def test_cancel_during_the_real_pumps_cli_close_keeps_completed(
+def test_cancel_during_the_real_pumps_session_close_keeps_completed(
     optimization_description: dict,
 ) -> None:
     """The real engine records its outcome before the cancellable close."""
@@ -514,7 +513,7 @@ def test_cancel_during_the_real_pumps_cli_close_keeps_completed(
         )
         try:
             # The study finishes, the done frame lands, then the pump blocks
-            # in its CLI-shutdown finally; cancel it right there.
+            # in its session-shutdown finally; cancel it right there.
             await asyncio.to_thread(model.close_started.wait, 2)
             assert run.task is not None
             run.task.cancel()

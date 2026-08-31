@@ -1,6 +1,12 @@
 import { use } from "react";
 
-import { Button, Icon, Menu, Tooltip } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  Menu,
+  SegmentedControl,
+  Tooltip,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   generateDefaultLambdaCode,
@@ -8,7 +14,6 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
-import { SegmentGroup } from "../../../../../../../components/segment-group";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { getDocumentUri } from "../../../../../../../monaco/editor-paths";
@@ -24,7 +29,14 @@ const contentStyle = css({
 });
 
 const segmentGroupContainerStyle = css({
+  marginTop: "[8px]",
   marginBottom: "[8px]",
+});
+
+// The SegmentedControl root is `width: fit-content` by default; `&&` doubles the
+// selector's specificity so this wins over the recipe regardless of source order.
+const fullWidthSegmentedControlStyle = css({
+  "&&": { width: "full" },
 });
 
 const infoBoxStyle = css({
@@ -116,27 +128,38 @@ const TransitionFiringTimeContent: React.FC = () => {
     transition.lambdaType === lambdaType ? transition.lambdaCode : "";
   const showLambdaTypeSelector = logicAvailability.stochasticLambda;
 
+  const lambdaTypeSelector = (
+    <SegmentedControl
+      size="sm"
+      value={lambdaType}
+      items={[
+        { value: "predicate", label: "Predicate" },
+        { value: "stochastic", label: "Stochastic Rate" },
+      ]}
+      onChange={(value) => {
+        updateTransition({
+          transitionId: transition.id,
+          update: {
+            lambdaType: value as "predicate" | "stochastic",
+          },
+        });
+      }}
+      disabled={isReadOnly}
+      className={fullWidthSegmentedControlStyle}
+    />
+  );
+
   return (
     <div className={contentStyle}>
       {showLambdaTypeSelector && (
         <div className={segmentGroupContainerStyle}>
-          <SegmentGroup
-            value={lambdaType}
-            options={[
-              { value: "predicate", label: "Predicate" },
-              { value: "stochastic", label: "Stochastic Rate" },
-            ]}
-            onChange={(value) => {
-              updateTransition({
-                transitionId: transition.id,
-                update: {
-                  lambdaType: value as "predicate" | "stochastic",
-                },
-              });
-            }}
-            disabled={isReadOnly}
-            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
-          />
+          {isReadOnly ? (
+            <Tooltip content={UI_MESSAGES.READ_ONLY_MODE}>
+              {lambdaTypeSelector}
+            </Tooltip>
+          ) : (
+            lambdaTypeSelector
+          )}
         </div>
       )}
 

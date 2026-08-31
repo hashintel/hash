@@ -53,6 +53,18 @@ const rolls = (fmt, env) => ({
           path.resolve("../rust/pkg/type-system_bg.wasm.d.ts"),
           path.resolve("dist/wasm/type-system.wasm.d.ts"),
         );
+
+        // `src/generated` holds declaration files, which TypeScript passes over rather than
+        // emitting. Without this copy the re-exports in the emitted `main.d.ts` dangle.
+        const generatedDir = path.resolve(outdir(fmt, env), "generated");
+        fs.mkdirSync(generatedDir, { recursive: true });
+
+        for (const file of fs.readdirSync(path.resolve("src/generated"))) {
+          fs.copyFileSync(
+            path.resolve("src/generated", file),
+            path.join(generatedDir, file),
+          );
+        }
       },
     },
   ],

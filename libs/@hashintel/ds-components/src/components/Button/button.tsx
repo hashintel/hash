@@ -1,6 +1,7 @@
 /* eslint-disable react/destructuring-assignment, react/button-has-type, @typescript-eslint/prefer-nullish-coalescing */
 import { cx } from "@hashintel/ds-helpers/css";
 
+import { resolveAutoFocusProps } from "../../util/form-shared";
 import { Icon, type IconName } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import { Tooltip } from "../Tooltip/tooltip";
@@ -28,6 +29,10 @@ type SharedButtonProps<Element extends HTMLButtonElement | HTMLAnchorElement> =
     pressed?: boolean;
     disabled?: boolean;
     tabIndex?: number;
+    /** Set to true to make the element focused on mount or 'never' to prevent the item being auto-focused */
+    autoFocus?: boolean | "never";
+    /** An optional testId */
+    testId?: string;
     onClick?: React.ButtonHTMLAttributes<Element>["onClick"];
     onMouseDown?: React.ButtonHTMLAttributes<Element>["onMouseDown"];
     onMouseUp?: React.ButtonHTMLAttributes<Element>["onMouseUp"];
@@ -133,22 +138,18 @@ export const Button = (props: ButtonProps) => {
     onFocus,
     onBlur,
     tabIndex,
+    autoFocus,
+    testId,
     tooltipOptions,
     ...rest
   } = props;
 
-  const iconElement = iconName ? (
-    <Icon name={iconName} size={iconSizeMap[size ?? "md"]} />
-  ) : null;
-  const prefixContent =
-    prefix ?? (iconPosition === "left" ? iconElement : null);
-  const suffixContent =
-    suffix ?? (iconPosition === "right" ? iconElement : null);
+  const prefixHasIcon = !!prefix || (iconPosition === "left" && !!iconName);
+  const suffixHasIcon = !!suffix || (iconPosition === "right" && !!iconName);
 
-  const hasIcon = !!suffixContent || !!prefixContent;
+  const hasIcon = prefixHasIcon || suffixHasIcon;
   const isIconOnly =
-    ((!!suffixContent && !prefixContent) ||
-      (!!prefixContent && !suffixContent)) &&
+    ((suffixHasIcon && !prefixHasIcon) || (prefixHasIcon && !suffixHasIcon)) &&
     !children;
   const isPressed = !!pressed || !!rest["aria-pressed"];
 
@@ -161,10 +162,22 @@ export const Button = (props: ButtonProps) => {
     isDisabled: disabled || loading,
     isPressed: isPressed || !!rest["aria-expanded"],
     hasIcon,
-    hasIconLeft: !!prefixContent,
-    hasIconRight: !!suffixContent,
+    hasIconLeft: prefixHasIcon,
+    hasIconRight: suffixHasIcon,
     isIconOnly,
   });
+
+  const iconElement = iconName ? (
+    <Icon
+      name={iconName}
+      size={iconSizeMap[size ?? "md"]}
+      className={classes.icon}
+    />
+  ) : null;
+  const prefixContent =
+    prefix ?? (iconPosition === "left" ? iconElement : null);
+  const suffixContent =
+    suffix ?? (iconPosition === "right" ? iconElement : null);
 
   let content = (
     // Adds a zero-width space before suffix/prefix content so that even when there is no text alignment and height stay consistent
@@ -206,7 +219,9 @@ export const Button = (props: ButtonProps) => {
     "aria-busy": loading,
     "aria-live": loading ? ("polite" as const) : undefined,
     "aria-disabled": disabled || loading || undefined,
+    "data-testid": testId,
     ...rest,
+    ...resolveAutoFocusProps(autoFocus),
   };
 
   // We split this out so that we can type the events properly
@@ -239,6 +254,7 @@ export const Button = (props: ButtonProps) => {
         download={isInactive ? undefined : props.download || undefined}
         tabIndex={isInactive ? -1 : props.tabIndex}
         aria-label={props["aria-label"] ?? (!children ? tooltip : undefined)}
+        draggable={false}
       >
         {content}
       </a>

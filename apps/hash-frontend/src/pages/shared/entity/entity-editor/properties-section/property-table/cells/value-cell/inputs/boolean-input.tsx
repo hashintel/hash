@@ -3,6 +3,7 @@ import { faRightLeft } from "@fortawesome/free-solid-svg-icons";
 import { Box, chipClasses, Tooltip, Typography } from "@mui/material";
 
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
+import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 
 import type { CellInputProps } from "./types";
 
@@ -25,7 +26,15 @@ export const BooleanInput = ({
         sx={{ cursor: "pointer !important" }}
         label={value ? "True" : "False"}
         icon={
-          <Tooltip title="Boolean" placement="top">
+          <Tooltip
+            title="Boolean"
+            placement="top"
+            PopperProps={{
+              // this className prevents editor overlay from closing
+              className: GRID_CLICK_IGNORE_CLASS,
+            }}
+            disableInteractive
+          >
             <FontAwesomeIcon
               icon={value ? faSquareCheck : faSquare}
               sx={{ zIndex: 1 }}

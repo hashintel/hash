@@ -114,7 +114,9 @@ export const CheckboxGroup = <const ValueType extends string>({
                 );
               }
             }}
-            autoFocus={autoFocus && index === 0}
+            autoFocus={
+              autoFocus === "never" ? "never" : autoFocus && index === 0
+            }
           />
         );
       })}

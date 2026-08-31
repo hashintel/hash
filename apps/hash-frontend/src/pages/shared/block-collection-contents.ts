@@ -18,6 +18,10 @@ import type {
 } from "@blockprotocol/graph";
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  EntityTraversalPath,
+  GraphResolveDepths,
+} from "@local/hash-graph-store/types";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type {
@@ -25,10 +29,6 @@ import type {
   HasIndexedContent,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type {
-  EntityTraversalPath,
-  GraphResolveDepths,
-} from "@rust/hash-graph-store/types";
 
 /**
  * The depths required to fetch the contents for blocks to render, rooted at a BlockCollection

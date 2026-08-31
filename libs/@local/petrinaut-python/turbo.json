@@ -1,0 +1,16 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "codegen": {
+      "dependsOn": ["@hashintel/petrinaut-cli#codegen"],
+      "inputs": [
+        "../../@hashintel/petrinaut-cli/schemas/**",
+        "scripts/generate-models.sh",
+        "pyproject.toml",
+        "uv.lock"
+      ],
+      "outputs": ["src/petrinaut/models.py"],
+      "passThroughEnv": ["UV_CACHE_DIR"]
+    }
+  }
+}

@@ -38,9 +38,23 @@ X-Authenticated-User-Actor-Id: {{system_machine_id}}
   client.global.set("user_id", response.body.userId);
 %}
 
+### HashQL without credentials is rejected
+POST http://127.0.0.1:4000/hashql
+Content-Type: application/json
+Authorization: <omit>
+
+{}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 401, "Response status is not 401");
+  });
+%}
+
 ### HashQL: filter-false returns empty list
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
 
 {
   "query": ["let", "axes",
@@ -86,6 +100,7 @@ Content-Type: application/json
 ### HashQL: parse error returns 400 with diagnostics
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
 
 {
   "query": {"not": "a valid query"},
@@ -105,6 +120,7 @@ Content-Type: application/json
 ### HashQL: missing inputs field returns 400
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
 
 {
   "query": {"#literal": 1}
@@ -116,7 +132,7 @@ Content-Type: application/json
   });
   client.test("error message mentions inputs", function() {
     client.assert(response.body.message !== undefined, "Expected error message");
-    client.assert(response.body.contents[0].Error.metadata.deserializationError.includes("inputs"),
+    client.assert(response.body.contents[0].metadata.deserializationError.includes("inputs"),
       "Expected error to mention missing 'inputs' field");
   });
 %}
@@ -124,6 +140,7 @@ Content-Type: application/json
 ### HashQL: json-compat wraps result in envelope with advisories
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
 Json-Compat: true
 
 {
@@ -170,6 +187,7 @@ Json-Compat: true
 ### HashQL: interactive header returns HTML on error
 POST http://127.0.0.1:4000/hashql
 Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
 Interactive: true
 
 {

@@ -1,0 +1,11 @@
+#![cfg_attr(doc, doc = include_str!("../README.md"))]
+//! ## Workspace dependencies
+#![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
+
+extern crate alloc;
+
+pub mod actor;
+pub mod cloudflare;
+pub mod delegation;
+pub mod jwt;
+pub mod kratos;

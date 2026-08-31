@@ -20,7 +20,7 @@ use http::StatusCode;
 use utoipa::OpenApi;
 
 use super::status::BoxedResponse;
-use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_response};
+use crate::rest::{AuthenticatedActorId, json::Json, status::report_to_response};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -86,7 +86,7 @@ impl PermissionResource {
     )
 )]
 async fn create_policy<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(policy): Json<PolicyCreationParams>,
@@ -99,7 +99,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .create_policy(authenticated_actor_id.into(), policy)
+        .create_policy(authenticated_actor_id, policy)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -120,7 +120,7 @@ where
     )
 )]
 async fn get_policy_by_id<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     Path(policy_id): Path<PolicyId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -133,7 +133,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .get_policy_by_id(authenticated_actor_id.into(), policy_id)
+        .get_policy_by_id(authenticated_actor_id, policy_id)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -154,7 +154,7 @@ where
     )
 )]
 async fn query_policies<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(filter): Json<PolicyFilter>,
@@ -167,7 +167,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .query_policies(authenticated_actor_id.into(), &filter)
+        .query_policies(authenticated_actor_id, &filter)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -188,7 +188,7 @@ where
     )
 )]
 async fn resolve_policies_for_actor<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(params): Json<ResolvePoliciesParams<'static>>,
@@ -223,7 +223,7 @@ where
     )
 )]
 async fn update_policy_by_id<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     Path(policy_id): Path<PolicyId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -237,7 +237,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .update_policy_by_id(authenticated_actor_id.into(), policy_id, &operations)
+        .update_policy_by_id(authenticated_actor_id, policy_id, &operations)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -258,7 +258,7 @@ where
     )
 )]
 async fn archive_policy_by_id<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     Path(policy_id): Path<PolicyId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -271,7 +271,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .archive_policy_by_id(authenticated_actor_id.into(), policy_id)
+        .archive_policy_by_id(authenticated_actor_id, policy_id)
         .await
         .map_err(report_to_response)
         .map(|()| StatusCode::NO_CONTENT)
@@ -292,7 +292,7 @@ where
     )
 )]
 async fn delete_policy_by_id<S>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(authenticated_actor_id): AuthenticatedActorId,
     Path(policy_id): Path<PolicyId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -305,7 +305,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .delete_policy_by_id(authenticated_actor_id.into(), policy_id)
+        .delete_policy_by_id(authenticated_actor_id, policy_id)
         .await
         .map_err(report_to_response)
         .map(|()| StatusCode::NO_CONTENT)

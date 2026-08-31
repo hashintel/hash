@@ -1,3 +1,8 @@
+/**
+ * @layerRoot react.execution-frame
+ * @role Abstracts where frames come from, so canvas and timeline work for live runs and recordings alike
+ */
+
 import { use, useState, type FC, type PropsWithChildren } from "react";
 
 import {

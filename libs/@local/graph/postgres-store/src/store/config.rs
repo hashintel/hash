@@ -39,6 +39,7 @@ pub struct DatabaseConnectionInfo {
             long,
             default_value = "postgres",
             env = "HASH_GRAPH_PG_PASSWORD",
+            hide_env_values = true,
             global = true
         )
     )]

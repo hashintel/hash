@@ -1,0 +1,84 @@
+graph TD
+    linkStyle default stroke-width:1.5px
+    classDef default stroke-width:1px
+    classDef root stroke-width:3px
+    classDef dev stroke-width:1px
+    classDef build stroke-width:1px
+    %% Legend
+    %% --> : Normal dependency
+    %% -.-> : Dev dependency
+    %% ---> : Build dependency
+    0[<a href="../hash_graph/index.html">hash-graph</a>]
+    1[<a href="../type_system/index.html">type-system</a>]
+    2[<a href="../hash_codec/index.html">hash-codec</a>]
+    3[<a href="../hash_codegen/index.html">hash-codegen</a>]
+    4[<a href="../hash_graph_api/index.html">hash-graph-api</a>]
+    5[<a href="../hash_graph_authentication/index.html">hash-graph-authentication</a>]
+    6[hash-graph-authorization]
+    class 6 root
+    7[<a href="../hash_graph_embeddings/index.html">hash-graph-embeddings</a>]
+    8[<a href="../hash_graph_postgres_store/index.html">hash-graph-postgres-store</a>]
+    9[<a href="../hash_graph_store/index.html">hash-graph-store</a>]
+    10[<a href="../hash_graph_temporal_versioning/index.html">hash-graph-temporal-versioning</a>]
+    11[<a href="../hash_graph_type_fetcher/index.html">hash-graph-type-fetcher</a>]
+    12[<a href="../hash_graph_types/index.html">hash-graph-types</a>]
+    13[<a href="../hash_graph_validation/index.html">hash-graph-validation</a>]
+    14[<a href="../harpc_server/index.html">harpc-server</a>]
+    15[<a href="../harpc_types/index.html">harpc-types</a>]
+    16[<a href="../harpc_wire_protocol/index.html">harpc-wire-protocol</a>]
+    17[<a href="../hashql_ast/index.html">hashql-ast</a>]
+    18[<a href="../hashql_compiletest/index.html">hashql-compiletest</a>]
+    19[<a href="../hashql_eval/index.html">hashql-eval</a>]
+    20[<a href="../hashql_hir/index.html">hashql-hir</a>]
+    21[<a href="../hashql_mir/index.html">hashql-mir</a>]
+    22[<a href="../hashql_syntax_jexpr/index.html">hashql-syntax-jexpr</a>]
+    23[<a href="../hash_middleware/index.html">hash-middleware</a>]
+    24[<a href="../hash_temporal_client/index.html">hash-temporal-client</a>]
+    25[<a href="../error_stack/index.html">error-stack</a>]
+    26[<a href="../hash_graph_benches/index.html">hash-graph-benches</a>]
+    27[<a href="../hash_graph_integration/index.html">hash-graph-integration</a>]
+    28[<a href="../hash_graph_test_data/index.html">hash-graph-test-data</a>]
+    0 --> 4
+    1 --> 10
+    1 -.-> 28
+    2 -.-> 3
+    2 --> 16
+    4 -.-> 5
+    4 --> 5
+    4 --> 11
+    4 --> 14
+    4 --> 19
+    4 --> 22
+    5 --> 9
+    5 -.-> 23
+    5 --> 23
+    6 --> 1
+    7 --> 12
+    8 --> 7
+    8 -.-> 8
+    8 --> 13
+    9 --> 6
+    9 --> 12
+    9 --> 24
+    10 --> 2
+    11 --> 9
+    12 -.-> 28
+    13 -.-> 28
+    14 -.-> 1
+    14 --> 15
+    16 -.-> 15
+    16 --> 15
+    16 --> 25
+    17 -.-> 18
+    18 --> 19
+    18 --> 22
+    19 --> 8
+    19 --> 21
+    20 -.-> 18
+    21 --> 20
+    22 --> 17
+    23 --> 1
+    24 --> 1
+    26 -.-> 4
+    27 -.-> 8
+    28 --> 9

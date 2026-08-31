@@ -1,0 +1,33 @@
+{
+  "name": "@hashintel/brunch-agent-plugin-gherkin",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "The gherkin target: the tracer plugin, wired end-to-end first as the cheap mechanism proof.",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "vite build",
+    "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
+    "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
+    "lint:tsc": "tsgo --noEmit",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@hashintel/brunch-agent": "workspace:*",
+    "valibot": "1.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.13",
+    "@typescript/native-preview": "7.0.0-dev.20260511.1",
+    "oxlint": "1.63.0",
+    "oxlint-tsgolint": "0.22.1",
+    "vite": "8.1.0",
+    "vitest": "4.1.10"
+  }
+}

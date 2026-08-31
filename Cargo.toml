@@ -8,18 +8,19 @@ exclude = [
 members = [
     "apps/hash-graph",
     "libs/@blockprotocol/type-system/rust",
-    "libs/@local/codec",
+    "libs/@local/codec/rust",
     "libs/@local/codegen",
-    "libs/@local/effect-dns/hickory",
+    "libs/@local/config",
+    "libs/@local/effect-dns/hickory/rust",
     "libs/@local/graph/api",
-    "libs/@local/graph/authorization",
+    "libs/@local/graph/authentication/",
+    "libs/@local/graph/authorization/rust",
     "libs/@local/graph/embeddings",
     "libs/@local/graph/migrations",
     "libs/@local/graph/migrations-macros",
     "libs/@local/graph/postgres-store",
-    "libs/@local/graph/store",
+    "libs/@local/graph/store/rust",
     "libs/@local/graph/temporal-versioning",
-    "libs/@local/graph/type-defs",
     "libs/@local/graph/type-fetcher",
     "libs/@local/graph/types",
     "libs/@local/graph/validation",
@@ -32,6 +33,7 @@ members = [
     "libs/@local/harpc/types",
     "libs/@local/harpc/wire-protocol",
     "libs/@local/hashql/*",
+    "libs/@local/middleware",
     "libs/@local/repo-chores/rust",
     "libs/@local/status/rust",
     "libs/@local/telemetry",
@@ -72,21 +74,23 @@ harpc-system.path                   = "libs/@local/harpc/system"
 harpc-tower.path                    = "libs/@local/harpc/tower"
 harpc-types.path                    = "libs/@local/harpc/types"
 harpc-wire-protocol.path            = "libs/@local/harpc/wire-protocol"
-hash-codec.path                     = "libs/@local/codec"
+hash-codec.path                     = "libs/@local/codec/rust"
 hash-codegen.path                   = "libs/@local/codegen"
+hash-config.path                    = "libs/@local/config"
 hash-graph-api.path                 = "libs/@local/graph/api"
-hash-graph-authorization.path       = "libs/@local/graph/authorization"
+hash-graph-authentication.path      = "libs/@local/graph/authentication/"
+hash-graph-authorization.path       = "libs/@local/graph/authorization/rust"
 hash-graph-embeddings.path          = "libs/@local/graph/embeddings"
 hash-graph-migrations.path          = "libs/@local/graph/migrations"
 hash-graph-migrations-macros.path   = "libs/@local/graph/migrations-macros"
 hash-graph-postgres-store.path      = "libs/@local/graph/postgres-store"
-hash-graph-store.path               = "libs/@local/graph/store"
+hash-graph-store.path               = "libs/@local/graph/store/rust"
 hash-graph-temporal-versioning.path = "libs/@local/graph/temporal-versioning"
 hash-graph-test-data.path           = "tests/graph/test-data/rust"
-hash-graph-type-defs.path           = "libs/@local/graph/type-defs"
 hash-graph-type-fetcher.path        = "libs/@local/graph/type-fetcher"
 hash-graph-types.path               = "libs/@local/graph/types"
 hash-graph-validation.path          = "libs/@local/graph/validation"
+hash-middleware.path                = "libs/@local/middleware"
 hash-repo-chores.path               = "libs/@local/repo-chores/rust"
 hash-status.path                    = "libs/@local/status/rust"
 hash-telemetry.path                 = "libs/@local/telemetry"
@@ -135,6 +139,7 @@ codspeed-criterion-compat          = { version = "4.1.0" }
 codspeed-criterion-compat-walltime = { version = "4.3.0", default-features = false }
 console_error_panic_hook           = { version = "0.1.7", default-features = false }
 convert_case                       = { version = "0.11.0", default-features = false }
+cookie                             = { version = "0.18.2", default-features = false }
 criterion                          = { version = "0.8.0", default-features = false }
 criterion-macro                    = { version = "0.4.0", default-features = false }
 dashu-base                         = { version = "0.4.1", default-features = false }
@@ -150,6 +155,7 @@ ena                                = { version = "0.14.3", default-features = fa
 enum-iterator                      = { version = "2.1.0", default-features = false }
 enumflags2                         = { version = "0.7.12", default-features = false }
 expect-test                        = { version = "1.5.1", default-features = false }
+figment                            = { version = "0.10.19", default-features = false }
 foldhash                           = { version = "0.2.0", default-features = false }
 frunk                              = { version = "0.4.4", default-features = false }
 frunk_core                         = { version = "0.4.4", default-features = false }
@@ -162,6 +168,7 @@ futures-sink                       = { version = "0.3.31", default-features = fa
 futures-util                       = { version = "0.3.31", default-features = false }
 glob                               = { version = "0.3.3" }
 globset                            = { version = "0.4.18", default-features = false }
+governor                           = { version = "0.10.4", default-features = false, features = ["dashmap", "quanta", "std"] }
 guppy                              = { version = "0.17.20", default-features = false }
 hashbrown                          = { version = "0.17.0", default-features = false, features = ["inline-more", "nightly", "raw-entry"] }
 hifijson                           = { version = "0.4.0", default-features = false }
@@ -258,6 +265,7 @@ specta                             = { version = "2.0.0-rc.22", default-features
 sqruff-lib                         = { version = "0.37.3" }
 sqruff-lib-core                    = { version = "0.37.3" }
 stacker                            = { version = "0.1.22", default-features = false }
+subtle                             = { version = "2.6.1", default-features = false }
 supports-color                     = { version = "3.0.2", default-features = false }
 supports-unicode                   = { version = "3.0.0", default-features = false }
 syn                                = { version = "2.0.108", default-features = false }
@@ -307,6 +315,7 @@ wasm-bindgen                       = { version = "0.2.100", default-features = f
 wasm-bindgen-test                  = { version = "0.3.50", default-features = false }
 winnow                             = { version = "1.0.0", default-features = false }
 xxhash-rust                        = { version = "0.8.15", default-features = false }
+zerocopy                           = { version = "0.8.55" }
 
 [profile.dev]
 # TODO: Use `codegen-backend = "cranelift"`

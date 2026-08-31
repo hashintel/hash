@@ -1,4 +1,10 @@
-import { Button, Icon, TextInput, Tooltip } from "@hashintel/ds-components";
+import {
+  Button,
+  Form,
+  Icon,
+  TextInput,
+  Tooltip,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import { validateEntityName } from "@hashintel/petrinaut-core";
 
@@ -11,9 +17,8 @@ import { useComponentInstancePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";
 
-const errorMessageStyle = css({
-  fontSize: "xs",
-  color: "red.s100",
+const fieldsSectionStyle = css({
+  paddingY: "3",
 });
 
 const titleStyle = css({
@@ -26,6 +31,15 @@ const paramVarNameStyle = css({
   fontSize: "xs",
   color: "neutral.s90",
   fontFamily: "mono",
+});
+
+// the compact pre-migration label treatment for the parameter rows
+const paramFieldLabelStyle = css({
+  "& :is(label, legend)": {
+    fontSize: "xs",
+    fontWeight: "medium",
+    color: "neutral.s100",
+  },
 });
 
 const hintTextStyle = css({
@@ -61,39 +75,51 @@ const ComponentInstanceMainContent: React.FC = () => {
 
   return (
     <SectionList>
-      <Section title="Name">
-        <Tooltip content={readOnlyTooltip ?? ""} disableTooltip={!isDisabled}>
-          <TextInput
-            value={nameField.value}
-            size="sm"
-            onChange={(name) => {
-              nameField.setValue(name);
-              if (nameField.error) nameField.setError(null);
-            }}
-            onBlur={handleNameBlur}
-            disabled={isDisabled}
-            invalid={!!nameField.error}
-          />
-        </Tooltip>
-        {nameField.error && (
-          <div className={errorMessageStyle}>{nameField.error}</div>
-        )}
-      </Section>
+      <Form.Section className={fieldsSectionStyle}>
+        <Form.Field
+          label="Name"
+          size="sm"
+          disabled={isDisabled}
+          errors={nameField.error ? [nameField.error] : undefined}
+        >
+          <Tooltip content={readOnlyTooltip ?? ""} disableTooltip={!isDisabled}>
+            <TextInput
+              value={nameField.value}
+              size="sm"
+              onChange={(name) => {
+                nameField.setValue(name);
+                if (nameField.error) nameField.setError(null);
+              }}
+              onBlur={handleNameBlur}
+              disabled={isDisabled}
+              invalid={!!nameField.error}
+            />
+          </Tooltip>
+        </Form.Field>
 
-      <Section title="Subnet">
-        <div className={hintTextStyle}>
-          {subnet?.name ?? "The referenced subnet no longer exists."}
-        </div>
-      </Section>
+        <Form.Field label="Subnet" size="sm">
+          <div className={hintTextStyle}>
+            {subnet?.name ?? "The referenced subnet no longer exists."}
+          </div>
+        </Form.Field>
+      </Form.Section>
 
       {subnetParameters.length > 0 && (
         <Section title="Parameters">
-          <SectionList>
+          <Form.Section>
             {subnetParameters.map((param) => (
-              <Section
+              <Form.Field
                 key={param.id}
-                title={param.name}
-                tooltip={`Variable: ${param.variableName} (${param.type})`}
+                label={param.name}
+                labelTooltip={`Variable: ${param.variableName} (${param.type})`}
+                size="sm"
+                disabled={isDisabled}
+                className={paramFieldLabelStyle}
+                descriptionBottom={
+                  <span className={paramVarNameStyle}>
+                    {param.variableName}
+                  </span>
+                }
               >
                 <Tooltip
                   content={readOnlyTooltip ?? ""}
@@ -118,10 +144,9 @@ const ComponentInstanceMainContent: React.FC = () => {
                     disabled={isDisabled}
                   />
                 </Tooltip>
-                <div className={paramVarNameStyle}>{param.variableName}</div>
-              </Section>
+              </Form.Field>
             ))}
-          </SectionList>
+          </Form.Section>
         </Section>
       )}
     </SectionList>

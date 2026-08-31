@@ -145,33 +145,31 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
     />
   );
 
-  return { ...actual, Drawer, Select, Toggle };
-});
-
-vi.mock("../../../../../components/segment-group", () => ({
-  SegmentGroup: ({
+  const SegmentedControl = ({
     onChange,
-    options,
+    items,
     value,
   }: {
     onChange: (value: string) => void;
-    options: readonly { value: string; label: string }[];
+    items: readonly { value: string; label?: string }[];
     value: string;
   }) => (
     <div>
-      {options.map((option) => (
+      {items.map((item) => (
         <button
-          key={option.value}
+          key={item.value}
           type="button"
-          aria-pressed={option.value === value}
-          onClick={() => onChange(option.value)}
+          aria-pressed={item.value === value}
+          onClick={() => onChange(item.value)}
         >
-          {option.label}
+          {item.label}
         </button>
       ))}
     </div>
-  ),
-}));
+  );
+
+  return { ...actual, Drawer, Select, SegmentedControl, Toggle };
+});
 
 vi.mock("../../../../../monaco/code-editor", () => ({
   CodeEditor: ({
@@ -255,6 +253,13 @@ function makeSuccessfulLanguageClient(): LanguageClientContextValue {
     ),
     requestHover: vi.fn(() => Promise.resolve(null)),
     requestSignatureHelp: vi.fn(() => Promise.resolve(null)),
+    requestScenarioHir: vi.fn(() =>
+      Promise.resolve({
+        version: 1 as const,
+        parameterOverrides: {},
+        placeExpressions: {},
+      }),
+    ),
     requestHirArtifacts: vi.fn((sdcpn: SDCPN) =>
       Promise.resolve({
         artifacts: {

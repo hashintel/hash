@@ -1,0 +1,170 @@
+---
+title: Untrusted names
+description: Why ids and names from a net definition never become plain-object keys unchecked, and where hostile ones are rejected.
+sidebar_order: 10
+attachTo: core.simulation.engine
+---
+
+import { Lanes } from "@diagrams/lanes";
+import { Sequence } from "@diagrams/sequence";
+
+Every identity string in a net is user-authored: place, transition, colour,
+differential-equation, metric and scenario ids, parameter variable names, and
+colour element names. They arrive from imported `.petrinaut` files, whose
+schema accepts any string as an id. The engine, the HIR compiler and the UI
+all key records by these strings, so a name chosen to collide with
+`Object.prototype` corrupts whichever record it touches. CodeQL reports this
+class as `js/remote-property-injection`.
+
+## What a hostile name does to a plain object
+
+| Key                                       | `record[key] = value`                                                                                                     | `record[key]` when the key is missing                                                 |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `__proto__`, object value                 | Replaces the record's prototype. The entry never exists, and its fields appear inherited on every later missing-key read. | `Object.prototype` (an object, so truthy)                                             |
+| `__proto__`, primitive value              | Silently ignored. The entry never exists.                                                                                 | as above                                                                              |
+| `constructor`, `toString`, `valueOf`, ... | Works (creates an own property)                                                                                           | The inherited function. Truthy, so `?? fallback` and `if (!entry)` guards never fire. |
+
+Two concrete failures this caused before the guards existed:
+
+- `artifacts.lambdas["__proto__"] = { source }` in the HIR compiler replaced
+  the record's prototype instead of storing the artifact. The fingerprint
+  check still passed (it hashes the net, the artifact map is not hashed), so the
+  simulation started with a transition whose lambda silently did not exist.
+- A token field named `toString` defeated the
+  `encodedValuesByName[name] ?? 0` default in the packed-token encoder:
+  the read returned `Object.prototype.toString`, and `Number(fn)` produced
+  `NaN` token bytes.
+
+## Three defences
+
+<Lanes
+  title="Reject, contain, guard"
+  legend={[
+    { label: "core", accent: "core" },
+    { label: "ui / react", accent: "ui" },
+  ]}
+  lanes={[
+    {
+      title: "Reject at boundaries",
+      accent: "core",
+      boxes: [
+        {
+          label: "`parseSDCPNFile`",
+          note: "Imports fail with the offending id named (`file-format`)",
+        },
+        {
+          label: "`buildSimulation`",
+          note: "Same check for nets supplied programmatically by embedders",
+        },
+        {
+          label: "Editor validators",
+          note: "`variableNameSchema`, colour element and scenario identifier schemas",
+          accent: "ui",
+        },
+      ],
+    },
+    {
+      title: "Contain in prototype-free records",
+      accent: "core",
+      boxes: [
+        {
+          label: "`createUserKeyedRecord`",
+          note: "`Object.create(null)`: `__proto__` is an ordinary key",
+        },
+        {
+          label: "Applied at every build site",
+          note: "Artifact records, frame snapshots, token records, parameter values, scenario accumulators",
+        },
+      ],
+    },
+    {
+      title: "Guard reads",
+      accent: "core",
+      boxes: [
+        {
+          label: "`getOwn`",
+          note: "Own-property reads only; a missing key is `undefined`",
+        },
+        {
+          label: "Applied after every hop",
+          note: "Artifact lookups and marking reads on records revived from `postMessage` or JSON",
+        },
+      ],
+    },
+  ]}
+/>
+
+The shared vocabulary lives in [`core.validation`](layer:core.validation)
+(`record-keys.ts`): the `DANGEROUS_RECORD_KEYS` list, the container helpers,
+and `findDangerousSdcpnKeys`, which walks a net and returns every identity
+string on the list.
+
+:::danger[Interim design]
+Plain JavaScript objects are the wrong container for user-keyed data; the
+three defences make them safe rather than right. The reserved-name ban exists
+because plain objects inherit from `Object.prototype`, and because the
+`__proto__` / `constructor` / `prototype` triple is the sanitizer set CodeQL
+and Semgrep recognise, which keeps the scanners quiet without suppressions.
+Its cost: users cannot name a parameter `constructor` or a token attribute
+`toString`. The durable fix is `Map`s (or interned ids, as the engine frame
+layout already uses) behind codecs at the JSON edges, which lifts the ban and
+deletes the guard discipline. Tracked in
+[FE-1502](https://linear.app/hash/issue/FE-1502/replace-user-keyed-records-with-maps-and-lift-the-reserved-name-ban).
+:::
+
+## Why one layer is not enough
+
+Rejection alone misses keys that never pass through a schema: scenario
+code-mode returns an object whose keys the user's code chose, and those keys
+seed the compiled initial marking. Containment alone does not survive
+serialization: `structuredClone` and `JSON.parse` both revive plain objects,
+so a record built with no prototype regains one after a worker hop, and its
+missing-key reads fall through again. Guarded reads alone leave the write
+side broken: a `__proto__` write on a plain object still replaces the
+prototype instead of storing the entry.
+
+<Sequence
+  title="One hostile transition id, three entry paths"
+  actors={["Untrusted input", "Engine"]}
+  rows={[
+    { phase: "Imported file" },
+    {
+      direction: "right",
+      label: "`.petrinaut` with transition id `constructor`",
+      note: "`parseSDCPNFile` returns an error naming the id",
+    },
+    { phase: "Programmatic net (embedding application)" },
+    {
+      direction: "right",
+      label: "`buildSimulation(input)`",
+      note: "Throws before compiling: reserved property name",
+    },
+    { phase: "Scenario code-mode return value" },
+    {
+      direction: "right",
+      label: "`{ __proto__: [...] }` from user code",
+      note: "The HIR interpreter builds the record without a prototype; unknown place names are type errors",
+    },
+  ]}
+/>
+
+## Parameters that reach compiled code
+
+Compiled buffer programs read parameters as `__params["<name>"]` (the emitter
+quotes every key with `JSON.stringify`). At instantiation the engine binds
+`__params` to a frozen copy of the run's parameter values with no prototype,
+so a missing name reads as `undefined` rather than an `Object.prototype`
+member, and compiled code cannot mutate the caller's record. Metric
+evaluators are the one exception to the copy: they rebind values per frame,
+so they keep a live record, created with no prototype at construction
+(`hir-metric.ts`).
+
+Names that survive the editor validators can still collide: `constructor` is
+the one `Object.prototype` member that is valid lower_snake_case. The
+validators reject it, and every record on the path stores it as an own
+property, so nets that already contain one keep working.
+
+Code trust is the other half of this story:
+[Compiling user code](doc:simulation/user-code) covers how authored
+TypeScript is compiled through the HIR and what the authoring sandbox does
+for the place visualizer, the one surface executed as raw JavaScript.

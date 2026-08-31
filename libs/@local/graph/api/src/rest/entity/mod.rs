@@ -9,7 +9,6 @@ use std::collections::HashMap;
 use axum::{Extension, Router, routing::post};
 use error_stack::{Report, ResultExt as _};
 use futures::future::OptionFuture;
-use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::store::error::{EntityDoesNotExist, RaceConditionOnUpdate};
 use hash_graph_store::{
@@ -85,7 +84,7 @@ use self::query::{
     summarize_entities,
 };
 use crate::rest::{
-    ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger, SearchRequestError,
+    ApiConfig, AuthenticatedActorId, OpenApiQuery, QueryLogger, SearchRequestError,
     json::Json,
     resolve_limit, resolve_search_embedding,
     status::{BoxedResponse, report_to_response},
@@ -286,7 +285,7 @@ impl EntityResource {
     ),
 )]
 async fn create_entity<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -327,7 +326,7 @@ where
     ),
 )]
 async fn create_entities<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -368,7 +367,7 @@ where
     ),
 )]
 async fn validate_entity<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
@@ -378,7 +377,7 @@ where
     S: StorePool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::ValidateEntity(&body));
+        query_logger.capture(Some(actor_id), OpenApiQuery::ValidateEntity(&body));
     }
 
     let params = ValidateEntityParams::deserialize(&body)
@@ -416,7 +415,7 @@ where
     )
 )]
 async fn has_permission_for_entities<S>(
-    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor): AuthenticatedActorId,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<HasPermissionForEntitiesParams<'static>>,
@@ -429,7 +428,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .has_permission_for_entities(AuthenticatedActor::from(actor), params)
+        .has_permission_for_entities(actor, params)
         .await
         .map(Json)
         .map_err(report_to_response)
@@ -511,7 +510,7 @@ impl SearchEntitiesRequest {
     )
 )]
 async fn search_entities<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     embedding_client: Extension<Option<Arc<OpenAiEmbeddingClient>>>,
@@ -556,7 +555,7 @@ where
     request_body = PatchEntityParams,
 )]
 async fn patch_entity<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(params): Json<PatchEntityParams>,
@@ -601,7 +600,7 @@ where
     request_body = UpdateEntityEmbeddingsParams,
 )]
 async fn update_entity_embeddings<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -655,7 +654,7 @@ impl ClusteringContext {
     request_body = ClusterEntitiesParams,
 )]
 async fn cluster_entities<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     Extension(store_pool): Extension<Arc<S>>,
     Extension(temporal_client): Extension<Option<Arc<TemporalClient>>>,
     Extension(context): Extension<Arc<ClusteringContext>>,
@@ -698,7 +697,7 @@ where
     request_body = DiffEntityParams,
 )]
 async fn diff_entity<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
@@ -708,7 +707,7 @@ where
     S: StorePool + Send + Sync,
 {
     if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(actor_id, OpenApiQuery::DiffEntity(&params));
+        query_logger.capture(Some(actor_id), OpenApiQuery::DiffEntity(&params));
     }
 
     let store = store_pool

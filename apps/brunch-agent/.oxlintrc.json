@@ -1,0 +1,65 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../.config/oxlint/brunch/react.json"],
+  "categories": {
+    "correctness": "error",
+    "perf": "warn"
+  },
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  },
+  "env": {
+    "builtin": true,
+    "es2026": true,
+    "node": true
+  },
+  "settings": {
+    "react": {
+      "version": "19.2"
+    }
+  },
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@hashintel/petrinaut",
+            "message": "The Brunch server must remain independent of Petrinaut UI. Import catalogs from @hashintel/petrinaut-core, not the editor package."
+          }
+        ],
+        "patterns": [
+          {
+            "group": ["@local/*"],
+            "message": "The Brunch application must not depend on unpublished HASH packages."
+          },
+          {
+            "group": [
+              "@hashintel/petrinaut/*",
+              "@hashintel/petrinaut-cli",
+              "@hashintel/petrinaut-cli/*"
+            ],
+            "message": "The Brunch server must remain independent of Petrinaut UI and CLI. Import catalogs from @hashintel/petrinaut-core, not the editor package."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["src/ui/**/*.{ts,tsx}"],
+      "env": {
+        "browser": true
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    "*.gen.*",
+    "*.tsbuildinfo",
+    ".turbo/**"
+  ]
+}

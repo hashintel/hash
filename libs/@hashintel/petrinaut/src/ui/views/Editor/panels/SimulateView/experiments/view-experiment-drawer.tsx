@@ -13,6 +13,11 @@ import {
   type MetricSize,
 } from "./experiment-metric-timeline";
 
+const summaryStyle = css({
+  marginTop: "-1",
+  marginBottom: "3",
+});
+
 const summaryGridStyle = css({
   display: "grid",
   gridTemplateColumns: "[repeat(2, minmax(0, 1fr))]",
@@ -22,7 +27,6 @@ const summaryGridStyle = css({
 const statStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "1",
 });
 
 const statLabelStyle = css({
@@ -46,6 +50,7 @@ const progressBarStyle = css({
   backgroundColor: "neutral.s30",
   borderRadius: "full",
   overflow: "hidden",
+  marginTop: "4",
 });
 
 const progressFillStyle = css({
@@ -130,7 +135,7 @@ const ExperimentSummary = ({
       : 0;
 
   return (
-    <>
+    <div className={summaryStyle}>
       <div className={summaryGridStyle}>
         <div className={statStyle}>
           <span className={statLabelStyle}>Status</span>
@@ -175,7 +180,7 @@ const ExperimentSummary = ({
       {experiment.error ? (
         <span className={errorStyle}>{experiment.error}</span>
       ) : null}
-    </>
+    </div>
   );
 };
 

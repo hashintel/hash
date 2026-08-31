@@ -16,8 +16,12 @@ use harpc_server::Server;
 use hash_codec::bytes::JsonLinesEncoder;
 use hash_graph_api::{
     rest::{
-        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies, entity::ClusteringContext,
-        hashql::CompilerContext, rest_api_router,
+        ApiConfig, QueryLogger, RestApiStore, RestRouterDependencies,
+        auth::{CloudflareAccessConfig, KratosSessionConfig},
+        entity::ClusteringContext,
+        hashql::CompilerContext,
+        rate_limit::RateLimitConfig,
+        rest_api_router,
     },
     rpc::Dependencies,
 };
@@ -29,8 +33,10 @@ use hash_graph_postgres_store::store::{
 };
 use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool};
 use hash_graph_type_fetcher::FetchingPool;
+use hash_telemetry::Telemetry;
 use hash_temporal_client::{TemporalClient, TemporalClientConfig};
 use multiaddr::{Multiaddr, Protocol};
+use opentelemetry::metrics::Meter;
 use regex::Regex;
 use reqwest::{Client, Url};
 use tokio::{io, net::TcpListener, signal, time::timeout};
@@ -42,7 +48,7 @@ use crate::{
     error::{GraphError, HealthcheckError},
     subcommand::{
         HealthcheckArgs, ServerLifecycle,
-        admin_server::{AdminConfig, start_admin_server},
+        admin_server::{AdminConfig, cloudflare_access_config, start_admin_server},
         type_fetcher::{
             REACHABILITY_WINDOW, TypeFetcherConfig, start_type_fetcher, wait_for_type_fetcher,
         },
@@ -168,6 +174,50 @@ pub struct CompilerConfig {
     pub compiler_exec_pool_size: PoolSize,
 }
 
+/// Configuration for Kratos session authentication.
+#[derive(Debug, Clone, Parser)]
+pub struct KratosSessionAuthConfig {
+    /// Kratos public API URL for session verification.
+    ///
+    /// Requests can authenticate with a Kratos session, provided as an `X-Session-Token` header
+    /// or an `ory_kratos_session` cookie.
+    //
+    // Optional at parse time so `--healthcheck` does not require the environment variable. The
+    // server refuses to start without it.
+    #[clap(long, env = "HASH_KRATOS_PUBLIC_URL")]
+    pub kratos_public_url: Option<Url>,
+
+    /// HTTP client timeout for session verification requests (in seconds).
+    #[clap(
+        long,
+        env = "HASH_GRAPH_SESSION_HTTP_TIMEOUT",
+        default_value_t = 10,
+        value_parser = clap::value_parser!(u64).range(1..)
+    )]
+    pub session_http_timeout_secs: u64,
+}
+
+impl KratosSessionAuthConfig {
+    /// Converts the CLI configuration into the session provider configuration.
+    pub(crate) fn into_provider_config(self) -> Result<KratosSessionConfig, Report<GraphError>> {
+        let kratos_public_url = self.kratos_public_url.ok_or_else(|| {
+            Report::new(GraphError).attach(
+                "--kratos-public-url (HASH_KRATOS_PUBLIC_URL) is required when running the server",
+            )
+        })?;
+        if !matches!(kratos_public_url.scheme(), "http" | "https") {
+            return Err(Report::new(GraphError).attach(
+                "--kratos-public-url (HASH_KRATOS_PUBLIC_URL) must be an http or https URL",
+            ));
+        }
+
+        Ok(KratosSessionConfig {
+            kratos_public_url,
+            http_timeout: Duration::from_secs(self.session_http_timeout_secs),
+        })
+    }
+}
+
 /// Configuration for the main graph API server.
 ///
 /// Groups HTTP address, RPC address, temporal client, store behavior, and
@@ -176,7 +226,7 @@ pub struct CompilerConfig {
     clippy::struct_excessive_bools,
     reason = "CLI arguments are boolean flags."
 )]
-#[derive(Debug, Clone, Parser)]
+#[derive(derive_more::Debug, Clone, Parser)]
 pub struct ServerConfig {
     #[clap(flatten)]
     pub http_address: HttpAddress,
@@ -195,7 +245,8 @@ pub struct ServerConfig {
     ///
     /// If not set, the entity and entity-type search endpoints cannot resolve a `semanticString`;
     /// callers must provide a precomputed `embedding` instead.
-    #[clap(long, env = "HASH_GRAPH_OPENAI_API_KEY")]
+    #[clap(long, env = "HASH_GRAPH_OPENAI_API_KEY", hide_env_values = true)]
+    #[debug("***")]
     pub openai_api_key: Option<String>,
 
     /// A regex which *new* Type System URLs are checked against. Trying to create new Types with
@@ -260,6 +311,23 @@ pub struct ServerConfig {
 
     #[clap(flatten)]
     pub api_config: ApiConfig,
+
+    #[clap(flatten)]
+    pub rate_limit: RateLimitConfig,
+
+    #[clap(flatten)]
+    pub session_auth: KratosSessionAuthConfig,
+
+    /// Shared secret internal services present to act on behalf of an actor.
+    ///
+    /// Sent as the `Authorization: HASH-Service <secret>` credential, either next to
+    /// `X-Authenticated-User-Actor-Id` or alone on bootstrap routes.
+    //
+    // Optional at parse time so `--healthcheck` does not require the environment variable. The
+    // server refuses to start without it.
+    #[clap(long, env = "HASH_GRAPH_SERVICE_SECRET", hide_env_values = true)]
+    #[debug("***")]
+    pub service_secret: Option<String>,
 
     #[clap(flatten)]
     pub compiler: CompilerConfig,
@@ -464,12 +532,25 @@ where
 }
 
 /// Starts the main graph API server (REST + optional RPC).
+/// Resolved authentication configuration for the REST and admin routers.
+pub(crate) struct AuthenticationSetup {
+    pub session_auth: KratosSessionConfig,
+    pub cloudflare_access: Option<CloudflareAccessConfig>,
+    pub service_secret: String,
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Every parameter is a distinct resource the one caller assembles."
+)]
 async fn start_server<S>(
     pool: S,
     postgres: PostgresStorePool,
     compiler: Arc<CompilerContext>,
     config: ServerConfig,
+    authentication: AuthenticationSetup,
     query_logger: Option<QueryLogger>,
+    meter: Meter,
     lifecycle: &ServerLifecycle,
 ) -> Result<(), Report<GraphError>>
 where
@@ -504,6 +585,11 @@ where
         domain_regex: DomainValidator::new(config.allowed_url_domain),
         query_logger,
         api_config: config.api_config,
+        session_auth: authentication.session_auth,
+        cloudflare_access: authentication.cloudflare_access,
+        service_secret: authentication.service_secret,
+        rate_limit: config.rate_limit,
+        meter,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
         serve_api_reference: config.serve_api_reference,
@@ -525,7 +611,7 @@ where
     clippy::too_many_lines,
     reason = "Sequential startup flow, no natural split point"
 )]
-pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
+pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), Report<GraphError>> {
     if args.healthcheck.healthcheck {
         return wait_healthcheck(
             || healthcheck(args.config.http_address.clone()),
@@ -534,6 +620,25 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
         .await
         .change_context(GraphError);
     }
+
+    // Validate the configuration before connecting anywhere, so a misconfigured server fails
+    // without tearing down established connections.
+    let session_auth = args.config.session_auth.clone().into_provider_config()?;
+    let cloudflare_access = cloudflare_access_config(&args.admin)?;
+    // HTTP strips surrounding whitespace from header values, so the senders' secret arrives
+    // trimmed. Trimming here keeps both sides comparing the same bytes.
+    let service_secret = args
+        .config
+        .service_secret
+        .clone()
+        .map(|secret| secret.trim().to_owned())
+        .filter(|secret| !secret.is_empty())
+        .ok_or_else(|| {
+            Report::new(GraphError).attach(
+                "--service-secret (HASH_GRAPH_SERVICE_SECRET) must be set and non-empty when \
+                 running the server",
+            )
+        })?;
 
     let pool = PostgresStorePool::new(
         &args.db_info,
@@ -572,7 +677,15 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
     let postgres = pool.clone();
 
     if args.embed_admin {
-        start_admin_server(pool.clone(), args.admin, &lifecycle);
+        // The admin surface gets its own meter scope, as running it standalone would, so its
+        // rejections stay a separate series from the public API's.
+        start_admin_server(
+            pool.clone(),
+            args.admin,
+            service_secret.clone(),
+            telemetry.meter("Graph Admin API"),
+            &lifecycle,
+        );
     }
 
     if args.embed_type_fetcher {
@@ -631,7 +744,13 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
         postgres,
         compiler,
         args.config,
+        AuthenticationSetup {
+            session_auth,
+            cloudflare_access,
+            service_secret,
+        },
         query_logger,
+        telemetry.meter("Graph API"),
         &lifecycle,
     )
     .await

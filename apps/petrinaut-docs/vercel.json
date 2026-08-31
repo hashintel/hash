@@ -1,0 +1,13 @@
+{
+  "github": {
+    "silent": true,
+    "autoJobCancelation": true
+  },
+  "framework": "astro",
+  "ignoreCommand": "npx turbo-ignore @apps/petrinaut-docs",
+  "buildCommand": "./vercel-build.sh",
+  "installCommand": "./vercel-install.sh",
+  "outputDirectory": "./dist",
+  "cleanUrls": true,
+  "trailingSlash": false
+}

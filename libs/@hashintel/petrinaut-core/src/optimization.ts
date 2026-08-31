@@ -9,6 +9,7 @@ export const PETRINAUT_OPTIMIZATION_MAX_SEED = 2_147_483_647;
 export const PETRINAUT_OPTIMIZATION_MAX_TRIALS = 1_000;
 export const PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL = 100_000;
 export const PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS = 5_000_000;
+export const PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL = 100;
 
 const optimizationScalarSchema = z.union([z.number(), z.boolean()]);
 
@@ -130,6 +131,16 @@ export const petrinautOptimizationExecutionSchema = z
     seed: z.number().int().min(0).max(PETRINAUT_OPTIMIZATION_MAX_SEED),
     dt: z.number().positive(),
     maxTime: z.number().positive(),
+    seedsPerTrial: z
+      .number()
+      .int()
+      .min(1)
+      .max(PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL)
+      .optional()
+      .meta({
+        description:
+          "How many seeded simulations each trial runs. The same derived seed sequence is reused for every trial, and the per-seed objectives are aggregated into the trial objective. Defaults to 1.",
+      }),
   })
   .meta({ description: "Simulation settings shared by every trial." });
 
@@ -410,6 +421,7 @@ export const petrinautOptimizationManifestSchema = z
     const stepsPerTrial = Math.ceil(
       manifest.execution.maxTime / manifest.execution.dt,
     );
+    const seedsPerTrial = manifest.execution.seedsPerTrial ?? 1;
     if (
       !Number.isSafeInteger(stepsPerTrial) ||
       stepsPerTrial > PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL
@@ -417,15 +429,19 @@ export const petrinautOptimizationManifestSchema = z
       addIssue(
         context,
         ["execution"],
-        `An optimization may run at most ${PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL.toLocaleString()} simulation steps per trial`,
+        `An optimization may run at most ${PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL.toLocaleString()} simulation steps per seeded run`,
       );
     } else if (
-      stepsPerTrial * manifest.study.trials >
+      stepsPerTrial * seedsPerTrial * manifest.study.trials >
       PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS
     ) {
+      // Blame the seed multiplier only when the study fits without it.
+      const fitsUnseeded =
+        stepsPerTrial * manifest.study.trials <=
+        PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS;
       addIssue(
         context,
-        ["study", "trials"],
+        fitsUnseeded ? ["execution", "seedsPerTrial"] : ["study", "trials"],
         `An optimization may run at most ${PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS.toLocaleString()} simulation steps across all trials`,
       );
     }
@@ -447,41 +463,96 @@ export const petrinautOptimizationEvaluateParamsSchema = z
     description: "Values suggested for every and only optimized parameter.",
   });
 
-export type PetrinautOptimizationDescribeParameter =
-  | {
-      identifier: string;
-      type: "float";
-      default: number;
-      minimum: number;
-      maximum: number;
-      scale: "linear" | "log";
-    }
-  | {
-      identifier: string;
-      type: "int";
-      default: number;
-      minimum: number;
-      maximum: number;
-      step: number;
-      scale: "linear" | "log";
-    }
-  | {
-      identifier: string;
-      type: "boolean";
-      default: boolean;
-    };
+/**
+ * The protocol's response shapes are schemas rather than plain types, so the
+ * CLI can publish them as JSON Schema and other languages can generate
+ * matching types from the one definition.
+ */
+export const petrinautOptimizationDescribeParameterSchema = z
+  .discriminatedUnion("type", [
+    z.strictObject({
+      identifier: z.string(),
+      type: z.literal("float"),
+      default: z.number(),
+      minimum: z.number(),
+      maximum: z.number(),
+      scale: z.enum(["linear", "log"]),
+    }),
+    z.strictObject({
+      identifier: z.string(),
+      type: z.literal("int"),
+      // `default` stays a plain number: it comes from the scenario parameter,
+      // which the manifest schema does not force to be an integer. The bounds
+      // and step come from the integer domain, which does.
+      default: z.number(),
+      minimum: z.number().int(),
+      maximum: z.number().int(),
+      step: z.number().int(),
+      scale: z.enum(["linear", "log"]),
+    }),
+    z.strictObject({
+      identifier: z.string(),
+      type: z.literal("boolean"),
+      default: z.boolean(),
+    }),
+  ])
+  .meta({
+    description: "One optimized parameter of the study's flat search space.",
+  });
 
-export type PetrinautOptimizationDescribeResult = {
-  direction: "maximize" | "minimize";
-  study: PetrinautOptimizationStudy & { seed: number };
-  parameters: PetrinautOptimizationDescribeParameter[];
-};
+export const petrinautOptimizationDescribeResultSchema = z
+  .strictObject({
+    direction: z.enum(["maximize", "minimize"]),
+    study: petrinautOptimizationStudySchema
+      .extend({
+        seed: z.number().int(),
+        seedsPerTrial: z
+          .number()
+          .int()
+          .min(1)
+          .max(PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL)
+          .optional(),
+      })
+      .meta({
+        description:
+          "Study settings with the execution seed. `seedsPerTrial` is reported once the CLI runs seeded replicates; absent means 1.",
+      }),
+    parameters: z.array(petrinautOptimizationDescribeParameterSchema),
+  })
+  .meta({
+    description:
+      "The `optimization.describe` result: direction, study settings, and the parameters that are not fixed.",
+  });
 
+export const petrinautOptimizationReplicateSchema = z
+  .strictObject({
+    seed: z.number().int(),
+    objective: z.number(),
+  })
+  .meta({ description: "One seeded run's objective within a trial." });
+
+export const petrinautOptimizationEvaluateResultSchema = z
+  .strictObject({
+    objective: z.number(),
+    replicates: z.array(petrinautOptimizationReplicateSchema).optional(),
+  })
+  .meta({
+    description:
+      "The `optimization.evaluate` result. `objective` is the mean of the per-seed objectives (identical to the sole run's objective when the trial runs one seed); `replicates` reports the per-seed values whenever a trial runs more than one.",
+  });
+
+export type PetrinautOptimizationDescribeParameter = z.infer<
+  typeof petrinautOptimizationDescribeParameterSchema
+>;
+export type PetrinautOptimizationDescribeResult = z.infer<
+  typeof petrinautOptimizationDescribeResultSchema
+>;
 export type PetrinautOptimizationEvaluateParams = z.infer<
   typeof petrinautOptimizationEvaluateParamsSchema
 >;
-
-export type PetrinautOptimizationEvaluateResult = { objective: number };
+export type PetrinautOptimizationEvaluateResult = z.infer<
+  typeof petrinautOptimizationEvaluateResultSchema
+>;
 
 const optimizationBestSchema = z
   .strictObject({

@@ -39,7 +39,6 @@ import {
   archiveEntityResolver,
   summarizeEntitiesResolver,
   createEntityResolver,
-  isEntityPublicResolver,
   queryEntitiesResolver,
   queryEntitiesTableResolver,
   searchEntitiesResolver,
@@ -162,7 +161,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getEntityDiffs: loggedInAndSignedUpMiddleware(getEntityDiffsResolver),
     getFlowRuns: loggedInAndSignedUpMiddleware(getFlowRunsResolver),
     getFlowRunById: loggedInAndSignedUpMiddleware(getFlowRunByIdResolver),
-    isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
     getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(() => {
       throw new Error(
         "`getEntityAuthorizationRelationships` is not implemented",

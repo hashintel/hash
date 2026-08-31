@@ -1,16 +1,83 @@
 # @hashintel/petrinaut
 
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies:
+  - @hashintel/ds-helpers@0.2.2
+  - @hashintel/petrinaut-core@0.0.4
+  - @hashintel/ds-components@0.3.1
+
+## 0.0.18
+
+### Patch Changes
+
+- Add an interactive-tool extension point to the AI assistant panel: hosts can register app-level tools whose calls render as interactive widgets in the conversation, including tools that suspend the turn until the user responds. ([@lunelson](https://github.com/lunelson), [#9274](https://github.com/hashintel/hash/pull/9274))
+
+## 0.0.17
+
+### Patch Changes
+
+- Improve narrow-panel layouts and scrolling in Simulation Settings, the timeline, bottom-panel tabs, and sidebar subviews. ([@kube](https://github.com/kube), [#9074](https://github.com/hashintel/hash/pull/9074))
+
+- Rename the AI assistant tab to "AI", use neutral assistant copy, place `topBarStart` immediately before the net title, and add `slots.titleStyle` for host-defined title styling. ([@vilkinsons](https://github.com/vilkinsons), [#9084](https://github.com/hashintel/hash/pull/9084))
+
+- Replace the `optimize` host capability with `createOptimizationRun`, `attachOptimizationRun`, and `cancelOptimizationRun`, enabling resumable runs and automatic reconnection. ([@kube](https://github.com/kube), [#9066](https://github.com/hashintel/hash/pull/9066))
+
+- Add `uuid` token attributes with automatic generation and `Uuid.generate()` / `Uuid.from()` helpers. ([@kube](https://github.com/kube), [#8953](https://github.com/hashintel/hash/pull/8953))
+
+- Add `range()` to scenario code, fix common array methods in scenario expressions, and show scenario compilation errors in Simulation Settings. ([@kube](https://github.com/kube), [#9092](https://github.com/hashintel/hash/pull/9092))
+
+- Clarify that Predicate transitions fire immediately when their guard is true and input tokens are available. ([@YannisZa](https://github.com/YannisZa), [#9097](https://github.com/hashintel/hash/pull/9097))
+
+- Add the `string` token attribute type, stored via per-run interning. Editing a type's schema now migrates stored initial state (values convert, falling back to the new type's default). ([@kube](https://github.com/kube), [#8953](https://github.com/hashintel/hash/pull/8953))
+
+- Add a scenario-first optimization interface with flat parameter search spaces, metric objectives, and progressive step results. ([@kube](https://github.com/kube), [#9051](https://github.com/hashintel/hash/pull/9051))
+
+- Add `integer` and `boolean` token attribute types. ([@kube](https://github.com/kube), [#8764](https://github.com/hashintel/hash/pull/8764))
+
+- Improve inhibitor arc styling. ([@CiaranMn](https://github.com/CiaranMn), [#8846](https://github.com/hashintel/hash/pull/8846))
+
+- Allow metrics to read resolved net parameters through `parameters.<variableName>`; scenario parameters remain unavailable. ([@kube](https://github.com/kube), [#9043](https://github.com/hashintel/hash/pull/9043))
+
+- Add Actual mode for read-only live execution, including host event streams, a timeline, an event log, and recording exports. ([@kube](https://github.com/kube), [#8829](https://github.com/hashintel/hash/pull/8829))
+
+- Replace Babel with the HIR compiler for user code. Unsupported TypeScript now produces diagnostics instead of running. ([@kube](https://github.com/kube), [#8981](https://github.com/hashintel/hash/pull/8981))
+
+- Allow hosts to disable SDCPN extensions and global parameters. ([@kube](https://github.com/kube), [#8763](https://github.com/hashintel/hash/pull/8763))
+
+- Improve spacing for scenario and parameter controls in Simulation Settings. ([@kube](https://github.com/kube), [#9078](https://github.com/hashintel/hash/pull/9078))
+
+- Add subnet definitions, component instances, and wiring support to Petrinaut. ([@kube](https://github.com/kube), [#8662](https://github.com/hashintel/hash/pull/8662))
+
+- Add editor support for read input arcs, including arc controls and distinct canvas rendering. ([@kube](https://github.com/kube), [#8774](https://github.com/hashintel/hash/pull/8774))
+
+- Add a "Pre-deployed Constellation" scenario to the Probabilistic Satellite Launcher example. ([@kube](https://github.com/kube), [#9092](https://github.com/hashintel/hash/pull/9092))
+
+- Use a shared fixed seed (`PETRINAUT_DEFAULT_SEED`) for interactive simulation and optimization runs, so playing a simulation reproduces an optimization trial given the same configuration. ([@kube](https://github.com/kube), [#9073](https://github.com/hashintel/hash/pull/9073))
+
+- Export the token value codec and `compileUserCode` from `@hashintel/petrinaut-core`. ([@kube](https://github.com/kube), [#8943](https://github.com/hashintel/hash/pull/8943))
+
+- Use a packed token frame layout and simplify the `getPlaceTokens(place)` and `buildMetricState(frame, places)` APIs. ([@kube](https://github.com/kube), [#8944](https://github.com/hashintel/hash/pull/8944))
+
+- Add Panda build metadata and a shared preset for host style generation, and namespace Petrinaut keyframes to prevent theme collisions. ([@alex-e-leon](https://github.com/alex-e-leon), [#9071](https://github.com/hashintel/hash/pull/9071))
+
+- Updated dependencies:
+  - @hashintel/ds-components@0.3.0
+  - @hashintel/petrinaut-core@0.0.3
+
 ## 0.0.16
 
 ### Patch Changes
 
-- [#8789](https://github.com/hashintel/hash/pull/8789) [`1fff5b0`](https://github.com/hashintel/hash/commit/1fff5b0d79a98a5328f0df6fe4770e2f6f6fcad0) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Adds an optional product walkthrough that consumers can set
+- Adds an optional product walkthrough that consumers can set ([@alex-e-leon](https://github.com/alex-e-leon), [#8789](https://github.com/hashintel/hash/pull/8789))
 
-- [#8751](https://github.com/hashintel/hash/pull/8751) [`3b5ff88`](https://github.com/hashintel/hash/commit/3b5ff88eb9d2983d7c63492f3911d70eaa28d331) Thanks [@kube](https://github.com/kube)! - Add experiment metric creation controls, validation, and scalar/distribution visualizations.
+- Add experiment metric creation controls, validation, and scalar/distribution visualizations. ([@kube](https://github.com/kube), [#8751](https://github.com/hashintel/hash/pull/8751))
 
-- [#8750](https://github.com/hashintel/hash/pull/8750) [`f9d6417`](https://github.com/hashintel/hash/commit/f9d64178b4a20c04efb0ad85fcf8dbfcff20327a) Thanks [@CiaranMn](https://github.com/CiaranMn)! - add AI assistant
+- add AI assistant ([@CiaranMn](https://github.com/CiaranMn), [#8750](https://github.com/hashintel/hash/pull/8750))
 
-- Updated dependencies [[`3b5ff88`](https://github.com/hashintel/hash/commit/3b5ff88eb9d2983d7c63492f3911d70eaa28d331), [`f9d6417`](https://github.com/hashintel/hash/commit/f9d64178b4a20c04efb0ad85fcf8dbfcff20327a), [`c39ede8`](https://github.com/hashintel/hash/commit/c39ede805c753b91eb9551362f0815f77bba5833), [`919cbc5`](https://github.com/hashintel/hash/commit/919cbc57b9e3f60b9ea3bde7e42aabc14a235370), [`f9d6417`](https://github.com/hashintel/hash/commit/f9d64178b4a20c04efb0ad85fcf8dbfcff20327a)]:
+- Updated dependencies:
   - @hashintel/petrinaut-core@0.0.2
   - @hashintel/ds-components@0.2.2
 
@@ -18,11 +85,11 @@
 
 ### Patch Changes
 
-- [#8730](https://github.com/hashintel/hash/pull/8730) [`ed40011`](https://github.com/hashintel/hash/commit/ed40011ba896b77db0dae30c219e1f2066382c28) Thanks [@kube](https://github.com/kube)! - Extract the headless Petrinaut core into `@hashintel/petrinaut-core`, expose dedicated core worker entry points, and remove the `@hashintel/petrinaut/core` compatibility entry point.
+- Extract the headless Petrinaut core into `@hashintel/petrinaut-core`, expose dedicated core worker entry points, and remove the `@hashintel/petrinaut/core` compatibility entry point. ([@kube](https://github.com/kube), [#8730](https://github.com/hashintel/hash/pull/8730))
 
-- [#8709](https://github.com/hashintel/hash/pull/8709) [`2c1c977`](https://github.com/hashintel/hash/commit/2c1c977d8d2772706f4edb91dd79a8d28866bff0) Thanks [@kube](https://github.com/kube)! - Add basic MonteCarlo-based experiments
+- Add basic MonteCarlo-based experiments ([@kube](https://github.com/kube), [#8709](https://github.com/hashintel/hash/pull/8709))
 
-- Updated dependencies [[`c0c9498`](https://github.com/hashintel/hash/commit/c0c9498dc4f648814a80fc6e8df3598ff8a108ac), [`ed40011`](https://github.com/hashintel/hash/commit/ed40011ba896b77db0dae30c219e1f2066382c28), [`d3ac60c`](https://github.com/hashintel/hash/commit/d3ac60c5509bd2d5a478f2e5a56433c59d353f7b), [`834cbee`](https://github.com/hashintel/hash/commit/834cbeeb7d8045f006d7a1fab1e5858b83c437d6)]:
+- Updated dependencies:
   - @hashintel/ds-helpers@0.2.1
   - @hashintel/petrinaut-core@0.0.1
   - @hashintel/refractive@0.0.4
@@ -32,9 +99,9 @@
 
 ### Patch Changes
 
-- [#8633](https://github.com/hashintel/hash/pull/8633) [`fe08932`](https://github.com/hashintel/hash/commit/fe0893270534885d81ea909b871d4185d6aa0c2e) Thanks [@kube](https://github.com/kube)! - Add Metrics: user-authored functions over simulation state that produce a single number per frame, plotted via a new metric picker in the simulation timeline header
+- Add Metrics: user-authored functions over simulation state that produce a single number per frame, plotted via a new metric picker in the simulation timeline header ([@kube](https://github.com/kube), [#8633](https://github.com/hashintel/hash/pull/8633))
 
-- Updated dependencies [[`926f9fa`](https://github.com/hashintel/hash/commit/926f9fa3b844a9dd4ca26cdbe6dd69ceed87dcb5), [`ab0a035`](https://github.com/hashintel/hash/commit/ab0a0353baa0f1611ceba7ca29cd8adb575392f5), [`891f36f`](https://github.com/hashintel/hash/commit/891f36f602ba628d66140dd53130a688addb98fa), [`d9eb831`](https://github.com/hashintel/hash/commit/d9eb8317bd0c981e45f263a007aeac48f309e268), [`79eda1e`](https://github.com/hashintel/hash/commit/79eda1e27e9a6b2959a68e59f9a25791639f5770)]:
+- Updated dependencies:
   - @hashintel/ds-components@0.2.0
   - @hashintel/ds-helpers@0.2.0
 
@@ -42,27 +109,27 @@
 
 ### Patch Changes
 
-- [#8618](https://github.com/hashintel/hash/pull/8618) [`dae70b5`](https://github.com/hashintel/hash/commit/dae70b532abfc74158e6452f3e739f1baf8140f0) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Add support for inhibitor arcs
+- Add support for inhibitor arcs ([@alex-e-leon](https://github.com/alex-e-leon), [#8618](https://github.com/hashintel/hash/pull/8618))
 
-- [#8611](https://github.com/hashintel/hash/pull/8611) [`21327f5`](https://github.com/hashintel/hash/commit/21327f52ad732b3e348b5e7421f6ed514295d417) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Let minZoom be dynamically based on the size of the net
+- Let minZoom be dynamically based on the size of the net ([@alex-e-leon](https://github.com/alex-e-leon), [#8611](https://github.com/hashintel/hash/pull/8611))
 
-- [#8637](https://github.com/hashintel/hash/pull/8637) [`e02b330`](https://github.com/hashintel/hash/commit/e02b33016bf187ac1838827e477e68cea9d7922c) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - recenter offscreen selected items when drawer is opened
+- recenter offscreen selected items when drawer is opened ([@alex-e-leon](https://github.com/alex-e-leon), [#8637](https://github.com/hashintel/hash/pull/8637))
 
-- [#8623](https://github.com/hashintel/hash/pull/8623) [`ae168f5`](https://github.com/hashintel/hash/commit/ae168f540900a5fa938c557e82b6aa3f80d6fef0) Thanks [@alex-e-leon](https://github.com/alex-e-leon)! - Improve text wrapping for long text in nodes
+- Improve text wrapping for long text in nodes ([@alex-e-leon](https://github.com/alex-e-leon), [#8623](https://github.com/hashintel/hash/pull/8623))
 
-- [#8609](https://github.com/hashintel/hash/pull/8609) [`b12a1d2`](https://github.com/hashintel/hash/commit/b12a1d2e9cdeff8d20c8472b3cafa83fca5070ea) Thanks [@kube](https://github.com/kube)! - Add Scenarios: reusable simulation configurations with parameter overrides and initial state expressions
+- Add Scenarios: reusable simulation configurations with parameter overrides and initial state expressions ([@kube](https://github.com/kube), [#8609](https://github.com/hashintel/hash/pull/8609))
 
 ## 0.0.12
 
 ### Patch Changes
 
-- [#8590](https://github.com/hashintel/hash/pull/8590) [`4a60112`](https://github.com/hashintel/hash/commit/4a6011241720a9c5d8a7f0e7f49f15b50eaad228) Thanks [@CiaranMn](https://github.com/CiaranMn)! - better scoping of styles, font loading
+- better scoping of styles, font loading ([@CiaranMn](https://github.com/CiaranMn), [#8590](https://github.com/hashintel/hash/pull/8590))
 
 ## 0.0.11
 
 ### Patch Changes
 
-- Updated dependencies [[`efc1237`](https://github.com/hashintel/hash/commit/efc12379a84adbcf28db961bf6af8dd18e6b579d), [`efc1237`](https://github.com/hashintel/hash/commit/efc12379a84adbcf28db961bf6af8dd18e6b579d)]:
+- Updated dependencies:
   - @hashintel/refractive@0.0.3
   - @hashintel/ds-helpers@0.1.2
   - @hashintel/ds-components@0.1.2
@@ -71,9 +138,9 @@
 
 ### Patch Changes
 
-- [#8570](https://github.com/hashintel/hash/pull/8570) [`2399453`](https://github.com/hashintel/hash/commit/23994530e745c153a2b926c89e9205b87630c236) Thanks [@CiaranMn](https://github.com/CiaranMn)! - Fix dependency references
+- Fix dependency references ([@CiaranMn](https://github.com/CiaranMn), [#8570](https://github.com/hashintel/hash/pull/8570))
 
-- Updated dependencies [[`2399453`](https://github.com/hashintel/hash/commit/23994530e745c153a2b926c89e9205b87630c236)]:
+- Updated dependencies:
   - @hashintel/ds-components@0.1.1
   - @hashintel/ds-helpers@0.1.1
 
@@ -81,25 +148,25 @@
 
 ### Patch Changes
 
-- [#8300](https://github.com/hashintel/hash/pull/8300) [`2b711ad`](https://github.com/hashintel/hash/commit/2b711adc178483069b02a349fb5822d6ecc735af) Thanks [@kube](https://github.com/kube)! - Add LSP-based language service layer for Monaco code editors with diagnostics, completions, hover, and signature help
+- Add LSP-based language service layer for Monaco code editors with diagnostics, completions, hover, and signature help ([@kube](https://github.com/kube), [#8300](https://github.com/hashintel/hash/pull/8300))
 
-- [#8533](https://github.com/hashintel/hash/pull/8533) [`feb318b`](https://github.com/hashintel/hash/commit/feb318b85398afca507a5ddee5414520f236b1e6) Thanks [@kube](https://github.com/kube)! - Add copy/paste, select all, and escape-to-deselect keyboard shortcuts
+- Add copy/paste, select all, and escape-to-deselect keyboard shortcuts ([@kube](https://github.com/kube), [#8533](https://github.com/hashintel/hash/pull/8533))
 
-- [#8439](https://github.com/hashintel/hash/pull/8439) [`9741121`](https://github.com/hashintel/hash/commit/9741121865f41557780d3bab873690a8074cad7f) Thanks [@CiaranMn](https://github.com/CiaranMn)! - add TikZ export format
+- add TikZ export format ([@CiaranMn](https://github.com/CiaranMn), [#8439](https://github.com/hashintel/hash/pull/8439))
 
-- [#8285](https://github.com/hashintel/hash/pull/8285) [`673ece2`](https://github.com/hashintel/hash/commit/673ece205d7622936980bf744574654026aad1c3) Thanks [@kube](https://github.com/kube)! - Fix read-only tooltips to always show during simulation mode
+- Fix read-only tooltips to always show during simulation mode ([@kube](https://github.com/kube), [#8285](https://github.com/hashintel/hash/pull/8285))
 
-- [#8472](https://github.com/hashintel/hash/pull/8472) [`15ebcfe`](https://github.com/hashintel/hash/commit/15ebcfe3e9d51bcd88802fc41001f63cbe70b085) Thanks [@kube](https://github.com/kube)! - Visual appearance improvements
+- Visual appearance improvements ([@kube](https://github.com/kube), [#8472](https://github.com/hashintel/hash/pull/8472))
 
-- [#8463](https://github.com/hashintel/hash/pull/8463) [`a9fe023`](https://github.com/hashintel/hash/commit/a9fe0235430bc71f0275f2954e9728cb3b410915) Thanks [@kube](https://github.com/kube)! - Add probability distribution support to transition kernels (`Distribution.Gaussian`, `Distribution.Uniform`, `Distribution.Lognormal`)
+- Add probability distribution support to transition kernels (`Distribution.Gaussian`, `Distribution.Uniform`, `Distribution.Lognormal`) ([@kube](https://github.com/kube), [#8463](https://github.com/hashintel/hash/pull/8463))
 
-- [#8523](https://github.com/hashintel/hash/pull/8523) [`44fe283`](https://github.com/hashintel/hash/commit/44fe283ffb14e378b516fc7295f9133bb9d397d6) Thanks [@kube](https://github.com/kube)! - Add multi-selection support with keyboard shortcuts, refactor selection logic, migrate to @xyflow/react v12
+- Add multi-selection support with keyboard shortcuts, and migrate to @xyflow/react v12 ([@kube](https://github.com/kube), [#8523](https://github.com/hashintel/hash/pull/8523))
 
-- [#8295](https://github.com/hashintel/hash/pull/8295) [`4b22f76`](https://github.com/hashintel/hash/commit/4b22f7608491fe10a8b90753fe0cc47f99dbd296) Thanks [@kube](https://github.com/kube)! - Add configurable simulation playback speed and maximum run time
+- Add configurable simulation playback speed and maximum run time ([@kube](https://github.com/kube), [#8295](https://github.com/hashintel/hash/pull/8295))
 
-- [#8505](https://github.com/hashintel/hash/pull/8505) [`f6971b7`](https://github.com/hashintel/hash/commit/f6971b7c5730bad6094e21c1b849283fcb818325) Thanks [@kube](https://github.com/kube)! - Add optional undo/redo support with version history UI, keyboard shortcuts (Cmd|Ctrl+Z / Cmd|Ctrl+Shift+Z), and drag debouncing
+- Add optional undo/redo support with version history UI, keyboard shortcuts (Cmd|Ctrl+Z / Cmd|Ctrl+Shift+Z), and drag debouncing ([@kube](https://github.com/kube), [#8505](https://github.com/hashintel/hash/pull/8505))
 
-- Updated dependencies [[`76aed29`](https://github.com/hashintel/hash/commit/76aed2967634fd5b15de428b053c4cdad92c1102), [`15ebcfe`](https://github.com/hashintel/hash/commit/15ebcfe3e9d51bcd88802fc41001f63cbe70b085), [`7ddaecb`](https://github.com/hashintel/hash/commit/7ddaecbc0f2b3ea1daff6ea584a3d9f418a3da53)]:
+- Updated dependencies:
   - @hashintel/ds-helpers@0.1.0
   - @hashintel/ds-components@0.1.0
 
@@ -107,7 +174,7 @@
 
 ### Patch Changes
 
-- Updated dependencies [[`567b951`](https://github.com/hashintel/hash/commit/567b95178a429aa2c1c00050ca753250db0db094)]:
+- Updated dependencies:
   - @hashintel/refractive@0.0.2
   - @hashintel/ds-components@0.0.4
   - @hashintel/ds-helpers@0.0.4
@@ -116,7 +183,7 @@
 
 ### Patch Changes
 
-- Updated dependencies []:
+- Updated dependencies:
   - @hashintel/ds-components@0.0.3
   - @hashintel/ds-helpers@0.0.3
 
@@ -124,21 +191,21 @@
 
 ### Patch Changes
 
-- [#8194](https://github.com/hashintel/hash/pull/8194) [`d28482a`](https://github.com/hashintel/hash/commit/d28482a537980c507dbd7352d6e14d9bdb1132e4) Thanks [@kube](https://github.com/kube)! - Unify Vite config and update styles configuration
+- Unify Vite config and update styles configuration ([@kube](https://github.com/kube), [#8194](https://github.com/hashintel/hash/pull/8194))
 
-- [#8171](https://github.com/hashintel/hash/pull/8171) [`bc9456d`](https://github.com/hashintel/hash/commit/bc9456d08906560a9f348b0957f89a0e5e6e4593) Thanks [@kube](https://github.com/kube)! - Add Diagnostics Panel using TypeScript Language Service.
+- Add Diagnostics Panel using TypeScript Language Service. ([@kube](https://github.com/kube), [#8171](https://github.com/hashintel/hash/pull/8171))
 
-- [#8211](https://github.com/hashintel/hash/pull/8211) [`23e295b`](https://github.com/hashintel/hash/commit/23e295b42569101e25338af9b26f1daaf7868a57) Thanks [@kube](https://github.com/kube)! - Add Simulation Timeline Visualizer
+- Add Simulation Timeline Visualizer ([@kube](https://github.com/kube), [#8211](https://github.com/hashintel/hash/pull/8211))
 
-- [#8143](https://github.com/hashintel/hash/pull/8143) [`0c8a82f`](https://github.com/hashintel/hash/commit/0c8a82fb7cd801b8c6f8205f02fc9eed1ca0a6b0) Thanks [@kube](https://github.com/kube)! - Add Menu option to Export without Visual Information
+- Add Menu option to Export without Visual Information ([@kube](https://github.com/kube), [#8143](https://github.com/hashintel/hash/pull/8143))
 
-- [#8262](https://github.com/hashintel/hash/pull/8262) [`4ac5c57`](https://github.com/hashintel/hash/commit/4ac5c57b251a3094dd87978383902ea30b162d3c) Thanks [@kube](https://github.com/kube)! - Better animation of Transitions and flow inside Arcs
+- Better animation of Transitions and flow inside Arcs ([@kube](https://github.com/kube), [#8262](https://github.com/hashintel/hash/pull/8262))
 
-- [#8083](https://github.com/hashintel/hash/pull/8083) [`469eb01`](https://github.com/hashintel/hash/commit/469eb01a176e94f9ba881701e9d41f3c4390ca67) Thanks [@CiaranMn](https://github.com/CiaranMn)! - implement SDCPN features, update UI
+- implement SDCPN features, update UI ([@CiaranMn](https://github.com/CiaranMn), [#8083](https://github.com/hashintel/hash/pull/8083))
 
-- [#8195](https://github.com/hashintel/hash/pull/8195) [`da0c7b9`](https://github.com/hashintel/hash/commit/da0c7b9a197be422c898e47f34c4abe4ca5cd9c0) Thanks [@kube](https://github.com/kube)! - Quick Simulation in Edit mode, and disable Simulate tab for now.
+- Quick Simulation in Edit mode, and disable Simulate tab for now. ([@kube](https://github.com/kube), [#8195](https://github.com/hashintel/hash/pull/8195))
 
-- Updated dependencies [[`658b9a4`](https://github.com/hashintel/hash/commit/658b9a4040029059099b43a77a757ff32e0b5c38), [`658b9a4`](https://github.com/hashintel/hash/commit/658b9a4040029059099b43a77a757ff32e0b5c38)]:
+- Updated dependencies:
   - @hashintel/refractive@0.0.1
   - @hashintel/ds-components@0.0.2
   - @hashintel/ds-helpers@0.0.2

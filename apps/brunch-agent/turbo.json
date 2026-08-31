@@ -1,0 +1,30 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": [
+        "ANTHROPIC_API_KEY",
+        "BRUNCH_DEV_DB_PATH",
+        "BRUNCH_PETRINAUT_ORIGINS",
+        "BRUNCH_TRANSPORT_AISDK_INSPECT"
+      ]
+    },
+    "petrinaut:dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true,
+      "passThroughEnv": ["BRUNCH_CHAT_ORIGIN", "PETRINAUT_WEBSITE_ROOT"]
+    },
+    "test:unit": {
+      "dependsOn": ["build", "codegen", "^build"],
+      "env": ["TEST_COVERAGE"]
+    }
+  }
+}

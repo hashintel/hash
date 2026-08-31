@@ -4,7 +4,7 @@ Visual editor for Stochastic Dynamic Colored Petri Nets (SDCPN). Published npm p
 
 ## Stack
 
-- React 19 with React Compiler (babel-plugin-react-compiler)
+- React 19 with React Compiler (oxc-transform-react)
 - TypeScript (type-checked with `tsgo`)
 - Vite 8 + Rolldown (library build + demo site)
 - Panda CSS for styling

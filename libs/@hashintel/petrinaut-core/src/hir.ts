@@ -73,14 +73,34 @@ export {
   type HirLintResult,
 } from "./hir/lint";
 export {
+  interpretHir,
+  HirInterpretError,
+  type HirInterpretBindings,
+  type HirValue,
+} from "./hir/interpret";
+export {
   lowerTypeScriptToHir,
   type LowerTypeScriptResult,
 } from "./hir/lower-typescript";
+export {
+  AMBIENT_INPUT_NAMES,
+  detectUserCodeForm,
+  type DualFormSurfaceKind,
+  type UserCodeForm,
+} from "./hir/user-code-form";
+export {
+  lowerScenarioToHir,
+  type ScenarioHir,
+  type ScenarioHirItem,
+  type ScenarioLoweringInput,
+} from "./hir/scenario";
 export {
   buildDynamicsContext,
   buildKernelContext,
   buildLambdaContext,
   buildMetricContext,
+  buildScenarioCodeContext,
+  buildScenarioExpressionContext,
   type HirDynamicsContext,
   type HirKernelContext,
   type HirLambdaContext,
@@ -88,6 +108,10 @@ export {
   type HirMetricPlaceInfo,
   type HirParameterInfo,
   type HirPlaceBinding,
+  type HirScenarioCodeContext,
+  type HirScenarioExpressionContext,
+  type HirScenarioParameterInfo,
+  type HirScenarioPlaceInfo,
   type HirSurfaceContext,
   type HirTokenElementInfo,
 } from "./hir/surface-context";

@@ -1,4 +1,4 @@
-import { Button } from "@hashintel/ds-components";
+import { Button, ButtonGroup } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   aiCommandActionInputSchemas,
@@ -29,12 +29,6 @@ const widgetStyle = css({
   fontWeight: "medium",
 });
 
-const buttonsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-});
-
 const summaryStyle = css({
   fontSize: "sm",
   fontWeight: "medium",
@@ -48,9 +42,9 @@ const ApplyAutoLayoutWidget = ({
 }: InteractiveToolWidgetProps<ApplyAutoLayoutInput, AiToolOutput>) => {
   if (state === "submitted") {
     const verdict =
-      submittedOutput?.applied === true
+      submittedOutput.applied === true
         ? submittedOutput.title
-        : ((submittedOutput as { reason?: string } | undefined)?.reason ??
+        : ((submittedOutput as { reason?: string }).reason ??
           "Auto-layout declined.");
     return (
       <div className={widgetStyle}>
@@ -65,7 +59,7 @@ const ApplyAutoLayoutWidget = ({
         The assistant suggests running auto-layout on the net. This may
         reposition places and transitions.
       </span>
-      <div className={buttonsStyle}>
+      <ButtonGroup spacing="sm">
         <Button
           size="sm"
           variant="solid"
@@ -89,7 +83,7 @@ const ApplyAutoLayoutWidget = ({
         >
           No, keep current layout
         </Button>
-      </div>
+      </ButtonGroup>
     </div>
   );
 };
@@ -110,5 +104,6 @@ export const applyAutoLayoutInteractiveTool: InteractiveToolDefinition<
   },
   parseInput: (raw): ApplyAutoLayoutInput =>
     aiCommandActionInputSchemas.applyAutoLayout.parse(raw),
+  parseOutput: (raw): AiToolOutput => raw as AiToolOutput,
   Widget: ApplyAutoLayoutWidget,
 };

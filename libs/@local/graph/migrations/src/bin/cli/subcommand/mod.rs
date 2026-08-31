@@ -33,7 +33,12 @@ pub struct DatabaseConnectionInfo {
     user: String,
 
     /// Database password for authentication.
-    #[clap(long, default_value = "postgres", env = "HASH_GRAPH_PG_PASSWORD")]
+    #[clap(
+        long,
+        default_value = "postgres",
+        env = "HASH_GRAPH_PG_PASSWORD",
+        hide_env_values = true
+    )]
     #[debug("***")]
     password: String,
 

@@ -201,23 +201,16 @@ export const useEntityTypeValue = (
 
   const updateCallback = useCallback(
     async (
-      partialEntityType: Partial<ConstructEntityTypeParams>,
+      updatedEntityType: ConstructEntityTypeParams,
       dependentsToUpgrade: EntityType[],
     ) => {
       if (!stateEntityTypeRef.current) {
         throw new Error("Cannot update yet");
       }
 
-      const {
-        schema: { $id, ...restOfEntityType },
-      } = stateEntityTypeRef.current;
-
       const primaryUpdate = {
-        entityTypeId: $id,
-        updatedEntityType: {
-          ...restOfEntityType,
-          ...partialEntityType,
-        },
+        entityTypeId: stateEntityTypeRef.current.schema.$id,
+        updatedEntityType,
       };
 
       const res = await updateEntityTypes({

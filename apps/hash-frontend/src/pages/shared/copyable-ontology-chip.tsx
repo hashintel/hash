@@ -71,7 +71,7 @@ export const CopyableOntologyChip: FunctionComponent<{
         </ButtonBase>
       </Tooltip>
       {!hideOpenInNew && (
-        <Link href={versionedUrl} target="_blank">
+        <Link href={versionedUrl} target="_blank" draggable={false}>
           <IconButton
             sx={{
               padding: 0,

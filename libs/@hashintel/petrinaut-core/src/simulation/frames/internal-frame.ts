@@ -1,4 +1,9 @@
 import {
+  createUserKeyedRecord,
+  isDangerousRecordKey,
+} from "../../validation/record-keys";
+import { createPlaceCapacities, hasAnyPlaceCapacity } from "../engine/capacity";
+import {
   computeTokenSlotLayout,
   createTokenRegionViews,
   type TokenRegionViews,
@@ -35,6 +40,14 @@ export type EngineFrameLayout = {
   placeStrideBytes: Uint32Array;
   /** Per-place packed token layout (null for uncoloured places). */
   placeTokenLayouts: (TokenSlotLayout | null)[];
+  /**
+   * Per-place token capacity, `PLACE_CAPACITY_UNBOUNDED` where unlimited.
+   *
+   * Dense so capacity checks stay index-based in the stepping loop.
+   */
+  placeCapacities: Uint32Array;
+  /** Whether any place declares a capacity, so nets without any skip the check. */
+  hasPlaceCapacities: boolean;
   transitionIds: readonly ID[];
   transitionIndexById: ReadonlyMap<ID, number>;
 };
@@ -128,8 +141,10 @@ export function createEngineFrameLayout(
 
   for (let index = 0; index < sdcpn.places.length; index++) {
     const place = sdcpn.places[index]!;
-    if (place.id === "__proto__") {
-      throw new Error("Cannot add place with id '__proto__'");
+    if (isDangerousRecordKey(place.id)) {
+      throw new Error(
+        `Cannot add place with id "${place.id}": reserved JavaScript property name`,
+      );
     }
     if (placeIndexById.has(place.id)) {
       throw new Error(`Duplicate place id in SDCPN: ${place.id}`);
@@ -144,8 +159,10 @@ export function createEngineFrameLayout(
   const transitionIndexById = new Map<ID, number>();
   for (let index = 0; index < sdcpn.transitions.length; index++) {
     const transition = sdcpn.transitions[index]!;
-    if (transition.id === "__proto__") {
-      throw new Error("Cannot add transition with id '__proto__'");
+    if (isDangerousRecordKey(transition.id)) {
+      throw new Error(
+        `Cannot add transition with id "${transition.id}": reserved JavaScript property name`,
+      );
     }
     if (transitionIndexById.has(transition.id)) {
       throw new Error(`Duplicate transition id in SDCPN: ${transition.id}`);
@@ -153,11 +170,15 @@ export function createEngineFrameLayout(
     transitionIndexById.set(transition.id, index);
   }
 
+  const placeCapacities = createPlaceCapacities(sdcpn.places);
+
   return {
     placeIds,
     placeIndexById,
     placeStrideBytes,
     placeTokenLayouts,
+    placeCapacities,
+    hasPlaceCapacities: hasAnyPlaceCapacity(placeCapacities),
     transitionIds,
     transitionIndexById,
   };
@@ -477,12 +498,14 @@ export function readEngineFrame(
     getTransitionState,
     getTransitionEntries,
     toSnapshot() {
-      const places: EngineFrameSnapshot["places"] = {};
+      // Keyed by place/transition id: no prototype.
+      const places: EngineFrameSnapshot["places"] = createUserKeyedRecord();
       for (const [placeId, placeState] of getPlaceEntries()) {
         places[placeId] = placeState;
       }
 
-      const transitions: EngineFrameSnapshot["transitions"] = {};
+      const transitions: EngineFrameSnapshot["transitions"] =
+        createUserKeyedRecord();
       for (const [transitionId, transitionState] of getTransitionEntries()) {
         transitions[transitionId] = transitionState;
       }

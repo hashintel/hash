@@ -20,6 +20,7 @@ import type {
 } from "../../types/sdcpn";
 import type { InitialMarking } from "../api";
 import type { EngineFrame, EngineFrameLayout } from "../frames/internal-frame";
+import type { TransitionCapacityConstraint } from "./capacity";
 import type { StringPool } from "./string-pool";
 import type { TokenRegionViews, TokenSlotLayout } from "./token-layout";
 
@@ -70,6 +71,13 @@ export type CompiledTransition = {
   name: string;
   inputPlaces: readonly CompiledTransitionInputPlace[];
   outputPlaces: readonly CompiledTransitionPlace[];
+  /**
+   * Output places whose capacity could block this transition, precomputed.
+   *
+   * Empty when no output place declares a capacity, which is the common case —
+   * so the enablement check costs nothing for nets that do not use capacities.
+   */
+  capacityConstraints: readonly TransitionCapacityConstraint[];
   /** Buffer-ABI lambda `(f64, u64, u8, placeBases, indices) => number |
    * boolean` (token format v2 packed structs); parameters/pool pre-bound. */
   lambdaFn: HirCompiledBufferLambda;

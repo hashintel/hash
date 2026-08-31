@@ -6,7 +6,7 @@ use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
     Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
-    action::ActionName, principal::actor::AuthenticatedActor,
+    action::ActionName,
 };
 use hash_graph_migrations::Transaction as _;
 use hash_graph_store::{
@@ -49,13 +49,13 @@ use type_system::{
         json_schema::OntologyTypeResolver,
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    principal::actor::ActorEntityUuid,
+    principal::actor::{ActorEntityUuid, ActorId},
 };
 
 use crate::store::{
     error::DeletionError,
     postgres::{
-        AsClient, PostgresStore, TransactionState, TraversalContext,
+        AsClient, GenericClientIter as _, PostgresStore, TransactionState, TraversalContext,
         crud::{QueryIndices, QueryRecordDecode, TypedRow},
         ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{
@@ -110,7 +110,7 @@ where
                 provider
                     .store
                     .as_client()
-                    .query_raw(&statement, parameters.iter().copied())
+                    .query_raw(&statement, parameters)
                     .instrument(tracing::info_span!(
                         "SELECT",
                         otel.kind = "client",
@@ -220,7 +220,7 @@ where
 
             let data_type_rows = self
                 .as_client()
-                .query(&statement, parameters)
+                .query_params_iter(&statement, parameters)
                 .instrument(tracing::info_span!(
                     "SELECT",
                     otel.kind = "client",
@@ -256,7 +256,7 @@ where
 
         let rows = self
             .as_client()
-            .query(&statement, parameters)
+            .query_params_iter(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -499,7 +499,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn create_data_types<P>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<InsertionError>>
     where
@@ -515,12 +515,12 @@ where
         let mut data_type_reference_ids = HashSet::new();
         let mut data_type_conversions_rows = Vec::new();
 
-        let mut policy_components_builder = PolicyComponents::builder(&transaction);
+        let mut policy_components_builder = PolicyComponents::builder(&transaction, Some(actor_id));
 
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: actor_id,
+                    created_by_id: ActorEntityUuid::from(actor_id),
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -569,7 +569,6 @@ where
         }
 
         let policy_components = policy_components_builder
-            .with_actor(actor_id)
             .with_actions([ActionName::CreateDataType], MergePolicies::No)
             .await
             .change_context(InsertionError)?;
@@ -620,7 +619,7 @@ where
 
         transaction
             .query_data_types(
-                actor_id,
+                Some(actor_id),
                 QueryDataTypesParams {
                     filter: Filter::In(
                         FilterExpression::Path {
@@ -729,7 +728,7 @@ where
         {
             temporal_client
                 .start_update_data_type_embeddings_workflow(
-                    actor_id,
+                    ActorEntityUuid::from(actor_id),
                     &inserted_data_types
                         .iter()
                         .zip(&inserted_data_type_metadata)
@@ -748,11 +747,10 @@ where
 
     async fn query_data_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         mut params: QueryDataTypesParams<'_>,
     ) -> Result<QueryDataTypesResponse, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewDataType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -772,11 +770,10 @@ where
     //       anyway.
     async fn count_data_types(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         mut params: CountDataTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewDataType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -799,14 +796,12 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    #[expect(clippy::too_many_lines)]
     async fn query_data_type_subgraph(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: QueryDataTypeSubgraphParams<'_>,
     ) -> Result<QueryDataTypeSubgraphResponse, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_action(ActionName::ViewDataType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -928,7 +923,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn update_data_types<P>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<UpdateError>>
     where
@@ -946,7 +941,7 @@ where
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
-                    created_by_id: actor_id,
+                    created_by_id: ActorEntityUuid::from(actor_id),
                     archived_by_id: None,
                     user_defined: parameters.provenance,
                 },
@@ -1000,8 +995,7 @@ where
             });
         }
 
-        let policy_components = PolicyComponents::builder(&transaction)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(&transaction, Some(actor_id))
             .with_data_type_ids(&old_data_type_ids)
             .with_actions([ActionName::UpdateDataType], MergePolicies::No)
             .await
@@ -1054,7 +1048,7 @@ where
 
         transaction
             .query_data_types(
-                actor_id,
+                Some(actor_id),
                 QueryDataTypesParams {
                     filter: Filter::In(
                         FilterExpression::Path {
@@ -1165,7 +1159,7 @@ where
         {
             temporal_client
                 .start_update_data_type_embeddings_workflow(
-                    actor_id,
+                    ActorEntityUuid::from(actor_id),
                     &inserted_data_types
                         .iter()
                         .zip(&updated_data_type_metadata)
@@ -1185,11 +1179,10 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn archive_data_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: ArchiveDataTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, Some(actor_id))
             .with_data_type_id(&params.data_type_id)
             .with_actions([ActionName::ArchiveDataType], MergePolicies::No)
             .await
@@ -1220,18 +1213,17 @@ where
             }
         }
 
-        self.archive_ontology_type(&params.data_type_id, actor_id)
+        self.archive_ontology_type(&params.data_type_id, ActorEntityUuid::from(actor_id))
             .await
     }
 
     #[tracing::instrument(level = "info", skip(self))]
     async fn unarchive_data_type(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: UnarchiveDataTypeParams,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, Some(actor_id))
             .with_data_type_id(&params.data_type_id)
             .with_actions([ActionName::ArchiveDataType], MergePolicies::No)
             .await
@@ -1265,7 +1257,7 @@ where
         self.unarchive_ontology_type(
             &params.data_type_id,
             &OntologyEditionProvenance {
-                created_by_id: actor_id,
+                created_by_id: ActorEntityUuid::from(actor_id),
                 archived_by_id: None,
                 user_defined: params.provenance,
             },
@@ -1276,7 +1268,7 @@ where
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn update_data_type_embeddings(
         &mut self,
-        _: ActorEntityUuid,
+        _: ActorId,
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> Result<(), Report<UpdateError>> {
         let ontology_id = OntologyTypeUuid::from(DataTypeUuid::from_url(&params.data_type_id));
@@ -1360,11 +1352,10 @@ where
     )]
     async fn find_data_type_conversion_targets(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: Option<ActorId>,
         params: FindDataTypeConversionTargetsParams,
     ) -> Result<FindDataTypeConversionTargetsResponse, Report<QueryError>> {
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, actor_id)
             .with_actions([ActionName::ViewDataType], MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -1394,7 +1385,7 @@ where
             let (statement, parameters) = compiler.compile();
 
             self.as_client()
-                .query_raw(&statement, parameters.iter().copied())
+                .query_raw(&statement, parameters)
                 .instrument(tracing::info_span!(
                     "SELECT",
                     otel.kind = "client",
@@ -1611,7 +1602,7 @@ where
     #[tracing::instrument(skip(self, params))]
     async fn has_permission_for_data_types(
         &self,
-        authenticated_actor: AuthenticatedActor,
+        authenticated_actor: ActorId,
         params: HasPermissionForDataTypesParams<'_>,
     ) -> Result<HashSet<VersionedUrl>, Report<hash_graph_store::error::CheckPermissionError>> {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
@@ -1628,8 +1619,7 @@ where
             .add_filter(&data_type_filter)
             .change_context(CheckPermissionError::CompileFilter)?;
 
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(authenticated_actor)
+        let policy_components = PolicyComponents::builder(self, Some(authenticated_actor))
             .with_action(params.action, MergePolicies::Yes)
             .await
             .change_context(CheckPermissionError::BuildPolicyContext)?;
@@ -1645,7 +1635,7 @@ where
 
         let (statement, parameters) = compiler.compile();
         self.as_client()
-            .query_raw(&statement, parameters.iter().copied())
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",

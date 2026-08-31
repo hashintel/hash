@@ -1,4 +1,4 @@
-//! Internal allocator wrapper around bumpalo.
+//! Internal allocator wrapper around bump-scope.
 
 use core::{alloc, mem, ptr};
 

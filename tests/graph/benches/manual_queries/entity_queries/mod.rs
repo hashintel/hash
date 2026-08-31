@@ -24,7 +24,7 @@ use serde::{Deserialize as _, Serialize as _};
 use serde_json::Value as JsonValue;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
-use type_system::principal::actor::ActorEntityUuid;
+use type_system::principal::actor::ActorId;
 use uuid::Uuid;
 use walkdir::WalkDir;
 
@@ -119,7 +119,7 @@ struct Settings<P> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct QueryEntitiesQueryParameters {
     #[serde(default)]
-    actor_id: Vec<ActorEntityUuid>,
+    actor_id: Vec<ActorId>,
     #[serde(default)]
     limit: Vec<usize>,
 }
@@ -127,7 +127,8 @@ struct QueryEntitiesQueryParameters {
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct QueryEntitiesQuery<'q, 's, 'p> {
-    actor_id: ActorEntityUuid,
+    #[serde(default)]
+    actor_id: Option<ActorId>,
     #[serde(borrow)]
     request: QueryEntitiesRequest<'q, 's, 'p>,
     #[serde(default)]
@@ -140,8 +141,12 @@ impl QueryEntitiesQuery<'_, '_, '_> {
         let modifies_limit = !self.settings.parameters.limit.is_empty();
 
         let actor_id = iter::once(self.actor_id)
-            .chain(mem::take(&mut self.settings.parameters.actor_id))
-            .sorted_by_key(|actor_id| Uuid::from(*actor_id))
+            .chain(
+                mem::take(&mut self.settings.parameters.actor_id)
+                    .into_iter()
+                    .map(Some),
+            )
+            .sorted_by_key(|actor_id| actor_id.map(Uuid::from))
             .dedup();
         let limit = iter::once(self.request.limit)
             .chain(
@@ -155,7 +160,10 @@ impl QueryEntitiesQuery<'_, '_, '_> {
         iproduct!(actor_id, limit).map(move |(actor_id, limit)| {
             let mut parameters = Vec::new();
             if modifies_actor_id {
-                parameters.push(format!("actor_id={actor_id}"));
+                parameters.push(actor_id.map_or_else(
+                    || "actor_id=public".to_owned(),
+                    |actor_id| format!("actor_id={actor_id}"),
+                ));
             }
             if modifies_limit && let Some(limit) = limit {
                 parameters.push(format!("limit={limit}"));
@@ -179,7 +187,7 @@ impl QueryEntitiesQuery<'_, '_, '_> {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct QueryEntitySubgraphQueryParameters {
     #[serde(default)]
-    actor_id: Vec<ActorEntityUuid>,
+    actor_id: Vec<ActorId>,
     #[serde(default)]
     limit: Vec<usize>,
     #[serde(default)]
@@ -189,7 +197,8 @@ struct QueryEntitySubgraphQueryParameters {
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct QueryEntitySubgraphQuery<'q, 's, 'p> {
-    actor_id: ActorEntityUuid,
+    #[serde(default)]
+    actor_id: Option<ActorId>,
     #[serde(borrow)]
     request: QueryEntitySubgraphRequest<'q, 's, 'p>,
     #[serde(default)]
@@ -236,8 +245,12 @@ impl QueryEntitySubgraphQuery<'_, '_, '_> {
         let (request, traversal_params) = self.request.clone().into_parts();
 
         let actor_id = iter::once(self.actor_id)
-            .chain(mem::take(&mut self.settings.parameters.actor_id))
-            .sorted_by_key(|actor_id| Uuid::from(*actor_id))
+            .chain(
+                mem::take(&mut self.settings.parameters.actor_id)
+                    .into_iter()
+                    .map(Some),
+            )
+            .sorted_by_key(|actor_id| actor_id.map(Uuid::from))
             .dedup();
         let limit = iter::once(request.limit)
             .chain(
@@ -254,7 +267,10 @@ impl QueryEntitySubgraphQuery<'_, '_, '_> {
             move |(actor_id, limit, traversal_params)| {
                 let mut parameters = Vec::new();
                 if modifies_actor_id {
-                    parameters.push(format!("actor_id={actor_id}"));
+                    parameters.push(actor_id.map_or_else(
+                        || "actor_id=public".to_owned(),
+                        |actor_id| format!("actor_id={actor_id}"),
+                    ));
                 }
                 if modifies_limit && let Some(limit) = limit {
                     parameters.push(format!("limit={limit}"));

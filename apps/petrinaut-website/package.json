@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.63",
+    "@hashintel/brunch-agent-transport-aisdk": "workspace:*",
     "@hashintel/ds-components": "workspace:*",
     "@hashintel/ds-helpers": "workspace:*",
     "@hashintel/petrinaut": "workspace:*",
@@ -33,13 +34,12 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
-    "@rolldown/plugin-babel": "0.2.1",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
-    "@vitejs/plugin-react": "6.0.1",
+    "@vitejs/plugin-react": "6.1.0",
     "@whatwg-node/server": "0.10.18",
-    "babel-plugin-react-compiler": "1.0.0",
+    "oxc-transform-react": "0.145.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
     "sharp": "0.35.3",

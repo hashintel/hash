@@ -26,10 +26,6 @@ use crate::id::{Id, IdVec};
 #[cfg(test)]
 mod tests;
 
-// =============================================================================
-// RowRef — immutable view into a matrix row
-// =============================================================================
-
 /// An immutable view into a single row of a [`BitMatrix`] or [`SparseBitMatrix`].
 ///
 /// Borrows directly into the matrix's backing storage — no allocation, no copy.
@@ -149,10 +145,6 @@ impl<'a, C: Id> IntoIterator for RowRef<'a, C> {
         self.iter()
     }
 }
-
-// =============================================================================
-// RowMut — mutable view into a matrix row
-// =============================================================================
 
 /// A mutable view into a single row of a [`BitMatrix`].
 ///
@@ -322,10 +314,6 @@ impl<'row, C: Id> IntoIterator for &'row RowMut<'_, C> {
     }
 }
 
-// =============================================================================
-// BitMatrix — dense, contiguous, fixed-size 2D bit matrix
-// =============================================================================
-
 /// A fixed-size 2D bit matrix with a dense, contiguous representation.
 ///
 /// All row data lives in a single `Vec<Word, A>`, laid out row-by-row. This makes
@@ -460,8 +448,6 @@ impl<R: Id, C: Id, A: Allocator> BitMatrix<R, C, A> {
         RowMut::new(self.row_words_mut(row), col_domain_size)
     }
 
-    // --- element-level operations ---
-
     /// Sets the cell at `(row, col)` to true. Returns `true` if the matrix changed.
     ///
     /// # Panics
@@ -502,8 +488,6 @@ impl<R: Id, C: Id, A: Allocator> BitMatrix<R, C, A> {
         (self.words[flat_index] & mask) != 0
     }
 
-    // --- row-level clearing ---
-
     /// Clears all bits in `row`.
     #[inline]
     pub fn clear_row(&mut self, row: R) {
@@ -521,8 +505,6 @@ impl<R: Id, C: Id, A: Allocator> BitMatrix<R, C, A> {
     pub fn insert_all_into_row(&mut self, row: R) {
         self.row_mut(row).insert_all();
     }
-
-    // --- row-to-row operations ---
 
     /// `write |= read`. Returns `true` if `write` changed.
     ///
@@ -573,8 +555,6 @@ impl<R: Id, C: Id, A: Allocator> BitMatrix<R, C, A> {
         result
     }
 
-    // --- row-to-DenseBitSet operations ---
-
     /// `row |= other`. Returns `true` if the row changed.
     #[inline]
     pub fn union_row_with(&mut self, row: R, other: &DenseBitSet<C>) -> bool {
@@ -592,8 +572,6 @@ impl<R: Id, C: Id, A: Allocator> BitMatrix<R, C, A> {
     pub fn intersect_row_with(&mut self, row: R, other: &DenseBitSet<C>) -> bool {
         self.row_mut(row).intersect_dense(other)
     }
-
-    // --- inspection ---
 
     /// Returns `true` if no bits are set in `row`.
     #[inline]
@@ -621,8 +599,6 @@ impl<R: Id, C: Id, A: Allocator> BitMatrix<R, C, A> {
     pub const fn words(&self) -> &[Word] {
         &self.words
     }
-
-    // --- internal helpers ---
 
     /// Validates `(row, col)` and returns the flat word index plus the bit mask.
     ///
@@ -738,10 +714,6 @@ impl<R: Id, C: Id, A: Allocator> fmt::Debug for BitMatrix<R, C, A> {
         fmt.debug_set().entries(items).finish()
     }
 }
-
-// =============================================================================
-// SparseBitMatrix — arena-backed sparse 2D bit matrix
-// =============================================================================
 
 /// Metadata for a row slot in the arena-backed sparse matrix.
 ///
@@ -886,8 +858,6 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
         self.index.iter().filter(|slot| slot.is_some()).count()
     }
 
-    // --- element-level operations ---
-
     /// Sets the cell at `(row, col)` to true. Returns `true` if the matrix changed.
     ///
     /// Allocates the row on first access.
@@ -933,8 +903,6 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
         self.row(row).is_some_and(|row_ref| row_ref.contains(col))
     }
 
-    // --- row-level clearing ---
-
     /// Clears all bits in `row` and returns its slot to the free-list.
     #[inline]
     pub fn clear_row(&mut self, row: R) {
@@ -963,8 +931,6 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
         words.fill(!0);
         clear_excess_bits_in_final_word(self.col_domain_size, words);
     }
-
-    // --- row-to-row operations ---
 
     /// `write |= read`. Returns `true` if `write` changed.
     ///
@@ -1051,8 +1017,6 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
         changed != 0
     }
 
-    // --- row-to-DenseBitSet operations ---
-
     /// `row |= other`. Returns `true` if the row changed.
     #[inline]
     pub fn union_row_with(&mut self, row: R, other: &DenseBitSet<C>) -> bool {
@@ -1090,8 +1054,6 @@ impl<R: Id, C: Id, A: Allocator> SparseBitMatrix<R, C, A> {
         };
         bitwise(words, &other.words, |lhs, rhs| lhs & rhs)
     }
-
-    // --- inspection ---
 
     /// Returns `true` if `row` has no set bits (or is unallocated).
     #[inline]

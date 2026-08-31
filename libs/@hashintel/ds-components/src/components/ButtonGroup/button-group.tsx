@@ -7,6 +7,8 @@ import { cx } from "@hashintel/ds-helpers/css";
 import { styles } from "./button-group.recipe";
 import { useSegmentedRows } from "./use-segmented-rows";
 
+import type { FormInputSize } from "../../util/form-shared";
+
 export type ButtonGroupProps = {
   className?: string;
   children?: React.ReactNode;
@@ -15,6 +17,13 @@ export type ButtonGroupProps = {
    * a single control with shared, overlapping borders.
    */
   variant?: "spaced" | "segmented";
+  /**
+   * The gap between buttons in a `spaced` group, on the shared FormInputSize
+   * scale. Has no effect on `segmented` groups, whose buttons share a border.
+   * Aligned + fitted to Button sizes with the same value, so usually should
+   * match the button size of the children.
+   */
+  spacing?: FormInputSize;
   /** Reverse the visual (and focus/tab) order of the buttons. */
   reverse?: boolean;
   /** Which edge of the available width the buttons align to. Defaults to `left`. */
@@ -27,6 +36,7 @@ export const ButtonGroup = ({
   className,
   children,
   variant = "spaced",
+  spacing = "md",
   reverse = false,
   alignedTo = "left",
   noWrap = false,
@@ -43,7 +53,7 @@ export const ButtonGroup = ({
     <div
       ref={ref}
       role="group"
-      className={cx(styles({ variant, alignedTo, noWrap }), className)}
+      className={cx(styles({ variant, spacing, alignedTo, noWrap }), className)}
     >
       {decoratedContent}
     </div>

@@ -35,6 +35,7 @@
     "**/_ai/**",
     "**/.cursor/plans/**",
     "libs/@hashintel/ds-components/**",
-    "libs/@hashintel/ds-helpers/**"
+    "libs/@hashintel/ds-helpers/**",
+    "libs/@hashintel/brunch-agent/**/*.md"
   ]
 }

@@ -1,0 +1,72 @@
+---
+title: Previewing changes
+description: How a PR preview highlights what the branch changed in these docs, and how the comparison is built.
+sidebar_order: 3
+---
+
+A preview deployment of these docs highlights what the branch changed:
+
+- The sidebar badges every page the branch **added**, **changed**, or
+  **removed**. A collapsed group carries a count of the flagged pages inside
+  it, so a change deep in a subtree is visible from the top.
+- Inside a changed page, an added block carries a green bar on its left edge,
+  an edited block a blue one, and removed content appears in place as a red,
+  collapsed block.
+- A removed page keeps a struck-through sidebar entry, linking to a stub that
+  carries the removed source.
+
+The base of the comparison is the PR's _target branch_: a PR against `main`
+is compared with `main`, and a PR stacked on another PR is compared with the
+branch below it, so each PR in a stack shows only its own delta. Production
+builds of `main` never highlight anything.
+
+## How the comparison is built
+
+![How a diff build compares the branch against the base ref](@diagrams/diff-build-flow.svg)
+
+The build runs the generator twice. Once over the branch checkout — that
+produces the bundle the site renders — and once over the covered source
+directories extracted at the base ref into a scratch directory. The base tree
+comes out of the local clone with `git archive` when the clone can resolve the
+ref; a Vercel build cannot (its sources arrive without a usable clone), so it
+fetches the ref anonymously from the public repository instead, materialising
+only the covered directories. Either way the _same_ generator version and
+configuration run over both trees, so the two bundles can differ only where
+the sources differ.
+
+The two bundles are then compared page by page and block by block. Raw
+comparison would flag every neighbour of a real change, because generated
+pages embed facts that shift whenever nearby code moves. Those are masked
+first:
+
+- import counts, and the count-driven ordering of the depends-on list;
+- file and line totals, and sidebar positions;
+- the whole "depended on by" list — an incoming edge is the importing layer's
+  change, and it is flagged there, on its depends-on side.
+
+A page is flagged when anything else differs: its role, prose, name, declaring
+file, outgoing edges, sub-layers, attached guides — or when the layer's file
+membership moved, the one structural change the masked content cannot show.
+Editing code inside a layer without moving files or edges changes nothing the
+architecture describes, and flags nothing.
+
+The base side is cached between builds, keyed by the base commit and the
+generator's own sources, so pushing again while the base has not moved skips
+the base build. A build of `main` stores its own pages as the entry every PR
+targeting `main` starts from, so the common case computes no base at all.
+
+The result is written into the bundle itself: the manifest records each page's
+status for the sidebar, changed pages carry markers between their blocks, and
+each removed page becomes a stub at its old address.
+
+## Running it locally
+
+```sh
+yarn workspace @local/petrinaut-arch-docs doc:architecture --diff-base main
+```
+
+Any ref works as the base — `main~20`, a tag, a commit. Then build or serve
+the site as usual (see [Running locally](doc:maintaining/running-locally)).
+The build prints a summary line, `changes vs main (…): 2 added · 3 changed ·
+1 removed`, and warns instead of failing when it cannot resolve the base ref:
+a build that cannot compare still writes a complete, unhighlighted bundle.

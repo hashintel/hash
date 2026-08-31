@@ -1,6 +1,13 @@
 import { use, useState } from "react";
 
-import { Button, Icon, Menu, Toggle, Tooltip } from "@hashintel/ds-components";
+import {
+  Button,
+  Icon,
+  Menu,
+  SegmentedControl,
+  Toggle,
+  Tooltip,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   DEFAULT_VISUALIZER_CODE,
@@ -9,7 +16,6 @@ import {
 
 import { ExecutionFrameSourceContext } from "../../../../../../../../react/execution-frame/context";
 import { EditorContext } from "../../../../../../../../react/state/editor-context";
-import { SegmentGroup } from "../../../../../../../components/segment-group";
 import { UI_MESSAGES } from "../../../../../../../constants/ui-messages";
 import { CodeEditor } from "../../../../../../../monaco/code-editor";
 import { PlaceStateVisualization } from "../../../../../../shared/place-state-visualization";
@@ -27,7 +33,14 @@ const contentStyle = css({
 });
 
 const segmentGroupContainerStyle = css({
+  marginTop: "[8px]",
   marginBottom: "[8px]",
+});
+
+// The SegmentedControl root is `width: fit-content` by default; `&&` doubles the
+// selector's specificity so this wins over the recipe regardless of source order.
+const fullWidthSegmentedControlStyle = css({
+  "&&": { width: "full" },
 });
 
 const viewContainerStyle = css({
@@ -56,6 +69,12 @@ const aiMenuItemStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[6px]",
+});
+
+const headerActionsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
 });
 
 /**
@@ -91,14 +110,16 @@ const PlaceVisualizerContent: React.FC = () => {
     <div className={contentStyle}>
       {!isSimulationRunning && (
         <div className={segmentGroupContainerStyle}>
-          <SegmentGroup
+          <SegmentedControl
+            size="sm"
             value={viewMode}
-            options={[
+            items={[
               { value: "code", label: "Code" },
               { value: "preview", label: "Preview" },
               { value: "split", label: "Split" },
             ]}
             onChange={(value) => setViewMode(value as ViewMode)}
+            className={fullWidthSegmentedControlStyle}
           />
         </div>
       )}
@@ -146,7 +167,7 @@ const VisualizerHeaderAction: React.FC = () => {
   const hasVisualizer = place.visualizerCode !== undefined;
 
   return (
-    <>
+    <div className={headerActionsStyle}>
       {globalMode === "edit" && (
         <Tooltip
           content={UI_MESSAGES.READ_ONLY_MODE}
@@ -233,7 +254,7 @@ const VisualizerHeaderAction: React.FC = () => {
           ]}
         />
       )}
-    </>
+    </div>
   );
 };
 

@@ -1,0 +1,52 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["../../../../../.config/oxlint/brunch/base.json"],
+  "categories": {
+    "correctness": "error",
+    "perf": "warn"
+  },
+  "env": {
+    "builtin": true,
+    "es2026": true,
+    "node": true
+  },
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  },
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "@hashintel/petrinaut",
+            "message": "Brunch libraries must not depend on Petrinaut implementations."
+          }
+        ],
+        "patterns": [
+          {
+            "group": ["@local/*"],
+            "message": "Brunch libraries must remain independent of unpublished HASH packages."
+          },
+          {
+            "group": ["@hashintel/petrinaut/*", "@hashintel/petrinaut-*"],
+            "message": "Brunch libraries must not depend on Petrinaut implementations."
+          },
+          {
+            "group": ["@hashintel/brunch-agent-*"],
+            "message": "A binding may depend inward on the harness, not depend on other Brunch extensions."
+          }
+        ]
+      }
+    ]
+  },
+  "ignorePatterns": [
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    "*.gen.*",
+    "*.tsbuildinfo",
+    ".turbo/**"
+  ]
+}

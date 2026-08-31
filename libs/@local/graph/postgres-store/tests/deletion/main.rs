@@ -6,6 +6,7 @@ mod common;
 mod created_by_columns;
 mod drafts;
 mod erase;
+mod feed;
 mod links;
 mod purge;
 mod validation;
@@ -48,7 +49,7 @@ use type_system::{
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     principal::{
-        actor::{ActorEntityUuid, ActorType, UserId},
+        actor::{ActorEntityUuid, ActorId, ActorType, UserId},
         actor_group::WebId,
     },
     provenance::{OriginProvenance, OriginType},
@@ -58,7 +59,7 @@ pub use crate::common::DatabaseTestWrapper;
 
 pub struct DatabaseApi<'pool> {
     pub store: PostgresStore<Transaction<'pool>, InTransaction>,
-    pub account_id: ActorEntityUuid,
+    pub account_id: ActorId,
 }
 
 impl DatabaseTestWrapper {
@@ -180,11 +181,12 @@ pub(crate) async fn raw_count(
         .get(0)
 }
 
-/// Returns the [`EntityDeletionProvenance`] flattened into the `entity_ids` provenance JSONB, or
-/// `None` if the row is missing or the entity has not been deleted.
+/// Returns the [`EntityDeletionProvenance`] from the `entity_ids` tombstone columns, or `None`
+/// if the row is missing or the entity has not been deleted.
 ///
-/// The deletion fields are extracted into their own object so they deserialize independently of
-/// the other JSONB-resident provenance fields.
+/// The `entity_ids_deletion_tombstone_total` CHECK guarantees the three columns are set
+/// together, so the helper still reads each one individually to catch a partial stamp as a
+/// panic rather than mask it.
 pub(crate) async fn get_deletion_provenance(
     api: &DatabaseApi<'_>,
     web_id: WebId,
@@ -193,23 +195,42 @@ pub(crate) async fn get_deletion_provenance(
     api.store
         .as_client()
         .query_opt(
-            "SELECT jsonb_build_object(
-                 'deletedById', provenance -> 'deletedById',
-                 'deletedAtTransactionTime', provenance -> 'deletedAtTransactionTime',
-                 'deletedAtDecisionTime', provenance -> 'deletedAtDecisionTime'
-             ) FROM entity_ids WHERE web_id = $1 AND entity_uuid = $2",
+            "SELECT
+                deleted_by_id,
+                deleted_at_transaction_time,
+                deleted_at_decision_time
+             FROM entity_ids
+             WHERE web_id = $1
+               AND entity_uuid = $2",
             &[&web_id, &entity_uuid],
         )
         .await
         .expect("provenance query failed")
-        .map(|row| row.get::<_, serde_json::Value>(0))
-        .filter(|deletion| {
-            !(deletion["deletedById"].is_null()
-                && deletion["deletedAtTransactionTime"].is_null()
-                && deletion["deletedAtDecisionTime"].is_null())
-        })
-        .map(|deletion| {
-            serde_json::from_value(deletion).expect("deletion fields should deserialize")
+        .and_then(|row| {
+            let deleted_by_id = row.get(0);
+            let deleted_at_transaction_time = row.get(1);
+            let deleted_at_decision_time = row.get(2);
+
+            match (
+                deleted_by_id,
+                deleted_at_transaction_time,
+                deleted_at_decision_time,
+            ) {
+                (
+                    Some(deleted_by_id),
+                    Some(deleted_at_transaction_time),
+                    Some(deleted_at_decision_time),
+                ) => Some(EntityDeletionProvenance {
+                    deleted_by_id,
+                    deleted_at_transaction_time,
+                    deleted_at_decision_time,
+                }),
+                (None, None, None) => None,
+                partial => unreachable!(
+                    "database has a constraint which prevents partial deletion information: \
+                     {partial:?}"
+                ),
+            }
         })
 }
 
@@ -586,5 +607,31 @@ pub(crate) async fn raw_entity_ids_exists(
         )
         .await
         .expect("raw entity_ids exists query failed")
+        .get(0)
+}
+
+/// Returns whether the `entity_ids` provenance JSONB carries any deletion key.
+///
+/// Post-V58 the tombstone lives in dedicated columns and the JSONB must stay free of the
+/// retired keys, so `true` here means the old write path resurfaced.
+pub(crate) async fn provenance_jsonb_has_deletion_keys(
+    api: &DatabaseApi<'_>,
+    web_id: WebId,
+    entity_uuid: EntityUuid,
+) -> bool {
+    api.store
+        .as_client()
+        .query_one(
+            "SELECT EXISTS(
+                 SELECT 1 FROM entity_ids
+                 WHERE web_id = $1 AND entity_uuid = $2
+                   AND provenance ?| array[
+                       'deletedById', 'deletedAtTransactionTime', 'deletedAtDecisionTime'
+                   ]
+             )",
+            &[&web_id, &entity_uuid],
+        )
+        .await
+        .expect("provenance JSONB deletion-key query failed")
         .get(0)
 }

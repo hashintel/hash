@@ -69,10 +69,8 @@ const LAMBDA_SDCPN: SDCPN = {
       ],
       outputArcs: [{ placeId: "place-2", weight: 2 }],
       lambdaType: "stochastic",
-      lambdaCode:
-        "export default Lambda((tokens, parameters) => parameters.rate)",
-      transitionKernelCode:
-        "export default TransitionKernel(() => ({ Infected: [{}, {}] }))",
+      lambdaCode: "return parameters.rate;",
+      transitionKernelCode: "return { Infected: [{}, {}] };",
       x: 0,
       y: 0,
     },
@@ -340,9 +338,7 @@ export const MultipleFields: Story = {
 // -- LSP story ----------------------------------------------------------------
 
 const WithLspExample = () => {
-  const [value, setValue] = useState(
-    "export default Lambda((tokens, parameters) => parameters.rate)",
-  );
+  const [value, setValue] = useState("return parameters.rate;");
 
   return (
     <LspFrame>

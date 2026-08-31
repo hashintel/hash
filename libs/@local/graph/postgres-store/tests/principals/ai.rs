@@ -77,9 +77,7 @@ async fn get_non_existent_ai() -> Result<(), Box<dyn Error>> {
     let (client, actor_id) = db.seed().await?;
 
     let non_existent_id = AiId::new(Uuid::new_v4());
-    let result = client
-        .get_ai_by_id(actor_id.into(), non_existent_id)
-        .await?;
+    let result = client.get_ai_by_id(actor_id, non_existent_id).await?;
 
     assert!(
         result.is_none(),
@@ -154,7 +152,7 @@ async fn ai_role_assignment() -> Result<(), Box<dyn Error>> {
     // Assign the role to the AI
     client
         .assign_role(
-            actor_id.into(),
+            actor_id,
             ai_id.into(),
             web_id.into(),
             RoleName::Administrator,

@@ -473,7 +473,11 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// assert_eq!(outgoing.len(), 2);
     /// ```
     #[must_use]
-    pub fn incident_edges(&self, node: NodeId, direction: Direction) -> IncidentEdges<'_, N, E, A> {
+    pub const fn incident_edges(
+        &self,
+        node: NodeId,
+        direction: Direction,
+    ) -> IncidentEdges<'_, N, E, A> {
         IncidentEdges::new(self, direction, node)
     }
 
@@ -500,7 +504,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// assert_eq!(incoming.len(), 2);
     /// ```
     #[must_use]
-    pub fn incoming_edges(&self, node: NodeId) -> IncidentEdges<'_, N, E, A> {
+    pub const fn incoming_edges(&self, node: NodeId) -> IncidentEdges<'_, N, E, A> {
         IncidentEdges::new(self, Direction::Incoming, node)
     }
 
@@ -527,7 +531,7 @@ impl<N, E, A: Allocator> LinkedGraph<N, E, A> {
     /// assert_eq!(outgoing.len(), 2);
     /// ```
     #[must_use]
-    pub fn outgoing_edges(&self, node: NodeId) -> IncidentEdges<'_, N, E, A> {
+    pub const fn outgoing_edges(&self, node: NodeId) -> IncidentEdges<'_, N, E, A> {
         IncidentEdges::new(self, Direction::Outgoing, node)
     }
 
@@ -652,7 +656,7 @@ impl<'graph, N, E, A: Allocator> IncidentEdges<'graph, N, E, A> {
     ///
     /// Starts iteration from the head of the appropriate linked list for the given
     /// node and direction.
-    fn new(graph: &'graph LinkedGraph<N, E, A>, direction: Direction, node: NodeId) -> Self {
+    const fn new(graph: &'graph LinkedGraph<N, E, A>, direction: Direction, node: NodeId) -> Self {
         let next = graph.nodes[node].edges[direction as usize];
         Self {
             graph,

@@ -8,7 +8,6 @@ use axum::{
     routing::{post, put},
 };
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_postgres_store::{
     ontology::patch_id_and_parse,
     store::error::{OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
@@ -44,7 +43,7 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::status::BoxedResponse;
 use crate::rest::{
-    ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
+    ApiConfig, AuthenticatedActorId, OpenApiQuery, QueryLogger, RestApiStore,
     json::Json,
     resolve_limit,
     status::{report_to_response, status_to_response},
@@ -149,7 +148,7 @@ struct CreatePropertyTypeRequest {
     ),
 )]
 async fn create_property_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
@@ -249,7 +248,7 @@ enum LoadExternalPropertyTypeRequest {
     ),
 )]
 async fn load_external_property_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
@@ -330,7 +329,7 @@ where
     )
 )]
 async fn query_property_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -340,6 +339,7 @@ async fn query_property_types<S>(
 where
     S: StorePool + Send + Sync,
 {
+    let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(actor_id, OpenApiQuery::GetPropertyTypes(&request));
     }
@@ -404,7 +404,7 @@ struct QueryPropertyTypeSubgraphResponse {
     )
 )]
 async fn query_property_type_subgraph<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -414,6 +414,7 @@ async fn query_property_type_subgraph<S>(
 where
     S: StorePool + Send + Sync,
 {
+    let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(actor_id, OpenApiQuery::GetPropertyTypeSubgraph(&request));
     }
@@ -479,7 +480,7 @@ struct UpdatePropertyTypeRequest {
     request_body = UpdatePropertyTypeRequest,
 )]
 async fn update_property_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdatePropertyTypeRequest>,
@@ -532,7 +533,7 @@ where
     request_body = [UpdatePropertyTypeRequest],
 )]
 async fn update_property_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     bodies: Json<Vec<UpdatePropertyTypeRequest>>,
@@ -587,7 +588,7 @@ where
     request_body = UpdatePropertyTypeEmbeddingParams,
 )]
 async fn update_property_type_embeddings<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -630,7 +631,7 @@ where
     request_body = ArchivePropertyTypeParams,
 )]
 async fn archive_property_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -682,7 +683,7 @@ where
     request_body = UnarchivePropertyTypeParams,
 )]
 async fn unarchive_property_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -731,7 +732,7 @@ where
     )
 )]
 async fn has_permission_for_property_types<S>(
-    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor): AuthenticatedActorId,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<HasPermissionForPropertyTypesParams<'static>>,
@@ -744,7 +745,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .has_permission_for_property_types(AuthenticatedActor::from(actor), params)
+        .has_permission_for_property_types(actor, params)
         .await
         .map(Json)
         .map_err(report_to_response)

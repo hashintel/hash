@@ -7,6 +7,9 @@
  * - Server push: `textDocument/publishDiagnostics`
  *
  * The LanguageService is created once and reused across SDCPN changes.
+ *
+ * @layerRoot core.lsp.worker
+ * @role Hosts the TypeScript language server off the main thread
  */
 import ts from "typescript";
 import {
@@ -21,15 +24,23 @@ import {
 
 import { createWorkerThreadRuntime } from "../../environment";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "../../extensions";
-import { buildMetricContext, compileHirArtifacts } from "../../hir";
+import {
+  buildMetricContext,
+  buildScenarioCodeContext,
+  buildScenarioExpressionContext,
+  compileHirArtifacts,
+  lowerScenarioToHir,
+} from "../../hir";
 import { getHirDiagnosticsForItem } from "../lib/check-hir";
 import { checkSDCPN } from "../lib/checker";
 import { SDCPNLanguageServer } from "../lib/create-sdcpn-language-service";
 import { filePathToUri, uriToFilePath } from "../lib/document-uris";
+import { parseScenarioCodeFilePath } from "../lib/file-paths";
 import { offsetToPosition, positionToOffset } from "../lib/position-utils";
 import { serializeDiagnostic, toCompletionItemKind } from "../lib/ts-to-lsp";
 
 import type { PetrinautExtensionSettings } from "../../extensions";
+import type { HirSurfaceContext } from "../../hir";
 import type { SDCPN } from "../../types/sdcpn";
 import type {
   MetricSessionData,
@@ -56,6 +67,56 @@ const scenarioSessions = new Map<string, ScenarioSessionData>();
 
 /** Active metric editing sessions (sessionId → session data). */
 const metricSessions = new Map<string, MetricSessionData>();
+
+/**
+ * The HIR context for one scenario session file: a parameter override or
+ * per-place count is a `scenario-expression`, the "Define as code" body a
+ * `scenario-code`. Returns null for paths that carry no user code to lint.
+ */
+function scenarioHirContextForFile(
+  filePath: string,
+  session: ScenarioSessionData,
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): HirSurfaceContext | null {
+  const parsed = parseScenarioCodeFilePath(filePath);
+  if (!parsed) {
+    return null;
+  }
+  const netParameters = extensions.parameters ? sdcpn.parameters : [];
+
+  switch (parsed.fileType) {
+    case "scenario-initial-state-full-code":
+      // Types are passed ungated: `compileScenario`'s callers pass the net's
+      // types regardless of the colors extension, and the lint must match
+      // what compilation will accept.
+      return buildScenarioCodeContext(
+        netParameters,
+        session.scenarioParameters,
+        sdcpn.places,
+        sdcpn.types,
+      );
+    case "scenario-param-override-code": {
+      const parameter = sdcpn.parameters.find(
+        (candidate) => candidate.id === parsed.paramId,
+      );
+      if (!parameter) {
+        return null;
+      }
+      return buildScenarioExpressionContext(
+        netParameters,
+        session.scenarioParameters,
+        parameter.type,
+      );
+    }
+    case "scenario-initial-state-code":
+      return buildScenarioExpressionContext(
+        netParameters,
+        session.scenarioParameters,
+        "real",
+      );
+  }
+}
 
 function respond(id: number, result: unknown): void {
   workerRuntime.postMessage({
@@ -114,6 +175,20 @@ function publishAllDiagnostics(
       const semanticDiags = server.getSemanticDiagnostics(filePath);
       const syntacticDiags = server.getSyntacticDiagnostics(filePath);
       const allDiags = [...syntacticDiags, ...semanticDiags];
+      // When TypeScript is clean, run the HIR lint over the scenario code so
+      // out-of-subset constructs surface in the editor rather than at run
+      // start (scenario code is compiled through the HIR and interpreted).
+      // Empty code means "keep the default" and is never linted.
+      const hasTsError = allDiags.some(
+        (diag) => diag.category === ts.DiagnosticCategory.Error,
+      );
+      const hirContext =
+        !hasTsError && userContent.trim() !== ""
+          ? scenarioHirContextForFile(filePath, session, sdcpn, extensions)
+          : null;
+      if (hirContext) {
+        allDiags.push(...getHirDiagnosticsForItem(userContent, hirContext));
+      }
       params.push({
         uri,
         diagnostics: allDiags.map((diag) =>
@@ -386,6 +461,12 @@ workerRuntime.onMessage((data) => {
           id,
           compileHirArtifacts(data.params.sdcpn, data.params.extensions),
         );
+        break;
+      }
+
+      case "sdcpn/lowerScenario": {
+        const { id } = data;
+        respond(id, lowerScenarioToHir(data.params.scenario));
         break;
       }
 

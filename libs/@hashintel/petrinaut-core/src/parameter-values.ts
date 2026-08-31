@@ -1,3 +1,9 @@
+import {
+  cloneUserKeyedRecord,
+  createUserKeyedRecord,
+  getOwn,
+} from "./validation/record-keys";
+
 import type { Parameter } from "./types/sdcpn";
 
 /**
@@ -57,7 +63,9 @@ export function parseParameterValue(
 export function deriveDefaultParameterValues(
   parameters: Parameter[],
 ): DefaultParameterValues {
-  const parameterValues: DefaultParameterValues = {};
+  // Variable names come from the net definition, so the record has no
+  // prototype: a name like "constructor" stays an ordinary own property.
+  const parameterValues = createUserKeyedRecord<number | boolean>();
 
   for (const param of parameters) {
     parameterValues[param.variableName] = parseParameterValue(
@@ -82,7 +90,9 @@ export function mergeParameterValues(
   defaultValues: DefaultParameterValues,
   parameters: readonly Parameter[] = [],
 ): DefaultParameterValues {
-  const merged: DefaultParameterValues = { ...defaultValues };
+  // Keys are parameter variable names from the net definition plus arbitrary
+  // keys from stored run inputs.
+  const merged = cloneUserKeyedRecord(defaultValues);
   const parameterTypes = new Map(
     parameters.map((parameter) => [parameter.variableName, parameter.type]),
   );
@@ -90,7 +100,7 @@ export function mergeParameterValues(
   // Override with SimulationStore values where they exist
   for (const [key, value] of Object.entries(simulationStoreValues)) {
     if (value !== "") {
-      const defaultValue = defaultValues[key];
+      const defaultValue = getOwn(defaultValues, key);
       const type =
         parameterTypes.get(key) ??
         (typeof defaultValue === "boolean" ? "boolean" : "real");

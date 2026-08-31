@@ -9,13 +9,15 @@ export const styles = sva({
     "loadingSpinner",
     "loadingContent",
     "iconText",
+    "icon",
   ],
   base: {
     button: {
       cursor: "pointer",
       display: "inline-block",
       fontWeight: "medium",
-      border: "var(--form-border-width) solid",
+      borderWidth: "var(--form-border-width)",
+      borderStyle: "solid",
       textAlign: "center",
       transition:
         "[background 0.15s ease, color 0.15s ease, border 0.15s ease]",
@@ -23,7 +25,8 @@ export const styles = sva({
       minWidth:
         "[calc(var(--form-line-height) * var(--leading-factor, 1) + var(--form-padding-y) * 2 + var(--form-border-width) * 2)]",
       "&:focus-visible": {
-        outline: "2px solid",
+        outlineWidth: "2px",
+        outlineStyle: "solid",
       },
       '&[aria-disabled="true"]': {
         cursor: "auto",
@@ -83,6 +86,9 @@ export const styles = sva({
           borderRadius: "lg",
           "--button-icon-margin": "var(--spacing-2)",
         },
+        // The md icon step (24px) reads oversized in lg buttons. && outranks
+        // the Icon recipe's own --icon-size class, which ties on specificity.
+        icon: { "&&": { "--icon-size": "20px" } },
       },
     },
     shape: {
@@ -216,6 +222,71 @@ export const styles = sva({
       isIconOnly: true,
       css: {
         button: { paddingX: "2" },
+      },
+    },
+    // ── Compact sizes: reduce the padding beside an icon/prefix/suffix ──
+    {
+      size: "xxs",
+      hasIconLeft: true,
+      isIconOnly: false,
+      css: {
+        button: { paddingLeft: "1.5" },
+      },
+    },
+    {
+      size: "xxs",
+      hasIconRight: true,
+      isIconOnly: false,
+      css: {
+        button: { paddingRight: "1.5" },
+      },
+    },
+    {
+      size: "xs",
+      hasIconLeft: true,
+      isIconOnly: false,
+      css: {
+        button: { paddingLeft: "1.5" },
+      },
+    },
+    {
+      size: "xs",
+      hasIconRight: true,
+      isIconOnly: false,
+      css: {
+        button: { paddingRight: "1.5" },
+      },
+    },
+    {
+      size: "md",
+      hasIconLeft: true,
+      isIconOnly: false,
+      css: {
+        button: { paddingLeft: "2.5" },
+      },
+    },
+    {
+      size: "md",
+      hasIconRight: true,
+      isIconOnly: false,
+      css: {
+        button: { paddingRight: "2.5" },
+      },
+    },
+    {
+      size: "lg",
+      hasIconLeft: true,
+      isIconOnly: false,
+      css: {
+        button: { paddingLeft: "2.5" },
+      },
+    },
+    {
+      size: "lg",
+      hasIconRight: true,
+      isIconOnly: false,
+      css: {
+        button: { paddingRight: "2.5" },
       },
     },
     // ── Solid + Neutral ──

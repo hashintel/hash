@@ -11,6 +11,7 @@
     "packages": [
       "!**/node_modules",
       "!**/pkg",
+      "!**/.venv",
       ".claude/hooks",
       "apps/**",
       "libs/**",
@@ -32,6 +33,9 @@
     "dev": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --filter '@apps/hash-frontend' --",
     "dev:backend": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --",
     "dev:backend:api": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --",
+    "dev:brunch": "CARGO_TERM_PROGRESS_WHEN=never turbo run build --filter '@apps/petrinaut-website^...' && npm-run-all --parallel dev:brunch:server dev:brunch:panel",
+    "dev:brunch:panel": "PETRINAUT_WEBSITE_ROOT=\"$PWD/apps/petrinaut-website\" yarn workspace @apps/brunch-agent petrinaut:dev",
+    "dev:brunch:server": "yarn workspace @apps/brunch-agent dev",
     "dev:frontend": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-frontend' --",
     "dev:petrinaut-optimization": "yarn workspace @apps/petrinaut-website dev:optimization",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
@@ -71,7 +75,6 @@
     "test:unit": "CARGO_TERM_PROGRESS_WHEN=never turbo run test:unit --env-mode=loose --"
   },
   "devDependencies": {
-    "@changesets/changelog-github": "0.5.1",
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.30.0#~/.yarn/patches/@changesets-cli-npm-2.30.0-83a4e8887c.patch",
     "@local/claude-hooks": "workspace:*",
     "@yarnpkg/types": "^4.0.1",
@@ -80,6 +83,7 @@
     "oxfmt": "0.50.0"
   },
   "resolutions": {
+    "@anthropic-ai/bedrock-sdk/@anthropic-ai/sdk": "0.74.0",
     "@blockprotocol/core": "0.1.5",
     "@changesets/assemble-release-plan@npm:^6.0.9": "patch:@changesets/assemble-release-plan@npm%3A6.0.9#~/.yarn/patches/@changesets-assemble-release-plan-npm-6.0.9-e01af97ef4.patch",
     "@playwright/test": "1.58.2",
@@ -109,6 +113,7 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "shell-quote@npm:1.8.4": "1.9.0",
+    "tsup/esbuild": "^0.28.1",
     "underscore": "1.13.8"
   },
   "engines": {

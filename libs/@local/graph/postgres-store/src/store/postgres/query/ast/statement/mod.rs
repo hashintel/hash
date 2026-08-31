@@ -28,3 +28,45 @@ impl From<SelectStatement> for Statement {
         Self::Select(statement)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::store::postgres::query::{
+        FromItem, SelectClause, SelectExpression, SimpleSelect, Table, TableName,
+    };
+
+    fn select_all_from(table: Table) -> SelectClause {
+        SelectClause::from(
+            SimpleSelect::builder()
+                .selects(vec![SelectExpression::Asterisk(None)])
+                .from(FromItem::table(table).build())
+                .build(),
+        )
+    }
+
+    #[test]
+    fn transpile_union_all() {
+        assert_eq!(
+            select_all_from(Table::DataTypes)
+                .union_all(select_all_from(Table::OntologyIds))
+                .transpile_to_string(),
+            "SELECT *\nFROM \"data_types\"\nUNION ALL\nSELECT *\nFROM \"ontology_ids\""
+        );
+    }
+
+    #[test]
+    fn set_operation_stands_in_a_from_item() {
+        let subquery = FromItem::subquery(
+            select_all_from(Table::DataTypes).union_all(select_all_from(Table::OntologyIds)),
+        )
+        .alias(TableName::from("combined"))
+        .build();
+
+        assert_eq!(
+            subquery.transpile_to_string(),
+            "(SELECT *\nFROM \"data_types\"\nUNION ALL\nSELECT *\nFROM \"ontology_ids\") AS \
+             \"combined\""
+        );
+    }
+}

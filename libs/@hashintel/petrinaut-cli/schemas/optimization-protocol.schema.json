@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "OptimizationFloatParameter": {
+      "type": "object",
+      "properties": {
+        "identifier": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "const": "float"
+        },
+        "default": {
+          "type": "number"
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "scale": {
+          "type": "string",
+          "enum": ["linear", "log"]
+        }
+      },
+      "required": [
+        "identifier",
+        "type",
+        "default",
+        "minimum",
+        "maximum",
+        "scale"
+      ],
+      "additionalProperties": false
+    },
+    "OptimizationIntParameter": {
+      "type": "object",
+      "properties": {
+        "identifier": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "const": "int"
+        },
+        "default": {
+          "type": "number"
+        },
+        "minimum": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "maximum": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "step": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "scale": {
+          "type": "string",
+          "enum": ["linear", "log"]
+        }
+      },
+      "required": [
+        "identifier",
+        "type",
+        "default",
+        "minimum",
+        "maximum",
+        "step",
+        "scale"
+      ],
+      "additionalProperties": false
+    },
+    "OptimizationBooleanParameter": {
+      "type": "object",
+      "properties": {
+        "identifier": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "const": "boolean"
+        },
+        "default": {
+          "type": "boolean"
+        }
+      },
+      "required": ["identifier", "type", "default"],
+      "additionalProperties": false
+    },
+    "OptimizationDescribeParameter": {
+      "description": "One optimized parameter of the study's flat search space.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/OptimizationFloatParameter"
+        },
+        {
+          "$ref": "#/$defs/OptimizationIntParameter"
+        },
+        {
+          "$ref": "#/$defs/OptimizationBooleanParameter"
+        }
+      ]
+    },
+    "OptimizationReplicate": {
+      "type": "object",
+      "properties": {
+        "seed": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "objective": {
+          "type": "number"
+        }
+      },
+      "required": ["seed", "objective"],
+      "additionalProperties": false,
+      "description": "One seeded run's objective within a trial."
+    },
+    "OptimizationDescribeResult": {
+      "type": "object",
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": ["maximize", "minimize"]
+        },
+        "study": {
+          "type": "object",
+          "properties": {
+            "trials": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000
+            },
+            "sampler": {
+              "type": "string",
+              "enum": ["tpe", "random"]
+            },
+            "seed": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "seedsPerTrial": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          "required": ["trials", "sampler", "seed"],
+          "additionalProperties": false,
+          "description": "Study settings with the execution seed. `seedsPerTrial` is reported once the CLI runs seeded replicates; absent means 1."
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OptimizationDescribeParameter"
+          }
+        }
+      },
+      "required": ["direction", "study", "parameters"],
+      "additionalProperties": false,
+      "description": "The `optimization.describe` result: direction, study settings, and the parameters that are not fixed."
+    },
+    "OptimizationEvaluateResult": {
+      "type": "object",
+      "properties": {
+        "objective": {
+          "type": "number"
+        },
+        "replicates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OptimizationReplicate"
+          }
+        }
+      },
+      "required": ["objective"],
+      "additionalProperties": false,
+      "description": "The `optimization.evaluate` result. `objective` is the mean of the per-seed objectives (identical to the sole run's objective when the trial runs one seed); `replicates` reports the per-seed values whenever a trial runs more than one."
+    }
+  }
+}

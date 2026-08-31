@@ -2,10 +2,13 @@ import { MarkerType } from "@xyflow/react";
 import { use } from "react";
 
 import {
+  classicNodeDimensions,
+  compactNodeDimensions,
   generateArcId,
   getArcEndpoint,
   getArcEndpointKey,
   getArcEndpointNodeId,
+  getComponentInstanceHeight,
   getEffectiveTransitionLambdaType,
   getTransitionLogicAvailability,
 } from "@hashintel/petrinaut-core";
@@ -15,12 +18,8 @@ import { ActiveNetContext } from "../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
-import { hexToHsl } from "../../../lib/hsl-color";
-import {
-  classicNodeDimensions,
-  compactNodeDimensions,
-} from "../node-dimensions";
 import { NOT_SELECTED_CONNECTION_OVERLAY_OPACITY } from "../styles/styling";
+import { arcStrokeColor } from "../styles/type-colors";
 
 import type {
   EdgeType,
@@ -125,8 +124,10 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
     const ports = (subnet?.places ?? [])
       .filter((place) => place.isPort)
       .map((place) => ({ id: place.id, name: place.name }));
-    const minHeight = dimensions.componentInstance.height;
-    const portBasedHeight = Math.max(minHeight, ports.length * 28 + 28);
+    const portBasedHeight = getComponentInstanceHeight(
+      dimensions,
+      ports.length,
+    );
 
     nodes.push({
       id: instance.id,
@@ -188,9 +189,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         outputId: transition.id,
       });
       const endpointColor = getEndpointColor(endpoint);
-      let arcColor = endpointColor
-        ? hexToHsl(endpointColor).lighten(-15).saturate(-30).css(1)
-        : "#777";
+      let arcColor = arcStrokeColor(endpointColor);
 
       const notSelectedConnection =
         isNotHoveredConnection(arcId) ||
@@ -234,9 +233,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         outputId: getArcEndpointKey(endpoint),
       });
       const endpointColor = getEndpointColor(endpoint);
-      let arcColor = endpointColor
-        ? hexToHsl(endpointColor).lighten(-15).saturate(-30).css(1)
-        : "#777";
+      let arcColor = arcStrokeColor(endpointColor);
 
       const notSelectedConnection =
         isNotHoveredConnection(arcId) ||

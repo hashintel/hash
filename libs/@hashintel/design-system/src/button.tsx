@@ -85,6 +85,8 @@ const Button: ForwardRefRenderFunction<HTMLButtonElement, ButtonProps> = (
       },
       ...(Array.isArray(sx) ? sx : [sx]),
     ]}
+    // buttons rendered as anchors shouldn't have the browser's native link dragging
+    {...(props.href !== undefined ? { draggable: false } : {})}
     {...props}
     ref={ref}
   >

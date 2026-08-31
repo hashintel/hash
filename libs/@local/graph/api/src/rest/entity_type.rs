@@ -8,7 +8,6 @@ use axum::{
     routing::{post, put},
 };
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::policies::principal::actor::AuthenticatedActor;
 use hash_graph_embeddings::OpenAiEmbeddingClient;
 use hash_graph_postgres_store::{
     ontology::patch_id_and_parse,
@@ -29,7 +28,6 @@ use hash_graph_store::{
     pool::StorePool,
     query::ConflictBehavior,
 };
-use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloadInfo};
 use hash_graph_types::{Embedding, ontology::EntityTypeEmbedding};
 use hash_map::HashMap;
 use hash_temporal_client::TemporalClient;
@@ -47,10 +45,9 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
-use super::status::BoxedResponse;
+use super::status::{BoxedResponse, ErrorInfo, Status};
 use crate::rest::{
-    ApiConfig, AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
-    SearchRequestError,
+    ApiConfig, AuthenticatedActorId, OpenApiQuery, QueryLogger, RestApiStore, SearchRequestError,
     json::Json,
     resolve_limit, resolve_search_embedding,
     status::{report_to_response, status_to_response},
@@ -155,7 +152,7 @@ impl EntityTypeResource {
     )
 )]
 async fn has_permission_for_entity_types<S>(
-    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor): AuthenticatedActorId,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<HasPermissionForEntityTypesParams<'static>>,
@@ -168,7 +165,7 @@ where
         .acquire(temporal_client.0)
         .await
         .map_err(report_to_response)?
-        .has_permission_for_entity_types(AuthenticatedActor::from(actor), params)
+        .has_permission_for_entity_types(actor, params)
         .await
         .map(Json)
         .map_err(report_to_response)
@@ -200,7 +197,7 @@ struct CreateEntityTypeRequest {
 )]
 #[expect(clippy::too_many_lines)]
 async fn create_entity_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
@@ -225,7 +222,7 @@ where
                      including request details and logs."
                         .to_owned(),
                 ),
-                vec![StatusPayloadInfo::Error(ErrorInfo::new(
+                vec![ErrorInfo::new(
                     // TODO: add information from the report here
                     //   see https://linear.app/hash/issue/H-3009
                     HashMap::new(),
@@ -234,7 +231,7 @@ where
                     //       `ErrorReason::to_reason` or perhaps as a big enum, or
                     //       as an attachment
                     "STORE_ACQUISITION_FAILURE".to_owned(),
-                ))],
+                )],
             ))
         })?;
 
@@ -254,7 +251,7 @@ where
                      sure the service is able to host a type under the domain you supplied?"
                         .to_owned(),
                 ),
-                vec![StatusPayloadInfo::Error(ErrorInfo::new(
+                vec![ErrorInfo::new(
                     HashMap::from([(
                         "entityTypeId".to_owned(),
                         serde_json::to_value(&schema.id)
@@ -264,7 +261,7 @@ where
                     //       requiring top level contexts to implement a trait
                     // `ErrorReason::to_reason`       or perhaps as a big enum
                     "INVALID_TYPE_ID".to_owned(),
-                ))],
+                )],
             ))
         })?;
 
@@ -326,14 +323,14 @@ where
                          you intended to call `updateEntityType` instead?"
                             .to_owned(),
                     ),
-                    vec![StatusPayloadInfo::Error(ErrorInfo::new(
+                    vec![ErrorInfo::new(
                         metadata,
                         // TODO: We should encapsulate these Reasons within the type system,
                         //       perhaps requiring top level contexts to implement a trait
                         //       `ErrorReason::to_reason` or perhaps as a big enum, or as an
                         // attachment
                         "BASE_URI_ALREADY_EXISTS".to_owned(),
-                    ))],
+                    )],
                 ));
             }
 
@@ -345,13 +342,13 @@ where
                      whatever information you can provide including request details and logs."
                         .to_owned(),
                 ),
-                vec![StatusPayloadInfo::Error(ErrorInfo::new(
+                vec![ErrorInfo::new(
                     HashMap::new(),
                     // TODO: We should encapsulate these Reasons within the type system, perhaps
                     //       requiring top level contexts to implement a trait
                     //       `ErrorReason::to_reason` or perhaps as a big enum, or as an attachment
                     "INTERNAL".to_owned(),
-                ))],
+                )],
             ))
         })?;
 
@@ -393,7 +390,7 @@ enum LoadExternalEntityTypeRequest {
     ),
 )]
 async fn load_external_entity_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
@@ -418,7 +415,7 @@ where
                      including request details and logs."
                         .to_owned(),
                 ),
-                vec![StatusPayloadInfo::Error(ErrorInfo::new(
+                vec![ErrorInfo::new(
                     // TODO: add information from the report here
                     //   see https://linear.app/hash/issue/H-3009
                     HashMap::new(),
@@ -427,7 +424,7 @@ where
                     //       `ErrorReason::to_reason` or perhaps as a big enum,
                     //       or as an attachment
                     "STORE_ACQUISITION_FAILURE".to_owned(),
-                ))],
+                )],
             ))
         })?;
 
@@ -498,7 +495,7 @@ where
     )
 )]
 async fn query_entity_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -508,6 +505,7 @@ async fn query_entity_types<S>(
 where
     S: StorePool + Send + Sync,
 {
+    let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(actor_id, OpenApiQuery::GetEntityTypes(&request));
     }
@@ -613,7 +611,7 @@ impl SearchEntityTypesRequest {
     )
 )]
 async fn search_entity_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     embedding_client: Extension<Option<Arc<OpenAiEmbeddingClient>>>,
@@ -661,7 +659,7 @@ where
     )
 )]
 async fn get_closed_multi_entity_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     mut query_logger: Option<Extension<QueryLogger>>,
@@ -670,6 +668,7 @@ async fn get_closed_multi_entity_types<S>(
 where
     S: StorePool + Send + Sync,
 {
+    let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(actor_id, OpenApiQuery::GetClosedMultiEntityTypes(&request));
     }
@@ -740,7 +739,7 @@ struct QueryEntityTypeSubgraphResponse {
     )
 )]
 async fn query_entity_type_subgraph<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    actor_id: Option<AuthenticatedActorId>,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Extension(api_config): Extension<ApiConfig>,
@@ -750,6 +749,7 @@ async fn query_entity_type_subgraph<S>(
 where
     S: StorePool + Send + Sync,
 {
+    let actor_id = actor_id.map(|AuthenticatedActorId(actor_id)| actor_id);
     if let Some(query_logger) = &mut query_logger {
         query_logger.capture(actor_id, OpenApiQuery::GetEntityTypeSubgraph(&request));
     }
@@ -819,7 +819,7 @@ struct UpdateEntityTypeRequest {
     request_body = UpdateEntityTypeRequest,
 )]
 async fn update_entity_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdateEntityTypeRequest>,
@@ -872,7 +872,7 @@ where
     request_body = [UpdateEntityTypeRequest],
 )]
 async fn update_entity_types<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     bodies: Json<Vec<UpdateEntityTypeRequest>>,
@@ -927,7 +927,7 @@ where
     request_body = UpdateEntityTypeEmbeddingParams,
 )]
 async fn update_entity_type_embeddings<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -970,7 +970,7 @@ where
     request_body = ArchiveEntityTypeParams,
 )]
 async fn archive_entity_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,
@@ -1022,7 +1022,7 @@ where
     request_body = UnarchiveEntityTypeParams,
 )]
 async fn unarchive_entity_type<S>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    AuthenticatedActorId(actor_id): AuthenticatedActorId,
     store_pool: Extension<Arc<S>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     Json(body): Json<serde_json::Value>,

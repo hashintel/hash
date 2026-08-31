@@ -6,9 +6,15 @@
   "license": "(MIT OR Apache-2.0)",
   "scripts": {
     "codegen": "uv run python -m scripts.generate_openapi",
+    "fix:ruff": "uv run ruff check --fix . && uv run ruff format .",
     "install:deps": "uv sync",
+    "lint:ruff": "uv run ruff check . && uv run ruff format --check .",
+    "lint:types": "uv run basedpyright",
     "start": "uv run uvicorn src.optimization_api:app",
     "start:dev": "uv run uvicorn src.optimization_api:app --reload",
     "test:unit": "uv run pytest && yarn codegen && git diff --exit-code -- openapi/openapi.json"
+  },
+  "dependencies": {
+    "@local/petrinaut-python": "workspace:*"
   }
 }

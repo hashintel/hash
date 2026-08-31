@@ -18,10 +18,22 @@ import {
   mergeParameterValues,
 } from "../../parameter-values";
 import {
+  createUserKeyedRecord,
+  describeDangerousSdcpnKeys,
+  findDangerousSdcpnKeys,
+  getOwn,
+} from "../../validation/record-keys";
+import {
   createEngineFrame,
   createEngineFrameLayout,
   type EngineFrameSnapshot,
+  type EngineFrameLayout,
 } from "../frames/internal-frame";
+import {
+  PLACE_CAPACITY_UNBOUNDED,
+  computeTransitionCapacityConstraints,
+  normalizePlaceCapacity,
+} from "./capacity";
 import {
   flattenComponentInstancesForSimulation,
   getArcPlaceNameOverrideKey,
@@ -71,7 +83,9 @@ function validateHirArtifacts(
   const runtimeVersion: unknown = (artifacts as { version?: unknown }).version;
   if (runtimeVersion !== 4) {
     throw new Error(
-      `The compiled HIR artifacts use unsupported version ${String(runtimeVersion)}; expected version 4. Recompile them from the current net.`,
+      `The compiled HIR artifacts use unsupported version ${String(
+        runtimeVersion,
+      )}; expected version 4. Recompile them from the current net.`,
     );
   }
 
@@ -90,9 +104,7 @@ function getInitialMarkingValue(
   initialMarking: SimulationInput["initialMarking"],
   placeId: string,
 ): SimulationInput["initialMarking"][string] | undefined {
-  return Object.prototype.hasOwnProperty.call(initialMarking, placeId)
-    ? initialMarking[placeId]
-    : undefined;
+  return getOwn(initialMarking, placeId);
 }
 
 /**
@@ -437,6 +449,7 @@ function createCompiledTransition({
   extensions,
   placesMap,
   typesMap,
+  frameLayout,
   arcPlaceNameOverrides,
   parameterValues,
   lambdaArtifact,
@@ -448,6 +461,7 @@ function createCompiledTransition({
   extensions: PetrinautExtensionSettings;
   placesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["places"][number]>;
   typesMap: ReadonlyMap<string, SimulationInput["sdcpn"]["types"][number]>;
+  frameLayout: EngineFrameLayout;
   arcPlaceNameOverrides: ReadonlyMap<string, string>;
   parameterValues: ParameterValues;
   lambdaArtifact: HirLambdaArtifact | undefined;
@@ -494,6 +508,11 @@ function createCompiledTransition({
   return {
     id: transition.id,
     name: transition.name,
+    capacityConstraints: computeTransitionCapacityConstraints({
+      transition,
+      placeIndexById: frameLayout.placeIndexById,
+      placeCapacities: frameLayout.placeCapacities,
+    }),
     inputPlaces: transition.inputArcs.map((arc) => {
       const placeId = getArcEndpointPlaceId(arc);
       if (!placeId) {
@@ -592,6 +611,16 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   } = input;
   const extensions = input.extensions ?? DEFAULT_PETRINAUT_EXTENSIONS;
   const sanitizedSdcpn = sanitizeSDCPNForExtensions(input.sdcpn, extensions);
+
+  // Simulation trust boundary: ids, parameter variable names and colour
+  // element names key records and reach compiled code from here on. The
+  // file-import boundary applies the same check; this one also covers nets
+  // supplied programmatically by embedding applications.
+  const dangerousKeys = findDangerousSdcpnKeys(sanitizedSdcpn);
+  if (dangerousKeys.length > 0) {
+    throw new Error(describeDangerousSdcpnKeys(dangerousKeys));
+  }
+
   validateHirArtifacts(input.hirArtifacts, sanitizedSdcpn, extensions);
 
   const defaultParameterValues = deriveDefaultParameterValues(
@@ -638,15 +667,29 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
   const packedInitialMarking = new Map<string, PackedInitialPlaceMarking>();
   for (const place of sdcpn.places) {
-    packedInitialMarking.set(
-      place.id,
-      packInitialPlaceMarking(
-        place,
-        sdcpn,
-        getInitialMarkingValue(initialMarking, place.id),
-        stringPool,
-      ),
+    const packed = packInitialPlaceMarking(
+      place,
+      sdcpn,
+      getInitialMarkingValue(initialMarking, place.id),
+      stringPool,
     );
+
+    // Capacity blocks transitions, so it cannot repair a marking that already
+    // violates it. Rejecting here keeps the invariant true for every frame.
+    // Normalized so this check agrees with the runtime: a malformed capacity
+    // (negative, fractional) runs unbounded, so it must not reject a marking.
+    const normalizedCapacity = normalizePlaceCapacity(place.capacity);
+    if (
+      normalizedCapacity !== PLACE_CAPACITY_UNBOUNDED &&
+      packed.count > normalizedCapacity
+    ) {
+      throw new SDCPNItemError(
+        `The initial marking for place \`${place.name}\` has ${packed.count} tokens but its capacity is ${place.capacity}.`,
+        place.id,
+      );
+    }
+
+    packedInitialMarking.set(place.id, packed);
   }
 
   // Compile all differential equation functions
@@ -684,8 +727,10 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
       const placeParameterValues =
         flattened.placeParameterValues.get(place.id) ?? parameterValues;
 
-      const artifact: HirDynamicsArtifact | undefined =
-        input.hirArtifacts?.dynamics[sourceItemId(differentialEquation.id)];
+      const artifact: HirDynamicsArtifact | undefined = getOwn(
+        input.hirArtifacts?.dynamics,
+        sourceItemId(differentialEquation.id),
+      );
       if (!artifact) {
         throw missingArtifactError(
           "dynamics",
@@ -714,6 +759,8 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
     }
   }
 
+  const frameLayout = createEngineFrameLayout(sdcpn);
+
   // Compile transitions into the shape used by the execution hot path.
   const compiledTransitions = new Map<string, CompiledTransition>();
   for (const transition of sdcpn.transitions) {
@@ -725,14 +772,19 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
         extensions,
         placesMap,
         typesMap,
+        frameLayout,
         arcPlaceNameOverrides: flattened.arcPlaceNameOverrides,
         parameterValues:
           flattened.transitionParameterValues.get(transition.id) ??
           parameterValues,
-        lambdaArtifact:
-          input.hirArtifacts?.lambdas[sourceItemId(transition.id)],
-        kernelArtifact:
-          input.hirArtifacts?.kernels[sourceItemId(transition.id)],
+        lambdaArtifact: getOwn(
+          input.hirArtifacts?.lambdas,
+          sourceItemId(transition.id),
+        ),
+        kernelArtifact: getOwn(
+          input.hirArtifacts?.kernels,
+          sourceItemId(transition.id),
+        ),
         stringPool,
       }),
     );
@@ -740,8 +792,8 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
 
   // Calculate buffer size and build place states
   let bufferByteSize = 0;
-  const frameLayout = createEngineFrameLayout(sdcpn);
-  const placeStates: EngineFrameSnapshot["places"] = {};
+  // Keyed by place/transition id: no prototype (see `createUserKeyedRecord`).
+  const placeStates: EngineFrameSnapshot["places"] = createUserKeyedRecord();
 
   for (const [placeIndex, placeId] of frameLayout.placeIds.entries()) {
     const marking = packedInitialMarking.get(placeId);
@@ -770,7 +822,8 @@ export function buildSimulation(input: SimulationInput): SimulationInstance {
   }
 
   // Initialize transition states
-  const transitionStates: EngineFrameSnapshot["transitions"] = {};
+  const transitionStates: EngineFrameSnapshot["transitions"] =
+    createUserKeyedRecord();
   for (const transition of sdcpn.transitions) {
     transitionStates[transition.id] = {
       timeSinceLastFiringMs: 0,

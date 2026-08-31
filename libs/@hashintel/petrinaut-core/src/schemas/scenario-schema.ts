@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { displayNameSchema } from "../validation/display-name";
+import { isDangerousRecordKey } from "../validation/record-keys";
 import { idSchema } from "./entity-schemas";
 
 import type { Scenario } from "../types/sdcpn";
@@ -25,6 +26,12 @@ export const scenarioParameterSchema = z
       .string()
       .min(1, "Identifier cannot be empty")
       .regex(SNAKE_CASE_RE, "Identifier must be snake_case")
+      // Identifiers key scenario-parameter records; "constructor" is the one
+      // all-lowercase `Object.prototype` member the snake_case rule admits.
+      .refine((val) => !isDangerousRecordKey(val), {
+        message:
+          "Identifier must not be a reserved JavaScript property name (e.g., constructor).",
+      })
       .meta({
         description:
           "Scenario-scoped identifier for a user-tunable variable. Reference it as scenario.identifier in parameterOverrides and initialState expressions. Must be snake_case.",

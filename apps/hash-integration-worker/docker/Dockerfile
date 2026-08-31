@@ -31,7 +31,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
 COPY . .
 
 RUN mise trust && \
-    turbo prune --scope='@apps/hash-integration-worker' --docker && \
+    turbo prune $(.github/scripts/prune-scopes.sh '@apps/hash-integration-worker') --docker && \
     find $(yq '.workspace.members' -o tsv Cargo.toml | tr '*' ' ') -maxdepth 2 -name Cargo.toml -exec sh -c ' \
     [ -f "/app/out/full/$1" ] || ( \
     mkdir -p "/app/out/full/$(dirname "$1")/src" && \

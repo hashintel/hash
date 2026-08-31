@@ -1,140 +1,166 @@
 import { SegmentGroup } from "@ark-ui/react/segment-group";
+import { Fragment } from "react";
 
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { cx } from "@hashintel/ds-helpers/css";
 
-// TODO: Segmented Control should just be implemented as in the Figma.
-// This version is just legacy for demo purposes.
+import { resolveAutoFocusProps } from "../../util/form-shared";
+import { getGroupFocusProps } from "../../util/radio-checkbox-group-shared";
+import { iconSizeMap } from "../Button/button";
+import { useFieldId } from "../Form/field-id-context";
+import { Icon, type IconName } from "../Icon/icon";
+import { Tooltip } from "../Tooltip/tooltip";
+import { styles } from "./segmented-control.recipe";
 
-const ROOT_PADDING = 4;
-const ROOT_RADIUS = 10;
+import type { FormInputSize, SharedInputProps } from "../../util/form-shared";
 
-const rootStyles = css({
-  position: "relative",
-  display: "flex",
-  alignItems: "center",
-  gap: "3",
-  userSelect: "none",
-});
-
-const rootBackdropStyles = css({
-  position: "absolute",
-  display: "flex",
-  alignItems: "center",
-  pointerEvents: "none",
-  backgroundColor: "neutral.s10/20",
-  backdropFilter: "[blur(2px)]",
-  left: "[0px]",
-  top: "[0px]",
-  right: "[0px]",
-  bottom: "[0px]",
-  border: "[1px solid rgba(255,255,255,0.35)]",
-  shadow: "[inset 1px 1px 1px rgba(0, 0, 0, 0.05)]",
-});
-
-const indicatorStyles = css({
-  width: "var(--width)",
-  height: "var(--height)",
-  left: "var(--left)",
-  top: "var(--top)",
-  boxShadow: "sm",
-  backgroundColor: "white/60",
-  "[data-part='root']:active &": {
-    backgroundColor: "white/60",
-  },
-});
-
-const itemStyles = css({
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-  position: "relative",
-  paddingX: "5",
-  paddingY: "4",
-  width: "auto",
-  textAlign: "center",
-  cursor: "pointer",
-  transition: "all",
-  transitionDuration: "normal",
-  _disabled: {
-    cursor: "not-allowed",
-    opacity: "0.6",
-  },
-  _focus: {
-    shadow: "lg",
-  },
-  _hover: {
-    backgroundColor: "white/60",
-  },
-});
-
-const itemTextStyles = css({
-  fontSize: "sm",
-  fontWeight: "medium",
-  _disabled: {
-    opacity: "0.4",
-  },
-});
-
-export type SegmentedControlProps = React.PropsWithChildren<{
-  className?: string;
-  style?: React.CSSProperties;
-  options: { name: string; value: string }[];
-  value?: string;
-  defaultValue?: string;
+export type SegmentedControlItem<ValueType extends string = string> = (
+  | { label: React.ReactNode; iconName?: IconName }
+  | {
+      iconName: IconName;
+    }
+) & {
+  value: ValueType;
   disabled?: boolean;
-  onValueChange?: (value: string) => void;
-}>;
+  /** Shown on hover/focus of the segment. Also serves as the accessible label of icon-only segments. */
+  tooltip?: string;
+  tooltipOptions?: Omit<
+    React.ComponentProps<typeof Tooltip>,
+    "children" | "content"
+  >;
+};
 
-export const SegmentedControl: React.FC<SegmentedControlProps> = ({
+export type SegmentedControlProps<ValueType extends string = string> = {
+  /** How the segments are arranged (defaults to `horizontal`) */
+  layout?: "horizontal" | "vertical";
+  /**
+   * The track style: `default` is filled with a hairline ring; `embossed` has
+   * no fill or ring, just a recessed inset shadow — and its selected segment is
+   * subtly raised out of that recess with a soft elevation shadow.
+   */
+  variant?: "default" | "embossed";
+  /** The size (height) of the control */
+  size?: FormInputSize;
+  /** The selectable segments */
+  items?: SegmentedControlItem<ValueType>[];
+} & Omit<
+  SharedInputProps<HTMLInputElement, NoInfer<ValueType>>,
+  "required" | "invalid"
+> &
+  React.AriaAttributes;
+
+export const SegmentedControl = <const ValueType extends string>({
+  layout = "horizontal",
+  variant = "default",
+  size = "md",
+  items = [],
   className,
-  style,
-  options,
+  name,
   value,
-  defaultValue,
-  disabled = false,
-  onValueChange,
-}) => {
+  onChange,
+  onFocus,
+  onBlur,
+  testId,
+  htmlForId,
+  ref,
+  inputRef,
+  autoFocus,
+  disabled,
+  ...ariaProps
+}: SegmentedControlProps<ValueType>) => {
+  const fieldIdFromContext = useFieldId();
+  const inputId = htmlForId ?? fieldIdFromContext ?? undefined;
+
+  const selectedIndex = items.findIndex((item) => item.value === value);
+  const firstEnabledIndex = items.findIndex((item) => item.disabled !== true);
+  const primaryIndex =
+    selectedIndex === -1 ? Math.max(0, firstEnabledIndex) : selectedIndex;
+  const primaryValue = items[primaryIndex]?.value;
+
+  const classes = styles({ size, layout, variant });
+
   return (
     <SegmentGroup.Root
       value={value}
       onValueChange={(details) => {
-        if (details.value) {
-          onValueChange?.(details.value);
+        if (details.value !== null) {
+          onChange(details.value as ValueType);
         }
       }}
+      name={name}
       disabled={disabled}
-      defaultValue={defaultValue}
-      className={cx(rootStyles, className)}
-      style={{
-        ...style,
-        padding: ROOT_PADDING,
-        borderRadius: ROOT_RADIUS,
-      }}
+      orientation={layout}
+      ids={
+        inputId === undefined
+          ? undefined
+          : {
+              itemHiddenInput: (itemValue) =>
+                itemValue === primaryValue
+                  ? inputId
+                  : `${inputId}-${itemValue}`,
+            }
+      }
+      data-testid={testId}
+      ref={ref as React.Ref<HTMLDivElement>}
+      className={cx(classes.root, className)}
+      {...getGroupFocusProps({ onFocus, onBlur })}
+      {...ariaProps}
     >
-      <div
-        className={rootBackdropStyles}
-        style={{ borderRadius: ROOT_RADIUS }}
-      />
+      <SegmentGroup.Indicator className={classes.indicator} />
+      {items.map((item, index) => {
+        const isPrimary = index === primaryIndex;
+        const isIconOnly = !("label" in item);
 
-      <SegmentGroup.Indicator
-        className={indicatorStyles}
-        style={{ borderRadius: ROOT_RADIUS - ROOT_PADDING }}
-      />
+        const segment = (
+          <SegmentGroup.Item
+            value={item.value}
+            disabled={item.disabled}
+            className={cx(classes.item, isIconOnly && classes.iconOnlyItem)}
+          >
+            {"iconName" in item && item.iconName !== undefined && (
+              <Icon
+                name={item.iconName}
+                size={iconSizeMap[size]}
+                className={classes.icon}
+                alt={isIconOnly ? (item.tooltip ?? item.value) : undefined}
+              />
+            )}
+            {"label" in item && (
+              <SegmentGroup.ItemText className={classes.itemText}>
+                {item.label}
+              </SegmentGroup.ItemText>
+            )}
+            <SegmentGroup.ItemHiddenInput
+              ref={isPrimary ? inputRef : undefined}
+              {...(autoFocus === "never" || isPrimary
+                ? resolveAutoFocusProps(autoFocus)
+                : undefined)}
+            />
+          </SegmentGroup.Item>
+        );
 
-      {options.map((option) => (
-        <SegmentGroup.Item
-          key={option.value}
-          value={option.value}
-          className={itemStyles}
-          style={{ borderRadius: ROOT_RADIUS - ROOT_PADDING }}
-        >
-          <SegmentGroup.ItemText className={itemTextStyles}>
-            {option.name}
-          </SegmentGroup.ItemText>
-          <SegmentGroup.ItemControl />
-          <SegmentGroup.ItemHiddenInput />
-        </SegmentGroup.Item>
-      ))}
+        if (item.tooltip === undefined) {
+          return <Fragment key={item.value}>{segment}</Fragment>;
+        }
+
+        const { className: tooltipClassName, ...tooltipOptions } =
+          item.tooltipOptions ?? {};
+
+        return (
+          <Tooltip
+            key={item.value}
+            content={item.tooltip}
+            openDelay="slow"
+            {...tooltipOptions}
+            // Arrow-key activation dispatches a native click on the radio,
+            // which would instantly dismiss the tooltip that just opened on
+            // focus (and flash it unpositioned at the viewport origin).
+            closeOnClick={false}
+            className={cx(classes.tooltipTrigger, tooltipClassName)}
+          >
+            {segment}
+          </Tooltip>
+        );
+      })}
     </SegmentGroup.Root>
   );
 };

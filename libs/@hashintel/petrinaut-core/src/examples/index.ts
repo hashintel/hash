@@ -1,3 +1,8 @@
+/**
+ * @layerRoot core.examples
+ * @role Ready-made SDCPN documents shipped for onboarding and demos
+ */
+
 export { productionMachines } from "./production-with-machine-failure";
 export { deploymentPipelineSDCPN } from "./deployment-pipeline";
 export { probabilisticSatellitesSDCPN } from "./satellites-launcher";

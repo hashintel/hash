@@ -1,0 +1,29 @@
+[package]
+name              = "effect-dns-hickory"
+authors.workspace = true
+version           = "0.0.0"
+edition.workspace = true
+license           = "MIT OR Apache-2.0"
+publish           = false
+description       = "Hickory DNS implementation of DNS effect library"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+napi           = { workspace = true, features = ["napi9", "tokio_rt"] }
+napi-derive    = { workspace = true, features = ["compat-mode", "full"] }
+simple-mermaid = { workspace = true }
+
+[build-dependencies]
+napi-build = { workspace = true }
+
+[lints]
+workspace = true

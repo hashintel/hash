@@ -7,9 +7,7 @@ Useful modelling techniques for Petri nets in Petrinaut.
 For processes with **exponentially distributed** duration, set the transition's stochastic firing rate to `1 / mean_duration`. The exponential distribution is built into the stochastic firing mechanism -- no extra setup needed.
 
 ```ts
-export default Lambda((tokensByPlace, parameters) => {
-  return 1 / parameters.mean_repair_time;
-});
+return 1 / parameters.mean_repair_time;
 ```
 
 This is the simplest way to model duration and works well for many processes (service times, failure intervals, etc.).
@@ -24,32 +22,26 @@ This pattern requires stochasticity to be enabled. If stochasticity is disabled,
 2. **Sample the duration** in a transition kernel using a `Distribution`:
 
 ```ts
-export default TransitionKernel((tokensByPlace, parameters) => {
-  return {
-    InProgress: [
-      {
-        remaining_time: Distribution.Lognormal(2.0, 0.5),
-        // ... other dimensions
-      },
-    ],
-  };
-});
+return {
+  InProgress: [
+    {
+      remaining_time: Distribution.Lognormal(2.0, 0.5),
+      // ... other dimensions
+    },
+  ],
+};
 ```
 
 1. **Count down** with a differential equation:
 
 ```ts
-export default Dynamics((tokens, parameters) => {
-  return tokens.map(() => ({ remaining_time: -1 }));
-});
+return tokens.map(() => ({ remaining_time: -1 }));
 ```
 
 1. **Guard the completion transition** with a predicate:
 
 ```ts
-export default Lambda((tokensByPlace, parameters) => {
-  return tokensByPlace.InProgress[0].remaining_time <= 0;
-});
+return input.InProgress[0].remaining_time <= 0;
 ```
 
 **Alternative approach:** use two dimensions -- a fixed `sampled_duration` that doesn't change and a `counter` that increments via dynamics. Guard on `counter >= sampled_duration`. This preserves the original sampled value for inspection.
@@ -78,7 +70,7 @@ Use a [read arc](petri-net-extensions.md#read-arcs) when a transition needs a to
 (SensorState) ---> [ReactToReading]    (read arc, weight 1)
 ```
 
-The transition can read `tokensByPlace.SensorState[0]` while the sensor-state token remains available for future transitions.
+The transition can read `input.SensorState[0]` while the sensor-state token remains available for future transitions.
 
 ## Mutual exclusion with inhibitor arcs
 
@@ -99,9 +91,7 @@ Use an [inhibitor arc](petri-net-extensions.md#inhibitor-arcs) from a "busy" or 
 A transition with **no input arcs** is always structurally enabled. Set a stochastic rate to model arrivals following a Poisson process.
 
 ```ts
-export default Lambda((tokensByPlace, parameters) => {
-  return parameters.arrival_rate;
-});
+return parameters.arrival_rate;
 ```
 
 Use the transition kernel to define the properties of newly created tokens (if the output place is typed).
@@ -135,14 +125,12 @@ Multiple transitions consuming from the **same place** with **complementary pred
 
 ```ts
 // Pass transition
-export default Lambda((tokensByPlace, parameters) => {
-  return tokensByPlace.QAQueue[0].quality >= parameters.quality_threshold;
-});
+return input.QAQueue[0].quality >= parameters.quality_threshold;
+```
 
+```ts
 // Fail transition
-export default Lambda((tokensByPlace, parameters) => {
-  return tokensByPlace.QAQueue[0].quality < parameters.quality_threshold;
-});
+return input.QAQueue[0].quality < parameters.quality_threshold;
 ```
 
 **Example:** the [Supply Chain with Disruption](examples.md#supply-chain-with-disruption) example routes production batches to finished goods or scrap based on a quality threshold, and inbound/outbound shipments to received-or-damaged and delivered-or-lost.

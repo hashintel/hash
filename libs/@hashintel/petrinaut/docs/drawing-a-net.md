@@ -20,7 +20,7 @@ Spans the full editor width and has three sections.
 **Left**
 
 - **Sidebar toggle** -- collapses or expands the left sidebar.
-- **Menu** (hamburger icon) -- file operations: **Export** (JSON / JSON without visual info / TikZ), **Layout** (apply auto-layout), and **Docs**. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
+- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
 - **Net title** -- editable inline title for the current net. Whether the title field is shown depends on the host application; the demo site shows it, but a Petrinaut embedded in another product may hide it.
 
 **Center**
@@ -92,6 +92,22 @@ You can also edit an arc's weight via the properties panel for the transition it
 
 See also: [arc weight for multi-token operations](useful-patterns.md#arc-weight-for-multi-token-operations).
 
+## Token capacity
+
+Select a place to open its properties, then tick **Token capacity** to cap how many tokens the place can hold. Leave it off (the default) and the place is unbounded.
+
+A capacity works like an arc weight on the receiving side. A transition needs enough tokens in its input places to fire; with a capacity set, it also needs enough _room_ in its output places. If firing would take a place above its capacity, that transition simply is not enabled -- so a full place blocks the transitions feeding it, and the limit is never exceeded.
+
+Details worth knowing:
+
+- The check uses the **net** change per firing. A transition that consumes one token from a place and returns one to it leaves the count unchanged, so a place sitting exactly at capacity does not block it.
+- Read and inhibitor arcs do not consume tokens, so they never free up room.
+- A capacity of `0` means the place can never receive tokens.
+- If every remaining transition is blocked by a full output place, the run ends as a [deadlock](simulation.md#deadlock) -- the same as running out of input tokens.
+- A scenario or initial marking that already exceeds a place's capacity is an error: capacity blocks transitions, so it cannot fix a starting state that is already over the limit.
+
+Capacity is also how you bound a model's worst-case size. With every place capped, the largest possible marking is fixed, which makes the state space finite and the memory a run can consume predictable.
+
 ## Pan and Select modes
 
 The editor has two cursor modes, toggled from the bottom toolbar dropdown:
@@ -162,11 +178,12 @@ When enabled, node positions snap to a grid when placing or dragging. Toggle thi
 
 From the top-bar menu (hamburger icon), under **Export**:
 
-- **JSON** -- the full SDCPN: places, transitions, arcs, types, dynamics, parameters, scenarios, metrics, **and** canvas positions / display colours. The format other Petrinaut instances can re-import faithfully.
-- **JSON without visual info** -- the same payload minus node positions and type display colours. Useful when only the logical structure matters (sharing for review, embedding in another tool, comparing two nets without layout noise). On import, the receiving editor applies auto-layout to fill in positions.
+- **YAML** -- the full SDCPN: places, transitions, arcs, types, dynamics, parameters, scenarios, metrics, **and** canvas positions / display colours. This is the default format, and the one other Petrinaut instances re-import faithfully. It is easier to read and hand-edit than JSON: multi-line code fields (transition kernels, metrics) appear as indented blocks rather than escaped one-line strings.
+- **YAML without visual info** -- the same payload minus node positions and type display colours. Useful when only the logical structure matters (sharing for review, embedding in another tool, comparing two nets without layout noise). On import, the receiving editor applies auto-layout to fill in positions.
+- **JSON** / **JSON without visual info** -- the same two payloads encoded as JSON, for tools that expect it.
 - **TikZ** -- a `.tex` file with a structural diagram. This is a simplified view: only the place / transition / arc structure is included. Token types, dynamics, read/inhibitor arcs, scenarios, and metrics are **not** encoded. Intended for papers and presentations.
 
-**Import**: loads a net from a `.json` file. If node positions are missing, an automatic layout is applied on load.
+**Import**: loads a net from a `.yaml`, `.yml`, or `.json` file -- the format is detected from the content, so files exported by any Petrinaut version load the same way. If node positions are missing, an automatic layout is applied on load.
 
 ## Auto-layout
 

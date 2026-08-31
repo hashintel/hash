@@ -1,7 +1,12 @@
-// Public surface for `@hashintel/petrinaut-core` — the headless engine.
-//
-// No React, no DOM, no Monaco. Stateful handles, streams, and pure logic for
-// SDCPN documents, simulation, LSP, and playback.
+/**
+ * Public surface for `@hashintel/petrinaut-core` — the headless engine.
+ *
+ * No React, no DOM, no Monaco. Stateful handles, streams, and pure logic for
+ * SDCPN documents, simulation, LSP, and playback.
+ *
+ * @layerRoot core
+ * @role SDCPN document model, compiler, simulation runtimes and LSP, with no UI framework
+ */
 
 // --- Document ---
 export {
@@ -81,6 +86,7 @@ export type {
 export {
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
   PETRINAUT_OPTIMIZATION_MAX_SEED,
+  PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
   PETRINAUT_OPTIMIZATION_MAX_TRIALS,
@@ -88,6 +94,8 @@ export {
   petrinautContinuousOptimizationDomainSchema,
   petrinautIntegerOptimizationDomainSchema,
   petrinautOptimizationCompleteEventSchema,
+  petrinautOptimizationDescribeParameterSchema,
+  petrinautOptimizationDescribeResultSchema,
   petrinautOptimizationDomainSchema,
   petrinautOptimizationErrorEventSchema,
   petrinautOptimizationEvaluateParamsSchema,
@@ -98,6 +106,8 @@ export {
   petrinautOptimizationManifestSchema,
   petrinautOptimizationObjectiveSchema,
   petrinautOptimizationParameterBindingSchema,
+  petrinautOptimizationReplicateSchema,
+  petrinautOptimizationEvaluateResultSchema,
   petrinautOptimizationStartedEventSchema,
   petrinautOptimizationStudySchema,
   petrinautOptimizationTrialEventSchema,
@@ -146,9 +156,19 @@ export type {
 export { mutationActionInputSchemas } from "./action-schemas";
 export {
   calculateGraphLayout,
+  classicNodeDimensions,
+  compactNodeDimensions,
+  getBoundsOfCenteredBoxes,
+  getComponentInstanceHeight,
+  getMinZoomForBounds,
   layoutNodeDimensions,
   type LayoutDimensions,
+  type NodeDimensions,
   type NodePosition,
+  type Rect,
+  type RenderNodeDimensions,
+  type Size,
+  ZOOM_PADDING,
 } from "./layout";
 
 // --- AI ---
@@ -201,6 +221,7 @@ export {
   createMonteCarloUserDefinedMetric,
   createSimulation,
   createWorkerTransport,
+  deriveRunSeed,
 } from "./simulation";
 export type {
   BackpressureConfig,
@@ -320,6 +341,14 @@ export type {
 
 // --- Domain types ---
 export type * from "./types/sdcpn";
+export { normalizeSDCPN } from "./types/sdcpn-input";
+export type {
+  SDCPNInput,
+  SDCPNInputArcInput,
+  SDCPNOutputArcInput,
+  SDCPNPlaceInput,
+  SDCPNTransitionInput,
+} from "./types/sdcpn-input";
 export { parseArcId } from "./types/selection";
 export type * from "./types/selection";
 
@@ -382,6 +411,13 @@ export {
   type ScenarioCompilationError,
   type ScenarioParameterValues,
 } from "./simulation/authoring/scenario/compile-scenario";
+// Type-only: lowering itself needs the TypeScript compiler and stays in the
+// LSP worker (`requestScenarioHir`) / Node (`lowerScenarioToHir` in ./hir).
+export type {
+  ScenarioHir,
+  ScenarioHirItem,
+  ScenarioLoweringInput,
+} from "./hir/scenario";
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {
   coerceTokenAttributeValue,
@@ -422,10 +458,28 @@ export {
   validateDisplayName,
 } from "./validation/display-name";
 export { entityNameSchema, validateEntityName } from "./validation/entity-name";
+export {
+  cloneUserKeyedRecord,
+  createUserKeyedRecord,
+  DANGEROUS_RECORD_KEYS,
+  describeDangerousSdcpnKeys,
+  findDangerousSdcpnKeys,
+  getOwn,
+  isDangerousRecordKey,
+  type DangerousSdcpnKey,
+} from "./validation/record-keys";
 export { validateVariableName } from "./validation/variable-name";
+export { runSandboxed, SHADOWED_GLOBALS } from "./simulation/authoring/sandbox";
 
 // --- File, clipboard, and editor protocol helpers ---
 export {
+  parseDocumentText,
+  serializeDocument,
+  type DocumentFormat,
+  type ParseDocumentTextResult,
+} from "./file-format/document-text";
+export {
+  parseSDCPNDocument,
   parseSDCPNFile,
   type ImportResult,
 } from "./file-format/parse-sdcpn-file";

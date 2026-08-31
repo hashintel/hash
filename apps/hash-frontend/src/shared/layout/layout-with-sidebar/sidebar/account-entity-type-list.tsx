@@ -136,7 +136,12 @@ export const AccountEntityTypeList: FunctionComponent<
               setSortType={setSortType}
               activeSortType={sortType}
             />
-            <Link tabIndex={-1} href="/new/types/entity-type" noLinkStyle>
+            <Link
+              tabIndex={-1}
+              href="/new/types/entity-type"
+              noLinkStyle
+              draggable={false}
+            >
               <Tooltip title="Create new entity type" sx={{ left: 5 }}>
                 <IconButton
                   data-testid="create-entity-type-btn"

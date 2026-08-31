@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
+use futures::TryStreamExt as _;
 use hash_graph_authorization::policies::{MergePolicies, PolicyComponents, action::ActionName};
 use hash_graph_store::{
     entity::{
@@ -19,7 +20,7 @@ use tracing::Instrument as _;
 use type_system::{
     knowledge::{Entity, entity::id::EntityId},
     ontology::id::VersionedUrl,
-    principal::{actor::ActorEntityUuid, actor_group::WebId},
+    principal::{actor::ActorId, actor_group::WebId},
 };
 
 use crate::store::{
@@ -118,7 +119,7 @@ where
     )]
     pub(crate) async fn search_entities_impl(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         params: SearchEntitiesParams,
     ) -> Result<SearchEntitiesResponse, Report<QueryError>> {
         let SearchEntitiesParams {
@@ -134,8 +135,7 @@ where
                 },
         } = params;
 
-        let policy_components = PolicyComponents::builder(self)
-            .with_actor(actor_id)
+        let policy_components = PolicyComponents::builder(self, Some(actor_id))
             .with_action(ActionName::ViewEntity, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
@@ -269,9 +269,9 @@ where
         compiler.set_limit(candidate_pool);
 
         let (statement, parameters) = compiler.compile();
-        Ok(self
-            .as_client()
-            .query(&statement, parameters)
+
+        self.as_client()
+            .query_raw(&statement, parameters)
             .instrument(tracing::info_span!(
                 "SELECT",
                 otel.kind = "client",
@@ -281,13 +281,14 @@ where
             ))
             .await
             .change_context(QueryError)?
-            .into_iter()
-            .map(|row| EntityId {
+            .map_ok(|row| EntityId {
                 web_id: row.get(0),
                 entity_uuid: row.get(1),
                 draft_id: row.get(2),
             })
-            .collect())
+            .try_collect()
+            .await
+            .change_context(QueryError)
     }
 
     /// Re-scores the candidates against the full vector, applying the distance threshold.
@@ -340,7 +341,7 @@ where
     /// Hydrates the ranked entities, restoring the ranking the hydration read does not preserve.
     async fn hydrate_ranked(
         &self,
-        actor_id: ActorEntityUuid,
+        actor_id: ActorId,
         ranked: &[EntityId],
         include_drafts: bool,
         include_entity_types: bool,
@@ -349,7 +350,7 @@ where
         // otherwise overflows rustc's recursion depth.
         let response = Box::pin(
             self.query_entities_impl(
-                actor_id,
+                Some(actor_id),
                 QueryEntitiesParams {
                     filter: Filter::Any(
                         ranked

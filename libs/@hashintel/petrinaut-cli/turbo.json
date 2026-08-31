@@ -1,10 +1,18 @@
 {
   "extends": ["//"],
   "tasks": {
+    "codegen": {
+      "dependsOn": ["@hashintel/petrinaut-core#build"],
+      "outputs": ["schemas/**"]
+    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
       "cache": false
+    },
+    "test:unit": {
+      "dependsOn": ["build", "codegen", "^build"],
+      "env": ["TEST_COVERAGE"]
     }
   }
 }

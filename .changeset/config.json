@@ -1,6 +1,9 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@2.0.0/schema.json",
-  "changelog": ["@changesets/changelog-github", { "repo": "hashintel/hash" }],
+  "changelog": [
+    "@local/repo-chores/changesets-changelog",
+    { "repo": "hashintel/hash" }
+  ],
   "commit": false,
   "linked": [],
   "access": "public",
@@ -14,6 +17,7 @@
     "@tests/*",
     "@hashintel/block-design-system",
     "@hashintel/design-system",
+    "@hashintel/petrinaut-cli",
     "@hashintel/query-editor",
     "@hashintel/type-editor"
   ],

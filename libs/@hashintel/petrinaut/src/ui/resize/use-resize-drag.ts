@@ -1,3 +1,7 @@
+/**
+ * @layerRoot ui.resize
+ * @role Drag-resize primitives — the mouse-drag hook and the edge handle built on it
+ */
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useLatest } from "../../react/hooks/use-latest";

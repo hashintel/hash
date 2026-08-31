@@ -92,6 +92,7 @@ export const EntityOrTypeSidebarItem: FunctionComponent<{
         tabIndex={-1}
         sx={{ flex: 1 }}
         noLinkStyle
+        draggable={false}
         href={href ?? baseUrl}
         flex={1}
       >
