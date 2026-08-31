@@ -204,10 +204,13 @@ function makeHarness(runCount: number, initialSelection?: SweepSelection) {
   });
 
   const settle = async () => {
-    // Instantiation resolves through microtasks; three flushes cover the chain.
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    // Instantiation resolves through microtasks; the flush count covers the
+    // longest chain (the pipelined loop's startNext -> startRung -> draws ->
+    // instantiate) with headroom, so adding an await does not break every
+    // test again.
+    for (let flush = 0; flush < 12; flush++) {
+      await Promise.resolve();
+    }
   };
 
   return { session, batches, updates, onError, settle };
@@ -501,6 +504,61 @@ describe("createSweepSession", () => {
       runsCompleted: 8,
     });
     expect(session.getCell({ x: 2, y: 1 })).toBeUndefined();
+    session.dispose();
+  });
+});
+
+describe("pipelined ladder rungs", () => {
+  it("starts the next rung once the current one streams, before it completes", async () => {
+    const { session, batches, settle } = makeHarness(25, point(0, 0));
+    await settle();
+    expect(batches).toHaveLength(1);
+
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    await settle();
+
+    // Rung 2 (runs 8..24) is already in flight while rung 1 still computes.
+    expect(batches).toHaveLength(2);
+    expect(batches[1]!.started).toBe(true);
+    expect(batches[1]!.request.runCount).toBe(17);
+    expect(batches[1]!.request.seed).toBe(sweepBatchSeed(42, 8));
+    session.dispose();
+  });
+
+  it("folds out-of-order completions in order", async () => {
+    const { session, batches, updates, settle } = makeHarness(25, point(0, 0));
+    await settle();
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    await settle();
+
+    // The successor finishes first; its fold waits for rung 1.
+    batches[1]!.stream([frame(17, [[2, 17]])]);
+    batches[1]!.complete();
+    await settle();
+    expect(updates.at(-1)!.runsCompleted).toBe(0);
+
+    batches[0]!.complete();
+    await settle();
+    expect(updates.at(-1)!.runsCompleted).toBe(25);
+    expect(updates.at(-1)!.computing).toBe(false);
+    session.dispose();
+  });
+
+  it("a selection change aborts both live rungs", async () => {
+    const { session, batches, settle } = makeHarness(25, point(0, 0));
+    await settle();
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    await settle();
+    expect(batches).toHaveLength(2);
+
+    session.setSelection(point(1, 0));
+    await settle();
+
+    expect(batches[0]!.cancelled).toBe(true);
+    expect(batches[1]!.cancelled).toBe(true);
+    // The new selection's own first rung is in flight.
+    expect(batches).toHaveLength(3);
+    expect(batches[2]!.request.parameterValues).toEqual({ x: 1, y: 10 });
     session.dispose();
   });
 });
