@@ -639,10 +639,7 @@ export class OpenAIRealtimeSession {
     this.#activeResponseIds.add(responseId);
     const metadata = asRecord(response?.metadata);
     const speechRequestId = nonEmptyString(metadata?.petrinaut_request_id);
-    if (
-      metadata?.petrinaut_kind !== "canonical-speech" ||
-      !speechRequestId
-    ) {
+    if (metadata?.petrinaut_kind !== "canonical-speech" || !speechRequestId) {
       return;
     }
     this.#completeResponseCreateEvent(speechRequestId);
