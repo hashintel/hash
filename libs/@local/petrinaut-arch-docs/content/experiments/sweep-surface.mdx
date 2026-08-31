@@ -14,19 +14,32 @@ the surface and a cell the navigator visited are the same cell.
 
 ## The view drives the sampling
 
-While the section is open, the component walks the X×Y grid coarse-to-fine —
-corners and lattice midpoints before their neighbours — requesting eight runs
-per combination through the session's background lane, on four concurrent
-lanes pulling from one queue — and the session matches them with four
-background-batch slots (its lane used to hold one batch in flight, which
-would have serialized the lanes right back). Most of a cell's wall time is
-batch setup rather than compute, so strictly sequential sampling filled an
-11×11 surface in ~15 s where the lanes fill it in ~4 s, and the shared queue
-keeps the early picture coarse-first. Each background batch gets a single
-worker, so the navigator's sharded batch keeps most cores; a cell the
-navigator already refined resolves straight from cache. Parameters outside the two shown axes stay at the navigator's values,
-and changing any of them (or the axes, or the metric) restarts the walk for
-the new slice.
+While the section is open, the component samples the X×Y grid coarse-to-fine —
+corners and lattice midpoints before their neighbours — in chunks of 24
+cells, each chunk one request through the session's background lane at eight
+runs per cell. Where the swept parameters only drive rates, a chunk becomes a
+**single experiment**: the session lays every cell's values out as per-run
+parameter draws (each cell's values repeated eight times), runs one batch of
+`cells × 8` runs, and folds the per-run metric values back into per-cell
+means. One batch setup per chunk replaces one per cell — batch setup, not
+compute, dominated a cell's wall time, which is why the earlier design needed
+four concurrent per-cell lanes to fill an 11×11 surface in ~4 s.
+
+The batch trick has a semantic precondition: every run in a batch shares one
+compiled initial marking, so it is only valid when no swept axis shapes that
+marking. The provider checks this when the sweep starts — it compiles the
+initial state at each axis's extremes and compares against the midpoint — and
+a marking-shaping sweep falls back to per-cell sampling, whose base compile
+follows each cell. Batched chunks also pin the batch to the CPU lane: only
+the CPU workers report per-run metric values (`runResults`), the GPU backend
+folds runs into histograms on-device.
+
+Every metric is measured on the same runs, so the component caches
+per-cell values for **all** metrics and switching the shown metric repaints
+from the cache instead of re-sampling. Each background batch gets a single
+worker, so the navigator's sharded batch keeps most cores. Parameters
+outside the two shown axes stay at the navigator's values, and changing any
+of them (or the axes) restarts the sampling for the new slice.
 
 ## Rendering sparse data honestly
 
@@ -39,12 +52,12 @@ exists. All of that is pure, tested math in
 `react/experiments/contour-grid.ts`; the component only paints it onto a
 canvas, the same imperative-draw idiom the metric charts use.
 
-A walk restart — any slice, axis, or metric change clears the sampled
-values — used to blank the plot until the new walk's first samples resolved,
+A restart — any slice or axis change clears the sampled
+values — used to blank the plot until the first new samples resolved,
 which reads as a crash after every slider move. The plot now keeps the
 previous picture up, dimmed to 45%, whenever fewer than three fresh samples
 exist (one or two samples interpolate to a near-uniform wash that says less
-than the old picture does), with the new walk's dots drawn on top. The same
+than the old picture does), with the new dots drawn on top. The same
 bridge the metric charts build with a snapshot overlay, built here by
 retaining the last complete-enough field. The `Components / ContourSurface →
 Restarting` story demonstrates the cycle.
