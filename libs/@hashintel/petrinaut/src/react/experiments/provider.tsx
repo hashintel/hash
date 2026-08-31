@@ -51,6 +51,7 @@ import {
   isTerminalExperimentStatus,
   type DetachedObjectiveRequest,
 } from "./context";
+import { sweepCellObjective } from "./contour-grid";
 import {
   buildParameterAxis,
   fullSweepSelection,
@@ -306,6 +307,20 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     new Map<string, PendingExperimentRegistration>(),
   );
   const sweepSessionsRef = useRef(new Map<string, SweepSession>());
+  /**
+   * Per sweep: compiles a cell's initial marking to a comparable string
+   * (null when that cell's values do not compile). Surface chunks batch many
+   * cells into one experiment only when every cell in the chunk compiles to
+   * the batch's shared marking — checked against the actual cell values, so
+   * a marking the swept parameters shape (even jointly, or only at interior
+   * points) falls back to the per-cell path instead of running wrong.
+   */
+  const surfaceMarkingProbesRef = useRef(
+    new Map<
+      string,
+      (values: Readonly<Record<string, number>>) => string | null
+    >(),
+  );
   /** Serializes detached objective batches on one background worker. */
   const detachedChainRef = useRef<Promise<unknown>>(Promise.resolve());
   const detachedCpuBackendRef = useRef<ExperimentBackend | null>(null);
@@ -325,6 +340,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     >(),
   );
   const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
+  const experimentsStateRef = useLatest(experiments);
   const [selectedExperimentId, setSelectedExperimentId] = useState<
     string | null
   >(null);
@@ -514,6 +530,15 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       netParameterVariableNames,
     } = options;
     const experimentId = experiment.id;
+    surfaceMarkingProbesRef.current.set(experimentId, (values) => {
+      try {
+        return JSON.stringify(compileForValues(values).result.initialState);
+      } catch {
+        // A cell whose values do not compile cannot join a batch; the
+        // per-cell path surfaces the error the way a plain batch would.
+        return null;
+      }
+    });
     let chosenBackend: ExperimentBackend | null = null;
     /**
      * Surface-sampling batches are 8 tiny runs; on the CPU they get one
@@ -545,6 +570,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         seed,
         runCount,
         background,
+        requiresRunResults,
+        runSeeds,
         signal,
       }) => {
         const compiled = compileForValues(parameterValues);
@@ -564,16 +591,48 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
                 compileRunNumbers,
                 netParameterVariableNames,
               });
+        // Pinned per-run seeds only ride the record form (`runs`); a numeric
+        // plan carries values alone, so a seeded batch converts its plan to
+        // records. Seeded batches are small surface chunks — the record
+        // form's cost is irrelevant at that size.
+        const perRun =
+          translated === undefined
+            ? runSeeds === undefined
+              ? {}
+              : { runs: runSeeds.map((runSeed) => ({ seed: runSeed })) }
+            : translated.kind === "runs"
+              ? {
+                  runs:
+                    runSeeds === undefined
+                      ? translated.runs
+                      : translated.runs.map((run, index) => ({
+                          ...run,
+                          seed: runSeeds[index],
+                        })),
+                }
+              : runSeeds === undefined
+                ? { runPlan: translated.plan }
+                : {
+                    runs: runSeeds.map((runSeed, index) => ({
+                      seed: runSeed,
+                      parameterValues: Object.fromEntries(
+                        translated.plan.ids.map((id, column) => [
+                          id,
+                          String(
+                            translated.plan.values[
+                              index * translated.plan.ids.length + column
+                            ],
+                          ),
+                        ]),
+                      ),
+                    })),
+                  };
         const override = {
           parameterValues: compiled.result.parameterValues,
           initialMarking: compiled.result.initialState,
           seed,
           runCount,
-          ...(translated === undefined
-            ? {}
-            : translated.kind === "plan"
-              ? { runPlan: translated.plan }
-              : { runs: translated.runs }),
+          ...perRun,
         };
 
         // The surface's background sampling can start before the navigator's
@@ -581,8 +640,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         // walk here too would race it: two batches contending for the pool,
         // both patching the record's backend fields. Background batches
         // instead go straight to the single-worker CPU lane until a backend
-        // is chosen (and stay there when the choice lands on the CPU).
-        if (background && !chosenBackend) {
+        // is chosen (and stay there when the choice lands on the CPU). A
+        // batch whose consumer reads per-run values stays there always:
+        // only the CPU workers report `runResults`.
+        if (background && (!chosenBackend || requiresRunResults)) {
           backgroundCpuBackend ??= createWorkerPoolExperimentBackend({
             createWorker: reusableWorkerFactory,
             shardCount: 1,
@@ -1100,6 +1161,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     if (session) {
       session.dispose();
       sweepSessionsRef.current.delete(experimentId);
+      surfaceMarkingProbesRef.current.delete(experimentId);
       patchExperiment(experimentId, { status: "cancelled" });
       return;
     }
@@ -1112,6 +1174,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   ) => {
     sweepSessionsRef.current.get(experimentId)?.dispose();
     sweepSessionsRef.current.delete(experimentId);
+    surfaceMarkingProbesRef.current.delete(experimentId);
     disposeExperimentHandle(experimentId);
     setExperiments((prev) =>
       prev.filter((experiment) => experiment.id !== experimentId),
@@ -1136,6 +1199,53 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     sweepSessionsRef.current
       .get(experimentId)
       ?.sampleCell(parameterValues, minRuns) ?? Promise.resolve(null);
+
+  const sampleSurfaceCells: ExperimentsContextValue["sampleSurfaceCells"] =
+    async (experimentId, positions, runsPerCell) => {
+      const session = sweepSessionsRef.current.get(experimentId);
+      if (!session || positions.length === 0) {
+        return null;
+      }
+      // One batch shares one compiled initial marking, so batch only when
+      // every cell in this chunk compiles to the same marking as the first
+      // (checked at the actual cell values — no synthetic probe points).
+      const markingProbe = surfaceMarkingProbesRef.current.get(experimentId);
+      if (markingProbe && positions[0]) {
+        const baseMarking = markingProbe(positions[0]);
+        if (
+          baseMarking !== null &&
+          positions.every((position) => markingProbe(position) === baseMarking)
+        ) {
+          return session.sampleCells(positions, runsPerCell);
+        }
+      }
+      // A marking-shaping (or partially non-compiling) chunk keeps the
+      // per-cell path, whose base compile follows each cell; the background
+      // slots bound how many run at once.
+      const experiment = experimentsStateRef.current.find(
+        (candidate) => candidate.id === experimentId,
+      );
+      if (!experiment) {
+        return null;
+      }
+      const metricIds = experiment.metricSpecs.map((spec) => spec.id);
+      return Promise.all(
+        positions.map(async (position) => {
+          const snapshot = await session.sampleCell(position, runsPerCell);
+          if (!snapshot) {
+            return null;
+          }
+          const values: Record<string, number> = {};
+          for (const metricId of metricIds) {
+            const value = sweepCellObjective(snapshot.metricFrames, metricId);
+            if (value !== null) {
+              values[metricId] = value;
+            }
+          }
+          return values;
+        }),
+      );
+    };
 
   const runDetachedObjectiveBatch = async (
     request: DetachedObjectiveRequest,
@@ -1296,6 +1406,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     removeExperiment: stableRemoveExperiment,
     setSweepSelection: useStableCallback(setSweepSelection),
     sampleSweepCell: useStableCallback(sampleSweepCell),
+    sampleSurfaceCells: useStableCallback(sampleSurfaceCells),
     sampleDetachedObjective: useStableCallback(sampleDetachedObjective),
   };
   // Every callback is identity-stable, so this object never changes and

@@ -557,6 +557,23 @@ export function FakeExperimentsProvider({
         restream(experimentId, selection);
       }
     },
+    sampleSurfaceCells: (_experimentId, positions) =>
+      // The same synthetic bump as sampleSweepCell, one walk delay per chunk.
+      new Promise((resolve) => {
+        setTimeout(() => {
+          resolve(
+            positions.map((position) => {
+              const x = 0.1 + ((position.transmission_rate ?? 0) / 50) * 0.4;
+              const y = 2 + (position.recovery_days ?? 0);
+              const objective =
+                100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
+                6 * Math.sin(x * 9) +
+                y / 4;
+              return { infected: Math.round(objective) };
+            }),
+          );
+        }, 120);
+      }),
     sampleSweepCell: (_experimentId, position) => {
       // A synthetic objective surface — a smooth bump — so the story's
       // contour fills in the way a real sweep's would, walk delay included.

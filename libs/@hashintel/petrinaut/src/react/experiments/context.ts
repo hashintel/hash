@@ -193,6 +193,18 @@ export type ExperimentsContextValue = {
     minRuns: number,
   ) => Promise<SweepCellSnapshot | null>;
   /**
+   * Samples many sweep-surface cells at once and returns each cell's
+   * per-metric mean, index-aligned with `positions` (null entries for cells
+   * with no finished runs). One batch when the swept parameters do not shape
+   * the initial marking (per-run parameter draws); the per-cell path
+   * otherwise. Resolves null with no session.
+   */
+  sampleSurfaceCells: (
+    experimentId: string,
+    positions: readonly Readonly<Record<string, number>>[],
+    runsPerCell: number,
+  ) => Promise<readonly (Readonly<Record<string, number>> | null)[] | null>;
+  /**
    * Computes one metric sample against an arbitrary net snapshot, on the
    * background single-worker lane — the optimization surface's local compute
    * path, which must run a study's frozen model rather than the live editor
@@ -232,6 +244,7 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   removeExperiment: () => {},
   setSweepSelection: () => {},
   sampleSweepCell: () => Promise.resolve(null),
+  sampleSurfaceCells: () => Promise.resolve(null),
   sampleDetachedObjective: () => Promise.resolve(null),
 };
 
