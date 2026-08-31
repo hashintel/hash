@@ -102,6 +102,14 @@ export type InstantiateSweepBatch = (options: {
    */
   requiresRunResults?: boolean;
   /**
+   * Whether the session's own refine ladder was computing when this
+   * background batch was requested. Hosts use it to size the batch: while
+   * the foreground is busy on the CPU pool a background batch stays on one
+   * worker, and once the ladder idles (or computes elsewhere, e.g. the GPU)
+   * the same batch may shard across the now-free pool.
+   */
+  foregroundActive?: boolean;
+  /**
    * Explicit per-run seeds (one per run, aligned with `draws`). Batched
    * surface cells pin these so a cell's runs use the same seeds regardless
    * of which chunk (and chunk slot) sampled it — and the same seeds the
@@ -355,6 +363,14 @@ export function createSweepSession(
   /** Increments per selection change; a stale loop sees it and stops. */
   let generation = 0;
   let abortCurrent: (() => void) | null = null;
+  /**
+   * Generation whose refine loop is currently between its first batch and
+   * going idle; null when the ladder finished or failed. Background batches
+   * read this to know whether the foreground owns the compute right now.
+   */
+  let computingGeneration: number | null = null;
+  const isForegroundComputing = (): boolean =>
+    computingGeneration === generation;
 
   const snapshotFor = (key: string): SweepCellSnapshot =>
     cache.get(key) ?? { runsCompleted: 0, metricFrames: [] };
@@ -619,12 +635,19 @@ export function createSweepSession(
   };
 
   const refineLoop = async (loopGeneration: number): Promise<void> => {
+    computingGeneration = loopGeneration;
+    const releaseCompute = () => {
+      if (computingGeneration === loopGeneration) {
+        computingGeneration = null;
+      }
+    };
     while (!isStale(loopGeneration) && !failed) {
       const key = sweepSelectionKey(axes, selection);
       const snapshot = snapshotFor(key);
       const target = getNextRunTarget(snapshot.runsCompleted, runCount);
 
       if (target === null) {
+        releaseCompute();
         publish({ runTarget: null, computing: false });
         return;
       }
@@ -633,10 +656,12 @@ export function createSweepSession(
 
       const outcome = await executeBatch(loopGeneration, key, snapshot, target);
       if (outcome === "stop") {
+        releaseCompute();
         return;
       }
       // Loop: next ladder rung for the (possibly unchanged) selection.
     }
+    releaseCompute();
   };
 
   const restart = () => {
@@ -783,6 +808,7 @@ export function createSweepSession(
         runCount: runCountTotal,
         background: true,
         requiresRunResults: true,
+        foregroundActive: isForegroundComputing(),
         runSeeds,
         signal: abortController.signal,
       });

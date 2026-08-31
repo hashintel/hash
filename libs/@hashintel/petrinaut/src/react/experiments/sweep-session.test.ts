@@ -74,6 +74,7 @@ function makeFakeBatch(request: {
   runCount: number;
   background?: boolean;
   requiresRunResults?: boolean;
+  foregroundActive?: boolean;
   runSeeds?: readonly number[];
 }) {
   let metricListeners: ((value: {
@@ -501,6 +502,27 @@ describe("createSweepSession", () => {
     });
     expect(session.getCell({ x: 2, y: 1 })).toBeUndefined();
     session.dispose();
+  });
+});
+
+describe("foregroundActive hint", () => {
+  it("marks chunk batches by whether the refine ladder is computing", async () => {
+    const { session, batches, settle } = makeHarness(8, point(0, 0));
+    await settle();
+
+    // The ladder's only rung is in flight: background chunks yield.
+    void session.sampleCells([{ x: 0, y: 0 }], 2);
+    await settle();
+    expect(batches.at(-1)!.request.foregroundActive).toBe(true);
+
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    batches[0]!.complete();
+    await settle();
+
+    // The ladder reached its target and idles: chunks may go wide.
+    void session.sampleCells([{ x: 1, y: 0 }], 2);
+    await settle();
+    expect(batches.at(-1)!.request.foregroundActive).toBe(false);
   });
 });
 
