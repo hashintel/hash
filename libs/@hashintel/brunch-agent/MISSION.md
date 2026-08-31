@@ -1,116 +1,101 @@
-# Mission 1 — bare Petrinaut ↔ Flue chat
+# Mission 2 — mechanical capture sweep
+
+## Status
+
+Live. This file is execution authority.
+
+Later concerns are clustered in [`MISSION.next.md`](MISSION.next.md). That file is a scratchpad,
+not a mission; do not implement it. Host-trunk work, the runbook/IR path, and any join between
+capture and runbooks are not this mission.
 
 ## Imperative
 
-Prove the real Petrinaut demo can hold a durable, observable conversation with a plain Flue agent
-before Brunch adds capture or elicitation semantics. This mission retires integration uncertainty;
-it does not advance the intended harness design.
+Re-enter durable, source-linked capture as a pipe, not as elicitation intelligence. Condition 5
+showed the old kernel becoming untenable: typed mapping and in-loop LLM judgment, question turns
+on the order of minutes. This mission proves that an explicit settled range can be applied into
+the capture store and re-applied without duplication, without asking a model to extract, type, or
+schedule. It does not improve extraction quality, and it does not feed an IR.
 
 ## Throughline
 
-One interaction crosses this production path:
+One harness-side pass over a real Flue conversation already on the Mission 1 door:
 
-`Petrinaut assistant panel → AI SDK /api/chat → Brunch-hosted plain Flue agent → model and server tool → AI SDK stream → Petrinaut client tool → correlated result → same Flue conversation`
+`settled Flue history range → harness apply-sweep → capture store keyed by Flue conversation identity → same range applied again → same capture identities`
 
-Simplify the current implementation in place:
+On the same production agent, mount one stub Flue skill (`useSkill`) so `activate_skill` can
+appear in that conversation's history. The skill is not a runbook and not the IR template.
 
-- mount one minimal plain-Flue chat agent in `apps/brunch-agent`;
-- shrink `@hashintel/brunch-agent-transport-aisdk` to the Flue ↔ AI SDK wire seam it actually
-  exercises, with no dependency on Brunch core, bindings, or plugins;
-- make `@apps/brunch-agent` consume no Brunch package except that adapter;
-- remove the current SDCPN/Gherkin harness composition from the active chat path and delete or
-  replace tests that exist only to prove that superseded topology;
-- keep Petrinaut's existing assistant panel and client-tool machinery unless the real throughline
-  exposes a missing seam;
-- use Flue's canonical conversation as the only persisted session log.
-
-The voice dock is the narrow point where another input modality can submit into the same principal,
-conversation, and response-stream contract. Mission 1 establishes and names that point; it does not
-implement voice or introduce a voice-specific server route.
+The interviewer does not call a sweep tool and does not decide when to sweep. A test or harness
+fact names the range. Stub extraction: one envelope per user utterance, quote = that text,
+payload `{}`.
 
 ## Proof
 
-This proof establishes that the production path exists and is durable. It does not discharge the
-elicitation-harness contract.
+This proof establishes that the capture pipe works on the live chat path. It does not establish
+extraction quality, a typed IR, a runbook, session-as-net, or two brains.
 
-From a clean checkout, a human can follow one documented start command or short command sequence and
-observe all of the following through the real demo and service:
+From the real brunch-agent entrypoint (same `ChatAgent` / `/api/chat` door as Mission 1), one
+production-path test observes all of the following:
 
-1. A message from Petrinaut reaches the mounted Flue agent and streamed assistant text returns.
-2. The panel visibly distinguishes pending/thinking or equivalent work-in-progress from completion.
-3. One minimal server-side tool runs, its call/result are visible, and its result returns to the
-   model.
-4. One existing, read-only Petrinaut client tool runs in the browser, its result is correlated to
-   the originating call, and the same Flue conversation resumes and responds.
-5. Browser reload/reconnection reconstructs the conversation from Flue history rather than from a
-   second server-side transcript.
-6. The configured Flue database preserves that conversation across the service restart behavior
-   claimed by the runbook.
-7. A supported built-in Pi/Flue session API converts the persisted log into human-readable
-   transcript evidence, including user text, assistant text, and both tool interactions; no custom
-   shadow log or replacement event model is added.
-8. KA's voice-mode work has one documented integration point and the minimum input/output contract
-   needed to join this conversation without owning a second history or transport.
+1. After an explicit settled range, apply-sweep writes capture envelopes with evidence spans and
+   empty payload, one per user utterance in that range.
+2. Applying the same range again yields the same capture identities and does not duplicate.
+3. The stub skill is mounted; `activate_skill` appears in Flue history for that conversation.
+4. The interviewer never called a sweep tool; producing the captures did not require a model
+   call.
 
-Prefer one production-path integration test plus a recorded human run over a broad replacement
-suite. Unit tests should protect only parsing or correlation invariants that failed or proved easy
-to regress.
+Prefer that one throughline test over a broad suite. Unit tests may pin envelope/idempotency
+invariants that failed or proved easy to regress.
 
-**Bonus, not completion-critical:** address the mounted agent with `@flue/sdk` from a script or test
-using the same public conversation URL. Do not add a diagnostic protocol or second server for
-generative testing.
+This proof does not require a human panel run unless the throughline cannot be observed from the
+service entrypoint the demo uses.
 
 ## Constraints
 
-- `@flue/runtime`, `@flue/sdk`, `@flue/react`, and `@flue/vite` are already pinned to npm's current
-  Flue 2.0 release (`2.0.3`). Follow its documented happy paths; do not perform an upgrade or a
-  broad Flue-conformance audit unless the registry changes or the throughline exposes drift.
-- No dependency from the active app or adapter to Brunch core, binding-flue, plugin-gherkin, or
-  plugin-sdcpn. Do not copy their protocol types into a renamed abstraction.
-- No capture, sweep, plugin schema, repertoire, IR, completion accounting, issue model, correction
-  workflow, or target-document persistence.
-- No second conversation log. Flue history is authoritative; browser message persistence is a UI
-  cache only and must reconcile to the same conversation identity.
-- Use one stable principal + conversation identity across chat, reload, client-tool follow-up,
-  transcript export, and the voice dock. Protect the mounted Flue route wherever it is reachable;
-  direct agent access must not bypass the same ownership rule.
-- The client-tool proof should be read-only. Do not make editor mutation semantics part of this
-  mission.
-- Update user-facing or runbook documentation only where the exercised behavior changes. Do not
-  document speculative follow-on architecture.
+- Mission 1's chat door stays the door: Petrinaut panel → `transport-aisdk` → Flue `ChatAgent`.
+  Do not rewrite the panel onto `@flue/react`. The adapter still must not depend on core,
+  binding, or plugins.
+- The app may depend on core (and binding, if that is the smallest way to `apply-sweep`) for
+  this pipe only. Do not re-enter plugin-gherkin, plugin-sdcpn, repertoire, kinds, slots, fold,
+  completion, issues, or correction.
+- No extraction LLM. No sweep tool on the interviewer. No token-threshold observer.
+- No join to a runbook or IR template. Capture is a provenance ledger, not the workpiece.
+- Flue history remains the conversation log. The capture store is not a second transcript.
+- Key the store by the Flue conversation identity already in play (principal + conversation id).
+  If a later Host proof shows net ids unstable, rekey; do not invent a target-document.
+- One stub Flue skill, short enough that activation is the proof. Do not dump research into it.
+- Update runbook/docs only where exercised behavior changes.
 
 ## Fog-line
 
 Do not design past these questions before running the simplest path that can answer them:
 
-- Whether the adapter should project Flue's conversation stream directly or bridge Flue's
-  programmatic `dispatch`/`read` events into AI SDK chunks.
-- The smallest supported way for an AI SDK client-tool result to settle a Flue tool call and resume
-  the same turn without Brunch ask/reply semantics.
-- Which built-in Pi/Flue parser or serializer produces the required transcript evidence from the
-  persisted canonical records.
-- Whether reload needs server reattachment, browser hydration, or both once one conversation id is
-  used consistently.
-- The exact shape KA's in-progress voice mode can provide and consume at the dock.
+- Whether `apply-sweep` is in-process in the app, via binding-flue, or a thinner local call into
+  core; pick the smallest path that uses the real store.
+- Whether a trivial proposal schema is required for an empty payload, or the harness can persist
+  envelopes without a plugin catalog.
+- Where the capture files live relative to the Flue SQLite conversation (path, not ontology).
+- How the stub skill is declared (`SKILL.md` import vs `defineSkill`) so `activate_skill` shows
+  in `history()`.
 
-Resolve each at the real boundary, record the observed answer in code/tests/runbook, and then
-re-evaluate. Do not turn the open questions into an adapter framework.
+Resolve each at the real boundary, record the observed answer in code/tests, and then
+re-evaluate. Do not turn them into a capture framework or a plugin SDK revival.
 
 ## Stop or reorient
 
 Stop and surface the evidence before continuing if:
 
-- client-tool return requires importing Brunch ask/reply or capture semantics;
-- the adapter begins defining a generalized harness event framework;
-- persistence requires an application-owned duplicate of Flue conversation history;
-- the voice dock requires Brunch to own provider-specific audio/session state;
-- a passing test injects wiring absent from the real demo/service entrypoint;
-- compatibility work expands beyond a concrete Flue 2.0 API used by this throughline;
-- the server/client tool pair cannot be replayed into transcript evidence through supported APIs.
+- producing captures requires a model call;
+- a sweep tool appears on the interviewer, or the skill teaches the model to schedule sweeps;
+- kinds, slots, fold, repertoire, or the SDCPN/Gherkin plugins re-enter this door;
+- the runbook or IR template is wired to the store;
+- an ordinary turn on this path returns to condition-5 latency (order-of-minutes);
+- idempotent reapplication cannot be shown without a second event model beside Flue history;
+- the adapter grows a dependency on core, binding, or plugins.
 
 ## Deferred
 
-Mission 2 may add the first Brunch-owned behavior only after this proof is complete: mechanically
-sweep one explicit settled transcript range into durable, source-linked capture and prove idempotent
-reapplication. Extraction quality, plugin/repertoire machinery, IR, completion, and review/revise
-remain out of scope until separately earned.
+Host trunk (two brains, net lifecycle as session, compaction), the runbook/template/headless and
+off-canvas PN path, Petrinaut read/write tools, typed IR maps, observer-triggered sweeps, and
+whether capture and runbooks converge, are clustered in [`MISSION.next.md`](MISSION.next.md).
+That scratchpad does not supersede this section.

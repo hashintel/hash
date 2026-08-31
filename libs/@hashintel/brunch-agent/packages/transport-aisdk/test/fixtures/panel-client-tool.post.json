@@ -1,0 +1,26 @@
+{
+  "id": "conversation-mission-1",
+  "trigger": "submit-message",
+  "messageId": "assistant-mission-1",
+  "messages": [
+    {
+      "id": "user-mission-1",
+      "role": "user",
+      "parts": [{ "type": "text", "text": "How does the AI assistant work?" }]
+    },
+    {
+      "id": "assistant-mission-1",
+      "role": "assistant",
+      "parts": [
+        { "type": "step-start" },
+        {
+          "type": "tool-readPetrinautDoc",
+          "toolCallId": "tool-doc-1",
+          "state": "output-available",
+          "input": { "doc": "ai-assistant" },
+          "output": "# AI Assistant\nThe assistant can read its own documentation pages."
+        }
+      ]
+    }
+  ]
+}

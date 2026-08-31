@@ -11,13 +11,12 @@
  */
 
 import { tmpdir } from "node:os";
-import { dirname, isAbsolute, join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, test } from "vitest";
 
 import { conversationDbPath } from "../src/db-path";
-import { targetDocumentPath } from "../src/target-document-path";
 
 const appDir = fileURLToPath(new URL("..", import.meta.url));
 
@@ -54,29 +53,5 @@ describe("the conversation store path", () => {
     expect(conversationDbPath()).toBe(
       join(appDir, ".data-wipe-me", "conversations.db"),
     );
-  });
-});
-
-describe("the target-document store path", () => {
-  const originalOverride = process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR;
-
-  afterEach(() => {
-    if (originalOverride === undefined)
-      delete process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR;
-    else process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR = originalOverride;
-  });
-
-  test("uses a stable opaque filename below the host-selected directory", () => {
-    process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR =
-      "/tmp/brunch-target-documents-test";
-    const first = targetDocumentPath("../shared-target");
-
-    expect(first).toBe(targetDocumentPath("../shared-target"));
-    expect(dirname(first)).toBe("/tmp/brunch-target-documents-test");
-    expect(first).not.toContain("shared-target");
-  });
-
-  test("refuses an empty target-document identity", () => {
-    expect(() => targetDocumentPath("")).toThrow("cannot be empty");
   });
 });

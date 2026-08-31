@@ -12,15 +12,15 @@ import {
 import {
   DefaultChatTransport,
   Petrinaut,
-  type PetrinautAiChatTransport,
   type PetrinautAiMessage,
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
-import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
+import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
 import { createBrunchPanelTransport } from "./brunch-panel-transport";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
+import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import {
   type SDCPNInLocalStorage,
@@ -83,15 +83,14 @@ const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
     capabilities: DEMO_CAPABILITIES,
   });
 
-const petrinautAiChatTransport: PetrinautAiChatTransport =
-  createBrunchPanelTransport(
-    new DefaultChatTransport({
-      api: "/api/chat",
-      headers: () => ({
-        [BRUNCH_PRINCIPAL_HEADER]: getOrCreateBrunchPrincipal(),
-      }),
-    }),
-  );
+const brunchPrincipal = getOrCreateBrunchPrincipal();
+
+const stockChatTransport = new DefaultChatTransport({
+  api: "/api/chat",
+  headers: () => ({
+    [BRUNCH_PRINCIPAL_HEADER]: brunchPrincipal,
+  }),
+});
 
 const getStoredSDCPNsForDisplay = (
   storedSDCPNs: Record<string, SDCPNInLocalStorage>,
@@ -263,11 +262,26 @@ export const LocalStorageDemoApp = () => {
     );
   };
 
+  const conversationId = currentNetId
+    ? getOrCreateBrunchConversationId(currentNetId)
+    : null;
+  const flueHistory = useFlueChatHistory(conversationId ?? "", brunchPrincipal);
+  const petrinautAiChatTransport = useMemo(
+    () =>
+      conversationId === null
+        ? createBrunchPanelTransport(stockChatTransport, "")
+        : createBrunchPanelTransport(stockChatTransport, conversationId),
+    [conversationId],
+  );
+
   const aiAssistant = useMemo(
     () => ({
-      interactiveTools: [brunchAskInteractiveTool],
       transport: petrinautAiChatTransport,
-      messages: currentNetId ? aiMessagesByNetId[currentNetId] : undefined,
+      messages: flueHistory.ready
+        ? flueHistory.messages
+        : currentNetId
+          ? aiMessagesByNetId[currentNetId]
+          : undefined,
       onMessages: (messages: PetrinautAiMessage[]) => {
         if (!currentNetId) {
           return;
@@ -290,7 +304,14 @@ export const LocalStorageDemoApp = () => {
         });
       },
     }),
-    [aiMessagesByNetId, currentNetId, setAiMessagesByNetId],
+    [
+      aiMessagesByNetId,
+      currentNetId,
+      flueHistory.messages,
+      flueHistory.ready,
+      petrinautAiChatTransport,
+      setAiMessagesByNetId,
+    ],
   );
 
   if (!currentNet) {

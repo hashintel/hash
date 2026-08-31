@@ -1,113 +1,150 @@
-import { readFileSync } from "node:fs";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { expect, test } from "vitest";
 
 import { runNodeScript } from "./run-node-script";
 
-import type { PetrinautChatResult } from "./petrinaut-chat-result";
+import type {
+  PetrinautChatResult,
+  PetrinautResumeResult,
+} from "./petrinaut-chat-result";
 import type { TransportInspectionEvent } from "@hashintel/brunch-agent-transport-aisdk";
-import type { UIMessageChunk } from "ai";
 
 const testDirectory = import.meta.dirname;
 
-const normalizedChunk = (
-  chunk: UIMessageChunk,
-  messageId: string,
-): UIMessageChunk => {
-  const normalized = structuredClone(chunk);
-  if ("messageId" in normalized && normalized.messageId === messageId)
-    normalized.messageId = "$message";
-  if ("id" in normalized && typeof normalized.id === "string")
-    normalized.id = normalized.id.replace(messageId, "$message");
-  return normalized;
-};
+test("the committed /api/chat door streams a plain Flue agent through server and client tools", async () => {
+  const dbDirectory = await mkdtemp(join(tmpdir(), "brunch-chat-"));
+  const dbPath = join(dbDirectory, "conversations.db");
 
-type DeltaChunk = Extract<
-  UIMessageChunk,
-  { type: `${string}-delta`; id: string; delta: string }
->;
-
-const isDeltaChunk = (chunk: UIMessageChunk): chunk is DeltaChunk =>
-  chunk.type.endsWith("-delta") &&
-  "id" in chunk &&
-  typeof chunk.id === "string" &&
-  "delta" in chunk &&
-  typeof chunk.delta === "string";
-
-const normalizedChunks = (
-  chunks: readonly UIMessageChunk[],
-  messageId: string,
-): UIMessageChunk[] =>
-  chunks.reduce<UIMessageChunk[]>((normalized, chunk) => {
-    const current = normalizedChunk(chunk, messageId);
-    const previous = normalized.at(-1);
-    if (
-      isDeltaChunk(current) &&
-      previous !== undefined &&
-      isDeltaChunk(previous) &&
-      previous.type === current.type &&
-      previous.id === current.id
-    ) {
-      previous.delta += current.delta;
-      return normalized;
-    }
-    normalized.push(current);
-    return normalized;
-  }, []);
-
-test("the committed application route drives the actual elicitor for reasoning and text", async () => {
-  const { exitCode, stdout, stderr } = await runNodeScript(
-    join(testDirectory, "petrinaut-chat.integration.ts"),
-    join(testDirectory, "../../.."),
-  );
-
-  expect(exitCode, stderr || stdout).toBe(0);
-  const inspectionLines = stdout
-    .split("\n")
-    .filter((line) => line.startsWith("TRANSPORT_AISDK "))
-    .map(
-      (line) =>
-        JSON.parse(
-          line.slice("TRANSPORT_AISDK ".length),
-        ) as TransportInspectionEvent,
+  try {
+    const { exitCode, stdout, stderr } = await runNodeScript(
+      join(testDirectory, "petrinaut-chat.integration.ts"),
+      join(testDirectory, "../../.."),
+      { BRUNCH_CHAT_DB_PATH: dbPath },
     );
-  const resultLine = stdout
-    .split("\n")
-    .find((line) => line.startsWith("PETRINAUT_CHAT_RESULT "));
-  expect(resultLine, stdout).toBeDefined();
-  const result = JSON.parse(
-    resultLine!.slice("PETRINAUT_CHAT_RESULT ".length),
-  ) as PetrinautChatResult;
 
-  expect(result.status).toBe(200);
-  expect(result.messageId).toBeDefined();
-  if (result.messageId === undefined) throw new Error("missing message id");
-  expect(result.messageId.length).toBeGreaterThan(0);
-  expect(
-    result.partIds.every((partId) => partId.startsWith(`${result.messageId}:`)),
-  ).toBe(true);
-  expect(result.reasoning).toContain("establish the process outcome");
-  expect(result.text).toContain(
-    "What outcome should this process reliably produce?",
-  );
-  expect(result.finish).toEqual({ type: "finish", finishReason: "stop" });
-  const golden = JSON.parse(
-    readFileSync(
-      join(
-        testDirectory,
-        "../../../libs/@hashintel/brunch-agent/packages/transport-aisdk/test/fixtures/elicitor-initial.normalized.json",
+    expect(exitCode, stderr || stdout).toBe(0);
+    const inspectionLines = stdout
+      .split("\n")
+      .filter((line) => line.startsWith("TRANSPORT_AISDK "))
+      .map(
+        (line) =>
+          JSON.parse(
+            line.slice("TRANSPORT_AISDK ".length),
+          ) as TransportInspectionEvent,
+      );
+    const resultLine = stdout
+      .split("\n")
+      .find((line) => line.startsWith("PETRINAUT_CHAT_RESULT "));
+    expect(resultLine, stdout).toBeDefined();
+    const result = JSON.parse(
+      resultLine!.slice("PETRINAUT_CHAT_RESULT ".length),
+    ) as PetrinautChatResult;
+
+    expect(result.status).toBe(200);
+    expect(result.messageId).toBeDefined();
+    if (result.messageId === undefined) throw new Error("missing message id");
+    expect(result.messageId.length).toBeGreaterThan(0);
+    expect(
+      result.partIds.every((partId) =>
+        partId.startsWith(`${result.messageId}:`),
       ),
-      "utf8",
-    ),
-  ) as UIMessageChunk[];
-  expect(normalizedChunks(result.chunks, result.messageId)).toEqual(golden);
-  expect(inspectionLines[0]).toMatchObject({
-    type: "request-start",
-    requestId: "request-fe1436-application",
-  });
-  expect(inspectionLines.at(-1)).toMatchObject({
-    type: "request-finish",
-    terminalState: "completed",
-  });
+    ).toBe(true);
+    expect(result.reasoning).toContain("Confirm the server path");
+    expect(result.text).toContain("Checking the server, then the docs.");
+    expect(result.pingCall).toMatchObject({
+      type: "tool-input-available",
+      toolName: "ping",
+      input: { note: "health" },
+      providerExecuted: true,
+    });
+    expect(result.pingOutput).toEqual({ ok: true, note: "health" });
+    expect(result.clientToolCall).toMatchObject({
+      type: "tool-input-available",
+      toolName: "readPetrinautDoc",
+      input: { doc: "ai-assistant" },
+    });
+    expect(result.clientToolCall).not.toHaveProperty("providerExecuted");
+    expect(result.clientToolOutputsOnInitial).toEqual([]);
+    expect(result.initialFinish).toEqual({
+      type: "finish",
+      finishReason: "tool-calls",
+    });
+
+    expect(result.resumedStatus).toBe(200);
+    expect(result.resumedText).toContain(
+      "The guide says the assistant can read its own documentation pages.",
+    );
+    expect(result.resumedFinish).toEqual({
+      type: "finish",
+      finishReason: "stop",
+    });
+
+    expect(result.historyGetStatus).toBe(200);
+    expect(result.historyUserText).toContain(
+      "Run the FE-1435 transport probe.",
+    );
+    expect(result.foreignHistoryMessages).toBe(0);
+    expect(result.unauthenticatedHistoryStatus).toBe(401);
+    expect(result.foreignAgentHistoryStatus).toBe(403);
+    expect(result.transcript).toContain("Run the FE-1435 transport probe.");
+    expect(result.transcript).toContain("Checking the server, then the docs.");
+    expect(result.transcript).toContain("tool ping");
+    expect(result.transcript).toContain("tool readPetrinautDoc");
+    expect(result.transcript).toContain(
+      "The assistant can read its own documentation pages.",
+    );
+
+    expect(inspectionLines[0]).toMatchObject({
+      type: "request-start",
+      requestId: "request-mission-1",
+    });
+    expect(inspectionLines.some((event) => event.type === "resume-start")).toBe(
+      true,
+    );
+    expect(
+      inspectionLines.filter((event) => event.type === "request-finish"),
+    ).toEqual([
+      {
+        type: "request-finish",
+        requestId: "request-mission-1",
+        terminal: "completed",
+      },
+      {
+        type: "request-finish",
+        requestId: "request-mission-1-resume",
+        terminal: "completed",
+      },
+    ]);
+    expect(
+      inspectionLines.filter((event) => event.type === "history-read"),
+    ).toHaveLength(2);
+
+    const resumed = await runNodeScript(
+      join(testDirectory, "petrinaut-chat.integration.ts"),
+      join(testDirectory, "../../.."),
+      {
+        BRUNCH_CHAT_DB_PATH: dbPath,
+        BRUNCH_RESUME_PHASE: "1",
+      },
+    );
+    expect(resumed.exitCode, resumed.stderr || resumed.stdout).toBe(0);
+    const resumeLine = resumed.stdout
+      .split("\n")
+      .find((line) => line.startsWith("PETRINAUT_RESUME_RESULT "));
+    expect(resumeLine, resumed.stdout).toBeDefined();
+    const resumeResult = JSON.parse(
+      resumeLine!.slice("PETRINAUT_RESUME_RESULT ".length),
+    ) as PetrinautResumeResult;
+    expect(resumeResult.historyGetStatus).toBe(200);
+    expect(resumeResult.historyUserText).toContain(
+      "Run the FE-1435 transport probe.",
+    );
+    expect(resumeResult.transcript).toContain("tool ping");
+    expect(resumeResult.transcript).toContain("tool readPetrinautDoc");
+  } finally {
+    await rm(dbDirectory, { recursive: true, force: true });
+  }
 });

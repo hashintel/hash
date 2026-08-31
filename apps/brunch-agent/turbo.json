@@ -1,19 +1,6 @@
 {
   "extends": ["//"],
   "tasks": {
-    "baseline:harness": {
-      "dependsOn": ["^build"],
-      "cache": false,
-      "passThroughEnv": [
-        "ANTHROPIC_API_KEY",
-        "BRUNCH_SDCPN_MODEL",
-        "BRUNCH_BASELINE_ANTHROPIC_MODULE",
-        "BRUNCH_BASELINE_HARD_STOP",
-        "BRUNCH_BASELINE_INTERVIEWER_PROVIDER_MODULE",
-        "BRUNCH_BASELINE_OUTPUT_DIR",
-        "BRUNCH_BASELINE_TEST_OUTPUT_DIR"
-      ]
-    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
@@ -26,7 +13,6 @@
       "passThroughEnv": [
         "ANTHROPIC_API_KEY",
         "BRUNCH_DEV_DB_PATH",
-        "BRUNCH_DEV_TARGET_DOCUMENT_DIR",
         "BRUNCH_PETRINAUT_ORIGINS",
         "BRUNCH_TRANSPORT_AISDK_INSPECT"
       ]
