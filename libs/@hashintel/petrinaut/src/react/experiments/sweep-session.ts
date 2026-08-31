@@ -180,6 +180,7 @@ export type SweepSession = {
   sampleCells: (
     positions: readonly Readonly<Record<string, number>>[],
     runsPerCell: number,
+    onPartial?: SampleCellsPartialListener,
   ) => Promise<readonly (Readonly<Record<string, number>> | null)[] | null>;
   dispose: () => void;
 };
@@ -266,6 +267,16 @@ function abortError(): Error {
  * of instantiating a million-run batch; the array form is written once and
  * translated without materializing anything per run.
  */
+/**
+ * Receives a batch's per-cell means as they firm up mid-flight — one call per
+ * completed shard, index-aligned with the requested positions; a cell with no
+ * finished runs yet is null. Values are means over the runs finished so far,
+ * so they refine toward the resolved result.
+ */
+export type SampleCellsPartialListener = (
+  cells: readonly (Readonly<Record<string, number>> | null)[],
+) => void;
+
 export type SweepRunDraws = {
   /** The drawn identifiers (ranged axes), in axis order. */
   identifiers: readonly string[];
@@ -901,6 +912,7 @@ export function createSweepSession(
   const sampleCellsBatch = async (
     positions: readonly Readonly<Record<string, number>>[],
     runsPerCell: number,
+    onPartial?: SampleCellsPartialListener,
   ): Promise<readonly (Readonly<Record<string, number>> | null)[] | null> => {
     if (disposed || failed || positions.length === 0) {
       return null;
@@ -950,45 +962,67 @@ export function createSweepSession(
       return null;
     }
 
+    // Group per-run values back into per-cell means, per metric,
+    // index-aligned with the requested positions. A partial result set (some
+    // shards still running) yields means over the runs finished so far.
+    const groupCells = (
+      runResults: ReadonlyMap<number, Readonly<Record<string, number>>>,
+    ): (Readonly<Record<string, number>> | null)[] => {
+      const accumulators = positions.map(
+        (): Record<string, { sum: number; n: number }> => ({}),
+      );
+      for (const [runIndex, metricValues] of runResults) {
+        const cell = accumulators[Math.floor(runIndex / runsPerCell)];
+        if (!cell) {
+          continue;
+        }
+        for (const [metricId, value] of Object.entries(metricValues)) {
+          const entry = (cell[metricId] ??= { sum: 0, n: 0 });
+          entry.sum += value;
+          entry.n += 1;
+        }
+      }
+      return accumulators.map((cell) => {
+        const entries = Object.entries(cell);
+        if (entries.length === 0) {
+          return null;
+        }
+        return Object.fromEntries(
+          entries.map(([metricId, { sum, n }]) => [metricId, sum / n]),
+        );
+      });
+    };
+
     const done = new Promise<boolean>((resolve) => {
       const offEvents = handle.events.subscribe((event) => {
         offEvents();
         resolve(event.type === "complete");
       });
     });
+    // CPU workers report per-run values as each shard completes; a sharded
+    // chunk therefore paints its cells in slices instead of all at once.
+    const offRunResults =
+      onPartial === undefined
+        ? null
+        : handle.runResults.subscribe(() => {
+            if (isDisposed()) {
+              return;
+            }
+            const partial = groupCells(handle.runResults.get());
+            if (partial.some((cell) => cell !== null)) {
+              onPartial(partial);
+            }
+          });
     handle.start();
     const completed = await done;
+    offRunResults?.();
     const runResults = handle.runResults.get();
     handle.dispose();
     if (!completed || isDisposed()) {
       return null;
     }
 
-    // Group per-run values back into per-cell means, per metric,
-    // index-aligned with the requested positions.
-    const accumulators = positions.map(
-      (): Record<string, { sum: number; n: number }> => ({}),
-    );
-    for (const [runIndex, metricValues] of runResults) {
-      const cell = accumulators[Math.floor(runIndex / runsPerCell)];
-      if (!cell) {
-        continue;
-      }
-      for (const [metricId, value] of Object.entries(metricValues)) {
-        const entry = (cell[metricId] ??= { sum: 0, n: 0 });
-        entry.sum += value;
-        entry.n += 1;
-      }
-    }
-    return accumulators.map((cell) => {
-      const entries = Object.entries(cell);
-      if (entries.length === 0) {
-        return null;
-      }
-      return Object.fromEntries(
-        entries.map(([metricId, { sum, n }]) => [metricId, sum / n]),
-      );
-    });
+    return groupCells(runResults);
   };
 
   return {
@@ -1027,10 +1061,10 @@ export function createSweepSession(
         releaseBackgroundSlot();
       }
     },
-    async sampleCells(positions, runsPerCell) {
+    async sampleCells(positions, runsPerCell, onPartial) {
       await acquireBackgroundSlot();
       try {
-        return await sampleCellsBatch(positions, runsPerCell);
+        return await sampleCellsBatch(positions, runsPerCell, onPartial);
       } finally {
         releaseBackgroundSlot();
       }

@@ -210,6 +210,9 @@ export type ExperimentsContextValue = {
     experimentId: string,
     positions: readonly Readonly<Record<string, number>>[],
     runsPerCell: number,
+    onPartial?: (
+      cells: readonly (Readonly<Record<string, number>> | null)[],
+    ) => void,
   ) => Promise<readonly (Readonly<Record<string, number>> | null)[] | null>;
   /**
    * Computes one metric sample against an arbitrary net snapshot, on the
