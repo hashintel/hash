@@ -1109,7 +1109,9 @@ describe("AdHocScenarioForm", () => {
     expect(document.activeElement).toBe(pumpsHeader);
 
     // Left from a places grid crosses back to the parameters column's
-    // remembered cell.
+    // remembered cell. The dense layout starts places collapsed and a
+    // collapsed place mounts no content, so expand it first.
+    fireEvent.keyDown(pumpsHeader, { key: "ArrowRight" });
     const addVariable = screen.getByRole("button", {
       name: "Add a variable (Variables of Pumps)",
     });
