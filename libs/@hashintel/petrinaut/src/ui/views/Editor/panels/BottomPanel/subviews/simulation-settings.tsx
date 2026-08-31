@@ -508,6 +508,13 @@ const SimulationSettingsContent: React.FC = () => {
       },
     });
   }
+  // Deselecting (No scenario, or the ad-hoc embedding) drops the run state
+  // entirely: reselecting the same scenario later must reseed from the
+  // then-current parameter values, not resurface stale edits the run no
+  // longer uses.
+  if (!selectedAdHocScenario && !selectedClassicScenario && scenarioRun) {
+    setScenarioRun(null);
+  }
   const adHocFormContext = {
     // The quick-sim embedding sees the overlaid parameters the run compiles
     // against (the raw panel inputs are hidden while it is live); a selected
