@@ -4,9 +4,9 @@
 
 ### Patch Changes
 
-- Add a generic host-rendered AI composer control with stable finalized-text submission,
-  conversation identity, stop handling, schema-validated interactive-tool text mapping, and an
-  explicit separate-message target for corrections.
+- Add generic host-rendered AI composer controls and a persistent interview stage with docked and
+  detached placements, protected active conversations, keyboard fallback, and one-answer buffering
+  while the normal chat stream settles.
 
 ## 0.0.19
 

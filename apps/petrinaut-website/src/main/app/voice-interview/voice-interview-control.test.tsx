@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import { act, StrictMode } from "react";
-import { createRoot } from "react-dom/client";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { StrictMode, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -10,28 +10,112 @@ import {
   loadOpenAIVoiceConfig,
   VoiceInterviewControl,
   VoiceInterviewControlView,
+  type VoiceInterviewControlViewProps,
 } from "./voice-interview-control";
 
-describe("voice interview control", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
+import type { PetrinautAiInterviewStageContext } from "@hashintel/petrinaut/ui";
 
-  test("loads only a schema-valid, available server configuration", async () => {
+const snapshot = {
+  currentQuestion: "What happens after approval?",
+  errorCode: null,
+  errorMessage: "",
+  errorRequestId: "",
+  lastCommittedText: "",
+  microphoneEnabled: true,
+  microphoneLevel: 0.24,
+  partialText: "The request goes to",
+  phase: "listening" as const,
+};
+
+const viewProps = (
+  overrides: Partial<VoiceInterviewControlViewProps> = {},
+): VoiceInterviewControlViewProps => ({
+  consented: true,
+  correction: "",
+  coverage: null,
+  editing: false,
+  microphoneCheck: "",
+  onCheckMicrophone: vi.fn(),
+  onConsentChange: vi.fn(),
+  onCorrectionChange: vi.fn(),
+  onDoneSpeaking: vi.fn(),
+  onEdit: vi.fn(),
+  onEnd: vi.fn(),
+  onExpand: vi.fn(),
+  onInterrupt: vi.fn(),
+  onMinimize: vi.fn(),
+  onPause: vi.fn(),
+  onReconnect: vi.fn(),
+  onRedo: vi.fn(),
+  onResume: vi.fn(),
+  onShowStart: vi.fn(),
+  onStart: vi.fn(),
+  onSubmitCorrection: vi.fn(),
+  onTypeInstead: vi.fn(),
+  placement: "sidebar",
+  presentation: "full",
+  snapshot,
+  ...overrides,
+});
+
+const StatefulVoiceInterviewHarness = ({
+  onOpenSidebar,
+}: {
+  onOpenSidebar: () => void;
+}) => {
+  "use no memo";
+
+  const [active, setActive] = useState(false);
+  const [sidebarOpenRequests, setSidebarOpenRequests] = useState(0);
+  const context: PetrinautAiInterviewStageContext = {
+    canAcceptInterviewAnswer: true,
+    conversationId: "interview-test",
+    focusComposer: vi.fn(),
+    messages: [],
+    openSidebar: () => {
+      onOpenSidebar();
+      setSidebarOpenRequests((requests) => requests + 1);
+    },
+    placement: "sidebar",
+    setActive,
+    status: "ready",
+    stop: vi.fn(async () => undefined),
+    submitInterviewAnswer: vi.fn(async () => ({
+      kind: "message" as const,
+      messageId: "voice-answer",
+    })),
+    submitText: vi.fn(async () => ({
+      kind: "message" as const,
+      messageId: "typed-answer",
+    })),
+  };
+
+  return (
+    <>
+      <output>{active ? "Interview active" : "Interview inactive"}</output>
+      <output>{sidebarOpenRequests} sidebar open requests</output>
+      <VoiceInterviewControl {...context} />
+    </>
+  );
+};
+
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+describe("voice interview stage", () => {
+  test("loads only a schema-valid available server configuration", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json({ available: true, connectionTimeoutMs: 15_000 }),
     );
-
     await expect(loadOpenAIVoiceConfig(fetch)).resolves.toEqual({
       available: true,
       connectionTimeoutMs: 15_000,
     });
     const [url, request] = fetch.mock.calls[0]!;
     expect(url).toBe("/api/voice/config");
-    expect(request).toMatchObject({
-      cache: "no-store",
-      method: "GET",
-    });
+    expect(request).toMatchObject({ cache: "no-store", method: "GET" });
     expect(request?.signal).toBeInstanceOf(AbortSignal);
 
     fetch.mockResolvedValueOnce(
@@ -44,183 +128,188 @@ describe("voice interview control", () => {
     await expect(loadOpenAIVoiceConfig(fetch)).resolves.toBeNull();
   });
 
-  test("renders an accessible idle voice action and live status", () => {
+  test("shows disclosure and requires consent before starting", () => {
     const html = renderToStaticMarkup(
       <VoiceInterviewControlView
-        correction=""
-        onCorrectionChange={vi.fn()}
-        onEnd={vi.fn()}
-        onReconnect={vi.fn()}
-        onStart={vi.fn()}
-        onSubmitCorrection={vi.fn()}
-        snapshot={{
-          errorCode: null,
-          errorMessage: "",
-          errorRequestId: "",
-          lastCommittedText: "",
-          partialText: "",
-          phase: "idle",
-        }}
+        {...viewProps({ consented: false, presentation: "start" })}
       />,
     );
 
-    expect(html).toContain("Start voice input");
-    expect(html).toContain('aria-live="polite"');
-    expect(html).toContain("Voice input is off.");
+    expect(html).toContain("sent to OpenAI for transcription");
+    expect(html).toContain("does not retain the audio");
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>Start interview/u);
+    expect(html).toContain("Use text instead");
+    expect(html).toContain("Check microphone");
+    expect(html).toContain("pos_absolute");
+    expect(html).not.toContain("pos_fixed");
   });
 
-  test("labels the half-duplex listening state and keeps partial text visibly provisional", () => {
+  test("keeps diagnostic recovery details visible without reopening the microphone", () => {
     const html = renderToStaticMarkup(
       <VoiceInterviewControlView
-        correction="The incident manager closes it."
-        onCorrectionChange={vi.fn()}
-        onEnd={vi.fn()}
-        onReconnect={vi.fn()}
-        onStart={vi.fn()}
-        onSubmitCorrection={vi.fn()}
-        snapshot={{
-          errorCode: null,
-          errorMessage: "",
-          errorRequestId: "",
-          lastCommittedText: "The support lead closes it.",
-          partialText: "The next activity",
-          phase: "listening",
-        }}
-      />,
-    );
-
-    expect(html).toContain("Microphone on. Listening.");
-    expect(html).toContain("Live transcript (not sent)");
-    expect(html).toContain("The next activity");
-    expect(html).toContain(
-      "Microphone on. Listening. Live transcript (not sent): The next activity",
-    );
-    expect(html).toContain("End voice input");
-    expect(html).toContain("Correct last voice answer");
-    expect(html).toContain("Send correction");
-  });
-
-  test("offers reconnection without reopening the microphone after failure", () => {
-    const html = renderToStaticMarkup(
-      <VoiceInterviewControlView
-        correction=""
-        onCorrectionChange={vi.fn()}
-        onEnd={vi.fn()}
-        onReconnect={vi.fn()}
-        onStart={vi.fn()}
-        onSubmitCorrection={vi.fn()}
-        snapshot={{
-          errorCode: "microphone-permission",
-          errorMessage:
-            "Allow microphone access in your browser settings, then reconnect voice input.",
-          errorRequestId: "voice-request-permission",
-          lastCommittedText: "",
-          partialText: "",
-          phase: "recoverable-error",
-        }}
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            errorCode: "microphone-permission",
+            errorMessage:
+              "Allow microphone access in your browser settings, then reconnect voice input.",
+            errorRequestId: "voice-request-permission",
+            microphoneEnabled: false,
+            microphoneLevel: 0,
+            partialText: "",
+            phase: "recoverable-error",
+          },
+        })}
       />,
     );
 
     expect(html).toContain(
-      "Microphone off. Allow microphone access in your browser settings, then reconnect voice input.",
+      "Microphone off · Allow microphone access in your browser settings, then reconnect voice input.",
     );
     expect(html).toContain("Error code: microphone-permission.");
     expect(html).toContain("Diagnostic reference: voice-request-permission.");
-    expect(html).toContain("Reconnect voice input");
+    expect(html).toContain(">Reconnect<");
   });
 
-  test("remains interactive after Strict Mode replays its effects", async () => {
-    const fetch = vi.fn<typeof globalThis.fetch>(async () =>
-      Response.json({ available: true, connectionTimeoutMs: 15_000 }),
-    );
+  test("starts in the full stage and keeps recovery visible under Strict Mode", async () => {
     const getUserMedia = vi.fn(async () => {
       throw new DOMException("Permission denied", "NotAllowedError");
     });
-    vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
-    vi.stubGlobal("fetch", fetch);
-    vi.stubGlobal("navigator", { mediaDevices: { getUserMedia } });
+    const openSidebar = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ available: true, connectionTimeoutMs: 15_000 }),
+      ),
+    );
+    vi.stubGlobal("navigator", {
+      mediaDevices: { getUserMedia },
+    });
 
-    const container = document.createElement("div");
-    document.body.append(container);
-    const root = createRoot(container);
+    render(
+      <StrictMode>
+        <StatefulVoiceInterviewHarness onOpenSidebar={openSidebar} />
+      </StrictMode>,
+    );
 
-    try {
-      await act(async () => {
-        root.render(
-          <StrictMode>
-            <VoiceInterviewControl
-              conversationId="petrinaut-preview:net-1"
-              messages={[]}
-              status="ready"
-              stop={vi.fn(async () => undefined)}
-              submitText={vi.fn(async () => ({
-                kind: "message" as const,
-                messageId: "message-1",
-              }))}
-              submitVoiceInput={vi.fn(async () => ({
-                kind: "message" as const,
-                messageId: "voice-message-1",
-              }))}
-            />
-          </StrictMode>,
-        );
-      });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Start voice interview" }),
+    );
+    fireEvent.click(screen.getByRole("checkbox"));
+    fireEvent.click(screen.getByRole("button", { name: "Start interview" }));
 
-      const startButton = container.querySelector<HTMLButtonElement>(
-        'button[aria-label="Start voice input"]',
-      );
-      expect(startButton).not.toBeNull();
+    expect(
+      await screen.findByRole("region", { name: "Voice interview stage" }),
+    ).not.toBeNull();
+    expect(
+      await screen.findAllByText(
+        /Microphone off · Allow microphone access in your browser settings, then reconnect voice input\. Error code: microphone-permission\./u,
+      ),
+    ).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Reconnect" })).not.toBeNull();
+    expect(screen.getByText("Interview active")).not.toBeNull();
+    expect(screen.getByText("1 sidebar open requests")).not.toBeNull();
+    expect(openSidebar).toHaveBeenCalledOnce();
+  });
 
-      await act(async () => {
-        startButton!.click();
-      });
+  test("keeps the question visible, distinguishes provisional text, and names microphone level", () => {
+    const html = renderToStaticMarkup(
+      <VoiceInterviewControlView {...viewProps()} />,
+    );
 
-      expect(getUserMedia).toHaveBeenCalledOnce();
-      expect(container.textContent).toContain(
-        "Allow microphone access in your browser settings, then reconnect voice input.",
-      );
-      expect(
-        container.querySelector('button[aria-label="Reconnect voice input"]'),
-      ).not.toBeNull();
-    } finally {
-      await act(async () => root.unmount());
-      container.remove();
+    expect(html).toContain("What happens after approval?");
+    expect(html).toContain("What we’re hearing · Not sent yet");
+    expect(html).toContain("Microphone on · Listening");
+    expect(html).toContain("Microphone input level: Medium");
+    expect(html).toContain("Done speaking");
+    expect(html).toContain("motionReduce:vis_hidden");
+    expect(html).toContain("pos_relative");
+    expect(html).not.toContain("pos_fixed");
+    expect(html).toContain('aria-live="polite"');
+  });
+
+  test("renders committed repair actions separately from pause, minimize, and end", () => {
+    const html = renderToStaticMarkup(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            lastCommittedText: "The shift lead approves it.",
+            microphoneEnabled: false,
+            microphoneLevel: 0,
+            partialText: "",
+            phase: "waiting",
+          },
+        })}
+      />,
+    );
+
+    for (const name of [
+      "Minimize",
+      "End interview",
+      "Redo answer",
+      "Edit text",
+      "Type instead",
+    ]) {
+      expect(html).toContain(name);
     }
   });
 
-  test("announces synthesis, playback, and the AI-generated voice disclosure", () => {
-    const renderPhase = (phase: "synthesizing" | "playing") =>
-      renderToStaticMarkup(
-        <VoiceInterviewControlView
-          correction=""
-          onCorrectionChange={vi.fn()}
-          onEnd={vi.fn()}
-          onReconnect={vi.fn()}
-          onStart={vi.fn()}
-          onSubmitCorrection={vi.fn()}
-          snapshot={{
-            errorCode: null,
-            errorMessage: "",
-            errorRequestId: "",
-            lastCommittedText: "",
+  test("offers deterministic interrupt instead of listening during playback", () => {
+    const html = renderToStaticMarkup(
+      <VoiceInterviewControlView
+        {...viewProps({
+          snapshot: {
+            ...snapshot,
+            microphoneEnabled: false,
+            microphoneLevel: 0,
             partialText: "",
-            phase,
-          }}
-        />,
-      );
-
-    const synthesizing = renderPhase("synthesizing");
-    expect(synthesizing).toContain(
-      "Microphone off. Creating AI-generated speech.",
-    );
-    expect(synthesizing).toContain(
-      "Spoken responses use an AI-generated OpenAI voice.",
+            phase: "playing",
+          },
+        })}
+      />,
     );
 
-    const playing = renderPhase("playing");
-    expect(playing).toContain("Microphone off. Playing AI-generated speech.");
-    expect(playing).toContain(
-      "Spoken responses use an AI-generated OpenAI voice.",
+    expect(html).toContain("Microphone off · Interviewer speaking");
+    expect(html).toContain("Interrupt and speak");
+    expect(html).not.toContain(">Pause<");
+  });
+
+  test("uses a detached bottom mini bar with independent expand, type, pause, and end controls", () => {
+    const html = renderToStaticMarkup(
+      <VoiceInterviewControlView
+        {...viewProps({ placement: "detached", presentation: "mini" })}
+      />,
     );
+
+    expect(html).toContain('aria-label="Voice interview mini bar"');
+    expect(html).toContain(
+      'aria-label="Expand voice interview. Microphone on · Listening"',
+    );
+    expect(html).toContain("Microphone on · Listening");
+    expect(html).toContain("--voice-interview-right");
+    expect(html).toContain("[@media_(min-width:_768px)]");
+    expect(html).not.toContain("md:right_4");
+    expect(html).toContain('aria-label="Type an interview answer"');
+    expect(html).toContain(">Pause<");
+    expect(html).toContain('aria-label="End interview"');
+  });
+
+  test("shows authoritative covered and still-exploring facts without a question count", () => {
+    const html = renderToStaticMarkup(
+      <VoiceInterviewControlView
+        {...viewProps({
+          coverage: {
+            complete: false,
+            covered: ["dispatch"],
+            stillExploring: ["approval — how long it takes"],
+          },
+        })}
+      />,
+    );
+
+    expect(html).toContain("Covered");
+    expect(html).toContain("Still exploring");
+    expect(html).not.toMatch(/\d+ of \d+/u);
   });
 });

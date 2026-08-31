@@ -34,10 +34,14 @@ type AiAssistantStatus = "submitted" | "streaming" | "ready" | "error";
 const EMPTY_INTERACTIVE_TOOLS: readonly PetrinautAiInteractiveTool[] = [];
 
 export type AiAssistantContentsProps = {
+  clearMessagesDisabled?: boolean;
   composerControl?: ReactNode;
+  composerFocusRequest?: number;
   error?: Error;
   input: string;
+  interviewStage?: ReactNode;
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
+  isOpen?: boolean;
   messages: PetrinautAiMessage[];
   onClearMessages?: () => void;
   onClose: () => void;
@@ -55,26 +59,41 @@ export type AiAssistantContentsProps = {
 
 const defaultAssistantWidth = 500;
 
-const shellStyle = css({
-  position: "absolute",
-  top: "0",
-  right: "0",
-  bottom: "0",
-  width: `[${defaultAssistantWidth}px]`,
-  maxWidth: "[calc(100vw - 32px)]",
-  zIndex: "sticky",
-  padding: "2",
-  pointerEvents: "auto",
-  transition: "[right 150ms ease-in-out]",
-  _before: {
-    content: '""',
+const shellStyle = cva({
+  base: {
     position: "absolute",
-    inset: "2",
-    borderRadius: "[14px]",
-    background:
-      "[radial-gradient(circle at 78% 28%, rgba(52,160,250,0.22), rgba(190,230,255,0.04) 54%, transparent 80%)]",
-    filter: "[blur(4px)]",
-    pointerEvents: "none",
+    right: "0",
+    zIndex: "[calc(var(--z-index-sticky) + 2)]",
+    pointerEvents: "auto",
+    transition: "[right 150ms ease-in-out]",
+  },
+  variants: {
+    open: {
+      true: {
+        top: "0",
+        bottom: "0",
+        width: `[${defaultAssistantWidth}px]`,
+        maxWidth: "[calc(100vw - 32px)]",
+        padding: "2",
+        _before: {
+          content: '""',
+          position: "absolute",
+          inset: "2",
+          borderRadius: "[14px]",
+          background:
+            "[radial-gradient(circle at 78% 28%, rgba(52,160,250,0.22), rgba(190,230,255,0.04) 54%, transparent 80%)]",
+          filter: "[blur(4px)]",
+          pointerEvents: "none",
+        },
+      },
+      false: {
+        bottom: "0",
+        width: "[0px]",
+        height: "[0px]",
+        overflow: "visible",
+        pointerEvents: "none",
+      },
+    },
   },
 });
 
@@ -88,16 +107,46 @@ const resizeAnchorStyle = css({
   width: "[0]",
 });
 
-const cardStyle = css({
+const cardStyle = cva({
+  base: {
+    position: "relative",
+    display: "flex",
+    flexDirection: "column",
+  },
+  variants: {
+    open: {
+      true: {
+        height: "full",
+        overflow: "hidden",
+        backgroundColor: "neutral.s10",
+        borderRadius: "[12px]",
+        boxShadow:
+          "[0px 0px 0px 1px rgba(0,0,0,0.06), 0px 1px 1px -0.5px rgba(0,0,0,0.04), 0px 12px 12px -6px rgba(0,0,0,0.02), 0px 4px 4px -12px rgba(0,0,0,0.02)]",
+      },
+      false: {
+        width: "[0px]",
+        height: "[0px]",
+        overflow: "visible",
+        pointerEvents: "none",
+      },
+    },
+  },
+});
+
+const panelContentStyle = cva({
+  variants: {
+    visible: {
+      false: { display: "none" },
+    },
+  },
+});
+
+const interviewStageStyle = css({
   position: "relative",
-  display: "flex",
-  flexDirection: "column",
-  height: "full",
-  overflow: "hidden",
-  backgroundColor: "neutral.s10",
-  borderRadius: "[12px]",
-  boxShadow:
-    "[0px 0px 0px 1px rgba(0,0,0,0.06), 0px 1px 1px -0.5px rgba(0,0,0,0.04), 0px 12px 12px -6px rgba(0,0,0,0.02), 0px 4px 4px -12px rgba(0,0,0,0.02)]",
+  zIndex: "[2]",
+  flexShrink: "0",
+  overflow: "visible",
+  pointerEvents: "auto",
 });
 
 const headerStyle = css({
@@ -389,10 +438,14 @@ const AiAssistantMessage = memo(
 AiAssistantMessage.displayName = "AiAssistantMessage";
 
 export const AiAssistantContents = ({
+  clearMessagesDisabled = false,
   composerControl,
+  composerFocusRequest = 0,
   error,
   input,
+  interviewStage,
   interactiveTools = EMPTY_INTERACTIVE_TOOLS,
+  isOpen = true,
   messages,
   onClearMessages,
   onClose,
@@ -439,8 +492,10 @@ export const AiAssistantContents = ({
   });
 
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (isOpen) {
+      inputRef.current?.focus();
+    }
+  }, [composerFocusRequest, isOpen]);
 
   // Auto-grow the composer to fit its content (up to `composerMaxHeight`,
   // after which it scrolls internally). Resetting to `auto` before measuring
@@ -478,14 +533,19 @@ export const AiAssistantContents = ({
 
   return (
     <aside
-      className={shellStyle}
-      style={{ right: rightOffset, width: assistantWidth }}
+      className={shellStyle({ open: isOpen })}
+      style={{
+        right: isOpen ? rightOffset : 0,
+        ...(isOpen ? { width: assistantWidth } : {}),
+      }}
       aria-label="AI assistant"
     >
       {/* Zero-width anchor on the card's left edge: the handle must straddle
           the visible card border, but the card clips overflow and the shell's
           padding pushes the shell edge away from it. */}
-      <div className={resizeAnchorStyle}>
+      <div
+        className={`${resizeAnchorStyle} ${panelContentStyle({ visible: isOpen })}`}
+      >
         <ResizeHandle
           edge="left"
           appearance="line"
@@ -496,8 +556,10 @@ export const AiAssistantContents = ({
           label="Resize AI assistant"
         />
       </div>
-      <div className={cardStyle}>
-        <div className={headerStyle}>
+      <div className={cardStyle({ open: isOpen })}>
+        <div
+          className={`${headerStyle} ${panelContentStyle({ visible: isOpen })}`}
+        >
           <div className={tabStyle({ active: true })}>AI</div>
           <div style={{ flex: 1 }} />
           <Button
@@ -506,7 +568,7 @@ export const AiAssistantContents = ({
             tone="error"
             className={headerButtonStyle}
             aria-label="Clear AI chat"
-            disabled={messages.length === 0}
+            disabled={clearMessagesDisabled || messages.length === 0}
             onClick={onClearMessages}
             iconName="trash"
             tooltip="Clear AI chat"
@@ -522,7 +584,9 @@ export const AiAssistantContents = ({
           />
         </div>
 
-        <div className={messagesStyle}>
+        <div
+          className={`${messagesStyle} ${panelContentStyle({ visible: isOpen })}`}
+        >
           {messages.length === 0 && (
             <div className={emptyStyle}>
               <AiAssistantIcon size={28} />
@@ -547,7 +611,19 @@ export const AiAssistantContents = ({
           <div ref={messagesEndRef} />
         </div>
 
-        <div className={composerWrapStyle}>
+        {interviewStage && (
+          <div
+            className={interviewStageStyle}
+            data-placement={isOpen ? "sidebar" : "detached"}
+            data-testid="ai-interview-stage"
+          >
+            {interviewStage}
+          </div>
+        )}
+
+        <div
+          className={`${composerWrapStyle} ${panelContentStyle({ visible: isOpen })}`}
+        >
           {showChips && (
             <PromptChips
               chips={promptChips}
@@ -574,7 +650,6 @@ export const AiAssistantContents = ({
                 className={composerTextareaStyle}
                 rows={1}
                 value={input}
-                disabled={isBusy}
                 onChange={(event) => onInputChange(event.currentTarget.value)}
                 onKeyDown={(event) => {
                   // Enter sends; Shift+Enter inserts a newline (the textarea's
@@ -593,11 +668,9 @@ export const AiAssistantContents = ({
                   }
                 }}
                 placeholder={
-                  isBusy
-                    ? "Waiting for response..."
-                    : messages.length === 0
-                      ? "Get creating..."
-                      : "Continue iterating..."
+                  messages.length === 0
+                    ? "Get creating..."
+                    : "Continue iterating..."
                 }
                 aria-label="Message AI assistant"
               />

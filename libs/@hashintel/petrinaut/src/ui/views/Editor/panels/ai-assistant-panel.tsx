@@ -90,6 +90,14 @@ const selectTarget = (
   });
 };
 
+type QueuedInterviewAnswer = {
+  readonly input: Parameters<
+    PetrinautAiComposerControlContext["submitText"]
+  >[0];
+  readonly reject: (reason?: unknown) => void;
+  readonly resolve: (result: PetrinautAiComposerSubmitTextResult) => void;
+};
+
 const isPetrinautAiMutationToolName = (
   toolName: string,
 ): toolName is PetrinautAiMutationToolName =>
@@ -237,6 +245,10 @@ export const AiAssistantPanel = ({
   const { petriNetDefinition, setTitle, title } = use(SDCPNContext);
 
   const [input, setInput] = useState("");
+  const [composerFocusRequest, setComposerFocusRequest] = useState(0);
+  const [interviewActive, setInterviewActive] = useState(false);
+  const [interviewAnswerQueued, setInterviewAnswerQueued] = useState(false);
+  const queuedInterviewAnswerRef = useRef<QueuedInterviewAnswer | null>(null);
   const submittedInitialMessageRef = useRef<string | null>(null);
 
   const titleRef = useRef(title);
@@ -790,6 +802,70 @@ export const AiAssistantPanel = ({
 
   const stopStateRef = useLatest({ status, stop });
 
+  const submitInterviewAnswer = useCallback<
+    PetrinautAiComposerControlContext["submitText"]
+  >(
+    (answer) => {
+      if (queuedInterviewAnswerRef.current) {
+        return Promise.reject(
+          new Error("The previous interview answer is still being submitted."),
+        );
+      }
+      const currentStatus = composerSubmissionStateRef.current.status;
+      if (currentStatus === "error") {
+        return Promise.reject(
+          new Error("The interview is not ready to accept an answer."),
+        );
+      }
+      if (currentStatus === "ready") {
+        return submitText(answer);
+      }
+
+      setInterviewAnswerQueued(true);
+      return new Promise((resolve, reject) => {
+        queuedInterviewAnswerRef.current = {
+          input: answer,
+          reject,
+          resolve,
+        };
+      });
+    },
+    [composerSubmissionStateRef, submitText],
+  );
+
+  useEffect(() => {
+    const queued = queuedInterviewAnswerRef.current;
+    if (!queued) {
+      return;
+    }
+    if (status === "error") {
+      queuedInterviewAnswerRef.current = null;
+      setInterviewAnswerQueued(false);
+      queued.reject(new Error("The interview could not accept that answer."));
+      return;
+    }
+    if (status !== "ready") {
+      return;
+    }
+
+    queuedInterviewAnswerRef.current = null;
+    setInterviewAnswerQueued(false);
+    void submitText(queued.input).then(
+      (result) => queued.resolve(result),
+      (caught: unknown) => queued.reject(caught),
+    );
+  }, [status, submitText]);
+
+  useEffect(
+    () => () => {
+      queuedInterviewAnswerRef.current?.reject(
+        new Error("The interview conversation changed."),
+      );
+      queuedInterviewAnswerRef.current = null;
+    },
+    [conversationId],
+  );
+
   // Like submitText, stop is exposed to host controls and must stay stable.
   const stopComposer = useCallback(async () => {
     const { status: currentStatus, stop: stopCurrentResponse } =
@@ -833,7 +909,7 @@ export const AiAssistantPanel = ({
     sendMessage,
   ]);
 
-  if (!isAiAssistantOpen || !instance) {
+  if (!instance) {
     return null;
   }
 
@@ -865,14 +941,30 @@ export const AiAssistantPanel = ({
   const composerControl = aiAssistant.renderComposerControl?.(
     composerControlContext,
   );
+  const interviewStage = aiAssistant.renderInterviewStage?.({
+    ...composerControlContext,
+    canAcceptInterviewAnswer: !interviewAnswerQueued,
+    focusComposer: () => {
+      setAiAssistantOpen(true);
+      setComposerFocusRequest((request) => request + 1);
+    },
+    openSidebar: () => setAiAssistantOpen(true),
+    placement: isAiAssistantOpen ? "sidebar" : "detached",
+    setActive: setInterviewActive,
+    submitInterviewAnswer,
+  });
   /* eslint-enable react-hooks-js/refs */
 
   return (
     <AiAssistantContents
+      clearMessagesDisabled={interviewActive}
       composerControl={composerControl}
+      composerFocusRequest={composerFocusRequest}
       error={streamError ?? error}
       input={input}
+      interviewStage={interviewStage}
       interactiveTools={aiAssistant.interactiveTools}
+      isOpen={isAiAssistantOpen}
       messages={messages}
       onClearMessages={() => {
         // Clearing aborts any in-flight response too, which fires `onFinish`

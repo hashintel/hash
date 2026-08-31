@@ -5,7 +5,7 @@ import { isValidElement, type ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
-import { getBrunchVoiceComposerControl } from "./local-storage-demo-app";
+import { getBrunchVoiceInterviewStage } from "./local-storage-demo-app";
 
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
@@ -28,16 +28,25 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
 
 describe("local storage demo Brunch voice integration", () => {
   test("does not install voice on the generic local chat fallback", () => {
-    expect(getBrunchVoiceComposerControl(false)).toBeUndefined();
+    expect(getBrunchVoiceInterviewStage(false)).toBeUndefined();
   });
 
   test("installs the app-owned voice control for a configured Brunch transport", () => {
-    const renderControl = getBrunchVoiceComposerControl(true);
+    const renderControl = getBrunchVoiceInterviewStage(true);
     const control = renderControl?.({
+      canAcceptInterviewAnswer: true,
       conversationId: "petrinaut-preview:net-1",
+      focusComposer: vi.fn(),
       messages: [],
+      openSidebar: vi.fn(),
+      placement: "sidebar",
+      setActive: vi.fn(),
       status: "ready",
       stop: vi.fn(async () => undefined),
+      submitInterviewAnswer: vi.fn(async () => ({
+        kind: "message" as const,
+        messageId: "message-1",
+      })),
       submitText: vi.fn(async () => ({
         kind: "message" as const,
         messageId: "message-1",

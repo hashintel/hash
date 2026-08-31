@@ -2,29 +2,37 @@ import {
   type FormEvent,
   useEffect,
   useLayoutEffect,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
-import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa6";
+import { FaKeyboard, FaMicrophone, FaMicrophoneSlash } from "react-icons/fa6";
 
 import { Button } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
 import { selectCanonicalSpeechSegments } from "./canonical-speech";
+import {
+  type InterviewCoverage,
+  selectInterviewCoverage,
+} from "./interview-coverage";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { SpeechPlaybackController } from "./speech-playback-controller";
 import {
   VoiceTurnController,
+  type VoiceLatencyEvent,
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
-import type { PetrinautAiComposerControlContext } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiInterviewStageContext } from "@hashintel/petrinaut/ui";
 
 export interface OpenAIVoiceConfig {
   readonly available: true;
   readonly connectionTimeoutMs: number;
 }
+
+type Presentation = "trigger" | "start" | "full" | "mini";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -39,10 +47,7 @@ export const loadOpenAIVoiceConfig = async (
       method: "GET",
       signal,
     });
-    if (!response.ok) {
-      return null;
-    }
-
+    if (!response.ok) return null;
     const body: unknown = await response.json();
     if (
       !isRecord(body) ||
@@ -62,77 +67,164 @@ export const loadOpenAIVoiceConfig = async (
   }
 };
 
-const controlStyle = css({
-  position: "relative",
-  flexShrink: "0",
+const rootStyle = cva({
+  base: {
+    zIndex: "overlay",
+    pointerEvents: "auto",
+  },
+  variants: {
+    presentation: {
+      trigger: {
+        position: "absolute",
+        right: "[44px]",
+        bottom: "[-44px]",
+      },
+      start: {
+        position: "absolute",
+        right: "0",
+        bottom: "[-2px]",
+        width: "full",
+      },
+      full: {
+        position: "relative",
+        width: "full",
+      },
+      mini: {
+        position: "relative",
+        width: "full",
+      },
+      detached: {
+        position: "fixed",
+        "--voice-interview-right": "0px",
+        "--voice-interview-bottom": "0px",
+        "--voice-interview-left": "0px",
+        "--voice-interview-width": "100%",
+        right: "[var(--voice-interview-right)]",
+        bottom: "[var(--voice-interview-bottom)]",
+        left: "[var(--voice-interview-left)]",
+        width: "[var(--voice-interview-width)]",
+        "@media (min-width: 768px)": {
+          "--voice-interview-right": "var(--spacing-4)",
+          "--voice-interview-bottom": "var(--spacing-4)",
+          "--voice-interview-left": "auto",
+          "--voice-interview-width": "440px",
+        },
+      },
+    },
+  },
 });
 
-const panelStyle = css({
-  position: "absolute",
-  right: "0",
-  bottom: "[calc(100% + 8px)]",
-  zIndex: "overlay",
+const cardStyle = css({
   display: "flex",
-  width: "[280px]",
   flexDirection: "column",
-  gap: "2",
-  padding: "3",
+  gap: "3",
+  padding: "4",
   borderWidth: "thin",
   borderStyle: "solid",
   borderColor: "neutral.a20",
-  borderRadius: "lg",
+  borderTopLeftRadius: "xl",
+  borderTopRightRadius: "xl",
+  borderBottomRightRadius: "xl",
+  borderBottomLeftRadius: "xl",
   backgroundColor: "neutral.s00",
-  boxShadow: "lg",
+  boxShadow: "xl",
+});
+
+const stageStyle = css({
+  display: "flex",
+  maxHeight: "[72vh]",
+  flexDirection: "column",
+  gap: "3",
+  padding: "3",
+  overflowY: "auto",
+  borderTopWidth: "thin",
+  borderBottomWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a20",
+  backgroundColor: "neutral.s00",
+  boxShadow: "[0 -8px 24px rgba(0,0,0,0.06)]",
+  borderRadius: "lg",
+});
+
+const headerStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+});
+
+const titleStyle = css({
+  flex: "1",
+  color: "neutral.s100",
+  fontSize: "sm",
+  fontWeight: "semibold",
+});
+
+const questionStyle = css({
+  color: "neutral.s110",
+  fontSize: "lg",
+  fontWeight: "semibold",
+  lineHeight: "snug",
+});
+
+const listeningStyle = css({
+  display: "flex",
+  minHeight: "[84px]",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "2",
+  borderRadius: "lg",
+  backgroundColor: "blue.a10",
+});
+
+const meterStyle = css({
+  display: "flex",
+  height: "[34px]",
+  alignItems: "center",
+  gap: "1",
+  _motionReduce: { visibility: "hidden" },
+});
+
+const meterBarStyle = css({
+  width: "[5px]",
+  minHeight: "[4px]",
+  borderRadius: "full",
+  backgroundColor: "blue.s70",
+  transition: "[height 80ms linear]",
+  _motionReduce: { transition: "[none]" },
 });
 
 const statusStyle = css({
   color: "neutral.s90",
-  fontSize: "xs",
+  fontSize: "sm",
   fontWeight: "medium",
-  lineHeight: "relaxed",
 });
 
-const disclosureStyle = css({
-  color: "neutral.s70",
-  fontSize: "xs",
-  lineHeight: "relaxed",
-});
-
-const liveRegionStyle = css({
-  position: "absolute",
-  width: "[1px]",
-  height: "[1px]",
-  padding: "0",
-  margin: "[-1px]",
-  overflow: "hidden",
-  clip: "[rect(0, 0, 0, 0)]",
-  whiteSpace: "nowrap",
-  borderWidth: "0",
-});
-
-const partialStyle = css({
+const transcriptStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "1",
-  padding: "2",
-  borderRadius: "md",
+  padding: "2.5",
+  borderRadius: "lg",
   backgroundColor: "neutral.s10",
   color: "neutral.s100",
   fontSize: "sm",
 });
 
-const partialLabelStyle = css({
+const labelStyle = css({
   color: "neutral.s80",
   fontSize: "xs",
+  fontWeight: "semibold",
 });
 
-const correctionFormStyle = css({
+const actionsStyle = css({
   display: "flex",
-  flexDirection: "column",
+  flexWrap: "wrap",
+  alignItems: "center",
   gap: "2",
 });
 
-const correctionInputStyle = css({
+const inputStyle = css({
   width: "full",
   paddingX: "2",
   paddingY: "1.5",
@@ -144,37 +236,76 @@ const correctionInputStyle = css({
   color: "neutral.s100",
   fontSize: "sm",
   _focusVisible: {
-    borderColor: "blue.a70",
     outline: "2px solid",
-    outlineColor: "blue.a30",
+    outlineColor: "blue.a40",
     outlineOffset: "[1px]",
   },
 });
 
-const panelActionsStyle = css({
+const miniStyle = css({
   display: "flex",
-  justifyContent: "flex-end",
+  minHeight: "[60px]",
+  alignItems: "center",
   gap: "2",
+  padding: "2",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a20",
+  borderTopLeftRadius: "lg",
+  borderTopRightRadius: "lg",
+  borderBottomRightRadius: "lg",
+  borderBottomLeftRadius: "lg",
+  backgroundColor: "neutral.s00",
+  boxShadow: "lg",
+});
+
+const miniExpandStyle = css({
+  display: "flex",
+  minWidth: "0",
+  flex: "1",
+  alignItems: "center",
+  gap: "2",
+  padding: "2",
+  color: "neutral.s100",
+  textAlign: "left",
+  background: "[transparent]",
+  border: "none",
+  cursor: "pointer",
+  _focusVisible: { outline: "2px solid", outlineColor: "blue.a50" },
+});
+
+const liveRegionStyle = css({
+  position: "absolute",
+  width: "[1px]",
+  height: "[1px]",
+  padding: "0",
+  margin: "[-1px]",
+  overflow: "hidden",
+  clip: "[rect(0,0,0,0)]",
+  whiteSpace: "nowrap",
+  borderWidth: "0",
 });
 
 const statusText = (snapshot: VoiceTurnSnapshot): string => {
   switch (snapshot.phase) {
     case "idle":
-      return "Voice input is off.";
+      return "Microphone off · Interview not started";
     case "connecting":
-      return "Microphone off. Connecting voice input.";
+      return "Microphone off · Joining the interview";
     case "listening":
-      return "Microphone on. Listening.";
+      return "Microphone on · Listening";
+    case "paused":
+      return "Microphone off · Paused";
     case "transcribing":
-      return "Microphone off. Finalizing the transcript.";
+      return "Microphone off · Finishing your answer";
     case "delivering":
-      return "Microphone off. Sending the finalized transcript to Brunch.";
+      return "Microphone off · Answer recorded";
     case "waiting":
-      return "Microphone off. Waiting for Brunch.";
+      return "Microphone off · Writing that down";
     case "synthesizing":
-      return "Microphone off. Creating AI-generated speech.";
+      return "Microphone off · Preparing the next question";
     case "playing":
-      return "Microphone off. Playing AI-generated speech.";
+      return "Microphone off · Interviewer speaking";
     case "recoverable-error": {
       const diagnostic =
         snapshot.errorCode === null
@@ -184,35 +315,262 @@ const statusText = (snapshot: VoiceTurnSnapshot): string => {
                 ? ` Diagnostic reference: ${snapshot.errorRequestId}.`
                 : ""
             }`;
-      return `Microphone off. ${snapshot.errorMessage}${diagnostic}`;
+      return `Microphone off · ${snapshot.errorMessage}${diagnostic}`;
     }
   }
 };
 
-interface VoiceInterviewControlViewProps {
+const inputLevelText = (level: number): string =>
+  level >= 0.35
+    ? "High"
+    : level >= 0.12
+      ? "Medium"
+      : level > 0
+        ? "Low"
+        : "Quiet";
+
+const Meter = ({ snapshot }: { snapshot: VoiceTurnSnapshot }) => {
+  const level = snapshot.microphoneEnabled ? snapshot.microphoneLevel : 0;
+  return (
+    <>
+      <div className={meterStyle} aria-hidden="true">
+        {[0.7, 1, 0.8, 1.15, 0.65].map((factor) => (
+          <span
+            className={meterBarStyle}
+            key={factor}
+            style={{ height: `${4 + Math.round(level * factor * 26)}px` }}
+          />
+        ))}
+      </div>
+      <span className={labelStyle}>
+        {snapshot.microphoneEnabled
+          ? `Microphone input level: ${inputLevelText(level)}`
+          : "Microphone input level unavailable while microphone is off"}
+      </span>
+    </>
+  );
+};
+
+const Coverage = ({ coverage }: { coverage: InterviewCoverage | null }) => {
+  if (!coverage) return null;
+  return (
+    <details>
+      <summary className={labelStyle}>
+        {coverage.complete ? "Coverage complete" : "Interview coverage"}
+      </summary>
+      {coverage.covered.length > 0 && (
+        <div>
+          <strong className={labelStyle}>Covered</strong>
+          <ul>
+            {coverage.covered.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {coverage.stillExploring.length > 0 && (
+        <div>
+          <strong className={labelStyle}>Still exploring</strong>
+          <ul>
+            {coverage.stillExploring.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </details>
+  );
+};
+
+export interface VoiceInterviewControlViewProps {
+  readonly consented: boolean;
   readonly correction: string;
+  readonly coverage: InterviewCoverage | null;
+  readonly editing: boolean;
+  readonly microphoneCheck: string;
+  readonly onCheckMicrophone: () => void;
+  readonly onConsentChange: (consented: boolean) => void;
   readonly onCorrectionChange: (value: string) => void;
+  readonly onDoneSpeaking: () => void;
+  readonly onEdit: () => void;
   readonly onEnd: () => void;
+  readonly onExpand: () => void;
+  readonly onInterrupt: () => void;
+  readonly onMinimize: () => void;
+  readonly onPause: () => void;
   readonly onReconnect: () => void;
+  readonly onRedo: () => void;
+  readonly onResume: () => void;
+  readonly onShowStart: () => void;
   readonly onStart: () => void;
   readonly onSubmitCorrection: () => void;
+  readonly onTypeInstead: () => void;
+  readonly placement: "sidebar" | "detached";
+  readonly presentation: Presentation;
   readonly snapshot: VoiceTurnSnapshot;
 }
 
 export const VoiceInterviewControlView = ({
+  consented,
   correction,
+  coverage,
+  editing,
+  microphoneCheck,
+  onCheckMicrophone,
+  onConsentChange,
   onCorrectionChange,
+  onDoneSpeaking,
+  onEdit,
   onEnd,
+  onExpand,
+  onInterrupt,
+  onMinimize,
+  onPause,
   onReconnect,
+  onRedo,
+  onResume,
+  onShowStart,
   onStart,
   onSubmitCorrection,
+  onTypeInstead,
+  placement,
+  presentation,
   snapshot,
 }: VoiceInterviewControlViewProps) => {
-  const isIdle = snapshot.phase === "idle";
-  const isConnecting = snapshot.phase === "connecting";
-  const hasError = snapshot.phase === "recoverable-error";
-  const canCorrect =
-    snapshot.phase === "listening" && snapshot.lastCommittedText.length > 0;
+  if (presentation === "trigger") {
+    return placement === "sidebar" ? (
+      <div className={rootStyle({ presentation: "trigger" })}>
+        <Button
+          aria-label="Start voice interview"
+          prefix={<FaMicrophone aria-hidden="true" />}
+          shape="round"
+          size="sm"
+          tooltip="Start voice interview"
+          type="button"
+          variant="subtle"
+          onClick={onShowStart}
+        />
+      </div>
+    ) : null;
+  }
+
+  if (presentation === "start") {
+    if (placement === "detached") return null;
+    return (
+      <section
+        aria-label="Start voice interview"
+        className={rootStyle({ presentation: "start" })}
+      >
+        <div className={cardStyle}>
+          <h2 className={questionStyle}>Talk with the AI interviewer</h2>
+          <p className={statusStyle}>
+            Your speech is sent to OpenAI for transcription. Petrinaut keeps
+            finalized answers in this conversation; this app does not retain the
+            audio.
+          </p>
+          <p className={statusStyle}>
+            Questions are spoken by an AI-generated OpenAI voice. You can pause,
+            type, correct an answer, or end the interview at any time.
+          </p>
+          <label className={statusStyle}>
+            <input
+              checked={consented}
+              type="checkbox"
+              onChange={(event) => onConsentChange(event.currentTarget.checked)}
+            />{" "}
+            I understand how speech and transcripts are handled.
+          </label>
+          {microphoneCheck && <p className={labelStyle}>{microphoneCheck}</p>}
+          <div className={actionsStyle}>
+            <Button type="button" variant="subtle" onClick={onCheckMicrophone}>
+              Check microphone
+            </Button>
+            <Button disabled={!consented} type="button" onClick={onStart}>
+              Start interview
+            </Button>
+            <Button type="button" variant="ghost" onClick={onTypeInstead}>
+              Use text instead
+            </Button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const effectivePresentation =
+    placement === "detached" ? "detached" : presentation;
+  const status = statusText(snapshot);
+  const isSpeaking =
+    snapshot.phase === "playing" || snapshot.phase === "synthesizing";
+
+  if (
+    effectivePresentation === "mini" ||
+    effectivePresentation === "detached"
+  ) {
+    return (
+      <section
+        aria-label="Voice interview mini bar"
+        className={rootStyle({ presentation: effectivePresentation })}
+      >
+        <div className={miniStyle}>
+          <button
+            aria-label={`Expand voice interview. ${status}`}
+            className={miniExpandStyle}
+            type="button"
+            onClick={onExpand}
+          >
+            {snapshot.microphoneEnabled ? (
+              <FaMicrophone aria-hidden="true" />
+            ) : (
+              <FaMicrophoneSlash aria-hidden="true" />
+            )}
+            <span>{status}</span>
+          </button>
+          {isSpeaking ? (
+            <Button size="xs" type="button" onClick={onInterrupt}>
+              Interrupt and speak
+            </Button>
+          ) : snapshot.phase === "paused" ? (
+            <Button size="xs" type="button" onClick={onResume}>
+              Resume
+            </Button>
+          ) : (
+            <Button
+              disabled={!snapshot.microphoneEnabled}
+              size="xs"
+              type="button"
+              variant="subtle"
+              onClick={onPause}
+            >
+              Pause
+            </Button>
+          )}
+          <Button
+            aria-label="Type an interview answer"
+            prefix={<FaKeyboard aria-hidden="true" />}
+            shape="round"
+            size="xs"
+            tooltip="Type an interview answer"
+            type="button"
+            variant="ghost"
+            onClick={onTypeInstead}
+          />
+          <Button
+            aria-label="End interview"
+            size="xs"
+            type="button"
+            variant="ghost"
+            onClick={onEnd}
+          >
+            End
+          </Button>
+        </div>
+        <span className={liveRegionStyle} role="status" aria-live="polite">
+          {status}
+        </span>
+      </section>
+    );
+  }
 
   const submitCorrection = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -220,105 +578,131 @@ export const VoiceInterviewControlView = ({
   };
 
   return (
-    <div className={controlStyle}>
-      {isIdle ? (
-        <Button
-          aria-label="Start voice input"
-          prefix={<FaMicrophone aria-hidden="true" />}
-          shape="round"
-          size="sm"
-          tooltip="Start voice input"
-          type="button"
-          variant="subtle"
-          onClick={onStart}
-        />
-      ) : (
-        <Button
-          aria-label={hasError ? "Reconnect voice input" : "End voice input"}
-          disabled={isConnecting}
-          prefix={<FaMicrophoneSlash aria-hidden="true" />}
-          shape="round"
-          size="sm"
-          tooltip={hasError ? "Reconnect voice input" : "End voice input"}
-          type="button"
-          variant="subtle"
-          onClick={hasError ? onReconnect : onEnd}
-        />
-      )}
+    <section
+      aria-label="Voice interview stage"
+      className={rootStyle({ presentation: "full" })}
+    >
+      <div className={stageStyle}>
+        <header className={headerStyle}>
+          <span className={titleStyle}>AI · Voice interview</span>
+          <Button size="xs" type="button" variant="ghost" onClick={onMinimize}>
+            Minimize
+          </Button>
+          <Button size="xs" type="button" variant="ghost" onClick={onEnd}>
+            End interview
+          </Button>
+        </header>
 
+        <p className={questionStyle}>
+          {snapshot.currentQuestion || "The next question will appear here."}
+        </p>
+
+        <div className={listeningStyle}>
+          {snapshot.microphoneEnabled ? (
+            <FaMicrophone aria-hidden="true" />
+          ) : (
+            <FaMicrophoneSlash aria-hidden="true" />
+          )}
+          <Meter snapshot={snapshot} />
+          <span className={statusStyle}>{status}</span>
+        </div>
+
+        {snapshot.partialText && (
+          <div className={transcriptStyle}>
+            <span className={labelStyle}>
+              What we’re hearing · Not sent yet
+            </span>
+            <span>{snapshot.partialText}</span>
+          </div>
+        )}
+        {!snapshot.partialText && snapshot.lastCommittedText && (
+          <div className={transcriptStyle}>
+            <span className={labelStyle}>Answer recorded</span>
+            <span>{snapshot.lastCommittedText}</span>
+          </div>
+        )}
+
+        {editing && (
+          <form className={actionsStyle} onSubmit={submitCorrection}>
+            <label className={labelStyle} htmlFor="voice-answer-correction">
+              Correct the recorded answer
+            </label>
+            <input
+              className={inputStyle}
+              id="voice-answer-correction"
+              value={correction}
+              onChange={(event) =>
+                onCorrectionChange(event.currentTarget.value)
+              }
+            />
+            <Button disabled={!correction.trim()} size="xs" type="submit">
+              Send correction
+            </Button>
+          </form>
+        )}
+
+        <div className={actionsStyle}>
+          {isSpeaking && (
+            <Button type="button" onClick={onInterrupt}>
+              Interrupt and speak
+            </Button>
+          )}
+          {snapshot.phase === "listening" && (
+            <>
+              <Button type="button" onClick={onDoneSpeaking}>
+                Done speaking
+              </Button>
+              <Button type="button" variant="subtle" onClick={onPause}>
+                Pause
+              </Button>
+            </>
+          )}
+          {snapshot.phase === "paused" && (
+            <Button type="button" onClick={onResume}>
+              Resume listening
+            </Button>
+          )}
+          {snapshot.phase === "recoverable-error" && (
+            <Button type="button" onClick={onReconnect}>
+              Reconnect
+            </Button>
+          )}
+          {snapshot.lastCommittedText && !snapshot.partialText && (
+            <>
+              <Button type="button" variant="subtle" onClick={onRedo}>
+                Redo answer
+              </Button>
+              <Button type="button" variant="ghost" onClick={onEdit}>
+                Edit text
+              </Button>
+            </>
+          )}
+          <Button type="button" variant="ghost" onClick={onTypeInstead}>
+            Type instead
+          </Button>
+        </div>
+
+        <Coverage coverage={coverage} />
+      </div>
       <span
         className={liveRegionStyle}
         role="status"
-        aria-atomic="true"
         aria-live="polite"
+        aria-atomic="true"
       >
-        {statusText(snapshot)}
-        {snapshot.partialText &&
-          ` Live transcript (not sent): ${snapshot.partialText}`}
+        {status}
+        {snapshot.partialText && ` Not sent yet: ${snapshot.partialText}`}
       </span>
-
-      {!isIdle && (
-        <section className={panelStyle} aria-label="Voice input status">
-          <p className={statusStyle}>{statusText(snapshot)}</p>
-          <p className={disclosureStyle}>
-            Spoken responses use an AI-generated OpenAI voice.
-          </p>
-          {snapshot.partialText && (
-            <p className={partialStyle}>
-              <span className={partialLabelStyle}>
-                Live transcript (not sent)
-              </span>
-              {snapshot.partialText}
-            </p>
-          )}
-          {canCorrect && (
-            <form className={correctionFormStyle} onSubmit={submitCorrection}>
-              <label className={partialLabelStyle} htmlFor="voice-correction">
-                Correct last voice answer
-              </label>
-              <input
-                className={correctionInputStyle}
-                id="voice-correction"
-                onChange={(event) => onCorrectionChange(event.target.value)}
-                placeholder="Enter the corrected answer"
-                value={correction}
-              />
-              <Button
-                disabled={!correction.trim()}
-                size="xs"
-                type="submit"
-                variant="subtle"
-              >
-                Send correction
-              </Button>
-            </form>
-          )}
-          <div className={panelActionsStyle}>
-            {hasError ? (
-              <Button
-                size="xs"
-                type="button"
-                variant="subtle"
-                onClick={onReconnect}
-              >
-                Reconnect voice input
-              </Button>
-            ) : (
-              <Button
-                disabled={isConnecting}
-                size="xs"
-                type="button"
-                variant="subtle"
-                onClick={onEnd}
-              >
-                End voice input
-              </Button>
-            )}
-          </div>
-        </section>
-      )}
-    </div>
+    </section>
   );
+};
+
+const recordLatency = (event: VoiceLatencyEvent): void => {
+  performance.measure(`voice-interview:${event.name}`, {
+    detail: { questionId: event.questionId },
+    duration: event.elapsedMs,
+    start: 0,
+  });
 };
 
 const AvailableVoiceInterviewControl = ({
@@ -326,16 +710,20 @@ const AvailableVoiceInterviewControl = ({
   context,
 }: {
   config: OpenAIVoiceConfig;
-  context: PetrinautAiComposerControlContext & { conversationId: string };
+  context: PetrinautAiInterviewStageContext & { conversationId: string };
 }) => {
   const [store] = useState(() => {
     const session = new OpenAIRealtimeSession({
+      cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
+      createAudioContext: () => new AudioContext(),
       createPeerConnection: () => new RTCPeerConnection(),
       fetch: globalThis.fetch.bind(globalThis),
       getUserMedia: (constraints) =>
         navigator.mediaDevices.getUserMedia(constraints),
       reportDiagnostic: reportVoiceDiagnostic,
+      requestAnimationFrame: (callback) =>
+        globalThis.requestAnimationFrame(callback),
     });
     const playback = new SpeechPlaybackController({
       createAudio: (source) => new Audio(source),
@@ -346,9 +734,10 @@ const AvailableVoiceInterviewControl = ({
     });
     const controller = new VoiceTurnController({
       conversationId: context.conversationId,
+      onLatencyEvent: recordLatency,
       playback,
       session,
-      submitText: context.submitVoiceInput,
+      submitText: context.submitInterviewAnswer,
     });
     return {
       controller,
@@ -362,14 +751,51 @@ const AvailableVoiceInterviewControl = ({
     store.getSnapshot,
     store.getSnapshot,
   );
+  const [presentation, setPresentation] = useState<Presentation>("trigger");
+  const [previousPlacement, setPreviousPlacement] = useState(context.placement);
+  const [consented, setConsented] = useState(false);
+  const [microphoneCheck, setMicrophoneCheck] = useState("");
   const [correction, setCorrection] = useState("");
+  const [editing, setEditing] = useState(false);
+  const { openSidebar, setActive } = context;
+  const openSidebarRef = useRef(openSidebar);
+  const coverage = selectInterviewCoverage(context.messages);
+
+  if (previousPlacement !== context.placement) {
+    setPreviousPlacement(context.placement);
+    if (context.placement === "detached" && snapshot.phase !== "idle") {
+      setPresentation("mini");
+    }
+  }
 
   useLayoutEffect(() => {
     store.controller.updateChat({
+      canAcceptInterviewAnswer: context.canAcceptInterviewAnswer,
       canonicalSegments: selectCanonicalSpeechSegments(context.messages),
       status: context.status,
     });
-  }, [context.messages, context.status, store]);
+  }, [
+    context.canAcceptInterviewAnswer,
+    context.messages,
+    context.status,
+    store,
+  ]);
+
+  const active = snapshot.phase !== "idle";
+
+  useEffect(() => {
+    setActive(active);
+  }, [active, setActive]);
+
+  useEffect(() => {
+    openSidebarRef.current = openSidebar;
+  }, [openSidebar]);
+
+  useEffect(() => {
+    if (snapshot.phase === "recoverable-error") {
+      openSidebarRef.current();
+    }
+  }, [snapshot.phase]);
 
   useEffect(
     () => () => {
@@ -378,25 +804,75 @@ const AvailableVoiceInterviewControl = ({
     [store],
   );
 
+  const end = () => {
+    setPresentation("trigger");
+    setEditing(false);
+    context.setActive(false);
+    void store.controller.end();
+  };
+
   return (
     <VoiceInterviewControlView
+      consented={consented}
       correction={correction}
+      coverage={coverage}
+      editing={editing}
+      microphoneCheck={microphoneCheck}
+      onCheckMicrophone={() => {
+        setMicrophoneCheck("Checking microphone…");
+        void navigator.mediaDevices.getUserMedia({ audio: true }).then(
+          (stream) => {
+            for (const track of stream.getTracks()) track.stop();
+            setMicrophoneCheck("Microphone ready.");
+          },
+          () => setMicrophoneCheck("Microphone access was not available."),
+        );
+      }}
+      onConsentChange={setConsented}
       onCorrectionChange={setCorrection}
-      onEnd={() => void store.controller.end()}
-      onReconnect={() => void store.controller.reconnect()}
-      onStart={() => void store.controller.start()}
+      onDoneSpeaking={() => store.controller.doneSpeaking()}
+      onEdit={() => setEditing(true)}
+      onEnd={end}
+      onExpand={() => {
+        context.openSidebar();
+        setPresentation("full");
+      }}
+      onInterrupt={() => store.controller.interruptAndSpeak()}
+      onMinimize={() => setPresentation("mini")}
+      onPause={() => store.controller.pause()}
+      onReconnect={() => {
+        setPresentation("full");
+        void store.controller.reconnect();
+      }}
+      onRedo={() => store.controller.redoAnswer()}
+      onResume={() => store.controller.resume()}
+      onShowStart={() => setPresentation("start")}
+      onStart={() => {
+        setPresentation("full");
+        context.setActive(true);
+        void store.controller.start();
+      }}
       onSubmitCorrection={() => {
         const value = correction;
         setCorrection("");
+        setEditing(false);
         void store.controller.submitCorrection(value);
       }}
+      onTypeInstead={() => {
+        if (snapshot.phase === "idle") setPresentation("trigger");
+        context.focusComposer();
+      }}
+      placement={context.placement}
+      presentation={
+        snapshot.phase === "recoverable-error" ? "full" : presentation
+      }
       snapshot={snapshot}
     />
   );
 };
 
 export const VoiceInterviewControl = (
-  context: PetrinautAiComposerControlContext,
+  context: PetrinautAiInterviewStageContext,
 ) => {
   const [config, setConfig] = useState<OpenAIVoiceConfig | null>();
 
@@ -406,17 +882,12 @@ export const VoiceInterviewControl = (
       globalThis.fetch.bind(globalThis),
       abortController.signal,
     ).then((loadedConfig) => {
-      if (!abortController.signal.aborted) {
-        setConfig(loadedConfig);
-      }
+      if (!abortController.signal.aborted) setConfig(loadedConfig);
     });
     return () => abortController.abort();
   }, []);
 
-  if (!config || !context.conversationId) {
-    return null;
-  }
-
+  if (!config || !context.conversationId) return null;
   return (
     <AvailableVoiceInterviewControl
       key={context.conversationId}

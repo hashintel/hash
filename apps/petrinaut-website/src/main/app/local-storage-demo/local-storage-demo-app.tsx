@@ -17,8 +17,8 @@ import {
 import {
   DefaultChatTransport,
   Petrinaut,
-  type PetrinautAiComposerControl,
-  type PetrinautAiComposerControlContext,
+  type PetrinautAiInterviewStage,
+  type PetrinautAiInterviewStageContext,
   type PetrinautAiMessage,
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
@@ -91,16 +91,16 @@ const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
 );
 
-const renderBrunchVoiceComposerControl = (
-  context: PetrinautAiComposerControlContext,
+const renderBrunchVoiceInterviewStage = (
+  context: PetrinautAiInterviewStageContext,
 ) => <VoiceInterviewControl {...context} />;
 
-export const getBrunchVoiceComposerControl = (
+export const getBrunchVoiceInterviewStage = (
   isBrunchConfigured: boolean,
-): PetrinautAiComposerControl | undefined =>
-  isBrunchConfigured ? renderBrunchVoiceComposerControl : undefined;
+): PetrinautAiInterviewStage | undefined =>
+  isBrunchConfigured ? renderBrunchVoiceInterviewStage : undefined;
 
-const brunchVoiceComposerControl = getBrunchVoiceComposerControl(
+const brunchVoiceInterviewStage = getBrunchVoiceInterviewStage(
   brunchPreviewConfig.isBrunchConfigured,
 );
 
@@ -334,9 +334,9 @@ export const LocalStorageDemoApp = () => {
           return next;
         });
       },
-      ...(brunchVoiceComposerControl
+      ...(brunchVoiceInterviewStage
         ? {
-            renderComposerControl: brunchVoiceComposerControl,
+            renderInterviewStage: brunchVoiceInterviewStage,
           }
         : {}),
     }),

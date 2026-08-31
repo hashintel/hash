@@ -9,7 +9,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { createElement } from "react";
+import { createElement, useEffect } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
@@ -20,6 +20,8 @@ import { AiAssistantContents } from "./ai-assistant-contents";
 import type { PetrinautAiMessage } from "./types";
 
 const renderMarkdown = vi.hoisted(() => vi.fn());
+let interviewStageMounts = 0;
+let interviewStageUnmounts = 0;
 
 vi.mock("react-markdown", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-markdown")>();
@@ -42,6 +44,83 @@ afterEach(() => {
 });
 
 describe("AiAssistantContents", () => {
+  test("keeps one provider-neutral interview stage mounted while it moves between docked and detached presentation", () => {
+    interviewStageMounts = 0;
+    interviewStageUnmounts = 0;
+    const Stage = () => {
+      useEffect(() => {
+        interviewStageMounts += 1;
+        return () => {
+          interviewStageUnmounts += 1;
+        };
+      }, []);
+      return <div>Interview stage</div>;
+    };
+    const props = {
+      input: "",
+      interviewStage: <Stage />,
+      messages: [] as PetrinautAiMessage[],
+      onClose: noop,
+      onInputChange: noop,
+      onStop: noop,
+      onSubmit: noop,
+      status: "ready" as const,
+    };
+    const { rerender } = render(
+      <AiAssistantContents {...props} isOpen={true} />,
+    );
+
+    expect(screen.getByText("Interview stage")).not.toBeNull();
+    expect(screen.getByTestId("ai-interview-stage").dataset.placement).toBe(
+      "sidebar",
+    );
+    rerender(<AiAssistantContents {...props} isOpen={false} />);
+
+    expect(screen.getByTestId("ai-interview-stage").dataset.placement).toBe(
+      "detached",
+    );
+    expect(interviewStageMounts).toBe(1);
+    expect(interviewStageUnmounts).toBe(0);
+  });
+
+  test("keeps keyboard drafting available and protects clear-chat during an active interview", () => {
+    render(
+      <AiAssistantContents
+        clearMessagesDisabled={true}
+        input="Draft answer"
+        interviewStage={<div>Active interview</div>}
+        isOpen={true}
+        messages={[
+          {
+            id: "assistant-1",
+            role: "assistant",
+            parts: [{ type: "text", text: "Question" }],
+          },
+        ]}
+        onClearMessages={vi.fn()}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="streaming"
+      />,
+    );
+
+    expect(
+      screen.getByRole<HTMLTextAreaElement>("textbox", {
+        name: "Message AI assistant",
+      }).disabled,
+    ).toBe(false);
+    expect(
+      screen.getByRole("complementary", { name: "AI assistant" }).className,
+    ).toContain("z_[calc(var(--z-index-sticky)_+_2)]");
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", {
+        name: "Clear AI chat",
+      }).disabled,
+    ).toBe(true);
+  });
+
   test("keeps completed messages memoized when interactive tools are omitted", () => {
     const messages: PetrinautAiMessage[] = [
       {

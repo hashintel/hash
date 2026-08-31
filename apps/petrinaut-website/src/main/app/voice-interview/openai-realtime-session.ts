@@ -28,6 +28,7 @@ export type OpenAIRealtimeSessionEvent =
       readonly text: string;
       readonly type: "partial" | "completed";
     }
+  | { readonly level: number; readonly type: "microphone-level" }
   | {
       readonly code: VoiceErrorCode;
       readonly message: string;
@@ -36,7 +37,9 @@ export type OpenAIRealtimeSessionEvent =
     };
 
 interface OpenAIRealtimeSessionDependencies {
+  readonly cancelAnimationFrame: (handle: number) => void;
   readonly connectionTimeoutMs: number;
+  readonly createAudioContext: () => AudioContext;
   readonly createRequestId?: () => string;
   readonly createPeerConnection: () => RTCPeerConnection;
   readonly fetch: typeof globalThis.fetch;
@@ -45,6 +48,7 @@ interface OpenAIRealtimeSessionDependencies {
   ) => Promise<MediaStream>;
   readonly now?: () => number;
   readonly reportDiagnostic?: VoiceDiagnosticReporter;
+  readonly requestAnimationFrame: (callback: FrameRequestCallback) => number;
 }
 
 type SessionListener = (event: OpenAIRealtimeSessionEvent) => void;
@@ -104,6 +108,8 @@ const waitForAbort = <Value>(
 export class OpenAIRealtimeSession {
   readonly #dependencies: OpenAIRealtimeSessionDependencies;
   readonly #listeners = new Set<SessionListener>();
+  #analyser: AnalyserNode | null = null;
+  #audioContext: AudioContext | null = null;
   #abortController: AbortController | null = null;
   #activeEpoch: number | null = null;
   #connected = false;
@@ -112,6 +118,9 @@ export class OpenAIRealtimeSession {
   #dataChannel: RTCDataChannel | null = null;
   #epoch = 0;
   #mediaStream: MediaStream | null = null;
+  #meterFrame: number | null = null;
+  #meterHasSample = false;
+  #meterSamples: Uint8Array<ArrayBuffer> | null = null;
   #messageListener: ((event: MessageEvent<unknown>) => void) | null = null;
   #microphoneTrack: MediaStreamTrack | null = null;
   #peerConnection: RTCPeerConnection | null = null;
@@ -209,6 +218,7 @@ export class OpenAIRealtimeSession {
       }
       microphoneTrack.enabled = false;
       this.#microphoneTrack = microphoneTrack;
+      this.#initializeMeter(mediaStream);
 
       const peerConnection = this.#dependencies.createPeerConnection();
       this.#peerConnection = peerConnection;
@@ -349,7 +359,32 @@ export class OpenAIRealtimeSession {
 
   public setMicrophoneEnabled(enabled: boolean): void {
     if (this.#microphoneTrack) {
-      this.#microphoneTrack.enabled = enabled && this.#connected;
+      const isEnabled = enabled && this.#connected;
+      this.#microphoneTrack.enabled = isEnabled;
+      if (isEnabled) {
+        this.#startMeter();
+      } else {
+        this.#stopMeter();
+      }
+    }
+  }
+
+  public commitInput(): void {
+    this.setMicrophoneEnabled(false);
+    if (
+      !this.#connected ||
+      !this.#dataChannel ||
+      this.#dataChannel.readyState !== "open"
+    ) {
+      this.#handleConnectionFailure("network", "transcription");
+      return;
+    }
+    try {
+      this.#dataChannel.send(
+        JSON.stringify({ type: "input_audio_buffer.commit" }),
+      );
+    } catch {
+      this.#handleConnectionFailure("network", "transcription");
     }
   }
 
@@ -414,6 +449,59 @@ export class OpenAIRealtimeSession {
       requestId,
       type: "error",
     });
+  }
+
+  #initializeMeter(mediaStream: MediaStream): void {
+    const audioContext = this.#dependencies.createAudioContext();
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 256;
+    audioContext.createMediaStreamSource(mediaStream).connect(analyser);
+    this.#audioContext = audioContext;
+    this.#analyser = analyser;
+    this.#meterSamples = new Uint8Array(analyser.fftSize);
+  }
+
+  #startMeter(): void {
+    if (this.#meterFrame !== null || !this.#analyser || !this.#meterSamples) {
+      return;
+    }
+
+    const sample = () => {
+      if (
+        !this.#microphoneTrack?.enabled ||
+        !this.#analyser ||
+        !this.#meterSamples
+      ) {
+        this.#stopMeter();
+        return;
+      }
+      this.#analyser.getByteTimeDomainData(this.#meterSamples);
+      let squaredTotal = 0;
+      for (const value of this.#meterSamples) {
+        const normalized = (value - 128) / 128;
+        squaredTotal += normalized * normalized;
+      }
+      this.#emit({
+        level: Math.min(1, Math.sqrt(squaredTotal / this.#meterSamples.length)),
+        type: "microphone-level",
+      });
+      this.#meterHasSample = true;
+      this.#meterFrame = this.#dependencies.requestAnimationFrame(sample);
+    };
+
+    this.#meterFrame = this.#dependencies.requestAnimationFrame(sample);
+  }
+
+  #stopMeter(): void {
+    if (this.#meterFrame === null) {
+      return;
+    }
+    this.#dependencies.cancelAnimationFrame(this.#meterFrame);
+    this.#meterFrame = null;
+    if (this.#meterHasSample) {
+      this.#emit({ level: 0, type: "microphone-level" });
+      this.#meterHasSample = false;
+    }
   }
 
   #handleMessage(event: MessageEvent<unknown>, connectionEpoch: number): void {
@@ -545,6 +633,7 @@ export class OpenAIRealtimeSession {
     this.#connectionRequestId = null;
     this.#abortController?.abort();
     this.#abortController = null;
+    this.#stopMeter();
 
     if (this.#dataChannel && this.#messageListener) {
       this.#dataChannel.removeEventListener("message", this.#messageListener);
@@ -577,6 +666,12 @@ export class OpenAIRealtimeSession {
       this.#mediaStream = null;
     }
     this.#microphoneTrack = null;
+    this.#analyser = null;
+    this.#meterSamples = null;
+    if (this.#audioContext) {
+      void this.#audioContext.close();
+      this.#audioContext = null;
+    }
   }
 
   #waitForDataChannelOpen(

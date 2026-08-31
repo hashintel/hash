@@ -10,6 +10,7 @@ export type VoiceTurnPhase =
   | "idle"
   | "connecting"
   | "listening"
+  | "paused"
   | "transcribing"
   | "delivering"
   | "waiting"
@@ -18,17 +19,31 @@ export type VoiceTurnPhase =
   | "recoverable-error";
 
 export interface VoiceTurnSnapshot {
+  readonly currentQuestion: string;
   readonly errorCode: VoiceErrorCode | null;
   readonly errorMessage: string;
   readonly errorRequestId: string;
   readonly lastCommittedText: string;
+  readonly microphoneEnabled: boolean;
+  readonly microphoneLevel: number;
   readonly partialText: string;
   readonly phase: VoiceTurnPhase;
+}
+
+export interface VoiceLatencyEvent {
+  readonly elapsedMs: number;
+  readonly name:
+    | "question-visible"
+    | "question-spoken-started"
+    | "question-spoken"
+    | "answer-ready";
+  readonly questionId: string;
 }
 
 type ChatStatus = "ready" | "submitted" | "streaming" | "error";
 
 interface RealtimeSession {
+  commitInput(): void;
   connect(): Promise<number>;
   disconnect(): Promise<void>;
   setMicrophoneEnabled(enabled: boolean): void;
@@ -51,12 +66,15 @@ interface SpeechPlayback {
 
 interface VoiceTurnControllerDependencies {
   readonly conversationId: string;
+  readonly now?: () => number;
+  readonly onLatencyEvent?: (event: VoiceLatencyEvent) => void;
   readonly playback: SpeechPlayback;
   readonly session: RealtimeSession;
   readonly submitText: (input: SubmitTextInput) => Promise<unknown>;
 }
 
 interface ChatUpdate {
+  readonly canAcceptInterviewAnswer?: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
   readonly status: ChatStatus;
 }
@@ -79,10 +97,13 @@ export const createVoiceMessageId = (
   ].join(":");
 
 const initialSnapshot: VoiceTurnSnapshot = {
+  currentQuestion: "",
   errorCode: null,
   errorMessage: "",
   errorRequestId: "",
   lastCommittedText: "",
+  microphoneEnabled: false,
+  microphoneLevel: 0,
   partialText: "",
   phase: "idle",
 };
@@ -90,31 +111,46 @@ const initialSnapshot: VoiceTurnSnapshot = {
 export class VoiceTurnController {
   readonly #conversationId: string;
   readonly #listeners = new Set<SnapshotListener>();
+  readonly #now: () => number;
+  readonly #onLatencyEvent: ((event: VoiceLatencyEvent) => void) | undefined;
   readonly #playback: SpeechPlayback;
   readonly #session: RealtimeSession;
   readonly #submitText: (input: SubmitTextInput) => Promise<unknown>;
   readonly #completedKeys = new Set<string>();
   readonly #seenSpeechSegmentIds = new Set<string>();
   readonly #speechQueue: CanonicalSpeechSegment[] = [];
+  #answerFinalizedAt: number | null = null;
+  #answerReadyQuestionId: string | null = null;
   #activeEpoch: number | null = null;
   #activeItemId: string | null = null;
   #activeKey: string | null = null;
   #activeSpeechSegmentId: string | null = null;
   #awaitingChatCycle = false;
+  #availableSegments: CanonicalSpeechSegment[] = [];
+  #canAcceptInterviewAnswer = true;
   #chatStatus: ChatStatus = "ready";
+  #currentQuestionId: string | null = null;
   #generation = 0;
   #pendingDelivery: SubmitTextInput | null = null;
+  #paused = false;
+  #questionAnswered = false;
+  #questionPlaybackComplete = false;
+  #redoing = false;
   #sawBusyChatStatus = false;
   #snapshot = initialSnapshot;
   #speechLoopGeneration: number | null = null;
 
   public constructor({
     conversationId,
+    now = () => performance.now(),
+    onLatencyEvent,
     playback,
     session,
     submitText,
   }: VoiceTurnControllerDependencies) {
     this.#conversationId = conversationId;
+    this.#now = now;
+    this.#onLatencyEvent = onLatencyEvent;
     this.#playback = playback;
     this.#session = session;
     this.#submitText = submitText;
@@ -134,10 +170,12 @@ export class VoiceTurnController {
     if (this.#snapshot.phase !== "idle") {
       return;
     }
-    if (!this.#isChatReady()) {
-      this.#session.setMicrophoneEnabled(false);
+    this.#queueAvailableSegments();
+    if (!this.#isChatReady() && !this.#hasPendingQuestion()) {
+      this.#setMicrophoneEnabled(false);
       this.#update({
-        errorMessage: "Wait for Brunch to finish before starting voice input.",
+        errorMessage:
+          "Wait for the current response to finish before starting.",
         phase: "recoverable-error",
       });
       return;
@@ -154,8 +192,12 @@ export class VoiceTurnController {
       this.#activeItemId = null;
       this.#activeKey = null;
       this.#completedKeys.clear();
-      const canListen = this.#isChatReady() && this.#speechQueue.length === 0;
-      this.#session.setMicrophoneEnabled(canListen);
+      this.#paused = false;
+      const canListen =
+        this.#isChatReady() &&
+        this.#speechQueue.length === 0 &&
+        !this.#hasAnswerableQuestion();
+      this.#setMicrophoneEnabled(canListen);
       this.#update({
         partialText: "",
         phase: canListen ? "listening" : "waiting",
@@ -169,7 +211,7 @@ export class VoiceTurnController {
         error instanceof VoiceError
           ? error
           : new VoiceError("connection", "invalid-response", "");
-      this.#session.setMicrophoneEnabled(false);
+      this.#setMicrophoneEnabled(false);
       this.#update({
         errorCode: voiceError.code,
         errorMessage: voiceError.message,
@@ -187,21 +229,40 @@ export class VoiceTurnController {
     this.#activeSpeechSegmentId = null;
     this.#awaitingChatCycle = false;
     this.#pendingDelivery = null;
+    this.#answerFinalizedAt = null;
+    this.#answerReadyQuestionId = null;
+    this.#currentQuestionId = null;
+    this.#paused = false;
+    this.#questionAnswered = false;
+    this.#questionPlaybackComplete = false;
+    this.#redoing = false;
     this.#sawBusyChatStatus = false;
     this.#speechLoopGeneration = null;
     this.#speechQueue.length = 0;
     this.#playback.cancel();
-    this.#session.setMicrophoneEnabled(false);
+    this.#setMicrophoneEnabled(false);
     await this.#session.disconnect();
     this.#update({
       errorMessage: "",
+      currentQuestion: "",
+      microphoneLevel: 0,
       partialText: "",
       phase: "idle",
     });
   }
 
   public async reconnect(): Promise<void> {
+    const pendingQuestionId = this.#currentQuestionId;
     await this.end();
+    if (
+      pendingQuestionId !== null &&
+      this.#availableSegments.some(
+        (segment) =>
+          segment.id === pendingQuestionId && segment.source === "brunch-ask",
+      )
+    ) {
+      this.#seenSpeechSegmentIds.delete(pendingQuestionId);
+    }
     await this.start();
   }
 
@@ -211,12 +272,14 @@ export class VoiceTurnController {
     if (
       !correctedText ||
       !previousText ||
-      this.#snapshot.phase !== "listening"
+      this.#activeEpoch === null ||
+      this.#speechLoopGeneration !== null
     ) {
       return;
     }
 
-    this.#session.setMicrophoneEnabled(false);
+    this.#questionAnswered = true;
+    this.#setMicrophoneEnabled(false);
     this.#update({ errorMessage: "", phase: "delivering" });
     await this.#deliver({
       target: "message",
@@ -224,7 +287,73 @@ export class VoiceTurnController {
     });
   }
 
-  public updateChat({ canonicalSegments, status }: ChatUpdate): void {
+  public interruptAndSpeak(): void {
+    if (
+      this.#activeEpoch === null ||
+      (this.#snapshot.phase !== "playing" &&
+        this.#snapshot.phase !== "synthesizing")
+    ) {
+      return;
+    }
+
+    ++this.#generation;
+    this.#speechLoopGeneration = null;
+    this.#activeSpeechSegmentId = null;
+    this.#speechQueue.length = 0;
+    this.#playback.cancel();
+    this.#questionPlaybackComplete = Boolean(this.#snapshot.currentQuestion);
+    this.#paused = false;
+    this.#settleListeningIfReady();
+  }
+
+  public doneSpeaking(): void {
+    if (this.#activeEpoch === null || this.#snapshot.phase !== "listening") {
+      return;
+    }
+    this.#setMicrophoneEnabled(false);
+    this.#update({ phase: "transcribing" });
+    this.#session.commitInput();
+  }
+
+  public pause(): void {
+    if (this.#activeEpoch === null || this.#snapshot.phase !== "listening") {
+      return;
+    }
+    this.#paused = true;
+    this.#setMicrophoneEnabled(false);
+    this.#update({ phase: "paused" });
+  }
+
+  public resume(): void {
+    if (this.#snapshot.phase !== "paused") {
+      return;
+    }
+    this.#paused = false;
+    this.#settleListeningIfReady();
+  }
+
+  public redoAnswer(): void {
+    if (
+      this.#activeEpoch === null ||
+      !this.#snapshot.lastCommittedText ||
+      this.#speechLoopGeneration !== null ||
+      !this.#canAcceptInterviewAnswer
+    ) {
+      return;
+    }
+    this.#redoing = true;
+    this.#questionAnswered = false;
+    this.#paused = false;
+    this.#settleListeningIfReady();
+  }
+
+  public updateChat({
+    canAcceptInterviewAnswer = true,
+    canonicalSegments,
+    status,
+  }: ChatUpdate): void {
+    this.#availableSegments = canonicalSegments;
+    this.#canAcceptInterviewAnswer = canAcceptInterviewAnswer;
     this.#chatStatus = status;
     const canQueueSpeech =
       status !== "error" &&
@@ -234,9 +363,10 @@ export class VoiceTurnController {
       if (this.#seenSpeechSegmentIds.has(segment.id)) {
         continue;
       }
-      this.#seenSpeechSegmentIds.add(segment.id);
       if (canQueueSpeech) {
-        this.#speechQueue.push(segment);
+        this.#queueSpeechSegment(segment);
+      } else if (segment.source === "assistant-text") {
+        this.#seenSpeechSegmentIds.add(segment.id);
       }
     }
 
@@ -262,8 +392,8 @@ export class VoiceTurnController {
         return;
       }
       const errorMessage = this.#awaitingChatCycle
-        ? "Brunch could not accept the voice turn. Use the composer to retry."
-        : "Brunch could not complete the current turn. Use the composer to retry.";
+        ? "The interview could not accept that answer. Use the composer to retry."
+        : "The interview could not complete that turn. Use the composer to retry.";
       ++this.#generation;
       this.#activeEpoch = null;
       this.#activeItemId = null;
@@ -274,7 +404,7 @@ export class VoiceTurnController {
       this.#activeSpeechSegmentId = null;
       this.#speechLoopGeneration = null;
       this.#playback.cancel();
-      this.#session.setMicrophoneEnabled(false);
+      this.#setMicrophoneEnabled(false);
       void this.#session.disconnect();
       this.#update({ errorMessage, phase: "recoverable-error" });
       return;
@@ -285,7 +415,11 @@ export class VoiceTurnController {
       if (this.#awaitingChatCycle) {
         this.#sawBusyChatStatus = true;
       }
-      this.#session.setMicrophoneEnabled(false);
+      if (this.#hasAnswerableQuestion() && !this.#paused) {
+        this.#settleListeningIfReady();
+        return;
+      }
+      this.#setMicrophoneEnabled(false);
       if (
         this.#speechLoopGeneration === null &&
         (this.#snapshot.phase === "listening" ||
@@ -337,10 +471,10 @@ export class VoiceTurnController {
         return;
       }
       this.#awaitingChatCycle = false;
-      this.#session.setMicrophoneEnabled(false);
+      this.#setMicrophoneEnabled(false);
       this.#update({
         errorMessage:
-          "Brunch could not accept the voice turn. Use the composer to retry.",
+          "The interview could not accept that answer. Use the composer to retry.",
         phase: "recoverable-error",
       });
     }
@@ -355,6 +489,12 @@ export class VoiceTurnController {
   }
 
   #handleSessionEvent(event: OpenAIRealtimeSessionEvent): void {
+    if (event.type === "microphone-level") {
+      if (this.#snapshot.microphoneEnabled) {
+        this.#update({ microphoneLevel: event.level });
+      }
+      return;
+    }
     if (event.type === "error") {
       ++this.#generation;
       this.#activeEpoch = null;
@@ -367,7 +507,7 @@ export class VoiceTurnController {
       this.#speechLoopGeneration = null;
       this.#speechQueue.length = 0;
       this.#playback.cancel();
-      this.#session.setMicrophoneEnabled(false);
+      this.#setMicrophoneEnabled(false);
       this.#update({
         errorCode: event.code,
         errorMessage: event.message,
@@ -390,7 +530,7 @@ export class VoiceTurnController {
         return;
       }
       this.#activeItemId = event.itemId;
-      this.#session.setMicrophoneEnabled(false);
+      this.#setMicrophoneEnabled(false);
       this.#update({ phase: "transcribing" });
       return;
     }
@@ -418,7 +558,7 @@ export class VoiceTurnController {
     this.#activeKey = key;
 
     if (event.type === "partial") {
-      this.#session.setMicrophoneEnabled(false);
+      this.#setMicrophoneEnabled(false);
       this.#update({
         partialText: `${this.#snapshot.partialText}${event.text}`,
         phase: "transcribing",
@@ -439,11 +579,21 @@ export class VoiceTurnController {
       return;
     }
 
-    this.#session.setMicrophoneEnabled(false);
-    const input = {
-      id: createVoiceMessageId(this.#conversationId, event.key),
-      text: finalText,
-    };
+    this.#setMicrophoneEnabled(false);
+    const previousText = this.#snapshot.lastCommittedText;
+    const redoing = this.#redoing;
+    this.#redoing = false;
+    this.#questionAnswered = true;
+    this.#answerFinalizedAt = this.#now();
+    const input = redoing
+      ? {
+          target: "message" as const,
+          text: `Correction to my previous voice answer "${previousText}": ${finalText}`,
+        }
+      : {
+          id: createVoiceMessageId(this.#conversationId, event.key),
+          text: finalText,
+        };
     const canDeliver = this.#isChatReady();
     this.#update({
       errorMessage: "",
@@ -470,7 +620,7 @@ export class VoiceTurnController {
 
     const generation = this.#generation;
     this.#speechLoopGeneration = generation;
-    this.#session.setMicrophoneEnabled(false);
+    this.#setMicrophoneEnabled(false);
     this.#update({ errorMessage: "", phase: "synthesizing" });
     void this.#drainSpeechQueue(generation);
   }
@@ -487,7 +637,7 @@ export class VoiceTurnController {
       }
 
       this.#activeSpeechSegmentId = segment.id;
-      this.#session.setMicrophoneEnabled(false);
+      this.#setMicrophoneEnabled(false);
       this.#update({ errorMessage: "", phase: "synthesizing" });
       try {
         await this.#playback.play(segment, {
@@ -498,6 +648,9 @@ export class VoiceTurnController {
               this.#activeSpeechSegmentId === segment.id
             ) {
               this.#update({ phase: "playing" });
+              if (segment.source === "brunch-ask") {
+                this.#recordLatency("question-spoken-started", segment.id);
+              }
             }
           },
         });
@@ -515,7 +668,7 @@ export class VoiceTurnController {
         this.#activeSpeechSegmentId = null;
         this.#speechLoopGeneration = null;
         this.#speechQueue.length = 0;
-        this.#session.setMicrophoneEnabled(false);
+        this.#setMicrophoneEnabled(false);
         this.#update({
           errorCode: voiceError.code,
           errorMessage: voiceError.message,
@@ -532,6 +685,10 @@ export class VoiceTurnController {
         return;
       }
       this.#activeSpeechSegmentId = null;
+      if (segment.source === "brunch-ask") {
+        this.#questionPlaybackComplete = true;
+        this.#recordLatency("question-spoken", segment.id);
+      }
     }
 
     if (
@@ -549,8 +706,24 @@ export class VoiceTurnController {
     if (
       this.#activeEpoch === null ||
       this.#snapshot.phase === "recoverable-error" ||
+      this.#paused ||
       this.#speechLoopGeneration !== null
     ) {
+      if (this.#paused) {
+        this.#setMicrophoneEnabled(false);
+      }
+      return;
+    }
+
+    if (this.#hasAnswerableQuestion()) {
+      this.#awaitingChatCycle = false;
+      this.#sawBusyChatStatus = false;
+      this.#setMicrophoneEnabled(true);
+      this.#update({ errorMessage: "", phase: "listening" });
+      if (this.#answerReadyQuestionId !== this.#activeQuestionId()) {
+        this.#answerReadyQuestionId = this.#activeQuestionId();
+        this.#recordLatency("answer-ready", this.#activeQuestionId());
+      }
       return;
     }
 
@@ -566,7 +739,7 @@ export class VoiceTurnController {
 
     if (this.#awaitingChatCycle) {
       if (!this.#sawBusyChatStatus || this.#chatStatus !== "ready") {
-        this.#session.setMicrophoneEnabled(false);
+        this.#setMicrophoneEnabled(false);
         if (this.#snapshot.phase !== "waiting") {
           this.#update({ phase: "waiting" });
         }
@@ -577,15 +750,84 @@ export class VoiceTurnController {
     }
 
     if (!this.#isChatReady()) {
-      this.#session.setMicrophoneEnabled(false);
+      this.#setMicrophoneEnabled(false);
       if (this.#snapshot.phase !== "delivering") {
         this.#update({ phase: "waiting" });
       }
       return;
     }
 
-    this.#session.setMicrophoneEnabled(true);
+    this.#setMicrophoneEnabled(true);
     this.#update({ errorMessage: "", phase: "listening" });
+  }
+
+  #activeQuestionId(): string {
+    return this.#currentQuestionId ?? this.#snapshot.currentQuestion;
+  }
+
+  #hasPendingQuestion(): boolean {
+    return (
+      Boolean(this.#snapshot.currentQuestion) && this.#canAcceptInterviewAnswer
+    );
+  }
+
+  #hasAnswerableQuestion(): boolean {
+    return (
+      Boolean(this.#snapshot.currentQuestion) &&
+      this.#questionPlaybackComplete &&
+      !this.#questionAnswered &&
+      this.#canAcceptInterviewAnswer
+    );
+  }
+
+  #queueAvailableSegments(): void {
+    for (const segment of this.#availableSegments) {
+      if (!this.#seenSpeechSegmentIds.has(segment.id)) {
+        this.#queueSpeechSegment(segment);
+      }
+    }
+  }
+
+  #queueSpeechSegment(segment: CanonicalSpeechSegment): void {
+    this.#seenSpeechSegmentIds.add(segment.id);
+    this.#speechQueue.push(segment);
+    if (segment.source === "brunch-ask") {
+      this.#currentQuestionId = segment.id;
+      this.#questionPlaybackComplete = false;
+      this.#questionAnswered = false;
+      this.#answerReadyQuestionId = null;
+      this.#awaitingChatCycle = false;
+      this.#sawBusyChatStatus = false;
+      this.#update({
+        currentQuestion: segment.text,
+        lastCommittedText: "",
+      });
+      this.#recordLatency("question-visible", segment.id);
+    }
+  }
+
+  #recordLatency(name: VoiceLatencyEvent["name"], questionId: string): void {
+    if (this.#answerFinalizedAt === null) {
+      return;
+    }
+    this.#onLatencyEvent?.({
+      elapsedMs: Math.max(0, this.#now() - this.#answerFinalizedAt),
+      name,
+      questionId,
+    });
+  }
+
+  #setMicrophoneEnabled(enabled: boolean): void {
+    this.#session.setMicrophoneEnabled(enabled);
+    if (
+      this.#snapshot.microphoneEnabled !== enabled ||
+      (!enabled && this.#snapshot.microphoneLevel !== 0)
+    ) {
+      this.#update({
+        microphoneEnabled: enabled,
+        ...(enabled ? {} : { microphoneLevel: 0 }),
+      });
+    }
   }
 
   #update(update: Partial<VoiceTurnSnapshot>): void {
