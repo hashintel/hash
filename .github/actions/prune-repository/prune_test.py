@@ -8,7 +8,6 @@ import unittest
 from prune import (
     expand_scopes,
     extra_paths_for_requested,
-    extras_for_requested,
     fixpoint_expand,
 )
 
@@ -21,13 +20,12 @@ WEBSITE = "@apps/petrinaut-website"
 
 
 class BrunchRequestedExtras(unittest.TestCase):
-    def test_core_job_adds_the_app_plugins_and_context_paths(self) -> None:
+    def test_core_task_graph_adds_the_app_plugins_and_context_paths(self) -> None:
         expected_workspaces = frozenset({APP, PLUGIN_GHERKIN, PLUGIN_SDCPN})
-        self.assertEqual(extras_for_requested({CORE}), expected_workspaces)
         expanded = fixpoint_expand(
-            {CORE} | extras_for_requested({CORE}),
+            {CORE},
             {
-                CORE: frozenset(),
+                CORE: expected_workspaces,
                 APP: frozenset({CORE}),
                 PLUGIN_GHERKIN: frozenset({CORE}),
                 PLUGIN_SDCPN: frozenset({CORE}),
@@ -52,22 +50,9 @@ class BrunchRequestedExtras(unittest.TestCase):
             ["libs/@hashintel/brunch-agent/evaluations"],
         )
 
-    def test_sibling_or_website_job_does_not_add_brunch_extras(self) -> None:
-        self.assertEqual(extras_for_requested({TRANSPORT}), frozenset())
-        self.assertEqual(extras_for_requested({WEBSITE}), frozenset())
+    def test_sibling_or_website_job_does_not_add_context_paths(self) -> None:
         self.assertEqual(extra_paths_for_requested({TRANSPORT}), [])
         self.assertEqual(extra_paths_for_requested({WEBSITE}), [])
-
-    def test_core_in_the_dependency_closure_does_not_add_the_app(self) -> None:
-        dependencies = {
-            WEBSITE: frozenset({CORE, TRANSPORT}),
-            TRANSPORT: frozenset(),
-            CORE: frozenset(),
-        }
-        expanded = fixpoint_expand({WEBSITE}, dependencies)
-        self.assertNotIn(APP, expanded)
-        self.assertEqual(extras_for_requested({WEBSITE}), frozenset())
-
 
 class DarwinPrefix(unittest.TestCase):
     def test_child_crate_still_triggers_the_prefix_family(self) -> None:

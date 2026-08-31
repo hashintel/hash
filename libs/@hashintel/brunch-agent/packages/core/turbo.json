@@ -9,6 +9,13 @@
       "cache": false
     },
     "test:unit": {
+      "dependsOn": [
+        "codegen",
+        "^build",
+        "@apps/brunch-agent#build",
+        "@hashintel/brunch-agent-plugin-gherkin#build",
+        "@hashintel/brunch-agent-plugin-sdcpn#build"
+      ],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/apps/brunch-agent/**",
