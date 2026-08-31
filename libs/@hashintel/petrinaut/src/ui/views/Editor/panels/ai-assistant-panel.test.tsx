@@ -49,6 +49,21 @@ const emptySDCPN: SDCPN = {
   componentInstances: [],
 };
 
+const nonEmptySDCPN: SDCPN = {
+  ...emptySDCPN,
+  places: [
+    {
+      id: "place-1",
+      name: "PlaceOne",
+      colorId: null,
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    },
+  ],
+};
+
 const editorContextValue: EditorContextValue = {
   ...initialEditorState,
   isAiAssistantOpen: true,
@@ -135,13 +150,15 @@ const testInstances: ReturnType<typeof createPetrinaut>[] = [];
 const renderTestPanel = ({
   aiAssistant,
   initialMessage,
+  petriNetDefinition = emptySDCPN,
 }: {
   aiAssistant: PetrinautAiAssistant;
   initialMessage?: string;
+  petriNetDefinition?: SDCPN;
 }) => {
   const handle = createJsonDocHandle({
     id: "ai-assistant-panel-test",
-    initial: emptySDCPN,
+    initial: petriNetDefinition,
   });
   const instance = createPetrinaut({ document: handle });
   testInstances.push(instance);
@@ -150,7 +167,7 @@ const renderTestPanel = ({
     existingNets: [],
     loadPetriNet: () => {},
     petriNetId: "ai-assistant-panel-test",
-    petriNetDefinition: emptySDCPN,
+    petriNetDefinition,
     readonly: false,
     extensions: DEFAULT_PETRINAUT_EXTENSIONS,
     setTitle: () => {},
@@ -503,6 +520,75 @@ describe("AiAssistantPanel composer submissions", () => {
       { kind: "interactive-tool", toolCallId: "question-1" },
       { kind: "message", messageId: "voice-answer-1" },
     ]);
+  });
+
+  test("sends review chips as messages while an interactive tool is pending", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(
+            requestMessages.length === 1
+              ? [
+                  { type: "start-step" },
+                  {
+                    type: "tool-input-available",
+                    dynamic: true,
+                    toolCallId: "question-1",
+                    toolName: "answerQuestion",
+                    input: { question: "Which environment?" },
+                  },
+                ]
+              : textChunks("review-response", "Review prompt accepted"),
+          ),
+        );
+      }),
+    };
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      fromComposerText: ({ text }) => ({ answer: text }),
+      component: ({ input }) => <span>{input.question}</span>,
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        transport,
+      },
+      initialMessage: "Start questions",
+      petriNetDefinition: nonEmptySDCPN,
+    });
+    await screen.findByText("Which environment?");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Suggest improvements/ }),
+    );
+    await screen.findByText("Review prompt accepted");
+
+    const reviewMessage = requestMessages[1]?.at(-1);
+    const reviewTextPart = reviewMessage?.parts.find(
+      (part) => part.type === "text",
+    );
+    expect(reviewMessage?.role).toBe("user");
+    expect(reviewTextPart?.text).toContain("suggest a few improvements");
+    expect(
+      requestMessages[1]?.some((message) =>
+        message.parts.some(
+          (part) =>
+            part.type === "dynamic-tool" &&
+            part.toolCallId === "question-1" &&
+            part.state === "input-available",
+        ),
+      ),
+    ).toBe(true);
   });
 
   test("can force a separate message while an interactive tool is pending", async () => {

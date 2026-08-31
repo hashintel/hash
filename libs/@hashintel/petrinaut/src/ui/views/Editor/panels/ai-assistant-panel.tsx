@@ -896,7 +896,7 @@ export const AiAssistantPanel = ({
         })
       }
       onSendPrompt={(prompt) => {
-        void submitText({ text: prompt }).catch(() => {});
+        void submitText({ target: "message", text: prompt }).catch(() => {});
       }}
       onStop={() => {
         // Flag the deliberate stop, then abort. The actual settling of the
