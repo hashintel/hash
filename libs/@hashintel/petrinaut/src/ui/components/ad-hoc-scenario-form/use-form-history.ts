@@ -100,9 +100,19 @@ export function useAdHocFormHistory(
   // The invariant is `entries[cursor].state === state`; every dispatch,
   // undo, and redo maintains it. A mismatch means the parent changed the
   // state externally — record that as a fresh step (render-adjusted state,
-  // no effect involved).
-  if (model.entries[model.cursor]!.state !== state) {
-    setModel(appendEntry(model, state));
+  // no effect involved). Same-content rematerializations are adopted
+  // silently instead: run-mode hosts compose their state per render, and
+  // recording each of those as an edit would fill the history with steps
+  // that undo nothing.
+  const cursorEntry = model.entries[model.cursor]!;
+  if (cursorEntry.state !== state) {
+    if (JSON.stringify(cursorEntry.state) === JSON.stringify(state)) {
+      const entries = [...model.entries];
+      entries[model.cursor] = { state, timestamp: cursorEntry.timestamp };
+      setModel({ ...model, entries });
+    } else {
+      setModel(appendEntry(model, state));
+    }
   }
 
   const stateRef = useLatest(state);
