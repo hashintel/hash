@@ -444,7 +444,18 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
     const namedScenarioToCompile = tweakedScenarioRef.current;
     // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
-    const adHocScenarioToCompile = adHocRunScenarioRef.current;
+    const adHocRunState = adHocRunScenarioRef.current;
+    if (namedScenarioToCompile === null && adHocRunState?.ok === false) {
+      const refusal = new Error(
+        `The inline scenario definition has errors:\n${adHocRunState.messages.join("\n")}`,
+      );
+      setError(refusal.message);
+      setErrorItemId(null);
+      throw refusal;
+    }
+    const adHocScenarioToCompile = adHocRunState?.ok
+      ? adHocRunState.scenario
+      : null;
     const scenarioToCompile = namedScenarioToCompile ?? adHocScenarioToCompile;
     const adHocRun =
       namedScenarioToCompile === null && adHocScenarioToCompile !== null;
@@ -800,9 +811,21 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
   const tweakedScenarioRef = useLatest(tweakedScenario);
   // The quick-sim ad-hoc definition, synthesized to an ordinary scenario:
   // Play compiles it exactly like a selected scenario, so the run starts
-  // from the defined tokens rather than the manual marking.
+  // from the defined tokens rather than the manual marking. A failed
+  // synthesis is carried too — a run must refuse a broken definition, the
+  // way a broken named scenario refuses, never silently fall back to the
+  // manual marking behind the error banner.
   const adHocRunScenarioRef = useLatest(
-    adHocSynthesized?.ok ? adHocSynthesized.scenario : null,
+    adHocSynthesized
+      ? adHocSynthesized.ok
+        ? { ok: true as const, scenario: adHocSynthesized.scenario }
+        : {
+            ok: false as const,
+            messages: adHocSynthesized.errors.map(
+              (synthesisError) => synthesisError.message,
+            ),
+          }
+      : null,
   );
 
   const contextValue: SimulationContextValue = {
