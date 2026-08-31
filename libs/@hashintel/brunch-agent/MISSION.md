@@ -2,7 +2,7 @@
 
 ## Status
 
-Live. This file is execution authority for [FE-1563](https://linear.app/hash/issue/FE-1563/redesign-the-elicitation-runbook-and-workpiece-against-the-frozen). Mission 3's frozen prospective campaign runs independently in its own worktree and remains the control; this branch must not alter that instrument or claim comparison results before its adjudication is available.
+Live. This file is execution authority for [FE-1563](https://linear.app/hash/issue/FE-1563/redesign-the-elicitation-runbook-and-workpiece-against-the-frozen). Mission 3's frozen prospective campaign is the immutable control: one invalid runtime member, two valid independently graded workpieces, and an adjudicated range recorded in [`docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md`](docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md). This branch must not alter that instrument or its observed artifacts.
 
 Later projection, provenance, bounded revision, observer, host-continuity, and optimisation concerns remain in [`MISSION.next.md`](MISSION.next.md). They are not implementation authority here.
 
@@ -33,7 +33,7 @@ research synthesis + historical workpieces + current authored resources
 
 The likely edit surface is the existing SDCPN-modelling skill: `SKILL.md`, `elicitation.md`, `ir-template.md`, and only the construction/check material whose phase ownership is directly implicated. Amend the structural-typing specification only when an accepted redesign decision contradicts it. Keep changes reviewable in small semantic steps rather than replacing the package wholesale.
 
-The baseline campaign may complete while early design decisions proceed. Baseline results join before the candidate instrument is frozen or any improvement claim is made. Candidate runs use a new versioned protocol/output location and preserve their own instrument manifest; they never write into or modify the baseline campaign.
+The baseline is available as a comparison input, not a design prescription. Its observed range and dispositions must be considered before the candidate instrument is frozen or any improvement claim is made. Candidate runs use a new versioned protocol/output location and preserve their own instrument manifest; they never write into or modify the baseline campaign.
 
 ## Proof
 
