@@ -1,25 +1,20 @@
 # Brunch agent
 
-Brunch is a stateful elicitation harness and package family inside the HASH monorepo.
+Brunch is the stateful elicitation harness and package family at `libs/@hashintel/brunch-agent`.
 
-This directory is its context and agent-session root, not a package workspace:
-
+- [`AGENTS.md`](./AGENTS.md) is the agent charter.
+- [`MISSION.md`](./MISSION.md) is the current objective and stop conditions.
 - [`CONTEXT.md`](./CONTEXT.md) defines the domain language.
-- [`docs/adr/`](./docs/adr/) records governing decisions.
-- [`docs/specs/elicitation-kernel.md`](docs/specs/elicitation-kernel.md) defines the harness contract.
-- [`docs/INDEX.md`](./docs/INDEX.md) indexes Brunch documentation.
-- [`docs/control/STEERING.md`](./docs/control/STEERING.md) holds current strategic truth;
-  [`STRATEGY-LOG.md`](./docs/control/STRATEGY-LOG.md) records material strategic decisions.
+- [`docs/specs/`](./docs/specs/) and [`docs/adr/`](./docs/adr/) record the harness contract and
+  prior design decisions (see [`docs/adr/README.md`](./docs/adr/README.md)).
+- [`docs/evidence/`](./docs/evidence/) holds observed results and proofs.
 - [`packages/core/`](./packages/core/) is `@hashintel/brunch-agent`; its guarded `./prompts`
-  subpath ships the harness repertoire rendered by bindings and never imported by plugins.
+  subpath ships the harness repertoire, rendered by bindings and never imported by plugins.
 - [`packages/binding-flue/`](./packages/binding-flue/) is the Flue binding.
 - [`packages/transport-aisdk/`](./packages/transport-aisdk/) is the AI SDK transport.
-- [`packages/plugin-gherkin/`](./packages/plugin-gherkin/) is the Gherkin target plugin: a
-  feature-anchored `plugin.yaml` and the verbatim-floor proposal type.
-- [`packages/plugin-sdcpn/`](./packages/plugin-sdcpn/) is the SDCPN target plugin: an
-  objective-anchored `plugin.yaml` and its slot-assertion proposal type.
-- [`../../../apps/brunch-agent/`](../../../apps/brunch-agent/) is the remote server and diagnostic
-  application.
+- [`packages/plugin-gherkin/`](./packages/plugin-gherkin/) and
+  [`packages/plugin-sdcpn/`](./packages/plugin-sdcpn/) are the target plugins.
+- [`../../../apps/brunch-agent/`](../../../apps/brunch-agent/) is the server and diagnostics app.
 
 HASH's repository root owns package discovery, dependency policy, the lockfile, and the Turbo task
 graph.

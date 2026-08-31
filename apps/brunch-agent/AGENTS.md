@@ -1,9 +1,11 @@
 # Brunch agent application
 
 This application belongs to the Brunch context rooted at
-`../../libs/@hashintel/brunch-agent/`. Read that context's `AGENTS.md`, `CONTEXT.md`, and relevant
-ADRs before changing this application. HASH root guidance takes precedence.
+`../../libs/@hashintel/brunch-agent/`. Read that context's `AGENTS.md` and current `MISSION.md`
+before changing this application. Consult `CONTEXT.md` or historical design documents only when a
+concrete question requires them; ADRs and specs are hypotheses, not implementation obligations.
+HASH root guidance takes precedence.
 
-The application composes the Brunch packages, Flue runtime, HTTP routes, and local diagnostics. It
-must remain independent of Petrinaut implementation packages; `apps/petrinaut-website` meets it
-through the AI SDK/HTTP transport.
+The application composes the Flue runtime, HTTP routes, and the Brunch packages required by the
+current mission. It must remain independent of Petrinaut implementation packages;
+`apps/petrinaut-website` meets it through the AI SDK/HTTP transport.
