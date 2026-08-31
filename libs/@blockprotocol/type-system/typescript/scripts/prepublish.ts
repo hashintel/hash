@@ -40,7 +40,7 @@ const inlineUtilityTypes = () => {
       fs
         .readFileSync(filePath, "utf8")
         .replace(
-          'import type { Real } from "@rust/hash-codec/types";',
+          'import type { Real } from "@local/hash-codec/types";',
           "type Real = number;",
         ),
       "utf8",

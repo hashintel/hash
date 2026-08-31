@@ -6,7 +6,7 @@ mod wasm {
 
     #[wasm_bindgen(typescript_custom_section)]
     const TS_APPEND_CONTENT: &'static str = r#"
-import type { Real } from "@rust/hash-codec/types";
+import type { Real } from "@local/hash-codec/types";
 import type {
     ActorEntityUuid,
     ActorGroupEntityUuid,
