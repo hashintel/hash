@@ -118,6 +118,14 @@ class TestMargin:
         # The `|| turbo` arm is +inf, so the && is bounded by 9 - 1.
         assert margin == 8.0
 
+    def test_strict_boundary_is_violated(self) -> None:
+        # `min_load < max_load` at equality is false, so the margin must go
+        # negative there rather than reporting a satisfied-looking zero.
+        ordering = constraint("ordering")
+        boundary = ordering.margin(scenario={"min_load": 5, "max_load": 5})
+        assert boundary < 0
+        assert not ordering(scenario={"min_load": 5, "max_load": 5})
+
     def test_sign_agrees_with_the_boolean(self) -> None:
         for name in ("ordering", "ternary", "strictEquality"):
             case = constraint(name)
@@ -125,10 +133,53 @@ class TestMargin:
                 {"min_load": 2, "max_load": 8, "turbo": True},
                 {"min_load": 8, "max_load": 2, "turbo": False},
                 {"min_load": 1, "max_load": 6, "turbo": False},
+                {"min_load": 4, "max_load": 4, "turbo": False},
             ):
                 satisfied = case(scenario=scenario)
                 margin = case.margin(scenario=scenario)
                 assert (margin >= 0) == satisfied, (name, scenario)
+
+
+class TestStringNodes:
+    @staticmethod
+    def _node(kind: str, **fields: object) -> dict[str, object]:
+        return {"kind": kind, "id": 0, "span": {"start": 0, "length": 1}, **fields}
+
+    def _constraint(self, body: dict[str, object]) -> Constraint:
+        return Constraint(
+            {
+                "id": "strings",
+                "code": "<inline>",
+                "hir": {
+                    "hirVersion": 1,
+                    "surface": "scenario-expression",
+                    "params": [],
+                    "body": body,
+                },
+            }
+        )
+
+    def test_string_methods_evaluate(self) -> None:
+        lit = lambda value: self._node("stringLit", value=value)
+        for fn, target, argument, expected in (
+            ("startsWith", "pump-3", "pump", True),
+            ("endsWith", "pump-3", "-3", True),
+            ("includes", "pump-3", "mp", True),
+            ("includes", "pump-3", "xyz", False),
+        ):
+            case = self._constraint(
+                self._node("stringCall", fn=fn, target=lit(target), argument=lit(argument))
+            )
+            assert case(scenario={}) is expected, (fn, target, argument)
+
+    def test_string_length(self) -> None:
+        body = self._node(
+            "binary",
+            op=">",
+            left=self._node("length", target=self._node("stringLit", value="abc")),
+            right=self._node("numberLit", value=2, raw="2"),
+        )
+        assert self._constraint(body)(scenario={}) is True
 
 
 class TestRejections:
