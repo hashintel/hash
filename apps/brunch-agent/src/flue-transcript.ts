@@ -100,7 +100,7 @@ const resolveToolOutput = (
 ): unknown => {
   const clientOutput = clientOutputs.get(part.toolCallId);
   if (part.state === "output-available" && isAwaitingClient(part.output)) {
-    return clientOutput ?? part.output;
+    return clientOutput;
   }
   if (part.state === "output-available") {
     return part.output;

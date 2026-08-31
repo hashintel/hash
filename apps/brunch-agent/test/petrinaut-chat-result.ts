@@ -17,9 +17,14 @@ export interface PetrinautChatResult {
   > | null;
   readonly clientToolOutputsOnInitial: readonly UIMessageChunk[];
   readonly initialFinish: UIMessageChunk | undefined;
+  readonly pendingHistoryClientToolState: string | undefined;
   readonly resumedStatus: number;
   readonly resumedText: string;
   readonly resumedFinish: UIMessageChunk | undefined;
+  readonly retriedStatus: number;
+  readonly retriedResumeStatus: number;
+  readonly historyUserEntryCount: number;
+  readonly historyClientToolResultCount: number;
   readonly historyGetStatus: number;
   readonly historyUserText: string;
   readonly foreignHistoryMessages: number;

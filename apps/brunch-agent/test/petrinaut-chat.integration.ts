@@ -20,6 +20,7 @@ import {
   STUB_SKILL_NAME,
 } from "../src/agents/chat-agent.ts";
 import { applyCaptureSweep } from "../src/capture-sweep.ts";
+import { CLIENT_TOOL_RESULT_SIGNAL } from "../src/client-tool.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
@@ -153,6 +154,12 @@ try {
           "The guide says the assistant can read its own documentation pages.",
         ),
       ]),
+      fauxAssistantMessage([
+        fauxText("A duplicate client-tool result ran another turn."),
+      ]),
+      fauxAssistantMessage([
+        fauxText("A duplicate delivery ran another turn."),
+      ]),
     ]);
 
     const fixturePath = fileURLToPath(
@@ -216,6 +223,46 @@ try {
           chunk.toolName === READ_PETRINAUT_DOC_TOOL_NAME,
       ) ?? null;
 
+    const pendingHistoryResponse = await app.fetch(
+      new Request(
+        `http://brunch.test/api/chat?id=${encodeURIComponent(conversationId)}`,
+        {
+          method: "GET",
+          headers: { "x-brunch-principal": principalKey },
+        },
+      ),
+    );
+    const pendingHistoryBody = (await pendingHistoryResponse.json()) as {
+      messages?: {
+        parts?: { toolCallId?: string; state?: string }[];
+      }[];
+    };
+    const pendingHistoryClientToolState = pendingHistoryBody.messages
+      ?.flatMap((message) => message.parts ?? [])
+      .find((part) => part.toolCallId === clientToolCall?.toolCallId)?.state;
+
+    const resumeBody = {
+      id: conversationId,
+      trigger: "submit-message",
+      messageId: startChunk?.messageId,
+      messages: [
+        userMessage,
+        {
+          id: startChunk?.messageId,
+          role: "assistant",
+          parts: [
+            {
+              type: `tool-${READ_PETRINAUT_DOC_TOOL_NAME}`,
+              toolCallId: clientToolCall?.toolCallId,
+              state: "output-available",
+              input: { doc: "ai-assistant" },
+              output:
+                "# AI Assistant\nThe assistant can read its own documentation pages.",
+            },
+          ],
+        },
+      ],
+    };
     const resumeResponse = await app.fetch(
       new Request("http://brunch.test/api/chat", {
         method: "POST",
@@ -224,37 +271,45 @@ try {
           "x-brunch-principal": principalKey,
           "x-request-id": "request-mission-1-resume",
         },
-        body: JSON.stringify({
-          id: conversationId,
-          trigger: "submit-message",
-          messageId: startChunk?.messageId,
-          messages: [
-            userMessage,
-            {
-              id: startChunk?.messageId,
-              role: "assistant",
-              parts: [
-                {
-                  type: `tool-${READ_PETRINAUT_DOC_TOOL_NAME}`,
-                  toolCallId: clientToolCall?.toolCallId,
-                  state: "output-available",
-                  input: { doc: "ai-assistant" },
-                  output:
-                    "# AI Assistant\nThe assistant can read its own documentation pages.",
-                },
-              ],
-            },
-          ],
-        }),
+        body: JSON.stringify(resumeBody),
       }),
     );
     const resumedChunks = chunksFrom(await resumeResponse.text());
+    const retriedResumeResponse = await app.fetch(
+      new Request("http://brunch.test/api/chat", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-brunch-principal": principalKey,
+          "x-request-id": "request-mission-1-resume-retry",
+        },
+        body: JSON.stringify(resumeBody),
+      }),
+    );
+    await retriedResumeResponse.text();
+    const retriedResponse = await app.fetch(
+      new Request("http://brunch.test/api/chat", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-brunch-principal": principalKey,
+          "x-request-id": "request-mission-1-retry",
+        },
+        body: JSON.stringify(initialBody),
+      }),
+    );
+    await retriedResponse.text();
     const snapshot = await historyClient.history();
     const userEntryIds = snapshot.messages
       .filter(
         (message) => message.role === "user" && message.purpose === "user",
       )
       .map((message) => message.id);
+    const clientToolResultCount = snapshot.messages.filter(
+      (message) =>
+        message.purpose === "dispatch" &&
+        message.signal?.tagName === CLIENT_TOOL_RESULT_SIGNAL,
+    ).length;
     const firstSweep = await applyCaptureSweep(identity, userEntryIds);
     const secondSweep = await applyCaptureSweep(identity, userEntryIds);
     const interviewerToolNames = [
@@ -347,12 +402,17 @@ try {
           chunk.toolCallId === clientToolCall?.toolCallId,
       ),
       initialFinish: initialChunks.at(-1),
+      pendingHistoryClientToolState,
       resumedStatus: resumeResponse.status,
       resumedText: resumedChunks
         .filter((chunk) => chunk.type === "text-delta")
         .map((chunk) => chunk.delta)
         .join(""),
       resumedFinish: resumedChunks.at(-1),
+      retriedStatus: retriedResponse.status,
+      retriedResumeStatus: retriedResumeResponse.status,
+      historyUserEntryCount: userEntryIds.length,
+      historyClientToolResultCount: clientToolResultCount,
       historyGetStatus: historyGet.status,
       historyUserText: userTextFromHistory(historyBody.messages ?? []),
       foreignHistoryMessages: foreignBody.messages?.length ?? -1,

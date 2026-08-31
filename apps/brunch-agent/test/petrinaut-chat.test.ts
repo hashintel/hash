@@ -72,6 +72,7 @@ test("the committed /api/chat door streams a plain Flue agent through server and
       type: "finish",
       finishReason: "tool-calls",
     });
+    expect(result.pendingHistoryClientToolState).toBe("input-available");
 
     expect(result.resumedStatus).toBe(200);
     expect(result.resumedText).toContain(
@@ -81,6 +82,10 @@ test("the committed /api/chat door streams a plain Flue agent through server and
       type: "finish",
       finishReason: "stop",
     });
+    expect(result.retriedStatus).toBe(200);
+    expect(result.retriedResumeStatus).toBe(200);
+    expect(result.historyUserEntryCount).toBe(1);
+    expect(result.historyClientToolResultCount).toBe(1);
 
     expect(result.historyGetStatus).toBe(200);
     expect(result.historyUserText).toContain(
@@ -138,10 +143,20 @@ test("the committed /api/chat door streams a plain Flue agent through server and
         requestId: "request-mission-1-resume",
         terminal: "completed",
       },
+      {
+        type: "request-finish",
+        requestId: "request-mission-1-resume-retry",
+        terminal: "completed",
+      },
+      {
+        type: "request-finish",
+        requestId: "request-mission-1-retry",
+        terminal: "completed",
+      },
     ]);
     expect(
       inspectionLines.filter((event) => event.type === "history-read"),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
 
     const resumed = await runNodeScript(
       join(testDirectory, "petrinaut-chat.integration.ts"),

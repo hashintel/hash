@@ -67,7 +67,7 @@ const runUserTurn = (
 ): Promise<void> =>
   streamTurn(
     flueConversationIdFrom(input),
-    { message: input.userMessage.text },
+    { message: input.userMessage.text, idempotencyKey: input.idempotencyKey },
     write,
   );
 
@@ -89,6 +89,7 @@ const runClientToolResume = (
             .join(","),
         },
       },
+      idempotencyKey: input.idempotencyKey,
     },
     write,
   );
