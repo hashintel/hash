@@ -2,7 +2,7 @@
   "name": "@hashintel/brunch-agent-plugin-sdcpn",
   "version": "0.0.0-private",
   "private": true,
-  "description": "The SDCPN target formalism: the process-model plugin file and its slot-assertion proposal type.",
+  "description": "The SDCPN target formalism: the process-model plugin definition and its slot-assertion proposal type.",
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {

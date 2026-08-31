@@ -41,10 +41,15 @@ EXTRA_DEPENDENCIES: dict[str, list[str]] = {
 }
 
 # Extras that must not fire on a transitive or prefix match. Brunch core's
-# architecture tests need the app and context root, but a job whose requested
-# scope is only a sibling or a consumer of core must not pull that fixture.
+# architecture and contract tests inspect the app and shipped plugins, but a job
+# whose requested scope is only a sibling or a consumer of core must not pull
+# those fixtures.
 REQUESTED_DEPENDENCIES: dict[str, list[str]] = {
-    "@hashintel/brunch-agent": ["@apps/brunch-agent"],
+    "@hashintel/brunch-agent": [
+        "@apps/brunch-agent",
+        "@hashintel/brunch-agent-plugin-gherkin",
+        "@hashintel/brunch-agent-plugin-sdcpn",
+    ],
 }
 
 # Non-workspace paths required by packages in the *requested* scope.
@@ -61,6 +66,9 @@ REQUESTED_PATHS: dict[str, list[str]] = {
         "libs/@hashintel/brunch-agent/evaluations",
         "libs/@hashintel/brunch-agent/scripts",
     ],
+    # The app's condition-5 test executes the evaluation runner as a child
+    # process; the context root is not a workspace and must be copied explicitly.
+    "@apps/brunch-agent": ["libs/@hashintel/brunch-agent/evaluations"],
 }
 
 TURBO_QUERY = """

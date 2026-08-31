@@ -95,7 +95,12 @@ describe("the emitted server bundle", () => {
     // default-adapter fallback, so both match even when the mount or db.ts
     // never reach the bundle. (Bare `/agents/` is no better — a bundler
     // region comment for `src/agents/` carries it.)
-    expect(bundle).toContain("route(`/agents/"); // app.ts's mount call
+    expect(bundle).toContain(
+      "app.route(chatAgentMount, createAgentRouter(ChatAgent));",
+    );
+    expect(bundle).toContain(
+      `chatAgentMount = \`/agents/\${CHAT_AGENT_ROUTE}\``,
+    );
     expect(bundle).toContain("BRUNCH_DEV_DB_PATH"); // db.ts's env override
     expect(bundle).toContain(".data-wipe-me"); // db.ts's default store path
   });

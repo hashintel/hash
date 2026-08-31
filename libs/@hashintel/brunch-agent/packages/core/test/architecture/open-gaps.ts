@@ -35,14 +35,6 @@ export interface OpenGap {
 
 export const OPEN_GAPS: readonly OpenGap[] = [
   {
-    id: "restart-durability",
-    spec: "§14.5",
-    ticket: "FE-1396",
-    gap: "The capture store survives restart (proven in the ticket-13 prototype), but conversation-store durability with a real db.ts has never been driven across a restart.",
-    proof:
-      "A test under apps/brunch-agent/test that boots the app, holds a conversation, restarts the process, and resumes the same conversation id.",
-  },
-  {
     id: "compaction-vs-durable-history",
     spec: "§9.7, §14.5",
     ticket: "FE-1386",

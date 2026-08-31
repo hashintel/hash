@@ -1,0 +1,544 @@
+# The SDCPN plugin — authored under the harness-owned keys of ADR-0007.
+#
+# Every key below is defined and taught by the harness; this file specialises each for one target
+# formalism. Cells add to the harness default and never override it; a cell left blank means the
+# default suffices. Nothing here may name a domain: the same file must serve any operational
+# system unchanged. A case that seems to need a new row or a new key is a finding about the
+# abstraction, recorded in the schema changelog, never content added here.
+#
+# Migrated from plugin.md (sdcpn/2026-08-25.1) with no semantic change to the three tables. The
+# guidance the v0 prompt contributed — open with objectives, slice then sweep, probe, keep the
+# ledger, close honestly — has moved to the repertoire (`@hashintel/brunch-agent/prompts`), where
+# every plugin inherits it; what remains here is what is true of this formalism and not of
+# interviewing.
+
+plugin:
+  id: sdcpn
+  version: sdcpn/2026-08-26.2
+  formalism: stochastic dynamic coloured Petri nets (Petrinaut)
+  jobs: [construct, review-and-revise]
+  purpose: |
+    Interview someone who knows an operational system deeply — but is not a modeller — and derive a
+    process model that a simulation can run. The model must answer the questions the user actually
+    has, to the depth those questions need, in the expert's own vocabulary, with every value
+    traceable to something the expert said. Where the expert's knowledge stops, the model says so
+    instead of guessing.
+
+    The interviewer does not build the net. It elicits the model at the expert's granularity; the
+    plugin's projection derives the SDCPN scaffold, the code-obligation sidecar, and the loss report
+    from the model afterwards. Steps become transitions and the states between them become places
+    *in projection*, never in the conversation.
+
+# ─── Contract data ────────────────────────────────────────────────────────────────────────────────
+
+ontology:
+  preamble: |
+    The model is a graph of nodes. Every node has exactly one kind. Kinds are the vocabulary of any
+    discrete-event process, not of any domain. Kinds 1–6 are net-bearing; 7–10 are partly or wholly
+    IR-only — the net is one projection of the model, and what the net cannot hold is kept with
+    provenance and named in the loss report.
+  kinds:
+    - kind: entity-type
+      is: >-
+        A kind of thing that flows through, is operated on, or does the work — and the distinctions
+        the process treats differently, including state that rides along.
+      projects_to: colours, typed elements
+    - kind: boundary-condition
+      is: >-
+        What the system starts with and what reaches it from outside: initial populations, arrivals
+        and departures, calendars, external inputs and their reliability.
+      projects_to: scenario initial state and parameters, source transitions
+    - kind: activity
+      is: >-
+        Something that happens, as the expert states it: a work step, a setup, a repair, an
+        inspection, a hand-off, an interruption — with its actors, preconditions, outcomes, and
+        duration.
+      projects_to: factored transitions and the places between them
+    - kind: ordering/flow
+      is: "How activities relate: sequence, branching, merging, triggers."
+      projects_to: arcs, arc types, guards
+    - kind: policy
+      is: >-
+        The rule applied when more than one thing could happen: who wins a contended resource, what
+        goes next, when to switch, when to release.
+      projects_to: guards and priorities where compilable; otherwise IR-only
+    - kind: dynamics
+      is: "A quantity that evolves continuously while nothing discrete happens: wear, temperature, level, charge."
+      projects_to: differential equations on real-valued colour elements
+    - kind: objective
+      is: >-
+        A question the model must answer or a decision it must inform; what "better" means;
+        trade-off weights.
+      projects_to: metrics where scalar over simulation state; weights IR-only
+    - kind: constraint
+      is: >-
+        A limit that must hold: capacity, eligibility, compatibility, qualification, a regulatory or
+        quality rule — written or unwritten; conservation laws.
+      projects_to: guards and capacities partially; otherwise IR-only
+    - kind: data-binding
+      is: A model variable that a real data feed could drive.
+      projects_to: nothing today
+    - kind: validation-criterion
+      is: How the expert would know the model is right.
+      projects_to: nothing today
+  not_kinds:
+    - name: resource
+      text: >-
+        A resource (a machine, a team, a vehicle, a bay) is an `entity-type` whose instances are
+        contended for. Its contention rule is a `policy`; its capacity is a `constraint`; its
+        availability is a `boundary-condition`.
+    - name: queue, buffer, or waiting state
+      text: >-
+        Not elicited as a node. It is implied by the activities on either side of it and emerges as
+        a place in projection.
+    - name: scenario
+      text: Not elicited; it is assembled at simulation time from `boundary-condition` nodes.
+  attributes:
+    - name: quantity
+      on: any kind
+      text: >-
+        Any duration, rate, probability, count, or capacity. Preserve the value grade the expert
+        reached; the row's demand says what further narrowing completion requires.
+    - name: source-regime
+      on: any kind
+      values: [prescribed, practiced]
+      text: >-
+        One model, not two: when the manual and the floor disagree, both are recorded on the same
+        node and the divergence is an ordinary typed conflict for the expert to resolve —
+        elicitation gold, not an error.
+
+schema:
+  preamble: |
+    For every node the conversation discovers, its kind decides what must be known about it and how
+    precisely. These rows never change when the domain changes: a repair on one kind of machine and
+    a repair on another are the same rows instantiated on different nodes.
+  anchor:
+    kind: objective
+    depends_on: the nodes it depends on
+  floor:
+    - { kind: objective, at_least: 1 }
+    - { kind: entity-type, at_least: 2 }
+    - { kind: activity, at_least: 1 }
+    - { kind: ordering/flow, at_least: 1 }
+  must_know:
+    - kind: objective
+      slot: "the question, in the expert's words"
+      precision: spelled out
+      not_applicable: false
+      why: "everything else is elicited relative to it"
+    - kind: objective
+      slot: "the nodes it depends on"
+      precision: at least 1
+      not_applicable: false
+      why: "an objective that depends on nothing is unsupported by the model"
+    - kind: objective
+      slot: 'what "better" means, and trade-off weights'
+      precision: [range, spelled out]
+      not_applicable: true
+      why: "quantified objectives need a metric; some are qualitative"
+    - kind: entity-type
+      slot: "the distinctions the process treats apart"
+      precision: spelled out
+      not_applicable: false
+      why: "two things are one type only if the process treats them the same everywhere"
+    - kind: entity-type
+      slot: "state that rides along with each instance"
+      precision: spelled out
+      not_applicable: true
+      why: "colour elements; many types carry none"
+    - kind: entity-type
+      slot: "how many there are, or the population's shape"
+      precision: range
+      not_applicable: true
+      why: "initial populations for contended resources; unbounded is an allowed answer"
+    - kind: boundary-condition
+      slot: "the starting state"
+      precision: spelled out
+      not_applicable: false
+      why: "scenario initial state"
+    - kind: boundary-condition
+      slot: "the arrival or availability pattern"
+      precision: [spread, spelled out]
+      not_applicable: false
+      why: "source rates and calendars; a single average hides the shape"
+    - kind: activity
+      slot: "what it needs before it can start"
+      precision: spelled out
+      not_applicable: false
+      why: "transition preconditions"
+    - kind: activity
+      slot: "what it produces or changes"
+      precision: spelled out
+      not_applicable: false
+      why: "transition outcomes"
+    - kind: activity
+      slot: "who or what performs it"
+      precision: named
+      not_applicable: true
+      why: "resource binding; some activities are unattended"
+    - kind: activity
+      slot: "how long it takes"
+      precision: spread
+      not_applicable: false
+      why: "duration distribution; a point value simulates as a falsehood"
+    - kind: activity
+      slot: "how often it occurs, if it is an event rather than a step"
+      precision: range
+      not_applicable: true
+      why: "interruptions, failures, and arrivals have a rate; steps in the flow do not"
+    - kind: activity
+      slot: "what is lost when it changes the system's mode"
+      precision: range
+      not_applicable: true
+      why: "setup, changeover, restart, and warm-up losses are routinely never asked"
+    - kind: activity
+      slot: "whether its quantities vary by type"
+      precision: named
+      not_applicable: false
+      why: "the answer is load-bearing either way"
+    - kind: ordering/flow
+      slot: "the order things happen in"
+      precision: spelled out
+      not_applicable: false
+      why: "the net's structure"
+    - kind: ordering/flow
+      slot: "how a branch or merge is decided"
+      precision: spelled out
+      not_applicable: true
+      why: "routing; only where the flow branches"
+    - kind: policy
+      slot: "the rule as actually practiced"
+      precision: spelled out
+      not_applicable: false
+      why: "guards and priorities; the tacit rule, not the poster on the wall"
+    - kind: policy
+      slot: "what overrides it"
+      precision: spelled out
+      not_applicable: true
+      why: "exceptions are where the simulation and reality diverge"
+    - kind: dynamics
+      slot: "what changes, in which direction, at what rate"
+      precision: range
+      not_applicable: false
+      why: "the differential law; a direction with no rate cannot be simulated"
+    - kind: dynamics
+      slot: "how it varies around that change"
+      precision: spread
+      not_applicable: true
+      why: "noise can dominate threshold timing; deterministic change may explicitly have none"
+    - kind: dynamics
+      slot: "what happens at a threshold"
+      precision: spelled out
+      not_applicable: true
+      why: "most continuous quantities exist to trigger something"
+    - kind: constraint
+      slot: "the limit and what happens when it is hit"
+      precision: spelled out
+      not_applicable: false
+      why: "a capacity without a consequence cannot be simulated"
+    - kind: data-binding
+      slot: "the variable and its feed"
+      precision: named
+      not_applicable: true
+      why: "IR-only today; recorded so the loss report can name it"
+    - kind: validation-criterion
+      slot: "how the expert would know the model is right"
+      precision: spelled out
+      not_applicable: true
+      why: "IR-only; anchors the acceptance conversation"
+  proposals:
+    - type: slot-asserted
+      payload: slot-assertion
+
+patterns:
+  preamble: |
+    Patterns are discretionary. Each names the model situation that triggers it and the question
+    that resolves it. None names a domain; each applies wherever its trigger appears. The harness
+    surfaces a pattern when a node matches its trigger and the relevant slot is unsatisfied; the
+    interviewer decides whether and how to use it.
+  items:
+    - id: P01
+      on: [activity]
+      slot: "how often it occurs, if it is an event rather than a step"
+      when: >-
+        an `activity` is an event that can befall the system — a failure, an interruption, an
+        unplanned arrival — rather than a step in the flow
+      ask: >-
+        occurrence and duration are two slots. Ask how often, as a range, for each named event
+        separately; then how long, as a spread. Keep the value grade the expert actually gave; never
+        round a range up to a spread.
+    - id: P02
+      on: [activity]
+      slot: "what is lost when it changes the system's mode"
+      when: >-
+        an `activity` changes the system's mode — a setup, changeover, restart, warm-up,
+        reconfiguration, handover
+      ask: >-
+        ask what is lost in the transition, as a range, after a *named* transition. If the expert
+        does not know, ask what they would treat as an authoritative source — never convert
+        "unknown" into a value. Ask before recording an explicit "not applicable"; an ordinary
+        activity with no mode change is a useful negative answer, not a reason to skip the slot.
+    - id: P03
+      on: [ordering/flow]
+      when: an `ordering/flow` moves things in groups — batches, runs, lots, loads
+      ask: >-
+        ask what the group is, the smallest sensible one, whether a group must stay together, and
+        what an extra split costs (extra mode changes, extra loss) on the activities it touches.
+    - id: P04
+      on: [policy, boundary-condition]
+      when: >-
+        a `policy` or `boundary-condition` gates when something may proceed — a release, a start, an
+        admission
+      ask: >-
+        replace any time-shaped approximation ("about two days before") with the practiced event or
+        state that makes it runnable, who or what flips it, and where that is observable.
+    - id: P05
+      on: [entity-type]
+      when: more than one thing can want the same `entity-type` instance at once
+      ask: >-
+        ask which wins, what overrides that, how ties break, and for a recent borderline case that
+        shows the practiced rule. Never infer the rule from a schedule or a document.
+    - id: P07
+      on: [entity-type]
+      when: a quantity has been given for one `entity-type` and others exist
+      ask: ask explicitly whether it varies by type. Record "no" as a value; it is load-bearing.
+    - id: P08
+      on: []
+      when: any node has both a prescribed and a practiced form
+      ask: >-
+        record both on the same node under `source-regime`, with the expert's account of when they
+        diverge. Do not average them and do not pick one.
+    - id: P13
+      on: [dynamics]
+      when: a `dynamics` node has been named
+      ask: >-
+        ask what it triggers when it crosses a threshold, and which `activity` resets it. A
+        continuous quantity that triggers nothing usually does not need to be in the model.
+
+# ─── Guidance ─────────────────────────────────────────────────────────────────────────────────────
+# Each cell adds to the harness default under the same key. Blank means the default suffices.
+
+guidance:
+  lenses:
+    - name: a resource named in passing
+      text: >-
+        A machine, team, vehicle, or bay mentioned as an aside is an `entity-type` whose instances
+        are contended for; the contention rule it implies is a `policy`, and it is usually the
+        expert's least-examined knowledge.
+    - name: '"it depends"'
+      text: >-
+        Hides either a branch in the `ordering/flow`, a `policy` deciding it, or a quantity that
+        varies by `entity-type`. Ask which before moving on.
+    - name: '"sometimes it breaks", "we have to wait for"'
+      text: >-
+        An event-shaped `activity` with a rate and a duration, or a `boundary-condition` the system
+        does not control. Both are routinely left out of a first account of the flow.
+    - name: warming up, wearing down, filling
+      text: >-
+        A `dynamics` node — something changing continuously while nothing discrete happens — or a
+        mode change with a loss. The expert rarely volunteers the rate; the model cannot run
+        without it.
+    - name: '"always" and "never"'
+      text: >-
+        A `constraint` or a `policy` stated in passing. Ask what enforces it, what it limits, and
+        whether an exception has ever overridden it.
+    - name: duration that depends on the clock
+      text: >-
+        An `activity` duration whose elapsed time crosses a calendar boundary depends on a
+        `boundary-condition`, not only on the work itself. Ask for both the work time and the
+        availability rule.
+  techniques:
+    - name: value grade is not evidence
+      text: >-
+        "About three hours" from the expert is an honest `number` below the demanded grade; "three
+        hours" supplied by the interviewer may look narrow enough and is not evidence at all. Track
+        grade and evidence separately and let neither substitute for the other.
+    - name: stress the binding resource
+      text: >-
+        Before deepening every duration into a distribution, ask which `entity-type` actually
+        constrains the objective and whether its utilisation or variability makes stochastic detail
+        consequential.
+    - name: turn an unknown into an observable threshold
+      text: >-
+        When the expert cannot give an exact quantity, ask what boundary would change a decision or
+        become visibly unacceptable. Record the threshold they can judge; do not invent the value
+        beyond it.
+    - name: ask what is conserved
+      text: >-
+        When quantities enter and leave a process, ask what total should remain constant and where
+        loss is possible. A conservation answer belongs as a `constraint`, in the expert's units.
+  movements:
+    slice:
+      - name: one instance, arriving to leaving
+        text: >-
+          One case in this formalism is one instance of the `entity-type` that flows, followed from
+          the moment it reaches the system to the moment it leaves. If several things flow, first
+          ask which unit defines one case — order, batch, item, or another named unit. Create nodes
+          as they appear; as each `objective` becomes clearer, link it to the nodes it depends on.
+          An `objective` that depends on nothing yet is unsupported — say so and go find its
+          structure.
+    sweep:
+      - name: strata are kinds, net-bearing first
+        text: >-
+          After kickoff has established each `objective` and its `validation-criterion`, a stratum
+          is one kind. Sweep `entity-type` through `dynamics` first because they bear the net, then
+          complete the remaining IR-only rows.
+      - name: the unwritten constraints
+        text: >-
+          Close the `constraint` stratum with the unwritten rules: "what would a newcomer get wrong
+          in the first week?", "what do you always or never do that is written nowhere?", "which rule
+          exists because something once went wrong?"
+      - name: what can befall each activity
+        text: >-
+          Close the `activity` stratum by asking across exception types: work-item failure, deadline
+          expiry, resource unavailability, external trigger, and constraint violation. For each
+          named exception, ask what happens to the work, the case, and the recovery.
+  licenses: []
+  motifs:
+    - name: shared resource
+      text: >-
+        Several activities want one `entity-type`'s instances. Ask whether the server is indivisible
+        or splittable by role, how many instances act together, which activity wins, and what
+        overrides that rule.
+    - name: batch, lot, load
+      text: >-
+        An `ordering/flow` that moves things in groups. Ask whether formation fires by count, by a
+        clock, or by either; whether the group must stay together; and what a split costs.
+    - name: gate or release
+      text: >-
+        A `policy` or `boundary-condition` that lets things proceed. Ask whether the gate is a state,
+        an event, or a person's decision; where it is observed; and what overrides it.
+    - name: mode change
+      text: >-
+        A setup, changeover, restart, or warm-up. Ask whether loss depends on direction, whether the
+        change is local or cascading, and which time, material, or capacity components are lost.
+    - name: event, not step
+      text: >-
+        A failure or interruption that befalls the system. Ask occurrence and duration separately,
+        then whether the rate is independent or changes with a named state.
+    - name: threshold on a continuous quantity
+      text: >-
+        A `dynamics` node. Ask what it triggers, which `activity` resets it, and — when several
+        components evolve — whether they combine additively or the weakest component decides.
+  smells:
+    - name: a quantity for one type and no other
+      text: given for one `entity-type` when others exist and never asked whether it varies (P07).
+    - name: a continuous quantity that triggers nothing
+      text: a `dynamics` node with no threshold and no consequence usually does not belong in the model.
+    - name: a queue as a node
+      text: a buffer or waiting state elicited as if it were an activity; it is implied and emerges in projection.
+    - name: a policy read off a document
+      text: the rule as posted taken for the rule as practiced; the practiced one is the slot.
+    - name: a point where a spread is demanded
+      text: a single average standing in for a duration or arrival pattern; it simulates as a falsehood.
+    - name: two regimes averaged
+      text: prescribed and practiced blended into one value instead of both recorded on the node.
+  rabbit_holes:
+    - name: building the net in conversation
+      text: >-
+        Places, transitions, arcs, and colours are projection output. Naming them to the expert
+        buys nothing and costs the expert's vocabulary.
+    - name: eliciting queues or scenarios
+      text: >-
+        Neither is a node. Ask about the activities on either side of a wait; assemble scenarios
+        from `boundary-condition` nodes at simulation time.
+    - name: depth on IR-only kinds
+      text: >-
+        Establish the `validation-criterion` and accuracy bar at kickoff even though they do not
+        project today. For `data-binding`, stop after the variable, source, and any evidence gap;
+        implementation detail belongs in the loss report.
+    - name: grade finer than what the expert observes
+      text: >-
+        Do not decompose a quantity below the granularity the expert can observe. Record the coarser
+        value and a deposit naming where finer evidence could come from.
+    - name: eliciting the objective's answer
+      text: >-
+        The interview builds what the model needs to answer an `objective`; it does not ask the
+        expert to predict that answer and store the prediction as model structure.
+  failure_modes:
+    - name: dead net
+      signature: no `ordering/flow` with its order spelled out; activities exist but nothing connects them
+      text: the floor catches presence; only the sweep catches an order that was never actually stated.
+    - name: unsupported objective
+      signature: an `objective` whose dependency slot names no node in the model
+      text: the model cannot answer the question it was built for; the slice never reached it.
+
+# ─── Runbooks ─────────────────────────────────────────────────────────────────────────────────────
+# One cell set per job this plugin supports. The harness default runbook for each job comes first;
+# these cells add what is true of this formalism.
+
+runbooks:
+  construct:
+    kickoff:
+      - name: what "no model exists" means here
+        text: >-
+          The user knows the system; the interviewer knows the kinds. Capture each thing the user
+          wants the model to answer or decide as an `objective` node. Recast an optimisation request
+          as a comparison among candidate policies, and name the time resolution over which the
+          answer must remain useful.
+    trajectory:
+      - name: kind order
+        text: >-
+          Slice one instance end to end first; the shape of the model comes from the slice. Then
+          sweep the nodes the slice revealed in kind order, net-bearing kinds before IR-only ones,
+          checking each node's rows and every pattern its state matches.
+    close:
+      - name: the deliverable
+        text: >-
+          Summarise per kind. Deliver the model with every node in the expert's own vocabulary,
+          each slot's value grade as actually obtained and its source-regime where both were
+          given; the assumption ledger; and a loss section — what the model deliberately leaves
+          out, which slots are open and why, which objectives are unsupported, and which kinds the
+          net cannot carry.
+      - name: what the interviewer does not claim
+        text: >-
+          The SDCPN scaffold, the code-obligation sidecar, and the typed loss report are derived by
+          the plugin's projection. The interviewer does not write them and must not claim the model
+          is loadable, compiled, or simulated.
+      - name: stopping outcomes
+        text: >-
+          Named and distinct: `complete-under-declared-demands`, `partial-with-open-slots`,
+          `unsupported-objective`, `data-deposit-required`, `expert-stopped`.
+  review-and-revise:
+    kickoff:
+      - name: what "a model exists" means here
+        text: >-
+          A model with its captures and a projected net. The reviewer arrives with an element of
+          the net in view. State which model node and slot that element projects from and which
+          captures support the slot — turn, speaker, quote, grade, source-regime. If no capture
+          supports it, say so: it is a ledger assumption or a projection default, and the reviewer
+          is looking at a gap, not at knowledge.
+    trajectory:
+      - name: the affected slice in this formalism
+        text: >-
+          The scope the harness computes is the node, its slots, every `objective` whose dependency
+          slice contains it, and every projected net element those produce. Apply the node's rows
+          and the patterns its state triggers, smallest delta first.
+      - name: the delta in the net
+        text: >-
+          Projection re-runs over the whole model, deterministically. Show which net elements
+          changed, which are unchanged, and which code obligations the change reopened. A change
+          outside the stated scope is a defect to surface, never to explain away.
+    close:
+      - name: stopping outcomes
+        text: >-
+          Named and distinct: `corrected-and-projected`, `corrected-obligation-open`,
+          `conflict-unresolved`, `scope-exceeded`, `reviewer-stopped`.
+      - name: the delta report
+        text: >-
+          In place of the whole model: the superseding captures made, the slots and objectives
+          whose state moved, the net elements changed and the elements confirmed unchanged, the
+          obligations reopened, and the stopping outcome.
+      - name: before handing off, verify
+        text: >-
+          Every changed net element traces to a superseding capture made in this session; no capture
+          outside the scope changed; the projection outside the scope is identical before and after;
+          the ledger records any default the correction displaced.
+
+# ─── Machinery ────────────────────────────────────────────────────────────────────────────────────
+# Code, declared here and exported from src/. The harness enforces completion, the sweep list, the
+# ledger, and the affected slice itself; those are not plugin machinery.
+
+machinery:
+  checks: [slot-assertion]
+  tools: []

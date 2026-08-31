@@ -48,21 +48,62 @@ export {
   type PluginProposalType,
 } from "./plugin";
 export {
+  GUIDANCE_KEY_DESCRIPTIONS,
+  GUIDANCE_KEYS,
+  JOB_TITLES,
+  JOBS,
+  MOVEMENTS,
+  RUNBOOK_KEY_DESCRIPTIONS,
+  RUNBOOK_KEYS,
+  type GuidanceKey,
+  type Job,
+  type KeyDescription,
+  type MechanismType,
+  type Movement,
+  type RunbookKey,
+} from "./keys";
+export {
+  guidanceEntries,
+  GuidanceCellsSchema,
+  GuidanceItemSchema,
   mustKnowRowsFor,
-  parsePluginFile,
-  PLUGIN_FILE_HEADINGS,
-  PluginFileError,
-  pluginFileInstructions,
+  PluginDefinitionError,
+  PluginDefinitionSchema,
+  PRECISION_LADDER,
   PRECISION_WORDS,
+  readPluginDefinition,
+  readYamlAs,
+  runbookEntries,
+  RunbookCellsSchema,
+  type Anchor,
+  type AttributeNote,
   type FloorRow,
+  type GuidanceCells,
+  type GuidanceItem,
   type KindRow,
+  type MovementCells,
   type MustKnowRow,
+  type NamedText,
   type PatternRow,
-  type PluginFile,
-  type PluginFileHeading,
+  type PluginDefinition,
+  type PluginDefinitionInput,
   type PrecisionDemand,
   type PrecisionWord,
-} from "./plugin-file";
+  type ProposalDeclaration,
+  type RunbookCells,
+} from "./plugin-definition";
+export {
+  readRepertoire,
+  RepertoireSchema,
+  type Repertoire,
+} from "./repertoire";
+export {
+  HARNESS_PREAMBLE,
+  renderContract,
+  renderGuidance,
+  renderInstructions,
+  renderRunbook,
+} from "./instructions";
 export {
   createSlotAssertionSchema,
   nodeId,
@@ -82,7 +123,6 @@ export {
   type UnmappedCapture,
 } from "./elicited-model";
 export {
-  ANCHOR_KIND,
   COMPLETION_DIAGNOSTICS,
   completionDemands,
   evaluateCompletion,
@@ -97,7 +137,6 @@ export {
 export {
   buildCompletionCueSignal,
   buildSweepList,
-  completionProtocolInstructionFragments,
   type CompletionCueSignal,
   type PatternCue,
   type SweepList,

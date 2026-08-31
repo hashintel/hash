@@ -435,15 +435,15 @@ __metadata:
   resolution: "@apps/brunch-agent@workspace:apps/brunch-agent"
   dependencies:
     "@earendil-works/pi-ai": "npm:0.83.0"
+    "@flue/opentelemetry": "npm:2.0.3"
     "@flue/react": "npm:2.0.3"
     "@flue/runtime": "npm:2.0.3"
     "@flue/sdk": "npm:2.0.3"
     "@flue/vite": "npm:2.0.3"
-    "@hashintel/brunch-agent": "workspace:*"
     "@hashintel/brunch-agent-binding-flue": "workspace:*"
-    "@hashintel/brunch-agent-plugin-gherkin": "workspace:*"
-    "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*"
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*"
+    "@hashintel/petrinaut-core": "workspace:*"
+    "@opentelemetry/api": "npm:1.9.1"
     "@types/node": "npm:22.18.13"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
@@ -6364,6 +6364,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@flue/opentelemetry@npm:2.0.3":
+  version: 2.0.3
+  resolution: "@flue/opentelemetry@npm:2.0.3"
+  peerDependencies:
+    "@flue/runtime": ^2.0.3
+    "@opentelemetry/api": ^1.9.0
+  checksum: 10c0/3eb38f7af8c46019f74417599fc099e02d8675635e8d23f1e49c07bc26a644ad4f14be8a80b38b86dedf795db5bdb3d0045430c4b12ca7e92b51d5608baa75e7
+  languageName: node
+  linkType: hard
+
 "@flue/react@npm:2.0.3":
   version: 2.0.3
   resolution: "@flue/react@npm:2.0.3"
@@ -7409,7 +7419,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/brunch-agent-plugin-gherkin@workspace:*, @hashintel/brunch-agent-plugin-gherkin@workspace:libs/@hashintel/brunch-agent/packages/plugin-gherkin":
+"@hashintel/brunch-agent-plugin-gherkin@workspace:libs/@hashintel/brunch-agent/packages/plugin-gherkin":
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-plugin-gherkin@workspace:libs/@hashintel/brunch-agent/packages/plugin-gherkin"
   dependencies:
@@ -7424,7 +7434,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hashintel/brunch-agent-plugin-sdcpn@workspace:*, @hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn":
+"@hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn":
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-plugin-sdcpn@workspace:libs/@hashintel/brunch-agent/packages/plugin-sdcpn"
   dependencies:
@@ -7443,7 +7453,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-transport-aisdk@workspace:libs/@hashintel/brunch-agent/packages/transport-aisdk"
   dependencies:
-    "@hashintel/brunch-agent": "workspace:*"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     ai: "npm:6.0.182"
@@ -7462,12 +7471,14 @@ __metadata:
     "@anthropic-ai/sdk": "npm:0.74.0"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
+    "@valibot/to-json-schema": "npm:1.7.1"
     fast-check: "npm:4.9.0"
     oxlint: "npm:1.63.0"
     oxlint-tsgolint: "npm:0.22.1"
     valibot: "npm:1.4.2"
     vite: "npm:8.1.0"
     vitest: "npm:4.1.10"
+    yaml: "npm:2.9.0"
   languageName: unknown
   linkType: soft
 
@@ -20114,7 +20125,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@valibot/to-json-schema@npm:^1.3.0":
+"@valibot/to-json-schema@npm:1.7.1, @valibot/to-json-schema@npm:^1.3.0":
   version: 1.7.1
   resolution: "@valibot/to-json-schema@npm:1.7.1"
   peerDependencies:

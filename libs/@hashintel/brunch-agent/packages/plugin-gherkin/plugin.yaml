@@ -1,0 +1,216 @@
+# The gherkin plugin definition (ADR-0006, ADR-0007).
+#
+# Keys are owned by the harness; see `packages/core/schema/plugin.schema.json`
+# and `docs/adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md`.
+# This is the tracer plugin: it exists to prove that a second formalism, with a
+# different anchor and a different model shape, fits the same keys without
+# the keys bending toward process modelling. Cells are filled only where the
+# formalism has something to say; a blank cell means the harness default is
+# the whole of the guidance.
+
+plugin:
+  id: gherkin
+  version: gherkin/2026-08-26.2
+  formalism: Gherkin — executable specifications as features, rules, and examples
+  jobs: [construct, review-and-revise]
+  purpose: |
+    Interview someone who knows how a piece of behaviour should work, and leave
+    with a feature specification they would sign: what the feature is for, the
+    rules it obeys, and for every rule at least one concrete example — a
+    context, an action, and an observable outcome — written in words the
+    person who gave them would recognise.
+
+ontology:
+  preamble: |
+    The specification is a tree: a feature has rules, a rule has examples, an
+    example has steps. Structure comes from the person's account of what the
+    behaviour does, never from a template. The steps are the only place the
+    words are constrained — each step phrase should bind to a step the team
+    already knows, or be flagged as new.
+  kinds:
+    - kind: feature
+      is: One capability, described by whom it is for, what it lets them do, and why that matters.
+      projects_to: a Feature with its narrative
+    - kind: rule
+      is: One business rule the feature obeys, stated generally, that examples then illustrate.
+      projects_to: a Rule block
+    - kind: example
+      is: One concrete instance of a rule — a context, an action, and the outcome that follows.
+      projects_to: a Scenario or Example under its Rule
+    - kind: step
+      is: One line of an example — a Given, When, or Then — in the team's step vocabulary.
+      projects_to: a step line bound to a step definition
+  not_kinds:
+    - name: background
+      text: A shared context is not a node; it is a context step that several examples repeat. Record it on each example and let the projection factor it.
+    - name: tag
+      text: Tags are how a team organises and selects features; they carry no behaviour and are not elicited.
+    - name: step definition
+      text: The code that binds a step phrase is the team's, not the interview's. The interview only needs to know whether a phrase is already known.
+  attributes:
+    - name: status
+      on: rule and example
+      values: [current, proposed]
+      text: Whether the behaviour exists today or is what the person wants to be true.
+
+schema:
+  preamble: |
+    An example is usable only when someone who has never seen the system could
+    read its three parts and tell whether the system passed. "The user logs in
+    and it works" is a story, not an example.
+  anchor:
+    kind: feature
+    depends_on: the rules and examples it covers
+  floor:
+    - { kind: feature, at_least: 1 }
+    - { kind: example, at_least: 1 }
+  must_know:
+    - kind: feature
+      slot: the narrative
+      precision: spelled out
+      not_applicable: false
+      why: Who the capability is for, what it lets them do, and why — everything below is relative to it.
+    - kind: feature
+      slot: the rules and examples it covers
+      precision: at least 1
+      not_applicable: false
+      why: The anchor's slice — what completion is measured over.
+    - kind: rule
+      slot: the statement
+      precision: spelled out
+      not_applicable: false
+      why: A rule that cannot be stated generally cannot be checked by an example.
+    - kind: rule
+      slot: the examples that illustrate it
+      precision: at least 1
+      not_applicable: false
+      why: A rule without an example is an opinion; an example is what gets checked.
+    - kind: example
+      slot: the context it starts from
+      precision: spelled out
+      not_applicable: false
+      why: The Given — without it the outcome cannot be reproduced.
+    - kind: example
+      slot: the action taken
+      precision: spelled out
+      not_applicable: false
+      why: The When — one action, so the outcome has one cause.
+    - kind: example
+      slot: the observable outcome
+      precision: spelled out
+      not_applicable: false
+      why: The Then — something a reader could see or measure, not an intention.
+    - kind: example
+      slot: the rule it illustrates
+      precision: named
+      not_applicable: true
+      why: Ties the example to the rule it checks; an example may hang directly off the feature.
+    - kind: step
+      slot: the phrase
+      precision: spelled out
+      not_applicable: false
+      why: The line as it will be written.
+    - kind: step
+      slot: the known step it binds to
+      precision: named
+      not_applicable: true
+      why: Ask the person to name the known team step; without an available lexicon, record the phrase as new rather than inventing a binding.
+  proposals:
+    - { type: statement-noted, payload: statement }
+
+patterns:
+  preamble: |
+    Patterns fire on nodes the harness holds. Each names the situation and the
+    question that resolves it; it does not schedule the question.
+  items:
+    - id: P01
+      on: [rule]
+      slot: the examples that illustrate it
+      when: a rule has a statement but no example.
+      ask: Ask for the last time this rule mattered — what was the situation, what happened, what was seen.
+    - id: P02
+      on: [example]
+      when: two examples share a context and an action but differ in outcome.
+      ask: Ask what distinguishes the two situations; the difference is a missing part of the context or a missing rule.
+    - id: P03
+      on: [example]
+      slot: the observable outcome
+      when: the observable-outcome slot is unsatisfied; intentions such as "should work" and "is handled" are common below-grade forms.
+      ask: Ask what someone watching would see, and where.
+    - id: P04
+      on: [step]
+      when: a step phrase resembles a known step but is not identical.
+      ask: Ask whether this is the same thing as the known step, or a different one; record which.
+
+guidance:
+  lenses:
+    - name: Rules hide in "always" and "never"
+      text: When the person says "we always", "it never", "whenever", or "unless", a rule is being stated in passing. Capture it as a rule and return to it for an example.
+    - name: Examples hide in stories
+      text: '"Last week", "for instance", "one customer" — a concrete case is being offered. It is worth more than a general statement; keep the details.'
+  techniques:
+    - name: Concretise
+      text: Turn a general statement into one example with specific values — a named context, one action, one outcome. Ask for the values; do not supply them.
+    - name: Contrast
+      text: For every rule, ask for the case where it does not hold. The contrasting example is what separates the rule from a coincidence.
+  movements:
+    slice:
+      - name: One example end to end
+        text: Take one concrete case through context, action, and outcome before touching another. The structure of the feature — its rules — comes from what the cases have in common.
+    sweep:
+      - name: Every rule has an example
+        text: Walk the rules and ask, for each without an example, for one.
+      - name: Every outcome is observable
+        text: Walk the examples and check each outcome names something a reader could see.
+  licenses: []
+  motifs:
+    - name: Happy path and unhappy path
+      text: A rule usually has one example where it is satisfied and one where it is violated; ask whether the pair exists.
+    - name: Boundary
+      text: A rule with a threshold has an example at the threshold, just under, and just over; ask which of the three the person cares about.
+    - name: State-dependent outcome
+      text: The same action with a different outcome in a different state — the state belongs in the context.
+  smells:
+    - name: Two actions in one example
+      text: An example with two Whens has two causes for its outcome; split it.
+    - name: Outcome restates the action
+      text: '"When I save, then it is saved" checks nothing; ask what changes that someone could see.'
+    - name: Steps in gestures
+      text: Steps written as clicks and fields describe an interface, not behaviour; ask what the person is trying to do.
+  rabbit_holes:
+    - name: Writing the automation
+      text: Step definitions, fixtures, and test data are the team's work after the interview; do not design them here.
+    - name: Organising the suite
+      text: Tags, file layout, and naming conventions are not behaviour.
+  failure_modes:
+    - name: Untethered example
+      text: An example illustrates no stated rule and no one knows what it proves.
+      signature: An example whose rule slot is neither named nor marked not applicable.
+    - name: Contradiction
+      text: Two examples with the same context and action and different outcomes are both recorded.
+      signature: P02 fires and the session closes without a distinguishing context or a new rule.
+
+runbooks:
+  construct:
+    kickoff:
+      - name: Narrative first
+        text: Establish who the feature is for and what it lets them do before any rule; every rule is relative to it.
+    trajectory:
+      - name: Rule, then example, then contrast
+        text: For each rule as it surfaces, get one example, then the contrasting one; sweep for examples only after the slice has produced the rules.
+    close:
+      - name: Read the examples back
+        text: Read each example as it will be written and ask whether the person would sign it; list rules still without an example.
+  review-and-revise:
+    kickoff:
+      - name: Which rule changed
+        text: Establish whether the change is to a rule's statement, to an example, or to the feature's narrative; the affected slice follows from that.
+    trajectory:
+      - name: Re-check contradiction
+        text: After a change to an example, check P02 across the rule it illustrates before anything else.
+    close: []
+
+machinery:
+  checks:
+    [parse-validity, step-lexicon-binding, rule-has-example, contradiction]
+  tools: []

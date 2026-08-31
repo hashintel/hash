@@ -15,22 +15,24 @@ import {
   type CompletionDemands,
 } from "../src/completion";
 import { foldElicitedModel, type ElicitedModel } from "../src/elicited-model";
+import { readPluginDefinition } from "../src/plugin-definition";
 import {
+  FIXTURE_PLUGIN_YAML,
   absence,
   assertionCapture,
   completeCaptures,
-  fixturePluginFile,
+  fixturePluginDefinition,
   snapshotOf,
   value,
 } from "./slot-fixtures";
 
 import type { CaptureEnvelope } from "../src/capture-store";
 
-const file = fixturePluginFile();
-const demands = completionDemands(file);
+const definition = fixturePluginDefinition();
+const demands = completionDemands(definition);
 
 const modelOf = (captures: readonly CaptureEnvelope[]): ElicitedModel =>
-  foldElicitedModel(snapshotOf(captures), file);
+  foldElicitedModel(snapshotOf(captures), definition);
 
 const without = (id: string): CaptureEnvelope[] =>
   completeCaptures().filter((capture) => capture.id !== id);
@@ -204,6 +206,35 @@ describe("the rule (3–7)", () => {
     expect(report.sliceNodeIds).toEqual(["objective:throughput"]);
   });
 
+  test("6. a single kind:node string in the dependency slot still forms a slice", () => {
+    const report = evaluateCompletion(
+      modelOf(
+        replacing(
+          "c-objective-deps",
+          assertionCapture(
+            "c-objective-deps",
+            value(
+              "objective",
+              "throughput",
+              "the nodes it depends on",
+              "named",
+              "step:stamp",
+            ),
+          ),
+        ),
+      ),
+      demands,
+    );
+    expect(
+      report.failures.filter(
+        (failure) => failure.diagnostic === "unsupported-active-objective",
+      ),
+    ).toEqual([]);
+    expect(report.sliceNodeIds).toEqual(
+      expect.arrayContaining(["objective:throughput", "step:stamp"]),
+    );
+  });
+
   test("6. an objective with no dependency slot at all is unsupported; the floor does not substitute", () => {
     expect(diagnosticsOf(without("c-objective-deps"))).toEqual([
       [
@@ -242,7 +273,7 @@ describe("what counts as a value (8–14)", () => {
     expect(diagnosticsOf(inferred)).toEqual([
       ["inadmissible-status", "step:stamp", "how long it takes"],
     ]);
-    const permissive = completionDemands(file, {
+    const permissive = completionDemands(definition, {
       acceptedStatuses: ["explicit", "inferred"],
     });
     expect(evaluateCompletion(modelOf(inferred), permissive).complete).toBe(
@@ -306,6 +337,49 @@ describe("what counts as a value (8–14)", () => {
     expect(precisionSatisfies("number", "spelled out")).toBe(false);
     expect(precisionSatisfies("spelled out", "spelled out")).toBe(true);
     expect(precisionSatisfies("spelled out", "named")).toBe(true);
+  });
+
+  test("12. any listed precision satisfies one semantic slot", () => {
+    const anyOfDefinition = readPluginDefinition(
+      FIXTURE_PLUGIN_YAML.replace(
+        "precision: spread",
+        "precision: [spread, spelled out]",
+      ),
+    );
+    const anyOfDemands = completionDemands(anyOfDefinition);
+    const reportAt = (precision: "range" | "spread" | "spelled out") =>
+      evaluateCompletion(
+        foldElicitedModel(
+          snapshotOf(
+            replacing(
+              "c-stamp-duration",
+              assertionCapture(
+                "c-stamp-duration",
+                value(
+                  "step",
+                  "stamp",
+                  "how long it takes",
+                  precision,
+                  precision === "spelled out"
+                    ? { calendar: "weekday shift" }
+                    : { low: 2, high: 5 },
+                ),
+              ),
+            ),
+          ),
+          anyOfDefinition,
+        ),
+        anyOfDemands,
+      );
+
+    expect(reportAt("spread").complete).toBe(true);
+    expect(reportAt("spelled out").complete).toBe(true);
+    expect(reportAt("range").failures).toEqual([
+      expect.objectContaining({
+        diagnostic: "below-required-precision",
+        requirement: "spread or spelled out",
+      }),
+    ]);
   });
 
   test("13. conflict and divergence fail conservatively", () => {

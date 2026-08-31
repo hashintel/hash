@@ -298,11 +298,13 @@ describe("Flue materialized-history reader", () => {
 
     const persisted = JSON.parse(await readFile(path, "utf8")) as {
       formatVersion: number;
+      ownerKey: string | null;
       sessionLogArchive: {
         sessions: { reads: { substrateConversationId?: string }[] }[];
       };
     };
-    expect(persisted.formatVersion).toBe(1);
+    expect(persisted.formatVersion).toBe(2);
+    expect(persisted.ownerKey).toBeNull();
     expect(persisted.sessionLogArchive.sessions).toHaveLength(1);
     expect(
       persisted.sessionLogArchive.sessions[0]!.reads[0]!

@@ -1,56 +1,119 @@
 # Brunch agent
 
-This directory is the Brunch context and agent-session root inside `hashintel/hash`. HASH root
-guidance always wins where it conflicts with this file.
+Brunch is the elicitation harness and package family at `libs/@hashintel/brunch-agent`. This
+directory is its context root, not a package workspace. HASH root guidance wins where it differs
+from this file.
 
-## Scope
+## The three laws
 
-- `packages/core`: substrate- and renderer-independent harness and plugin SDK.
-- `packages/binding-*`: substrate bindings; each depends inward on the harness.
-- `packages/transport-*`: wire transports; none may depend on a binding.
-- `packages/plugin-*`: target plugins; each depends only on the harness.
-- `../../../apps/brunch-agent`: remote server, application composition, and local diagnostics.
-- `evaluations`: cases, protocols, and oracles; see `evaluations/AGENTS.md` before changing them.
+1. **Real throughline first, least mechanism.** Cross the real production boundary end-to-end
+   before improving anything: use the real entrypoint and wiring, prefer the platform and chosen
+   libraries to a custom mechanism, and inline what can stay local. Pin only the invariants and
+   constraints the working path actually exposes. Minimum applies to the mechanism, not the
+   contract: known consumers of this work must be able to rely on it without inventing missing
+   semantics. Then re-decide at the new fog-line instead of running an inherited plan.
+2. **Deepen only under observed strain.** An intended design is a hypothesis, not a destination.
+   Anti-caricature: a pattern name retrieves relevant properties; it is not a blueprint. Restate
+   the local obligation without the name, then implement only what discharges it. Admit the next
+   piece of complexity when the current implementation strains under a present requirement
+   (duplication diverging, a boundary leaking, an invariant that will not hold locally), and cut
+   the design when the design itself is what is straining progress.
+3. **A branch is a mission, not a ticket.** Every mission carries an imperative that guides and
+   bounds its work; its evidence-gathering and decisions are judged against that imperative, not
+   against a plan graph.
 
-## Stack
+## Mission contract
 
-- Format TypeScript and JSON with HASH-root `oxfmt` (double quotes, 80 columns), not Biome or
-  Prettier. Brunch Markdown remains excluded.
-- `lint:eslint` runs Oxlint with multi-file import analysis, type-aware rules, and compiler
-  diagnostics. Package `.oxlintrc.json` files extend Brunch presets under
-  `.config/oxlint/brunch/`.
-- `lint:tsc` remains the independent `tsgo --noEmit` type-check gate.
-- `test:unit` runs Vitest through `vitest run`; architecture tests remain the topology, Flue
-  placement, and hermetic-runtime gates.
-- Vite 8 builds the libraries and application.
+When work starts on a branch, state these six things in [`MISSION.md`](MISSION.md) and copy them
+into the branch/PR description. Do not create additional planning or control documents, except the
+next-concerns scratchpad below.
 
-The context root is not a package-manager root. Do not add a `package.json`, lockfile, nested
-workspace configuration, or standalone CI here. Run package tasks through HASH's root Yarn/Turbo
-workspace.
+- **Imperative** — what must become true, and why now.
+- **Throughline** — the real entrypoint or boundary being changed.
+- **Proof** — the observable evidence that would establish progress, and the claim it does not
+  make. A path, a connected skeleton, and a discharged contract are different completions.
+- **Constraints** — the few already-earned truths that must stay true.
+- **Fog-line** — uncertainty that current evidence cannot yet decide between consequential
+  alternatives, and must not be designed past. Clarifying intent is not clearing terrain. Capture
+  unresolved flags here: why they matter, what they constrain, and what would re-enter them.
+  Running the path may lengthen this list; that is calibration, not regression.
+- **Stop or reorient** — evidence that invalidates or changes the route.
 
-## Before changing Brunch
+### One live mission, next-concerns scratchpad
 
-1. Read `CONTEXT.md` and the relevant decision under `docs/adr/`.
-2. Read the protocol under `docs/agents/` that corresponds to the operation.
-3. Preserve the executable package-direction, Flue entrypoint, bundle, and hermetic-runtime gates.
+[`MISSION.md`](MISSION.md) is the only execution authority. Agents and humans implement against it.
 
-## Working methods
+[`MISSION.next.md`](MISSION.next.md) is the scratchpad for discussing all next concerns. It may
+hold a longer horizon than a single mission. It is not a mission: do not implement it, do not
+treat it as a second concurrent mission, and do not declare its focus until planning is resolved.
 
-- Use Graphite (`gt`) for stack operations; do not use `gh stack` in HASH.
-- Issues live in Linear team `FE`, project `brunch-agent`.
-- Brunch Markdown is created and maintained by agents; exclude it from `oxfmt` and `markdownlint`.
+A current mission's **Deferred** items belong in that scratchpad as well. Do not silently drop or
+supersede them when adding other concerns.
 
-Route by trigger; load only the applicable compact protocol:
+When the current mission is accepted and the next focus is resolved:
 
-- Start or resume without a proof target, or when objectives, pressure, proof, authority, external
-  gates, frontier value, or arc-close findings change: `docs/agents/steering.md`.
-- Create, mutate, triage, or structure issues: `docs/agents/issue-tracker.md`,
-  `docs/agents/issue-writing.md`, and `docs/agents/triage-labels.md`.
-- Add, move, settle, or index documents: `docs/agents/documentation.md`.
-- Change domain terms or accepted context decisions: `docs/agents/domain.md`.
-- Make a Flue design choice: `docs/agents/flue-routing.md`.
-- Produce a significant agent-authored artifact or proof: `docs/agents/legibility.md`.
-- Make an architecture-sensitive move: `docs/agents/posture.md`.
-- Operate on branches, stacks, commits, or PRs: `docs/agents/git-workflow.md`.
-- Close a work arc: run the context-local `arc-close` skill and
-  `docs/agents/arc-close.md`.
+1. Move `MISSION.md` to `docs/mission-archive/{n}-{slug}.md`.
+2. Cut a single focused `MISSION.md` from the scratchpad (the six-section contract above).
+3. Leave everything that did not make the cut in `MISSION.next.md`.
+
+Do not promote `MISSION.next.md` wholesale. Do not keep two live missions. Do not delete a closed
+mission; the archive is evidence of what was proven, not marching orders. Re-earn before building
+on it, same as an ADR.
+
+## Correctives
+
+- Before adding structure, name the production pressure that requires it.
+- Work the first unproven boundary; do not build toward the imagined end.
+- Real entrypoint or it did not happen; a proof is legible when a human can watch it and decide.
+- A ticket is a projection; the mission is the authority. If the ticket stops serving the
+  imperative, stop and surface the divergence instead of finishing the ticket.
+- When evidence changes the route, stop; do not finish the planned neighbourhood.
+- When things accumulate, subtract before you extend.
+- No imperative and proof means it is not a mission yet — do not start it.
+- Censor noise; keep consequential doubt visible.
+- Checking is proportional to consequence and reversibility. Within that budget, a commitment is
+  warranted when the premises it depends on are either observed at the real boundary or
+  explicitly accepted as risk.
+- Low confidence must change the next move — build the smallest real path that reveals more,
+  inspect, choose the reversible option, or flag it — or go unsaid.
+- At close, update the PR description: what each proof item established, the observed answer to
+  each fog-line question, and the flags that carry into the next mission. Archive the closed
+  `MISSION.md` as above; the PR description remains the GitHub-facing close report.
+
+## Retained facts
+
+- **Toolchain:** format TS/JSON with root `oxfmt`; lint via `lint:eslint` (Oxlint) and
+  `lint:tsc` (`tsgo --noEmit`); unit tests via `vitest run`; build with Vite 8. Run tasks through
+  the HASH root Yarn/Turbo workspace — add no `package.json` or lockfile here.
+- **Issue, branch, and PR lifecycle:** one Linear issue = one Graphite branch = one GitHub PR; the
+  branch mission remains the execution authority. Follow
+  [`docs/agents/git-workflow.md`](docs/agents/git-workflow.md) when creating, restacking, or
+  submitting a branch or connecting it to an issue or PR.
+- **Linear project posture:** Brunch issues live on team `FE`, project `brunch-agent`, whose mixed
+  inherited issue history is evidence and inbox rather than an authoritative plan. Follow
+  [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) before creating, reusing, relating,
+  or changing an issue. Reading is fine; get explicit approval before every Linear write.
+- **Linear and GitHub writing:** follow
+  [`docs/agents/issue-writing.md`](docs/agents/issue-writing.md) whenever creating or editing an
+  issue, pull request, or comment.
+- **Topology gates** (enforced by tests): plugins never import
+  `@hashintel/brunch-agent/prompts`; transport packages never depend on a binding; bindings
+  depend inward on core; plugins depend only on core. Evaluation answer keys stay on the
+  evaluation side, never inside interviewee or elicitor inputs.
+- **Posture:** prototype · stakes high — persisted capture data and merge gates must fail loudly,
+  never corrupt silently · horizon: current milestone.
+- **Flue:** when adding state, a loop, a route, or a test harness, consult
+  [`docs/reference/architecture/flue-routing.md`](docs/reference/architecture/flue-routing.md)
+  before inventing a parallel mechanism.
+
+## Authorities vs obligations
+
+[`docs/specs/`](docs/specs), [`docs/adr/`](docs/adr) (see its [README](docs/adr/README.md)), and
+[`docs/evidence/`](docs/evidence) are history and reference: prior design hypotheses and observed
+results. They are not marching orders. Re-earn any design you build to; an implemented decision is
+evidence, unimplemented design is a hypothesis. A branch may depart from a recorded decision by
+noting the divergence in its commit. Provenance is not warrant: a statement is evidence of what
+was said, not automatically of the terrain. This holds equally for specs, ADRs, the user's
+statements, and the model's own recommendations. Objectives, trade-off preferences, and policy
+settle by conversation with their owner; current-state claims, causal claims, and feasibility
+settle only at the real boundary.

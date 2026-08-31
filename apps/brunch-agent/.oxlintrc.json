@@ -26,7 +26,7 @@
         "paths": [
           {
             "name": "@hashintel/petrinaut",
-            "message": "The Brunch server must remain independent of Petrinaut implementations."
+            "message": "The Brunch server must remain independent of Petrinaut UI. Import catalogs from @hashintel/petrinaut-core, not the editor package."
           }
         ],
         "patterns": [
@@ -35,8 +35,12 @@
             "message": "The Brunch application must not depend on unpublished HASH packages."
           },
           {
-            "group": ["@hashintel/petrinaut/*", "@hashintel/petrinaut-*"],
-            "message": "The Brunch server must remain independent of Petrinaut implementations."
+            "group": [
+              "@hashintel/petrinaut/*",
+              "@hashintel/petrinaut-cli",
+              "@hashintel/petrinaut-cli/*"
+            ],
+            "message": "The Brunch server must remain independent of Petrinaut UI and CLI. Import catalogs from @hashintel/petrinaut-core, not the editor package."
           }
         ]
       }

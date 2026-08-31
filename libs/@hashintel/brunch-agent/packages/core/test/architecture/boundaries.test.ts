@@ -159,6 +159,7 @@ describe("dependency direction (spec §4, §12.2)", () => {
             CORE,
           );
           expect(specifier).not.toBe(`${CORE}/storage`);
+          expect(specifier).not.toBe(`${CORE}/prompts`);
         }
       }
     }
@@ -182,19 +183,42 @@ describe("dependency direction (spec §4, §12.2)", () => {
     }
   });
 
-  test("transports consume harness parts and their wire encoder only", () => {
+  test("repertoire defaults are guarded core prompt data (ADR-0008)", () => {
+    expect(PACKAGES.map((pkg) => pkg.dir)).not.toContain("repertoire");
+
+    const promptImporters = PACKAGES.flatMap((pkg) =>
+      sourceFiles(pkg)
+        .filter((file) => importedPackages(file).includes(`${CORE}/prompts`))
+        .map((file) => ({ pkg: pkg.dir, file: file.relPath })),
+    );
+    expect(promptImporters.length).toBeGreaterThan(0);
+    for (const importer of promptImporters) {
+      expect(importer.pkg).toMatch(/^binding-/u);
+    }
+
+    // Plugin-only CI lints the plugin and does not run this suite. The
+    // oxlint path ban is the gate that fires then; this assertion keeps
+    // that gate from disappearing while the suite still runs.
+    for (const plugin of byRole("plugin")) {
+      expect(
+        readFileSync(join(plugin.path, ".oxlintrc.json"), "utf8"),
+      ).toContain(`"name": "${CORE}/prompts"`);
+    }
+  });
+
+  test("transports consume their wire encoder only — never core, a binding, or Flue", () => {
     const transports = byRole("transport");
     expect(transports.length).toBeGreaterThan(0);
     for (const transport of transports) {
       expect(runtimeDependencies(transport).sort()).toEqual(
-        [CORE, "ai", "valibot"].sort(),
+        ["ai", "valibot"].sort(),
       );
       for (const file of sourceFiles(transport).filter((file) =>
         file.path.startsWith(join(transport.path, "src")),
       )) {
         for (const specifier of importedPackages(file)) {
           if (specifier.startsWith("node:")) continue;
-          expect([CORE, "ai", "valibot"]).toContain(packageOf(specifier));
+          expect(["ai", "valibot"]).toContain(packageOf(specifier));
         }
       }
     }
@@ -400,14 +424,22 @@ describe("recorded Flue constraints hold by construction (spec §10)", () => {
 });
 
 describe("core auxiliary subpaths stay in their assigned lanes (spec §12.2)", () => {
-  test("core exposes browser contracts, storage support and testing as explicit subpaths", () => {
+  test("core exposes browser contracts, prompts, storage support and testing as explicit subpaths", () => {
     const core = PACKAGES.find((pkg) => pkg.name === CORE)!;
     expect(Object.keys(core.manifest.exports ?? {})).toEqual([
       ".",
       "./client-tools",
+      "./prompts",
       "./storage",
       "./testing",
     ]);
+    expect(core.manifest.exports?.["./prompts"]).toEqual({
+      types: "./src/prompts.ts",
+      import: "./dist/prompts.js",
+    });
+
+    const rootEntry = readFileSync(join(core.path, "src/index.ts"), "utf8");
+    expect(rootEntry).not.toMatch(/\bfrom\s+["']\.\/prompts["']/u);
   });
 
   test("no package source imports core/testing", () => {
@@ -454,12 +486,14 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
    * path enters here by review only.
    */
   const SUBSTRATE_INTEGRATION_ENTRY_POINTS: Readonly<Record<string, string>> = {
-    "apps/brunch-agent/test/petrinaut-ask.integration.ts":
-      "Boots the real Gherkin elicitor on Flue's node runtime with pi-ai's faux provider and drives the committed application route over app.fetch through a full ask suspend/return/resume cycle plus a refused duplicate — no provider key, no socket, no external checkout mutation.",
+    "apps/brunch-agent/test/flue-transcript.test.ts":
+      "Types Flue's public conversation snapshot so the transcript projector can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
+    "apps/brunch-agent/test/flue-ui-stream.test.ts":
+      "Types Flue conversation-stream chunks so the AI SDK projector can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
     "apps/brunch-agent/test/petrinaut-chat.integration.ts":
-      "Boots the real Gherkin elicitor on Flue's node runtime with pi-ai's faux provider, drives the committed application AI SDK route over app.fetch, and proves live reasoning/text plus inspection events without a provider key, socket, or external checkout mutation.",
-    "apps/brunch-agent/test/walking-skeleton.integration.ts":
-      "Boots the dev app on Flue's node runtime with pi-ai's faux provider and drives it over app.fetch — no provider key, no socket, no model call. Run as a child process by walking-skeleton.test.ts, which is what makes the node runtime drivable from this suite at all.",
+      "Boots the plain Flue chat agent on Flue's node runtime with pi-ai's faux provider, drives the committed /api/chat door over app.fetch, and proves streamed reasoning/text, one server tool, one stub skill activation, one read-only client-tool resume, GET history ownership, SQLite restart, and harness-side idempotent apply-sweep into a capture store keyed by Flue conversation identity — no provider key, no socket, no extraction model call. Run as a child process by petrinaut-chat.test.ts.",
+    "apps/brunch-agent/test/turn-timing.test.ts":
+      "Types recorded Flue observations and model requests so the condition-5 purpose splitter can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
   };
 
   test("no test file carries a live model credential", () => {

@@ -1,7 +1,7 @@
 import * as v from "valibot";
 
 import type { CaptureInputProposal } from "./capture-store";
-import type { PluginFile } from "./plugin-file";
+import type { PluginDefinition } from "./plugin-definition";
 
 /**
  * The plugin descriptor — identity only, at this stage.
@@ -14,10 +14,10 @@ import type { PluginFile } from "./plugin-file";
  * that a plugin declares which target formalism it defines, and does so through
  * Valibot like every other boundary in the system (spec §12.4).
  *
- * ADR-0006 adds the plugin file: a per-formalism sectioned Markdown document
- * whose three tables parameterise the harness's fold, completion, and cue. A
- * plugin that carries one is a kind-and-slot plugin and proposes slot
- * assertions; the tracer plugin still has none.
+ * ADR-0007 adds the plugin definition: `plugin.yaml` under the harness-owned
+ * keys, whose contract keys parameterise the harness's fold, completion, and
+ * cue and whose guidance and runbook cells specialise what the repertoire
+ * teaches. A plugin that carries one is a kind-and-slot plugin.
  */
 export const PluginDescriptor = v.object({
   /** Package-level identity, matching the `plugin-*` role prefix (spec §12.2). */
@@ -38,8 +38,8 @@ export interface PluginProposalType {
 export type Plugin = v.InferOutput<typeof PluginDescriptor> & {
   /** FE-1392's declared floor; FE-1393 grows the catalog and SDK around it. */
   readonly proposalCatalog: readonly [PluginProposalType];
-  /** The parsed plugin file (ADR-0006); absent for a plugin without one. */
-  readonly file?: PluginFile;
+  /** The plugin definition (ADR-0007); absent only for a plugin without a model. */
+  readonly definition?: PluginDefinition;
 };
 
 /**
@@ -65,6 +65,8 @@ export function definePlugin(descriptor: Plugin): Plugin {
   return {
     ...identity,
     proposalCatalog: [{ ...proposal, name, description }],
-    ...(descriptor.file === undefined ? {} : { file: descriptor.file }),
+    ...(descriptor.definition === undefined
+      ? {}
+      : { definition: descriptor.definition }),
   };
 }
