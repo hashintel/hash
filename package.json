@@ -110,11 +110,8 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "shell-quote@npm:1.8.4": "1.9.0",
-    "storybook@npm:10.2.19/esbuild": "^0.28.1",
-    "storybook@npm:10.3.6/esbuild": "^0.28.1",
     "tsup/esbuild": "^0.28.1",
-    "underscore": "1.13.8",
-    "vite@npm:7.3.5/esbuild": "^0.28.1"
+    "underscore": "1.13.8"
   },
   "engines": {
     "node": ">= v22"
