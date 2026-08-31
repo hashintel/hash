@@ -58,6 +58,9 @@ class ObserverStub {
 globalThis.ResizeObserver = ObserverStub as unknown as typeof ResizeObserver;
 globalThis.IntersectionObserver =
   ObserverStub as unknown as typeof IntersectionObserver;
+// jsdom implements no scrolling at all, and the Scale list scrolls itself to
+// the selected option when it opens.
+Element.prototype.scrollTo = () => {};
 
 afterEach(cleanup);
 
@@ -918,6 +921,66 @@ describe("AdHocScenarioForm", () => {
     // ...then the whole slab.
     fireEvent.keyDown(document.activeElement!, { key: "Escape" });
     expect(screen.queryByText("Scale")).toBe(null);
+  });
+
+  it("keeps the optimize bounds usable while the slab is open", async () => {
+    let latest: AdHocScenarioState | undefined;
+    const initial: AdHocScenarioState = {
+      variables: [
+        {
+          name: "n",
+          type: "integer",
+          expression: "2",
+          optimize: { min: "0", max: "10", step: "1", scale: "linear" },
+        },
+      ],
+      netParameters: [],
+      places: {},
+    };
+    render(
+      <Harness
+        initial={initial}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "n" }));
+    const minCell = await screen.findByRole("button", { name: "Min of n" });
+    const slab = document.querySelector("[data-adhoc-slab]");
+
+    // The slab takes its own pointer events: a portal container is often a
+    // pointer-transparent layer, and a click-through slab hands every press
+    // to the row beneath it — which the dismiss handler reads as a press
+    // outside and closes the slab on.
+    expect(slab?.className).toContain("pointer-events_auto");
+
+    // A layer opened from inside the slab lives inside it, so pressing its
+    // options is not an outside press.
+    fireEvent.click(screen.getByRole("combobox", { name: "Scale of n" }));
+    const scaleList = await screen.findByRole("listbox");
+    expect(slab?.contains(scaleList)).toBe(true);
+    fireEvent.keyDown(scaleList, { key: "Escape" });
+
+    // Editing one bound keeps focus in its editor. Each keystroke dispatches
+    // and re-renders the slab, and the one-shot Min selection must not
+    // re-arm on the re-render: it used to steal focus mid-edit, so the next
+    // character overwrote Min instead.
+    fireEvent.keyDown(minCell, { key: "ArrowRight" });
+    fireEvent.click(screen.getByRole("button", { name: "Max of n" }));
+    const editor = await screen.findByRole("textbox", { name: "Expression" });
+    // The real editor focuses itself on mount; the jsdom stand-in does not.
+    editor.focus();
+    fireEvent.change(editor, { target: { value: "12" } });
+    expect(latest?.variables[0]?.optimize?.max).toBe("12");
+    expect(document.activeElement).toBe(editor);
+    // ...on the commit after that one too, which is where a guard re-armed
+    // by the ref churn would have taken the focus.
+    fireEvent.change(editor, { target: { value: "125" } });
+    expect(latest?.variables[0]?.optimize?.max).toBe("125");
+    expect(document.activeElement).toBe(editor);
+    expect(latest?.variables[0]?.optimize?.min).toBe("0");
   });
 
   it("selects on pointer click and opens the menu from the dots", async () => {
