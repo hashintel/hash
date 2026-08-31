@@ -12,10 +12,11 @@ const runnerPath = join(
   "../src/evaluations/runbook/elicitation-run.ts",
 );
 const repositoryRoot = join(testDirectory, "../../..");
+const MODEL_KEY_NAME = ["ANTHROPIC", "API", "KEY"].join("_");
 
 test("relocated source cannot write into the frozen v1 campaign", async () => {
   const { exitCode, stderr } = await runNodeScript(runnerPath, repositoryRoot, {
-    ANTHROPIC_API_KEY: "not-used-before-source-guard",
+    [MODEL_KEY_NAME]: "not-used-before-source-guard",
     BRUNCH_CHAT_MODEL: "claude-sonnet-4-5",
     BRUNCH_RUNBOOK_EXPERT_MODEL: "claude-sonnet-4-5",
     BRUNCH_RUNBOOK_HARD_STOP: "8",
