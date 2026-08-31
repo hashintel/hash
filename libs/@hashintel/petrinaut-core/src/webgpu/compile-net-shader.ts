@@ -68,8 +68,11 @@ export function histogramBinCount(
   metricCount: number,
   sampledCountCeiling: number | null,
 ): number {
+  // The observed-range reduction (`local_min`/`local_max`, one u32 atomic
+  // of each per metric) shares the workgroup budget with `local_hist`.
+  const metrics = Math.max(1, metricCount);
   const budget = Math.floor(
-    GPU_BASELINE_WORKGROUP_STORAGE_BYTES / (4 * Math.max(1, metricCount)),
+    (GPU_BASELINE_WORKGROUP_STORAGE_BYTES - 8 * metrics) / (4 * metrics),
   );
   const bins = Math.max(2, Math.min(GPU_HISTOGRAM_MAX_BINS, budget));
   if (sampledCountCeiling === null) {
@@ -336,16 +339,25 @@ function emitKernel(
     }
 
     const tokens = entry.elements.map((element) => {
-      if (element.kind !== "record") {
+      // A kernel may build a token as a record literal, or forward one of
+      // its input tokens (`MachinesToRepair: input.BrokenMachines`) — a
+      // forwarded token's fields come from its reader, and the `kout_*`
+      // hoisting at the fire block binds them before compaction moves the
+      // source slot.
+      if (element.kind !== "record" && element.kind !== "token") {
         throw new WgslBailError(
-          `the kernel's tokens for \`${output.slotName}\` must be records of attributes`,
+          `the kernel's tokens for \`${output.slotName}\` must be records of attributes or forwarded input tokens`,
         );
       }
+      const fieldValue = (field: string): WgslValue | undefined =>
+        element.kind === "record"
+          ? element.fields.get(field)
+          : element.read(field);
       const tokenWrites: KernelTokenWrite[] = [];
       // Reals first, then discretes, matching `eligibility.ts`'s `wordsPerToken`
       // and the reader above.
       for (const [ordinal, field] of output.place.realFields.entries()) {
-        const value = element.fields.get(field);
+        const value = fieldValue(field);
         if (value === undefined) {
           throw new WgslBailError(
             `the kernel does not set \`${field}\` on a token for \`${output.slotName}\``,
@@ -357,7 +369,7 @@ function emitKernel(
         });
       }
       for (const [ordinal, field] of output.place.discreteFields.entries()) {
-        const value = element.fields.get(field);
+        const value = fieldValue(field);
         if (value === undefined) {
           throw new WgslBailError(
             `the kernel does not set \`${field}\` on a token for \`${output.slotName}\``,
@@ -1181,6 +1193,20 @@ export function compileNetShader(
         if (write !== undefined) {
           const stride = placeTokenStride[index]!;
           const tokenBase = placeTokenOffsets[index]!;
+          // A derived slab detects overflow instead of blocking. The
+          // post-fold check alone misses a frame that produces past the slab
+          // and then consumes back below it — the out-of-slab write already
+          // happened (clamped by robust buffer access, silently corrupting
+          // the last slot) — so the requirement is flagged at the write.
+          const outputPlace = profile.places[index]!;
+          if (
+            outputPlace.capacitySource === "derived" &&
+            write.tokens.length > 0
+          ) {
+            push(
+              `        if (counts[${index}u] + u32(max(0, pending[${index}u])) + ${write.tokens.length}u > ${outputPlace.capacity}u) { status = 3u; }`,
+            );
+          }
           for (const [tokenOrdinal, tokenWrites] of write.tokens.entries()) {
             push(`        {`);
             push(
