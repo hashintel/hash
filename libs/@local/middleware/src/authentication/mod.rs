@@ -75,10 +75,8 @@ impl AuthenticationMetrics {
 
 /// The response a request that failed authentication is answered with.
 ///
-///
-/// Metrics are recorded when the rejection is dropped, which happens once [`IntoResponse`]
-/// has rendered the response. It is independent of the fact whether a rejection will be rendered
-/// or not.
+/// The failure is logged and counted when the rejection drops, whether or not a response was
+/// rendered from it.
 pub enum AuthenticationRejection {
     /// The credentials did not resolve to a caller the route admits.
     Authentication {
