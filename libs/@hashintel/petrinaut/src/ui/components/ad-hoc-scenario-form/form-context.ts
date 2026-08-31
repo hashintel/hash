@@ -68,6 +68,17 @@ export interface AdHocFormServices {
    * already-dense panel.
    */
   dense: boolean;
+  /**
+   * The form root's key guards, re-attached by content that portals
+   * outside the root (the value-editor slab): `capture` is the undo/redo
+   * capture, `bubble` stops Delete/Backspace from reaching host shortcuts.
+   * Without them, keys pressed on the slab's non-Monaco controls would
+   * bypass form undo and hit the canvas.
+   */
+  overlayKeyDown: {
+    capture: (event: React.KeyboardEvent) => void;
+    bubble: (event: React.KeyboardEvent) => void;
+  };
 }
 
 export const AdHocFormContext = createContext<AdHocFormServices>({
@@ -82,4 +93,5 @@ export const AdHocFormContext = createContext<AdHocFormServices>({
   setFocusedValue: () => {},
   formatExpression: () => Promise.resolve(null),
   dense: false,
+  overlayKeyDown: { capture: () => {}, bubble: () => {} },
 });

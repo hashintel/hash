@@ -206,6 +206,17 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     }
   }
 
+  // Delete/Backspace acts inside the form (clear a cell, delete a row) and
+  // must never bubble to the app, where it would hit the canvas's
+  // delete-selection shortcut. Shared with the portaled value-editor slab,
+  // which sits outside the root and would otherwise leak both this and the
+  // undo capture.
+  const stopDeleteKeys = (event: React.KeyboardEvent) => {
+    if (event.key === "Delete" || event.key === "Backspace") {
+      event.stopPropagation();
+    }
+  };
+
   const services: AdHocFormServices = {
     formState: state,
     dispatch,
@@ -229,6 +240,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     setFocusedValue,
     formatExpression: requestFormatExpression,
     dense: false,
+    overlayKeyDown: { capture: handleKeyDown, bubble: stopDeleteKeys },
   };
 
   const parameterRows =
@@ -289,14 +301,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
           onKeyDownCapture={handleKeyDown}
           onPointerDownCapture={clearance.onPointerDownCapture}
           onFocusCapture={clearance.onFocusCapture}
-          // Delete/Backspace acts inside the form (clear a cell, delete a
-          // row) and must never bubble to the app, where it would hit the
-          // canvas's delete-selection shortcut.
-          onKeyDown={(event) => {
-            if (event.key === "Delete" || event.key === "Backspace") {
-              event.stopPropagation();
-            }
-          }}
+          onKeyDown={stopDeleteKeys}
         >
           <FocusStack axis="vertical">
             <SectionList>

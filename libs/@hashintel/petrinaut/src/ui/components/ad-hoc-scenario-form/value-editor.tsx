@@ -421,6 +421,7 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
     setFocusedValue,
     formatExpression,
     dispatch,
+    overlayKeyDown,
   } = use(AdHocFormContext);
   const booleanDomain = kind === "boolean";
   const triggerPlaceholder =
@@ -870,7 +871,16 @@ export const ValueEditor: React.FC<ValueEditorProps> = ({
           <div
             ref={overlayRef}
             className={overlayStyle}
-            onKeyDownCapture={stepValueWithArrows}
+            role="presentation"
+            // The slab portals outside the form root, so the root's undo
+            // capture and Delete/Backspace stop are re-attached here — keys
+            // on the slab's non-Monaco controls must reach form undo, never
+            // the host's canvas shortcuts.
+            onKeyDownCapture={(event) => {
+              overlayKeyDown.capture(event);
+              stepValueWithArrows(event);
+            }}
+            onKeyDown={overlayKeyDown.bubble}
             style={{
               top: rect.top,
               left: rect.left,
