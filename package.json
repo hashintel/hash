@@ -110,6 +110,7 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "shell-quote@npm:1.8.4": "1.9.0",
+    "tsup/esbuild": "^0.28.1",
     "underscore": "1.13.8"
   },
   "engines": {
