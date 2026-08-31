@@ -372,6 +372,36 @@ describe("synthesizeAdHocScenario", () => {
     ]);
   });
 
+  it("a shared column reaches rows shorter than the colour", () => {
+    // A row created before the colour gained its second element has one
+    // cell; the shared column must still supply `worn` for it, and an
+    // unshared missing cell falls back to the element type's neutral.
+    const state = baseState();
+    state.places["place-pumps"] = {
+      kind: "coloured",
+      variables: [],
+      rows: [fixed("5"), fixed("6", "true")],
+      sharedColumns: { worn: cell("i === 1") },
+    };
+
+    const result = compiled(synthesizeAdHocScenario(state, context));
+    expect(result.initialState["place-pumps"]).toEqual([
+      { pressure: 5, worn: false },
+      { pressure: 6, worn: true },
+    ]);
+
+    state.places["place-pumps"] = {
+      kind: "coloured",
+      variables: [],
+      rows: [fixed("5")],
+      sharedColumns: {},
+    };
+    const unshared = compiled(synthesizeAdHocScenario(state, context));
+    expect(unshared.initialState["place-pumps"]).toEqual([
+      { pressure: 5, worn: false },
+    ]);
+  });
+
   it("keeps net parameter overrides and defaults apart", () => {
     const state = baseState();
     state.netParameters = [

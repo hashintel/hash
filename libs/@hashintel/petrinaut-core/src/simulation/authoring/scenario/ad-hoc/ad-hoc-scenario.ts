@@ -1858,13 +1858,21 @@ function generateInitialStateCode(
     );
 
     const rowObject = (row: AdHocRow, rowIndex: number): string => {
-      const fields = row.cells.map((cell, columnIndex) => {
+      // A row can be shorter than the colour (an element added after the
+      // row existed): the missing tail still gets its fields, so a shared
+      // column applies there too instead of silently falling back to the
+      // element's compile-time default.
+      const width = Math.max(row.cells.length, elements.length);
+      const fields = Array.from({ length: width }, (_, columnIndex) => {
+        const cell = row.cells[columnIndex];
         const element = elements[columnIndex];
         const name = element ? element.name : `__column${columnIndex}`;
         const shared = placeState.sharedColumns[name];
         const cellSource = shared
           ? source(shared, adHocParameterName.column(placeKey, name))
-          : source(cell, adHocParameterName.cell(placeKey, rowIndex, name));
+          : cell
+            ? source(cell, adHocParameterName.cell(placeKey, rowIndex, name))
+            : adHocNeutralExpression(element ? element.type : "real");
         return `${JSON.stringify(name)}: ${cellSource}`;
       });
       return `{ ${fields.join(", ")} }`;
