@@ -1301,13 +1301,6 @@ const AvailableVoiceInterviewControl = ({
     [context.messages],
   );
 
-  if (previousPlacement !== context.placement) {
-    setPreviousPlacement(context.placement);
-    if (context.placement === "detached" && snapshot.phase !== "idle") {
-      setPresentation("mini");
-    }
-  }
-
   useLayoutEffect(() => {
     store.controller.updateChat({
       canAcceptInterviewAnswer: context.canAcceptInterviewAnswer,

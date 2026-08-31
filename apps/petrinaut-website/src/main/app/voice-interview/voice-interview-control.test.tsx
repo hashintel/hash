@@ -108,6 +108,10 @@ const StatefulVoiceInterviewHarness = ({
       kind: "message" as const,
       messageId: "typed-answer",
     })),
+    submitVoiceInput: vi.fn(async () => ({
+      kind: "message" as const,
+      messageId: "voice-answer",
+    })),
   };
 
   return (
