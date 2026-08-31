@@ -17,12 +17,15 @@ import { Hono } from "hono";
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
 import { assetHandler } from "./http/assets.ts";
 import { agentOwnershipGuard } from "./http/ownership.ts";
-import { petrinautChatHandler } from "./http/petrinaut-chat.ts";
+import { createPetrinautChatHandler } from "./http/petrinaut-chat.ts";
 import { CHAT_AGENT_ROUTE, PETRINAUT_CHAT_ROUTE } from "./http/routes.ts";
 
 instrument(createOpenTelemetryInstrumentation({ content: false }));
 
 const app = new Hono();
+const appTransport: typeof fetch = async (input, init) =>
+  app.fetch(input instanceof Request ? input : new Request(input, init));
+const petrinautChatHandler = createPetrinautChatHandler(appTransport);
 
 const chatAgentMount = `/agents/${CHAT_AGENT_ROUTE}`;
 app.use(`${chatAgentMount}/*`, agentOwnershipGuard(`${chatAgentMount}/`));

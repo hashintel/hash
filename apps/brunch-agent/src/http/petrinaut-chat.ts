@@ -34,15 +34,13 @@ const inspect =
       }
     : undefined;
 
-const appTransport: typeof fetch = async (input, init) => {
-  const { default: app } = await import("../app.ts");
-  return app.fetch(input instanceof Request ? input : new Request(input, init));
-};
-
 const conversationUrl = (instanceId: string): string =>
   `http://brunch.local/agents/${CHAT_AGENT_ROUTE}/${instanceId}`;
 
-const historyClient = (identity: ConversationIdentity) =>
+const historyClient = (
+  identity: ConversationIdentity,
+  appTransport: typeof fetch,
+) =>
   createFlueClient({
     url: conversationUrl(flueConversationIdFrom(identity)),
     fetch: appTransport,
@@ -97,27 +95,29 @@ const runClientToolResume = (
     write,
   );
 
-const loadHistory = async (
-  identity: ConversationIdentity,
-): Promise<{ readonly messages: readonly unknown[] }> => {
-  let snapshot: FlueConversationSnapshot;
-  try {
-    snapshot = await historyClient(identity).history();
-  } catch {
-    return { messages: [] };
-  }
-  return { messages: snapshotToUiMessages(snapshot) };
-};
+export const createPetrinautChatHandler = (appTransport: typeof fetch) => {
+  const loadHistory = async (
+    identity: ConversationIdentity,
+  ): Promise<{ readonly messages: readonly unknown[] }> => {
+    let snapshot: FlueConversationSnapshot;
+    try {
+      snapshot = await historyClient(identity, appTransport).history();
+    } catch {
+      return { messages: [] };
+    }
+    return { messages: snapshotToUiMessages(snapshot) };
+  };
 
-export const petrinautChatHandler = createAiSdkChatHandler({
-  allowedOrigins: (
-    process.env.BRUNCH_PETRINAUT_ORIGINS ?? defaultPanelOrigins.join(",")
-  )
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter((origin) => origin.length > 0),
-  inspect,
-  runTurn: runUserTurn,
-  resumeTurn: runClientToolResume,
-  loadHistory,
-});
+  return createAiSdkChatHandler({
+    allowedOrigins: (
+      process.env.BRUNCH_PETRINAUT_ORIGINS ?? defaultPanelOrigins.join(",")
+    )
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter((origin) => origin.length > 0),
+    inspect,
+    runTurn: runUserTurn,
+    resumeTurn: runClientToolResume,
+    loadHistory,
+  });
+};
