@@ -393,6 +393,51 @@ describe("voice interview control", () => {
     expect(screen.getByText("Voice inactive")).not.toBeNull();
   });
 
+  test("restarts when Voice is reselected before teardown completes", async () => {
+    window.localStorage.setItem(
+      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      "acknowledged",
+    );
+    const connect = vi
+      .spyOn(OpenAIRealtimeSession.prototype, "connect")
+      .mockResolvedValue(1);
+    let finishDisconnect: (() => void) | undefined;
+    vi.spyOn(OpenAIRealtimeSession.prototype, "disconnect")
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            finishDisconnect = resolve;
+          }),
+      )
+      .mockResolvedValue(undefined);
+    vi.spyOn(
+      OpenAIRealtimeSession.prototype,
+      "setMicrophoneEnabled",
+    ).mockImplementation(() => {});
+    render(<VoiceInterviewHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+    await screen.findByText("Listening");
+    fireEvent.click(screen.getByRole("button", { name: "Voice mode actions" }));
+    const endItem = await screen.findByRole("menuitem", {
+      name: "End voice mode",
+    });
+    fireEvent.pointerMove(endItem, { pointerType: "mouse" });
+    await waitFor(() =>
+      expect(endItem.hasAttribute("data-highlighted")).toBe(true),
+    );
+    fireEvent.click(endItem);
+    await screen.findByText("Text mode");
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+
+    expect(connect).toHaveBeenCalledOnce();
+    finishDisconnect?.();
+
+    await waitFor(() => expect(connect).toHaveBeenCalledTimes(2));
+    expect(screen.getByText("Voice active")).not.toBeNull();
+    expect(screen.getByText("Listening")).not.toBeNull();
+  });
+
   test("pauses once when the panel closes and stays paused after reopening", async () => {
     window.localStorage.setItem(
       VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,

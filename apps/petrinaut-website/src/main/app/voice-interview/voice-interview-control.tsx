@@ -372,8 +372,8 @@ const AvailableVoiceInterviewControl = ({
   );
 
   useEffect(() => {
-    setVoiceActive(active);
-  }, [active, setVoiceActive]);
+    setVoiceActive(inputMode === "voice" && active);
+  }, [active, inputMode, setVoiceActive]);
 
   useLayoutEffect(() => {
     if (
