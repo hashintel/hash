@@ -435,6 +435,7 @@ __metadata:
   resolution: "@apps/brunch-agent@workspace:apps/brunch-agent"
   dependencies:
     "@earendil-works/pi-ai": "npm:0.83.0"
+    "@flue/opentelemetry": "npm:2.0.3"
     "@flue/react": "npm:2.0.3"
     "@flue/runtime": "npm:2.0.3"
     "@flue/sdk": "npm:2.0.3"
@@ -444,6 +445,9 @@ __metadata:
     "@hashintel/brunch-agent-plugin-gherkin": "workspace:*"
     "@hashintel/brunch-agent-plugin-sdcpn": "workspace:*"
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*"
+    "@opentelemetry/api": "npm:1.9.1"
+    "@opentelemetry/sdk-trace-base": "npm:2.9.0"
+    "@opentelemetry/sdk-trace-node": "npm:2.9.0"
     "@types/node": "npm:22.18.13"
     "@types/react": "npm:19.2.14"
     "@types/react-dom": "npm:19.2.3"
@@ -6505,6 +6509,16 @@ __metadata:
   version: 0.2.12
   resolution: "@floating-ui/utils@npm:0.2.12"
   checksum: 10c0/bb910b90d56991a62011afaf5f8e0c4b7fb6dab69403f4dd17fbd6eb25560b28d533dff9791f270b4f459852e9006a1077b5d73cbedb5e34d9424afc6a828314
+  languageName: node
+  linkType: hard
+
+"@flue/opentelemetry@npm:2.0.3":
+  version: 2.0.3
+  resolution: "@flue/opentelemetry@npm:2.0.3"
+  peerDependencies:
+    "@flue/runtime": ^2.0.3
+    "@opentelemetry/api": ^1.9.0
+  checksum: 10c0/3eb38f7af8c46019f74417599fc099e02d8675635e8d23f1e49c07bc26a644ad4f14be8a80b38b86dedf795db5bdb3d0045430c4b12ca7e92b51d5608baa75e7
   languageName: node
   linkType: hard
 

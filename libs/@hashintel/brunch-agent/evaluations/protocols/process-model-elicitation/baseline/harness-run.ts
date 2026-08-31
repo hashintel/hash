@@ -25,6 +25,8 @@
  *     BRUNCH_SDCPN_MODEL                           interviewer model id; this runner defaults it to claude-opus-5
  *     BRUNCH_BASELINE_ANTHROPIC_MODULE             test-only stand-in for the expert's Anthropic client
  *     BRUNCH_BASELINE_INTERVIEWER_PROVIDER_MODULE  test-only pi provider module (default export) for the interviewer
+ *     BRUNCH_BASELINE_HARD_STOP                     positive interviewer-turn limit; defaults to 24
+ *     BRUNCH_BASELINE_OUTPUT_DIR                   optional run-specific production output directory
  *     BRUNCH_BASELINE_TEST_OUTPUT_DIR              test-only output directory; requires both stand-ins
  *
  * Artifacts (beside the other conditions' transcripts unless the test directory is set):
@@ -34,9 +36,18 @@
  *     condition-5-model.md        the capture store folded into the elicited model, with the completion report
  *     condition-5-captures.json   the capture-store snapshot verbatim
  *     condition-5-system.md       the interviewer's instructions, reconstructed with the binding's own functions
+ *     condition-5.timings.jsonl   each observed Flue model call, tagged by interviewer-turn purpose
  */
 
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  appendFile,
+  cp,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -72,6 +83,12 @@ import {
 import { sdcpn, sdcpnDefinition } from "@hashintel/brunch-agent-plugin-sdcpn";
 import { repertoire } from "@hashintel/brunch-agent-repertoire";
 
+import {
+  createTurnTimingRecorder,
+  type TurnTimingPurpose,
+  type TurnTimingRecord,
+} from "./turn-timing.ts";
+
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Provider } from "@earendil-works/pi-ai";
 
@@ -83,7 +100,7 @@ const CONDITION = "5";
 const EXPERT_MODEL = "claude-sonnet-5";
 const DEFAULT_INTERVIEWER_MODEL = "claude-opus-5";
 const FORCE_WRAP_AT = 20;
-const HARD_STOP_AT = 24;
+const DEFAULT_HARD_STOP_AT = 24;
 const IMPATIENCE_AT = 8;
 const IMPATIENCE_LINE =
   "(Sorry — I've just seen the time, I have the floor huddle in ten minutes. How much more do you need?)";
@@ -97,11 +114,21 @@ const EXPERT_MAX_TOKENS = 1_500;
 // Environment and stand-ins.
 // ---------------------------------------------------------------------------
 
+const outputDirectory = process.env["BRUNCH_BASELINE_OUTPUT_DIR"];
 const testOutputDirectory = process.env["BRUNCH_BASELINE_TEST_OUTPUT_DIR"];
 const expertClientModule = process.env["BRUNCH_BASELINE_ANTHROPIC_MODULE"];
 const interviewerProviderModule =
   process.env["BRUNCH_BASELINE_INTERVIEWER_PROVIDER_MODULE"];
 const apiKey = process.env["ANTHROPIC_API_KEY"];
+const configuredHardStop = process.env["BRUNCH_BASELINE_HARD_STOP"];
+const hardStopAt =
+  configuredHardStop === undefined
+    ? DEFAULT_HARD_STOP_AT
+    : Number(configuredHardStop);
+
+if (!Number.isSafeInteger(hardStopAt) || hardStopAt <= 0) {
+  throw new Error("BRUNCH_BASELINE_HARD_STOP must be a positive integer");
+}
 
 if (testOutputDirectory && !(expertClientModule && interviewerProviderModule)) {
   console.error(
@@ -134,12 +161,16 @@ const caseDir = fileURLToPath(
 );
 const transcriptDir =
   testOutputDirectory ??
+  outputDirectory ??
   fileURLToPath(
     new URL(
       "../../../../docs/evidence/evaluations/process-model-elicitation/baseline/transcripts/",
       import.meta.url,
     ),
   );
+await mkdir(transcriptDir, { recursive: true });
+const timingsPath = join(transcriptDir, `condition-${CONDITION}.timings.jsonl`);
+await writeFile(timingsPath, "");
 
 // ---------------------------------------------------------------------------
 // Records.
@@ -198,6 +229,8 @@ export interface HarnessTurnRecord {
   readonly settlement?: "failed" | "aborted";
   /** The one question left open for the expert, if any. */
   readonly pendingQuestion?: string;
+  /** Flue model-call timings observed while this interviewer turn ran. */
+  readonly timings: readonly TurnTimingRecord[];
   /** The harness's read-time completion over the capture store after this turn. */
   readonly completion: HarnessCompletionRecord;
   /** What the expert was then sent: their reply, or a stimulus. */
@@ -216,6 +249,7 @@ export interface HarnessRunRecord {
   readonly conversationId: string;
   readonly stopReason: string;
   readonly turns: readonly HarnessTurnRecord[];
+  readonly timings: readonly TurnTimingRecord[];
   readonly usage: { readonly interviewer: Usage; readonly expert: Usage };
   readonly history: FlueConversationSnapshot;
   readonly store: CaptureStoreSnapshot;
@@ -334,7 +368,10 @@ const sweepRecordOf = (output: unknown): HarnessSweepRecord => {
 /** Everything the interviewer did between two of our dispatches. */
 function readTurn(
   messages: readonly FlueConversationMessage[],
-): Omit<HarnessTurnRecord, "turn" | "completion" | "pendingQuestion"> {
+): Omit<
+  HarnessTurnRecord,
+  "turn" | "completion" | "pendingQuestion" | "timings"
+> {
   const text: string[] = [];
   const asks: HarnessTurnRecord["asks"][number][] = [];
   const sweeps: HarnessSweepRecord[] = [];
@@ -523,6 +560,21 @@ function renderModel(
 const formatUsage = (usage: Usage): string =>
   `${usage.input} in (+${usage.cacheWrite} cache write, +${usage.cacheRead} cache read) / ${usage.output} out across ${usage.calls} calls`;
 
+const formatPurposeTiming = (
+  timings: readonly TurnTimingRecord[],
+  purpose: TurnTimingPurpose,
+): string => {
+  const matchingTimings = timings.filter(
+    (timing) => timing.purpose === purpose,
+  );
+  if (matchingTimings.length === 0) return "—";
+  const durationMs = matchingTimings.reduce(
+    (total, timing) => total + timing.durationMs,
+    0,
+  );
+  return `${durationMs} ms (${matchingTimings.length} call${matchingTimings.length === 1 ? "" : "s"})`;
+};
+
 function renderTranscript(
   run: HarnessRunRecord,
   openingMessage: string,
@@ -535,7 +587,7 @@ function renderTranscript(
     `- Run started: ${run.startedAt}`,
     `- Interviewer: ${run.interviewerModel} as the shipped SDCPN elicitor in the Flue runtime — binding-flue's ask, settlement nudge, sweep, fold, and completion (instructions reconstructed in condition-5-system.md)`,
     `- Simulated expert: ${run.expertModel} + situation-pack.md`,
-    `- Interviewer turns: ${run.turns.length} (impatience probe at ${IMPATIENCE_AT}, forced wrap at ${FORCE_WRAP_AT}, hard stop ${HARD_STOP_AT})`,
+    `- Interviewer turns: ${run.turns.length} (impatience probe at ${IMPATIENCE_AT}, forced wrap at ${FORCE_WRAP_AT}, hard stop ${hardStopAt})`,
     `- Stop reason: ${run.stopReason}`,
     last === undefined
       ? "- Harness at close: no turn completed"
@@ -552,7 +604,12 @@ function renderTranscript(
     openingMessage,
   ];
   const body = run.turns.map((turn) => {
-    const parts: string[] = ["---", "", "**Interviewer**:", ""];
+    const parts: string[] = [
+      "---",
+      "",
+      `**Interviewer — turn ${turn.turn}** | interview ${formatPurposeTiming(turn.timings, "interview")} | sweep ${formatPurposeTiming(turn.timings, "sweep")} | repair ${formatPurposeTiming(turn.timings, "repair")}`,
+      "",
+    ];
     if (turn.text.length === 0 && turn.asks.length === 0) {
       parts.push("_(no visible text this turn)_");
     }
@@ -675,7 +732,9 @@ const interviewerUsage: Usage = {
   cacheWrite: 0,
   calls: 0,
 };
+const turnTimingRecorder = createTurnTimingRecorder();
 const stopObserving = observe((event) => {
+  turnTimingRecorder.observe(event);
   if (event.type !== "turn") return;
   interviewerUsage.calls += 1;
   const usage = event.response.usage;
@@ -727,6 +786,7 @@ async function writeArtifacts(): Promise<void> {
     conversationId,
     stopReason,
     turns,
+    timings: turnTimingRecorder.all(),
     usage: { interviewer: interviewerUsage, expert: expertUsage },
     history,
     store: storeSnapshot,
@@ -777,9 +837,10 @@ try {
   );
   let outgoing = openingMessage;
   let initial = true;
-  while (turns.length < HARD_STOP_AT) {
+  while (turns.length < hardStopAt) {
     const turnNumber = turns.length + 1;
     console.error(`turn ${turnNumber} (interviewer)`);
+    turnTimingRecorder.startInterviewerTurn(turnNumber);
     await dispatch(outgoing, initial);
     initial = false;
 
@@ -798,13 +859,19 @@ try {
               !ask.rejected && `affordance_${ask.toolCallId}` === pendingId,
           )?.question;
     const { record: completion } = readCompletion(await store.read());
+    const turnTimings = turnTimingRecorder.forInterviewerTurn(turnNumber);
     const turn: HarnessTurnRecord = {
       turn: turnNumber,
       ...observed,
       ...(pendingQuestion === undefined ? {} : { pendingQuestion }),
+      timings: turnTimings,
       completion,
     };
     turns.push(turn);
+    await appendFile(
+      timingsPath,
+      `${turnTimings.map((timing) => JSON.stringify(timing)).join("\n")}\n`,
+    );
     console.error(
       `  harness: ${completion.captures} captures, complete ${yesNo(completion.complete)}, ${completion.unsatisfied} unsatisfied; sweeps ${observed.sweeps.map((sweep) => sweep.status).join(",") || "none"}; ask ${pendingQuestion === undefined ? "none" : "pending"}`,
     );
@@ -830,7 +897,7 @@ try {
     } else {
       turnsWithoutAsk = 0;
     }
-    if (turns.length >= HARD_STOP_AT) break;
+    if (turns.length >= hardStopAt) break;
 
     // What the expert sees: the interviewer's visible text and its question.
     const visible = [

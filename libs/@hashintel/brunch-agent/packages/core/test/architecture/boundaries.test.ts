@@ -473,6 +473,8 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
       "Boots the real Gherkin elicitor on Flue's node runtime with pi-ai's faux provider and drives the committed application route over app.fetch through a full ask suspend/return/resume cycle plus a refused duplicate — no provider key, no socket, no external checkout mutation.",
     "apps/brunch-agent/test/petrinaut-chat.integration.ts":
       "Boots the real Gherkin elicitor on Flue's node runtime with pi-ai's faux provider, drives the committed application AI SDK route over app.fetch, and proves live reasoning/text plus inspection events without a provider key, socket, or external checkout mutation.",
+    "apps/brunch-agent/test/turn-timing.test.ts":
+      "Types recorded Flue observations and model requests so the condition-5 purpose splitter can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
     "apps/brunch-agent/test/walking-skeleton.integration.ts":
       "Boots the dev app on Flue's node runtime with pi-ai's faux provider and drives it over app.fetch — no provider key, no socket, no model call. Run as a child process by walking-skeleton.test.ts, which is what makes the node runtime drivable from this suite at all.",
   };

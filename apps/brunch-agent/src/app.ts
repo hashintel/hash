@@ -9,6 +9,8 @@
 
 import { readFile } from "node:fs/promises";
 
+import { createOpenTelemetryInstrumentation } from "@flue/opentelemetry";
+import { instrument } from "@flue/runtime";
 import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
@@ -21,6 +23,8 @@ import {
   PETRINAUT_CHAT_ROUTE,
   SDCPN_AGENT_ROUTE,
 } from "./routes.ts";
+
+instrument(createOpenTelemetryInstrumentation({ content: false }));
 
 const app = new Hono();
 

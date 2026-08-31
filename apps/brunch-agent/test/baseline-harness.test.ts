@@ -13,6 +13,7 @@ import {
 import { runNodeScript } from "./run-node-script";
 
 import type { HarnessRunRecord } from "../../../libs/@hashintel/brunch-agent/evaluations/protocols/process-model-elicitation/baseline/harness-run.ts";
+import type { TurnTimingRecord } from "../../../libs/@hashintel/brunch-agent/evaluations/protocols/process-model-elicitation/baseline/turn-timing.ts";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -44,6 +45,80 @@ afterEach(async () => {
   );
 });
 
+test("stops at the configured turn and persists first-turn timings before exit", async () => {
+  const outputDirectory = await mkdtemp(
+    join(tmpdir(), "brunch-baseline-c5-short-test-"),
+  );
+  temporaryDirectories.push(outputDirectory);
+  const expertRepliesPath = join(outputDirectory, "expert-replies.json");
+  await writeFile(
+    expertRepliesPath,
+    JSON.stringify([
+      { text: EXPERT_OBJECTIVE_QUOTE },
+      { text: "Better is fewer late promises, then fewer changeovers." },
+      { text: "Alright. Anything else?" },
+      { text: "Then I'll get back to the floor." },
+      { text: "Cheers." },
+    ]),
+  );
+
+  let runCompleted = false;
+  const runPromise = runNodeScript(runner, join(testDirectory, "../../.."), {
+    BRUNCH_BASELINE_HARD_STOP: "2",
+    BRUNCH_BASELINE_TEST_OUTPUT_DIR: outputDirectory,
+    BRUNCH_BASELINE_ANTHROPIC_MODULE: expertStub,
+    BRUNCH_BASELINE_INTERVIEWER_PROVIDER_MODULE: interviewer,
+    BASELINE_STUB_REPLIES_PATH: expertRepliesPath,
+    BRUNCH_SDCPN_MODEL: "claude-haiku-4-5",
+  }).finally(() => {
+    runCompleted = true;
+  });
+
+  const timingsPath = join(outputDirectory, "condition-5.timings.jsonl");
+  let timingsAfterFirstTurn: string | undefined;
+  await expect
+    .poll(
+      async () => {
+        try {
+          const timings = await readFile(timingsPath, "utf8");
+          if (timings.includes('"interviewerTurn":1')) {
+            timingsAfterFirstTurn = timings;
+          }
+        } catch (error) {
+          if (
+            !(error instanceof Error) ||
+            !("code" in error) ||
+            error.code !== "ENOENT"
+          ) {
+            throw error;
+          }
+        }
+        return timingsAfterFirstTurn;
+      },
+      { interval: 1, timeout: 5_000 },
+    )
+    .toBeDefined();
+
+  expect(timingsAfterFirstTurn).toContain('"interviewerTurn":1');
+  expect(
+    timingsAfterFirstTurn
+      ?.trim()
+      .split("\n")
+      .every(
+        (line) => (JSON.parse(line) as TurnTimingRecord).interviewerTurn === 1,
+      ),
+  ).toBe(true);
+  expect(runCompleted).toBe(false);
+
+  const { exitCode, stderr } = await runPromise;
+  expect(exitCode, stderr).toBe(0);
+  const run = JSON.parse(
+    await readFile(join(outputDirectory, "condition-5.raw.json"), "utf8"),
+  ) as HarnessRunRecord;
+  expect(run.turns).toHaveLength(2);
+  expect(run.stopReason).toBe("hard-stop");
+});
+
 test("condition 5 drives the shipped elicitor through the binding and reads the harness's facts back", async () => {
   const outputDirectory = await mkdtemp(
     join(tmpdir(), "brunch-baseline-c5-test-"),
@@ -68,6 +143,7 @@ test("condition 5 drives the shipped elicitor through the binding and reads the 
       BRUNCH_BASELINE_ANTHROPIC_MODULE: expertStub,
       BRUNCH_BASELINE_INTERVIEWER_PROVIDER_MODULE: interviewer,
       BASELINE_STUB_REPLIES_PATH: expertRepliesPath,
+      BASELINE_STUB_REFUSE_FIRST_SWEEP: "1",
       BRUNCH_SDCPN_MODEL: "claude-haiku-4-5",
     },
   );
@@ -75,7 +151,42 @@ test("condition 5 drives the shipped elicitor through the binding and reads the 
 
   const run = JSON.parse(
     await readFile(join(outputDirectory, "condition-5.raw.json"), "utf8"),
-  ) as HarnessRunRecord;
+  ) as HarnessRunRecord & {
+    readonly timings?: readonly TurnTimingRecord[];
+  };
+  const timingRecords = (
+    await readFile(join(outputDirectory, "condition-5.timings.jsonl"), "utf8")
+  )
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line) as TurnTimingRecord);
+  expect(timingRecords.length).toBeGreaterThan(0);
+  expect(
+    timingRecords.every(
+      (timingRecord) =>
+        timingRecord.interviewerTurn >= 1 &&
+        timingRecord.durationMs >= 0 &&
+        ["interview", "sweep", "repair"].includes(timingRecord.purpose),
+    ),
+  ).toBe(true);
+  expect(
+    new Set(timingRecords.map((timingRecord) => timingRecord.purpose)),
+    JSON.stringify(timingRecords, null, 2),
+  ).toEqual(new Set(["interview", "sweep", "repair"]));
+  expect(timingRecords).toHaveLength(run.usage.interviewer.calls);
+  expect(run.timings).toEqual(timingRecords);
+  expect(run.turns.flatMap((turn) => turn.timings)).toEqual(timingRecords);
+  expect(
+    run.turns.every(
+      (turn) =>
+        turn.timings.filter(
+          (timingRecord) => timingRecord.purpose === "interview",
+        ).length === 1,
+    ),
+  ).toBe(true);
+  expect(
+    timingRecords.filter((timingRecord) => timingRecord.purpose === "repair"),
+  ).toHaveLength(3);
 
   // Turn 1 asks; the expert's reply is bound to that ask on the next dispatch.
   expect(run.turns[0]?.pendingQuestion).toBe(FIRST_QUESTION);
@@ -86,14 +197,17 @@ test("condition 5 drives the shipped elicitor through the binding and reads the 
     ),
   ).toBe(true);
 
-  // Turn 2 sweeps the settled range: one capture applied, completion reported
-  // by the harness, and the second question left pending.
-  const sweep = run.turns[1]?.sweeps[0];
-  expect(sweep?.status).toBe("applied");
-  expect(sweep?.appliedCaptureIds).toHaveLength(1);
-  expect(sweep?.completion).toMatchObject({ complete: false });
-  expect(run.turns[1]?.pendingQuestion).toBe(SECOND_QUESTION);
-  expect(run.turns[1]?.completion).toMatchObject({
+  // The first sweep is refused on its deliberately bad quote, then the
+  // repair continuation re-emits it with the verbatim expert evidence.
+  const sweeps = run.turns.flatMap((turn) => turn.sweeps);
+  expect(sweeps[0]?.status).toBe("refused");
+  const appliedSweep = sweeps.find((sweep) => sweep.status === "applied");
+  expect(appliedSweep?.appliedCaptureIds).toHaveLength(1);
+  expect(appliedSweep?.completion).toMatchObject({ complete: false });
+  expect(
+    run.turns.some((turn) => turn.pendingQuestion === SECOND_QUESTION),
+  ).toBe(true);
+  expect(run.turns.at(-1)?.completion).toMatchObject({
     captures: 1,
     complete: false,
   });
@@ -103,7 +217,9 @@ test("condition 5 drives the shipped elicitor through the binding and reads the 
       (part) =>
         part.type === "dynamic-tool" &&
         part.toolName === "brunch_sweep" &&
-        part.state === "output-available",
+        part.state === "output-available" &&
+        isRecord(part.output) &&
+        part.output.status === "applied",
     );
   if (
     appliedSweepPart?.type !== "dynamic-tool" ||
@@ -167,6 +283,9 @@ test("condition 5 drives the shipped elicitor through the binding and reads the 
   expect(model).toContain("### objective (1)");
   expect(model).toContain("Complete: **no**");
   expect(transcript).toContain("Stop reason: stalled");
+  expect(transcript).toContain("**Interviewer — turn 1** | interview ");
+  expect(transcript).toContain("| sweep ");
+  expect(transcript).toMatch(/\| repair \d+ ms/u);
   expect(transcript).toContain("> harness — sweep applied; applied 1");
   expect(transcript).toContain(FIRST_QUESTION);
   expect(system).toContain("brunch_ask");
