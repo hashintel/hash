@@ -149,22 +149,21 @@
       "type": "domain",
       "enforcement": "suggest",
       "priority": "high",
-      "description": "Git and Graphite workflow for HASH including branch naming, PR creation, and PR reviews. Use when creating branches, making commits, opening pull requests, or reviewing PRs.",
+      "description": "Git and pull-request workflow for HASH, including conditional Linear conventions and merge-queue diagnostics. Use when naming a branch, opening or reviewing a pull request, interpreting its checks, or diagnosing a merge-queue ejection.",
       "promptTriggers": {
         "keywords": [
-          "git",
-          "graphite",
-          "branch",
           "pull request",
-          "PR",
-          "commit",
-          "merge",
-          "review"
+          "branch naming",
+          "Linear issue",
+          "merge queue",
+          "GitHub Actions",
+          "branch protection"
         ],
         "intentPatterns": [
-          "\\b(create|open|submit|review)\\b.*?\\b(PR|pull request|branch)\\b",
+          "\\b(open|create|submit|review)\\b.*?\\b(PR|pull request)\\b",
           "\\b(name|naming)\\b.*?\\bbranch\\b",
-          "\\b(FE|SRE|BE|H)-\\d+\\b"
+          "\\b(FE|SRE|BE|H)-\\d+\\b",
+          "\\b(merge queue|merge group|queue ejection)\\b"
         ]
       },
       "fileTriggers": {

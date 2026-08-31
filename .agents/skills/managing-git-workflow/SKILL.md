@@ -1,6 +1,6 @@
 ---
 name: managing-git-workflow
-description: Git and Graphite workflow for HASH including branch naming, PR creation, and PR reviews. Use when creating branches, making commits, opening pull requests, or reviewing PRs.
+description: Git and pull-request workflow for HASH, including conditional Linear conventions and merge-queue diagnostics. Use when naming a branch, opening or reviewing a pull request, interpreting its checks, or diagnosing a merge-queue ejection.
 license: AGPL-3.0
 metadata:
   triggers:
@@ -8,100 +8,46 @@ metadata:
     enforcement: suggest
     priority: high
     keywords:
-      - git
-      - graphite
-      - branch
       - pull request
-      - PR
-      - commit
-      - merge
-      - review
+      - branch naming
+      - Linear issue
+      - merge queue
+      - GitHub Actions
+      - branch protection
     intent-patterns:
-      - "\\b(create|open|submit|review)\\b.*?\\b(PR|pull request|branch)\\b"
+      - "\\b(open|create|submit|review)\\b.*?\\b(PR|pull request)\\b"
       - "\\b(name|naming)\\b.*?\\bbranch\\b"
       - "\\b(FE|SRE|BE|H)-\\d+\\b"
+      - "\\b(merge queue|merge group|queue ejection)\\b"
 ---
 
 # Managing Git Workflow
 
-Standardize git workflow for HASH development, ensuring traceability between code changes and Linear issues. Use Graphite (`gt`) for stack operations; do not use `gh stack`.
+Use ordinary Git and GitHub as the public baseline. No particular Git client or access to HASH's Linear workspace is required to contribute.
 
-## Branch Naming
+## Contributing
 
-**Format:** `<shortname>/<team-key>-xxxx-description`
+Treat [`.github/CONTRIBUTING.md`](../../../.github/CONTRIBUTING.md) as the source of truth for contribution policy and [`.github/pull_request_template.md`](../../../.github/pull_request_template.md) as the source of truth for PR content.
 
-- `shortname`: Developer identifier (first initial, nickname, etc.)
-- `<team-key>-xxxx`: Linear issue identifier in lowercase (`fe-1437`, `sre-960`, `be-12`, `h-6786`)
-- `description`: Brief kebab-case description
+### Working From a HASH Linear Issue
 
-Live ticket prefixes are mostly `FE-`, `SRE-`, and `BE-`, with some `H-`.
+When the work has an associated HASH Linear issue, preserve traceability in the branch and pull request:
 
-**Examples:**
+- Name the branch `<shortname>/<team-key>-xxxx-description`, with the Linear identifier in lowercase; for example, `ln/fe-1437-hash-monorepo-import` or `ln/h-6786-agent-guidance-layout`.
+- Title the PR `{ISSUE-ID}: Description`, preserving the identifier's uppercase form; for example, `H-6786: Stop copying HASH agent guidance into unused tool folders`.
+- Link the Linear issue in the PR's related links and mark it `_(internal)_` when it is not publicly accessible.
 
-- `ln/fe-1437-hash-monorepo-import`
-- `ln/h-6786-agent-guidance-layout`
-- `t/sre-960-copy-git-workflow`
+Current HASH Linear identifiers commonly use `FE-`, `SRE-`, `BE-`, or `H-` prefixes.
 
-## Pull Request Creation
+### Contributing Without a HASH Linear Issue
 
-### PR Title Format
+Contributors without access to HASH's Linear workspace do not need a Linear identifier. Use a descriptive branch name and PR title, and link the relevant public issue or discussion for significant work. Minor documentation fixes may go straight to a PR as described in the contributing guide.
 
-**Format:** `{ISSUE-ID}: Description`
+In every case, keep the PR description self-contained so contributors and reviewers without access to internal systems can understand the change. Fill every applicable section of the PR template and say when a section is unknown or inapplicable.
 
-- Use the Linear identifier as it appears on the issue (`FE-1437`, `H-6786`)
-- Keep the description clear and concise
+## Reviewing Pull Requests
 
-**Examples:**
-
-- `H-6786: Stop copying HASH agent guidance into unused tool folders`
-- `FE-1437: Move brunch-agent into hashintel/hash with its history`
-
-### PR Template
-
-Use the template at `.github/pull_request_template.md`.
-
-## Merge Queue
-
-`hashintel/hash` merges through a GitHub **merge queue**. This changes both how a PR is enqueued and how that can be verified.
-
-### `auto_merge` is not evidence
-
-Enqueuing a PR ("Merge when ready") does **not** populate the PR's `auto_merge` field — it stays `null` even on a completely successful enqueue. Never verify an enqueue by reading `auto_merge`: it reads `null` in the success case and the failure case alike, so it carries no information.
-
-### Verifying an enqueue
-
-Use either:
-
-- a recent `added_to_merge_queue` event in `GET /repos/hashintel/hash/issues/<NUMBER>/timeline`
-- fresh `merge_group` workflow runs on a `gh-readonly-queue/<base>/pr-<NUMBER>-<sha>` ref
-
-### Re-queuing after an ejection
-
-Re-queuing works from agent sessions via the GitHub MCP `enable_pr_auto_merge` tool. Its response is success-shaped with an empty `method` and `enabled at` — that empty shape is the expected signature of the repo routing to the queue instead of creating an `autoMergeRequest`, not a failure.
-
-What does not work:
-
-- GraphQL `enablePullRequestAutoMerge` via `curl` — proxy-blocked in agent sessions
-- REST `PUT /repos/hashintel/hash/pulls/<NUMBER>/merge` — rejected for queue-protected branches, and it would bypass the queue rather than enter it
-
-### Diagnosing an ejection
-
-An ejection can be another PR's fault, or nobody's:
-
-- The `gh-readonly-queue/...` ref names every PR in the batch. If only yours is named, it was not batched with another.
-- Before treating an ejection as a defect in your diff, compare the failing step against the same step on the identical head in the PR-level run. A step that took 17 seconds there and timed out in the queue is infrastructure, not code. Do not push a "fix" for a flake.
-
-### The queue lints differently from the PR
-
-The PR runs `cargo clippy --all-features`; the merge queue runs `cargo hack --optional-deps --feature-powerset clippy`, dispatched on `GITHUB_EVENT_NAME` in the `.justfile`. `turbo.json` also puts `GITHUB_EVENT_NAME` in the `lint:clippy` task's `env`, so the queue cannot replay the PR's cache. The queue can therefore legitimately surface feature-conditional problems the PR lint never ran — including the package-level `warning: unused dependency` gate that `lint.yml` greps for and fails on.
-
-### Before reporting a failure
-
-Do not tell a human you were unable to do something without verifying that claim first, and re-check current state before asking them to do something you already attempted.
-
-## PR Review Process
-
-### Step 1: Gather Information
+Gather the public review record and the complete diff:
 
 ```bash
 gh pr view <PR_NUMBER> --comments
@@ -112,27 +58,30 @@ gh api \
   /repos/hashintel/hash/pulls/<PR_NUMBER>/comments
 ```
 
-Always view the FULL diff. Do not pipe into `head` or use `--name-only`.
+Use the PR description and linked public issue or discussion as the public review contract. If the PR references a HASH Linear issue and the reviewer has access, fetch it and use its requirements as an additional review baseline. Treat inaccessible internal links as supplemental provenance, not as requirements the public artifact may omit.
 
-### Step 2: Check Linear Issues
+- Review the full diff without truncating it.
+- Identify blocking findings separately from optional suggestions.
+- Give precise file and line locations.
+- Leave resolution of a review thread to the reviewer who opened it, as specified in the contributing guide.
 
-Look for `FE-`, `SRE-`, `BE-`, or `H-` identifiers in the PR title/description, then fetch the issue.
+## Merge Queue
 
-Use the Linear issue requirements as baseline for the review.
+HASH merges through GitHub's merge queue. This section applies to maintainers and to diagnosing queue checks; contributors do not need merge-queue access.
 
-### Step 3: Provide Feedback
+### Verify an Enqueue
 
-- Be precise about issue locations (file:line)
-- Include suggestions for improvement
-- Reference relevant code standards
-- Distinguish blocking issues from suggestions
+The PR's `auto_merge` field remains `null` after a successful enqueue, so it is not evidence either way. Verify with either:
 
-## Quick Reference
+- a recent `added_to_merge_queue` event in `GET /repos/hashintel/hash/issues/<NUMBER>/timeline`
+- fresh `merge_group` workflow runs on a `gh-readonly-queue/<base>/pr-<NUMBER>-<sha>` ref
 
-| Action        | Format                                                 |
-| ------------- | ------------------------------------------------------ |
-| Branch name   | `<shortname>/<team-key>-xxxx-description`              |
-| PR title      | `{ISSUE-ID}: Description`                              |
-| View PR       | `gh pr view <NUMBER> --comments`                       |
-| View diff     | `gh pr diff <NUMBER>`                                  |
-| View comments | `gh api /repos/hashintel/hash/pulls/<NUMBER>/comments` |
+### Diagnose an Ejection
+
+An ejection can be another PR's fault or an infrastructure failure:
+
+- The `gh-readonly-queue/...` ref names every PR in the batch. If only one PR is named, it was not batched with another.
+- Compare the failing step against the same step on the identical head in the PR-level run before attributing it to the diff.
+- Check whether a changed file is listed in `turbo.json` under `globalDependencies`; a global invalidation can run unrelated package checks and expose unrelated failures.
+
+The PR runs `cargo clippy --all-features`; the merge queue runs `cargo hack --optional-deps --feature-powerset clippy`, selected through `GITHUB_EVENT_NAME` in `.justfile`. Queue lint can therefore surface feature-conditional problems that PR lint did not run, including the unused-dependency gate in `.github/workflows/lint.yml`.
