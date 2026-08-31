@@ -26,7 +26,7 @@ class FakeDataChannel extends EventTarget {
   }
 }
 
-const createHarness = () => {
+const createHarness = (connectionTimeoutMs = 15_000) => {
   let requestNumber = 0;
   const channels: FakeDataChannel[] = [];
   const peers: Array<{
@@ -78,7 +78,7 @@ const createHarness = () => {
     return peer as unknown as RTCPeerConnection;
   };
   const session = new OpenAIRealtimeSession({
-    connectionTimeoutMs: 15_000,
+    connectionTimeoutMs,
     createRequestId: () => `voice-request-${++requestNumber}`,
     createPeerConnection,
     fetch,
@@ -384,6 +384,66 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.tracks[0]!.stop).toHaveBeenCalledOnce();
     expect(harness.channels[0]!.close).toHaveBeenCalledOnce();
     expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
+  });
+
+  test("rejects a provider error received before startup completes", async () => {
+    const harness = createHarness();
+    let resolveFetch: ((response: Response) => void) | undefined;
+    harness.fetch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    const connection = expect(harness.session.connect()).rejects.toMatchObject({
+      code: "invalid-response",
+      requestId: "voice-request-1",
+    });
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+    harness.peers[0]!.setRemoteDescription.mockImplementationOnce(async () => {
+      harness.channels[0]!.open();
+      harness.channels[0]!.receive({
+        type: "error",
+        error: { message: "private provider diagnostic" },
+      });
+    });
+    resolveFetch?.(
+      new Response("v=0\r\no=OpenAI answer", {
+        headers: { "content-type": "application/sdp" },
+      }),
+    );
+
+    await connection;
+    expect(harness.tracks[0]!.stop).toHaveBeenCalledOnce();
+    expect(JSON.stringify(harness.reportDiagnostic.mock.calls)).not.toContain(
+      "private provider diagnostic",
+    );
+  });
+
+  test("rejects a data channel already closed after negotiation", async () => {
+    const harness = createHarness(1_000);
+    let resolveFetch: ((response: Response) => void) | undefined;
+    harness.fetch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    const connection = expect(harness.session.connect()).rejects.toMatchObject({
+      code: "network",
+      requestId: "voice-request-1",
+    });
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+    harness.peers[0]!.setRemoteDescription.mockImplementationOnce(async () => {
+      harness.channels[0]!.close();
+    });
+    resolveFetch?.(
+      new Response("v=0\r\no=OpenAI answer", {
+        headers: { "content-type": "application/sdp" },
+      }),
+    );
+
+    await connection;
   });
 
   test("sanitizes unexpected browser startup failures", async () => {

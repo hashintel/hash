@@ -306,6 +306,9 @@ export class OpenAIRealtimeSession {
         abortController.signal,
         requestId,
       );
+      if (abortController.signal.aborted) {
+        throw abortController.signal.reason;
+      }
       if (this.#activeEpoch !== connectionEpoch) {
         throw new VoiceError("connection", "request-aborted", requestId);
       }
@@ -362,9 +365,6 @@ export class OpenAIRealtimeSession {
     code: VoiceErrorCode,
     operation: VoiceOperation,
   ): void {
-    if (!this.#connected) {
-      return;
-    }
     const transcriptionTiming =
       operation === "transcription"
         ? this.#transcriptionTimings.values().next().value
@@ -374,6 +374,10 @@ export class OpenAIRealtimeSession {
       this.#connectionRequestId ??
       this.#dependencies.createRequestId?.() ??
       createVoiceRequestId();
+    if (!this.#connected) {
+      this.#abortController?.abort(new VoiceError(operation, code, requestId));
+      return;
+    }
     if (operation === "transcription") {
       if (this.#transcriptionTimings.size === 0) {
         this.#reportDiagnostic(
@@ -583,6 +587,12 @@ export class OpenAIRealtimeSession {
     }
     if (dataChannel.readyState === "open") {
       return Promise.resolve();
+    }
+    if (
+      dataChannel.readyState === "closing" ||
+      dataChannel.readyState === "closed"
+    ) {
+      return Promise.reject(new VoiceError("connection", "network", requestId));
     }
 
     return new Promise((resolve, reject) => {
