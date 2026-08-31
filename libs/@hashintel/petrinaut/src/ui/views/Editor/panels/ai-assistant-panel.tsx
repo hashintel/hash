@@ -57,7 +57,6 @@ import {
 import type { PetrinautAiAssistant } from "../../../petrinaut";
 import type {
   PetrinautAiComposerControlContext,
-  PetrinautAiComposerSubmitText,
   PetrinautAiComposerSubmitTextResult,
   PetrinautAiInputMode,
   PetrinautAiVoiceModeContext,
