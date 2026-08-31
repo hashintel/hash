@@ -546,6 +546,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
      * a sweep whose surface view is never opened spawns nothing extra.
      */
     let backgroundCpuBackend: ExperimentBackend | null = null;
+    /** The same lane, sharded — used whenever the foreground frees the pool. */
+    let backgroundWideCpuBackend: ExperimentBackend | null = null;
 
     const onNote = (note: { message: string }) => {
       addNotification({
@@ -571,6 +573,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         runCount,
         background,
         requiresRunResults,
+        foregroundActive,
         runSeeds,
         signal,
       }) => {
@@ -639,20 +642,48 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         // first batch has finished the backend-selection walk. Running the
         // walk here too would race it: two batches contending for the pool,
         // both patching the record's backend fields. Background batches
-        // instead go straight to the single-worker CPU lane until a backend
-        // is chosen (and stay there when the choice lands on the CPU). A
-        // batch whose consumer reads per-run values stays there always:
-        // only the CPU workers report `runResults`.
+        // instead go straight to the CPU lane until a backend is chosen (and
+        // stay there when the choice lands on the CPU). A batch whose
+        // consumer reads per-run values stays there always: only the CPU
+        // workers report `runResults`.
+        //
+        // The lane's WIDTH adapts to foreground pressure: while the
+        // navigator's ladder computes on the CPU pool, a background batch
+        // takes one worker so the sharded foreground keeps the cores; once
+        // the ladder idles — or computes on the GPU, using no CPU workers at
+        // all — the same batch shards across the freed pool. The divisor
+        // mirrors the surface's three concurrent chunks, so the wide lanes
+        // together fill the pool instead of tripling it.
         if (background && (!chosenBackend || requiresRunResults)) {
-          backgroundCpuBackend ??= createWorkerPoolExperimentBackend({
-            createWorker: reusableWorkerFactory,
-            shardCount: 1,
-          });
+          const cpuForegroundBusy =
+            foregroundActive === true &&
+            (chosenBackend === null ||
+              chosenBackend.id === WORKER_POOL_BACKEND_ID);
+          let laneBackend: ExperimentBackend;
+          if (cpuForegroundBusy) {
+            backgroundCpuBackend ??= createWorkerPoolExperimentBackend({
+              createWorker: reusableWorkerFactory,
+              shardCount: 1,
+            });
+            laneBackend = backgroundCpuBackend;
+          } else {
+            backgroundWideCpuBackend ??= createWorkerPoolExperimentBackend({
+              createWorker: reusableWorkerFactory,
+              shardCount: Math.max(
+                2,
+                Math.floor(
+                  (shardCountRef.current ?? getDefaultMonteCarloShardCount()) /
+                    3,
+                ),
+              ),
+            });
+            laneBackend = backgroundWideCpuBackend;
+          }
           const request = await buildRequest({
-            needsHirTrees: backgroundCpuBackend.needsHirTrees,
+            needsHirTrees: laneBackend.needsHirTrees,
             override,
           });
-          const assessment = await backgroundCpuBackend.assess(request);
+          const assessment = await laneBackend.assess(request);
           if (!assessment.eligible) {
             throw new Error(describeBlockers(assessment.blockers));
           }

@@ -48,10 +48,15 @@ folds runs into histograms on-device.
 
 Every metric is measured on the same runs, so the component caches
 per-cell values for **all** metrics and switching the shown metric repaints
-from the cache instead of re-sampling. Each background batch gets a single
-worker, so the navigator's sharded batch keeps most cores. Parameters
-outside the two shown axes stay at the navigator's values, and changing any
-of them (or the axes) restarts the sampling for the new slice.
+from the cache instead of re-sampling. A chunk's width adapts to foreground
+pressure: while the navigator's ladder computes on the CPU pool each chunk
+batch takes a single worker, so the sharded foreground keeps the cores; once
+the ladder idles — or the experiment computes on the GPU, which uses no CPU
+workers — the same chunk shards across the freed pool (the session stamps
+each chunk request with `foregroundActive`, and the provider keeps a narrow
+and a wide CPU lane). Parameters outside the two shown axes stay at the
+navigator's values, and changing any of them (or the axes) restarts the
+sampling for the new slice.
 
 ## Rendering sparse data honestly
 
