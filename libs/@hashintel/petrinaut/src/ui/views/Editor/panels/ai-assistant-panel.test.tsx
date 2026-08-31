@@ -192,14 +192,16 @@ const renderTestPanel = ({
   const renderPanel = (
     nextAiAssistant: PetrinautAiAssistant,
     nextEditorContext: EditorContextValue,
+    nextInitialInteractionMode = initialInteractionMode,
+    nextInitialMessage = initialMessage,
   ) => (
     <PetrinautInstanceContext.Provider value={instance}>
       <EditorContext.Provider value={nextEditorContext}>
         <SDCPNContext.Provider value={sdcpnContext}>
           <AiAssistantPanel
             aiAssistant={nextAiAssistant}
-            initialInteractionMode={initialInteractionMode}
-            initialMessage={initialMessage}
+            initialInteractionMode={nextInitialInteractionMode}
+            initialMessage={nextInitialMessage}
             onInitialInteractionModeConsumed={onInitialInteractionModeConsumed}
           />
         </SDCPNContext.Provider>
@@ -214,6 +216,18 @@ const renderTestPanel = ({
       nextAiAssistant: PetrinautAiAssistant,
       nextEditorContext = editorContext,
     ) => rendered.rerender(renderPanel(nextAiAssistant, nextEditorContext)),
+    rerenderPanelWithInitialRequest: (
+      nextInitialInteractionMode: PetrinautAiInputMode,
+      nextInitialMessage: string,
+    ) =>
+      rendered.rerender(
+        renderPanel(
+          aiAssistant,
+          editorContext,
+          nextInitialInteractionMode,
+          nextInitialMessage,
+        ),
+      ),
   };
 };
 
@@ -296,6 +310,77 @@ describe("AiAssistantPanel composer submissions", () => {
 
     await act(async () => finishVoiceEnd?.());
     await screen.findByText("Pending handoff accepted");
+
+    expect(events).toEqual(["end", "submit"]);
+    expect(endVoice).toHaveBeenCalledOnce();
+    expect(sendMessages).toHaveBeenCalledOnce();
+  });
+
+  test("invalidates active Voice mode before submitting initial CTA text", async () => {
+    const events: string[] = [];
+    let finishVoiceEnd: (() => void) | undefined;
+    const endVoice = vi.fn(() => {
+      events.push("end");
+      return new Promise<void>((resolve) => {
+        finishVoiceEnd = resolve;
+      });
+    });
+    const sendMessages = vi.fn(() => {
+      events.push("submit");
+      return Promise.resolve(
+        streamChunks(textChunks("cta-handoff", "CTA handoff accepted")),
+      );
+    });
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      const {
+        inputMode,
+        registerVoiceModeControls,
+        setVoiceActive: publishVoiceActive,
+      } = context;
+
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: endVoice,
+            pause: vi.fn(),
+          }),
+        [registerVoiceModeControls],
+      );
+      useEffect(() => {
+        if (inputMode === "voice") {
+          publishVoiceActive(true);
+        }
+      }, [inputMode, publishVoiceActive]);
+
+      return <div>{`Voice mode ${inputMode}`}</div>;
+    };
+    const aiAssistant: PetrinautAiAssistant = {
+      renderVoiceMode: (context) => <VoiceMode context={context} />,
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages,
+      },
+    };
+    const rendered = renderTestPanel({
+      aiAssistant,
+      initialInteractionMode: "voice",
+    });
+    await screen.findByText("Voice mode voice");
+
+    rendered.rerenderPanelWithInitialRequest(
+      "text",
+      "Create the support workflow",
+    );
+
+    expect(events).toEqual(["end"]);
+    expect(sendMessages).not.toHaveBeenCalled();
+
+    await act(async () => finishVoiceEnd?.());
+    await screen.findByText("CTA handoff accepted");
 
     expect(events).toEqual(["end", "submit"]);
     expect(endVoice).toHaveBeenCalledOnce();
@@ -948,19 +1033,34 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(voiceModeUnmounts).toBe(0);
   });
 
-  test("requests Voice mode once from the unified composer without submitting text", () => {
+  test("ends active Voice mode when the unified composer returns to text", () => {
     voiceModeMounts = 0;
     voiceModeUnmounts = 0;
+    const endVoice = vi.fn(async () => undefined);
     const VoiceMode = (context: PetrinautAiVoiceModeContext) => {
+      const { inputMode, registerVoiceModeControls, setVoiceActive } = context;
       useEffect(() => {
         voiceModeMounts += 1;
         return () => {
           voiceModeUnmounts += 1;
         };
       }, []);
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: endVoice,
+            pause: vi.fn(),
+          }),
+        [registerVoiceModeControls],
+      );
+      useEffect(() => {
+        if (inputMode === "voice") {
+          setVoiceActive(true);
+        }
+      }, [inputMode, setVoiceActive]);
       return (
         <button type="button" onClick={() => context.setInputMode("text")}>
-          {`Voice mode ${context.inputMode}`}
+          {`Voice mode ${inputMode}`}
         </button>
       );
     };
@@ -982,6 +1082,7 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(
       screen.getByPlaceholderText("Describe the process you want to create"),
     ).not.toBeNull();
+    expect(endVoice).toHaveBeenCalledOnce();
     expect(voiceModeMounts).toBe(1);
     expect(voiceModeUnmounts).toBe(0);
     expect(sendMessages).not.toHaveBeenCalled();

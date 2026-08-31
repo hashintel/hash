@@ -46,8 +46,9 @@ microphone input; speaking uses a restrained looping pattern.
 
 Partial words appear immediately above the divider in a temporary user-style bubble with a small
 waveform mark. The bubble is display-only: it is not sent or saved, and it disappears when the
-finalized message or inline-question answer appears in the conversation. Only finalized answers and
-canonical Brunch text become chat history; provisional transcription and Realtime audio are
+finalized message or inline-question answer appears in the conversation. If delivery fails, the
+finalized speech stays visible in that temporary bubble so you can recover it. Only finalized answers
+and canonical Brunch text become chat history; provisional transcription and Realtime audio are
 ephemeral and are not persisted as chat history. Finalized spoken user messages and the exact inline
 answer completed by speech keep the same waveform mark, so Voice provenance remains visible without
 duplicating an answer.
@@ -58,8 +59,9 @@ finishes each answer automatically after a natural pause and is tuned to allow l
 pauses. There is no required done-speaking action. Open **Voice mode actions** and choose **Pause**
 to turn the microphone off temporarily without submitting, then choose **Resume** to continue.
 **End voice mode** is also in the actions menu. The normal text composer remains visible throughout.
-Sending non-empty typed text ends Voice mode before it sends the message once through the same
-conversation; repeated send actions are ignored while that short handoff completes.
+Sending non-empty typed text from the composer or first-run prompt ends Voice mode before it sends the
+message once through the same conversation; repeated send actions are ignored while that short
+handoff completes.
 
 The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the
 authority on your system. Brunch still chooses every question and interview decision; OpenAI only

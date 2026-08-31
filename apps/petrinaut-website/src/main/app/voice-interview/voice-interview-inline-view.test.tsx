@@ -157,6 +157,24 @@ describe("VoiceInterviewControlView", () => {
     expect(screen.queryByTestId("voice-partial-bubble")).toBeNull();
   });
 
+  test("keeps rejected finalized speech visible for recovery", () => {
+    renderView({
+      ...listeningSnapshot,
+      connection: "error",
+      errorCode: "interview-correlation",
+      errorMessage: "The interview could not accept that answer.",
+      input: "paused",
+      lastAnswerDelivery: "failed",
+      lastCommittedText: "The request goes to dispatch",
+      microphoneEnabled: false,
+      partialText: "",
+    });
+
+    expect(screen.getByTestId("voice-partial-bubble").textContent).toContain(
+      "The request goes to dispatch",
+    );
+  });
+
   test("maps microphone level to the listening waveform without changing the message flow", () => {
     const rendered = renderView({
       ...listeningSnapshot,

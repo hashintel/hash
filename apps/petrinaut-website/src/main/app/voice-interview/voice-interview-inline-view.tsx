@@ -311,7 +311,9 @@ export const VoiceInterviewControlView = ({
 }: VoiceInterviewControlViewProps) => {
   const rootRef = useRef<HTMLElement | null>(null);
   const bufferedCommittedText =
-    snapshot.lastAnswerDelivery === "pending" && !committedTextRepresented
+    (snapshot.lastAnswerDelivery === "pending" ||
+      snapshot.lastAnswerDelivery === "failed") &&
+    !committedTextRepresented
       ? snapshot.lastCommittedText
       : "";
   const displayText = snapshot.partialText || bufferedCommittedText;

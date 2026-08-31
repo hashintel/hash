@@ -325,6 +325,7 @@ export const AiAssistantPanel = ({
 
   const [input, setInput] = useState("");
   const [voiceActive, setVoiceActiveState] = useState(false);
+  const voiceActiveRef = useRef(false);
   const [voiceHandoffPending, setVoiceHandoffPending] = useState(false);
   const [voiceInputQueued, setVoiceInputQueued] = useState(false);
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
@@ -343,6 +344,7 @@ export const AiAssistantPanel = ({
     [],
   );
   const setVoiceActive = useCallback((active: boolean) => {
+    voiceActiveRef.current = active;
     setVoiceActiveState(active);
   }, []);
   const voiceHandoffPendingRef = useRef(false);
@@ -443,6 +445,38 @@ export const AiAssistantPanel = ({
   // response. Cleared whenever a new turn begins so it never lingers across
   // sends or a fresh conversation.
   const [stopped, setStopped] = useState(false);
+
+  const requestInputMode = useCallback(
+    (nextMode: PetrinautAiInputMode) => {
+      if (nextMode === "text" && voiceActiveRef.current) {
+        const controls = voiceModeControlsRef.current;
+        if (controls === null) {
+          setStreamError(
+            new Error(
+              "Voice mode could not stop safely. End Voice mode and retry.",
+            ),
+          );
+          return;
+        }
+        try {
+          const voiceEnd = controls.end();
+          setVoiceActive(false);
+          void voiceEnd.catch((caught: unknown) => {
+            setStreamError(
+              caught instanceof Error ? caught : new Error(String(caught)),
+            );
+          });
+        } catch (caught) {
+          setStreamError(
+            caught instanceof Error ? caught : new Error(String(caught)),
+          );
+          return;
+        }
+      }
+      selectInteractionMode(nextMode);
+    },
+    [selectInteractionMode, setVoiceActive],
+  );
 
   const stopRequestedRef = useRef(false);
   const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
@@ -956,80 +990,82 @@ export const AiAssistantPanel = ({
     await stopCurrentResponse();
   }, [stopStateRef]);
 
-  const submitUserText = (
-    text: string,
-    target: "auto" | "message" = "auto",
-  ) => {
-    if (!text.trim() || voiceHandoffPendingRef.current) {
-      return;
-    }
-
-    const restoreInputAfterFailure = () => {
-      setInput((currentInput) => currentInput || text);
-    };
-    const submitAndRecover = async () => {
-      pendingSubmissionRecoveryRef.current = restoreInputAfterFailure;
-      try {
-        await submitText({ target, text });
-      } catch (caught) {
-        if (pendingSubmissionRecoveryRef.current === restoreInputAfterFailure) {
-          pendingSubmissionRecoveryRef.current = null;
-        }
-        const submissionError =
-          caught instanceof Error ? caught : new Error(String(caught));
-        setStreamError(submissionError);
-        restoreInputAfterFailure();
+  const submitUserText = useCallback(
+    (text: string, target: "auto" | "message" = "auto") => {
+      if (!text.trim() || voiceHandoffPendingRef.current) {
+        return;
       }
-    };
 
-    if (interactionModeRef.current !== "voice") {
-      void submitAndRecover();
-      return;
-    }
+      const restoreInputAfterFailure = () => {
+        setInput((currentInput) => currentInput || text);
+      };
+      const submitAndRecover = async () => {
+        pendingSubmissionRecoveryRef.current = restoreInputAfterFailure;
+        try {
+          await submitText({ target, text });
+        } catch (caught) {
+          if (
+            pendingSubmissionRecoveryRef.current === restoreInputAfterFailure
+          ) {
+            pendingSubmissionRecoveryRef.current = null;
+          }
+          const submissionError =
+            caught instanceof Error ? caught : new Error(String(caught));
+          setStreamError(submissionError);
+          restoreInputAfterFailure();
+        }
+      };
 
-    const controls = voiceModeControlsRef.current;
-    if (controls === null) {
-      setStreamError(
-        new Error(
-          "Voice mode could not stop safely. End Voice mode and retry.",
-        ),
-      );
-      return;
-    }
+      if (interactionModeRef.current !== "voice" && !voiceActiveRef.current) {
+        void submitAndRecover();
+        return;
+      }
 
-    voiceHandoffPendingRef.current = true;
-    setVoiceHandoffPending(true);
-    selectInteractionMode("text");
+      const controls = voiceModeControlsRef.current;
+      if (controls === null) {
+        setStreamError(
+          new Error(
+            "Voice mode could not stop safely. End Voice mode and retry.",
+          ),
+        );
+        return;
+      }
 
-    let voiceEnd: Promise<void>;
-    try {
-      voiceEnd = controls.end();
-    } catch (caught) {
-      const invalidationError =
-        caught instanceof Error ? caught : new Error(String(caught));
-      setStreamError(invalidationError);
-      restoreInputAfterFailure();
-      voiceHandoffPendingRef.current = false;
-      setVoiceHandoffPending(false);
-      selectInteractionMode("voice");
-      return;
-    }
+      voiceHandoffPendingRef.current = true;
+      setVoiceHandoffPending(true);
+      selectInteractionMode("text");
 
-    void voiceEnd
-      .catch(() => {
-        // Generation invalidation happens synchronously at the start of end().
-        // A later disconnect failure must not discard the typed fallback.
-      })
-      .then(() => {
-        setVoiceActiveState(false);
-        return submitAndRecover();
-      })
-      .finally(() => {
+      let voiceEnd: Promise<void>;
+      try {
+        voiceEnd = controls.end();
+      } catch (caught) {
+        const invalidationError =
+          caught instanceof Error ? caught : new Error(String(caught));
+        setStreamError(invalidationError);
+        restoreInputAfterFailure();
         voiceHandoffPendingRef.current = false;
         setVoiceHandoffPending(false);
-        setComposerFocusRequest((request) => request + 1);
-      });
-  };
+        selectInteractionMode("voice");
+        return;
+      }
+
+      void voiceEnd
+        .catch(() => {
+          // Generation invalidation happens synchronously at the start of end().
+          // A later disconnect failure must not discard the typed fallback.
+        })
+        .then(() => {
+          setVoiceActive(false);
+          return submitAndRecover();
+        })
+        .finally(() => {
+          voiceHandoffPendingRef.current = false;
+          setVoiceHandoffPending(false);
+          setComposerFocusRequest((request) => request + 1);
+        });
+    },
+    [selectInteractionMode, setVoiceActive, submitText],
+  );
 
   const submitComposerInput = () => {
     submitUserText(input);
@@ -1098,13 +1134,13 @@ export const AiAssistantPanel = ({
     setStopped(false);
     stopRequestedRef.current = false;
 
-    void sendMessage({ text: trimmedInitialMessage });
+    submitUserText(trimmedInitialMessage);
   }, [
     initialMessage,
     instance,
     isAiAssistantOpen,
     onInitialMessageConsumed,
-    sendMessage,
+    submitUserText,
   ]);
 
   if (!instance) {
@@ -1144,7 +1180,7 @@ export const AiAssistantPanel = ({
     inputMode: interactionMode,
     isAiAssistantOpen,
     registerVoiceModeControls,
-    setInputMode: selectInteractionMode,
+    setInputMode: requestInputMode,
     setVoiceActive,
     submitVoiceInput,
   });
