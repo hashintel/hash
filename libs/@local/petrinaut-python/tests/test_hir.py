@@ -3,6 +3,7 @@ real TypeScript frontend (`hir_fixtures.json`, generated from
 `lowerOptimizationConstraint` in `@hashintel/petrinaut-core`)."""
 
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -180,6 +181,82 @@ class TestStringNodes:
             right=self._node("numberLit", value=2, raw="2"),
         )
         assert self._constraint(body)(scenario={}) is True
+
+
+class TestJsMathEdges:
+    """The evaluator's arithmetic must match ECMAScript at the edges Python
+    diverges: domain errors, overflow, and exponentiation."""
+
+    @staticmethod
+    def _num(value: float) -> dict[str, object]:
+        return {
+            "kind": "numberLit",
+            "id": 0,
+            "span": {"start": 0, "length": 1},
+            "value": value,
+            "raw": repr(value),
+        }
+
+    def _eval(self, body: dict[str, object]) -> object:
+        return evaluate_hir(
+            {
+                "hirVersion": 1,
+                "surface": "scenario-expression",
+                "params": [],
+                "body": body,
+            }
+        )
+
+    def _math(self, fn: str, *args: float) -> object:
+        return self._eval(
+            {
+                "kind": "mathCall",
+                "id": 0,
+                "span": {"start": 0, "length": 1},
+                "fn": fn,
+                "args": [self._num(argument) for argument in args],
+            }
+        )
+
+    def _pow(self, base: float, exponent: float) -> object:
+        return self._eval(
+            {
+                "kind": "binary",
+                "id": 0,
+                "span": {"start": 0, "length": 1},
+                "op": "**",
+                "left": self._num(base),
+                "right": self._num(exponent),
+            }
+        )
+
+    def test_log_family_matches_js(self) -> None:
+        assert self._math("log", 0) == -math.inf
+        assert math.isnan(self._math("log", -1))  # type: ignore[arg-type]
+        assert self._math("log10", 0) == -math.inf
+        assert self._math("log2", 0) == -math.inf
+
+    def test_overflow_grows_to_infinity(self) -> None:
+        assert self._math("exp", 1000) == math.inf
+        assert self._math("cosh", 1000) == math.inf
+        assert self._math("sinh", -1000) == -math.inf
+
+    def test_pow_matches_js(self) -> None:
+        # Python raises ZeroDivisionError / OverflowError or goes complex
+        # for every one of these; JS defines them all.
+        assert self._pow(0, -1) == math.inf
+        assert self._pow(1e308, 2) == math.inf
+        assert self._pow(-1e308, 3) == -math.inf
+        assert math.isnan(self._pow(-8, 1 / 3))  # type: ignore[arg-type]
+        assert math.isnan(self._pow(1, math.inf))  # type: ignore[arg-type]
+        assert self._pow(-2, 3) == -8
+        assert self._math("pow", 0, -1) == math.inf
+
+    def test_integral_functions_pass_non_finite_through(self) -> None:
+        assert self._math("ceil", math.inf) == math.inf
+        assert self._math("floor", -math.inf) == -math.inf
+        assert math.isnan(self._math("round", math.nan))  # type: ignore[arg-type]
+        assert self._math("round", math.inf) == math.inf
 
 
 class TestRejections:

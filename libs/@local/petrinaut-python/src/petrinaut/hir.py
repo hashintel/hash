@@ -52,6 +52,8 @@ class HirEvaluationError(Exception):
 def _js_round(value: float) -> float:
     """ECMAScript ``Math.round``: half-up toward positive infinity (Python's
     ``round`` is banker's)."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return value  # JS: round(±Infinity) is ±Infinity, round(NaN) is NaN
     return math.floor(value + 0.5)
 
 
@@ -63,6 +65,78 @@ def _js_sign(value: float) -> float:
     return value  # preserves 0 / -0 / NaN like JS
 
 
+def _is_odd_integer(value: float) -> bool:
+    return math.isfinite(value) and value == int(value) and int(value) % 2 == 1
+
+
+def _js_pow(base: float, exponent: float) -> float:
+    """ECMAScript exponentiation (``**`` and ``Math.pow``): IEEE-754 via
+    ``math.pow``, never raising and never going complex, with the spec's
+    deviations from C ``pow`` restored."""
+    base = float(base)
+    exponent = float(exponent)
+    # JS: any NaN exponent, and ±Infinity exponents on a |base| of exactly
+    # 1, yield NaN where C pow returns 1.
+    if math.isnan(exponent) or (math.isinf(exponent) and abs(base) == 1):
+        return math.nan
+    try:
+        return math.pow(base, exponent)
+    except OverflowError:
+        # Finite operands overflowing a double: ±Infinity, negative only
+        # for a negative base raised to an odd integer.
+        negative = base < 0 and _is_odd_integer(exponent)
+        return -math.inf if negative else math.inf
+    except ValueError:
+        if base == 0 and exponent < 0:
+            # JS: 0 ** negative is Infinity; -0 flips the sign through an
+            # odd integer exponent.
+            negative = math.copysign(1.0, base) < 0 and _is_odd_integer(exponent)
+            return -math.inf if negative else math.inf
+        # Negative base with a non-integer exponent, and other domain
+        # errors: NaN in JS.
+        return math.nan
+
+
+def _js_log(fn: Any) -> Any:
+    """JS ``Math.log`` family: 0 yields -Infinity and negatives yield NaN,
+    where Python raises for both."""
+
+    def wrapped(value: float) -> float:
+        if value == 0:
+            return -math.inf
+        if value < 0:
+            return math.nan
+        return fn(value)  # type: ignore[no-any-return]
+
+    return wrapped
+
+
+def _js_grows(fn: Any, *, odd: bool) -> Any:
+    """JS ``Math.exp``/``cosh``/``sinh``: a result too large for a double is
+    ±Infinity, where Python raises OverflowError. ``odd`` functions take the
+    argument's sign."""
+
+    def wrapped(value: float) -> float:
+        try:
+            return fn(value)  # type: ignore[no-any-return]
+        except OverflowError:
+            return math.copysign(math.inf, value) if odd else math.inf
+
+    return wrapped
+
+
+def _js_integral(fn: Any) -> Any:
+    """JS ``Math.ceil``/``floor``/``trunc`` pass non-finite values through,
+    where Python raises."""
+
+    def wrapped(value: float) -> float:
+        if isinstance(value, float) and not math.isfinite(value):
+            return value
+        return fn(value)  # type: ignore[no-any-return]
+
+    return wrapped
+
+
 _MATH_FNS: dict[str, Any] = {
     "abs": abs,
     "acos": math.acos,
@@ -70,26 +144,26 @@ _MATH_FNS: dict[str, Any] = {
     "atan": math.atan,
     "atan2": math.atan2,
     "cbrt": lambda x: math.copysign(abs(x) ** (1 / 3), x),
-    "ceil": math.ceil,
+    "ceil": _js_integral(math.ceil),
     "cos": math.cos,
-    "cosh": math.cosh,
-    "exp": math.exp,
-    "floor": math.floor,
+    "cosh": _js_grows(math.cosh, odd=False),
+    "exp": _js_grows(math.exp, odd=False),
+    "floor": _js_integral(math.floor),
     "hypot": math.hypot,
-    "log": math.log,
-    "log10": math.log10,
-    "log2": math.log2,
+    "log": _js_log(math.log),
+    "log10": _js_log(math.log10),
+    "log2": _js_log(math.log2),
     "max": max,
     "min": min,
-    "pow": lambda x, y: float(x) ** float(y),
+    "pow": _js_pow,
     "round": _js_round,
     "sign": _js_sign,
     "sin": math.sin,
-    "sinh": math.sinh,
+    "sinh": _js_grows(math.sinh, odd=True),
     "sqrt": math.sqrt,
     "tan": math.tan,
     "tanh": math.tanh,
-    "trunc": math.trunc,
+    "trunc": _js_integral(math.trunc),
 }
 
 _CONSTANTS = {
@@ -303,7 +377,10 @@ class _Evaluator:
             # ECMAScript remainder takes the dividend's sign (math.fmod).
             return math.fmod(left, right)
         if op == "**":
-            return float(left) ** float(right)
+            # Through the JS-faithful pow: Python's `**` raises on overflow
+            # and 0**negative, and goes complex for a negative base with a
+            # fractional exponent, where JS yields ±Infinity / NaN.
+            return _js_pow(left, right)
         if op == "<":
             return left < right
         if op == "<=":
