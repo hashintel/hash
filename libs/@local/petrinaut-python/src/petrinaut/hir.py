@@ -100,6 +100,16 @@ _CONSTANTS = {
 }
 
 
+def _strict_slack(slack: float) -> float:
+    """A strict comparison is violated at the boundary, so its margin must
+    go negative there: a zero slack becomes the smallest representable step
+    below zero, keeping "margin >= 0 iff satisfied" exact for ``<``, ``>``
+    and ``!=`` while staying negligible for any consumer of magnitudes."""
+    if slack != 0.0:
+        return slack
+    return -math.ulp(1.0)
+
+
 def _strict_equal(left: Any, right: Any) -> bool:
     """ECMAScript strict equality on the value kinds HIR produces: booleans
     never equal numbers (`1 === true` is false in JS, unlike Python)."""
@@ -188,9 +198,26 @@ class _Evaluator:
             return target[index]
         if kind == "length":
             target = self.eval(node["target"])
-            if not isinstance(target, list):
-                raise HirEvaluationError(".length target is not an array")
+            if not isinstance(target, (list, str)):
+                raise HirEvaluationError(
+                    ".length target is not an array or string"
+                )
             return len(target)
+        if kind == "stringCall":
+            target = self.eval(node["target"])
+            argument = self.eval(node["argument"])
+            if not isinstance(target, str) or not isinstance(argument, str):
+                raise HirEvaluationError(
+                    f".{node['fn']}(...) is only available on strings"
+                )
+            fn = node["fn"]
+            if fn == "startsWith":
+                return target.startswith(argument)
+            if fn == "endsWith":
+                return target.endswith(argument)
+            if fn == "includes":
+                return argument in target
+            raise HirEvaluationError(f"unsupported string method {fn!r}")
         if kind == "unary":
             operand = self.eval(node["operand"])
             op = node["op"]
@@ -340,9 +367,15 @@ class _Evaluator:
             if op == "||":
                 return max(self.margin(node["left"]), self.margin(node["right"]))
             if op in ("<", "<="):
-                return float(self.eval(node["right"])) - float(self.eval(node["left"]))
+                slack = float(self.eval(node["right"])) - float(
+                    self.eval(node["left"])
+                )
+                return slack if op == "<=" else _strict_slack(slack)
             if op in (">", ">="):
-                return float(self.eval(node["left"])) - float(self.eval(node["right"]))
+                slack = float(self.eval(node["left"])) - float(
+                    self.eval(node["right"])
+                )
+                return slack if op == ">=" else _strict_slack(slack)
             if op == "==":
                 left, right = self.eval(node["left"]), self.eval(node["right"])
                 if isinstance(left, bool) or isinstance(right, bool):
@@ -352,7 +385,7 @@ class _Evaluator:
                 left, right = self.eval(node["left"]), self.eval(node["right"])
                 if isinstance(left, bool) or isinstance(right, bool):
                     return math.inf if not _strict_equal(left, right) else -math.inf
-                return abs(float(left) - float(right))
+                return _strict_slack(abs(float(left) - float(right)))
         if kind == "unary" and node["op"] == "!":
             return -self.margin(node["operand"])
         if kind == "cond":
