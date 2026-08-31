@@ -545,15 +545,15 @@ export function prepareScenarioCompiler(
       initialStateSpec.content.trim() !== "");
   const preparedInitialStateCode: PreparedScenarioItem | null = hasCode
     ? prepareScenarioItem(
-          hir.initialStateCode,
-          buildScenarioCodeContext(
-            netParameters,
-            scenario.scenarioParameters,
-            places,
-            types,
-          ),
-        )
-      : null;
+        hir.initialStateCode,
+        buildScenarioCodeContext(
+          netParameters,
+          scenario.scenarioParameters,
+          places,
+          types,
+        ),
+      )
+    : null;
   const preparedPlaceExpressions = new Map<string, PreparedScenarioItem>();
   if (initialStateSpec.type === "per_place") {
     for (const [placeId, value] of Object.entries(initialStateSpec.content)) {

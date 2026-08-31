@@ -34,8 +34,10 @@ never blocks a firing over it.
    executes at generous slabs (four times each place's initial tokens). Few
    runs afford big slabs, the probe's frames stream to the charts, and its
    shader tracks each derived place's **per-run maximum count** (a register
-   per place, folded into the summary). A probe that overflows doubles the
-   slabs, recompiles, and probes again.
+   per place, folded into the summary). A probe that overflows quadruples the
+   slabs, recompiles, and probes again — shedding runs to stay inside a
+   128 MB probe budget, so seven growth attempts reach counts past a million
+   (64 × 4⁷) before conceding to the CPU.
 2. **Decide, per place.** The probe yields the largest per-run maximum and
    the mean of the per-run maxima. When the largest is close to typical, the
    slab becomes 1.5 × the observed maximum plus headroom — recompile, run in
@@ -45,8 +47,8 @@ never blocks a firing over it.
    by the simultaneous total, paying indirection only where nothing else
    works. Until the arena exists, that branch refuses cleanly during
    creation, so the backend-selection walk falls back to the CPU, which
-   sizes its buffers dynamically. No error is shown; the experiment just
-   runs on the other backend, with the reason recorded.
+   sizes its buffers dynamically. The experiment runs on the other backend,
+   with the reason surfaced only as the backend indicator's tooltip.
 3. **Detect and grow, in a loop.** The full run can still outgrow the probe's
    estimate. A frame whose post-fold count exceeds a derived slab sets the
    run's status to _overflowed_ — an exact check, since the highest slot a

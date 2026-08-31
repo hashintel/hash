@@ -116,6 +116,15 @@ export type CreateGpuMonteCarloExperimentResult =
 const GPU_WINDOW_PROBE_RUNS = 128;
 
 /**
+ * Memory the capacity probe may hold at once: slabs grow geometrically until
+ * the runs stop overflowing, and the probe sheds runs to stay inside this
+ * budget — few runs afford big slabs, and even eight runs bound a place's
+ * maximum well enough for a 1.5×-margin slab with the overflow-grow loop
+ * behind it.
+ */
+const GPU_PROBE_MEMORY_BYTES = 128 * 1024 * 1024;
+
+/**
  * The largest per-run slab a single derived-capacity place may claim when
  * its probe shows a heavy tail — outlier runs far past the typical maximum.
  * Below it, sizing for the outlier is cheap enough to just do; past it, the
@@ -515,9 +524,17 @@ export async function createGpuMonteCarloExperiment(
           appendMetricFrames(createEmptyMetricsState(), [...merged.values()]),
         );
       },
+      // A probe runs a prefix of the runs; per-run draws are laid out by
+      // absolute run index, so the matching prefix of the value buffer is
+      // exactly the probe runs' draws.
       ...(runParameters.values === undefined
         ? {}
-        : { runParameterValues: runParameters.values }),
+        : {
+            runParameterValues: runParameters.values.subarray(
+              0,
+              attemptRunCount * runParameters.ids.length,
+            ),
+          }),
       signal,
       onChunk: ({ framesDone, runsCompleted, runsInTile }) => {
         if (disposed) {
@@ -561,7 +578,6 @@ export async function createGpuMonteCarloExperiment(
       windowInputs,
       activeShader.histogramBins,
     );
-    const probeRuns = Math.min(config.runCount, GPU_WINDOW_PROBE_RUNS);
     const unsupported = (
       reason: string,
     ): CreateGpuMonteCarloExperimentResult => {
@@ -569,15 +585,30 @@ export async function createGpuMonteCarloExperiment(
       backend.handle.device.destroy();
       return { supported: false, cause: "net-unsupported", reason };
     };
+    // Slabs quadruple per attempt and the probe sheds runs to stay inside
+    // the memory budget — eight runs at 16 MB slabs probe as usefully as a
+    // hundred at small ones. Seven attempts of ×4 span from the initial
+    // guess to counts in the hundreds of thousands before giving up.
+    const probeRunsFor = (): number => {
+      const bytesPerRun = activeShader.stateWordsPerRun * 4;
+      return Math.max(
+        Math.min(8, config.runCount),
+        Math.min(
+          config.runCount,
+          GPU_WINDOW_PROBE_RUNS,
+          Math.floor(GPU_PROBE_MEMORY_BYTES / Math.max(1, bytesPerRun)),
+        ),
+      );
+    };
 
-    let probe = await executeAttempt(probeRuns, probeWindows);
+    let probe = await executeAttempt(probeRunsFor(), probeWindows);
     for (
       let grow = 0;
-      probe.ok && probe.result.overflowRuns > 0 && grow < 3;
+      probe.ok && probe.result.overflowRuns > 0 && grow < 7;
       grow++
     ) {
       for (const [placeId, capacity] of derivedCaps) {
-        derivedCaps.set(placeId, capacity * 2);
+        derivedCaps.set(placeId, capacity * 4);
       }
       const regrown = backend.recompile(derivedCaps);
       if (!regrown.ok) {
@@ -586,14 +617,21 @@ export async function createGpuMonteCarloExperiment(
         );
       }
       activeShader = regrown.shader;
-      probe = await executeAttempt(probeRuns, probeWindows);
+      probe = await executeAttempt(probeRunsFor(), probeWindows);
     }
     if (!probe.ok) {
       return unsupported(probe.reason);
     }
     if (probe.result.overflowRuns > 0) {
+      const largest = Math.max(
+        0,
+        ...activeShader.derivedCapacityPlaceIndices.map(
+          (placeIndex) =>
+            derivedCaps.get(backend.profile.places[placeIndex]?.id ?? "") ?? 0,
+        ),
+      );
       return unsupported(
-        "Probing this net's token counts kept overflowing even at grown capacities; running on the CPU, which sizes its buffers dynamically.",
+        `Probing this net's token counts kept overflowing past ${largest.toLocaleString()} tokens per place; running on the CPU, which sizes its buffers dynamically.`,
       );
     }
 
@@ -737,14 +775,14 @@ export async function createGpuMonteCarloExperiment(
       fail(outcome.reason);
       return;
     }
-    if (outcome.result.overflowRuns > 0) {
+    if (outcome.result.overflowRuns > 0 && !outcome.result.cancelled) {
       fail(
         "Token counts kept outgrowing their derived capacities even after growth; run this experiment on the CPU, which sizes its buffers dynamically.",
       );
       return;
     }
 
-    if (anyEscapes(outcome.result.metricRanges)) {
+    if (anyEscapes(outcome.result.metricRanges) && !outcome.result.cancelled) {
       // Unreachable when the recalibrated re-run executed (same seeds, same
       // trajectories, exact observed range) — kept as the honest safety net.
       config.onWarning?.(
