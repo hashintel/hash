@@ -3,6 +3,7 @@ import { createContext } from "react";
 import {
   type AdHocScenarioState,
   type CompiledScenarioResult,
+  type Parameter,
   type InitialMarking,
   type InitialPlaceMarking,
   type ScenarioCompilationError,
@@ -148,6 +149,14 @@ export type SimulationContextValue = {
    * persisted into the net file. Null until the user defines one.
    */
   adHocScenario: AdHocScenarioState | null;
+  /**
+   * The net's parameters with the panel's current values overlaid as their
+   * defaults — exactly what ad-hoc synthesis and a Play run compile
+   * against. Embeddings pass these to the form so the defaults it displays
+   * are the ones the run resolves (the raw inputs are hidden while the
+   * ad-hoc embedding is live). Empty when the parameters extension is off.
+   */
+  adHocNetParameters: Parameter[];
 
   // Actions
   setSelectedScenarioId: (scenarioId: string | null) => void;
@@ -207,6 +216,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   compiledScenarioResult: null,
   scenarioCompilationErrors: null,
   adHocScenario: null,
+  adHocNetParameters: [],
   dt: 0.01,
   maxTime: null,
   totalFrames: 0,

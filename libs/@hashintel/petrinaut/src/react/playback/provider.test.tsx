@@ -84,6 +84,7 @@ function createMockSimulationContext(
     compiledScenarioResult: null,
     scenarioCompilationErrors: null,
     adHocScenario: null,
+    adHocNetParameters: [],
     setAdHocScenario: () => {},
     dt: 0.01,
     maxTime: null,

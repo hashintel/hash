@@ -839,6 +839,7 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     compiledScenarioResult,
     scenarioCompilationErrors,
     adHocScenario: stateValues.adHocScenario,
+    adHocNetParameters,
     dt: stateValues.dt,
     maxTime: stateValues.maxTime,
     totalFrames,
