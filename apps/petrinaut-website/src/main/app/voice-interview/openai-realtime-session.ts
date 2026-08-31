@@ -350,15 +350,18 @@ export class OpenAIRealtimeSession {
       this.#reportDiagnostic("connection", requestId, startedAt);
       return connectionEpoch;
     } catch (error) {
+      const abortReason = abortController.signal.reason;
       const voiceError =
-        abortController.signal.reason === timeoutError
+        abortReason === timeoutError
           ? new VoiceError("connection", "timeout", requestId)
-          : error instanceof VoiceError
-            ? error
-            : abortController.signal.aborted ||
-                (error instanceof DOMException && error.name === "AbortError")
-              ? new VoiceError("connection", "request-aborted", requestId)
-              : new VoiceError("connection", "invalid-response", requestId);
+          : abortReason instanceof VoiceError
+            ? abortReason
+            : error instanceof VoiceError
+              ? error
+              : abortController.signal.aborted ||
+                  (error instanceof DOMException && error.name === "AbortError")
+                ? new VoiceError("connection", "request-aborted", requestId)
+                : new VoiceError("connection", "invalid-response", requestId);
       if (this.#activeEpoch === connectionEpoch) {
         this.#releaseResources();
       }
