@@ -1,3 +1,9 @@
+/**
+ * @layerRoot website.api
+ * @role Server functions: JSON oEmbed discovery and the AI chat proxy
+ * @talksTo website.routes via the embed URL it returns to consumers
+ */
+
 import {
   getExampleCatalogEntry,
   isExampleSlug,

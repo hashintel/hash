@@ -1,3 +1,8 @@
+---
+layer: website
+role: Demo site and embed host for the Petrinaut editor
+---
+
 # Petrinaut Website
 
 A website for demoing Petrinaut (libs/@hashintel/petrinaut).

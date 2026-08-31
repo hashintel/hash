@@ -1,3 +1,8 @@
+/**
+ * @layerRoot website.examples
+ * @role Publishes example models and the URL contract every example surface speaks
+ */
+
 import {
   parseSDCPNFile,
   type HirArtifacts,

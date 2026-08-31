@@ -64,6 +64,18 @@ export const config: ArchitectureConfig = {
       language: "python",
     },
     {
+      name: "@apps/petrinaut-website",
+      path: "apps/petrinaut-website",
+      description:
+        "Demo site and embed host: TanStack Router routes, published example models, and server functions for oEmbed discovery.",
+      language: "typescript",
+      // The whole app, not just `src`: the Vercel functions in `api/` are part
+      // of the architecture, and they deploy separately from the SPA. The
+      // `scripts` directory and root `*.config.ts` files are excluded by the
+      // shared ignore rules, so this buys `api/` without the build tooling.
+      sourceDirectory: ".",
+    },
+    {
       name: "@apps/petrinaut-opt",
       path: "apps/petrinaut-opt",
       description:
@@ -123,6 +135,9 @@ export const config: ArchitectureConfig = {
     "docs",
     "__pycache__",
     ".venv",
+    // Build and codegen tooling, which a package scanned with
+    // `sourceDirectory: "."` would otherwise pull into its root layer.
+    "scripts",
   ],
 
   /**
@@ -131,7 +146,7 @@ export const config: ArchitectureConfig = {
    * layer's file count with fixtures.
    */
   ignoredFilePattern:
-    /(?:\.(?:test|spec|stories)\.[cm]?[jt]sx?$|\.d\.ts$|\/CHANGELOG\.md$|\/LICENSE[^/]*\.md$)/u,
+    /(?:\.(?:test|spec|stories)\.[cm]?[jt]sx?$|\.d\.ts$|\.config\.[cm]?[jt]s$|\/CHANGELOG\.md$|\/LICENSE[^/]*\.md$)/u,
 
   /**
    * The bundle is the product; the Starlight site in `apps/petrinaut-docs` and
