@@ -1234,7 +1234,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       ?.sampleCell(parameterValues, minRuns) ?? Promise.resolve(null);
 
   const sampleSurfaceCells: ExperimentsContextValue["sampleSurfaceCells"] =
-    async (experimentId, positions, runsPerCell) => {
+    async (experimentId, positions, runsPerCell, onPartial) => {
       const session = sweepSessionsRef.current.get(experimentId);
       if (!session || positions.length === 0) {
         return null;
@@ -1254,7 +1254,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           baseMarking !== null &&
           positions.every((position) => markingProbe(position) === baseMarking)
         ) {
-          return session.sampleCells(positions, runsPerCell);
+          return session.sampleCells(positions, runsPerCell, onPartial);
         }
       }
       // A marking-shaping (or partially non-compiling) chunk keeps the
@@ -1267,8 +1267,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         return null;
       }
       const metricIds = experiment.metricSpecs.map((spec) => spec.id);
+      // The per-cell path streams too: each resolved cell reports the chunk's
+      // progress so far, index-aligned like the batched path.
+      const partial: (Readonly<Record<string, number>> | null)[] =
+        positions.map(() => null);
       return Promise.all(
-        positions.map(async (position) => {
+        positions.map(async (position, index) => {
           const snapshot = await session.sampleCell(position, runsPerCell);
           if (!snapshot) {
             return null;
@@ -1280,6 +1284,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
               values[metricId] = value;
             }
           }
+          partial[index] = values;
+          onPartial?.([...partial]);
           return values;
         }),
       );

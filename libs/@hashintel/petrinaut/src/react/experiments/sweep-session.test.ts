@@ -89,6 +89,7 @@ function makeFakeBatch(request: {
   let cancelled = false;
   let started = false;
   let runResults = new Map<number, Readonly<Record<string, number>>>();
+  let runResultsListeners: (() => void)[] = [];
 
   const handle: MonteCarloExperiment = {
     status: { get: () => "Running", subscribe: () => () => {} },
@@ -107,7 +108,18 @@ function makeFakeBatch(request: {
         };
       },
     },
-    runResults: { get: () => runResults, subscribe: () => () => {} },
+    runResults: {
+      get: () => runResults,
+      subscribe: (listener) => {
+        const notify = () => listener(runResults);
+        runResultsListeners.push(notify);
+        return () => {
+          runResultsListeners = runResultsListeners.filter(
+            (entry) => entry !== notify,
+          );
+        };
+      },
+    },
     events: {
       subscribe: (listener) => {
         eventListeners.push(listener);
@@ -130,6 +142,9 @@ function makeFakeBatch(request: {
     handle,
     setRunResults(next: ReadonlyMap<number, Readonly<Record<string, number>>>) {
       runResults = new Map(next);
+      for (const notify of runResultsListeners) {
+        notify();
+      }
     },
     get cancelled() {
       return cancelled;
@@ -703,6 +718,42 @@ describe("sampleCells", () => {
     chunk.complete();
     await settle();
 
+    expect(await resultPromise).toEqual([{ m: 2 }, { m: 15 }]);
+  });
+
+  it("streams partial per-cell means as shards complete", async () => {
+    const harness = makeHarness(1000);
+    const partials: (readonly (Readonly<Record<string, number>> | null)[])[] =
+      [];
+    const resultPromise = harness.session.sampleCells(CELLS, 2, (cells) =>
+      partials.push(cells),
+    );
+    await harness.settle();
+    const chunk = harness.batches.at(-1)!;
+
+    // First shard lands: only cell 0's runs are in; cell 1 is still null.
+    chunk.setRunResults(
+      new Map([
+        [0, { m: 1 }],
+        [1, { m: 3 }],
+      ]),
+    );
+    expect(partials.at(-1)).toEqual([{ m: 2 }, null]);
+
+    // Second shard: both cells now carry means.
+    chunk.setRunResults(
+      new Map([
+        [0, { m: 1 }],
+        [1, { m: 3 }],
+        [2, { m: 10 }],
+        [3, { m: 20 }],
+      ]),
+    );
+    expect(partials.at(-1)).toEqual([{ m: 2 }, { m: 15 }]);
+
+    chunk.stream([frame(4, [[1, 4]])]);
+    chunk.complete();
+    await harness.settle();
     expect(await resultPromise).toEqual([{ m: 2 }, { m: 15 }]);
   });
 
