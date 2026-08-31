@@ -593,8 +593,30 @@ export function createSweepSession(
 
   restart();
 
-  /** Serializes background sampling; one small batch in flight at most. */
-  let backgroundChain: Promise<unknown> = Promise.resolve();
+  /**
+   * Bounds background sampling to a few small batches in flight. Strictly
+   * one at a time made the surface's four sampling lanes an illusion — every
+   * cell serialized here regardless — and most of a cell's wall time is
+   * batch setup rather than compute, so a small overlap pipelines it without
+   * starving the navigator's own batch.
+   */
+  const BACKGROUND_BATCHES_IN_FLIGHT = 4;
+  let backgroundActive = 0;
+  const backgroundWaiters: (() => void)[] = [];
+  const acquireBackgroundSlot = async (): Promise<void> => {
+    if (backgroundActive < BACKGROUND_BATCHES_IN_FLIGHT) {
+      backgroundActive += 1;
+      return;
+    }
+    await new Promise<void>((resolve) => {
+      backgroundWaiters.push(resolve);
+    });
+    backgroundActive += 1;
+  };
+  const releaseBackgroundSlot = (): void => {
+    backgroundActive -= 1;
+    backgroundWaiters.shift()?.();
+  };
 
   const runBackgroundBatch = async (
     position: Readonly<Record<string, number>>,
@@ -678,12 +700,13 @@ export function createSweepSession(
     getCell(position) {
       return cache.get(sweepCellKey(axes, position));
     },
-    sampleCell(position, minRuns) {
-      const next = backgroundChain.then(() =>
-        runBackgroundBatch({ ...position }, minRuns),
-      );
-      backgroundChain = next.catch(() => null);
-      return next;
+    async sampleCell(position, minRuns) {
+      await acquireBackgroundSlot();
+      try {
+        return await runBackgroundBatch({ ...position }, minRuns);
+      } finally {
+        releaseBackgroundSlot();
+      }
     },
     dispose() {
       disposed = true;
