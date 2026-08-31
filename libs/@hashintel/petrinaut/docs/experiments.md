@@ -127,7 +127,7 @@ The controls under each chart change what is plotted:
 - **Value / Minimum to date / Maximum to date** plots each time step's own value, or the running minimum or maximum up to that point.
 - **Aggregate over time** collapses the whole series: a scalar-like series becomes a single number, and an unaggregated distribution becomes one histogram whose bar heights are the chosen statistic (average, minimum, maximum, or sum) of each value's frequency over time.
 
-Click (or drag across) a timeline chart to inspect single time steps — a popover shows that moment's exact value or per-value histogram.
+Click (or drag across) a timeline chart to inspect single time steps — a popover shows that moment's exact value, or its whole distribution as a small histogram with value and count axes, however many bins the frame carries.
 
 ### Actions
 
