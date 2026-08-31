@@ -7,9 +7,9 @@ Petrinaut has an in-app AI assistant that can build a net from a natural-languag
 There are two entry points:
 
 1. **AI button** in the bottom toolbar (Edit mode only). Click it to open the panel; click again to close. The tooltip is "Show AI assistant" / "Hide AI assistant".
-2. **First-run prompt**. When you load Petrinaut against an empty net, a centred prompt appears. Type a description, press send, and the panel opens with your message already in flight. Dismiss the prompt with the **X**, by clicking outside it, or by pressing **Escape**; it is hidden for the rest of the session once dismissed.
+2. **First-run prompt**. When you load Petrinaut against an empty net, a centred prompt appears. Type a description and its trailing action becomes **Send**; select it to open the panel with your message already in flight. When the host provides Voice mode, the empty prompt instead shows a waveform action titled **Start voice mode**. It opens the same assistant without creating an empty text message. Dismiss the prompt with the **X**, by clicking outside it, or by pressing **Escape**; it is hidden for the rest of the session once dismissed.
 
-The assistant panel only renders in **Edit** mode. Switching to **Simulate** mode hides it; switch back to **Edit** to continue the conversation. The panel resizes by dragging its left edge.
+The assistant panel only renders in **Edit** mode. Switching to **Simulate** mode hides it; switch back to **Edit** to continue the conversation. The panel resizes by dragging its left edge. Its header has one **AI** label because text and voice share the same transcript rather than separate chats.
 
 ## The conversation
 
@@ -28,41 +28,38 @@ other follow-up that must not answer the pending question.
 If the host offers voice input, a finalized spoken turn is held while an existing response
 finishes and is submitted when the conversation is ready.
 
-When the Brunch voice preview is enabled and available, **Chat** and **Interview** tabs appear on
-the first-run card and in the assistant panel header. If voice is unavailable, **Interview** is not
-shown. On the first-run card, select **Interview** and then **Start interview** to open the panel at
-the existing one-time disclosure. Review that OpenAI processes live audio and speaks the
-interviewer's words while Petrinaut keeps finalized answers in the conversation rather than the
-audio. You can check your microphone before confirming that you understand and selecting **Start
-interview**. Petrinaut remembers that acknowledgement in this browser for the current disclosure
-version, so later selections of **Interview** start directly. If browser storage is unavailable or
-the disclosure changes, Petrinaut asks again.
+When the Brunch voice preview is enabled and available, an empty composer shows a waveform action
+titled **Start voice mode**. Typing non-whitespace text replaces it with **Send**. The same dynamic
+action appears in the first-run prompt and the assistant panel; if voice is unavailable, the empty
+composer retains a disabled **Send** action. Starting Voice mode keeps the transcript and generic
+text composer visible and opens the existing one-time disclosure. Review that OpenAI processes live
+audio and speaks the interviewer's words while Petrinaut keeps finalized answers in the conversation
+rather than the audio. You can check your microphone before confirming that you understand and
+selecting **Start voice mode**. Petrinaut remembers that acknowledgement in this browser for the
+current disclosure version, so later uses of **Start voice mode** start directly. If browser storage
+is unavailable or the disclosure changes, Petrinaut asks again.
 
-The full Interview stage keeps the current question above a circular microphone control. While
-Petrinaut is listening, waveform bars respond to your microphone and a short **Listening** status
-confirms capture. The technical input-level name remains available to screen readers without adding
-visible meter text. If the conversation does not have a question yet, the stage asks you to describe
-the process you want to model. Your first finalized spoken description starts the Brunch conversation
-as your message; after Brunch asks its first question, later spoken turns answer the current question.
+The active Voice session sits at the end of the same scrollable conversation as the assistant's
+messages and inline questions. A thin divider shows a compact five-bar waveform and one short state:
+**Connecting**, **Listening**, **Speaking**, **Paused**, or a recovery label. Listening bars follow
+microphone input; speaking uses a restrained looping pattern.
 
-Partial words appear in a compact **Live transcript** strip with a **Recording** status. After
-finalization, the strip changes to **Your answer**. It reads **Sending** while the answer is on its
-way to the interview and **Sent** once the interview has accepted it; if delivery fails, it reads
-**Not sent** so you know to retry rather than assuming the answer arrived. Icon controls provide
-**Use text instead**, **Pause**, and the other actions valid for the current state; hover or focus an
-icon to see its title.
+Partial words appear immediately above the divider in a temporary user-style bubble with a small
+waveform mark. The bubble is display-only: it is not sent or saved, and it disappears when the
+finalized message or inline-question answer appears in the conversation. Only finalized answers and
+canonical Brunch text become chat history; provisional transcription and Realtime audio are
+ephemeral and are not persisted as chat history. Finalized spoken user messages and the exact inline
+answer completed by speech keep the same waveform mark, so Voice provenance remains visible without
+duplicating an answer.
 
-The stage names the microphone state and shows input activity only while the microphone is really
-on. The microphone stays on while the interviewer speaks, so speaking naturally interrupts the
-audio and starts listening to you; you do not need to select an interrupt action. Semantic voice
-detection finishes each answer automatically after a natural pause and is tuned to allow longer
-thinking pauses. There is no required done-speaking action. Choose **Pause** to turn the microphone
-off temporarily without submitting. Provisional transcript updates, answer submission and
-interviewer playback do not turn the microphone off. **Pause**, **Minimize**, and **End interview**
-remain separate actions. The header uses icon-only controls with tooltips **Minimize** and **End
-interview**. After an answer is recorded and before the interview advances, **Edit text** can send an
-explicit correction; it remains unavailable while the previous answer is still being written down.
-Choose **Use text instead** to switch to the generic message composer as a keyboard fallback.
+The microphone stays on while the interviewer speaks, so speaking naturally interrupts the audio
+and starts listening to you; you do not need to select an interrupt action. Semantic voice detection
+finishes each answer automatically after a natural pause and is tuned to allow longer thinking
+pauses. There is no required done-speaking action. Open **Voice mode actions** and choose **Pause**
+to turn the microphone off temporarily without submitting, then choose **Resume** to continue.
+**End voice mode** is also in the actions menu. The normal text composer remains visible throughout.
+Sending non-empty typed text ends Voice mode before it sends the message once through the same
+conversation; repeated send actions are ignored while that short handoff completes.
 
 The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the
 authority on your system. Brunch still chooses every question and interview decision; OpenAI only
@@ -70,28 +67,18 @@ delivers its words. The question and finalized response shown in the Petrinaut c
 authoritative. Spoken audio is generated from that Brunch text but may not be verbatim. Interrupting
 audio does not undo the visible response or change the interview's saved history.
 
-Selecting **Chat** or **Minimize** hides the full stage. If the interview is active, the same session
-continues in a compact bar above the composer; expanding the bar reopens the sidebar and selects
-**Interview**. Closing the AI sidebar during an active interview moves the compact bar over the
-canvas; reopening the sidebar docks it again. These presentation changes do not reconnect or end
-the voice session. On narrow screens the compact presentation remains a bottom bar. If the session
-fails, the sidebar reopens to the full recovery view once; selecting **Chat** after that keeps the
-recovery controls compact. **Clear AI chat** is unavailable while an interview is active.
+Closing the AI panel pauses microphone capture and active speech, then hides the inline Voice view
+until you reopen the panel. The same mounted session then appears as **Paused**; choose **Resume**
+when you are ready. **Clear AI chat** is unavailable while a Voice session is active.
 
-When Brunch has produced authoritative completion information, the stage can expand **Covered** and
-**Still exploring** topics. It does not show a question count or a speculative model preview; the
-Petrinaut canvas remains the model surface.
-
-If voice cannot continue, the status panel identifies the kind of problem with a warning circle and
-a visible **Reconnect** action. The heading names that kind: microphone wording for permission and
-device problems, connection wording for network, timeout, and interrupted requests, and neutral
-interview wording when the interview itself could not continue. For microphone permission or device
+If voice cannot continue, the divider uses a concise microphone, connection, or Voice recovery
+label, shows the actionable error below it, and provides **Reconnect**. Error codes and diagnostic
+references are available under collapsed **Technical details**. For microphone permission or device
 errors, allow access or
 connect/select a microphone before reconnecting. For an interrupted request, network error, or
 timeout, check the connection and choose **Reconnect**. If the preview is unavailable, continue
-with the text composer. An invalid service response includes a diagnostic reference you can give to
-an operator; error codes and that reference sit under collapsed **Technical details** so you can share
-them without them dominating the interview. That reference and its diagnostic record do not contain
+with the text composer. An invalid service response includes a diagnostic reference in its underlying
+record that you can give to an operator. That reference and its diagnostic record do not contain
 your transcript or the response being spoken. Interview-state failures use a content-free
 `interview-correlation`, `interview-response`, or `interview-submission` code so an operator can
 distinguish them without receiving your answer.
@@ -135,7 +122,7 @@ When the assistant edits code surfaces (lambdas, kernels, dynamics, visualizers,
 
 ## Host configuration
 
-Whether the assistant is available, which additional composer controls or interview stages appear, where the
+Whether the assistant is available, which additional composer controls or Voice modes appear, where the
 conversation is stored (in-memory, in your host app's database, or anywhere else), and the model
 behind it are all controlled by the host application that embeds Petrinaut. Read-only documents
 and the simulate-mode restrictions described above always apply when applicable.

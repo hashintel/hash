@@ -10,7 +10,10 @@
  */
 
 export { Petrinaut } from "./petrinaut";
-export type { PetrinautAiMessage } from "./views/Editor/panels/ai-assistant-panel";
+export type {
+  PetrinautAiMessage,
+  PetrinautAiMessageMetadata,
+} from "./views/Editor/panels/ai-assistant-panel";
 export type {
   PetrinautAiAssistant,
   PetrinautAiChatTransport,
@@ -21,10 +24,9 @@ export type {
   PetrinautAiComposerControlContext,
   PetrinautAiComposerStatus,
   PetrinautAiComposerSubmitTextResult,
-  PetrinautAiInteractionMode,
-  PetrinautAiInterviewStage,
-  PetrinautAiInterviewStageContext,
-  PetrinautAiInterviewStagePlacement,
+  PetrinautAiInputMode,
+  PetrinautAiVoiceMode,
+  PetrinautAiVoiceModeContext,
 } from "./types/ai-assistant-composer-control";
 export type {
   PetrinautNavigationAction,

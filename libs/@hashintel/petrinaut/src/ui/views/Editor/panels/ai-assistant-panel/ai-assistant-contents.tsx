@@ -13,7 +13,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { ResizeHandle } from "../../../../resize/resize-handle";
-import { AiInteractionModeTabs } from "../../components/ai-interaction-mode-tabs";
+import { AiVoiceModeButton } from "../../components/ai-voice-mode-button";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
   PromptChips,
@@ -25,8 +25,9 @@ import {
   AiAssistantToolList,
   type OnInteractiveToolSubmit,
 } from "./ai-assistant-contents/tool-list";
+import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
-import type { PetrinautAiInteractionMode } from "../../../../types/ai-assistant-composer-control";
+import type { PetrinautAiInputMode } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
 import type { AiToolTarget } from "./tool-summaries";
 import type { PetrinautAiMessage } from "./types";
@@ -41,16 +42,14 @@ export type AiAssistantContentsProps = {
   composerFocusRequest?: number;
   error?: Error;
   input: string;
-  interactionMode?: PetrinautAiInteractionMode;
-  interviewAvailable?: boolean;
-  interviewStage?: ReactNode;
+  inputMode?: PetrinautAiInputMode;
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
   isOpen?: boolean;
   messages: PetrinautAiMessage[];
   onClearMessages?: () => void;
   onClose: () => void;
+  onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   onInputChange: (value: string) => void;
-  onInteractionModeChange?: (mode: PetrinautAiInteractionMode) => void;
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   onSendPrompt?: (prompt: string) => void;
@@ -60,6 +59,9 @@ export type AiAssistantContentsProps = {
   rightOffset?: number;
   status: AiAssistantStatus;
   stopped?: boolean;
+  voiceHandoffPending?: boolean;
+  voiceMode?: ReactNode;
+  voiceModeAvailable?: boolean;
 };
 
 const defaultAssistantWidth = 500;
@@ -71,6 +73,9 @@ const shellStyle = cva({
     zIndex: "[calc(var(--z-index-sticky) + 2)]",
     pointerEvents: "auto",
     transition: "[right 150ms ease-in-out]",
+    "@media (prefers-reduced-motion: reduce)": {
+      transition: "[none]",
+    },
   },
   variants: {
     open: {
@@ -146,7 +151,7 @@ const panelContentStyle = cva({
   },
 });
 
-const interviewStageStyle = css({
+const voiceModeStyle = css({
   position: "relative",
   zIndex: "[2]",
   flexShrink: "0",
@@ -164,32 +169,23 @@ const headerStyle = css({
   flexShrink: 0,
 });
 
-const tabStyle = cva({
-  base: {
-    display: "flex",
-    alignItems: "center",
-    height: "[28px]",
-    maxWidth: "[112px]",
-    paddingX: "3",
-    borderTopLeftRadius: "lg",
-    borderTopRightRadius: "lg",
-    fontSize: "xs",
-    fontWeight: "medium",
-    lineHeight: "[12px]",
-    color: "neutral.s90",
-    overflow: "hidden",
-    whiteSpace: "nowrap",
-    textOverflow: "ellipsis",
-  },
-  variants: {
-    active: {
-      true: {
-        backgroundColor: "neutral.s00",
-        boxShadow: "[0px 0px 0px 1px rgba(0,0,0,0.08)]",
-        color: "neutral.s100",
-      },
-    },
-  },
+const headerLabelStyle = css({
+  display: "flex",
+  alignItems: "center",
+  height: "[28px]",
+  maxWidth: "[112px]",
+  paddingX: "3",
+  borderTopLeftRadius: "lg",
+  borderTopRightRadius: "lg",
+  backgroundColor: "neutral.s00",
+  boxShadow: "[0px 0px 0px 1px rgba(0,0,0,0.08)]",
+  color: "neutral.s100",
+  fontSize: "xs",
+  fontWeight: "medium",
+  lineHeight: "[12px]",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
 });
 
 const headerButtonStyle = css({
@@ -329,6 +325,9 @@ const composerTextareaStyle = css({
   // Animates the height changes driven by the auto-grow effect, so adding a
   // line (Shift+Enter) or wrapping expands the box smoothly.
   transition: "[height 120ms ease]",
+  "@media (prefers-reduced-motion: reduce)": {
+    transition: "[none]",
+  },
   _placeholder: {
     color: "neutral.s70",
   },
@@ -392,9 +391,15 @@ const AiAssistantMessage = memo(
   }) => {
     const role = message.role === "user" ? "user" : "assistant";
     const renderItems = getMessageRenderItems(message, interactiveTools);
+    const hasVoiceOrigin =
+      role === "user" && message.metadata?.source === "voice";
 
     return (
-      <div className={messageStyle({ role })} data-role={role}>
+      <div
+        className={messageStyle({ role })}
+        data-role={role}
+        data-voice-origin={hasVoiceOrigin || undefined}
+      >
         {renderItems.map((item) => {
           switch (item.type) {
             case "text":
@@ -436,6 +441,7 @@ const AiAssistantMessage = memo(
             }
           }
         })}
+        {hasVoiceOrigin && <VoiceInputProvenance />}
       </div>
     );
   },
@@ -448,16 +454,14 @@ export const AiAssistantContents = ({
   composerFocusRequest = 0,
   error,
   input,
-  interactionMode = "chat",
-  interviewAvailable = false,
-  interviewStage,
+  inputMode = "text",
   interactiveTools = EMPTY_INTERACTIVE_TOOLS,
   isOpen = true,
   messages,
   onClearMessages,
   onClose,
+  onInputModeChange,
   onInputChange,
-  onInteractionModeChange,
   onInteractiveToolSubmit,
   onSelectToolTarget,
   onSendPrompt,
@@ -467,9 +471,13 @@ export const AiAssistantContents = ({
   rightOffset = 0,
   status,
   stopped = false,
+  voiceHandoffPending = false,
+  voiceMode,
+  voiceModeAvailable = false,
 }: AiAssistantContentsProps) => {
   const isBusy = status === "submitted" || status === "streaming";
-  const canSubmit = input.trim().length > 0 && !isBusy;
+  const hasInput = input.trim().length > 0;
+  const canSubmit = hasInput && !isBusy && !voiceHandoffPending;
 
   const [assistantWidth, setAssistantWidth] = useState(defaultAssistantWidth);
 
@@ -541,7 +549,7 @@ export const AiAssistantContents = ({
 
   return (
     <aside
-      aria-hidden={!isOpen && !interviewStage ? true : undefined}
+      aria-hidden={!isOpen ? true : undefined}
       aria-label="AI assistant"
       className={shellStyle({ open: isOpen })}
       style={{
@@ -565,18 +573,11 @@ export const AiAssistantContents = ({
           label="Resize AI assistant"
         />
       </div>
-      <div className={cardStyle({ open: isOpen })}>
+      <div className={cardStyle({ open: isOpen })} data-input-mode={inputMode}>
         <div
           className={`${headerStyle} ${panelContentStyle({ visible: isOpen })}`}
         >
-          {interviewAvailable && onInteractionModeChange ? (
-            <AiInteractionModeTabs
-              mode={interactionMode}
-              onModeChange={onInteractionModeChange}
-            />
-          ) : (
-            <div className={tabStyle({ active: true })}>AI</div>
-          )}
+          <div className={headerLabelStyle}>AI</div>
           <div style={{ flex: 1 }} />
           <Button
             size="xs"
@@ -602,6 +603,7 @@ export const AiAssistantContents = ({
 
         <div
           className={`${messagesStyle} ${panelContentStyle({ visible: isOpen })}`}
+          data-testid="ai-transcript"
         >
           {messages.length === 0 && (
             <div className={emptyStyle}>
@@ -624,94 +626,111 @@ export const AiAssistantContents = ({
           {stopped && !error && (
             <div className={stoppedNoteStyle}>Response stopped</div>
           )}
+          {voiceMode && (
+            <div className={voiceModeStyle} data-testid="ai-voice-mode">
+              {voiceMode}
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
-        {interviewStage && (
-          <div
-            className={interviewStageStyle}
-            data-placement={isOpen ? "sidebar" : "detached"}
-            data-testid="ai-interview-stage"
+        <div
+          className={`${composerWrapStyle} ${panelContentStyle({ visible: isOpen })}`}
+        >
+          {showChips && (
+            <PromptChips
+              chips={promptChips}
+              disabled={isBusy}
+              onDismiss={() => setChipsDismissed(true)}
+              onSelect={(prompt) => onSendPrompt(prompt)}
+            />
+          )}
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              const submitter = (event.nativeEvent as SubmitEvent).submitter;
+              if (
+                canSubmit &&
+                submitter?.hasAttribute("data-ai-assistant-submit")
+              ) {
+                onSubmit();
+              }
+            }}
           >
-            {interviewStage}
-          </div>
-        )}
-
-        {interactionMode === "chat" && (
-          <div
-            className={`${composerWrapStyle} ${panelContentStyle({ visible: isOpen })}`}
-          >
-            {showChips && (
-              <PromptChips
-                chips={promptChips}
-                disabled={isBusy}
-                onDismiss={() => setChipsDismissed(true)}
-                onSelect={(prompt) => onSendPrompt(prompt)}
-              />
-            )}
-            <form
-              onSubmit={(event) => {
-                event.preventDefault();
-                const submitter = (event.nativeEvent as SubmitEvent).submitter;
-                if (
-                  canSubmit &&
-                  submitter?.hasAttribute("data-ai-assistant-submit")
-                ) {
-                  onSubmit();
-                }
-              }}
-            >
-              <div className={composerStyle}>
-                <textarea
-                  ref={inputRef}
-                  className={composerTextareaStyle}
-                  rows={1}
-                  value={input}
-                  onChange={(event) => onInputChange(event.currentTarget.value)}
-                  onKeyDown={(event) => {
-                    // Enter sends; Shift+Enter inserts a newline (the textarea's
-                    // native behaviour, so we just let it through). The
-                    // `isComposing` guard stops an IME confirmation keystroke
-                    // from sending a half-finished message.
-                    if (
-                      event.key === "Enter" &&
-                      !event.shiftKey &&
-                      !event.nativeEvent.isComposing
-                    ) {
-                      event.preventDefault();
-                      if (canSubmit) {
-                        onSubmit();
-                      }
+            <div className={composerStyle}>
+              <textarea
+                ref={inputRef}
+                className={composerTextareaStyle}
+                rows={1}
+                value={input}
+                onChange={(event) => onInputChange(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  // Enter sends; Shift+Enter inserts a newline (the textarea's
+                  // native behaviour, so we just let it through). The
+                  // `isComposing` guard stops an IME confirmation keystroke
+                  // from sending a half-finished message.
+                  if (
+                    event.key === "Enter" &&
+                    !event.shiftKey &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    event.preventDefault();
+                    if (canSubmit) {
+                      onSubmit();
                     }
-                  }}
-                  placeholder={
-                    messages.length === 0
-                      ? "Describe the process you want to create"
-                      : "Continue iterating..."
                   }
-                  aria-label="Message AI assistant"
-                />
-                {composerControl}
+                }}
+                placeholder={
+                  messages.length === 0
+                    ? "Describe the process you want to create"
+                    : "Continue iterating..."
+                }
+                aria-label="Message AI assistant"
+                disabled={voiceHandoffPending}
+              />
+              {composerControl}
+              {isBusy ? (
                 <Button
-                  data-ai-assistant-submit
-                  type={isBusy ? "button" : "submit"}
+                  aria-label="Stop AI response"
+                  iconName="stopFilled"
+                  onClick={onStop}
                   size="sm"
-                  variant={isBusy ? "subtle" : "solid"}
-                  tone={isBusy ? "neutral" : "brand"}
-                  disabled={!isBusy && !canSubmit}
-                  aria-label={isBusy ? "Stop AI response" : "Send message"}
-                  onClick={() => {
-                    if (isBusy) {
-                      onStop();
-                    }
-                  }}
-                  iconName={isBusy ? "stopFilled" : "arrowUp"}
-                  tooltip={isBusy ? "Stop AI response" : "Send message"}
+                  tone="neutral"
+                  tooltip="Stop AI response"
+                  type="button"
+                  variant="subtle"
                 />
-              </div>
-            </form>
-          </div>
-        )}
+              ) : canSubmit ? (
+                <Button
+                  aria-label="Send message"
+                  data-ai-assistant-submit
+                  iconName="arrowUp"
+                  size="sm"
+                  tone="brand"
+                  tooltip="Send message"
+                  type="submit"
+                  variant="solid"
+                />
+              ) : !hasInput && voiceModeAvailable && onInputModeChange ? (
+                <AiVoiceModeButton
+                  onClick={() => onInputModeChange("voice")}
+                  size="sm"
+                />
+              ) : (
+                <Button
+                  aria-label="Send message"
+                  disabled
+                  iconName="arrowUp"
+                  size="sm"
+                  tone="brand"
+                  tooltip="Send message"
+                  type="submit"
+                  variant="solid"
+                />
+              )}
+            </div>
+          </form>
+        </div>
       </div>
     </aside>
   );

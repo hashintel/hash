@@ -54,7 +54,7 @@ import { SimulateView } from "./panels/SimulateView/simulate-view";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
-import type { PetrinautAiInteractionMode } from "../../types/ai-assistant-composer-control";
+import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
 import type { ViewportAction } from "../../types/viewport-action";
 
@@ -161,7 +161,7 @@ export const EditorView = ({
     string | null
   >(null);
   const [pendingAiInteractionMode, setPendingAiInteractionMode] =
-    useState<PetrinautAiInteractionMode | null>(null);
+    useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
 
   const {
@@ -490,19 +490,17 @@ export const EditorView = ({
             {showEmptyAiHero && (
               <AiCtaModal
                 bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
-                interviewAvailable={
-                  aiAssistant.renderInterviewStage !== undefined
-                }
                 onDismiss={() => setIsAiCtaDismissed(true)}
-                onStartInterview={() => {
-                  setPendingAiInteractionMode("interview");
+                onStartVoiceMode={() => {
+                  setPendingAiInteractionMode("voice");
                   setAiAssistantOpen(true);
                 }}
                 onSubmit={(message) => {
                   setPendingAiAssistantMessage(message);
-                  setPendingAiInteractionMode("chat");
+                  setPendingAiInteractionMode("text");
                   setAiAssistantOpen(true);
                 }}
+                voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
               />
             )}
 

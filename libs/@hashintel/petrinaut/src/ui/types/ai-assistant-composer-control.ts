@@ -2,7 +2,7 @@ import type { PetrinautAiMessage } from "../views/Editor/panels/ai-assistant-pan
 import type { ReactNode } from "react";
 
 /** The active way a user is providing input to the AI assistant. */
-export type PetrinautAiInteractionMode = "chat" | "interview";
+export type PetrinautAiInputMode = "text" | "voice";
 
 /** Current lifecycle state of Petrinaut's AI SDK conversation. */
 export type PetrinautAiComposerStatus =
@@ -18,6 +18,8 @@ export type PetrinautAiComposerSubmitTextResult =
 
 export type PetrinautAiComposerSubmitText = (params: {
   id?: string;
+  /** Persist this finalized text as voice-origin input. */
+  source?: "voice";
   /** Defaults to `auto`; use `message` for text that must not answer a pending tool. */
   target?: "auto" | "message";
   text: string;
@@ -33,11 +35,6 @@ export type PetrinautAiComposerControlContext = {
   stop: () => Promise<void>;
   /** Call from an event handler or effect, never while rendering. */
   submitText: PetrinautAiComposerSubmitText;
-  /**
-   * Submit one voice turn, deferring it while another AI response is active.
-   * Call from an event handler or effect, never while rendering.
-   */
-  submitVoiceInput: PetrinautAiComposerSubmitText;
 };
 
 /** Render callback for a host-owned control inside the assistant composer. */
@@ -45,32 +42,47 @@ export type PetrinautAiComposerControl = (
   context: PetrinautAiComposerControlContext,
 ) => ReactNode;
 
-/** Provider-neutral placement for one persistent host-owned interview stage. */
-export type PetrinautAiInterviewStagePlacement = "sidebar" | "detached";
+/** Imperative lifecycle controls registered by a host-owned Voice mode. */
+export type PetrinautAiVoiceModeControls = {
+  /**
+   * Invalidates the active Voice generation synchronously, then finishes
+   * disconnecting its provider resources.
+   */
+  end: () => Promise<void>;
+  /** Pauses microphone capture and active Voice output synchronously. */
+  pause: () => void;
+};
 
-/** Stable controls and placement supplied to a host-owned interview stage. */
-export type PetrinautAiInterviewStageContext =
-  PetrinautAiComposerControlContext & {
-    /** True when Petrinaut can retain one next answer, even while chat settles. */
-    canAcceptInterviewAnswer: boolean;
-    /** Bring back the sidebar and place keyboard focus in its composer. */
-    focusComposer: () => void;
-    interactionMode: PetrinautAiInteractionMode;
-    /** Open the AI sidebar without changing the interview session. */
-    openSidebar: () => void;
-    placement: PetrinautAiInterviewStagePlacement;
-    /** Tell Petrinaut to protect the active conversation from accidental clearing. */
-    setActive: (active: boolean) => void;
-    setInteractionMode: (mode: PetrinautAiInteractionMode) => void;
-    /**
-     * Accept one finalized answer immediately. If generic chat is still busy,
-     * Petrinaut retains it and submits it through the canonical composer path
-     * as soon as that path is ready.
-     */
-    submitInterviewAnswer: PetrinautAiComposerControlContext["submitText"];
-  };
+/** Stable controls and conversation state supplied to a host-owned Voice mode. */
+export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
+  /** True when Petrinaut can retain one next voice turn while chat settles. */
+  canAcceptVoiceInput: boolean;
+  inputMode: PetrinautAiInputMode;
+  isAiAssistantOpen: boolean;
+  /**
+   * Registers the controls Petrinaut uses to coordinate panel closure and
+   * typed-message handoff with the host-owned Voice lifecycle.
+   */
+  registerVoiceModeControls: (
+    controls: PetrinautAiVoiceModeControls,
+  ) => () => void;
+  setInputMode: (mode: PetrinautAiInputMode) => void;
+  /** Tell Petrinaut to protect an active voice session from accidental clearing. */
+  setVoiceActive: (active: boolean) => void;
+  /**
+   * Accept one finalized voice turn immediately. If generic chat is still busy,
+   * Petrinaut retains it and submits it through the canonical composer path
+   * as soon as that path is ready.
+   */
+  submitVoiceInput: (
+    params: Omit<
+      Parameters<PetrinautAiComposerControlContext["submitText"]>[0],
+      "source"
+    >,
+  ) => Promise<PetrinautAiComposerSubmitTextResult>;
+};
 
-/** Render callback for a persistent host-owned stage above the composer. */
-export type PetrinautAiInterviewStage = (
-  context: PetrinautAiInterviewStageContext,
+/** Render callback for a persistent host-owned Voice mode. */
+export type PetrinautAiVoiceMode = (
+  context: PetrinautAiVoiceModeContext,
 ) => ReactNode;

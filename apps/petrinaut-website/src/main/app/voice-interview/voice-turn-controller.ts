@@ -118,6 +118,7 @@ export class VoiceTurnController {
   #currentQuestionId: string | null = null;
   #generation = 0;
   #inputStateOnResume: Exclude<VoiceInputState, "paused"> | null = null;
+  #pauseRequested = false;
   #snapshot = initialSnapshot;
   #submittingQuestionId: string | null = null;
   #teardownPromise: Promise<void> | null = null;
@@ -178,6 +179,7 @@ export class VoiceTurnController {
     }
 
     this.#inputStateOnResume = null;
+    this.#pauseRequested = false;
     this.#update({
       connection: "connecting",
       errorCode: null,
@@ -191,11 +193,12 @@ export class VoiceTurnController {
       const connectionEpoch = await this.#session.connect();
       if (generation !== this.#generation) return;
       this.#activeEpoch = connectionEpoch;
-      this.#session.setMicrophoneEnabled(true);
+      const microphoneEnabled = !this.#isPauseRequested();
+      this.#session.setMicrophoneEnabled(microphoneEnabled);
       this.#update({
         connection: "connected",
-        input: "listening",
-        microphoneEnabled: true,
+        input: microphoneEnabled ? "listening" : "paused",
+        microphoneEnabled,
       });
       this.#bridge.start(connectionEpoch);
     } catch (error) {
@@ -216,6 +219,7 @@ export class VoiceTurnController {
     this.#currentQuestionId = null;
     this.#inputStateOnResume = null;
     this.#submittingQuestionId = null;
+    this.#pauseRequested = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
     this.#bridge.stop();
@@ -251,6 +255,10 @@ export class VoiceTurnController {
   }
 
   public pause(): void {
+    if (this.#snapshot.connection === "connecting") {
+      this.#pauseRequested = true;
+      return;
+    }
     if (
       this.#snapshot.connection !== "connected" ||
       this.#snapshot.input === "paused"
@@ -258,6 +266,7 @@ export class VoiceTurnController {
       return;
     }
     this.#inputStateOnResume = this.#snapshot.input;
+    this.#pauseRequested = true;
     const output = this.#snapshot.output === "idle" ? "idle" : "interrupted";
     this.#session.cancelOutput();
     this.#session.setMicrophoneEnabled(false);
@@ -278,6 +287,7 @@ export class VoiceTurnController {
     }
     const input = this.#inputStateOnResume ?? "listening";
     this.#inputStateOnResume = null;
+    this.#pauseRequested = false;
     this.#session.setMicrophoneEnabled(true);
     this.#update({ input, microphoneEnabled: true });
   }
@@ -390,6 +400,11 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "output-started") {
+      if (this.#snapshot.input === "paused") {
+        this.#session.cancelOutput();
+        this.#update({ output: "interrupted" });
+        return;
+      }
       this.#update({ output: "speaking" });
       if (this.#currentQuestionId) {
         this.#recordLatency("question-spoken-started", this.#currentQuestionId);
@@ -497,6 +512,10 @@ export class VoiceTurnController {
       Boolean(snapshot.lastCommittedText) &&
       this.#answeredQuestionId === this.#currentQuestionId
     );
+  }
+
+  #isPauseRequested(): boolean {
+    return this.#pauseRequested;
   }
 
   #update(update: Partial<VoiceTurnSnapshot>): void {

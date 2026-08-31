@@ -59,12 +59,15 @@ import type {
   PetrinautAiComposerControlContext,
   PetrinautAiComposerSubmitText,
   PetrinautAiComposerSubmitTextResult,
-  PetrinautAiInteractionMode,
+  PetrinautAiInputMode,
+  PetrinautAiVoiceModeContext,
+  PetrinautAiVoiceModeControls,
 } from "../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
 
 export type {
   PetrinautAiMessage,
+  PetrinautAiMessageMetadata,
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
 
@@ -91,13 +94,27 @@ const selectTarget = (
   });
 };
 
-type QueuedInterviewAnswer = {
+type QueuedVoiceInput = {
   readonly input: Parameters<
-    PetrinautAiComposerControlContext["submitText"]
+    PetrinautAiVoiceModeContext["submitVoiceInput"]
   >[0];
   readonly reject: (reason?: unknown) => void;
   readonly resolve: (result: PetrinautAiComposerSubmitTextResult) => void;
 };
+
+const markVoiceToolOrigin = (
+  messages: PetrinautAiMessage[],
+  messageId: string,
+  toolCallId: string,
+): PetrinautAiMessage[] =>
+  messages.map((message) =>
+    message.id === messageId
+      ? {
+          ...message,
+          metadata: { ...message.metadata, source: "voice", toolCallId },
+        }
+      : message,
+  );
 
 const isPetrinautAiMutationToolName = (
   toolName: string,
@@ -135,6 +152,63 @@ const addDynamicToolOutput = (
     dynamicParams: typeof params,
   ) => void | PromiseLike<void>;
   return Promise.resolve(addToolOutputForDynamicTool(params));
+};
+
+export const addMappedToolOutput = async ({
+  addToolOutput,
+  currentMessages,
+  params,
+  source,
+  updateMessages,
+}: {
+  addToolOutput: ReturnType<
+    typeof useChat<PetrinautAiMessage>
+  >["addToolOutput"];
+  currentMessages: PetrinautAiMessage[];
+  params: { tool: string; toolCallId: string; output: unknown };
+  source?: "voice";
+  updateMessages: (
+    updater: (messages: PetrinautAiMessage[]) => PetrinautAiMessage[],
+  ) => void;
+}): Promise<void> => {
+  const containingMessage =
+    source === "voice"
+      ? currentMessages.find((message) =>
+          message.parts.some(
+            (part) =>
+              part.type === "dynamic-tool" &&
+              part.toolCallId === params.toolCallId,
+          ),
+        )
+      : undefined;
+  const previousMetadata = containingMessage?.metadata;
+
+  if (containingMessage) {
+    updateMessages((latestMessages) =>
+      markVoiceToolOrigin(
+        latestMessages,
+        containingMessage.id,
+        params.toolCallId,
+      ),
+    );
+  }
+
+  try {
+    await addDynamicToolOutput(addToolOutput, params);
+  } catch (error) {
+    if (containingMessage) {
+      updateMessages((latestMessages) =>
+        latestMessages.map((message) =>
+          message.id === containingMessage.id &&
+          message.metadata?.source === "voice" &&
+          message.metadata.toolCallId === params.toolCallId
+            ? { ...message, metadata: previousMetadata }
+            : message,
+        ),
+      );
+    }
+    throw error;
+  }
 };
 
 const waitForDiagnosticsRefresh = async ({
@@ -217,7 +291,7 @@ export const AiAssistantPanel = ({
   onInitialMessageConsumed,
 }: {
   aiAssistant: PetrinautAiAssistant;
-  initialInteractionMode?: PetrinautAiInteractionMode | null;
+  initialInteractionMode?: PetrinautAiInputMode | null;
   initialMessage?: string | null;
   onInitialInteractionModeConsumed?: () => void;
   onInitialMessageConsumed?: () => void;
@@ -250,20 +324,46 @@ export const AiAssistantPanel = ({
   const { petriNetDefinition, setTitle, title } = use(SDCPNContext);
 
   const [input, setInput] = useState("");
+  const [voiceActive, setVoiceActiveState] = useState(false);
+  const [voiceHandoffPending, setVoiceHandoffPending] = useState(false);
+  const [voiceInputQueued, setVoiceInputQueued] = useState(false);
   const [composerFocusRequest, setComposerFocusRequest] = useState(0);
-  const [interviewActive, setInterviewActive] = useState(false);
-  const [interviewAnswerQueued, setInterviewAnswerQueued] = useState(false);
   const [interactionMode, setInteractionMode] =
-    useState<PetrinautAiInteractionMode>("chat");
+    useState<PetrinautAiInputMode>("text");
+  const interactionModeRef = useRef<PetrinautAiInputMode>("text");
   const selectInteractionMode = useCallback(
-    (nextMode: PetrinautAiInteractionMode) => {
+    (nextMode: PetrinautAiInputMode) => {
+      const previousMode = interactionModeRef.current;
+      interactionModeRef.current = nextMode;
       setInteractionMode(nextMode);
+      if (previousMode === "voice" && nextMode === "text") {
+        setComposerFocusRequest((request) => request + 1);
+      }
     },
     [],
   );
-  const queuedInterviewAnswerRef = useRef<QueuedInterviewAnswer | null>(null);
-  const consumedInitialInteractionModeRef =
-    useRef<PetrinautAiInteractionMode | null>(null);
+  const setVoiceActive = useCallback((active: boolean) => {
+    setVoiceActiveState(active);
+  }, []);
+  const voiceHandoffPendingRef = useRef(false);
+  const voiceModeControlsRef = useRef<PetrinautAiVoiceModeControls | null>(
+    null,
+  );
+  const registerVoiceModeControls = useCallback(
+    (controls: PetrinautAiVoiceModeControls) => {
+      voiceModeControlsRef.current = controls;
+      return () => {
+        if (voiceModeControlsRef.current === controls) {
+          voiceModeControlsRef.current = null;
+        }
+      };
+    },
+    [],
+  );
+  const queuedVoiceInputRef = useRef<QueuedVoiceInput | null>(null);
+  const consumedInitialInteractionModeRef = useRef<PetrinautAiInputMode | null>(
+    null,
+  );
   const submittedInitialMessageRef = useRef<string | null>(null);
 
   const titleRef = useRef(title);
@@ -345,6 +445,7 @@ export const AiAssistantPanel = ({
   const [stopped, setStopped] = useState(false);
 
   const stopRequestedRef = useRef(false);
+  const pendingSubmissionRecoveryRef = useRef<(() => void) | null>(null);
 
   const {
     error,
@@ -369,11 +470,15 @@ export const AiAssistantPanel = ({
     // browser breathe between chunks.
     experimental_throttle: 80,
     onError: (chatError) => {
-      setStreamError(
-        chatError instanceof Error ? chatError : new Error(String(chatError)),
-      );
+      const submissionError =
+        chatError instanceof Error ? chatError : new Error(String(chatError));
+      setStreamError(submissionError);
+      const recoverPendingSubmission = pendingSubmissionRecoveryRef.current;
+      pendingSubmissionRecoveryRef.current = null;
+      recoverPendingSubmission?.();
     },
     onFinish: ({ messages: finishedMessages, isAbort }) => {
+      pendingSubmissionRecoveryRef.current = null;
       if (isAbort) {
         // The SDK fires `onFinish` for every abort. Only act on a deliberate
         // Stop — clearing the chat or unmounting also aborts, and those paths
@@ -599,6 +704,7 @@ export const AiAssistantPanel = ({
     interactiveTools: aiAssistant.interactiveTools,
     messages,
     sendMessage,
+    setMessages,
     status,
   });
 
@@ -626,10 +732,12 @@ export const AiAssistantPanel = ({
   const submitText = useCallback(
     async ({
       id,
+      source,
       target = "auto",
       text,
     }: {
       id?: string;
+      source?: "voice";
       target?: "auto" | "message";
       text: string;
     }): Promise<PetrinautAiComposerSubmitTextResult> => {
@@ -647,6 +755,7 @@ export const AiAssistantPanel = ({
         interactiveTools,
         messages: currentMessages,
         sendMessage: submitMessage,
+        setMessages: updateMessages,
         status: currentStatus,
       } = composerSubmissionStateRef.current;
       if (currentStatus === "submitted" || currentStatus === "streaming") {
@@ -727,10 +836,16 @@ export const AiAssistantPanel = ({
         stopRequestedRef.current = false;
         composerToolSubmissionsRef.current.add(mappedToolCall.toolCallId);
         try {
-          await addDynamicToolOutput(submitToolOutput, {
-            output,
-            tool: mappedToolCall.toolName,
-            toolCallId: mappedToolCall.toolCallId,
+          await addMappedToolOutput({
+            addToolOutput: submitToolOutput,
+            currentMessages,
+            params: {
+              output,
+              tool: mappedToolCall.toolName,
+              toolCallId: mappedToolCall.toolCallId,
+            },
+            source,
+            updateMessages,
           });
         } catch (caught) {
           composerToolSubmissionsRef.current.delete(mappedToolCall.toolCallId);
@@ -753,6 +868,7 @@ export const AiAssistantPanel = ({
       stopRequestedRef.current = false;
       await submitMessage({
         id: messageId,
+        ...(source === "voice" ? { metadata: { source } } : {}),
         parts: [{ text: trimmed, type: "text" }],
         role: "user",
       });
@@ -761,28 +877,30 @@ export const AiAssistantPanel = ({
     [composerSubmissionStateRef],
   );
 
-  const pendingVoiceInputRef = useRef<{
-    input: Parameters<PetrinautAiComposerSubmitText>[0];
-    reject: (reason: unknown) => void;
-    resolve: (result: PetrinautAiComposerSubmitTextResult) => void;
-  } | null>(null);
-  const submitVoiceInput = useCallback<PetrinautAiComposerSubmitText>(
+  const stopStateRef = useLatest({ status, stop });
+
+  const submitVoiceInput = useCallback<
+    PetrinautAiVoiceModeContext["submitVoiceInput"]
+  >(
     (voiceInput) => {
-      const currentStatus = composerSubmissionStateRef.current.status;
-      if (currentStatus !== "submitted" && currentStatus !== "streaming") {
-        return submitText(voiceInput);
-      }
-
-      if (pendingVoiceInputRef.current) {
-        const submissionError = new Error(
-          "Wait for the queued voice input before submitting another.",
+      if (queuedVoiceInputRef.current) {
+        return Promise.reject(
+          new Error("The previous voice input is still being submitted."),
         );
-        setStreamError(submissionError);
-        return Promise.reject(submissionError);
+      }
+      const currentStatus = composerSubmissionStateRef.current.status;
+      if (currentStatus === "error") {
+        return Promise.reject(
+          new Error("Voice mode is not ready to accept input."),
+        );
+      }
+      if (currentStatus === "ready") {
+        return submitText({ ...voiceInput, source: "voice" });
       }
 
+      setVoiceInputQueued(true);
       return new Promise((resolve, reject) => {
-        pendingVoiceInputRef.current = {
+        queuedVoiceInputRef.current = {
           input: voiceInput,
           reject,
           resolve,
@@ -793,79 +911,23 @@ export const AiAssistantPanel = ({
   );
 
   useEffect(() => {
-    const pendingVoiceInput = pendingVoiceInputRef.current;
-    if (!pendingVoiceInput) {
-      return;
-    }
-    if (status === "error") {
-      pendingVoiceInputRef.current = null;
-      pendingVoiceInput.reject(
-        new Error("Brunch could not accept the queued voice input."),
-      );
-      return;
-    }
-    if (status !== "ready") {
-      return;
-    }
-
-    pendingVoiceInputRef.current = null;
-    void submitText(pendingVoiceInput.input).then(
-      pendingVoiceInput.resolve,
-      pendingVoiceInput.reject,
-    );
-  }, [status, submitText]);
-
-  const stopStateRef = useLatest({ status, stop });
-
-  const submitInterviewAnswer = useCallback<
-    PetrinautAiComposerControlContext["submitText"]
-  >(
-    (answer) => {
-      if (queuedInterviewAnswerRef.current) {
-        return Promise.reject(
-          new Error("The previous interview answer is still being submitted."),
-        );
-      }
-      const currentStatus = composerSubmissionStateRef.current.status;
-      if (currentStatus === "error") {
-        return Promise.reject(
-          new Error("The interview is not ready to accept an answer."),
-        );
-      }
-      if (currentStatus === "ready") {
-        return submitText(answer);
-      }
-
-      setInterviewAnswerQueued(true);
-      return new Promise((resolve, reject) => {
-        queuedInterviewAnswerRef.current = {
-          input: answer,
-          reject,
-          resolve,
-        };
-      });
-    },
-    [composerSubmissionStateRef, submitText],
-  );
-
-  useEffect(() => {
-    const queued = queuedInterviewAnswerRef.current;
+    const queued = queuedVoiceInputRef.current;
     if (!queued) {
       return;
     }
     if (status === "error") {
-      queuedInterviewAnswerRef.current = null;
-      setInterviewAnswerQueued(false);
-      queued.reject(new Error("The interview could not accept that answer."));
+      queuedVoiceInputRef.current = null;
+      setVoiceInputQueued(false);
+      queued.reject(new Error("Voice mode could not accept that input."));
       return;
     }
     if (status !== "ready") {
       return;
     }
 
-    queuedInterviewAnswerRef.current = null;
-    setInterviewAnswerQueued(false);
-    void submitText(queued.input).then(
+    queuedVoiceInputRef.current = null;
+    setVoiceInputQueued(false);
+    void submitText({ ...queued.input, source: "voice" }).then(
       (result) => queued.resolve(result),
       (caught: unknown) => queued.reject(caught),
     );
@@ -873,11 +935,11 @@ export const AiAssistantPanel = ({
 
   useEffect(
     () => () => {
-      queuedInterviewAnswerRef.current?.reject(
-        new Error("The interview conversation changed."),
+      queuedVoiceInputRef.current?.reject(
+        new Error("The voice conversation changed."),
       );
-      queuedInterviewAnswerRef.current = null;
-      setInterviewAnswerQueued(false);
+      queuedVoiceInputRef.current = null;
+      setVoiceInputQueued(false);
     },
     [conversationId],
   );
@@ -893,6 +955,85 @@ export const AiAssistantPanel = ({
     stopRequestedRef.current = true;
     await stopCurrentResponse();
   }, [stopStateRef]);
+
+  const submitUserText = (
+    text: string,
+    target: "auto" | "message" = "auto",
+  ) => {
+    if (!text.trim() || voiceHandoffPendingRef.current) {
+      return;
+    }
+
+    const restoreInputAfterFailure = () => {
+      setInput((currentInput) => currentInput || text);
+    };
+    const submitAndRecover = async () => {
+      pendingSubmissionRecoveryRef.current = restoreInputAfterFailure;
+      try {
+        await submitText({ target, text });
+      } catch (caught) {
+        if (pendingSubmissionRecoveryRef.current === restoreInputAfterFailure) {
+          pendingSubmissionRecoveryRef.current = null;
+        }
+        const submissionError =
+          caught instanceof Error ? caught : new Error(String(caught));
+        setStreamError(submissionError);
+        restoreInputAfterFailure();
+      }
+    };
+
+    if (interactionModeRef.current !== "voice") {
+      void submitAndRecover();
+      return;
+    }
+
+    const controls = voiceModeControlsRef.current;
+    if (controls === null) {
+      setStreamError(
+        new Error(
+          "Voice mode could not stop safely. End Voice mode and retry.",
+        ),
+      );
+      return;
+    }
+
+    voiceHandoffPendingRef.current = true;
+    setVoiceHandoffPending(true);
+    selectInteractionMode("text");
+
+    let voiceEnd: Promise<void>;
+    try {
+      voiceEnd = controls.end();
+    } catch (caught) {
+      const invalidationError =
+        caught instanceof Error ? caught : new Error(String(caught));
+      setStreamError(invalidationError);
+      restoreInputAfterFailure();
+      voiceHandoffPendingRef.current = false;
+      setVoiceHandoffPending(false);
+      selectInteractionMode("voice");
+      return;
+    }
+
+    void voiceEnd
+      .catch(() => {
+        // Generation invalidation happens synchronously at the start of end().
+        // A later disconnect failure must not discard the typed fallback.
+      })
+      .then(() => {
+        setVoiceActiveState(false);
+        return submitAndRecover();
+      })
+      .finally(() => {
+        voiceHandoffPendingRef.current = false;
+        setVoiceHandoffPending(false);
+        setComposerFocusRequest((request) => request + 1);
+      });
+  };
+
+  const submitComposerInput = () => {
+    submitUserText(input);
+  };
 
   useEffect(() => {
     if (
@@ -911,15 +1052,15 @@ export const AiAssistantPanel = ({
     }
 
     selectInteractionMode(
-      initialInteractionMode === "interview" &&
-        aiAssistant.renderInterviewStage === undefined
-        ? "chat"
+      initialInteractionMode === "voice" &&
+        aiAssistant.renderVoiceMode === undefined
+        ? "text"
         : initialInteractionMode,
     );
     consumedInitialInteractionModeRef.current = initialInteractionMode;
     onInitialInteractionModeConsumed?.();
   }, [
-    aiAssistant.renderInterviewStage,
+    aiAssistant.renderVoiceMode,
     initialInteractionMode,
     isAiAssistantOpen,
     onInitialInteractionModeConsumed,
@@ -928,16 +1069,12 @@ export const AiAssistantPanel = ({
 
   useEffect(() => {
     if (
-      interactionMode === "interview" &&
-      aiAssistant.renderInterviewStage === undefined
+      interactionMode === "voice" &&
+      aiAssistant.renderVoiceMode === undefined
     ) {
-      selectInteractionMode("chat");
+      selectInteractionMode("text");
     }
-  }, [
-    aiAssistant.renderInterviewStage,
-    interactionMode,
-    selectInteractionMode,
-  ]);
+  }, [aiAssistant.renderVoiceMode, interactionMode, selectInteractionMode]);
 
   useEffect(() => {
     const trimmedInitialMessage = initialMessage?.trim();
@@ -994,7 +1131,6 @@ export const AiAssistantPanel = ({
     status,
     stop: stopComposer,
     submitText,
-    submitVoiceInput,
   };
   /* eslint-disable react-hooks-js/refs -- The public render prop receives
      stable event callbacks that read their refs only when the host invokes
@@ -1002,33 +1138,26 @@ export const AiAssistantPanel = ({
   const composerControl = aiAssistant.renderComposerControl?.(
     composerControlContext,
   );
-  const interviewStage = aiAssistant.renderInterviewStage?.({
+  const voiceMode = aiAssistant.renderVoiceMode?.({
     ...composerControlContext,
-    canAcceptInterviewAnswer: !interviewAnswerQueued,
-    focusComposer: () => {
-      selectInteractionMode("chat");
-      setAiAssistantOpen(true);
-      setComposerFocusRequest((request) => request + 1);
-    },
-    interactionMode,
-    openSidebar: () => setAiAssistantOpen(true),
-    placement: isAiAssistantOpen ? "sidebar" : "detached",
-    setActive: setInterviewActive,
-    setInteractionMode: selectInteractionMode,
-    submitInterviewAnswer,
+    canAcceptVoiceInput: !voiceInputQueued,
+    inputMode: interactionMode,
+    isAiAssistantOpen,
+    registerVoiceModeControls,
+    setInputMode: selectInteractionMode,
+    setVoiceActive,
+    submitVoiceInput,
   });
   /* eslint-enable react-hooks-js/refs */
 
   return (
     <AiAssistantContents
-      clearMessagesDisabled={interviewActive}
-      composerControl={composerControl}
+      clearMessagesDisabled={voiceActive}
       composerFocusRequest={composerFocusRequest}
+      composerControl={composerControl}
       error={streamError ?? error}
       input={input}
-      interactionMode={interactionMode}
-      interviewAvailable={aiAssistant.renderInterviewStage !== undefined}
-      interviewStage={interviewStage}
+      inputMode={interactionMode}
       interactiveTools={aiAssistant.interactiveTools}
       isOpen={isAiAssistantOpen}
       messages={messages}
@@ -1048,9 +1177,12 @@ export const AiAssistantPanel = ({
         aiAssistant.onMessages?.([]);
         aiAssistant.onClearMessages?.();
       }}
-      onClose={() => setAiAssistantOpen(false)}
+      onClose={() => {
+        voiceModeControlsRef.current?.pause();
+        setAiAssistantOpen(false);
+      }}
       onInputChange={setInput}
-      onInteractionModeChange={selectInteractionMode}
+      onInputModeChange={selectInteractionMode}
       onInteractiveToolSubmit={({ toolCallId, toolName, output }) => {
         if (!isPetrinautAiCommandToolName(toolName)) {
           if (
@@ -1117,7 +1249,7 @@ export const AiAssistantPanel = ({
         })
       }
       onSendPrompt={(prompt) => {
-        void submitText({ target: "message", text: prompt }).catch(() => {});
+        submitUserText(prompt, "message");
       }}
       onStop={() => {
         // Flag the deliberate stop, then abort. The actual settling of the
@@ -1126,13 +1258,14 @@ export const AiAssistantPanel = ({
         // here would race the chunks the SDK is still flushing.
         void stopComposer();
       }}
-      onSubmit={() => {
-        void submitText({ text: input }).catch(() => {});
-      }}
+      onSubmit={submitComposerInput}
       promptChips={promptChips}
       rightOffset={hasSelection ? propertiesPanelWidth + PANEL_MARGIN : 0}
       status={status}
       stopped={stopped}
+      voiceHandoffPending={voiceHandoffPending}
+      voiceMode={voiceMode}
+      voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
     />
   );
 };

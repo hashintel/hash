@@ -35,7 +35,7 @@ const editorRootStyle = css({
 
 import type {
   PetrinautAiComposerControl,
-  PetrinautAiInterviewStage,
+  PetrinautAiVoiceMode,
 } from "./types/ai-assistant-composer-control";
 import type { PetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
 import type {
@@ -55,8 +55,8 @@ export type PetrinautAiAssistant = {
   onMessages?: (messages: PetrinautAiMessage[]) => void;
   /** Render a host-owned control inside the assistant composer. */
   renderComposerControl?: PetrinautAiComposerControl;
-  /** Render one persistent, provider-neutral interview stage. */
-  renderInterviewStage?: PetrinautAiInterviewStage;
+  /** Render one persistent, provider-neutral Voice mode. */
+  renderVoiceMode?: PetrinautAiVoiceMode;
   transport: PetrinautAiTransport;
 };
 

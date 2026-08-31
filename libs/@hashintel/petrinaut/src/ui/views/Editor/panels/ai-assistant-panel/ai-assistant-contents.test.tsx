@@ -7,9 +7,10 @@ import {
   fireEvent,
   render,
   screen,
+  within,
   waitFor,
 } from "@testing-library/react";
-import { createElement, useEffect } from "react";
+import { createElement, useEffect, useState } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
@@ -20,8 +21,8 @@ import { AiAssistantContents } from "./ai-assistant-contents";
 import type { PetrinautAiMessage } from "./types";
 
 const renderMarkdown = vi.hoisted(() => vi.fn());
-let interviewStageMounts = 0;
-let interviewStageUnmounts = 0;
+let voiceModeMounts = 0;
+let voiceModeUnmounts = 0;
 
 vi.mock("react-markdown", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-markdown")>();
@@ -44,48 +45,87 @@ afterEach(() => {
 });
 
 describe("AiAssistantContents", () => {
-  test("keeps one provider-neutral interview stage mounted while it moves between docked and detached presentation", () => {
-    interviewStageMounts = 0;
-    interviewStageUnmounts = 0;
+  test("keeps one inline Voice mode mounted inside the transcript when the panel closes", () => {
+    voiceModeMounts = 0;
+    voiceModeUnmounts = 0;
     const Stage = () => {
       useEffect(() => {
-        interviewStageMounts += 1;
+        voiceModeMounts += 1;
         return () => {
-          interviewStageUnmounts += 1;
+          voiceModeUnmounts += 1;
         };
       }, []);
-      return <div>Interview stage</div>;
+      return <div>Voice mode</div>;
     };
     const props = {
       input: "",
-      interviewStage: <Stage />,
       messages: [] as PetrinautAiMessage[],
       onClose: noop,
       onInputChange: noop,
       onStop: noop,
       onSubmit: noop,
       status: "ready" as const,
+      voiceMode: <Stage />,
     };
     const { rerender } = render(
       <AiAssistantContents {...props} isOpen={true} />,
     );
 
-    expect(screen.getByText("Interview stage")).not.toBeNull();
-    expect(screen.getByTestId("ai-interview-stage").dataset.placement).toBe(
-      "sidebar",
+    expect(screen.getByText("Voice mode")).not.toBeNull();
+    expect(
+      screen
+        .getByTestId("ai-transcript")
+        .contains(screen.getByTestId("ai-voice-mode")),
+    ).toBe(true);
+    expect(screen.getByTestId("ai-voice-mode").dataset.placement).toBe(
+      undefined,
     );
     rerender(<AiAssistantContents {...props} isOpen={false} />);
 
-    expect(screen.getByTestId("ai-interview-stage").dataset.placement).toBe(
-      "detached",
-    );
     expect(
       screen
-        .getByRole("complementary", { name: "AI assistant" })
+        .getByRole("complementary", { hidden: true })
         .getAttribute("aria-hidden"),
-    ).toBeNull();
-    expect(interviewStageMounts).toBe(1);
-    expect(interviewStageUnmounts).toBe(0);
+    ).toBe("true");
+    expect(voiceModeMounts).toBe(1);
+    expect(voiceModeUnmounts).toBe(0);
+  });
+
+  test("isolates microphone-level updates from completed transcript messages", () => {
+    const VoiceLevel = () => {
+      const [level, setLevel] = useState(0);
+      return (
+        <button type="button" onClick={() => setLevel(0.75)}>
+          {`Microphone level ${level}`}
+        </button>
+      );
+    };
+
+    render(
+      <AiAssistantContents
+        input=""
+        messages={[
+          {
+            id: "assistant-complete",
+            role: "assistant",
+            parts: [{ type: "text", state: "done", text: "Completed answer" }],
+          },
+        ]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        voiceMode={<VoiceLevel />}
+      />,
+    );
+
+    expect(renderMarkdown).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Microphone level 0" }));
+    expect(
+      screen.getByRole("button", { name: "Microphone level 0.75" }),
+    ).not.toBeNull();
+    expect(renderMarkdown).toHaveBeenCalledOnce();
   });
 
   test("hides a closed chat-only panel from the accessibility tree", () => {
@@ -109,12 +149,12 @@ describe("AiAssistantContents", () => {
     ).toBe("true");
   });
 
-  test("keeps keyboard drafting available and protects clear-chat during an active interview", () => {
+  test("keeps keyboard drafting available and protects clear-chat during active Voice mode", () => {
     render(
       <AiAssistantContents
         clearMessagesDisabled={true}
         input="Draft answer"
-        interviewStage={<div>Active interview</div>}
+        inputMode="voice"
         isOpen={true}
         messages={[
           {
@@ -129,6 +169,7 @@ describe("AiAssistantContents", () => {
         onStop={noop}
         onSubmit={noop}
         status="streaming"
+        voiceMode={<div>Active Voice mode</div>}
       />,
     );
 
@@ -147,36 +188,153 @@ describe("AiAssistantContents", () => {
     ).toBe(true);
   });
 
-  test("switches the panel between Chat composer and Interview stage", () => {
-    const onInteractionModeChange = vi.fn();
-    const props = {
-      input: "",
-      interactionMode: "chat" as const,
-      interviewAvailable: true,
-      interviewStage: <div>Interview stage</div>,
-      messages: [] as PetrinautAiMessage[],
-      onClose: noop,
-      onInputChange: noop,
-      onInteractionModeChange,
-      onStop: noop,
-      onSubmit: noop,
-      status: "ready" as const,
-    };
-    const rendered = render(<AiAssistantContents {...props} />);
-
-    expect(
-      screen.getByPlaceholderText("Describe the process you want to create"),
-    ).not.toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Interview" }));
-    expect(onInteractionModeChange).toHaveBeenCalledWith("interview");
-
-    rendered.rerender(
-      <AiAssistantContents {...props} interactionMode="interview" />,
+  test("keeps one AI header, transcript, and composer visible in Voice mode", () => {
+    const onInputModeChange = vi.fn();
+    render(
+      <AiAssistantContents
+        input=""
+        inputMode="voice"
+        messages={[
+          {
+            id: "assistant-1",
+            role: "assistant",
+            parts: [{ type: "text", text: "Existing transcript" }],
+          },
+        ]}
+        onClose={noop}
+        onInputChange={noop}
+        onInputModeChange={onInputModeChange}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+        voiceMode={<div>Voice mode stage</div>}
+        voiceModeAvailable={true}
+      />,
     );
+
+    expect(screen.getByText("AI")).not.toBeNull();
+    expect(screen.getByText("Existing transcript")).not.toBeNull();
+    expect(screen.getByText("Voice mode stage")).not.toBeNull();
     expect(
-      screen.queryByRole("textbox", { name: "Message AI assistant" }),
+      screen.getByRole("textbox", { name: "Message AI assistant" }),
+    ).not.toBeNull();
+    expect(
+      screen.queryByRole("group", { name: "AI interaction mode" }),
     ).toBeNull();
-    expect(screen.getByText("Interview stage")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "Chat" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Interview" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
+    expect(onInputModeChange).toHaveBeenCalledOnce();
+    expect(onInputModeChange).toHaveBeenCalledWith("voice");
+  });
+
+  test("marks only persisted ordinary voice messages with waveform provenance", () => {
+    render(
+      <AiAssistantContents
+        input=""
+        messages={[
+          {
+            id: "voice-user",
+            metadata: { source: "voice" },
+            role: "user",
+            parts: [{ type: "text", text: "Spoken workflow" }],
+          },
+          {
+            id: "typed-user",
+            role: "user",
+            parts: [{ type: "text", text: "Typed follow-up" }],
+          },
+        ]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    expect(
+      within(
+        screen.getByText("Spoken workflow").closest("[data-role]")!,
+      ).getByLabelText("Voice input"),
+    ).not.toBeNull();
+    expect(
+      within(
+        screen.getByText("Typed follow-up").closest("[data-role]")!,
+      ).queryByLabelText("Voice input"),
+    ).toBeNull();
+  });
+
+  test("marks only the exact submitted interactive-tool answer named by voice metadata", () => {
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      component: ({ submittedOutput, toolCallId }) => (
+        <span>{`${toolCallId}: ${submittedOutput?.answer}`}</span>
+      ),
+    });
+    const messages = [
+      {
+        id: "assistant-questions",
+        metadata: { source: "voice", toolCallId: "question-voice" },
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "answerQuestion",
+            state: "output-available",
+            toolCallId: "question-typed",
+            input: { question: "Who reviews it?" },
+            output: { answer: "The operator" },
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "answerQuestion",
+            state: "output-available",
+            toolCallId: "question-voice",
+            input: { question: "Who approves it?" },
+            output: { answer: "The shift lead" },
+          },
+        ],
+      },
+    ] as unknown as PetrinautAiMessage[];
+
+    const { container } = render(
+      <AiAssistantContents
+        input=""
+        interactiveTools={[hostTool]}
+        messages={messages}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    expect(
+      within(
+        screen
+          .getByText("question-voice: The shift lead")
+          .closest("[data-tool-call-id]")!,
+      ).getByLabelText("Voice input"),
+    ).not.toBeNull();
+    expect(
+      within(
+        screen
+          .getByText("question-typed: The operator")
+          .closest("[data-tool-call-id]")!,
+      ).queryByLabelText("Voice input"),
+    ).toBeNull();
+    expect(screen.getAllByLabelText("Voice input")).toHaveLength(1);
+    expect(screen.queryByText("The shift lead", { exact: true })).toBeNull();
+    expect(container.querySelectorAll('[data-role="user"]')).toHaveLength(0);
   });
 
   test("keeps completed messages memoized when interactive tools are omitted", () => {
@@ -231,6 +389,87 @@ describe("AiAssistantContents", () => {
 
     expect(textarea.nextElementSibling).toBe(control);
     expect(control.nextElementSibling?.contains(sendButton)).toBe(true);
+  });
+
+  test("switches the trailing action from Voice mode to Send for trimmed input", () => {
+    const onInputModeChange = vi.fn();
+    const onSubmit = vi.fn();
+    const props = {
+      messages: [] as PetrinautAiMessage[],
+      onClose: noop,
+      onInputChange: noop,
+      onInputModeChange,
+      onStop: noop,
+      onSubmit,
+      status: "ready" as const,
+      voiceModeAvailable: true,
+    };
+    const rendered = render(<AiAssistantContents {...props} input="" />);
+
+    const voiceButton = screen.getByRole("button", {
+      name: "Start voice mode",
+    });
+    expect(voiceButton.querySelector("svg")).not.toBeNull();
+    expect(voiceButton.parentElement?.getAttribute("data-scope")).toBe(
+      "tooltip",
+    );
+    fireEvent.click(voiceButton);
+
+    expect(onInputModeChange).toHaveBeenCalledOnce();
+    expect(onInputModeChange).toHaveBeenCalledWith("voice");
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    rendered.rerender(<AiAssistantContents {...props} input="   " />);
+    expect(
+      screen.getByRole("button", { name: "Start voice mode" }),
+    ).not.toBeNull();
+
+    rendered.rerender(
+      <AiAssistantContents {...props} input="  Create a queue  " />,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Start voice mode" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(onSubmit).toHaveBeenCalledOnce();
+  });
+
+  test("prioritizes Stop and retains disabled Send without Voice mode", () => {
+    const onStop = vi.fn();
+    const props = {
+      input: "Draft",
+      messages: [] as PetrinautAiMessage[],
+      onClose: noop,
+      onInputChange: noop,
+      onStop,
+      onSubmit: vi.fn(),
+      status: "streaming" as const,
+      voiceModeAvailable: true,
+    };
+    const rendered = render(<AiAssistantContents {...props} />);
+
+    expect(
+      screen.queryByRole("button", { name: "Start voice mode" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Send message" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+    expect(onStop).toHaveBeenCalledOnce();
+
+    rendered.rerender(
+      <AiAssistantContents
+        {...props}
+        input=""
+        status="ready"
+        voiceModeAvailable={false}
+      />,
+    );
+
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", {
+        name: "Send message",
+      }).disabled,
+    ).toBe(true);
   });
 
   test("does not submit the draft when a host composer button omits its type", () => {

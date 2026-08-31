@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
+
+import { Button } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
 
 import { AiAssistantContents } from "./ai-assistant-contents";
+import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
 import type { PetrinautAiMessage } from "./types";
 import type { Meta, StoryObj } from "@storybook/react-vite";
@@ -188,16 +192,203 @@ const errorMessage = new Error(
   "The assistant could not reach the AI endpoint.",
 );
 
+const voicePreviewStyle = css({
+  display: "flex",
+  width: "full",
+  flexDirection: "column",
+  gap: "2",
+  paddingY: "1",
+});
+
+const partialBubbleStyle = css({
+  display: "flex",
+  maxWidth: "[92%]",
+  alignSelf: "flex-end",
+  alignItems: "flex-start",
+  gap: "2",
+  paddingX: "3",
+  paddingY: "2.5",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a20",
+  borderRadius: "xl",
+  backgroundColor: "neutral.s20",
+  color: "neutral.s100",
+  fontSize: "sm",
+  fontWeight: "medium",
+  lineHeight: "relaxed",
+  textAlign: "right",
+});
+
+const voiceDividerStyle = css({
+  display: "flex",
+  minHeight: "[32px]",
+  alignItems: "center",
+  gap: "2",
+  color: "neutral.s80",
+});
+
+const voiceDividerLineStyle = css({
+  minWidth: "4",
+  height: "[1px]",
+  flex: "1",
+  backgroundColor: "neutral.a20",
+});
+
+const voiceWaveformStyle = css({
+  display: "inline-flex",
+  height: "[16px]",
+  flexShrink: "0",
+  alignItems: "center",
+  gap: "[2px]",
+  color: "blue.s70",
+  "& > span": {
+    display: "block",
+    width: "[2px]",
+    minHeight: "[3px]",
+    borderRadius: "full",
+    backgroundColor: "[currentColor]",
+  },
+});
+
+const voiceStatusStyle = css({
+  color: "neutral.s80",
+  fontSize: "xs",
+  fontWeight: "medium",
+  lineHeight: "none",
+  whiteSpace: "nowrap",
+});
+
+const voiceActionsStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "1",
+});
+
+const recoveryMessageStyle = css({
+  alignSelf: "center",
+  paddingX: "3",
+  color: "red.s90",
+  fontSize: "xs",
+  lineHeight: "snug",
+  textAlign: "center",
+});
+
+const technicalDetailsStyle = css({
+  alignSelf: "center",
+  color: "neutral.s80",
+  fontSize: "xs",
+  lineHeight: "snug",
+  "& > summary": {
+    cursor: "pointer",
+    fontWeight: "medium",
+  },
+});
+
+type VoicePreviewStatus =
+  | "Listening"
+  | "Speaking"
+  | "Paused"
+  | "Connection interrupted";
+
+const waveformHeightsByStatus: Record<VoicePreviewStatus, readonly number[]> = {
+  Listening: [5, 11, 15, 9, 4],
+  Speaking: [6, 11, 15, 9, 5],
+  Paused: [4, 6, 8, 6, 4],
+  "Connection interrupted": [4, 6, 8, 6, 4],
+};
+const voiceWaveformBarIds = [
+  "leading",
+  "middle-left",
+  "center",
+  "middle-right",
+  "trailing",
+] as const;
+
+const VoiceModePreview = ({
+  partialText,
+  status,
+}: {
+  partialText?: string;
+  status: VoicePreviewStatus;
+}) => {
+  const showReconnect = status === "Connection interrupted";
+  const showResume = status === "Paused";
+
+  return (
+    <section aria-label={`Voice mode: ${status}`} className={voicePreviewStyle}>
+      {partialText && (
+        <div className={partialBubbleStyle}>
+          <VoiceInputProvenance />
+          <span>{partialText}</span>
+        </div>
+      )}
+      <div className={voiceDividerStyle}>
+        <span className={voiceDividerLineStyle} />
+        <span aria-hidden="true" className={voiceWaveformStyle}>
+          {voiceWaveformBarIds.map((waveformBarId, index) => (
+            <span
+              key={waveformBarId}
+              style={{
+                height: `${waveformHeightsByStatus[status][index]}px`,
+              }}
+            />
+          ))}
+        </span>
+        <span className={voiceStatusStyle}>{status}</span>
+        <span className={voiceDividerLineStyle} />
+        <span className={voiceActionsStyle}>
+          {showResume && (
+            <Button iconName="play" size="xs" type="button" variant="solid">
+              Resume
+            </Button>
+          )}
+          {showReconnect && (
+            <Button iconName="rotate" size="xs" type="button" variant="solid">
+              Reconnect
+            </Button>
+          )}
+          <Button
+            aria-label="Voice mode actions"
+            iconName="ellipsis"
+            size="xs"
+            tooltip="Voice mode actions"
+            type="button"
+            variant="ghost"
+          />
+        </span>
+      </div>
+      {showReconnect && (
+        <>
+          <div className={recoveryMessageStyle}>
+            Check your connection, then reconnect.
+          </div>
+          <details className={technicalDetailsStyle}>
+            <summary>Technical details</summary>
+            <code>network</code>
+          </details>
+        </>
+      )}
+    </section>
+  );
+};
+
 const Frame = ({
   error,
+  inputMode = "text",
   messages,
   status = "ready",
   stopped = false,
+  voiceMode,
+  voiceModeAvailable = false,
 }: {
   error?: Error;
+  inputMode?: "text" | "voice";
   messages: PetrinautAiMessage[];
   status?: "submitted" | "streaming" | "ready" | "error";
   stopped?: boolean;
+  voiceMode?: ReactNode;
+  voiceModeAvailable?: boolean;
 }) => {
   const [input, setInput] = useState("");
 
@@ -206,13 +397,17 @@ const Frame = ({
       <AiAssistantContents
         error={error}
         input={input}
+        inputMode={inputMode}
         messages={messages}
         onClose={() => {}}
         onInputChange={setInput}
+        onInputModeChange={() => {}}
         onStop={() => {}}
         onSubmit={() => setInput("")}
         status={status}
         stopped={stopped}
+        voiceMode={voiceMode}
+        voiceModeAvailable={voiceModeAvailable}
       />
     </div>
   );
@@ -220,6 +415,59 @@ const Frame = ({
 
 export const Empty: Story = {
   render: () => <Frame messages={[]} />,
+};
+
+export const EmptyWithVoiceAvailable: Story = {
+  render: () => <Frame messages={[]} voiceModeAvailable />,
+};
+
+export const VoiceModeWithTranscript: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceMode={
+        <VoiceModePreview
+          partialText="The pharmacist checks the delivery against the order"
+          status="Listening"
+        />
+      }
+      voiceModeAvailable
+    />
+  ),
+};
+
+export const VoiceModeSpeaking: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceMode={<VoiceModePreview status="Speaking" />}
+      voiceModeAvailable
+    />
+  ),
+};
+
+export const VoiceModePaused: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceMode={<VoiceModePreview status="Paused" />}
+      voiceModeAvailable
+    />
+  ),
+};
+
+export const VoiceModeRecovery: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceMode={<VoiceModePreview status="Connection interrupted" />}
+      voiceModeAvailable
+    />
+  ),
 };
 
 export const StreamingMarkdown: Story = {
