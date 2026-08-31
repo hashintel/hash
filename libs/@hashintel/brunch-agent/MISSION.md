@@ -1,199 +1,101 @@
-# Mission 3 — structurally typed runbook to headless PN
+# Mission 4 — owner-led runbook and workpiece redesign
 
 ## Status
 
-Closed on 2026-08-31 with a split result. The real Flue runbook and elicitation-to-workpiece leg is accepted as the Mission 3 control. The real-model semantic construction leg is falsified on the exercised provider-visible schema route and moves forward only as successor risk; it is not retroactive success.
+Live. This file is execution authority for [FE-1563](https://linear.app/hash/issue/FE-1563/redesign-the-elicitation-runbook-and-workpiece-against-the-frozen). Mission 3's frozen prospective campaign runs independently in its own worktree and remains the control; this branch must not alter that instrument or claim comparison results before its adjudication is available.
 
-Close evidence:
-
-- [`docs/evidence/proofs/implementations/fe-1525-headless-runbook-pn.md`](docs/evidence/proofs/implementations/fe-1525-headless-runbook-pn.md) records the production runbook path, historical runs, hermetic construction, and paid construction failure.
-- [`docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md`](docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md) records the frozen prospective control: three paid invocations, one invalid runtime member, two recoverable and independently graded workpieces, no hard-failure gates in the valid members, omniscient range `66.3–80.0 / 100`, and cold utility range `3.3–3.5 / 4` with conditional downstream readiness.
-
-Proof items 1–5 and 8 are established through the real production agent path. Item 7 is established for the elicitation workpiece as an explicitly partial, epistemically marked artifact. Item 6 is not established for real-model construction: the construct-only paid run made nine malformed nested `addType.elements` calls and produced a vacuously parser-valid empty net. The hermetic non-empty fixture proves packaging and callback validation, not model semantic fidelity. Construction-discovered return to elicitation also remains unexercised.
-
-Required design input:
-[`docs/specs/structurally-typed-elicitation-runbooks.md`](docs/specs/structurally-typed-elicitation-runbooks.md).
-The specification defines the meaning and first architecture of the runbook; this mission decides
-what to build and prove. If the real path contradicts the design, stop and surface the evidence
-rather than satisfying the document by construction.
-
-Later concerns are clustered in [`MISSION.next.md`](MISSION.next.md). That file is the canonical
-draft of upcoming work, not a mission; do not implement it. Host-continuity work, Petrinaut
-read/write tools, typed IR maps, observer-triggered sweeps, and any join to Mission 2's capture
-store are not this mission.
-
-A now-retired side quest authorized one bounded Mission 3 remediation: a construct-only headless
-conversation may mount the minimal Petrinaut mutation subset needed to replace free-form net JSON
-with validated construction. Packaging and hermetic callback execution passed, but the single
-real-model run failed to construct a non-empty net because the provider-facing open-object schema
-lost the canonical array shape. The evidence is recorded in the implementation proof and carried
-into Mission 5. Those tools stay absent from ordinary interview and `/api/chat` panel
-conversations; live-net integration and the typed map remain Mission 5.
+Later projection, provenance, bounded revision, observer, host-continuity, and optimisation concerns remain in [`MISSION.next.md`](MISSION.next.md). They are not implementation authority here.
 
 ## Imperative
 
-Prove that one production Flue `ChatAgent` can use a **structurally typed elicitation runbook** to
-conduct or replay an interview, maintain a structured-but-not-strictly-semantically-typed
-**runbook IR**, and use that workpiece to generate Petri-net JSON that Petrinaut accepts. Bare IR
-below means this Markdown workpiece, not the existing typed three-register IR.
+Manually reshape the technically viable Mission 3 elicitation runbook and Markdown workpiece into a stronger, research-informed candidate that the owner understands and endorses one consequential decision at a time.
 
-The runbook combines two authored knowledge layers: universal elicitation teaching (the useful
-content behind the repertoire) and SDCPN target-formalism guidance (what to investigate, notice,
-deepen, preserve, transform, and check). Deliver them through one Flue skill with progressively
-disclosed resources, not through a large undifferentiated system prompt, a skill catalog, or the
-old plugin runtime.
+Use the completed research synthesis, historical workpieces, owner-supplied edge cases, and frozen prospective baseline as evidence rather than treating any one source as a specification. The mission should expose where the current package's teaching order, question dosage, epistemic treatment, phase boundaries, or workpiece structure strain under real modelling, make the least structural change that answers each observed strain, and establish the gains, regressions, and remaining uncertainty of the resulting candidate against the frozen control.
 
-Condition 5's typed-capture path demanded too much in-loop semantic judgment and produced ordinary
-question turns on the order of minutes. This mission recovers its researched teaching and authoring
-discipline while testing structural typing as the sufficient first lever. It does not improve
-capture quality and does not fold Mission 2's ledger.
+This is not an autonomous rewrite and not a statistical claim of universal superiority. The design conversation and manual walkthroughs are part of the work: the owner expects remodeling itself to reveal consequential corner cases that an agent-generated replacement would miss.
 
 ## Throughline
 
-One headless pass through the Mission 1 production door:
+One stepwise redesign through the existing production package:
 
-`createFlueClient → send initial modelling request → ChatAgent activates the runbook skill and reads elicitation + IR resources → (driver send → wait → history()) × interview turns → recover filled IR → driver sends construct-from-IR request → ChatAgent reads PN-construction + check resources and returns PN JSON → wait → history() → petrinaut-core parse/validate`
+```text
+research synthesis + historical workpieces + current authored resources
+→ owner and agent inspect one observed strain or edge case
+→ agree the local obligation and smallest structural or teaching change
+→ manually revise the one-skill runbook/workpiece package
+→ walk known and owner-supplied cases through that revision
+→ repeat only at the new fog-line
+→ freeze a versioned candidate instrument
+→ run it through the production Flue ChatAgent
+→ grade the recovered workpiece with the frozen ruler
+→ compare candidate evidence with Mission 3's frozen control
+```
 
-Skill activation and resource reads occur inside model turns initiated by `send`; the headless driver
-does not invoke them before dispatch. The same agent owns elicitation, IR maintenance,
-construction, and validation. These are lifecycle
-phases, not separate agents. Construction may expose a gap and route the same agent back to
-elicitation; the runbook describes the return without inventing a workflow engine.
+The likely edit surface is the existing SDCPN-modelling skill: `SKILL.md`, `elicitation.md`, `ir-template.md`, and only the construction/check material whose phase ownership is directly implicated. Amend the structural-typing specification only when an accepted redesign decision contradicts it. Keep changes reviewable in small semantic steps rather than replacing the package wholesale.
 
-During elicitation, work in the expert's vocabulary and maintain the IR. Read PN-construction
-material only when constructing or checking the net. The IR is the seam: generation consumes it
-rather than treating the transcript as the model. Manual loading into Petrinaut remains enough to
-inspect the drawing.
+The baseline campaign may complete while early design decisions proceed. Baseline results join before the candidate instrument is frozen or any improvement claim is made. Candidate runs use a new versioned protocol/output location and preserve their own instrument manifest; they never write into or modify the baseline campaign.
 
 ## Proof
 
-This proof establishes that a structurally typed runbook package can teach one agent through the
-real Flue path and yield a validatable Petri net. It does not establish a final heading catalogue,
-a typed capture/IR system, canvas write tools, session-as-net, two brains, or an automated
-repertoire-to-runbook compiler.
+This proof establishes that the owner-led redesign produces a coherent candidate runbook/workpiece package with inspectable evidence of its effects. It does not establish projection, provenance, observer consolidation, scoped net revision, comprehensive domain semantics, or final demo readiness.
 
-From the real brunch-agent entrypoint (the same `ChatAgent` / `/api/chat` door as Missions 1–2),
-one production-path test or documented headless script observes all of the following:
+Observe all of the following:
 
-1. The agent has one mounted runbook skill. Its concise catalog description and always-on
-   instruction route the modelling lifecycle without embedding the full runbook in the system
-   prompt.
-2. Skill activation yields the shared lifecycle procedure. Flue's native skill-resource surface
-   makes elicitation teaching, the IR template, PN-construction guidance, and checks readable
-   without a bespoke loader.
-3. The elicitation material visibly combines universal teaching and SDCPN target-formalism content
-   under the structural responsibilities fixed by the design specification. Authored runbook
-   content names situation typologies, not facts from the fixed operational scenario; those facts
-   appear only in conversation inputs, the filled IR, and evidence expectations.
-4. Interviewing uses the expert's vocabulary rather than places, transitions, arcs, or colours;
-   construction guidance is not required to frame ordinary elicitation questions.
-5. The conversation fills a recoverable Markdown IR whose structure, unknowns, assumptions,
-   conflicts, and omissions are legible without opening the Petrinaut GUI.
-6. The construction phase consumes that IR, reads the construction/check material, and produces PN
-   JSON that `parseSDCPNFile` (or the current Petrinaut-core import equivalent) accepts. Missing
-   canvas positions are allowed if the parser already treats them as recoverable.
-7. The result names consequential inference, approximation, defaulting, omission, and
-   unrepresentable material rather than silently hardening it.
-8. The interviewer never calls a sweep tool and producing the IR/net does not write Mission 2's
-   capture store.
+1. Each consequential redesign has a recorded observed strain or edge case, the local obligation it answers, the alternatives considered where material, and owner acceptance before implementation.
+2. The package remains one real Flue skill with progressive disclosure. Ordinary elicitation stays in operational vocabulary; IR headings, SDCPN structures, and construction schemas do not become an opening questionnaire.
+3. The workpiece gives an authoritative, cold-readable home to the objective and process spine; expert evidence; agent inference; assumptions with reason and how-to-check; unknown, unasked, declined, deferred, and conflicting material where present; corrections or contextual coexistence; and construction-opened losses without laundering authorship.
+4. Concrete walkthroughs exercise at least opening overload, policy versus practice, contextual quantities, scarce-resource reservation/release, hidden waiting, directional loss, correction versus contextual coexistence, and genuine unknown versus not-yet-asked. Owner-supplied cases may deepen this set.
+5. One frozen candidate version runs through the production Flue `ChatAgent` and emits a recoverable workpiece. Its run artifacts record the exact candidate instrument and remain separate from the Mission 3 baseline.
+6. Independent omniscient and cold review with the frozen ruler identifies gains, regressions, disagreements, and new mistakes relative to the control. A human adjudication states what the evidence supports without collapsing baseline variation to one mean score.
+7. The resulting candidate is sufficient to prepare the prebuilt FE-1476 workpiece or explicitly names the smallest remaining workpiece gap. No projection success is inferred from workpiece quality.
 
-Prefer that one throughline over a broad suite. Record the resource path taken and where the first
-runbook helped, failed, or created attention strain. A fluent conversation by itself is not proof.
+Prefer one coherent candidate and a discriminating comparison over many lightly reasoned variants. A fluent interview or attractive template by itself is not proof.
 
 ## Constraints
 
-- Consume
-  [`docs/specs/structurally-typed-elicitation-runbooks.md`](docs/specs/structurally-typed-elicitation-runbooks.md):
-  broad runbook definition, structural-before-semantic typing, universal + target-formalism
-  authorship, one-agent lifecycle, one skill, and lazy phase-specific reference.
-- Mission 1's chat door stays the door: Petrinaut panel → `transport-aisdk` → Flue `ChatAgent`.
-  Do not rewrite the panel onto `@flue/react`. The adapter still must not depend on core, binding,
-  or plugins.
-- Use Flue's documented happy paths: `useSkill`, `activate_skill`, packaged supporting resources,
-  `read_skill_resource`, existing tool mounting, and the JS-API drive pattern. No custom prompt or
-  resource loader.
-- Author the first rendered runbook directly in Markdown. Do not build a key renderer, compiler,
-  projection engine, or generic schema framework before a second real consumer creates strain.
-- Keep the system instruction to identity, routing, lifecycle invariants, transport facts, and the
-  requirement to activate the runbook. Bulky teaching belongs in the skill package.
-- One model-facing agent and one runbook skill. No skill catalog, subagent topology, workflow
-  engine, TUI, or second server.
-- Keep elicitation and construction in separate information regions. Conversation follows the
-  expert's thread; IR headings do not become an opening questionnaire; PN internals remain
-  construction vocabulary.
-- Author runbook resources at the target-formalism level. Concrete scenario facts belong only to
-  the run input and filled IR; do not bake a truck fleet, semiconductor fab, or any other test case
-  into reusable teaching.
-- Structural typing may fix headings, nesting, repeated entry shapes, completion criteria, checks,
-  unknowns, and losses. Do not require closed kinds, slots, proposal types, precision grades,
-  firing predicates, fold rules, or typed completion algebra.
-- Restore the useful drive pattern from condition 5 (`createFlueClient` over the app router), not
-  its SDCPN elicitor, `brunch_ask`, sweep, fold, or completion accounting.
-- The IR template is a teaching workpiece, not ADR-0003 register 2 and not a projection of captures.
-  Do not call `applyCaptureSweep` or join Mission 2's store.
-- No Petrinaut canvas mutation tools on ordinary interview or `/api/chat` panel conversations and
-  no typed FE map. The active side quest alone may mount its six-tool subset on a construct-only
-  headless conversation; generation still uses inference from structured prose.
-- The app may import `@hashintel/petrinaut-core` to parse/validate PN JSON. It must not import
-  `@hashintel/petrinaut` UI.
-- Update user-facing docs only where exercised behavior changes.
+- Preserve the Mission 3 prospective baseline files, prompts, case, ruler, committed instrument, and artifacts unchanged. Candidate runs use a new versioned campaign.
+- Treat the authoritative elicitation research synthesis as evidence and decision support, not a backlog to implement wholesale. Shared-source repetition is not independent corroboration.
+- The owner leads semantic and editorial choices. The agent presents alternatives, traces consequences, edits accepted decisions, and runs probes; it does not infer approval or silently choose the final package.
+- Work one observed strain or owner-supplied edge at a time. Prefer subtraction, relocation, and clearer authority before adding another catalog, abstraction, or artifact.
+- Keep universal elicitation, SDCPN investigation, workpiece structure, and PN construction distinct enough that each can change without turning questions into schema slots.
+- Preserve one model-facing agent, one runbook skill, Flue's native `useSkill` and resource disclosure, and the production `ChatAgent` door. Do not add a loader, workflow engine, second agent, or TUI.
+- Do not add a comprehensive ontology, closed claim kinds, typed completion algebra, plugin/repertoire runtime, observer fold, projection engine, capture-store join, or live Petrinaut mutation path.
+- Preserve exact expert evidence and honest authorship. Normalized prose, agent assumptions, unasked material, and explicit user unknowns remain distinguishable.
+- Do not tune reusable guidance only to Vestera. Scenario facts and owner examples may test the package but do not enter reusable teaching as universal facts.
+- Keep construction outside ordinary elicitation. Move construction-owned material only when the redesign can observe the effect; do not broaden into Mission 5's provider-schema problem.
+- Update affected Petrinaut user-facing documentation only if this mission changes user-visible behavior in Petrinaut packages; internal runbook resource edits alone do not create that obligation.
 
 ## Fog-line
 
-Do not design past these questions before running the smallest path that can answer them:
+Do not design the whole candidate before resolving these questions with the owner at the affected resource:
 
-- The first exact Markdown heading catalogue and which repeated entries need required child
-  headings rather than authoring convention alone.
-- The smallest sufficient boundary between skill instructions and supporting resources. The
-  conceptual roles are fixed; exact files move only in response to observed sprawl, missed routing,
-  or phase contamination.
-- The skill's name/description and the smallest always-on instruction that reliably cause
-  activation and resource routing over a long conversation.
-- How the filled Markdown IR is recovered from the real conversation: one last-turn artifact, a
-  resource-like document returned in output, or another shape already supported by the path. Do
-  not create a persistence surface to answer this.
-- How to exercise the lifecycle's construction-discovered-gap return without manufacturing a
-  workflow state machine.
-- Whether `parseSDCPNFile` is sufficient “Petrinaut accepts,” or the path exposes a smaller/larger
-  import check.
-- Which instructions initially believed universal prove SDCPN-specific, and which SDCPN guidance
-  earns migration upward. Record the editorial move; do not automate it.
+- Whether the first useful change is teaching order/dosage, workpiece structure, authorship/epistemic treatment, or a smaller combination.
+- Whether broad headings survive, collapse into a case/process spine plus epistemic ledger, or become objective slices with supporting cases. Versioned assertion clusters are not the default.
+- Whether question batching guidance belongs in always-on routing, the skill body, or elicitation resources, and whether the prospective control replicates historical opening overload.
+- How much `Transform to PN` guidance should leave elicitation and whether projection losses should open only during construction.
+- How to represent correction, contextual coexistence, declined/deferred material, and directional/context-dependent values without mandatory per-statement semantic typing.
+- Which duplicate summaries can be removed only after one authoritative home is demonstrated.
+- The smallest candidate campaign that can reveal regression given baseline variance without pretending one scenario proves universal superiority.
+- Whether a manually discovered edge belongs in reusable guidance, a probe/grader catalog, the workpiece shape, or mission evidence only.
 
-Resolve each at the real boundary and record the observed answer in code/tests and mission-close
-evidence. A longer fog-line after the first run is calibration, not failure.
+Resolve each at the smallest real or paper boundary and record the decision before continuing. A longer fog-line after a walkthrough is calibration, not failure.
 
 ## Stop or reorient
 
-Stop and surface evidence before continuing if:
+Stop and surface the evidence if:
 
-- the runbook is implemented from the old narrow `kickoff` / `trajectory` / `close` definition or
-  the broader design specification is treated as optional;
-- the system prompt becomes the full research/runbook corpus instead of a concise router;
-- more skills, another agent, a custom loader, or a workflow engine appear to solve an unobserved
-  future problem;
-- construction material leaks into ordinary interviewing and produces schema-shaped or PN-shaped
-  questions;
-- concrete scenario facts enter authored runbook resources instead of the conversation/IR instance;
-- the agent cannot reliably activate the skill or read the relevant phase resource on the real
-  path;
-- the IR cannot support PN generation without rereading the transcript as the primary model;
-- a closed kind/slot/proposal/precision/firing/fold/completion system re-enters merely to make the
-  first template feel rigorous;
-- producing the IR or PN requires writing Mission 2's capture store or implementing template fill
-  as apply-sweep;
-- plugin-sdcpn, repertoire runtime, fold, completion, or `brunch_ask` re-enter as the teaching
-  vehicle;
-- canvas mutation tools appear on the interviewer;
-- the drive becomes a TUI or second server instead of `createFlueClient` against the live door;
-- the adapter grows a dependency on core, binding, or plugins;
-- ordinary teaching turns return to condition-5 latency (order-of-minutes) as the designed shape.
+- the redesign edits or overwrites the frozen baseline instrument, case, graders, ruler, or artifacts;
+- the agent produces a wholesale replacement before the owner works through its consequential choices;
+- headings or typologies become a scripted intake form or dictate the interview's opening order;
+- uncertainty is handled by inventing more mandatory fields rather than preserving it honestly;
+- normalized agent prose is presented as verbatim expert evidence or never-asked material becomes a user-declared unknown;
+- concrete Vestera or owner-supplied facts leak into reusable teaching;
+- construction, projection, provenance, observer scheduling, capture folding, or live net mutation expands into this mission because a later mission may need it;
+- a candidate is called better from fluency, parser shape, aesthetics, or one favorable anecdote without the frozen comparison ruler and explicit regressions;
+- the redesign requires restoring Condition 5's foreground `brunch_ask`, typed extraction/fold, completion accounting, or minute-scale ordinary turns.
 
-A need for one semantic commitment is not permission to restore the whole typed kernel. Name the
-specific missing commitment and reorient from that evidence.
+A need for one stronger structural distinction is not permission to rebuild the retired typed kernel. Name the exact ambiguity and test the least mechanism that could resolve it.
 
 ## Deferred
 
-Mission 4 host continuity, Mission 5 typed map and Petrinaut read/write via existing `onToolCall`,
-Mission 6 capture improvement, and whether capture and runbooks converge remain in
-[`MISSION.next.md`](MISSION.next.md). Periodic PN generation and programmatic loading also remain
-there. That draft does not supersede this mission.
+Mission 5 owns the first workpiece-to-live-SDCPN projection and evidence-backed provenance answer. Mission 6 owns bounded reviewer re-elicitation and scoped net patching. Mission 7 owns the complete six-beat rehearsal and optimisation handoff. The inferential observer remains an optional spike rather than this mission's workpiece mechanism. Host/session continuity, compaction, voice, broad observability, simulated-conversation viewing, and remote release remain in `MISSION.next.md` unless this mission's real throughline exposes a direct blocker.
