@@ -380,13 +380,20 @@ export function sweepCellObjective(
   frames: readonly MonteCarloUserDefinedMetricFrame[],
   metricId: string,
 ): number | null {
+  // Scans back to the last frame that carries samples, not just the last
+  // frame: a terminating net (SIR burning out, a queue draining) finishes
+  // its runs before `maxTime`, so the final frames legitimately hold no
+  // samples — giving up there discarded every cell of such a net's surface.
   for (let index = frames.length - 1; index >= 0; index--) {
     const frame = frames[index]!;
     if (frame.metricId !== metricId) {
       continue;
     }
     if (frame.outputType === "scalar") {
-      return frame.frameValue;
+      if (frame.frameValue !== null) {
+        return frame.frameValue;
+      }
+      continue;
     }
     let weight = 0;
     let sum = 0;
@@ -394,7 +401,9 @@ export function sweepCellObjective(
       weight += frequency;
       sum += value * frequency;
     }
-    return weight > 0 ? sum / weight : null;
+    if (weight > 0) {
+      return sum / weight;
+    }
   }
   return null;
 }
