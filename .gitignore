@@ -98,6 +98,7 @@ blocks/**/.env
 **/build
 **/target
 **/pkg
+libs/@blockprotocol/type-system/typescript/src/generated
 
 # vscode config
 **/.vscode/settings.json

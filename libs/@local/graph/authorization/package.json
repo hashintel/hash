@@ -24,6 +24,7 @@
     "test:unit": "mise run test:unit @rust/hash-graph-authorization --test-strategy=powerset -- --all-targets --filterset 'not kind(test) & not kind(bench)'"
   },
   "dependencies": {
+    "@blockprotocol/type-system": "workspace:*",
     "@blockprotocol/type-system-rs": "workspace:*",
     "@rust/error-stack": "workspace:*",
     "@rust/hash-codec": "workspace:*"

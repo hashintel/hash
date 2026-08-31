@@ -4,7 +4,7 @@ import type {
   PropertyValueArray,
   PropertyValues,
   VersionedUrl,
-} from "@blockprotocol/type-system-rs";
+} from "../generated/type-system.js";
 
 export const PROPERTY_TYPE_META_SCHEMA: PropertyType["$schema"] =
   "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type";

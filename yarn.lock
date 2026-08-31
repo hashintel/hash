@@ -4233,12 +4233,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@blockprotocol/type-system-rs@workspace:libs/@blockprotocol/type-system/rust"
   dependencies:
-    "@local/tsconfig": "workspace:*"
     "@rust/error-stack": "workspace:*"
     "@rust/hash-codec": "workspace:*"
     "@rust/hash-codegen": "workspace:*"
     "@rust/hash-graph-temporal-versioning": "workspace:*"
-    typescript: "npm:5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -4260,6 +4258,7 @@ __metadata:
     "@rollup/plugin-node-resolve": "npm:16.0.3"
     "@rollup/plugin-typescript": "npm:12.3.0"
     "@rollup/plugin-wasm": "npm:6.2.2"
+    "@rust/hash-codec": "workspace:^"
     "@types/node": "npm:22.18.13"
     "@types/react": "npm:19.2.14"
     "@types/semver": "npm:7.7.1"
@@ -14919,7 +14918,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hash-codec@workspace:*, @rust/hash-codec@workspace:libs/@local/codec":
+"@rust/hash-codec@workspace:*, @rust/hash-codec@workspace:^, @rust/hash-codec@workspace:libs/@local/codec":
   version: 0.0.0-use.local
   resolution: "@rust/hash-codec@workspace:libs/@local/codec"
   dependencies:
@@ -14998,6 +14997,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-authorization@workspace:libs/@local/graph/authorization"
   dependencies:
+    "@blockprotocol/type-system": "workspace:*"
     "@blockprotocol/type-system-rs": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@rust/error-stack": "workspace:*"
@@ -15105,6 +15105,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-store@workspace:libs/@local/graph/store"
   dependencies:
+    "@blockprotocol/type-system": "workspace:*"
     "@blockprotocol/type-system-rs": "workspace:*"
     "@local/tsconfig": "workspace:*"
     "@rust/error-stack": "workspace:*"
