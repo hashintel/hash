@@ -151,7 +151,10 @@ export class SpeechPlaybackController {
         blob = await waitForAbort(response.blob(), abortController.signal);
       } catch (error) {
         if (isAbortError(error)) {
-          throw error;
+          if (abortController.signal.aborted) {
+            throw error;
+          }
+          throw new VoiceError("speech", "request-aborted", requestId);
         }
         throw new VoiceError("speech", "network", requestId);
       }

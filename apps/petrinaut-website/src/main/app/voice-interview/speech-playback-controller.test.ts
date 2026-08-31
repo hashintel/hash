@@ -151,6 +151,31 @@ describe("SpeechPlaybackController", () => {
     expect(harness.createAudio).not.toHaveBeenCalled();
   });
 
+  test("preserves an upstream response-body abort as a request abort", async () => {
+    const response = new Response(new Uint8Array([1]), {
+      headers: { "content-type": "audio/mpeg" },
+    });
+    vi.spyOn(response, "blob").mockRejectedValue(
+      new DOMException("upstream aborted", "AbortError"),
+    );
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => response);
+    const harness = createHarness(fetch);
+
+    await expect(harness.controller.play(segment)).rejects.toMatchObject({
+      code: "request-aborted",
+      requestId: "voice-speech-request",
+    });
+    expect(harness.createAudio).not.toHaveBeenCalled();
+    expect(harness.reportDiagnostic).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        errorCode: "request-aborted",
+        outcome: "aborted",
+        requestId: "voice-speech-request",
+        stage: "browser",
+      }),
+    );
+  });
+
   test("rejects untrusted server-only diagnostics and request references", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>(
       async () =>
