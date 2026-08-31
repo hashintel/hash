@@ -15,19 +15,25 @@ from prune import (
 CORE = "@hashintel/brunch-agent"
 TRANSPORT = "@hashintel/brunch-agent-transport-aisdk"
 APP = "@apps/brunch-agent"
+PLUGIN_GHERKIN = "@hashintel/brunch-agent-plugin-gherkin"
+PLUGIN_SDCPN = "@hashintel/brunch-agent-plugin-sdcpn"
 WEBSITE = "@apps/petrinaut-website"
 
 
 class BrunchRequestedExtras(unittest.TestCase):
-    def test_core_job_adds_the_app_and_context_paths(self) -> None:
-        self.assertEqual(extras_for_requested({CORE}), frozenset({APP}))
-        self.assertIn(
-            APP,
-            fixpoint_expand(
-                {CORE} | extras_for_requested({CORE}),
-                {CORE: frozenset(), APP: frozenset({CORE})},
-            ),
+    def test_core_job_adds_the_app_plugins_and_context_paths(self) -> None:
+        expected_workspaces = frozenset({APP, PLUGIN_GHERKIN, PLUGIN_SDCPN})
+        self.assertEqual(extras_for_requested({CORE}), expected_workspaces)
+        expanded = fixpoint_expand(
+            {CORE} | extras_for_requested({CORE}),
+            {
+                CORE: frozenset(),
+                APP: frozenset({CORE}),
+                PLUGIN_GHERKIN: frozenset({CORE}),
+                PLUGIN_SDCPN: frozenset({CORE}),
+            },
         )
+        self.assertTrue(expected_workspaces.issubset(expanded))
         self.assertEqual(
             extra_paths_for_requested({CORE}),
             [
