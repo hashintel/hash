@@ -47,6 +47,7 @@ pub struct AuthenticationMetrics {
 }
 
 impl AuthenticationMetrics {
+    /// Creates the instruments on `meter`.
     #[must_use]
     pub fn new(meter: &Meter) -> Self {
         Self {
@@ -72,36 +73,53 @@ impl AuthenticationMetrics {
     }
 }
 
-#[derive(Clone)]
+/// The response a request that failed authentication is answered with.
+///
+///
+/// Metrics are recorded when the rejection is dropped, which happens once [`IntoResponse`]
+/// has rendered the response. It is independent of the fact whether a rejection will be rendered
+/// or not.
 pub enum AuthenticationRejection {
+    /// The credentials did not resolve to a caller the route admits.
     Authentication {
+        /// Why the credentials were rejected.
         report: Arc<Report<AuthenticationError>>,
+        /// The instruments the rejection is counted on.
         metrics: Arc<AuthenticationMetrics>,
     },
+    /// [`AuthenticatedActorId`] was extracted on a route without [`AuthenticationLayer`].
+    ///
+    /// Answered as an internal error: the fault is the router's wiring, never the request.
     Misconfigured,
 }
 
-impl IntoResponse for AuthenticationRejection {
-    fn into_response(self) -> Response {
+impl Drop for AuthenticationRejection {
+    fn drop(&mut self) {
         match self {
             Self::Authentication { report, metrics } => {
-                AuthenticationError::log(&report);
-
-                let error = report.current_context();
-
-                metrics.record_rejection(error);
-                error_response(error.status_code(), error.client_message().to_owned())
+                AuthenticationError::log(report);
+                metrics.record_rejection(report.current_context());
             }
             Self::Misconfigured => {
                 tracing::error!(
                     "`AuthenticatedActorId` extracted on a route without authentication middleware"
                 );
-
-                error_response(
-                    http::StatusCode::INTERNAL_SERVER_ERROR,
-                    "internal server error".to_owned(),
-                )
             }
+        }
+    }
+}
+
+impl IntoResponse for AuthenticationRejection {
+    fn into_response(self) -> Response {
+        match &self {
+            Self::Authentication { report, .. } => {
+                let error = report.current_context();
+                error_response(error.status_code(), error.client_message().to_owned())
+            }
+            Self::Misconfigured => error_response(
+                http::StatusCode::INTERNAL_SERVER_ERROR,
+                "internal server error".to_owned(),
+            ),
         }
     }
 }
@@ -179,7 +197,9 @@ fn service_secret_rejection(
 /// ```
 #[derive(Clone)]
 pub struct ServiceSecretLayer {
+    /// The secret a request must present.
     pub service_secret: Arc<str>,
+    /// The instruments rejections are counted on.
     pub metrics: Arc<AuthenticationMetrics>,
 }
 
@@ -195,6 +215,7 @@ impl<S> tower::Layer<S> for ServiceSecretLayer {
     }
 }
 
+/// The service [`ServiceSecretLayer`] wraps its inner service into.
 #[derive(Clone)]
 pub struct ServiceSecretService<S> {
     service_secret: Arc<str>,
@@ -299,11 +320,17 @@ fn store_outcome<B>(
 /// );
 /// ```
 pub struct AuthenticationLayer<P, C> {
+    /// The provider chain requests resolve against.
     pub provider: Arc<P>,
+    /// The secret bootstrap routes require.
     pub service_secret: Arc<str>,
+    /// The instruments rejections are counted on.
     pub metrics: Arc<AuthenticationMetrics>,
+    /// Names the bootstrap routes by path.
     pub bootstrap_route: fn(&str) -> bool,
 
+    /// Selects the caller type the chain resolves to: [`ActorId`] rejects uncredentialed
+    /// requests, `Option<ActorId>` serves them anonymously.
     pub caller: PhantomData<C>,
 }
 
@@ -334,6 +361,7 @@ impl<P, C, S> tower::Layer<S> for AuthenticationLayer<P, C> {
     }
 }
 
+/// The service [`AuthenticationLayer`] wraps its inner service into.
 pub struct AuthenticationService<P, C, S> {
     inner: S,
     _caller: PhantomData<C>,
@@ -497,16 +525,21 @@ mod tests {
     use core::marker::PhantomData;
 
     use axum::{Router, body::Body, routing::get};
+    use error_stack::Report;
     use http::{Request, StatusCode};
     use tower::ServiceExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
     use super::{
-        AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, ServiceSecretLayer,
+        AuthenticatedActorId, AuthenticationLayer, AuthenticationMetrics, AuthenticationRejection,
+        ServiceSecretLayer,
     };
     use crate::{
-        authentication::provider::StaticAuthenticationProvider,
+        authentication::{
+            provider::StaticAuthenticationProvider,
+            request::{AuthenticationError, AuthenticationErrorKind},
+        },
         test_metrics::{RecordedMetrics, noop_meter},
     };
 
@@ -961,6 +994,33 @@ mod tests {
             recorded.counter("hash.authentication.rejections", &[]),
             0,
             "an anonymously served request should not count as a rejection"
+        );
+    }
+
+    /// Recording rides the rejection's drop, so a path that builds one and never renders it
+    /// still reaches the meter.
+    #[test]
+    fn unrendered_rejection_counts() {
+        let recorded = RecordedMetrics::new();
+        let metrics = Arc::new(AuthenticationMetrics::new(&recorded.meter()));
+
+        drop(AuthenticationRejection::Authentication {
+            report: Arc::new(Report::new(AuthenticationError::new(
+                AuthenticationErrorKind::MissingCredentials,
+            ))),
+            metrics: Arc::clone(&metrics),
+        });
+
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.rejections",
+                &[
+                    ("http.response.status_code", "401"),
+                    ("fault_domain", "caller"),
+                ],
+            ),
+            1,
+            "a dropped rejection should count without being rendered"
         );
     }
 

@@ -35,7 +35,7 @@ pub trait Caller: Send + Sized + sealed::Sealed {
     ///
     /// - [`MissingCredentials`] if the caller type requires an actor
     ///
-    /// [`MissingCredentials`]: AuthenticationError::MissingCredentials
+    /// [`MissingCredentials`]: AuthenticationErrorKind::MissingCredentials
     fn anonymous() -> Result<Self, AuthenticationError>;
 
     /// Returns the actor, or [`None`] for an anonymous caller.

@@ -109,6 +109,18 @@
 //! # }
 //! ```
 //!
+//! # Feature flags
+//!
+//! Both are off by default.
+//!
+//! - `clap`: derives `clap::ValueEnum` on [`RateLimitMode`] and [`ClientIpSource`], so a service
+//!   parses them straight from its command line.
+//! - `test-utils`: exposes the fixed-outcome provider `StaticAuthenticationProvider` and
+//!   `expect_rejection` to dependent crates' tests.
+//!
+//! [`RateLimitMode`]: rate_limit::RateLimitMode
+//! [`ClientIpSource`]: rate_limit::ClientIpSource
+//!
 //! # Workspace dependencies
 #![doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd")]
 #![feature(impl_trait_in_assoc_type, generic_atomic)]

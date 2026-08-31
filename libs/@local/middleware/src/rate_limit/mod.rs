@@ -292,7 +292,9 @@ impl RateLimitMetrics {
     }
 }
 
+/// The `429 Too Many Requests` answer for a request over its budget.
 pub struct TooManyRequests {
+    /// Whole seconds until the crossed budget admits the request again, at least one.
     pub retry_after: NonZero<u64>,
 }
 
@@ -310,8 +312,15 @@ impl IntoResponse for TooManyRequests {
     }
 }
 
+/// The response a request the principal limiter cannot serve is answered with.
+///
+/// [`IpGateLayer`] rejects with [`TooManyRequests`] alone: only the principal limiter, building
+/// on the layers above it, can find a route miswired.
 pub enum RateLimitRejection {
+    /// The request is over its budget.
     TooManyRequests(TooManyRequests),
+    /// The route is wired without the middleware the principal limiter builds on, answered as
+    /// an internal error.
     InternalError,
 }
 
@@ -606,7 +615,9 @@ where
 /// ```
 #[derive(Clone)]
 pub struct IpGateLayer {
+    /// The shared limiter state requests are charged against.
     pub limiters: Arc<RateLimiters>,
+    /// The secret whose presenters pass unchecked.
     pub service_secret: Arc<str>,
 }
 
@@ -622,6 +633,7 @@ impl<S> tower::Layer<S> for IpGateLayer {
     }
 }
 
+/// The service [`IpGateLayer`] wraps its inner service into.
 #[derive(Clone)]
 pub struct IpGateService<S> {
     inner: S,
@@ -752,7 +764,9 @@ where
 /// ```
 #[derive(Clone)]
 pub struct PrincipalLimitLayer {
+    /// The shared limiter state requests are charged against.
     pub limiters: Arc<RateLimiters>,
+    /// The secret whose presenters pass unchecked.
     pub service_secret: Arc<str>,
 }
 
@@ -768,6 +782,7 @@ impl<S> tower::Layer<S> for PrincipalLimitLayer {
     }
 }
 
+/// The service [`PrincipalLimitLayer`] wraps its inner service into.
 #[derive(Clone)]
 pub struct PrincipalLimitService<S> {
     inner: S,

@@ -194,13 +194,18 @@ impl AuthenticationErrorKind {
     }
 }
 
+/// An authentication failure, classified by its [`AuthenticationErrorKind`].
+///
+/// The kind decides the status code, the fault domain, and the client message.
 #[derive(Debug)]
 pub struct AuthenticationError {
+    /// What failed.
     pub kind: AuthenticationErrorKind,
     logged: Atomic<bool>,
 }
 
 impl AuthenticationError {
+    /// Creates the error for `kind`, not yet logged.
     #[must_use]
     pub const fn new(kind: AuthenticationErrorKind) -> Self {
         Self {
@@ -307,6 +312,12 @@ impl AuthenticationError {
         Self::new(AuthenticationErrorKind::StoreError)
     }
 
+    /// Logs the report at the level its fault domain assigns.
+    ///
+    /// Service faults log as errors, operator faults as warnings, and caller faults at debug: a
+    /// caller-repairable rejection must not hand anonymous traffic the log volume. Each error
+    /// logs once: a later call on a report whose error already logged does nothing, so every
+    /// layer that sees a rejection may call this without duplicating the record.
     pub fn log(report: &Report<Self>) {
         let this = report.current_context();
 
@@ -379,7 +390,7 @@ impl core::error::Error for AuthenticationError {}
 /// - [`MissingCredentials`] if no provider recognized a credential and the caller type requires an
 ///   actor
 ///
-/// [`MissingCredentials`]: AuthenticationError::MissingCredentials
+/// [`MissingCredentials`]: AuthenticationErrorKind::MissingCredentials
 pub async fn resolve_request_actor<P, C>(
     provider: &P,
     headers: &HeaderMap,
@@ -469,8 +480,8 @@ pub(crate) fn every_error(
 /// - [`MissingDelegatedActor`] if the header is absent
 /// - [`InvalidActorIdHeader`] if the header is not a valid UUID
 ///
-/// [`MissingDelegatedActor`]: AuthenticationError::MissingDelegatedActor
-/// [`InvalidActorIdHeader`]: AuthenticationError::InvalidActorIdHeader
+/// [`MissingDelegatedActor`]: AuthenticationErrorKind::MissingDelegatedActor
+/// [`InvalidActorIdHeader`]: AuthenticationErrorKind::InvalidActorIdHeader
 pub fn actor_id_from_header(headers: &HeaderMap) -> Result<ActorEntityUuid, AuthenticationError> {
     let header_value = headers
         .get(ACTOR_ID_HEADER)
