@@ -18,6 +18,12 @@
  * the filled bands blit one raster-resolution image instead of issuing a
  * `fillRect` and an `rgb(...)` string per cell — so a markers-only change
  * never recomputes the field at all.
+ *
+ * A walk restart (the caller clearing `values` to sample a new slice) keeps
+ * the previous picture up, dimmed, until the new walk has enough samples to
+ * say something — a blank plot after every slider move read as a crash, and
+ * two samples interpolate to a near-uniform wash that says less than the
+ * dimmed old picture does.
  */
 import { useEffect, useRef } from "react";
 
@@ -84,7 +90,49 @@ type PaintState = {
     image: HTMLCanvasElement;
     segments: [number, number, number, number][][];
   } | null;
+  /** The last complete-enough field, kept as the ghost across restarts. */
+  ghost: {
+    image: HTMLCanvasElement;
+    segments: [number, number, number, number][][];
+    rasterWidth: number;
+    rasterHeight: number;
+  } | null;
 };
+
+/** Samples a fresh walk needs before its field replaces the ghost. */
+const GHOST_MIN_SAMPLES = 3;
+
+/** Draws a retained field (image + iso-lines) into the plot area. */
+/* eslint-disable no-param-reassign -- configuring the caller's canvas context
+   (smoothing, stroke style) is what a draw helper is for */
+function drawField(
+  context: CanvasRenderingContext2D,
+  field: {
+    image: HTMLCanvasElement;
+    segments: [number, number, number, number][][];
+  },
+  width: number,
+  height: number,
+  rasterWidth: number,
+  rasterHeight: number,
+): void {
+  const cellWidth = width / (rasterWidth - 1);
+  const cellHeight = height / (rasterHeight - 1);
+  context.imageSmoothingEnabled = false;
+  context.drawImage(field.image, 0, 0, width, height);
+  context.imageSmoothingEnabled = true;
+  context.strokeStyle = "rgba(15, 23, 42, 0.35)";
+  context.lineWidth = 1;
+  for (const levelSegments of field.segments) {
+    context.beginPath();
+    for (const [x1, y1, x2, y2] of levelSegments) {
+      context.moveTo(x1 * cellWidth, y1 * cellHeight);
+      context.lineTo(x2 * cellWidth, y2 * cellHeight);
+    }
+    context.stroke();
+  }
+}
+/* eslint-enable no-param-reassign */
 
 function paint(options: {
   canvas: HTMLCanvasElement;
@@ -123,9 +171,38 @@ function paint(options: {
   const pointY = (y: number): number =>
     height - (y / Math.max(ny - 1, 1)) * height;
 
-  if (samples.length > 0) {
-    const rasterWidth = Math.max(2, (nx - 1) * RASTER_SUBDIVISION + 1);
-    const rasterHeight = Math.max(2, (ny - 1) * RASTER_SUBDIVISION + 1);
+  const rasterWidth = Math.max(2, (nx - 1) * RASTER_SUBDIVISION + 1);
+  const rasterHeight = Math.max(2, (ny - 1) * RASTER_SUBDIVISION + 1);
+
+  // A restarted walk: too few samples to interpolate anything meaningful.
+  // The previous slice's picture, dimmed, bridges the gap; the new walk's
+  // dots draw on top so progress is visible.
+  const ghosting = samples.length < GHOST_MIN_SAMPLES && state.ghost !== null;
+  if (ghosting && state.ghost !== null) {
+    context.globalAlpha = 0.45;
+    drawField(
+      context,
+      state.ghost,
+      width,
+      height,
+      state.ghost.rasterWidth,
+      state.ghost.rasterHeight,
+    );
+    context.globalAlpha = 1;
+    for (const sample of samples) {
+      context.beginPath();
+      context.arc(pointX(sample.x), pointY(sample.y), 2.5, 0, Math.PI * 2);
+      context.fillStyle = "rgba(15, 23, 42, 0.75)";
+      context.fill();
+      context.strokeStyle = "rgba(255, 255, 255, 0.9)";
+      context.lineWidth = 1;
+      context.stroke();
+    }
+    // Fall through: external markers (trial rings, the best point) are
+    // caller state, not part of the retained field — they stay visible.
+  }
+
+  if (!ghosting && samples.length > 0) {
     const sizeKey = `${nx}|${ny}|${rasterWidth}|${rasterHeight}`;
     if (state.accumulator === null || state.accumulatorSize !== sizeKey) {
       state.accumulator = createIdwAccumulator({
@@ -192,25 +269,25 @@ function paint(options: {
         image,
         segments,
       };
-    }
-
-    const cellWidth = width / (rasterWidth - 1);
-    const cellHeight = height / (rasterHeight - 1);
-
-    context.imageSmoothingEnabled = false;
-    context.drawImage(state.field.image, 0, 0, width, height);
-    context.imageSmoothingEnabled = true;
-
-    context.strokeStyle = "rgba(15, 23, 42, 0.35)";
-    context.lineWidth = 1;
-    for (const levelSegments of state.field.segments) {
-      context.beginPath();
-      for (const [x1, y1, x2, y2] of levelSegments) {
-        context.moveTo(x1 * cellWidth, y1 * cellHeight);
-        context.lineTo(x2 * cellWidth, y2 * cellHeight);
+      // The ghost is a snapshot, not an alias: the live field's canvas is
+      // reused across versions, so the ghost copies it once it is worth
+      // keeping.
+      if (samples.length >= GHOST_MIN_SAMPLES) {
+        const ghostImage =
+          state.ghost?.image ?? document.createElement("canvas");
+        ghostImage.width = image.width;
+        ghostImage.height = image.height;
+        ghostImage.getContext("2d")!.drawImage(image, 0, 0);
+        state.ghost = {
+          image: ghostImage,
+          segments,
+          rasterWidth,
+          rasterHeight,
+        };
       }
-      context.stroke();
     }
+
+    drawField(context, state.field, width, height, rasterWidth, rasterHeight);
 
     // Sampled points, so it is visible where data actually exists.
     for (const sample of samples) {
@@ -248,6 +325,7 @@ export const ContourSurface = ({
   values,
   markers = [],
   height = 280,
+  contentKey,
   onClickFraction,
   "aria-label": ariaLabel,
 }: {
@@ -259,6 +337,12 @@ export const ContourSurface = ({
   /** Plot height in pixels; the width follows the container. */
   height?: number;
   /**
+   * Identity of the plotted quantity (the axes and the metric). A change
+   * drops the retained ghost: bridging a *slice* change with the previous
+   * picture helps, bridging a different quantity with it would mislead.
+   */
+  contentKey?: string;
+  /**
    * A click on the plot, as fractions of its area: x rightward, y upward,
    * both in [0, 1].
    */
@@ -269,6 +353,7 @@ export const ContourSurface = ({
   const frameRef = useRef<HTMLDivElement>(null);
   const size = useElementSize(frameRef, { debounce: 50 });
   const paintStateRef = useRef<PaintState | null>(null);
+  const contentKeyRef = useRef<string | undefined>(contentKey);
   const frameHandleRef = useRef<number | null>(null);
 
   // Painting is imperative canvas work driven by measured size — outside
@@ -285,8 +370,13 @@ export const ContourSurface = ({
       accumulator: null,
       accumulatorSize: "",
       field: null,
+      ghost: null,
     };
     const state = paintStateRef.current;
+    if (contentKeyRef.current !== contentKey) {
+      contentKeyRef.current = contentKey;
+      state.ghost = null;
+    }
     if (frameHandleRef.current !== null) {
       cancelAnimationFrame(frameHandleRef.current);
     }
@@ -309,7 +399,7 @@ export const ContourSurface = ({
         frameHandleRef.current = null;
       }
     };
-  }, [height, markers, nx, ny, size, values]);
+  }, [contentKey, height, markers, nx, ny, size, values]);
 
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!onClickFraction) {

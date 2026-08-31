@@ -34,6 +34,16 @@ exists. All of that is pure, tested math in
 `react/experiments/contour-grid.ts`; the component only paints it onto a
 canvas, the same imperative-draw idiom the metric charts use.
 
+A walk restart — any slice, axis, or metric change clears the sampled
+values — used to blank the plot until the new walk's first samples resolved,
+which reads as a crash after every slider move. The plot now keeps the
+previous picture up, dimmed to 45%, whenever fewer than three fresh samples
+exist (one or two samples interpolate to a near-uniform wash that says less
+than the old picture does), with the new walk's dots drawn on top. The same
+bridge the metric charts build with a snapshot overlay, built here by
+retaining the last complete-enough field. The `Components / ContourSurface →
+Restarting` story demonstrates the cycle.
+
 ## Eight runs is a sketch
 
 A surface cell's value is the mean over eight runs — enough for the shape,
