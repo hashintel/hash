@@ -46,12 +46,12 @@ import type {
   OntologyTypeVersion,
   WebId,
 } from "@blockprotocol/type-system";
+import type { PolicyId } from "@local/hash-graph-authorization/types";
 import type {
   Organization,
   OrganizationNamePropertyValueWithMetadata,
   OrganizationPropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { PolicyId } from "@rust/hash-graph-authorization/types";
 
 export type Org = {
   webId: WebId;

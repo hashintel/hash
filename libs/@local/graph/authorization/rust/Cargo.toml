@@ -55,12 +55,3 @@ postgres = ["dep:postgres-types", "dep:bytes"]
 
 [lints]
 workspace = true
-
-
-[package.metadata.sync.turborepo]
-extra-dependencies = [
-    { name = "@blockprotocol/type-system", version = "workspace:*" },
-]
-extra-dev-dependencies = [
-    { name = "@local/tsconfig", version = "workspace:*" },
-]

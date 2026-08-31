@@ -57,6 +57,7 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
+import type { ActionName } from "@local/hash-graph-authorization/types";
 import type {
   AllFilter,
   DiffEntityResult,
@@ -67,9 +68,8 @@ import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-graph-sdk/authorization";
+import type { TraversalPath } from "@local/hash-graph-store/types";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import type { ActionName } from "@rust/hash-graph-authorization/types";
-import type { TraversalPath } from "@rust/hash-graph-store/types";
 
 /** @todo: potentially directly export this from the subgraph package */
 export type PropertyValue = PropertyObject[BaseUrl];

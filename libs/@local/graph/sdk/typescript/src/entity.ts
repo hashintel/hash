@@ -114,7 +114,7 @@ import type {
 import type {
   CreateEntityPolicyParams,
   EntityPermissions,
-} from "@rust/hash-graph-store/types";
+} from "@local/hash-graph-store/types";
 
 export type BrandedPropertyObject<T extends Record<string, PropertyValue>> =
   T & {

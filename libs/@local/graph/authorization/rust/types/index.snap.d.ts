@@ -1,4 +1,4 @@
-// This file was generated from `libs/@local/graph/authorization/tests/codegen.rs`
+// This file was generated from `libs/@local/graph/authorization/rust/tests/codegen.rs`
 
 import type { ActorId, ActorType, ActorGroupId, BaseUrl, EntityUuid, OntologyTypeVersion, RoleId, WebId, VersionedUrl } from "@blockprotocol/type-system";
 export type Effect = "permit" | "forbid";

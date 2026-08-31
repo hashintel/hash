@@ -15,7 +15,7 @@ fn index() -> io::Result<()> {
     let mut generator = TypeScriptGenerator::new(&settings, &collection);
 
     generator.add_import_declaration(
-        "@rust/hash-graph-authorization/types",
+        "@local/hash-graph-authorization/types",
         ["ActionName", "Effect", "PrincipalConstraint"],
     );
     generator.add_import_declaration("@blockprotocol/type-system", ["EntityEditionId"]);
