@@ -76,7 +76,11 @@ export type GpuNetProfile = {
   }[];
   /** Whether every place is uncoloured, so per-run state is just counts. */
   uncolouredOnly: boolean;
-  /** Per-run state size in bytes, which bounds how many runs fit in a buffer. */
+  /**
+   * Per-run state size in bytes from *declared* capacities only — derived
+   * slabs are measured later by the probe, so this understates a
+   * derived-capacity net's real footprint.
+   */
   bytesPerRun: number;
 };
 
@@ -97,12 +101,14 @@ function wordsPerToken(realCount: number, discreteCount: number): number {
  * Decides whether `sdcpn` can run on the GPU backend.
  *
  * `maxBytesPerRun` guards against a net whose bounded state is technically
- * finite but too large to hold for a useful number of runs — a place with a
- * capacity of ten million is expressible but not schedulable.
+ * finite but absurd — a declared capacity of ten million. Run tiling absorbs
+ * large per-run state by running fewer runs per tile, so the limit is a
+ * megabyte per run (≥128 runs per tile at the 128 MiB default binding), not
+ * a parallelism target.
  */
 export function assessGpuEligibility(
   sdcpn: SDCPN,
-  { maxBytesPerRun = 4096 }: { maxBytesPerRun?: number } = {},
+  { maxBytesPerRun = 1024 * 1024 }: { maxBytesPerRun?: number } = {},
 ): GpuEligibility {
   const reasons: GpuIneligibilityReason[] = [];
   const typeById = new Map(sdcpn.types.map((type) => [type.id, type]));
@@ -205,7 +211,7 @@ export function assessGpuEligibility(
   if (bytesPerRun > maxBytesPerRun) {
     reasons.push({
       code: "state-too-large",
-      message: `One run needs ${bytesPerRun} bytes of GPU state, above the ${maxBytesPerRun}-byte limit. Lower the token capacities to fit more runs on the device.`,
+      message: `One run needs ${bytesPerRun} bytes of GPU state, above the ${maxBytesPerRun}-byte gate the backend schedules within. Lower the declared token capacities.`,
     });
   }
 

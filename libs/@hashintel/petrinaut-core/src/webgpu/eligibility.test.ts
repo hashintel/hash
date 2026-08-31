@@ -202,10 +202,21 @@ describe("assessGpuEligibility", () => {
   });
 
   it("rejects state too large to schedule usefully", () => {
-    const result = assessGpuEligibility(
+    // Run tiling absorbs large per-run state, so the gate sits at a megabyte
+    // per run: 100k single-word tokens (400 KB) now pass, 10M do not.
+    const accepted = assessGpuEligibility(
       net({
         types: [color("c", [{ elementId: "x", name: "x", type: "real" }])],
         places: [place("p", { colorId: "c", capacity: 100_000 })],
+        transitions: [transition("t", [], [{ placeId: "p", weight: 1 }])],
+      }),
+    );
+    expect(accepted.eligible).toBe(true);
+
+    const result = assessGpuEligibility(
+      net({
+        types: [color("c", [{ elementId: "x", name: "x", type: "real" }])],
+        places: [place("p", { colorId: "c", capacity: 10_000_000 })],
         transitions: [transition("t", [], [{ placeId: "p", weight: 1 }])],
       }),
     );

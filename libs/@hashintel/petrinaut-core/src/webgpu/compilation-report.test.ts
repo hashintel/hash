@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { cafeQueue } from "../examples/cafe-queue";
 import { dronePatrol } from "../examples/drone-patrol";
+import * as allExamples from "../examples/index";
 import { probabilisticSatellitesSDCPN } from "../examples/satellites-launcher";
 import { sirModel } from "../examples/sir-model";
 import { compileHirArtifacts } from "../hir";
@@ -63,6 +64,41 @@ describe("analyzeCompilation", () => {
         (item) => item.kind === "lambda" && item.status === "gpu-ready",
       ),
     ).toHaveLength(2);
+  });
+
+  it("accepts every bundled example except the one multi-place consumer", () => {
+    // With derived capacities, calibrated histogram windows, forwarded
+    // kernel tokens, and the tiling-aware state gate, the only example the
+    // GPU still declines is Production Machines — its \`Start Repair\`
+    // consumes typed tokens from two places, a cross-product enumeration
+    // the shader does not scan yet (the weight > 2 family).
+    // Deliberately exhaustive over the examples namespace: adding an example
+    // MUST extend this matrix, so its GPU verdict is a decision, not an
+    // accident.
+    const readiness = Object.fromEntries(
+      Object.entries(allExamples).map(([name, example]) => {
+        const definition = (
+          example as { petriNetDefinition: typeof satellites }
+        ).petriNetDefinition;
+        return [name, analyze(definition).gpuReady];
+      }),
+    );
+    expect(readiness).toStrictEqual({
+      productionMachines: false,
+      deploymentPipelineSDCPN: true,
+      probabilisticSatellitesSDCPN: true,
+      sirModel: true,
+      cafeQueue: true,
+      dronePatrol: true,
+      supplyChainWithDisruption: true,
+      supplyChainProfit: true,
+    });
+    const production = analyze(
+      allExamples.productionMachines.petriNetDefinition,
+    );
+    expect(production.shaderFailure).toMatch(
+      /consumes typed tokens from 2 places/,
+    );
   });
 
   it("reports the satellites example GPU-ready with derived capacities", () => {
