@@ -11,7 +11,7 @@ import { useIsReadOnly } from "../../../react/state/use-is-read-only";
  * `CommandRegistryProvider`; the `shortcut` strings are display metadata —
  * the bindings themselves still live in the keyboard-shortcut handler.
  */
-export function useEditorCommands(): void {
+function useEditorCommands(): void {
   const {
     setCursorMode,
     setEditionMode,
@@ -115,3 +115,13 @@ export function useEditorCommands(): void {
     run: () => toggleBottomPanel(),
   });
 }
+
+/**
+ * Declares the editor's commands as a null-rendering leaf, so their context
+ * subscriptions (the undo/redo value changes on every document mutation)
+ * re-render this leaf alone rather than the whole `EditorView` tree.
+ */
+export const EditorCommands: React.FC = () => {
+  useEditorCommands();
+  return null;
+};
