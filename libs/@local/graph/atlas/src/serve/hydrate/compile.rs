@@ -186,7 +186,7 @@ const fn admits_every_row(
 /// partial row stream admits no rows anywhere.
 #[tracing::instrument(skip_all)]
 pub(crate) async fn visibility_proof<S>(
-    actor: Option<ActorId>,
+    actor: ActorId,
     filter: Option<&Filter<'_, Entity>>,
     protection: &PropertyProtectionFilterConfig<'static>,
     store: &S,
@@ -200,7 +200,7 @@ where
     let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
     let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
 
-    let policy_components = PolicyComponents::builder(store, actor)
+    let policy_components = PolicyComponents::builder(store, Some(actor))
         .with_action(ActionName::ViewEntity, MergePolicies::Yes)
         .await
         .map_err(ProofError::Policies)?;

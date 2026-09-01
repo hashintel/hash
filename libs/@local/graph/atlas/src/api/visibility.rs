@@ -248,7 +248,7 @@ impl OperationInput for Visibility {
 /// store's.
 pub(super) async fn resolve<R>(
     state: &AppState<R>,
-    actor: Option<ActorId>,
+    actor: ActorId,
     filter: Option<FilterDigest>,
     document: Option<Arc<[u8]>>,
 ) -> Result<Resolved, Problem<'static>> {

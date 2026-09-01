@@ -75,7 +75,7 @@ fn key_of(actor: u128) -> CacheKey {
             .repeat(32)
             .parse()
             .expect("64 hexadecimal digits name a generation"),
-        actor: Some(ActorId::User(UserId::new(Uuid::from_u128(actor)))),
+        actor: ActorId::User(UserId::new(Uuid::from_u128(actor))),
         filter: None,
     }
 }

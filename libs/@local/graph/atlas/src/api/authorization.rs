@@ -42,7 +42,7 @@ struct ActorCache(Result<Actor, AuthenticationRejection>);
 /// The authentication middleware resolves the caller ahead of this router, and this extractor
 /// reads that resolution. [`None`] is an anonymous caller, a first-class presenter.
 #[derive(Debug, Clone, Copy)]
-pub(super) struct Actor(pub Option<ActorId>);
+pub(super) struct Actor(pub ActorId);
 
 impl<S> FromRequestParts<S> for Actor
 where
@@ -54,9 +54,10 @@ where
         let resolution = if let Some(ActorCache(cached)) = parts.extensions.get::<ActorCache>() {
             cached.clone()
         } else {
-            let resolution = Option::<AuthenticatedActorId>::from_request_parts(parts, state)
-                .await
-                .map(|actor| Self(actor.map(|AuthenticatedActorId(id)| id)));
+            let resolution =
+                <AuthenticatedActorId as FromRequestParts<S>>::from_request_parts(parts, state)
+                    .await
+                    .map(|AuthenticatedActorId(actor)| Self(actor));
 
             parts.extensions.insert(ActorCache(resolution.clone()));
             resolution
@@ -255,19 +256,14 @@ mod tests {
     }
 
     /// The actor identity `actor` names.
-    #[expect(
-        clippy::unnecessary_wraps,
-        reason = "the presenter's domain is `Option<ActorId>`, and this fixture names its `Some` \
-                  form beside the literal `None`, the anonymous presenter"
-    )]
-    fn presenter(actor: u128) -> Option<ActorId> {
-        Some(ActorId::User(UserId::new(Uuid::from_u128(actor))))
+    fn actor(actor: u128) -> ActorId {
+        ActorId::User(UserId::new(Uuid::from_u128(actor)))
     }
 
     /// The authority header presenting a token for `presenter`, issued at `issued_at`.
-    fn minted(
+    fn issued(
         tokens: &TokenAuthority<ChaCha20Rng>,
-        presenter: Option<ActorId>,
+        presenter: ActorId,
         issued_at: SystemTime,
     ) -> HeaderValue {
         let token = tokens
@@ -280,7 +276,7 @@ mod tests {
 
     /// One request's parts, with `resolution` cached as the middleware's outcome and `token`
     /// presented in the authority header.
-    fn parts(resolution: Option<ActorId>, token: Option<&HeaderValue>) -> Parts {
+    fn parts(resolution: ActorId, token: Option<&HeaderValue>) -> Parts {
         let mut request = Request::builder().uri("/");
         if let Some(token) = token {
             request = request.header(headers::AUTHORITY, token.clone());
@@ -298,7 +294,7 @@ mod tests {
     /// Drives a data route's admission reading with the authority as the whole state.
     fn admit(
         tokens: &TokenAuthority<ChaCha20Rng>,
-        resolution: Option<ActorId>,
+        resolution: ActorId,
         token: Option<&HeaderValue>,
     ) -> Result<Scope, Problem<'static>> {
         block_on(<Scope as FromRequestParts<_>>::from_request_parts(
@@ -310,7 +306,7 @@ mod tests {
     /// Drives the manifest's continuity reading with the authority as the whole state.
     fn read(
         tokens: &TokenAuthority<ChaCha20Rng>,
-        resolution: Option<ActorId>,
+        resolution: ActorId,
         token: Option<&HeaderValue>,
     ) -> Result<Option<Scope>, Problem<'static>> {
         block_on(<Scope as OptionalFromRequestParts<_>>::from_request_parts(
@@ -322,7 +318,7 @@ mod tests {
     /// An absent header reads as a fresh bootstrap, never as a refusal.
     #[test]
     fn absent_token_reads_as_a_fresh_bootstrap() {
-        assert_matches!(read(&authority(), presenter(11), None), Ok(None));
+        assert_matches!(read(&authority(), actor(11), None), Ok(None));
     }
 
     /// A header outside the codec reads as refused, never as a fresh bootstrap.
@@ -339,7 +335,7 @@ mod tests {
                 .expect("a visible ASCII string");
 
             assert_matches!(
-                read(&tokens, presenter(11), Some(&header)),
+                read(&tokens, actor(11), Some(&header)),
                 Err(_),
                 "a garbage header did not read as refused"
             );
@@ -353,29 +349,9 @@ mod tests {
     #[test]
     fn foreign_actors_token_reads_as_refused() {
         let tokens = authority();
-        let header = minted(&tokens, presenter(11), issued_at());
+        let header = issued(&tokens, actor(11), issued_at());
 
-        assert_matches!(read(&tokens, presenter(12), Some(&header)), Err(_));
-    }
-
-    /// An anonymous caller's token binds to the anonymous presenter exactly as a named one.
-    #[test]
-    fn anonymous_token_binds_its_presenter() {
-        let tokens = authority();
-        let anonymous = minted(&tokens, None, issued_at());
-        let named = minted(&tokens, presenter(11), issued_at());
-
-        assert_matches!(read(&tokens, None, Some(&anonymous)), Ok(Some(_)));
-        assert_matches!(
-            read(&tokens, presenter(11), Some(&anonymous)),
-            Err(_),
-            "a named presenter carried the anonymous token"
-        );
-        assert_matches!(
-            read(&tokens, None, Some(&named)),
-            Err(_),
-            "an anonymous presenter carried a named token"
-        );
+        assert_matches!(read(&tokens, actor(12), Some(&header)), Err(_));
     }
 
     /// Admission enforces the window the continuity reading forgives.
@@ -388,16 +364,16 @@ mod tests {
     fn expired_token_refuses_at_admission_yet_reads_as_carried() {
         let tokens = authority();
         let now = SystemTime::now();
-        let expired = minted(&tokens, presenter(11), now - Duration::from_mins(11));
-        let fresh = minted(&tokens, presenter(11), now);
+        let expired = issued(&tokens, actor(11), now - Duration::from_mins(11));
+        let fresh = issued(&tokens, actor(11), now);
 
         assert_matches!(
-            admit(&tokens, presenter(11), Some(&expired)),
+            admit(&tokens, actor(11), Some(&expired)),
             Err(_),
             "an expired token admitted a data request"
         );
-        assert_matches!(read(&tokens, presenter(11), Some(&expired)), Ok(Some(_)));
-        assert_matches!(admit(&tokens, presenter(11), Some(&fresh)), Ok(_));
+        assert_matches!(read(&tokens, actor(11), Some(&expired)), Ok(Some(_)));
+        assert_matches!(admit(&tokens, actor(11), Some(&fresh)), Ok(_));
     }
 
     /// The emitted OpenAPI documents the token optional on the manifest, required on a data route.

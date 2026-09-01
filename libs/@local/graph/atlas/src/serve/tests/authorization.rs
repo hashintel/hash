@@ -118,23 +118,18 @@ fn issued_at() -> SystemTime {
     SystemTime::UNIX_EPOCH + Duration::from_secs(1_700_000_000)
 }
 
+/// The actor identity `actor` names, as a token's presenter.
+fn actor(actor: u128) -> ActorId {
+    ActorId::User(UserId::new(Uuid::from_u128(actor)))
+}
+
 /// The view of one actor, resolved at offset `k`, over the filter digest of `filter` when present.
-fn scope(actor: u128, k: u8, filter: Option<&[u8]>) -> Scope {
+fn scope(actor_id: u128, k: u8, filter: Option<&[u8]>) -> Scope {
     Scope::new(
-        presenter(actor),
+        actor(actor_id),
         filter.map(FilterDigest::of),
         CutOffset::new(k),
     )
-}
-
-/// The actor identity `actor` names, as a token's presenter.
-#[expect(
-    clippy::unnecessary_wraps,
-    reason = "the presenter's domain is `Option<ActorId>`, and this fixture names its `Some` form \
-              beside the literal `None`, the anonymous presenter"
-)]
-fn presenter(actor: u128) -> Option<ActorId> {
-    Some(ActorId::User(UserId::new(Uuid::from_u128(actor))))
 }
 
 /// Derives the sealing key independently: HKDF-SHA256, generation digest as salt, one label.
@@ -280,46 +275,6 @@ fn minted_token_matches_an_independent_envelope() {
     }
 }
 
-/// An anonymous scope seals kind byte three over the nil uuid, byte-compared like a named one.
-///
-/// Tokens outlive restarts within a generation, so the sealed discriminant values are a
-/// compatibility surface this case pins independently of the production enum's declaration order.
-#[test]
-fn anonymous_scope_matches_an_independent_envelope() {
-    let authority = TokenAuthority::new(
-        generation(),
-        &secret(),
-        Duration::from_mins(10),
-        None,
-        rng(),
-    );
-
-    let minted = authority
-        .issue(Scope::new(None, None, CutOffset::ZERO), issued_at())
-        .expect("the seeded generator is infallible");
-
-    let nonce = &minted[NONCE_OFFSET..NONCE_OFFSET + NONCE_BYTES];
-    let clear = header(issued_at(), nonce);
-    let body = XChaCha20Poly1305::new(&key().into())
-        .encrypt(
-            XNonce::from_slice(nonce),
-            Payload {
-                msg: &plaintext(None, 0, None, None),
-                aad: &clear,
-            },
-        )
-        .expect("the fixture payload encrypts");
-
-    let mut expected = clear.to_vec();
-    expected.extend_from_slice(&body);
-
-    assert_eq!(
-        minted.as_slice(),
-        expected.as_slice(),
-        "the anonymous envelope is not the assembled bytes"
-    );
-}
-
 /// An independent decryption recovers the sealed plaintext.
 ///
 /// The issue-side byte comparison has its counterpart here. This case decrypts the body under the
@@ -381,7 +336,7 @@ fn hand_assembled_envelope_opens() {
 
         assert_eq!(
             authority
-                .open(&blob, presenter(11), issued_at())
+                .open(&blob, actor(11), issued_at())
                 .expect("a hand-assembled envelope opens"),
             scope(11, k, filter),
             "the opened scope differs from the sealed one"
@@ -411,7 +366,7 @@ fn rewritten_issue_time_refuses() {
     minted[VERSION_BYTES] = minted[VERSION_BYTES].wrapping_add(1);
 
     assert_eq!(
-        authority.open(&minted, presenter(11), issued_at()),
+        authority.open(&minted, actor(11), issued_at()),
         Err(AuthorityError::Authentication),
         "an edited header opened"
     );
@@ -433,19 +388,19 @@ fn token_outside_the_window_refuses() {
     let hard = Duration::from_mins(10);
 
     assert_eq!(
-        authority.open(&minted, presenter(11), issued_at() + hard),
+        authority.open(&minted, actor(11), issued_at() + hard),
         Err(AuthorityError::Stale),
         "a token at the hard window opened"
     );
     assert_eq!(
-        authority.open(&minted, presenter(11), issued_at() - Duration::from_secs(1)),
+        authority.open(&minted, actor(11), issued_at() - Duration::from_secs(1)),
         Err(AuthorityError::Stale),
         "a future-dated token opened"
     );
     authority
         .open(
             &minted,
-            presenter(11),
+            actor(11),
             issued_at() + hard - Duration::from_secs(1),
         )
         .expect("a token one second inside the window opens");
@@ -479,7 +434,7 @@ fn foreign_generation_refuses() {
     );
 
     assert_eq!(
-        foreign.open(&minted, presenter(11), issued_at()),
+        foreign.open(&minted, actor(11), issued_at()),
         Err(AuthorityError::Authentication),
         "a token from another generation opened"
     );
@@ -507,7 +462,7 @@ fn foreign_secret_refuses() {
         rng(),
     );
     assert_eq!(
-        foreign.open(&minted, presenter(11), issued_at()),
+        foreign.open(&minted, actor(11), issued_at()),
         Err(AuthorityError::Authentication),
         "a token opened under another secret"
     );
@@ -539,7 +494,7 @@ fn tampered_byte_refuses() {
         let mut tampered = minted;
         tampered[index] ^= 1;
         assert_eq!(
-            authority.open(&tampered, presenter(11), issued_at()),
+            authority.open(&tampered, actor(11), issued_at()),
             Err(AuthorityError::Authentication),
             "a token with a tampered {region} byte opened"
         );
@@ -564,7 +519,7 @@ fn foreign_actor_refuses() {
         .expect("the seeded generator is infallible");
 
     assert_eq!(
-        authority.open(&minted, presenter(12), issued_at()),
+        authority.open(&minted, actor(12), issued_at()),
         Err(AuthorityError::Actor),
         "another actor's presentation opened"
     );
@@ -591,13 +546,13 @@ fn expired_token_still_carries_its_scope() {
     let later = issued_at() + Duration::from_mins(11);
 
     assert_eq!(
-        authority.open(&minted, presenter(11), later),
+        authority.open(&minted, actor(11), later),
         Err(AuthorityError::Stale),
         "an expired token opened"
     );
 
     let carried = authority
-        .continuity(&minted, presenter(11))
+        .continuity(&minted, actor(11))
         .expect("an expired token still carries its state");
     assert_eq!(carried, scope(11, 5, None), "the carried state differs");
 
@@ -606,7 +561,7 @@ fn expired_token_still_carries_its_scope() {
         .expect("the seeded generator is infallible");
     assert_eq!(
         authority
-            .open(&renewed, presenter(11), later)
+            .open(&renewed, actor(11), later)
             .expect("the renewed token opens"),
         scope(11, 5, None),
         "the renewal perturbed the view"
@@ -630,12 +585,12 @@ fn carried_read_still_enforces_tag_and_actor() {
     let mut tampered = minted;
     tampered[HEADER_BYTES] ^= 1;
     assert_eq!(
-        authority.continuity(&tampered, presenter(11)),
+        authority.continuity(&tampered, actor(11)),
         Err(AuthorityError::Authentication),
         "a tampered token carried"
     );
     assert_eq!(
-        authority.continuity(&minted, presenter(12)),
+        authority.continuity(&minted, actor(12)),
         Err(AuthorityError::Actor),
         "another actor's presentation carried"
     );
@@ -679,7 +634,7 @@ fn minted_token_seals_the_held_epoch() {
     );
 
     authority
-        .open(&minted, presenter(11), issued_at())
+        .open(&minted, actor(11), issued_at())
         .expect("a token opens under the epoch that sealed it");
 }
 
@@ -715,12 +670,12 @@ fn dead_epoch_refuses_open_and_carry() {
         rng(),
     );
     assert_eq!(
-        successor.open(&minted, presenter(11), issued_at()),
+        successor.open(&minted, actor(11), issued_at()),
         Err(AuthorityError::Epoch),
         "a dead epoch's token opened"
     );
     assert_eq!(
-        successor.continuity(&minted, presenter(11)),
+        successor.continuity(&minted, actor(11)),
         Err(AuthorityError::Epoch),
         "a dead epoch's token carried into a renewal"
     );
@@ -729,7 +684,7 @@ fn dead_epoch_refuses_open_and_carry() {
         .issue(scope(11, 5, None), issued_at())
         .expect("the seeded generator is infallible");
     successor
-        .open(&renewed, presenter(11), issued_at())
+        .open(&renewed, actor(11), issued_at())
         .expect("the successor's own token opens");
 }
 
@@ -765,12 +720,12 @@ fn epoch_presence_binds_in_both_directions() {
         .expect("the seeded generator is infallible");
 
     assert_eq!(
-        with.open(&absent_sealed, presenter(11), issued_at()),
+        with.open(&absent_sealed, actor(11), issued_at()),
         Err(AuthorityError::Epoch),
         "a no-delta token opened under a live epoch"
     );
     assert_eq!(
-        without.open(&present_sealed, presenter(11), issued_at()),
+        without.open(&present_sealed, actor(11), issued_at()),
         Err(AuthorityError::Epoch),
         "a delta token opened under a no-delta authority"
     );
@@ -802,7 +757,7 @@ fn absent_epochs_survive_a_restart() {
     );
     assert_eq!(
         restarted
-            .open(&minted, presenter(11), issued_at())
+            .open(&minted, actor(11), issued_at())
             .expect("a no-delta token opens after a no-delta restart"),
         scope(11, 5, None),
         "the opened scope differs from the sealed one"
@@ -837,7 +792,7 @@ fn two_mints_draw_distinct_nonces() {
     );
     for minted in [&first, &second] {
         authority
-            .open(minted, presenter(11), issued_at())
+            .open(minted, actor(11), issued_at())
             .expect("an equal-scope token opens");
     }
 }

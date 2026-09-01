@@ -256,7 +256,6 @@ pub(crate) enum ArchivedActorType {
     User,
     Machine,
     Ai,
-    Anonymous,
 }
 
 /// A sealed actor identity holding the kind beside the uuid, the byte-level form of an
@@ -283,36 +282,31 @@ pub(crate) struct ArchivedActorId {
     pub id: ArchivedActorEntityUuid,
 }
 
-impl From<Option<ActorId>> for ArchivedActorId {
-    fn from(value: Option<ActorId>) -> Self {
+impl From<ActorId> for ArchivedActorId {
+    fn from(value: ActorId) -> Self {
         match value {
-            Some(ActorId::User(uuid)) => Self {
+            ActorId::User(uuid) => Self {
                 r#type: ArchivedActorType::User,
                 id: ArchivedActorEntityUuid::from(ActorEntityUuid::new(uuid)),
             },
-            Some(ActorId::Machine(uuid)) => Self {
+            ActorId::Machine(uuid) => Self {
                 r#type: ArchivedActorType::Machine,
                 id: ArchivedActorEntityUuid::from(ActorEntityUuid::new(uuid)),
             },
-            Some(ActorId::Ai(uuid)) => Self {
+            ActorId::Ai(uuid) => Self {
                 r#type: ArchivedActorType::Ai,
                 id: ArchivedActorEntityUuid::from(ActorEntityUuid::new(uuid)),
-            },
-            None => Self {
-                r#type: ArchivedActorType::Anonymous,
-                id: ArchivedActorEntityUuid::from(ActorEntityUuid::new(Uuid::nil())),
             },
         }
     }
 }
 
-impl From<ArchivedActorId> for Option<ActorId> {
+impl From<ArchivedActorId> for ActorId {
     fn from(value: ArchivedActorId) -> Self {
         match value.r#type {
-            ArchivedActorType::User => Some(ActorId::User(UserId::new(*value.id))),
-            ArchivedActorType::Machine => Some(ActorId::Machine(MachineId::new(*value.id))),
-            ArchivedActorType::Ai => Some(ActorId::Ai(AiId::new(*value.id))),
-            ArchivedActorType::Anonymous => None,
+            ArchivedActorType::User => Self::User(UserId::new(*value.id)),
+            ArchivedActorType::Machine => Self::Machine(MachineId::new(*value.id)),
+            ArchivedActorType::Ai => Self::Ai(AiId::new(*value.id)),
         }
     }
 }
@@ -434,7 +428,7 @@ impl Scope {
         clippy::min_ident_chars,
         reason = "`k` is the delivery-cut offset's name throughout the density contract"
     )]
-    pub(crate) fn new(actor: Option<ActorId>, filter: Option<FilterDigest>, k: CutOffset) -> Self {
+    pub(crate) fn new(actor: ActorId, filter: Option<FilterDigest>, k: CutOffset) -> Self {
         Self {
             actor: actor.into(),
             filter: ScopeFilter::from(filter),
@@ -625,7 +619,7 @@ impl<R> TokenAuthority<R> {
     pub(crate) fn open(
         &self,
         blob: &[u8; TOKEN_BYTES],
-        actor: Option<ActorId>,
+        actor: ActorId,
         now: SystemTime,
     ) -> Result<Scope, AuthorityError> {
         let (issued_at, sealed) = self.unseal(blob)?;
@@ -659,7 +653,7 @@ impl<R> TokenAuthority<R> {
     pub(crate) fn continuity(
         &self,
         blob: &[u8; TOKEN_BYTES],
-        actor: Option<ActorId>,
+        actor: ActorId,
     ) -> Result<Scope, AuthorityError> {
         let (_issued_at, sealed) = self.unseal(blob)?;
         let scope = self.alive(sealed)?;
@@ -712,7 +706,7 @@ impl<R> TokenAuthority<R> {
         clippy::missing_const_for_fn,
         reason = "the derived `PartialEq` behind `!=` is not const-callable"
     )]
-    fn subject(scope: Scope, actor: Option<ActorId>) -> Result<Scope, AuthorityError> {
+    fn subject(scope: Scope, actor: ActorId) -> Result<Scope, AuthorityError> {
         if scope.actor != actor.into() {
             return Err(AuthorityError::Actor);
         }

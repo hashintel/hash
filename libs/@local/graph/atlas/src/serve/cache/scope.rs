@@ -98,7 +98,7 @@ pub(crate) struct CacheKey {
     /// The generation whose row ids the proof indexes.
     pub generation: GenerationId,
     /// The actor whose policies the proof resolves.
-    pub actor: Option<ActorId>,
+    pub actor: ActorId,
     /// The request filter's identity, when the request carries one.
     pub filter: Option<FilterDigest>,
 }
