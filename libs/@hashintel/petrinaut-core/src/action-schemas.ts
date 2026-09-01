@@ -7,6 +7,7 @@ import {
   colorSchema,
   componentInstanceSchema,
   differentialEquationSchema,
+  identitySchema,
   idSchema,
   inputArcSchema,
   nodePositionCommitSchema,
@@ -33,6 +34,7 @@ export {
   colorSchema,
   componentInstanceSchema,
   differentialEquationSchema,
+  identitySchema,
   idSchema,
   nodePositionCommitSchema,
   parameterSchema,
@@ -122,6 +124,14 @@ export const metricUpdateSchema = simulationMetricSchema
   .meta({
     description:
       "Fields to assign to an existing metric. Omitted fields are left unchanged.",
+  });
+
+export const identityUpdateSchema = identitySchema
+  .omit({ id: true })
+  .partial()
+  .meta({
+    description:
+      "Fields to assign to an existing identity. Omitted fields are left unchanged.",
   });
 
 export const statusViewUpdateSchema = statusViewObjectSchema
@@ -497,6 +507,20 @@ export const mutationActionInputSchemas = {
   removeMetric: z
     .strictObject({ metricId: idSchema })
     .meta({ description: "Remove a simulation metric." }),
+  addIdentity: identitySchema.meta({
+    description:
+      "Add an instance identity (e.g. `Ticket`). Mark a colour element as the identity's key by setting the element's `identityRef` to the identity's ID.",
+  }),
+  updateIdentity: z
+    .strictObject({
+      identityId: idSchema,
+      update: identityUpdateSchema,
+    })
+    .meta({ description: "Update fields on an existing identity." }),
+  removeIdentity: z.strictObject({ identityId: idSchema }).meta({
+    description:
+      "Remove an identity, clearing `identityRef` from colour elements that reference it and removing status views that track it.",
+  }),
   addStatusView: statusViewSchema.meta({
     description:
       "Add a status view: a named mapping from places (plus optional token conditions) to ordered status labels for the instances of one identity. Label order is the `labels` array position.",
@@ -595,6 +619,7 @@ export type DifferentialEquationInput = z.infer<
 export type ParameterInput = z.infer<typeof parameterSchema>;
 export type ScenarioInput = z.infer<typeof simulationScenarioSchema>;
 export type MetricInput = z.infer<typeof simulationMetricSchema>;
+export type IdentityInput = z.infer<typeof identitySchema>;
 export type StatusViewInput = z.infer<typeof statusViewSchema>;
 export type ComponentInstanceInput = z.infer<typeof componentInstanceSchema>;
 export type SubnetInput = z.infer<typeof subnetSchema>;

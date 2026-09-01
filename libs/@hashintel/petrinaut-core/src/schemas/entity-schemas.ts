@@ -17,6 +17,7 @@ import type {
   Color,
   ComponentInstance,
   DifferentialEquation,
+  Identity,
   InputArc,
   OutputArc,
   Parameter,
@@ -181,6 +182,10 @@ export const colorElementSchema = z
         description:
           "Token attribute identifier used DIRECTLY in code. Lambdas, kernels, dynamics, visualizers, and metrics destructure tokens as `{ <name> }`, so this must be a valid JavaScript identifier (e.g. `machine_damage_ratio`, `x`, `velocity`). Spaces, hyphens, and leading digits will break user code that references the attribute; prefer lower_snake_case for consistency with parameter naming.",
       }),
+    identityRef: idSchema.optional().meta({
+      description:
+        "ID of the Identity whose key this element carries. Setting it marks the element as a key element — there is no separate key flag — and tokens whose key elements are tuple-equal are the same instance, across colours. Status views track instances of the referenced identity.",
+    }),
     type: z.enum(COLOR_ELEMENT_TYPES).meta({
       description:
         "`real` is continuous and may be updated by dynamics. `integer`, `boolean`, `uuid`, and `string` are discrete token attributes updated by transition kernels. `integer` values are stored as Float64 and rounded on read/write: they are exact only within ±2^53 (±9,007,199,254,740,992); values beyond that lose precision silently. `uuid` is a 128-bit RFC 4122 identifier: runtime code sees it as a `bigint`, frame buffers store it as two little-endian 64-bit lanes, and at-rest data (documents, scenarios) uses canonical lowercase strings. `uuid` fields are OPTIONAL in kernel outputs — omitted values are auto-generated deterministically from the seeded simulation RNG — and non-UUID inputs are converted deterministically via UUIDv5. `string` is variable-length text, compared by value: runtime code sees plain JS strings, and each distinct value is stored once per run via interning — frame buffers hold 64-bit pool references. Kernels and markings write `string` values (missing values become the empty string); dynamics can read but never update them.",
@@ -189,6 +194,23 @@ export const colorElementSchema = z
   .meta({
     description: "One typed attribute on a coloured token.",
   });
+
+export const identitySchema = z
+  .strictObject({
+    id: idSchema,
+    name: displayNameSchema.meta({
+      description:
+        "Human-readable identity name — the thing being tracked, e.g. `Ticket` or `Machine`.",
+    }),
+    keyElementTypes: z.array(z.enum(COLOR_ELEMENT_TYPES)).min(1).meta({
+      description:
+        "Type(s) of the key element(s), in key order. A single entry is a simple key; two or more entries form a compound key, correlated by tuple equality. Every colour whose elements reference this identity must carry key elements matching these types in this order.",
+    }),
+  })
+  .meta({
+    description:
+      "A named instance identity. Colour elements reference it via `identityRef` to mark themselves as key elements, so keys correlate across colours without relying on element-name equality; status views name the identity they track.",
+  }) satisfies z.ZodType<Identity>;
 
 export const placeSchema = z
   .strictObject({

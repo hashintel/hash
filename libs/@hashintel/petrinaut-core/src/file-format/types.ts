@@ -7,6 +7,7 @@ import {
   componentInstanceSchema as currentComponentInstanceSchema,
   descriptionSchema,
   differentialEquationSchema as currentDifferentialEquationSchema,
+  identitySchema as currentIdentitySchema,
   inputArcSchema as currentInputArcSchema,
   metadataSchema,
   outputArcSchema as currentOutputArcSchema,
@@ -131,6 +132,12 @@ const metricSchema = z.object({
   code: z.string().default(""),
 });
 
+const identitySchema = z.object({
+  ...currentIdentitySchema.shape,
+  id: z.string(),
+  name: z.string(),
+});
+
 const statusLabelSchema = z.object({
   ...currentStatusLabelSchema.shape,
   id: z.string(),
@@ -178,6 +185,7 @@ export const sdcpnSchema = z.object({
   parameters: z.array(parameterSchema).default([]),
   scenarios: z.array(scenarioSchema).default([]),
   metrics: z.array(metricSchema).default([]),
+  identities: z.array(identitySchema).default([]),
   statusViews: z.array(statusViewSchema).default([]),
   subnets: z.array(subnetSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),

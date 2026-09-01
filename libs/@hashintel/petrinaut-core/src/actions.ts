@@ -2,6 +2,7 @@ import {
   colorSchema,
   componentInstanceSchema,
   differentialEquationSchema,
+  identitySchema,
   metricSchema,
   parameterSchema,
   mutationActionInputSchemas,
@@ -1074,6 +1075,61 @@ export function createPetrinautActions(
           if (metric.id === parsedMetricId) {
             metrics.splice(index, 1);
             break;
+          }
+        }
+      });
+    },
+    addIdentity(identity) {
+      const parsedIdentity =
+        mutationActionInputSchemas.addIdentity.parse(identity);
+      mutateWithExtensionGuards((sdcpn) => {
+        const targetSdcpn = sdcpn;
+        targetSdcpn.identities ??= [];
+        const identities = targetSdcpn.identities;
+        identities.push(parsedIdentity);
+      });
+    },
+    updateIdentity(input) {
+      const parsed = mutationActionInputSchemas.updateIdentity.parse(input);
+      mutateWithExtensionGuards((sdcpn) => {
+        for (const identity of sdcpn.identities ?? []) {
+          if (identity.id === parsed.identityId) {
+            Object.assign(identity, parsed.update);
+            identitySchema.parse(identity);
+            break;
+          }
+        }
+      });
+    },
+    removeIdentity(input) {
+      const { identityId: parsedIdentityId } =
+        mutationActionInputSchemas.removeIdentity.parse(input);
+      mutateWithExtensionGuards((sdcpn) => {
+        const identities = sdcpn.identities;
+        if (!identities) {
+          return;
+        }
+        for (const [index, identity] of identities.entries()) {
+          if (identity.id === parsedIdentityId) {
+            identities.splice(index, 1);
+            break;
+          }
+        }
+        for (const net of getAllMutableNets(sdcpn)) {
+          for (const type of net.types) {
+            for (const element of type.elements) {
+              if (element.identityRef === parsedIdentityId) {
+                delete element.identityRef;
+              }
+            }
+          }
+        }
+        const statusViews = sdcpn.statusViews;
+        if (statusViews) {
+          for (let index = statusViews.length - 1; index >= 0; index--) {
+            if (statusViews[index]!.identityRef === parsedIdentityId) {
+              statusViews.splice(index, 1);
+            }
           }
         }
       });

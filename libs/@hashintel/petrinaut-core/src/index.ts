@@ -190,6 +190,7 @@ export {
   differentialEquationSchema,
   getLatestNetDefinitionToolName,
   getNetCompilationErrorsToolName,
+  identitySchema,
   metricSchema,
   parameterSchema,
   petrinautAiCommandTools,

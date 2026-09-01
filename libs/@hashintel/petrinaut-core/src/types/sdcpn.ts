@@ -113,6 +113,23 @@ export type Place = {
   y: number;
 };
 
+/**
+ * A named instance identity, e.g. "ticket": the thing whose per-instance
+ * status a status view tracks. Colour elements reference it via
+ * `identityRef` to mark themselves as key elements, so identity is declared
+ * once and correlates keys across colours without relying on element-name
+ * equality.
+ */
+export type Identity = {
+  id: ID;
+  name: string;
+  /**
+   * Type(s) of the key element(s), in key order; two or more entries form a
+   * compound key, correlated by tuple equality.
+   */
+  keyElementTypes: ColorElementType[];
+};
+
 export type Color = {
   id: ID;
   name: string;
@@ -123,6 +140,12 @@ export type Color = {
     elementId: string;
     name: string;
     type: ColorElementType;
+    /**
+     * Id of the Identity whose key this element carries; setting it marks
+     * the element as a key element. Tokens whose key elements are
+     * tuple-equal are the same instance, across colours.
+     */
+    identityRef?: ID;
   }[];
 };
 
@@ -425,6 +448,7 @@ export type SDCPN = {
   parameters: Parameter[];
   scenarios?: Scenario[];
   metrics?: Metric[];
+  identities?: Identity[];
   statusViews?: StatusView[];
   subnets?: Subnet[];
   componentInstances?: ComponentInstance[];

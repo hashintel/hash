@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { use, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 import {
@@ -15,6 +15,8 @@ import {
   type ColorElementType,
 } from "@hashintel/petrinaut-core";
 
+import { usePetrinautMutations } from "../../../../../../../react/hooks/use-petrinaut-mutations";
+import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
 import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
@@ -129,6 +131,11 @@ const dimensionTypeSelectStyle = css({
   flexShrink: 0,
 });
 
+const dimensionIdentitySelectStyle = css({
+  width: "[110px]",
+  flexShrink: 0,
+});
+
 const deleteDimensionButtonStyle = css({
   color: "neutral.s90",
 
@@ -147,6 +154,9 @@ type ElementNameInputState = Record<
   string,
   { sourceName: string; value: string }
 >;
+
+const NO_IDENTITY_VALUE = "__none__";
+const NEW_IDENTITY_VALUE = "__new__";
 
 const typeOptions: SelectItem<ColorElementType>[] = [
   { value: "real", text: "Real" },
@@ -185,6 +195,9 @@ const TypeMainContent: React.FC = () => {
     moveTypeElement,
   } = useTypePropertiesContext();
   const isDisabled = useIsReadOnly();
+  const { petriNetDefinition } = use(SDCPNContext);
+  const { addIdentity } = usePetrinautMutations();
+  const identities = petriNetDefinition.identities ?? [];
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [elementNameInputs, setElementNameInputs] =
@@ -286,6 +299,43 @@ const TypeMainContent: React.FC = () => {
       typeId: type.id,
       elementId,
       update: { type: elementType },
+    });
+  };
+
+  const identityOptions: SelectItem<string>[] = [
+    { value: NO_IDENTITY_VALUE, text: "No identity" },
+    ...identities.map((identity) => ({
+      value: identity.id,
+      text: identity.name,
+    })),
+    { value: NEW_IDENTITY_VALUE, text: "New identity…" },
+  ];
+
+  const handleUpdateElementIdentity = (
+    element: (typeof type.elements)[number],
+    selectedValue: string,
+  ) => {
+    if (selectedValue === NEW_IDENTITY_VALUE) {
+      const identityId = uuidv4();
+      addIdentity({
+        id: identityId,
+        name: type.name,
+        keyElementTypes: [element.type],
+      });
+      updateTypeElement({
+        typeId: type.id,
+        elementId: element.elementId,
+        update: { identityRef: identityId },
+      });
+      return;
+    }
+    updateTypeElement({
+      typeId: type.id,
+      elementId: element.elementId,
+      update: {
+        identityRef:
+          selectedValue === NO_IDENTITY_VALUE ? undefined : selectedValue,
+      },
     });
   };
 
@@ -467,6 +517,26 @@ const TypeMainContent: React.FC = () => {
                         size="sm"
                         className={dimensionTypeSelectStyle}
                         connectToLeftInput
+                      />
+                    </Tooltip>
+
+                    <Tooltip
+                      content={
+                        isDisabled
+                          ? UI_MESSAGES.READ_ONLY_MODE
+                          : "Identity whose key this attribute carries. Keyed tokens are tracked as instances by status views."
+                      }
+                    >
+                      <Select
+                        required
+                        value={element.identityRef ?? NO_IDENTITY_VALUE}
+                        onChange={(value) => {
+                          handleUpdateElementIdentity(element, value);
+                        }}
+                        items={identityOptions}
+                        disabled={isDisabled}
+                        size="sm"
+                        className={dimensionIdentitySelectStyle}
                       />
                     </Tooltip>
                   </div>

@@ -20,6 +20,7 @@ const DOCUMENT_KEY_ORDER = [
   "description",
   "metadata",
   "parameters",
+  "identities",
   "types",
   "differentialEquations",
   "subnets",
