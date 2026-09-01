@@ -69,12 +69,23 @@ type TrackedInstance = {
   intervals: StatusInterval[];
 };
 
+export type InstanceLabelState = {
+  keyValues: readonly string[];
+  currentLabelId: ID | null;
+  enteredCurrentAtMs: number;
+};
+
 export type StatusViewTracker = {
   /** Feed frames in order; each frame's time closes and opens intervals. */
   observeFrame(frame: SimulationFrameReader): void;
   /** The time of the last observed frame, in ms (0 before any frame). */
   readonly lastObservedTimeMs: () => number;
   getInstanceStatuses(): InstanceStatus[];
+  /**
+   * Current label and entry time per instance, without copying interval
+   * history — for consumers that diff consecutive frames.
+   */
+  getInstanceLabelStates(): Map<InstanceKey, InstanceLabelState>;
 };
 
 /**
@@ -149,6 +160,17 @@ export function createStatusViewTracker(args: {
       }
     },
     lastObservedTimeMs: () => lastTimeMs,
+    getInstanceLabelStates() {
+      const labelStates = new Map<InstanceKey, InstanceLabelState>();
+      for (const [key, instance] of instances) {
+        labelStates.set(key, {
+          keyValues: instance.keyValues,
+          currentLabelId: instance.currentLabelId,
+          enteredCurrentAtMs: instance.enteredCurrentAtMs,
+        });
+      }
+      return labelStates;
+    },
     getInstanceStatuses() {
       return [...instances.entries()].map(([key, instance]) => ({
         key,

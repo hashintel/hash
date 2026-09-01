@@ -6,6 +6,7 @@
 import { use, useState, type FC, type PropsWithChildren } from "react";
 
 import {
+  applyActualModeTransitionFiring,
   buildActualModeTimelinePoints,
   createActualModeTimelineFrameReader,
   getActualModeTransitionFiringTimesMs,
@@ -125,17 +126,39 @@ export const useActualExecutionFrameSource = (params: {
   const getFramesInRange = async (
     startIndex: number,
     endIndex = timelinePoints.length,
-  ): Promise<SimulationFrameReader[]> =>
-    timelinePoints.slice(startIndex, endIndex).map((point, offset) =>
-      createActualModeTimelineFrameReader({
+  ): Promise<SimulationFrameReader[]> => {
+    // Shared replay cursor: timeline points carry non-decreasing firing
+    // indices, so each firing is applied once across the whole range rather
+    // than replaying from zero per reader.
+    let marking = initialState;
+    let appliedThroughFiringIndex = -1;
+    return timelinePoints.slice(startIndex, endIndex).map((point, offset) => {
+      const targetFiringIndex = point.transitionFiringIndex ?? -1;
+      for (
+        let firingIndex = appliedThroughFiringIndex + 1;
+        firingIndex <= targetFiringIndex;
+        firingIndex += 1
+      ) {
+        const firing = actualMode.transitionFirings[firingIndex];
+        if (firing) {
+          marking = applyActualModeTransitionFiring(marking, firing);
+        }
+      }
+      appliedThroughFiringIndex = Math.max(
+        appliedThroughFiringIndex,
+        targetFiringIndex,
+      );
+      return createActualModeTimelineFrameReader({
         definition: petriNetDefinition,
         initialState,
         transitionFirings: actualMode.transitionFirings,
         transitionFiringTimesMs,
         point,
         number: startIndex + offset,
-      }),
-    );
+        marking,
+      });
+    });
+  };
 
   const { source } = actualMode;
   const baselineKey = getSourceBaselineKey(

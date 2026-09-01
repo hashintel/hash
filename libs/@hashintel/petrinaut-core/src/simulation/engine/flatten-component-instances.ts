@@ -32,8 +32,6 @@ export const getArcPlaceNameOverrideKey = ({
   placeId: ID;
 }): string => `${transitionId}\u0000${placeId}`;
 
-const scopedId = formatScopedId;
-
 const _codeIdentifier = (value: string): string => {
   const cleaned = value.replace(/[^A-Za-z0-9_$]/g, "_");
   if (/^[A-Za-z_$]/.test(cleaned)) {
@@ -165,7 +163,7 @@ const resolveComponentPortEndpoint = ({
     );
   }
 
-  const placeId = scopedId([...path, instance.id], endpoint.portPlaceId);
+  const placeId = formatScopedId([...path, instance.id], endpoint.portPlaceId);
   ctx.arcPlaceNameOverrides.set(
     getArcPlaceNameOverrideKey({
       transitionId: mappedTransitionId,
@@ -274,7 +272,7 @@ const flattenNet = ({
   const placeIdMap = new Map<ID, ID>();
 
   for (const type of net.types) {
-    const id = scopedId(path, type.id);
+    const id = formatScopedId(path, type.id);
     assertUniqueFlatId({ ctx, kind: "types", id });
     typeIdMap.set(type.id, id);
     ctx.target.types.push({
@@ -285,7 +283,7 @@ const flattenNet = ({
   }
 
   for (const equation of net.differentialEquations) {
-    const id = scopedId(path, equation.id);
+    const id = formatScopedId(path, equation.id);
     assertUniqueFlatId({ ctx, kind: "differentialEquations", id });
     equationIdMap.set(equation.id, id);
     ctx.target.differentialEquations.push({
@@ -298,13 +296,13 @@ const flattenNet = ({
   }
 
   for (const parameter of net.parameters) {
-    const id = scopedId(path, parameter.id);
+    const id = formatScopedId(path, parameter.id);
     assertUniqueFlatId({ ctx, kind: "parameters", id });
     ctx.target.parameters.push({ ...parameter, id });
   }
 
   for (const place of net.places) {
-    const id = scopedId(path, place.id);
+    const id = formatScopedId(path, place.id);
     assertUniqueFlatId({ ctx, kind: "places", id });
     placeIdMap.set(place.id, id);
     ctx.placeParameterValues.set(id, parameterValues);
@@ -319,7 +317,7 @@ const flattenNet = ({
   }
 
   for (const transition of net.transitions) {
-    const id = scopedId(path, transition.id);
+    const id = formatScopedId(path, transition.id);
     assertUniqueFlatId({ ctx, kind: "transitions", id });
     ctx.transitionParameterValues.set(id, parameterValues);
 
