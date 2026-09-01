@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 
 import bodyParser from "body-parser";
 import express from "express";
-jimport { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { ATLAS_AUTHORITY_HEADER, setupAtlasProxy } from "./atlas-proxy";
 
