@@ -157,7 +157,8 @@
           "Linear issue",
           "merge queue",
           "GitHub Actions",
-          "branch protection"
+          "branch protection",
+          "changeset"
         ],
         "intentPatterns": [
           "\\b(open|create|submit|review)\\b.*?\\b(PR|pull request)\\b",
