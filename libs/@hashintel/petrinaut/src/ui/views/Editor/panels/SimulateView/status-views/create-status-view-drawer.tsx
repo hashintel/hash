@@ -79,34 +79,39 @@ const CreateStatusViewContent = ({ onClose }: { onClose: () => void }) => {
   const existingStatusViewNames = new Set(
     (petriNetDefinition.statusViews ?? []).map((view) => view.name),
   );
+  const placeOptions = getStatusViewPlaceOptions(petriNetDefinition);
 
   const form = useStatusViewForm(
     defaultValues,
     (value, ctx) => {
-      const statusView = buildStatusViewFromFormState(
-        value,
-        crypto.randomUUID(),
+      // The submit validator already schema-checked this shape, so a
+      // failure here throws loudly instead of leaving a dead Create button.
+      const statusView = statusViewSchema.parse(
+        buildStatusViewFromFormState(value, crypto.randomUUID()),
       );
-      const result = statusViewSchema.safeParse(statusView);
-      if (!result.success) {
-        return;
-      }
-      addStatusView(result.data);
+      addStatusView(statusView);
       onClose();
       ctx.reset();
     },
     {
       existingStatusViewNames,
-      validateOnSubmit: async (value) =>
-        await validateStatusViewCompiles({
+      knownPlaceIds: new Set(placeOptions.map((option) => option.value)),
+      validateOnSubmit: async (value) => {
+        const parsed = statusViewSchema.safeParse(
+          buildStatusViewFromFormState(value, "status-view-submit-validation"),
+        );
+        if (!parsed.success) {
+          return (
+            parsed.error.issues[0]?.message ?? "The status view is invalid."
+          );
+        }
+        return await validateStatusViewCompiles({
           requestHirArtifacts,
           sdcpn: petriNetDefinition,
           extensions,
-          statusView: buildStatusViewFromFormState(
-            value,
-            "status-view-submit-validation",
-          ),
-        }),
+          statusView: parsed.data,
+        });
+      },
     },
   );
 
@@ -120,7 +125,7 @@ const CreateStatusViewContent = ({ onClose }: { onClose: () => void }) => {
         <StatusViewFormBody
           form={form}
           identities={petriNetDefinition.identities ?? []}
-          placeOptions={getStatusViewPlaceOptions(petriNetDefinition)}
+          placeOptions={placeOptions}
         />
       </Drawer.Body>
       <CreateStatusViewFooter form={form} onClose={onClose} />

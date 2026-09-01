@@ -110,34 +110,46 @@ const ViewStatusViewContent = ({
       .map((view) => view.name),
   );
 
+  const placeOptions = getStatusViewPlaceOptions(petriNetDefinition);
+
   const form = useStatusViewForm(
     buildDefaultsFromStatusView(statusView),
     (value) => {
-      const updated = buildStatusViewFromFormState(value, statusView.id);
-      const result = statusViewSchema.safeParse(updated);
-      if (!result.success) {
-        return;
-      }
+      // The submit validator already schema-checked this shape, so a
+      // failure here throws loudly instead of leaving a dead Save button.
+      const updated = statusViewSchema.parse(
+        buildStatusViewFromFormState(value, statusView.id),
+      );
       updateStatusView({
         statusViewId: statusView.id,
         update: {
-          name: result.data.name,
-          description: result.data.description,
-          identityRef: result.data.identityRef,
-          labels: result.data.labels,
+          name: updated.name,
+          description: updated.description,
+          identityRef: updated.identityRef,
+          labels: updated.labels,
         },
       });
       onClose();
     },
     {
       existingStatusViewNames,
-      validateOnSubmit: async (value) =>
-        await validateStatusViewCompiles({
+      knownPlaceIds: new Set(placeOptions.map((option) => option.value)),
+      validateOnSubmit: async (value) => {
+        const parsed = statusViewSchema.safeParse(
+          buildStatusViewFromFormState(value, statusView.id),
+        );
+        if (!parsed.success) {
+          return (
+            parsed.error.issues[0]?.message ?? "The status view is invalid."
+          );
+        }
+        return await validateStatusViewCompiles({
           requestHirArtifacts,
           sdcpn: petriNetDefinition,
           extensions,
-          statusView: buildStatusViewFromFormState(value, statusView.id),
-        }),
+          statusView: parsed.data,
+        });
+      },
     },
   );
 
@@ -153,7 +165,7 @@ const ViewStatusViewContent = ({
         <StatusViewFormBody
           form={form}
           identities={petriNetDefinition.identities ?? []}
-          placeOptions={getStatusViewPlaceOptions(petriNetDefinition)}
+          placeOptions={placeOptions}
         />
       </Drawer.Body>
       <ViewStatusViewFooter

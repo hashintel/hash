@@ -302,14 +302,44 @@ const TypeMainContent: React.FC = () => {
     });
   };
 
-  const identityOptions: SelectItem<string>[] = [
-    { value: NO_IDENTITY_VALUE, text: "No identity" },
-    ...identities.map((identity) => ({
-      value: identity.id,
-      text: identity.name,
-    })),
-    { value: NEW_IDENTITY_VALUE, text: "New identity…" },
-  ];
+  /**
+   * Identities an element can take without breaking key coherence: the
+   * resulting key elements of this colour for the identity must match its
+   * keyElementTypes in order (the actions layer rejects anything else). The
+   * element's current identity always stays listed so an imported document
+   * still displays.
+   */
+  const getIdentityOptionsForElement = (
+    element: (typeof type.elements)[number],
+  ): SelectItem<string>[] => {
+    const selectableIdentities = identities.filter((identity) => {
+      if (identity.id === element.identityRef) {
+        return true;
+      }
+      const resultingKeyTypes = type.elements
+        .map((candidate) =>
+          candidate.elementId === element.elementId
+            ? { ...candidate, identityRef: identity.id }
+            : candidate,
+        )
+        .filter((candidate) => candidate.identityRef === identity.id)
+        .map((candidate) => candidate.type);
+      return (
+        resultingKeyTypes.length === identity.keyElementTypes.length &&
+        resultingKeyTypes.every(
+          (keyType, index) => keyType === identity.keyElementTypes[index],
+        )
+      );
+    });
+    return [
+      { value: NO_IDENTITY_VALUE, text: "No identity" },
+      ...selectableIdentities.map((identity) => ({
+        value: identity.id,
+        text: identity.name,
+      })),
+      { value: NEW_IDENTITY_VALUE, text: "New identity…" },
+    ];
+  };
 
   const handleUpdateElementIdentity = (
     element: (typeof type.elements)[number],
@@ -317,9 +347,14 @@ const TypeMainContent: React.FC = () => {
   ) => {
     if (selectedValue === NEW_IDENTITY_VALUE) {
       const identityId = uuidv4();
+      const existingNames = new Set(identities.map(({ name }) => name));
+      let identityName = type.name;
+      for (let suffix = 2; existingNames.has(identityName); suffix += 1) {
+        identityName = `${type.name} ${suffix}`;
+      }
       addIdentity({
         id: identityId,
-        name: type.name,
+        name: identityName,
         keyElementTypes: [element.type],
       });
       updateTypeElement({
@@ -533,7 +568,7 @@ const TypeMainContent: React.FC = () => {
                         onChange={(value) => {
                           handleUpdateElementIdentity(element, value);
                         }}
-                        items={identityOptions}
+                        items={getIdentityOptionsForElement(element)}
                         disabled={isDisabled}
                         size="sm"
                         className={dimensionIdentitySelectStyle}

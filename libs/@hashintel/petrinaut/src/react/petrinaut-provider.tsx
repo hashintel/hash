@@ -27,6 +27,7 @@ import { ActiveNetProvider } from "./state/active-net-provider";
 import { EditorProvider } from "./state/editor-provider";
 import { UndoRedoContext } from "./state/undo-redo-context";
 import { UserSettingsProvider } from "./state/user-settings-provider";
+import { StatusConditionArtifactsProvider } from "./status-condition-artifacts";
 import { useHandleHistoryAsUndoRedo } from "./use-handle-history-as-undo-redo";
 
 export type PetrinautProviderProps = {
@@ -99,7 +100,9 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
                       <ActiveNetProvider>
                         <EditorProvider>
                           <ExecutionFrameProvider>
-                            {children}
+                            <StatusConditionArtifactsProvider>
+                              {children}
+                            </StatusConditionArtifactsProvider>
                           </ExecutionFrameProvider>
                         </EditorProvider>
                       </ActiveNetProvider>

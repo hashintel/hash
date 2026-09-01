@@ -147,6 +147,79 @@ describe("useStatusViewNodeStatuses", () => {
     });
   });
 
+  it("summarizes nested instances under both their own and their parent's node", () => {
+    const nestedSdcpn: SDCPN = {
+      ...sdcpn,
+      statusViews: [
+        {
+          id: "view-1",
+          name: "Ticket status",
+          identityRef: "identity-ticket",
+          labels: [
+            {
+              id: "label-doing",
+              name: "Doing",
+              displayColor: "#2563eb",
+              places: ["outer-1::instance-1::inner-place"],
+            },
+          ],
+        },
+      ],
+      subnets: [
+        {
+          id: "subnet-outer",
+          name: "Outer",
+          places: [],
+          transitions: [],
+          types: [],
+          differentialEquations: [],
+          parameters: [],
+          componentInstances: [
+            {
+              id: "instance-1",
+              name: "WorkerA",
+              subnetId: "subnet-1",
+              parameterValues: {},
+              x: 0,
+              y: 0,
+            },
+          ],
+        },
+        sdcpn.subnets![0]!,
+      ],
+      componentInstances: [
+        {
+          id: "outer-1",
+          name: "OuterOne",
+          subnetId: "subnet-outer",
+          parameterValues: {},
+          x: 0,
+          y: 0,
+        },
+      ],
+    };
+    const frame = makeFrame({
+      "outer-1::instance-1::inner-place": [{ ticket_id: "a" }],
+    });
+
+    const { result } = renderHook(() => useStatusViewNodeStatuses(), {
+      wrapper: ({ children }) => (
+        <SDCPNContext
+          value={{ petriNetDefinition: nestedSdcpn } as SDCPNContextValue}
+        >
+          <ExecutionFrameSourceContext
+            value={{ ...emptyExecutionFrameSource, currentFrameReader: frame }}
+          >
+            {children}
+          </ExecutionFrameSourceContext>
+        </SDCPNContext>
+      ),
+    });
+
+    expect(result.current.get("outer-1")?.labels[0]?.count).toBe(1);
+    expect(result.current.get("instance-1")?.labels[0]?.count).toBe(1);
+  });
+
   it("returns no summaries without a frame", () => {
     vi.useRealTimers();
     const { result } = renderHook(() => useStatusViewNodeStatuses(), {
