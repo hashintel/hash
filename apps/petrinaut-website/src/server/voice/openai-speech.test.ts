@@ -264,6 +264,37 @@ describe("OpenAI Speech handler", () => {
     );
   });
 
+  test("does not apply the response timeout to an active audio stream", async () => {
+    vi.useFakeTimers();
+    const upstreamCancel = vi.fn();
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue(new Uint8Array([1, 2, 3]));
+            },
+            cancel: upstreamCancel,
+          }),
+          { headers: { "content-type": "audio/mpeg" } },
+        ),
+    );
+    const handler = createOpenAISpeechHandler({
+      environment: enabledEnvironment,
+      fetch,
+    });
+
+    const response = await handler(createRequest());
+    const reader = response.body!.getReader();
+    await reader.read();
+    await vi.advanceTimersByTimeAsync(OPENAI_SPEECH_TIMEOUT_MS);
+
+    expect(fetch.mock.calls[0]?.[1]?.signal?.aborted).toBe(false);
+
+    await reader.cancel("playback stopped");
+    expect(upstreamCancel).toHaveBeenCalledWith("playback stopped");
+  });
+
   test("propagates browser disconnect while waiting for OpenAI", async () => {
     const requestAbortController = new AbortController();
     const fetch = vi.fn<typeof globalThis.fetch>(

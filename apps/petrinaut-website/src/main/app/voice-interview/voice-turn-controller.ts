@@ -231,6 +231,10 @@ export class VoiceTurnController {
       }
     }
 
+    if (this.#snapshot.phase === "recoverable-error") {
+      return;
+    }
+
     if (
       status === "ready" &&
       !this.#awaitingChatCycle &&
@@ -310,7 +314,10 @@ export class VoiceTurnController {
       }
       this.#settleListeningIfReady();
     } catch {
-      if (generation !== this.#generation) {
+      if (
+        generation !== this.#generation ||
+        this.#snapshot.phase === "recoverable-error"
+      ) {
         return;
       }
       if (!this.#isChatReady()) {

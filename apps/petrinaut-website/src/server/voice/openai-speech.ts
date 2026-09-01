@@ -207,8 +207,11 @@ export const createOpenAISpeechHandler =
       abortForTimeout,
       OPENAI_SPEECH_TIMEOUT_MS,
     );
-    const cleanup = () => {
+    const clearSpeechTimeout = () => {
       globalThis.clearTimeout(timeout);
+    };
+    const cleanup = () => {
+      clearSpeechTimeout();
       removeRequestAbortListener();
     };
 
@@ -244,6 +247,7 @@ export const createOpenAISpeechHandler =
         return response(SPEECH_ERROR_MESSAGE, 502);
       }
 
+      clearSpeechTimeout();
       return response(
         proxyAudioStream(upstreamResponse.body, abortController, cleanup),
         200,

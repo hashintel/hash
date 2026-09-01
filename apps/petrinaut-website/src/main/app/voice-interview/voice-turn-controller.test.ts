@@ -978,6 +978,91 @@ describe("VoiceTurnController", () => {
     );
   });
 
+  test("does not flush a pending transcript after speech fails", async () => {
+    const harness = createHarness();
+    harness.playback.play.mockRejectedValueOnce(
+      new Error(
+        "The response could not be spoken. Read the visible text instead.",
+      ),
+    );
+    await harness.controller.start();
+    updateChatStatus(harness.controller, "streaming");
+    harness.emit({
+      key: key(1, "pending-answer"),
+      text: "A pending finalized answer",
+      type: "completed",
+    });
+    expect(harness.submitText).not.toHaveBeenCalled();
+
+    harness.controller.updateChat({
+      canonicalSegments: [
+        canonicalSegment(
+          "canonical-speech:pending-failed:text%3A0:fnv1a32:12345678",
+        ),
+      ],
+      status: "streaming",
+    });
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().phase).toBe("recoverable-error"),
+    );
+
+    updateChatStatus(harness.controller, "ready");
+    await Promise.resolve();
+
+    expect(harness.submitText).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      errorMessage:
+        "The response could not be spoken. Read the visible text instead.",
+      phase: "recoverable-error",
+    });
+  });
+
+  test("does not overwrite a speech failure when delivery rejects while Brunch is busy", async () => {
+    const harness = createHarness();
+    let rejectDelivery: (() => void) | undefined;
+    const delivery = new Promise<never>((_resolve, reject) => {
+      rejectDelivery = () => reject(new Error("Brunch became busy"));
+    });
+    harness.submitText.mockImplementationOnce(() => delivery);
+    harness.playback.play.mockRejectedValueOnce(
+      new Error(
+        "The response could not be spoken. Read the visible text instead.",
+      ),
+    );
+    await harness.controller.start();
+    harness.emit({
+      key: key(1, "in-flight-answer"),
+      text: "An in-flight finalized answer",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+
+    harness.controller.updateChat({
+      canonicalSegments: [
+        canonicalSegment(
+          "canonical-speech:in-flight-failed:text%3A0:fnv1a32:12345678",
+        ),
+      ],
+      status: "streaming",
+    });
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().phase).toBe("recoverable-error"),
+    );
+
+    rejectDelivery?.();
+    await expect(delivery).rejects.toThrow("Brunch became busy");
+    await Promise.resolve();
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      errorMessage:
+        "The response could not be spoken. Read the visible text instead.",
+      phase: "recoverable-error",
+    });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+  });
+
   test("cancels speech synchronously and rejects stale playback events when voice ends", async () => {
     const harness = createHarness();
     let playbackEvents: { onPlaying?: () => void } | undefined;
