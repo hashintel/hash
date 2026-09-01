@@ -179,9 +179,7 @@ const ClickableSurface = () => {
               ]
             : []
         }
-        onClickFraction={(fractionX, fractionY) =>
-          setClicked([fractionX, fractionY])
-        }
+        onPickFraction={(fraction) => setClicked([fraction.x, fraction.y])}
         aria-label="Clickable surface"
       />
       <p style={{ fontSize: 12, color: "#888", marginTop: 8 }}>

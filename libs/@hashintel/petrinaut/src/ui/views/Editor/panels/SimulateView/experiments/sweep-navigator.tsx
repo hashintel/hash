@@ -89,7 +89,7 @@ const statusStyle = css({
   fontVariantNumeric: "tabular-nums",
 });
 
-function formatAxisValue(value: number): string {
+export function formatAxisValue(value: number): string {
   if (Number.isInteger(value)) {
     return String(value);
   }

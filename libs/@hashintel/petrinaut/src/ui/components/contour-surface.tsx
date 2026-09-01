@@ -25,7 +25,7 @@
  * two samples interpolate to a near-uniform wash that says less than the
  * dimmed old picture does.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -75,6 +75,44 @@ const canvasStyle = css({
   display: "block",
   width: "[100%]",
   cursor: "crosshair",
+  // Horizontal touch drags navigate; vertical swipes stay the browser's to
+  // scroll the drawer (the browser takes the pointer over and fires
+  // pointercancel, which aborts the drag without committing).
+  touchAction: "pan-y",
+  userSelect: "none",
+});
+
+// The drag crosshair: two hairlines and a ring, positioned in percentages so
+// pointer moves never repaint the (expensive) field raster below them.
+const crosshairLineXStyle = css({
+  position: "absolute",
+  top: "[0]",
+  bottom: "[0]",
+  width: "[1px]",
+  backgroundColor: "[rgba(217, 119, 6, 0.65)]",
+  pointerEvents: "none",
+});
+
+const crosshairLineYStyle = css({
+  position: "absolute",
+  left: "[0]",
+  right: "[0]",
+  height: "[1px]",
+  backgroundColor: "[rgba(217, 119, 6, 0.65)]",
+  pointerEvents: "none",
+});
+
+const crosshairDotStyle = css({
+  position: "absolute",
+  width: "[11px]",
+  height: "[11px]",
+  borderRadius: "full",
+  borderWidth: "[2px]",
+  borderStyle: "solid",
+  borderColor: "[rgba(217, 119, 6, 0.95)]",
+  backgroundColor: "[rgba(255, 255, 255, 0.6)]",
+  transform: "translate(-50%, -50%)",
+  pointerEvents: "none",
 });
 
 /** Everything one plot instance keeps between paints. */
@@ -319,6 +357,13 @@ function paint(options: {
   }
 }
 
+export type ContourSurfaceFraction = {
+  /** Rightward fraction of the plot area, in [0, 1]. */
+  x: number;
+  /** Upward fraction of the plot area, in [0, 1]. */
+  y: number;
+};
+
 export const ContourSurface = ({
   nx,
   ny,
@@ -326,7 +371,8 @@ export const ContourSurface = ({
   markers = [],
   height = 280,
   contentKey,
-  onClickFraction,
+  onPickFraction,
+  onPreviewFraction,
   "aria-label": ariaLabel,
 }: {
   /** Grid extent in index space: value keys lie in [0, nx-1] × [0, ny-1]. */
@@ -343,10 +389,16 @@ export const ContourSurface = ({
    */
   contentKey?: string;
   /**
-   * A click on the plot, as fractions of its area: x rightward, y upward,
-   * both in [0, 1].
+   * A position picked on the plot. A click commits where it lands; a drag
+   * shows a crosshair while the pointer moves and commits on release, so the
+   * plot works as a control, not just a target.
    */
-  onClickFraction?: (fractionX: number, fractionY: number) => void;
+  onPickFraction?: (fraction: ContourSurfaceFraction) => void;
+  /**
+   * The position under the pointer while a drag is in progress — for a live
+   * readout beside the plot — and null when the drag ends or cancels.
+   */
+  onPreviewFraction?: (fraction: ContourSurfaceFraction | null) => void;
   "aria-label"?: string;
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -401,16 +453,78 @@ export const ContourSurface = ({
     };
   }, [contentKey, height, markers, nx, ny, size, values]);
 
-  const handleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!onClickFraction) {
-      return;
-    }
+  // The one pointer this component armed on pointerdown. Touch pointers get
+  // implicit capture whether or not we asked, so capture state cannot tell
+  // "our drag" from "a stray finger": only the armed id navigates, a second
+  // pointer is ignored, and a display-only plot (no onPickFraction) never
+  // arms at all.
+  const [drag, setDrag] = useState<{
+    pointerId: number;
+    fraction: ContourSurfaceFraction;
+  } | null>(null);
+  const dragPreview = drag?.fraction ?? null;
+
+  const fractionAt = (
+    event: React.PointerEvent<HTMLCanvasElement>,
+  ): ContourSurfaceFraction => {
     const bounds = event.currentTarget.getBoundingClientRect();
     const clamp = (fraction: number) => Math.min(Math.max(fraction, 0), 1);
-    onClickFraction(
-      clamp((event.clientX - bounds.left) / bounds.width),
-      clamp(1 - (event.clientY - bounds.top) / bounds.height),
-    );
+    return {
+      x: clamp((event.clientX - bounds.left) / bounds.width),
+      y: clamp(1 - (event.clientY - bounds.top) / bounds.height),
+    };
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (
+      !onPickFraction ||
+      event.button !== 0 ||
+      !event.isPrimary ||
+      drag !== null
+    ) {
+      return;
+    }
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const fraction = fractionAt(event);
+    setDrag({ pointerId: event.pointerId, fraction });
+    onPreviewFraction?.(fraction);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (drag === null || drag.pointerId !== event.pointerId) {
+      return;
+    }
+    const fraction = fractionAt(event);
+    setDrag({ pointerId: event.pointerId, fraction });
+    onPreviewFraction?.(fraction);
+  };
+
+  const endDrag = (event: React.PointerEvent<HTMLCanvasElement>): boolean => {
+    if (drag === null || drag.pointerId !== event.pointerId) {
+      return false;
+    }
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    setDrag(null);
+    onPreviewFraction?.(null);
+    return true;
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (endDrag(event)) {
+      // Commit where the pointer released — a plain click is the degenerate
+      // drag that never moved.
+      onPickFraction?.(fractionAt(event));
+    }
+  };
+
+  // Cancel (the browser taking a touch over to scroll) and lost capture (a
+  // context menu swallowing the release) both abort without committing.
+  const handlePointerCancel = (
+    event: React.PointerEvent<HTMLCanvasElement>,
+  ) => {
+    endDrag(event);
   };
 
   return (
@@ -420,8 +534,31 @@ export const ContourSurface = ({
         className={canvasStyle}
         style={{ height }}
         aria-label={ariaLabel}
-        onClick={handleClick}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onLostPointerCapture={handlePointerCancel}
       />
+      {dragPreview ? (
+        <>
+          <div
+            className={crosshairLineXStyle}
+            style={{ left: `${dragPreview.x * 100}%` }}
+          />
+          <div
+            className={crosshairLineYStyle}
+            style={{ top: `${(1 - dragPreview.y) * 100}%` }}
+          />
+          <div
+            className={crosshairDotStyle}
+            style={{
+              left: `${dragPreview.x * 100}%`,
+              top: `${(1 - dragPreview.y) * 100}%`,
+            }}
+          />
+        </>
+      ) : null}
     </div>
   );
 };
