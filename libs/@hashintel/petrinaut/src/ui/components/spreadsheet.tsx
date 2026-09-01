@@ -27,6 +27,7 @@ export type SpreadsheetCellValue = number | boolean | bigint | string;
 export interface SpreadsheetProps {
   columns: SpreadsheetColumn[];
   data: SpreadsheetCellValue[][];
+  /** Omit for a read-only grid. */
   onChange?: (data: SpreadsheetCellValue[][]) => void;
 }
 
@@ -43,6 +44,8 @@ const wrapperStyle = css({
 
 const tableContainerStyle = css({
   position: "relative",
+  flex: "1",
+  minHeight: "[0]",
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",
@@ -205,12 +208,10 @@ const booleanCellStyle = css({
 });
 
 /**
- * Selected uuid cells expand to the full canonical string, spilling over the
- * neighbouring cells (spreadsheet-style overflow). Hidden until the cell
- * holds focus (revealed by the cell container's `:focus-within`); pointer
- * events pass through so clicks still reach the cell underneath. Cells in
- * the right half of the table spill leftwards so the overlay is not clipped
- * by the scroll container's edge.
+ * A focused uuid cell shows its full string in an overlay that spills over
+ * the neighbouring cells, revealed by the container's `:focus-within`.
+ * Pointer events pass through to the cell underneath. Cells in the right
+ * half spill leftwards so the scroll container does not clip the overlay.
  */
 const uuidExpandedOverlayStyle = cva({
   base: {
@@ -225,7 +226,6 @@ const uuidExpandedOverlayStyle = cva({
     whiteSpace: "nowrap",
     width: "[max-content]",
     minWidth: "[100%]",
-    // Opaque: the overlay covers neighbouring cell content while expanded.
     backgroundColor: "neutral.s00",
     outline: "[2px solid {colors.blue.s50}]",
     outlineOffset: "[-2px]",
@@ -245,47 +245,30 @@ const getDefaultCellValue = (
 ): SpreadsheetCellValue =>
   column?.type ? defaultTokenAttributeValue(column.type) : 0;
 
-const formatCellValue = (value: SpreadsheetCellValue): string => String(value);
-
 const toCanonicalUuidString = (value: SpreadsheetCellValue): string =>
   formatUuid(typeof value === "bigint" ? value : toUuid(value));
 
-/** Full-fidelity text used to prefill the cell editor. */
-const getCellEditText = (
+/** Columns edited as free text, and whose full value shows in a tooltip. */
+const isTextColumn = (column: SpreadsheetColumn | undefined): boolean =>
+  column?.type === "uuid" || column?.type === "string";
+
+/** The full value: the editor's initial text, and the tooltip. */
+const fullText = (
   column: SpreadsheetColumn | undefined,
   value: SpreadsheetCellValue,
 ): string =>
-  column?.type === "uuid"
-    ? toCanonicalUuidString(value)
-    : formatCellValue(value);
+  column?.type === "uuid" ? toCanonicalUuidString(value) : String(value);
 
-/** Compact text shown in non-editing cells (uuids are truncated). */
-const getCellDisplayText = (
+/** The text of a resting cell; uuids are truncated. */
+const displayText = (
   column: SpreadsheetColumn | undefined,
   value: SpreadsheetCellValue,
 ): string =>
   column?.type === "uuid"
     ? `${toCanonicalUuidString(value).slice(0, 8)}…`
-    : formatCellValue(value);
+    : String(value);
 
-/**
- * Hover tooltip — the full canonical uuid string for uuid cells, and the full
- * value for string cells (which may overflow with an ellipsis).
- */
-const getCellTitle = (
-  column: SpreadsheetColumn | undefined,
-  value: SpreadsheetCellValue,
-): string | undefined => {
-  if (column?.type === "uuid") {
-    return toCanonicalUuidString(value);
-  }
-  if (column?.type === "string") {
-    return String(value);
-  }
-  return undefined;
-};
-
-/** Untyped columns parse like `real` (the per-type behaviour lives in core). */
+/** Untyped columns parse like `real`; the per-type rules live in core. */
 const parseCellValue = (
   column: SpreadsheetColumn | undefined,
   rawValue: string,
@@ -300,20 +283,22 @@ const handled = (event: React.KeyboardEvent) => {
   event.stopPropagation();
 };
 
+const isDeleteKey = (event: React.KeyboardEvent): boolean =>
+  event.key === "Delete" || event.key === "Backspace";
+
 const isTypingKey = (event: React.KeyboardEvent): boolean =>
   event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
 
 /**
  * An editable grid of typed cells with a row-number gutter and a sticky
- * phantom row that materializes on first edit. Fully controlled — the parent
- * owns `data` and receives edits via `onChange`.
+ * phantom row that becomes a real row on its first edit. Controlled: the
+ * parent owns `data` and receives edits through `onChange`.
  *
- * Movement, tab order, and the gutter lane come from the worksheet focus
- * layer: the grid is one tab stop (roving tabindex), arrows walk cells and
- * the gutter, and a move past an edge is offered to an enclosing
- * `FocusStack`, so sibling grids flow into each other. Clicks follow the
- * worksheet's select-first grammar: the first click selects a cell, a click
- * on the selected cell opens its editor.
+ * The worksheet focus layer owns movement: the grid is one Tab stop, arrows
+ * walk cells and the gutter, and a move past an edge is offered to the
+ * enclosing `FocusStack`, so sibling grids flow into each other. Clicks are
+ * select-first: the first click selects a cell, a click on the selected cell
+ * opens its editor.
  */
 export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   columns,
@@ -323,32 +308,27 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   const isReadOnly = !onChange;
   const colCount = columns.length;
 
-  const tableData = data.length > 0 ? data : [];
-
   const [editingCellState, setEditingCell] = useState<CellPosition | null>(
     null,
   );
-  const [editingValue, setEditingValue] = useState<string>("");
+  const [editingValue, setEditingValue] = useState("");
   const targets = useRef<Map<string, HTMLElement>>(new Map());
 
-  // Clamped against the current `data` so stale positions are masked rather
-  // than synced via an effect.
+  // A position past the current data is stale: masked rather than synced.
   const editingCell =
-    editingCellState && editingCellState.row <= tableData.length
+    editingCellState && editingCellState.row <= data.length
       ? editingCellState
       : null;
 
-  const createEmptyRow = (): SpreadsheetCellValue[] =>
-    columns.map((column) => getDefaultCellValue(column));
-
-  const displayRows = isReadOnly ? tableData : [...tableData, createEmptyRow()];
+  const emptyRow = (): SpreadsheetCellValue[] =>
+    columns.map(getDefaultCellValue);
+  const displayRows = isReadOnly ? data : [...data, emptyRow()];
 
   const stops: FocusStop[] = displayRows.map((_, row) => ({
     id: String(row),
     kind: "row",
     gutter: true,
   }));
-
   const {
     onKeyDown: onStopsKeyDown,
     onFocusTarget,
@@ -372,48 +352,32 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
     };
 
   const focusCell = (row: number, column: number | "gutter"): boolean =>
-    focusLands(targets.current.get(`${row}:${column}`));
+    focusLands(targets.current.get(targetKey({ stopId: String(row), column })));
 
   const updateCell = (
     row: number,
     col: number,
     value: SpreadsheetCellValue,
   ) => {
-    let newData: SpreadsheetCellValue[][];
-
-    // If editing the phantom row (last row), create a new actual row
-    if (row === tableData.length) {
-      newData = [...tableData, createEmptyRow()];
-      if (newData[row]) {
-        newData[row][col] = value;
-      }
-    } else {
-      newData = tableData.map((rowData, index) =>
-        index === row ? [...rowData] : rowData,
-      );
-      if (newData[row]) {
-        newData[row][col] = value;
-      }
+    // An edit on the phantom row (index `data.length`) materializes it.
+    const rows = row === data.length ? [...data, emptyRow()] : [...data];
+    const cells = rows[row];
+    if (cells) {
+      rows[row] = cells.map((cell, index) => (index === col ? value : cell));
+      onChange?.(rows);
     }
-
-    onChange?.(newData);
   };
 
   const toggleBooleanCell = (row: number, col: number) => {
-    const currentValue =
-      tableData[row]?.[col] ?? getDefaultCellValue(columns[col]);
-    // Truthiness, not `!== true`: a numerically-encoded 1 must toggle off
-    // like `true` does.
-    updateCell(row, col, !currentValue);
+    // Truthiness, so a numerically encoded 1 toggles off like `true` does.
+    updateCell(
+      row,
+      col,
+      !(data[row]?.[col] ?? getDefaultCellValue(columns[col])),
+    );
   };
 
-  // The rows are index-keyed, so removal keeps the focused gutter element
-  // mounted and focus lands on the row that slides into its place.
-  const removeRow = (rowIndex: number) => {
-    onChange?.(tableData.filter((_, index) => index !== rowIndex));
-  };
-
-  /** Open the editor synchronously so the mounted input can take focus. */
+  /** Opens the editor synchronously so the mounted input can take focus. */
   const startEditing = (row: number, col: number, text: string) => {
     flushSync(() => {
       setEditingCell({ row, col });
@@ -422,10 +386,12 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
     focusCell(row, col);
   };
 
-  /** Commit synchronously so the display cells exist again before focusing. */
-  const commitEdit = (row: number, col: number) => {
+  /** Closes the editor synchronously so the resting cell can take focus. */
+  const closeEditor = (row: number, col: number, commit: boolean) => {
     flushSync(() => {
-      updateCell(row, col, parseCellValue(columns[col], editingValue));
+      if (commit) {
+        updateCell(row, col, parseCellValue(columns[col], editingValue));
+      }
       setEditingCell(null);
       setEditingValue("");
     });
@@ -436,21 +402,16 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
     (event) => {
       if (event.key === "Enter") {
         handled(event);
-        commitEdit(row, col);
+        closeEditor(row, col, true);
         // Advance right, wrap to the next row's first cell, or stay put.
-        if (
-          !(col + 1 < colCount
-            ? focusCell(row, col + 1)
-            : focusCell(row + 1, 0))
-        ) {
+        const moved =
+          col + 1 < colCount ? focusCell(row, col + 1) : focusCell(row + 1, 0);
+        if (!moved) {
           focusCell(row, col);
         }
       } else if (event.key === "Escape") {
         handled(event);
-        flushSync(() => {
-          setEditingCell(null);
-          setEditingValue("");
-        });
+        closeEditor(row, col, false);
         focusCell(row, col);
       }
     };
@@ -464,8 +425,8 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
     (event) => {
       if (event.key === "Enter") {
         handled(event);
-        startEditing(row, col, getCellEditText(columns[col], value));
-      } else if (event.key === "Delete" || event.key === "Backspace") {
+        startEditing(row, col, fullText(columns[col], value));
+      } else if (isDeleteKey(event)) {
         handled(event);
         updateCell(row, col, getDefaultCellValue(columns[col]));
         startEditing(row, col, "");
@@ -480,28 +441,18 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   const onBooleanCellKeyDown =
     (row: number, col: number): React.KeyboardEventHandler =>
     (event) => {
-      const normalizedKey = event.key.toLowerCase();
+      const typed = isTypingKey(event) ? event.key.toLowerCase() : null;
       if (event.key === "Enter" || event.key === " ") {
         handled(event);
         toggleBooleanCell(row, col);
-      } else if (event.key === "Delete" || event.key === "Backspace") {
+      } else if (isDeleteKey(event) || typed === "f" || typed === "0") {
         handled(event);
         updateCell(row, col, false);
-      } else if (
-        isTypingKey(event) &&
-        (normalizedKey === "t" || normalizedKey === "1")
-      ) {
+      } else if (typed === "t" || typed === "1") {
         handled(event);
         updateCell(row, col, true);
-      } else if (
-        isTypingKey(event) &&
-        (normalizedKey === "f" || normalizedKey === "0")
-      ) {
-        handled(event);
-        updateCell(row, col, false);
-      } else if (isTypingKey(event)) {
-        // Swallow any other printable key — boolean cells never open the
-        // text editor (but keep shortcuts like Cmd+C working).
+      } else if (typed !== null) {
+        // Other printable keys never open a text editor on a boolean cell.
         handled(event);
       } else {
         onStopsKeyDown({ stopId: String(row), column: col })(event);
@@ -511,10 +462,12 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   const onGutterKeyDown =
     (row: number): React.KeyboardEventHandler =>
     (event) => {
-      if (event.key === "Delete" || event.key === "Backspace") {
+      if (isDeleteKey(event)) {
         handled(event);
-        if (row < tableData.length) {
-          removeRow(row);
+        // Rows are index-keyed, so the gutter element stays mounted and the
+        // next row slides under the focus.
+        if (row < data.length) {
+          onChange?.(data.filter((_, index) => index !== row));
         }
       } else if (event.key === "Enter") {
         handled(event);
@@ -524,15 +477,25 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
       }
     };
 
+  const gutterProps = (row: number) => {
+    const target: FocusStopTarget = { stopId: String(row), column: "gutter" };
+    return {
+      ref: registerTarget(target),
+      tabIndex: tabIndexFor(target),
+      onKeyDown: onGutterKeyDown(row),
+      onFocus: () => {
+        onFocusTarget(target);
+        setFocusedRow(row);
+      },
+      onBlur: () => setFocusedRow(null),
+    };
+  };
+
   const columnWidth = Math.max(60, 100 / colCount);
 
   return (
     <div className={wrapperStyle}>
-      <div
-        ref={attach}
-        className={tableContainerStyle}
-        style={{ flex: 1, minHeight: 0 }}
-      >
+      <div ref={attach} className={tableContainerStyle}>
         <table
           className={tableStyle}
           role="grid"
@@ -557,7 +520,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
           </thead>
           <tbody>
             {displayRows.map((row, rowIndex) => {
-              const isPhantomRow = !isReadOnly && rowIndex === tableData.length;
+              const isPhantomRow = rowIndex === data.length;
               const stopId = String(rowIndex);
               return (
                 <tr
@@ -571,44 +534,29 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                 >
                   <td
                     role="rowheader"
-                    ref={
-                      isReadOnly
-                        ? undefined
-                        : registerTarget({ stopId, column: "gutter" })
-                    }
-                    tabIndex={
-                      isReadOnly
-                        ? undefined
-                        : tabIndexFor({ stopId, column: "gutter" })
-                    }
-                    onKeyDown={
-                      isReadOnly ? undefined : onGutterKeyDown(rowIndex)
-                    }
-                    onFocus={
-                      isReadOnly
-                        ? undefined
-                        : () => {
-                            onFocusTarget({ stopId, column: "gutter" });
-                            setFocusedRow(rowIndex);
-                          }
-                    }
-                    onBlur={isReadOnly ? undefined : () => setFocusedRow(null)}
                     className={rowNumberCellStyle({
                       isSelected: selectedRow === rowIndex,
-                      isPhantom: rowIndex === tableData.length,
+                      isPhantom: isPhantomRow,
                       isReadOnly,
                     })}
+                    {...(isReadOnly ? undefined : gutterProps(rowIndex))}
                   >
-                    {rowIndex === tableData.length ? "" : rowIndex + 1}
+                    {isPhantomRow ? "" : rowIndex + 1}
                   </td>
                   {row.map((value, colIndex) => {
-                    const isEditing =
-                      editingCell?.row === rowIndex &&
-                      editingCell.col === colIndex;
+                    const column = columns[colIndex];
                     const target: FocusStopTarget = {
                       stopId,
                       column: colIndex,
                     };
+                    const isEditing =
+                      editingCell?.row === rowIndex &&
+                      editingCell.col === colIndex;
+                    // Screen readers get the full value the truncated cell hides.
+                    const title =
+                      isTextColumn(column) && !isPhantomRow
+                        ? fullText(column, value)
+                        : undefined;
                     return (
                       <td
                         // eslint-disable-next-line react/no-array-index-key -- Column position is stable and meaningful
@@ -622,25 +570,19 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                         {isReadOnly ? (
                           <div
                             className={readOnlyCellStyle}
-                            title={getCellTitle(columns[colIndex], value)}
-                            aria-label={getCellTitle(columns[colIndex], value)}
+                            title={title}
+                            aria-label={title}
                           >
-                            {getCellDisplayText(columns[colIndex], value)}
+                            {displayText(column, value)}
                           </div>
                         ) : isEditing ? (
                           <input
                             ref={registerTarget(target)}
-                            type={
-                              columns[colIndex]?.type === "uuid" ||
-                              columns[colIndex]?.type === "string"
-                                ? "text"
-                                : "number"
-                            }
+                            type={isTextColumn(column) ? "text" : "number"}
                             step={
-                              columns[colIndex]?.type === "uuid" ||
-                              columns[colIndex]?.type === "string"
+                              isTextColumn(column)
                                 ? undefined
-                                : columns[colIndex]?.type === "integer"
+                                : column?.type === "integer"
                                   ? 1
                                   : "any"
                             }
@@ -649,23 +591,15 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                               setEditingValue(event.target.value)
                             }
                             onKeyDown={onEditingKeyDown(rowIndex, colIndex)}
-                            onBlur={() => {
-                              updateCell(
-                                rowIndex,
-                                colIndex,
-                                parseCellValue(columns[colIndex], editingValue),
-                              );
-                              setEditingCell(null);
-                              setEditingValue("");
-                            }}
+                            onBlur={() => closeEditor(rowIndex, colIndex, true)}
                             className={editingInputStyle}
                           />
-                        ) : columns[colIndex]?.type === "boolean" ? (
+                        ) : column?.type === "boolean" ? (
                           <div
                             ref={registerTarget(target)}
                             role="checkbox"
                             aria-checked={Boolean(value)}
-                            aria-label={columns[colIndex].name}
+                            aria-label={column.name}
                             tabIndex={tabIndexFor(target)}
                             onFocus={() => onFocusTarget(target)}
                             onKeyDown={onBooleanCellKeyDown(rowIndex, colIndex)}
@@ -674,9 +608,7 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                             }
                             className={cellButtonStyle}
                           >
-                            {/* Visual only — the wrapping div owns the
-                                checkbox role, so hide this from AT to
-                                avoid double announcement. */}
+                            {/* Visual only: the wrapper owns the checkbox role. */}
                             <input
                               type="checkbox"
                               checked={Boolean(value)}
@@ -699,33 +631,21 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
                                 startEditing(
                                   rowIndex,
                                   colIndex,
-                                  getCellEditText(columns[colIndex], value),
+                                  fullText(column, value),
                                 );
                               }
                             }}
                             className={cellButtonStyle}
-                            title={
-                              isPhantomRow
-                                ? undefined
-                                : getCellTitle(columns[colIndex], value)
-                            }
-                            // Screen readers announce the truncated text;
-                            // uuid cells need the full canonical string.
-                            aria-label={
-                              isPhantomRow
-                                ? undefined
-                                : getCellTitle(columns[colIndex], value)
-                            }
+                            title={title}
+                            aria-label={title}
                           >
-                            {isPhantomRow
-                              ? ""
-                              : getCellDisplayText(columns[colIndex], value)}
+                            {isPhantomRow ? "" : displayText(column, value)}
                           </div>
                         )}
                         {!isReadOnly &&
                         !isEditing &&
                         !isPhantomRow &&
-                        columns[colIndex]?.type === "uuid" ? (
+                        column?.type === "uuid" ? (
                           <span
                             data-uuid-overlay
                             className={uuidExpandedOverlayStyle({
