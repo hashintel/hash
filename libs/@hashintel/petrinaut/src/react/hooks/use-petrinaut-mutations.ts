@@ -107,6 +107,18 @@ export function usePetrinautMutations(): PetrinautMutations {
     removeMetric: withReadonlyGuard("removeMetric", {
       targetActiveSubnet: false,
     }),
+    addStatusView: withReadonlyGuard("addStatusView", {
+      targetActiveSubnet: false,
+    }),
+    updateStatusView: withReadonlyGuard("updateStatusView", {
+      targetActiveSubnet: false,
+    }),
+    removeStatusView: withReadonlyGuard("removeStatusView", {
+      targetActiveSubnet: false,
+    }),
+    moveStatusViewLabel: withReadonlyGuard("moveStatusViewLabel", {
+      targetActiveSubnet: false,
+    }),
     addSubnet: withReadonlyGuard("addSubnet", { targetActiveSubnet: false }),
     updateSubnet: withReadonlyGuard("updateSubnet", {
       targetActiveSubnet: false,
