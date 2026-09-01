@@ -14,14 +14,15 @@ COVERAGE=$usage_coverage
 STRATEGY=$usage_test_strategy
 declare -a "ARGUMENTS=($usage_arguments)" # We're using "declare -a" here to allow for quoted arguments to be properly parsed as single array elements
 
-# Check if the package argument starts with `@rust/` if that isn't the case exit out
-if [[ $PACKAGE != "@rust/"* ]]; then
-    echo "Error: Only rust crates are supported for now"
+# Remove the package namespace from the package to get the crate name
+CRATE=${PACKAGE#@*/}
+
+METADATA=$(cargo metadata --format-version=1 --no-deps)
+
+if ! jq -e --arg crate "$CRATE" '.packages | any(.name == $crate)' <<< "$METADATA" > /dev/null; then
+    echo "Error: '$PACKAGE' is not a crate in the Cargo workspace"
     exit 1
 fi
-
-# Remove the package namespace from the package to get the crate name
-CRATE=${PACKAGE#*@rust/}
 
 declare -a COMMON_ARGUMENTS
 COMMON_ARGUMENTS+=("-p" "$CRATE")
@@ -85,4 +86,8 @@ if [[ $COVERAGE == "true" || ${TEST_COVERAGE:-false} == 'true' || ${TEST_COVERAG
 fi
 
 cargo hack "${HACK_ARGUMENTS[@]}" nextest run "${NEXTEST_ARGUMENTS[@]}" "${ARGUMENTS[@]:-}"
-cargo test "${COMMON_ARGUMENTS[@]}" --all-features --doc
+
+# Doc-tests need a library target, which binary-only crates do not have
+if jq -e --arg crate "$CRATE" '.packages[] | select(.name == $crate) | .targets | any(.kind | contains(["lib"]))' <<< "$METADATA" > /dev/null; then
+    cargo test "${COMMON_ARGUMENTS[@]}" --all-features --doc
+fi
