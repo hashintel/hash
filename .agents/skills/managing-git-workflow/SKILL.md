@@ -14,6 +14,7 @@ metadata:
       - merge queue
       - GitHub Actions
       - branch protection
+      - changeset
     intent-patterns:
       - "\\b(open|create|submit|review)\\b.*?\\b(PR|pull request)\\b"
       - "\\b(name|naming)\\b.*?\\bbranch\\b"
@@ -44,6 +45,14 @@ Current HASH Linear identifiers commonly use `FE-`, `SRE-`, `BE-`, or `H-` prefi
 Contributors without access to HASH's Linear workspace do not need a Linear identifier. Use a descriptive branch name and PR title, and link the relevant public issue or discussion for significant work. Minor documentation fixes may go straight to a PR as described in the contributing guide.
 
 In every case, keep the PR description self-contained so contributors and reviewers without access to internal systems can understand the change. Fill every applicable section of the PR template and say when a section is unknown or inapplicable.
+
+## Changesets
+
+A PR that changes an npm-publishable package adds a changeset file under `.changeset/`. The changeset text becomes the package's published changelog entry, so write it for the package's consumers:
+
+- Describe the change as a consumer of the package experiences it: behaviour changes, bug fixes, and interface changes. Leave out implementation details that do not affect consumers, and do not mention this repository or its internal systems.
+- Every sentence must apply to each package the changeset lists. When a PR changes several packages in different ways, write a separate changeset for each package.
+- Use at most one paragraph per changeset.
 
 ## Reviewing Pull Requests
 
