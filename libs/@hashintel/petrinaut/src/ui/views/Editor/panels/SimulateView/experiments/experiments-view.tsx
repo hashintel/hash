@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { use } from "react";
 
 import { Button, Chip, Icon } from "@hashintel/ds-components";
 
@@ -6,9 +6,9 @@ import {
   ExperimentsContext,
   type ExperimentRecord,
 } from "../../../../../../react/experiments/context";
+import { EditorContext } from "../../../../../../react/state/editor-context";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
-import { CreateExperimentDrawer } from "./create-experiment-drawer";
 import { ViewExperimentDrawer } from "./view-experiment-drawer";
 
 function formatExperimentStatus(status: ExperimentRecord["status"]): string {
@@ -110,7 +110,7 @@ const ExperimentList = ({
 };
 
 export const ExperimentsView = () => {
-  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
+  const { setSimulateDrawer } = use(EditorContext);
   const {
     experiments,
     selectedExperiment,
@@ -118,7 +118,6 @@ export const ExperimentsView = () => {
     setSelectedExperimentId,
   } = use(ExperimentsContext);
 
-  const closeCreateDrawer = () => setIsCreateDrawerOpen(false);
   const closeViewDrawer = () => setSelectedExperimentId(null);
 
   return (
@@ -130,7 +129,7 @@ export const ExperimentsView = () => {
           tone="neutral"
           size="sm"
           prefix={<Icon name="plus" size="sm" />}
-          onClick={() => setIsCreateDrawerOpen(true)}
+          onClick={() => setSimulateDrawer({ type: "create-experiment" })}
         >
           Create
         </Button>
@@ -140,15 +139,6 @@ export const ExperimentsView = () => {
         experiments={experiments}
         selectedId={selectedExperimentId}
         onSelect={setSelectedExperimentId}
-      />
-
-      <CreateExperimentDrawer
-        open={isCreateDrawerOpen}
-        onClose={closeCreateDrawer}
-        onCreated={(experimentId) => {
-          setIsCreateDrawerOpen(false);
-          setSelectedExperimentId(experimentId);
-        }}
       />
 
       <ViewExperimentDrawer

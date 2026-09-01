@@ -14,6 +14,7 @@ import type {
   SignatureHelp,
 } from "@hashintel/petrinaut-core";
 import type {
+  AdHocSessionParams,
   MetricSessionParams,
   ScenarioSessionParams,
 } from "@hashintel/petrinaut-core/workers/lsp";
@@ -58,6 +59,12 @@ export interface LanguageClientContextValue {
    * result.
    */
   requestScenarioHir: (scenario: ScenarioLoweringInput) => Promise<ScenarioHir>;
+  /**
+   * Re-print a single scenario-expression canonically (normalized spacing,
+   * minimal parentheses, numeric literals preserved). Resolves null when the
+   * code does not lower — keep the user's text in that case.
+   */
+  requestFormatExpression: (code: string) => Promise<string | null>;
   /** Initialize a temporary scenario editing session. */
   initializeScenarioSession: (params: ScenarioSessionParams) => void;
   /** Update a scenario editing session. */
@@ -66,13 +73,20 @@ export interface LanguageClientContextValue {
   killScenarioSession: (sessionId: string) => void;
   /** Initialize a temporary metric editing session. */
   initializeMetricSession: (params: MetricSessionParams) => void;
+  /** Starts an ad-hoc scenario editing session for expression type-checking */
+  initializeAdHocSession: (params: AdHocSessionParams) => void;
+  /** Updates an ad-hoc scenario editing session */
+  updateAdHocSession: (params: AdHocSessionParams) => void;
+  /** Ends an ad-hoc scenario editing session */
+  killAdHocSession: (sessionId: string) => void;
   /** Update a metric editing session. */
   updateMetricSession: (params: MetricSessionParams) => void;
   /** Kill a metric editing session. */
   killMetricSession: (sessionId: string) => void;
 }
 
-const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
+/** The inert default: no worker wired — requests resolve to empty results. */
+export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
   diagnosticsByUri: new Map(),
   totalDiagnosticsCount: 0,
   errorDiagnosticsCount: 0,
@@ -98,14 +112,18 @@ const DEFAULT_CONTEXT_VALUE: LanguageClientContextValue = {
       parameterOverrides: {},
       placeExpressions: {},
     }),
+  requestFormatExpression: () => Promise.resolve(null),
   initializeScenarioSession: () => {},
   updateScenarioSession: () => {},
   killScenarioSession: () => {},
   initializeMetricSession: () => {},
+  initializeAdHocSession: () => {},
+  updateAdHocSession: () => {},
+  killAdHocSession: () => {},
   updateMetricSession: () => {},
   killMetricSession: () => {},
 };
 
 export const LanguageClientContext = createContext<LanguageClientContextValue>(
-  DEFAULT_CONTEXT_VALUE,
+  DEFAULT_LANGUAGE_CLIENT_CONTEXT,
 );

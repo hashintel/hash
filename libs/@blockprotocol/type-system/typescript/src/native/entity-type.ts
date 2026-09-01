@@ -1,4 +1,4 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system-rs";
+import type { EntityType, VersionedUrl } from "../generated/type-system.js";
 
 export const ENTITY_TYPE_META_SCHEMA: EntityType["$schema"] =
   "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type";

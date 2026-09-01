@@ -10,14 +10,23 @@ import { ARC_ID_PREFIX, ARC_ID_SEPARATOR } from "../arc-id";
  * `/react/state/editor-context`.
  */
 
-export type SelectionItemType =
-  | "place"
-  | "transition"
-  | "arc"
-  | "componentInstance"
-  | "type"
-  | "differentialEquation"
-  | "parameter";
+/**
+ * The selection vocabulary, as data. Hosts that validate selection coming from
+ * outside the app (URL search params, an HTTP request) need the list at
+ * runtime, and deriving the type from it keeps the two exhaustive by
+ * construction.
+ */
+export const selectionItemTypes = [
+  "place",
+  "transition",
+  "arc",
+  "componentInstance",
+  "type",
+  "differentialEquation",
+  "parameter",
+] as const;
+
+export type SelectionItemType = (typeof selectionItemTypes)[number];
 
 export type SelectionItem =
   | { type: "place"; id: string }
@@ -35,6 +44,35 @@ export type PanelTarget =
   | { kind: "none" }
   | { kind: "single"; item: SelectionItem }
   | { kind: "multi"; items: SelectionItem[] };
+
+const selectionItemKey = (item: SelectionItem) => `${item.type}\0${item.id}`;
+
+const compareCodeUnits = (left: string, right: string) =>
+  left < right ? -1 : left > right ? 1 : 0;
+
+/**
+ * Deduplicates and orders a selection, so equivalent selections compare and
+ * serialize identically. Consumers rely on this being the one ordering: the
+ * editor compares selections positionally, and hosts encode them into URLs.
+ *
+ * Ordering is by UTF-16 code unit rather than `localeCompare`, so a host that
+ * canonicalizes on a server agrees with the browser. Collation is
+ * locale-dependent and weights punctuation below letters, which would order
+ * `place-b` and `placea` differently across runtimes.
+ */
+export const canonicalizeSelection = (
+  selection: readonly SelectionItem[],
+): readonly SelectionItem[] => {
+  const unique = new Map<string, SelectionItem>();
+  for (const item of selection) {
+    unique.set(selectionItemKey(item), item);
+  }
+  return Array.from(unique.values()).sort(
+    (left, right) =>
+      compareCodeUnits(left.type, right.type) ||
+      compareCodeUnits(left.id, right.id),
+  );
+};
 
 export function parseArcId(
   arcId: string,

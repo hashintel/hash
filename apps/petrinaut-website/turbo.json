@@ -2,12 +2,17 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["codegen", "^build"],
       "outputs": ["dist/**"],
-      "cache": false
+      // `vite.config.ts` inlines these into the bundle through `define`, so a
+      // cached `dist` from one environment must never be restored for another.
+      // `loadEnv` reads them from `.env*` as well as the environment, and the
+      // gitignored `.env.local` is outside Turborepo's default inputs.
+      "env": ["SENTRY_DSN", "VITE_PETRINAUT_OPT_PROVIDER", "VITE_VERCEL_ENV"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"]
     },
-    "lint:tsc": {
-      "dependsOn": ["^build"]
+    "codegen": {
+      "outputs": ["src/routeTree.gen.ts"]
     }
   }
 }

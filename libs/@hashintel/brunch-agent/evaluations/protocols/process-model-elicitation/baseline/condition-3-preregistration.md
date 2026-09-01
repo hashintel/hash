@@ -1,5 +1,21 @@
 # FE-1404 condition-3 preregistration
 
+> **Amendment, 2026-08-25 — retired, never run.** Condition 3 was superseded before its first model
+> call by ADR-0007: the completion-and-guidance treatment it preregistered is now the shipped
+> harness (keys, repertoire, plugin cells, fold, computed completion), which the baseline protocol
+> exercises directly as condition 5 rather than through a hand-run operator projection. Nothing
+> below this note is altered.
+>
+> **Amendment, 2026-08-26 — instrument deleted.** The instrument this document preregistered —
+> `condition-3-instrument.ts`, its lock, `condition-3-operator.md`, `condition-3-scoring.md`,
+> `condition-3-legibility.md`, `condition-3-pre-run-review.md`, the condition-3 paths in
+> `run.ts`, and its unit test — was removed from the tree. Salvage was assessed and none taken:
+> its projection schema and semantic validators encoded the domain-keyed DemandTable that S-007
+> ruled the wrong level, and the kind-level fold and `evaluateCompletion` in `packages/core` now
+> do that job on the production path. This document and `condition-3-prompt.md` remain as the
+> record; the deleted files are in git history under this directory. The file paths named below
+> therefore no longer resolve.
+
 Status: **frozen before the first model call**. The lock file beside this document records hashes
 for the complete treatment and instrument. Any later change requires an explicit amendment; the
 original run and original lock remain immutable.

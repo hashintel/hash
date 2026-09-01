@@ -9,6 +9,10 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
+import {
+  openPetrinautSimulationResource,
+  usePetrinautNavigation,
+} from "../navigation";
 import { PetrinautOptimizationContext } from "../optimization-context";
 import {
   type OptimizationBest,
@@ -294,13 +298,27 @@ const createOptimizationRecord = (
 
 export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
   const capability = use(PetrinautOptimizationContext);
+  const navigation = usePetrinautNavigation();
   const abortControllersRef = useRef(new Map<string, AbortController>());
   /** Server run ids of active detached runs, keyed by record id. */
   const runIdsRef = useRef(new Map<string, string>());
   const [optimizations, setOptimizations] = useState<OptimizationRecord[]>([]);
-  const [selectedOptimizationId, setSelectedOptimizationId] = useState<
-    string | null
-  >(null);
+  const selectedOptimizationId =
+    navigation.state.simulateResource?.type === "optimization"
+      ? navigation.state.simulateResource.id
+      : null;
+  const setSelectedOptimizationId: OptimizationsContextValue["setSelectedOptimizationId"] =
+    (optimizationId) => {
+      navigation.navigate(
+        optimizationId
+          ? openPetrinautSimulationResource({
+              type: "optimization",
+              id: optimizationId,
+            })
+          : { simulateResource: null },
+        { cause: "user", action: "simulation-resource" },
+      );
+    };
 
   useBlockWindowClose({
     shouldBlock: optimizations.some(isOptimizationActive),
@@ -336,10 +354,19 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     setOptimizations((current) =>
       current.filter((optimization) => optimization.id !== optimizationId),
     );
-    setSelectedOptimizationId((current) =>
-      current === optimizationId ? null : current,
-    );
   }, []);
+
+  useEffect(() => {
+    if (
+      selectedOptimizationId &&
+      !optimizations.some(({ id }) => id === selectedOptimizationId)
+    ) {
+      navigation.navigate(
+        { simulateResource: null },
+        { cause: "normalization", action: "simulation-resource" },
+      );
+    }
+  }, [navigation, optimizations, selectedOptimizationId]);
 
   const markOptimizationCancelled = useCallback(
     (optimizationId: string) => {

@@ -1,0 +1,270 @@
+# Coatings Plant Scheduling Model — final deliverable
+
+**Elicited from:** Marta, master scheduler
+**Job:** construct (no prior model existed)
+**Ended:** at the expert's stop. No new topics opened after it.
+**Status:** static floor satisfied; O2 and O3 near-complete; **O1's dependency slice incomplete** (see §4).
+**Convention:** every value is in Marta's vocabulary, with the precision actually obtained. `⚠` marks a slot the method demands and the interview did not get. Quoted text is hers.
+
+---
+
+## 1. The model
+
+### 1.1 Objectives
+
+**O1 — "Hold the line versus wash it down now, which one actually costs less over the week"**
+- *Question* **(spelled out)** — whether letting Line 2 sit idle about an hour, on a heads-up that another same-family white order is about to drop from a distributor, beats washing down now for the tint waiting behind. From a real Thursday two weeks before the interview. Her verdict on her own method: *"I was guessing."*
+- *Depends on* — E1, E2, E3, E4, B1, B2, A4, A5, A6, A8, A9, F1, F2, F3, P3, P4, P5, C1, C2, C3.
+- *"Better"* **(named, not quantified)** — changeover hours over the week, subject to O2 holding absolutely. ⚠ no weight against lateness.
+- *Source-regime* — practiced.
+
+**O2 — "Whether Meridian shipped on time, full stop, that's non-negotiable"**
+- *Question* **(spelled out)** — does every Meridian order leave the dock in time for its appointment.
+- *"On time"* **(spelled out)** — a ship date on the order with a delivery window, resolving to a specific dock appointment at Meridian's end; in practice must leave our dock **one day ahead** for freight. *"Not just 'shipped this week.'"*
+- *Consequence of a miss* **(spelled out; unquantified ⚠)** — a fine, *"I don't see the number, that's commercial's problem, but I hear about it"*; and worse, a tracked on-time percentage with a delisting threat — *"that's happened to a competitor of ours, so it's not an empty threat, and it's why the rule is absolute."*
+- *Depends on* — A8, A9, A10, B3, C4, C5, P1, P2.
+
+**O3 — Changeover hours**
+- *Question* **(spelled out)** — crew-hours spent washing down instead of filling: *"every hour the crew spends washing down is an hour not filling anything."*
+- *Depends on* — A4, A5, A6, A7, E4, C2, P3.
+- *"Better"* **(named)** — fewer. Direction only; no target. ⚠
+
+**O4 — "How ugly the sheet looks"**
+- *Question* **(spelled out)** — *"are there gaps where a line's sitting idle for no good reason."*
+- *"Better"* **(her words; explicitly not a number)** — *"that last one's not a number, it's more a gut check, but it's real."*
+- *Depends on* — E3, C2, P3, P4, A4–A7. IR-only; see §3.
+
+**Trade-off among O2 / O3 / non-Meridian lateness** **(spelled out as a rule; deliberately unquantified ⚠)** — four changeover hours against one distributor order two days late: *"honestly, yes, I'd take that trade most of the time"*, a slip being *"an annoyed phone call from our sales rep, not a fine."* But *"'most of the time' is doing a lot of work in that sentence"* — the same distributor slipping three weeks running *"start[s] asking for a discount."* Soft, not infinitely soft, decaying with repetition on one customer. **Deposit:** *"that's genuinely a 'sit down with commercial' conversation, nobody's ever made me quantify it."*
+
+---
+
+### 1.2 Entity types
+
+**E1 — Order (in the demand book)**
+- *Distinctions* **(spelled out)** — Meridian vs non-Meridian (flagged on the order; it *"jumps to the top of my attention"*); family, which drives allocation and changeover.
+- *State riding along* **(spelled out)** — SKU, quantity, due date + delivery window, Meridian flag, family: **base white / tinted colour / specialty clear**. *"That's not my judgment, that's how the SKU's classified in the system, it drives what changeover you need going in and out."*
+- *Population* — ⚠ not obtained.
+
+**E2 — Batch**
+- *Distinctions* **(spelled out)** — inherits its order's family.
+- *Relation to E1* **(spelled out)** — *"mostly the order is the batch, if it fits a reasonable run size"*; split into two batches at different times when a distributor orders *"more than makes sense in a single run"* or to interleave something urgent. *"Not a strict one-to-one — I have the freedom to split if I need to."*
+- *Population* — ⚠ run sizes, split cost not obtained.
+
+**E3 — Line** *(contended resource)*
+- *Distinctions* **(spelled out)** — **Line 1**: *"the old workhorse — slower but it's qualified for everything, including specialty"*; crew say it's *"fussier to get properly clean."* **Line 2**: *"the fast one, that's your big-volume runner."* **Line 3**: *"the newest and quickest, but it's still being qualified product by product, so it can't run everything yet"* — so far *"mostly one or two SKUs."*
+- *State riding along* **(spelled out)** — the family the line is currently dirty with (selects the changeover, F3); its qualification set.
+- *How many* **(number)** — 3.
+
+**E4 — Changeover tech** *(contended resource)*
+- *Distinctions* **(named)** — none drawn; treated as interchangeable (ledger #8).
+- *State riding along* **(spelled out)** — which line they're committed to; can be *"pulled away partway through"*, and on long soaks *"might duck off to start something on another line."*
+- *How many* **(number)** — 2 on day shift for all three lines. *"That's it. No dedicated tech per line."*
+
+**E5 — QA lab**
+- ⚠ nothing obtained but its existence, that every batch passes through, and that it *"gets backed up on a Friday afternoon."* Whether it queues like the techs is open — and load-bearing for O2 by her own diagnosis: *"half the time a 'late' order was actually sitting done in QA hold waiting for the lab to get to it."*
+
+---
+
+### 1.3 Boundary conditions
+
+**B1 — ERP weekly pull** — *starting state* **(spelled out)**: orders come from ERP on the weekly pull with SKU, quantity, due date, Meridian flag. *Arrival pattern* — ⚠ **not obtained** (demanded: spread).
+
+**B2 — Mid-week drop-in order and the heads-up before it** — ⚠ **not obtained** (demanded: spread). Only the anecdote: *"I had a heads-up another same-family white order was about to drop in from a distributor."* Who, how far ahead, how often right: all unknown. **This is the trigger O1 hangs on.**
+
+**B3 — Meridian dock appointment** — *pattern* **(spelled out, qualitative)**: ship date + delivery window on the order, resolving to a specific appointment their end. Lead-time distribution ⚠.
+
+**B4 — Tech availability** — **partially spelled out**: two techs, **day shift**. Coverage outside day shift ⚠ (ledger #5).
+
+**B5 — Line 3 qualification set** — ⚠ *"mostly one or two SKUs"*; which ones, unknown.
+
+---
+
+### 1.4 Activities
+
+**A1 — Lands in the demand book.** Needs the weekly pull; produces an order in the book, flagged or not; unattended (ERP); instantaneous. **spelled out**
+
+**A2 — Allocate to a line.** Needs an order; produces an assignment; performed by Marta; not a schedule constraint — for Meridian whites *"that's not really a decision."* Rule: P1. **spelled out**
+
+**A3 — Reorder the queue.** Needs an order behind others; produces a changed sequence; performed by Marta. *"Sometimes I'll reorder things a bit so it doesn't get stuck behind a big changeover."* Rule: P4. **spelled out**
+
+**A4 — Quick rinse, same family (white→white), Line 2**
+- *Needs* — previous batch off, a tech free, next SKU same family. *Produces* — *"the fill head's actually running clean product again."*
+- *Performed by* **(named)** — one tech.
+- *Duration, line down* **(spread)** — **typical 25 min**; **worse 45 min**, *"usually because the tech's tied up finishing something on another line first and there's a wait before they even start on Line 2"*; **better 15 min**, *"if the tech's standing right there and it's a genuinely easy one."*
+- *Crew hands-on* **(spelled out)** — equals line-down: *"the tech's on it start to finish, no gap between 'crew starts' and 'line stops.'"*
+- *Mode-change loss* — this activity **is** the loss.
+- *Varies by type* **(named)** — yes, by family-pair (F3). By line: ⚠ ledger #1, #2.
+
+**A5 — White → tint, Line 2** — *"the easier direction"*
+- *Performed by* **(named)** — one tech.
+- *Duration, line down* **(spread)** — **typical 45 min**; **worse "an hour and a bit"** (ledger #3), *"if the tech gets pulled away partway through"*; **better ~30 min**, *"if everything's staged."*
+- *Crew hands-on* **(spelled out, qualitative)** — *"hands-on for most of it — this one doesn't have much soak-and-wait, it's mostly just doing the work."* Fraction: ledger #4.
+
+**A6 — Tint → white, Line 2, full washdown** — *"the ugly one"*
+- *Needs* — as A5 plus a **passing visual check** before release to production.
+- *Duration, line down* **(spread)** — **typical ~3 h**; **worse 4 h "maybe a bit more"** (ledger #3), *"if it doesn't pass the visual check first time and they have to redo part of it"*; **better ~2 h**, *"a clean fast one… if the crew's good and nothing complicates it."*
+- *Crew hands-on* **(spelled out, qualitative; her own hedge preserved)** — *"less than the 3 hours suggests — there's real soak and rinse-cycle time where the tech's not standing there… I'd guess they're actually working maybe half of that."* Fraction: ledger #4.
+- *Rationale* **(spelled out)** — *"any pigment left behind ruins a white batch, so it's a full washdown."*
+- **Asymmetry is load-bearing** — *"It absolutely depends on direction — that's the thing people forget… it is absolutely not symmetric, and it trips people up if they assume it is."*
+
+**A7 — Into / out of specialty clear, Line 1**
+- *Duration, line down* **(spread)** — **typical 2 h**, *"roughly the same both directions, unlike white/tint"*; **worse 3 h**, *"if it's coming out of clear and they're being extra careful about residue, since clear can be sneaky — you don't always see it the way you'd see pigment"*; **better 1.5 h**, *"a quick swap and the line was already fairly clean."*
+- *Crew hands-on* **(spelled out, qualitative)** — *"most of that — specialty doesn't have the long soak cycles… it's more just physically thorough cleaning because the product's thick and clingy."* Fraction: ledger #4.
+
+**A8 — Run the batch** — mix, mill, tint (or *"straight through if it's a plain white"*), fill, pack.
+- *Needs* **(spelled out)** — clean line in the right family state; batch released to run. *Produces* **(spelled out)** — filled and packed batch.
+- *Performed by* — ⚠ line operators never elicited as a resource.
+- *Duration* — ⚠ **nothing obtained** (demanded: spread, per family and per line).
+- *Varies by type* — partially: *"for a white that's usually the more straightforward path"*, but no durations attach.
+- **The largest hole in the model.** O1 is a question about a week; run time is most of a week.
+
+**A9 — QA hold and release** — *"every batch does."*
+- *Performed by* **(named)** — the lab (E5).
+- *Duration* — *"typically a few hours before it's released"*: an honest **number at the wrong precision**; demanded as a **spread**. ⚠
+- *Failure path* — ⚠ never asked.
+- *Pathology* **(spelled out qualitatively; rate ⚠)** — *"if QA's backed up on a Friday afternoon, that's where it actually goes sideways, not on the line"*; *"the QA step is the one people don't think about when they're mad at scheduling."*
+
+**A10 — Stage for shipping and ship.** Needs QA release; produces the order off the dock; *"that's when the truck appointment matters."* Constraint C4. Duration ⚠.
+
+**A11 — Tech pulled away mid-changeover** *(event, not step)* — named as the mechanism behind A4's and A5's worse tails. *Rate* ⚠ not obtained separately; currently only implicit in those tails (P01 unsatisfied).
+
+**A12 — Washdown fails the visual check, part redone** *(event, not step)* — named as the mechanism behind A6's 4 h tail. *Rate* ⚠ (ledger #7).
+
+**A13 — "The mill motor issue"** *(event, named in passing only)* — offered as an example of what a *structural* line difference would look like, in contrast to Line 1 merely being fussier. Rate ⚠, duration ⚠, consequence ⚠. This is the entirety of the breakdown stratum, which was never swept.
+
+---
+
+### 1.5 Ordering / flow
+
+**F1 — The main arc, desk to dock** **(spelled out — her six steps)**
+1. Lands in the demand book (ERP weekly pull).
+2. Allocated to a line (*"Meridian whites always go to Line 2"*).
+3. Sits in the queue behind whatever's running — reorderable (A3/P4).
+4. Changeover if needed (F3), then runs: mix, mill, tint-or-straight-through, fill, pack.
+5. QA hold.
+6. Released, staged, out against the truck appointment.
+
+**F2 — Order-to-batch split** — *order* **(spelled out)**: one batch by default, possibly two run at different times. *Branch decided by* **(spelled out)**: Marta, on run size or urgency-interleaving. *Cost of a split* ⚠ (P03 unresolved).
+
+**F3 — Which changeover applies** **(spelled out)** — by (family on the line, family of next batch, line): same family → **A4**; white→tint → **A5**; tint→white → **A6**; into/out of specialty → **A7** (Line 1 only).
+
+---
+
+### 1.6 Policies
+
+**P1 — "Meridian whites always go to Line 2, that's just how it's done here."** *Practiced* **(spelled out)**; a fixed allocation, not a decision. Overrides ⚠ never asked.
+
+**P2 — Meridian on-time is absolute.** *Practiced* **(spelled out)** — *"we don't even try to be clever about it."* Overrides **(spelled out)**: none — that is the policy's content. Rationale: fine, on-time percentage, delisting precedent.
+
+**P3 — Who gets the tech when two lines want one**
+- *Prescribed form:* **none exists** — *"there's no posted rule at all."*
+- *As practiced* **(spelled out)** — in the room: *"whoever's louder at the huddle, or whoever's about to actually run dry."* The underlying logic: *"it's mostly gut triage: whichever line has the more time-sensitive order behind it wins, and if that's a tie, whichever changeover is faster wins so you get a line moving sooner."*
+- *Borderline case on record* — Line 1 and Line 3 both wanted a washdown one morning. **Line 3 got the tech**, *"not because it was more important, but because Line 3's changeover was the quick one and Line 1's was going to be the long tint-to-white slog anyway, so the thinking was 'knock out the fast one, get that line moving, then commit the tech to the long one.'"* Line 1 sat **clean-but-waiting almost 40 minutes**.
+- *What overrides it* **(spelled out)** — the ops director: *"I've been overruled by the ops director once when he wanted his pet SKU out the door."*
+- *Rationale* **(spelled out)** — *"the crew's a shared resource and sometimes there's a queue for them before the clock even starts on the line"* — *"the bit that actually causes grief at the huddle."*
+
+**P4 — Reorder so a job isn't stuck behind a big changeover.** *Practiced* **(spelled out)**. Overrides ⚠.
+
+**P5 — Hold the line for an anticipated same-family order** *(the decision under test)*. *Practiced, one instance* **(spelled out)** — hold Line 2 idle *"maybe an hour"* rather than wash down for the waiting tint, *"because doing them back to back would save us a full washdown."* Trigger strength and holding threshold ⚠ (depends on B2).
+
+**P6 — Batch-split discretion.** *Practiced* **(spelled out)** — *"I have the freedom to split if I need to."* Overrides ⚠.
+
+---
+
+### 1.7 Constraints
+
+**C1 — Line qualification.** *Limit* **(partially spelled out)** — Line 1 everything incl. specialty; Line 3 product-by-product, *"can't run everything yet"* (which SKUs ⚠); Line 2's set ⚠. *When hit* **(spelled out)** — the batch cannot go on that line.
+
+**C2 — Two techs, three lines.** *Limit* **(spelled out)**. *When hit* **(spelled out)** — *"if Line 1 and Line 3 both want a washdown at the same time, one of them waits"* — clean-but-idle, 40 min in the recorded case; resolved by P3.
+
+**C3 — Tint→white needs a full washdown passing a visual check.** *When hit* **(spelled out)** — *"any pigment left behind ruins a white batch"*; a failed check means part is redone (A12).
+
+**C4 — Meridian must leave our dock a day ahead of the appointment.** *When hit* **(spelled out)** — fine, on-time percentage damage, delisting exposure.
+
+**C5 — Every batch passes QA hold before release.** *When hit* **(spelled out)** — nothing ships unreleased; it waits in hold.
+
+**Unwritten constraints** — ⚠ the closing sweep was never run. The one that surfaced unprompted is the changeover asymmetry: *"that one catches everybody, including people who've been on the floor a lot longer than me."*
+
+---
+
+### 1.8 Dynamics
+
+**None.** Nothing described evolves continuously while nothing discrete happens. The soak and rinse-cycle time inside A6 is dead time *within* an activity, not a state variable crossing a threshold; I have deliberately not promoted it to one.
+
+---
+
+### 1.9 Data bindings *(named only — project to nothing today)*
+
+| Feed | Would drive | Provenance |
+|---|---|---|
+| Changeover logs (tech start/finish) | A4–A7 durations, crew hands-on fractions; retires ledger #1, #4 | **Qualified:** *"I've never audited that field myself, I mostly just glance at duration."* Coverage unknown, possibly patchy; **Line 1 and Line 3** named as where to look. Marta will flag it to the two techs. |
+| ERP demand book | B1, B2 | not discussed |
+| QA release timestamps | A9 duration, lab queueing | not discussed |
+| Meridian on-time percentage | O2 | tracked by Meridian; visible to commercial |
+
+**Finding in its own right:** patchy changeover logging concentrated on Lines 1 and 3 is evidence about the plant, not merely an obstacle — *"that itself would be useful for you to know, not just an inconvenience."*
+
+---
+
+### 1.10 Validation criteria
+
+⚠ **None obtained.** How Marta would know the model is right was never asked.
+
+---
+
+## 2. Assumption ledger
+
+Everything here is mine. None of it is hers.
+
+| # | Assumption | Why | How to check |
+|---|---|---|---|
+| **1** | Line 1 changeover durations = Line 2 × **1.2**, all types | She could not give Line 1 minutes — *"I couldn't swear the minutes are identical… the crew sometimes says it's fussier."* I proposed 20%; she replied *"20% sounds about right, not double."* **The factor originated with me**; her assent is not authorship. | Changeover logs, Line 1 vs Line 2, same family-pair. **Blocked by the unaudited start/finish field — and Line 1 is one of the two lines she expects to be patchy.** |
+| **2** | Line 3 changeover durations = Line 2, unscaled | *"Line 3 I genuinely don't have a good feel for… you're stuck assuming it's like Line 1 or Line 2."* She offered the disjunction; **picking Line 2 was mine.** | As #1, once Line 3 has run more products. Also expected patchy. |
+| **3** | "An hour and a bit" (A5 worse) = **70 min**; "4, maybe a bit more" (A6 worse) = **4.5 h** | Numeric readings so the spreads are usable. | One question to Marta: confirm or correct. |
+| **4** | Crew hands-on: A4 = **1.0**, A5 = **0.8**, A6 = **0.5**, A7 = **0.8** | A4's 1.0 is hers, stated. A6's 0.5 tracks *"maybe half of that"* — but note her hedge, *"I'd guess."* **The two 0.8s, from "most of it" / "most of that", are mine.** | Changeover logs vs tech time records, or ask the techs. Same blocker as #1. |
+| **5** | No changeover outside day shift | She said *"two techs on **day shift**"*; other coverage never asked. | One question to Marta. |
+| **6** | A changeover needs exactly **one** tech | She said *"the tech"*, singular, throughout — including the 3-hour washdown. | One question to Marta or the techs. |
+| **7** | A12 folded **inside** A6's 4 h tail rather than a separate event with its own rate | She described it as *the cause of* the tail. Keeps the spread self-contained; contrary to P01, which would separate rate from duration. | Ask how often the visual check fails first time; split it out if common. |
+| **8** | The two techs are **interchangeable** | She drew no distinction. | One question to Marta. |
+
+**Second-order note on #1 and #4:** their check depends on a feed of unverified coverage, concentrated exactly where the assumptions bite. If the field proves patchy on Line 1, the honest move is to **widen** them, not fill them in.
+
+---
+
+## 3. What the model leaves out, and why
+
+**Deliberately excluded**
+- **Queues, buffers, waiting states** are not nodes — the wait behind a running batch, the wait for a tech, the wait in QA hold. Each is implied by the activities either side and emerges in projection. Line 1's 40 minutes clean-but-waiting is an **output** the model should reproduce, not an input.
+- **The commercial layer** — fine amount, on-time percentage mechanics, delisting threshold. C4 and O2 carry the hard deadline; the money is outside the scheduler's sight and commercial owns it.
+- **Individual tech identity** (ledger #8). **Scenarios** — assembled from B1–B5 at simulation time, not elicited.
+
+**Real, and the formalism cannot carry it — kept in words**
+- **O4, "how ugly the sheet looks."** A criterion she genuinely uses and explicitly refuses to number. Approximating it as line idle hours would be my move; I have not made it.
+- **The O2 / O3 / lateness trade-off weight.** Unquantified with the source named. The model can report changeover hours, Meridian lateness and distributor lateness **separately**, but cannot rank two schedules that trade one against another — a real limit on O1, whose "costs less" implicitly spans them.
+- **The decay of softness** — the same distributor slipping *"the third week running"* turning into a discount demand: a memory effect across weeks on one customer, stated as a rule, unquantified, unrepresented.
+- **The huddle.** *"Whoever's louder"* and the ops director's pet-SKU override are the real P3 in the room. The triage logic is compilable; loudness and the override are not. **Any run of this model will be quieter and more rational than the plant.** Remember that when a result looks tidy.
+
+---
+
+## 4. What remains unknown, in the order I would close it
+
+1. **A8 run duration** — nothing at all, per family and per line, as a spread. **Nothing about O1 is answerable until this exists.**
+2. **B2, the drop-in and the heads-up** — who, how far ahead, how often right. P5 is the decision under test and its trigger is one anecdote.
+3. **A9 QA hold** — *"a few hours"* is honest at the wrong precision; and whether the lab queues like the techs. By her own account this is where lateness actually comes from, so it bears directly on O2.
+4. **B1** — orders per weekly pull and within-week shape.
+5. **E2 / F2** — run sizes, the "reasonable run size" threshold, and what a split costs in extra changeovers.
+6. **C1 / B5** — which SKUs Line 3 is qualified for; whether Line 2 has restrictions.
+7. **Breakdowns and interruptions** — the whole stratum. A13 is a name with no rate, duration or consequence; A11 and A12 need rate separated from duration.
+8. **Unwritten-constraint sweep** and **validation criteria** — neither was run.
+
+**Status against the completion criteria**
+- **Static floor: satisfied** — 4 objectives, 5 entity types, 13 activities, 3 ordering/flow nodes.
+- **O2, O3:** slices substantially satisfied except A8 and A9 durations.
+- **O1: slice incomplete.** A8 has no duration; B2 has no arrival pattern. O1 is currently **answerable only for Line 2**, and only once run times exist. Ledger #1–#4 are the first assumptions to attack if any Line 1 or Line 3 result ever looks decisive.
+- **O4:** recorded; unsupported for quantitative use, by its author's own description.
+
+**What I do not claim.** I have elicited a model, not built a net. The SDCPN scaffold, the code-obligation sidecar and the typed loss report are derived from this model by the tooling's projection — I have not written them, and I am not claiming this loads, compiles, or runs. The A8 hole alone would stop it.
+
+---
+
+*Session closed at the expert's stop. Three questions queued for resumption: run duration for a plain white on Line 2 (typical / one-in-ten worse / one-in-ten better); the heads-up mechanism behind B2; QA hold as a spread, and whether the lab queues.*

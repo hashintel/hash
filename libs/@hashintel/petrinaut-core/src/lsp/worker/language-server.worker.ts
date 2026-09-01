@@ -29,6 +29,7 @@ import {
   buildScenarioCodeContext,
   buildScenarioExpressionContext,
   compileHirArtifacts,
+  formatTypeScriptExpression,
   lowerScenarioToHir,
 } from "../../hir";
 import { getHirDiagnosticsForItem } from "../lib/check-hir";
@@ -43,10 +44,12 @@ import type { PetrinautExtensionSettings } from "../../extensions";
 import type { HirSurfaceContext } from "../../hir";
 import type { SDCPN } from "../../types/sdcpn";
 import type {
+  AdHocSessionData,
   MetricSessionData,
   ScenarioSessionData,
 } from "../lib/generate-virtual-files";
 import type {
+  AdHocSessionParams,
   ClientMessage,
   MetricSessionParams,
   PublishDiagnosticsParams,
@@ -117,6 +120,9 @@ function scenarioHirContextForFile(
       );
   }
 }
+
+/** Active ad-hoc scenario editing sessions (sessionId → session data). */
+const adHocSessions = new Map<string, AdHocSessionData>();
 
 function respond(id: number, result: unknown): void {
   workerRuntime.postMessage({
@@ -198,6 +204,31 @@ function publishAllDiagnostics(
     }
   }
 
+  // Include diagnostics for all active ad-hoc scenario sessions
+  for (const [, session] of adHocSessions) {
+    const adHocFiles = server.getAdHocFileNames(session.sessionId);
+    for (const filePath of adHocFiles) {
+      // Skip defs files — only check code files
+      if (filePath.endsWith("/defs.d.ts")) {
+        continue;
+      }
+      const uri = filePathToUri(filePath);
+      if (!uri) {
+        continue;
+      }
+      const userContent = server.getUserContent(filePath) ?? "";
+      const semanticDiags = server.getSemanticDiagnostics(filePath);
+      const syntacticDiags = server.getSyntacticDiagnostics(filePath);
+      const allDiags = [...syntacticDiags, ...semanticDiags];
+      params.push({
+        uri,
+        diagnostics: allDiags.map((diag) =>
+          serializeDiagnostic(diag, userContent),
+        ),
+      });
+    }
+  }
+
   // Include diagnostics for all active metric sessions
   const metricHirContext = buildMetricContext(sdcpn, extensions);
   for (const [, session] of metricSessions) {
@@ -267,6 +298,28 @@ function syncScenarioSession(
   publishAllDiagnostics(sdcpn, extensions);
 }
 
+/** Convert protocol params to internal ad-hoc session data. */
+function toAdHocSessionData(params: AdHocSessionParams): AdHocSessionData {
+  return {
+    sessionId: params.sessionId,
+    state: params.state,
+  };
+}
+
+/** Sync ad-hoc session files and publish diagnostics. */
+function syncAdHocSession(
+  sessionData: AdHocSessionData,
+  sdcpn: SDCPN,
+  extensions: PetrinautExtensionSettings,
+): void {
+  if (!server) {
+    return;
+  }
+  adHocSessions.set(sessionData.sessionId, sessionData);
+  server.syncAdHocFiles(sdcpn, sessionData);
+  publishAllDiagnostics(sdcpn, extensions);
+}
+
 /** Convert protocol params to internal metric session data. */
 function toMetricSessionData(params: MetricSessionParams): MetricSessionData {
   return {
@@ -307,6 +360,9 @@ let pendingScenarioInits: ScenarioSessionData[] = [];
 /** Same queueing strategy for metric sessions. */
 let pendingMetricInits: MetricSessionData[] = [];
 
+/** Same queueing strategy for ad-hoc scenario sessions. */
+let pendingAdHocInits: AdHocSessionData[] = [];
+
 workerRuntime.onMessage((data) => {
   try {
     switch (data.method) {
@@ -326,6 +382,12 @@ workerRuntime.onMessage((data) => {
           server.syncScenarioFiles(sdcpn, session);
         }
         pendingScenarioInits = [];
+        // Replay ad-hoc sessions that arrived before SDCPN init
+        for (const session of pendingAdHocInits) {
+          adHocSessions.set(session.sessionId, session);
+          server.syncAdHocFiles(sdcpn, session);
+        }
+        pendingAdHocInits = [];
         // Replay metric sessions that arrived before SDCPN init
         for (const session of pendingMetricInits) {
           metricSessions.set(session.sessionId, session);
@@ -347,6 +409,10 @@ workerRuntime.onMessage((data) => {
         // Re-sync all scenario sessions since SDCPN types may have changed
         for (const session of scenarioSessions.values()) {
           server.syncScenarioFiles(sdcpn, session);
+        }
+        // Re-sync all ad-hoc sessions since SDCPN types may have changed
+        for (const session of adHocSessions.values()) {
+          server.syncAdHocFiles(sdcpn, session);
         }
         // Re-sync all metric sessions since SDCPN types may have changed
         for (const session of metricSessions.values()) {
@@ -413,6 +479,47 @@ workerRuntime.onMessage((data) => {
         break;
       }
 
+      case "temp/adhoc/initialize": {
+        const sessionData = toAdHocSessionData(data.params);
+        if (!lastSDCPN) {
+          // Queue — will be replayed when SDCPN `initialize` arrives
+          pendingAdHocInits.push(sessionData);
+          break;
+        }
+        syncAdHocSession(sessionData, lastSDCPN, lastExtensions);
+        break;
+      }
+
+      case "temp/adhoc/didChange": {
+        const sessionData = toAdHocSessionData(data.params);
+        if (!lastSDCPN) {
+          const idx = pendingAdHocInits.findIndex(
+            (s) => s.sessionId === sessionData.sessionId,
+          );
+          if (idx >= 0) {
+            pendingAdHocInits[idx] = sessionData;
+          } else {
+            pendingAdHocInits.push(sessionData);
+          }
+          break;
+        }
+        syncAdHocSession(sessionData, lastSDCPN, lastExtensions);
+        break;
+      }
+
+      case "temp/adhoc/kill": {
+        const { sessionId } = data.params;
+        adHocSessions.delete(sessionId);
+        pendingAdHocInits = pendingAdHocInits.filter(
+          (s) => s.sessionId !== sessionId,
+        );
+        server?.removeAdHocSession(sessionId);
+        if (lastSDCPN) {
+          publishAllDiagnostics(lastSDCPN, lastExtensions);
+        }
+        break;
+      }
+
       case "temp/metric/initialize": {
         const sessionData = toMetricSessionData(data.params);
         if (!lastSDCPN) {
@@ -466,7 +573,18 @@ workerRuntime.onMessage((data) => {
 
       case "sdcpn/lowerScenario": {
         const { id } = data;
-        respond(id, lowerScenarioToHir(data.params.scenario));
+        respond(
+          id,
+          lowerScenarioToHir(data.params.scenario, {
+            adHocContext: data.params.adHocContext,
+          }),
+        );
+        break;
+      }
+
+      case "sdcpn/formatExpression": {
+        const { id } = data;
+        respond(id, formatTypeScriptExpression(data.params.code));
         break;
       }
 

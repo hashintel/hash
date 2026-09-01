@@ -11,7 +11,10 @@ import { StatusCode } from "@local/status";
 
 import { createTestImpureGraphContext } from "./util";
 
-import type { GraphStatus } from "@rust/hash-graph-type-defs/typescript/status";
+import type { Status } from "@local/status";
+import type { ErrorInfo } from "@local/status/type-defs/status-payloads/error-info";
+
+type GraphStatus = Status<ErrorInfo>;
 
 /**
  * Throw unless running in the snapshot group (`vitest.snapshot.config.ts`),

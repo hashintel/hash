@@ -1,4 +1,5 @@
 import { getArcEndpoint } from "./arc-endpoints";
+import { cloneAdHocScenarioState } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-actions";
 
 import type {
   ComponentInstance,
@@ -84,7 +85,10 @@ const sanitizeScenarioInitialStateForExtensions = (
   initialState: NonNullable<SDCPN["scenarios"]>[number]["initialState"],
   extensions: PetrinautExtensionSettings,
 ): NonNullable<SDCPN["scenarios"]>[number]["initialState"] => {
-  if (extensions.colors || initialState.type === "code") {
+  // Code-mode and ad-hoc initial states are returned as-is: like code, an
+  // ad-hoc definition may reference coloured places, and stripping it here
+  // would destroy the user's authored state.
+  if (extensions.colors || initialState.type !== "per_place") {
     return initialState;
   }
 
@@ -478,9 +482,8 @@ export const sanitizeSDCPNForExtensions = (
       })),
       parameterOverrides: { ...scenario.parameterOverrides },
       initialState:
-        scenario.initialState.type === "code"
-          ? { ...scenario.initialState }
-          : {
+        scenario.initialState.type === "per_place"
+          ? {
               type: "per_place",
               content: Object.fromEntries(
                 Object.entries(scenario.initialState.content).map(
@@ -490,7 +493,13 @@ export const sanitizeSDCPNForExtensions = (
                   ],
                 ),
               ),
-            },
+            }
+          : scenario.initialState.type === "adhoc"
+            ? {
+                type: "adhoc",
+                content: cloneAdHocScenarioState(scenario.initialState.content),
+              }
+            : { ...scenario.initialState },
     }));
   }
 

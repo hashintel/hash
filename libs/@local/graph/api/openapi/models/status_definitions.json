@@ -45,48 +45,6 @@
       },
       "required": ["domain", "metadata", "reason"]
     },
-    "RequestInfo": {
-      "type": "object",
-      "properties": {
-        "requestId": {
-          "description": "An opaque string that should only be interpreted by the service generating it. For example, it\ncan be used to identify requests in the service's logs.",
-          "type": "string",
-          "title": "requestId"
-        },
-        "servingData": {
-          "description": "Any data that was used to serve this request. For example, an encrypted stack trace that can be\nsent back to the service provider for debugging.",
-          "type": "string",
-          "title": "servingData"
-        }
-      },
-      "required": ["requestId", "servingData"]
-    },
-    "ResourceInfo": {
-      "type": "object",
-      "properties": {
-        "resourceType": {
-          "description": "A name for the type of resource being accessed.\n\nFor example \"SQL table\", \"Entity\", \"Property Type\", \"Redis\"; or the type URL of the resource:\ne.g. \"https://blockprotocol.org/type-system/0.3/schema/meta/entity-type\".",
-          "type": "string",
-          "title": "resourceType"
-        },
-        "resourceName": {
-          "description": "The name of the resource being accessed.\n\nFor example, an ontology type ID: `https://hash.ai/@alice/types/entity-type/Person/`, if the current\nerror is [@local/status/StatusCode.PermissionDenied].",
-          "type": "string",
-          "title": "resourceName"
-        },
-        "owner": {
-          "description": "The owner of the resource (optional).\n\nFor example, a User's entity ID: `2cfa262a-f49a-4a61-a9c5-80a0c5959994%45e528cb-801d-49d1-8f71-d9e2af38a5e7`;",
-          "type": "string",
-          "title": "owner"
-        },
-        "description": {
-          "description": "Describes what error is encountered when accessing this resource.\n\nFor example, updating a property on a user's entity may require write permission on that property.",
-          "type": "string",
-          "title": "description"
-        }
-      },
-      "required": ["description", "resourceName", "resourceType"]
-    },
     "ErrorInfoMetadata": {
       "description": "Construct a type with a set of properties K of type T",
       "title": "Record<string,any>",

@@ -77,6 +77,49 @@ const storePath = async (): Promise<string> => {
 };
 
 describe("local capture store", () => {
+  test("refuses a different opaque owner before reading or writing a target document", async () => {
+    const path = await storePath();
+    const ownerStore = createLocalCaptureStoreAdapter(path, {
+      ownerKey: "principal-a",
+    });
+    await archiveThroughBinding(ownerStore, {
+      sessionId: "session-a",
+      offset: "0",
+      entries: [],
+      settlements: [],
+    });
+    await archiveThroughBinding(ownerStore, {
+      sessionId: "session-c",
+      offset: "0",
+      entries: [],
+      settlements: [],
+    });
+
+    const intruderStore = createLocalCaptureStoreAdapter(path, {
+      ownerKey: "principal-b",
+    });
+    await expect(intruderStore.read()).rejects.toMatchObject({
+      code: "target-document-owner-mismatch",
+    });
+    await expect(
+      archiveThroughBinding(intruderStore, {
+        sessionId: "session-b",
+        offset: "0",
+        entries: [],
+        settlements: [],
+      }),
+    ).rejects.toMatchObject({
+      code: "target-document-owner-mismatch",
+    });
+
+    expect(JSON.parse(await readFile(path, "utf8"))).toMatchObject({
+      ownerKey: "principal-a",
+      sessionLogArchive: {
+        sessions: [{ sessionId: "session-a" }, { sessionId: "session-c" }],
+      },
+    });
+  });
+
   test("persists captures through JSON tmp-and-rename without stored statuses", async () => {
     const path = await storePath();
     const first = createLocalCaptureStore(path);
@@ -242,7 +285,8 @@ describe("local capture store", () => {
     });
 
     expect(JSON.parse(await readFile(path, "utf8"))).toEqual({
-      formatVersion: 1,
+      formatVersion: 2,
+      ownerKey: null,
       captureStore: legacy,
       sessionLogArchive: {
         sessions: [

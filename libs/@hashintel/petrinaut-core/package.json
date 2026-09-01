@@ -20,46 +20,50 @@
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
-  "types": "./dist/index.d.d.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.d.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
     "./ai": {
-      "types": "./dist/ai.d.d.ts",
+      "types": "./dist/ai.d.ts",
       "import": "./dist/ai.js"
     },
     "./compiled-model": {
-      "types": "./dist/compiled-model.d.d.ts",
+      "types": "./dist/compiled-model.d.ts",
       "import": "./dist/compiled-model.js"
     },
     "./examples": {
-      "types": "./dist/examples/index.d.d.ts",
+      "types": "./dist/examples/index.d.ts",
       "import": "./dist/examples/index.js"
     },
     "./hir": {
-      "types": "./dist/hir.d.d.ts",
+      "types": "./dist/hir.d.ts",
       "import": "./dist/hir.js"
     },
     "./hir-runtime": {
-      "types": "./dist/hir-runtime.d.d.ts",
+      "types": "./dist/hir-runtime.d.ts",
       "import": "./dist/hir-runtime.js"
     },
     "./optimization": {
-      "types": "./dist/optimization.d.d.ts",
+      "types": "./dist/optimization.d.ts",
       "import": "./dist/optimization.js"
     },
+    "./selection": {
+      "types": "./dist/selection.d.ts",
+      "import": "./dist/selection.js"
+    },
     "./workers/lsp": {
-      "types": "./dist/workers/lsp.d.d.ts",
+      "types": "./dist/workers/lsp.d.ts",
       "import": "./dist/workers/lsp.js"
     },
     "./workers/monte-carlo": {
-      "types": "./dist/workers/monte-carlo.d.d.ts",
+      "types": "./dist/workers/monte-carlo.d.ts",
       "import": "./dist/workers/monte-carlo.js"
     },
     "./workers/simulation": {
-      "types": "./dist/workers/simulation.d.d.ts",
+      "types": "./dist/workers/simulation.d.ts",
       "import": "./dist/workers/simulation.js"
     },
     "./package.json": "./package.json"
@@ -90,10 +94,10 @@
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
-    "rolldown": "1.1.2",
-    "rolldown-plugin-dts": "0.25.0",
+    "rolldown": "1.2.6",
+    "rolldown-plugin-dts": "0.28.3",
     "typescript": "5.9.3",
-    "vite": "8.1.0",
+    "vite": "8.2.2",
     "vitest": "4.1.10"
   },
   "peerDependencies": {

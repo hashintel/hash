@@ -8,20 +8,19 @@ exclude = [
 members = [
     "apps/hash-graph",
     "libs/@blockprotocol/type-system/rust",
-    "libs/@local/codec",
+    "libs/@local/codec/rust",
     "libs/@local/codegen",
     "libs/@local/config",
-    "libs/@local/effect-dns/hickory",
+    "libs/@local/effect-dns/hickory/rust",
     "libs/@local/graph/api",
     "libs/@local/graph/authentication/",
-    "libs/@local/graph/authorization",
+    "libs/@local/graph/authorization/rust",
     "libs/@local/graph/embeddings",
     "libs/@local/graph/migrations",
     "libs/@local/graph/migrations-macros",
     "libs/@local/graph/postgres-store",
-    "libs/@local/graph/store",
+    "libs/@local/graph/store/rust",
     "libs/@local/graph/temporal-versioning",
-    "libs/@local/graph/type-defs",
     "libs/@local/graph/type-fetcher",
     "libs/@local/graph/types",
     "libs/@local/graph/validation",
@@ -75,20 +74,19 @@ harpc-system.path                   = "libs/@local/harpc/system"
 harpc-tower.path                    = "libs/@local/harpc/tower"
 harpc-types.path                    = "libs/@local/harpc/types"
 harpc-wire-protocol.path            = "libs/@local/harpc/wire-protocol"
-hash-codec.path                     = "libs/@local/codec"
+hash-codec.path                     = "libs/@local/codec/rust"
 hash-codegen.path                   = "libs/@local/codegen"
 hash-config.path                    = "libs/@local/config"
 hash-graph-api.path                 = "libs/@local/graph/api"
 hash-graph-authentication.path      = "libs/@local/graph/authentication/"
-hash-graph-authorization.path       = "libs/@local/graph/authorization"
+hash-graph-authorization.path       = "libs/@local/graph/authorization/rust"
 hash-graph-embeddings.path          = "libs/@local/graph/embeddings"
 hash-graph-migrations.path          = "libs/@local/graph/migrations"
 hash-graph-migrations-macros.path   = "libs/@local/graph/migrations-macros"
 hash-graph-postgres-store.path      = "libs/@local/graph/postgres-store"
-hash-graph-store.path               = "libs/@local/graph/store"
+hash-graph-store.path               = "libs/@local/graph/store/rust"
 hash-graph-temporal-versioning.path = "libs/@local/graph/temporal-versioning"
 hash-graph-test-data.path           = "tests/graph/test-data/rust"
-hash-graph-type-defs.path           = "libs/@local/graph/type-defs"
 hash-graph-type-fetcher.path        = "libs/@local/graph/type-fetcher"
 hash-graph-types.path               = "libs/@local/graph/types"
 hash-graph-validation.path          = "libs/@local/graph/validation"

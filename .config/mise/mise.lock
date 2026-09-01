@@ -222,7 +222,7 @@ backend = "npm:renovate"
 trust_policy_excludes = '["@yarnpkg/libzip@3.2.2"]'
 
 [[tools."npm:turbo"]]
-version = "2.6.3"
+version = "2.10.12"
 backend = "npm:turbo"
 
 [[tools.oxfmt]]

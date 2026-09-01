@@ -26,12 +26,12 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import type {
   EntityTraversalPath,
   GraphResolveDepths,
   TraversalPath,
-} from "@rust/hash-graph-store/types";
+} from "@local/hash-graph-store/types";
+import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
 /* Entity CRU */
 

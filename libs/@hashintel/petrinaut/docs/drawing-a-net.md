@@ -20,7 +20,7 @@ Spans the full editor width and has three sections.
 **Left**
 
 - **Sidebar toggle** -- collapses or expands the left sidebar.
-- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
+- **Menu** (hamburger icon) -- file operations: **Export** (YAML or JSON, each with or without visual info, or TikZ), **Layout** (apply auto-layout), and **Docs**. **Layout** is not offered on a read-only net, because it moves nodes. A standalone embed of Petrinaut may additionally show **New**, **Open**, **Import**, and **Load example**.
 - **Net title** -- editable inline title for the current net. Whether the title field is shown depends on the host application; the demo site shows it, but a Petrinaut embedded in another product may hide it.
 
 **Center**
@@ -145,6 +145,20 @@ Toggle the sidebar with the button in the top-left corner.
 
 Press **Cmd+F** / **Ctrl+F** to open a search bar. Type to filter entities by name. Press **Escape** to close.
 
+## Browser Back and Forward
+
+On hosts with app navigation enabled, Browser **Back** and **Forward** move
+through the app locations you visited. This includes switching global
+modes or Simulate sections, opening an existing scenario, metric, experiment,
+or optimization, opening or closing their creation drawers, changing subnet,
+committing a selection, and opening or closing Viewport Settings. Creation
+drawers opened from Simulation Settings or the timeline are included too. A
+drag-selection gesture creates one location after you finish drawing the
+selection box, rather than one for every pointer move.
+
+Browser history restores what you were looking at; it does not undo changes to
+the Petri net. Use Petrinaut's Undo / Redo commands for document changes.
+
 ## Undo / Redo
 
 Use the **Cmd+Z** / **Ctrl+Z** shortcut to undo the last action. Use the **Cmd+Shift+Z** / **Ctrl+Shift+Z** shortcut to redo the last action.
@@ -187,4 +201,4 @@ From the top-bar menu (hamburger icon), under **Export**:
 
 ## Auto-layout
 
-From the hamburger menu, select **Layout** to apply an automatic graph layout (ELK) that rearranges all nodes. Useful after importing a net without positions or when a net has become cluttered. This will not always be an improvement!
+From the hamburger menu, select **Layout** to apply an automatic graph layout (ELK) that rearranges all nodes. Useful after importing a net without positions or when a net has become cluttered. This will not always be an improvement! The item is hidden on a read-only net, which cannot accept the move.

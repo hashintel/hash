@@ -2,27 +2,6 @@
   "version": "2.0",
   "description": "Skill activation triggers for HASH Claude Code. Controls when skills automatically suggest or block actions.",
   "skills": {
-    "ark-ui": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "medium",
-      "description": "Headless component library for React. Use when building UI components with @ark-ui/react, implementing accessible form inputs, overlays, navigation patterns, or needing guidance on Ark UI's data attributes, composition (asChild), and state management patterns.",
-      "promptTriggers": {
-        "keywords": ["ark-ui", "@ark-ui/react", "headless components"],
-        "intentPatterns": [
-          "\\b(use|create|build|implement)\\b.*?\\bark[-\\s]?ui\\b",
-          "\\b(checkbox|combobox|dialog|popover|tooltip)\\b.*?\\b(headless|ark)\\b"
-        ]
-      },
-      "fileTriggers": {
-        "include": [],
-        "exclude": [],
-        "content": [],
-        "create-only": false
-      },
-      "blockMessage": "Skill is required to proceed",
-      "skipConditions": {}
-    },
     "documenting-rust-code": {
       "type": "domain",
       "enforcement": "suggest",
@@ -170,21 +149,21 @@
       "type": "domain",
       "enforcement": "suggest",
       "priority": "high",
-      "description": "Git workflow for HASH including branch naming, PR creation, and PR reviews. Use when creating branches, making commits, opening pull requests, or reviewing PRs.",
+      "description": "Git and pull-request workflow for HASH, including conditional Linear conventions and merge-queue diagnostics. Use when naming a branch, opening or reviewing a pull request, interpreting its checks, or diagnosing a merge-queue ejection.",
       "promptTriggers": {
         "keywords": [
-          "git",
-          "branch",
           "pull request",
-          "PR",
-          "commit",
-          "merge",
-          "review"
+          "branch naming",
+          "Linear issue",
+          "merge queue",
+          "GitHub Actions",
+          "branch protection"
         ],
         "intentPatterns": [
-          "\\b(create|open|submit|review)\\b.*?\\b(PR|pull request|branch)\\b",
+          "\\b(open|create|submit|review)\\b.*?\\b(PR|pull request)\\b",
           "\\b(name|naming)\\b.*?\\bbranch\\b",
-          "\\bH-\\d+\\b"
+          "\\b(FE|SRE|BE|H)-\\d+\\b",
+          "\\b(merge queue|merge group|queue ejection)\\b"
         ]
       },
       "fileTriggers": {
@@ -196,17 +175,14 @@
       "blockMessage": "Skill is required to proceed",
       "skipConditions": {}
     },
-    "mastra": {
+    "meaningful-identifiers": {
       "type": "domain",
       "enforcement": "suggest",
-      "priority": "medium",
-      "description": "Mastra TypeScript framework for AI agents with memory, tools, workflows, and RAG. Use when working with @mastra/* packages or building AI agents.",
+      "priority": "low",
+      "description": "Naming guidance for callback parameters and local variables in TypeScript. Use when writing or refactoring loops, array callbacks (map/filter/find/reduce), or local accumulators.",
       "promptTriggers": {
-        "keywords": ["mastra", "@mastra/", "mastra.ai"],
-        "intentPatterns": [
-          "\\b(use|build|create|implement)\\b.*?\\bmastra\\b",
-          "\\b(agent|workflow|rag)\\b.*?\\bmastra\\b"
-        ]
+        "keywords": ["naming", "rename", "identifier", "variable name"],
+        "intentPatterns": []
       },
       "fileTriggers": {
         "include": [],
@@ -217,44 +193,58 @@
       "blockMessage": "Skill is required to proceed",
       "skipConditions": {}
     },
-    "panda-css": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "medium",
-      "description": "Panda CSS styling framework guidance. Use when working with @pandacss packages, styled components, design tokens, or responsive/conditional styles.",
-      "promptTriggers": {
-        "keywords": ["panda-css", "panda css", "pandacss", "@pandacss"],
-        "intentPatterns": [
-          "\\b(use|style|create|configure)\\b.*?\\bpanda(-| )?css\\b",
-          "\\bcss\\b.*?\\b(recipe|pattern|token)s?\\b"
-        ]
-      },
-      "fileTriggers": {
-        "include": [],
-        "exclude": [],
-        "content": [],
-        "create-only": false
-      },
-      "blockMessage": "Skill is required to proceed",
-      "skipConditions": {}
-    },
-    "skill-creator": {
+    "rust-coding-style": {
       "type": "domain",
       "enforcement": "suggest",
       "priority": "high",
-      "description": "Guide for creating effective Agent Skills. Use when users want to create a new skill (or update an existing skill) that extends an AI agent's capabilities with specialized knowledge, workflows, or tool integrations. Covers skill structure, YAML frontmatter, trigger configuration, and the 500-line rule.",
+      "description": "HASH Rust coding style. Use when writing or reviewing Rust code, choosing types, imports, function arguments, or naming.",
       "promptTriggers": {
-        "keywords": [
-          "skill",
-          "skill-rules",
-          "SKILL.md",
-          "creating skill",
-          "writing skill"
-        ],
+        "keywords": ["rust coding style", "rustfmt", "clippy"],
         "intentPatterns": [
-          "\\b(how do|how does|explain)\\b.*?\\bskill\\b",
-          "\\b(create|add|modify|build|write)\\b.*?\\bskill\\b",
-          "\\bskill\\b.*?\\b(work|trigger|activate|system|structure|template|pattern)\\b"
+          "\\b(write|add|change|fix|implement|review|refactor|style|format)\\b.*?\\brust\\b",
+          "\\brust\\b.*?\\b(code|function|method|type|impl|trait|struct|enum|write|add|change|fix|implement|review|refactor|style|format)\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
+    "rust-testing-strategy": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "HASH Rust testing strategy. Use when writing Rust unit, integration, or snapshot tests, or choosing assertion and test-organization patterns.",
+      "promptTriggers": {
+        "keywords": ["rust test", "cargo nextest", "insta", "similar_asserts"],
+        "intentPatterns": [
+          "\\b(write|add|run|fix)\\b.*?\\b(rust|cargo)\\b.*?\\btest",
+          "\\b(nextest|snapshot test|insta)\\b"
+        ]
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
+    "rust-tracing-practices": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "medium",
+      "description": "HASH tracing and instrumentation practices for Rust. Use when adding spans, events, or #[tracing::instrument] to Rust code.",
+      "promptTriggers": {
+        "keywords": ["tracing", "instrument", "span", "rust log"],
+        "intentPatterns": [
+          "\\b(tracing|instrument|span)\\b",
+          "\\b(info|debug|trace|warn|error)!"
         ]
       },
       "fileTriggers": {
@@ -343,35 +333,6 @@
         "intentPatterns": [
           "\\b(write|read|create|parse)\\b.*?\\b(j-?expr|hashql)\\b",
           "\\b(hashql|jexpr)\\b.*?\\b(query|syntax|expression)\\b"
-        ]
-      },
-      "fileTriggers": {
-        "include": [],
-        "exclude": [],
-        "content": [],
-        "create-only": false
-      },
-      "blockMessage": "Skill is required to proceed",
-      "skipConditions": {}
-    },
-    "zod": {
-      "type": "domain",
-      "enforcement": "suggest",
-      "priority": "medium",
-      "description": "Zod v4 TypeScript schema validation patterns and best practices. Use when writing or modifying Zod schemas, adding schema annotations/metadata, or validating data with Zod.",
-      "promptTriggers": {
-        "keywords": [
-          "zod",
-          "z.object",
-          "z.string",
-          "z.number",
-          "z.array",
-          "schema validation",
-          "z.infer"
-        ],
-        "intentPatterns": [
-          "\\b(validate|create|define|add)\\b.*?\\b(schema|zod)\\b",
-          "\\bzod\\s+(v4|version|migration)\\b"
         ]
       },
       "fileTriggers": {

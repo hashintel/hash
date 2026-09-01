@@ -3641,7 +3641,6 @@ dependencies = [
  "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
- "hash-graph-type-defs",
  "hash-graph-type-fetcher",
  "hash-graph-types",
  "hash-graph-validation",
@@ -3972,16 +3971,6 @@ dependencies = [
  "type-system",
  "uuid",
  "xxhash-rust",
-]
-
-[[package]]
-name = "hash-graph-type-defs"
-version = "0.0.0"
-dependencies = [
- "hash-status",
- "serde",
- "serde_json",
- "simple-mermaid",
 ]
 
 [[package]]

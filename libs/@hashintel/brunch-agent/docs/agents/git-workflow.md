@@ -1,56 +1,54 @@
-# Git workflow: Graphite stacks
+# Git workflow: one issue, one branch, one pull request
 
-Branches are managed with **Graphite** (`gt`), matching HASH's repository-wide use of Graphite
-(its CI runs the Graphite optimizer). The standalone repository's late `gh stack` convention does
-not carry over. The unit of branching is the **Linear issue**: every stacked branch answers to at
-least one issue, created when work on that issue starts, and a branch may carry several issues
-when they are built together (two epicentres that settle one interface, for instance). Work
-discovered while resolving an issue (slices, refinements, side-fixes, a pivot it forces) stays on
-that issue's branch rather than getting a branch of its own; work with no issue behind it never
-gets a branch. Branches predating this convention (and the trunk) may mix multiple issues.
+Brunch branches are managed with Graphite. The submission unit is exactly one Linear issue, one
+stacked branch, and one GitHub pull request. This is an identity and visibility rule, not a ticket
+decomposition method: the branch is still governed by its mission.
 
-## git vs gt boundary
+Work discovered while executing the mission stays on the branch when it serves the same imperative
+and proof. Create another issue and branch only when the work has an independently meaningful
+mission and should be reviewed or landed independently. Do not split work merely to preserve an
+inherited issue graph.
 
-Use **git** for local operations that don't touch the stack: `status` / `diff` / `log`,
-`add` / `commit`, `stash`. Use **`gt`** for stack-aware operations: `gt create`, `gt submit`,
-`gt restack`, `gt sync`, and `gt checkout`. Raw branch creation or rebasing bypasses Graphite's
-stack parentage metadata; commits and reads are safe as plain git (run `gt restack` afterwards
-if upstack branches exist). Do not use `gh stack` in `hashintel/hash`.
+## Naming and linking
 
-## Shared-worktree safety
+For new work:
 
-A branch switch changes the checkout under every process using that worktree. Before `gt create`
-or `gt checkout`, record the current branch and inspect the worktree for unexpected changes or
-in-flight agents. If another agent may be active, use a separate worktree instead of switching the
-shared one; never stash, reset, clean, or otherwise claim work you did not create. Restore the
-branch you found after the stack operation unless the user asks to leave the worktree elsewhere.
+- **Branch:** `{prefix}/{issue-id}-{keywords}`, for example
+  `ln/fe-1510-prove-petrinaut-flue-chat`.
+- **PR title:** `{ISSUE-ID}: {Linear issue title in sentence case}`.
+- **PR body:** link the Linear issue and follow [`issue-writing.md`](issue-writing.md), including
+  the repository PR template and the visible-summary / `🏗️ Agent notes` split.
 
-## Naming
+If an active branch predates its issue, create and link the issue before submission. Do not rename a
+checked-out or stacked branch solely for cosmetic compliance when doing so would endanger in-flight
+work; make the relationship explicit in the PR and follow the naming rule on subsequent branches.
 
-- **Branch**: `{prefix}/{issue-id}-{keywords}` (e.g. `ln/fe-1362-demo-vehicle`).
-- **PR title**: `{ISSUE-ID}: {Linear issue title in sentence case}`
-  (e.g. `FE-1362: Decide the September demo vehicle`).
-- PR descriptions are written when tying off a branch, not during active development. They fill
-  the repository template (`.github/pull_request_template.md`) with the visible-summary /
-  `🏗️ Agent notes` split applied inside its sections, per `issue-writing.md`.
+## Git and Graphite boundary
 
-## Deposit rule
+Use plain `git` for local reads, staging, and commits: `status`, `diff`, `log`, `add`, and `commit`.
+Use `gt` for stack-aware operations: `create`, `checkout`, `restack`, `continue`, `abort`, `submit`,
+and `sync`. Raw branch creation or rebasing bypasses Graphite's parent metadata. Do not use
+`gh stack` in `hashintel/hash`.
 
-Work deposits its own description at authoring time, whatever tool authored it: a commit
-carries a body that explains outcome and mechanism (the FE-1400 sweep's messages are the
-register), and a branch is not tied off until its PR body says what it establishes. A
-semantically heavy branch with an empty message is a defect, not a style choice — prose
-backfill is remediation, not workflow (see `legibility.md`).
+The worktree is shared infrastructure. Before switching or restacking, inspect every involved
+worktree for uncommitted or in-flight work. Never stash, reset, clean, or relocate another tenant's
+changes to make a stack operation proceed.
 
 ## Lifecycle
 
-```text
-gt create {prefix}/fe-XXXX-keywords    # new branch stacked on the current one
-# ... work ...
-git add <files> && git commit          # plain git for commits
-gt submit                              # push + create/update the PR when ready
-gt sync                                # after merges: pull trunk, restack, prune
-```
+1. State the mission in `MISSION.md`. Collect successor concerns in `MISSION.next.md` without
+   declaring the next mission's focus or changing execution authority. On acceptance, archive the
+   closed mission under `docs/mission-archive/` and cut a focused `MISSION.md` from the scratchpad,
+   per `AGENTS.md`.
+2. After explicit approval, create its Linear issue in the `brunch-agent` project and assign the
+   accountable human.
+3. Create the Graphite branch from the intended parent, or explicitly link a pre-existing branch.
+4. Commit the branch's work and proof without creating issues for incidental implementation steps.
+5. Fill the GitHub PR template. The visible summary states what the mission establishes and does
+   not establish; Agent notes carry the full execution record.
+6. Submit with `gt submit` and verify that the Linear issue, branch, and PR link to one another.
+7. At close, update the PR with proof results, fog-line answers, and carried flags. Update Linear
+   status or comments only with explicit approval.
 
-Trunk is `main`. Link the PR from the Linear issue (or let Linear's GitHub integration attach
-it) so the issue records where its work landed.
+Trunk is `main`. A stacked child does not inherit its parent's issue: every submitted child has its
+own mission, Linear issue, and PR.

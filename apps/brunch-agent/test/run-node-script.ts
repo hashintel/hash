@@ -9,6 +9,7 @@ interface NodeScriptResult {
 export const runNodeScript = async (
   scriptPath: string,
   cwd: string,
+  env: Readonly<Record<string, string>> = {},
 ): Promise<NodeScriptResult> =>
   new Promise((resolve, reject) => {
     const child = spawn(
@@ -16,6 +17,7 @@ export const runNodeScript = async (
       ["--experimental-strip-types", scriptPath],
       {
         cwd,
+        env: { ...process.env, ...env },
         stdio: ["ignore", "pipe", "pipe"],
       },
     );

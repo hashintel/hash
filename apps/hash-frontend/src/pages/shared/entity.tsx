@@ -56,7 +56,7 @@ import type { EntityEditorProps } from "./entity/entity-editor";
 import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type { EntityId, PropertyObject } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { EntityTraversalPath } from "@rust/hash-graph-store/types";
+import type { EntityTraversalPath } from "@local/hash-graph-store/types";
 
 interface EntityProps {
   entityId: EntityId;

@@ -1,7 +1,8 @@
 /**
- * Fixtures for the read path: a small synthetic plugin file and a capture
- * envelope builder. The synthetic file keeps the tests independent of the
- * SDCPN file's row set; `plugin-file.test.ts` reads the real file separately.
+ * Fixtures for the read path: a small synthetic plugin definition and a
+ * capture envelope builder. The synthetic definition keeps the tests
+ * independent of the SDCPN definition's row set; `plugin-definition.test.ts`
+ * reads the real definitions separately.
  */
 
 import {
@@ -11,70 +12,88 @@ import {
   type CaptureStoreEvent,
   type CaptureStoreSnapshot,
 } from "../src/capture-store";
-import { parsePluginFile, type PluginFile } from "../src/plugin-file";
+import {
+  readPluginDefinition,
+  type PluginDefinition,
+} from "../src/plugin-definition";
 
 import type { JsonValue } from "../src/json-value";
 import type { SlotAssertion } from "../src/slot-assertion";
 
-export const FIXTURE_PLUGIN_MARKDOWN = `# Fixture plugin
+export const FIXTURE_PLUGIN_YAML = `plugin:
+  id: fixture
+  version: fixture/2026-08-25.1
+  formalism: fixture
+  jobs: [construct]
+  purpose: Interview someone about things and steps.
 
-Plugin: \`fixture\` · Target formalism: fixture · Version: \`fixture/2026-08-25.1\`
+ontology:
+  preamble: Attributes apply to every kind.
+  kinds:
+    - { kind: objective, is: A question, projects_to: metrics }
+    - { kind: thing, is: A thing, projects_to: colours }
+    - { kind: step, is: A step, projects_to: transitions }
+  not_kinds:
+    - { name: queue, text: "A queue is a thing with a count, not a kind." }
+  attributes:
+    - name: status
+      on: every kind
+      values: [current, planned]
+      text: Whether the node exists today or is proposed.
 
-## Purpose
+schema:
+  preamble: A slot is satisfied only by what the expert said.
+  anchor: { kind: objective, depends_on: the nodes it depends on }
+  floor:
+    - { kind: objective, at_least: 1 }
+    - { kind: thing, at_least: 2 }
+    - { kind: step, at_least: 1 }
+  must_know:
+    - { kind: objective, slot: the question, precision: spelled out, not_applicable: false, why: anchor }
+    - { kind: objective, slot: the nodes it depends on, precision: at least 1, not_applicable: false, why: slice }
+    - { kind: thing, slot: distinctions, precision: spelled out, not_applicable: false, why: types }
+    - { kind: thing, slot: how many, precision: range, not_applicable: true, why: population }
+    - { kind: step, slot: how long it takes, precision: spread, not_applicable: false, why: duration }
+    - { kind: step, slot: who performs it, precision: named, not_applicable: true, why: binding }
+  proposals:
+    - { type: slot-asserted, payload: slot-assertion }
 
-Interview someone about things and steps.
+patterns:
+  preamble: Patterns fire on nodes.
+  items:
+    - { id: P01, on: [step], slot: how long it takes, when: a step is an event, ask: ask how often }
+    - { id: P02, on: [thing], when: more than one thing competes, ask: ask which wins }
+    - { id: P03, on: [], when: the expert says they do not know, ask: ask for a source }
 
-## Kinds
+guidance:
+  lenses:
+    - { name: fixture lens, text: Notice things. }
+  techniques: []
+  movements:
+    slice: []
+    sweep:
+      - { name: fixture sweep, text: Sweep the things. }
+  licenses: []
+  motifs: []
+  smells: []
+  rabbit_holes: []
+  failure_modes:
+    - { name: fixture failure, text: It failed., signature: it says so }
 
-| #   | kind        | what it is | projects to |
-| --- | ----------- | ---------- | ----------- |
-| 1   | \`objective\` | A question | metrics     |
-| 2   | \`thing\`     | A thing    | colours     |
-| 3   | \`step\`      | A step     | transitions |
+runbooks:
+  construct:
+    kickoff:
+      - { name: fixture kickoff, text: Ask the question first. }
+    trajectory: []
+    close: []
 
-Attributes apply to every kind.
-
-## Must know
-
-A slot is satisfied only by what the expert said.
-
-| kind        | slot                    | precision   | "not applicable" allowed | why the model needs it |
-| ----------- | ----------------------- | ----------- | ------------------------ | ---------------------- |
-| \`objective\` | the question            | spelled out | no                       | anchor                 |
-| \`objective\` | the nodes it depends on | at least 1  | no                       | slice                  |
-| \`thing\`     | distinctions            | spelled out | no                       | types                  |
-| \`thing\`     | how many                | range       | yes                      | population             |
-| \`step\`      | how long it takes       | spread      | no                       | duration               |
-| \`step\`      | who performs it         | named       | yes                      | binding                |
-
-Static floor — the model must contain at least one \`objective\`, at least two \`thing\` nodes, and
-at least one \`step\`.
-
-### Precision words
-
-| word    | means            | IR grade |
-| ------- | ---------------- | -------- |
-| \`named\` | identified in words | verbal |
-
-## Patterns
-
-| id  | when                            | ask                 |
-| --- | ------------------------------- | ------------------- |
-| P01 | a \`step\` is an event            | ask how often       |
-| P02 | more than one \`thing\` competes  | ask which wins      |
-| P03 | the expert says they do not know | ask for a source    |
-
-## Moves
-
-Move one. Move two.
-
-## Deliverable
-
-The model and its loss report.
+machinery:
+  checks: [slot-assertion]
+  tools: []
 `;
 
-export const fixturePluginFile = (): PluginFile =>
-  parsePluginFile(FIXTURE_PLUGIN_MARKDOWN);
+export const fixturePluginDefinition = (): PluginDefinition =>
+  readPluginDefinition(FIXTURE_PLUGIN_YAML);
 
 export interface CaptureOptions {
   readonly status?: "explicit" | "inferred" | "tentative";

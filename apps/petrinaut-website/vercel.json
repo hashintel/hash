@@ -9,11 +9,7 @@
   "outputDirectory": "./dist",
   "rewrites": [
     {
-      "source": "/brunch",
-      "destination": "/"
-    },
-    {
-      "source": "/optimization",
+      "source": "/((?!api(?:/|$)).*)",
       "destination": "/"
     }
   ],

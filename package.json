@@ -20,7 +20,6 @@
   },
   "scripts": {
     "agents:skill-management": "yarn workspace @local/repo-chores exe scripts/skill-management.ts",
-    "agents:symlink-rules": "yarn workspace @local/repo-chores exe scripts/symlink-agent-rules.ts",
     "bench": "npm-run-all --continue-on-error \"bench:*\"",
     "bench:integration": "CARGO_TERM_PROGRESS_WHEN=never turbo run bench:integration --env-mode=loose --",
     "bench:unit": "CARGO_TERM_PROGRESS_WHEN=never turbo run bench:unit --env-mode=loose --",
@@ -33,6 +32,9 @@
     "dev": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --filter '@apps/hash-frontend' --",
     "dev:backend": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --",
     "dev:backend:api": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-api' --",
+    "dev:brunch": "CARGO_TERM_PROGRESS_WHEN=never turbo run build --filter '@apps/petrinaut-website^...' && npm-run-all --parallel dev:brunch:server dev:brunch:panel",
+    "dev:brunch:panel": "PETRINAUT_WEBSITE_ROOT=\"$PWD/apps/petrinaut-website\" yarn workspace @apps/brunch-agent petrinaut:dev",
+    "dev:brunch:server": "yarn workspace @apps/brunch-agent dev",
     "dev:frontend": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-frontend' --",
     "dev:petrinaut-optimization": "yarn workspace @apps/petrinaut-website dev:optimization",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
@@ -110,6 +112,7 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "shell-quote@npm:1.8.4": "1.9.0",
+    "tsup/esbuild": "^0.28.1",
     "underscore": "1.13.8"
   },
   "engines": {

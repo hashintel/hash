@@ -41,22 +41,23 @@
   "scripts": {
     "build": "yarn clean && rollup -c --bundleConfigAsCjs",
     "clean": "rimraf ./dist/",
+    "codegen": "node scripts/copy-generated.ts",
     "compressed-size": "yarn build && find dist -iname '*.js' -exec npx terser@latest --compress --mangle --output {} -- {} \\;",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
-    "lint:tsc": "tsc --noEmit",
+    "lint:tsc": "tsc --noEmit && tsc --noEmit --project tsconfig.generated.json",
     "postpublish": "PACKAGE_DIR=$(pwd) yarn workspace @local/repo-chores exe scripts/postpublish.ts",
     "prepack": "node ../../../../scripts/check-package-payload.mjs",
     "prepublishOnly": "turbo run build && tsx scripts/prepublish.ts && yarn build",
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "workspace:^",
     "semver": "7.7.3",
     "uuid": "14.0.0"
   },
   "devDependencies": {
     "@local/eslint": "workspace:*",
+    "@local/hash-codec": "workspace:*",
     "@local/tsconfig": "workspace:*",
     "@rollup/plugin-commonjs": "29.0.0",
     "@rollup/plugin-node-resolve": "16.0.3",

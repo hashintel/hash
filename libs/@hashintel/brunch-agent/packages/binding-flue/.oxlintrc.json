@@ -35,7 +35,7 @@
           },
           {
             "group": ["@hashintel/brunch-agent-*"],
-            "message": "A binding may depend inward on the harness, not on Brunch extensions."
+            "message": "A binding may depend inward on the harness, not depend on other Brunch extensions."
           }
         ]
       }

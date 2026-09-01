@@ -1,0 +1,21 @@
+{
+  "name": "@rust/hash-codec",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "scripts": {
+    "build:types": "INSTA_UPDATE=always mise exec --env dev cargo:cargo-insta -- cargo-insta test --features codegen,numeric --test codegen",
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-codec --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
+    "test:unit": "mise run test:unit @rust/hash-codec"
+  },
+  "dependencies": {
+    "@rust/error-stack": "workspace:*",
+    "@rust/harpc-wire-protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "@rust/harpc-types": "workspace:*",
+    "@rust/hash-codegen": "workspace:*"
+  }
+}

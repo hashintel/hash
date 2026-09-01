@@ -20,6 +20,9 @@ packages/core                      LANE 3 (harness; substrate-free)
 ├─ naming.ts          ✓  identity/tool-name policy (ADR-0001)
 ├─ plugin.ts          ✓  plugin identity + one declared proposal floor (FE-1392); grows the
 │                        full catalog/tables/ops contract at FE-1393
+├─ prompts.ts,
+│  repertoire.yaml    ✓  guarded `./prompts` subpath: validated harness-default teaching;
+│                        binding/evaluation composition only, never a plugin import (ADR-0008)
 ├─ testing/           ✓  test utilities subpath (mirrors Flue's own store-contract pattern)
 ├─ ask-protocol.ts    ✓  substrate-free ask/suspension mechanism: affordance minting, guard,
 │                        reply-binding signal, and instruction fragments (FE-1422). See N1.
@@ -83,13 +86,11 @@ evaluations/protocols/process-model-elicitation/baseline/run.ts   EXPERIMENT PRO
   refusal), prompt content, and advisory semantics;
   `useElicitation` contributes only Flue projection, hooks, persistent-state, private-prompt,
   refresh, and durable-step wiring. A future `binding-pi` reuses both protocol modules.
-- **N2 (packs and cards).** Plugin-owned content lives in plugin packages, exported as
-  `defineSkill`-compatible definitions; the app's agent module _registers_ what the plugin
-  exports. Never per-agent `skills/` dirs holding plugin content in the app — that puts lane-3
-  policy inside lane-1, invisible to the boundary gates. Quiver (FE-1406) content is
-  harness-shipped: same rule, exported from core (or a `packages/quiver`), registered by hosts.
-  Card content stays assertable outside the Vite graph (fixture-grade copies; B4's probe
-  decides the exact shape).
+- **N2 (plugin cells and the repertoire; amended by ADR-0007 and ADR-0008).** Plugin-owned content
+  lives in plugin packages; never in per-agent app `skills/` directories, which would put lane-3
+  policy inside lane-1 and outside the boundary gates. Harness-owned teaching lives in core and is
+  exported only from `@hashintel/brunch-agent/prompts`; bindings and evaluation composition may
+  import it, plugins may not. The committed YAML remains directly assertable outside the bundle.
 - **N3 (application composition; amended by ADR-0004 / FE-1437).** There is no dedicated demo
   shell. The standalone `apps/dev` was imported as `apps/brunch-agent`, which owns the remote
   Brunch server, target gallery, and diagnostics. `apps/petrinaut-website` owns the user-facing

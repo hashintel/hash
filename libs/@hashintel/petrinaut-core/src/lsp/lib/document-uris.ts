@@ -54,6 +54,17 @@ export function getMetricDocumentUri(sessionId: string): string {
   return `inmemory://sdcpn/_temp/metrics/${sessionId}/code.ts`;
 }
 
+/**
+ * Build a document URI for one ad-hoc scenario value (used as Monaco model
+ * URI). `slotKey` is an `adHocSlotKey` string, which is path-safe.
+ */
+export function getAdHocDocumentUri(
+  sessionId: string,
+  slotKey: string,
+): string {
+  return `inmemory://sdcpn/_temp/adhoc/${sessionId}/values/${slotKey}.ts`;
+}
+
 // ---------------------------------------------------------------------------
 // URI regex patterns
 // ---------------------------------------------------------------------------
@@ -73,6 +84,9 @@ const SCENARIO_INITIAL_STATE_FULL_CODE_URI_RE =
 
 const METRIC_URI_RE = /^inmemory:\/\/sdcpn\/_temp\/metrics\/([^/]+)\/code\.ts$/;
 
+const ADHOC_VALUE_URI_RE =
+  /^inmemory:\/\/sdcpn\/_temp\/adhoc\/([^/]+)\/values\/([^/]+)\.ts$/;
+
 // ---------------------------------------------------------------------------
 // File path regex patterns
 // ---------------------------------------------------------------------------
@@ -89,6 +103,9 @@ const SCENARIO_INITIAL_STATE_FULL_CODE_PATH_RE =
   /^\/_temp\/scenarios\/([^/]+)\/initial_state_code\/code\.ts$/;
 
 const METRIC_PATH_RE = /^\/_temp\/metrics\/([^/]+)\/code\.ts$/;
+
+const ADHOC_VALUE_PATH_RE =
+  /^\/_temp\/adhoc\/([^/]+)\/values\/([^/]+)\/code\.ts$/;
 
 // ---------------------------------------------------------------------------
 // URI parsing
@@ -158,6 +175,14 @@ export function parseMetricDocumentUri(
   return match ? { sessionId: match[1]! } : null;
 }
 
+/** Extract session id and slot key from an ad-hoc value document URI. */
+export function parseAdHocDocumentUri(
+  uri: string,
+): { sessionId: string; slotKey: string } | null {
+  const match = ADHOC_VALUE_URI_RE.exec(uri);
+  return match ? { sessionId: match[1]!, slotKey: match[2]! } : null;
+}
+
 // ---------------------------------------------------------------------------
 // URI ↔ internal file path conversion
 // ---------------------------------------------------------------------------
@@ -215,6 +240,15 @@ export function uriToFilePath(uri: string): string | null {
     });
   }
 
+  // Try ad-hoc value URIs
+  const adHocParsed = parseAdHocDocumentUri(uri);
+  if (adHocParsed) {
+    return getItemFilePath("adhoc-value-code", {
+      sessionId: adHocParsed.sessionId,
+      slotKey: adHocParsed.slotKey,
+    });
+  }
+
   // Try scenario URIs
   return scenarioUriToFilePath(uri);
 }
@@ -267,6 +301,11 @@ export function filePathToUri(filePath: string): string | null {
   match = METRIC_PATH_RE.exec(filePath);
   if (match) {
     return getMetricDocumentUri(match[1]!);
+  }
+
+  match = ADHOC_VALUE_PATH_RE.exec(filePath);
+  if (match) {
+    return getAdHocDocumentUri(match[1]!, match[2]!);
   }
 
   return null;

@@ -132,7 +132,7 @@ X-Authenticated-User-Actor-Id: {{system_machine_id}}
   });
   client.test("error message mentions inputs", function() {
     client.assert(response.body.message !== undefined, "Expected error message");
-    client.assert(response.body.contents[0].Error.metadata.deserializationError.includes("inputs"),
+    client.assert(response.body.contents[0].metadata.deserializationError.includes("inputs"),
       "Expected error to mention missing 'inputs' field");
   });
 %}

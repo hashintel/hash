@@ -16,12 +16,12 @@ import {
   type SlotState,
 } from "./elicited-model";
 import {
+  formatPrecisionDemand,
   type FloorRow,
   type MustKnowRow,
-  type PluginFile,
-  type PrecisionDemand,
+  type PluginDefinition,
   type PrecisionWord,
-} from "./plugin-file";
+} from "./plugin-definition";
 
 import type { JsonValue } from "./json-value";
 
@@ -92,20 +92,20 @@ export interface CompletionDemands {
   readonly anchor?: CompletionAnchor;
 }
 
-export const ANCHOR_KIND = "objective";
-
-/** The demands one plugin file states, with the SDCPN default for accepted statuses. */
+/** The demands one plugin definition states, with `explicit` as the default accepted status. */
 export const completionDemands = (
-  file: PluginFile,
+  definition: PluginDefinition,
   options: { readonly acceptedStatuses?: readonly EpistemicStatus[] } = {},
 ): CompletionDemands => {
-  const anchorRow = file.mustKnow.find(
-    (row) => row.kind === ANCHOR_KIND && row.precision.kind === "at-least",
+  const anchorRow = definition.mustKnow.find(
+    (row) =>
+      row.kind === definition.anchor.kind &&
+      row.slot === definition.anchor.dependencySlot,
   );
   return {
-    pluginVersion: file.version,
-    floor: file.floor,
-    rows: file.mustKnow,
+    pluginVersion: definition.version,
+    floor: definition.floor,
+    rows: definition.mustKnow,
     acceptedStatuses: options.acceptedStatuses ?? ["explicit"],
     ...(anchorRow && anchorRow.precision.kind === "at-least"
       ? {
@@ -140,9 +140,6 @@ export const precisionSatisfies = (
   if (given === "spelled out") return demanded === "named";
   return LADDER[given]! >= LADDER[demanded]!;
 };
-
-const describeDemand = (precision: PrecisionDemand): string =>
-  precision.kind === "word" ? precision.word : `at least ${precision.count}`;
 
 const isEmptySelection = (value: JsonValue): boolean =>
   value === null ||
@@ -179,7 +176,7 @@ const evaluateRow = (
     nodeId: node.id,
     kind: node.kind,
     slot: row.slot,
-    requirement: describeDemand(row.precision),
+    requirement: formatPrecisionDemand(row.precision),
     actual: describeSlot(slot),
     captureIds: slot?.captureIds ?? [],
   };
@@ -251,19 +248,35 @@ const evaluateRow = (
           `"${row.slot}" on ${node.id} lists ${count}; at least ${row.precision.count} needed.`,
         );
   }
-  if (!precisionSatisfies(slot.precision, row.precision.word)) {
+  const demandedWords =
+    row.precision.kind === "word" ? [row.precision.word] : row.precision.words;
+  if (
+    !demandedWords.some((demanded) =>
+      precisionSatisfies(slot.precision, demanded),
+    )
+  ) {
+    const requirement = formatPrecisionDemand(row.precision);
     return fail(
       "below-required-precision",
-      `"${row.slot}" on ${node.id} is known as a ${slot.precision}; the model needs ${row.precision.word}. Smallest delta: move it from ${slot.precision} to ${row.precision.word}.`,
+      `"${row.slot}" on ${node.id} is known as a ${slot.precision}; the model needs ${requirement}. Smallest delta: move it from ${slot.precision} to ${row.precision.kind === "word" ? row.precision.word : `one of ${requirement}`}.`,
     );
   }
   return null;
 };
 
-const dependencyIds = (slot: SlotState | undefined): readonly string[] =>
-  slot?.state === "value" && Array.isArray(slot.value)
-    ? slot.value.filter((entry): entry is string => typeof entry === "string")
+const dependencyIds = (slot: SlotState | undefined): readonly string[] => {
+  if (slot?.state !== "value") {
+    return [];
+  }
+  if (Array.isArray(slot.value)) {
+    return slot.value.filter(
+      (entry): entry is string => typeof entry === "string",
+    );
+  }
+  return typeof slot.value === "string" && slot.value !== ""
+    ? [slot.value]
     : [];
+};
 
 export function evaluateCompletion(
   model: ElicitedModel,

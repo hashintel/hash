@@ -19,6 +19,28 @@ export type { ActualModeContextValue } from "./actual-mode-context";
 export { PetrinautProvider } from "./petrinaut-provider";
 export type { PetrinautProviderProps } from "./petrinaut-provider";
 export {
+  defaultPetrinautNavigationHistoryPolicy,
+  defaultPetrinautNavigationState,
+  openPetrinautSimulationResource,
+  openPetrinautSubnet,
+  PetrinautNavigationProvider,
+  petrinautNavigationStatesMatch,
+  usePetrinautNavigation,
+} from "./navigation";
+export type {
+  PetrinautNavigationAction,
+  PetrinautNavigationController,
+  PetrinautNavigationHistory,
+  PetrinautNavigationHistoryPolicy,
+  PetrinautNavigationIntent,
+  PetrinautNavigationOverlay,
+  PetrinautNavigationProviderProps,
+  PetrinautNavigationState,
+  PetrinautNavigationUpdate,
+  PetrinautNavigationUpdater,
+  PetrinautSimulateResource,
+} from "./navigation";
+export {
   NetManagementContext,
   type NetManagement,
 } from "./net-management-context";

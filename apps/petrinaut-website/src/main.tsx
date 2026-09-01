@@ -2,10 +2,11 @@ import "@hashintel/petrinaut/styles.css";
 import "./app.css";
 import "./sentry/instrument";
 import * as Sentry from "@sentry/react";
+import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { DemoApp } from "./main/app";
+import { router } from "./router";
 import { SentryErrorTrackerProvider } from "./sentry/sentry-error-tracker-provider";
 
 const root = createRoot(document.getElementById("root")!, {
@@ -25,7 +26,7 @@ const root = createRoot(document.getElementById("root")!, {
 root.render(
   <StrictMode>
     <SentryErrorTrackerProvider>
-      <DemoApp />
+      <RouterProvider router={router} />
     </SentryErrorTrackerProvider>
   </StrictMode>,
 );

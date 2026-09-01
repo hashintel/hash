@@ -1,0 +1,22 @@
+{
+  "name": "@rust/hash-graph-authorization",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "scripts": {
+    "build:types": "INSTA_UPDATE=always mise exec --env dev cargo:cargo-insta -- cargo-insta test --features codegen --test codegen",
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-authorization --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
+    "test:integration": "cargo hack nextest run --feature-powerset --all-targets --filterset \"kind(test) | kind(bench)\"",
+    "test:unit": "mise run test:unit @rust/hash-graph-authorization --test-strategy=powerset -- --all-targets --filterset 'not kind(test) & not kind(bench)'"
+  },
+  "dependencies": {
+    "@blockprotocol/type-system-rs": "workspace:*",
+    "@rust/error-stack": "workspace:*",
+    "@rust/hash-codec": "workspace:*"
+  },
+  "devDependencies": {
+    "@rust/hash-codegen": "workspace:*"
+  }
+}

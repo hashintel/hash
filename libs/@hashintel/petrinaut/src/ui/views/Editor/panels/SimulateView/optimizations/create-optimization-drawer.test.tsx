@@ -260,6 +260,7 @@ function makeSuccessfulLanguageClient(): LanguageClientContextValue {
         placeExpressions: {},
       }),
     ),
+    requestFormatExpression: vi.fn(() => Promise.resolve(null)),
     requestHirArtifacts: vi.fn((sdcpn: SDCPN) =>
       Promise.resolve({
         artifacts: {
@@ -281,6 +282,9 @@ function makeSuccessfulLanguageClient(): LanguageClientContextValue {
     initializeMetricSession: vi.fn(),
     updateMetricSession: vi.fn(),
     killMetricSession: vi.fn(),
+    initializeAdHocSession: vi.fn(),
+    updateAdHocSession: vi.fn(),
+    killAdHocSession: vi.fn(),
   };
 }
 

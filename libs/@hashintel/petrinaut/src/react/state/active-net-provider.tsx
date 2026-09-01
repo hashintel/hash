@@ -1,5 +1,6 @@
-import { use, useState, type ReactNode } from "react";
+import { use, useEffect, type ReactNode } from "react";
 
+import { openPetrinautSubnet, usePetrinautNavigation } from "../navigation";
 import { ActiveNetContext } from "./active-net-context";
 import { SDCPNContext } from "./sdcpn-context";
 
@@ -7,32 +8,39 @@ import { SDCPNContext } from "./sdcpn-context";
  * Derives the active net from the full SDCPN. When a subnet is active, editor
  * panels and canvas operations read that subnet's local places/transitions/etc.
  *
- * activeSubnetId is scoped to the current petriNetId: switching nets resets it
- * to null without a useEffect by storing the net id alongside the subnet id.
+ * activeSubnetId is part of Petrinaut's app location. Changing subnets clears
+ * selection in the same atomic transition. The navigation provider is keyed
+ * by document, so uncontrolled locations reset when the active handle changes.
  */
 export const ActiveNetProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const { petriNetId, petriNetDefinition } = use(SDCPNContext);
-  const [activeState, setActiveState] = useState<{
-    petriNetId: string | null;
-    subnetId: string | null;
-  } | null>(null);
-
-  // Effective subnet id: null if we've switched to a different net since it was set.
-  const activeSubnetId =
-    activeState?.petriNetId === petriNetId ? activeState.subnetId : null;
+  const { petriNetDefinition } = use(SDCPNContext);
+  const navigation = usePetrinautNavigation();
+  const requestedSubnetId = navigation.state.subnetId;
 
   const setActiveSubnetId = (subnetId: string | null) => {
-    setActiveState({ petriNetId, subnetId });
+    navigation.navigate(openPetrinautSubnet(subnetId), {
+      cause: "user",
+      action: "subnet",
+    });
   };
 
   const subnet =
-    activeSubnetId !== null
-      ? petriNetDefinition.subnets?.find(({ id }) => id === activeSubnetId)
+    requestedSubnetId !== null
+      ? petriNetDefinition.subnets?.find(({ id }) => id === requestedSubnetId)
       : undefined;
 
-  const resolvedSubnetId = subnet ? activeSubnetId : null;
+  const resolvedSubnetId = subnet ? requestedSubnetId : null;
+
+  useEffect(() => {
+    if (requestedSubnetId && !subnet) {
+      navigation.navigate(openPetrinautSubnet(null), {
+        cause: "normalization",
+        action: "subnet",
+      });
+    }
+  }, [navigation, requestedSubnetId, subnet]);
 
   const activeNet = subnet
     ? {

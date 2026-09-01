@@ -56,7 +56,7 @@ export const scanSkills = async (skillsDir: string) => {
   const errors: { readonly path: string; readonly error: unknown }[] = [];
 
   for (const entry of await readdir(skillsDir, { withFileTypes: true })) {
-    if (!entry.isDirectory()) {
+    if (!entry.isDirectory() && !entry.isSymbolicLink()) {
       continue;
     }
 
@@ -119,6 +119,13 @@ export const findSkillsDir = async (): Promise<string> => {
     cwd = parent;
   }
 
-  const skillsDir = path.join(cwd, ".claude/skills");
-  return skillsDir;
+  return path.join(cwd, ".agents/skills");
+};
+
+export const findClaudeSkillsDir = async (): Promise<string> => {
+  const agentsSkillsDir = await findSkillsDir();
+  return path.join(
+    path.dirname(path.dirname(agentsSkillsDir)),
+    ".claude/skills",
+  );
 };

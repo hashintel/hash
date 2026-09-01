@@ -6,7 +6,6 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../../../../../react";
 import { ActiveNetContext } from "../../../../../../react/state/active-net-context";
-import { EditorContext } from "../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
@@ -123,7 +122,6 @@ const NetsListContent: React.FC = () => {
     petriNetDefinition: { subnets },
   } = use(SDCPNContext);
   const { activeSubnetId, setActiveSubnetId } = use(ActiveNetContext);
-  const { clearSelection } = use(EditorContext);
   const { updateSubnet, removeSubnet } = usePetrinautMutations();
   const isReadOnly = useIsReadOnly();
 
@@ -141,7 +139,6 @@ const NetsListContent: React.FC = () => {
 
   const handleSelect = (subnetId: string | null) => {
     setActiveSubnetId(subnetId);
-    clearSelection();
   };
 
   const startEditing = (subnetId: string, currentName: string) => {

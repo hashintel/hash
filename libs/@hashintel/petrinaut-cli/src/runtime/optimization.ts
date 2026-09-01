@@ -180,7 +180,14 @@ export function createOptimizationProtocol(args: {
 
   // Lower the scenario's expressions once per study; each trial re-runs only
   // the type-check and the interpreter with that trial's parameter values.
-  const scenarioHir = lowerScenarioToHir(scenario);
+  const definition = manifest.model.definition;
+  const scenarioHir = lowerScenarioToHir(scenario, {
+    adHocContext: {
+      netParameters: definition.parameters,
+      places: definition.places,
+      types: definition.types,
+    },
+  });
 
   return {
     describe() {

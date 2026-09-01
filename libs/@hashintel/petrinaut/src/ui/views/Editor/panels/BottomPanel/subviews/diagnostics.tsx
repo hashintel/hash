@@ -129,7 +129,7 @@ const DiagnosticsContent: React.FC = () => {
     LanguageClientContext,
   );
   const { petriNetDefinition, getItemType } = use(SDCPNContext);
-  const { selectItem, setGlobalMode } = use(EditorContext);
+  const { navigateTo, selectItem } = use(EditorContext);
   const {
     state: simulationState,
     error: simulationError,
@@ -239,11 +239,19 @@ const DiagnosticsContent: React.FC = () => {
                 iconName="arrowRight"
                 iconPosition="right"
                 onClick={() => {
-                  setGlobalMode("edit");
+                  // The erroring item may have been deleted since the run;
+                  // still switch to edit mode so the click always responds.
                   const itemType = getItemType(errorItemId);
-                  if (itemType) {
-                    selectItem({ type: itemType, id: errorItemId });
-                  }
+                  navigateTo({
+                    globalMode: "edit",
+                    ...(itemType
+                      ? {
+                          selection: new Map([
+                            [errorItemId, { type: itemType, id: errorItemId }],
+                          ]),
+                        }
+                      : {}),
+                  });
                 }}
               >
                 Edit Item

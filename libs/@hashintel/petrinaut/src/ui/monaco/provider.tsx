@@ -44,6 +44,21 @@ async function initMonaco(): Promise<MonacoContextValue> {
     },
   };
 
+  // The stock vs-light selection and occurrence highlights are too faint to
+  // read at 12px; this theme is vs-light with stronger ones.
+  monaco.editor.defineTheme("petrinaut-light", {
+    base: "vs",
+    inherit: true,
+    rules: [],
+    colors: {
+      "editor.selectionBackground": "#99C2FF",
+      "editor.inactiveSelectionBackground": "#CCE0FF",
+      "editor.selectionHighlightBackground": "#BAD5FF",
+      "editor.wordHighlightBackground": "#C6DCFF",
+      "editor.wordHighlightStrongBackground": "#B0CDFF",
+    },
+  });
+
   // Use local Monaco instance — no CDN fetch.
   monacoReact.loader.config({ monaco });
   return { monaco, Editor: monacoReact.default };

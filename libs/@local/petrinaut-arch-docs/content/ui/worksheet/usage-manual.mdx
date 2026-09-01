@@ -212,9 +212,10 @@ const { onPointerDown, shouldActivate } = useSelectFirstActivation();
 />;
 ```
 
-- Double-click needs no handler of its own: its second click lands on an
-  already-selected target and activates. This matters where activation is
-  not idempotent, such as materializing a phantom row.
+- Double-click needs no handler of its own: a repeated click on the same
+  target activates through its click count (`event.detail`), even in
+  browsers that do not focus buttons on pointer down. This matters where
+  activation is not idempotent, such as materializing a phantom row.
 - One instance serves any number of sibling targets.
 
 `useRowSelection` is the row-selection model gutter tables share. Its
@@ -223,3 +224,29 @@ focus, or the row whose gutter menu is open. Report gutter focus with
 `setFocusedRow(row)` and blur with `setFocusedRow(null)`; `openMenu(row,
 anchor)` and `closeMenu()` keep one menu open per table, and the menu's row
 stays selected while the menu holds focus.
+
+## Keeping the selection clear of faded edges
+
+Hosts fade the edges of their scroll areas, and a focus scroll that parks
+a cell flush against an edge leaves the selection under the fade.
+`useFocusClearance` keeps every focused element at least 25px
+(`FOCUS_CLEARANCE_PX`) clear of each scrollable ancestor's edges — spread
+its two capture handlers onto the element that hosts the tables, and pair
+it with `scroll-margin: 25px` on the focusable triggers so the scrolls the
+browser performs itself land clear too.
+
+```tsx
+const clearance = useFocusClearance();
+
+<div
+  onPointerDownCapture={clearance.onPointerDownCapture}
+  onFocusCapture={clearance.onFocusCapture}
+>
+  {tables}
+</div>;
+```
+
+A focus caused by a fresh pointer press on the element itself never
+nudges: the pointer proves the user sees the element, and moving it
+between the two clicks of a double-click would make the second click miss
+(the selection grammar's click-count activation).

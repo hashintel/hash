@@ -24,6 +24,10 @@
             "message": "Plugins receive harness capabilities and must remain storage-blind."
           },
           {
+            "name": "@hashintel/brunch-agent/prompts",
+            "message": "Plugins fill cells; they must not import harness default teaching (ADR-0008)."
+          },
+          {
             "name": "@hashintel/petrinaut",
             "message": "Brunch libraries must not depend on Petrinaut implementations."
           }
