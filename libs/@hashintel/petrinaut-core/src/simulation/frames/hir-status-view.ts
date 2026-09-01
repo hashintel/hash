@@ -30,6 +30,12 @@ export type StatusViewInstanceAssignment = {
   labelId: ID;
   /** Key element values in key order, in at-rest string form (raw display). */
   keyValues: string[];
+  /**
+   * The place holding the instance's token, as the label references it —
+   * scoped (`instanceId::placeId`) for a componentInstance's copies, so
+   * consumers can attribute the instance to a node on the canvas.
+   */
+  placeId: ID;
 };
 
 const KEY_SEPARATOR = "\u0000";
@@ -167,7 +173,11 @@ export function createStatusViewFrameEvaluator(args: {
             }
           }
 
-          assignments.set(key, { labelId: labelBinding.labelId, keyValues });
+          assignments.set(key, {
+            labelId: labelBinding.labelId,
+            keyValues,
+            placeId: place.id,
+          });
         }
       }
     }

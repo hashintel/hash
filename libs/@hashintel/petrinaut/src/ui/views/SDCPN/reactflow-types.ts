@@ -59,11 +59,35 @@ export type ComponentInstancePort = {
   name: string;
 };
 
+export type ComponentInstanceStatusLabelCount = {
+  labelId: string;
+  name: string;
+  displayColor: string;
+  /** Tracked instances currently carrying this label inside the instance. */
+  count: number;
+};
+
+/**
+ * Per-label counts of the tracked instances whose token sits inside one
+ * componentInstance's copies of its subnet places, for the first status
+ * view with any tracked token there.
+ */
+export type ComponentInstanceStatusSummary = {
+  statusViewId: string;
+  statusViewName: string;
+  /** In label (Kanban column) order; zero-count labels omitted. */
+  labels: ComponentInstanceStatusLabelCount[];
+  /** displayColor of the label with the most instances (order breaks ties). */
+  tintColor: string;
+};
+
 export type ComponentInstanceNodeData = {
   label: string;
   type: "componentInstance";
   subnetName: string;
   ports: ComponentInstancePort[];
+  /** Null when no status view tracks a token inside this instance. */
+  statusSummary: ComponentInstanceStatusSummary | null;
 };
 
 export type ComponentInstanceNodeType = Node<

@@ -20,6 +20,7 @@ import { SDCPNContext } from "../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../react/state/user-settings-context";
 import { NOT_SELECTED_CONNECTION_OVERLAY_OPACITY } from "../styles/styling";
 import { arcStrokeColor } from "../styles/type-colors";
+import { useStatusViewNodeStatuses } from "./use-status-view-node-statuses";
 
 import type {
   EdgeType,
@@ -39,6 +40,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
   } = use(EditorContext);
   const { currentFrameReader } = use(ExecutionFrameSourceContext);
   const { compactNodes } = use(UserSettingsContext);
+  const statusSummariesByInstanceId = useStatusViewNodeStatuses();
 
   const dimensions = compactNodes
     ? compactNodeDimensions
@@ -148,6 +150,7 @@ export function useSdcpnToReactFlow(): PetrinautReactFlowDefinitionObject {
         type: "componentInstance",
         subnetName: subnet?.name ?? "Unknown subnet",
         ports,
+        statusSummary: statusSummariesByInstanceId.get(instance.id) ?? null,
       },
     });
   }

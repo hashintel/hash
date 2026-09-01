@@ -103,6 +103,30 @@ const portLabelStyle = css({
   pointerEvents: "none",
 });
 
+const statusBadgeRowStyle = css({
+  position: "absolute",
+  top: "[-10px]",
+  right: "[-6px]",
+  display: "flex",
+  gap: "[3px]",
+  zIndex: "[4]",
+  pointerEvents: "none",
+});
+
+const statusBadgeStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[3px]",
+  paddingX: "[6px]",
+  paddingY: "[1px]",
+  borderRadius: "full",
+  fontSize: "[10px]",
+  fontWeight: "semibold",
+  color: "[white]",
+  whiteSpace: "nowrap",
+  shadow: "[0px 1px 3px rgba(0, 0, 0, 0.25)]",
+});
+
 export const ComponentInstanceNode: React.FC<
   NodeProps<ComponentInstanceNodeType>
 > = ({ id, data, selected }: NodeProps<ComponentInstanceNodeType>) => {
@@ -123,11 +147,28 @@ export const ComponentInstanceNode: React.FC<
         ? "notSelectedConnection"
         : "none";
 
-  const { ports } = data;
+  const { ports, statusSummary } = data;
   const portCount = ports.length;
 
   return (
     <div className={containerStyle}>
+      {statusSummary && (
+        <div
+          className={statusBadgeRowStyle}
+          title={statusSummary.statusViewName}
+        >
+          {statusSummary.labels.map((labelCount) => (
+            <span
+              key={labelCount.labelId}
+              className={statusBadgeStyle}
+              style={{ backgroundColor: labelCount.displayColor }}
+            >
+              {labelCount.count > 1 ? `${labelCount.count} ` : ""}
+              {labelCount.name}
+            </span>
+          ))}
+        </div>
+      )}
       {ports.map((port, index) => {
         const topPercent =
           portCount === 1 ? 50 : (index / (portCount - 1)) * 100;
@@ -158,7 +199,14 @@ export const ComponentInstanceNode: React.FC<
         );
       })}
 
-      <div className={cardStyle({ selection: selectionVariant })}>
+      <div
+        className={cardStyle({ selection: selectionVariant })}
+        // Component instances carry no colour of their own; the active status
+        // label's display colour tints the card alongside its badge.
+        style={
+          statusSummary ? { borderColor: statusSummary.tintColor } : undefined
+        }
+      >
         <Icon name="cube" className={iconStyle} />
         <div className={titleStyle}>{data.label}</div>
         <div className={subtitleStyle}>{data.subnetName}</div>
