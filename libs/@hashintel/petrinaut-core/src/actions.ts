@@ -35,6 +35,8 @@ import {
   type PetrinautExtensionSettings,
 } from "./extensions";
 import { migrateScenarioRowsForTypeEdit } from "./schema-migration";
+import { parseScopedId } from "./scoped-ids";
+import { resolveStatusViewLabelPlace } from "./status-view-scope";
 
 import type {
   ArcEndpoint,
@@ -43,6 +45,7 @@ import type {
   InputArc,
   OutputArc,
   SDCPN,
+  StatusView,
 } from "./types/sdcpn";
 
 export type MutationHelperFunctions = {
@@ -355,6 +358,70 @@ const assertArcEndpointReferences = (
   }
 };
 
+/**
+ * A status view must name an existing identity, and each label place
+ * reference must resolve — to a root place, or through the component-instance
+ * path of a scoped id — or the view could never track anything.
+ */
+const assertStatusViewReferences = (
+  sdcpn: SDCPN,
+  statusView: StatusView,
+): void => {
+  if (
+    !(sdcpn.identities ?? []).some(
+      (identity) => identity.id === statusView.identityRef,
+    )
+  ) {
+    throw new Error(
+      `Status view \`${statusView.name}\` references identity ID \`${statusView.identityRef}\` which does not exist.`,
+    );
+  }
+  for (const label of statusView.labels) {
+    for (const placeId of label.places) {
+      if (!resolveStatusViewLabelPlace(sdcpn, placeId)) {
+        throw new Error(
+          `Status view label \`${label.name}\` references place ID \`${placeId}\` which does not resolve to a place (or a component instance's copy of a subnet place).`,
+        );
+      }
+    }
+  }
+};
+
+/**
+ * Every colour whose elements reference an identity must carry key elements
+ * whose types match the identity's `keyElementTypes` in order — the
+ * cross-colour instance key is the tuple of those element values, so a
+ * mismatched colour would silently never correlate.
+ */
+const assertIdentityKeyElementCoherence = (sdcpn: SDCPN): void => {
+  const identities = sdcpn.identities ?? [];
+  if (identities.length === 0) {
+    return;
+  }
+  for (const net of getAllMutableNets(sdcpn)) {
+    for (const type of net.types) {
+      for (const identity of identities) {
+        const keyTypes = type.elements
+          .filter((element) => element.identityRef === identity.id)
+          .map((element) => element.type);
+        if (keyTypes.length === 0) {
+          continue;
+        }
+        const matches =
+          keyTypes.length === identity.keyElementTypes.length &&
+          keyTypes.every(
+            (keyType, index) => keyType === identity.keyElementTypes[index],
+          );
+        if (!matches) {
+          throw new Error(
+            `Colour \`${type.name}\` carries key elements of types [${keyTypes.join(", ")}] for identity \`${identity.name}\`, which requires [${identity.keyElementTypes.join(", ")}] in this order.`,
+          );
+        }
+      }
+    }
+  }
+};
+
 const assertComponentInstanceReferences = (
   sdcpn: SDCPN,
   instance: ComponentInstance,
@@ -539,6 +606,14 @@ export function createPetrinautActions(
                 parsed.targetSubnetId,
                 parsed.placeId,
               );
+            }
+            for (const statusView of sdcpn.statusViews ?? []) {
+              for (const label of statusView.labels) {
+                label.places = label.places.filter(
+                  (labelPlaceId) =>
+                    parseScopedId(labelPlaceId).entityId !== parsed.placeId,
+                );
+              }
             }
             sanitizeAllTransitions(sdcpn);
             break;
@@ -742,6 +817,9 @@ export function createPetrinautActions(
       }
       mutateWithExtensionGuards((sdcpn) => {
         resolveTargetNet(sdcpn, targetSubnetId).types.push(parsedType);
+        if (parsedType.elements.some((element) => element.identityRef)) {
+          assertIdentityKeyElementCoherence(sdcpn);
+        }
       });
     },
     updateType(input) {
@@ -771,6 +849,9 @@ export function createPetrinautActions(
           if (type.id === parsed.typeId) {
             type.elements.push(parsed.element);
             colorSchema.parse(type);
+            if (parsed.element.identityRef !== undefined) {
+              assertIdentityKeyElementCoherence(sdcpn);
+            }
             migrateScenarioRowsForTypeEdit(sdcpn, parsed.typeId, {
               kind: "add",
               element: parsed.element,
@@ -794,6 +875,12 @@ export function createPetrinautActions(
                 const previousElementType = element.type;
                 Object.assign(element, parsed.update);
                 colorSchema.parse(type);
+                if (
+                  parsed.update.identityRef !== undefined ||
+                  parsed.update.type !== undefined
+                ) {
+                  assertIdentityKeyElementCoherence(sdcpn);
+                }
                 if (
                   parsed.update.type !== undefined &&
                   parsed.update.type !== previousElementType
@@ -856,6 +943,9 @@ export function createPetrinautActions(
             if (element) {
               type.elements.splice(parsed.toIndex, 0, element);
               colorSchema.parse(type);
+              if (element.identityRef !== undefined) {
+                assertIdentityKeyElementCoherence(sdcpn);
+              }
               // Use the actual landing index (splice clamps out-of-range
               // destinations to the end of the array).
               const toIndex = type.elements.findIndex(
@@ -1086,6 +1176,16 @@ export function createPetrinautActions(
         const targetSdcpn = sdcpn;
         targetSdcpn.identities ??= [];
         const identities = targetSdcpn.identities;
+        if (identities.some(({ id }) => id === parsedIdentity.id)) {
+          throw new Error(
+            `An identity with ID \`${parsedIdentity.id}\` already exists.`,
+          );
+        }
+        if (identities.some(({ name }) => name === parsedIdentity.name)) {
+          throw new Error(
+            `An identity named \`${parsedIdentity.name}\` already exists. Choose a unique name.`,
+          );
+        }
         identities.push(parsedIdentity);
       });
     },
@@ -1096,6 +1196,9 @@ export function createPetrinautActions(
           if (identity.id === parsed.identityId) {
             Object.assign(identity, parsed.update);
             identitySchema.parse(identity);
+            if (parsed.update.keyElementTypes !== undefined) {
+              assertIdentityKeyElementCoherence(sdcpn);
+            }
             break;
           }
         }
@@ -1140,6 +1243,7 @@ export function createPetrinautActions(
         const targetSdcpn = sdcpn;
         targetSdcpn.statusViews ??= [];
         const statusViews = targetSdcpn.statusViews;
+        assertStatusViewReferences(sdcpn, parsedStatusView);
         statusViews.push(parsedStatusView);
       });
     },
@@ -1150,6 +1254,7 @@ export function createPetrinautActions(
           if (statusView.id === parsed.statusViewId) {
             Object.assign(statusView, parsed.update);
             statusViewSchema.parse(statusView);
+            assertStatusViewReferences(sdcpn, statusView);
             break;
           }
         }

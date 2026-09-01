@@ -59,6 +59,3 @@ export const parseScopedId = (scopedId: ID): ParsedScopedId => {
   const entityId = segments[segments.length - 1] ?? scopedId;
   return { instancePath: segments.slice(0, -1), entityId };
 };
-
-/** Whether an id addresses an entity inside a component instance. */
-export const isScopedId = (id: ID): boolean => id.includes(SCOPED_ID_SEPARATOR);
