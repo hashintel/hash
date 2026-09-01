@@ -2,18 +2,8 @@ import { createProxyMiddleware, fixRequestBody } from "http-proxy-middleware";
 
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 
-import { getActorIdFromRequest } from "./auth/get-actor-id";
-
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { Express, Request, Response } from "express";
-
-/**
- * The header naming the actor the atlas answers under.
- *
- * The atlas reads it as an authenticated statement of identity, so this API states it from its own
- * session resolution on every proxied request.
- */
-export const ATLAS_ACTOR_HEADER = "X-Authenticated-User-Actor-Id";
 
 /**
  * The header carrying the atlas's per-caller authority token.
@@ -29,17 +19,6 @@ export const ATLAS_AUTHORITY_HEADER = "Atlas-Authority";
  * The path this API mounts the atlas surface at.
  */
 export const ATLAS_MOUNT_PATH = "/atlas";
-
-/**
- * Whether `path` addresses the atlas mount, and so must reach it with its body unread.
- *
- * Two places decide by this: the body parsing middleware skips these paths, and
- * {@link setupAtlasProxy} mounts on them - see there for what a parsed body costs this surface. One
- * exported predicate rather than a prefix written out twice, because the two only work as a pair:
- * a mount whose parser skip has drifted still answers, and answers a re-serialised document.
- */
-export const isAtlasPath = (path: string) =>
-  path === ATLAS_MOUNT_PATH || path.startsWith(`${ATLAS_MOUNT_PATH}/`);
 
 /**
  * Resolves the atlas listener's address from the environment.
@@ -59,24 +38,21 @@ const atlasTarget = () => {
 };
 
 /**
- * Mounts the atlas REST surface at `/atlas` on `app`, under the actor each session resolves to.
+ * Mounts the atlas REST surface at `/atlas` on `app`.
  *
- * Every request reaches the atlas carrying {@link ATLAS_ACTOR_HEADER}, set from
- * `getActorIdFromRequest` and replacing any value the caller sent: the atlas answers under the
- * actor this API resolved, and a session-less request answers under the public user. This is the
- * identity handling every other route here uses, and the header is what the graph client states
- * when this API calls the graph.
+ * The proxy states no identity of its own. The caller's Kratos session credential - the
+ * `X-Session-Token` header, or the `ory_kratos_session` cookie - crosses the hop with the rest of
+ * the request's headers, and the atlas verifies it and resolves the actor itself, exactly as it
+ * does for a direct caller. A request without a session answers as the atlas's anonymous caller.
  *
- * Mount it past `authMiddleware`, because the header derivation reads `req.user`.
- *
- * Mount it past a body parser that skips {@link ATLAS_MOUNT_PATH}. A parsed body reaches the
- * upstream only by being re-serialised from `req.body`, and re-serialising changes JSON text:
+ * Mount it above any body parser, so the stream reaches the proxy unread. A parsed body reaches
+ * the upstream only by being re-serialised from `req.body`, and re-serialising changes JSON text:
  * whitespace goes, `1.0` becomes `1`, `\u0041` becomes `A`, a duplicate key is dropped, and
  * integer-like keys come back in ascending order. The atlas digests the body it is handed - the
  * generation manifest seals the digest of the filter document into the authority token, and the
  * client retains and re-presents the exact bytes it sent - so a hop that re-serialises answers a
  * different document than the caller stated, and the caller's own re-presentation of the same
- * bytes then digests differently. Skipping the prefix leaves `req.body` unset, so
+ * bytes then digests differently. Mounted above the parser, `req.body` is never set, so
  * `fixRequestBody` writes nothing and the unread stream is piped through as it arrived.
  *
  * Payloads therefore cross the hop byte for byte; the mount's one addition is to the CORS envelope -
@@ -125,21 +101,13 @@ export const setupAtlasProxy = (app: Express, logger: Logger) => {
       },
       on: {
         /**
-         * States the request's actor.
-         *
-         * `setHeader` replaces any value the caller sent, so the actor the atlas reads is the one
-         * this API resolved.
-         *
-         * `fixRequestBody` stays as the fallback for a body that was parsed anyway: it returns
-         * without writing when `req.body` is unset, which is the state this mount is composed to be
-         * in, and re-streams a parsed body rather than hanging the request if some other middleware
+         * `fixRequestBody` is the fallback for a body that was parsed anyway: it returns without
+         * writing when `req.body` is unset, which is the state this mount is composed to be in,
+         * and re-streams a parsed body rather than hanging the request if some other middleware
          * ever consumes the stream. It cannot restore the original bytes, so its running is a
          * degradation to notice, not the design.
          */
-        proxyReq: (proxyReq, req) => {
-          proxyReq.setHeader(ATLAS_ACTOR_HEADER, getActorIdFromRequest(req));
-          fixRequestBody(proxyReq, req);
-        },
+        proxyReq: fixRequestBody,
         /**
          * Answers an unreachable atlas in RFC 9457 shape.
          *

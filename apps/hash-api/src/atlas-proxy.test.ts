@@ -2,33 +2,39 @@ import { createServer } from "node:http";
 
 import bodyParser from "body-parser";
 import express from "express";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+jimport { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import { ATLAS_AUTHORITY_HEADER, setupAtlasProxy } from "./atlas-proxy";
 
-import {
-  ATLAS_ACTOR_HEADER,
-  ATLAS_AUTHORITY_HEADER,
-  isAtlasPath,
-  setupAtlasProxy,
-} from "./atlas-proxy";
-
-import type { User } from "./graph/knowledge/system-types/user";
 import type { Logger } from "@local/hash-backend-utils/logger";
-import type { RequestHandler } from "express";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 
 /**
- * The actor a session resolves to in the tests that have one.
- *
- * Any uuid distinct from the public user works; the value only has to be recognisable in the header
- * the upstream receives.
+ * The header the atlas reads as a delegated actor statement - its own vocabulary, not this
+ * module's: the proxy exports no constant for it because it neither states nor strips it. The
+ * spelling is pinned upstream as `ACTOR_ID_HEADER` in the authentication middleware.
  */
-const SESSION_ACTOR = "11111111-1111-4111-8111-111111111111";
+const ACTOR_ID_HEADER = "X-Authenticated-User-Actor-Id";
 
 /** An actor a caller would like the atlas to answer under. */
 const SPOOFED_ACTOR = "22222222-2222-4222-8222-222222222222";
+
+/**
+ * A stand-in Kratos session token.
+ *
+ * Opaque across the hop, like the authority token below: the proxy under test cannot verify it,
+ * so the suite asserts the bytes arrive, never that they authenticate.
+ */
+const SESSION_TOKEN = "stand-in-kratos-session-token";
+
+/**
+ * A `Cookie` header carrying the Kratos session cookie among neighbours.
+ *
+ * The atlas picks `ory_kratos_session` out of the header itself, so what the hop owes it is the
+ * header unchanged - neighbouring cookies included.
+ */
+const SESSION_COOKIE = "other=1; ory_kratos_session=stand-in-session-cookie";
 
 /**
  * A stand-in authority token.
@@ -70,18 +76,12 @@ const silentLogger = {
   error: () => {},
 } as unknown as Logger;
 
-/**
- * A session carrying only what this path reads.
- *
- * `getActorIdFromRequest` reads `accountId` and nothing else, so the stub states that field alone
- * rather than assembling a whole graph user.
- */
-const sessionUser = { accountId: SESSION_ACTOR } as unknown as User;
-
 /** What the upstream received per request, in request order. */
 const received: {
   actor: string | string[] | undefined;
   authority: string | string[] | undefined;
+  cookie: string | undefined;
+  sessionToken: string | string[] | undefined;
   body: string;
   path: string | undefined;
 }[] = [];
@@ -103,45 +103,24 @@ const close = (server: Server) =>
 const portOf = (server: Server) => (server.address() as AddressInfo).port;
 
 /**
- * A session resolver standing in for `createAuthMiddleware`.
+ * Mounts the proxy in `index.ts`'s composition: in the proxies section, above the JSON parser, so
+ * an atlas request's stream is never read before the hop and the proxy is the body's first and
+ * only reader. Session resolution is absent because the proxy reads nothing it produces - the
+ * session credential it forwards is a request header.
  *
- * It populates `req.user` on a session and leaves it unset otherwise, which is the state the real
- * middleware leaves behind in each case.
+ * `parserAboveProxy` composes the app the drifted way - a parser mounted before the proxy - so a
+ * test can hold the mount order responsible instead of describing it.
  */
-const resolving =
-  (session: User | undefined): RequestHandler =>
-  (req, _res, next) => {
-    if (session) {
-      req.user = session;
-    }
-    next();
-  };
-
-/**
- * Mounts the proxy in `index.ts`'s composition: session resolution first, then the JSON parser that
- * skips the atlas prefix, then the route.
- *
- * The composition is the point of the fixture. The proxy sits past the parser, so it can only be a
- * body's second reader, and the skip is what leaves the stream unread for it - which is why the
- * skip decision is imported from the module under test rather than restated here. A copy of the
- * predicate would keep passing while production drifted.
- *
- * `parseAtlasBodies` composes the app the way it was before the skip existed, so a test can hold
- * the parser responsible instead of describing it.
- */
-const startApi = async (
-  session: User | undefined,
-  { parseAtlasBodies = false }: { parseAtlasBodies?: boolean } = {},
-) => {
+const startApi = async ({
+  parserAboveProxy = false,
+}: { parserAboveProxy?: boolean } = {}) => {
   const app = express();
   const jsonParser = bodyParser.json();
-  app.use(resolving(session));
-  app.use((req, res, next) =>
-    !parseAtlasBodies && isAtlasPath(req.path)
-      ? next()
-      : jsonParser(req, res, next),
-  );
+  if (parserAboveProxy) {
+    app.use(jsonParser);
+  }
   setupAtlasProxy(app, silentLogger);
+  app.use(jsonParser);
 
   const server = await listen(createServer(app));
 
@@ -160,8 +139,10 @@ beforeAll(async () => {
       });
       req.on("end", () => {
         received.push({
-          actor: req.headers[ATLAS_ACTOR_HEADER.toLowerCase()],
+          actor: req.headers[ACTOR_ID_HEADER.toLowerCase()],
           authority: req.headers[ATLAS_AUTHORITY_HEADER.toLowerCase()],
+          cookie: req.headers.cookie,
+          sessionToken: req.headers["x-session-token"],
           body,
           path: req.url,
         });
@@ -192,43 +173,67 @@ afterAll(async () => {
   await close(upstream);
 });
 
-describe("the atlas proxy's actor header", () => {
-  it("states the session's actor", async () => {
-    const api = await startApi(sessionUser);
+describe("the caller's identity", () => {
+  it("passes the session token through untouched", async () => {
+    const api = await startApi();
+    received.length = 0;
+
+    const response = await fetch(`${api.url}/atlas/current`, {
+      headers: { "X-Session-Token": SESSION_TOKEN },
+    });
+
+    expect(response.status).toBe(204);
+    expect(received.map(({ sessionToken }) => sessionToken)).toEqual([
+      SESSION_TOKEN,
+    ]);
+
+    await close(api.server);
+  });
+
+  it("passes the session cookie through untouched, neighbours included", async () => {
+    const api = await startApi();
+    received.length = 0;
+
+    const response = await fetch(`${api.url}/atlas/current`, {
+      headers: { cookie: SESSION_COOKIE },
+    });
+
+    expect(response.status).toBe(204);
+    expect(received.map(({ cookie }) => cookie)).toEqual([SESSION_COOKIE]);
+
+    await close(api.server);
+  });
+
+  it("states no actor of its own", async () => {
+    // The pin on the deletion: the proxy used to write the actor header from this API's session
+    // resolution, and the atlas ignored it every time - a bare actor statement without its paired
+    // service secret is refused upstream. A request that arrives without the header must leave
+    // without it, so a regression re-adding the injection fails here.
+    const api = await startApi();
     received.length = 0;
 
     const response = await fetch(`${api.url}/atlas/current`);
 
     expect(response.status).toBe(204);
-    expect(received.map(({ actor }) => actor)).toEqual([SESSION_ACTOR]);
+    expect(received.map(({ actor }) => actor)).toEqual([undefined]);
 
     await close(api.server);
   });
 
-  it("overwrites an actor the caller supplied", async () => {
-    const api = await startApi(sessionUser);
+  it("passes a caller's actor header through, which impersonates nobody", async () => {
+    // The proxy neither states nor strips the actor header, so a caller's spelling of it crosses
+    // the hop like any other header. The defence is the atlas's own and is pinned there:
+    // `bare_actor_id_header_does_not_impersonate` holds that without the paired service secret the
+    // header is ignored and the request resolves from its session credential alone.
+    const api = await startApi();
     received.length = 0;
 
     const response = await fetch(`${api.url}/atlas/current`, {
-      headers: { [ATLAS_ACTOR_HEADER]: SPOOFED_ACTOR },
+      headers: { [ACTOR_ID_HEADER]: SPOOFED_ACTOR },
     });
 
     expect(response.status).toBe(204);
-    expect(received.map(({ actor }) => actor)).toEqual([SESSION_ACTOR]);
-
-    await close(api.server);
-  });
-
-  it("states the public user with no session, caller header included", async () => {
-    const api = await startApi(undefined);
-    received.length = 0;
-
-    const response = await fetch(`${api.url}/atlas/current`, {
-      headers: { [ATLAS_ACTOR_HEADER]: SPOOFED_ACTOR },
-    });
-
-    expect(response.status).toBe(204);
-    expect(received.map(({ actor }) => actor)).toEqual([publicUserAccountId]);
+    expect(received.map(({ actor }) => actor)).toEqual([SPOOFED_ACTOR]);
 
     await close(api.server);
   });
@@ -236,7 +241,7 @@ describe("the atlas proxy's actor header", () => {
 
 describe("a request body", () => {
   it("reaches the atlas", async () => {
-    const api = await startApi(sessionUser);
+    const api = await startApi();
     received.length = 0;
 
     const tiles = { tiles: [{ z: 3, x: 1, y: 2 }] };
@@ -249,13 +254,12 @@ describe("a request body", () => {
     expect(response.status).toBe(204);
     expect(received).toHaveLength(1);
     expect(JSON.parse(received[0]!.body)).toEqual(tiles);
-    expect(received[0]!.actor).toBe(SESSION_ACTOR);
 
     await close(api.server);
   });
 
   it("arrives byte for byte, however it was spelled", async () => {
-    const api = await startApi(sessionUser);
+    const api = await startApi();
     received.length = 0;
 
     const response = await fetch(`${api.url}/atlas/generation/g/manifest`, {
@@ -271,13 +275,13 @@ describe("a request body", () => {
     await close(api.server);
   });
 
-  it("loses its spelling once the parser has read it, which is what the skip is for", async () => {
-    // The transparency in the test above belongs to the parser skip, not to the proxy: a body the
+  it("loses its spelling once a parser above the mount has read it, which is what the order is for", async () => {
+    // The transparency in the test above belongs to the mount order, not to the proxy: a body the
     // parser consumed can only be re-serialised from `req.body`, and `JSON.stringify` renders one
     // canonical spelling of a value with no memory of the text it came from. Composing the app the
-    // pre-skip way states that here, so removing the skip from `index.ts` cannot leave a suite that
-    // still claims the bytes cross unmodified.
-    const api = await startApi(sessionUser, { parseAtlasBodies: true });
+    // drifted way states that here, so moving the mount below `index.ts`'s parser cannot leave a
+    // suite that still claims the bytes cross unmodified.
+    const api = await startApi({ parserAboveProxy: true });
     received.length = 0;
 
     const response = await fetch(`${api.url}/atlas/generation/g/manifest`, {
@@ -304,7 +308,7 @@ describe("the authority token's path back to the browser", () => {
   // that reads as authority working. `CORS_CONFIG` states no `exposedHeaders`, and the `cors`
   // package emits the header not at all when the option is unset.
   it("exposes the authority header so the caller's own script can read it", async () => {
-    const api = await startApi(sessionUser);
+    const api = await startApi();
     received.length = 0;
 
     const response = await fetch(`${api.url}/atlas/current`);
@@ -323,7 +327,7 @@ describe("the authority token's path back to the browser", () => {
     // send none - so this is the exact request shape that crosses the hop. It states no content type
     // either, because a request with no document to describe has no type to state, and stating one
     // would cost the caller a preflight for nothing.
-    const api = await startApi(sessionUser);
+    const api = await startApi();
     received.length = 0;
 
     const response = await fetch(`${api.url}/atlas/generation/g/manifest`, {
@@ -343,9 +347,8 @@ describe("the authority token's path back to the browser", () => {
 
   it("passes a presented token through to the atlas unchanged", async () => {
     // The reverse direction needs no proxy change - `allowedHeaders` unset makes `cors` reflect the
-    // requested headers - but the value must still cross the hop, and `proxyReq` replaces only the
-    // actor header.
-    const api = await startApi(sessionUser);
+    // requested headers - and the value must still cross the hop like the identity headers above.
+    const api = await startApi();
     received.length = 0;
 
     const response = await fetch(`${api.url}/atlas/tile/g/plain/3/5/1`, {
@@ -366,17 +369,22 @@ describe("the authority token's path back to the browser", () => {
 });
 
 describe("the mount path", () => {
-  it("claims the mount and its descendants, and stops at the boundary", () => {
-    // The parser skip is decided by this predicate for paths the mount never sees, so the boundary is
-    // its own claim: a neighbouring route starting with the same letters keeps its parsed body.
-    expect(isAtlasPath("/atlas")).toBe(true);
-    expect(isAtlasPath("/atlas/generation/g/manifest")).toBe(true);
-    expect(isAtlasPath("/atlas-two/tile/g/plain/3/5/1")).toBe(false);
-    expect(isAtlasPath("/graphql")).toBe(false);
+  it("stops at the path boundary", async () => {
+    // Express matches a mount at a path-segment boundary, so a neighbouring route starting with
+    // the same letters is never proxied - it falls through to the rest of the app.
+    const api = await startApi();
+    received.length = 0;
+
+    const response = await fetch(`${api.url}/atlas-two/tile/g/plain/3/5/1`);
+
+    expect(response.status).toBe(404);
+    expect(received).toHaveLength(0);
+
+    await close(api.server);
   });
 
   it("names the atlas's own version prefix", async () => {
-    const api = await startApi(sessionUser);
+    const api = await startApi();
     received.length = 0;
 
     const response = await fetch(
