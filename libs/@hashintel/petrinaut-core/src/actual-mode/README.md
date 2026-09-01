@@ -55,12 +55,22 @@ The currently accepted transition firing shape is:
   "transitionId": "start_implementation",
   "input": { "queued": 1 },
   "output": { "implementing": 1 },
+  "inputTokens": { "queued": [{ "ticket_id": "…" }] },
+  "outputTokens": { "implementing": [{ "ticket_id": "…" }] },
   "ts": "2026-06-05T17:17:27.866Z"
 }
 ```
 
 `input` and `output` are transition-local token count maps. They are not full
-before/after markings.
+before/after markings. The optional `inputTokens` and `outputTokens` carry the
+attribute values of the consumed and produced tokens, keyed like
+`input`/`output`; a token record may carry a subset of the colour's attributes
+(at least the identity key elements), and `uuid` values are canonical
+lowercase strings. Place keys may be scoped ids (`instanceId::placeId`) when a
+firing touches a componentInstance's copy of a subnet place.
+
+Recordings are written with version 2; version-1 recordings (which predate
+per-firing token values) still parse.
 
 ## File Map
 
