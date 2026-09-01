@@ -214,7 +214,7 @@ const RecoveryPage: NextPageWithLayout = () => {
               If you want to recover a different account, please log out first
             </Typography>
             <Link href="/" variant="regularTextParagraphs">
-              Go home
+              Go Home
             </Link>
           </Stack>
         </AuthPaper>

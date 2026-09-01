@@ -143,7 +143,7 @@ test("recovery page tells an already signed-in user to log out", async ({
     page.getByRole("button", { name: "Recover account" }),
   ).toBeHidden();
 
-  await page.getByRole("link", { name: "Go home" }).click();
+  await page.getByRole("link", { name: "Go Home" }).click();
   await page.waitForURL((url) => url.pathname === "/");
   await expectSignedIn(page);
 });
