@@ -37,10 +37,10 @@ use crate::{
 #[derive(Clone)]
 struct ActorCache(Result<Actor, AuthenticationRejection>);
 
-/// The authenticated caller, anonymous included.
+/// The authenticated caller.
 ///
 /// The authentication middleware resolves the caller ahead of this router, and this extractor
-/// reads that resolution. [`None`] is an anonymous caller, a first-class presenter.
+/// reads that resolution, rejecting an anonymous one rather than letting it reach a handler.
 #[derive(Debug, Clone, Copy)]
 pub(super) struct Actor(pub ActorId);
 

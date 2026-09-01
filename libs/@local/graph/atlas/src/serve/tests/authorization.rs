@@ -48,7 +48,7 @@ const NONCE_BYTES: usize = 24;
 /// The clear header's width.
 const HEADER_BYTES: usize = VERSION_BYTES + ISSUED_AT_BYTES + NONCE_BYTES;
 
-/// The width of an actor kind, one discriminant byte naming user, machine, ai, or anonymous.
+/// The width of an actor kind, one discriminant byte naming user, machine, or ai.
 const ACTOR_KIND_BYTES: usize = 1;
 
 /// An actor uuid's width.
@@ -160,11 +160,10 @@ fn header(now: SystemTime, nonce: &[u8]) -> [u8; HEADER_BYTES] {
 /// Assembles the sealed plaintext by hand.
 ///
 /// The bytes run actor kind byte, actor uuid, presence byte, filter digest, offset byte, epoch
-/// presence byte, and epoch, in that order. A named presenter is a user here, kind byte zero over
-/// its uuid, and an anonymous one seals kind byte three over the nil uuid. An absent filter and an
-/// absent epoch each leave their presence byte and payload zeroed.
+/// presence byte, and epoch, in that order. The presenter is a user here, kind byte zero over its
+/// uuid. An absent filter and an absent epoch each leave their presence byte and payload zeroed.
 fn plaintext(
-    actor: Option<u128>,
+    actor: u128,
     k: u8,
     filter: Option<&[u8]>,
     epoch: Option<DeltaEpoch>,
@@ -173,14 +172,8 @@ fn plaintext(
     const OFFSET_AT: usize = FILTER_AT + PRESENCE_BYTES + DIGEST_BYTES;
 
     let mut bytes = [0_u8; PLAINTEXT_BYTES];
-    match actor {
-        Some(actor) => {
-            bytes[0] = 0;
-            bytes[ACTOR_KIND_BYTES..FILTER_AT]
-                .copy_from_slice(&Uuid::from_u128(actor).into_bytes());
-        }
-        None => bytes[0] = 3,
-    }
+    bytes[0] = 0;
+    bytes[ACTOR_KIND_BYTES..FILTER_AT].copy_from_slice(&Uuid::from_u128(actor).into_bytes());
     if let Some(canonical) = filter {
         bytes[FILTER_AT] = 1;
         bytes[FILTER_AT + PRESENCE_BYTES..OFFSET_AT]
@@ -253,7 +246,7 @@ fn minted_token_matches_an_independent_envelope() {
             .encrypt(
                 XNonce::from_slice(nonce),
                 Payload {
-                    msg: &plaintext(Some(11), k, filter, None),
+                    msg: &plaintext(11, k, filter, None),
                     aad: &clear,
                 },
             )
@@ -307,7 +300,7 @@ fn independent_open_recovers_the_scope() {
 
     assert_eq!(
         recovered,
-        plaintext(Some(11), 5, Some(canonical), None),
+        plaintext(11, 5, Some(canonical), None),
         "the sealed plaintext is not the assembled bytes"
     );
 }
@@ -329,7 +322,7 @@ fn hand_assembled_envelope_opens() {
 
     for (k, filter) in [(0, None), (5, Some(b"{\"kind\":\"all\"}".as_slice()))] {
         let blob = seal_raw(
-            &plaintext(Some(11), k, filter, None),
+            &plaintext(11, k, filter, None),
             issued_at(),
             &[9; NONCE_BYTES],
         );
@@ -629,7 +622,7 @@ fn minted_token_seals_the_held_epoch() {
 
     assert_eq!(
         recovered,
-        plaintext(Some(11), 5, None, Some(epoch)),
+        plaintext(11, 5, None, Some(epoch)),
         "the sealed plaintext is not the assembled bytes"
     );
 

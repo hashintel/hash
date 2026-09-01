@@ -7,8 +7,8 @@
 //! visibility without an admitted token is unrepresentable, because the key's identity comes out of
 //! the sealed scope.
 //!
-//! The caller is whoever the authentication middleware resolved, anonymous included, and the
-//! sealed scope binds that identity. A request whose authentication fails answers the middleware's
+//! The caller is the actor the authentication middleware resolved, and the sealed scope binds
+//! that identity. A request whose authentication fails answers the middleware's
 //! own status, a refused token answers 401, a filter document that does not compile answers 400,
 //! and a request the store cannot resolve for any other reason answers 503. [`proof_problem`] is
 //! that split. Every refusal happens before any assembly reads the request.

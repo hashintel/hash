@@ -312,15 +312,13 @@ impl ServeCommand {
     /// Opens the root's active generation and builds the read-API router over it.
     ///
     /// The router carries its own request middlewares, composed from the supplied
-    /// [`RequestFacilities`]. A request clears the per-address limiter and credential resolution
+    /// [`ServeOptions`]. A request clears the per-address limiter and credential resolution
     /// before the per-principal budget meters it, and request tracing wraps the whole router.
     /// The `/status` liveness route answers outside the budgets, and tracing opens no span for
     /// it.
     ///
-    /// The hosting binary owns the listener, lifecycle, the dialed store connection `pool` -
-    /// every store read the serving process makes goes through it, detail trailers and
-    /// permission resolution alike - and `visibility`, the window over which the router reuses a
-    /// resolved scope. The router carries everything the atlas serves.
+    /// The hosting binary owns the listener and the lifecycle, and supplies everything else
+    /// through [`ServeOptions`]. The router carries everything the atlas serves.
     ///
     /// When the generation records temporal axes and the delta opt-out is unset, the invocation
     /// also spawns the delta consumer and the staging arm onto the caller's runtime. The

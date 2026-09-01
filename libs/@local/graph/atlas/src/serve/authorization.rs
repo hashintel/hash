@@ -236,9 +236,7 @@ impl Deref for ArchivedActorEntityUuid {
 /// A sealed actor's kind.
 ///
 /// The discriminant half of [`ArchivedActorId`], one validated byte: parsing refuses every value
-/// outside the principal kinds and [`Anonymous`], the anonymous presenter.
-///
-/// [`Anonymous`]: ArchivedActorType::Anonymous
+/// outside the principal kinds.
 #[derive(
     Debug,
     Copy,
@@ -259,11 +257,9 @@ pub(crate) enum ArchivedActorType {
 }
 
 /// A sealed actor identity holding the kind beside the uuid, the byte-level form of an
-/// `Option<ActorId>`.
+/// [`ActorId`].
 ///
-/// An anonymous presenter seals [`ArchivedActorType::Anonymous`] over the nil uuid. The `From`
-/// conversions are the only writers, so equality over both fields is exact: no sealed state holds
-/// `Absent` beside a non-nil id.
+/// The `From` conversions are the only writers, so equality over both fields is exact.
 #[derive(
     Debug,
     Copy,
@@ -413,7 +409,7 @@ impl From<Option<DeltaEpoch>> for ScopeEpoch {
 )]
 #[repr(C)]
 pub(crate) struct Scope {
-    /// The one actor allowed to present this view (anonymous included).
+    /// The one actor allowed to present this view.
     pub actor: ArchivedActorId,
     /// The digest of the filter the view's visibility proof resolved over, absent when the view
     /// has no filter.
