@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
 import { AiVoiceModeButton } from "./ai-voice-mode-button";
 
 const aiCtaModalLayerStyle = css({
@@ -41,6 +42,18 @@ const aiCtaModalCloseStyle = css({
   position: "absolute",
   top: "3",
   right: "3",
+});
+
+const aiCtaModalIconStyle = css({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "[56px]",
+  height: "[56px]",
+  borderRadius: "2xl",
+  backgroundColor: "blue.s20",
+  boxShadow: "[0px 0px 0px 8px rgba(42, 128, 200, 0.08)]",
+  color: "blue.s90",
 });
 
 const aiCtaModalCopyStyle = css({
@@ -145,6 +158,9 @@ export const AiCtaModal = ({
           aria-label="Dismiss"
           iconName="close"
         />
+        <div className={aiCtaModalIconStyle}>
+          <AiAssistantIcon size={32} />
+        </div>
         <div className={aiCtaModalCopyStyle}>
           <h2 className={aiCtaModalTitleStyle}>
             Describe the process you want to create

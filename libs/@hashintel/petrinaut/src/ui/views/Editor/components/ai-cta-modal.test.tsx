@@ -28,6 +28,15 @@ describe("AiCtaModal", () => {
       }),
     ).not.toBeNull();
     expect(
+      screen
+        .getByRole("heading", {
+          name: "Describe the process you want to create",
+        })
+        .parentElement?.previousElementSibling?.querySelector(
+          'svg[viewBox="0 0 15 15"]',
+        ),
+    ).not.toBeNull();
+    expect(
       screen.queryByRole("group", { name: "AI interaction mode" }),
     ).toBeNull();
     expect(screen.queryByRole("button", { name: "Chat" })).toBeNull();
