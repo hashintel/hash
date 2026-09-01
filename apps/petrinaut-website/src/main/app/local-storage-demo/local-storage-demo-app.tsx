@@ -3,6 +3,7 @@
  * @role Editable demo shell: nets in local storage, one live document handle
  */
 
+import { castDraft, produce } from "immer";
 import { useEffect, useMemo, useState } from "react";
 
 import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
@@ -170,15 +171,15 @@ export const LocalStorageDemoApp = () => {
 
       setStoredSDCPNs((prev) => {
         const stored = prev[netId] ?? fallbackNet;
-
-        return {
-          ...prev,
-          [netId]: {
-            ...stored,
-            sdcpn: event.next,
-            lastUpdated,
-          },
+        const next: SDCPNInLocalStorage = {
+          ...stored,
+          sdcpn: event.next,
+          lastUpdated,
         };
+
+        return produce(prev, (draft) => {
+          draft[netId] = castDraft(next);
+        });
       });
     });
   }, [activeHandle, setStoredSDCPNs]);
@@ -256,14 +257,22 @@ export const LocalStorageDemoApp = () => {
 
     const lastUpdated = new Date().toISOString();
 
-    setStoredSDCPNs((prev) => ({
-      ...prev,
-      [currentNetId]: {
-        ...(prev[currentNetId] ?? currentNet),
-        title,
-        lastUpdated,
-      },
-    }));
+    setStoredSDCPNs((prev) =>
+      produce(prev, (draft) => {
+        const existing = draft[currentNetId];
+        if (existing) {
+          existing.title = title;
+          existing.lastUpdated = lastUpdated;
+        } else {
+          const next: SDCPNInLocalStorage = {
+            ...currentNet,
+            title,
+            lastUpdated,
+          };
+          draft[currentNetId] = castDraft(next);
+        }
+      }),
+    );
   };
 
   const conversationId = currentNetId
