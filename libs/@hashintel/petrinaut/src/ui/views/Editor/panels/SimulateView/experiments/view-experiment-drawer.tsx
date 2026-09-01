@@ -48,30 +48,66 @@ const summaryStyle = css({
   marginBottom: "3",
 });
 
-const summaryGridStyle = css({
-  display: "grid",
-  gridTemplateColumns: "[repeat(3, minmax(0, 1fr))]",
-  gap: "3",
+// Every stat carries its own leading hairline, and the strip shifts left by
+// exactly one divider-plus-gap so each row's first divider lands outside the
+// clipping wrapper — wrapped rows therefore start flush, not with a floating
+// rule (a sibling selector cannot see flex line breaks).
+const summaryStripClipStyle = css({
+  overflow: "hidden",
+});
+
+const summaryStripStyle = css({
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  rowGap: "2",
+  marginLeft: "[-17px]",
 });
 
 const statStyle = css({
   display: "flex",
   flexDirection: "column",
+  gap: "[1px]",
+  minWidth: "[0]",
+  paddingLeft: "4",
+  marginLeft: "[1px]",
+  borderLeftWidth: "[1px]",
+  borderLeftStyle: "solid",
+  borderLeftColor: "neutral.bd.subtle",
+  paddingRight: "4",
 });
 
 const statLabelStyle = css({
-  fontSize: "xs",
+  fontSize: "[10px]",
   fontWeight: "medium",
-  color: "neutral.s80",
+  letterSpacing: "[0.04em]",
+  textTransform: "uppercase",
+  color: "neutral.s70",
 });
 
 const statValueStyle = css({
   fontSize: "sm",
   fontWeight: "medium",
   color: "neutral.s120",
+  fontVariantNumeric: "tabular-nums",
   overflow: "hidden",
   textOverflow: "ellipsis",
   whiteSpace: "nowrap",
+});
+
+// Inline-block inside the value span, so a long value still ellipsizes (a
+// flex value container turns its text into an item ellipsis cannot reach).
+const statusDotStyle = css({
+  display: "inline-block",
+  width: "[7px]",
+  height: "[7px]",
+  borderRadius: "full",
+  marginRight: "1.5",
+  verticalAlign: "[1px]",
+  backgroundColor: "neutral.s60",
+  "&[data-tone=active]": { backgroundColor: "blue.s100" },
+  "&[data-tone=done]": { backgroundColor: "green.s90" },
+  "&[data-tone=error]": { backgroundColor: "red.s100" },
 });
 
 const activityStyle = css({
@@ -131,6 +167,23 @@ type MetricFrame = ExperimentRecord["metricFrames"][number];
 
 function formatNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(3);
+}
+
+function statusTone(
+  experiment: ExperimentRecord,
+): "active" | "done" | "error" | "neutral" {
+  switch (experiment.status) {
+    case "initializing":
+    case "running":
+      return "active";
+    case "complete":
+      return "done";
+    case "error":
+      return "error";
+    case "idle":
+    case "cancelled":
+      return "neutral";
+  }
 }
 
 function formatStatus(experiment: ExperimentRecord): string {
@@ -240,47 +293,55 @@ const ExperimentSummary = ({
 
   return (
     <div className={summaryStyle}>
-      <div className={summaryGridStyle}>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Status</span>
-          <span className={statValueStyle}>{formatStatus(experiment)}</span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Scenario</span>
-          <span className={statValueStyle}>
-            {experiment.scenarioName ?? "Default"}
-          </span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Runs</span>
-          <span className={statValueStyle}>
-            {progress
-              ? `${progress.activeRuns} active, ${progress.completedRuns} complete`
-              : experiment.runCount}
-          </span>
-        </div>
-        {(progress?.erroredRuns ?? 0) > 0 ? (
+      <div className={summaryStripClipStyle}>
+        <div className={summaryStripStyle}>
           <div className={statStyle}>
-            <span className={statLabelStyle}>Errors</span>
-            <span className={statValueStyle}>{progress?.erroredRuns}</span>
+            <span className={statLabelStyle}>Status</span>
+            <span className={statValueStyle}>
+              <span
+                className={statusDotStyle}
+                data-tone={statusTone(experiment)}
+              />
+              {formatStatus(experiment)}
+            </span>
           </div>
-        ) : null}
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Time</span>
-          <span className={statValueStyle}>
-            {formatNumber(progress?.time ?? 0)} /{" "}
-            {formatNumber(experiment.maxTime)}
-          </span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>
-            {hasFinished ? "Duration" : "Elapsed"}
-          </span>
-          <span className={statValueStyle}>
-            {/* Wall-clock, as distinct from the simulated "Time" above it. Dashed
+          <div className={statStyle}>
+            <span className={statLabelStyle}>Scenario</span>
+            <span className={statValueStyle}>
+              {experiment.scenarioName ?? "Default"}
+            </span>
+          </div>
+          <div className={statStyle}>
+            <span className={statLabelStyle}>Runs</span>
+            <span className={statValueStyle}>
+              {progress
+                ? `${progress.activeRuns} active, ${progress.completedRuns} complete`
+                : experiment.runCount}
+            </span>
+          </div>
+          {(progress?.erroredRuns ?? 0) > 0 ? (
+            <div className={statStyle}>
+              <span className={statLabelStyle}>Errors</span>
+              <span className={statValueStyle}>{progress?.erroredRuns}</span>
+            </div>
+          ) : null}
+          <div className={statStyle}>
+            <span className={statLabelStyle}>Time</span>
+            <span className={statValueStyle}>
+              {formatNumber(progress?.time ?? 0)} /{" "}
+              {formatNumber(experiment.maxTime)}
+            </span>
+          </div>
+          <div className={statStyle}>
+            <span className={statLabelStyle}>
+              {hasFinished ? "Duration" : "Elapsed"}
+            </span>
+            <span className={statValueStyle}>
+              {/* Wall-clock, as distinct from the simulated "Time" above it. Dashed
                 out rather than shown as zero when stepping never began. */}
-            {elapsedMs === null ? "—" : formatDurationMs(elapsedMs)}
-          </span>
+              {elapsedMs === null ? "—" : formatDurationMs(elapsedMs)}
+            </span>
+          </div>
         </div>
       </div>
       <div className={activityStyle}>
