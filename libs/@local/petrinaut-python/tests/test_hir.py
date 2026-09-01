@@ -334,6 +334,81 @@ class TestNanMargins:
         assert unequal.margin(scenario={}) >= 0
 
 
+class TestMarginShortCircuit:
+    """`margin()` walks the same arms evaluation walks, and a slack that
+    cancels to NaN still reports the comparison's own answer."""
+
+    @staticmethod
+    def _node(kind: str, **fields: object) -> dict[str, object]:
+        return {"kind": kind, "id": 0, "span": {"start": 0, "length": 1}, **fields}
+
+    def _constraint(self, body: dict[str, object], params: list[str] | None = None):
+        return Constraint(
+            {
+                "id": "short-circuit",
+                "code": "<inline>",
+                "hir": {
+                    "hirVersion": 1,
+                    "surface": "metric-body" if params else "scenario-expression",
+                    "params": [{"name": name} for name in (params or [])],
+                    "body": body,
+                },
+            }
+        )
+
+    def _num(self, value: float) -> dict[str, object]:
+        return self._node("numberLit", value=value, raw=repr(value))
+
+    def _queue(self) -> dict[str, object]:
+        state = self._node("localRef", name="state")
+        places = self._node("fieldAccess", target=state, field="places")
+        return self._node("fieldAccess", target=places, field="Queue")
+
+    def _count(self) -> dict[str, object]:
+        return self._node("fieldAccess", target=self._queue(), field="count")
+
+    def _first_token_x(self) -> dict[str, object]:
+        tokens = self._node("fieldAccess", target=self._queue(), field="tokens")
+        first = self._node("indexAccess", target=tokens, index=self._num(0))
+        return self._node("fieldAccess", target=first, field="x")
+
+    def test_guarded_arm_is_not_walked(self) -> None:
+        # `count > 0 && tokens[0].x < 5` over an empty place: evaluation
+        # stops at the guard, so the margin must stop there too instead of
+        # indexing a token that is not there.
+        guarded = self._constraint(
+            self._node(
+                "binary",
+                op="&&",
+                left=self._node(
+                    "binary", op=">", left=self._count(), right=self._num(0)
+                ),
+                right=self._node(
+                    "binary", op="<", left=self._first_token_x(), right=self._num(5)
+                ),
+            ),
+            params=["state"],
+        )
+        empty = {"places": {"Queue": {"count": 0, "tokens": []}}}
+        assert guarded(state=empty) is False
+        assert guarded.margin(state=empty) < 0
+
+    def test_equal_infinities_keep_the_margin_sign(self) -> None:
+        # inf - inf is NaN, but JS says inf <= inf and inf == inf hold, so a
+        # cancelled slack must not read as a violation.
+        inf = self._node("mathCall", fn="exp", args=[self._num(1000)])
+        for op, satisfied in (
+            ("<=", True),
+            (">=", True),
+            ("==", True),
+            ("<", False),
+            ("!=", False),
+        ):
+            case = self._constraint(self._node("binary", op=op, left=inf, right=inf))
+            assert case(scenario={}) is satisfied, op
+            assert (case.margin(scenario={}) >= 0) == satisfied, op
+
+
 class TestRejections:
     def test_unknown_node_kind_raises(self) -> None:
         with pytest.raises(HirEvaluationError, match="mystery"):
