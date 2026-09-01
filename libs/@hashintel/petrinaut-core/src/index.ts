@@ -601,6 +601,7 @@ export {
   createStatusViewTracker,
   getStatusViewExitLabel,
   summarizeStatusIntervals,
+  type InstanceLabelState,
   type InstanceStatus,
   type StatusInterval,
   type StatusLabelDwell,
