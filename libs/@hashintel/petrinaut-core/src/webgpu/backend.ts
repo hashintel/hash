@@ -25,6 +25,7 @@ import type {
   GpuOdeMethod,
 } from "./compile-net-shader";
 import type { GpuNetProfile } from "./eligibility";
+import type { MetricWindow } from "./metric-windows";
 import type { GpuDeviceHandle } from "./runner";
 
 /**
@@ -92,9 +93,26 @@ export type GpuBackend = {
   recompile: (
     capacities: ReadonlyMap<string, number>,
   ) => ReturnType<typeof compileNetShader>;
+  /**
+   * Calibration learned by this backend's experiments, keyed by
+   * `calibrationKey` (initial marking + metric set). A sweep instantiates a
+   * batch per ladder rung; without this every batch re-ran the capacity and
+   * window probes the first batch already paid for. Entries update whenever
+   * a batch learns more (growth, window replan), and a stale entry heals
+   * through the same escape/overflow re-runs that calibrate from scratch.
+   */
+  calibration: Map<string, GpuCalibration>;
   framesPerDispatch: number;
   /** Notes that did not prevent use, e.g. user code that fell back to a default. */
   warnings: string[];
+};
+
+/** One learned calibration: see `GpuBackend.calibration`. */
+export type GpuCalibration = {
+  windows: readonly MetricWindow[];
+  capacities: ReadonlyMap<string, number>;
+  /** The shader compiled at `capacities`, reusable on this backend's device. */
+  shader: CompiledNetShader;
 };
 
 export type GpuBackendUnavailable = {
@@ -210,6 +228,7 @@ export async function requestGpuExperimentBackend(
     profile: profileWith(probeCapacities),
     derivedCapacities: probeCapacities,
     recompile: compileWith,
+    calibration: new Map(),
     framesPerDispatch,
     warnings,
   };
