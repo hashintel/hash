@@ -108,6 +108,7 @@ export const petrinautDocNames = [
   "experiments",
   "actual-mode",
   "preview",
+  "status-views",
   "ai-assistant",
   "visual-settings",
   "compilation-output",
@@ -135,6 +136,8 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
     "Actual mode: host-provided live execution view, Brunch stream URL route, read-only extension-free net, current limits.",
   preview:
     "Compact read-only PetrinautPreview for host-controlled embeds: shared SDCPN canvas, pan/zoom/fit/minimap, selection and responsive inspector, root/subnet navigation, URL-state ownership, omitted editing and management UI, and host-owned iframe security.",
+  "status-views":
+    "Status views: identities and key dimensions, place-mapped labels with token conditions and the exit label, canvas badges, the Kanban board toggle, and derived time-in-status.",
   "ai-assistant":
     "In-app AI assistant: opening the panel, one text and Voice mode transcript/composer, waveform start, inline Voice state and provenance, typed handoff, consent/recovery, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
   "visual-settings":

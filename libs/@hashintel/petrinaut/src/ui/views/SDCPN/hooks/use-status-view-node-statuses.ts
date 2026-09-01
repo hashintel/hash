@@ -1,14 +1,16 @@
-import { use, useEffect, useState } from "react";
+import { use } from "react";
 
 import {
   createStatusViewFrameEvaluator,
-  formatScopedId,
   parseScopedId,
 } from "@hashintel/petrinaut-core";
 
 import { ExecutionFrameSourceContext } from "../../../../react/execution-frame/context";
-import { LanguageClientContext } from "../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../react/state/sdcpn-context";
+import {
+  getStatusViewEvaluationScope,
+  useStatusConditionArtifacts,
+} from "../../shared/status-view-tracking";
 
 import type {
   Color,
@@ -40,48 +42,6 @@ export type ComponentInstanceStatusSummary = {
 };
 
 /**
- * The place and colour universe status views evaluate against: the root
- * net's places, plus each componentInstance's copies of its subnet's places
- * under scoped ids — the id space execution frames key places by. Subnet
- * colours keep their definition ids, matching the copies' `colorId`.
- */
-const getEvaluationScope = (
-  sdcpn: SDCPN,
-): { places: Place[]; types: Color[] } => {
-  const places: Place[] = [...sdcpn.places];
-  const types: Color[] = [
-    ...sdcpn.types,
-    ...(sdcpn.subnets ?? []).flatMap((subnet) => subnet.types),
-  ];
-
-  const subnetById = new Map(
-    (sdcpn.subnets ?? []).map((subnet) => [subnet.id, subnet]),
-  );
-  const visitInstances = (
-    instances: NonNullable<SDCPN["componentInstances"]>,
-    idPath: readonly string[],
-  ): void => {
-    for (const instance of instances) {
-      const subnet = subnetById.get(instance.subnetId);
-      if (!subnet) {
-        continue;
-      }
-      const instanceIdPath = [...idPath, instance.id];
-      for (const place of subnet.places) {
-        places.push({
-          ...place,
-          id: formatScopedId(instanceIdPath, place.id),
-        });
-      }
-      visitInstances(subnet.componentInstances ?? [], instanceIdPath);
-    }
-  };
-  visitInstances(sdcpn.componentInstances ?? [], []);
-
-  return { places, types };
-};
-
-/**
  * Per-componentInstance status summaries for the currently viewed frame,
  * keyed by the instance's node id. An instance appears only when a status
  * view tracks at least one token inside its copies of subnet places; the
@@ -92,41 +52,16 @@ export function useStatusViewNodeStatuses(): Map<
   ComponentInstanceStatusSummary
 > {
   const { petriNetDefinition } = use(SDCPNContext);
-  const { requestHirArtifacts } = use(LanguageClientContext);
   const { currentFrameReader } = use(ExecutionFrameSourceContext);
+  const statusConditions = useStatusConditionArtifacts();
 
   const statusViews = petriNetDefinition.statusViews ?? [];
-  const hasConditions = statusViews.some((statusView) =>
-    statusView.labels.some(
-      (label) => (label.tokenCondition ?? "").trim() !== "",
-    ),
-  );
-
-  const [statusConditions, setStatusConditions] = useState<
-    Record<string, HirStatusConditionArtifact>
-  >({});
-
-  useEffect(() => {
-    if (!hasConditions) {
-      return;
-    }
-    let cancelled = false;
-    void requestHirArtifacts(petriNetDefinition).then(({ artifacts }) => {
-      if (!cancelled) {
-        setStatusConditions(artifacts.statusConditions);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [hasConditions, petriNetDefinition, requestHirArtifacts]);
-
   const summaries = new Map<string, ComponentInstanceStatusSummary>();
   if (statusViews.length === 0 || !currentFrameReader) {
     return summaries;
   }
 
-  const { places, types } = getEvaluationScope(petriNetDefinition);
+  const { places, types } = getStatusViewEvaluationScope(petriNetDefinition);
 
   for (const statusView of statusViews) {
     const evaluate = createStatusViewFrameEvaluator({
