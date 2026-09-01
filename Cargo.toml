@@ -202,6 +202,7 @@ md-5                               = { version = "0.11.0", default-features = fa
 memchr                             = { version = "2.7.6", default-features = false }
 mimalloc                           = { version = "0.1.48", default-features = false }
 mime                               = { version = "0.3.17", default-features = false }
+moka                               = { version = "0.12.15", default-features = false }
 multiaddr                          = { version = "0.18.2", default-features = false }
 multistream-select                 = { version = "0.14.0", default-features = false }
 napi                               = { version = "3.9.0", default-features = false }

@@ -214,6 +214,7 @@ impl KratosSessionAuthConfig {
         Ok(KratosSessionConfig {
             kratos_public_url,
             http_timeout: Duration::from_secs(self.session_http_timeout_secs),
+            cache: None,
         })
     }
 }

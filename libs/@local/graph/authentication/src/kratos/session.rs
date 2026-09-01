@@ -10,9 +10,11 @@ use hash_middleware::authentication::{
     request::AuthenticationError,
 };
 use http::{HeaderMap, header};
+use moka::future::Cache as MokaCache;
 use reqwest::{Client, Url, redirect};
 use serde::Deserialize;
-use type_system::principal::actor::{ActorEntityUuid, ActorId};
+use sha2::{Digest as _, Sha256};
+use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
 
 use super::{MetadataPublic, provider_response, read_response_body};
 use crate::actor::{ResolveActor, resolve_user_actor};
@@ -28,6 +30,24 @@ enum SessionCredential<'h> {
     Token(&'h str),
     /// The value of the `ory_kratos_session` cookie.
     Cookie(&'h str),
+}
+
+impl SessionCredential<'_> {
+    /// Hashes the credential into its cache key.
+    ///
+    /// The cache holds hashes, so session secrets do not sit in memory for the cache's lifetime.
+    /// The leading byte separates the token and cookie domains: the same byte string is a
+    /// different credential in a header than in a cookie.
+    fn cache_key(&self) -> [u8; 32] {
+        let (domain, value) = match self {
+            Self::Token(token) => (0_u8, *token),
+            Self::Cookie(value) => (1_u8, *value),
+        };
+        let mut digest = Sha256::new();
+        digest.update([domain]);
+        digest.update(value.as_bytes());
+        digest.finalize().into()
+    }
 }
 
 /// Extracts a session credential from request headers.
@@ -85,6 +105,18 @@ struct WhoamiIdentity {
     metadata_public: Option<MetadataPublic>,
 }
 
+/// Configuration of the verified-session cache.
+#[derive(Debug, Clone)]
+pub struct SessionCacheConfig {
+    /// How long a verified session is served from the cache.
+    ///
+    /// Counted from verification and unaffected by later hits, so it bounds the revocation
+    /// delay: a revoked session keeps authenticating for at most this duration.
+    pub ttl: Duration,
+    /// Maximum number of verified sessions kept.
+    pub capacity: u64,
+}
+
 /// Configuration for [`KratosSessionProvider`].
 #[derive(Debug, Clone)]
 pub struct KratosSessionConfig {
@@ -92,6 +124,8 @@ pub struct KratosSessionConfig {
     pub kratos_public_url: Url,
     /// HTTP client timeout for whoami requests.
     pub http_timeout: Duration,
+    /// The verified-session cache, verifying every request when absent.
+    pub cache: Option<SessionCacheConfig>,
 }
 
 /// Verifies Kratos sessions and maps them to Graph actors.
@@ -99,10 +133,15 @@ pub struct KratosSessionConfig {
 /// Sessions are verified via the Kratos whoami endpoint. The actor is read from the
 /// `graph_actor_id` field in the identity's `metadata_public` and checked to be an existing user
 /// actor in the principal store.
+///
+/// With a [`SessionCacheConfig`], verified sessions are served from a cache keyed by hashed
+/// credential until the TTL expires, and concurrent requests for one credential share a single
+/// verification. Rejections and verification failures are never cached.
 pub struct KratosSessionProvider<R> {
     http_client: Client,
     whoami_url: Url,
     actor_resolver: R,
+    cache: Option<MokaCache<[u8; 32], UserId>>,
 }
 
 impl<R> KratosSessionProvider<R> {
@@ -131,6 +170,14 @@ impl<R> KratosSessionProvider<R> {
                 .expect("the HTTP client should build with default TLS configuration"),
             whoami_url,
             actor_resolver,
+            cache: config.cache.map(|cache| {
+                MokaCache::builder()
+                    .max_capacity(cache.capacity)
+                    // Time-to-live, not time-to-idle: steady traffic on a revoked session must
+                    // not keep it authenticating past the bound.
+                    .time_to_live(cache.ttl)
+                    .build()
+            }),
         }
     }
 }
@@ -195,6 +242,15 @@ where
         };
         Ok(ActorEntityUuid::new(actor_uuid))
     }
+
+    /// Verifies the credential against Kratos and resolves the actor it names.
+    async fn verify_and_resolve(
+        &self,
+        credential: SessionCredential<'_>,
+    ) -> Result<UserId, Report<AuthenticationError>> {
+        let actor_uuid = self.verify_session(credential).await?;
+        resolve_user_actor(&self.actor_resolver, actor_uuid).await
+    }
 }
 
 impl<C, R> AuthenticationProvider<C> for KratosSessionProvider<R>
@@ -213,23 +269,30 @@ where
             Some(Ok(credential)) => credential,
         };
 
-        let resolution = async {
-            let actor_uuid = self.verify_session(credential).await?;
-            resolve_user_actor(&self.actor_resolver, actor_uuid).await
+        let resolution = match &self.cache {
+            // `try_get_with` runs one verification per key at a time and never caches an `Err`,
+            // so rejections and unreachable providers are retried by the next request.
+            Some(cache) => {
+                cache
+                    .try_get_with(credential.cache_key(), self.verify_and_resolve(credential))
+                    .await
+            }
+            None => self.verify_and_resolve(credential).await.map_err(Arc::new),
         };
 
-        ControlFlow::Break(
-            resolution
-                .await
-                .map(|user_id| C::from_actor(ActorId::User(user_id)))
-                .map_err(Arc::new),
-        )
+        ControlFlow::Break(resolution.map(|user_id| C::from_actor(ActorId::User(user_id))))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use core::{assert_matches, ops::ControlFlow, time::Duration};
+    use alloc::sync::Arc;
+    use core::{
+        assert_matches,
+        ops::ControlFlow,
+        sync::atomic::{AtomicUsize, Ordering},
+        time::Duration,
+    };
     use std::collections::HashMap;
 
     use axum::{Json, Router, response::IntoResponse as _, routing::get};
@@ -245,7 +308,9 @@ mod tests {
     use type_system::principal::actor::{ActorEntityUuid, ActorId, MachineId};
     use uuid::Uuid;
 
-    use super::{KratosSessionConfig, KratosSessionProvider, SESSION_COOKIE_NAME};
+    use super::{
+        KratosSessionConfig, KratosSessionProvider, SESSION_COOKIE_NAME, SessionCacheConfig,
+    };
     use crate::{
         actor::tests::{FixedActorResolver, known_user, random_actor},
         delegation::ServiceDelegationProvider,
@@ -315,25 +380,31 @@ mod tests {
             KratosSessionConfig {
                 kratos_public_url: url,
                 http_timeout: Duration::from_secs(5),
+                cache: None,
             },
             FixedActorResolver::new(actors),
         )
     }
 
-    /// Spawns a fake Kratos serving the given session and returns a provider pointed at it.
+    /// Spawns a fake Kratos counting its whoami verifications and returns a provider at it.
     ///
     /// The fake only serves the session when the request carries the expected session token or
     /// session cookie, so any test that reaches verification also verifies credential forwarding.
-    async fn provider_for(
+    async fn counting_provider(
         session: FakeSession,
         actors: HashMap<ActorEntityUuid, ActorId>,
-    ) -> KratosSessionProvider<FixedActorResolver> {
+        cache: Option<SessionCacheConfig>,
+    ) -> (KratosSessionProvider<FixedActorResolver>, Arc<AtomicUsize>) {
+        let verifications = Arc::new(AtomicUsize::new(0));
         let whoami = session.into_whoami_json();
+        let counter = Arc::clone(&verifications);
         let router = Router::new().route(
             "/sessions/whoami",
             get(move |request_headers: HeaderMap| {
                 let whoami = whoami.clone();
+                let counter = Arc::clone(&counter);
                 async move {
+                    counter.fetch_add(1, Ordering::Relaxed);
                     let token_sent = request_headers
                         .get(super::SESSION_TOKEN_HEADER)
                         .is_some_and(|value| value.as_bytes() == SESSION_TOKEN.as_bytes());
@@ -351,7 +422,66 @@ mod tests {
             }),
         );
 
-        provider_at(spawn_fake_kratos(router).await, actors)
+        let provider = KratosSessionProvider::new(
+            KratosSessionConfig {
+                kratos_public_url: spawn_fake_kratos(router).await,
+                http_timeout: Duration::from_secs(5),
+                cache,
+            },
+            FixedActorResolver::new(actors),
+        );
+        (provider, verifications)
+    }
+
+    /// Spawns a fake Kratos serving the given session and returns a provider pointed at it.
+    async fn provider_for(
+        session: FakeSession,
+        actors: HashMap<ActorEntityUuid, ActorId>,
+    ) -> KratosSessionProvider<FixedActorResolver> {
+        counting_provider(session, actors, None).await.0
+    }
+
+    /// Spawns a fake Kratos rejecting the first verification and serving the session afterwards.
+    async fn recovering_provider(
+        session: FakeSession,
+        actors: HashMap<ActorEntityUuid, ActorId>,
+        cache: Option<SessionCacheConfig>,
+    ) -> (KratosSessionProvider<FixedActorResolver>, Arc<AtomicUsize>) {
+        let verifications = Arc::new(AtomicUsize::new(0));
+        let whoami = session.into_whoami_json();
+        let counter = Arc::clone(&verifications);
+        let router = Router::new().route(
+            "/sessions/whoami",
+            get(move || {
+                let whoami = whoami.clone();
+                let counter = Arc::clone(&counter);
+                async move {
+                    if counter.fetch_add(1, Ordering::Relaxed) == 0 {
+                        StatusCode::UNAUTHORIZED.into_response()
+                    } else {
+                        Json(whoami).into_response()
+                    }
+                }
+            }),
+        );
+
+        let provider = KratosSessionProvider::new(
+            KratosSessionConfig {
+                kratos_public_url: spawn_fake_kratos(router).await,
+                http_timeout: Duration::from_secs(5),
+                cache,
+            },
+            FixedActorResolver::new(actors),
+        );
+        (provider, verifications)
+    }
+
+    /// A cache whose TTL no test outlasts.
+    const fn cache_config() -> SessionCacheConfig {
+        SessionCacheConfig {
+            ttl: Duration::from_secs(60),
+            capacity: 64,
+        }
     }
 
     fn session_token_header() -> HeaderMap {
@@ -582,6 +712,7 @@ mod tests {
             KratosSessionConfig {
                 kratos_public_url: url,
                 http_timeout: Duration::from_millis(100),
+                cache: None,
             },
             FixedActorResolver::new(HashMap::new()),
         );
@@ -678,6 +809,177 @@ mod tests {
                     if ActorEntityUuid::new(user_id) == session_actor
             ),
             "a valid session should act as the session user, not the delegated actor"
+        );
+    }
+
+    #[tokio::test]
+    async fn cache_serves_repeated_requests_without_reverification() {
+        let actor_id = random_actor();
+        let (provider, verifications) = counting_provider(
+            FakeSession::active_for(actor_id),
+            known_user(actor_id),
+            Some(cache_config()),
+        )
+        .await;
+
+        for _ in 0..2 {
+            let authentication: ControlFlow<Result<ActorId, _>> =
+                provider.authenticate(&session_token_header()).await;
+            assert_matches!(
+                authentication,
+                ControlFlow::Break(Ok(_)),
+                "the session should authenticate on every request"
+            );
+        }
+
+        assert_eq!(
+            verifications.load(Ordering::Relaxed),
+            1,
+            "the second request should be served from the cache"
+        );
+    }
+
+    #[tokio::test]
+    async fn uncached_provider_verifies_every_request() {
+        let actor_id = random_actor();
+        let (provider, verifications) = counting_provider(
+            FakeSession::active_for(actor_id),
+            known_user(actor_id),
+            None,
+        )
+        .await;
+
+        for _ in 0..2 {
+            let authentication: ControlFlow<Result<ActorId, _>> =
+                provider.authenticate(&session_token_header()).await;
+            assert_matches!(
+                authentication,
+                ControlFlow::Break(Ok(_)),
+                "the session should authenticate on every request"
+            );
+        }
+
+        assert_eq!(
+            verifications.load(Ordering::Relaxed),
+            2,
+            "without a cache every request should verify"
+        );
+    }
+
+    #[tokio::test]
+    async fn rejected_session_stays_uncached() {
+        let actor_id = random_actor();
+        let (provider, verifications) = recovering_provider(
+            FakeSession::active_for(actor_id),
+            known_user(actor_id),
+            Some(cache_config()),
+        )
+        .await;
+
+        let report =
+            expect_rejection::<ActorId>(provider.authenticate(&session_token_header()).await);
+        assert_matches!(
+            report.current_context().kind,
+            AuthenticationErrorKind::InvalidSession,
+            "the first request should carry the provider's rejection"
+        );
+
+        let authentication: ControlFlow<Result<ActorId, _>> =
+            provider.authenticate(&session_token_header()).await;
+        assert_matches!(
+            authentication,
+            ControlFlow::Break(Ok(_)),
+            "the request after a rejection should verify afresh and succeed"
+        );
+        assert_eq!(
+            verifications.load(Ordering::Relaxed),
+            2,
+            "both requests should reach the provider"
+        );
+    }
+
+    #[tokio::test]
+    async fn token_and_cookie_forms_cache_separately() {
+        let actor_id = random_actor();
+        let (provider, verifications) = counting_provider(
+            FakeSession::active_for(actor_id),
+            known_user(actor_id),
+            Some(cache_config()),
+        )
+        .await;
+
+        let by_token: ControlFlow<Result<ActorId, _>> =
+            provider.authenticate(&session_token_header()).await;
+        assert_matches!(
+            by_token,
+            ControlFlow::Break(Ok(_)),
+            "the token form should authenticate"
+        );
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            http::header::COOKIE,
+            format!("{SESSION_COOKIE_NAME}={SESSION_TOKEN}")
+                .parse()
+                .expect("the cookie should be a valid header value"),
+        );
+        let by_cookie: ControlFlow<Result<ActorId, _>> = provider.authenticate(&headers).await;
+        assert_matches!(
+            by_cookie,
+            ControlFlow::Break(Ok(_)),
+            "the cookie form should authenticate"
+        );
+
+        assert_eq!(
+            verifications.load(Ordering::Relaxed),
+            2,
+            "the cookie form should verify separately from the token form"
+        );
+    }
+
+    /// The TTL counts from verification, not from the last hit.
+    ///
+    /// A hit inside the window must not extend the entry: were the cache built on
+    /// `time_to_idle`, a steadily used revoked session would never re-verify.
+    #[tokio::test]
+    async fn ttl_counts_from_verification_not_from_last_use() {
+        let actor_id = random_actor();
+        let (provider, verifications) = counting_provider(
+            FakeSession::active_for(actor_id),
+            known_user(actor_id),
+            Some(SessionCacheConfig {
+                ttl: Duration::from_secs(2),
+                capacity: 64,
+            }),
+        )
+        .await;
+        let authenticate = || async {
+            let authentication: ControlFlow<Result<ActorId, _>> =
+                provider.authenticate(&session_token_header()).await;
+            assert_matches!(
+                authentication,
+                ControlFlow::Break(Ok(_)),
+                "the session should authenticate on every request"
+            );
+        };
+
+        authenticate().await;
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        authenticate().await;
+        assert_eq!(
+            verifications.load(Ordering::Relaxed),
+            1,
+            "a hit inside the TTL should not verify"
+        );
+
+        // Now ~2.2s after verification: past the TTL, but before the point an idle timer reset
+        // by the hit at ~0.5s would expire (~2.5s).
+        tokio::time::sleep(Duration::from_millis(1700)).await;
+        authenticate().await;
+        assert_eq!(
+            verifications.load(Ordering::Relaxed),
+            2,
+            "the request after the TTL should verify afresh"
         );
     }
 }
