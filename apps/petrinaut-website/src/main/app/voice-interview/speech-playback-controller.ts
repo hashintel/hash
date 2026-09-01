@@ -1,10 +1,17 @@
 import {
+  createVoiceRequestId,
+  VoiceError,
+  VOICE_REQUEST_ID_HEADER,
+  voiceDiagnosticOutcome,
+  voiceDurationMs,
+  voiceErrorFromResponse,
+  type VoiceDiagnosticReporter,
+  type VoiceErrorCode,
+} from "../../../voice-diagnostics";
+import {
   hashCanonicalSpeechText,
   type CanonicalSpeechSegment,
 } from "./canonical-speech";
-
-const SPEECH_ERROR_MESSAGE =
-  "The response could not be spoken. Read the visible text instead.";
 
 interface SpeechAudio {
   addEventListener(type: "ended" | "error", listener: () => void): void;
@@ -16,7 +23,10 @@ interface SpeechAudio {
 interface SpeechPlaybackDependencies {
   readonly createAudio: (source: string) => SpeechAudio;
   readonly createObjectURL: (blob: Blob) => string;
+  readonly createRequestId?: () => string;
   readonly fetch: typeof globalThis.fetch;
+  readonly now?: () => number;
+  readonly reportDiagnostic?: VoiceDiagnosticReporter;
   readonly revokeObjectURL: (url: string) => void;
 }
 
@@ -29,7 +39,8 @@ interface ActiveAudio {
   readonly generation: number;
 }
 
-const fallbackError = (): Error => new Error(SPEECH_ERROR_MESSAGE);
+const fallbackError = (requestId: string): VoiceError =>
+  new VoiceError("speech", "invalid-response", requestId);
 const abortError = (): DOMException =>
   new DOMException("Speech playback was canceled.", "AbortError");
 
@@ -75,44 +86,95 @@ export class SpeechPlaybackController {
     events: SpeechPlaybackEvents = {},
   ): Promise<void> {
     this.cancel();
+    const requestId =
+      this.#dependencies.createRequestId?.() ?? createVoiceRequestId();
+    const requestStartedAt = this.#now();
+    let requestReported = false;
+    let playbackStartedAt: number | null = null;
     if (
       segment.contentHash !== hashCanonicalSpeechText(segment.text) ||
       !segment.id.endsWith(`:${segment.contentHash}`)
     ) {
-      throw fallbackError();
+      this.#reportDiagnostic(
+        "browser",
+        requestId,
+        requestStartedAt,
+        "invalid-response",
+      );
+      throw fallbackError(requestId);
     }
     const generation = this.#generation;
     const abortController = new AbortController();
     this.#abortController = abortController;
 
     try {
-      const response = await waitForAbort(
-        this.#dependencies.fetch("/api/voice/speech", {
-          body: JSON.stringify({ segmentId: segment.id, text: segment.text }),
-          cache: "no-store",
-          headers: { "content-type": "application/json" },
-          method: "POST",
-          signal: abortController.signal,
-        }),
-        abortController.signal,
-      );
+      let response: Response;
+      try {
+        response = await waitForAbort(
+          this.#dependencies.fetch("/api/voice/speech", {
+            body: JSON.stringify({
+              segmentId: segment.id,
+              text: segment.text,
+            }),
+            cache: "no-store",
+            headers: {
+              "content-type": "application/json",
+              [VOICE_REQUEST_ID_HEADER]: requestId,
+            },
+            method: "POST",
+            signal: abortController.signal,
+          }),
+          abortController.signal,
+        );
+      } catch (error) {
+        if (isAbortError(error)) {
+          throw error;
+        }
+        throw new VoiceError("speech", "network", requestId);
+      }
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw voiceErrorFromResponse(response, "speech", requestId);
+      }
       const contentType = response.headers
         .get("content-type")
         ?.split(";", 1)[0]
         ?.trim()
         .toLowerCase();
-      if (!response.ok || contentType !== "audio/mpeg") {
+      if (contentType !== "audio/mpeg") {
         await response.body?.cancel();
-        throw fallbackError();
+        throw fallbackError(requestId);
       }
 
-      const blob = await waitForAbort(response.blob(), abortController.signal);
-      if (generation !== this.#generation || blob.size === 0) {
-        throw generation === this.#generation ? fallbackError() : abortError();
+      let blob: Blob;
+      try {
+        blob = await waitForAbort(response.blob(), abortController.signal);
+      } catch (error) {
+        if (isAbortError(error)) {
+          if (abortController.signal.aborted) {
+            throw error;
+          }
+          throw new VoiceError("speech", "request-aborted", requestId);
+        }
+        throw new VoiceError("speech", "network", requestId);
       }
+      if (generation !== this.#generation || blob.size === 0) {
+        throw generation === this.#generation
+          ? fallbackError(requestId)
+          : abortError();
+      }
+      this.#reportDiagnostic("browser", requestId, requestStartedAt);
+      requestReported = true;
+      playbackStartedAt = this.#now();
 
       const objectUrl = this.#dependencies.createObjectURL(blob);
-      const audio = this.#dependencies.createAudio(objectUrl);
+      let audio: SpeechAudio;
+      try {
+        audio = this.#dependencies.createAudio(objectUrl);
+      } catch {
+        this.#dependencies.revokeObjectURL(objectUrl);
+        throw fallbackError(requestId);
+      }
       await new Promise<void>((resolve, reject) => {
         let settled = false;
         let cleanup = () => undefined;
@@ -124,8 +186,13 @@ export class SpeechPlaybackController {
           cleanup();
           finish();
         };
-        const handleEnded = () => settle(resolve);
-        const handleError = () => settle(() => reject(fallbackError()));
+        const handleEnded = () =>
+          settle(() => {
+            this.#reportDiagnostic("playback", requestId, playbackStartedAt!);
+            resolve();
+          });
+        const handleError = () =>
+          settle(() => reject(fallbackError(requestId)));
         cleanup = () => {
           audio.removeEventListener("ended", handleEnded);
           audio.removeEventListener("error", handleError);
@@ -150,15 +217,55 @@ export class SpeechPlaybackController {
         }, handleError);
       });
     } catch (error) {
+      const errorCode = isAbortError(error)
+        ? "request-aborted"
+        : error instanceof VoiceError
+          ? error.code
+          : "invalid-response";
+      if (!requestReported) {
+        this.#reportDiagnostic(
+          "browser",
+          requestId,
+          requestStartedAt,
+          errorCode,
+        );
+      } else if (playbackStartedAt !== null) {
+        this.#reportDiagnostic(
+          "playback",
+          requestId,
+          playbackStartedAt,
+          errorCode,
+        );
+      }
       if (isAbortError(error)) {
         throw error;
       }
-      throw fallbackError();
+      throw error instanceof VoiceError ? error : fallbackError(requestId);
     } finally {
       if (this.#abortController === abortController) {
         this.#abortController = null;
       }
     }
+  }
+
+  #now(): number {
+    return this.#dependencies.now?.() ?? performance.now();
+  }
+
+  #reportDiagnostic(
+    stage: "browser" | "playback",
+    requestId: string,
+    startedAt: number,
+    errorCode?: VoiceErrorCode,
+  ): void {
+    this.#dependencies.reportDiagnostic?.({
+      durationMs: voiceDurationMs(startedAt, this.#now()),
+      ...(errorCode === undefined ? {} : { errorCode }),
+      operation: "speech",
+      outcome: voiceDiagnosticOutcome(errorCode),
+      requestId,
+      stage,
+    });
   }
 
   public cancel(): void {

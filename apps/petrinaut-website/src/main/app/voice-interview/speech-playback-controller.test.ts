@@ -49,11 +49,15 @@ const createHarness = (
   const audio = createAudioHarness();
   const createAudio = vi.fn(() => audio.audio);
   const createObjectURL = vi.fn(() => "blob:canonical-speech");
+  const reportDiagnostic = vi.fn();
   const revokeObjectURL = vi.fn();
   const controller = new SpeechPlaybackController({
     createAudio,
     createObjectURL,
+    createRequestId: () => "voice-speech-request",
     fetch,
+    now: () => 100,
+    reportDiagnostic,
     revokeObjectURL,
   });
   return {
@@ -62,6 +66,7 @@ const createHarness = (
     createAudio,
     createObjectURL,
     fetch,
+    reportDiagnostic,
     revokeObjectURL,
   };
 };
@@ -81,7 +86,10 @@ describe("SpeechPlaybackController", () => {
     expect(request).toMatchObject({
       body: JSON.stringify({ segmentId: segment.id, text: segment.text }),
       cache: "no-store",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        "x-request-id": "voice-speech-request",
+      },
       method: "POST",
     });
     expect(request?.signal).toBeInstanceOf(AbortSignal);
@@ -93,6 +101,29 @@ describe("SpeechPlaybackController", () => {
     await expect(playback).resolves.toBeUndefined();
     expect(harness.revokeObjectURL).toHaveBeenCalledWith(
       "blob:canonical-speech",
+    );
+    expect(harness.reportDiagnostic.mock.calls).toEqual([
+      [
+        {
+          durationMs: 0,
+          operation: "speech",
+          outcome: "success",
+          requestId: "voice-speech-request",
+          stage: "browser",
+        },
+      ],
+      [
+        {
+          durationMs: 0,
+          operation: "speech",
+          outcome: "success",
+          requestId: "voice-speech-request",
+          stage: "playback",
+        },
+      ],
+    ]);
+    expect(JSON.stringify(harness.reportDiagnostic.mock.calls)).not.toContain(
+      segment.text,
     );
   });
 
@@ -109,15 +140,65 @@ describe("SpeechPlaybackController", () => {
     const harness = createHarness(fetch);
 
     await expect(harness.controller.play(segment)).rejects.toThrow(
-      "The response could not be spoken. Read the visible text instead.",
+      "The speech service returned an invalid response. Read the visible response instead.",
     );
     await expect(harness.controller.play(segment)).rejects.toThrow(
-      "The response could not be spoken. Read the visible text instead.",
+      "The speech service returned an invalid response. Read the visible response instead.",
     );
     await expect(harness.controller.play(segment)).rejects.toThrow(
-      "The response could not be spoken. Read the visible text instead.",
+      "The speech service returned an invalid response. Read the visible response instead.",
     );
     expect(harness.createAudio).not.toHaveBeenCalled();
+  });
+
+  test("preserves an upstream response-body abort as a request abort", async () => {
+    const response = new Response(new Uint8Array([1]), {
+      headers: { "content-type": "audio/mpeg" },
+    });
+    vi.spyOn(response, "blob").mockRejectedValue(
+      new DOMException("upstream aborted", "AbortError"),
+    );
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => response);
+    const harness = createHarness(fetch);
+
+    await expect(harness.controller.play(segment)).rejects.toMatchObject({
+      code: "request-aborted",
+      requestId: "voice-speech-request",
+    });
+    expect(harness.createAudio).not.toHaveBeenCalled();
+    expect(harness.reportDiagnostic).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        errorCode: "request-aborted",
+        outcome: "aborted",
+        requestId: "voice-speech-request",
+        stage: "browser",
+      }),
+    );
+  });
+
+  test("rejects untrusted server-only diagnostics and request references", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response("private provider response", {
+          headers: {
+            "x-petrinaut-voice-error": "microphone-permission",
+            "x-request-id": "private transcript used as a request id",
+          },
+          status: 502,
+        }),
+    );
+    const harness = createHarness(fetch);
+
+    await expect(harness.controller.play(segment)).rejects.toMatchObject({
+      code: "invalid-response",
+      requestId: "voice-speech-request",
+    });
+    expect(JSON.stringify(harness.reportDiagnostic.mock.calls)).not.toContain(
+      "private transcript used as a request id",
+    );
+    expect(JSON.stringify(harness.reportDiagnostic.mock.calls)).not.toContain(
+      "private provider response",
+    );
   });
 
   test("rejects text that does not match its canonical fingerprint", async () => {
@@ -126,7 +207,7 @@ describe("SpeechPlaybackController", () => {
     await expect(
       harness.controller.play({ ...segment, text: "Tampered text" }),
     ).rejects.toThrow(
-      "The response could not be spoken. Read the visible text instead.",
+      "The speech service returned an invalid response. Read the visible response instead.",
     );
 
     expect(harness.fetch).not.toHaveBeenCalled();
@@ -155,6 +236,14 @@ describe("SpeechPlaybackController", () => {
     );
     await Promise.resolve();
     expect(harness.createAudio).not.toHaveBeenCalled();
+    expect(harness.reportDiagnostic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorCode: "request-aborted",
+        outcome: "aborted",
+        requestId: "voice-speech-request",
+        stage: "browser",
+      }),
+    );
   });
 
   test("pauses active audio, revokes its URL, and rejects stale completion on cancel", async () => {
@@ -170,6 +259,13 @@ describe("SpeechPlaybackController", () => {
     expect(harness.revokeObjectURL).toHaveBeenCalledWith(
       "blob:canonical-speech",
     );
+    expect(harness.reportDiagnostic).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        errorCode: "request-aborted",
+        outcome: "aborted",
+        stage: "playback",
+      }),
+    );
   });
 
   test("turns audio startup and playback errors into the visible-text fallback", async () => {
@@ -179,7 +275,7 @@ describe("SpeechPlaybackController", () => {
     );
 
     await expect(harness.controller.play(segment)).rejects.toThrow(
-      "The response could not be spoken. Read the visible text instead.",
+      "The speech service returned an invalid response. Read the visible response instead.",
     );
     expect(harness.revokeObjectURL).toHaveBeenCalledOnce();
 
@@ -190,8 +286,41 @@ describe("SpeechPlaybackController", () => {
     );
     secondHarness.audio.emit("error");
     await expect(playback).rejects.toThrow(
-      "The response could not be spoken. Read the visible text instead.",
+      "The speech service returned an invalid response. Read the visible response instead.",
     );
     expect(secondHarness.revokeObjectURL).toHaveBeenCalledOnce();
+  });
+
+  test("revokes the object URL when the audio element cannot be created", async () => {
+    const harness = createHarness();
+    harness.createAudio.mockImplementationOnce(() => {
+      throw new Error("audio construction failed");
+    });
+
+    await expect(harness.controller.play(segment)).rejects.toMatchObject({
+      code: "invalid-response",
+      requestId: "voice-speech-request",
+    });
+
+    expect(harness.revokeObjectURL).toHaveBeenCalledWith(
+      "blob:canonical-speech",
+    );
+  });
+
+  test("classifies browser network failures without leaking diagnostics", async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => {
+      throw new Error("private browser network detail");
+    });
+    const harness = createHarness(fetch);
+
+    await expect(harness.controller.play(segment)).rejects.toMatchObject({
+      code: "network",
+      message:
+        "The speech service could not be reached. Read the visible response instead.",
+      requestId: "voice-speech-request",
+    });
+    expect(JSON.stringify(harness.reportDiagnostic.mock.calls)).not.toContain(
+      "private browser network detail",
+    );
   });
 });

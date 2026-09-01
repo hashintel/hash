@@ -1,12 +1,17 @@
 import { hashCanonicalSpeechText } from "../../canonical-speech-fingerprint";
+import {
+  voiceErrorMessage,
+  type VoiceDiagnosticReporter,
+  type VoiceErrorCode,
+} from "../../voice-diagnostics";
 import { getOpenAIVoiceAvailability } from "./openai-voice-policy";
+import { createVoiceRequestDiagnostics } from "./voice-request-diagnostics";
 
 const OPENAI_SPEECH_ENDPOINT = "https://api.openai.com/v1/audio/speech";
 const MAX_REQUEST_BYTES = 32_768;
 const MAX_SPEECH_CHARACTERS = 4_096;
-const SPEECH_ERROR_MESSAGE =
-  "The response could not be spoken. Read the visible text instead.";
 const timeoutError = new DOMException("Upstream timed out", "TimeoutError");
+const requestAbortError = new DOMException("Request aborted", "AbortError");
 
 export const OPENAI_SPEECH_TIMEOUT_MS = 25_000;
 
@@ -18,8 +23,11 @@ interface VoiceEnvironment {
 }
 
 interface OpenAISpeechDependencies {
+  readonly createRequestId?: () => string;
   readonly environment: VoiceEnvironment;
   readonly fetch: typeof globalThis.fetch;
+  readonly now?: () => number;
+  readonly reportDiagnostic?: VoiceDiagnosticReporter;
 }
 
 interface SpeechRequest {
@@ -108,14 +116,14 @@ const isSpeechRequest = (value: unknown): value is SpeechRequest => {
 const proxyAudioStream = (
   upstreamBody: ReadableStream<Uint8Array>,
   abortController: AbortController,
-  cleanup: () => void,
+  finishRequest: (errorCode?: VoiceErrorCode) => void,
 ): ReadableStream<Uint8Array> => {
   const reader = upstreamBody.getReader();
   let finished = false;
-  const finish = () => {
+  const finish = (errorCode?: VoiceErrorCode) => {
     if (!finished) {
       finished = true;
-      cleanup();
+      finishRequest(errorCode);
     }
   };
 
@@ -125,7 +133,7 @@ const proxyAudioStream = (
       try {
         await reader.cancel(reason);
       } finally {
-        finish();
+        finish("request-aborted");
       }
     },
     async pull(controller) {
@@ -139,21 +147,49 @@ const proxyAudioStream = (
         controller.enqueue(value);
       } catch (error) {
         controller.error(error);
-        finish();
+        finish(
+          abortController.signal.reason === timeoutError
+            ? "timeout"
+            : abortController.signal.reason === requestAbortError
+              ? "request-aborted"
+              : "network",
+        );
       }
     },
   });
 };
 
 export const createOpenAISpeechHandler =
-  ({ environment, fetch }: OpenAISpeechDependencies) =>
+  ({
+    createRequestId,
+    environment,
+    fetch,
+    now,
+    reportDiagnostic,
+  }: OpenAISpeechDependencies) =>
   async (request: Request): Promise<Response> => {
+    const diagnostics = createVoiceRequestDiagnostics(request, "speech", {
+      createRequestId,
+      now,
+      reportDiagnostic,
+    });
+    const voiceFailure = (
+      errorCode: VoiceErrorCode,
+      status: number,
+    ): Response =>
+      diagnostics.respond(
+        response(voiceErrorMessage("speech", errorCode), status),
+        errorCode,
+      );
+
     if (request.method !== "POST") {
-      return response("Method not allowed.", 405, { allow: "POST" });
+      return diagnostics.respond(
+        response("Method not allowed.", 405, { allow: "POST" }),
+      );
     }
 
     if (request.headers.get("origin") !== new URL(request.url).origin) {
-      return response("Forbidden.", 403);
+      return diagnostics.respond(response("Forbidden.", 403));
     }
 
     const contentType = request.headers
@@ -162,15 +198,17 @@ export const createOpenAISpeechHandler =
       ?.trim()
       .toLowerCase();
     if (contentType !== "application/json") {
-      return response("The request must contain JSON.", 415);
+      return diagnostics.respond(
+        response("The request must contain JSON.", 415),
+      );
     }
 
     if (!getOpenAIVoiceAvailability(environment).available) {
-      return response("Not found.", 404);
+      return voiceFailure("unavailable", 404);
     }
 
     const abortController = new AbortController();
-    const abortForRequest = () => abortController.abort();
+    const abortForRequest = () => abortController.abort(requestAbortError);
     request.signal.addEventListener("abort", abortForRequest, { once: true });
     if (request.signal.aborted) {
       abortForRequest();
@@ -186,20 +224,24 @@ export const createOpenAISpeechHandler =
       abortController.signal.throwIfAborted();
       if (body instanceof Response) {
         removeRequestAbortListener();
-        return body;
+        return diagnostics.respond(body);
       }
       parsedBody = JSON.parse(body);
     } catch {
       removeRequestAbortListener();
       if (abortController.signal.aborted) {
-        return response(SPEECH_ERROR_MESSAGE, 502);
+        return voiceFailure("request-aborted", 502);
       }
-      return response("The speech request is invalid.", 400);
+      return diagnostics.respond(
+        response("The speech request is invalid.", 400),
+      );
     }
 
     if (!isSpeechRequest(parsedBody)) {
       removeRequestAbortListener();
-      return response("The speech request is invalid.", 400);
+      return diagnostics.respond(
+        response("The speech request is invalid.", 400),
+      );
     }
 
     const abortForTimeout = () => abortController.abort(timeoutError);
@@ -213,6 +255,10 @@ export const createOpenAISpeechHandler =
     const cleanup = () => {
       clearSpeechTimeout();
       removeRequestAbortListener();
+    };
+    const finishStreamingRequest = (errorCode?: VoiceErrorCode) => {
+      cleanup();
+      diagnostics.finish(200, errorCode);
     };
 
     try {
@@ -244,20 +290,29 @@ export const createOpenAISpeechHandler =
       ) {
         await upstreamResponse.body?.cancel();
         cleanup();
-        return response(SPEECH_ERROR_MESSAGE, 502);
+        return voiceFailure("invalid-response", 502);
       }
 
       clearSpeechTimeout();
-      return response(
-        proxyAudioStream(upstreamResponse.body, abortController, cleanup),
-        200,
-        { "content-type": "audio/mpeg" },
+      return diagnostics.decorate(
+        response(
+          proxyAudioStream(
+            upstreamResponse.body,
+            abortController,
+            finishStreamingRequest,
+          ),
+          200,
+          { "content-type": "audio/mpeg" },
+        ),
       );
     } catch {
       cleanup();
-      return response(
-        SPEECH_ERROR_MESSAGE,
-        abortController.signal.reason === timeoutError ? 504 : 502,
-      );
+      const errorCode =
+        abortController.signal.reason === timeoutError
+          ? "timeout"
+          : request.signal.aborted
+            ? "request-aborted"
+            : "network";
+      return voiceFailure(errorCode, errorCode === "timeout" ? 504 : 502);
     }
   };

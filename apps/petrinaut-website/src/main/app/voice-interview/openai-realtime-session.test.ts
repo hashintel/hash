@@ -26,7 +26,8 @@ class FakeDataChannel extends EventTarget {
   }
 }
 
-const createHarness = () => {
+const createHarness = (connectionTimeoutMs = 15_000) => {
+  let requestNumber = 0;
   const channels: FakeDataChannel[] = [];
   const peers: Array<{
     addTrack: ReturnType<typeof vi.fn>;
@@ -54,6 +55,7 @@ const createHarness = () => {
       getTracks: () => [track],
     } as unknown as MediaStream;
   });
+  const reportDiagnostic = vi.fn();
   const createPeerConnection = () => {
     const channel = new FakeDataChannel();
     channels.push(channel);
@@ -76,15 +78,27 @@ const createHarness = () => {
     return peer as unknown as RTCPeerConnection;
   };
   const session = new OpenAIRealtimeSession({
-    connectionTimeoutMs: 15_000,
+    connectionTimeoutMs,
+    createRequestId: () => `voice-request-${++requestNumber}`,
     createPeerConnection,
     fetch,
     getUserMedia,
+    now: () => 100,
+    reportDiagnostic,
   });
   const events: OpenAIRealtimeSessionEvent[] = [];
   session.subscribe((event) => events.push(event));
 
-  return { channels, events, fetch, getUserMedia, peers, session, tracks };
+  return {
+    channels,
+    events,
+    fetch,
+    getUserMedia,
+    peers,
+    reportDiagnostic,
+    session,
+    tracks,
+  };
 };
 
 describe("OpenAIRealtimeSession", () => {
@@ -109,7 +123,10 @@ describe("OpenAIRealtimeSession", () => {
       "/api/voice/realtime-call",
       expect.objectContaining({
         body: "v=0\r\no=browser offer",
-        headers: { "content-type": "application/sdp" },
+        headers: {
+          "content-type": "application/sdp",
+          "x-request-id": "voice-request-1",
+        },
         method: "POST",
       }),
     );
@@ -123,6 +140,13 @@ describe("OpenAIRealtimeSession", () => {
 
     harness.session.setMicrophoneEnabled(true);
     expect(harness.tracks[0]!.enabled).toBe(true);
+    expect(harness.reportDiagnostic).toHaveBeenCalledWith({
+      durationMs: 0,
+      operation: "connection",
+      outcome: "success",
+      requestId: "voice-request-1",
+      stage: "browser",
+    });
   });
 
   test("emits only strict input transcription events with stable source identity", async () => {
@@ -164,6 +188,13 @@ describe("OpenAIRealtimeSession", () => {
       },
     ]);
     expect(harness.tracks[0]!.enabled).toBe(false);
+    expect(harness.reportDiagnostic).toHaveBeenLastCalledWith({
+      durationMs: 0,
+      operation: "transcription",
+      outcome: "success",
+      requestId: "voice-request-2",
+      stage: "browser",
+    });
   });
 
   test("surfaces failed input transcription as a recoverable error", async () => {
@@ -179,7 +210,10 @@ describe("OpenAIRealtimeSession", () => {
 
     expect(harness.events).toEqual([
       {
-        message: "Voice transcription failed. Try reconnecting.",
+        code: "invalid-response",
+        message:
+          "The transcription service returned an invalid response. Try again; if it continues, give the diagnostic reference to an operator.",
+        requestId: "voice-request-1",
         type: "error",
       },
     ]);
@@ -189,6 +223,14 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.tracks[0]!.stop).toHaveBeenCalledOnce();
     expect(harness.channels[0]!.close).toHaveBeenCalledOnce();
     expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
+    expect(harness.reportDiagnostic).toHaveBeenLastCalledWith({
+      durationMs: 0,
+      errorCode: "invalid-response",
+      operation: "transcription",
+      outcome: "failure",
+      requestId: "voice-request-1",
+      stage: "browser",
+    });
   });
 
   test("surfaces OpenAI data-channel errors without exposing diagnostics", async () => {
@@ -202,7 +244,10 @@ describe("OpenAIRealtimeSession", () => {
 
     expect(harness.events).toEqual([
       {
-        message: "The voice service reported an error. Try reconnecting.",
+        code: "invalid-response",
+        message:
+          "The transcription service returned an invalid response. Try again; if it continues, give the diagnostic reference to an operator.",
+        requestId: "voice-request-1",
         type: "error",
       },
     ]);
@@ -261,7 +306,364 @@ describe("OpenAIRealtimeSession", () => {
     );
 
     await expect(harness.session.connect()).rejects.toThrow(
-      "Microphone access is required to start voice input.",
+      "Allow microphone access in your browser settings, then reconnect voice input.",
+    );
+    expect(harness.reportDiagnostic).toHaveBeenCalledWith({
+      durationMs: 0,
+      errorCode: "microphone-permission",
+      operation: "connection",
+      outcome: "failure",
+      requestId: "voice-request-1",
+      stage: "browser",
+    });
+  });
+
+  test("distinguishes microphone device failures from permission denial", async () => {
+    const harness = createHarness();
+    harness.getUserMedia.mockRejectedValueOnce(
+      new DOMException("private device detail", "NotFoundError"),
+    );
+
+    await expect(harness.session.connect()).rejects.toMatchObject({
+      code: "microphone-device",
+      message:
+        "No usable microphone was found. Connect or select one, then reconnect voice input.",
+      requestId: "voice-request-1",
+    });
+    expect(JSON.stringify(harness.reportDiagnostic.mock.calls)).not.toContain(
+      "private device detail",
+    );
+  });
+
+  test("classifies browser network failures without exposing thrown details", async () => {
+    const harness = createHarness();
+    harness.fetch.mockRejectedValueOnce(
+      new Error("private SDP and credential diagnostics"),
+    );
+
+    await expect(harness.session.connect()).rejects.toMatchObject({
+      code: "network",
+      message:
+        "The voice connection could not be reached. Check your connection, then reconnect voice input.",
+      requestId: "voice-request-1",
+    });
+    expect(harness.tracks[0]!.stop).toHaveBeenCalledOnce();
+    expect(JSON.stringify(harness.reportDiagnostic.mock.calls)).not.toContain(
+      "private SDP and credential diagnostics",
+    );
+  });
+
+  test("classifies a data channel that closes during startup as a network failure", async () => {
+    const harness = createHarness();
+    let resolveFetch: ((response: Response) => void) | undefined;
+    harness.fetch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    const connection = harness.session.connect();
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+    harness.peers[0]!.setRemoteDescription.mockResolvedValueOnce(undefined);
+    resolveFetch?.(
+      new Response("v=0\r\no=OpenAI answer", {
+        headers: { "content-type": "application/sdp" },
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(harness.peers[0]?.setRemoteDescription).toHaveBeenCalledOnce(),
+    );
+    await Promise.resolve();
+
+    harness.channels[0]!.dispatchEvent(new Event("close"));
+
+    await expect(connection).rejects.toMatchObject({
+      code: "network",
+      requestId: "voice-request-1",
+    });
+    expect(harness.tracks[0]!.stop).toHaveBeenCalledOnce();
+    expect(harness.channels[0]!.close).toHaveBeenCalledOnce();
+    expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
+  });
+
+  test("rejects a provider error received before startup completes", async () => {
+    const harness = createHarness();
+    let resolveFetch: ((response: Response) => void) | undefined;
+    harness.fetch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    const connection = expect(harness.session.connect()).rejects.toMatchObject({
+      code: "invalid-response",
+      requestId: "voice-request-1",
+    });
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+    harness.peers[0]!.setRemoteDescription.mockImplementationOnce(async () => {
+      harness.channels[0]!.open();
+      harness.channels[0]!.receive({
+        type: "error",
+        error: { message: "private provider diagnostic" },
+      });
+    });
+    resolveFetch?.(
+      new Response("v=0\r\no=OpenAI answer", {
+        headers: { "content-type": "application/sdp" },
+      }),
+    );
+
+    await connection;
+    expect(harness.tracks[0]!.stop).toHaveBeenCalledOnce();
+    expect(JSON.stringify(harness.reportDiagnostic.mock.calls)).not.toContain(
+      "private provider diagnostic",
+    );
+  });
+
+  test("preserves a peer failure while the realtime call is pending", async () => {
+    const harness = createHarness();
+    harness.fetch.mockImplementationOnce(
+      (_input, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new DOMException("aborted", "AbortError"));
+          });
+        }),
+    );
+    const connection = harness.session.connect();
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+
+    harness.peers[0]!.connectionState = "failed";
+    harness.peers[0]!.onconnectionstatechange?.();
+
+    await expect(connection).rejects.toMatchObject({
+      code: "network",
+      requestId: "voice-request-1",
+    });
+    expect(harness.reportDiagnostic).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        errorCode: "network",
+        outcome: "failure",
+      }),
+    );
+  });
+
+  test("preserves a provider failure while waiting for the data channel", async () => {
+    const harness = createHarness();
+    let resolveFetch: ((response: Response) => void) | undefined;
+    harness.fetch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    const connection = harness.session.connect();
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+    harness.peers[0]!.setRemoteDescription.mockResolvedValueOnce(undefined);
+    resolveFetch?.(
+      new Response("v=0\r\no=OpenAI answer", {
+        headers: { "content-type": "application/sdp" },
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(harness.peers[0]!.setRemoteDescription).toHaveBeenCalledOnce(),
+    );
+    await Promise.resolve();
+
+    harness.channels[0]!.receive({
+      error: { message: "private provider diagnostic" },
+      type: "error",
+    });
+
+    await expect(connection).rejects.toMatchObject({
+      code: "invalid-response",
+      requestId: "voice-request-1",
+    });
+    expect(harness.reportDiagnostic).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        errorCode: "invalid-response",
+        outcome: "failure",
+      }),
+    );
+  });
+
+  test("rejects a data channel already closed after negotiation", async () => {
+    const harness = createHarness(1_000);
+    let resolveFetch: ((response: Response) => void) | undefined;
+    harness.fetch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    const connection = expect(harness.session.connect()).rejects.toMatchObject({
+      code: "network",
+      requestId: "voice-request-1",
+    });
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+    harness.peers[0]!.setRemoteDescription.mockImplementationOnce(async () => {
+      harness.channels[0]!.close();
+    });
+    resolveFetch?.(
+      new Response("v=0\r\no=OpenAI answer", {
+        headers: { "content-type": "application/sdp" },
+      }),
+    );
+
+    await connection;
+  });
+
+  test("sanitizes unexpected browser startup failures", async () => {
+    const harness = createHarness();
+    let resolveFetch: ((response: Response) => void) | undefined;
+    harness.fetch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    const connection = harness.session.connect();
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+    harness.peers[0]!.setRemoteDescription.mockRejectedValueOnce(
+      new Error("private browser and SDP diagnostics"),
+    );
+    resolveFetch?.(
+      new Response("v=0\r\no=private provider answer", {
+        headers: { "content-type": "application/sdp" },
+      }),
+    );
+
+    await expect(connection).rejects.toMatchObject({
+      code: "invalid-response",
+      message:
+        "The voice connection returned an invalid response. Try again; if it continues, give the diagnostic reference to an operator.",
+      requestId: "voice-request-1",
+    });
+    expect(JSON.stringify(harness.reportDiagnostic.mock.calls)).not.toContain(
+      "private browser and SDP diagnostics",
+    );
+  });
+
+  test("surfaces disabled voice as unavailable without reading the response body", async () => {
+    const harness = createHarness();
+    const serverRequestId = "00000000-0000-4000-8000-000000000021";
+    harness.fetch.mockResolvedValueOnce(
+      new Response("private provider response", {
+        headers: {
+          "x-petrinaut-voice-error": "unavailable",
+          "x-request-id": serverRequestId,
+        },
+        status: 404,
+      }),
+    );
+
+    await expect(harness.session.connect()).rejects.toMatchObject({
+      code: "unavailable",
+      requestId: serverRequestId,
+    });
+    expect(JSON.stringify(harness.reportDiagnostic.mock.calls)).not.toContain(
+      "private provider response",
+    );
+  });
+
+  test("classifies an explicit startup abort and cleans media resources", async () => {
+    const harness = createHarness();
+    harness.fetch.mockImplementationOnce(
+      (_input, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () =>
+            reject(new DOMException("private abort detail", "AbortError")),
+          );
+        }),
+    );
+
+    const connection = harness.session
+      .connect()
+      .catch((error: unknown) => error);
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+    await harness.session.disconnect();
+
+    await expect(connection).resolves.toMatchObject({
+      code: "request-aborted",
+      requestId: "voice-request-1",
+    });
+    expect(harness.tracks[0]!.stop).toHaveBeenCalledOnce();
+    expect(harness.channels[0]!.close).toHaveBeenCalledOnce();
+    expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
+  });
+
+  test("classifies disconnect while reading the SDP answer as aborted", async () => {
+    const harness = createHarness();
+    let rejectAnswerRead: ((reason?: unknown) => void) | undefined;
+    harness.fetch.mockResolvedValueOnce({
+      headers: new Headers({ "content-type": "application/sdp" }),
+      ok: true,
+      text: () =>
+        new Promise<string>((_resolve, reject) => {
+          rejectAnswerRead = reject;
+        }),
+    } as Response);
+    const connection = harness.session
+      .connect()
+      .catch((error: unknown) => error);
+    await vi.waitFor(() => expect(rejectAnswerRead).toBeTypeOf("function"));
+
+    await harness.session.disconnect();
+    rejectAnswerRead?.(new Error("private response read failure"));
+
+    await expect(connection).resolves.toMatchObject({
+      code: "request-aborted",
+      requestId: "voice-request-1",
+    });
+    expect(harness.reportDiagnostic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorCode: "request-aborted",
+        outcome: "aborted",
+      }),
+    );
+  });
+
+  test("classifies disconnect while applying the SDP answer as aborted", async () => {
+    const harness = createHarness();
+    let resolveFetch: ((response: Response) => void) | undefined;
+    let rejectRemoteDescription: ((reason?: unknown) => void) | undefined;
+    harness.fetch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        }),
+    );
+    const connection = harness.session
+      .connect()
+      .catch((error: unknown) => error);
+    await vi.waitFor(() => expect(harness.fetch).toHaveBeenCalledOnce());
+    const remoteDescription = new Promise<void>((_resolve, reject) => {
+      rejectRemoteDescription = reject;
+    });
+    harness.peers[0]!.setRemoteDescription.mockReturnValueOnce(
+      remoteDescription,
+    );
+    resolveFetch?.(
+      new Response("v=0\r\no=OpenAI answer", {
+        headers: { "content-type": "application/sdp" },
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(harness.peers[0]!.setRemoteDescription).toHaveBeenCalledOnce(),
+    );
+
+    await harness.session.disconnect();
+    rejectRemoteDescription?.(new Error("private SDP application failure"));
+
+    await expect(connection).resolves.toMatchObject({
+      code: "request-aborted",
+      requestId: "voice-request-1",
+    });
+    expect(harness.reportDiagnostic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorCode: "request-aborted",
+        outcome: "aborted",
+      }),
     );
   });
 
@@ -278,7 +680,7 @@ describe("OpenAIRealtimeSession", () => {
     );
 
     const connection = expect(harness.session.connect()).rejects.toThrow(
-      "The voice connection timed out. Try reconnecting.",
+      "The voice connection timed out. Check your connection, then reconnect voice input.",
     );
     await vi.advanceTimersByTimeAsync(15_000);
 
@@ -286,6 +688,13 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.tracks[0]!.stop).toHaveBeenCalledOnce();
     expect(harness.channels[0]!.close).toHaveBeenCalledOnce();
     expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
+    expect(harness.reportDiagnostic).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorCode: "timeout",
+        outcome: "failure",
+        requestId: "voice-request-1",
+      }),
+    );
   });
 
   test("times out when abort occurs before waiting for the data channel", async () => {
@@ -293,6 +702,7 @@ describe("OpenAIRealtimeSession", () => {
     const harness = createHarness();
     let resolveAnswer: ((answer: string) => void) | undefined;
     harness.fetch.mockResolvedValueOnce({
+      headers: new Headers({ "content-type": "application/sdp" }),
       ok: true,
       text: () =>
         new Promise<string>((resolve) => {
@@ -314,9 +724,12 @@ describe("OpenAIRealtimeSession", () => {
     resolveAnswer?.("v=0\r\no=late OpenAI answer");
 
     await vi.waitFor(() => expect(settled).toBe(true));
-    await expect(connection).resolves.toEqual(
-      new Error("The voice connection timed out. Try reconnecting."),
-    );
+    await expect(connection).resolves.toMatchObject({
+      code: "timeout",
+      message:
+        "The voice connection timed out. Check your connection, then reconnect voice input.",
+      requestId: "voice-request-1",
+    });
   });
 
   test("times out a stalled permission prompt and stops a late media stream", async () => {
@@ -349,9 +762,12 @@ describe("OpenAIRealtimeSession", () => {
     const error = await connection;
 
     expect(settledAtTimeout).toBe(true);
-    expect(error).toEqual(
-      new Error("The voice connection timed out. Try reconnecting."),
-    );
+    expect(error).toMatchObject({
+      code: "timeout",
+      message:
+        "The voice connection timed out. Check your connection, then reconnect voice input.",
+      requestId: "voice-request-1",
+    });
     expect(lateTrack.stop).toHaveBeenCalledOnce();
   });
 
@@ -369,9 +785,55 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
     expect(harness.events).toEqual([
       {
-        message: "The voice connection failed. Try reconnecting.",
+        code: "network",
+        message:
+          "The voice connection could not be reached. Check your connection, then reconnect voice input.",
+        requestId: "voice-request-1",
         type: "error",
       },
     ]);
+    expect(harness.reportDiagnostic).toHaveBeenLastCalledWith({
+      durationMs: 0,
+      errorCode: "network",
+      operation: "connection",
+      outcome: "failure",
+      requestId: "voice-request-1",
+      stage: "browser",
+    });
+  });
+
+  test("fails closed on a malformed completed provider transcript", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+
+    harness.channels[0]!.receive({
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "item-a",
+      content_index: 0,
+      transcript: { private: "provider response body" },
+    });
+
+    expect(harness.tracks[0]!.stop).toHaveBeenCalledOnce();
+    expect(harness.events).toEqual([
+      {
+        code: "invalid-response",
+        message:
+          "The transcription service returned an invalid response. Try again; if it continues, give the diagnostic reference to an operator.",
+        requestId: "voice-request-2",
+        type: "error",
+      },
+    ]);
+    expect(harness.reportDiagnostic).toHaveBeenLastCalledWith({
+      durationMs: 0,
+      errorCode: "invalid-response",
+      operation: "transcription",
+      outcome: "failure",
+      requestId: "voice-request-2",
+      stage: "browser",
+    });
+    expect(JSON.stringify(harness.reportDiagnostic.mock.calls)).not.toContain(
+      "provider response body",
+    );
   });
 });

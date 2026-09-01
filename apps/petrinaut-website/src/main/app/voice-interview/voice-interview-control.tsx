@@ -10,6 +10,7 @@ import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa6";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
 import { selectCanonicalSpeechSegments } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { SpeechPlaybackController } from "./speech-playback-controller";
@@ -174,8 +175,17 @@ const statusText = (snapshot: VoiceTurnSnapshot): string => {
       return "Microphone off. Creating AI-generated speech.";
     case "playing":
       return "Microphone off. Playing AI-generated speech.";
-    case "recoverable-error":
-      return `Microphone off. ${snapshot.errorMessage}`;
+    case "recoverable-error": {
+      const diagnostic =
+        snapshot.errorCode === null
+          ? ""
+          : ` Error code: ${snapshot.errorCode}.${
+              snapshot.errorRequestId
+                ? ` Diagnostic reference: ${snapshot.errorRequestId}.`
+                : ""
+            }`;
+      return `Microphone off. ${snapshot.errorMessage}${diagnostic}`;
+    }
   }
 };
 
@@ -325,11 +335,13 @@ const AvailableVoiceInterviewControl = ({
       fetch: globalThis.fetch.bind(globalThis),
       getUserMedia: (constraints) =>
         navigator.mediaDevices.getUserMedia(constraints),
+      reportDiagnostic: reportVoiceDiagnostic,
     });
     const playback = new SpeechPlaybackController({
       createAudio: (source) => new Audio(source),
       createObjectURL: (blob) => URL.createObjectURL(blob),
       fetch: globalThis.fetch.bind(globalThis),
+      reportDiagnostic: reportVoiceDiagnostic,
       revokeObjectURL: (url) => URL.revokeObjectURL(url),
     });
     const controller = new VoiceTurnController({

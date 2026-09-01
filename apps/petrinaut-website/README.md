@@ -103,6 +103,25 @@ The Brunch deployment must allow the website origin through its
 microphone permission. Denying permission leaves the existing text composer
 available and does not submit anything to Brunch.
 
+When the preview cannot continue, the status panel distinguishes microphone
+permission, microphone device, interrupted request, network, timeout, invalid
+response, and unavailable/disabled failures. Permission and device failures
+identify what to fix; network, timeout, and interrupted requests offer a
+reconnect; invalid responses include a diagnostic reference for an operator;
+and unavailable voice leaves the text composer as the fallback. Speech failures
+always leave the canonical response visible to read.
+
+Realtime connection and Speech requests carry a random `x-request-id` through
+the browser and server route, and the existing Brunch transport sends the same
+header on each chat request so Brunch's privacy-safe request inspection can
+correlate that boundary. Browser and server diagnostics report operation,
+stage, outcome, duration, request ID, and—where applicable—status or sanitized
+error code. Voice responses also expose privacy-safe `Server-Timing` metrics.
+These diagnostics never record audio, SDP, transcript or prompt contents,
+canonical speech text, credentials, or provider response bodies. This
+controlled-preview evidence does not enable production: production remains
+unconditionally disabled by the server policy.
+
 ## Testing the API against the built output
 
 A plain `yarn build && yarn vite preview` only serves the static `dist/` assets - `/api/chat` will 404 because the dev plugin is not loaded by `vite preview`. Use one of the options below to exercise the production code path locally.

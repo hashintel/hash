@@ -1,14 +1,18 @@
 import {
+  voiceErrorMessage,
+  type VoiceDiagnosticReporter,
+  type VoiceErrorCode,
+} from "../../voice-diagnostics";
+import {
   createOpenAITranscriptionSession,
   getOpenAIVoiceAvailability,
   OPENAI_REALTIME_CONNECTION_TIMEOUT_MS,
 } from "./openai-voice-policy";
+import { createVoiceRequestDiagnostics } from "./voice-request-diagnostics";
 
 const OPENAI_REALTIME_CALLS_ENDPOINT =
   "https://api.openai.com/v1/realtime/calls";
 const MAX_SDP_BYTES = 65_536;
-const CONNECTION_ERROR_MESSAGE =
-  "The voice connection could not be established.";
 const timeoutError = new DOMException("Upstream timed out", "TimeoutError");
 
 interface VoiceEnvironment {
@@ -18,8 +22,11 @@ interface VoiceEnvironment {
 }
 
 interface OpenAIRealtimeCallDependencies {
+  readonly createRequestId?: () => string;
   readonly environment: VoiceEnvironment;
   readonly fetch: typeof globalThis.fetch;
+  readonly now?: () => number;
+  readonly reportDiagnostic?: VoiceDiagnosticReporter;
 }
 
 const response = (
@@ -52,15 +59,37 @@ const readSdpOffer = async (request: Request): Promise<string | Response> => {
 };
 
 export const createOpenAIRealtimeCallHandler =
-  ({ environment, fetch }: OpenAIRealtimeCallDependencies) =>
+  ({
+    createRequestId,
+    environment,
+    fetch,
+    now,
+    reportDiagnostic,
+  }: OpenAIRealtimeCallDependencies) =>
   async (request: Request): Promise<Response> => {
+    const diagnostics = createVoiceRequestDiagnostics(request, "connection", {
+      createRequestId,
+      now,
+      reportDiagnostic,
+    });
+    const voiceFailure = (
+      errorCode: VoiceErrorCode,
+      status: number,
+    ): Response =>
+      diagnostics.respond(
+        response(voiceErrorMessage("connection", errorCode), status),
+        errorCode,
+      );
+
     if (request.method !== "POST") {
-      return response("Method not allowed.", 405, { allow: "POST" });
+      return diagnostics.respond(
+        response("Method not allowed.", 405, { allow: "POST" }),
+      );
     }
 
     const requestOrigin = new URL(request.url).origin;
     if (request.headers.get("origin") !== requestOrigin) {
-      return response("Forbidden.", 403);
+      return diagnostics.respond(response("Forbidden.", 403));
     }
 
     const contentType = request.headers
@@ -69,11 +98,13 @@ export const createOpenAIRealtimeCallHandler =
       ?.trim()
       .toLowerCase();
     if (contentType !== "application/sdp") {
-      return response("The request must contain an SDP offer.", 415);
+      return diagnostics.respond(
+        response("The request must contain an SDP offer.", 415),
+      );
     }
 
     if (!getOpenAIVoiceAvailability(environment).available) {
-      return response("Not found.", 404);
+      return voiceFailure("unavailable", 404);
     }
 
     const abortController = new AbortController();
@@ -91,10 +122,28 @@ export const createOpenAIRealtimeCallHandler =
     try {
       abortController.signal.throwIfAborted();
 
-      const sdp = await readSdpOffer(request);
+      let sdp: string | Response;
+      try {
+        sdp = await readSdpOffer(request);
+      } catch {
+        const errorCode =
+          abortController.signal.reason === timeoutError
+            ? "timeout"
+            : request.signal.aborted
+              ? "request-aborted"
+              : "invalid-response";
+        return voiceFailure(
+          errorCode,
+          errorCode === "timeout"
+            ? 504
+            : errorCode === "request-aborted"
+              ? 502
+              : 400,
+        );
+      }
       abortController.signal.throwIfAborted();
       if (sdp instanceof Response) {
-        return sdp;
+        return diagnostics.respond(sdp);
       }
 
       const session = createOpenAITranscriptionSession();
@@ -111,7 +160,8 @@ export const createOpenAIRealtimeCallHandler =
         signal: abortController.signal,
       });
       if (!upstreamResponse.ok) {
-        return response(CONNECTION_ERROR_MESSAGE, 502);
+        await upstreamResponse.body?.cancel();
+        return voiceFailure("invalid-response", 502);
       }
       const upstreamContentType = upstreamResponse.headers
         .get("content-type")
@@ -122,20 +172,26 @@ export const createOpenAIRealtimeCallHandler =
         upstreamContentType !== "application/sdp" &&
         upstreamContentType !== "text/plain"
       ) {
-        return response(CONNECTION_ERROR_MESSAGE, 502);
+        await upstreamResponse.body?.cancel();
+        return voiceFailure("invalid-response", 502);
       }
 
       const answer = await upstreamResponse.text();
       if (!answer.trim() || !answer.trimStart().startsWith("v=0")) {
-        return response(CONNECTION_ERROR_MESSAGE, 502);
+        return voiceFailure("invalid-response", 502);
       }
 
-      return response(answer, 200, { "content-type": "application/sdp" });
-    } catch {
-      return response(
-        CONNECTION_ERROR_MESSAGE,
-        abortController.signal.reason === timeoutError ? 504 : 502,
+      return diagnostics.respond(
+        response(answer, 200, { "content-type": "application/sdp" }),
       );
+    } catch {
+      const errorCode =
+        abortController.signal.reason === timeoutError
+          ? "timeout"
+          : request.signal.aborted
+            ? "request-aborted"
+            : "network";
+      return voiceFailure(errorCode, errorCode === "timeout" ? 504 : 502);
     } finally {
       globalThis.clearTimeout(timeout);
       request.signal.removeEventListener("abort", abortForRequest);

@@ -23,6 +23,7 @@ import {
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
+import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
 import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
@@ -116,6 +117,7 @@ const stockChatTransport = new DefaultChatTransport({
   api: brunchPreviewConfig.chatEndpoint,
   headers: () => ({
     [BRUNCH_PRINCIPAL_HEADER]: brunchPrincipal,
+    [VOICE_REQUEST_ID_HEADER]: crypto.randomUUID(),
   }),
 });
 
