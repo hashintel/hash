@@ -105,3 +105,44 @@ export function windowsFromObserved(
 export function anyEscapes(observed: readonly ObservedMetricRange[]): boolean {
   return observed.some((range) => range.below > 0 || range.above > 0);
 }
+
+/**
+ * The cache key for a batch's calibration (windows + derived capacities).
+ *
+ * Calibration observes the dynamics FROM an initial marking, for a metric
+ * set: batches sharing both can reuse it — a sweep re-instantiates a batch
+ * per ladder rung and every one re-probed from scratch. Parameter values are
+ * deliberately NOT in the key: different rates shift the observed ranges,
+ * and the escape/overflow machinery already recalibrates and re-runs when a
+ * cached calibration no longer covers a batch, updating the cache. The key
+ * only has to be right about what a calibration is FOR, not about whether it
+ * still fits.
+ */
+export function calibrationKey(options: {
+  placeCounts: ArrayLike<number>;
+  /** Per place, the typed marking's packed token words. */
+  placeTokenWords?: readonly ArrayLike<number>[] | undefined;
+  metricIds: readonly string[];
+}): string {
+  // FNV-1a over the marking, so a typed marking's token words do not turn
+  // into a megabyte-long string key.
+  /* eslint-disable no-bitwise -- FNV-1a is bit arithmetic */
+  let hash = 0x811c9dc5;
+  const mix = (value: number) => {
+    hash ^= value >>> 0;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  };
+  const counts = options.placeCounts;
+  for (let index = 0; index < counts.length; index++) {
+    mix(counts[index]!);
+  }
+  for (const words of options.placeTokenWords ?? []) {
+    // A place boundary, so [1,2],[3] never hashes like [1],[2,3].
+    mix(0xffffffff);
+    for (let index = 0; index < words.length; index++) {
+      mix(words[index]!);
+    }
+  }
+  /* eslint-enable no-bitwise */
+  return `${hash.toString(16)}|${options.metricIds.join(",")}`;
+}

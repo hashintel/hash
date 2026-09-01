@@ -20,9 +20,11 @@ import {
 } from "../simulation/monte-carlo/runtime/experiment-stores";
 import { getMaxFrameNumber } from "../simulation/monte-carlo/time";
 import { requestGpuExperimentBackend } from "./backend";
+import { gpuBackendSetupKey } from "./gpu-backend-cache";
 import { toGpuMetricFrames, toGpuMetricSpecs } from "./gpu-metric-frames";
 import {
   anyEscapes,
+  calibrationKey,
   planInitialWindows,
   windowsFromObserved,
 } from "./metric-windows";
@@ -42,6 +44,7 @@ import type { MonteCarloRunConfig } from "../simulation/monte-carlo/types";
 import type { MonteCarloWorkerProgress } from "../simulation/monte-carlo/worker/messages";
 import type { SDCPN } from "../types/sdcpn";
 import type { GpuOdeMethod } from "./compile-net-shader";
+import type { GpuBackendCache } from "./gpu-backend-cache";
 import type { MetricWindow } from "./metric-windows";
 
 export type CreateGpuMonteCarloExperimentConfig = {
@@ -69,6 +72,13 @@ export type CreateGpuMonteCarloExperimentConfig = {
    * per-run records to validate or parse.
    */
   runPlan?: ExperimentRunPlan;
+  /**
+   * Reuses one device + compiled shader (and its learned calibration)
+   * across batches whose setup key matches — see `gpu-backend-cache`. The
+   * host that lives as long as the session owns the cache; without one,
+   * every batch builds and destroys its own backend.
+   */
+  backendCache?: GpuBackendCache;
   /** Defaults to RK4 — see `backend.ts` for why that is not Euler. */
   odeMethod?: GpuOdeMethod;
   /** Caps runs per tile below the device's limit. For tests and benchmarks. */
@@ -271,17 +281,34 @@ export async function createGpuMonteCarloExperiment(
     };
   }
 
-  const backend = await requestGpuExperimentBackend({
-    sdcpn: config.sdcpn,
-    hirArtifacts: config.hirArtifacts,
-    extensions: config.extensions,
-    parameterValues: config.parameterValues,
-    dt: config.dt,
-    metrics: gpuMetrics.metrics,
-    odeMethod: config.odeMethod ?? "rk4",
-    initialMarking: config.initialMarking,
-    runParameters: runParameters.ids,
-  });
+  const buildBackend = () =>
+    requestGpuExperimentBackend({
+      sdcpn: config.sdcpn,
+      hirArtifacts: config.hirArtifacts,
+      extensions: config.extensions,
+      parameterValues: config.parameterValues,
+      dt: config.dt,
+      metrics: gpuMetrics.metrics,
+      odeMethod: config.odeMethod ?? "rk4",
+      initialMarking: config.initialMarking,
+      runParameters: runParameters.ids,
+    });
+  const backend = config.backendCache
+    ? await config.backendCache.acquire(
+        gpuBackendSetupKey({
+          sdcpn: config.sdcpn,
+          extensions: config.extensions,
+          hirArtifacts: config.hirArtifacts,
+          parameterValues: config.parameterValues,
+          runParameterIds: runParameters.ids,
+          metricIds: gpuMetrics.metrics.map((metric) => metric.id),
+          dt: config.dt,
+          odeMethod: config.odeMethod ?? "rk4",
+          initialMarking: config.initialMarking,
+        }),
+        buildBackend,
+      )
+    : await buildBackend();
   if (!backend.supported) {
     return {
       supported: false,
@@ -289,6 +316,16 @@ export async function createGpuMonteCarloExperiment(
       reason: backend.reason,
     };
   }
+  // Ends this batch's lease. Setup failures evict — an unsupported setup
+  // must not be handed to the next batch — and without a cache both paths
+  // reduce to destroying the batch's own device.
+  const releaseBackend = (options?: { evict?: boolean }) => {
+    if (config.backendCache) {
+      config.backendCache.release(backend, options);
+    } else {
+      backend.handle.device.destroy();
+    }
+  };
 
   // The CPU's rounding: snap within an epsilon of a whole step, else ceil
   // (`monte-carlo/time.ts`), so both backends step the same frame count.
@@ -369,7 +406,7 @@ export async function createGpuMonteCarloExperiment(
         ? marking
         : 0;
     if (place.capacity > 0 && count > place.capacity) {
-      backend.handle.device.destroy();
+      releaseBackend({ evict: true });
       return {
         supported: false,
         cause: "net-unsupported",
@@ -472,6 +509,29 @@ export async function createGpuMonteCarloExperiment(
   let activeShader = backend.shader;
   const derivedCaps = new Map(backend.derivedCapacities);
 
+  // What earlier batches on this backend learned about this marking: reuse
+  // it instead of re-probing — a sweep instantiates a batch per ladder rung,
+  // and re-running the capacity and window probes per batch was the largest
+  // pre-first-frame cost. A calibration that no longer covers this batch's
+  // dynamics heals through the same overflow/escape re-runs as a fresh one,
+  // and the store below keeps the cache at the latest knowledge.
+  const batchCalibrationKey = calibrationKey({
+    placeCounts,
+    placeTokenWords,
+    metricIds: gpuMetrics.metrics.map((metric) => metric.id),
+  });
+  const cachedCalibration = backend.calibration.get(batchCalibrationKey);
+  const storeCalibration = (windows: readonly MetricWindow[]) => {
+    if (gpuMetrics.metrics.length === 0 && derivedCaps.size === 0) {
+      return;
+    }
+    backend.calibration.set(batchCalibrationKey, {
+      windows,
+      capacities: new Map(derivedCaps),
+      shader: activeShader,
+    });
+  };
+
   const executeAttempt = (
     attemptRunCount: number,
     metricWindows: readonly MetricWindow[],
@@ -573,7 +633,13 @@ export async function createGpuMonteCarloExperiment(
   // The same probe observes the metric ranges, seeding the histogram
   // windows.
   let calibratedWindows: MetricWindow[] | null = null;
-  if (derivedCaps.size > 0) {
+  if (cachedCalibration) {
+    activeShader = cachedCalibration.shader;
+    for (const [placeId, capacity] of cachedCalibration.capacities) {
+      derivedCaps.set(placeId, capacity);
+    }
+    calibratedWindows = [...cachedCalibration.windows];
+  } else if (derivedCaps.size > 0) {
     const probeWindows = planInitialWindows(
       windowInputs,
       activeShader.histogramBins,
@@ -582,7 +648,7 @@ export async function createGpuMonteCarloExperiment(
       reason: string,
     ): CreateGpuMonteCarloExperimentResult => {
       disposed = true;
-      backend.handle.device.destroy();
+      releaseBackend({ evict: true });
       return { supported: false, cause: "net-unsupported", reason };
     };
     // Slabs quadruple per attempt and the probe sheds runs to stay inside
@@ -681,6 +747,7 @@ export async function createGpuMonteCarloExperiment(
       activeShader.histogramBins,
       0.25,
     );
+    storeCalibration(calibratedWindows);
   }
 
   const run = async () => {
@@ -723,6 +790,7 @@ export async function createGpuMonteCarloExperiment(
         bins,
         0.25,
       );
+      storeCalibration(windows);
     }
 
     let outcome = await executeAttempt(config.runCount, windows);
@@ -780,6 +848,11 @@ export async function createGpuMonteCarloExperiment(
         "Token counts kept outgrowing their derived capacities even after growth; run this experiment on the CPU, which sizes its buffers dynamically.",
       );
       return;
+    }
+    // The batch's final calibration — grown slabs, replanned windows — is
+    // the best knowledge for the next batch on this marking.
+    if (!outcome.result.cancelled) {
+      storeCalibration(windows);
     }
 
     if (anyEscapes(outcome.result.metricRanges) && !outcome.result.cancelled) {
@@ -858,7 +931,7 @@ export async function createGpuMonteCarloExperiment(
       aborted = true;
       disposed = true;
       running = false;
-      backend.handle.device.destroy();
+      releaseBackend();
     },
   };
 

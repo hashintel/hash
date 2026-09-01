@@ -15,6 +15,7 @@
  * `requestGpuDevice` is a further step, and worth taking only if a caller needs
  * to assess without acquiring.
  */
+import { createGpuBackendCache } from "./gpu-backend-cache";
 import { createGpuMonteCarloExperiment } from "./gpu-experiment-handle";
 import { isWebGpuAvailable } from "./support";
 
@@ -69,6 +70,7 @@ function originFor(
 function assess(
   request: ExperimentRequest,
   options: WebGpuExperimentBackendOptions,
+  backendCache: ReturnType<typeof createGpuBackendCache>,
 ): ExperimentAssessment {
   // Per-run parameter values (a sweep over a range) are supported: each
   // run's draws are uploaded to a per-run buffer the shader reads instead of
@@ -95,6 +97,7 @@ function assess(
     notes: [],
     instantiate: async (instantiateOptions) => {
       const created = await createGpuMonteCarloExperiment({
+        backendCache,
         sdcpn: request.sdcpn,
         hirArtifacts,
         ...(request.extensions === undefined
@@ -155,6 +158,9 @@ function assess(
 export function createWebGpuExperimentBackend(
   options: WebGpuExperimentBackendOptions = {},
 ): ExperimentBackend {
+  // One experiment session's backend object serves every batch of that
+  // experiment, so setups (device, shader, calibration) reuse across them.
+  const backendCache = createGpuBackendCache();
   return {
     id: WEBGPU_BACKEND_ID,
     label: "GPU (WebGPU)",
@@ -163,6 +169,7 @@ export function createWebGpuExperimentBackend(
     // browser bundle.
     needsHirTrees: true,
     isAvailable: isWebGpuAvailable,
-    assess: (request) => Promise.resolve(assess(request, options)),
+    assess: (request) =>
+      Promise.resolve(assess(request, options, backendCache)),
   };
 }
