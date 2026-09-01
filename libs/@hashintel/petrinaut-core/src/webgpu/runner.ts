@@ -437,6 +437,48 @@ export function runsPerTile({
 }
 
 /**
+ * Runs in the preview tile that opens a streamed experiment. Small enough
+ * to finish in a fraction of a full tile's time, large enough that its
+ * distributions have a usable shape — the same trade the window probe and
+ * the CPU ladder's first rung make.
+ */
+export const GPU_PREVIEW_TILE_RUNS = 128;
+
+/**
+ * The run ranges of each tile. Uniform tiles of `tileRunCapacity`, except
+ * that a streamed experiment opens with a small PREVIEW tile: every tile
+ * re-delivers the whole time axis cumulatively, so a fast first tile puts a
+ * statistically usable picture on screen while the bulk still computes —
+ * the GPU's version of the ladder's first rung. Seeds derive from absolute
+ * run indices, so the split changes nothing about the results.
+ *
+ * No preview when nobody streams (`previewRuns` null) or when the run count
+ * is small enough that the preview would only add a tile boundary.
+ */
+export function planTiles(
+  runCount: number,
+  tileRunCapacity: number,
+  previewRuns: number | null,
+): { firstRun: number; runCount: number }[] {
+  const tiles: { firstRun: number; runCount: number }[] = [];
+  let firstRun = 0;
+  if (
+    previewRuns !== null &&
+    previewRuns < tileRunCapacity &&
+    runCount > previewRuns * 2
+  ) {
+    tiles.push({ firstRun: 0, runCount: previewRuns });
+    firstRun = previewRuns;
+  }
+  while (firstRun < runCount) {
+    const tileRuns = Math.min(tileRunCapacity, runCount - firstRun);
+    tiles.push({ firstRun, runCount: tileRuns });
+    firstRun += tileRuns;
+  }
+  return tiles;
+}
+
+/**
  * Why this experiment cannot fit on this device even one tile at a time, or
  * `null` when it can.
  *
@@ -622,7 +664,13 @@ export async function runGpuExperiment(
       request.maxRunsPerTile ?? Number.MAX_SAFE_INTEGER,
     ),
   );
-  const tileCount = Math.ceil(runCount / tileRunCapacity);
+  const tilePlan = planTiles(
+    runCount,
+    tileRunCapacity,
+    request.onFrames !== undefined && metricCount > 0
+      ? GPU_PREVIEW_TILE_RUNS
+      : null,
+  );
 
   const stateBytes = shader.stateWordsPerRun * tileRunCapacity * 4;
   const summaryWords = Math.max(1, shader.summaryWordsPerRun * tileRunCapacity);
@@ -797,9 +845,9 @@ export async function runGpuExperiment(
     );
     const staging = new Uint32Array(runsPerChunk * shader.stateWordsPerRun);
 
-    for (let tileIndex = 0; tileIndex < tileCount; tileIndex++) {
-      const tileFirstRun = tileIndex * tileRunCapacity;
-      const runsInTile = Math.min(tileRunCapacity, runCount - tileFirstRun);
+    for (const tile of tilePlan) {
+      const tileFirstRun = tile.firstRun;
+      const runsInTile = tile.runCount;
       if (cancelled) {
         break;
       }
