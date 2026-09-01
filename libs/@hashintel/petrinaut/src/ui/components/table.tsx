@@ -6,7 +6,7 @@ import { focusLands } from "../worksheet/focus-flow";
 import { useFocusStops } from "../worksheet/use-focus-stops";
 import { useSelectFirstActivation } from "../worksheet/use-select-first";
 
-import type { FocusStop } from "../worksheet/use-focus-stops";
+import type { FocusStop, FocusStopTarget } from "../worksheet/use-focus-stops";
 import type { CSSProperties, ReactNode } from "react";
 
 type TableCellTone = "emphasis" | "subtle";
@@ -26,6 +26,7 @@ type TableProps<Row> = {
   emptyLabel: string;
   getRowId: (row: Row) => string;
   rows: readonly Row[];
+  /** Omit for inert rows. */
   onRowSelect?: (row: Row) => void;
   selectedRowId?: string | null;
 };
@@ -93,8 +94,8 @@ const selectedRowStyle = css({
 const selectableTableRowStyle = css({
   cursor: "pointer",
   outline: "none",
-  // The select-first grammar needs the focused row visible for pointer users
-  // too, so this shows on any focus, not only :focus-visible.
+  // Select-first needs the focused row visible to pointer users too, so the
+  // ring shows on any focus rather than only `:focus-visible`.
   _focus: {
     boxShadow: "[inset 0 0 0 2px {colors.neutral.a25}]",
   },
@@ -162,11 +163,10 @@ const renderCellContent = (
 };
 
 /**
- * A read-only data table whose selectable rows follow the worksheet keyboard
- * flow: the table is one Tab stop (roving tabindex), ArrowUp/ArrowDown walk
- * the rows, and activation is select-first — the first click focuses a row,
- * a click on the focused row (or Enter/Space) calls `onRowSelect`. Without
- * `onRowSelect` the rows are inert.
+ * A read-only data table. With `onRowSelect` its rows follow the worksheet
+ * keyboard flow: the table is one Tab stop, ArrowUp/ArrowDown walk the rows,
+ * and activation is select-first (the first click focuses a row, a click on
+ * the focused row or Enter/Space calls `onRowSelect`).
  */
 export function Table<Row>({
   columns,
@@ -178,15 +178,11 @@ export function Table<Row>({
 }: TableProps<Row>) {
   const targets = useRef<Map<string, HTMLElement>>(new Map());
 
-  const stops: FocusStop[] = onRowSelect
-    ? rows.map((row) => ({ id: getRowId(row), kind: "row" }))
-    : [];
-  const {
-    onKeyDown: onStopsKeyDown,
-    onFocusTarget,
-    tabIndexFor,
-    attach,
-  } = useFocusStops({
+  const stops: FocusStop[] = rows.map((row) => ({
+    id: getRowId(row),
+    kind: "row",
+  }));
+  const { onKeyDown, onFocusTarget, tabIndexFor, attach } = useFocusStops({
     stops,
     columnCount: 1,
     focusTarget: (target) => focusLands(targets.current.get(target.stopId)),
@@ -197,9 +193,51 @@ export function Table<Row>({
     return <div className={tableEmptyStateStyle}>{emptyLabel}</div>;
   }
 
+  const selectableRowProps = (
+    row: Row,
+    rowId: string,
+    select: (row: Row) => void,
+  ) => {
+    const target: FocusStopTarget = { stopId: rowId, column: 0 };
+    return {
+      ref: (element: HTMLElement | null) => {
+        if (element) {
+          targets.current.set(rowId, element);
+        } else {
+          targets.current.delete(rowId);
+        }
+      },
+      tabIndex: tabIndexFor(target),
+      "aria-selected": rowId === selectedRowId,
+      onFocus: (event: React.FocusEvent) => {
+        if (event.target === event.currentTarget) {
+          onFocusTarget(target);
+        }
+      },
+      onPointerDown,
+      onClick: (event: React.MouseEvent<HTMLElement>) => {
+        if (shouldActivate(event)) {
+          select(row);
+        }
+      },
+      onKeyDown: (event: React.KeyboardEvent) => {
+        if (event.target !== event.currentTarget) {
+          return;
+        }
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          event.stopPropagation();
+          select(row);
+        } else {
+          onKeyDown(target)(event);
+        }
+      },
+    };
+  };
+
   return (
     <div
-      ref={onRowSelect ? attach : undefined}
+      ref={attach}
       aria-colcount={columns.length}
       aria-rowcount={rows.length + 1}
       className={tableStyle}
@@ -225,82 +263,31 @@ export function Table<Row>({
         {rows.map((row, rowIndex) => {
           const rowId = getRowId(row);
           const isSelected = rowId === selectedRowId;
-          const cells = columns.map((column, columnIndex) => (
-            <div
-              key={column.id}
-              aria-colindex={columnIndex + 1}
-              className={tableCellStyle}
-              role="cell"
-              style={getColumnStyle(column)}
-            >
-              {renderCellContent(column.render(row), column.tone)}
-            </div>
-          ));
-
           return (
             <div
               key={rowId}
-              ref={
-                onRowSelect
-                  ? (element) => {
-                      if (element) {
-                        targets.current.set(rowId, element);
-                      } else {
-                        targets.current.delete(rowId);
-                      }
-                    }
-                  : undefined
-              }
               aria-rowindex={rowIndex + 2}
-              aria-selected={onRowSelect ? isSelected : undefined}
               className={cx(
                 tableRowStyle,
                 onRowSelect ? selectableTableRowStyle : undefined,
                 isSelected ? selectedRowStyle : undefined,
               )}
               role="row"
-              tabIndex={
-                onRowSelect
-                  ? tabIndexFor({ stopId: rowId, column: 0 })
-                  : undefined
-              }
-              onFocus={
-                onRowSelect
-                  ? (event) => {
-                      if (event.target === event.currentTarget) {
-                        onFocusTarget({ stopId: rowId, column: 0 });
-                      }
-                    }
-                  : undefined
-              }
-              onPointerDown={onRowSelect ? onPointerDown : undefined}
-              onClick={
-                onRowSelect
-                  ? (event) => {
-                      if (shouldActivate(event)) {
-                        onRowSelect(row);
-                      }
-                    }
-                  : undefined
-              }
-              onKeyDown={
-                onRowSelect
-                  ? (event) => {
-                      if (event.target !== event.currentTarget) {
-                        return;
-                      }
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        onRowSelect(row);
-                        return;
-                      }
-                      onStopsKeyDown({ stopId: rowId, column: 0 })(event);
-                    }
-                  : undefined
-              }
+              {...(onRowSelect
+                ? selectableRowProps(row, rowId, onRowSelect)
+                : undefined)}
             >
-              {cells}
+              {columns.map((column, columnIndex) => (
+                <div
+                  key={column.id}
+                  aria-colindex={columnIndex + 1}
+                  className={tableCellStyle}
+                  role="cell"
+                  style={getColumnStyle(column)}
+                >
+                  {renderCellContent(column.render(row), column.tone)}
+                </div>
+              ))}
             </div>
           );
         })}
