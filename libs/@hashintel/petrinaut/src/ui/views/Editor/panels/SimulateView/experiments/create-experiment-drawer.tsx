@@ -13,6 +13,7 @@ import {
   type SelectItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
+import { EMPTY_AD_HOC_STATE } from "@hashintel/petrinaut-core";
 
 import {
   ExperimentsContext,
@@ -22,6 +23,7 @@ import { useStableCallback } from "../../../../../../react/hooks/use-stable-call
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
 import { Section, SectionList } from "../../../../../components/section";
 import { CodeEditor } from "../../../../../monaco/code-editor";
 import { getMetricDocumentUri } from "../../../../../monaco/editor-paths";
@@ -41,6 +43,7 @@ import {
 } from "./experiment-metric-lsp-validation";
 
 import type {
+  AdHocScenarioState,
   MonteCarloMetricSpec,
   Scenario,
   ScenarioParameter,
@@ -808,14 +811,16 @@ export const CreateExperimentDrawer = ({
   open,
   onClose,
 }: CreateExperimentDrawerProps) => {
-  const { petriNetDefinition } = use(SDCPNContext);
+  const { petriNetDefinition, extensions } = use(SDCPNContext);
   const { createExperiment } = use(ExperimentsContext);
+  const { enableAdHocScenarios } = use(UserSettingsContext);
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
     null,
   );
   const [paramValues, setParamValues] = useState<Record<string, string>>({});
+  const [adHocState, setAdHocState] = useState<AdHocScenarioState | null>(null);
   const [runCount, setRunCount] = useState(DEFAULT_RUN_COUNT);
   const [seed, setSeed] = useState(DEFAULT_SEED);
   const [dt, setDt] = useState(DEFAULT_DT);
@@ -852,6 +857,7 @@ export const CreateExperimentDrawer = ({
     setName(DEFAULT_EXPERIMENT_NAME);
     setSelectedScenarioId(null);
     setParamValues({});
+    setAdHocState(null);
     setRunCount(DEFAULT_RUN_COUNT);
     setSeed(DEFAULT_SEED);
     setDt(DEFAULT_DT);
@@ -950,6 +956,11 @@ export const CreateExperimentDrawer = ({
             ? null
             : effectiveSelectedScenarioId,
         scenarioParameterValues: paramValues,
+        adHocScenario:
+          enableAdHocScenarios &&
+          effectiveSelectedScenarioId === NO_SCENARIO_VALUE
+            ? adHocState
+            : null,
         runCount: Number(runCount),
         seed: Number(seed),
         dt: Number(dt),
@@ -1077,6 +1088,25 @@ export const CreateExperimentDrawer = ({
                   />
                 ))
               )
+            ) : enableAdHocScenarios ? (
+              // With no scenario, the experiment's Initial State + Parameters
+              // are defined inline and compile through a scenario generated
+              // at experiment start, never persisted. Left untouched, the
+              // experiment runs exactly as before. Behind the Ad-hoc
+              // scenarios setting; off, no scenario means the model's own
+              // initial marking, as before the feature.
+              <AdHocScenarioForm
+                state={adHocState ?? EMPTY_AD_HOC_STATE}
+                onChange={setAdHocState}
+                context={{
+                  netParameters: extensions.parameters
+                    ? petriNetDefinition.parameters
+                    : [],
+                  places: petriNetDefinition.places,
+                  types: extensions.colors ? petriNetDefinition.types : [],
+                }}
+                selection="none"
+              />
             ) : null}
           </Section>
 
