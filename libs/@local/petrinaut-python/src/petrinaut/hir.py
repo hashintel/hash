@@ -435,28 +435,52 @@ class _Evaluator:
         Comparisons yield signed slack; ``&&`` = ``min``, ``||`` = ``max``,
         ``!`` negates; a plain boolean is ``±inf`` (no boundary to measure).
 
-        A NaN slack (an operand like ``Math.sqrt`` of a negative) never
-        leaves a comparison: every JS comparison with NaN is false, so the
-        leaf resolves to ``-inf`` (``!=`` to ``+inf`` — NaN differs from
-        everything). ``min``/``max`` would otherwise drop the NaN by
-        argument order and let a compound read satisfied while the boolean
-        is false."""
+        A slack that comes out NaN never leaves a comparison, because
+        ``min``/``max`` would drop it by argument order and let a compound
+        read satisfied while the boolean is false. The leaf resolves to
+        ``±inf`` by asking the comparison itself: NaN operands make every
+        JS comparison false, but ``inf`` against ``inf`` also cancels to a
+        NaN slack while ``<=``, ``>=`` and ``==`` still hold.
+
+        ``&&`` and ``||`` short-circuit exactly as evaluation does, so an
+        arm guarded by the one before it — a count checked before the token
+        it indexes — is never walked when evaluation would not walk it."""
         kind = node.get("kind")
         if kind == "binary":
             op = node["op"]
             if op == "&&":
-                return min(self.margin(node["left"]), self.margin(node["right"]))
+                left_margin = self.margin(node["left"])
+                if left_margin < 0:
+                    return left_margin
+                return min(left_margin, self.margin(node["right"]))
             if op == "||":
-                return max(self.margin(node["left"]), self.margin(node["right"]))
+                left_margin = self.margin(node["left"])
+                if left_margin >= 0:
+                    return left_margin
+                return max(left_margin, self.margin(node["right"]))
             if op in ("<", "<="):
-                slack = float(self.eval(node["right"])) - float(self.eval(node["left"]))
+                right_value = float(self.eval(node["right"]))
+                left_value = float(self.eval(node["left"]))
+                slack = right_value - left_value
                 if math.isnan(slack):
-                    return -math.inf
+                    satisfied = (
+                        left_value <= right_value
+                        if op == "<="
+                        else left_value < right_value
+                    )
+                    return math.inf if satisfied else -math.inf
                 return slack if op == "<=" else _strict_slack(slack)
             if op in (">", ">="):
-                slack = float(self.eval(node["left"])) - float(self.eval(node["right"]))
+                left_value = float(self.eval(node["left"]))
+                right_value = float(self.eval(node["right"]))
+                slack = left_value - right_value
                 if math.isnan(slack):
-                    return -math.inf
+                    satisfied = (
+                        left_value >= right_value
+                        if op == ">="
+                        else left_value > right_value
+                    )
+                    return math.inf if satisfied else -math.inf
                 return slack if op == ">=" else _strict_slack(slack)
             if op == "==":
                 left, right = self.eval(node["left"]), self.eval(node["right"])
@@ -464,7 +488,7 @@ class _Evaluator:
                     return math.inf if _strict_equal(left, right) else -math.inf
                 distance = abs(float(left) - float(right))
                 if math.isnan(distance):
-                    return -math.inf
+                    return math.inf if _strict_equal(left, right) else -math.inf
                 return -distance
             if op == "!=":
                 left, right = self.eval(node["left"]), self.eval(node["right"])
@@ -472,7 +496,7 @@ class _Evaluator:
                     return math.inf if not _strict_equal(left, right) else -math.inf
                 distance = abs(float(left) - float(right))
                 if math.isnan(distance):
-                    return math.inf
+                    return math.inf if not _strict_equal(left, right) else -math.inf
                 return _strict_slack(distance)
         if kind == "unary" and node["op"] == "!":
             return -self.margin(node["operand"])
