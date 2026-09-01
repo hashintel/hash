@@ -22,6 +22,7 @@ This candidate remaps the current core prompt, SDCPN prompt material, runbook sk
 14. A workpiece claim, its evidence, and its epistemic treatment share one authoritative location under the relevant concern. Only unresolved matters spanning concerns or requiring later re-entry enter a compact cross-cutting issue ledger, which references rather than restates claims.
 15. Construction evidence is reported at one of three non-collapsible levels: tool-schema acceptance, agent-reviewed structural correspondence, and behavior observed through an actual execution or stronger analysis. Every claim stays within the scope of the method that produced it.
 16. [`EVALUATION.md`](EVALUATION.md) owns the repeatable candidate comparison: frozen instruments, authority checks, owner-led walkthroughs, model-facing observables, campaign boundary, and disposition rules.
+17. Candidate C keeps ordinary elicitation and its workpiece domain-primary, then applies a construction-only SDCPN readiness view whose entries cite authoritative workpiece claims rather than reproducing them.
 
 ## Candidate topology
 
@@ -43,10 +44,16 @@ five-register-synthesis/
         ├── workpiece-template.md
         ├── pn-construction.md
         ├── checks.md
-        └── coverage-alternatives/
-            ├── domain-primary.md
-            ├── formalism-primary.md
-            └── formalism-primary-workpiece-template.md
+        ├── coverage-alternatives/
+        │   ├── domain-primary.md
+        │   ├── formalism-primary.md
+        │   └── formalism-primary-workpiece-template.md
+        └── candidates/
+            └── domain-primary-with-readiness/
+                ├── README.md
+                ├── profile.md
+                ├── sdcpn-readiness.md
+                └── skill.ts.example
 ```
 
 ### Responsibilities
@@ -60,6 +67,7 @@ five-register-synthesis/
 - [`plugin-sdcpn/sdcpn-modelling/workpiece-template.md`](plugin-sdcpn/sdcpn-modelling/workpiece-template.md) is the recoverable process-model artifact, with operational claims, evidence, and epistemic treatment co-located and a reference-only cross-cutting issue ledger.
 - [`plugin-sdcpn/sdcpn-modelling/pn-construction.md`](plugin-sdcpn/sdcpn-modelling/pn-construction.md) contains construction mappings and patterns disclosed only during construction.
 - [`plugin-sdcpn/sdcpn-modelling/checks.md`](plugin-sdcpn/sdcpn-modelling/checks.md) separates tool-schema acceptance, agent-reviewed structural correspondence, and behavioral execution or stronger analysis before checking fidelity, revision, and delivery.
+- [`plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/`](plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/) contains Candidate C's complete profile, construction-only readiness resource, and hashable Flue composition while reusing the domain-primary workpiece.
 - [`EVALUATION.md`](EVALUATION.md) is the sole authority for comparing Coverage/workpiece/readiness candidates and deciding whether finer progressive disclosure is earned.
 
 ## How to read the synthesized set
@@ -80,19 +88,20 @@ Read [`plugin-sdcpn/sdcpn-modelling/instructions.md`](plugin-sdcpn/sdcpn-modelli
 For elicitation or revision, follow its pointers to:
 
 1. [`core/universal-elicitation.md`](core/universal-elicitation.md)
-2. [`plugin-sdcpn/sdcpn-modelling/profile.md`](plugin-sdcpn/sdcpn-modelling/profile.md)
-3. [`plugin-sdcpn/sdcpn-modelling/workpiece-template.md`](plugin-sdcpn/sdcpn-modelling/workpiece-template.md) when the workpiece is first created or materially revised
+2. The profile selected by [`EVALUATION.md`](EVALUATION.md): the shared [`profile.md`](plugin-sdcpn/sdcpn-modelling/profile.md) for Candidates A and B, or Candidate C's [`profile.md`](plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/profile.md)
+3. The paired workpiece selected by [`EVALUATION.md`](EVALUATION.md) when it is first created or materially revised: the domain-primary [`workpiece-template.md`](plugin-sdcpn/sdcpn-modelling/workpiece-template.md) for Candidates A and C, or the [`formalism-primary-workpiece-template.md`](plugin-sdcpn/sdcpn-modelling/coverage-alternatives/formalism-primary-workpiece-template.md) alternative for Candidate B
 
 For construction and net delivery, additionally read:
 
-1. [`plugin-sdcpn/sdcpn-modelling/pn-construction.md`](plugin-sdcpn/sdcpn-modelling/pn-construction.md)
-2. [`plugin-sdcpn/sdcpn-modelling/checks.md`](plugin-sdcpn/sdcpn-modelling/checks.md)
+1. Candidate C only: [`plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/sdcpn-readiness.md`](plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/sdcpn-readiness.md)
+2. [`plugin-sdcpn/sdcpn-modelling/pn-construction.md`](plugin-sdcpn/sdcpn-modelling/pn-construction.md)
+3. [`plugin-sdcpn/sdcpn-modelling/checks.md`](plugin-sdcpn/sdcpn-modelling/checks.md)
 
 Workpiece-only delivery uses the universal and plugin Verification registers without disclosing construction resources.
 
 ## Evaluation
 
-The profile currently uses a domain-typology-primary Coverage index provisionally. Do not decide between it and the alternatives from this README. Follow [`EVALUATION.md`](EVALUATION.md), which preregisters three candidates: domain-primary, formalism-primary, and domain-primary elicitation/workpiece organization plus a separate SDCPN construction-readiness view.
+The shared profile currently uses a domain-typology-primary Coverage index provisionally. Do not decide between it and the alternatives from this README. Follow [`EVALUATION.md`](EVALUATION.md), which preregisters three candidates: domain-primary, formalism-primary, and [`domain-primary elicitation/workpiece organization plus a separate SDCPN construction-readiness view`](plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/).
 
 The protocol owns the shared invariants, mechanical audit, owner-led cases, model-facing observations, evidence walls, decision rule, and the threshold for splitting progressive resources. After a candidate wins, remove losing alternatives from the live candidate instrument and preserve only the comparison evidence.
 

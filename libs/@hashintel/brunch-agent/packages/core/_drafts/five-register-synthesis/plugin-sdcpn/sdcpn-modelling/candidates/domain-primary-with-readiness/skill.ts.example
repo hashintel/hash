@@ -1,0 +1,26 @@
+import { defineSkill } from "@flue/runtime";
+
+import { universalElicitationReference } from "@hashintel/brunch-agent/flue";
+
+import checks from "../../checks.md?raw";
+import instructions from "../../instructions.md?raw";
+import pnConstruction from "../../pn-construction.md?raw";
+import workpieceTemplate from "../../workpiece-template.md?raw";
+import profile from "./profile.md?raw";
+import sdcpnReadiness from "./sdcpn-readiness.md?raw";
+
+/** Candidate C: domain-primary elicitation with a construction-only readiness projection. */
+export const sdcpnModellingSkill = defineSkill({
+  name: "sdcpn-modelling",
+  description:
+    "Elicit or revise an operational process model, maintain its recoverable workpiece, and construct an inspected SDCPN with an explicit evidence level when Petrinaut capabilities are available.",
+  instructions,
+  files: {
+    "references/checks.md": checks,
+    "references/pn-construction.md": pnConstruction,
+    "references/profile.md": profile,
+    "references/sdcpn-readiness.md": sdcpnReadiness,
+    "references/universal-elicitation.md": universalElicitationReference,
+    "templates/workpiece.md": workpieceTemplate,
+  },
+});

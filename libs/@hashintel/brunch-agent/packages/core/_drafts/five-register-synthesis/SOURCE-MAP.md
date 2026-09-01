@@ -18,6 +18,7 @@ This map accounts for the primary working and draft material used to produce the
 | `pn-construction.md` | SDCPN mappings, construction patterns, inference, bounded change, and losses | Active `pn-construction.md`; APPEND `Maps To` material; Ciaran transformation patterns |
 | `checks.md` | Phase-boundary, net, fidelity, revision, and delivery checks | Active `checks.md`; APPEND smells/rabbit holes/failure signatures; current construction tool contract |
 | `coverage-alternatives/*` | Concrete comparison at the unresolved Coverage-index fog-line | Active typology table; Ciaran headings; predecessor kind-indexed question reference |
+| `candidates/domain-primary-with-readiness/*` | Candidate C's domain-primary elicitation profile, construction-only SDCPN readiness projection, and complete skill composition | Preregistered third candidate; shared domain-primary profile/workpiece; construction boundary; workpiece locality rule |
 | `EVALUATION.md` | Preregistered authority audit, owner-led walkthrough, model-facing comparison, campaign boundary, and disposition rule | Competing-design review; Mission 4 proof and fog-line; `prospective-runbook-v1`; `ir-quality-ruler-v1`; frozen baseline adjudication |
 
 ## Active core system prompt
@@ -66,7 +67,7 @@ Sources: `packages/plugin-sdcpn/src/skills/sdcpn-modelling/`.
 
 The active skill's conceptual lifecycle, `runbook-ir` full-document emission convention, partial delivery, and phase resource routing move to plain `instructions.md`. The candidate requires a final full workpiece emission before construction handoff and workpiece-only delivery. It also distinguishes the current interactive and construct-only runtime branches: construct-only execution reports a re-entry question instead of interviewing. Existing-model revision applies fully to the workpiece and only to net changes supported by mounted mutation capabilities.
 
-The plugin-owned `skill.ts.example` demonstrates Flue's native `defineSkill` to map the instructions, core-owned universal reference, and plugin-owned profile/template/construction/check resources into one packaged skill. Flue synthesizes the packaged `SKILL.md`; no authored duplicate remains.
+The plugin-owned `skill.ts.example` demonstrates Flue's native `defineSkill` to map the instructions, core-owned universal reference, and plugin-owned profile/template/construction/check resources into one packaged skill. Flue synthesizes the packaged `SKILL.md`; no authored duplicate remains. Candidate C supplies its own complete composition example that substitutes a profile without ordinary elicitation readiness checks and advertises a construction-only readiness resource while reusing the shared domain-primary workpiece.
 
 ### `elicitation.md`
 
@@ -80,7 +81,7 @@ The active file's Ciaran-derived “What to investigate” headings seed the dom
 
 ### `ir-template.md`
 
-The candidate retains a human-readable Markdown workpiece, full `runbook-ir` emission, expert vocabulary, assumptions, unknowns, conflict, omissions, and losses. Each operational claim now owns its exact evidence, normalized account, agent inference, assumption, correction, conflict, or contextual variation locally when those distinctions matter. A compact central ledger holds only unresolved matters spanning concerns or requiring re-entry and references rather than restates authoritative claims. These annotations are structural aids, not mandatory per-statement types. Because Coverage indexing remains unresolved, the workbench contains aligned domain-primary and formalism-primary workpiece candidates under the same locality rule rather than treating one artifact shape as settled.
+The candidate retains a human-readable Markdown workpiece, full `runbook-ir` emission, expert vocabulary, assumptions, unknowns, conflict, omissions, and losses. Each operational claim now owns its exact evidence, normalized account, agent inference, assumption, correction, conflict, or contextual variation locally when those distinctions matter. A compact central ledger holds only unresolved matters spanning concerns or requiring re-entry and references rather than restates authoritative claims. These annotations are structural aids, not mandatory per-statement types. Because Coverage indexing remains unresolved, the workbench contains aligned domain-primary and formalism-primary workpiece candidates under the same locality rule rather than treating one artifact shape as settled. Candidate C reuses the domain-primary workpiece and places a derived reference-only SDCPN view inside its existing `Construction notes`; it does not introduce a second operational account.
 
 ### `pn-construction.md`
 

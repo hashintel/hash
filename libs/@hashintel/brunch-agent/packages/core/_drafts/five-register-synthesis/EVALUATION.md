@@ -20,7 +20,7 @@ Replace the profile's Coverage register with `plugin-sdcpn/sdcpn-modelling/cover
 
 ### C — domain-primary elicitation plus a separate construction-readiness view
 
-Use domain-primary Coverage and a domain-primary workpiece, but remove formalism-completeness pressure from ordinary elicitation. At construction time, apply a separate SDCPN readiness view that references authoritative workpiece claims without reorganizing or duplicating them. This candidate is reserved before authoring so its evaluation criteria cannot be fitted to its eventual wording.
+Use [`plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/`](plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/). Its candidate-specific profile retains domain-primary Coverage and removes construction-readiness checks from ordinary elicitation; its skill composition reuses the domain-primary workpiece and adds a construction-only SDCPN readiness resource. The resulting view cites authoritative workpiece claims under the existing `Construction notes` without reorganizing or duplicating them. This candidate was preregistered here before its wording was authored.
 
 ## Shared invariants
 
@@ -29,7 +29,7 @@ Every candidate uses the same:
 - core and plugin system prompts;
 - universal progressive reference;
 - lifecycle instructions and runtime branches;
-- additive, register-pure plugin guidance outside the candidate-specific Coverage material;
+- additive, register-pure plugin guidance outside the candidate-specific Coverage and construction-readiness treatment;
 - workpiece locality rule;
 - construction guidance and three evidence levels;
 - tool set, model configuration, case inputs, turn limits, graders, and stop rules within a comparison stage.
