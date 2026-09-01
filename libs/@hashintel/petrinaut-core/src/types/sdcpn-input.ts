@@ -6,13 +6,13 @@ import type {
   ID,
   InputArc,
   InputArcType,
-  JsonValue,
   Metric,
   OutputArc,
   Parameter,
   Scenario,
   SDCPN,
   Subnet,
+  Transition,
 } from "./sdcpn";
 
 /**
@@ -34,7 +34,7 @@ import type {
  */
 export type SDCPNInput = {
   description?: string;
-  metadata?: Record<string, JsonValue>;
+  metadata?: SDCPN["metadata"];
   places: SDCPNPlaceInput[];
   transitions: SDCPNTransitionInput[];
   /** @default [] */
@@ -92,7 +92,7 @@ export type SDCPNTransitionInput = {
   id: ID;
   name: string;
   description?: string;
-  metadata?: Record<string, JsonValue>;
+  metadata?: Transition["metadata"];
   inputArcs: SDCPNInputArcInput[];
   outputArcs: SDCPNOutputArcInput[];
   x: number;
