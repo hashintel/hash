@@ -4,14 +4,10 @@ import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
 
 export const RUNBOOK_IR_FENCE = "runbook-ir";
 
-const fencedBlockPattern = (language: string): RegExp =>
-  new RegExp("```" + language + "\\s*\\n([\\s\\S]*?)```", "g");
+const runbookIrFencePattern = /```runbook-ir\s*\n([\s\S]*?)```/g;
 
-export const latestFencedBlock = (
-  text: string,
-  language: string,
-): string | undefined => {
-  const matches = [...text.matchAll(fencedBlockPattern(language))];
+export const latestRunbookIrBlock = (text: string): string | undefined => {
+  const matches = [...text.matchAll(runbookIrFencePattern)];
   const last = matches.at(-1)?.[1];
   return last === undefined ? undefined : last.trim();
 };
@@ -30,8 +26,7 @@ const assistantTextFrom = (snapshot: FlueConversationSnapshot): string =>
 
 export const recoverRunbookIr = (
   snapshot: FlueConversationSnapshot,
-): string | undefined =>
-  latestFencedBlock(assistantTextFrom(snapshot), RUNBOOK_IR_FENCE);
+): string | undefined => latestRunbookIrBlock(assistantTextFrom(snapshot));
 
 export const interviewerToolNamesFrom = (
   snapshot: FlueConversationSnapshot,

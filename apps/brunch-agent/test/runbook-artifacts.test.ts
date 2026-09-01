@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
-  latestFencedBlock,
+  latestRunbookIrBlock,
   recoverRunbookIr,
   RUNBOOK_IR_FENCE,
   skillResourcePathsFrom,
@@ -33,7 +33,7 @@ describe("runbook artifact recovery", () => {
       "# second",
       "```",
     ].join("\n");
-    expect(latestFencedBlock(text, RUNBOOK_IR_FENCE)).toBe("# second");
+    expect(latestRunbookIrBlock(text)).toBe("# second");
   });
 
   test("recovers an IR from assistant history", () => {
