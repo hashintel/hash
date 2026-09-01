@@ -198,9 +198,14 @@ pub struct KratosSessionAuthConfig {
 
     /// Time a verified session is served from the cache before re-verifying (in seconds).
     ///
-    /// Bounds the revocation delay: a revoked session keeps authenticating for at most this
-    /// long. 0 disables the cache, verifying every request against Kratos.
-    #[clap(long, env = "HASH_GRAPH_SESSION_CACHE_TTL", default_value_t = 60)]
+    /// Bounds how long a revoked session, or an actor removed from the principal store, keeps
+    /// authenticating. Set to 0 to disable the cache and verify every request against Kratos.
+    #[clap(
+        long,
+        env = "HASH_GRAPH_SESSION_CACHE_TTL",
+        default_value_t = 60,
+        value_parser = clap::value_parser!(u64).range(..=86400)
+    )]
     pub session_cache_ttl_secs: u64,
 
     /// Maximum number of verified sessions kept in the cache.
@@ -226,13 +231,25 @@ impl KratosSessionAuthConfig {
             ));
         }
 
+        let cache = SessionCacheConfig::new(
+            Duration::from_secs(self.session_cache_ttl_secs),
+            self.session_cache_capacity,
+        );
+        match &cache {
+            Some(cache) => tracing::info!(
+                ttl_secs = cache.ttl.as_secs(),
+                capacity = cache.capacity.get(),
+                "session cache enabled"
+            ),
+            None => {
+                tracing::info!("session cache disabled, every request verifies against Kratos");
+            }
+        }
+
         Ok(KratosSessionConfig {
             kratos_public_url,
             http_timeout: Duration::from_secs(self.session_http_timeout_secs),
-            cache: NonZero::new(self.session_cache_ttl_secs).map(|ttl| SessionCacheConfig {
-                ttl: Duration::from_secs(ttl.get()),
-                capacity: self.session_cache_capacity,
-            }),
+            cache,
         })
     }
 }
