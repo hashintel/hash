@@ -12,7 +12,7 @@ import workpieceTemplate from "./workpiece-template.md?raw";
 export const sdcpnModellingSkill = defineSkill({
   name: "sdcpn-modelling",
   description:
-    "Elicit or revise an operational process model, maintain its recoverable workpiece, and construct a checked SDCPN when Petrinaut capabilities are available.",
+    "Elicit or revise an operational process model, maintain its recoverable workpiece, and construct an inspected SDCPN with an explicit evidence level when Petrinaut capabilities are available.",
   instructions,
   files: {
     "references/checks.md": checks,

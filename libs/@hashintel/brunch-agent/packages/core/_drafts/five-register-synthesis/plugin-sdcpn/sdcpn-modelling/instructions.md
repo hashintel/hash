@@ -53,6 +53,6 @@ Construction may infer a representation from recorded operational knowledge; it 
 
 ### Check and deliver
 
-Apply the universal and plugin Verification registers before any delivery. Apply the phase-specific checks only when construction was prepared or attempted. Deliver the current workpiece in all cases. Deliver a net only when the available tool path has produced and checked one. Name what the result can support, what remains open, what was assumed or simplified, and what the target could not represent.
+Apply the universal and plugin Verification registers before any delivery. Apply the phase-specific checks only when construction was prepared or attempted. Deliver the current workpiece in all cases. Deliver a net only when the available tool path has produced and inspected one, and report the highest evidence level reached: tool-schema acceptance, agent-reviewed structural correspondence, or behavior observed through a named execution or stronger analysis. Name what the result can support, what remains open, what was assumed or simplified, and what the target could not represent.
 
-An explicit stop opens no new topic. In an interactive conversation, emit the full latest workpiece and, if already available, the best checked net, with gaps and assumptions visible. In construct-only execution, report a blocking gap rather than opening an interview.
+An explicit stop opens no new topic. In an interactive conversation, emit the full latest workpiece and, if already available, the latest inspected net with its evidence level, gaps, and assumptions visible. In construct-only execution, report a blocking gap rather than opening an interview.

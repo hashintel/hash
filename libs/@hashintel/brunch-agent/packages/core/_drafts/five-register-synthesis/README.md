@@ -20,6 +20,7 @@ This candidate remaps the current core prompt, SDCPN prompt material, runbook sk
 12. The separately authored progressive layers are composed into one packaged skill with Flue's native `defineSkill({ instructions, files })`. Markdown links guide the model but do not package, transclude, or automatically load resources.
 13. The plugin profile is strictly additive and register-pure: it states only operational-process or SDCPN consequences absent from universal teaching; Recognition names signals and hypotheses, Operations names moves, Coverage names what to preserve, and Verification names failures and repairs. Lifecycle and construction routing remain in instructions and checks.
 14. A workpiece claim, its evidence, and its epistemic treatment share one authoritative location under the relevant concern. Only unresolved matters spanning concerns or requiring later re-entry enter a compact cross-cutting issue ledger, which references rather than restates claims.
+15. Construction evidence is reported at one of three non-collapsible levels: tool-schema acceptance, agent-reviewed structural correspondence, and behavior observed through an actual execution or stronger analysis. Every claim stays within the scope of the method that produced it.
 
 ## Candidate topology
 
@@ -56,7 +57,7 @@ five-register-synthesis/
 - [`plugin-sdcpn/sdcpn-modelling/profile.md`](plugin-sdcpn/sdcpn-modelling/profile.md) is the register-pure additive plugin profile coupling operational-process domain typology and SDCPN consequences without repeating universal or lifecycle guidance.
 - [`plugin-sdcpn/sdcpn-modelling/workpiece-template.md`](plugin-sdcpn/sdcpn-modelling/workpiece-template.md) is the recoverable process-model artifact, with operational claims, evidence, and epistemic treatment co-located and a reference-only cross-cutting issue ledger.
 - [`plugin-sdcpn/sdcpn-modelling/pn-construction.md`](plugin-sdcpn/sdcpn-modelling/pn-construction.md) contains construction mappings and patterns disclosed only during construction.
-- [`plugin-sdcpn/sdcpn-modelling/checks.md`](plugin-sdcpn/sdcpn-modelling/checks.md) checks the workpiece-to-construction boundary, net structure, fidelity, revision, and delivery.
+- [`plugin-sdcpn/sdcpn-modelling/checks.md`](plugin-sdcpn/sdcpn-modelling/checks.md) separates tool-schema acceptance, agent-reviewed structural correspondence, and behavioral execution or stronger analysis before checking fidelity, revision, and delivery.
 
 ## How to read the synthesized set
 

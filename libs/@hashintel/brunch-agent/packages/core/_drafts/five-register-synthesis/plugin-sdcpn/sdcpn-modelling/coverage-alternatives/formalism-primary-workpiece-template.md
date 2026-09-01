@@ -117,7 +117,7 @@ Summarize status by reference to the authoritative account and issue ledger; do 
 
 ### Net status
 
-State whether no construction was attempted, construction is blocked, a partial net exists, or a net was constructed and checked through mounted tools. Do not infer simulatable status from workpiece quality alone.
+State whether construction was not attempted, blocked, partial, or tool-schema accepted; whether the inspected definition was structurally reviewed against the workpiece; and whether behavior was untested, observed in named simulations, or established to a stated scope by stronger analysis. Do not infer a higher level from a lower one.
 ```
 
 ## Maintenance guidance

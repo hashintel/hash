@@ -87,7 +87,7 @@ Mapping principles, tool-authoritative construction, reusable patterns, visible 
 
 ### `checks.md`
 
-Elicitation sufficiency and workpiece-only delivery checks live in the universal and plugin Verification registers. Phase-specific `checks.md` is disclosed only for construction and net delivery; it owns PN validity, resource return, ordering, loss review, bounded net-change checks, and honest net-status reporting. Closed stopping-outcome codes are replaced by plain observed-state reporting.
+Elicitation sufficiency and workpiece-only delivery checks live in the universal and plugin Verification registers. Phase-specific `checks.md` is disclosed only for construction and net delivery; it distinguishes tool-schema acceptance from agent-reviewed structural correspondence and from behavior observed through an actual execution or stronger analysis. Candidate paths, resource-return structures, and exclusive guards found by static review are no longer presented as reachability, conservation, or behavioral exclusivity proofs. Closed stopping-outcome codes are replaced by plain evidence-level and observed-state reporting.
 
 ## Ciaran outline
 

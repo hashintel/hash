@@ -107,7 +107,7 @@ Not acceptable:
 - interpreting “unknown” as a textbook distribution;
 - treating a posted rule as practiced behavior;
 - inventing release, recovery, retry, or branch semantics;
-- claiming a net is loadable, valid, or simulated without the corresponding tool evidence.
+- collapsing tool-schema acceptance, agent-reviewed structural correspondence, and behavior observed through execution or stronger analysis into an unsupported claim that the net is valid, runnable, or simulated.
 
 ## Existing-net analysis and bounded change
 
