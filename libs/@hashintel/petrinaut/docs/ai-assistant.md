@@ -44,10 +44,11 @@ is unavailable or the disclosure changes, Petrinaut asks again.
 
 While a session runs, the composer is replaced by a low-profile Voice dock at the foot of the panel:
 a ribbon that tapers to nothing at both ends and one short state -- **Connecting**, **Listening**,
-**Muted**, **Thinking**, **Speaking**, **Paused**, or **Voice interrupted**. The ribbon rides your
-microphone while it listens and switches to a restrained self-driven motion while the assistant
-speaks, colour crossfading as the turn changes hands, so which side holds it is readable at a
-glance. It flattens whenever nobody holds the turn.
+**Muted**, **Thinking**, **Speaking**, **Paused**, or **Voice interrupted**. While it listens, the
+ribbon carries the last couple of seconds of your voice: what you are saying now enters at the right
+and the contour drifts left behind it. While the assistant speaks it takes on a restrained
+self-driven motion instead, colour crossfading as the turn changes hands, so which side holds it is
+readable at a glance. It flattens whenever nobody holds the turn.
 
 The conversation itself stays still. Spoken turns are written to it as they happen, because that is
 what runs the tools that edit the net, but they stay hidden until the session ends rather than
