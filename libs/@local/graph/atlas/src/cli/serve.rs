@@ -273,7 +273,7 @@ const STATUS_PATH: &str = "/status";
 /// into the router's request middlewares. Store reads dial through `pool`, and the staging arm
 /// takes its ensure client from `ensure`. The listener and the lifecycle stay the hosting
 /// binary's own.
-pub struct RequestFacilities<P> {
+pub struct ServeOptions<P> {
     /// The credential verifier chain resolving each request's headers to an actor.
     ///
     /// A request without a recognized credential refuses before any handler.
@@ -357,14 +357,14 @@ impl ServeCommand {
     /// onto the caller's runtime, as does the delta consumer where one runs.
     pub fn run<P>(
         self,
-        RequestFacilities {
+        ServeOptions {
             provider,
             service_secret,
             rate_limit,
             pool,
             visibility,
             workflow,
-        }: RequestFacilities<P>,
+        }: ServeOptions<P>,
     ) -> Result<Router, ServeError>
     where
         P: AuthenticationProvider<ActorId> + 'static,

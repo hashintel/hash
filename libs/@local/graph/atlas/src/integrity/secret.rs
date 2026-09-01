@@ -20,7 +20,7 @@ use super::{ParseHexError, hex::HexBytes};
 /// that copies the exposed value into its own storage owns that copy's end of life. The value also
 /// arrives from the command line or environment, whose copies precede the type.
 #[derive(Clone)]
-pub(crate) struct SecretString<A: Allocator = Global>(Arc<Zeroizing<str>, A>);
+pub struct SecretString<A: Allocator = Global>(Arc<Zeroizing<str>, A>);
 
 impl<A: Allocator> SecretString<A> {
     /// Consumes the secret, handing the shared allocation onward with custody intact.
@@ -98,6 +98,12 @@ where
 {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.write_str("[redacted]")
+    }
+}
+
+impl From<&str> for SecretString {
+    fn from(value: &str) -> Self {
+        Self::from_str(value).into_ok()
     }
 }
 
