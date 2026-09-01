@@ -5,6 +5,8 @@
  * functions that only need to validate a public URL should not bundle every
  * example model and generated simulation artifact.
  */
+export const PETRINAUT_DEMO_ORIGIN = "https://demo.petrinaut.org";
+
 export const exampleSlugs = [
   "gases-1-pn-consumption-trigger",
   "gases-1-pn",
