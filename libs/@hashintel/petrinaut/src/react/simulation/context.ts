@@ -1,7 +1,9 @@
 import { createContext } from "react";
 
 import {
+  type AdHocScenarioState,
   type CompiledScenarioResult,
+  type Parameter,
   type InitialMarking,
   type InitialPlaceMarking,
   type ScenarioCompilationError,
@@ -141,9 +143,24 @@ export type SimulationContextValue = {
    * failing scenario is never silently ignored.
    */
   scenarioCompilationErrors: ScenarioCompilationError[] | null;
+  /**
+   * The inline initial-state + parameters definition used when no scenario
+   * is selected. Compiled through a scenario generated at run time and never
+   * persisted into the net file. Null until the user defines one.
+   */
+  adHocScenario: AdHocScenarioState | null;
+  /**
+   * The net's parameters with the panel's current values overlaid as their
+   * defaults — exactly what ad-hoc synthesis and a Play run compile
+   * against. Embeddings pass these to the form so the defaults it displays
+   * are the ones the run resolves (the raw inputs are hidden while the
+   * ad-hoc embedding is live). Empty when the parameters extension is off.
+   */
+  adHocNetParameters: Parameter[];
 
   // Actions
   setSelectedScenarioId: (scenarioId: string | null) => void;
+  setAdHocScenario: (state: AdHocScenarioState | null) => void;
   setScenarioParameterValue: (identifier: string, value: string) => void;
   setInitialMarking: (placeId: string, marking: InitialPlaceMarking) => void;
   setParameterValue: (parameterId: string, value: string) => void;
@@ -198,6 +215,8 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   scenarioParameterValues: {},
   compiledScenarioResult: null,
   scenarioCompilationErrors: null,
+  adHocScenario: null,
+  adHocNetParameters: [],
   dt: 0.01,
   maxTime: null,
   totalFrames: 0,
@@ -205,6 +224,7 @@ const DEFAULT_CONTEXT_VALUE: SimulationContextValue = {
   getAllFrames: () => Promise.resolve([]),
   getFramesInRange: () => Promise.resolve([]),
   setSelectedScenarioId: () => {},
+  setAdHocScenario: () => {},
   setScenarioParameterValue: () => {},
   setInitialMarking: () => {},
   setParameterValue: () => {},

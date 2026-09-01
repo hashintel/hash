@@ -30,7 +30,7 @@
 
 import { use, useEffect, useRef, useState } from "react";
 
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 import {
   adHocPlaceStateFor,
   adHocSlotKey,
@@ -89,7 +89,36 @@ export interface AdHocScenarioFormProps {
    * when the context carries no net parameters.
    */
   withVariables?: boolean;
+  /**
+   * Custom arrangement: the host receives each group — already wired to the
+   * form's contexts — and lays them out itself (e.g. Simulation Settings
+   * places Variables + Parameters and Initial state in separate panel
+   * columns). The groups render without section chrome; a group the props
+   * withhold (`withVariables`, an empty `netParameters`) is `null`. The
+   * host's own chrome may render inside too — the wrapper only carries the
+   * form's keyboard handling. Wrap each visual column of the layout in a
+   * `FormLayoutColumn`: vertical arrows chain the column's groups, and
+   * horizontal moves at a table's side cross into the neighbouring column.
+   */
+  renderLayout?: (groups: {
+    variables: React.ReactNode;
+    parameters: React.ReactNode;
+    places: React.ReactNode;
+  }) => React.ReactNode;
+  /** Classname for the form's root element (the keyboard-handling div). */
+  className?: string;
 }
+
+/**
+ * One keyboard column of a custom layout: hosts wrap each visual column of
+ * their `renderLayout` output in one. Vertical arrows chain the column's
+ * groups top to bottom, and a horizontal move at a table's side crosses
+ * into the neighbouring column, entering at its remembered position. A
+ * FocusStack renders display:contents, so the host's layout is untouched.
+ */
+export const FormLayoutColumn: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => <FocusStack axis="vertical">{children}</FocusStack>;
 
 /**
  * A Section that participates in the form's keyboard walk: its collapse
@@ -127,6 +156,8 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   context,
   selection,
   withVariables = true,
+  renderLayout,
+  className,
 }) => {
   const sessionId = useAdHocLspSession(state);
   const { diagnosticsByUri, requestFormatExpression } = use(
@@ -239,7 +270,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     highlight,
     setFocusedValue,
     formatExpression: requestFormatExpression,
-    dense: false,
+    dense: renderLayout !== undefined,
     overlayKeyDown: { capture: handleKeyDown, bubble: stopDeleteKeys },
   };
 
@@ -295,42 +326,52 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
           cell handler; open text fields and Monaco pass through untouched. */}
         <div
           ref={rootRef}
+          className={cx(focusClearanceStyle, className)}
           role="group"
           aria-label="Ad-hoc scenario definition"
-          className={focusClearanceStyle}
           onKeyDownCapture={handleKeyDown}
           onPointerDownCapture={clearance.onPointerDownCapture}
           onFocusCapture={clearance.onFocusCapture}
           onKeyDown={stopDeleteKeys}
         >
-          <FocusStack axis="vertical">
-            <SectionList>
-              {variableRows ? (
-                <NavigableSection
-                  title="Variables"
-                  tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
-                >
-                  {variableRows}
-                </NavigableSection>
-              ) : null}
+          {renderLayout ? (
+            <FocusStack axis="horizontal">
+              {renderLayout({
+                variables: variableRows,
+                parameters: parameterRows,
+                places: placesList,
+              })}
+            </FocusStack>
+          ) : (
+            <FocusStack axis="vertical">
+              <SectionList>
+                {variableRows ? (
+                  <NavigableSection
+                    title="Variables"
+                    tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
+                  >
+                    {variableRows}
+                  </NavigableSection>
+                ) : null}
 
-              {parameterRows ? (
-                <NavigableSection
-                  title="Parameters"
-                  tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
-                >
-                  {parameterRows}
-                </NavigableSection>
-              ) : null}
+                {parameterRows ? (
+                  <NavigableSection
+                    title="Parameters"
+                    tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
+                  >
+                    {parameterRows}
+                  </NavigableSection>
+                ) : null}
 
-              <NavigableSection
-                title="Initial state"
-                tooltip="Token counts and values per place. Every value is an expression."
-              >
-                {placesList}
-              </NavigableSection>
-            </SectionList>
-          </FocusStack>
+                <NavigableSection
+                  title="Initial state"
+                  tooltip="Token counts and values per place. Every value is an expression."
+                >
+                  {placesList}
+                </NavigableSection>
+              </SectionList>
+            </FocusStack>
+          )}
         </div>
       </FocusRoot>
     </AdHocFormContext>

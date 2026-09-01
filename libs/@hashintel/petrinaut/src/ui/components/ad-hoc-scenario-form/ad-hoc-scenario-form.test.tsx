@@ -17,7 +17,7 @@ import {
   DEFAULT_LANGUAGE_CLIENT_CONTEXT,
   LanguageClientContext,
 } from "../../../react/lsp/context";
-import { AdHocScenarioForm } from "./ad-hoc-scenario-form";
+import { AdHocScenarioForm, FormLayoutColumn } from "./ad-hoc-scenario-form";
 
 import type { AdHocFormSelection } from "./form-context";
 import type {
@@ -110,11 +110,13 @@ const Harness: React.FC<{
   onState?: (state: AdHocScenarioState) => void;
   initial?: AdHocScenarioState;
   withVariables?: boolean;
+  renderLayout?: React.ComponentProps<typeof AdHocScenarioForm>["renderLayout"];
 }> = ({
   selection = "optimize",
   onState,
   initial = EMPTY_AD_HOC_STATE,
   withVariables,
+  renderLayout,
 }) => {
   const [state, setState] = useState(initial);
   return (
@@ -127,6 +129,7 @@ const Harness: React.FC<{
       context={context}
       selection={selection}
       withVariables={withVariables}
+      renderLayout={renderLayout}
     />
   );
 };
@@ -1064,6 +1067,66 @@ describe("AdHocScenarioForm", () => {
     fireEvent.pointerDown(addLine);
     fireEvent.click(addLine, { detail: 1 });
     expect(latest?.variables).toHaveLength(1);
+  });
+
+  it("renderLayout columns: vertical arrows stay, horizontal ones cross with memory", () => {
+    render(
+      <Harness
+        withVariables={false}
+        renderLayout={({ parameters, places }) => (
+          <div>
+            <div>
+              <FormLayoutColumn>{parameters}</FormLayoutColumn>
+            </div>
+            <div>
+              <FormLayoutColumn>{places}</FormLayoutColumn>
+            </div>
+          </div>
+        )}
+      />,
+    );
+
+    // Down past the parameters grid's last row stays put — the columns sit
+    // side by side, so vertical moves never slide across.
+    const rateValue = screen.getByRole("button", { name: "Rate" });
+    rateValue.focus();
+    fireEvent.keyDown(rateValue, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(rateValue);
+
+    // Up from the places column's first member stays inside the column.
+    const pumpsHeader = screen.getByRole("button", { name: "Pumps place" });
+    pumpsHeader.focus();
+    fireEvent.keyDown(pumpsHeader, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(pumpsHeader);
+
+    // Right from the parameters row's last cell crosses into the places
+    // column, entering its first member.
+    const optimizeToggle = screen.getByRole("button", {
+      name: "Optimize Rate",
+    });
+    optimizeToggle.focus();
+    fireEvent.keyDown(optimizeToggle, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(pumpsHeader);
+
+    // Left from a places grid crosses back to the parameters column's
+    // remembered cell. The dense layout starts places collapsed and a
+    // collapsed place mounts no content, so expand it first.
+    fireEvent.keyDown(pumpsHeader, { key: "ArrowRight" });
+    const addVariable = screen.getByRole("button", {
+      name: "Add a variable (Variables of Pumps)",
+    });
+    addVariable.focus();
+    fireEvent.keyDown(addVariable, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(optimizeToggle);
+
+    // Within the places column the walk still chains: up from the token
+    // table's column header lands on the place's own add-variable line.
+    const pressureHeader = screen.getByRole("button", {
+      name: "Share column pressure",
+    });
+    pressureHeader.focus();
+    fireEvent.keyDown(pressureHeader, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(addVariable);
   });
 
   // The three tests below stay LAST: their undo/redo and editor-overlay
