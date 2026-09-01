@@ -111,6 +111,7 @@ export function makeExperiment(
             frameNumber: status === "complete" ? 180 : 45,
           }),
     latestMetricFramesById: {},
+    sweepBatches: [],
     parameterAxes: [],
     sweep: null,
     metricFrames: [],
@@ -158,6 +159,7 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
         runOutput: { type: "distribution", binning: "exact" },
       },
     ],
+    sweepBatches: [],
     parameterAxes: [
       {
         identifier: "transmission_rate",
@@ -342,6 +344,7 @@ const createFakeExperiment = (
   progress: null,
   latestMetricFramesById: {},
   metricFrames: [],
+  sweepBatches: [],
   parameterAxes: [],
   sweep: null,
 });
