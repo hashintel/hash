@@ -50,7 +50,7 @@ pub use self::{
 };
 use crate::{device::PinnedDevice, file::generation::GenerationRoot};
 pub use crate::{
-    integrity::SecretString,
+    integrity::{EmptyPasswordError, PasswordString, SecretString},
     salt::runner::operator::{ClassifierSource, Options, Placement, RunError, Summary},
     serve::{EmbeddingWorkflow, LocateLimits, TileLimits, TranslateLimits, VisibilityLimits},
 };
