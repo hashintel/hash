@@ -64,6 +64,9 @@
     },
     "api/voice/realtime-call.ts": {
       "maxDuration": 30
+    },
+    "api/voice/speech.ts": {
+      "maxDuration": 30
     }
   }
 }

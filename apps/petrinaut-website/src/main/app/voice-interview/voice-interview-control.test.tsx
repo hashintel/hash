@@ -176,4 +176,38 @@ describe("voice interview control", () => {
       container.remove();
     }
   });
+
+  test("announces synthesis, playback, and the AI-generated voice disclosure", () => {
+    const renderPhase = (phase: "synthesizing" | "playing") =>
+      renderToStaticMarkup(
+        <VoiceInterviewControlView
+          correction=""
+          onCorrectionChange={vi.fn()}
+          onEnd={vi.fn()}
+          onReconnect={vi.fn()}
+          onStart={vi.fn()}
+          onSubmitCorrection={vi.fn()}
+          snapshot={{
+            errorMessage: "",
+            lastCommittedText: "",
+            partialText: "",
+            phase,
+          }}
+        />,
+      );
+
+    const synthesizing = renderPhase("synthesizing");
+    expect(synthesizing).toContain(
+      "Microphone off. Creating AI-generated speech.",
+    );
+    expect(synthesizing).toContain(
+      "Spoken responses use an AI-generated OpenAI voice.",
+    );
+
+    const playing = renderPhase("playing");
+    expect(playing).toContain("Microphone off. Playing AI-generated speech.");
+    expect(playing).toContain(
+      "Spoken responses use an AI-generated OpenAI voice.",
+    );
+  });
 });

@@ -28,6 +28,13 @@ other follow-up that must not answer the pending question.
 If the host offers voice input, a finalized spoken turn is held while an existing response
 finishes and is submitted when the conversation is ready.
 
+When the Brunch voice preview is enabled by the host, the additional control can accept finalized
+microphone transcripts and speak finalized assistant responses. Live transcript fragments are
+labelled **not sent** and do not enter the conversation. The microphone is off while Brunch is
+working or a response is playing. Spoken responses use an AI-generated OpenAI voice, as disclosed
+in the voice status panel. If speech fails, the response remains visible to read and the voice
+control offers recovery instead of changing or regenerating the text.
+
 **Clear AI chat** via the delete button in the top right of the panel: wipes the conversation, stops any in-flight stream, and tells the host app to forget the messages (if the host persists them).
 
 ## What the assistant can do
