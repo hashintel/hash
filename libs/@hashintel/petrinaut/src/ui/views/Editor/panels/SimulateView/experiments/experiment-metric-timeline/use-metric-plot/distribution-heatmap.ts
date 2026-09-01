@@ -10,11 +10,16 @@
  * table in a single `drawImage` — no per-bin canvas state: what is dark is
  * exactly where the runs concentrated.
  *
- * Bins are painted by the extent their producer declared, not as points:
- * frames on different lattices (the host-emitted exact initial frame next
- * to GPU frames binned at a stride; a probe's guessed window next to the
- * calibrated one) would otherwise alias into alternating dark and empty
- * rows.
+ * Two things keep a streaming picture honest AND calm. Bins are painted by
+ * the extent their producer declared, not as points: frames on different
+ * lattices (the host-emitted exact initial frame next to GPU frames binned
+ * at a stride; a probe's guessed window next to the calibrated one) would
+ * otherwise alias into alternating dark and empty rows. And within one
+ * selection, each new grid eases in from the one on screen (resampled by
+ * value when the lattice moved) and settles over a few steps, so a
+ * cumulative re-delivery — a GPU tile, a re-run, a pipelined rung folding
+ * in — blends in instead of snapping the whole picture, and the stream's
+ * last delivery ends in exactly the picture its data describes.
  */
 import uPlot from "uplot";
 
@@ -179,6 +184,139 @@ export function buildHeatmapDensityGrid(
   return { columns, rows, densities, valueMin, valueMax };
 }
 
+/**
+ * How much of a new grid shows per blend step; the rest is the picture
+ * already on screen.
+ */
+export const HEATMAP_BLEND_WEIGHT = 0.5;
+
+/**
+ * The previous grid's density at `value` in `column`, sampled linearly
+ * between its rows; 0 outside its value range.
+ */
+function sampleGrid(
+  grid: HeatmapDensityGrid,
+  column: number,
+  value: number,
+): number {
+  if (grid.rows === 1) {
+    return value >= grid.valueMin && value <= grid.valueMax
+      ? grid.densities[column]!
+      : 0;
+  }
+  const position =
+    ((value - grid.valueMin) / (grid.valueMax - grid.valueMin)) *
+    (grid.rows - 1);
+  if (position < -0.5 || position > grid.rows - 0.5) {
+    return 0;
+  }
+  const lowRow = Math.max(0, Math.min(grid.rows - 1, Math.floor(position)));
+  const highRow = Math.min(grid.rows - 1, lowRow + 1);
+  const highWeight = Math.max(0, Math.min(1, position - lowRow));
+  return (
+    grid.densities[lowRow * grid.columns + column]! * (1 - highWeight) +
+    grid.densities[highRow * grid.columns + column]! * highWeight
+  );
+}
+
+/**
+ * `next` mixed with what was on screen, so a re-delivery that reshapes
+ * existing columns eases in rather than snapping. Columns `previous` never
+ * had (frames appended since) show `next` as is; a lattice that moved is
+ * bridged by sampling `previous` at each new row's value. Blending two
+ * column-normalized grids can leave a column's peak below 1 mid-transition —
+ * that lightening IS the fade, and the settle steps take it back to 1.
+ */
+export function blendHeatmapGrids(
+  previous: HeatmapDensityGrid | null,
+  next: HeatmapDensityGrid,
+  weight = HEATMAP_BLEND_WEIGHT,
+): HeatmapDensityGrid {
+  if (previous === null || weight >= 1) {
+    return next;
+  }
+  const sharedColumns = Math.min(previous.columns, next.columns);
+  if (sharedColumns === 0) {
+    return next;
+  }
+  const rowStep =
+    next.rows > 1 ? (next.valueMax - next.valueMin) / (next.rows - 1) : 0;
+  const sameLattice =
+    previous.rows === next.rows &&
+    previous.valueMin === next.valueMin &&
+    previous.valueMax === next.valueMax;
+  const densities = new Float32Array(next.densities);
+  for (let row = 0; row < next.rows; row++) {
+    // A single-row grid's value sits at the center of its padded range.
+    const value =
+      next.rows > 1
+        ? next.valueMin + row * rowStep
+        : (next.valueMin + next.valueMax) / 2;
+    for (let column = 0; column < sharedColumns; column++) {
+      const index = row * next.columns + column;
+      const before = sameLattice
+        ? previous.densities[row * previous.columns + column]!
+        : sampleGrid(previous, column, value);
+      densities[index] =
+        before * (1 - weight) + next.densities[index]! * weight;
+    }
+  }
+  return { ...next, densities };
+}
+
+/**
+ * The settle that follows a blended paint when no further data arrives:
+ * `HEATMAP_SETTLE_STEPS` redraws, `HEATMAP_SETTLE_MS` apart (the session's
+ * publish cadence), each halving what remains of the old picture, the last
+ * painting the new grid exactly. Without it the stream's final delivery
+ * would stay a permanent half-mix — column peaks below 1, the darkest cell
+ * no longer the most likely value.
+ */
+export const HEATMAP_SETTLE_STEPS = 3;
+export const HEATMAP_SETTLE_MS = 100;
+
+export type HeatmapDisplay = {
+  /** What is on screen. */
+  grid: HeatmapDensityGrid;
+  /** What the latest frames describe; `grid` converges to it. */
+  target: HeatmapDensityGrid;
+  /** Settle steps still to run before `grid` is `target`. */
+  stepsLeft: number;
+};
+
+/**
+ * The display after new frames built `target`: eased in from `shown` when
+ * there is a picture to ease from, painted exactly otherwise.
+ */
+export function easeHeatmapDisplay(
+  shown: HeatmapDisplay | null,
+  target: HeatmapDensityGrid,
+): HeatmapDisplay {
+  if (shown === null) {
+    return { grid: target, target, stepsLeft: 0 };
+  }
+  return {
+    grid: blendHeatmapGrids(shown.grid, target),
+    target,
+    stepsLeft: HEATMAP_SETTLE_STEPS,
+  };
+}
+
+/**
+ * One settle step toward the target; the last step is the target itself,
+ * so the sequence ends exact rather than asymptotically close.
+ */
+export function settleHeatmapDisplay(shown: HeatmapDisplay): HeatmapDisplay {
+  if (shown.stepsLeft <= 1) {
+    return { grid: shown.target, target: shown.target, stepsLeft: 0 };
+  }
+  return {
+    grid: blendHeatmapGrids(shown.grid, shown.target),
+    target: shown.target,
+    stepsLeft: shown.stepsLeft - 1,
+  };
+}
+
 /** Matplotlib's magma, subsampled; position 0 is lightest, 1 darkest. */
 const MAGMA_STOPS: readonly (readonly [number, number, number, number])[] = [
   [0, 252, 253, 191],
@@ -241,9 +379,15 @@ export function rasterizeHeatmap(
   return pixels;
 }
 
-export function createDistributionHeatmapPlugin(framesRef: {
-  current: readonly MetricFrame[];
-}): uPlot.Plugin {
+/**
+ * @param framesRef the frames to paint, read at draw time
+ * @param epochRef the selection the frames belong to; frames of a new epoch
+ *   start from their own data instead of easing in from the old selection
+ */
+export function createDistributionHeatmapPlugin(
+  framesRef: { current: readonly MetricFrame[] },
+  epochRef?: { current: string | undefined },
+): uPlot.Plugin {
   const lut = magmaLut();
   // One cell-resolution scratch canvas per plugin (per uPlot instance),
   // created lazily so importing this module stays DOM-free.
@@ -252,55 +396,107 @@ export function createDistributionHeatmapPlugin(framesRef: {
   // the same frames at the same plot height reuse the rasterized cells.
   let rasterCache: {
     frames: readonly MetricFrame[];
+    epoch: string | undefined;
     bboxHeight: number;
-    grid: HeatmapDensityGrid;
+    display: HeatmapDisplay;
     timeFirst: number;
     timeLast: number;
   } | null = null;
+  // The pending settle redraw, and whether the next draw IS that redraw
+  // (as opposed to one uPlot runs for its own reasons).
+  const settle: { timer: ReturnType<typeof setTimeout> | null; due: boolean } =
+    { timer: null, due: false };
+
+  const cancelSettle = () => {
+    if (settle.timer !== null) {
+      clearTimeout(settle.timer);
+      settle.timer = null;
+    }
+    settle.due = false;
+  };
+  const scheduleSettle = (u: uPlot) => {
+    cancelSettle();
+    settle.timer = setTimeout(() => {
+      settle.timer = null;
+      settle.due = true;
+      u.redraw(false, false);
+    }, HEATMAP_SETTLE_MS);
+  };
+  const paint = (grid: HeatmapDensityGrid) => {
+    cellCanvas ??= document.createElement("canvas");
+    cellCanvas.width = grid.columns;
+    cellCanvas.height = grid.rows;
+    cellCanvas
+      .getContext("2d")!
+      .putImageData(
+        new ImageData(rasterizeHeatmap(grid, lut), grid.columns, grid.rows),
+        0,
+        0,
+      );
+  };
 
   return {
     hooks: {
       draw: (u) => {
         const sourceFrames = framesRef.current;
+        const epoch = epochRef?.current;
+        const isSettleDraw = settle.due;
+        settle.due = false;
         if (
           rasterCache === null ||
           rasterCache.frames !== sourceFrames ||
+          rasterCache.epoch !== epoch ||
           rasterCache.bboxHeight !== u.bbox.height
         ) {
           const frames = distributionFramesFrom(sourceFrames);
           if (frames.length === 0) {
+            cancelSettle();
+            rasterCache = null;
             return;
           }
           const built = buildHeatmapDensityGrid(frames, u.bbox.height);
           if (!built) {
             return;
           }
+          // New frames of the same selection at the same height ease in from
+          // the displayed picture. A new selection starts from its own data
+          // (the plot's crossfade overlay bridges that transition), and a
+          // resize repaints exactly (the picture did not change, its pixels
+          // did).
+          const shown =
+            rasterCache !== null &&
+            rasterCache.epoch === epoch &&
+            rasterCache.bboxHeight === u.bbox.height
+              ? rasterCache.display
+              : null;
+          const display = easeHeatmapDisplay(shown, built);
           rasterCache = {
             frames: sourceFrames,
+            epoch,
             bboxHeight: u.bbox.height,
-            grid: built,
+            display,
             timeFirst: frames[0]!.time,
             timeLast: frames.at(-1)!.time,
           };
-
-          cellCanvas ??= document.createElement("canvas");
-          cellCanvas.width = built.columns;
-          cellCanvas.height = built.rows;
-          const cellContext = cellCanvas.getContext("2d")!;
-          cellContext.putImageData(
-            new ImageData(
-              rasterizeHeatmap(built, lut),
-              built.columns,
-              built.rows,
-            ),
-            0,
-            0,
-          );
+          paint(display.grid);
+          if (display.stepsLeft > 0) {
+            scheduleSettle(u);
+          } else {
+            cancelSettle();
+          }
+        } else if (isSettleDraw && rasterCache.display.stepsLeft > 0) {
+          const display = settleHeatmapDisplay(rasterCache.display);
+          rasterCache = { ...rasterCache, display };
+          paint(display.grid);
+          if (display.stepsLeft > 0) {
+            scheduleSettle(u);
+          }
         }
         if (cellCanvas === null) {
           return;
         }
-        const { grid, timeFirst, timeLast } = rasterCache;
+        const { timeFirst, timeLast } = rasterCache;
+        const { grid } = rasterCache.display;
 
         // Cell centers sit on the frame times and grid-row values, so the
         // image extends half a cell beyond the outermost centers. All
@@ -333,6 +529,9 @@ export function createDistributionHeatmapPlugin(framesRef: {
           yBottom - yTop + cellHeight,
         );
         ctx.restore();
+      },
+      destroy: () => {
+        cancelSettle();
       },
     },
   };

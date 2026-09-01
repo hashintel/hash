@@ -80,6 +80,7 @@ export function useMetricPlot({
   const plotRef = useRef<uPlot | null>(null);
   const latestDataRef = useRef(plotData);
   const latestFramesRef = useRef(frames);
+  const epochRef = useRef(contentEpoch);
   /** Highest y ceiling shown by the current view; reset when the view changes. */
   const yFloorRef = useRef(0);
   const viewKeyRef = useRef("");
@@ -130,7 +131,9 @@ export function useMetricPlot({
               ? [timeDomainStart, timeDomainEnd]
               : undefined,
             yFloorRef,
-            isHeatmap ? [createDistributionHeatmapPlugin(latestFramesRef)] : [],
+            isHeatmap
+              ? [createDistributionHeatmapPlugin(latestFramesRef, epochRef)]
+              : [],
           ),
       [[], []] as uPlot.AlignedData,
       root,
@@ -216,7 +219,6 @@ export function useMetricPlot({
     timeTrace,
   ]);
 
-  const epochRef = useRef(contentEpoch);
   /**
    * An epoch change seen but not yet painted. Latched separately from the
    * scheduled frame: a same-epoch data tick can cancel the epoch-change

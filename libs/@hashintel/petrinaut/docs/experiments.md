@@ -118,7 +118,7 @@ A badge beside the **Summary** heading shows whether the run used the **CPU** or
 
 ### Metric charts
 
-Each metric gets a chart of its values over simulation time. A scalar metric draws a line. A distribution metric (one value per run) defaults to a **heatmap**: each time step is a column shaded on a pale-to-dark color ramp, where the darkest cell marks the value most runs had at that moment and paler shades mark rarer values. Shading is relative to each time step on its own, so a moment where runs agree and a moment where they spread out are both readable.
+Each metric gets a chart of its values over simulation time. A scalar metric draws a line. A distribution metric (one value per run) defaults to a **heatmap**: each time step is a column shaded on a pale-to-dark color ramp, where the darkest cell marks the value most runs had at that moment and paler shades mark rarer values. Shading is relative to each time step on its own, so a moment where runs agree and a moment where they spread out are both readable. While results still stream, each update eases into the picture over a few refreshes instead of snapping, so a batch landing or a re-run replacing earlier samples reads as the distribution firming up rather than flashing.
 
 The controls under each chart change what is plotted:
 
