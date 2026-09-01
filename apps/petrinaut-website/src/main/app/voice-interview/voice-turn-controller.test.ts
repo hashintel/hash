@@ -260,7 +260,7 @@ describe("VoiceTurnController", () => {
   test("preserves the first pending transcript while Brunch is busy", async () => {
     const harness = createHarness();
     await harness.controller.start();
-    harness.controller.updateChatStatus("streaming");
+    updateChatStatus(harness.controller, "streaming");
 
     harness.emit({
       connectionEpoch: 1,
@@ -283,7 +283,7 @@ describe("VoiceTurnController", () => {
       type: "completed",
     });
 
-    harness.controller.updateChatStatus("ready");
+    updateChatStatus(harness.controller, "ready");
 
     await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
     expect(harness.submitText).toHaveBeenCalledWith(
