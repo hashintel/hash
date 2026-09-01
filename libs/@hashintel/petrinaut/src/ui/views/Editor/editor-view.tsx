@@ -23,6 +23,7 @@ import {
   supplyChainWithDisruption,
   supplyChainProfit,
   vaccinationCampaign,
+  ticketProcessingSDCPN,
 } from "@hashintel/petrinaut-core/examples";
 
 import { usePetrinautCommands } from "../../../react";
@@ -462,6 +463,14 @@ export const EditorView = ({
                 text: "Production with Machine Failure",
                 onClick: () => {
                   createNewNet(productionMachines);
+                  clearSelection();
+                },
+              },
+              {
+                id: "load-example-ticket-processing",
+                text: "Ticket Processing",
+                onClick: () => {
+                  createNewNet(ticketProcessingSDCPN);
                   clearSelection();
                 },
               },
