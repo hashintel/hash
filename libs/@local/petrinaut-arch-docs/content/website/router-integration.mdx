@@ -1,0 +1,74 @@
+---
+title: Router integration
+description: How the site drives Petrinaut's app location from the URL, and why only part of that location is shareable.
+attachTo: website.routes
+sidebar_order: 10
+---
+
+Petrinaut imports no router. It exposes a `navigation` prop taking a
+router-neutral controller, and the host decides what a URL means. This page is
+how the website implements that contract with TanStack Router.
+
+## The three pieces
+
+`website.routes` owns the URL. Routes are file-based under `src/routes`, and
+every route that reads query params declares `validateSearch`, which is the
+only place raw query input enters the app.
+
+`website.examples` owns the contract. `example-search.ts` defines the four
+params a shareable location carries — `scenario`, `subnet`, `itemType`,
+`itemId` — validates them with zod, and encodes them back. The module imports
+neither React nor the editor, so the oEmbed function can speak the same
+contract without bundling either.
+
+`useSharedSearchNavigation` bridges the two. The editor navigates more than a
+URL carries: global mode, the Simulate section, overlays. Those live in page
+state, and only the shared projection reaches the URL.
+
+![One navigation round trip](@diagrams/website-navigation-loop.svg)
+
+## Why the location splits in two
+
+Deriving the whole controller state from the URL does not work. A control
+driving a field the URL cannot represent — the mode switcher, the
+viewport-settings overlay — would write, read back a state without that field,
+and snap to its previous value. The control appears not to respond.
+
+So the hook keeps the full `PetrinautNavigationState` in component state,
+mirrors `navigationStateToSharedSearch(state)` to the URL, and merges external
+URL changes (Back, Forward, a shared link) back into the in-memory location.
+Fields outside the contract survive that merge untouched.
+
+## Validation normalizes the location
+
+`validateSharedExampleSearch` drops everything it cannot represent: an unknown
+`itemType`, an empty `subnet`, a param outside the contract. Its output is
+therefore the canonical spelling of a location, and two searches are the same
+location when `canonicalSearchString` agrees on both. The hook uses that
+equality to suppress no-op navigations, and the oEmbed function uses the same
+encoder to build embed URLs.
+
+Query params outside the contract are not rewritten on load. TanStack Router
+only re-stringifies the URL when the parsed search changes, so stripping them
+eagerly would need a document reload, which an embed must not do. The first
+navigation drops them, because both routes write a fresh contract-only search
+rather than merging into the existing one.
+
+## What a URL carries, and what it does not
+
+A single focused item is shareable; a multi-selection is not. Multi-selection
+is a working state inside the editor, and encoding it would require a
+precedence rule between two spellings of the same location. A location with
+several items selected therefore carries no item at all.
+
+`scenario` is tri-state: absent means "the model's first scenario", `none`
+means the user explicitly chose no scenario, and any other value names one. The
+oEmbed endpoint drops an explicit `none` when it builds the embed URL, because
+an embed with no scenario has nothing to run. The embed route itself honours
+`none`, so a hand-written embed URL can still ask for no scenario.
+
+## Hosting Petrinaut without a router
+
+The prop is optional. Omit it and Petrinaut keeps its location in internal
+state, which is what Storybook and the local-storage demo do. Nothing about the
+editor's behaviour depends on a host router being present.

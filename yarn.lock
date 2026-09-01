@@ -913,7 +913,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@apps/petrinaut-website@workspace:apps/petrinaut-website":
+"@apps/petrinaut-website@workspace:*, @apps/petrinaut-website@workspace:apps/petrinaut-website":
   version: 0.0.0-use.local
   resolution: "@apps/petrinaut-website@workspace:apps/petrinaut-website"
   dependencies:
@@ -7618,6 +7618,7 @@ __metadata:
     vite: "npm:8.2.2"
     vitest: "npm:4.1.10"
     vscode-languageserver-types: "npm:3.17.5"
+    web-worker: "npm:1.4.1"
     zod: "npm:4.4.3"
   peerDependencies:
     typescript: ">=5.5"
@@ -9544,6 +9545,7 @@ __metadata:
   resolution: "@local/petrinaut-arch-docs@workspace:libs/@local/petrinaut-arch-docs"
   dependencies:
     "@apps/petrinaut-opt": "workspace:*"
+    "@apps/petrinaut-website": "workspace:*"
     "@hashintel/petrinaut": "workspace:*"
     "@hashintel/petrinaut-cli": "workspace:*"
     "@hashintel/petrinaut-core": "workspace:*"

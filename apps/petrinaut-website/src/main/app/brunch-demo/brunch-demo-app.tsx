@@ -1,3 +1,8 @@
+/**
+ * @layerRoot website.brunch
+ * @role Brunch Actual Mode demo: streams a live net from a Brunch endpoint
+ */
+
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import { BrunchActualModeRoute } from "./brunch-actual-mode-route";
 
