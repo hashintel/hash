@@ -14,8 +14,12 @@ import type { SDCPN } from "../types/sdcpn";
  * `.map()`); larger/riskier releases finish more slowly and fail more often.
  *
  * Ships with per-place SVG visualizers, metrics (success/failure counts, queue
- * length, gate-blocked flag, failure share), and four scenarios. See
- * `docs/examples.md` (Deployment Pipeline).
+ * length, gate-blocked flag, failure share), and four scenarios. Each
+ * deployment carries a `deployment_id` key element referencing the Deployment
+ * identity, and the "Deployment status" view maps Queued / Deploying / Done /
+ * Failed onto the pipeline's places — the terminal places already exist as
+ * sinks, so terminal statuses stay marking-derived. See `docs/examples.md`
+ * (Deployment Pipeline).
  */
 export const deploymentPipelineSDCPN: {
   title: string;
@@ -395,6 +399,7 @@ const deployment = input.DeploymentReady[0];
 return {
   DeploymentInProgress: [
     {
+      deployment_id: deployment.deployment_id,
       size: deployment.size,
       risk: deployment.risk,
       age: 0,
@@ -446,6 +451,7 @@ const deployment = input.DeploymentInProgress[0];
 return {
   CompletedDeployments: [
     {
+      deployment_id: deployment.deployment_id,
       size: deployment.size,
       risk: deployment.risk,
       age: deployment.age,
@@ -555,6 +561,7 @@ const rawSeverity = Distribution.Gaussian(
 return {
   FailedDeployments: [
     {
+      deployment_id: deployment.deployment_id,
       size: deployment.size,
       risk: deployment.risk,
       age: deployment.age,
@@ -580,6 +587,12 @@ return {
         iconSlug: "rocket",
         displayColor: "#2563eb",
         elements: [
+          {
+            elementId: "deployment__id",
+            name: "deployment_id",
+            type: "uuid",
+            identityRef: "identity__deployment",
+          },
           {
             elementId: "deployment__size",
             name: "size",
@@ -700,6 +713,48 @@ return tokens.map(() => ({
         variableName: "incident_severity_multiplier",
         type: "real",
         defaultValue: "1",
+      },
+    ],
+    identities: [
+      {
+        id: "identity__deployment",
+        name: "Deployment",
+        keyElementTypes: ["uuid"],
+      },
+    ],
+    statusViews: [
+      {
+        id: "status-view__deployment",
+        name: "Deployment status",
+        description:
+          "Where each deployment sits in the release pipeline. Completed and failed deployments land in sink places, so the terminal statuses stay marking-derived.",
+        identityRef: "identity__deployment",
+        labels: [
+          {
+            id: "status-label__queued",
+            name: "Queued",
+            displayColor: "#94a3b8",
+            places: ["place__deployment-ready"],
+          },
+          {
+            id: "status-label__deploying",
+            name: "Deploying",
+            displayColor: "#0891b2",
+            places: ["place__deployment-in-progress"],
+          },
+          {
+            id: "status-label__done",
+            name: "Done",
+            displayColor: "#16a34a",
+            places: ["place__completed-deployments"],
+          },
+          {
+            id: "status-label__failed",
+            name: "Failed",
+            displayColor: "#dc2626",
+            places: ["place__failed-deployments"],
+          },
+        ],
       },
     ],
     metrics: [

@@ -169,7 +169,10 @@ return input.MachinesProducing[0].transformation_progress >= 1;`,
 // it simply gains a token (no attributes to set here).
 return {
   AvailableMachines: [
-    { machine_damage_ratio: input.MachinesProducing[0].machine_damage_ratio }
+    {
+      machine_id: input.MachinesProducing[0].machine_id,
+      machine_damage_ratio: input.MachinesProducing[0].machine_damage_ratio
+    }
   ],
 };`,
           x: 48 * GRID_SIZE,
@@ -208,6 +211,7 @@ return input.MachinesProducing[0].machine_damage_ratio ** 100;`,
 return {
   BrokenMachines: [
     {
+      machine_id: input.MachinesProducing[0].machine_id,
       machine_damage_ratio: input.MachinesProducing[0].machine_damage_ratio
     }
   ],
@@ -247,6 +251,7 @@ return true;`,
 return {
   MachinesProducing: [
     {
+      machine_id: input.AvailableMachines[0].machine_id,
       machine_damage_ratio: input.AvailableMachines[0].machine_damage_ratio,
       transformation_progress: 0
     }
@@ -281,7 +286,10 @@ return input.MachinesBeingRepaired[0].machine_damage_ratio <= 0;`,
 // damage reset to 0, ready to start producing again.
 return {
   AvailableMachines: [
-    { machine_damage_ratio: 0 }
+    {
+      machine_id: input.MachinesBeingRepaired[0].machine_id,
+      machine_damage_ratio: 0
+    }
   ],
 };`,
           x: -22 * GRID_SIZE,
@@ -387,7 +395,10 @@ return true;`,
 // Dynamics will steadily reduce the damage until Finish Repair fires.
 return {
   MachinesBeingRepaired: [
-    { machine_damage_ratio: input.MachinesToRepair[0].machine_damage_ratio }
+    {
+      machine_id: input.MachinesToRepair[0].machine_id,
+      machine_damage_ratio: input.MachinesToRepair[0].machine_damage_ratio
+    }
   ],
 };`,
           x: 109 * GRID_SIZE,
@@ -404,6 +415,12 @@ return {
           displayColor: "#3b82f6",
           elements: [
             {
+              elementId: "element__machine_id",
+              name: "machine_id",
+              type: "uuid",
+              identityRef: "identity__machine",
+            },
+            {
               elementId: "element__1762560152725_3",
               name: "machine_damage_ratio",
               type: "real",
@@ -418,6 +435,12 @@ return {
           iconSlug: "circle",
           displayColor: "#733bf6ff",
           elements: [
+            {
+              elementId: "element__producing_machine_id",
+              name: "machine_id",
+              type: "uuid",
+              identityRef: "identity__machine",
+            },
             {
               elementId: "element__1762560154179_2",
               name: "machine_damage_ratio",
@@ -504,6 +527,51 @@ return tokens.map(({ distance_to_site }) => {
           variableName: "damage_reparation_per_second",
           type: "real",
           defaultValue: "0.333",
+        },
+      ],
+      identities: [
+        {
+          id: "identity__machine",
+          name: "Machine",
+          keyElementTypes: ["uuid"],
+        },
+      ],
+      statusViews: [
+        {
+          id: "status-view__machine",
+          name: "Machine status",
+          description:
+            "Where each machine sits in the produce / fail / repair cycle. The Machine and Machine Producing Product colours both carry the machine's key, so the view follows a machine across colours.",
+          identityRef: "identity__machine",
+          labels: [
+            {
+              id: "status-label__available",
+              name: "Available",
+              displayColor: "#3b82f6",
+              places: ["place__2bdd959f-a5bc-404a-bd03-34fafcef66b8"],
+            },
+            {
+              id: "status-label__producing",
+              name: "Producing",
+              displayColor: "#733bf6",
+              places: ["place__81e551b4-11dc-4781-9cd7-dd882fd7e947"],
+            },
+            {
+              id: "status-label__broken",
+              name: "Broken",
+              displayColor: "#dc2626",
+              places: [
+                "place__e5af0410-d80a-4c8b-b3bf-692918b98e6c",
+                "place__9cb073fb-f1d7-4613-8b10-8d1b08796f24",
+              ],
+            },
+            {
+              id: "status-label__under-repair",
+              name: "Under repair",
+              displayColor: "#f59e0b",
+              places: ["place__17c65d6e-0c3e-48e6-a677-2914e28131ac"],
+            },
+          ],
         },
       ],
       metrics: [
