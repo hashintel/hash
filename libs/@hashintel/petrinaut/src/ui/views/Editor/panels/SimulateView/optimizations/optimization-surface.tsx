@@ -489,7 +489,13 @@ export const OptimizationSurface = ({
     text: axis.identifier,
   }));
 
-  const handleClickFraction = (fractionX: number, fractionY: number) => {
+  const handlePickFraction = ({
+    x: fractionX,
+    y: fractionY,
+  }: {
+    x: number;
+    y: number;
+  }) => {
     if (!xAxis || !yAxis) {
       return;
     }
@@ -561,7 +567,7 @@ export const OptimizationSurface = ({
           contentKey={`${xAxisId}|${yAxisId}`}
           values={cellValues}
           markers={trialMarkers}
-          onClickFraction={handleClickFraction}
+          onPickFraction={handlePickFraction}
           aria-label="Optimization surface"
         />
       ) : null}
