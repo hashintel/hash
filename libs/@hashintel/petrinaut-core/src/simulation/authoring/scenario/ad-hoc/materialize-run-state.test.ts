@@ -176,6 +176,20 @@ describe("classicRunParameterValues", () => {
     expect(values).toContainEqual({ identifier: "launch_rate", value: "0.3" });
   });
 
+  it("reads an emptied cell as its type's neutral", () => {
+    // The cell shows `0` / `false` when empty, and the run has to agree:
+    // ignoring the edit left the previous value in effect behind it.
+    const values = classicRunParameterValues(
+      stateWith({ initialAltitude: "", night_mode: "" }),
+      SCENARIO,
+    );
+    expect(values).toContainEqual({
+      identifier: "initialAltitude",
+      value: "0",
+    });
+    expect(values).toContainEqual({ identifier: "night_mode", value: "0" });
+  });
+
   it("skips non-literal expressions so the previous value stands", () => {
     const values = classicRunParameterValues(
       stateWith({ initialAltitude: "42 +", night_mode: "maybe" }),
