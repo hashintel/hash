@@ -802,13 +802,11 @@ const ExperimentMetricRow = ({
 interface CreateExperimentDrawerProps {
   open: boolean;
   onClose: () => void;
-  onCreated?: (experimentId: string) => void;
 }
 
 export const CreateExperimentDrawer = ({
   open,
   onClose,
-  onCreated,
 }: CreateExperimentDrawerProps) => {
   const { petriNetDefinition } = use(SDCPNContext);
   const { createExperiment } = use(ExperimentsContext);
@@ -945,7 +943,7 @@ export const CreateExperimentDrawer = ({
 
     try {
       const metricSpecs = buildMetricSpecs(metricDrafts, petriNetDefinition);
-      const experimentId = await createExperiment({
+      await createExperiment({
         name,
         scenarioId:
           effectiveSelectedScenarioId === NO_SCENARIO_VALUE
@@ -959,7 +957,6 @@ export const CreateExperimentDrawer = ({
         metricSpecs,
       });
       resetForm();
-      onCreated?.(experimentId);
     } catch (submitError) {
       setIsSubmitting(false);
       setError(

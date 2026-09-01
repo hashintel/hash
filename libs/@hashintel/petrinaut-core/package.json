@@ -50,6 +50,10 @@
       "types": "./dist/optimization.d.ts",
       "import": "./dist/optimization.js"
     },
+    "./selection": {
+      "types": "./dist/selection.d.ts",
+      "import": "./dist/selection.js"
+    },
     "./workers/lsp": {
       "types": "./dist/workers/lsp.d.ts",
       "import": "./dist/workers/lsp.js"

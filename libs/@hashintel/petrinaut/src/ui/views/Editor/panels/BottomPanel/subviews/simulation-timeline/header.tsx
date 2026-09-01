@@ -9,7 +9,6 @@ import {
   type TimelineView,
 } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
-import { CreateMetricDrawer } from "../../../SimulateView/metrics/create-metric-drawer";
 import { ViewMetricDrawer } from "../../../SimulateView/metrics/view-metric-drawer";
 
 const CHART_TYPE_OPTIONS = [
@@ -83,7 +82,7 @@ const TimelineChartTypeSelector: React.FC = () => {
 };
 
 const TimelineViewPicker: React.FC = () => {
-  const { timelineView, setTimelineView, setGlobalMode, setSimulateViewMode } =
+  const { navigateTo, setSimulateDrawer, timelineView, setTimelineView } =
     use(EditorContext);
   const {
     extensions,
@@ -91,7 +90,6 @@ const TimelineViewPicker: React.FC = () => {
   } = use(SDCPNContext);
   const colorsEnabled = extensions.colors;
 
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
 
   useEffect(() => {
@@ -146,7 +144,7 @@ const TimelineViewPicker: React.FC = () => {
           aria-label="Create metric"
           tooltip="Create Metric"
           iconName="plus"
-          onClick={() => setIsCreateOpen(true)}
+          onClick={() => setSimulateDrawer({ type: "create-metric" })}
         />
         <Button
           size="xs"
@@ -155,15 +153,13 @@ const TimelineViewPicker: React.FC = () => {
           tooltip="Manage Metrics"
           iconName="list"
           onClick={() => {
-            setSimulateViewMode("metrics");
-            setGlobalMode("simulate");
+            navigateTo({
+              globalMode: "simulate",
+              simulateViewMode: "metrics",
+            });
           }}
         />
       </div>
-      <CreateMetricDrawer
-        open={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-      />
       <ViewMetricDrawer
         // Gate on the metric existing — the picker can swap to a non-metric
         // view while the drawer is open, and we don't want an empty overlay.

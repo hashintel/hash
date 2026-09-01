@@ -1,4 +1,4 @@
-import { use, useState } from "react";
+import { use } from "react";
 
 import { Button, Chip, Icon, LoadingSpinner } from "@hashintel/ds-components";
 
@@ -6,9 +6,9 @@ import {
   type OptimizationRecord,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
+import { EditorContext } from "../../../../../../react/state/editor-context";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { SimulateSubviewFrame } from "../simulate-subview-frame";
-import { CreateOptimizationDrawer } from "./create-optimization-drawer";
 import { ViewOptimizationDrawer } from "./view-optimization-drawer";
 
 function formatStatus(status: OptimizationRecord["status"]): string {
@@ -118,7 +118,7 @@ const optimizationColumns = [
 ] satisfies readonly TableColumn<OptimizationRecord>[];
 
 export const OptimizationsView = () => {
-  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
+  const { setSimulateDrawer } = use(EditorContext);
   const {
     optimizations,
     selectedOptimization,
@@ -135,7 +135,7 @@ export const OptimizationsView = () => {
           tone="neutral"
           size="sm"
           prefix={<Icon name="plus" size="sm" />}
-          onClick={() => setIsCreateDrawerOpen(true)}
+          onClick={() => setSimulateDrawer({ type: "create-optimization" })}
         >
           Create
         </Button>
@@ -150,15 +150,6 @@ export const OptimizationsView = () => {
         onRowSelect={(optimization) =>
           setSelectedOptimizationId(optimization.id)
         }
-      />
-
-      <CreateOptimizationDrawer
-        open={isCreateDrawerOpen}
-        onClose={() => setIsCreateDrawerOpen(false)}
-        onCreated={(optimizationId) => {
-          setIsCreateDrawerOpen(false);
-          setSelectedOptimizationId(optimizationId);
-        }}
       />
 
       <ViewOptimizationDrawer

@@ -468,11 +468,9 @@ export function buildPetrinautOptimizationInput({
 export const CreateOptimizationDrawer = ({
   open,
   onClose,
-  onCreated,
 }: {
   open: boolean;
   onClose: () => void;
-  onCreated?: (optimizationId: string) => void;
 }) => {
   const { extensions, petriNetDefinition, title } = use(SDCPNContext);
   const { requestHirArtifacts } = use(LanguageClientContext);
@@ -622,10 +620,9 @@ export const CreateOptimizationDrawer = ({
         dt,
         maxTime,
       });
-      const optimizationId = await createOptimization(input);
+      await createOptimization(input);
       resetState();
       resetMetricForm();
-      onCreated?.(optimizationId);
     } catch (submitError) {
       setIsSubmitting(false);
       setError(

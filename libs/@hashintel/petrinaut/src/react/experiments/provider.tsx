@@ -23,6 +23,10 @@ import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import { LanguageClientContext } from "../lsp/context";
+import {
+  openPetrinautSimulationResource,
+  usePetrinautNavigation,
+} from "../navigation";
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import {
@@ -180,6 +184,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     LanguageClientContext,
   );
   const { addNotification } = use(NotificationsContext);
+  const navigation = usePetrinautNavigation();
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
   const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
@@ -191,9 +196,22 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     new Map<string, PendingExperimentRegistration>(),
   );
   const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
-  const [selectedExperimentId, setSelectedExperimentId] = useState<
-    string | null
-  >(null);
+  const selectedExperimentId =
+    navigation.state.simulateResource?.type === "experiment"
+      ? navigation.state.simulateResource.id
+      : null;
+  const setSelectedExperimentId: ExperimentsContextValue["setSelectedExperimentId"] =
+    (experimentId) => {
+      navigation.navigate(
+        experimentId
+          ? openPetrinautSimulationResource({
+              type: "experiment",
+              id: experimentId,
+            })
+          : { simulateResource: null },
+        { cause: "user", action: "simulation-resource" },
+      );
+    };
   useBlockWindowClose({ shouldBlock: experiments.some(isExperimentActive) });
 
   useEffect(() => {
@@ -211,6 +229,18 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       registrations.clear();
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      selectedExperimentId &&
+      !experiments.some(({ id }) => id === selectedExperimentId)
+    ) {
+      navigation.navigate(
+        { simulateResource: null },
+        { cause: "normalization", action: "simulation-resource" },
+      );
+    }
+  }, [experiments, navigation, selectedExperimentId]);
 
   const patchExperiment = (
     experimentId: string,
@@ -510,9 +540,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     setExperiments((prev) =>
       prev.filter((experiment) => experiment.id !== experimentId),
     );
-    setSelectedExperimentId((current) =>
-      current === experimentId ? null : current,
-    );
+    if (selectedExperimentId === experimentId) {
+      navigation.navigate(
+        { simulateResource: null },
+        { cause: "normalization", action: "simulation-resource" },
+      );
+    }
   };
 
   const selectedExperiment =
