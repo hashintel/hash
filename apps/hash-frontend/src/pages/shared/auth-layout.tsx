@@ -1,6 +1,7 @@
 import { Box, Container } from "@mui/material";
 
 import { HashIcon } from "../../shared/icons/hash-icon";
+import { Link } from "../../shared/ui";
 
 import type { BoxProps } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
@@ -31,7 +32,14 @@ export const AuthLayout: FunctionComponent<
           justifyContent: "space-between",
         }}
       >
-        <HashIcon />
+        <Link
+          href="/"
+          noLinkStyle
+          aria-label="HASH home"
+          sx={{ display: "flex" }}
+        >
+          <HashIcon />
+        </Link>
         <Box>{headerEndAdornment}</Box>
       </Container>
       <Container

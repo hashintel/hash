@@ -1,4 +1,4 @@
-import { Box, Collapse, Typography } from "@mui/material";
+import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { TextField } from "@hashintel/design-system";
 
 import { getPlainLayout } from "../shared/layout";
-import { Button } from "../shared/ui";
+import { Button, Link } from "../shared/ui";
 import { AuthHeading } from "./shared/auth-heading";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
@@ -205,13 +205,18 @@ const RecoveryPage: NextPageWithLayout = () => {
           }}
         >
           <AuthHeading>Account Recovery</AuthHeading>
-          <Typography variant="regularTextParagraphs">
-            You are logged in as{" "}
-            <strong>{authenticatedUser.emails[0]?.address}</strong>
-          </Typography>
-          <Typography variant="regularTextParagraphs" sx={{ mt: 2 }}>
-            If you want to recover a different account, please log out first
-          </Typography>
+          <Stack sx={{ alignItems: "flex-start", gap: 2 }}>
+            <Typography component="p" variant="regularTextParagraphs">
+              You are logged in as{" "}
+              <strong>{authenticatedUser.emails[0]?.address}</strong>
+            </Typography>
+            <Typography component="p" variant="regularTextParagraphs">
+              If you want to recover a different account, please log out first
+            </Typography>
+            <Link href="/" variant="regularTextParagraphs">
+              Go home
+            </Link>
+          </Stack>
         </AuthPaper>
       </AuthLayout>
     );
