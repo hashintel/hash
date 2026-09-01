@@ -2,27 +2,32 @@
 
 An **ad-hoc scenario** is an initial state and a set of parameter values defined inline, right where you run -- without saving a [scenario](scenarios.md) first. Petrinaut compiles what you enter through a scenario generated for that run. Nothing is added to the net's scenario list, and leaving the form discards nothing: your entries stay until you clear them.
 
-Use an ad-hoc scenario for one-off runs and quick exploration. When you want to keep a configuration, name it, or compare several setups, [create a scenario](scenarios.md#creating-a-scenario).
+Use an ad-hoc scenario for one-off runs and quick exploration. When you want to keep a configuration, name it, or compare several setups, [create a scenario](scenarios.md#creating-a-scenario) -- with the feature enabled, the creation form is the same ad-hoc form, plus a **Scenario Parameter** toggle on each Variable.
+
+## Enabling the feature
+
+Ad-hoc scenarios are **experimental and off by default**. Turn them on in the viewport settings dialog (the gear button over the canvas): the **Ad-hoc scenarios** toggle under General. While the setting is off, every surface below renders exactly as before the feature -- "No scenario" simply means the model's own initial marking.
 
 ## Where the form appears
 
 The same form appears in three places, always when **no scenario is selected**:
 
-1. **Quick simulation** -- in the [Simulation Settings](simulation.md#simulation-settings) tab, with "No scenario" selected, the **Initial state** column edits token counts and values directly in the panel -- no separate dialog. A **Clear** button appears next to the column's title once you have entries. This embedding shows only the initial state: the panel's own parameter inputs set parameter values, and there are no Variables here. The next simulation run uses what you defined. Any [compile error](#errors) appears in the settings panel's error banner.
+1. **Quick simulation** -- in the [Simulation Settings](simulation.md#simulation-settings) tab, with "No scenario" selected, the **Parameters** and **Initial state** columns are the form's own tables: parameter overrides as a spreadsheet on the left, token counts and values in the middle -- no separate dialog. A **Clear** button appears next to the Initial state title once you have entries. There are no Variables in this embedding. The next simulation run uses what you defined. Any [compile error](#errors) appears in the settings panel's error banner.
 2. **Experiments** -- in the [create-experiment drawer](experiments.md#creating-an-experiment), choosing "No scenario" shows the form inside the Scenario section. The experiment's runs start from the state you defined, and the experiments table shows "Ad-hoc scenario" in its Scenario column.
-3. **Optimizations** -- in the [create-optimization drawer](optimization.md#creating-an-optimization), the scenario picker offers **Ad-hoc (define inline)**. This is the only surface where the form shows **Optimize** controls (see below).
+3. **Optimizations** -- in the [create-optimization drawer](optimization.md#creating-an-optimization), the scenario picker offers **No scenario** too. This is the only surface where the form shows **Optimize** controls (see below).
+4. **Scenario creation** -- [creating or editing a scenario](scenarios.md#creating-a-scenario) uses the same form with a **Scenario Parameter** toggle on each top-level Variable; see [Saved ad-hoc scenarios](#saved-ad-hoc-scenarios).
 
 ## The form
 
-The form has up to three sections:
+The form has up to three sections. Variables come first -- parameter overrides may read them:
 
-- **Parameters** -- one row per [net-level parameter](petri-net-extensions.md#global-parameters), showing its type and its value. An untouched parameter shows its default quietly, marked with a small `default` tag; enter an expression to override the value for this run. In the quick-simulation embedding this section is its own panel beside Initial state.
 - **Variables** -- named values (real, integer, or boolean) written as `scenario.<name>` in every expression below, exactly as scenario parameters are written in scenario code. Use them to drive many values from one number. Add one from the dimmed **Add a variable** line at the bottom of the list: like any cell, a first click selects it and a second click (or Enter, or its gutter's `+`) adds the variable -- or reach it with the down arrow from the last row; the fresh name opens ready to type. Each row starts with a small variable-glyph gutter whose menu offers **Delete variable**, and the add line's gutter shows a `+`. A variable's name edits like any other cell: select it, then press Enter (or click again) to edit, and Enter or Escape to leave. Its type select is a cell too: arrow keys move past it, Enter opens it. In the quick-simulation embedding, Variables sit above Parameters in the left column.
-- **Initial state** -- one block per place in the net.
+- **Parameters** -- one row per [net-level parameter](petri-net-extensions.md#global-parameters), showing its type and its value. An untouched parameter shows its default quietly, marked with a small `default` tag; enter an expression to override the value for this run -- it may read the Variables above. In the quick-simulation embedding this section is its own panel beside Initial state.
+- **Initial state** -- one block per place in the net. Each place's title carries its token colour dot (grey for untyped places).
 
 In the experiment and optimization drawers each section collapses: click the chevron in its header, or focus the header and press Left to collapse and Right to expand. Place headers inside Initial state collapse the same way everywhere, and a collapsed place shows a one-line summary of its rows and token total. In the quick-simulation embedding, places start collapsed.
 
-Every value in the form is an expression. A first click selects a value; a second click, a double-click, or Enter opens the editor in place: a code input with completion and type checking at exactly the cell's position, the value's path (for example `Space › item 0 › x`) above it, and -- in the optimization drawer -- the Optimize control below it. Expressions may use your Variables (`scenario.<name>`), net parameters (`parameters.<name>`), and arithmetic -- the same [expression language](scenarios.md) scenarios use. Press Enter, Escape, or click elsewhere to close the editor; closing tidies a valid expression's formatting (spacing, redundant parentheses) without changing its meaning. A value may also be left **empty**: an empty cell reads as its type's neutral value -- 0 for numbers, `false` for booleans, `""` for text, the nil UUID -- shown grayed in the cell, and it is never an error. An empty dynamic-row count means 1 token; an empty place count means 0.
+Every value in the form is an expression. A first click selects a value; a second click, a double-click, or Enter opens the editor in place: a code input with completion and type checking at exactly the cell's position, the value's path (for example `Space › item 0 › x`) above it, and -- in the optimization drawer -- the Optimize control below it. Expressions may use your Variables (`scenario.<name>`), net parameters (`parameters.<name>`), and arithmetic -- the same [expression language](scenarios.md) scenarios use. Press Enter, Escape, or click elsewhere to close the editor. Escape closes only the innermost thing that is open -- a completion list, a bound edit, the editor itself -- and never the drawer or dialog around the form; close those from their own buttons. Closing tidies a valid expression's formatting (spacing, redundant parentheses) without changing its meaning. A value may also be left **empty**: an empty cell reads as its type's neutral value -- 0 for numbers, `false` for booleans, `""` for text, the nil UUID -- shown grayed in the cell, and it is never an error. An empty dynamic-row count means 1 token; an empty place count means 0.
 
 Opening a value with Enter or a second click selects its whole content, so typing replaces it. Opening by typing keeps the caret right after what you typed.
 
@@ -40,7 +45,7 @@ Focusing a value highlights what it is connected to, in amber. A cell that reads
 
 ### Places without a token type
 
-A place without a token type is one line: the place's name and a single **token count** slot after a `×` mark.
+A place without a token type is its name above one full-width **token count** cell -- the same expression cell as everywhere else, in its own bordered box.
 
 ### Places with a token type
 
@@ -76,13 +81,21 @@ At least one Optimize selection is required to run; a cell muted by a shared col
 
 Each selection becomes a generated scenario parameter with a deterministic name, and optimization results attribute back to your selections by these names:
 
-- `adhoc.<place>.r<row>.<field>` -- a cell in a fixed or dynamic row.
-- `adhoc.<place>.col.<field>` -- a shared column value.
-- `adhoc.count.<place>` -- an untyped place's count; `adhoc.count.<place>.r<row>` for a dynamic row's count.
-- `adhoc.var.net.<name>` -- a top-level Variable; place-scoped variables use the place's name as the scope.
-- `adhoc.param.<variable_name>` -- a net parameter override.
+- `adhoc_<place>_r<row>_<field>` -- a cell in a fixed or dynamic row.
+- `adhoc_<place>_col_<field>` -- a shared column value.
+- `adhoc_count_<place>` -- an untyped place's count; `adhoc_count_<place>_r<row>` for a dynamic row's count.
+- `adhoc_var_net_<name>` -- a top-level Variable; place-scoped variables use the place's name as the scope.
+- `adhoc_param_<variable_name>` -- a net parameter override.
 
 Optimized values follow the same rules as [scenario parameter domains](optimization.md#search-domains): bounds must be expressions that resolve to finite constants, integer domains need integer bounds and a positive step, and logarithmic domains need a positive minimum. One optimized value cannot appear in another optimized value's bounds.
+
+## Saved ad-hoc scenarios
+
+With the feature enabled, [creating a scenario](scenarios.md#creating-a-scenario) opens the same form -- name and description above it -- as the one authoring surface (there is no "Define as code" toggle in this mode). Each top-level Variable's row carries a **Scenario Parameter** toggle: an exposed Variable becomes one of the saved scenario's tunable parameters, named after the Variable in snake_case (`baseLoad` becomes `base_load`), defaulting to its expression's value -- which must therefore be a constant. Everyone running the scenario can then adjust it wherever scenario parameters appear, without editing the scenario.
+
+Saving keeps your form entries as the scenario's definition, so editing the scenario reopens exactly the form you left.
+
+Selecting a saved ad-hoc scenario in Simulation Settings shows it through the same form, read-only: only the scenario parameters (the exposed Variables) take value edits, for that run alone; auxiliary Variables stay hidden, and the parameter overrides and initial state can be browsed with the usual keyboard navigation but not changed. A scenario authored this way always edits through the ad-hoc form, whatever the setting says -- the classical form cannot represent it.
 
 ## Errors
 

@@ -159,8 +159,17 @@ export const TokenTable: React.FC<TokenTableProps> = ({
   colour,
   state,
 }) => {
-  const { formState, synthesisContext, selection, setFocusedValue, dispatch } =
-    use(AdHocFormContext);
+  const {
+    mode,
+    formState,
+    synthesisContext,
+    selection,
+    setFocusedValue,
+    dispatch,
+  } = use(AdHocFormContext);
+  // Run mode: cells and gutters stay focusable and walkable, but nothing
+  // edits and no rows are added or removed.
+  const readOnly = mode === "run";
   const elements = colour.elements;
   const columnCount = elements.length;
   // Nonces, so a repeat click re-triggers the editor's auto-open behaviour.
@@ -224,7 +233,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
           ]
         : [{ id: `cells-${index}`, kind: "row", gutter: true }],
     ),
-    { id: "phantom", kind: "row" },
+    ...(readOnly ? [] : [{ id: "phantom", kind: "row" } as const]),
   ];
 
   const { attach, onKeyDown, onFocusTarget } = useFocusStops({
@@ -335,6 +344,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   value={row.count}
                   target={countTarget}
                   kind="count"
+                  readOnly={readOnly}
                   placeholder="1"
                   className={cx(
                     stripEditorStyle,
@@ -441,6 +451,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 column: "gutter",
               })}
               onDelete={() => deleteRow(rowIndex)}
+              readOnly={readOnly}
             />
           </td>
           {elements.map((element, columnIndex) => {
@@ -486,6 +497,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                   }
                   kind={element.type}
                   derived={Boolean(shared)}
+                  readOnly={readOnly}
                   autoOpen={autoOpen}
                   onOpenDerived={() => openSharedEditor(element.name)}
                   triggerRef={registerTarget({
@@ -526,9 +538,11 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                 >
                   <Tooltip
                     content={
-                      shared
-                        ? "Shared value — click to release the column"
-                        : "Click to share one value across the column"
+                      readOnly
+                        ? element.name
+                        : shared
+                          ? "Shared value — click to release the column"
+                          : "Click to share one value across the column"
                     }
                   >
                     <button
@@ -550,7 +564,10 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                         stopId: "header",
                         column: columnIndex,
                       })}
-                      onClick={() =>
+                      onClick={() => {
+                        if (readOnly) {
+                          return;
+                        }
                         dispatch(
                           shared
                             ? {
@@ -564,8 +581,8 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                                 field: element.name,
                                 column: columnIndex,
                               },
-                        )
-                      }
+                        );
+                      }}
                     >
                       {element.name}
                     </button>
@@ -600,6 +617,7 @@ export const TokenTable: React.FC<TokenTableProps> = ({
                       value={shared}
                       target={target}
                       kind={element.type}
+                      readOnly={readOnly}
                       autoOpen={
                         sharedAutoOpen?.field === element.name
                           ? sharedAutoOpen.nonce
@@ -631,47 +649,50 @@ export const TokenTable: React.FC<TokenTableProps> = ({
 
         {/* Phantom trailing row: a first click selects a phantom cell; a
             click on the selected cell, a double-click, or Enter materializes
-            the row. The gutter's + materializes directly. */}
-        <tbody>
-          <PhantomLine
-            gutterLabel="Add a token row"
-            onMaterialize={() => materializeRow(0)}
-          >
-            {elements.map((element, columnIndex) => (
-              <td
-                key={element.elementId}
-                className={cx(
-                  cellStyle,
-                  phantomRowCellStyle,
-                  state.sharedColumns[element.name] && sharedWashStyle,
-                )}
-              >
-                <button
-                  ref={registerTarget({
-                    stopId: "phantom",
-                    column: columnIndex,
-                  })}
-                  type="button"
-                  className={phantomCellButtonStyle}
-                  aria-label={`Add a token row (${element.name})`}
-                  onPointerDown={phantomActivation.onPointerDown}
-                  onClick={(event) => {
-                    if (phantomActivation.shouldActivate(event)) {
-                      materializeRow(columnIndex);
+            the row. The gutter's + materializes directly. Run mode adds no
+            rows, so the line is gone entirely. */}
+        {readOnly ? null : (
+          <tbody>
+            <PhantomLine
+              gutterLabel="Add a token row"
+              onMaterialize={() => materializeRow(0)}
+            >
+              {elements.map((element, columnIndex) => (
+                <td
+                  key={element.elementId}
+                  className={cx(
+                    cellStyle,
+                    phantomRowCellStyle,
+                    state.sharedColumns[element.name] && sharedWashStyle,
+                  )}
+                >
+                  <button
+                    ref={registerTarget({
+                      stopId: "phantom",
+                      column: columnIndex,
+                    })}
+                    type="button"
+                    className={phantomCellButtonStyle}
+                    aria-label={`Add a token row (${element.name})`}
+                    onPointerDown={phantomActivation.onPointerDown}
+                    onClick={(event) => {
+                      if (phantomActivation.shouldActivate(event)) {
+                        materializeRow(columnIndex);
+                      }
+                    }}
+                    onFocus={() =>
+                      onFocusTarget({ stopId: "phantom", column: columnIndex })
                     }
-                  }}
-                  onFocus={() =>
-                    onFocusTarget({ stopId: "phantom", column: columnIndex })
-                  }
-                  onKeyDown={onKeyDown({
-                    stopId: "phantom",
-                    column: columnIndex,
-                  })}
-                />
-              </td>
-            ))}
-          </PhantomLine>
-        </tbody>
+                    onKeyDown={onKeyDown({
+                      stopId: "phantom",
+                      column: columnIndex,
+                    })}
+                  />
+                </td>
+              ))}
+            </PhantomLine>
+          </tbody>
+        )}
       </FormSpreadsheet>
       <div className={totalTextStyle}>
         {total.resolved ? `${total.total} tokens` : `${total.text} tokens`}

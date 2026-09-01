@@ -20,7 +20,20 @@ third mode, `"expose"`, is the scenario creation form's: it offers no value
 toggles at all, and instead each top-level Variable row grows a "Scenario
 Parameter" toggle (`AdHocVariable.exposed`) — the saved scenario exposes
 those Variables as its tunable parameters. Optimize selections write the
-`optimize` settings object; expose writes the boolean `exposed` flag.
+`optimize` settings object; expose writes the boolean `exposed` flag. In
+that consumer alone the definition persists (see **The persisted format**
+below); everywhere else the generated scenario stays ephemeral. A fourth
+consumer reuses the component in `mode="run"`: Simulation Settings and the
+experiment drawer show every selected scenario through the form read-only,
+with only the scenario parameters' values editable; each edit resolves to
+an ordinary scenario-parameter value for the run. The experiment drawer
+adds a collapsed "Computed state" sub-section, materialized only while
+open. An ad-hoc scenario renders its stored
+definition; a classic (`code` or `per_place`) scenario has none, so its
+compiled initial marking is materialized into literal fixed rows
+(`classicScenarioRunState` in petrinaut-core), recomputed per parameter
+edit and capped per place, with the scenario parameters named by their
+identifiers verbatim so value pushes bypass the ad-hoc snake_case mapping.
 
 The design is the scenario **code editor's model, constrained**: everything
 the form can express synthesizes to code-mode scenario source that the
@@ -60,6 +73,50 @@ Each `AdHocOptimizedField` carries the generated parameter's deterministic
 `adhoc_*` name, its typed domain, its target path, and an attribution label
 (`Space › item 0 › x`) — the join key from optimization results back to the
 thing the user selected.
+
+## The persisted format
+
+A scenario saved from the form is an ordinary `Scenario` whose
+`initialState` takes the third of its three variants, declared beside the
+other two in `core/types/sdcpn.ts`:
+
+- `{ type: "per_place", content }` — the classical spreadsheet of static
+  values;
+- `{ type: "code", content }` — a hand-written code block;
+- `{ type: "adhoc", content: AdHocScenarioState }` — the form's state,
+  verbatim.
+
+`AdHocScenarioState` (the [core ad-hoc
+layer](layer:core.simulation.authoring.adhoc)) is a JSON-serializable tree,
+so it saves as YAML or JSON with the rest of the model document; the zod
+schema in `ad-hoc/ad-hoc-state-schema.ts` validates it on load. Its parts:
+
+- `variables: AdHocVariable[]` — name, declared type, the value slot, and
+  the `exposed` flag expose mode writes.
+- `netParameters: AdHocNetParameter[]` — a `parameterId` plus a value slot
+  per overridden net parameter; an empty expression keeps the default.
+- `places: Record<PlaceID, AdHocPlaceState>` — a coloured place holds
+  per-place `variables`, `rows` (`fixed`, or `template` with a count), and
+  `sharedColumns`; an uncoloured place holds one `count`.
+- Every value slot is an `AdHocValue`: the expression string plus the
+  Optimize bounds while that toggle is on. The `retained*` fields
+  (`retainedOptimize`, `retainedCount`, `retainedSharedColumns`) persist
+  too, so a toggle switched off, saved, and switched back on restores what
+  it held.
+
+Two scenario fields are **derived on save** rather than stored as more
+state: `useAdHocScenarioAuthoring` runs `synthesizeAdHocScenario` and
+writes the result's `scenarioParameters` (one per exposed Variable,
+snake_case-named, defaulting to its expression's constant value) and
+`parameterOverrides` onto the scenario. Downstream consumers — experiments,
+optimization manifests, the CLI's `metadata` — read those derived fields;
+`content` stays the single editable source, and the edit drawer loads it
+back into the form verbatim.
+
+Code exists only at compile time: `lowerScenarioToHir` synthesizes the
+state to code-mode scenario source and
+[`compileScenario`](layer:core.simulation.authoring) takes its ordinary
+code branch. The generated source is never persisted.
 
 ## The row grammar
 

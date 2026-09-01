@@ -111,12 +111,14 @@ const Harness: React.FC<{
   initial?: AdHocScenarioState;
   withVariables?: boolean;
   renderLayout?: React.ComponentProps<typeof AdHocScenarioForm>["renderLayout"];
+  mode?: React.ComponentProps<typeof AdHocScenarioForm>["mode"];
 }> = ({
   selection = "optimize",
   onState,
   initial = EMPTY_AD_HOC_STATE,
   withVariables,
   renderLayout,
+  mode,
 }) => {
   const [state, setState] = useState(initial);
   return (
@@ -130,6 +132,7 @@ const Harness: React.FC<{
       selection={selection}
       withVariables={withVariables}
       renderLayout={renderLayout}
+      mode={mode}
     />
   );
 };
@@ -1067,6 +1070,91 @@ describe("AdHocScenarioForm", () => {
     fireEvent.pointerDown(addLine);
     fireEvent.click(addLine, { detail: 1 });
     expect(latest?.variables).toHaveLength(1);
+  });
+
+  const RUN_STATE: AdHocScenarioState = {
+    variables: [
+      {
+        name: "altitude",
+        type: "real",
+        expression: "400",
+        optimize: null,
+        exposed: true,
+      },
+      { name: "helper", type: "real", expression: "2", optimize: null },
+    ],
+    netParameters: [],
+    places: {
+      "place-pumps": {
+        kind: "coloured",
+        variables: [
+          { name: "boost", type: "real", expression: "1", optimize: null },
+        ],
+        rows: [
+          {
+            kind: "fixed",
+            cells: [
+              { expression: "400", optimize: null },
+              { expression: "false", optimize: null },
+            ],
+          },
+        ],
+        sharedColumns: {},
+      },
+    },
+  };
+
+  it("run mode lists only exposed variables and offers no structural edits", () => {
+    render(<Harness selection="none" mode="run" initial={RUN_STATE} />);
+
+    // The exposed Variable is a static-name row; the auxiliary top-level
+    // and per-place Variables are gone entirely.
+    expect(screen.getByText("altitude")).toBeTruthy();
+    expect(screen.queryByText("helper")).toBe(null);
+    expect(screen.queryByText("boost")).toBe(null);
+    // No add-lines, no row menus, no dots affordance.
+    expect(screen.queryByRole("button", { name: /Add a variable/ })).toBe(null);
+    expect(screen.queryByRole("button", { name: /Add a token row/ })).toBe(
+      null,
+    );
+    expect(screen.queryByRole("button", { name: "Row 1 menu" })).toBe(null);
+  });
+
+  it("run mode edits exposed values and nothing else, but still walks", () => {
+    let latest: AdHocScenarioState | undefined;
+    render(
+      <Harness
+        selection="none"
+        mode="run"
+        initial={RUN_STATE}
+        onState={(state) => {
+          latest = state;
+        }}
+      />,
+    );
+
+    // A read-only cell: activation opens no editor, Delete clears nothing,
+    // but arrows still walk the grid.
+    const cell = screen.getByRole("button", {
+      name: "Pumps › item 0 › pressure",
+    });
+    cell.focus();
+    fireEvent.click(cell, { detail: 0 });
+    expect(screen.queryByLabelText("Expression")).toBe(null);
+    fireEvent.keyDown(cell, { key: "Delete" });
+    expect(latest).toBe(undefined);
+    fireEvent.keyDown(cell, { key: "ArrowRight" });
+    expect(document.activeElement?.getAttribute("aria-label")).toBe(
+      "Pumps › item 0 › worn",
+    );
+
+    // The exposed Variable's value cell opens and edits.
+    const value = screen.getByRole("button", { name: "altitude" });
+    value.focus();
+    fireEvent.click(value, { detail: 0 });
+    const editor = screen.getByLabelText("Expression");
+    fireEvent.change(editor, { target: { value: "500" } });
+    expect(latest?.variables[0]?.expression).toBe("500");
   });
 
   it("renderLayout columns: vertical arrows stay, horizontal ones cross with memory", () => {

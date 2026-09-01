@@ -47,12 +47,17 @@ import { computeAdHocHighlight } from "./dependency-highlight";
 import { AdHocFormContext } from "./form-context";
 import { ParameterRows } from "./parameter-rows";
 import { ColouredPlaceBlock, UncolouredPlaceBlock } from "./place-block";
+import { ScenarioParameterRows } from "./scenario-parameter-rows";
 import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
 import { useAdHocFormHistory } from "./use-form-history";
 import { VariableRows } from "./variable-rows";
 
 import type { AdHocFocusTarget } from "./dependency-highlight";
-import type { AdHocFormSelection, AdHocFormServices } from "./form-context";
+import type {
+  AdHocFormMode,
+  AdHocFormSelection,
+  AdHocFormServices,
+} from "./form-context";
 import type {
   AdHocScenarioState,
   AdHocSlot,
@@ -82,6 +87,13 @@ export interface AdHocScenarioFormProps {
   /** What selecting a value means; "none" hides the toggles. */
   selection: AdHocFormSelection;
   /**
+   * "author" (default) is the full editor. "run" shows a saved scenario
+   * for a run: only the exposed top-level Variables (the scenario's
+   * parameters) accept value edits, auxiliary Variables are hidden, and
+   * everything else is read-only yet keyboard-navigable and selectable.
+   */
+  mode?: AdHocFormMode;
+  /**
    * Whether the Variables section is offered. Embeddings that provide no
    * scenario Variables (quick simulation's Simulation Settings) turn it
    * off; an expression referencing `scenario.<name>` then fails as unknown,
@@ -107,6 +119,11 @@ export interface AdHocScenarioFormProps {
   }) => React.ReactNode;
   /** Classname for the form's root element (the keyboard-handling div). */
   className?: string;
+  /**
+   * Externally-owned LSP session id, so the host can address this form's
+   * diagnostics (a drawer footer summing errors); generated when omitted.
+   */
+  sessionId?: string;
 }
 
 /**
@@ -155,11 +172,13 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
   onChange,
   context,
   selection,
+  mode = "author",
   withVariables = true,
   renderLayout,
   className,
+  sessionId: externalSessionId,
 }) => {
-  const sessionId = useAdHocLspSession(state);
+  const sessionId = useAdHocLspSession(state, externalSessionId);
   const { diagnosticsByUri, requestFormatExpression } = use(
     LanguageClientContext,
   );
@@ -171,6 +190,10 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     state,
     context,
     onChange,
+    // Run mode shows a saved scenario: the host owns the computed
+    // parameters and marking and recomputes them from the values edited
+    // here, so those arrivals are not separate undo steps.
+    mode === "run",
   );
 
   // Escape pressed while focus is inside the form never reaches the host:
@@ -270,6 +293,7 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     highlight,
     setFocusedValue,
     formatExpression: requestFormatExpression,
+    mode,
     dense: renderLayout !== undefined,
     overlayKeyDown: { capture: handleKeyDown, bubble: stopDeleteKeys },
   };
@@ -279,13 +303,18 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
       <ParameterRows entries={state.netParameters} />
     ) : null;
 
-  const variableRows = withVariables ? (
-    <VariableRows
-      scopeLabel="Top-level variables"
-      placeId={null}
-      variables={state.variables}
-    />
-  ) : null;
+  // Run mode lists the scenario's parameters (the exposed Variables, value
+  // edits only); authoring gets the full Variables editor.
+  const variableRows =
+    mode === "run" ? (
+      <ScenarioParameterRows variables={state.variables} />
+    ) : withVariables ? (
+      <VariableRows
+        scopeLabel="Top-level variables"
+        placeId={null}
+        variables={state.variables}
+      />
+    ) : null;
 
   const placesList = (
     <div className={placesListStyle}>

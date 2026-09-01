@@ -363,7 +363,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         throw new Error(parsedScenarioValues.errors.join("\n"));
       }
 
-      const scenarioHir = await requestScenarioHir(selectedScenario);
+      const scenarioHir = await requestScenarioHir(selectedScenario, {
+        netParameters: globalParameters,
+        places: sdcpn.places,
+        types: sdcpn.types,
+      });
       const compiledScenario = compileScenario(
         selectedScenario,
         scenarioHir,
