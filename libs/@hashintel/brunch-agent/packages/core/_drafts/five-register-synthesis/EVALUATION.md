@@ -1,6 +1,6 @@
 # Five-Register Synthesis Evaluation Protocol
 
-**Status: draft preregistration for owner review; no candidate has passed or won.** This protocol belongs to the non-authoritative workbench. It does not modify the frozen prospective v1 baseline or authorize a paid run.
+**Status: Stage 1 complete; Candidates A and C remain eligible, Candidate B is eliminated, and no candidate has won.** See [`evaluation/stage-1-mechanical-and-authority-audit.md`](evaluation/stage-1-mechanical-and-authority-audit.md). This protocol belongs to the non-authoritative workbench. It does not modify the frozen prospective v1 baseline or authorize a paid run.
 
 ## Decision this protocol must produce
 
@@ -14,13 +14,19 @@ This protocol can establish which candidate best satisfies the current Mission 4
 
 Use `plugin-sdcpn/sdcpn-modelling/profile.md` and `plugin-sdcpn/sdcpn-modelling/workpiece-template.md` as currently authored. Target readiness remains distributed between the profile's Verification register and `checks.md`.
 
+**Stage 1: eligible.**
+
 ### B — formalism-primary Coverage and workpiece
 
 Replace the profile's Coverage register with `plugin-sdcpn/sdcpn-modelling/coverage-alternatives/formalism-primary.md` and use `plugin-sdcpn/sdcpn-modelling/coverage-alternatives/formalism-primary-workpiece-template.md`. All other authored material remains identical to A.
 
+**Stage 1: eliminated.** Its mandatory Coverage resource exposes concrete SDCPN construction mechanics during ordinary elicitation, violating a preregistered hard gate.
+
 ### C — domain-primary elicitation plus a separate construction-readiness view
 
 Use [`plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/`](plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/). Its candidate-specific profile retains domain-primary Coverage and removes construction-readiness checks from ordinary elicitation; its skill composition reuses the domain-primary workpiece and adds a construction-only SDCPN readiness resource. The resulting view cites authoritative workpiece claims under the existing `Construction notes` without reorganizing or duplicating them. This candidate was preregistered here before its wording was authored.
+
+**Stage 1: eligible.**
 
 ## Shared invariants
 
@@ -67,7 +73,7 @@ A candidate fails this stage if a resource pointer is broken, a workpiece propos
 
 ## Stage 2 — owner-led paper walkthrough
 
-Walk every candidate through the same cases without rewriting candidate guidance during the comparison.
+Walk every Stage 1-eligible candidate through the same cases without rewriting candidate guidance during the comparison.
 
 ### Cases
 

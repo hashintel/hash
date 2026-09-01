@@ -20,6 +20,7 @@ This map accounts for the primary working and draft material used to produce the
 | `coverage-alternatives/*` | Concrete comparison at the unresolved Coverage-index fog-line | Active typology table; Ciaran headings; predecessor kind-indexed question reference |
 | `candidates/domain-primary-with-readiness/*` | Candidate C's domain-primary elicitation profile, construction-only SDCPN readiness projection, and complete skill composition | Preregistered third candidate; shared domain-primary profile/workpiece; construction boundary; workpiece locality rule |
 | `EVALUATION.md` | Preregistered authority audit, owner-led walkthrough, model-facing comparison, campaign boundary, and disposition rule | Competing-design review; Mission 4 proof and fog-line; `prospective-runbook-v1`; `ir-quality-ruler-v1`; frozen baseline adjudication |
+| `evaluation/stage-1-mechanical-and-authority-audit.md` | Executed candidate manifests, context accounting, structural checks, hard-gate adjudication, and Stage 1 dispositions | `EVALUATION.md`; Candidates A–C at source commit `bc032a4264`; resource/import/register/duplication probes |
 
 ## Active core system prompt
 

@@ -31,6 +31,8 @@ five-register-synthesis/
 ├── README.md
 ├── SOURCE-MAP.md
 ├── EVALUATION.md
+├── evaluation/
+│   └── stage-1-mechanical-and-authority-audit.md
 ├── core/
 │   ├── SYSTEM.md
 │   ├── flue.ts.example
@@ -69,6 +71,7 @@ five-register-synthesis/
 - [`plugin-sdcpn/sdcpn-modelling/checks.md`](plugin-sdcpn/sdcpn-modelling/checks.md) separates tool-schema acceptance, agent-reviewed structural correspondence, and behavioral execution or stronger analysis before checking fidelity, revision, and delivery.
 - [`plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/`](plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/) contains Candidate C's complete profile, construction-only readiness resource, and hashable Flue composition while reusing the domain-primary workpiece.
 - [`EVALUATION.md`](EVALUATION.md) is the sole authority for comparing Coverage/workpiece/readiness candidates and deciding whether finer progressive disclosure is earned.
+- [`evaluation/stage-1-mechanical-and-authority-audit.md`](evaluation/stage-1-mechanical-and-authority-audit.md) records the executed mechanical audit, context accounting, hard-gate evidence, and candidate dispositions.
 
 ## How to read the synthesized set
 
@@ -103,7 +106,7 @@ Workpiece-only delivery uses the universal and plugin Verification registers wit
 
 The shared profile currently uses a domain-typology-primary Coverage index provisionally. Do not decide between it and the alternatives from this README. Follow [`EVALUATION.md`](EVALUATION.md), which preregisters three candidates: domain-primary, formalism-primary, and [`domain-primary elicitation/workpiece organization plus a separate SDCPN construction-readiness view`](plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/).
 
-The protocol owns the shared invariants, mechanical audit, owner-led cases, model-facing observations, evidence walls, decision rule, and the threshold for splitting progressive resources. After a candidate wins, remove losing alternatives from the live candidate instrument and preserve only the comparison evidence.
+The protocol owns the shared invariants, mechanical audit, owner-led cases, model-facing observations, evidence walls, decision rule, and the threshold for splitting progressive resources. [`Stage 1`](evaluation/stage-1-mechanical-and-authority-audit.md) leaves Candidates A and C eligible and eliminates Candidate B because its mandatory Coverage resource exposes construction mechanics during ordinary elicitation. No candidate has won. After a candidate wins, remove losing alternatives from the live candidate instrument and preserve only the comparison evidence.
 
 ## Observed runtime boundaries
 
