@@ -27,14 +27,19 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import { quadTreeLevels } from "../../../../../../react/experiments/contour-grid";
+import { axisValueAt } from "../../../../../../react/experiments/parameter-grid";
 import {
   ContourSurface,
   contourSurfaceKey,
 } from "../../../../../components/contour-surface";
+import { formatAxisValue } from "./sweep-navigator";
 
 import type { ExperimentRecord } from "../../../../../../react/experiments/context";
 import type { ExperimentParameterAxis } from "../../../../../../react/experiments/parameter-grid";
-import type { ContourSurfaceValues } from "../../../../../components/contour-surface";
+import type {
+  ContourSurfaceFraction,
+  ContourSurfaceValues,
+} from "../../../../../components/contour-surface";
 
 /** Runs a surface point needs before it appears. */
 const SURFACE_CELL_RUNS = 8;
@@ -140,6 +145,8 @@ export const SweepSurface = ({
     walkKey: string;
     values: ReadonlyMap<string, Readonly<Record<string, number>>>;
   }>({ walkKey: "", values: new Map() });
+  /** The position under the pointer mid-drag; null outside a drag. */
+  const [preview, setPreview] = useState<ContourSurfaceFraction | null>(null);
 
   const xAxis = axes.find((axis) => axis.identifier === xAxisId);
   const yAxis = axes.find((axis) => axis.identifier === yAxisId);
@@ -277,19 +284,50 @@ export const SweepSurface = ({
     text: spec.label,
   }));
 
-  const handleClickFraction = (fractionX: number, fractionY: number) => {
+  const handlePickFraction = (fraction: ContourSurfaceFraction) => {
     if (!xAxis || !yAxis || !sweepSelection) {
       return;
     }
-    // Clicking collapses both shown axes to a point at the clicked position.
-    const xPosition = Math.round(fractionX * xAxis.stepCount);
-    const yPosition = Math.round(fractionY * yAxis.stepCount);
+    // Releasing (or clicking) collapses both shown axes to a point there.
+    const xPosition = Math.round(fraction.x * xAxis.stepCount);
+    const yPosition = Math.round(fraction.y * yAxis.stepCount);
     setSweepSelection(experimentId, {
       ...sweepSelection,
       [xAxis.identifier]: { from: xPosition, to: xPosition },
       [yAxis.identifier]: { from: yPosition, to: yPosition },
     });
   };
+
+  /**
+   * The surface-grid index of the sampled cell nearest the selection's
+   * midpoint. Grid indices map nonlinearly to axis positions on sub-sampled
+   * integer axes (rounding makes the spacing uneven), so the marker finds
+   * the nearest sampled position rather than scaling a fraction.
+   */
+  const selectionGridIndex = (axis: ExperimentParameterAxis): number => {
+    const range = sweepSelection?.[axis.identifier];
+    if (!range) {
+      return 0;
+    }
+    const midpoint = (range.from + range.to) / 2;
+    const positions = surfacePositions(axis);
+    let nearest = 0;
+    for (const [index, position] of positions.entries()) {
+      if (
+        Math.abs(position - midpoint) < Math.abs(positions[nearest]! - midpoint)
+      ) {
+        nearest = index;
+      }
+    }
+    return nearest;
+  };
+
+  /** The quantized axis value a plot fraction lands on, for the readout. */
+  const valueAtFraction = (
+    axis: NonNullable<typeof xAxis>,
+    fraction: number,
+  ): string =>
+    formatAxisValue(axisValueAt(axis, Math.round(fraction * axis.stepCount)));
 
   const cellValues: ContourSurfaceValues = new Map(
     [...grid.values.entries()].flatMap(([key, values]) => {
@@ -337,13 +375,24 @@ export const SweepSurface = ({
           ny={surfacePositions(yAxis).length}
           contentKey={`${xAxisId}|${yAxisId}|${metricId}`}
           values={cellValues}
-          onClickFraction={handleClickFraction}
+          markers={[
+            // Where the navigator currently sits on this slice — the plot is
+            // a control, so it shows its own value.
+            {
+              x: selectionGridIndex(xAxis),
+              y: selectionGridIndex(yAxis),
+              emphasis: true,
+            },
+          ]}
+          onPickFraction={handlePickFraction}
+          onPreviewFraction={setPreview}
           aria-label="Sweep surface"
         />
       ) : null}
       <span className={captionStyle}>
-        {sampledCount} of {totalCells} points sampled at {SURFACE_CELL_RUNS}+
-        runs · click to navigate
+        {preview && xAxis && yAxis
+          ? `${xAxis.identifier} = ${valueAtFraction(xAxis, preview.x)} · ${yAxis.identifier} = ${valueAtFraction(yAxis, preview.y)} — release to navigate`
+          : `${sampledCount} of ${totalCells} points sampled at ${SURFACE_CELL_RUNS}+ runs · drag or click to navigate`}
       </span>
     </div>
   );
