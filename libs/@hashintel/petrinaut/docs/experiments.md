@@ -72,7 +72,7 @@ Every selection uses the same seed sequence (common random numbers), and a run's
 
 #### The surface view
 
-A sweep with two or more swept parameters grows a **Surface** section between the parameter strip and the metric charts: a contour plot of one metric's final value over two parameters you pick, with every other parameter held at the middle of its selected range. The plot fills in live and coarse-first — the four corners, then ever finer subdivisions, each level a complete picture (8 runs per point) — and **clicking the surface moves the navigator**: both shown parameters collapse to a point at the clicked position, which then refines with more runs. Your selected point always computes first: the metric charts start streaming before surface sampling begins, and after every slider move the surface waits for the new selection's first frames before continuing. Every metric is measured on the same samples, so switching the shown metric repaints instantly from what was already computed; changing the fixed parameters or the axes restarts the fill for the new slice.
+A sweep with two or more swept parameters grows a **Surface** section between the parameter strip and the metric charts: a contour plot of one metric's final value over two parameters you pick, with every other parameter held at the middle of its selected range. The plot fills in live and coarse-first — the four corners, then ever finer subdivisions, each level a complete picture (8 runs per point) — and **the surface is itself a control**: click, or press and drag with a live crosshair and value readout, and on release both shown parameters collapse to a point there, which then refines with more runs. An orange ring marks where the navigator currently sits. Your selected point always computes first: the metric charts start streaming before surface sampling begins, and after every slider move the surface waits for the new selection's first frames before continuing. Every metric is measured on the same samples, so switching the shown metric repaints instantly from what was already computed; changing the fixed parameters or the axes restarts the fill for the new slice.
 
 The summary, the parameter strip, and the surface hold still at the top of the drawer; the metric charts scroll on their own below them, so the graphs stay in view while you browse the charts.
 
@@ -152,6 +152,8 @@ does not recreate the run.
 A confirmation prompt blocks browser/tab close while any experiment is initializing or running.
 
 ### Notifications
+
+The Summary's progress bar tracks the selected combination (runs sampled over the run budget). While anything computes, a **"N computing"** chip appears beside it — a sweep runs several simulations in parallel (the selection's own batches, surface chunks, cell refinements) — and clicking the chip expands a compact list with each batch's kind and progress. Selection batches are the priority work and sort first.
 
 A small toast appears when an experiment **completes** or **errors**, even if its drawer isn't open. The top-bar **Active experiments** popover (see below) lets you jump to any in-flight experiment from anywhere in the app.
 
