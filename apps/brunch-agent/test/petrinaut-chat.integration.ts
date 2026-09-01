@@ -135,7 +135,7 @@ try {
       (context) => {
         const request = JSON.stringify(context);
         for (const instruction of [
-          "You are the Brunch elicitation assistant.",
+          "You are a universal elicitation assistant.",
           "You are eliciting a process model as an SDCPN for the Petrinaut editor.",
           "Activate the `sdcpn-modelling` skill before interviewing or constructing a process model.",
           "The Markdown IR is the shared workpiece of one looping lifecycle.",
