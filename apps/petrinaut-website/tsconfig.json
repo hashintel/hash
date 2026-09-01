@@ -15,5 +15,5 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["api", "src"]
+  "include": ["api", "src", "router-codegen-config.ts"]
 }

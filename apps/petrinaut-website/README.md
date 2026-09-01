@@ -33,8 +33,9 @@ Stopping the command also stops and removes its optimizer container.
 The development server proxies `/api/petrinaut-opt/*` to the optimizer on
 `127.0.0.1:4004`, avoiding development-only CORS changes to the Python service.
 Regular `yarn dev` does not enable optimization; use the dedicated command to
-connect the website to the real optimizer service. Storybook provides a fake
-optimizer for isolated UI development.
+connect the website to the real optimizer service. The `/optimization` route
+returns the website's not-found page when the provider is disabled. Storybook
+provides a fake optimizer for isolated UI development.
 
 ## Environment variables
 

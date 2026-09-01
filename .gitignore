@@ -132,6 +132,8 @@ libs/@local/graph/store/typescript/src/generated
 
 # generated files
 *.gen.*
+# TanStack Router plugin scratch output.
+.tanstack/
 *.tsbuildinfo
 feed.atom
 feed.rss
