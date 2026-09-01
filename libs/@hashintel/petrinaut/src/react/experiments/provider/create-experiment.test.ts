@@ -299,6 +299,7 @@ describe("createExperimentRequestBuilder", () => {
         lambdas: {},
         kernels: {},
         metrics: {},
+        statusConditions: {},
       },
       failures: [],
     }),
