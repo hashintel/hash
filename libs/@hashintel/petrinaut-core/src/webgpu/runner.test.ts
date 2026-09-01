@@ -6,6 +6,8 @@ import {
   describeAllocationFailure,
   describeBufferOverflow,
   fillSeedChunk,
+  GPU_PREVIEW_TILE_RUNS,
+  planTiles,
   requestGpuDevice,
   runsPerTile,
   seedRunsPerChunk,
@@ -53,6 +55,54 @@ describe("describeBufferOverflow", () => {
         limits: DEFAULT_LIMITS,
       }),
     ).toMatch(/Metric histograms need 300 MB/);
+  });
+});
+
+describe("planTiles", () => {
+  it("opens a streamed experiment with a preview tile, then full tiles", () => {
+    expect(planTiles(10_000, 4_000, GPU_PREVIEW_TILE_RUNS)).toEqual([
+      { firstRun: 0, runCount: 128 },
+      { firstRun: 128, runCount: 4_000 },
+      { firstRun: 4_128, runCount: 4_000 },
+      { firstRun: 8_128, runCount: 1_872 },
+    ]);
+  });
+
+  it("covers every run exactly once, preview or not", () => {
+    for (const preview of [null, GPU_PREVIEW_TILE_RUNS]) {
+      const tiles = planTiles(9_731, 1_000, preview);
+      let expected = 0;
+      for (const tile of tiles) {
+        expect(tile.firstRun).toBe(expected);
+        expected += tile.runCount;
+      }
+      expect(expected).toBe(9_731);
+    }
+  });
+
+  it("skips the preview when nobody streams or the run count is small", () => {
+    expect(planTiles(10_000, 4_000, null)).toEqual([
+      { firstRun: 0, runCount: 4_000 },
+      { firstRun: 4_000, runCount: 4_000 },
+      { firstRun: 8_000, runCount: 2_000 },
+    ]);
+    // 2× the preview or fewer: the split would only add a tile boundary.
+    expect(planTiles(256, 4_000, 128)).toEqual([
+      { firstRun: 0, runCount: 256 },
+    ]);
+    expect(planTiles(257, 4_000, 128)).toEqual([
+      { firstRun: 0, runCount: 128 },
+      { firstRun: 128, runCount: 129 },
+    ]);
+  });
+
+  it("skips the preview when a tile is no bigger anyway", () => {
+    expect(planTiles(1_000, 100, 128)).toEqual(
+      Array.from({ length: 10 }, (_, index) => ({
+        firstRun: index * 100,
+        runCount: 100,
+      })),
+    );
   });
 });
 
