@@ -96,7 +96,7 @@ export const getStatusViewEvaluationScope = (
  * Resolves a status label's place reference: a bare id names a root-net
  * place, and a scoped id (`instanceId::placeId`) names a componentInstance's
  * copy of a subnet place, following the instance path from the root.
- * Returns undefined for a reference that no longer resolves.
+ * Returns undefined for a reference that does not resolve.
  */
 export const resolveStatusViewLabelPlace = (
   sdcpn: SDCPN,

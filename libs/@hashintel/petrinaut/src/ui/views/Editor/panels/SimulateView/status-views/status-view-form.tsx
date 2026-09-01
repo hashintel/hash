@@ -80,7 +80,7 @@ function validateStatusViewForm(
         (placeId) => !knownPlaceIds.has(placeId),
       );
       if (danglingPlaceId !== undefined) {
-        return `Label "${labelName}" references a place (\`${danglingPlaceId}\`) that no longer exists in the net.`;
+        return `Label "${labelName}" references a place (\`${danglingPlaceId}\`) that does not exist in the net.`;
       }
     }
   }
