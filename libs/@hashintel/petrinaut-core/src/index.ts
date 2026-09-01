@@ -436,11 +436,16 @@ export {
 export { GRID_SIZE } from "./grid-size";
 export {
   formatScopedId,
-  isScopedId,
   parseScopedId,
   SCOPED_ID_SEPARATOR,
   type ParsedScopedId,
 } from "./scoped-ids";
+export {
+  getStatusViewEvaluationScope,
+  resolveStatusViewLabelPlace,
+  visitComponentInstancePlaces,
+  type ScopedPlaceVisit,
+} from "./status-view-scope";
 export {
   type DefaultParameterValues,
   deriveDefaultParameterValues,
@@ -588,8 +593,8 @@ export { adHocScenarioStateSchema } from "./simulation/authoring/scenario/ad-hoc
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {
   createStatusViewFrameEvaluator,
-  encodeInstanceKey,
   type InstanceKey,
+  type StatusConditionEvaluationError,
   type StatusViewInstanceAssignment,
 } from "./simulation/frames/hir-status-view";
 export {
