@@ -27,6 +27,10 @@ use crate::{
     },
 };
 
+fn actor(id: u128) -> ActorId {
+    ActorId::User(UserId::new(Uuid::from_u128(id)))
+}
+
 /// Pairs `proof` with the empty view's census and schedule.
 ///
 /// The cache neither reads a census or schedule nor derives one, so the tests here - over
@@ -37,7 +41,7 @@ fn with_empty_view(proof: VisibilityProof) -> PendingCacheEntry {
     PendingCacheEntry {
         proof,
         masking: MaskingActor {
-            id: None,
+            id: actor(1),
             instance_admin: false,
         },
         census: ViewCensus::EMPTY,
@@ -297,7 +301,7 @@ async fn small_scope_memo_unbuilt() {
         Arc::clone(&atlas),
         proof,
         MaskingActor {
-            id: None,
+            id: actor(2),
             instance_admin: false,
         },
         None,
@@ -330,7 +334,7 @@ async fn entry_census_folded_occupancy_unfolded() {
     let atlas = Arc::new(atlas);
     let proof = mask_hiding(&atlas, &[]);
     let masking = MaskingActor {
-        id: None,
+        id: actor(3),
         instance_admin: false,
     };
 
@@ -398,7 +402,7 @@ async fn mint_occupancy_ignores_fold() {
 
     let proof = mask_hiding(&atlas, &[]);
     let masking = MaskingActor {
-        id: None,
+        id: actor(3),
         instance_admin: false,
     };
     let snapshot = Arc::new(withdrawing(&atlas, &cell_seeds));
@@ -454,7 +458,7 @@ async fn entry_withholds_cohort_withdrawn() {
     let atlas = Arc::new(atlas);
     let proof = mask_hiding(&atlas, &[]);
     let masking = MaskingActor {
-        id: None,
+        id: actor(4),
         instance_admin: false,
     };
 

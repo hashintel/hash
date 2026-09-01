@@ -206,7 +206,7 @@ where
         .map_err(ProofError::Policies)?;
 
     let masking = MaskingActor {
-        id: policy_components.actor_id(),
+        id: actor,
         instance_admin: policy_components.is_instance_admin(),
     };
 

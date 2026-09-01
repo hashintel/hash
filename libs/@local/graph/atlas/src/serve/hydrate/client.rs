@@ -60,11 +60,8 @@ use crate::{
 /// carries the actor identity the scope's policy resolution produced.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct MaskingActor {
-    /// The actor id the policy resolution produced, `None` for the public actor.
-    ///
-    /// The filter vocabulary binds the nil uuid for `None`, which is the type system's own
-    /// public-actor value, so the absent case masks as an actor owning nothing.
-    pub id: Option<ActorId>,
+    /// The actor the request's admitted scope names.
+    pub id: ActorId,
     /// Whether the actor is an instance admin, whose reads bypass property protection.
     pub instance_admin: bool,
 }
@@ -239,7 +236,7 @@ impl GraphDatabaseClient {
     fn protection(&self, masking: MaskingActor) -> Option<PropertyProtectionFilter<'_, '_>> {
         let config = &self.pool.settings.filter_protection;
         (!config.is_empty() && !masking.instance_admin)
-            .then(|| config.to_property_protection_filter(masking.id))
+            .then(|| config.to_property_protection_filter(Some(masking.id)))
     }
 
     /// Answers the node half of one locate order.

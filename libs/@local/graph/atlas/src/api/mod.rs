@@ -249,8 +249,7 @@ pub(crate) fn router(
     aide::generate::infer_responses(false);
 
     let mut components = Components::default();
-    // The empty requirement admits the anonymous caller, a first-class presenter.
-    let mut security = vec![SecurityRequirement::new()];
+    let mut security = Vec::new();
     for (name, scheme) in credential_schemes() {
         security.push(SecurityRequirement::from_iter([(
             name.to_owned(),
