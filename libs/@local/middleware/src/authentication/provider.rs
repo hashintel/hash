@@ -81,8 +81,9 @@ impl Caller for Option<ActorId> {
 /// `Err` the reason it did not — either way the chain stops, so a rejected credential never falls
 /// through to another provider.
 ///
-/// A rejection is handed out shared: it outlives the chain as a request extension, which requires
-/// [`Clone`], and [`Report`] is not — the [`Arc`] carries it to every consumer instead.
+/// A rejection is handed out shared: one verification may answer several concurrent requests,
+/// and [`Report`] is not [`Clone`], so the [`Arc`] carries the one report to every request it
+/// rejected.
 pub trait AuthenticationProvider<C: Caller>: Send + Sync {
     /// Resolves the credential of a request.
     fn authenticate(
