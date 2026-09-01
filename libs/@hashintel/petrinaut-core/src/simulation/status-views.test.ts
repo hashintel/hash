@@ -171,14 +171,17 @@ describe("status view derivation", () => {
     expect(assignments.get("a")).toEqual({
       labelId: "label-todo",
       keyValues: ["a"],
+      placeId: "todo",
     });
     expect(assignments.get("b")).toEqual({
       labelId: "label-doing",
       keyValues: ["b"],
+      placeId: "doing",
     });
     expect(assignments.get("c")).toEqual({
       labelId: "label-retrying",
       keyValues: ["c"],
+      placeId: "doing",
     });
   });
 
