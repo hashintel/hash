@@ -79,3 +79,33 @@ Drone Patrol example, capacities stripped versus declared.
 - **Persisting derived capacities.** A sweep re-probes per experiment; a
   session-level memory of derived slabs per net would let later experiments
   start calibrated.
+
+## Reuse across a session's batches
+
+A sweep instantiates a batch per ladder rung, and each once repeated the
+whole setup: request a device, generate and compile the WGSL, probe. The
+experiment backend now holds a `gpu-backend-cache`: one entry keyed by what
+actually shapes the shader — net and artifact identity, baked parameter
+values, metric set, `dt`, integration method, initial marking. Values of
+parameters carried in the per-run buffer are deliberately NOT in the key, so
+range batches across different selections share one backend, and with it the
+calibration (windows, derived capacities, the shader compiled at them)
+learned by earlier batches. A stale calibration heals through the same
+escape/overflow re-runs that calibrate from scratch, and the cache is
+updated with what each batch learned.
+
+Devices need explicit destruction and pipelined rungs lease the backend
+concurrently, so entries count leases: a displaced (or unsupported) entry
+destroys its device once the last lease ends. On the SIR bench story this
+cut the full 1,000-run GPU ladder from ~1.6 s to ~0.9 s — rungs after the
+first skip the device request, the shader compile, and the window probe.
+
+## The preview tile
+
+A streamed experiment's first tile is small (`GPU_PREVIEW_TILE_RUNS`, 128):
+every tile re-delivers the whole time axis cumulatively, so a fast first
+tile puts a statistically usable picture on screen while the bulk still
+computes — the GPU's version of the ladder's first rung. Seeds derive from
+absolute run indices, so the split changes nothing about the results; the
+preview is skipped when nobody streams or the run count is too small for
+the extra tile boundary to pay.
