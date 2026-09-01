@@ -31,7 +31,11 @@ export type BottomPanelTab =
 
 export type TimelineChartType = "run" | "stacked";
 
-export type SimulateViewMode = "scenarios" | "metrics" | "experiments";
+export type SimulateViewMode =
+  | "scenarios"
+  | "metrics"
+  | "experiments"
+  | "status-views";
 
 export type SimulateDrawerState =
   | { type: "closed" }
@@ -40,7 +44,9 @@ export type SimulateDrawerState =
   | { type: "view-metric"; metricId: string }
   | { type: "create-metric" }
   | { type: "view-experiment"; experimentId: string }
-  | { type: "create-experiment" };
+  | { type: "create-experiment" }
+  | { type: "view-status-view"; statusViewId: string }
+  | { type: "create-status-view" };
 
 export type EditorNavigationTarget = {
   globalMode?: EditorGlobalMode;
