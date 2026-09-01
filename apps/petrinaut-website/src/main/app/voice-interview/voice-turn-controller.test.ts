@@ -1280,6 +1280,65 @@ describe("VoiceTurnController", () => {
     expect(harness.controller.getSnapshot().phase).toBe("recoverable-error");
   });
 
+  test("keeps the current question after a failed correction and reconnect", async () => {
+    const harness = createHarness();
+    const question = {
+      ...canonicalSegment(
+        "ask-failed-correction",
+        "What happens after approval?",
+      ),
+      source: "brunch-ask" as const,
+    };
+    const chat = (status: "ready" | "streaming") =>
+      harness.controller.updateChat({
+        canAcceptInterviewAnswer: true,
+        canonicalSegments: [question],
+        status,
+      });
+    chat("ready");
+    await harness.controller.start();
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().phase).toBe("listening"),
+    );
+
+    harness.emit({
+      key: key(1, "answer-before-correction"),
+      text: "The support lead closes it.",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+    chat("streaming");
+    chat("ready");
+
+    // Redo reopens the ask, so the typed correction below is the only
+    // delivery that can settle it.
+    harness.controller.redoAnswer();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReviseLastAnswer: true,
+      phase: "listening",
+    });
+    harness.submitText.mockRejectedValueOnce(
+      new Error("A queued answer already exists"),
+    );
+
+    const accepted = await harness.controller.submitCorrection(
+      "The incident manager closes it.",
+    );
+
+    expect(accepted).toBe(false);
+    expect(harness.controller.getSnapshot().phase).toBe("recoverable-error");
+
+    await harness.controller.reconnect();
+
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        currentQuestion: "What happens after approval?",
+        microphoneEnabled: true,
+        phase: "listening",
+      }),
+    );
+  });
+
   test("ignores a typed correction while the previous answer is still pending", async () => {
     const harness = createHarness();
     let finishDelivery: (() => void) | undefined;

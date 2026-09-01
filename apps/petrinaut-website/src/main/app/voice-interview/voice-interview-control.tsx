@@ -1330,11 +1330,7 @@ const AvailableVoiceInterviewControl = ({
       handledInterviewSelectionRef.current = false;
       return;
     }
-    if (
-      active ||
-      endRequested ||
-      handledInterviewSelectionRef.current
-    ) {
+    if (active || endRequested || handledInterviewSelectionRef.current) {
       return;
     }
 

@@ -292,7 +292,9 @@ export class VoiceTurnController {
       return false;
     }
 
-    this.#questionAnswered = true;
+    // `#deliver` latches `#questionAnswered` once the interview accepts the
+    // text. Latching it here would mark the ask settled even when delivery
+    // fails, so `reconnect` would drop the still-unanswered question.
     this.#setMicrophoneEnabled(false);
     this.#update({
       errorMessage: "",
