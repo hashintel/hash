@@ -623,6 +623,7 @@ where
         dependencies.cloudflare_access,
         dependencies.service_secret.clone(),
         &dependencies.store,
+        &dependencies.meter,
     ));
     let service_secret: Arc<str> = Arc::from(dependencies.service_secret);
     let authentication_metrics = Arc::new(auth::AuthenticationMetrics::new(&dependencies.meter));

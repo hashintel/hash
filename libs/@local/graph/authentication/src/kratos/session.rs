@@ -1,7 +1,11 @@
 //! Kratos session verification against the public API.
 
 use alloc::sync::Arc;
-use core::{ops::ControlFlow, time::Duration};
+use core::{
+    ops::ControlFlow,
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
 
 use cookie::Cookie;
 use error_stack::{Report, ResultExt as _};
@@ -11,6 +15,10 @@ use hash_middleware::authentication::{
 };
 use http::{HeaderMap, header};
 use moka::future::Cache as MokaCache;
+use opentelemetry::{
+    KeyValue,
+    metrics::{Counter, Meter},
+};
 use reqwest::{Client, Url, redirect};
 use serde::Deserialize;
 use sha2::{Digest as _, Sha256};
@@ -128,6 +136,95 @@ pub struct KratosSessionConfig {
     pub cache: Option<SessionCacheConfig>,
 }
 
+/// How a cache lookup was answered.
+#[derive(Clone, Copy)]
+enum CacheOutcome {
+    /// Served without a verification of its own, from the cache or a shared in-flight one.
+    Hit,
+    /// Verified against the provider.
+    Miss,
+}
+
+impl CacheOutcome {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Hit => "hit",
+            Self::Miss => "miss",
+        }
+    }
+}
+
+/// The verified-session cache and the instrument its lookups are counted on.
+struct SessionCache {
+    verified: Arc<MokaCache<[u8; 32], UserId>>,
+    lookups: Counter<u64>,
+}
+
+impl SessionCache {
+    fn new(config: &SessionCacheConfig, meter: &Meter) -> Self {
+        let verified = Arc::new(
+            // Time-to-live, not time-to-idle: steady traffic on a revoked session must not
+            // keep it authenticating past the bound.
+            MokaCache::builder()
+                .max_capacity(config.capacity)
+                .time_to_live(config.ttl)
+                .build(),
+        );
+
+        // Weak, so the globally registered meter does not keep the cache alive past its
+        // provider; the gauge handle may drop, the callback lives in the meter provider.
+        let entries = Arc::downgrade(&verified);
+        meter
+            .u64_observable_gauge("hash.authentication.session_cache.entries")
+            .with_description("Verified sessions currently cached")
+            .with_unit("{session}")
+            .with_callback(move |observer| {
+                if let Some(cache) = entries.upgrade() {
+                    observer.observe(cache.entry_count(), &[]);
+                }
+            })
+            .build();
+
+        Self {
+            verified,
+            lookups: meter
+                .u64_counter("hash.authentication.session_cache.lookups")
+                .with_description("Session-cache lookups by outcome")
+                .with_unit("{lookup}")
+                .build(),
+        }
+    }
+
+    /// Resolves the key from the cache, verifying and caching on a miss.
+    ///
+    /// `try_get_with` runs one verification per key at a time and never caches an `Err`, so
+    /// rejections and unreachable providers are retried by the next request.
+    async fn resolve(
+        &self,
+        key: [u8; 32],
+        verify: impl Future<Output = Result<UserId, Report<AuthenticationError>>> + Send,
+    ) -> Result<UserId, Arc<Report<AuthenticationError>>> {
+        let verified_fresh = AtomicBool::new(false);
+        let resolution = self
+            .verified
+            .try_get_with(key, async {
+                verified_fresh.store(true, Ordering::Relaxed);
+                verify.await
+            })
+            .await;
+
+        let outcome = if verified_fresh.load(Ordering::Relaxed) {
+            CacheOutcome::Miss
+        } else {
+            CacheOutcome::Hit
+        };
+        self.lookups
+            .add(1, &[KeyValue::new("outcome", outcome.as_str())]);
+
+        resolution
+    }
+}
+
 /// Verifies Kratos sessions and maps them to Graph actors.
 ///
 /// Sessions are verified via the Kratos whoami endpoint. The actor is read from the
@@ -141,18 +238,20 @@ pub struct KratosSessionProvider<R> {
     http_client: Client,
     whoami_url: Url,
     actor_resolver: R,
-    cache: Option<MokaCache<[u8; 32], UserId>>,
+    cache: Option<SessionCache>,
 }
 
 impl<R> KratosSessionProvider<R> {
     /// Creates a new session provider from the given configuration.
+    ///
+    /// Cache lookups are counted on `meter`.
     ///
     /// # Panics
     ///
     /// Panics if the HTTP client cannot be built or the Kratos URL cannot be extended with the
     /// whoami path.
     #[must_use]
-    pub fn new(config: KratosSessionConfig, actor_resolver: R) -> Self {
+    pub fn new(config: KratosSessionConfig, actor_resolver: R, meter: &Meter) -> Self {
         let mut whoami_url = config.kratos_public_url;
         whoami_url
             .path_segments_mut()
@@ -170,14 +269,7 @@ impl<R> KratosSessionProvider<R> {
                 .expect("the HTTP client should build with default TLS configuration"),
             whoami_url,
             actor_resolver,
-            cache: config.cache.map(|cache| {
-                // Time-to-live, not time-to-idle: steady traffic on a revoked session must not
-                // keep it authenticating past the bound.
-                MokaCache::builder()
-                    .max_capacity(cache.capacity)
-                    .time_to_live(cache.ttl)
-                    .build()
-            }),
+            cache: config.cache.map(|cache| SessionCache::new(&cache, meter)),
         }
     }
 }
@@ -270,11 +362,9 @@ where
         };
 
         let resolution = match &self.cache {
-            // `try_get_with` runs one verification per key at a time and never caches an `Err`,
-            // so rejections and unreachable providers are retried by the next request.
             Some(cache) => {
                 cache
-                    .try_get_with(credential.cache_key(), self.verify_and_resolve(credential))
+                    .resolve(credential.cache_key(), self.verify_and_resolve(credential))
                     .await
             }
             None => self.verify_and_resolve(credential).await.map_err(Arc::new),
@@ -302,6 +392,14 @@ mod tests {
         service_secret::SERVICE_AUTH_SCHEME,
     };
     use http::{HeaderMap, HeaderValue, StatusCode};
+    use opentelemetry::metrics::MeterProvider as _;
+    use opentelemetry_sdk::metrics::{
+        InMemoryMetricExporter, SdkMeterProvider,
+        data::{
+            AggregatedMetrics, GaugeDataPoint, MetricData, ResourceMetrics, ScopeMetrics,
+            SumDataPoint,
+        },
+    };
     use reqwest::Url;
     use rstest::rstest;
     use serde_json::{Value as JsonValue, json};
@@ -372,6 +470,11 @@ mod tests {
         }
     }
 
+    /// A meter recording nowhere, for tests that assert no metrics.
+    fn noop_meter() -> opentelemetry::metrics::Meter {
+        opentelemetry::global::meter("test")
+    }
+
     fn provider_at(
         url: Url,
         actors: HashMap<ActorEntityUuid, ActorId>,
@@ -383,6 +486,7 @@ mod tests {
                 cache: None,
             },
             FixedActorResolver::new(actors),
+            &noop_meter(),
         )
     }
 
@@ -394,6 +498,7 @@ mod tests {
         session: FakeSession,
         actors: HashMap<ActorEntityUuid, ActorId>,
         cache: Option<SessionCacheConfig>,
+        meter: &opentelemetry::metrics::Meter,
     ) -> (KratosSessionProvider<FixedActorResolver>, Arc<AtomicUsize>) {
         let verifications = Arc::new(AtomicUsize::new(0));
         let whoami = session.into_whoami_json();
@@ -429,6 +534,7 @@ mod tests {
                 cache,
             },
             FixedActorResolver::new(actors),
+            meter,
         );
         (provider, verifications)
     }
@@ -438,7 +544,9 @@ mod tests {
         session: FakeSession,
         actors: HashMap<ActorEntityUuid, ActorId>,
     ) -> KratosSessionProvider<FixedActorResolver> {
-        counting_provider(session, actors, None).await.0
+        counting_provider(session, actors, None, &noop_meter())
+            .await
+            .0
     }
 
     /// Spawns a fake Kratos rejecting the first verification and serving the session afterwards.
@@ -472,6 +580,7 @@ mod tests {
                 cache,
             },
             FixedActorResolver::new(actors),
+            &noop_meter(),
         );
         (provider, verifications)
     }
@@ -715,6 +824,7 @@ mod tests {
                 cache: None,
             },
             FixedActorResolver::new(HashMap::new()),
+            &noop_meter(),
         );
 
         let report =
@@ -819,6 +929,7 @@ mod tests {
             FakeSession::active_for(actor_id),
             known_user(actor_id),
             Some(cache_config()),
+            &noop_meter(),
         )
         .await;
 
@@ -846,6 +957,7 @@ mod tests {
             FakeSession::active_for(actor_id),
             known_user(actor_id),
             None,
+            &noop_meter(),
         )
         .await;
 
@@ -905,6 +1017,7 @@ mod tests {
             FakeSession::active_for(actor_id),
             known_user(actor_id),
             Some(cache_config()),
+            &noop_meter(),
         )
         .await;
 
@@ -951,6 +1064,7 @@ mod tests {
                 ttl: Duration::from_secs(2),
                 capacity: 64,
             }),
+            &noop_meter(),
         )
         .await;
         let authenticate = || async {
@@ -981,5 +1095,150 @@ mod tests {
             2,
             "the request after the TTL should verify afresh"
         );
+    }
+
+    /// A meter provider recording into an in-memory exporter.
+    fn recording_meter() -> (SdkMeterProvider, InMemoryMetricExporter) {
+        let exporter = InMemoryMetricExporter::default();
+        let provider = SdkMeterProvider::builder()
+            .with_periodic_exporter(exporter.clone())
+            .build();
+        (provider, exporter)
+    }
+
+    /// Reads the metric's data in the latest export, after a flush.
+    fn read_metric<T>(
+        provider: &SdkMeterProvider,
+        exporter: &InMemoryMetricExporter,
+        name: &str,
+        read: impl FnOnce(&AggregatedMetrics) -> T,
+    ) -> Option<T> {
+        provider
+            .force_flush()
+            .expect("the meter provider should flush");
+        exporter
+            .get_finished_metrics()
+            .expect("the exporter should hand out its exports")
+            .last()
+            .into_iter()
+            .flat_map(ResourceMetrics::scope_metrics)
+            .flat_map(ScopeMetrics::metrics)
+            .find(|metric| metric.name() == name)
+            .map(|metric| read(metric.data()))
+    }
+
+    /// The lookup count recorded for the outcome.
+    fn recorded_lookups(
+        provider: &SdkMeterProvider,
+        exporter: &InMemoryMetricExporter,
+        outcome: &str,
+    ) -> u64 {
+        read_metric(
+            provider,
+            exporter,
+            "hash.authentication.session_cache.lookups",
+            |data| {
+                let AggregatedMetrics::U64(MetricData::Sum(sum)) = data else {
+                    return 0;
+                };
+                sum.data_points()
+                    .filter(|point| {
+                        point.attributes().any(|attribute| {
+                            attribute.key.as_str() == "outcome"
+                                && attribute.value.as_str() == outcome
+                        })
+                    })
+                    .map(SumDataPoint::value)
+                    .sum()
+            },
+        )
+        .unwrap_or(0)
+    }
+
+    /// The entry count the gauge reported, [`None`] before its first export.
+    fn recorded_entries(
+        provider: &SdkMeterProvider,
+        exporter: &InMemoryMetricExporter,
+    ) -> Option<u64> {
+        read_metric(
+            provider,
+            exporter,
+            "hash.authentication.session_cache.entries",
+            |data| {
+                let AggregatedMetrics::U64(MetricData::Gauge(gauge)) = data else {
+                    return None;
+                };
+                gauge.data_points().map(GaugeDataPoint::value).last()
+            },
+        )
+        .flatten()
+    }
+
+    #[tokio::test]
+    async fn cache_lookups_reach_the_meter_with_their_outcome() {
+        let (meter_provider, exporter) = recording_meter();
+        let actor_id = random_actor();
+        let (provider, _verifications) = counting_provider(
+            FakeSession::active_for(actor_id),
+            known_user(actor_id),
+            Some(cache_config()),
+            &meter_provider.meter("test"),
+        )
+        .await;
+
+        for _ in 0..2 {
+            let authentication: ControlFlow<Result<ActorId, _>> =
+                provider.authenticate(&session_token_header()).await;
+            assert_matches!(
+                authentication,
+                ControlFlow::Break(Ok(_)),
+                "the session should authenticate on every request"
+            );
+        }
+
+        assert_eq!(
+            recorded_lookups(&meter_provider, &exporter, "miss"),
+            1,
+            "the first lookup should count as a miss"
+        );
+        assert_eq!(
+            recorded_lookups(&meter_provider, &exporter, "hit"),
+            1,
+            "the second lookup should count as a hit"
+        );
+    }
+
+    #[tokio::test]
+    async fn entries_gauge_reads_the_cache() {
+        let (meter_provider, exporter) = recording_meter();
+        let actor_id = random_actor();
+        let (provider, _verifications) = counting_provider(
+            FakeSession::active_for(actor_id),
+            known_user(actor_id),
+            Some(cache_config()),
+            &meter_provider.meter("test"),
+        )
+        .await;
+
+        // The entry count is eventually consistent and converges through cache activity, so
+        // keep requesting and poll with a deadline instead of asserting the first read.
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+        loop {
+            let authentication: ControlFlow<Result<ActorId, _>> =
+                provider.authenticate(&session_token_header()).await;
+            assert_matches!(
+                authentication,
+                ControlFlow::Break(Ok(_)),
+                "the session should authenticate on every request"
+            );
+            if recorded_entries(&meter_provider, &exporter) == Some(1) {
+                break;
+            }
+            assert!(
+                tokio::time::Instant::now() < deadline,
+                "the entries gauge should reach the cached session before the deadline"
+            );
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
     }
 }

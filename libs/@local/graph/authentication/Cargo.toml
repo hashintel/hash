@@ -15,9 +15,10 @@ hash-middleware          = { workspace = true, public = true }
 type-system              = { workspace = true, public = true }
 
 # Public third-party dependencies
-http         = { workspace = true, public = true, features = ["std"] }
-jsonwebtoken = { workspace = true, public = true, features = ["aws_lc_rs"] }
-reqwest      = { workspace = true, public = true }
+http          = { workspace = true, public = true, features = ["std"] }
+jsonwebtoken  = { workspace = true, public = true, features = ["aws_lc_rs"] }
+opentelemetry = { workspace = true, public = true, features = ["metrics"] }
+reqwest       = { workspace = true, public = true }
 
 # Private workspace dependencies
 
@@ -34,12 +35,13 @@ tracing        = { workspace = true }
 uuid           = { workspace = true }
 
 [dev-dependencies]
-axum            = { workspace = true }
-hash-middleware = { workspace = true, features = ["test-utils"] }
-jsonwebtoken    = { workspace = true, features = ["use_pem"] }
-rstest          = { workspace = true }
-tokio           = { workspace = true, features = ["macros", "rt-multi-thread"] }
-uuid            = { workspace = true, features = ["v4"] }
+axum              = { workspace = true }
+hash-middleware   = { workspace = true, features = ["test-utils"] }
+jsonwebtoken      = { workspace = true, features = ["use_pem"] }
+opentelemetry_sdk = { workspace = true, features = ["metrics", "testing"] }
+rstest            = { workspace = true }
+tokio             = { workspace = true, features = ["macros", "rt-multi-thread"] }
+uuid              = { workspace = true, features = ["v4"] }
 
 [features]
 test-utils = []

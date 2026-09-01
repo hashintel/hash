@@ -3703,6 +3703,8 @@ dependencies = [
  "http 1.4.2",
  "jsonwebtoken",
  "moka",
+ "opentelemetry",
+ "opentelemetry_sdk",
  "reqwest",
  "rstest",
  "serde",

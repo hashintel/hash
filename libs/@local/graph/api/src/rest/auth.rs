@@ -83,13 +83,18 @@ pub fn build_authentication_provider<S>(
     cloudflare_access: Option<CloudflareAccessConfig>,
     service_secret: String,
     store: &Arc<S>,
+    meter: &opentelemetry::metrics::Meter,
 ) -> ProviderChain<S>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
 {
     (
-        KratosSessionProvider::new(session, StorePoolActorResolver::new(Arc::clone(store))),
+        KratosSessionProvider::new(
+            session,
+            StorePoolActorResolver::new(Arc::clone(store)),
+            meter,
+        ),
         build_operator_provider(cloudflare_access, service_secret, store),
     )
 }
