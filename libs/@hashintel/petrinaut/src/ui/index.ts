@@ -17,6 +17,12 @@ export type {
   PetrinautProps,
 } from "./petrinaut";
 export type {
+  PetrinautAiComposerControl,
+  PetrinautAiComposerControlContext,
+  PetrinautAiComposerStatus,
+  PetrinautAiComposerSubmitTextResult,
+} from "./types/ai-assistant-composer-control";
+export type {
   PetrinautNavigationAction,
   PetrinautNavigationController,
   PetrinautNavigationHistory,

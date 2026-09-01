@@ -21,34 +21,41 @@ const loadServerEnv = (mode: string) => {
   }
 };
 
-// Plugin required to serve the chat endpoint in dev.
-// In production, it will be bundled and served by Vercel.
+const apiModules = [
+  ["/api/chat", "/api/chat.ts"],
+  ["/api/oembed", "/api/oembed.ts"],
+] as const;
+
+// Plugin required to serve the Vercel fetch handlers in dev. In production,
+// each file under /api is bundled and served as its own Vercel Function.
 const petrinautApiDevPlugin = (): Plugin => ({
   name: "petrinaut-api-dev",
   apply: "serve",
   configureServer(server) {
-    // The chat endpoint ships a default `{ fetch }` so Vercel's Node.js
-    // runtime treats it as a Web fetch handler in production. We mirror the
-    // same shape here so dev and prod hit the same code path.
-    const adapter = createServerAdapter(async (request) => {
-      const { default: api } = (await server.ssrLoadModule("/api/chat.ts")) as {
-        default: { fetch: (request: Request) => Promise<Response> };
-      };
+    for (const [route, modulePath] of apiModules) {
+      // The endpoints ship a default `{ fetch }` so Vercel's Node.js runtime
+      // treats them as Web fetch handlers. Mirror that shape in development so
+      // both environments exercise exactly the same handler.
+      const adapter = createServerAdapter(async (request) => {
+        const { default: api } = (await server.ssrLoadModule(modulePath)) as {
+          default: { fetch: (request: Request) => Promise<Response> };
+        };
 
-      try {
-        return await api.fetch(request);
-      } catch (error) {
-        server.ssrFixStacktrace(error as Error);
-        throw error;
-      }
-    });
+        try {
+          return await api.fetch(request);
+        } catch (error) {
+          server.ssrFixStacktrace(error as Error);
+          throw error;
+        }
+      });
 
-    server.middlewares.use(
-      "/api/chat",
-      (request: IncomingMessage, response: ServerResponse) => {
-        void adapter(request, response);
-      },
-    );
+      server.middlewares.use(
+        route,
+        (request: IncomingMessage, response: ServerResponse) => {
+          void adapter(request, response);
+        },
+      );
+    }
   },
 });
 

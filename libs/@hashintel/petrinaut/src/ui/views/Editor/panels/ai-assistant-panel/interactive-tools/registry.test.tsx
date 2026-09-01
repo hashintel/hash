@@ -40,6 +40,86 @@ describe("interactive tool registry", () => {
     );
   });
 
+  test("validates composer text mappings against the tool schemas", () => {
+    const mappedTool = definePetrinautAiInteractiveTool({
+      toolName: "answerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => {
+          if (
+            typeof raw !== "object" ||
+            raw === null ||
+            typeof (raw as { question?: unknown }).question !== "string"
+          ) {
+            throw new Error("Expected a question");
+          }
+          return raw as { question: string };
+        },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => {
+          if (
+            typeof raw !== "object" ||
+            raw === null ||
+            typeof (raw as { answer?: unknown }).answer !== "string"
+          ) {
+            throw new Error("Expected an answer");
+          }
+          return raw as { answer: string };
+        },
+      },
+      fromComposerText: ({ input, text }) => ({
+        answer: `${input.question}: ${text}`,
+      }),
+      component: () => null,
+    });
+    const definition = resolveDynamicInteractiveTool(
+      "answerQuestion",
+      { question: "Which environment?" },
+      [mappedTool],
+    );
+
+    expect(
+      definition.fromComposerText?.({
+        input: { question: "Which environment?" },
+        text: "Production",
+      }),
+    ).toEqual({ answer: "Which environment?: Production" });
+    expect(() =>
+      definition.fromComposerText?.({ input: {}, text: "Production" }),
+    ).toThrow("Expected a question");
+
+    const invalidOutputTool = definePetrinautAiInteractiveTool({
+      toolName: "invalidAnswer",
+      inputSchema: { parse: () => ({ question: "Question" }) },
+      outputSchema: {
+        parse: () => {
+          throw new Error("Expected an answer");
+        },
+      },
+      fromComposerText: () => ({ answer: "Invalid" }),
+      component: () => null,
+    });
+    const invalidDefinition = resolveDynamicInteractiveTool(
+      "invalidAnswer",
+      {},
+      [invalidOutputTool],
+    );
+
+    expect(() =>
+      invalidDefinition.fromComposerText?.({ input: {}, text: "Production" }),
+    ).toThrow("Expected an answer");
+  });
+
+  test("does not map composer text when the host omits the mapper", () => {
+    const definition = resolveDynamicInteractiveTool(
+      "confirmRelease",
+      { question: "Ship this change?" },
+      [hostTool],
+    );
+
+    expect(definition.fromComposerText).toBeUndefined();
+  });
+
   test("rejects an unregistered dynamic tool by name", () => {
     expect(() =>
       resolveDynamicInteractiveTool("missingHostTool", {}, [hostTool]),

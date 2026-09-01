@@ -72,7 +72,7 @@ const deriveAliases = (
 
   const manifest = JSON.parse(
     readFileSync(join(packageRoot, "package.json"), "utf8"),
-  ) as { exports?: Record<string, unknown>; bin?: unknown };
+  ) as { exports?: Record<string, unknown>; bin?: unknown; private?: boolean };
 
   const aliases: Alias[] = [];
 
@@ -121,8 +121,14 @@ const deriveAliases = (
 
   // A library with no module entry points is invisible to import resolution,
   // so imports of it silently vanish from the graph. Bin-only packages are
-  // exempt: nothing can import them by specifier in the first place.
-  if (aliases.length === 0 && manifest.bin === undefined) {
+  // exempt: nothing can import them by specifier in the first place. So are
+  // private packages, which are applications rather than libraries and are
+  // never imported by name.
+  if (
+    aliases.length === 0 &&
+    manifest.bin === undefined &&
+    manifest.private !== true
+  ) {
     diagnostics.push(
       warning(
         manifestPath,

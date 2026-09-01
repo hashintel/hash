@@ -1,3 +1,8 @@
+/**
+ * @layerRoot website.local-storage-demo
+ * @role Editable demo shell: nets in local storage, one live document handle
+ */
+
 import { useEffect, useMemo, useState } from "react";
 
 import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";

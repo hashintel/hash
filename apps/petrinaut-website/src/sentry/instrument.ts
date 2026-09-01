@@ -1,3 +1,8 @@
+/**
+ * @layerRoot website.telemetry
+ * @role Sentry initialisation and the error-tracker provider the app mounts
+ */
+
 import * as Sentry from "@sentry/react";
 
 Sentry.init({

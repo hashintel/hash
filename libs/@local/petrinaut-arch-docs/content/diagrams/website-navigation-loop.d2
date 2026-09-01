@@ -1,0 +1,18 @@
+# Hand-written; rendered by the arch-docs build. Palette matches the classes in
+# src/emit/d2.ts: website nodes use the `website` class, the editor the `react`
+# class, and anything outside the model the `other` class.
+direction: right
+
+url: "URL\n(?scenario, ?subnet, ?itemType, ?itemId)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+route: "website.routes\nvalidateSearch" {style.fill: "#eef3d9"; style.stroke: "#6f8f2f"}
+contract: "website.examples\nexample-search" {style.fill: "#eef3d9"; style.stroke: "#6f8f2f"}
+hook: "useSharedSearchNavigation\n(in-memory location)" {style.fill: "#eef3d9"; style.stroke: "#6f8f2f"}
+petrinaut: "Petrinaut\nnavigation prop" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+
+url -> route: raw search
+route -> contract: validate
+contract -> hook: shared fields
+hook -> petrinaut: state
+petrinaut -> hook: "onNavigate(updater, {history, intent})"
+hook -> route: shared projection only
+route -> url: push or replace

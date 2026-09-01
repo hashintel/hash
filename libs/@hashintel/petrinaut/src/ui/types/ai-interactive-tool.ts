@@ -39,6 +39,12 @@ export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
   inputSchema: PetrinautAiInteractiveToolSchema<Input>;
   /** Runtime contract for the widget's submitted output. */
   outputSchema: PetrinautAiInteractiveToolSchema<Output>;
+  /**
+   * Optionally map text submitted through the assistant composer to this
+   * tool's output. Petrinaut validates both the pending input and mapped
+   * output before completing the tool call.
+   */
+  fromComposerText?: (params: { input: Input; text: string }) => Output;
   /** Inline component shown while awaiting input and after submission. */
   component: ComponentType<
     PetrinautAiInteractiveToolWidgetProps<Input, Output>
@@ -49,6 +55,7 @@ type ErasedInteractiveToolDefinition = {
   toolName: string;
   parseInput: (value: unknown) => unknown;
   parseOutput: (value: unknown) => unknown;
+  fromComposerText?: (params: { input: unknown; text: string }) => unknown;
   component: ComponentType<
     PetrinautAiInteractiveToolWidgetProps<unknown, unknown>
   >;
@@ -68,17 +75,30 @@ export type PetrinautAiInteractiveTool = {
  */
 export const definePetrinautAiInteractiveTool = <Input, Output>(
   definition: PetrinautAiInteractiveToolDefinition<Input, Output>,
-): PetrinautAiInteractiveTool => ({
-  toolName: definition.toolName,
-  [interactiveToolDefinition]: {
+): PetrinautAiInteractiveTool => {
+  const fromComposerText = definition.fromComposerText;
+
+  return {
     toolName: definition.toolName,
-    parseInput: (value) => definition.inputSchema.parse(value),
-    parseOutput: (value) => definition.outputSchema.parse(value),
-    component: definition.component as ComponentType<
-      PetrinautAiInteractiveToolWidgetProps<unknown, unknown>
-    >,
-  },
-});
+    [interactiveToolDefinition]: {
+      toolName: definition.toolName,
+      parseInput: (value) => definition.inputSchema.parse(value),
+      parseOutput: (value) => definition.outputSchema.parse(value),
+      fromComposerText: fromComposerText
+        ? ({ input, text }) =>
+            definition.outputSchema.parse(
+              fromComposerText({
+                input: definition.inputSchema.parse(input),
+                text,
+              }),
+            )
+        : undefined,
+      component: definition.component as ComponentType<
+        PetrinautAiInteractiveToolWidgetProps<unknown, unknown>
+      >,
+    },
+  };
+};
 
 /** @internal */
 export const getPetrinautAiInteractiveToolDefinition = (
