@@ -39,7 +39,7 @@ mod hex;
 mod secret;
 mod writer;
 
-pub use secret::SecretString;
+pub use secret::{EmptyPasswordError, PasswordString, SecretString};
 
 pub(crate) use self::{
     hash::{Sha256, Sha256Digest},

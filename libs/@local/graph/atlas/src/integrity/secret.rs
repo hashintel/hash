@@ -40,7 +40,7 @@ impl<A: Allocator> SecretString<A> {
     /// reinterpreted in place without a copy. A shared secret leaves as a fresh copy, and every
     /// other holder keeps the guarded original.
     #[must_use]
-    pub(crate) fn into_unguarded(self) -> Arc<str, A>
+    pub fn into_unguarded(self) -> Arc<str, A>
     where
         A: Clone,
     {
@@ -58,13 +58,21 @@ impl<A: Allocator> SecretString<A> {
 
             let mut arc: Arc<[MaybeUninit<u8>], A> = Arc::new_uninit_slice_in(len, alloc);
 
+            // SAFETY: `arc` was allocated on the line above and never cloned, so this reference
+            // is the allocation's only access. `write_copy_of_slice` fills exactly the `len`
+            // elements the slice was allocated with, from a source of that same length.
             unsafe {
                 Arc::get_mut_unchecked(&mut arc).write_copy_of_slice(self.0.as_bytes());
             }
 
+            // SAFETY: the `write_copy_of_slice` call above initialized every element.
             let arc: Arc<[u8], A> = unsafe { arc.assume_init() };
             let (ptr, alloc) = Arc::into_raw_with_allocator(arc);
 
+            // SAFETY: the pointer and allocator come from `into_raw_with_allocator` on this same
+            // allocation. Its bytes are a copy of `self.0`, a valid `str`, so the UTF-8 invariant
+            // holds, and `str` has the identical representation to `[u8]`, so the pointee retype
+            // preserves layout and slice metadata.
             unsafe { Arc::from_raw_in(ptr as *const str, alloc) }
         }
     }
@@ -166,6 +174,54 @@ impl fmt::Display for ParseSecretHexError {
 }
 
 impl Error for ParseSecretHexError {}
+
+/// The error for a password that is empty after trimming.
+#[derive(Debug)]
+pub struct EmptyPasswordError;
+
+impl fmt::Display for EmptyPasswordError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.write_str("password is empty after trimming surrounding whitespace")
+    }
+}
+
+impl Error for EmptyPasswordError {}
+
+/// A non-empty, trimmed password.
+///
+/// Parsing trims surrounding whitespace and refuses an input that is empty afterwards. The
+/// bytes zero on drop, and [`fmt::Debug`] prints the length alone, so logging a held password
+/// discloses nothing.
+#[derive(Clone)]
+pub struct PasswordString<A: Allocator = Global>(SecretString<A>);
+
+impl<A: Allocator> fmt::Debug for PasswordString<A> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("PasswordString")
+            .field("len", &self.0.0.len())
+            .finish_non_exhaustive()
+    }
+}
+
+impl<A: Allocator> From<PasswordString<A>> for SecretString<A> {
+    fn from(PasswordString(secret): PasswordString<A>) -> Self {
+        secret
+    }
+}
+
+impl FromStr for PasswordString {
+    type Err = EmptyPasswordError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        // Whitespace around a password is quoting and paste residue, never part of the value.
+        let value = value.trim();
+        if value.is_empty() {
+            return Err(EmptyPasswordError);
+        }
+
+        Ok(Self(SecretString::from(value)))
+    }
+}
 
 /// An `N`-byte secret configured in the canonical hexadecimal encoding.
 ///
@@ -339,9 +395,11 @@ impl<T, const N: usize> Clone for SecretHexBytesValueParser<T, N> {
 
 #[cfg(test)]
 mod tests {
-    use core::str::FromStr as _;
+    use core::{assert_matches, str::FromStr as _};
 
-    use super::{ParseSecretHexError, SecretHexBytes, SecretString};
+    use super::{
+        EmptyPasswordError, ParseSecretHexError, PasswordString, SecretHexBytes, SecretString,
+    };
 
     /// A key whose adjacent bytes differ, so a partial leak cannot hide inside a repeated run.
     const HEX: &str = "6ad599a5c17e1fc4d7e2988bd4f3e0367f3c4a35d6dae135f9a1e0efc775ce55";
@@ -422,6 +480,31 @@ mod tests {
 
         assert_eq!(unguarded.as_ptr(), address);
         assert_eq!(&*unguarded, VALUE);
+    }
+
+    /// Parsing holds the trimmed bytes alone.
+    #[test]
+    fn password_trim() {
+        let password = PasswordString::from_str("  hunter2\t").expect("the value is non-empty");
+
+        assert_eq!(SecretString::from(password).expose().as_bytes(), b"hunter2");
+    }
+
+    /// An empty input refuses, and so does one that trims to empty.
+    #[test]
+    fn password_empty() {
+        assert_matches!(PasswordString::from_str(""), Err(EmptyPasswordError));
+        assert_matches!(PasswordString::from_str(" \t\n"), Err(EmptyPasswordError));
+    }
+
+    /// The debug rendering of a held password encodes none of its characters.
+    #[test]
+    fn password_debug_redacts() {
+        const VALUE: &str = "correct-horse-battery-staple";
+
+        let password = PasswordString::from_str(VALUE).expect("the value is non-empty");
+
+        assert_redacted(&format!("{password:?}"), VALUE);
     }
 
     /// A shared secret leaves as a fresh copy, and the held clone keeps its guarded allocation.

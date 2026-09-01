@@ -3,11 +3,8 @@ use core::{net::SocketAddr, time::Duration};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_api::rest::{
-    probe,
-    telemetry::{self, HttpTracingLayer},
-};
-use hash_graph_atlas::cli;
+use hash_graph_api::rest::{auth::build_authentication_provider, rate_limit::RateLimitConfig};
+use hash_graph_atlas::cli::{self, PasswordString};
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
@@ -21,7 +18,7 @@ use crate::{
     error::{GraphError, HealthcheckError},
     subcommand::{
         HealthcheckArgs, ServerLifecycle,
-        server::{TemporalConfig, create_temporal_client},
+        server::{KratosSessionAuthConfig, TemporalConfig, create_temporal_client},
         wait_healthcheck,
     },
 };
@@ -66,6 +63,22 @@ pub struct AtlasArgs {
     #[clap(flatten)]
     pub temporal: TemporalConfig,
 
+    #[clap(flatten)]
+    pub session_auth: KratosSessionAuthConfig,
+
+    /// Shared secret internal services present to act on behalf of an actor.
+    ///
+    /// Sent as the `Authorization: HASH-Service <secret>` credential next to
+    /// `X-Authenticated-User-Actor-Id`.
+    //
+    // Optional at parse time so `--healthcheck` does not require the environment variable. The
+    // serve refuses to start without it.
+    #[clap(long, env = "HASH_GRAPH_SERVICE_SECRET", hide_env_values = true)]
+    pub service_secret: Option<PasswordString>,
+
+    #[clap(flatten)]
+    pub rate_limit: RateLimitConfig,
+
     /// Disables filter protection that prevents enumeration attacks on protected properties.
     ///
     /// The flag matches the server subcommand's, so the embedding exclusions the atlas ensures
@@ -96,6 +109,9 @@ pub(crate) async fn run_atlas(
     args: AtlasArgs,
     shutdown: CancellationToken,
 ) -> Result<(), Report<GraphError>> {
+    // Before running anything, make sure that the configuration is valid.
+    let session_auth = args.session_auth.into_provider_config()?;
+
     // The same filter-protection configuration the server subcommand parses, so the embedding
     // exclusions the staging arm's ensures carry stay equal to the exclusions the store's own
     // workflow starts carry.
@@ -106,20 +122,32 @@ pub(crate) async fn run_atlas(
     };
     let exclusions = filter_protection.embedding_exclusions().clone();
 
-    // A single pool serves the whole process, so the detail trailers and the
-    // permission resolution behind every request read through shared
-    // connections and neither waits on a connection the other holds.
-    let pool = PostgresStorePool::new(
-        &args.db_info,
-        &args.db_pool_config,
-        NoTls,
-        PostgresStoreSettings {
-            filter_protection,
-            ..PostgresStoreSettings::default()
-        },
-    )
-    .await
-    .change_context(GraphError)?;
+    let service_secret = args
+        .service_secret
+        .map(cli::SecretString::from)
+        .ok_or_else(|| {
+            Report::new(GraphError).attach(
+                "--service-secret (HASH_GRAPH_SERVICE_SECRET) must be set and non-empty when \
+                 running the atlas server",
+            )
+        })?;
+
+    // A single pool serves the whole process, so the detail trailers, the permission
+    // resolution, and the credential chain's actor lookups behind every request read through
+    // shared connections and none waits on a connection another holds.
+    let pool = Arc::new(
+        PostgresStorePool::new(
+            &args.db_info,
+            &args.db_pool_config,
+            NoTls,
+            PostgresStoreSettings {
+                filter_protection,
+                ..PostgresStoreSettings::default()
+            },
+        )
+        .await
+        .change_context(GraphError)?,
+    );
 
     // Absent a configured Temporal server, arrivals stage and never ensure, which fails closed.
     let workflow =
@@ -130,14 +158,25 @@ pub(crate) async fn run_atlas(
                 exclusions,
             });
 
+    // The chain the REST router authenticates with, so a credential means the same thing on
+    // every route of the deployment: a Kratos session, or the service secret with the actor it
+    // delegates. Cloudflare Access fronts the admin server's operator routes, so no JWT
+    // verifier enters this chain.
+    let provider = Arc::new(build_authentication_provider(
+        session_auth,
+        None,
+        service_secret.clone().into_unguarded().as_ref().to_owned(),
+        &pool,
+    ));
+
     // Every request answers under the scope of the actor it names.
     let router = cli::ServeCommand::new(args.root, args.serve)
         .run(cli::ServeOptions {
-            provider: (),
-            service_secret: (),
-            rate_limit: (),
-            pool: Arc::new(pool),
-            visibility: hash_graph_atlas::cli::VisibilityLimits::default(),
+            provider,
+            service_secret,
+            rate_limit: (&args.rate_limit).into(),
+            pool,
+            visibility: cli::VisibilityLimits::default(),
             workflow,
         })
         .map_err(Report::new)
