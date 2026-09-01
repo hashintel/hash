@@ -4,7 +4,13 @@ import type {
   ExperimentParameterAxis,
   ExperimentParameterInput,
 } from "./parameter-grid";
-import type { SweepCellSnapshot, SweepSelection } from "./sweep-session";
+import type {
+  SweepBatchStatus,
+  SweepCellSnapshot,
+  SweepSelection,
+} from "./sweep-session";
+
+export type { SweepBatchStatus } from "./sweep-session";
 import type {
   SDCPN,
   MonteCarloExpressionMetricSpec,
@@ -125,6 +131,12 @@ export type ExperimentRecord = {
   parameterAxes: readonly ExperimentParameterAxis[];
   /** Live sweep state; null for a plain experiment. */
   sweep: ExperimentSweepState | null;
+  /**
+   * Every batch the sweep session is computing right now — the selection's
+   * own ladder rungs plus the background surface and refine batches. Empty
+   * for a plain experiment and whenever nothing computes.
+   */
+  sweepBatches: readonly SweepBatchStatus[];
 };
 
 /** Navigator-facing state of a sweep experiment. */

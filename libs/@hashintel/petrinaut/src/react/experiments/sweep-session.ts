@@ -57,6 +57,21 @@ export type SweepCellSnapshot = {
 };
 
 /** What the session streams to its owner on every meaningful change. */
+/** One batch currently computing, for the host's activity display. */
+export type SweepBatchStatus = {
+  id: number;
+  /**
+   * What the batch is for. "selection" is the navigator's own ladder — the
+   * priority work; "surface" is a contour chunk; "refine" is a single cell
+   * brought up to depth. Selection batches sort first.
+   */
+  kind: "selection" | "surface" | "refine";
+  /** Runs this batch owns. */
+  runCount: number;
+  /** Runs it has finished so far. */
+  completedRuns: number;
+};
+
 export type SweepSessionUpdate = {
   selection: SweepSelection;
   /** Cached batches of the selection plus the in-flight batch, merged. */
@@ -148,6 +163,16 @@ export type SweepSession = {
    * work keeps the navigator's own point first in line at all times.
    */
   whenSelectionStreamed: () => Promise<void>;
+  /**
+   * Every batch currently computing, foreground and background alike. A
+   * store of its own rather than part of `onUpdate`, so a background
+   * batch's progress ticks animate the host's activity list without
+   * republishing the selection's frames.
+   */
+  batches: {
+    get: () => readonly SweepBatchStatus[];
+    subscribe: (listener: () => void) => () => void;
+  };
   /**
    * Reads a point's finished-batch snapshot, by quantized position.
    * The surface sampler uses this to reuse navigator work.
@@ -473,6 +498,83 @@ export function createSweepSession(
     disposed || loopGeneration !== generation;
 
   /**
+   * The live batch registry behind `session.batches`: every computing batch
+   * registers itself with its handle, and progress ticks refresh a snapshot
+   * on a coarse throttle — this feeds a small activity display, not the
+   * charts, so a tick every ~100 ms is plenty.
+   */
+  const BATCH_TICK_MS = 100;
+  let batchSequence = 0;
+  const activeBatches = new Map<
+    number,
+    {
+      kind: SweepBatchStatus["kind"];
+      runCount: number;
+      handle: MonteCarloExperiment;
+    }
+  >();
+  const KIND_ORDER: Record<SweepBatchStatus["kind"], number> = {
+    selection: 0,
+    surface: 1,
+    refine: 2,
+  };
+  let batchesSnapshot: readonly SweepBatchStatus[] = [];
+  const batchListeners = new Set<() => void>();
+  const refreshBatches = () => {
+    batchesSnapshot = [...activeBatches.entries()]
+      .map(([id, batch]) => ({
+        id,
+        kind: batch.kind,
+        runCount: batch.runCount,
+        completedRuns: batch.handle.progress.get()?.completedRuns ?? 0,
+      }))
+      .sort(
+        (left, right) =>
+          KIND_ORDER[left.kind] - KIND_ORDER[right.kind] || left.id - right.id,
+      );
+    for (const listener of batchListeners) {
+      listener();
+    }
+  };
+  const batchTick: {
+    timer: ReturnType<typeof setTimeout> | null;
+    pending: boolean;
+  } = { timer: null, pending: false };
+  const refreshBatchesThrottled = () => {
+    if (batchTick.timer !== null) {
+      batchTick.pending = true;
+      return;
+    }
+    refreshBatches();
+    batchTick.timer = setTimeout(() => {
+      batchTick.timer = null;
+      if (batchTick.pending) {
+        batchTick.pending = false;
+        refreshBatchesThrottled();
+      }
+    }, BATCH_TICK_MS);
+  };
+  const registerBatch = (
+    kind: SweepBatchStatus["kind"],
+    batchRunCount: number,
+    handle: MonteCarloExperiment,
+  ): (() => void) => {
+    const id = ++batchSequence;
+    activeBatches.set(id, { kind, runCount: batchRunCount, handle });
+    const offProgress = handle.progress.subscribe(refreshBatchesThrottled);
+    // Counts change on the leading edge: a batch appearing (or leaving)
+    // should not wait out the tick.
+    refreshBatches();
+    return () => {
+      if (!activeBatches.delete(id)) {
+        return;
+      }
+      offProgress();
+      refreshBatches();
+    };
+  };
+
+  /**
    * One in-flight ladder batch. Rungs cover disjoint run ranges with
    * prefix-stable draws and seeds, so a successor can compute while its
    * predecessor is still running; only the FOLD into the cache is ordered.
@@ -602,6 +704,8 @@ export function createSweepSession(
     };
 
     handle.start();
+    const unregisterBatch = registerBatch("selection", target - from, handle);
+    void done.then(unregisterBatch);
 
     return {
       target,
@@ -879,7 +983,13 @@ export function createSweepSession(
       });
     });
     handle.start();
+    const unregisterBatch = registerBatch(
+      "refine",
+      target - snapshot.runsCompleted,
+      handle,
+    );
     const completed = await done;
+    unregisterBatch();
     const frames = handle.metrics.get().frames;
     handle.dispose();
 
@@ -1014,7 +1124,9 @@ export function createSweepSession(
             }
           });
     handle.start();
+    const unregisterBatch = registerBatch("surface", runCountTotal, handle);
     const completed = await done;
+    unregisterBatch();
     offRunResults?.();
     const runResults = handle.runResults.get();
     handle.dispose();
@@ -1026,6 +1138,15 @@ export function createSweepSession(
   };
 
   return {
+    batches: {
+      get: () => batchesSnapshot,
+      subscribe: (listener) => {
+        batchListeners.add(listener);
+        return () => {
+          batchListeners.delete(listener);
+        };
+      },
+    },
     whenSelectionStreamed() {
       if (disposed || failed || streamedGeneration === generation) {
         return Promise.resolve();
@@ -1073,6 +1194,8 @@ export function createSweepSession(
       disposed = true;
       generation += 1;
       markSelectionStreamed();
+      activeBatches.clear();
+      refreshBatches();
       abortCurrent?.();
       abortCurrent = null;
     },
