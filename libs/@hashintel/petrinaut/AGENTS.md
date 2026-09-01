@@ -80,3 +80,14 @@ When you change structure in `petrinaut-core`, `petrinaut`, or `petrinaut-cli`, 
 Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`. To read the docs, `turbo run doc:architecture --filter @local/petrinaut-arch-docs` writes the bundle to `libs/@local/petrinaut-arch-docs/bundle/` (git-ignored). Full reference: `libs/@local/petrinaut-arch-docs/README.md`. Browse with `turbo run dev --filter @apps/petrinaut-docs`.
 
 Hand-written MDX in `libs/@local/petrinaut-arch-docs/content/` is optional. Give such a page `attachTo: <layer id>` in its frontmatter. Link with `[text](layer:core.simulation.engine)` or `[text](doc:simulation/memory-model)`; relative paths break when a page's `attachTo` changes, and unresolved targets fail CI.
+
+## Shipping conventions
+
+These apply to changes in `petrinaut`, `petrinaut-core`, and `petrinaut-cli`.
+
+- Changesets: `@hashintel/petrinaut` and `@hashintel/petrinaut-core` always get a `patch` bump, never `minor`, whatever the change. One changeset per PR; pure refactors get none. `@local/*` and `@apps/*` packages never publish.
+- Review fixes and scope additions land as dedicated commits on an open PR.
+- Never commit `mise.lock` changes or generated arch-docs output. Stage explicit paths, not `git add -A`.
+- Diagrams in Petrinaut documentation are D2, in `libs/@local/petrinaut-arch-docs/content/diagrams/`. Design and performance write-ups live in that package's `content/` tree, not in loose package `.md` files. A documented flaw that needs a refactor gets a `:::danger` aside and a Linear ticket.
+- READMEs and docs state what a package does. No people, no meeting history, no volatile counts, no infrastructure or access-control detail.
+- CI: Bench-CI is non-blocking. The playwright `types-page.spec.ts` check is flaky; rerun it once before diagnosing the diff. The "Vercel – petrinaut-docs" check can fail for Vercel-side reasons while the Actions build of the same docs passes; compare both before blaming the change.
