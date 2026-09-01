@@ -1,4 +1,3 @@
-import { produce } from "immer";
 import { useEffect, useMemo, useState } from "react";
 
 import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
@@ -167,13 +166,14 @@ export const LocalStorageDemoApp = () => {
       setStoredSDCPNs((prev) => {
         const stored = prev[netId] ?? fallbackNet;
 
-        return produce(prev, (draft) => {
-          draft[netId] = {
+        return {
+          ...prev,
+          [netId]: {
             ...stored,
             sdcpn: event.next,
             lastUpdated,
-          };
-        });
+          },
+        };
       });
     });
   }, [activeHandle, setStoredSDCPNs]);
@@ -251,15 +251,14 @@ export const LocalStorageDemoApp = () => {
 
     const lastUpdated = new Date().toISOString();
 
-    setStoredSDCPNs((prev) =>
-      produce(prev, (draft) => {
-        draft[currentNetId] = {
-          ...(draft[currentNetId] ?? currentNet),
-          title,
-          lastUpdated,
-        };
-      }),
-    );
+    setStoredSDCPNs((prev) => ({
+      ...prev,
+      [currentNetId]: {
+        ...(prev[currentNetId] ?? currentNet),
+        title,
+        lastUpdated,
+      },
+    }));
   };
 
   const conversationId = currentNetId

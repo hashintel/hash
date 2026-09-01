@@ -34,13 +34,10 @@ export const descriptionSchema = z.string().optional().meta({
   description: "Optional human-readable summary shown to users.",
 });
 
-export const metadataSchema = z
-  .record(z.string(), z.json())
-  .optional()
-  .meta({
-    description:
-      "Optional host-defined data. Petrinaut treats it as opaque and never renders it.",
-  });
+export const metadataSchema = z.record(z.string(), z.json()).optional().meta({
+  description:
+    "Optional host-defined data. Petrinaut treats it as opaque and never renders it.",
+});
 
 export const positionSchema = z
   .strictObject({
