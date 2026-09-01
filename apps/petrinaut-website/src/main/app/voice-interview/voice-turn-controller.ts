@@ -115,6 +115,7 @@ export class VoiceTurnController {
   #activeEpoch: number | null = null;
   #answerFinalizedAt: number | null = null;
   #answeredQuestionId: string | null = null;
+  #bridgeStarted = false;
   #currentQuestionId: string | null = null;
   #generation = 0;
   #inputStateOnResume: Exclude<VoiceInputState, "paused"> | null = null;
@@ -180,6 +181,7 @@ export class VoiceTurnController {
 
     this.#inputStateOnResume = null;
     this.#pauseRequested = false;
+    this.#bridgeStarted = false;
     this.#update({
       connection: "connecting",
       errorCode: null,
@@ -200,7 +202,10 @@ export class VoiceTurnController {
         input: microphoneEnabled ? "listening" : "paused",
         microphoneEnabled,
       });
-      this.#bridge.start(connectionEpoch);
+      if (microphoneEnabled) {
+        this.#bridge.start(connectionEpoch);
+        this.#bridgeStarted = true;
+      }
     } catch (error) {
       if (generation !== this.#generation) return;
       const voiceError =
@@ -216,6 +221,7 @@ export class VoiceTurnController {
     this.#activeEpoch = null;
     this.#answerFinalizedAt = null;
     this.#answeredQuestionId = null;
+    this.#bridgeStarted = false;
     this.#currentQuestionId = null;
     this.#inputStateOnResume = null;
     this.#submittingQuestionId = null;
@@ -289,6 +295,23 @@ export class VoiceTurnController {
     this.#inputStateOnResume = null;
     this.#pauseRequested = false;
     this.#session.setMicrophoneEnabled(true);
+    if (!this.#bridgeStarted && this.#activeEpoch !== null) {
+      try {
+        this.#bridge.start(this.#activeEpoch);
+        this.#bridgeStarted = true;
+      } catch (error) {
+        const voiceError =
+          error instanceof VoiceError
+            ? error
+            : new VoiceError("connection", "invalid-response", "");
+        this.#setError(
+          voiceError.message,
+          voiceError.code,
+          voiceError.requestId,
+        );
+        return;
+      }
+    }
     this.#update({ input, microphoneEnabled: true });
   }
 
@@ -473,6 +496,7 @@ export class VoiceTurnController {
     ++this.#generation;
     this.#activeEpoch = null;
     this.#inputStateOnResume = null;
+    this.#bridgeStarted = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
     this.#bridge.stop();

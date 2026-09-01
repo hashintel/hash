@@ -416,7 +416,7 @@ describe("VoiceTurnController", () => {
     finishConnection?.(1);
     await start;
 
-    expect(harness.bridge.start).toHaveBeenCalledWith(1);
+    expect(harness.bridge.start).not.toHaveBeenCalled();
     expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledWith(false);
     expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalledWith(true);
     expect(harness.controller.getSnapshot()).toMatchObject({
@@ -427,6 +427,7 @@ describe("VoiceTurnController", () => {
     });
 
     harness.controller.resume();
+    expect(harness.bridge.start).toHaveBeenCalledWith(1);
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "listening",
       microphoneEnabled: true,
