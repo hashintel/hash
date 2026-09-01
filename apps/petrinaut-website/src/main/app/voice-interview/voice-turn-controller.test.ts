@@ -184,6 +184,43 @@ describe("VoiceTurnController", () => {
     );
   });
 
+  test("preserves the first pending transcript while Brunch is busy", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.controller.updateChatStatus("streaming");
+
+    harness.emit({
+      connectionEpoch: 1,
+      itemId: "first-item",
+      type: "input-committed",
+    });
+    harness.emit({
+      key: key(1, "first-item"),
+      text: "The support lead triages it.",
+      type: "completed",
+    });
+    harness.emit({
+      connectionEpoch: 1,
+      itemId: "second-item",
+      type: "input-committed",
+    });
+    harness.emit({
+      key: key(1, "second-item"),
+      text: "The incident manager closes it.",
+      type: "completed",
+    });
+
+    harness.controller.updateChatStatus("ready");
+
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+    expect(harness.submitText).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "The support lead triages it." }),
+    );
+    expect(harness.controller.getSnapshot().lastCommittedText).toBe(
+      "The support lead triages it.",
+    );
+  });
+
   test("retries a finalized transcript rejected by a concurrent Brunch turn", async () => {
     const harness = createHarness();
     harness.submitText.mockImplementationOnce(async () => {

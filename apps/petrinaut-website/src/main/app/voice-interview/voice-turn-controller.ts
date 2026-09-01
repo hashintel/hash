@@ -303,6 +303,9 @@ export class VoiceTurnController {
       this.#update({ errorMessage: event.message, phase: "recoverable-error" });
       return;
     }
+    if (this.#pendingDelivery !== null) {
+      return;
+    }
     if (event.type === "input-committed") {
       if (
         event.connectionEpoch !== this.#activeEpoch ||
