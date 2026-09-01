@@ -28,6 +28,7 @@ export {
   colorSchema,
   componentInstanceSchema,
   differentialEquationSchema,
+  identitySchema,
   metricSchema,
   parameterSchema,
   mutationActionInputSchemas,
