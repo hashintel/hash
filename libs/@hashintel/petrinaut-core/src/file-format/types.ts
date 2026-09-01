@@ -19,6 +19,10 @@ import {
   scenarioParameterSchema as currentScenarioParameterSchema,
   scenarioSchema as currentScenarioSchema,
 } from "../schemas/scenario-schema";
+import {
+  statusLabelSchema as currentStatusLabelSchema,
+  statusViewObjectSchema as currentStatusViewObjectSchema,
+} from "../schemas/status-view-schema";
 
 export const SDCPN_FILE_FORMAT_VERSION = 1;
 
@@ -127,6 +131,21 @@ const metricSchema = z.object({
   code: z.string().default(""),
 });
 
+const statusLabelSchema = z.object({
+  ...currentStatusLabelSchema.shape,
+  id: z.string(),
+  name: z.string(),
+  displayColor: z.string().optional(),
+});
+
+const statusViewSchema = z.object({
+  ...currentStatusViewObjectSchema.shape,
+  id: z.string(),
+  name: z.string(),
+  identityRef: z.string(),
+  labels: z.array(statusLabelSchema).default([]),
+});
+
 const componentInstanceSchema = z.object({
   ...currentComponentInstanceSchema.shape,
   id: z.string(),
@@ -159,6 +178,7 @@ export const sdcpnSchema = z.object({
   parameters: z.array(parameterSchema).default([]),
   scenarios: z.array(scenarioSchema).default([]),
   metrics: z.array(metricSchema).default([]),
+  statusViews: z.array(statusViewSchema).default([]),
   subnets: z.array(subnetSchema).default([]),
   componentInstances: z.array(componentInstanceSchema).default([]),
 });

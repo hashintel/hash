@@ -65,6 +65,7 @@ const fillMissingVisualInfo = (sdcpn: {
   places: Array<{ x?: number; y?: number }>;
   transitions: Array<{ x?: number; y?: number }>;
   types: Array<{ iconSlug?: string; displayColor?: string }>;
+  statusViews?: Array<{ labels: Array<{ displayColor?: string }> }>;
   componentInstances?: Array<{ x?: number; y?: number }>;
   subnets?: Array<{
     places: Array<{ x?: number; y?: number }>;
@@ -89,6 +90,13 @@ const fillMissingVisualInfo = (sdcpn: {
       ...type,
       iconSlug: type.iconSlug ?? "circle",
       displayColor: type.displayColor ?? "#808080",
+    })),
+    statusViews: (sdcpn.statusViews ?? []).map((statusView) => ({
+      ...statusView,
+      labels: statusView.labels.map((label) => ({
+        ...label,
+        displayColor: label.displayColor ?? "#808080",
+      })),
     })),
     componentInstances: (sdcpn.componentInstances ?? []).map((instance) => ({
       ...instance,

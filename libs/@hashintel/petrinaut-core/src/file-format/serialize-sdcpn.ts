@@ -28,6 +28,7 @@ const DOCUMENT_KEY_ORDER = [
   "transitions",
   "metrics",
   "scenarios",
+  "statusViews",
 ] as const satisfies readonly SDCPNDocumentKey[];
 
 const SUBNET_KEY_ORDER = [

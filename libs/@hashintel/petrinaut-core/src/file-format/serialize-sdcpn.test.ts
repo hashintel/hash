@@ -46,6 +46,29 @@ const sourceDocument = {
   componentInstances: [
     { id: "instance1", name: "Instance 1", subnetId: "subnet1", x: 0, y: 0 },
   ],
+  statusViews: [
+    {
+      id: "view1",
+      name: "Ticket status",
+      identityRef: "identity-ticket",
+      labels: [
+        {
+          id: "label1",
+          name: "In Progress",
+          displayColor: "#1E90FF",
+          places: ["p1", "instance1::p1"],
+          tokenCondition: "attempts === 0",
+        },
+        {
+          id: "label2",
+          name: "Gone",
+          displayColor: "#333333",
+          places: [],
+          isExit: true,
+        },
+      ],
+    },
+  ],
 };
 
 const parseFixture = () => {
@@ -111,6 +134,29 @@ describe("serializeSDCPN", () => {
     expect(reimported.hadMissingPositions).toBe(true);
   });
 
+  it("strips status label colours with removeVisualInfo and defaults them on import", () => {
+    const sdcpn = parseFixture();
+
+    const text = serializeSDCPN({
+      petriNetDefinition: sdcpn,
+      title: "Test Net",
+      removeVisualInfo: true,
+      format: "json",
+    });
+
+    const document = JSON.parse(text) as {
+      statusViews: { labels: { displayColor?: string }[] }[];
+    };
+    expect(document.statusViews[0]!.labels[0]!.displayColor).toBeUndefined();
+
+    const reimported = parseSDCPNDocument(text);
+    expect(reimported.ok).toBe(true);
+    if (!reimported.ok) return;
+    expect(reimported.sdcpn.statusViews![0]!.labels[0]!.displayColor).toBe(
+      "#808080",
+    );
+  });
+
   it("writes format metadata first, then the sections in dependency order", () => {
     const sdcpn = parseFixture();
 
@@ -144,6 +190,7 @@ describe("serializeSDCPN", () => {
       "transitions",
       "metrics",
       "scenarios",
+      "statusViews",
     ]);
     expect(Object.keys(document.subnets![0]!)).toEqual([
       "id",

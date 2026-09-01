@@ -1,4 +1,5 @@
 import { getArcEndpoint } from "../../arc-endpoints";
+import { formatScopedId, SCOPED_ID_SEPARATOR } from "../../scoped-ids";
 import { createUserKeyedRecord, getOwn } from "../../validation/record-keys";
 
 import type {
@@ -31,24 +32,7 @@ export const getArcPlaceNameOverrideKey = ({
   placeId: ID;
 }): string => `${transitionId}\u0000${placeId}`;
 
-const scopeSeparator = "::";
-
-const assertScopableId = (id: ID): void => {
-  if (id.includes(scopeSeparator)) {
-    throw new Error(
-      `SDCPN IDs used with component instances must not contain the scope separator \`${scopeSeparator}\`: \`${id}\`.`,
-    );
-  }
-};
-
-const scopedId = (path: readonly ID[], id: ID): ID => {
-  for (const part of path) {
-    assertScopableId(part);
-  }
-  assertScopableId(id);
-
-  return path.length === 0 ? id : [...path, id].join(scopeSeparator);
-};
+const scopedId = formatScopedId;
 
 const _codeIdentifier = (value: string): string => {
   const cleaned = value.replace(/[^A-Za-z0-9_$]/g, "_");
@@ -64,7 +48,7 @@ const scopedPortPlaceName = ({
 }: {
   instance: ComponentInstance;
   portName: string;
-}): string => `${instance.name}${scopeSeparator}${portName}`;
+}): string => `${instance.name}${SCOPED_ID_SEPARATOR}${portName}`;
 
 const coerceParameterValue = (
   parameter: Parameter,
@@ -456,6 +440,7 @@ export const flattenComponentInstancesForSimulation = ({
     parameters: [],
     scenarios: sdcpn.scenarios?.map((scenario) => ({ ...scenario })),
     metrics: sdcpn.metrics?.map((metric) => ({ ...metric })),
+    statusViews: sdcpn.statusViews?.map((statusView) => ({ ...statusView })),
     subnets: [],
     componentInstances: [],
   };

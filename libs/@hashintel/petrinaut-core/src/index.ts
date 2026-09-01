@@ -204,6 +204,7 @@ export {
   scenarioSchema,
   setNetTitleToolInputSchema,
   setNetTitleToolName,
+  statusViewSchema,
   subnetSchema,
   transitionSchema,
 } from "./ai";
@@ -399,6 +400,13 @@ export {
   placeArcEndpoint,
 } from "./arc-endpoints";
 export { GRID_SIZE } from "./grid-size";
+export {
+  formatScopedId,
+  isScopedId,
+  parseScopedId,
+  SCOPED_ID_SEPARATOR,
+  type ParsedScopedId,
+} from "./scoped-ids";
 export {
   type DefaultParameterValues,
   deriveDefaultParameterValues,

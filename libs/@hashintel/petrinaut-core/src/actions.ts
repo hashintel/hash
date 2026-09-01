@@ -7,6 +7,7 @@ import {
   mutationActionInputSchemas,
   placeSchema,
   scenarioSchema,
+  statusViewSchema,
   subnetSchema,
   transitionSchema,
   type MutationActionInput,
@@ -1072,6 +1073,66 @@ export function createPetrinautActions(
         for (const [index, metric] of metrics.entries()) {
           if (metric.id === parsedMetricId) {
             metrics.splice(index, 1);
+            break;
+          }
+        }
+      });
+    },
+    addStatusView(statusView) {
+      const parsedStatusView = statusViewSchema.parse(statusView);
+      mutateWithExtensionGuards((sdcpn) => {
+        const targetSdcpn = sdcpn;
+        targetSdcpn.statusViews ??= [];
+        const statusViews = targetSdcpn.statusViews;
+        statusViews.push(parsedStatusView);
+      });
+    },
+    updateStatusView(input) {
+      const parsed = mutationActionInputSchemas.updateStatusView.parse(input);
+      mutateWithExtensionGuards((sdcpn) => {
+        for (const statusView of sdcpn.statusViews ?? []) {
+          if (statusView.id === parsed.statusViewId) {
+            Object.assign(statusView, parsed.update);
+            statusViewSchema.parse(statusView);
+            break;
+          }
+        }
+      });
+    },
+    removeStatusView(input) {
+      const { statusViewId: parsedStatusViewId } =
+        mutationActionInputSchemas.removeStatusView.parse(input);
+      mutateWithExtensionGuards((sdcpn) => {
+        const statusViews = sdcpn.statusViews;
+        if (!statusViews) {
+          return;
+        }
+        for (const [index, statusView] of statusViews.entries()) {
+          if (statusView.id === parsedStatusViewId) {
+            statusViews.splice(index, 1);
+            break;
+          }
+        }
+      });
+    },
+    moveStatusViewLabel(input) {
+      const parsed =
+        mutationActionInputSchemas.moveStatusViewLabel.parse(input);
+      mutateWithExtensionGuards((sdcpn) => {
+        for (const statusView of sdcpn.statusViews ?? []) {
+          if (statusView.id === parsed.statusViewId) {
+            const fromIndex = statusView.labels.findIndex(
+              (label) => label.id === parsed.labelId,
+            );
+            if (fromIndex === -1) {
+              break;
+            }
+            const [label] = statusView.labels.splice(fromIndex, 1);
+            if (label) {
+              // Splice clamps out-of-range destinations to the array end.
+              statusView.labels.splice(parsed.toIndex, 0, label);
+              statusViewSchema.parse(statusView);
+            }
             break;
           }
         }

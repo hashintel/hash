@@ -23,6 +23,7 @@ export {
   mutationActionInputSchemas,
   placeSchema,
   scenarioSchema,
+  statusViewSchema,
   subnetSchema,
   transitionSchema,
 } from "./action-schemas";
