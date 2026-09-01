@@ -13,6 +13,7 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { Section, SectionList } from "../../../../../components/section";
 import { ColorSelect } from "../../shared/color-select";
+import { defaultStatusLabelColor } from "./status-view-form-defaults";
 
 import type { StatusViewPlaceOption } from "./status-view-place-options";
 import type { Identity } from "@hashintel/petrinaut-core";
@@ -41,6 +42,7 @@ export interface StatusViewFormState {
 function validateStatusViewForm(
   value: StatusViewFormState,
   existingNames: ReadonlySet<string>,
+  knownPlaceIds: ReadonlySet<string> | undefined,
 ): string | undefined {
   const trimmedName = value.name.trim();
   if (trimmedName === "") {
@@ -71,6 +73,15 @@ function validateStatusViewForm(
         return "A status view may declare at most one exit label.";
       }
       exitLabelSeen = true;
+      continue;
+    }
+    if (knownPlaceIds) {
+      const danglingPlaceId = label.places.find(
+        (placeId) => !knownPlaceIds.has(placeId),
+      );
+      if (danglingPlaceId !== undefined) {
+        return `Label "${labelName}" references a place (\`${danglingPlaceId}\`) that no longer exists in the net.`;
+      }
     }
   }
   return undefined;
@@ -81,6 +92,12 @@ function validateStatusViewForm(
 export interface UseStatusViewFormOptions {
   /** Names of other existing status views; the form's name must not match. */
   existingStatusViewNames?: ReadonlySet<string>;
+  /**
+   * Ids a label place reference may use (the place-picker options). A label
+   * referencing anything else — e.g. a place deleted since the view was
+   * authored, in an imported document — fails validation with the id named.
+   */
+  knownPlaceIds?: ReadonlySet<string>;
   /** Exact submit-time HIR validation of the labels' token conditions. */
   validateOnSubmit?: (
     value: StatusViewFormState,
@@ -100,13 +117,16 @@ export function useStatusViewForm(
   options: UseStatusViewFormOptions = {},
 ) {
   const existingNames = options.existingStatusViewNames ?? new Set<string>();
+  const knownPlaceIds = options.knownPlaceIds;
   return useForm({
     defaultValues,
     onSubmit: async ({ value, formApi }) =>
       await onSubmit(value, { reset: () => formApi.reset() }),
     validators: {
-      onChange: ({ value }) => validateStatusViewForm(value, existingNames),
-      onSubmit: ({ value }) => validateStatusViewForm(value, existingNames),
+      onChange: ({ value }) =>
+        validateStatusViewForm(value, existingNames, knownPlaceIds),
+      onSubmit: ({ value }) =>
+        validateStatusViewForm(value, existingNames, knownPlaceIds),
       onSubmitAsync: options.validateOnSubmit
         ? async ({ value }) => await options.validateOnSubmit!(value)
         : undefined,
@@ -388,7 +408,7 @@ const StatusViewFormSections = ({
                 {
                   id: crypto.randomUUID(),
                   name: "",
-                  displayColor: "#3b82f6",
+                  displayColor: defaultStatusLabelColor,
                   places: [],
                   tokenCondition: "",
                   isExit: false,

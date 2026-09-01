@@ -2,14 +2,12 @@
  * @layerRoot ui.views.kanban
  * @role Kanban projection of a status view: columns are labels, cards are tracked instances
  */
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
-  createStatusViewFrameEvaluator,
-  createStatusViewTracker,
-  summarizeStatusIntervals,
+  getStatusViewEvaluationScope,
   type InstanceStatus,
   type StatusLabel,
   type StatusView,
@@ -17,10 +15,12 @@ import {
 
 import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { StatusConditionArtifactsContext } from "../../../react/status-condition-artifacts";
+import { formatDwellMs } from "../shared/format-dwell";
 import {
-  getStatusViewEvaluationScope,
-  useStatusConditionArtifacts,
-} from "../shared/status-view-tracking";
+  createBoardReplay,
+  type BoardSnapshot,
+} from "./kanban-view/board-replay";
 
 const rootStyle = css({
   display: "flex",
@@ -49,6 +49,19 @@ const emptyStyle = css({
   fontStyle: "italic",
   fontSize: "sm",
   padding: "4",
+});
+
+const noticeStyle = css({
+  color: "red.s105",
+  fontSize: "xs",
+  flexShrink: 0,
+});
+
+const pendingNoticeStyle = css({
+  color: "neutral.s100",
+  fontSize: "xs",
+  fontStyle: "italic",
+  flexShrink: 0,
 });
 
 const boardStyle = css({
@@ -125,21 +138,6 @@ const cardMetaStyle = css({
   color: "neutral.s90",
 });
 
-/** 61_500 ms → `1m 2s`; sub-second dwell shows as `0s`. */
-const formatDwellMs = (dwellMs: number): string => {
-  const totalSeconds = Math.max(0, Math.floor(dwellMs / 1_000));
-  const hours = Math.floor(totalSeconds / 3_600);
-  const minutes = Math.floor((totalSeconds % 3_600) / 60);
-  const seconds = totalSeconds % 60;
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  if (minutes > 0) {
-    return `${minutes}m ${seconds}s`;
-  }
-  return `${seconds}s`;
-};
-
 /** Columns follow the labels array order, with the exit label last. */
 const toColumnOrder = (labels: readonly StatusLabel[]): StatusLabel[] => [
   ...labels.filter((label) => !label.isExit),
@@ -157,11 +155,9 @@ const KanbanCard = ({
   nowMs: number;
   tintColor: string;
 }) => {
-  const { entryCount } = summarizeStatusIntervals(
-    instance.intervals,
-    labelId,
-    nowMs,
-  );
+  const entryCount = instance.intervals.filter(
+    (interval) => interval.labelId === labelId,
+  ).length;
   const dwellMs = nowMs - instance.enteredCurrentAtMs;
   return (
     <div className={cardStyle} style={{ borderLeftColor: tintColor }}>
@@ -174,50 +170,79 @@ const KanbanCard = ({
   );
 };
 
+type BoardReplayHandle = {
+  replay: ReturnType<typeof createBoardReplay>;
+  key: readonly unknown[];
+};
+
+const keysEqual = (
+  left: readonly unknown[],
+  right: readonly unknown[],
+): boolean =>
+  left.length === right.length &&
+  left.every((entry, index) => entry === right[index]);
+
 const KanbanBoard = ({ statusView }: { statusView: StatusView }) => {
   const { petriNetDefinition } = use(SDCPNContext);
   const { sourceId, currentFrameIndex, currentFrameReader, getFramesInRange } =
     use(ExecutionFrameSourceContext);
-  const statusConditions = useStatusConditionArtifacts();
+  const {
+    statusConditions,
+    pending: conditionsPending,
+    error: conditionsError,
+  } = use(StatusConditionArtifactsContext);
 
-  const [board, setBoard] = useState<{
-    instances: InstanceStatus[];
-    nowMs: number;
-  }>({ instances: [], nowMs: 0 });
+  const [board, setBoard] = useState<BoardSnapshot>({
+    instances: [],
+    nowMs: 0,
+    conditionErrors: null,
+  });
+  const [replayError, setReplayError] = useState<string | null>(null);
+  const replayRef = useRef<BoardReplayHandle | null>(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (!currentFrameReader) {
       return;
     }
-    let cancelled = false;
-    const { places, types } = getStatusViewEvaluationScope(petriNetDefinition);
-    const tracker = createStatusViewTracker({
+    // getFramesInRange is deliberately not part of the identity: in actual
+    // mode it is recreated per arriving event, while the replay only needs
+    // the latest one when it fetches.
+    const replayKey = [
+      sourceId,
       statusView,
-      evaluateFrame: createStatusViewFrameEvaluator({
-        statusView,
-        places,
-        types,
-        statusConditions,
-      }),
-    });
-    // Status history is derived, never stored: replay every frame up to the
-    // viewed one so dwell intervals and the exit label are correct after
-    // scrubbing backwards as well as forwards.
-    void getFramesInRange(0, currentFrameIndex + 1).then((frames) => {
-      if (cancelled) {
-        return;
-      }
-      for (const frame of frames) {
-        tracker.observeFrame(frame);
-      }
-      setBoard({
-        instances: tracker.getInstanceStatuses(),
-        nowMs: tracker.lastObservedTimeMs(),
+      statusConditions,
+      petriNetDefinition,
+    ];
+    if (!replayRef.current || !keysEqual(replayRef.current.key, replayKey)) {
+      const { places, types } =
+        getStatusViewEvaluationScope(petriNetDefinition);
+      replayRef.current = {
+        replay: createBoardReplay({
+          statusView,
+          places,
+          types,
+          statusConditions,
+        }),
+        key: replayKey,
+      };
+    }
+    const requestId = ++requestIdRef.current;
+    replayRef.current.replay
+      .advanceTo(currentFrameIndex, getFramesInRange)
+      .then((snapshot) => {
+        if (requestIdRef.current === requestId) {
+          setBoard(snapshot);
+          setReplayError(null);
+        }
+      })
+      .catch((error: unknown) => {
+        if (requestIdRef.current === requestId) {
+          setReplayError(
+            error instanceof Error ? error.message : String(error),
+          );
+        }
       });
-    });
-    return () => {
-      cancelled = true;
-    };
   }, [
     currentFrameIndex,
     currentFrameReader,
@@ -236,35 +261,70 @@ const KanbanBoard = ({ statusView }: { statusView: StatusView }) => {
     );
   }
 
+  const unlabelledCount = board.instances.filter(
+    (instance) => instance.currentLabelId === null,
+  ).length;
+
   return (
-    <div className={boardStyle}>
-      {toColumnOrder(statusView.labels).map((label) => {
-        const columnInstances = board.instances.filter(
-          (instance) => instance.currentLabelId === label.id,
-        );
-        return (
-          <div key={label.id} className={columnStyle}>
-            <div className={columnHeaderStyle}>
-              <span
-                className={columnSwatchStyle}
-                style={{ backgroundColor: label.displayColor }}
-              />
-              {label.name}
-              <span className={columnCountStyle}>{columnInstances.length}</span>
+    <>
+      {replayError !== null && (
+        <span className={noticeStyle}>
+          Could not derive statuses from frames: {replayError}
+        </span>
+      )}
+      {conditionsError !== null && (
+        <span className={noticeStyle}>{conditionsError}</span>
+      )}
+      {board.conditionErrors !== null && (
+        <span className={noticeStyle}>
+          {board.conditionErrors.count} token-condition evaluation error
+          {board.conditionErrors.count === 1 ? "" : "s"}:{" "}
+          {board.conditionErrors.firstMessage}
+        </span>
+      )}
+      {conditionsPending && (
+        <span className={pendingNoticeStyle}>
+          Compiling token conditions — labels with a condition match nothing
+          until compilation lands.
+        </span>
+      )}
+      {unlabelledCount > 0 && (
+        <span className={pendingNoticeStyle}>
+          {unlabelledCount} tracked instance{unlabelledCount === 1 ? "" : "s"}{" "}
+          currently match{unlabelledCount === 1 ? "es" : ""} no label.
+        </span>
+      )}
+      <div className={boardStyle}>
+        {toColumnOrder(statusView.labels).map((label) => {
+          const columnInstances = board.instances.filter(
+            (instance) => instance.currentLabelId === label.id,
+          );
+          return (
+            <div key={label.id} className={columnStyle}>
+              <div className={columnHeaderStyle}>
+                <span
+                  className={columnSwatchStyle}
+                  style={{ backgroundColor: label.displayColor }}
+                />
+                {label.name}
+                <span className={columnCountStyle}>
+                  {columnInstances.length}
+                </span>
+              </div>
+              {columnInstances.map((instance) => (
+                <KanbanCard
+                  key={instance.key}
+                  instance={instance}
+                  labelId={label.id}
+                  nowMs={board.nowMs}
+                  tintColor={label.displayColor}
+                />
+              ))}
             </div>
-            {columnInstances.map((instance) => (
-              <KanbanCard
-                key={instance.key}
-                instance={instance}
-                labelId={label.id}
-                nowMs={board.nowMs}
-                tintColor={label.displayColor}
-              />
-            ))}
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </>
   );
 };
 
