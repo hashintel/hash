@@ -35,13 +35,20 @@ editor in `CommandRegistryProvider`, read the live command list with
 `useCommands()`, and invoke entries with `registry.execute(id)`:
 
 ```tsx
-import { CommandRegistryProvider, useCommand } from "@hashintel/petrinaut";
+import {
+  CommandRegistryProvider,
+  useCommand,
+} from "@hashintel/petrinaut/react";
 
 <CommandRegistryProvider>
   <Petrinaut handle={handle} />
   <MyCommandPalette /> {/* renders from useCommands() */}
 </CommandRegistryProvider>;
 ```
+
+The command bindings are also re-exported from the package root; prefer
+`@hashintel/petrinaut/react`, which carries the React bindings without the
+editor's visual chunk.
 
 Host components register their own commands with the same
 `useCommand(command, { when })` hook — `when` is a plain boolean, and the

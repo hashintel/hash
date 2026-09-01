@@ -7,7 +7,6 @@ import { produce } from "immer";
 import { useEffect, useMemo, useState } from "react";
 
 import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
-import { CommandRegistryProvider, useCommand } from "@hashintel/petrinaut";
 import {
   createJsonDocHandle,
   type MinimalNetMetadata,
@@ -15,6 +14,10 @@ import {
   type PetrinautHandleCapabilities,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
+import {
+  CommandRegistryProvider,
+  useCommand,
+} from "@hashintel/petrinaut/react";
 import {
   DefaultChatTransport,
   Petrinaut,

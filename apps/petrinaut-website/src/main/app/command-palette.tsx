@@ -4,7 +4,7 @@ import {
   formatShortcutKeys,
   useCommandRegistry,
   useCommands,
-} from "@hashintel/petrinaut";
+} from "@hashintel/petrinaut/react";
 
 import type { CSSProperties } from "react";
 
