@@ -652,6 +652,73 @@ describe("Petrinaut core actions", () => {
     ]);
   });
 
+  test("adds, updates, moves labels within, and removes status views", () => {
+    const instance = createInstance();
+
+    instance.mutations.addStatusView({
+      id: "view-1",
+      name: "Ticket status",
+      identityRef: "identity-ticket",
+      labels: [
+        {
+          id: "label-1",
+          name: "Todo",
+          displayColor: "#808080",
+          places: ["p1"],
+        },
+        {
+          id: "label-2",
+          name: "Done",
+          displayColor: "#00AA00",
+          places: ["p2"],
+        },
+      ],
+    });
+    expect(instance.definition.get().statusViews).toHaveLength(1);
+
+    instance.mutations.updateStatusView({
+      statusViewId: "view-1",
+      update: { name: "Tickets" },
+    });
+    expect(instance.definition.get().statusViews![0]!.name).toBe("Tickets");
+
+    instance.mutations.moveStatusViewLabel({
+      statusViewId: "view-1",
+      labelId: "label-2",
+      toIndex: 0,
+    });
+    expect(
+      instance.definition
+        .get()
+        .statusViews![0]!.labels.map((label) => label.id),
+    ).toEqual(["label-2", "label-1"]);
+
+    expect(() =>
+      instance.mutations.updateStatusView({
+        statusViewId: "view-1",
+        update: {
+          labels: [
+            {
+              id: "label-1",
+              name: "Same",
+              displayColor: "#808080",
+              places: [],
+            },
+            {
+              id: "label-2",
+              name: "Same",
+              displayColor: "#00AA00",
+              places: [],
+            },
+          ],
+        },
+      }),
+    ).toThrow(/Duplicate label name/);
+
+    instance.mutations.removeStatusView({ statusViewId: "view-1" });
+    expect(instance.definition.get().statusViews).toHaveLength(0);
+  });
+
   test("deleteItemsByIds removes referenced types and equations", () => {
     const instance = createInstance({
       ...emptySDCPN,
