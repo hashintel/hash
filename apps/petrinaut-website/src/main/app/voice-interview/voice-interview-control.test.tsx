@@ -15,7 +15,6 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import {
   acknowledgeVoiceInterviewDisclosure,
-  isVoiceInputRepresented,
   isVoiceInterviewDisclosureAcknowledged,
   loadOpenAIVoiceConfig,
   VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
@@ -181,82 +180,6 @@ afterEach(() => {
 });
 
 describe("voice interview control", () => {
-  test("recognizes only the current canonical voice input representation", () => {
-    const baselineToolCallIds = new Set(["previous-question"]);
-    const ordinaryVoiceMessage = {
-      id: "voice-realtime:2:call-4",
-      metadata: { source: "voice" },
-      parts: [{ text: "Send it to dispatch", type: "text" }],
-      role: "user",
-    } as PetrinautAiVoiceModeContext["messages"][number];
-    const previousToolMessage = {
-      id: "assistant-previous",
-      metadata: { source: "voice", toolCallId: "previous-question" },
-      parts: [
-        {
-          input: { question: "Previous question?" },
-          output: { answer: "Previous answer" },
-          state: "output-available",
-          toolCallId: "previous-question",
-          toolName: "answerQuestion",
-          type: "dynamic-tool",
-        },
-      ],
-      role: "assistant",
-    } as unknown as PetrinautAiVoiceModeContext["messages"][number];
-    const currentToolMessage = {
-      id: "assistant-current",
-      metadata: { source: "voice", toolCallId: "current-question" },
-      parts: [
-        {
-          input: { question: "Current question?" },
-          output: { answer: "Current answer" },
-          state: "output-available",
-          toolCallId: "current-question",
-          toolName: "answerQuestion",
-          type: "dynamic-tool",
-        },
-      ],
-      role: "assistant",
-    } as unknown as PetrinautAiVoiceModeContext["messages"][number];
-
-    expect(
-      isVoiceInputRepresented([ordinaryVoiceMessage], {
-        baselineToolCallIds,
-        messageId: ordinaryVoiceMessage.id,
-      }),
-    ).toBe(true);
-    expect(
-      isVoiceInputRepresented([previousToolMessage], {
-        baselineToolCallIds,
-        messageId: "voice-realtime:2:call-5",
-      }),
-    ).toBe(false);
-    expect(
-      isVoiceInputRepresented([previousToolMessage, currentToolMessage], {
-        baselineToolCallIds,
-        messageId: "voice-realtime:2:call-5",
-      }),
-    ).toBe(true);
-    expect(
-      isVoiceInputRepresented(
-        [
-          {
-            ...currentToolMessage,
-            parts: currentToolMessage.parts.map((part) => ({
-              ...part,
-              state: "input-available",
-            })) as typeof currentToolMessage.parts,
-          },
-        ],
-        {
-          baselineToolCallIds,
-          messageId: "voice-realtime:2:call-5",
-        },
-      ),
-    ).toBe(false);
-  });
-
   test("stores and reads the versioned disclosure acknowledgement", () => {
     const values = new Map<string, string>();
     const storage = {

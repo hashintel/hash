@@ -16,16 +16,20 @@ transcript entries.
 
 Render every live Voice surface from a session snapshot the host reports through
 `reportVoiceSessionState`, so hosts describe their session while Petrinaut owns its chrome. Replace
-the composer with a low-profile Voice dock -- an ephemeral caption over a five-bar indicator that
-follows microphone input while listening, switches to deterministic motion while the assistant
-speaks, and names one phase at a time -- with throttled announcements and reduced-motion behavior.
-Hold spoken turns out of the transcript until the session ends, then reveal them together under a
-turn-count divider, while typed messages and interactive tools awaiting an answer stay visible
-throughout. Place Pause, Resume, Reconnect, and End in a glass segment above the canvas toolbar, and
-fall back to the same actions in the dock when that toolbar is absent. Surface voice recovery
-failures as toasts with privacy-safe diagnostic references, and request one-time consent before the
-host starts the microphone. Render compact waveform provenance on persisted spoken messages and the
-exact interactive-tool answer completed by Voice.
+the composer with a low-profile Voice dock -- a canvas ribbon drawn from the live microphone level
+while listening, moving under its own power while the assistant speaks, flat while neither holds the
+turn, and naming one phase at a time -- with an announced phase and reduced-motion behavior. Sample
+the level per animation frame rather than through React, so drawing costs no re-renders. Hold spoken
+turns out of the transcript until the session ends, then reveal them together under a turn-count
+divider, while typed messages and interactive tools awaiting an answer stay visible throughout. Let a
+per-session Show transcription in chat action write those turns into the conversation as they land
+instead. Keep every session control -- transcription, the microphone toggle, Resume, Reconnect, and
+End -- in the dock, leaving the canvas toolbar untouched. Add `setMicrophoneMuted` to the Voice mode
+controls and a `muted` session phase, so muting stops capture without interrupting what the assistant
+is saying, unlike pausing. Surface voice recovery failures as toasts with privacy-safe diagnostic
+references, and request one-time consent before the host starts the microphone. Mark persisted spoken
+messages and the exact interactive-tool answer completed by Voice with an inline Voice chip ahead of
+the words themselves.
 
 End Voice mode before submitting typed text exactly once through the shared composer, preserving the
 draft if handoff fails. Pause active media before the AI panel closes and reopen the mounted session

@@ -1,10 +1,8 @@
 import { Button } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 
 import {
   useVoiceSessionActions,
-  useVoiceSessionCaption,
-  useVoiceSessionHasCanvasControls,
   useVoiceSessionPhase,
 } from "../../../../../../react/voice-session/use-voice-session";
 import { LiveVoiceSessionIndicator } from "../../../components/voice-session-indicator";
@@ -12,76 +10,75 @@ import {
   voiceSessionActionLabels,
   voiceSessionStatusLabel,
 } from "../../../components/voice-session-labels";
-import { useThrottledAnnouncement } from "./voice-dock/use-throttled-announcement";
+import { MicrophoneIcon } from "./voice-dock/microphone-icon";
 
 import type { VoiceSessionActions } from "../../../../../../react/voice-session/store";
 import type { PetrinautAiVoiceSessionPhase } from "../../../../../types/ai-assistant-composer-control";
 import type { ReactNode } from "react";
 
 const dockStyle = css({
-  position: "relative",
   display: "flex",
-  flexDirection: "column",
   flexShrink: 0,
-  padding: "[10px 12px 12px]",
+  minHeight: "[64px]",
+  alignItems: "center",
+  gap: "2",
+  padding: "[10px 12px]",
   borderTopWidth: "thin",
   borderTopStyle: "solid",
   borderTopColor: "neutral.a20",
   backgroundColor: "neutral.s00",
-});
-
-// Held at a constant height so the panel doesn't jump between a silent turn
-// and a spoken one.
-const captionStyle = css({
-  display: "flex",
-  minHeight: "[40px]",
-  alignItems: "flex-end",
-  justifyContent: "center",
-  paddingX: "2",
-  paddingBottom: "2",
-  textAlign: "center",
-});
-
-const captionTextStyle = css({
-  // Two lines is enough to read a sentence in flight; the rest scrolls past.
-  lineClamp: "2",
-  overflow: "hidden",
-  color: "neutral.s100",
-  fontSize: "sm",
-  fontWeight: "medium",
-  lineHeight: "snug",
-  opacity: "[0]",
-  transform: "[translateY(4px)]",
-  transition: "[opacity 200ms ease, transform 200ms ease, color 200ms ease]",
-  "&[data-visible='true']": {
-    opacity: "[1]",
-    transform: "[none]",
-  },
+  animationName: "[petrinautVoiceReveal]",
+  animationDuration: "[240ms]",
+  animationTimingFunction: "[cubic-bezier(0.2, 0.9, 0.3, 1)]",
   "@media (prefers-reduced-motion: reduce)": {
-    transition: "[none]",
+    animationName: "[none]",
   },
 });
 
-const rowStyle = css({
+// Equal flexible sides keep the ribbon on the panel's centre line however wide
+// the phase label or the action cluster turn out to be.
+const sideStyle = css({
   display: "flex",
-  minHeight: "[32px]",
+  flex: "1",
+  minWidth: "[0]",
   alignItems: "center",
-  justifyContent: "center",
-  gap: "[10px]",
 });
 
-const statusStyle = css({
-  color: "neutral.s100",
-  fontSize: "xs",
-  fontWeight: "medium",
-  whiteSpace: "nowrap",
+const centerStyle = css({
+  display: "flex",
+  minWidth: "[0]",
+  alignItems: "center",
+  gap: "2",
+});
+
+const statusStyle = cva({
+  base: {
+    fontSize: "xs",
+    fontWeight: "medium",
+    overflow: "hidden",
+    letterSpacing: "[0.04em]",
+    textOverflow: "ellipsis",
+    textTransform: "uppercase",
+    whiteSpace: "nowrap",
+    transition: "[color 260ms ease]",
+  },
+  variants: {
+    phase: {
+      connecting: { color: "neutral.s90" },
+      error: { color: "neutral.s100" },
+      listening: { color: "blue.s90" },
+      muted: { color: "neutral.s100" },
+      paused: { color: "neutral.s90" },
+      speaking: { color: "neutral.s115" },
+      thinking: { color: "neutral.s90" },
+    },
+  },
 });
 
 const actionsStyle = css({
-  position: "absolute",
-  right: "3",
   display: "flex",
   alignItems: "center",
+  justifyContent: "flex-end",
   gap: "1",
 });
 
@@ -99,30 +96,34 @@ const visuallyHiddenStyle = css({
 
 export type VoiceDockProps = {
   actions: VoiceSessionActions | null;
-  caption: string;
   /** Rendered instead of the live indicator when the caller supplies one. */
   indicator?: ReactNode;
+  onTranscriptionToggle: () => void;
   phase: PetrinautAiVoiceSessionPhase;
-  /**
-   * The canvas toolbar owns these buttons whenever it is on screen; the dock
-   * only carries them for surfaces rendered without it.
-   */
-  showActions: boolean;
+  /** Whether spoken turns are currently written into the conversation live. */
+  transcriptionShown: boolean;
 };
 
 /**
- * The live Voice surface inside the assistant panel: an ephemeral caption over
- * one indicator, standing in for the composer while a session runs. Finalized
- * turns reach the transcript through the conversation, never from here.
+ * The live Voice surface inside the assistant panel: one ribbon and the
+ * session's controls, standing in for the composer while a session runs. Words
+ * belong to the conversation above, which the transcription action shows or
+ * holds back until the session ends.
  */
 export const VoiceDock = ({
   actions,
-  caption,
   indicator,
+  onTranscriptionToggle,
   phase,
-  showActions,
+  transcriptionShown,
 }: VoiceDockProps) => {
-  const announcement = useThrottledAnnouncement(caption);
+  const transcriptionLabel = transcriptionShown
+    ? "Hide transcription in chat"
+    : "Show transcription in chat";
+  const muted = phase === "muted";
+  const microphoneLabel = muted
+    ? voiceSessionActionLabels.unmute
+    : voiceSessionActionLabels.mute;
 
   return (
     <section
@@ -131,66 +132,82 @@ export const VoiceDock = ({
       data-phase={phase}
       data-testid="ai-voice-dock"
     >
-      <div className={captionStyle}>
-        <span
-          className={captionTextStyle}
-          data-testid="ai-voice-caption"
-          data-visible={caption === "" ? undefined : "true"}
-        >
-          {caption}
+      <span className={sideStyle}>
+        {actions !== null && (
+          <Button
+            aria-label={transcriptionLabel}
+            iconName="text"
+            onClick={onTranscriptionToggle}
+            pressed={transcriptionShown}
+            size="xs"
+            tooltip={transcriptionLabel}
+            type="button"
+            variant="ghost"
+          />
+        )}
+      </span>
+
+      <div className={centerStyle}>
+        {indicator ?? <LiveVoiceSessionIndicator />}
+        <span className={statusStyle({ phase })}>
+          {voiceSessionStatusLabel(phase)}
         </span>
       </div>
 
-      <div className={rowStyle}>
-        {indicator ?? <LiveVoiceSessionIndicator />}
-        <span className={statusStyle}>{voiceSessionStatusLabel(phase)}</span>
-
-        {showActions && actions !== null && (
-          <span className={actionsStyle}>
+      <span className={`${sideStyle} ${actionsStyle}`}>
+        {actions !== null && (
+          <>
             {phase === "error" ? (
               <Button
                 aria-label={voiceSessionActionLabels.reconnect}
                 iconName="rotate"
                 onClick={actions.reconnect}
-                size="xs"
+                shape="round"
+                size="md"
                 tooltip="Reconnect"
                 type="button"
-                variant="ghost"
+                variant="subtle"
               />
             ) : phase === "paused" ? (
               <Button
                 aria-label={voiceSessionActionLabels.resume}
                 iconName="play"
                 onClick={actions.resume}
-                size="xs"
+                shape="round"
+                size="md"
                 tooltip="Resume"
                 type="button"
-                variant="ghost"
+                variant="subtle"
               />
             ) : (
               <Button
-                aria-label={voiceSessionActionLabels.pause}
-                iconName="pause"
-                onClick={actions.pause}
-                size="xs"
-                tooltip="Pause"
+                aria-label={microphoneLabel}
+                disabled={phase === "connecting"}
+                onClick={() => actions.setMicrophoneMuted(!muted)}
+                prefix={<MicrophoneIcon muted={muted} />}
+                pressed={muted}
+                shape="round"
+                size="md"
+                tone={muted ? "error" : undefined}
+                tooltip={microphoneLabel}
                 type="button"
-                variant="ghost"
+                variant="subtle"
               />
             )}
             <Button
               aria-label={voiceSessionActionLabels.end}
-              iconName="close"
+              iconName="stopFilled"
               onClick={actions.end}
-              size="xs"
+              shape="round"
+              size="md"
               tone="error"
               tooltip="End voice mode"
               type="button"
-              variant="ghost"
+              variant="subtle"
             />
-          </span>
+          </>
         )}
-      </div>
+      </span>
 
       <span
         aria-atomic="true"
@@ -201,24 +218,19 @@ export const VoiceDock = ({
       >
         {`Voice status: ${voiceSessionStatusLabel(phase)}`}
       </span>
-      <span
-        aria-atomic="true"
-        aria-label="Voice transcript"
-        aria-live="polite"
-        className={visuallyHiddenStyle}
-        role="status"
-      >
-        {announcement}
-      </span>
     </section>
   );
 };
 
 /** Reads the session straight from the store so the panel re-renders less. */
-export const LiveVoiceDock = () => {
+export const LiveVoiceDock = ({
+  onTranscriptionToggle,
+  transcriptionShown,
+}: {
+  onTranscriptionToggle: () => void;
+  transcriptionShown: boolean;
+}) => {
   const actions = useVoiceSessionActions();
-  const caption = useVoiceSessionCaption();
-  const hasCanvasControls = useVoiceSessionHasCanvasControls();
   const phase = useVoiceSessionPhase();
 
   if (phase === null) {
@@ -228,9 +240,9 @@ export const LiveVoiceDock = () => {
   return (
     <VoiceDock
       actions={actions}
-      caption={caption}
+      onTranscriptionToggle={onTranscriptionToggle}
       phase={phase}
-      showActions={!hasCanvasControls}
+      transcriptionShown={transcriptionShown}
     />
   );
 };

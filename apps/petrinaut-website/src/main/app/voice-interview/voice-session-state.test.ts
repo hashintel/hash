@@ -20,32 +20,24 @@ const listeningSnapshot = {
   partialText: "The request goes to dispatch",
 } satisfies VoiceTurnSnapshot;
 
-const mapSnapshot = (
-  overrides: Partial<VoiceTurnSnapshot> = {},
-  committedTextRepresented = false,
-) =>
-  toVoiceSessionState({
-    committedTextRepresented,
-    snapshot: { ...listeningSnapshot, ...overrides },
-  });
+const mapSnapshot = (overrides: Partial<VoiceTurnSnapshot> = {}) =>
+  toVoiceSessionState({ snapshot: { ...listeningSnapshot, ...overrides } });
 
 describe("toVoiceSessionState", () => {
   test("reports no session while the provider is idle", () => {
     expect(mapSnapshot({ connection: "idle" })).toBeNull();
   });
 
-  test("captions the user's speech while listening", () => {
+  test("reports a listening turn with its microphone level", () => {
     expect(mapSnapshot()).toEqual({
-      caption: "The request goes to dispatch",
       errorMessage: null,
       microphoneLevel: 0.24,
       phase: "listening",
     });
   });
 
-  test("hands the caption to the assistant's question while speaking", () => {
+  test("hands the turn to the assistant while it speaks", () => {
     expect(mapSnapshot({ output: "speaking", partialText: "" })).toMatchObject({
-      caption: "What happens after approval?",
       phase: "speaking",
     });
   });
@@ -59,6 +51,21 @@ describe("toVoiceSessionState", () => {
     );
   });
 
+  test("reports a muted microphone in place of the user's own turn", () => {
+    expect(mapSnapshot({ microphoneEnabled: false })).toMatchObject({
+      phase: "muted",
+    });
+  });
+
+  test("keeps reporting the assistant's turn while muted", () => {
+    expect(
+      mapSnapshot({ microphoneEnabled: false, output: "speaking" }),
+    ).toMatchObject({ phase: "speaking" });
+    expect(
+      mapSnapshot({ microphoneEnabled: false, output: "waiting-for-tool" }),
+    ).toMatchObject({ phase: "thinking" });
+  });
+
   test("prefers paused over the turn phases", () => {
     expect(mapSnapshot({ input: "paused", output: "speaking" })).toMatchObject({
       phase: "paused",
@@ -67,32 +74,8 @@ describe("toVoiceSessionState", () => {
 
   test("reports connecting before a session is established", () => {
     expect(mapSnapshot({ connection: "connecting" })).toMatchObject({
-      caption: "The request goes to dispatch",
       phase: "connecting",
     });
-  });
-
-  test("keeps finalized speech captioned until Petrinaut represents it", () => {
-    const pending = {
-      lastAnswerDelivery: "pending",
-      lastCommittedText: "The request goes to dispatch",
-      partialText: "",
-    } as const;
-
-    expect(mapSnapshot(pending)).toMatchObject({
-      caption: "The request goes to dispatch",
-    });
-    expect(mapSnapshot(pending, true)).toMatchObject({ caption: "" });
-  });
-
-  test("keeps rejected finalized speech captioned for recovery", () => {
-    expect(
-      mapSnapshot({
-        lastAnswerDelivery: "failed",
-        lastCommittedText: "The request goes to dispatch",
-        partialText: "",
-      }),
-    ).toMatchObject({ caption: "The request goes to dispatch" });
   });
 
   test("names the error family and folds diagnostics into one message", () => {

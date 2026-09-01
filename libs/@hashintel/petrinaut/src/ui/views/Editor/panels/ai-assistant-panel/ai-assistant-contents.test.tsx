@@ -11,7 +11,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { createElement, useEffect, useState } from "react";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
@@ -44,6 +44,13 @@ vi.mock("react-markdown", async (importOriginal) => {
 });
 
 const noop = () => {};
+
+// The voice ribbon asks for a 2D context on mount. jsdom has no canvas, and
+// answering with `null` takes the same branch a browser without one would,
+// instead of letting jsdom log a not-implemented error per render.
+beforeAll(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+});
 
 afterEach(() => {
   cleanup();
@@ -137,10 +144,10 @@ describe("AiAssistantContents", () => {
       pause: vi.fn(),
       reconnect: vi.fn(),
       resume: vi.fn(),
+      setMicrophoneMuted: vi.fn(),
     };
     store.setActions(actions);
     store.setState({
-      caption: "",
       errorMessage: null,
       microphoneLevel: 0,
       phase: "listening",
@@ -201,6 +208,20 @@ describe("AiAssistantContents", () => {
     expect(screen.queryByText("Spoken reply")).toBeNull();
     expect(screen.getByText("Typed aside")).not.toBeNull();
 
+    // The dock's transcription action writes the held turns into the chat
+    // mid-session, and holds them back again when it is turned off.
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "Show transcription in chat" }),
+    );
+    expect(screen.getByText("Spoken request")).not.toBeNull();
+    expect(screen.getByText("Spoken reply")).not.toBeNull();
+    expect(screen.queryByText("Voice session · 1 turn")).toBeNull();
+
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "Hide transcription in chat" }),
+    );
+    expect(screen.queryByText("Spoken request")).toBeNull();
+
     act(() => store.setState(null));
 
     expect(screen.getByText("Spoken request")).not.toBeNull();
@@ -212,17 +233,17 @@ describe("AiAssistantContents", () => {
     ).not.toBeNull();
   });
 
-  test("leaves the dock's own controls out while the canvas segment is mounted", () => {
+  test("keeps the session's controls in the dock", () => {
     const store = createVoiceSessionStore();
     const actions = {
       end: vi.fn(),
       pause: vi.fn(),
       reconnect: vi.fn(),
       resume: vi.fn(),
+      setMicrophoneMuted: vi.fn(),
     };
     store.setActions(actions);
     store.setState({
-      caption: "Draft the onboarding net",
       errorMessage: null,
       microphoneLevel: 0.4,
       phase: "speaking",
@@ -242,28 +263,37 @@ describe("AiAssistantContents", () => {
     );
 
     const dock = screen.getByRole("region", { name: "Voice session" });
-    expect(within(dock).getByTestId("ai-voice-caption").textContent).toBe(
-      "Draft the onboarding net",
+    expect(within(dock).getByText("Speaking")).not.toBeNull();
+
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "Mute microphone" }),
     );
     fireEvent.click(
-      within(dock).getByRole("button", { name: "Pause voice mode" }),
+      within(dock).getByRole("button", { name: "End voice mode" }),
     );
-    expect(actions.pause).toHaveBeenCalledOnce();
 
-    act(() => store.setCanvasControlsMounted(true));
+    expect(actions.setMicrophoneMuted).toHaveBeenCalledWith(true);
+    expect(actions.end).toHaveBeenCalledOnce();
 
-    expect(
-      within(dock).queryByRole("button", { name: "Pause voice mode" }),
-    ).toBeNull();
-    expect(
-      within(dock).queryByRole("button", { name: "End voice mode" }),
-    ).toBeNull();
+    act(() => {
+      store.setState({
+        errorMessage: null,
+        microphoneLevel: 0,
+        phase: "muted",
+      });
+    });
+
+    expect(within(dock).getByText("Muted")).not.toBeNull();
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "Unmute microphone" }),
+    );
+
+    expect(actions.setMicrophoneMuted).toHaveBeenLastCalledWith(false);
   });
 
   test("shows a voice recovery failure as a toast", async () => {
     const store = createVoiceSessionStore();
     store.setState({
-      caption: "",
       errorMessage: "Microphone unavailable. Check your browser permissions.",
       microphoneLevel: 0,
       phase: "error",
@@ -299,7 +329,6 @@ describe("AiAssistantContents", () => {
   test("does not repeat a voice error toast until the session recovers", () => {
     const store = createVoiceSessionStore();
     const errorState = {
-      caption: "",
       errorMessage: "Microphone unavailable. Check your browser permissions.",
       microphoneLevel: 0,
       phase: "error" as const,
@@ -333,7 +362,6 @@ describe("AiAssistantContents", () => {
 
     act(() => {
       store.setState({
-        caption: "",
         errorMessage: null,
         microphoneLevel: 0,
         phase: "listening",
@@ -511,12 +539,12 @@ describe("AiAssistantContents", () => {
     expect(
       within(
         screen.getByText("Spoken workflow").closest("[data-role]")!,
-      ).getByLabelText("Voice input"),
+      ).getByTestId("voice-input-provenance"),
     ).not.toBeNull();
     expect(
       within(
         screen.getByText("Typed follow-up").closest("[data-role]")!,
-      ).queryByLabelText("Voice input"),
+      ).queryByTestId("voice-input-provenance"),
     ).toBeNull();
   });
 
@@ -577,16 +605,16 @@ describe("AiAssistantContents", () => {
         screen
           .getByText("question-voice: The shift lead")
           .closest("[data-tool-call-id]")!,
-      ).getByLabelText("Voice input"),
+      ).getByTestId("voice-input-provenance"),
     ).not.toBeNull();
     expect(
       within(
         screen
           .getByText("question-typed: The operator")
           .closest("[data-tool-call-id]")!,
-      ).queryByLabelText("Voice input"),
+      ).queryByTestId("voice-input-provenance"),
     ).toBeNull();
-    expect(screen.getAllByLabelText("Voice input")).toHaveLength(1);
+    expect(screen.getAllByTestId("voice-input-provenance")).toHaveLength(1);
     expect(screen.queryByText("The shift lead", { exact: true })).toBeNull();
     expect(container.querySelectorAll('[data-role="user"]')).toHaveLength(0);
   });

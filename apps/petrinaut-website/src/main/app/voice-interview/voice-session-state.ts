@@ -70,35 +70,13 @@ const phaseOf = (
   ) {
     return "thinking";
   }
+  // Muting only replaces the user's own turn. While the assistant speaks or
+  // works, what it is doing is the more useful thing to report.
+  if (!snapshot.microphoneEnabled) {
+    return "muted";
+  }
 
   return "listening";
-};
-
-/**
- * The caption follows whichever side holds the turn: the user's speech as it
- * is transcribed, then the question the interviewer speaks back.
- */
-const captionOf = (
-  snapshot: VoiceTurnSnapshot,
-  committedTextRepresented: boolean,
-): string => {
-  if (snapshot.partialText) {
-    return snapshot.partialText;
-  }
-
-  if (snapshot.output === "speaking") {
-    return snapshot.currentQuestion;
-  }
-
-  // A finalized answer that Petrinaut has not yet echoed into the transcript
-  // stays on screen, so the turn never looks lost between the two surfaces.
-  const answerPending =
-    snapshot.lastAnswerDelivery === "pending" ||
-    snapshot.lastAnswerDelivery === "failed";
-
-  return answerPending && !committedTextRepresented
-    ? snapshot.lastCommittedText
-    : "";
 };
 
 /**
@@ -106,10 +84,8 @@ const captionOf = (
  * from. Returns `null` when no session is running.
  */
 export const toVoiceSessionState = ({
-  committedTextRepresented,
   snapshot,
 }: {
-  readonly committedTextRepresented: boolean;
   readonly snapshot: VoiceTurnSnapshot;
 }): PetrinautAiVoiceSessionState | null => {
   if (snapshot.connection === "idle") {
@@ -117,7 +93,6 @@ export const toVoiceSessionState = ({
   }
 
   return {
-    caption: captionOf(snapshot, committedTextRepresented),
     errorMessage:
       snapshot.connection === "error" ? errorMessageOf(snapshot) : null,
     microphoneLevel: snapshot.microphoneLevel,

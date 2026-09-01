@@ -275,6 +275,7 @@ describe("AiAssistantPanel composer submissions", () => {
             pause: vi.fn(),
             reconnect: vi.fn(),
             resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
           }),
         [registerVoiceModeControls],
       );
@@ -356,6 +357,7 @@ describe("AiAssistantPanel composer submissions", () => {
             pause: vi.fn(),
             reconnect: vi.fn(),
             resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
           }),
         [registerVoiceModeControls],
       );
@@ -426,6 +428,7 @@ describe("AiAssistantPanel composer submissions", () => {
             pause: vi.fn(),
             reconnect: vi.fn(),
             resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
           }),
         [registerVoiceModeControls],
       );
@@ -506,6 +509,7 @@ describe("AiAssistantPanel composer submissions", () => {
             pause: vi.fn(),
             reconnect: vi.fn(),
             resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
           }),
         [registerVoiceModeControls],
       );
@@ -581,6 +585,7 @@ describe("AiAssistantPanel composer submissions", () => {
             pause: vi.fn(),
             reconnect: vi.fn(),
             resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
           }),
         [context],
       );
@@ -658,6 +663,7 @@ describe("AiAssistantPanel composer submissions", () => {
             pause: vi.fn(),
             reconnect: vi.fn(),
             resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
           }),
         [context],
       );
@@ -733,6 +739,7 @@ describe("AiAssistantPanel composer submissions", () => {
             pause: vi.fn(),
             reconnect: vi.fn(),
             resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
           }),
         [context],
       );
@@ -813,6 +820,7 @@ describe("AiAssistantPanel composer submissions", () => {
             pause: vi.fn(),
             reconnect: vi.fn(),
             resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
           }),
         [context],
       );
@@ -885,6 +893,7 @@ describe("AiAssistantPanel composer submissions", () => {
             pause: pauseVoice,
             reconnect: vi.fn(),
             resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
           }),
         [registerVoiceModeControls],
       );
@@ -946,6 +955,7 @@ describe("AiAssistantPanel composer submissions", () => {
             pause: pauseVoice,
             reconnect: vi.fn(),
             resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
           }),
         [registerVoiceModeControls],
       );
@@ -1077,6 +1087,7 @@ describe("AiAssistantPanel composer submissions", () => {
             pause: vi.fn(),
             reconnect: vi.fn(),
             resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
           }),
         [registerVoiceModeControls],
       );

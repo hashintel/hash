@@ -1,4 +1,4 @@
-import { use, useSyncExternalStore } from "react";
+import { use, useCallback, useSyncExternalStore } from "react";
 
 import { VoiceSessionContext } from "./context";
 
@@ -19,23 +19,17 @@ export const useVoiceSessionPhase = (): PetrinautAiVoiceSessionPhase | null => {
   );
 };
 
-export const useVoiceSessionCaption = (): string => {
+/**
+ * Reads the level without subscribing. The indicator samples it once per
+ * animation frame, so routing it through React would re-render a component
+ * sixty times a second to draw something React never touches.
+ */
+export const useVoiceSessionMicrophoneLevelReader = (): (() => number) => {
   const store = use(VoiceSessionContext);
 
-  return useSyncExternalStore(
-    store.subscribe,
-    () => store.getSnapshot().state?.caption ?? "",
-    () => "",
-  );
-};
-
-export const useVoiceSessionMicrophoneLevel = (): number => {
-  const store = use(VoiceSessionContext);
-
-  return useSyncExternalStore(
-    store.subscribe,
+  return useCallback(
     () => store.getSnapshot().state?.microphoneLevel ?? 0,
-    () => 0,
+    [store],
   );
 };
 
@@ -56,15 +50,5 @@ export const useVoiceSessionActions = (): VoiceSessionActions | null => {
     store.subscribe,
     () => store.getSnapshot().actions,
     () => null,
-  );
-};
-
-export const useVoiceSessionHasCanvasControls = (): boolean => {
-  const store = use(VoiceSessionContext);
-
-  return useSyncExternalStore(
-    store.subscribe,
-    () => store.getSnapshot().hasCanvasControls,
-    () => false,
   );
 };

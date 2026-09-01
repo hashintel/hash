@@ -1,8 +1,8 @@
 import type { PetrinautAiVoiceSessionPhase } from "../../../types/ai-assistant-composer-control";
 
 /**
- * Shared between the assistant dock and the canvas toolbar segment so the two
- * surfaces can never announce the same session differently.
+ * Shared between the dock's visible status and the live region announcing it,
+ * so the two can never describe the same session differently.
  */
 export const voiceSessionStatusLabel = (
   phase: PetrinautAiVoiceSessionPhase,
@@ -14,6 +14,8 @@ export const voiceSessionStatusLabel = (
       return "Voice interrupted";
     case "listening":
       return "Listening";
+    case "muted":
+      return "Muted";
     case "paused":
       return "Paused";
     case "speaking":
@@ -25,7 +27,9 @@ export const voiceSessionStatusLabel = (
 
 export const voiceSessionActionLabels = {
   end: "End voice mode",
+  mute: "Mute microphone",
   pause: "Pause voice mode",
   reconnect: "Reconnect voice mode",
   resume: "Resume voice mode",
+  unmute: "Unmute microphone",
 } as const;

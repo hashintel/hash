@@ -74,54 +74,6 @@ export const acknowledgeVoiceInterviewDisclosure = (
   }
 };
 
-type PendingVoiceInputRepresentation = {
-  readonly baselineToolCallIds: ReadonlySet<string>;
-  readonly messageId: string | undefined;
-};
-
-const representedVoiceToolCallIds = (
-  messages: PetrinautAiVoiceModeContext["messages"],
-): Set<string> => {
-  const toolCallIds = new Set<string>();
-  for (const message of messages) {
-    const toolCallId = message.metadata?.toolCallId;
-    if (
-      message.metadata?.source === "voice" &&
-      toolCallId !== undefined &&
-      message.parts.some(
-        (part) =>
-          part.type === "dynamic-tool" &&
-          part.toolCallId === toolCallId &&
-          part.state === "output-available",
-      )
-    ) {
-      toolCallIds.add(toolCallId);
-    }
-  }
-  return toolCallIds;
-};
-
-export const isVoiceInputRepresented = (
-  messages: PetrinautAiVoiceModeContext["messages"],
-  pendingInput: PendingVoiceInputRepresentation,
-): boolean => {
-  if (
-    pendingInput.messageId !== undefined &&
-    messages.some(
-      (message) =>
-        message.id === pendingInput.messageId &&
-        message.role === "user" &&
-        message.metadata?.source === "voice",
-    )
-  ) {
-    return true;
-  }
-
-  return [...representedVoiceToolCallIds(messages)].some(
-    (toolCallId) => !pendingInput.baselineToolCallIds.has(toolCallId),
-  );
-};
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
@@ -279,13 +231,10 @@ const AvailableVoiceInterviewControl = ({
 }) => {
   "use no memo";
 
-  const [pendingVoiceInput, setPendingVoiceInput] =
-    useState<PendingVoiceInputRepresentation | null>(null);
   const [store] = useState(() => {
     // Realtime submits an answer long after the render that created the
     // bridge, so these callbacks read what the layout effect below installs
     // rather than what was captured here.
-    let latestMessages = context.messages;
     let latestSubmitVoiceInput = context.submitVoiceInput;
     const session = new OpenAIRealtimeSession({
       cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
@@ -302,13 +251,7 @@ const AvailableVoiceInterviewControl = ({
     });
     const bridge = new RealtimeBrunchBridge({
       session,
-      submitInterviewAnswer: (input) => {
-        setPendingVoiceInput({
-          baselineToolCallIds: representedVoiceToolCallIds(latestMessages),
-          messageId: input.id,
-        });
-        return latestSubmitVoiceInput(input);
-      },
+      submitInterviewAnswer: (input) => latestSubmitVoiceInput(input),
     });
     const controller = new VoiceTurnController({
       bridge,
@@ -322,10 +265,8 @@ const AvailableVoiceInterviewControl = ({
       subscribe: (listener: (snapshot: VoiceTurnSnapshot) => void) =>
         controller.subscribe(listener),
       updateSubmissionContext: (
-        nextMessages: PetrinautAiVoiceModeContext["messages"],
         nextSubmitVoiceInput: PetrinautAiVoiceModeContext["submitVoiceInput"],
       ) => {
-        latestMessages = nextMessages;
         latestSubmitVoiceInput = nextSubmitVoiceInput;
       },
     };
@@ -348,7 +289,7 @@ const AvailableVoiceInterviewControl = ({
   } = context;
 
   useLayoutEffect(() => {
-    store.updateSubmissionContext(context.messages, context.submitVoiceInput);
+    store.updateSubmissionContext(context.submitVoiceInput);
     store.controller.updateChat({
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
       canonicalSegments: selectCanonicalSpeechSegments(context.messages),
@@ -373,6 +314,8 @@ const AvailableVoiceInterviewControl = ({
           void store.controller.reconnect();
         },
         resume: () => store.controller.resume(),
+        setMicrophoneMuted: (muted) =>
+          store.controller.setMicrophoneMuted(muted),
       }),
     [registerVoiceModeControls, store],
   );
@@ -419,17 +362,11 @@ const AvailableVoiceInterviewControl = ({
     [store],
   );
 
-  const committedTextRepresented =
-    pendingVoiceInput !== null &&
-    isVoiceInputRepresented(context.messages, pendingVoiceInput);
-
   // Petrinaut owns every live Voice surface, so this control only reports the
   // session's state and keeps the consent step to itself.
   useEffect(() => {
-    reportVoiceSessionState(
-      toVoiceSessionState({ committedTextRepresented, snapshot }),
-    );
-  }, [committedTextRepresented, reportVoiceSessionState, snapshot]);
+    reportVoiceSessionState(toVoiceSessionState({ snapshot }));
+  }, [reportVoiceSessionState, snapshot]);
 
   useEffect(
     () => () => {

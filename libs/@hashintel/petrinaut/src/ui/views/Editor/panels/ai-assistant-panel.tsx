@@ -469,9 +469,8 @@ export const AiAssistantPanel = ({
     [selectInteractionMode, setVoiceActive],
   );
 
-  // Petrinaut renders every live Voice surface itself — the dock in this panel
-  // and the toolbar segment on the canvas — from the state the host reports
-  // here, so both always agree about the same session.
+  // Petrinaut renders the live Voice dock itself from the state the host
+  // reports here, so hosts never draw their own session status.
   const reportVoiceSessionState = useCallback(
     (state: PetrinautAiVoiceSessionState | null) => {
       voiceSessionStore.setState(state);
@@ -489,6 +488,7 @@ export const AiAssistantPanel = ({
         pause: () => controls.pause(),
         reconnect: () => controls.reconnect(),
         resume: () => controls.resume(),
+        setMicrophoneMuted: (muted) => controls.setMicrophoneMuted(muted),
       });
 
       return () => {

@@ -43,34 +43,36 @@ current disclosure version, so later uses of **Start voice mode** start directly
 is unavailable or the disclosure changes, Petrinaut asks again.
 
 While a session runs, the composer is replaced by a low-profile Voice dock at the foot of the panel:
-one line of ephemeral caption above a five-bar indicator and one short state -- **Connecting**,
-**Listening**, **Thinking**, **Speaking**, **Paused**, or **Voice interrupted**. The bars follow your
-microphone while it listens and switch to a restrained looping pattern while the assistant speaks, so
-which side holds the turn is readable at a glance. The caption follows the same handover: your words
-as they are transcribed, then the question spoken back to you. It is display-only -- never sent,
-saved, or scrolled into the conversation.
+a ribbon that tapers to nothing at both ends and one short state -- **Connecting**, **Listening**,
+**Muted**, **Thinking**, **Speaking**, **Paused**, or **Voice interrupted**. The ribbon rides your
+microphone while it listens and switches to a restrained self-driven motion while the assistant
+speaks, colour crossfading as the turn changes hands, so which side holds it is readable at a
+glance. It flattens whenever nobody holds the turn.
 
 The conversation itself stays still. Spoken turns are written to it as they happen, because that is
 what runs the tools that edit the net, but they stay hidden until the session ends rather than
-scrolling the transcript mid-sentence. Two things are never held back: anything you typed, and any
-inline question waiting for your answer. When the session ends, the held turns appear together under
-a **Voice session · N turns** divider. Only finalized answers and canonical Brunch text become chat
-history; provisional transcription and Realtime audio are ephemeral. Finalized spoken user messages
-and the exact inline answer completed by speech keep a small waveform mark, so Voice provenance
-remains visible without duplicating an answer.
+scrolling the transcript mid-sentence. **Show transcription in chat** lets them through as they land
+instead; turning it off holds them back again, and it starts off with each session. Two things are
+never held back either way: anything you typed, and any inline question waiting for your answer. When
+the session ends, the held turns appear together under a **Voice session · N turns** divider. Only
+finalized answers and canonical Brunch text become chat history; provisional transcription and
+Realtime audio are ephemeral. Finalized spoken user messages carry a small **Voice** chip in front of
+the words themselves, and the exact inline answer completed by speech carries the same chip, so Voice
+provenance remains visible without duplicating an answer.
 
 The microphone stays on while the interviewer speaks, so speaking naturally interrupts the audio
 and starts listening to you; you do not need to select an interrupt action. Semantic voice detection
 finishes each answer automatically after a natural pause and is tuned to allow longer thinking
 pauses. There is no required done-speaking action.
 
-Session controls sit in their own small glass segment just above the bottom toolbar, next to the
-canvas rather than inside the panel: **Pause voice mode** (**Resume voice mode** once paused) and
-**End voice mode**. When that toolbar is not on screen -- a detached or full-screen panel, for
-example -- the same two buttons appear in the dock instead, so a session is never left without a way
-to stop it. Sending non-empty typed text from the composer or first-run prompt ends Voice mode before
-it sends the message once through the same conversation; repeated send actions are ignored while that
-short handoff completes.
+Every session control lives in the dock: **Show transcription in chat** on the left, and on the right
+**Mute microphone** (**Unmute microphone** once muted) beside **End voice mode**. Muting stops
+sending audio without ending the turn, so the assistant plays out whatever it is saying and unmuting
+drops you straight back into the conversation. **Resume voice mode** replaces the microphone action
+while a session is paused, and **Reconnect voice mode** replaces it after a failure. Nothing is added
+to the canvas toolbar. Sending non-empty typed text from the
+composer or first-run prompt ends Voice mode before it sends the message once through the same
+conversation; repeated send actions are ignored while that short handoff completes.
 
 The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the
 authority on your system. Brunch still chooses every question and interview decision; OpenAI only
@@ -79,14 +81,14 @@ authoritative. Spoken audio is generated from that Brunch text but may not be ve
 audio does not undo the visible response or change the interview's saved history.
 
 Closing the AI panel pauses microphone capture and active speech, then hides the dock until you
-reopen the panel. The same mounted session stays paused, and its canvas controls stay on screen;
-choose **Resume voice mode** when you are ready. **Clear AI chat** is unavailable while a Voice
+reopen the panel. The same mounted session stays paused; choose **Resume voice mode** when you are
+ready. **Clear AI chat** is unavailable while a Voice
 session is active.
 
 If voice cannot continue, the status reads **Voice interrupted** and the actionable error arrives as
 a toast that names the microphone, connection, or Voice failure in one sentence, followed by any
-diagnostic reference in parentheses. **Reconnect voice mode** replaces the pause action until the
-session recovers. For microphone permission or device errors, allow access or connect/select a
+diagnostic reference in parentheses. **Reconnect voice mode** replaces the microphone action until
+the session recovers. For microphone permission or device errors, allow access or connect/select a
 microphone before reconnecting. For an interrupted request, network error, or timeout, check the
 connection and reconnect. If the preview is unavailable, continue with the text composer. An invalid
 service response includes a diagnostic reference you can give to an operator. That reference and its

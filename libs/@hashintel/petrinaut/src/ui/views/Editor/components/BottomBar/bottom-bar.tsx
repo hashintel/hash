@@ -11,7 +11,6 @@ import {
   EditorContext,
   type EditorState,
 } from "../../../../../react/state/editor-context";
-import { useVoiceSessionPhase } from "../../../../../react/voice-session/use-voice-session";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { DiagnosticsIndicator } from "./diagnostics-indicator";
 import { SimulationControls } from "./simulation-controls";
@@ -19,7 +18,6 @@ import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 import { ToolbarModes } from "./toolbar-modes";
 import { useKeyboardShortcuts } from "./use-keyboard-shortcuts";
-import { VoiceSessionSegment } from "./voice-session-segment";
 
 const glassPanelStyle = css({
   padding: "1",
@@ -46,23 +44,7 @@ const bottomBarPositionStyle = css({
   transform: "translateX(-50%)",
   zIndex: "[calc(var(--z-index-sticky) + 1)]",
   display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "[10px]",
-});
-
-const toolbarRowStyle = css({
-  display: "flex",
   gap: "[20px]",
-});
-
-const voiceSegmentStyle = css({
-  animationName: "[petrinautFadeIn]",
-  animationDuration: "[240ms]",
-  animationTimingFunction: "ease-out",
-  "@media (prefers-reduced-motion: reduce)": {
-    animationName: "[none]",
-  },
 });
 
 const animatingStyle = cva({
@@ -111,7 +93,6 @@ export const BottomBar: React.FC<BottomBarProps> = ({
   // (e.g. HIR semantic lints) are informational.
   const { errorDiagnosticsCount } = use(LanguageClientContext);
   const hasDiagnostics = errorDiagnosticsCount > 0;
-  const voiceSessionPhase = useVoiceSessionPhase();
   const { activeSubnetId } = use(ActiveNetContext);
   const isInSubnet = activeSubnetId !== null;
 
@@ -144,104 +125,83 @@ export const BottomBar: React.FC<BottomBarProps> = ({
       className={`${bottomBarPositionStyle} ${animatingStyle({ animating: isPanelAnimating })}`}
       style={{ bottom: bottomOffset }}
     >
-      {/* Voice session segment — only while a session is running */}
-      {voiceSessionPhase !== null && (
-        <refractive.div
-          className={`${glassPanelStyle} ${voiceSegmentStyle}`}
-          refraction={{
-            radius: 8,
-            blur: 3,
-            bezelWidth: 20,
-            glassThickness: 100,
-          }}
-        >
-          <VoiceSessionSegment phase={voiceSessionPhase} />
-        </refractive.div>
-      )}
+      {/* Edition tools segment */}
+      <refractive.div
+        className={glassPanelStyle}
+        refraction={{
+          radius: 8,
+          blur: 3,
+          bezelWidth: 20,
+          glassThickness: 100,
+        }}
+      >
+        <div className={toolbarContainerStyle}>
+          <ToolbarModes
+            editionMode={editionMode}
+            onEditionModeChange={onEditionModeChange}
+            cursorMode={cursorMode}
+            onCursorModeChange={onCursorModeChange}
+            showEditTools={!isActualMode}
+          />
+          {hasAiAssistant && !isActualMode && (
+            <>
+              <ToolbarDivider />
+              <ToolbarButton
+                tooltip={
+                  isAiAssistantOpen ? "Hide AI assistant" : "Show AI assistant"
+                }
+                onClick={toggleAiAssistant}
+                isSelected={isAiAssistantOpen}
+                ariaLabel={
+                  isAiAssistantOpen ? "Hide AI assistant" : "Show AI assistant"
+                }
+                ariaExpanded={isAiAssistantOpen}
+              >
+                <AiAssistantIcon size={18} />
+              </ToolbarButton>
+            </>
+          )}
+        </div>
+      </refractive.div>
 
-      <div className={toolbarRowStyle}>
-        {/* Edition tools segment */}
-        <refractive.div
-          className={glassPanelStyle}
-          refraction={{
-            radius: 8,
-            blur: 3,
-            bezelWidth: 20,
-            glassThickness: 100,
-          }}
-        >
-          <div className={toolbarContainerStyle}>
-            <ToolbarModes
-              editionMode={editionMode}
-              onEditionModeChange={onEditionModeChange}
-              cursorMode={cursorMode}
-              onCursorModeChange={onCursorModeChange}
-              showEditTools={!isActualMode}
-            />
-            {hasAiAssistant && !isActualMode && (
-              <>
-                <ToolbarDivider />
-                <ToolbarButton
-                  tooltip={
-                    isAiAssistantOpen
-                      ? "Hide AI assistant"
-                      : "Show AI assistant"
-                  }
-                  onClick={toggleAiAssistant}
-                  isSelected={isAiAssistantOpen}
-                  ariaLabel={
-                    isAiAssistantOpen
-                      ? "Hide AI assistant"
-                      : "Show AI assistant"
-                  }
-                  ariaExpanded={isAiAssistantOpen}
-                >
-                  <AiAssistantIcon size={18} />
-                </ToolbarButton>
-              </>
+      {/* Playback segment */}
+      <refractive.div
+        className={glassPanelStyle}
+        refraction={{
+          radius: 8,
+          blur: 3,
+          bezelWidth: 20,
+          glassThickness: 100,
+        }}
+      >
+        <div className={toolbarContainerStyle}>
+          <ToolbarButton
+            tooltip={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}
+            onClick={toggleBottomPanel}
+            ariaLabel={isBottomPanelOpen ? "Hide panel" : "Show panel"}
+            ariaExpanded={isBottomPanelOpen}
+          >
+            {isBottomPanelOpen ? (
+              <Icon name="chevronDown" size="sm" />
+            ) : (
+              <Icon name="chevronUp" size="sm" />
             )}
-          </div>
-        </refractive.div>
-
-        {/* Playback segment */}
-        <refractive.div
-          className={glassPanelStyle}
-          refraction={{
-            radius: 8,
-            blur: 3,
-            bezelWidth: 20,
-            glassThickness: 100,
-          }}
-        >
-          <div className={toolbarContainerStyle}>
-            <ToolbarButton
-              tooltip={isBottomPanelOpen ? "Hide Panel" : "Show Panel"}
-              onClick={toggleBottomPanel}
-              ariaLabel={isBottomPanelOpen ? "Hide panel" : "Show panel"}
-              ariaExpanded={isBottomPanelOpen}
-            >
-              {isBottomPanelOpen ? (
-                <Icon name="chevronDown" size="sm" />
-              ) : (
-                <Icon name="chevronUp" size="sm" />
-              )}
-            </ToolbarButton>
-            {!isActualMode && (
-              <>
-                <DiagnosticsIndicator
-                  onClick={showDiagnostics}
-                  isExpanded={isBottomPanelOpen}
-                />
-                <ToolbarDivider />
-                <SimulationControls
-                  disabled={hasDiagnostics}
-                  inSubnet={isInSubnet}
-                />
-              </>
-            )}
-          </div>
-        </refractive.div>
-      </div>
+          </ToolbarButton>
+          {!isActualMode && (
+            <>
+              <DiagnosticsIndicator
+                onClick={showDiagnostics}
+                isExpanded={isBottomPanelOpen}
+              />
+              <ToolbarDivider />
+              <SimulationControls
+                disabled={hasDiagnostics}
+                inSubnet={isInSubnet}
+              />
+            </>
+          )}
+        </div>
+      </refractive.div>
     </div>
   );
 };

@@ -9,29 +9,23 @@ export type VoiceSessionActions = {
   pause: () => void;
   reconnect: () => void;
   resume: () => void;
+  setMicrophoneMuted: (muted: boolean) => void;
 };
 
 export type VoiceSessionSnapshot = {
   readonly actions: VoiceSessionActions | null;
-  /**
-   * True while a canvas-level control for the session is mounted, so the
-   * assistant panel can leave the same buttons out of its dock.
-   */
-  readonly hasCanvasControls: boolean;
   readonly state: PetrinautAiVoiceSessionState | null;
 };
 
 export type VoiceSessionStore = {
   getSnapshot: () => VoiceSessionSnapshot;
   setActions: (actions: VoiceSessionActions | null) => void;
-  setCanvasControlsMounted: (mounted: boolean) => void;
   setState: (state: PetrinautAiVoiceSessionState | null) => void;
   subscribe: (listener: () => void) => () => void;
 };
 
 const emptySnapshot: VoiceSessionSnapshot = {
   actions: null,
-  hasCanvasControls: false,
   state: null,
 };
 
@@ -58,12 +52,6 @@ export const createVoiceSessionStore = (): VoiceSessionStore => {
         return;
       }
       update({ ...snapshot, actions });
-    },
-    setCanvasControlsMounted: (mounted) => {
-      if (snapshot.hasCanvasControls === mounted) {
-        return;
-      }
-      update({ ...snapshot, hasCanvasControls: mounted });
     },
     setState: (state) => {
       if (snapshot.state === null && state === null) {

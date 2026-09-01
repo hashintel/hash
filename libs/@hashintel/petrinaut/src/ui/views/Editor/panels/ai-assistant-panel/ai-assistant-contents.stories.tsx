@@ -271,6 +271,7 @@ const Frame = ({
       pause: () => {},
       reconnect: () => {},
       resume: () => {},
+      setMicrophoneMuted: () => {},
     });
     store.setState(voiceSession ?? null);
 
@@ -303,7 +304,6 @@ const Frame = ({
 const liveSession = (
   overrides: Partial<PetrinautAiVoiceSessionState>,
 ): PetrinautAiVoiceSessionState => ({
-  caption: "",
   errorMessage: null,
   microphoneLevel: 0,
   phase: "listening",
@@ -336,7 +336,6 @@ export const VoiceSessionListening: Story = {
       messages={[userMessage, assistantMarkdownMessage]}
       voiceModeAvailable
       voiceSession={liveSession({
-        caption: "The pharmacist checks the delivery against the order",
         microphoneLevel: 0.6,
       })}
     />
@@ -350,7 +349,6 @@ export const VoiceSessionSpeaking: Story = {
       messages={[userMessage, assistantMarkdownMessage]}
       voiceModeAvailable
       voiceSession={liveSession({
-        caption: "Which step in that flow fails most often?",
         phase: "speaking",
       })}
     />
@@ -364,6 +362,17 @@ export const VoiceSessionThinking: Story = {
       messages={[userMessage, assistantMarkdownMessage]}
       voiceModeAvailable
       voiceSession={liveSession({ phase: "thinking" })}
+    />
+  ),
+};
+
+export const VoiceSessionMuted: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "muted" })}
     />
   ),
 };

@@ -55,6 +55,12 @@ export type PetrinautAiVoiceModeControls = {
   reconnect: () => void;
   /** Resumes microphone capture after `pause`. */
   resume: () => void;
+  /**
+   * Stops or restarts microphone capture while the session keeps running, so
+   * the assistant carries on speaking. Unlike `pause`, which suspends the
+   * whole session when Petrinaut closes the panel.
+   */
+  setMicrophoneMuted: (muted: boolean) => void;
 };
 
 /** Which side of a Voice session currently holds the turn. */
@@ -62,6 +68,7 @@ export type PetrinautAiVoiceSessionPhase =
   | "connecting"
   | "error"
   | "listening"
+  | "muted"
   | "paused"
   | "speaking"
   | "thinking";
@@ -74,11 +81,6 @@ export type PetrinautAiVoiceSessionPhase =
  * effect: it changes at microphone-sampling rate.
  */
 export type PetrinautAiVoiceSessionState = {
-  /**
-   * Speech for the turn in flight, shown as an ephemeral caption. Finalized
-   * turns reach the transcript through the conversation, not through this.
-   */
-  caption: string;
   errorMessage: string | null;
   /** Normalized 0–1 input level driving the listening indicator. */
   microphoneLevel: number;

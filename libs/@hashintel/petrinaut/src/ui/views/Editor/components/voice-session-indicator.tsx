@@ -1,180 +1,255 @@
+import { useEffect, useRef } from "react";
+
 import { cva } from "@hashintel/ds-helpers/css";
 
 import {
-  useVoiceSessionMicrophoneLevel,
+  useVoiceSessionMicrophoneLevelReader,
   useVoiceSessionPhase,
 } from "../../../../react/voice-session/use-voice-session";
 
 import type { PetrinautAiVoiceSessionPhase } from "../../../types/ai-assistant-composer-control";
 
-type VoiceSessionIndicatorSize = "compact" | "regular";
+const ribbonWidth = 104;
+const ribbonHeight = 32;
 
-/**
- * Relative weighting per bar, so a level change reads as a wave across the
- * indicator rather than five bars moving in lockstep.
- */
-const bars = [
-  { id: "leading", weight: 0.65 },
-  { id: "middle-left", weight: 0.9 },
-  { id: "center", weight: 1.15 },
-  { id: "middle-right", weight: 0.85 },
-  { id: "trailing", weight: 0.6 },
+/** Peak deflection from the midline, in CSS pixels. */
+const maxAmplitude = ribbonHeight / 2 - 2;
+
+/** Three strokes: one solid ribbon and two faint echoes trailing it. */
+const layers = [
+  { alpha: 1, damping: 1, lineWidth: 3, phaseOffset: 0, speedScale: 1 },
+  { alpha: 0.32, damping: 0.78, lineWidth: 2, phaseOffset: 1, speedScale: 1.3 },
+  {
+    alpha: 0.18,
+    damping: 0.56,
+    lineWidth: 2,
+    phaseOffset: 2,
+    speedScale: 1.6,
+  },
 ] as const;
 
-const barMetrics = {
-  compact: { floor: 3, range: 9 },
-  regular: { floor: 4, range: 14 },
-} as const;
+type RibbonMotion = {
+  /** Fraction of {@link maxAmplitude}, given the current level and angle. */
+  amplitude: (level: number, angle: number) => number;
+  /** Radians advanced per frame. */
+  speed: number;
+};
 
-const indicatorStyle = cva({
+/**
+ * The user's turn is the only one driven by real input; every other phase gets
+ * a deterministic motion so the ribbon can't imply sound that isn't there.
+ */
+const ribbonMotion: Record<PetrinautAiVoiceSessionPhase, RibbonMotion> = {
+  connecting: { amplitude: () => 0.16, speed: 0.05 },
+  error: { amplitude: () => 0.05, speed: 0 },
+  listening: { amplitude: (level) => 0.18 + level * 0.82, speed: 0.09 },
+  muted: { amplitude: () => 0.05, speed: 0 },
+  paused: { amplitude: () => 0.05, speed: 0 },
+  speaking: {
+    amplitude: (_level, angle) => 0.52 + Math.sin(angle * 0.9) * 0.3,
+    speed: 0.13,
+  },
+  thinking: {
+    amplitude: (_level, angle) => 0.14 + Math.sin(angle * 0.8) * 0.05,
+    speed: 0.05,
+  },
+};
+
+// Canvas can't inherit `currentColor`, so the phase colour is read back off the
+// element and crossfaded here — the hand-off between the two voices is the one
+// moment the colour carries meaning.
+const ribbonStyle = cva({
   base: {
-    display: "inline-flex",
+    display: "block",
     flexShrink: "0",
-    alignItems: "center",
-    "& > span": {
-      display: "block",
-      borderRadius: "full",
-      backgroundColor: "[currentColor]",
-      animationTimingFunction: "ease-in-out",
-      animationIterationCount: "[infinite]",
-      transition: "[height 90ms linear, opacity 200ms ease]",
-    },
-    // Colour crossfades on the hand-off between the two voices; height is
-    // driven per frame while listening, so it must not be transitioned twice.
-    transition: "[color 260ms ease]",
-    "& > span:nth-child(2)": { animationDelay: "[110ms]" },
-    "& > span:nth-child(3)": { animationDelay: "[220ms]" },
-    "& > span:nth-child(4)": { animationDelay: "[330ms]" },
-    "& > span:nth-child(5)": { animationDelay: "[440ms]" },
-    "@media (prefers-reduced-motion: reduce)": {
-      transition: "[none]",
-      "& > span": {
-        animationName: "[none]",
-        transition: "[none]",
-      },
-    },
+    width: `[${ribbonWidth}px]`,
+    height: `[${ribbonHeight}px]`,
   },
   variants: {
-    size: {
-      compact: {
-        height: "[14px]",
-        gap: "[2px]",
-        "& > span": { width: "[2px]" },
-      },
-      regular: {
-        height: "[24px]",
-        gap: "[3px]",
-        "& > span": { width: "[3px]" },
-      },
-    },
     phase: {
-      connecting: {
-        color: "neutral.s80",
-        "& > span": {
-          animationName: "[petrinautVoiceWait]",
-          animationDuration: "[1100ms]",
-        },
-      },
+      connecting: { color: "neutral.s80" },
       error: { color: "neutral.s80" },
       listening: { color: "blue.s90" },
+      muted: { color: "neutral.s80" },
       paused: { color: "neutral.s80" },
       speaking: { color: "neutral.s115" },
-      thinking: {
-        color: "neutral.s90",
-        "& > span": {
-          animationName: "[petrinautVoiceWait]",
-          animationDuration: "[1200ms]",
-        },
-      },
-    },
-    speaking: {
-      compact: {
-        "& > span": {
-          animationName: "[petrinautVoiceSpeakCompact]",
-          animationDuration: "[900ms]",
-        },
-      },
-      regular: {
-        "& > span": {
-          animationName: "[petrinautVoiceSpeak]",
-          animationDuration: "[900ms]",
-        },
-      },
-    },
-    handoff: {
-      true: {
-        animationName: "[petrinautVoiceHandoff]",
-        animationDuration: "[300ms]",
-        animationTimingFunction: "[cubic-bezier(0.3, 1.4, 0.4, 1)]",
-      },
+      thinking: { color: "neutral.s90" },
     },
   },
 });
 
-const isTurnPhase = (phase: PetrinautAiVoiceSessionPhase): boolean =>
-  phase === "listening" || phase === "speaking" || phase === "thinking";
+type Rgb = readonly [number, number, number];
+
+const fallbackColor: Rgb = [110, 118, 128];
+
+const parseColor = (value: string): Rgb => {
+  const channels = value.match(/\d+(?:\.\d+)?/g);
+  if (channels === null || channels.length < 3) {
+    return fallbackColor;
+  }
+  const [red, green, blue] = channels;
+
+  return [Number(red), Number(green), Number(blue)];
+};
+
+const approach = (current: number, target: number, rate: number): number =>
+  current + (target - current) * rate;
+
+/* eslint-disable no-param-reassign -- a 2D context is configured by assigning
+   to it; that is the canvas API, not an unintended side effect. */
+const drawRibbon = ({
+  amplitude,
+  angle,
+  color,
+  context,
+}: {
+  amplitude: number;
+  angle: number;
+  color: Rgb;
+  context: CanvasRenderingContext2D;
+}) => {
+  const midline = ribbonHeight / 2;
+  const peak = amplitude * maxAmplitude;
+  const [red, green, blue] = color;
+
+  context.clearRect(0, 0, ribbonWidth, ribbonHeight);
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.strokeStyle = `rgb(${Math.round(red)}, ${Math.round(green)}, ${Math.round(blue)})`;
+
+  for (const layer of layers) {
+    context.beginPath();
+    context.globalAlpha = layer.alpha;
+    context.lineWidth = layer.lineWidth;
+
+    for (let x = 0; x <= ribbonWidth; x += 3) {
+      // Tapering to nothing at both ends turns a plain sine into a ribbon.
+      const taper = Math.sin((x / ribbonWidth) * Math.PI) ** 1.5;
+      // Two waves at different wavelengths beat against each other, which
+      // reads as speech rather than as a test tone.
+      const wobble =
+        Math.sin(x / 13 + angle * layer.speedScale + layer.phaseOffset) *
+        Math.sin(x / 6 - angle * 0.7);
+      const y = midline + wobble * peak * taper * layer.damping;
+
+      if (x === 0) {
+        context.moveTo(x, y);
+      } else {
+        context.lineTo(x, y);
+      }
+    }
+
+    context.stroke();
+  }
+
+  context.globalAlpha = 1;
+};
+/* eslint-enable no-param-reassign */
 
 export type VoiceSessionIndicatorProps = {
-  /** Normalized 0–1 input level; only read while listening. */
-  microphoneLevel: number;
+  /** Sampled per frame; pass a reader rather than a value to avoid re-renders. */
+  getMicrophoneLevel: () => number;
   phase: PetrinautAiVoiceSessionPhase;
-  size?: VoiceSessionIndicatorSize;
 };
 
 /**
- * One indicator for both voices: blue bars tracking the microphone while the
- * user speaks, graphite bars in a travelling wave while the assistant answers.
+ * One ribbon for both voices: blue and tracking the microphone while the user
+ * speaks, graphite and self-driven while the assistant answers, flat while
+ * nobody holds the turn.
  */
 export const VoiceSessionIndicator = ({
-  microphoneLevel,
+  getMicrophoneLevel,
   phase,
-  size = "regular",
 }: VoiceSessionIndicatorProps) => {
-  const { floor, range } = barMetrics[size];
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Kept across phase changes so the ribbon eases between turns instead of
+  // snapping when the effect below re-runs.
+  const angleRef = useRef(0);
+  const levelRef = useRef(0);
+  const amplitudeRef = useRef(0);
+  const colorRef = useRef<Rgb | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d") ?? null;
+    if (canvas === null || context === null) {
+      return;
+    }
+
+    const scale = window.devicePixelRatio || 1;
+    canvas.width = ribbonWidth * scale;
+    canvas.height = ribbonHeight * scale;
+    context.setTransform(scale, 0, 0, scale, 0, 0);
+
+    const targetColor = parseColor(window.getComputedStyle(canvas).color);
+    colorRef.current ??= targetColor;
+
+    const motion = ribbonMotion[phase];
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (reducedMotion) {
+      colorRef.current = targetColor;
+      drawRibbon({
+        amplitude: motion.amplitude(0, 0),
+        angle: 0,
+        color: targetColor,
+        context,
+      });
+      return;
+    }
+
+    let frame = 0;
+
+    const render = () => {
+      levelRef.current = approach(levelRef.current, getMicrophoneLevel(), 0.25);
+      amplitudeRef.current = approach(
+        amplitudeRef.current,
+        motion.amplitude(levelRef.current, angleRef.current),
+        0.16,
+      );
+      angleRef.current += motion.speed;
+
+      const current = colorRef.current ?? targetColor;
+      colorRef.current = [
+        approach(current[0], targetColor[0], 0.08),
+        approach(current[1], targetColor[1], 0.08),
+        approach(current[2], targetColor[2], 0.08),
+      ];
+
+      drawRibbon({
+        amplitude: amplitudeRef.current,
+        angle: angleRef.current,
+        color: colorRef.current,
+        context,
+      });
+
+      frame = requestAnimationFrame(render);
+    };
+
+    frame = requestAnimationFrame(render);
+
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [getMicrophoneLevel, phase]);
 
   return (
-    <span
+    <canvas
       aria-hidden="true"
-      // Keying on the phase remounts the indicator when the turn changes hands,
-      // which is the only way a CSS animation can replay without imperatively
-      // touching the DOM.
-      key={phase}
-      className={indicatorStyle({
-        handoff: isTurnPhase(phase),
-        phase,
-        size,
-        speaking: phase === "speaking" ? size : undefined,
-      })}
+      className={ribbonStyle({ phase })}
       data-phase={phase}
       data-testid="voice-session-indicator"
-    >
-      {bars.map(({ id, weight }) => (
-        <span
-          key={id}
-          style={
-            phase === "listening"
-              ? {
-                  height: `${floor + Math.round(microphoneLevel * weight * range)}px`,
-                }
-              : { height: `${floor}px` }
-          }
-        />
-      ))}
-    </span>
+      ref={canvasRef}
+    />
   );
 };
 
-/**
- * Subscribes to the session store directly so per-frame level updates
- * re-render the bars alone, not the surfaces hosting them.
- */
-export const LiveVoiceSessionIndicator = ({
-  size,
-}: {
-  size?: VoiceSessionIndicatorSize;
-}) => {
+/** Pulls the level straight from the store, so drawing costs no re-renders. */
+export const LiveVoiceSessionIndicator = () => {
   const phase = useVoiceSessionPhase();
-  const microphoneLevel = useVoiceSessionMicrophoneLevel();
+  const getMicrophoneLevel = useVoiceSessionMicrophoneLevelReader();
 
   if (phase === null) {
     return null;
@@ -182,9 +257,8 @@ export const LiveVoiceSessionIndicator = ({
 
   return (
     <VoiceSessionIndicator
-      microphoneLevel={microphoneLevel}
+      getMicrophoneLevel={getMicrophoneLevel}
       phase={phase}
-      size={size}
     />
   );
 };

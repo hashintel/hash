@@ -429,6 +429,10 @@ const AiAssistantMessage = memo(
     const renderItems = getMessageRenderItems(message, interactiveTools);
     const hasVoiceOrigin =
       role === "user" && message.metadata?.source === "voice";
+    // The mark belongs in front of the words that were spoken. Only a message
+    // with no text of its own — a bare tool answer — falls back to trailing it.
+    const firstTextKey =
+      renderItems.find((item) => item.type === "text")?.key ?? null;
 
     return (
       <div
@@ -441,7 +445,10 @@ const AiAssistantMessage = memo(
             case "text":
               return role === "user" ? (
                 <div className={userTextStyle} key={item.key}>
-                  {item.part.text}
+                  {hasVoiceOrigin && item.key === firstTextKey && (
+                    <VoiceInputProvenance />
+                  )}
+                  <span>{item.part.text}</span>
                 </div>
               ) : (
                 <div className={markdownStyle} key={item.key}>
@@ -477,7 +484,7 @@ const AiAssistantMessage = memo(
             }
           }
         })}
-        {hasVoiceOrigin && <VoiceInputProvenance />}
+        {hasVoiceOrigin && firstTextKey === null && <VoiceInputProvenance />}
       </div>
     );
   },
@@ -529,6 +536,10 @@ export const AiAssistantContents = ({
     voiceSessionStore.getSnapshot().state === null ? null : messages.length,
   );
 
+  // Off by default: the dock's transcription action writes spoken turns into
+  // the conversation as they land instead of holding them to the end.
+  const [transcriptionShown, setTranscriptionShown] = useState(false);
+
   const messageCountRef = useRef(messages.length);
   useEffect(() => {
     messageCountRef.current = messages.length;
@@ -549,9 +560,12 @@ export const AiAssistantContents = ({
 
       if (isLive) {
         setSessionBaselineIndex(messageCountRef.current);
+        setTranscriptionShown(false);
       }
     });
   }, [voiceSessionStore]);
+
+  const isHoldingVoiceTurns = isVoiceSessionLive && !transcriptionShown;
 
   const sessionPartition =
     sessionBaselineIndex === null
@@ -563,20 +577,23 @@ export const AiAssistantContents = ({
         });
 
   const visibleMessages =
-    isVoiceSessionLive && sessionPartition !== null
+    isHoldingVoiceTurns && sessionPartition !== null
       ? sessionPartition.visible
       : messages;
 
-  // Held turns become "revealed" the moment the session ends: they carry the
-  // entrance animation and are counted in the divider above them.
+  // Held turns become "revealed" once they are let through — by the
+  // transcription action mid-session, or by the session ending — so they carry
+  // the entrance animation either way.
   const revealedIds = new Set(
-    isVoiceSessionLive || sessionPartition === null
+    isHoldingVoiceTurns || sessionPartition === null
       ? []
       : sessionPartition.deferred.map((message) => message.id),
   );
-  const firstRevealedMessageId = visibleMessages.find((message) =>
-    revealedIds.has(message.id),
-  )?.id;
+  // The divider counts a finished session, so it waits for the session to end
+  // rather than growing a turn at a time under a live transcription.
+  const firstRevealedMessageId = isVoiceSessionLive
+    ? undefined
+    : visibleMessages.find((message) => revealedIds.has(message.id))?.id;
   const revealedVoiceTurnCount = visibleMessages.filter(
     (message) => revealedIds.has(message.id) && message.role === "user",
   ).length;
@@ -790,7 +807,12 @@ export const AiAssistantContents = ({
 
         {isVoiceSessionLive ? (
           <div className={panelContentStyle({ visible: isOpen })}>
-            <LiveVoiceDock />
+            <LiveVoiceDock
+              onTranscriptionToggle={() =>
+                setTranscriptionShown(!transcriptionShown)
+              }
+              transcriptionShown={transcriptionShown}
+            />
           </div>
         ) : (
           <div

@@ -284,6 +284,23 @@ export class VoiceTurnController {
     });
   }
 
+  /**
+   * Stops or restarts capture mid-session. Unlike {@link pause} the turn is
+   * left alone: the bridge stays up and anything the assistant is saying plays
+   * out, so unmuting drops the user straight back into the conversation.
+   */
+  public setMicrophoneMuted(muted: boolean): void {
+    if (
+      this.#snapshot.connection !== "connected" ||
+      this.#snapshot.input === "paused" ||
+      this.#snapshot.microphoneEnabled === !muted
+    ) {
+      return;
+    }
+    this.#session.setMicrophoneEnabled(!muted);
+    this.#update({ microphoneEnabled: !muted, microphoneLevel: 0 });
+  }
+
   public resume(): void {
     if (
       this.#snapshot.connection !== "connected" ||

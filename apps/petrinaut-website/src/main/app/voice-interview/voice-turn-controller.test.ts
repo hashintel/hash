@@ -401,6 +401,51 @@ describe("VoiceTurnController", () => {
     });
   });
 
+  test("mutes capture without interrupting what the interviewer is saying", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-1",
+      type: "output-started",
+    });
+
+    harness.controller.setMicrophoneMuted(true);
+
+    expect(harness.session.cancelOutput).not.toHaveBeenCalled();
+    expect(harness.bridge.stop).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      microphoneEnabled: false,
+      microphoneLevel: 0,
+      output: "speaking",
+    });
+
+    harness.emitSession({ level: 0.8, type: "microphone-level" });
+    expect(harness.controller.getSnapshot().microphoneLevel).toBe(0);
+
+    harness.controller.setMicrophoneMuted(false);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      microphoneEnabled: true,
+    });
+  });
+
+  test("ignores muting while the session is paused", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.controller.pause();
+    harness.session.setMicrophoneEnabled.mockClear();
+
+    harness.controller.setMicrophoneMuted(false);
+
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "paused",
+      microphoneEnabled: false,
+    });
+  });
+
   test("latches pause while connecting and requires an explicit resume", async () => {
     const harness = createHarness();
     let finishConnection: ((epoch: number) => void) | undefined;
