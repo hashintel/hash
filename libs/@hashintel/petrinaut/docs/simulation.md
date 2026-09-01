@@ -15,7 +15,7 @@ Select a place and open the **State** sub-view in its properties:
 
 If no initial marking is set, a place starts empty (zero tokens).
 
-When a [scenario](scenarios.md) is selected in Simulation Settings, the per-place State sub-view becomes read-only ("Defined by scenario") and the scenario's initial state is used instead.
+When a [scenario](scenarios.md) is selected in Simulation Settings, the per-place State sub-view becomes read-only ("Defined by scenario") and the scenario's initial state is used instead. With no scenario selected, an [ad-hoc initial state](ad-hoc-scenarios.md) defined in the panel's Initial state column likewise takes precedence over the manual marking for every place it defines — the State sub-view stays editable, but the run uses the ad-hoc value until you clear the definition.
 
 ## Simulation settings
 
@@ -25,7 +25,7 @@ Open the **Simulation Settings** tab in the bottom panel to configure:
 
 The **Scenario** dropdown lists "No scenario" plus every saved [scenario](scenarios.md). Selecting a scenario overrides parameters and the per-place initial marking with the scenario's values for this run. The picker is locked while a simulation is running; reset to change scenario.
 
-Quick-action buttons next to the picker let you edit the selected scenario, create a new scenario, or jump to the [Scenarios](scenarios.md) management view in Simulate mode.
+Quick-action buttons next to the picker let you edit the selected scenario, create a new scenario, or jump to the [Scenarios](scenarios.md) management view in Simulate mode. With "No scenario" selected, the panel becomes an [ad-hoc scenario](ad-hoc-scenarios.md) for the next run, without saving anything: **Variables** and **Parameters** share the left column and an **Initial state** column fills the right; a **Clear** button next to the Initial state title resets it.
 
 ### Parameters
 
