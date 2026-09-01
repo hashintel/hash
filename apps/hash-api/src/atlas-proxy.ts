@@ -43,7 +43,8 @@ const atlasTarget = () => {
  * The proxy states no identity of its own. The caller's Kratos session credential - the
  * `X-Session-Token` header, or the `ory_kratos_session` cookie - crosses the hop with the rest of
  * the request's headers, and the atlas verifies it and resolves the actor itself, exactly as it
- * does for a direct caller. A request without a session answers as the atlas's anonymous caller.
+ * does for a direct caller. The manifest and the data routes require an authenticated actor, so a
+ * request without a valid session answers the atlas's own 401.
  *
  * Mount it above any body parser, so the stream reaches the proxy unread. A parsed body reaches
  * the upstream only by being re-serialised from `req.body`, and re-serialising changes JSON text:
