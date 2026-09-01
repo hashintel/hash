@@ -192,6 +192,7 @@ export class OpenAIRealtimeSession {
   readonly #authorizedResponseIds = new Set<string>();
   readonly #canonicalResponseIds = new Set<string>();
   readonly #canonicalSpeechQueue: CanonicalSpeechRequest[] = [];
+  readonly #completedResponseCancelEventIds = new Set<string>();
   readonly #pendingClientEvents = new Map<string, PendingClientEvent>();
   readonly #pendingSpeechRequests = new Map<string, RequestTiming>();
   readonly #remoteStreams = new Set<MediaStream>();
@@ -681,14 +682,18 @@ export class OpenAIRealtimeSession {
     const pendingEvent = sourceEventId
       ? this.#pendingClientEvents.get(sourceEventId)
       : undefined;
+    const completedResponseCancel =
+      sourceEventId !== null &&
+      this.#completedResponseCancelEventIds.has(sourceEventId);
 
     if (
       errorType === "invalid_request_error" &&
       errorCode === "response_cancel_not_active" &&
-      pendingEvent?.kind === "response-cancel" &&
-      sourceEventId
+      sourceEventId &&
+      (pendingEvent?.kind === "response-cancel" || completedResponseCancel)
     ) {
       this.#pendingClientEvents.delete(sourceEventId);
+      this.#completedResponseCancelEventIds.delete(sourceEventId);
       return;
     }
 
@@ -827,6 +832,7 @@ export class OpenAIRealtimeSession {
         pendingEvent.responseId === responseId
       ) {
         this.#pendingClientEvents.delete(eventId);
+        this.#completedResponseCancelEventIds.add(eventId);
       }
     }
   }
@@ -1202,6 +1208,7 @@ export class OpenAIRealtimeSession {
     this.#transcriptionTimings.clear();
     this.#activeResponseIds.clear();
     this.#canonicalSpeechQueue.length = 0;
+    this.#completedResponseCancelEventIds.clear();
     this.#pendingClientEvents.clear();
     this.#pendingSpeechRequests.clear();
     this.#speechTimings.clear();

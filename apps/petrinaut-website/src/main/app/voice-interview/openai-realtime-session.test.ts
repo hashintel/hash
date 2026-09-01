@@ -519,6 +519,54 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
   });
 
+  test("ignores a late correlated cancel error after response completion", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    harness.session.speakCanonical([
+      canonicalSegment("question", "Canonical question"),
+    ]);
+    const responseCreate = sentEvents(channel)[0]!;
+    channel.receive({
+      response: {
+        id: "response-canonical",
+        metadata: (responseCreate.response as Record<string, unknown>).metadata,
+      },
+      type: "response.created",
+    });
+    channel.receive({
+      response_id: "response-canonical",
+      type: "output_audio_buffer.started",
+    });
+
+    harness.session.cancelOutput();
+    const cancelEvent = sentEvents(channel).findLast(
+      ({ type }) => type === "response.cancel",
+    )!;
+    channel.receive({
+      response: {
+        id: "response-canonical",
+        output: [],
+        status: "cancelled",
+      },
+      type: "response.done",
+    });
+    channel.receive({
+      error: {
+        code: "response_cancel_not_active",
+        event_id: cancelEvent.event_id,
+        message: "private provider detail",
+        type: "invalid_request_error",
+      },
+      type: "error",
+    });
+
+    expect(harness.events).not.toContainEqual(
+      expect.objectContaining({ type: "error" }),
+    );
+    expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
+  });
+
   test("rejects malformed completed function calls without exposing provider data", async () => {
     const harness = createHarness();
     await harness.session.connect();
