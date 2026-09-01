@@ -101,7 +101,9 @@
  * small, dependency-free async state machine (TanStack-Query-shaped: `data` /
  * `error` / `isLoading` / ...) for code that already owns its caching (the
  * {@link TileCache}) and wants only the request *state machine*, not a second
- * cache.
+ * cache. The fetch honours the query's abort signal: a superseded viewport's
+ * call stops steering the shared cache — pins, movement history, prefetch,
+ * edge buckets — the moment it resumes (see {@link getViewportNodes}).
  */
 
 import {
@@ -262,7 +264,11 @@ export interface TileFetchControls {
    * prefetch so required loads win the connection's bandwidth.
    */
   readonly priority?: "high" | "low";
-  /** Aborts a superseded prefetch (required loads are never given a signal). */
+  /**
+   * Aborts a superseded prefetch or a superseded viewport's edge fetch.
+   * Required tile loads are never given a signal: their result is
+   * viewport-independent and may be shared with a concurrent caller.
+   */
   readonly signal?: AbortSignal;
   /**
    * The request's `detail` mode: `"auxiliary"` requests the tile's detail
@@ -617,11 +623,17 @@ export class TileCache {
    * resident node tiles (the caller loads them first): their delivered nodes map
    * each edge endpoint back to the tile that carries it. Pass them in priority
    * order — the transport trims the list to the served `edgesTiles` cap.
+   *
+   * `signal` aborts the underlying fetch, and an abort landing while the fetch
+   * is in flight rejects without touching the resident bucket state: a
+   * superseded viewport must not re-aim the edge signature or pins.
    */
   async loadEdges(
     tiles: readonly AtlasTileCoordinate[],
     detail: SaltileDetail = SaltileDetail.Minimal,
+    signal?: AbortSignal,
   ): Promise<ViewportEdge[]> {
+    signal?.throwIfAborted();
     if (tiles.length === 0) {
       return [];
     }
@@ -642,6 +654,7 @@ export class TileCache {
         await this.#edgeFetcher(tiles, {
           priority: "high",
           detail,
+          signal,
         })
       ).edges;
     }
@@ -662,7 +675,11 @@ export class TileCache {
     const fetched = await this.#edgeFetcher(tiles, {
       priority: "high",
       detail: SaltileDetail.Minimal,
+      signal,
     });
+    // The await above is the seam a supersession slips through: the successor
+    // now owns the signature, buckets, and pins, so stop before rewriting them.
+    signal?.throwIfAborted();
 
     // Bucket the flat edge list by its endpoints' tiles.
     const buckets = new Map<
@@ -995,6 +1012,16 @@ export interface GetViewportNodesOptions {
    * Defaults to `"minimal"` (the geometry-only compact view).
    */
   readonly detail?: SaltileDetail;
+  /**
+   * Aborts the call when the viewport it serves is superseded (the query
+   * layer's signal). An aborted call rejects with the signal's reason at its
+   * next suspension point and stops steering the shared cache: no further
+   * pins, movement history, prefetch scheduling, or edge-bucket rewrites.
+   * Tile fetches already in flight still complete into the cache — tile
+   * geometry is viewport-independent, and the loads are shared with any
+   * concurrent caller.
+   */
+  readonly signal?: AbortSignal;
 }
 
 /**
@@ -1025,16 +1052,22 @@ export interface GetViewportNodesOptions {
  * (see {@link schedulePrefetch}). Auxiliary viewports do not speculate because
  * detail is never retained and a minimal prefetch cannot serve them.
  *
+ * The call honours {@link GetViewportNodesOptions.signal}: once aborted it
+ * rejects with the signal's reason at its next suspension point rather than
+ * keep steering the cache it shares with the viewport that superseded it —
+ * see the option's doc for exactly what stops and what still lands.
+ *
  * @throws {@link ViewportTilesError} when the viewport is malformed, or when
  *   every tile fetch attempted for the viewport fails (a partial failure returns
- *   what loaded).
+ *   what loaded). Rejects with the abort reason when `options.signal` fires.
  */
 export const getViewportNodes = async (
   viewport: Viewport | null,
   cache: TileCache,
   options: GetViewportNodesOptions = {},
 ): Promise<ViewportGraph> => {
-  const { detail = SaltileDetail.Minimal } = options;
+  const { detail = SaltileDetail.Minimal, signal } = options;
+  signal?.throwIfAborted();
   const { rect, depth: targetDepth } = resolveViewport(viewport);
 
   // Reset the eviction anchor and pins to this viewport; the descent pins each
@@ -1069,6 +1102,10 @@ export const getViewportNodes = async (
         ),
       ),
     );
+    // Supersession lands only while suspended above: the successor has already
+    // re-anchored the cache to its own viewport, so one more iteration would
+    // re-pin this call's tiles under it and skew its eviction and prefetch.
+    signal?.throwIfAborted();
 
     const next: AtlasTileCoordinate[] = [];
     for (const load of loads) {
@@ -1138,8 +1175,12 @@ export const getViewportNodes = async (
     try {
       // In the detailed view, fetch edges with their detail trailer too, so each
       // edge carries its link label and type reference for the hover label.
-      edges = await cache.loadEdges(loadedTiles, detail);
+      edges = await cache.loadEdges(loadedTiles, detail, signal);
     } catch {
+      // Edges are supplementary, so a failed fetch leaves the nodes rendering
+      // without them — but an abort is the call being superseded, not an edge
+      // failure, and must reject rather than resolve a graph nobody adopts.
+      signal?.throwIfAborted();
       edges = [];
     }
   }
@@ -1518,9 +1559,13 @@ export const useGetViewportNodes = (
 
   const query = useAtlasQuery(
     viewportKey(viewport, baseUrl, detail, coloredTypeIds),
-    async () => {
+    // The query's signal rides into the fetch: a superseded viewport's call
+    // must stop steering the shared cache (pins, history, prefetch, edge
+    // buckets), not merely have its result dropped.
+    async (signal) => {
       const graph = await getViewportNodes(viewport, cache, {
         detail,
+        signal,
       });
       return { graph, tileCount: cache.tileCount };
     },
