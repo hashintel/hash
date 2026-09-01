@@ -86,7 +86,7 @@ if [[ $COVERAGE == "true" || ${TEST_COVERAGE:-false} == 'true' || ${TEST_COVERAG
     if [[ $HAS_LIB == "true" ]]; then
         cargo llvm-cov "${LLVM_COV_ARGUMENTS[@]}" "${LLVM_COV_REPORT_ARGUMENTS[@]}" --no-clean --doctests test "${COMMON_ARGUMENTS[@]}" --all-features --profile coverage --doc
     else
-        cargo llvm-cov report --branch --ignore-filename-regex "$EXCLUSIONS" "${LLVM_COV_REPORT_ARGUMENTS[@]}"
+        cargo llvm-cov report --profile coverage --branch --ignore-filename-regex "$EXCLUSIONS" "${LLVM_COV_REPORT_ARGUMENTS[@]}"
     fi
 
     exit 0
