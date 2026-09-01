@@ -118,6 +118,7 @@ export class VoiceTurnController {
   #currentQuestionId: string | null = null;
   #generation = 0;
   #snapshot = initialSnapshot;
+  #submittingQuestionId: string | null = null;
   #teardownPromise: Promise<void> | null = null;
   #transcriptItemId: string | null = null;
   #transcriptKey: string | null = null;
@@ -211,6 +212,7 @@ export class VoiceTurnController {
     this.#answerFinalizedAt = null;
     this.#answeredQuestionId = null;
     this.#currentQuestionId = null;
+    this.#submittingQuestionId = null;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
     this.#bridge.stop();
@@ -329,6 +331,7 @@ export class VoiceTurnController {
     }
     if (event.type === "submission-started") {
       this.#answerFinalizedAt = this.#now();
+      this.#submittingQuestionId = this.#currentQuestionId;
       this.#transcriptItemId = null;
       this.#transcriptKey = null;
       this.#update({
@@ -341,7 +344,8 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "submission-accepted") {
-      this.#answeredQuestionId = this.#currentQuestionId;
+      this.#answeredQuestionId = this.#submittingQuestionId;
+      this.#submittingQuestionId = null;
       this.#update({ lastAnswerDelivery: "delivered" });
       return;
     }

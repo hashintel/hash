@@ -155,6 +155,48 @@ describe("VoiceTurnController", () => {
     );
   });
 
+  test("does not bind an accepted answer to a question that arrived during submission", async () => {
+    const harness = createHarness();
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question("ask-1")],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitBridge({
+      answer: "The supervisor approves it.",
+      callId: "call-1",
+      type: "submission-started",
+    });
+
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question("ask-2", "Who acts next?")],
+      status: "ready",
+    });
+    harness.emitBridge({
+      answer: "The supervisor approves it.",
+      callId: "call-1",
+      type: "submission-accepted",
+    });
+    harness.emitBridge({
+      callId: "call-1",
+      segments: [question("ask-2", "Who acts next?")],
+      type: "canonical-response-ready",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReviseLastAnswer: false,
+      currentQuestion: "Who acts next?",
+      input: "listening",
+      lastAnswerDelivery: "delivered",
+    });
+    await expect(
+      harness.controller.submitCorrection("A corrected answer"),
+    ).resolves.toBe(false);
+    expect(harness.submitText).not.toHaveBeenCalled();
+  });
+
   test("preserves an explicit pause when the correlated Brunch response arrives", async () => {
     const harness = createHarness();
     await harness.controller.start();

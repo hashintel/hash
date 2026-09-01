@@ -434,6 +434,47 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
   });
 
+  test("retries canonical speech when the active response ends before the correlated error arrives", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    harness.session.speakCanonical([
+      canonicalSegment("question", "Canonical question"),
+    ]);
+    const firstCreate = sentEvents(channel)[0]!;
+
+    channel.receive({
+      response: { id: "response-active" },
+      type: "response.created",
+    });
+    channel.receive({
+      response: {
+        id: "response-active",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+    channel.receive({
+      error: {
+        code: "conversation_already_has_active_response",
+        event_id: firstCreate.event_id,
+        message: "private provider detail",
+        type: "invalid_request_error",
+      },
+      type: "error",
+    });
+
+    const responseCreates = sentEvents(channel).filter(
+      ({ type }) => type === "response.create",
+    );
+    expect(responseCreates).toHaveLength(2);
+    expect(responseCreates[1]?.response).toEqual(firstCreate.response);
+    expect(harness.events).not.toContainEqual(
+      expect.objectContaining({ type: "error" }),
+    );
+  });
+
   test("ignores a correlated cancel for an already-finished response", async () => {
     const harness = createHarness();
     await harness.session.connect();

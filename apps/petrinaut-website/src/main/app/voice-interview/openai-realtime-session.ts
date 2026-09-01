@@ -125,6 +125,7 @@ type PendingClientEvent =
   | {
       readonly kind: "response-create";
       readonly request: CanonicalSpeechRequest;
+      readonly responseTerminalSequence: number;
     };
 
 type SessionListener = (event: OpenAIRealtimeSessionEvent) => void;
@@ -216,6 +217,7 @@ export class OpenAIRealtimeSession {
   #peerConnection: RTCPeerConnection | null = null;
   #remoteAudio: RemoteAudio | null = null;
   #responseCreateEventId: string | null = null;
+  #responseTerminalSequence = 0;
   #speakingResponseId: string | null = null;
   #speechRequestSequence = 0;
   #unexpectedCloseListener: (() => void) | null = null;
@@ -540,6 +542,7 @@ export class OpenAIRealtimeSession {
     this.#pendingClientEvents.set(eventId, {
       kind: "response-create",
       request,
+      responseTerminalSequence: this.#responseTerminalSequence,
     });
     try {
       this.#send({
@@ -700,7 +703,10 @@ export class OpenAIRealtimeSession {
         this.#responseCreateEventId = null;
       }
       this.#canonicalSpeechQueue.unshift(pendingEvent.request);
-      this.#waitingForResponseTerminal = true;
+      this.#waitingForResponseTerminal =
+        this.#responseTerminalSequence ===
+        pendingEvent.responseTerminalSequence;
+      this.#resumeCanonicalSpeechQueue();
       return;
     }
 
@@ -726,6 +732,7 @@ export class OpenAIRealtimeSession {
       this.#handleConnectionFailure("invalid-response", "connection");
       return;
     }
+    this.#responseTerminalSequence += 1;
     this.#activeResponseIds.delete(responseId);
     this.#clearResponseCancelEvents(responseId);
     this.#waitingForResponseTerminal = false;
@@ -1201,6 +1208,7 @@ export class OpenAIRealtimeSession {
     this.#authorizedResponseIds.clear();
     this.#canonicalResponseIds.clear();
     this.#responseCreateEventId = null;
+    this.#responseTerminalSequence = 0;
     this.#speakingResponseId = null;
     this.#waitingForResponseTerminal = false;
     this.#activeEpoch = null;
