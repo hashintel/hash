@@ -97,6 +97,7 @@ export const petrinautDocNames = [
   "experiments",
   "optimization",
   "actual-mode",
+  "status-views",
   "ai-assistant",
   "visual-settings",
   "compilation-output",
@@ -124,6 +125,8 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
     "Optuna search over a selected scenario's flat parameters: explicit scenario selection, fixed vs optimized parameters and typed domains, one saved or run-local custom-code metric with maximize/minimize direction (not Experiment metric shortcuts), streamed trials, cancellation, and results.",
   "actual-mode":
     "Actual mode: host-provided live execution view, Brunch stream URL route, read-only extension-free net, current limits.",
+  "status-views":
+    "Status views: identities and key dimensions, place-mapped labels with token conditions and the exit label, canvas badges, the Kanban board toggle, and derived time-in-status.",
   "ai-assistant":
     "In-app AI assistant: opening the panel, one text and Voice mode transcript/composer, waveform start, inline Voice state and provenance, typed handoff, consent/recovery, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
   "visual-settings":

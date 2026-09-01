@@ -1,6 +1,5 @@
 /**
- * @layerRoot core.simulation.status-views
- * @role Derives per-instance status and time-in-state from execution frames
+ * Derives per-instance status and time-in-state from execution frames.
  */
 
 import type { ID, StatusLabel, StatusView } from "../types/sdcpn";

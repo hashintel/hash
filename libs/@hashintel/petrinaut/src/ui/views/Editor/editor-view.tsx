@@ -5,7 +5,11 @@
 
 import { use, useState } from "react";
 
-import { type MenuItem } from "@hashintel/ds-components";
+import {
+  SegmentedControl,
+  type MenuItem,
+  type SegmentedControlItem,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   calculateGraphLayout,
@@ -27,7 +31,10 @@ import {
 
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
-import { EditorContext } from "../../../react/state/editor-context";
+import {
+  EditorContext,
+  type CanvasViewMode,
+} from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
@@ -44,6 +51,7 @@ import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dial
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
+import { KanbanView } from "../Kanban/kanban-view";
 import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
@@ -105,6 +113,19 @@ const canvasContainerStyle = css({
   flexGrow: 1,
 });
 
+const canvasViewToggleStyle = css({
+  position: "absolute",
+  top: "[12px]",
+  left: "[50%]",
+  transform: "translateX(-50%)",
+  zIndex: "[5]",
+});
+
+const canvasViewToggleItems: SegmentedControlItem<CanvasViewMode>[] = [
+  { value: "canvas", iconName: "diagramNodes", tooltip: "Net canvas" },
+  { value: "kanban", iconName: "squareCheck", tooltip: "Kanban board" },
+];
+
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
   sdcpn.transitions.length === 0 &&
@@ -151,6 +172,8 @@ export const EditorView = ({
     isAiAssistantOpen,
     navigateTo,
     setGlobalMode,
+    canvasViewMode,
+    setCanvasViewMode,
     editionMode,
     setEditionMode,
     cursorMode,
@@ -517,8 +540,24 @@ export const EditorView = ({
               {/* Properties Panel - Right Side */}
               <PropertiesPanel />
 
-              {/* SDCPN Visualization */}
-              <SDCPNView viewportActions={viewportActions} />
+              {/* SDCPN Visualization, or the Kanban projection of a status
+                  view over the same frame source */}
+              {canvasViewMode === "kanban" ? (
+                <KanbanView />
+              ) : (
+                <SDCPNView viewportActions={viewportActions} />
+              )}
+
+              {(petriNetDefinition.statusViews ?? []).length > 0 && (
+                <div className={canvasViewToggleStyle}>
+                  <SegmentedControl
+                    value={canvasViewMode}
+                    items={canvasViewToggleItems}
+                    onChange={setCanvasViewMode}
+                    size="sm"
+                  />
+                </div>
+              )}
 
               {showEmptyAiHero && (
                 <AiCtaModal

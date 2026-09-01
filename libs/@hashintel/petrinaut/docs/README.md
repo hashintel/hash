@@ -39,6 +39,7 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [Experiments](experiments.md) -- Run Monte Carlo batches and inspect token-count distributions over time.
 - [Optimization](optimization.md) -- Search scenario parameter ranges to maximize or minimize a metric.
 - [Actual Mode](actual-mode.md) -- View a host-provided live Petri net execution, currently via Brunch.
+- [Status Views](status-views.md) -- Track per-instance statuses derived from net state: identities, place-mapped labels, the Kanban board, and time-in-status.
 - [AI Assistant](ai-assistant.md) -- Build, review, and revise nets with text or inline Voice mode.
 - [Visual Settings](visual-settings.md) -- Configure the editor appearance and behavior.
 - [Compilation Output](compilation-output.md) -- Inspect how your net's code compiled, and what stops it running on the GPU.

@@ -6,6 +6,10 @@ import { css, cx } from "@hashintel/ds-helpers/css";
 import { ActualModeContext } from "../../../../../../react/actual-mode-context";
 import { exportActualModeRecording } from "../../../../../file-io/export-actual-mode-recording";
 import { exportSDCPN } from "../../../../../file-io/export-sdcpn";
+import {
+  deriveActualEventStatusChanges,
+  type ActualEventStatusChange,
+} from "./actual-events/derive-status-changes";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
@@ -141,6 +145,39 @@ const footerNoteStyle = css({
   flexShrink: 0,
 });
 
+const statusChangeCellStyle = css({
+  color: "neutral.s115",
+  fontSize: "[11px]",
+});
+
+const statusChangeLineStyle = css({
+  display: "block",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+});
+
+const statusColumnStyle = css({
+  width: "[260px]",
+});
+
+const formatDwell = (dwellMs: number): string => {
+  const totalSeconds = dwellMs / 1_000;
+  return totalSeconds >= 60
+    ? `${Math.floor(totalSeconds / 60)}m ${Math.round(totalSeconds % 60)}s`
+    : `${Math.round(totalSeconds * 10) / 10}s`;
+};
+
+const formatStatusChange = (change: ActualEventStatusChange): string => {
+  const from = change.fromLabelName ?? "—";
+  const to = change.toLabelName ?? "—";
+  const dwell =
+    change.dwellMs === null || change.fromLabelName === null
+      ? ""
+      : ` (${formatDwell(change.dwellMs)} in ${change.fromLabelName})`;
+  return `${change.keyDisplay}: ${from} → ${to}${dwell}`;
+};
+
 const formatTimestamp = (timestamp: string): string => {
   const date = new Date(timestamp);
 
@@ -174,7 +211,8 @@ const formatMarking = (marking: ActualModeMarking): string =>
 const EventRow: React.FC<{
   firing: ActualModeTransitionFiring;
   index: number;
-}> = ({ firing, index }) => (
+  statusChanges: ActualEventStatusChange[] | undefined;
+}> = ({ firing, index, statusChanges }) => (
   <tr>
     <td
       className={cx(
@@ -219,6 +257,18 @@ const EventRow: React.FC<{
     <td className={cx(cellStyle, singleLineCellStyle, markingCellStyle)}>
       {formatMarking(firing.output)}
     </td>
+    {statusChanges && (
+      <td className={cx(cellStyle, statusColumnStyle, statusChangeCellStyle)}>
+        {statusChanges.map((change) => (
+          <span
+            key={`${change.keyDisplay}:${change.toLabelName ?? ""}`}
+            className={statusChangeLineStyle}
+          >
+            {formatStatusChange(change)}
+          </span>
+        ))}
+      </td>
+    )}
   </tr>
 );
 
@@ -233,6 +283,18 @@ const ActualEventsContent: React.FC = () => {
   const transitionFirings = actualMode.transitionFirings;
   const visibleFirings = transitionFirings.slice(-MAX_VISIBLE_EVENTS);
   const firstVisibleIndex = transitionFirings.length - visibleFirings.length;
+
+  const statusView = actualMode.available
+    ? actualMode.definition?.statusViews?.[0]
+    : undefined;
+  const statusChangesByFiring =
+    statusView && actualMode.available && actualMode.definition
+      ? deriveActualEventStatusChanges({
+          statusView,
+          definition: actualMode.definition,
+          transitionFirings,
+        })
+      : null;
 
   const handleExportStream = () => {
     if (!actualMode.available || !canExportStream) {
@@ -358,6 +420,17 @@ const ActualEventsContent: React.FC = () => {
                   Input
                 </th>
                 <th className={cx(cellStyle, singleLineCellStyle)}>Output</th>
+                {statusChangesByFiring && (
+                  <th
+                    className={cx(
+                      cellStyle,
+                      singleLineCellStyle,
+                      statusColumnStyle,
+                    )}
+                  >
+                    Status changes
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -368,6 +441,11 @@ const ActualEventsContent: React.FC = () => {
                   }`}
                   firing={firing}
                   index={firstVisibleIndex + index}
+                  statusChanges={
+                    statusChangesByFiring
+                      ? (statusChangesByFiring[firstVisibleIndex + index] ?? [])
+                      : undefined
+                  }
                 />
               ))}
             </tbody>

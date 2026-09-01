@@ -430,6 +430,8 @@ export const EditorProvider: React.FC<EditorProviderProps> = ({ children }) => {
       setState((prev) => ({ ...prev, bottomPanelHeight: height })),
     setActiveBottomPanelTab: (tab) =>
       setState((prev) => ({ ...prev, activeBottomPanelTab: tab })),
+    setCanvasViewMode: (mode) =>
+      setState((prev) => ({ ...prev, canvasViewMode: mode })),
     setSelection,
     beginSelectionGesture,
     endSelectionGesture,
