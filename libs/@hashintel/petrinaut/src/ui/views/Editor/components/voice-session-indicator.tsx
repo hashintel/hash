@@ -12,39 +12,39 @@ import type { PetrinautAiVoiceSessionPhase } from "../../../types/ai-assistant-c
 const ribbonWidth = 104;
 const ribbonHeight = 32;
 
-/** Peak deflection from the midline, in CSS pixels. */
-const maxAmplitude = 10;
+const restAmplitude = 1.6;
 
-/** Seconds between contour samples, and how many the ribbon holds. */
-const sampleInterval = 0.045;
-const contourLength = 40;
+const levelAmplitude = 11.2;
 
-/** Kept open by this much so a silent turn still reads as a ribbon. */
-const envelopeFloor = 0.05;
-
-/** How much of the level reaches the contour above the floor. */
-const envelopeGain = 0.78;
+const microphoneCurve = 0.6;
+const microphoneGain = 1.45;
 
 /** Rise with the voice, fall back slowly, the way a level meter does. */
-const attackTime = 0.06;
-const releaseTime = 0.28;
+const attackTime = 0.05;
+const releaseTime = 0.24;
 
 /** Seconds for the hand-off between the two voices to finish. */
 const colorFadeTime = 0.35;
 
-/** One stroke carries the contour; the other trails it as a faint echo. */
+const slowWaveSpan = 8.4;
+const fastWaveSpan = 20.4;
+
+const listeningTravelSpeed = 4.2;
+const speakingTravelSpeed = 8.4;
+
 const strokes = [
-  { alpha: 0.92, delay: 0, lineWidth: 1.5, scale: 1 },
-  { alpha: 0.16, delay: 5, lineWidth: 1, scale: 0.6 },
+  { alpha: 1, lineWidth: 2, phaseOffset: 0, phaseScale: 1, scale: 1 },
+  {
+    alpha: 0.3,
+    lineWidth: 1.25,
+    phaseOffset: 1,
+    phaseScale: 1.35,
+    scale: 0.78,
+  },
+  { alpha: 0.2, lineWidth: 1.25, phaseOffset: 2, phaseScale: 1.7, scale: 0.56 },
 ] as const;
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
-
-const smoothstep = (edge0: number, edge1: number, value: number): number => {
-  const progress = clamp01((value - edge0) / (edge1 - edge0));
-
-  return progress * progress * (3 - 2 * progress);
-};
 
 /** Frame-rate independent easing; `timeConstant` is the 63% settling time. */
 const easeTowards = (
@@ -57,7 +57,7 @@ const easeTowards = (
 
 /**
  * Only the user's turn is heard, so every other phase supplies its own level.
- * They all feed the same contour, which keeps the two voices one component.
+ * They all feed the same waves, which keeps the two voices one component.
  */
 const phaseLevel: Record<
   PetrinautAiVoiceSessionPhase,
@@ -65,15 +65,16 @@ const phaseLevel: Record<
 > = {
   connecting: (seconds) => 0.1 + Math.sin(seconds * 2.2) * 0.04,
   error: () => 0,
-  listening: (_seconds, microphoneLevel) => microphoneLevel,
+  listening: (_seconds, microphoneLevel) =>
+    clamp01(microphoneLevel) ** microphoneCurve * microphoneGain,
   muted: () => 0,
   paused: () => 0,
   // Syllables riding a slower phrase, so the assistant sounds like it is
   // talking rather than humming.
   speaking: (seconds) =>
-    0.34 +
-    Math.sin(seconds * 3.3) * Math.sin(seconds * 1.1) * 0.24 +
-    Math.sin(seconds * 7.1) * 0.07,
+    0.42 +
+    Math.sin(seconds * 3.3) * Math.sin(seconds * 1.1) * 0.28 +
+    Math.sin(seconds * 7.1) * 0.08,
   thinking: (seconds) => 0.11 + Math.sin(seconds * 1.7) * 0.04,
 };
 
@@ -114,89 +115,34 @@ const parseColor = (value: string): Rgb => {
   return [Number(red), Number(green), Number(blue)];
 };
 
-/** Reads 0 at the oldest sample and `contourLength - 1` at the newest. */
-type ContourReader = (position: number) => number;
-
-/**
- * A couple of seconds of levels, oldest first. Holding the recent contour is
- * what lets the ribbon show the shape of what was said instead of a squiggle
- * that merely gets taller.
- */
-const createContour = () => {
-  const samples = new Array<number>(contourLength).fill(0);
-  let cursor = 0;
-
-  const read: ContourReader = (position) => {
-    const clamped = Math.min(contourLength - 1, Math.max(0, position));
-    const index = Math.floor(clamped);
-    const next = Math.min(index + 1, contourLength - 1);
-    const blend = smoothstep(0, 1, clamped - index);
-
-    const from = samples[(cursor + index) % contourLength] ?? 0;
-    const to = samples[(cursor + next) % contourLength] ?? 0;
-
-    return from + (to - from) * blend;
-  };
-
-  return {
-    fill: (value: number) => samples.fill(value),
-    push: (value: number) => {
-      samples[cursor] = value;
-      cursor = (cursor + 1) % contourLength;
-    },
-    read,
-  };
-};
-
-const deflectionAt = ({
-  offset,
-  read,
-  stroke,
-  x,
-}: {
-  offset: number;
-  read: ContourReader;
-  stroke: (typeof strokes)[number];
-  x: number;
-}): number => {
-  const progress = x / ribbonWidth;
-  const position = progress * (contourLength - 1) - offset - stroke.delay;
-  // Fades in over the oldest samples and closes at the newest, so the shape
-  // reads as a ribbon rather than as a cropped graph. The square root keeps
-  // the ends rounded instead of drawing them out into points.
-  const taper = Math.sqrt(
-    smoothstep(0, 0.3, progress) * smoothstep(1, 0.9, progress),
-  );
-
-  return (
-    (envelopeFloor + read(position) * envelopeGain) *
-    maxAmplitude *
-    taper *
-    stroke.scale
-  );
-};
-
 /* eslint-disable no-param-reassign -- a 2D context is configured by assigning
    to it; that is the canvas API, not an unintended side effect. */
 const drawRibbon = ({
+  amplitude,
   color,
   context,
-  offset,
-  read,
+  travel,
 }: {
+  amplitude: number;
   color: Rgb;
   context: CanvasRenderingContext2D;
-  /** Sub-sample scroll, so the contour drifts rather than stepping. */
-  offset: number;
-  read: ContourReader;
+  travel: number;
 }) => {
   const midline = ribbonHeight / 2;
   const [red, green, blue] = color;
+  const channels = `${Math.round(red)}, ${Math.round(green)}, ${Math.round(
+    blue,
+  )}`;
 
   context.clearRect(0, 0, ribbonWidth, ribbonHeight);
   context.lineCap = "round";
   context.lineJoin = "round";
-  context.strokeStyle = `rgb(${Math.round(red)}, ${Math.round(green)}, ${Math.round(blue)})`;
+
+  const gradient = context.createLinearGradient(0, 0, ribbonWidth, 0);
+  gradient.addColorStop(0, `rgba(${channels}, 0.15)`);
+  gradient.addColorStop(0.5, `rgba(${channels}, 0.95)`);
+  gradient.addColorStop(1, `rgba(${channels}, 0.15)`);
+  context.strokeStyle = gradient;
 
   for (const stroke of strokes) {
     context.beginPath();
@@ -204,7 +150,15 @@ const drawRibbon = ({
     context.lineWidth = stroke.lineWidth;
 
     for (let x = 0; x <= ribbonWidth; x += 2) {
-      const y = midline - deflectionAt({ offset, read, stroke, x });
+      const progress = x / ribbonWidth;
+      const taper = Math.sin(progress * Math.PI) ** 1.5;
+      const wobble =
+        Math.sin(
+          progress * slowWaveSpan +
+            travel * stroke.phaseScale +
+            stroke.phaseOffset,
+        ) * Math.sin(progress * fastWaveSpan - travel * 0.7);
+      const y = midline + wobble * amplitude * taper * stroke.scale;
 
       if (x === 0) {
         context.moveTo(x, y);
@@ -213,12 +167,6 @@ const drawRibbon = ({
       }
     }
 
-    // The contour is mirrored on the way back, closing the ribbon.
-    for (let x = ribbonWidth; x >= 0; x -= 2) {
-      context.lineTo(x, midline + deflectionAt({ offset, read, stroke, x }));
-    }
-
-    context.closePath();
     context.stroke();
   }
 
@@ -233,7 +181,7 @@ export type VoiceSessionIndicatorProps = {
 };
 
 /**
- * One ribbon for both voices: blue and tracing the microphone while the user
+ * One ribbon for both voices: blue and tracking the microphone while the user
  * speaks, graphite and self-driven while the assistant answers, flat while
  * nobody holds the turn.
  */
@@ -244,8 +192,8 @@ export const VoiceSessionIndicator = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   // Kept across phase changes so the ribbon carries on from where the last
   // turn left it instead of snapping when the effect below re-runs.
-  const contourRef = useRef<ReturnType<typeof createContour> | null>(null);
   const clockRef = useRef(0);
+  const travelRef = useRef(0);
   const levelRef = useRef(0);
   const colorRef = useRef<Rgb | null>(null);
 
@@ -261,23 +209,24 @@ export const VoiceSessionIndicator = ({
     canvas.height = ribbonHeight * scale;
     context.setTransform(scale, 0, 0, scale, 0, 0);
 
-    const contour = (contourRef.current ??= createContour());
     const targetColor = parseColor(window.getComputedStyle(canvas).color);
     colorRef.current ??= targetColor;
 
     const levelOf = phaseLevel[phase];
+    const travelSpeed =
+      phase === "speaking" ? speakingTravelSpeed : listeningTravelSpeed;
     const reducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
     if (reducedMotion) {
       colorRef.current = targetColor;
-      contour.fill(clamp01(levelOf(0, getMicrophoneLevel())));
+      levelRef.current = clamp01(levelOf(0, getMicrophoneLevel()));
       drawRibbon({
+        amplitude: restAmplitude + levelRef.current * levelAmplitude,
         color: targetColor,
         context,
-        offset: 0,
-        read: contour.read,
+        travel: travelRef.current,
       });
 
       return;
@@ -285,7 +234,6 @@ export const VoiceSessionIndicator = ({
 
     let frame = 0;
     let lastTimestamp: number | null = null;
-    let sinceSample = 0;
 
     const render = (timestamp: number) => {
       // Clamped so a backgrounded tab resumes rather than fast-forwards.
@@ -295,6 +243,7 @@ export const VoiceSessionIndicator = ({
           : Math.min(0.1, (timestamp - lastTimestamp) / 1000);
       lastTimestamp = timestamp;
       clockRef.current += delta;
+      travelRef.current += delta * travelSpeed;
 
       const target = clamp01(levelOf(clockRef.current, getMicrophoneLevel()));
       levelRef.current = easeTowards(
@@ -304,12 +253,6 @@ export const VoiceSessionIndicator = ({
         target > levelRef.current ? attackTime : releaseTime,
       );
 
-      sinceSample += delta;
-      while (sinceSample >= sampleInterval) {
-        contour.push(levelRef.current);
-        sinceSample -= sampleInterval;
-      }
-
       const current = colorRef.current ?? targetColor;
       colorRef.current = [
         easeTowards(current[0], targetColor[0], delta, colorFadeTime),
@@ -318,10 +261,10 @@ export const VoiceSessionIndicator = ({
       ];
 
       drawRibbon({
+        amplitude: restAmplitude + levelRef.current * levelAmplitude,
         color: colorRef.current,
         context,
-        offset: sinceSample / sampleInterval,
-        read: contour.read,
+        travel: travelRef.current,
       });
 
       frame = requestAnimationFrame(render);

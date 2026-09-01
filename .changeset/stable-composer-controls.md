@@ -16,12 +16,14 @@ transcript entries.
 
 Render every live Voice surface from a session snapshot the host reports through
 `reportVoiceSessionState`, so hosts describe their session while Petrinaut owns its chrome. Replace
-the composer with a low-profile Voice dock -- a canvas ribbon carrying a rolling couple of seconds of
-microphone level while listening, so its contour follows the shape of what was said and drifts with
-it, moving under its own power through the same drawing path while the assistant speaks, flat while
-neither holds the turn, and naming one phase at a time -- with an announced phase and reduced-motion
-behavior. Sample the level per animation frame rather than through React, so drawing costs no
-re-renders, and ease the contour against the frame delta so it looks the same at any refresh rate. Hold spoken
+the composer with a low-profile Voice dock -- a canvas ribbon of three travelling waves, one leading
+and two trailing it more faintly, fading out at both ends, opening with the microphone while
+listening and moving under its own power through the same drawing path while the assistant speaks,
+near flat while neither holds the turn, and naming one phase at a time -- with an announced phase and
+reduced-motion behavior. Curve the raw microphone level before it drives the waves, so an ordinary
+speaking level is plainly visible rather than a flicker above the line and a raised voice still has
+somewhere to go. Sample the level per animation frame rather than through React, so drawing costs no
+re-renders, and ease it against the frame delta so it looks the same at any refresh rate. Hold spoken
 turns out of the transcript until the session ends, then reveal them together under a turn-count
 divider, while typed messages and interactive tools awaiting an answer stay visible throughout. Let a
 per-session Show transcription in chat action write those turns into the conversation as they land

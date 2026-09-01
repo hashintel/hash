@@ -5,12 +5,13 @@ import {
   type RefObject,
   use,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
 import ReactMarkdown from "react-markdown";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
 import { NotificationsContext } from "../../../../../react/notifications/context";
@@ -21,8 +22,9 @@ import {
 } from "../../../../../react/voice-session/use-voice-session";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { ResizeHandle } from "../../../../resize/resize-handle";
-import { AiVoiceModeButton } from "../../components/ai-voice-mode-button";
+import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
 import { partitionVoiceSessionMessages } from "./ai-assistant-contents/defer-voice-messages";
+import { aiFooterMinHeight } from "./ai-assistant-contents/footer-height";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
   PromptChips,
@@ -315,10 +317,29 @@ const stoppedNoteStyle = css({
 const composerWrapStyle = css({
   display: "flex",
   flexDirection: "column",
+  justifyContent: "center",
   gap: "2",
   padding: "2",
   backgroundColor: "neutral.bg.subtle",
   flexShrink: 0,
+  boxSizing: "border-box",
+  minHeight: `[${aiFooterMinHeight}px]`,
+  animationName: "[petrinautVoiceSwap]",
+  animationDuration: "[200ms]",
+  animationTimingFunction: "[ease-out]",
+  "@media (prefers-reduced-motion: reduce)": {
+    animationName: "[none]",
+  },
+});
+
+const composerActionGlyphStyle = css({
+  display: "inline-flex",
+  animationName: "[petrinautComposerActionSwap]",
+  animationDuration: "[140ms]",
+  animationTimingFunction: "[cubic-bezier(0.2, 0.9, 0.3, 1)]",
+  "@media (prefers-reduced-motion: reduce)": {
+    animationName: "[none]",
+  },
 });
 
 const composerStyle = css({
@@ -385,7 +406,9 @@ const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string => {
   let partSignature = "";
   if (lastPart) {
     if (lastPart.type === "text" || lastPart.type === "reasoning") {
-      partSignature = `${lastPart.type}:${lastPart.state ?? ""}:${lastPart.text.length}`;
+      partSignature = `${lastPart.type}:${lastPart.state ?? ""}:${
+        lastPart.text.length
+      }`;
     } else {
       partSignature =
         "state" in lastPart
@@ -527,6 +550,57 @@ export const AiAssistantContents = ({
   const hasInput = input.trim().length > 0;
   const canSubmit = hasInput && !isBusy && !voiceHandoffPending;
 
+  const composerAction: {
+    disabled: boolean;
+    glyph: "arrowUp" | "stopFilled" | "voice";
+    isSubmit: boolean;
+    label: string;
+    onClick?: () => void;
+    tone: "brand" | "neutral";
+    type: "button" | "submit";
+    variant: "solid" | "subtle";
+  } = isBusy
+    ? {
+        disabled: false,
+        glyph: "stopFilled",
+        isSubmit: false,
+        label: "Stop AI response",
+        onClick: onStop,
+        tone: "neutral",
+        type: "button",
+        variant: "subtle",
+      }
+    : canSubmit
+      ? {
+          disabled: false,
+          glyph: "arrowUp",
+          isSubmit: true,
+          label: "Send message",
+          tone: "brand",
+          type: "submit",
+          variant: "solid",
+        }
+      : !hasInput && voiceModeAvailable && onInputModeChange
+        ? {
+            disabled: false,
+            glyph: "voice",
+            isSubmit: false,
+            label: "Start voice mode",
+            onClick: () => onInputModeChange("voice"),
+            tone: "brand",
+            type: "button",
+            variant: "solid",
+          }
+        : {
+            disabled: true,
+            glyph: "arrowUp",
+            isSubmit: false,
+            label: "Send message",
+            tone: "brand",
+            type: "submit",
+            variant: "solid",
+          };
+
   // Index of the first message belonging to the current or most recent voice
   // session. Everything from here on is held back while that session runs, and
   // revealed together once it ends.
@@ -643,7 +717,28 @@ export const AiAssistantContents = ({
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesRef = useRef<HTMLDivElement | null>(null);
   const messagesScrollKey = getMessagesScrollKey(messages);
+
+  const distanceFromEndRef = useRef(0);
+
+  const recordDistanceFromEnd = () => {
+    const node = messagesRef.current;
+    if (node === null) {
+      return;
+    }
+    distanceFromEndRef.current =
+      node.scrollHeight - node.scrollTop - node.clientHeight;
+  };
+
+  useLayoutEffect(() => {
+    const node = messagesRef.current;
+    if (node === null) {
+      return;
+    }
+    node.scrollTop =
+      node.scrollHeight - node.clientHeight - distanceFromEndRef.current;
+  }, [isVoiceSessionLive]);
 
   const showChips =
     !chipsDismissed &&
@@ -675,15 +770,21 @@ export const AiAssistantContents = ({
   // after which it scrolls internally). Resetting to `auto` before measuring
   // `scrollHeight` lets the box shrink again when text is removed; both writes
   // happen synchronously so the browser only paints the final height and the
-  // CSS `height` transition animates the change.
+  // CSS `height` transition animates the change. `scrollHeight` is a rounded
+  // integer, so the height it yields can land a fraction of a pixel under the
+  // real content and raise a scrollbar on a box that visibly fits; scrolling
+  // is therefore only allowed once the content genuinely passes the cap.
   useEffect(() => {
     const textarea = inputRef.current;
     if (!textarea) {
       return;
     }
     textarea.style.height = "auto";
-    textarea.style.height = `${Math.min(textarea.scrollHeight, composerMaxHeight)}px`;
-  }, [input]);
+    const contentHeight = textarea.scrollHeight;
+    textarea.style.height = `${Math.min(contentHeight, composerMaxHeight)}px`;
+    textarea.style.overflowY =
+      contentHeight > composerMaxHeight ? "auto" : "hidden";
+  }, [input, isOpen]);
 
   const hasScrolledOnceRef = useRef(false);
 
@@ -719,7 +820,9 @@ export const AiAssistantContents = ({
           the visible card border, but the card clips overflow and the shell's
           padding pushes the shell edge away from it. */}
       <div
-        className={`${resizeAnchorStyle} ${panelContentStyle({ visible: isOpen })}`}
+        className={`${resizeAnchorStyle} ${panelContentStyle({
+          visible: isOpen,
+        })}`}
       >
         <ResizeHandle
           edge="left"
@@ -760,8 +863,12 @@ export const AiAssistantContents = ({
         </div>
 
         <div
-          className={`${messagesStyle} ${panelContentStyle({ visible: isOpen })}`}
+          className={`${messagesStyle} ${panelContentStyle({
+            visible: isOpen,
+          })}`}
           data-testid="ai-transcript"
+          onScroll={recordDistanceFromEnd}
+          ref={messagesRef}
         >
           {messages.length === 0 && (
             <div className={emptyStyle}>
@@ -798,7 +905,9 @@ export const AiAssistantContents = ({
 
         {voiceMode && (
           <div
-            className={`${voiceModeStyle} ${panelContentStyle({ visible: isOpen })}`}
+            className={`${voiceModeStyle} ${panelContentStyle({
+              visible: isOpen,
+            })}`}
             data-testid="ai-voice-mode"
           >
             {voiceMode}
@@ -816,7 +925,9 @@ export const AiAssistantContents = ({
           </div>
         ) : (
           <div
-            className={`${composerWrapStyle} ${panelContentStyle({ visible: isOpen })}`}
+            className={`${composerWrapStyle} ${panelContentStyle({
+              visible: isOpen,
+            })}`}
           >
             {showChips && (
               <PromptChips
@@ -870,45 +981,31 @@ export const AiAssistantContents = ({
                   disabled={voiceHandoffPending}
                 />
                 {composerControl}
-                {isBusy ? (
-                  <Button
-                    aria-label="Stop AI response"
-                    iconName="stopFilled"
-                    onClick={onStop}
-                    size="sm"
-                    tone="neutral"
-                    tooltip="Stop AI response"
-                    type="button"
-                    variant="subtle"
-                  />
-                ) : canSubmit ? (
-                  <Button
-                    aria-label="Send message"
-                    data-ai-assistant-submit
-                    iconName="arrowUp"
-                    size="sm"
-                    tone="brand"
-                    tooltip="Send message"
-                    type="submit"
-                    variant="solid"
-                  />
-                ) : !hasInput && voiceModeAvailable && onInputModeChange ? (
-                  <AiVoiceModeButton
-                    onClick={() => onInputModeChange("voice")}
-                    size="sm"
-                  />
-                ) : (
-                  <Button
-                    aria-label="Send message"
-                    disabled
-                    iconName="arrowUp"
-                    size="sm"
-                    tone="brand"
-                    tooltip="Send message"
-                    type="submit"
-                    variant="solid"
-                  />
-                )}
+                <Button
+                  aria-label={composerAction.label}
+                  data-ai-assistant-submit={
+                    composerAction.isSubmit || undefined
+                  }
+                  disabled={composerAction.disabled}
+                  onClick={composerAction.onClick}
+                  prefix={
+                    <span
+                      className={composerActionGlyphStyle}
+                      key={composerAction.glyph}
+                    >
+                      {composerAction.glyph === "voice" ? (
+                        <AiVoiceModeIcon size={16} />
+                      ) : (
+                        <Icon name={composerAction.glyph} size="sm" />
+                      )}
+                    </span>
+                  }
+                  size="sm"
+                  tone={composerAction.tone}
+                  tooltip={composerAction.label}
+                  type={composerAction.type}
+                  variant={composerAction.variant}
+                />
               </div>
             </form>
           </div>

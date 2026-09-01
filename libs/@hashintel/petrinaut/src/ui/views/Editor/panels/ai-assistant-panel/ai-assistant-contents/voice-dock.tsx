@@ -10,7 +10,9 @@ import {
   voiceSessionActionLabels,
   voiceSessionStatusLabel,
 } from "../../../components/voice-session-labels";
+import { aiFooterMinHeight } from "./footer-height";
 import { MicrophoneIcon } from "./voice-dock/microphone-icon";
+import { TranscriptionIcon } from "./voice-dock/transcription-icon";
 
 import type { VoiceSessionActions } from "../../../../../../react/voice-session/store";
 import type { PetrinautAiVoiceSessionPhase } from "../../../../../types/ai-assistant-composer-control";
@@ -19,7 +21,8 @@ import type { ReactNode } from "react";
 const dockStyle = css({
   display: "flex",
   flexShrink: 0,
-  minHeight: "[64px]",
+  boxSizing: "border-box",
+  minHeight: `[${aiFooterMinHeight}px]`,
   alignItems: "center",
   gap: "2",
   padding: "[10px 12px]",
@@ -27,9 +30,9 @@ const dockStyle = css({
   borderTopStyle: "solid",
   borderTopColor: "neutral.a20",
   backgroundColor: "neutral.s00",
-  animationName: "[petrinautVoiceReveal]",
-  animationDuration: "[240ms]",
-  animationTimingFunction: "[cubic-bezier(0.2, 0.9, 0.3, 1)]",
+  animationName: "[petrinautVoiceSwap]",
+  animationDuration: "[200ms]",
+  animationTimingFunction: "[ease-out]",
   "@media (prefers-reduced-motion: reduce)": {
     animationName: "[none]",
   },
@@ -136,10 +139,10 @@ export const VoiceDock = ({
         {actions !== null && (
           <Button
             aria-label={transcriptionLabel}
-            iconName="text"
             onClick={onTranscriptionToggle}
+            prefix={<TranscriptionIcon />}
             pressed={transcriptionShown}
-            size="xs"
+            size="sm"
             tooltip={transcriptionLabel}
             type="button"
             variant="ghost"
@@ -162,22 +165,20 @@ export const VoiceDock = ({
                 aria-label={voiceSessionActionLabels.reconnect}
                 iconName="rotate"
                 onClick={actions.reconnect}
-                shape="round"
-                size="md"
+                size="sm"
                 tooltip="Reconnect"
                 type="button"
-                variant="subtle"
+                variant="ghost"
               />
             ) : phase === "paused" ? (
               <Button
                 aria-label={voiceSessionActionLabels.resume}
                 iconName="play"
                 onClick={actions.resume}
-                shape="round"
-                size="md"
+                size="sm"
                 tooltip="Resume"
                 type="button"
-                variant="subtle"
+                variant="ghost"
               />
             ) : (
               <Button
@@ -186,24 +187,21 @@ export const VoiceDock = ({
                 onClick={() => actions.setMicrophoneMuted(!muted)}
                 prefix={<MicrophoneIcon muted={muted} />}
                 pressed={muted}
-                shape="round"
-                size="md"
-                tone={muted ? "error" : undefined}
+                size="sm"
                 tooltip={microphoneLabel}
                 type="button"
-                variant="subtle"
+                variant="ghost"
               />
             )}
             <Button
               aria-label={voiceSessionActionLabels.end}
-              iconName="stopFilled"
+              iconName="close"
               onClick={actions.end}
-              shape="round"
-              size="md"
+              size="sm"
               tone="error"
               tooltip="End voice mode"
               type="button"
-              variant="subtle"
+              variant="ghost"
             />
           </>
         )}

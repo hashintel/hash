@@ -106,11 +106,17 @@ export const petrinautPandaPreset = {
           from: { opacity: "1", transform: "translateX(0)" },
           to: { opacity: "0", transform: "translateX(100px)" },
         },
-        // Carries both the dock arriving in place of the composer and the
-        // spoken turns landing in the transcript once a session ends.
         petrinautVoiceReveal: {
           from: { opacity: "0", transform: "translateY(10px)" },
           to: { opacity: "1", transform: "translateY(0)" },
+        },
+        petrinautVoiceSwap: {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        petrinautComposerActionSwap: {
+          from: { opacity: "0", transform: "scale(0.7)" },
+          to: { opacity: "1", transform: "scale(1)" },
         },
       },
     },
