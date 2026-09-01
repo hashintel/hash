@@ -29,5 +29,7 @@ export type InteractiveToolDefinition<Input = unknown, Output = unknown> = {
   parseInput: (raw: unknown) => Input;
   /** Parse the widget's output before submitting it to the AI SDK. */
   parseOutput: (raw: unknown) => Output;
+  /** Map composer text to a validated tool output when the host opts in. */
+  fromComposerText?: (params: { input: Input; text: string }) => Output;
   Widget: ComponentType<InteractiveToolWidgetProps<Input, Output>>;
 };

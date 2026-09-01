@@ -18,6 +18,12 @@ export { PetrinautOptimizationContext } from "./react/optimization-context";
 export type { PetrinautSlots } from "./ui/types/petrinaut-slots";
 export type { ViewportAction } from "./ui/types/viewport-action";
 export type {
+  PetrinautAiComposerControl,
+  PetrinautAiComposerControlContext,
+  PetrinautAiComposerStatus,
+  PetrinautAiComposerSubmitTextResult,
+} from "./ui/types/ai-assistant-composer-control";
+export type {
   PetrinautNavigationAction,
   PetrinautNavigationController,
   PetrinautNavigationHistory,

@@ -1,4 +1,11 @@
-import { memo, type RefObject, useEffect, useRef, useState } from "react";
+import {
+  memo,
+  type ReactNode,
+  type RefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import ReactMarkdown from "react-markdown";
 
 import { Button } from "@hashintel/ds-components";
@@ -27,6 +34,7 @@ type AiAssistantStatus = "submitted" | "streaming" | "ready" | "error";
 const EMPTY_INTERACTIVE_TOOLS: readonly PetrinautAiInteractiveTool[] = [];
 
 export type AiAssistantContentsProps = {
+  composerControl?: ReactNode;
   error?: Error;
   input: string;
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
@@ -381,6 +389,7 @@ const AiAssistantMessage = memo(
 AiAssistantMessage.displayName = "AiAssistantMessage";
 
 export const AiAssistantContents = ({
+  composerControl,
   error,
   input,
   interactiveTools = EMPTY_INTERACTIVE_TOOLS,
@@ -550,7 +559,11 @@ export const AiAssistantContents = ({
           <form
             onSubmit={(event) => {
               event.preventDefault();
-              if (canSubmit) {
+              const submitter = (event.nativeEvent as SubmitEvent).submitter;
+              if (
+                canSubmit &&
+                submitter?.hasAttribute("data-ai-assistant-submit")
+              ) {
                 onSubmit();
               }
             }}
@@ -588,7 +601,9 @@ export const AiAssistantContents = ({
                 }
                 aria-label="Message AI assistant"
               />
+              {composerControl}
               <Button
+                data-ai-assistant-submit
                 type={isBusy ? "button" : "submit"}
                 size="sm"
                 variant={isBusy ? "subtle" : "solid"}

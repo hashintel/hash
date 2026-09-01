@@ -29,6 +29,7 @@ const editorRootStyle = css({
   backgroundColor: "neutral.s25",
 });
 
+import type { PetrinautAiComposerControl } from "./types/ai-assistant-composer-control";
 import type { PetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
 import type {
   PetrinautAiMessage,
@@ -38,11 +39,15 @@ import type {
 export type PetrinautAiChatTransport = PetrinautAiTransport;
 
 export type PetrinautAiAssistant = {
+  /** Optional host-owned identity; `useChat` generates one when omitted. */
+  conversationId?: string;
   /** Host-owned dynamic tools that render inline in the AI conversation. */
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
   messages?: PetrinautAiMessage[];
   onClearMessages?: () => void;
   onMessages?: (messages: PetrinautAiMessage[]) => void;
+  /** Render a host-owned control inside the assistant composer. */
+  renderComposerControl?: PetrinautAiComposerControl;
   transport: PetrinautAiTransport;
 };
 

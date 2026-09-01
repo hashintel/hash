@@ -68,6 +68,66 @@ describe("AiAssistantContents", () => {
     expect(renderMarkdown).toHaveBeenCalledOnce();
   });
 
+  test("renders a host composer control between the textarea and send button", () => {
+    render(
+      <AiAssistantContents
+        composerControl={
+          <button type="button" aria-label="Alternate input">
+            Alternate
+          </button>
+        }
+        input=""
+        messages={[]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    const textarea = screen.getByRole("textbox", {
+      name: "Message AI assistant",
+    });
+    const control = screen.getByRole("button", { name: "Alternate input" });
+    const sendButton = screen.getByRole("button", { name: "Send message" });
+
+    expect(textarea.nextElementSibling).toBe(control);
+    expect(control.nextElementSibling?.contains(sendButton)).toBe(true);
+  });
+
+  test("does not submit the draft when a host composer button omits its type", () => {
+    const onSubmit = vi.fn();
+    render(
+      <AiAssistantContents
+        composerControl={createElement(
+          "button",
+          // oxlint-disable-next-line react/button-has-type -- The missing type is the regression under test.
+          { "aria-label": "Alternate input" },
+          "Alternate",
+        )}
+        input="Unsaved draft"
+        messages={[]}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={onSubmit}
+        status="ready"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Alternate input",
+      }),
+    );
+
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Send message" }));
+    expect(onSubmit).toHaveBeenCalledOnce();
+  });
+
   test("renders a host interactive tool and submits its validated output once", () => {
     const parseOutput = vi.fn((raw: unknown) => {
       if (
