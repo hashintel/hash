@@ -7,8 +7,9 @@
     "brunch:fixture": "node --experimental-strip-types scripts/brunch-sse-fixture.ts",
     "build": "vite build",
     "codegen": "node --experimental-strip-types scripts/generate-route-tree.ts",
-    "dev": "vite",
+    "dev": "yarn examples:generate && vite",
     "dev:optimization": "node scripts/optimization-dev.mjs",
+    "examples:generate": "node --experimental-strip-types scripts/generate-example-artifacts.ts",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "generate:icons": "node scripts/generate-favicons.mjs",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
@@ -36,6 +37,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@fast-check/vitest": "0.4.1",
     "@tanstack/router-generator": "1.167.32",
     "@tanstack/router-plugin": "1.168.34",
     "@types/react": "19.2.14",
@@ -43,6 +45,7 @@
     "@typescript/native-preview": "7.0.0-dev.20260511.1",
     "@vitejs/plugin-react": "6.1.0",
     "@whatwg-node/server": "0.10.18",
+    "fast-check": "4.9.0",
     "oxc-transform-react": "0.145.0",
     "oxlint": "1.63.0",
     "oxlint-tsgolint": "0.22.1",
