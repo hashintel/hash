@@ -1,6 +1,7 @@
 export {
   ACTUAL_MODE_RECORDING_VERSION,
   ACTUAL_MODE_TIMELINE_TICK_MS,
+  SUPPORTED_ACTUAL_MODE_RECORDING_VERSIONS,
 } from "./constants";
 export { unavailableActualMode } from "./context";
 export {
@@ -19,6 +20,7 @@ export {
   actualModeReceivedEventsRecordingSchema,
   actualModeRecordingSchema,
   actualModeSourceSchema,
+  actualModeTokenValuesSchema,
   actualModeTransitionEffectSchema,
   actualModeTransitionFiringSchema,
 } from "./schemas";
@@ -33,10 +35,14 @@ export type {
   ActualModeReceivedEvent,
   ActualModeReceivedEventsRecording,
   ActualModeRecording,
+  ActualModeRecordingVersion,
   ActualModeSource,
   ActualModeTimelinePoint,
   ActualModeTimelinePointKind,
   ActualModeTokenColour,
+  ActualModeTokenRecord,
+  ActualModeTokenValue,
+  ActualModeTokenValues,
   ActualModeTransitionEffect,
   ActualModeTransitionFiring,
 } from "./types";
