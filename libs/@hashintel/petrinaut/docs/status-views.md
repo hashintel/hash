@@ -14,13 +14,15 @@ An identity names the thing a status view tracks, e.g. "Ticket". To declare one,
 
 Transition kernels must copy the key attribute from input token to output token — a kernel that drops the key ends the recorded history for that instance.
 
+A token whose key was never set is not tracked: an unset `uuid` key (the nil UUID) or an empty `string` key marks the token as untracked rather than merging every such token into one instance. When several tokens carry the same key in one frame, they count as one instance — the first matching label (in label order, then place order) decides its status.
+
 ## Creating a status view
 
 Open the **Simulate** mode and pick the **Status views** tab, then **Create**. A status view has:
 
 - **Identity** — which instances the view tracks.
 - **Labels** — the statuses, in order. Label order is the Kanban column order, and when several labels could match, the first one wins. Each label maps to a set of places: a token in any of those places carries the label. A component instance's internal places appear in the picker as `InstanceName::PlaceName`.
-- **Token conditions** — an optional boolean expression over the token's attributes, e.g. `token.attempts > 0`. The label applies only while the token is in the label's places AND the condition holds, so "Retrying" can be the same place as "In Progress" with a condition on the attempts attribute.
+- **Token conditions** — an optional boolean expression over the token's attributes, e.g. `token.attempts > 0`. The label applies only while the token is in the label's places AND the condition holds, so "Retrying" can be the same place as "In Progress" with a condition on the attempts attribute. A condition that is still compiling, or fails to compile, makes its label match nothing (the board shows a notice), so a broken condition never widens a label to every token.
 - **Exit label** — at most one label can be the exit label. It has no places: it applies to instances whose token has left every place of the view, e.g. consumed outright by a final transition. Model distinct terminal statuses (Done vs Failed) as ordinary labels on sink places; use the exit label as the catch-all.
 
 ## Kanban board
