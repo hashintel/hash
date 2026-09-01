@@ -21,6 +21,7 @@ This candidate remaps the current core prompt, SDCPN prompt material, runbook sk
 13. The plugin profile is strictly additive and register-pure: it states only operational-process or SDCPN consequences absent from universal teaching; Recognition names signals and hypotheses, Operations names moves, Coverage names what to preserve, and Verification names failures and repairs. Lifecycle and construction routing remain in instructions and checks.
 14. A workpiece claim, its evidence, and its epistemic treatment share one authoritative location under the relevant concern. Only unresolved matters spanning concerns or requiring later re-entry enter a compact cross-cutting issue ledger, which references rather than restates claims.
 15. Construction evidence is reported at one of three non-collapsible levels: tool-schema acceptance, agent-reviewed structural correspondence, and behavior observed through an actual execution or stronger analysis. Every claim stays within the scope of the method that produced it.
+16. [`EVALUATION.md`](EVALUATION.md) owns the repeatable candidate comparison: frozen instruments, authority checks, owner-led walkthroughs, model-facing observables, campaign boundary, and disposition rules.
 
 ## Candidate topology
 
@@ -28,6 +29,7 @@ This candidate remaps the current core prompt, SDCPN prompt material, runbook sk
 five-register-synthesis/
 ├── README.md
 ├── SOURCE-MAP.md
+├── EVALUATION.md
 ├── core/
 │   ├── SYSTEM.md
 │   ├── flue.ts.example
@@ -58,6 +60,7 @@ five-register-synthesis/
 - [`plugin-sdcpn/sdcpn-modelling/workpiece-template.md`](plugin-sdcpn/sdcpn-modelling/workpiece-template.md) is the recoverable process-model artifact, with operational claims, evidence, and epistemic treatment co-located and a reference-only cross-cutting issue ledger.
 - [`plugin-sdcpn/sdcpn-modelling/pn-construction.md`](plugin-sdcpn/sdcpn-modelling/pn-construction.md) contains construction mappings and patterns disclosed only during construction.
 - [`plugin-sdcpn/sdcpn-modelling/checks.md`](plugin-sdcpn/sdcpn-modelling/checks.md) separates tool-schema acceptance, agent-reviewed structural correspondence, and behavioral execution or stronger analysis before checking fidelity, revision, and delivery.
+- [`EVALUATION.md`](EVALUATION.md) is the sole authority for comparing Coverage/workpiece/readiness candidates and deciding whether finer progressive disclosure is earned.
 
 ## How to read the synthesized set
 
@@ -87,37 +90,11 @@ For construction and net delivery, additionally read:
 
 Workpiece-only delivery uses the universal and plugin Verification registers without disclosing construction resources.
 
-## Coverage fog-line
+## Evaluation
 
-The profile uses a **domain-typology-primary Coverage index provisionally**, because a complete candidate is easier to evaluate than an abstract choice. This is not a settled design decision.
+The profile currently uses a domain-typology-primary Coverage index provisionally. Do not decide between it and the alternatives from this README. Follow [`EVALUATION.md`](EVALUATION.md), which preregisters three candidates: domain-primary, formalism-primary, and domain-primary elicitation/workpiece organization plus a separate SDCPN construction-readiness view.
 
-Compare two aligned profile/workpiece pairs:
-
-- **Domain-primary candidate:** [`profile.md`](plugin-sdcpn/sdcpn-modelling/profile.md) with [`workpiece-template.md`](plugin-sdcpn/sdcpn-modelling/workpiece-template.md); [`coverage-alternatives/domain-primary.md`](plugin-sdcpn/sdcpn-modelling/coverage-alternatives/domain-primary.md) isolates its Coverage register.
-- **Formalism-primary candidate:** substitute [`coverage-alternatives/formalism-primary.md`](plugin-sdcpn/sdcpn-modelling/coverage-alternatives/formalism-primary.md) and use its paired [`coverage-alternatives/formalism-primary-workpiece-template.md`](plugin-sdcpn/sdcpn-modelling/coverage-alternatives/formalism-primary-workpiece-template.md).
-
-Walk the same cases through both:
-
-- a reusable resource that is acquired, unavailable while held, and released in a changed or unchanged state;
-- a failure that retries part of a process and must release or retain occupied resources;
-- a physical location whose relevance could be boundary, state, capacity, eligibility, travel, or no model distinction;
-- an external event and an internal threshold that can both trigger work;
-- a mode change whose loss differs by direction;
-- hidden waiting caused by policy, batching, calendar, resource availability, or recovery.
-
-Evaluate which index lets a slice or sweep find Recognition and Coverage without turning the concepts into question order, losing target obligations, or requiring repeated many-to-many translation.
-
-## Under-structure check
-
-The five register headings are the only required entry structure. While reviewing, note concrete places where freeform entries make any of these hard:
-
-- determining whether text is binding, diagnostic, optional, a coverage concern, or a check;
-- linking a Recognition signal to relevant Coverage without duplicating content;
-- knowing when an Operation should stop or re-evaluate;
-- distinguishing a failed check from its repair;
-- finding the same concept reliably across universal and plugin layers.
-
-Only observed failures here would justify a repeated card grammar or machine-readable structure.
+The protocol owns the shared invariants, mechanical audit, owner-led cases, model-facing observations, evidence walls, decision rule, and the threshold for splitting progressive resources. After a candidate wins, remove losing alternatives from the live candidate instrument and preserve only the comparison evidence.
 
 ## Observed runtime boundaries
 

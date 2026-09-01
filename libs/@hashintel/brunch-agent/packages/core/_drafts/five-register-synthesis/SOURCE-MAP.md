@@ -18,6 +18,7 @@ This map accounts for the primary working and draft material used to produce the
 | `pn-construction.md` | SDCPN mappings, construction patterns, inference, bounded change, and losses | Active `pn-construction.md`; APPEND `Maps To` material; Ciaran transformation patterns |
 | `checks.md` | Phase-boundary, net, fidelity, revision, and delivery checks | Active `checks.md`; APPEND smells/rabbit holes/failure signatures; current construction tool contract |
 | `coverage-alternatives/*` | Concrete comparison at the unresolved Coverage-index fog-line | Active typology table; Ciaran headings; predecessor kind-indexed question reference |
+| `EVALUATION.md` | Preregistered authority audit, owner-led walkthrough, model-facing comparison, campaign boundary, and disposition rule | Competing-design review; Mission 4 proof and fog-line; `prospective-runbook-v1`; `ir-quality-ruler-v1`; frozen baseline adjudication |
 
 ## Active core system prompt
 
