@@ -255,12 +255,8 @@ export class VoiceTurnController {
       return;
     }
     const output =
-      this.#snapshot.output === "speaking"
-        ? "interrupted"
-        : this.#snapshot.output;
-    if (this.#snapshot.output === "speaking") {
-      this.#session.cancelOutput();
-    }
+      this.#snapshot.output === "idle" ? "idle" : "interrupted";
+    this.#session.cancelOutput();
     this.#session.setMicrophoneEnabled(false);
     this.#update({
       input: "paused",
@@ -321,6 +317,9 @@ export class VoiceTurnController {
       this.#recordLatency("question-visible", question.id);
     }
     this.#bridge.updateChat(update);
+    if (this.#snapshot.input === "paused") {
+      this.#session.cancelOutput();
+    }
   }
 
   #handleBridgeEvent(event: RealtimeBrunchBridgeEvent): void {
@@ -349,9 +348,13 @@ export class VoiceTurnController {
       this.#update({ lastAnswerDelivery: "delivered" });
       return;
     }
+    const paused = this.#snapshot.input === "paused";
+    if (paused) {
+      this.#session.cancelOutput();
+    }
     this.#update({
-      input: this.#snapshot.input === "paused" ? "paused" : "listening",
-      output: "waiting-for-tool",
+      input: paused ? "paused" : "listening",
+      output: paused ? "interrupted" : "waiting-for-tool",
     });
     const question = event.segments.findLast(
       ({ source }) => source === "brunch-ask",

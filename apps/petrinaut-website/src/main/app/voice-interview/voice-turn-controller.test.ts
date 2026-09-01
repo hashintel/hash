@@ -197,7 +197,7 @@ describe("VoiceTurnController", () => {
     expect(harness.submitText).not.toHaveBeenCalled();
   });
 
-  test("preserves an explicit pause when the correlated Brunch response arrives", async () => {
+  test("cancels pending output when a paused Brunch response arrives", async () => {
     const harness = createHarness();
     await harness.controller.start();
     harness.emitBridge({
@@ -216,8 +216,9 @@ describe("VoiceTurnController", () => {
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "paused",
       microphoneEnabled: false,
-      output: "waiting-for-tool",
+      output: "interrupted",
     });
+    expect(harness.session.cancelOutput).toHaveBeenCalledTimes(2);
   });
 
   test("keeps partial transcripts display-only and capture active", async () => {

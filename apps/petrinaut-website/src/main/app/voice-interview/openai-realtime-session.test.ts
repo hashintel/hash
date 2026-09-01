@@ -392,6 +392,59 @@ describe("OpenAIRealtimeSession", () => {
     });
   });
 
+  test("cancels canonical speech before the response starts", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    harness.session.speakCanonical([
+      canonicalSegment("question", "Canonical question"),
+    ]);
+    const responseCreate = sentEvents(channel)[0]!;
+
+    harness.session.cancelOutput();
+
+    expect(
+      sentEvents(channel).filter(({ type }) => type === "response.cancel"),
+    ).toEqual([]);
+
+    channel.receive({
+      response: {
+        id: "response-canonical",
+        metadata: (responseCreate.response as Record<string, unknown>).metadata,
+      },
+      type: "response.created",
+    });
+
+    expect(sentEvents(channel).slice(-2)).toEqual([
+      expect.objectContaining({
+        response_id: "response-canonical",
+        type: "response.cancel",
+      }),
+      { type: "output_audio_buffer.clear" },
+    ]);
+
+    channel.receive({
+      response_id: "response-canonical",
+      type: "output_audio_buffer.started",
+    });
+    channel.receive({
+      response: {
+        id: "response-canonical",
+        output: [],
+        status: "cancelled",
+      },
+      type: "response.done",
+    });
+
+    expect(harness.events).not.toContainEqual(
+      expect.objectContaining({ type: "output-started" }),
+    );
+    expect(harness.events).not.toContainEqual(
+      expect.objectContaining({ type: "error" }),
+    );
+    expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
+  });
+
   test("retries a correlated canonical response after the active response ends", async () => {
     const harness = createHarness();
     await harness.session.connect();
