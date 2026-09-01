@@ -83,6 +83,9 @@ const SCENARIO_CODE_SUFFIX = "\n}";
 const SCENARIO_EXPRESSION_PREFIX = "() => (\n";
 const SCENARIO_EXPRESSION_SUFFIX = "\n)";
 
+const STATUS_CONDITION_PREFIX = "(token) => (\n";
+const STATUS_CONDITION_SUFFIX = "\n)";
+
 /** Bare-body surfaces: wrapped in prefix/suffix for parsing, spans shifted
  * back onto the raw user text afterwards. */
 const WRAPPED_SURFACES: Partial<
@@ -109,6 +112,11 @@ const WRAPPED_SURFACES: Partial<
     prefix: SCENARIO_EXPRESSION_PREFIX,
     suffix: SCENARIO_EXPRESSION_SUFFIX,
     lower: (lowering) => lowering.lowerScenarioModule("scenario-expression"),
+  },
+  "status-condition": {
+    prefix: STATUS_CONDITION_PREFIX,
+    suffix: STATUS_CONDITION_SUFFIX,
+    lower: (lowering) => lowering.lowerStatusConditionModule(),
   },
 };
 
@@ -393,6 +401,49 @@ class Lowering {
       hirVersion: 1,
       surface,
       params: [],
+      body,
+      span: this.spanOf(arrow),
+    };
+  }
+
+  /**
+   * Lowers a wrapped status-label condition (see `STATUS_CONDITION_PREFIX`):
+   * a single boolean expression over `token`, the token being labelled.
+   */
+  lowerStatusConditionModule(): HirFunction {
+    const fail = (): LowerError =>
+      new LowerError({
+        code: "hir:unsupported-syntax",
+        message:
+          "Status label conditions must be a single expression over `token`.",
+        severity: "error",
+        span: { start: 0, length: Math.max(this.sourceFile.text.length, 1) },
+      });
+    const [statement, ...rest] = this.sourceFile.statements;
+    const arrow =
+      rest.length === 0 &&
+      statement &&
+      ts.isExpressionStatement(statement) &&
+      ts.isArrowFunction(statement.expression)
+        ? statement.expression
+        : null;
+    if (!arrow || ts.isBlock(arrow.body)) {
+      throw fail();
+    }
+    const scope: LowerScope = {
+      locals: new Set(["token"]),
+      distributionLocals: new Set(),
+      destructuredFields: new Map(),
+      parameterAliases: new Map(),
+      parametersName: null,
+      scenarioAliases: new Map(),
+      scenarioName: null,
+    };
+    const body = this.lowerExpr(arrow.body, scope);
+    return {
+      hirVersion: 1,
+      surface: "status-condition",
+      params: [{ name: "token", span: this.spanOf(arrow) }],
       body,
       span: this.spanOf(arrow),
     };

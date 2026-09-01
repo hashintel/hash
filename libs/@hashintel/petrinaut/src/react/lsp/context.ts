@@ -129,6 +129,7 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
         lambdas: {},
         kernels: {},
         metrics: {},
+        statusConditions: {},
       },
       failures: [],
     }),
