@@ -302,7 +302,7 @@ describe("Actual mode recordings", () => {
     expect(marking.implementing).toEqual([{ ticket_id: "b" }]);
   });
 
-  it("falls back to FIFO when a recorded input token matches nothing", () => {
+  it("removes nothing for a recorded input token that matches no marking token", () => {
     const marking = getActualModeMarkingAtTransitionFiringIndex({
       initialState: { queued: [{ ticket_id: "a" }, { ticket_id: "b" }] },
       transitionFirings: [
@@ -317,7 +317,63 @@ describe("Actual mode recordings", () => {
       transitionFiringIndex: 0,
     });
 
+    expect(marking.queued).toEqual([{ ticket_id: "a" }, { ticket_id: "b" }]);
+  });
+
+  it("falls back to FIFO for consumption beyond the recorded input tokens", () => {
+    const marking = getActualModeMarkingAtTransitionFiringIndex({
+      initialState: {
+        queued: [{ ticket_id: "a" }, { ticket_id: "b" }, { ticket_id: "c" }],
+      },
+      transitionFirings: [
+        {
+          transitionId: "start",
+          input: { queued: 2 },
+          output: {},
+          inputTokens: { queued: [{ ticket_id: "b" }] },
+          ts: "2026-06-05T10:00:00.000Z",
+        },
+      ],
+      transitionFiringIndex: 0,
+    });
+
+    expect(marking.queued).toEqual([{ ticket_id: "c" }]);
+  });
+
+  it("ignores recorded input tokens beyond the firing's input count", () => {
+    const marking = getActualModeMarkingAtTransitionFiringIndex({
+      initialState: { queued: [{ ticket_id: "a" }, { ticket_id: "b" }] },
+      transitionFirings: [
+        {
+          transitionId: "start",
+          input: { queued: 1 },
+          output: {},
+          inputTokens: { queued: [{ ticket_id: "a" }, { ticket_id: "b" }] },
+          ts: "2026-06-05T10:00:00.000Z",
+        },
+      ],
+      transitionFiringIndex: 0,
+    });
+
     expect(marking.queued).toEqual([{ ticket_id: "b" }]);
+  });
+
+  it("pads recorded output tokens up to the firing's output count", () => {
+    const marking = getActualModeMarkingAtTransitionFiringIndex({
+      initialState: { queued: [] },
+      transitionFirings: [
+        {
+          transitionId: "create",
+          input: {},
+          output: { queued: 3 },
+          outputTokens: { queued: [{ ticket_id: "a" }] },
+          ts: "2026-06-05T10:00:00.000Z",
+        },
+      ],
+      transitionFiringIndex: 0,
+    });
+
+    expect(marking.queued).toEqual([{ ticket_id: "a" }, {}, {}]);
   });
 
   it("exposes recorded token values through the frame reader", () => {
