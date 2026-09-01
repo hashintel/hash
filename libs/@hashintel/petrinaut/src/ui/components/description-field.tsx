@@ -16,12 +16,12 @@ interface DescriptionTextAreaProps {
 }
 
 const textAreaStyle = css({
-  minHeight: "[64px]",
+  height: "[64px]",
 });
 
 /**
- * Description textarea bound to a {@link useDraftField} draft, for hosts that
- * render their own label (eg. a Section title).
+ * Description textarea bound to a {@link useDraftField} draft.
+ * {@link DescriptionField} wraps it with a "Description" label.
  */
 export const DescriptionTextArea: React.FC<DescriptionTextAreaProps> = ({
   sourceId,
