@@ -204,16 +204,20 @@ impl AuthenticationErrorKind {
 pub struct AuthenticationError {
     /// What failed.
     kind: AuthenticationErrorKind,
+    /// Whether the error has been logged.
     logged: Atomic<bool>,
+    /// Whether the error has been counted as a rejection.
+    recorded: Atomic<bool>,
 }
 
 impl AuthenticationError {
-    /// Creates the error for `kind`, not yet logged.
+    /// Creates the error for `kind`, not yet logged or counted.
     #[must_use]
     pub const fn new(kind: AuthenticationErrorKind) -> Self {
         Self {
             kind,
             logged: Atomic::<bool>::new(false),
+            recorded: Atomic::<bool>::new(false),
         }
     }
 
@@ -337,8 +341,9 @@ impl AuthenticationError {
     /// Service faults log as errors, operator faults as warnings, and caller faults at debug: a
     /// caller-repairable rejection must not hand anonymous traffic the log volume. Each error
     /// logs once: a later call on a report whose error already logged does nothing, so every
-    /// layer that sees a rejection may call this without duplicating the record.
-    pub(super) fn ensure_logged(report: &Report<Self>) {
+    /// layer that sees a rejection may call this without duplicating the record. Returns whether
+    /// this call was the one that logged.
+    pub(super) fn ensure_logged(report: &Report<Self>) -> bool {
         let this = report.current_context();
 
         // Claim the log, but only if it hasn't been logged yet.
@@ -353,20 +358,50 @@ impl AuthenticationError {
             )
             .is_err()
         {
-            return;
+            return false;
         }
 
         match this.kind.fault_domain() {
             FaultDomain::Service => {
                 tracing::error!(error = ?report, "credential verification failed");
             }
-
             FaultDomain::Operator => tracing::warn!(
                 error = ?report,
                 "credential rejected, pointing at provisioning or deployment configuration"
             ),
             FaultDomain::Caller => tracing::debug!(error = ?report, "credential rejected"),
         }
+
+        true
+    }
+
+    /// Ensures the rejection is counted on `metrics`, once per error.
+    ///
+    /// Each error counts once: a later call on a report whose error already counted does
+    /// nothing, so every rejection built over the same report may drop without inflating the
+    /// counter. Returns whether this call was the one that counted.
+    pub(super) fn ensure_rejection_recorded(
+        report: &Report<Self>,
+        metrics: &AuthenticationMetrics,
+    ) -> bool {
+        let this = report.current_context();
+
+        // `Relaxed` is permissible here, as it is only used to avoid double-counting rejections.
+        if this
+            .recorded
+            .compare_exchange(
+                false,
+                true,
+                atomic::Ordering::Relaxed,
+                atomic::Ordering::Relaxed,
+            )
+            .is_err()
+        {
+            return false;
+        }
+
+        metrics.record_rejection(this);
+        true
     }
 }
 
@@ -736,12 +771,6 @@ mod tests {
         }
     }
 
-    /// The level a rejection is logged at follows its fault domain.
-    ///
-    /// Pins the mapping at the logging site: [`fault_domain`] alone says nothing about which
-    /// macro the resolver reaches for.
-    ///
-    /// [`fault_domain`]: AuthenticationError::fault_domain
     /// Keeps the registered-dispatcher list plural for the rest of the process.
     ///
     /// With at most one registered dispatcher, tracing-core rebuilds a first-hit callsite's
@@ -760,6 +789,37 @@ mod tests {
         });
     }
 
+    /// The claim is exclusive: the first call logs and every later call reads the taken latch.
+    #[test]
+    fn log_latches() {
+        keep_dispatcher_list_plural();
+
+        let report = Report::new(AuthenticationError::missing_credentials());
+
+        assert!(AuthenticationError::ensure_logged(&report));
+        assert!(!AuthenticationError::ensure_logged(&report));
+    }
+
+    /// The claim is exclusive: the first call counts and every later call reads the taken latch.
+    #[test]
+    fn record_latches() {
+        let report = Report::new(AuthenticationError::missing_credentials());
+        let metrics = test_metrics();
+
+        assert!(AuthenticationError::ensure_rejection_recorded(
+            &report, &metrics
+        ));
+        assert!(!AuthenticationError::ensure_rejection_recorded(
+            &report, &metrics
+        ));
+    }
+
+    /// The level a rejection is logged at follows its fault domain.
+    ///
+    /// Pins the mapping at the logging site: [`fault_domain`] alone says nothing about which
+    /// macro the resolver reaches for.
+    ///
+    /// [`fault_domain`]: AuthenticationError::fault_domain
     #[test]
     fn rejections_log_at_their_domains_level() {
         keep_dispatcher_list_plural();

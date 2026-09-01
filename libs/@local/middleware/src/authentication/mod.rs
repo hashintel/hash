@@ -112,7 +112,8 @@ impl AuthenticationMetrics {
 /// The response a request that failed authentication is answered with.
 ///
 /// A rejection records itself when it drops, whether or not a response was rendered from it,
-/// so no holder logs or counts one.
+/// so no holder logs or counts one. The log and the count are latched on the shared error, so
+/// a rejection cloned or rebuilt over the same report still reaches the log and the meter once.
 #[derive(Clone)]
 pub enum AuthenticationRejection {
     /// The credentials did not resolve to a caller the route admits.
@@ -148,7 +149,7 @@ impl Drop for AuthenticationRejection {
         match self {
             Self::Authentication { report, metrics } => {
                 AuthenticationError::ensure_logged(report);
-                metrics.record_rejection(report.current_context());
+                AuthenticationError::ensure_rejection_recorded(report, metrics);
             }
             Self::Misconfigured => {
                 tracing::error!(
@@ -1139,6 +1140,67 @@ mod tests {
             ),
             1,
             "a dropped rejection should count without being rendered"
+        );
+    }
+
+    /// A clone copies the [`Arc`]s, so both drops see one error and the count latches on it.
+    #[test]
+    fn cloned_rejection_counts_once() {
+        let recorded = RecordedMetrics::new();
+        let metrics = Arc::new(AuthenticationMetrics::new(&recorded.meter()));
+
+        let rejection = AuthenticationRejection::Authentication {
+            report: Arc::new(Report::new(AuthenticationError::new(
+                AuthenticationErrorKind::MissingCredentials,
+            ))),
+            metrics: Arc::clone(&metrics),
+        };
+        let clone = rejection.clone();
+        drop(rejection);
+        drop(clone);
+
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.rejections",
+                &[
+                    ("http.response.status_code", "401"),
+                    ("fault_domain", "caller"),
+                ],
+            ),
+            1,
+            "clones share one error, which counts one rejected request"
+        );
+    }
+
+    /// Extractors rebuild a rejection from the report the extension stores, so several
+    /// extractions on one request drop several rejections over one error.
+    #[test]
+    fn rebuilt_rejection_counts_once() {
+        let recorded = RecordedMetrics::new();
+        let metrics = Arc::new(AuthenticationMetrics::new(&recorded.meter()));
+        let report = Arc::new(Report::new(AuthenticationError::new(
+            AuthenticationErrorKind::MissingCredentials,
+        )));
+
+        drop(AuthenticationRejection::Authentication {
+            report: Arc::clone(&report),
+            metrics: Arc::clone(&metrics),
+        });
+        drop(AuthenticationRejection::Authentication {
+            report,
+            metrics: Arc::clone(&metrics),
+        });
+
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.rejections",
+                &[
+                    ("http.response.status_code", "401"),
+                    ("fault_domain", "caller"),
+                ],
+            ),
+            1,
+            "rejections over one report are one rejected request"
         );
     }
 
