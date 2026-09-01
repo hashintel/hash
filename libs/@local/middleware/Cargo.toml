@@ -23,7 +23,6 @@ tower-service = { workspace = true, public = true }
 clap = { workspace = true, optional = true, features = ["derive"] }
 
 # Private third-party dependencies
-bytes                              = { workspace = true }
 derive_more                        = { workspace = true, features = ["display", "error"] }
 futures                            = { workspace = true }
 governor                           = { workspace = true }

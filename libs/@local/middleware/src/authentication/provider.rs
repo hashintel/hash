@@ -182,7 +182,7 @@ mod tests {
     use uuid::Uuid;
 
     use super::{AuthenticationProvider as _, Caller, StaticAuthenticationProvider};
-    use crate::authentication::request::{AuthenticationError, AuthenticationErrorKind};
+    use crate::authentication::request::AuthenticationErrorKind;
 
     fn random_user() -> ActorId {
         ActorId::User(UserId::new(ActorEntityUuid::new(Uuid::new_v4())))
@@ -200,10 +200,7 @@ mod tests {
     fn anonymous_caller_fails_where_an_actor_is_required() {
         assert_matches!(
             <ActorId as Caller>::anonymous(),
-            Err(AuthenticationError {
-                kind: AuthenticationErrorKind::MissingCredentials,
-                ..
-            }),
+            Err(error) if *error.kind() == AuthenticationErrorKind::MissingCredentials,
             "a required caller should reject anonymity"
         );
     }

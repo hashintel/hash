@@ -594,12 +594,12 @@ where
             limiters: Arc::clone(&rate_limiters),
             service_secret: Arc::clone(&service_secret),
         })
-        .route_layer(AuthenticationLayer {
+        .route_layer(AuthenticationLayer::<_, C> {
             provider,
             service_secret: Arc::clone(&service_secret),
             metrics: authentication_metrics,
             bootstrap_route: auth::is_bootstrap_route,
-            caller: core::marker::PhantomData::<C>,
+            caller: core::marker::PhantomData,
         })
         .merge(unauthenticated)
         .layer(IpGateLayer {

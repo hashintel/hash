@@ -186,7 +186,7 @@ pub(crate) mod tests {
             .await
             .expect_err("a client error should fail");
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::ProviderRejection,
             "a client error should report a provider rejection"
         );
@@ -205,7 +205,7 @@ pub(crate) mod tests {
             .await
             .expect_err("an unsuccessful status should fail");
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::ProviderUnreachable,
             "an unsuccessful status should report provider unavailability"
         );

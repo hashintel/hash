@@ -114,12 +114,12 @@ where
         KRATOS_HTTP_TIMEOUT,
     ));
 
-    let router = probe::router().merge(protected.route_layer(AuthenticationLayer {
+    let router = probe::router().merge(protected.route_layer(AuthenticationLayer::<_, ActorId> {
         provider: authentication_provider,
         service_secret: Arc::clone(&service_secret),
         metrics: Arc::clone(&authentication_metrics),
         bootstrap_route: auth::is_bootstrap_route,
-        caller: core::marker::PhantomData::<ActorId>,
+        caller: core::marker::PhantomData,
     }));
 
     // Layering an empty router panics, so the group only exists with its routes.

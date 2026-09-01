@@ -356,7 +356,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
 
         let report = expect_rejection::<ActorId>(provider.authenticate(&headers).await);
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::MalformedCredential,
             "a non-ASCII Access token should be rejected as malformed, not ignored"
         );
@@ -391,7 +391,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 .await,
         );
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::InvalidAccessToken,
             "the token should fail authentication"
         );
@@ -416,7 +416,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
         let report =
             expect_rejection::<ActorId>(provider.authenticate(&access_token_header(&token)).await);
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::InvalidAccessToken,
             "a token signed with a disallowed algorithm should fail authentication"
         );
@@ -440,7 +440,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
         let report =
             expect_rejection::<ActorId>(provider.authenticate(&access_token_header(&forged)).await);
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::InvalidAccessToken,
             "a token with a signature from another token should fail authentication"
         );
@@ -472,7 +472,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 .await,
         );
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::InvalidAccessToken,
             "a token without `{claim}` should fail authentication"
         );
@@ -517,7 +517,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 .await,
         );
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::InvalidAccessToken,
             "a token without an email claim should fail authentication"
         );
@@ -533,7 +533,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 .await,
         );
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::IdentityWithoutActor,
             "a resolver failure should surface as the resolver's rejection"
         );
@@ -555,7 +555,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
         let report =
             expect_rejection::<ActorId>(provider.authenticate(&access_token_header(&token)).await);
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::InvalidAccessToken,
             "the token should fail authentication"
         );
@@ -578,7 +578,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 .await,
         );
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::ProviderUnreachable,
             "a failing JWKS endpoint should fail as provider unavailability, not as a bad token"
         );

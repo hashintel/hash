@@ -158,7 +158,7 @@ async fn unverified_address_does_not_resolve() -> Result<(), Box<dyn Error>> {
 
     let report = resolved.expect_err("an unverified address should not resolve");
     assert_matches!(
-        report.current_context().kind,
+        report.current_context().kind(),
         AuthenticationErrorKind::IdentityWithoutActor,
         "an unverified address should fail as an identity without actor"
     );
@@ -177,7 +177,7 @@ async fn identity_without_graph_actor_does_not_resolve() -> Result<(), Box<dyn E
 
     let report = resolved.expect_err("an unprovisioned identity should not resolve");
     assert_matches!(
-        report.current_context().kind,
+        report.current_context().kind(),
         AuthenticationErrorKind::NotProvisioned { .. },
         "an identity without a Graph actor should fail as unprovisioned"
     );
@@ -192,7 +192,7 @@ async fn address_without_an_identity_does_not_resolve() {
         .expect_err("an address without an identity should not resolve");
 
     assert_matches!(
-        report.current_context().kind,
+        report.current_context().kind(),
         AuthenticationErrorKind::IdentityWithoutActor,
         "an unknown address should fail as an identity without actor"
     );

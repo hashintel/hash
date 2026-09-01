@@ -231,7 +231,7 @@ mod tests {
             .await,
         );
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::ActorNotFound { .. },
             "a delegated actor that does not exist should be rejected"
         );
@@ -261,7 +261,7 @@ mod tests {
             .await,
         );
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::InvalidServiceSecret,
             "a wrong service secret should be rejected"
         );
@@ -283,7 +283,7 @@ mod tests {
             authenticate::<ActorId>(&provider(), &headers(Some(SERVICE_SECRET), None)).await,
         );
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::MissingDelegatedActor,
             "the service secret should require the actor-ID header"
         );
@@ -299,7 +299,7 @@ mod tests {
             .await,
         );
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::ActorNotFound { .. },
             "an unknown delegated actor should never degrade to the public actor"
         );
@@ -337,7 +337,7 @@ mod tests {
             .await,
         );
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::MissingDelegatedActor,
             "the nil actor header should be rejected where an actor is required"
         );
@@ -362,7 +362,7 @@ mod tests {
 
         let report = expect_rejection(authenticate::<ActorId>(&provider(), &request_headers).await);
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::InvalidActorIdHeader,
             "a malformed actor-ID header should be rejected as invalid"
         );

@@ -11,15 +11,15 @@
 //!   principal behind it — its module documentation states the ordering contract.
 //! - [`telemetry`] spans every request and joins the caller's OpenTelemetry trace.
 //!
-//! The providers are the extension point; the credential vocabulary is not. A new failure mode
-//! extends [`AuthenticationError`], a new caller type the sealed [`Caller`] — both are changes to
-//! this crate.
+//! The providers are the extension point, and the credential vocabulary is not. A new failure
+//! mode extends [`AuthenticationErrorKind`], a new caller type the sealed [`Caller`], and both
+//! are changes to this crate.
 //!
 //! [`provider`]: authentication::provider
 //! [`AuthenticationProvider`]: authentication::provider::AuthenticationProvider
 //! [`Caller`]: authentication::provider::Caller
 //! [`AuthenticatedActorId`]: authentication::AuthenticatedActorId
-//! [`AuthenticationError`]: authentication::request::AuthenticationError
+//! [`AuthenticationErrorKind`]: authentication::request::AuthenticationErrorKind
 //!
 //! # Example
 //!

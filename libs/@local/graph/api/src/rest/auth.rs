@@ -211,12 +211,12 @@ mod tests {
         let metrics = Arc::new(AuthenticationMetrics::new(&opentelemetry::global::meter(
             "test",
         )));
-        routes().layer(AuthenticationLayer {
+        routes().layer(AuthenticationLayer::<_, Option<ActorId>> {
             provider,
             service_secret,
             metrics,
             bootstrap_route: is_bootstrap_route,
-            caller: core::marker::PhantomData::<Option<ActorId>>,
+            caller: core::marker::PhantomData,
         })
     }
 
@@ -340,14 +340,14 @@ mod tests {
             }))
             .expect("the error document should serialize");
 
-            let router = routes().layer(AuthenticationLayer {
+            let router = routes().layer(AuthenticationLayer::<_, ActorId> {
                 provider: Arc::new(FailingProvider(error)),
                 service_secret: Arc::from(SERVICE_SECRET),
                 metrics: Arc::new(AuthenticationMetrics::new(&opentelemetry::global::meter(
                     "test",
                 ))),
                 bootstrap_route: is_bootstrap_route,
-                caller: core::marker::PhantomData::<ActorId>,
+                caller: core::marker::PhantomData,
             });
 
             let response = router

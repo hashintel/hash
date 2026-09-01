@@ -34,12 +34,7 @@ mod config;
 mod tests;
 
 use alloc::sync::Arc;
-use core::{
-    fmt, future,
-    num::{NonZero, NonZeroU64},
-    task,
-    time::Duration,
-};
+use core::{fmt, future, num::NonZero, task, time::Duration};
 use std::sync::LazyLock;
 
 use axum::{
@@ -345,8 +340,23 @@ impl IntoResponse for RateLimitRejection {
 /// A request found to be over its budget.
 struct Denial {
     /// Whole seconds until the budget admits the request again, at least one.
-    retry_after: NonZeroU64,
+    retry_after: NonZero<u64>,
     mode: RateLimitMode,
+}
+
+impl Denial {
+    const fn apply(self) -> Option<TooManyRequests> {
+        match self {
+            Self {
+                mode: RateLimitMode::Observe,
+                retry_after: _,
+            } => None,
+            Self {
+                mode: RateLimitMode::Enforce,
+                retry_after,
+            } => Some(TooManyRequests { retry_after }),
+        }
+    }
 }
 
 /// The shared limiter state both rate-limiting middlewares charge against.
@@ -548,7 +558,7 @@ impl RateLimiters {
         self.metrics
             .denial(budget, self.mode.denial_outcome(), wait);
         let seconds = wait.as_secs() + u64::from(wait.subsec_nanos() > 0);
-        let retry_after = NonZeroU64::new(seconds).unwrap_or(NonZeroU64::MIN);
+        let retry_after = NonZero::new(seconds).unwrap_or(NonZero::<u64>::MIN);
         tracing::debug!(
             budget = budget.as_str(),
             key = %key,
@@ -675,16 +685,13 @@ where
             return Either::Right(self.inner.call(req).map_ok(Ok));
         };
 
-        match self.limiters.charge(Budget::Gate(key)) {
-            Ok(())
-            | Err(Denial {
-                mode: RateLimitMode::Observe,
-                retry_after: _,
-            }) => Either::Right(self.inner.call(req).map_ok(Ok)),
-            Err(Denial {
-                mode: RateLimitMode::Enforce,
-                retry_after,
-            }) => Either::Left(future::ready(Ok(Err(TooManyRequests { retry_after })))),
+        match self
+            .limiters
+            .charge(Budget::Gate(key))
+            .map_err(Denial::apply)
+        {
+            Ok(()) | Err(None) => Either::Right(self.inner.call(req).map_ok(Ok)),
+            Err(Some(error)) => Either::Left(future::ready(Ok(Err(error)))),
         }
     }
 }
@@ -827,11 +834,11 @@ where
         let actor = match resolved.outcome() {
             Ok(actor) => *actor,
             Err(error) => {
-                // The authentication layer stores an error only as `MissingDelegatedActor` on a
-                // bootstrap route, and those requests present the service secret and passed above.
-                // Reaching this means the middleware order broke, so the report's attachments are
-                // the only account of what the provider saw — `Display` would print the first
-                // context and drop them.
+                // A stored error means a bootstrap route tolerated the failure, and those
+                // requests presented the service secret and passed above. Reaching this
+                // arm means the middleware order broke, so the report's attachments are the only
+                // account of what the provider saw: `Display` would print the first context and
+                // drop them.
                 tracing::error!(error = ?error, "authentication error reached the rate limiter unrejected");
 
                 self.limiters
@@ -865,18 +872,9 @@ where
             Budget::Anonymous(key)
         };
 
-        match self.limiters.charge(budget) {
-            Ok(())
-            | Err(Denial {
-                mode: RateLimitMode::Observe,
-                retry_after: _,
-            }) => Either::Right(self.inner.call(req).map_ok(Ok)),
-            Err(Denial {
-                mode: RateLimitMode::Enforce,
-                retry_after,
-            }) => Either::Left(future::ready(Ok(Err(
-                TooManyRequests { retry_after }.into()
-            )))),
+        match self.limiters.charge(budget).map_err(Denial::apply) {
+            Ok(()) | Err(None) => Either::Right(self.inner.call(req).map_ok(Ok)),
+            Err(Some(error)) => Either::Left(future::ready(Ok(Err(error.into())))),
         }
     }
 }

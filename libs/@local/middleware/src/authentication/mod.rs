@@ -7,16 +7,18 @@
 //! chain's [`Caller`] type: a chain over [`ActorId`] rejects it, a chain over `Option<ActorId>`
 //! verifies it as anonymous.
 //!
-//! Bootstrap routes — the paths the service names through the layer's predicate — require the
-//! service secret regardless of the chain and pass even when no actor resolves. Routes that take
-//! no actor at all are gated by [`ServiceSecretLayer`] instead.
+//! Bootstrap routes, the paths the service names through the layer's predicate, require the
+//! service secret regardless of the chain. With the secret presented they tolerate exactly one
+//! failure: a verified service credential that names no delegated actor. Every other rejection
+//! still fails the request. Routes that take no actor at all use [`ServiceSecretLayer`]
+//! instead.
 
 pub mod provider;
 pub mod request;
 pub mod service_secret;
 
 use alloc::sync::Arc;
-use core::{convert::Infallible, future, marker::PhantomData, task};
+use core::{future, marker::PhantomData, task};
 
 use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts},
@@ -39,11 +41,30 @@ use self::{
 };
 use crate::response::error_response;
 
-/// Instruments recording authentication rejections.
+/// How a request proceeded although its credential resolution failed.
+#[derive(Copy, Clone)]
+enum Degradation {
+    /// A verified rejection resolved as anonymous on a chain serving anonymous callers.
+    Anonymous,
+    /// A bootstrap route admitted the service credential without its delegated actor.
+    Bootstrap,
+}
+
+impl Degradation {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::Anonymous => "anonymous",
+            Self::Bootstrap => "bootstrap",
+        }
+    }
+}
+
+/// Instruments recording credential failures.
 ///
 /// A route wired without the middleware answers with an internal error that is not counted here.
 pub struct AuthenticationMetrics {
     rejections: Counter<u64>,
+    degradations: Counter<u64>,
 }
 
 impl AuthenticationMetrics {
@@ -54,6 +75,11 @@ impl AuthenticationMetrics {
             rejections: meter
                 .u64_counter("hash.authentication.rejections")
                 .with_description("Requests rejected for their credentials")
+                .with_unit("{request}")
+                .build(),
+            degradations: meter
+                .u64_counter("hash.authentication.degradations")
+                .with_description("Requests served although their credential failed")
                 .with_unit("{request}")
                 .build(),
         }
@@ -71,12 +97,22 @@ impl AuthenticationMetrics {
             ],
         );
     }
+
+    fn record_degradation(&self, error: &AuthenticationError, degradation: Degradation) {
+        self.degradations.add(
+            1,
+            &[
+                KeyValue::new("mechanism", degradation.as_str()),
+                KeyValue::new("fault_domain", error.fault_domain().as_str()),
+            ],
+        );
+    }
 }
 
 /// The response a request that failed authentication is answered with.
 ///
-/// The failure is logged and counted when the rejection drops, whether or not a response was
-/// rendered from it.
+/// A rejection records itself when it drops, whether or not a response was rendered from it,
+/// so no holder logs or counts one.
 pub enum AuthenticationRejection {
     /// The credentials did not resolve to a caller the route admits.
     Authentication {
@@ -91,11 +127,26 @@ pub enum AuthenticationRejection {
     Misconfigured,
 }
 
+impl IntoResponse for AuthenticationRejection {
+    fn into_response(self) -> Response {
+        match &self {
+            Self::Authentication { report, .. } => {
+                let error = report.current_context();
+                error_response(error.status_code(), error.kind().client_message())
+            }
+            Self::Misconfigured => error_response(
+                http::StatusCode::INTERNAL_SERVER_ERROR,
+                "internal server error",
+            ),
+        }
+    }
+}
+
 impl Drop for AuthenticationRejection {
     fn drop(&mut self) {
         match self {
             Self::Authentication { report, metrics } => {
-                AuthenticationError::log(report);
+                AuthenticationError::ensure_logged(report);
                 metrics.record_rejection(report.current_context());
             }
             Self::Misconfigured => {
@@ -103,21 +154,6 @@ impl Drop for AuthenticationRejection {
                     "`AuthenticatedActorId` extracted on a route without authentication middleware"
                 );
             }
-        }
-    }
-}
-
-impl IntoResponse for AuthenticationRejection {
-    fn into_response(self) -> Response {
-        match &self {
-            Self::Authentication { report, .. } => {
-                let error = report.current_context();
-                error_response(error.status_code(), error.client_message().to_owned())
-            }
-            Self::Misconfigured => error_response(
-                http::StatusCode::INTERNAL_SERVER_ERROR,
-                "internal server error".to_owned(),
-            ),
         }
     }
 }
@@ -270,9 +306,11 @@ fn store_outcome<B>(
 /// it as anonymous, and whether an anonymous caller may proceed is the handler's to state,
 /// through which extractor it takes.
 ///
-/// Bootstrap routes are service operations: `bootstrap_route` names their paths, they require the
-/// service secret regardless of any actor credential, and they pass even when no actor resolves.
-/// A service without such routes passes `|_| false`.
+/// Bootstrap routes are service operations: `bootstrap_route` names their paths and they require
+/// the service secret regardless of any actor credential. With the secret presented, the one
+/// rejection they tolerate is a verified service credential that names no delegated actor, and
+/// every other failure still rejects the request. A service without such routes passes
+/// `|_| false`.
 ///
 /// Routes that take no actor are gated by [`ServiceSecretLayer`] instead.
 ///
@@ -329,7 +367,7 @@ pub struct AuthenticationLayer<P, C> {
 
     /// Selects the caller type the chain resolves to: [`ActorId`] rejects uncredentialed
     /// requests, `Option<ActorId>` serves them anonymously.
-    pub caller: PhantomData<C>,
+    pub caller: PhantomData<fn() -> C>,
 }
 
 impl<P, C> Clone for AuthenticationLayer<P, C> {
@@ -362,7 +400,7 @@ impl<P, C, S> tower::Layer<S> for AuthenticationLayer<P, C> {
 /// The service [`AuthenticationLayer`] wraps its inner service into.
 pub struct AuthenticationService<P, C, S> {
     inner: S,
-    _caller: PhantomData<C>,
+    _caller: PhantomData<fn() -> C>,
 
     provider: Arc<P>,
     service_secret: Arc<str>,
@@ -385,7 +423,7 @@ impl<P, C, S: Clone> Clone for AuthenticationService<P, C, S> {
 
 impl<B, P, C, S> tower::Service<http::Request<B>> for AuthenticationService<P, C, S>
 where
-    S: tower::Service<http::Request<B>, Error = Infallible> + Clone,
+    S: tower::Service<http::Request<B>> + Clone,
     C: Caller,
     P: AuthenticationProvider<C>,
 {
@@ -414,7 +452,7 @@ where
         let metrics = Arc::clone(&self.metrics);
 
         Either::Left(async move {
-            let outcome = resolve_request_actor(&*provider, req.headers())
+            let outcome = resolve_request_actor(&*provider, req.headers(), &metrics)
                 .await
                 .map(Caller::into_actor)
                 .map_err(Arc::new);
@@ -423,10 +461,11 @@ where
                 Err(report)
                     if bootstrap
                         && matches!(
-                            report.current_context().kind,
+                            report.current_context().kind(),
                             AuthenticationErrorKind::MissingDelegatedActor
                         ) =>
                 {
+                    metrics.record_degradation(report.current_context(), Degradation::Bootstrap);
                     Err(report)
                 }
                 Err(report) => {
@@ -520,11 +559,11 @@ impl<S: Sync> OptionalFromRequestParts<S> for AuthenticatedActorId {
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
-    use core::marker::PhantomData;
+    use core::{future::Future, marker::PhantomData, ops::ControlFlow};
 
     use axum::{Router, body::Body, routing::get};
     use error_stack::Report;
-    use http::{Request, StatusCode};
+    use http::{HeaderMap, Request, StatusCode};
     use tower::ServiceExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
@@ -535,7 +574,7 @@ mod tests {
     };
     use crate::{
         authentication::{
-            provider::StaticAuthenticationProvider,
+            provider::{AuthenticationProvider, Caller, StaticAuthenticationProvider},
             request::{AuthenticationError, AuthenticationErrorKind},
         },
         test_metrics::{RecordedMetrics, noop_meter},
@@ -611,6 +650,21 @@ mod tests {
             .header("Authorization", format!("HASH-Service {secret}"))
             .body(Body::empty())
             .expect("the request should build")
+    }
+
+    /// A provider chain whose service credential verified without naming a delegated actor.
+    struct MissingDelegation;
+
+    impl<C: Caller> AuthenticationProvider<C> for MissingDelegation {
+        fn authenticate(
+            &self,
+            _headers: &HeaderMap,
+        ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send
+        {
+            core::future::ready(ControlFlow::Break(Err(Report::new(
+                AuthenticationError::missing_delegated_actor(),
+            ))))
+        }
     }
 
     #[tokio::test]
@@ -992,6 +1046,71 @@ mod tests {
             recorded.counter("hash.authentication.rejections", &[]),
             0,
             "an anonymously served request should not count as a rejection"
+        );
+    }
+
+    /// A verified rejection that resolves as anonymous counts as a degradation, never as a
+    /// rejection: the request was served.
+    #[tokio::test]
+    async fn anonymous_degrade_counts_as_degradation() {
+        let recorded = RecordedMetrics::new();
+        let router = router_recording(
+            StaticAuthenticationProvider::Rejected,
+            Arc::new(AuthenticationMetrics::new(&recorded.meter())),
+        );
+
+        let response = router
+            .oneshot(request("/anonymous-allowed"))
+            .await
+            .expect("the router should respond");
+        assert_eq!(response.status(), StatusCode::OK);
+
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.degradations",
+                &[("mechanism", "anonymous"), ("fault_domain", "caller")],
+            ),
+            1,
+            "the anonymous degrade should count with its mechanism and fault domain"
+        );
+        assert_eq!(
+            recorded.counter("hash.authentication.rejections", &[]),
+            0,
+            "a degraded request should not count as a rejection"
+        );
+    }
+
+    /// The tolerated bootstrap failure counts as a degradation, never as a rejection: the
+    /// request was served.
+    #[tokio::test]
+    async fn bootstrap_toleration_counts_as_degradation() {
+        let recorded = RecordedMetrics::new();
+        let router = routes().layer(AuthenticationLayer::<_, Option<ActorId>> {
+            provider: Arc::new(MissingDelegation),
+            service_secret: Arc::from(SERVICE_SECRET),
+            metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
+            bootstrap_route: is_bootstrap_route,
+            caller: PhantomData,
+        });
+
+        let response = router
+            .oneshot(request_with_secret("/bootstrap", SERVICE_SECRET))
+            .await
+            .expect("the router should respond");
+        assert_eq!(response.status(), StatusCode::OK);
+
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.degradations",
+                &[("mechanism", "bootstrap"), ("fault_domain", "caller")],
+            ),
+            1,
+            "the tolerated bootstrap failure should count with its mechanism and fault domain"
+        );
+        assert_eq!(
+            recorded.counter("hash.authentication.rejections", &[]),
+            0,
+            "a tolerated request should not count as a rejection"
         );
     }
 

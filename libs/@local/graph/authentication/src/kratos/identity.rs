@@ -271,7 +271,7 @@ mod tests {
             .await
             .expect_err("an ambiguous verified address should fail rather than pick an account");
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::InvalidProviderResponse,
             "the ambiguity should fail as an invalid provider state"
         );
@@ -325,12 +325,12 @@ mod tests {
     #[case::unverified_address(
         json!([identity_json(Some(case_actor()), json!([unverified_address(EMAIL)]))]),
         known_user(case_actor()),
-        |error: &AuthenticationError| matches!(error.kind, AuthenticationErrorKind::IdentityWithoutActor)
+        |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::IdentityWithoutActor)
     )]
     #[case::no_identity_for_email(
         json!([]),
         HashMap::new(),
-        |error: &AuthenticationError| matches!(error.kind, AuthenticationErrorKind::IdentityWithoutActor)
+        |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::IdentityWithoutActor)
     )]
     #[case::identity_without_the_looked_up_address(
         json!([identity_json(
@@ -338,22 +338,22 @@ mod tests {
             json!([verified_address("other@example.com")]),
         )]),
         known_user(case_actor()),
-        |error: &AuthenticationError| matches!(error.kind, AuthenticationErrorKind::IdentityWithoutActor)
+        |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::IdentityWithoutActor)
     )]
     #[case::unprovisioned_identity(
         json!([identity_json(None, json!([verified_address(EMAIL)]))]),
         HashMap::new(),
-        |error: &AuthenticationError| matches!(error.kind, AuthenticationErrorKind::NotProvisioned { .. })
+        |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::NotProvisioned { .. })
     )]
     #[case::unknown_actor(
         json!([identity_json(Some(case_actor()), json!([verified_address(EMAIL)]))]),
         HashMap::new(),
-        |error: &AuthenticationError| matches!(error.kind, AuthenticationErrorKind::ActorNotFound { .. })
+        |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::ActorNotFound { .. })
     )]
     #[case::machine_actor(
         json!([identity_json(Some(case_actor()), json!([verified_address(EMAIL)]))]),
         HashMap::from([(case_actor(), ActorId::Machine(MachineId::new(case_actor())))]),
-        |error: &AuthenticationError| matches!(error.kind, AuthenticationErrorKind::NotAUser { .. })
+        |error: &AuthenticationError| matches!(error.kind(), AuthenticationErrorKind::NotAUser { .. })
     )]
     #[tokio::test]
     async fn unresolvable_email_fails_resolution(
@@ -392,7 +392,7 @@ mod tests {
             .await
             .expect_err("an empty email should be rejected");
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::InvalidAccessToken,
             "an empty email should fail as an invalid token"
         );
@@ -411,7 +411,7 @@ mod tests {
             .await
             .expect_err("an undeserializable identity response should fail resolution");
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::InvalidProviderResponse,
             "an undeserializable identity response should fail as an invalid provider response"
         );

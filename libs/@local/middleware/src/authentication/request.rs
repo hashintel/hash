@@ -12,7 +12,10 @@ use http::{HeaderMap, StatusCode};
 use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
-use crate::authentication::provider::{AuthenticationProvider, Caller};
+use crate::authentication::{
+    AuthenticationMetrics, Degradation,
+    provider::{AuthenticationProvider, Caller},
+};
 
 /// Name of the header carrying an unverified actor ID.
 pub const ACTOR_ID_HEADER: &str = "X-Authenticated-User-Actor-Id";
@@ -44,7 +47,7 @@ impl FaultDomain {
 }
 
 /// Errors that can occur while authenticating a request.
-#[derive(Debug, Clone, derive_more::Display)]
+#[derive(Debug, Clone, derive_more::Display, PartialEq, Eq)]
 pub enum AuthenticationErrorKind {
     /// No credentials were provided with the request.
     #[display("no credentials provided")]
@@ -200,7 +203,7 @@ impl AuthenticationErrorKind {
 #[derive(Debug)]
 pub struct AuthenticationError {
     /// What failed.
-    pub kind: AuthenticationErrorKind,
+    kind: AuthenticationErrorKind,
     logged: Atomic<bool>,
 }
 
@@ -212,6 +215,23 @@ impl AuthenticationError {
             kind,
             logged: Atomic::<bool>::new(false),
         }
+    }
+
+    #[must_use]
+    pub const fn kind(&self) -> &AuthenticationErrorKind {
+        &self.kind
+    }
+
+    pub const fn status_code(&self) -> StatusCode {
+        self.kind.status_code()
+    }
+
+    pub const fn fault_domain(&self) -> FaultDomain {
+        self.kind.fault_domain()
+    }
+
+    pub const fn is_verified_rejection(&self) -> bool {
+        self.kind.is_verified_rejection()
     }
 
     /// Creates an error for [`AuthenticationErrorKind::MissingCredentials`].
@@ -312,13 +332,13 @@ impl AuthenticationError {
         Self::new(AuthenticationErrorKind::StoreError)
     }
 
-    /// Logs the report at the level its fault domain assigns.
+    /// Ensures the report is logged, at the level its fault domain assigns.
     ///
     /// Service faults log as errors, operator faults as warnings, and caller faults at debug: a
     /// caller-repairable rejection must not hand anonymous traffic the log volume. Each error
     /// logs once: a later call on a report whose error already logged does nothing, so every
     /// layer that sees a rejection may call this without duplicating the record.
-    pub fn log(report: &Report<Self>) {
+    pub(super) fn ensure_logged(report: &Report<Self>) {
         let this = report.current_context();
 
         // Claim the log, but only if it hasn't been logged yet.
@@ -350,23 +370,6 @@ impl AuthenticationError {
     }
 }
 
-impl core::ops::Deref for AuthenticationError {
-    type Target = AuthenticationErrorKind;
-
-    fn deref(&self) -> &Self::Target {
-        &self.kind
-    }
-}
-
-impl From<AuthenticationErrorKind> for AuthenticationError {
-    fn from(kind: AuthenticationErrorKind) -> Self {
-        Self {
-            kind,
-            logged: Atomic::<bool>::new(false),
-        }
-    }
-}
-
 impl fmt::Display for AuthenticationError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.kind, fmt)
@@ -380,8 +383,8 @@ impl core::error::Error for AuthenticationError {}
 /// The provider is the only credential path: a request without a recognized credential resolves
 /// through [`Caller::anonymous`], and so does one whose credential the provider verified and
 /// rejected — an expired session reads public data like a request without one. A failure to
-/// verify keeps failing the request. Chain providers as pairs, nested for more than two, to
-/// accept several credential kinds.
+/// verify keeps failing the request. A degrade to anonymous is counted on `metrics`. Chain
+/// providers as pairs, nested for more than two, to accept several credential kinds.
 ///
 /// # Errors
 ///
@@ -394,6 +397,7 @@ impl core::error::Error for AuthenticationError {}
 pub async fn resolve_request_actor<P, C>(
     provider: &P,
     headers: &HeaderMap,
+    metrics: &AuthenticationMetrics,
 ) -> Result<C, Report<AuthenticationError>>
 where
     P: AuthenticationProvider<C>,
@@ -404,7 +408,7 @@ where
     match provider.authenticate(headers).await {
         ControlFlow::Break(Ok(caller)) => Ok(caller),
         ControlFlow::Break(Err(report)) => {
-            AuthenticationError::log(&report);
+            AuthenticationError::ensure_logged(&report);
 
             // A verified rejection degrades to anonymous where the chain serves anonymous
             // callers — never to another credential: an ambient credential must not take over
@@ -412,6 +416,7 @@ where
             if report.current_context().is_verified_rejection()
                 && let Ok(caller) = C::anonymous()
             {
+                metrics.record_degradation(report.current_context(), Degradation::Anonymous);
                 Ok(caller)
             } else {
                 Err(report)
@@ -425,7 +430,7 @@ where
             }
             C::anonymous().map_err(|error| {
                 let report = Report::new(error);
-                AuthenticationError::log(&report);
+                AuthenticationError::ensure_logged(&report);
                 report
             })
         }
@@ -467,10 +472,14 @@ pub(crate) fn every_error(
         let repeated = errors[..index]
             .iter()
             .any(|earlier| core::mem::discriminant(earlier) == core::mem::discriminant(error));
-        assert!(!repeated, "`{error}` should appear exactly once");
+        assert!(
+            !repeated,
+            "`{}` should appear exactly once",
+            error.client_message()
+        );
     }
 
-    errors.map(AuthenticationError::from)
+    errors.map(AuthenticationError::new)
 }
 
 /// Parses the actor from the unverified actor-ID header.
@@ -503,17 +512,18 @@ pub fn actor_id_from_header(headers: &HeaderMap) -> Result<ActorEntityUuid, Auth
 mod tests {
     use alloc::sync::Arc;
     use core::{assert_matches, ops::ControlFlow};
-    use std::sync::Mutex;
+    use std::sync::{Mutex, OnceLock};
 
     use error_stack::Report;
     use http::HeaderMap;
-    use tracing::instrument::WithSubscriber as _;
+    use tracing::{Dispatch, dispatcher};
     use tracing_subscriber::layer::SubscriberExt as _;
     use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
     use uuid::Uuid;
 
     use super::{AuthenticationError, FaultDomain, every_error, resolve_request_actor};
     use crate::authentication::{
+        AuthenticationMetrics,
         provider::{AuthenticationProvider, Caller, StaticAuthenticationProvider},
         request::AuthenticationErrorKind,
     };
@@ -521,6 +531,10 @@ mod tests {
     /// The attachment the rejecting provider adds, standing in for what a real provider records
     /// about the credential it refused.
     const PROVIDER_DETAIL: &str = "provider response (401): session expired";
+
+    fn test_metrics() -> AuthenticationMetrics {
+        AuthenticationMetrics::new(&crate::test_metrics::noop_meter())
+    }
 
     /// A provider rejecting every request with the given error, carrying an attachment.
     struct RejectingProvider(fn() -> AuthenticationErrorKind);
@@ -576,7 +590,8 @@ mod tests {
         let actor_id = random_user();
         let provider = StaticAuthenticationProvider::Verified(actor_id);
 
-        let outcome: Result<ActorId, _> = resolve_request_actor(&provider, &HeaderMap::new()).await;
+        let outcome: Result<ActorId, _> =
+            resolve_request_actor(&provider, &HeaderMap::new(), &test_metrics()).await;
 
         assert!(
             matches!(outcome, Ok(resolved) if resolved == actor_id),
@@ -589,7 +604,8 @@ mod tests {
         let provider = StaticAuthenticationProvider::Rejected;
         let headers = actor_id_header(ActorEntityUuid::new(Uuid::new_v4()));
 
-        let outcome: Result<ActorId, _> = resolve_request_actor(&provider, &headers).await;
+        let outcome: Result<ActorId, _> =
+            resolve_request_actor(&provider, &headers, &test_metrics()).await;
 
         assert_matches!(
             outcome
@@ -608,7 +624,8 @@ mod tests {
         let provider = StaticAuthenticationProvider::NotRecognized;
         let headers = actor_id_header(ActorEntityUuid::new(Uuid::new_v4()));
 
-        let outcome: Result<ActorId, _> = resolve_request_actor(&provider, &headers).await;
+        let outcome: Result<ActorId, _> =
+            resolve_request_actor(&provider, &headers, &test_metrics()).await;
 
         assert_matches!(
             outcome
@@ -627,7 +644,7 @@ mod tests {
         let provider = StaticAuthenticationProvider::Rejected;
 
         let outcome: Result<Option<ActorId>, _> =
-            resolve_request_actor(&provider, &HeaderMap::new()).await;
+            resolve_request_actor(&provider, &HeaderMap::new(), &test_metrics()).await;
 
         assert!(
             matches!(outcome, Ok(None)),
@@ -641,7 +658,7 @@ mod tests {
         let provider = StaticAuthenticationProvider::Unreachable;
 
         let outcome: Result<Option<ActorId>, _> =
-            resolve_request_actor(&provider, &HeaderMap::new()).await;
+            resolve_request_actor(&provider, &HeaderMap::new(), &test_metrics()).await;
 
         assert!(
             matches!(
@@ -665,13 +682,14 @@ mod tests {
         );
 
         let anonymous: Result<Option<ActorId>, _> =
-            resolve_request_actor(&chain, &HeaderMap::new()).await;
+            resolve_request_actor(&chain, &HeaderMap::new(), &test_metrics()).await;
         assert!(
             matches!(anonymous, Ok(None)),
             "the expired credential should degrade to anonymous, not to the second credential"
         );
 
-        let required: Result<ActorId, _> = resolve_request_actor(&chain, &HeaderMap::new()).await;
+        let required: Result<ActorId, _> =
+            resolve_request_actor(&chain, &HeaderMap::new(), &test_metrics()).await;
         assert!(
             matches!(
                 required
@@ -688,7 +706,8 @@ mod tests {
     async fn missing_credentials_fail_authentication() {
         let provider = StaticAuthenticationProvider::NotRecognized;
 
-        let outcome: Result<ActorId, _> = resolve_request_actor(&provider, &HeaderMap::new()).await;
+        let outcome: Result<ActorId, _> =
+            resolve_request_actor(&provider, &HeaderMap::new(), &test_metrics()).await;
 
         assert_matches!(
             outcome
@@ -723,8 +742,33 @@ mod tests {
     /// macro the resolver reaches for.
     ///
     /// [`fault_domain`]: AuthenticationError::fault_domain
-    #[tokio::test]
-    async fn rejections_log_at_their_domains_level() {
+    /// Keeps the registered-dispatcher list plural for the rest of the process.
+    ///
+    /// With at most one registered dispatcher, tracing-core rebuilds a first-hit callsite's
+    /// interest from the calling thread's default dispatcher (`Rebuilder::JustOne`). A parallel
+    /// test thread with no default dispatcher then caches `never` for a callsite this test just
+    /// enabled, and the event is skipped before the scoped subscriber is consulted. Two
+    /// dispatchers that never drop keep `has_just_one` false, so every rebuild reads the real
+    /// registry list under its lock, and that list contains this test's live dispatch.
+    fn keep_dispatcher_list_plural() {
+        static KEEPERS: OnceLock<[Dispatch; 2]> = OnceLock::new();
+        KEEPERS.get_or_init(|| {
+            [
+                Dispatch::new(tracing_subscriber::registry()),
+                Dispatch::new(tracing_subscriber::registry()),
+            ]
+        });
+    }
+
+    #[test]
+    fn rejections_log_at_their_domains_level() {
+        keep_dispatcher_list_plural();
+
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("should be a valid runtime configuration");
+
         let cases = [
             (
                 (|| AuthenticationErrorKind::ProviderUnreachable)
@@ -744,24 +788,23 @@ mod tests {
         for (error, expected) in cases {
             let levels = EventLevels::default();
             let subscriber = tracing_subscriber::registry().with(levels.clone());
-            let provider = RejectingProvider(error);
-            // A test that reached these call sites without a subscriber cached them as
-            // uninteresting process-wide, and a scoped subscriber does not invalidate that.
-            tracing::callsite::rebuild_interest_cache();
+            let dispatch = Dispatch::new(subscriber);
 
-            async {
-                let _outcome: Result<ActorId, _> =
-                    resolve_request_actor(&provider, &HeaderMap::new()).await;
-            }
-            .with_subscriber(subscriber)
-            .await;
+            let provider = RejectingProvider(error);
+
+            dispatcher::with_default(&dispatch, || {
+                runtime.block_on(async move {
+                    let _outcome: Result<ActorId, _> =
+                        resolve_request_actor(&provider, &HeaderMap::new(), &test_metrics()).await;
+                });
+            });
 
             let recorded = levels.0.lock().expect("the event log should lock");
             assert_eq!(
                 recorded.as_slice(),
                 [expected],
                 "`{}` should be logged once, at its domain's level",
-                error()
+                error().client_message()
             );
         }
 
@@ -770,17 +813,18 @@ mod tests {
         // the process-global callsite interest cache and cannot run in parallel.
         let levels = EventLevels::default();
         let subscriber = tracing_subscriber::registry().with(levels.clone());
-        tracing::callsite::rebuild_interest_cache();
 
-        async {
-            let _outcome: Result<ActorId, _> = resolve_request_actor(
-                &StaticAuthenticationProvider::NotRecognized,
-                &HeaderMap::new(),
-            )
-            .await;
-        }
-        .with_subscriber(subscriber)
-        .await;
+        let dispatch = Dispatch::new(subscriber);
+        dispatcher::with_default(&dispatch, || {
+            runtime.block_on(async move {
+                let _outcome: Result<ActorId, _> = resolve_request_actor(
+                    &StaticAuthenticationProvider::NotRecognized,
+                    &HeaderMap::new(),
+                    &test_metrics(),
+                )
+                .await;
+            });
+        });
 
         let recorded = levels.0.lock().expect("the event log should lock");
         assert_eq!(
@@ -796,9 +840,10 @@ mod tests {
     async fn rejection_carries_the_providers_attachment() {
         let provider = RejectingProvider(|| AuthenticationErrorKind::InvalidSession);
 
-        let report = resolve_request_actor::<_, ActorId>(&provider, &HeaderMap::new())
-            .await
-            .expect_err("a rejected credential should fail");
+        let report =
+            resolve_request_actor::<_, ActorId>(&provider, &HeaderMap::new(), &test_metrics())
+                .await
+                .expect_err("a rejected credential should fail");
 
         assert!(
             format!("{report:?}").contains(PROVIDER_DETAIL),
@@ -811,7 +856,7 @@ mod tests {
     fn client_messages_are_never_empty() {
         for error in every_error("identity-id", ActorEntityUuid::new(Uuid::new_v4())) {
             assert!(
-                !error.client_message().is_empty(),
+                !error.kind().client_message().is_empty(),
                 "`{error}` should report a client message"
             );
         }
@@ -840,9 +885,10 @@ mod tests {
         ];
 
         for (error, identifier) in errors {
+            let report = Report::new(AuthenticationError::new(error));
             assert!(
-                error.to_string().contains(&identifier),
-                "the log representation of `{error}` should carry the identifier"
+                format!("{report:?}").contains(&identifier),
+                "the log representation of `{report:?}` should carry the identifier"
             );
         }
     }
