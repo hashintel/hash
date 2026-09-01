@@ -190,6 +190,10 @@ export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
     state,
     context,
     onChange,
+    // Run mode shows a saved scenario: the host owns the computed
+    // parameters and marking and recomputes them from the values edited
+    // here, so those arrivals are not separate undo steps.
+    mode === "run",
   );
 
   // Escape pressed while focus is inside the form never reaches the host:
