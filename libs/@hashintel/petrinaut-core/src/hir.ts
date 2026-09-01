@@ -26,12 +26,14 @@ export {
   type HirCompileResult,
 } from "./hir/compile";
 export {
+  getStatusConditionArtifactKey,
   hirDistributionRuntime,
   instantiateHirBufferDynamics,
   instantiateHirBufferKernel,
   instantiateHirBufferLambda,
   instantiateHirMetric,
   type HirArtifacts,
+  type HirStatusConditionArtifact,
   type HirCompiledBufferDynamics,
   type HirCompiledBufferKernel,
   type HirCompiledBufferLambda,
@@ -106,6 +108,7 @@ export {
   buildMetricContext,
   buildScenarioCodeContext,
   buildScenarioExpressionContext,
+  buildStatusConditionContext,
   type HirDynamicsContext,
   type HirKernelContext,
   type HirLambdaContext,
@@ -117,6 +120,7 @@ export {
   type HirScenarioExpressionContext,
   type HirScenarioParameterInfo,
   type HirScenarioPlaceInfo,
+  type HirStatusConditionContext,
   type HirSurfaceContext,
   type HirTokenElementInfo,
 } from "./hir/surface-context";

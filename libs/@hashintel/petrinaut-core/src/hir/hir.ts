@@ -57,7 +57,8 @@ export type HirSurfaceKind =
   | "kernel"
   | "metric"
   | "scenario-expression"
-  | "scenario-code";
+  | "scenario-code"
+  | "status-condition";
 
 /** Scalar and structural types inferred over HIR nodes. */
 export type HirType =

@@ -30,12 +30,14 @@ import {
   emitBufferLambdaJs,
   emitBufferMetricJs,
 } from "./emit-buffer-js";
+import { getStatusConditionArtifactKey } from "./instantiate";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 import {
   buildDynamicsContext,
   buildKernelContext,
   buildLambdaContext,
   buildMetricContext,
+  buildStatusConditionContext,
 } from "./surface-context";
 import { typecheckHir } from "./typecheck";
 
@@ -50,7 +52,8 @@ export type HirCompileFailure = {
     | "differential-equation"
     | "transition-lambda"
     | "transition-kernel"
-    | "metric";
+    | "metric"
+    | "status-label-condition";
   diagnostics: HirDiagnostic[];
 };
 
@@ -133,6 +136,7 @@ export function compileHirArtifacts(
     lambdas: createUserKeyedRecord(),
     kernels: createUserKeyedRecord(),
     metrics: createUserKeyedRecord(),
+    statusConditions: createUserKeyedRecord(),
   };
   const failures: HirCompileFailure[] = [];
 
@@ -304,6 +308,30 @@ export function compileHirArtifacts(
       source: program.source,
       placeNames: program.placeNames,
     };
+  }
+
+  // Status views live on the root net only; each label's token condition is
+  // a single boolean expression over `token`, evaluated by the interpreter.
+  for (const statusView of sanitized.statusViews ?? []) {
+    for (const label of statusView.labels) {
+      const condition = label.tokenCondition;
+      if (condition === undefined || condition.trim() === "") {
+        continue;
+      }
+      const context = buildStatusConditionContext(sanitized, label, extensions);
+      const item = lowerAndCheck(condition, "status-condition", context);
+      if (!item.ok) {
+        failures.push({
+          itemId: label.id,
+          itemType: "status-label-condition",
+          diagnostics: item.diagnostics,
+        });
+        continue;
+      }
+      artifacts.statusConditions[
+        getStatusConditionArtifactKey(statusView.id, label.id)
+      ] = { fn: item.fn };
+    }
   }
 
   return { artifacts, failures };

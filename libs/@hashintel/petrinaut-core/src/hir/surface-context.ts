@@ -30,6 +30,7 @@ import {
   getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../extensions";
+import { parseScopedId } from "../scoped-ids";
 
 import type {
   Color,
@@ -174,13 +175,25 @@ export type HirScenarioCodeContext = {
   places: HirScenarioPlaceInfo[];
 };
 
+/**
+ * Context for one status label's token condition: a single boolean
+ * expression over `token`, the token being labelled.
+ */
+export type HirStatusConditionContext = {
+  surface: "status-condition";
+  /** Elements of the colours carried by the label's places, merged by name. */
+  tokenAttributes: HirTokenElementInfo[];
+  expected: "boolean";
+};
+
 export type HirSurfaceContext =
   | HirDynamicsContext
   | HirLambdaContext
   | HirKernelContext
   | HirMetricContext
   | HirScenarioExpressionContext
-  | HirScenarioCodeContext;
+  | HirScenarioCodeContext
+  | HirStatusConditionContext;
 
 const SCOPE_SEPARATOR = "::";
 
@@ -388,6 +401,50 @@ export function buildMetricContext(
     surface: "metric",
     parameters: toParameterInfos(extensions.parameters ? sdcpn.parameters : []),
     places: [...placesByName.values()],
+  };
+}
+
+/**
+ * Builds the context for one status label's token condition: the union of
+ * the attributes of the colours carried by the label's places, merged by
+ * name (first occurrence wins). Instance-scoped place ids resolve to the
+ * subnet place they copy.
+ */
+export function buildStatusConditionContext(
+  sdcpn: SDCPN,
+  label: { places: readonly string[] },
+  extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
+): HirStatusConditionContext {
+  const colorById = collectColors(sdcpn, extensions);
+  const placeById = new Map<string, Place>();
+  for (const place of sdcpn.places) {
+    placeById.set(place.id, place);
+  }
+  for (const subnet of sdcpn.subnets ?? []) {
+    for (const place of subnet.places) {
+      placeById.set(place.id, place);
+    }
+  }
+
+  const attributesByName = new Map<string, HirTokenElementInfo>();
+  for (const placeId of label.places) {
+    const { entityId } = parseScopedId(placeId);
+    const place = placeById.get(entityId);
+    const color = place?.colorId ? colorById.get(place.colorId) : undefined;
+    for (const element of color?.elements ?? []) {
+      if (!attributesByName.has(element.name)) {
+        attributesByName.set(element.name, {
+          name: element.name,
+          type: element.type,
+        });
+      }
+    }
+  }
+
+  return {
+    surface: "status-condition",
+    tokenAttributes: [...attributesByName.values()],
+    expected: "boolean",
   };
 }
 

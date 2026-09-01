@@ -349,12 +349,14 @@ function evalExpr(
  * Evaluates a lowered (and, at the caller's responsibility, type-checked)
  * HIR function with the given ambient bindings. Scenario functions declare
  * no parameters — `parameters` and `scenario` reads resolve through
- * `bindings`. Throws `HirInterpretError` (positioned in the user source) on
- * evaluation failure.
+ * `bindings`. Surfaces with declared parameters (status conditions bind the
+ * token as `token`) pass them through `locals`. Throws `HirInterpretError`
+ * (positioned in the user source) on evaluation failure.
  */
 export function interpretHir(
   fn: HirFunction,
   bindings: HirInterpretBindings,
+  locals?: ReadonlyMap<string, HirValue>,
 ): HirValue {
-  return evalExpr(fn.body, new Map(), bindings);
+  return evalExpr(fn.body, new Map(locals), bindings);
 }

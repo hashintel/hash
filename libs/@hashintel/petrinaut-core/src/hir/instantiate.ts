@@ -132,6 +132,24 @@ export type HirMetricArtifact = {
 };
 
 /**
+ * A lowered, type-checked status-label token condition. Evaluated by the
+ * HIR interpreter (like scenario surfaces), with the token bound as `token`,
+ * rather than emitted as a buffer program.
+ */
+export type HirStatusConditionArtifact = {
+  fn: HirFunction;
+};
+
+/**
+ * Key for one status label's condition in `HirArtifacts.statusConditions`.
+ * Label ids are only unique within their view, so the key pairs the two.
+ */
+export const getStatusConditionArtifactKey = (
+  statusViewId: string,
+  labelId: string,
+): string => `${statusViewId}\u0000${labelId}`;
+
+/**
  * Precompiled HIR programs for one SDCPN, keyed by item id (differential
  * equation id / transition id / metric id, pre-flattening — the engine
  * resolves flattened `path::id` ids back to their source id). Produced by
@@ -145,6 +163,7 @@ export type HirArtifacts = {
   lambdas: Record<string, HirLambdaArtifact>;
   kernels: Record<string, HirKernelArtifact>;
   metrics: Record<string, HirMetricArtifact>;
+  statusConditions: Record<string, HirStatusConditionArtifact>;
 };
 
 /**

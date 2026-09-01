@@ -301,6 +301,7 @@ function makeSuccessfulLanguageClient(): LanguageClientContextValue {
           metrics: Object.fromEntries(
             (sdcpn.metrics ?? []).map((metric) => [metric.id, {}]),
           ) as HirArtifacts["metrics"],
+          statusConditions: {},
         },
         failures: [],
       }),

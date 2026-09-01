@@ -345,7 +345,9 @@ export type {
   HirCompileResult,
   HirDiagnostic,
   HirMetricArtifact,
+  HirStatusConditionArtifact,
 } from "./hir";
+export { getStatusConditionArtifactKey } from "./hir/instantiate";
 
 // --- Playback ---
 export {
@@ -519,6 +521,21 @@ export {
 } from "./simulation/authoring/scenario/ad-hoc/materialize-run-state";
 export { adHocScenarioStateSchema } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-state-schema";
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
+export {
+  createStatusViewFrameEvaluator,
+  encodeInstanceKey,
+  type InstanceKey,
+  type StatusViewInstanceAssignment,
+} from "./simulation/frames/hir-status-view";
+export {
+  createStatusViewTracker,
+  getStatusViewExitLabel,
+  summarizeStatusIntervals,
+  type InstanceStatus,
+  type StatusInterval,
+  type StatusLabelDwell,
+  type StatusViewTracker,
+} from "./simulation/status-views";
 export {
   coerceTokenAttributeValue,
   coerceTokenRecord,
