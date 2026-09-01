@@ -171,10 +171,10 @@ impl<R> KratosSessionProvider<R> {
             whoami_url,
             actor_resolver,
             cache: config.cache.map(|cache| {
+                // Time-to-live, not time-to-idle: steady traffic on a revoked session must not
+                // keep it authenticating past the bound.
                 MokaCache::builder()
                     .max_capacity(cache.capacity)
-                    // Time-to-live, not time-to-idle: steady traffic on a revoked session must
-                    // not keep it authenticating past the bound.
                     .time_to_live(cache.ttl)
                     .build()
             }),
