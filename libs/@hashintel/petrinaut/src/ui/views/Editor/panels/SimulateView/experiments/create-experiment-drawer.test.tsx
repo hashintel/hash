@@ -99,6 +99,10 @@ function makeLanguageClient(): LanguageClientContextValue {
     initializeMetricSession: vi.fn(),
     updateMetricSession: vi.fn(),
     killMetricSession: vi.fn(),
+    requestFormatExpression: vi.fn(() => Promise.resolve(null)),
+    initializeAdHocSession: vi.fn(),
+    updateAdHocSession: vi.fn(),
+    killAdHocSession: vi.fn(),
   };
 }
 
@@ -132,6 +136,8 @@ const TestProviders = ({
     setPartialSelection: () => {},
     setUseEntitiesTreeView: () => {},
     setEnableNetComponents: () => {},
+    setEnableNotebookView: () => {},
+    setEnableAdHocScenarios: () => {},
     setShowWalkthroughOnInit: () => {},
     setWebGpuEnabled: () => {},
     setShowCompilationOutput: () => {},
