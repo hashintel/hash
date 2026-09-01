@@ -25,10 +25,7 @@ use type_system::{
 
 use crate::store::{
     AsClient, PostgresStore,
-    postgres::{
-        InTransaction,
-        query::{QUANTIZED_RANK_OVERFETCH, SelectCompiler},
-    },
+    postgres::{InTransaction, query::SelectCompiler},
 };
 
 const fn empty_response() -> SearchEntitiesResponse {
@@ -159,7 +156,7 @@ where
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
         let request_filter = request_filter(&entity_type_ids, &web_ids);
 
-        let candidate_pool = limit.saturating_mul(QUANTIZED_RANK_OVERFETCH);
+        let candidate_pool = self.settings.semantic_search.candidate_pool(limit);
         self.prepare_hnsw_scan(candidate_pool).await?;
 
         // The branches may permit overlapping sets of entities, so the candidate keys
@@ -218,13 +215,13 @@ where
     ///
     /// An HNSW scan stops after `ef_search` tuples (default 40) regardless of the statement's
     /// limit. The iterative mode resumes the walk when the filters discard candidates, or when
-    /// the pool exceeds the setting's range of 1 to 1000. `SET LOCAL` scopes the settings to
-    /// the enclosing transaction.
+    /// the pool exceeds the setting's range. `SET LOCAL` scopes the settings to the enclosing
+    /// transaction.
     async fn prepare_hnsw_scan(&self, candidate_pool: usize) -> Result<(), Report<QueryError>> {
         let settings = format!(
             "SET LOCAL hnsw.ef_search = {};
              SET LOCAL hnsw.iterative_scan = relaxed_order;",
-            candidate_pool.clamp(1, 1000)
+            self.settings.semantic_search.ef_search(candidate_pool)
         );
         self.as_client()
             .batch_execute(&settings)
