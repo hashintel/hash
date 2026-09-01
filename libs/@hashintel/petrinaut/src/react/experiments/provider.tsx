@@ -323,6 +323,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
    * a marking the swept parameters shape (even jointly, or only at interior
    * points) falls back to the per-cell path instead of running wrong.
    */
+  /** Per sweep: unsubscribes the batch-activity feed when the session goes. */
+  const sweepBatchSubscriptionsRef = useRef(new Map<string, () => void>());
   const surfaceMarkingProbesRef = useRef(
     new Map<
       string,
@@ -371,7 +373,14 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     const registrations = registrationsRef.current;
     const pendingRegistrations = pendingRegistrationsRef.current;
     const sweepSessions = sweepSessionsRef.current;
+    const sweepBatchSubscriptions = sweepBatchSubscriptionsRef.current;
     return () => {
+      // Before disposing the sessions: dispose fires a final (empty) batch
+      // notification, which must not reach setExperiments mid-unmount.
+      for (const unsubscribe of sweepBatchSubscriptions.values()) {
+        unsubscribe();
+      }
+      sweepBatchSubscriptions.clear();
       for (const registration of pendingRegistrations.values()) {
         registration.abortController.abort();
       }
@@ -808,6 +817,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       },
     });
 
+    const offBatches = session.batches.subscribe(() => {
+      patchExperiment(experimentId, { sweepBatches: session.batches.get() });
+    });
+    sweepBatchSubscriptionsRef.current.set(experimentId, offBatches);
+
     sweepSessionsRef.current.set(experimentId, session);
   };
 
@@ -983,6 +997,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       progress: null,
       latestMetricFramesById: {},
       metricFrames: [],
+      sweepBatches: [],
       parameterAxes: axes,
       sweep:
         axes.length > 0
@@ -1264,6 +1279,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       session.dispose();
       sweepSessionsRef.current.delete(experimentId);
       surfaceMarkingProbesRef.current.delete(experimentId);
+      sweepBatchSubscriptionsRef.current.get(experimentId)?.();
+      sweepBatchSubscriptionsRef.current.delete(experimentId);
       patchExperiment(experimentId, { status: "cancelled" });
       return;
     }
@@ -1277,6 +1294,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     sweepSessionsRef.current.get(experimentId)?.dispose();
     sweepSessionsRef.current.delete(experimentId);
     surfaceMarkingProbesRef.current.delete(experimentId);
+    sweepBatchSubscriptionsRef.current.get(experimentId)?.();
+    sweepBatchSubscriptionsRef.current.delete(experimentId);
     disposeExperimentHandle(experimentId);
     setExperiments((prev) =>
       prev.filter((experiment) => experiment.id !== experimentId),
