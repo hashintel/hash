@@ -37,8 +37,16 @@ const sectionStyle = css({
   zIndex: "[0]",
   // No vertical padding here — the sticky header owns its own padding so it
   // can fully cover scrolling content underneath it.
+  //
+  // A focused section paints over its unfocused siblings, but never over a
+  // sticky header: sections nest (a drawer section hosting the ad-hoc form,
+  // which brings its own), and the host's header sits at 2 in the same
+  // stacking context. Lifting a focused section above that let the nested
+  // section's title and rows paint straight through the header pinned above
+  // them, so 1 is the ceiling here — high enough to win against a sibling
+  // at 0, low enough to stay under every header.
   "&:focus-within": {
-    zIndex: "[3]",
+    zIndex: "[1]",
   },
 });
 
