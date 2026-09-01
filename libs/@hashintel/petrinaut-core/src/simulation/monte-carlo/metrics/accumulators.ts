@@ -1,6 +1,7 @@
 import type {
   MonteCarloMetricDistributionBinning,
   MonteCarloUserDefinedMetricAggregation,
+  MonteCarloUserDefinedMetricBinExtent,
   MonteCarloUserDefinedMetricDistributionBin,
 } from "./types";
 
@@ -41,6 +42,20 @@ function getDistributionBinValue(
   }
 
   return Math.floor(value / binning.width) * binning.width;
+}
+
+/**
+ * The extent of the bins `getDistributionBinValue` produces: a width-binned
+ * value is labelled by its lower edge, so a bin spans `[label, label + width)`.
+ * Exact bins have none.
+ */
+export function getDistributionBinExtent(
+  binning: MonteCarloMetricDistributionBinning | undefined,
+): MonteCarloUserDefinedMetricBinExtent | undefined {
+  if (!binning || binning === "exact") {
+    return undefined;
+  }
+  return { below: 0, above: binning.width };
 }
 
 export function createMonteCarloMetricNumericAccumulator(

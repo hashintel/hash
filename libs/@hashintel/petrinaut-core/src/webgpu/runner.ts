@@ -133,6 +133,13 @@ export type GpuHistogramFrame = {
   metricId: string;
   /** `[value, frequency]` pairs, ascending, zero bins omitted. */
   bins: [number, number][];
+  /**
+   * The counts a bin stands for, as a reach below and above its label: a
+   * stride-`s` window bin labelled `v` holds the integer counts in
+   * `[v - below, v + above)`, half a count either side of its outermost
+   * integers.
+   */
+  binExtent: { below: number; above: number };
   /** Runs that contributed a sample; equals the active run count. */
   sampleCount: number;
 };
@@ -568,6 +575,13 @@ function decodeHistogramFrames(options: {
       // window's means unbiased where the low edge skewed them down by
       // (stride − 1) / 2. Exact (offset 0) at stride 1.
       const binMidpoint = Math.floor((window.stride - 1) / 2);
+      // The label is the bin's middle count, so the bin reaches `binMidpoint`
+      // whole counts below it and the rest above; the half count either side
+      // is where an integer's cell begins and ends.
+      const binExtent = {
+        below: binMidpoint + 0.5,
+        above: window.stride - binMidpoint - 0.5,
+      };
       const offset =
         frame * histogramBins * metricCount + metricIndex * histogramBins;
       const bins: [number, number][] = [];
@@ -583,6 +597,7 @@ function decodeHistogramFrames(options: {
         frameNumber: firstFrame + frame,
         metricId,
         bins,
+        binExtent,
         sampleCount,
       });
     }

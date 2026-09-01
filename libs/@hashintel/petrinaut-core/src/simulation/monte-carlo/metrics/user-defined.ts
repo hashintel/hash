@@ -2,6 +2,7 @@ import {
   addAllMonteCarloMetricValues,
   createMonteCarloMetricHistogramAccumulator,
   createMonteCarloMetricNumericAccumulator,
+  getDistributionBinExtent,
 } from "./accumulators";
 
 import type { MonteCarloMetricNumericAccumulatorState } from "./accumulators";
@@ -160,6 +161,7 @@ export function createMonteCarloUserDefinedMetric(
               distributionValues,
             ),
           ),
+          binExtent: getDistributionBinExtent(runOutput.binning),
           runSampleCount: runValues.length,
           timeSampleCount,
         });
