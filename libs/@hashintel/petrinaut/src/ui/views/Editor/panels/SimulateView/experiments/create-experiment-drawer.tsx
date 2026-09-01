@@ -14,7 +14,10 @@ import {
   type SelectItem,
 } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
-import { EMPTY_AD_HOC_STATE, isWebGpuAvailable } from "@hashintel/petrinaut-core";
+import {
+  EMPTY_AD_HOC_STATE,
+  isWebGpuAvailable,
+} from "@hashintel/petrinaut-core";
 import {
   analyzeCompilation,
   summarizeGpuUnavailability,
