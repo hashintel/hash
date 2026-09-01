@@ -12,7 +12,7 @@ This map accounts for the primary working and draft material used to produce the
 | `plugin-sdcpn/APPEND_SYSTEM.md` | Concise operational-process/SDCPN specialization and router | Active plugin `flue.ts` inline instruction; active APPEND role; current skill lifecycle and construction boundary |
 | `sdcpn-modelling/instructions.md` | Conceptual lifecycle, runtime branches, and packaged-resource routing | Active `sdcpn-modelling/SKILL.md`; accepted Mission 3 information hierarchy; predecessor elicitation procedure |
 | `sdcpn-modelling/skill.ts.example` | Explicit composition of separately authored resources into one Flue skill | Installed Flue `defineSkill` contract; verified core-package → plugin-package → production Flue-app spike |
-| `sdcpn-modelling/profile.md` | Unified operational-process domain typology and SDCPN profile under five registers | Active APPEND target material; active `elicitation.md` SDCPN/mixed material; Ciaran outline; current plugin YAML concepts |
+| `sdcpn-modelling/profile.md` | Strictly additive operational-process domain typology and SDCPN profile under five role-pure registers | Active APPEND target material; active `elicitation.md` SDCPN/mixed material; Ciaran outline; current plugin YAML concepts |
 | `workpiece-template.md` | Provisional domain-primary recoverable process-model workpiece | Active `ir-template.md`; Mission 4 proof obligations; Ciaran investigation headings |
 | `coverage-alternatives/formalism-primary-workpiece-template.md` | Workpiece paired with the formalism-primary Coverage alternative for a fair comparison | Active `ir-template.md`; formalism-primary Coverage candidate; Mission 4 proof obligations |
 | `pn-construction.md` | SDCPN mappings, construction patterns, inference, bounded change, and losses | Active `pn-construction.md`; APPEND `Maps To` material; Ciaran transformation patterns |
@@ -79,7 +79,7 @@ The active file's Ciaran-derived “What to investigate” headings seed the dom
 
 ### `ir-template.md`
 
-The candidate retains a human-readable Markdown workpiece, full `runbook-ir` emission, expert vocabulary, assumptions, unknowns, conflict, omissions, and losses. It adds explicit homes for not-yet-asked, declined, deferred, correction, contextual coexistence, exact evidence, normalized account, agent inference, process spine, resource-use semantics, and construction-opened questions. These homes are structural aids, not mandatory per-statement types. Because Coverage indexing remains unresolved, the workbench contains aligned domain-primary and formalism-primary workpiece candidates rather than treating one artifact shape as settled.
+The candidate retains a human-readable Markdown workpiece, full `runbook-ir` emission, expert vocabulary, assumptions, unknowns, conflict, omissions, and losses. Each operational claim now owns its exact evidence, normalized account, agent inference, assumption, correction, conflict, or contextual variation locally when those distinctions matter. A compact central ledger holds only unresolved matters spanning concerns or requiring re-entry and references rather than restates authoritative claims. These annotations are structural aids, not mandatory per-statement types. Because Coverage indexing remains unresolved, the workbench contains aligned domain-primary and formalism-primary workpiece candidates under the same locality rule rather than treating one artifact shape as settled.
 
 ### `pn-construction.md`
 

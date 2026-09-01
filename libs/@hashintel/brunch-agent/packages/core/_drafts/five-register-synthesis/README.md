@@ -18,6 +18,8 @@ This candidate remaps the current core prompt, SDCPN prompt material, runbook sk
 10. Register headings are fixed, but contents remain freeform Markdown. No repeated card schema, machine-readable entry type, renderer, or completion algebra is proposed.
 11. Plugin guidance may add context or narrow applicability; it does not silently weaken universal directives.
 12. The separately authored progressive layers are composed into one packaged skill with Flue's native `defineSkill({ instructions, files })`. Markdown links guide the model but do not package, transclude, or automatically load resources.
+13. The plugin profile is strictly additive and register-pure: it states only operational-process or SDCPN consequences absent from universal teaching; Recognition names signals and hypotheses, Operations names moves, Coverage names what to preserve, and Verification names failures and repairs. Lifecycle and construction routing remain in instructions and checks.
+14. A workpiece claim, its evidence, and its epistemic treatment share one authoritative location under the relevant concern. Only unresolved matters spanning concerns or requiring later re-entry enter a compact cross-cutting issue ledger, which references rather than restates claims.
 
 ## Candidate topology
 
@@ -51,8 +53,8 @@ five-register-synthesis/
 - [`plugin-sdcpn/APPEND_SYSTEM.md`](plugin-sdcpn/APPEND_SYSTEM.md) selects operational-process/SDCPN modelling, requires skill activation, states workpiece-first construction, and protects the elicitation/construction boundary.
 - [`plugin-sdcpn/sdcpn-modelling/instructions.md`](plugin-sdcpn/sdcpn-modelling/instructions.md) describes the conceptual lifecycle, distinguishes the currently available interactive and construct-only runtime branches, and routes to packaged resource names.
 - [`plugin-sdcpn/sdcpn-modelling/skill.ts.example`](plugin-sdcpn/sdcpn-modelling/skill.ts.example) shows Flue's native `defineSkill` composing the instructions, core-owned universal reference, and plugin-owned resources into one skill. Flue synthesizes the packaged `SKILL.md`.
-- [`plugin-sdcpn/sdcpn-modelling/profile.md`](plugin-sdcpn/sdcpn-modelling/profile.md) is the unified additive plugin profile coupling operational-process domain typology and SDCPN consequences.
-- [`plugin-sdcpn/sdcpn-modelling/workpiece-template.md`](plugin-sdcpn/sdcpn-modelling/workpiece-template.md) is the recoverable process-model artifact.
+- [`plugin-sdcpn/sdcpn-modelling/profile.md`](plugin-sdcpn/sdcpn-modelling/profile.md) is the register-pure additive plugin profile coupling operational-process domain typology and SDCPN consequences without repeating universal or lifecycle guidance.
+- [`plugin-sdcpn/sdcpn-modelling/workpiece-template.md`](plugin-sdcpn/sdcpn-modelling/workpiece-template.md) is the recoverable process-model artifact, with operational claims, evidence, and epistemic treatment co-located and a reference-only cross-cutting issue ledger.
 - [`plugin-sdcpn/sdcpn-modelling/pn-construction.md`](plugin-sdcpn/sdcpn-modelling/pn-construction.md) contains construction mappings and patterns disclosed only during construction.
 - [`plugin-sdcpn/sdcpn-modelling/checks.md`](plugin-sdcpn/sdcpn-modelling/checks.md) checks the workpiece-to-construction boundary, net structure, fidelity, revision, and delivery.
 

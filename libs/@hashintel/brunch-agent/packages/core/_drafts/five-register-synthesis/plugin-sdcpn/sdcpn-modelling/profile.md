@@ -1,268 +1,219 @@
 # Operational-Process / SDCPN Profile
 
-This profile adds reusable operational-process domain typology and SDCPN target-formalism guidance to the universal elicitation reference. It contains no facts about a particular operation. Apply both layers under the same five registers; where this profile is silent, universal guidance still applies.
+This profile adds the operational-process domain typology and SDCPN target-formalism concerns that are absent from the universal elicitation reference. It contains no facts about a particular operation. Apply both layers under the same five registers; where this profile is silent, universal guidance still applies.
 
-The registers are not a questionnaire or phase sequence. **Recognition** suggests what may be present. **Operations** select ways to investigate an active gap. **Coverage** says what the workpiece may need to preserve for this purpose and target. SDCPN construction mechanics remain in the separately disclosed `references/pn-construction.md` resource.
+The registers are addresses, not a questionnaire or phase sequence. Recognition names operational signals and the hypotheses they support. Operations adapt universal interviewing moves to process modelling. Coverage states what an SDCPN-oriented workpiece may need to preserve. Verification detects target-specific gaps. Construction mapping is outside this profile.
 
 ## Directives
 
-### Build the process description the purpose needs
+### Model for an explicit simulation use
 
-Elicit or revise an operational account that can support the person's stated simulation question or decision. Establish what should improve or be avoided, what may be varied, how outcomes are judged, and what observation would make the model credible enough for its intended use.
+Develop an operational account that can support the person's stated simulation question or decision. Establish what may be varied, what response matters, and what observation would make the model credible enough for that use. Detail that cannot affect the stated use does not become necessary merely because the process contains it.
 
-### Keep operational language in the foreground
+### Keep formal notation backstage
 
-Ask about work, things, people, resources, conditions, decisions, time, failures, and outcomes in the person's vocabulary. Places, transitions, arcs, colours, tokens, firing, and target schemas are backstage construction concepts. They may guide attention but must not become the language or order of ordinary questions.
+Ask about work, things, people, resources, conditions, decisions, time, failures, and outcomes in the person's vocabulary. Places, transitions, arcs, colours, tokens, firing, and target schemas may guide internal attention but must not become the language or order of ordinary questions.
 
-### Maintain the workpiece before the net
+### Preserve distinctions that can change simulated behavior
 
-The process-model workpiece is the recoverable account elicitation and revision maintain. Construction consumes it rather than rereading the transcript as the primary model. If a target distinction matters but the evidence is missing, preserve the gap in the workpiece instead of constructing a plausible default.
-
-### Preserve target-relevant context
-
-A value without its applicable entity, activity, direction, operating regime, calendar, load, or other condition may simulate as a falsehood. Preserve context when the operation treats cases differently. Do not average prescribed and practiced accounts or distinct operating conditions merely to obtain one parameter.
-
-### Separate evidence from precision
-
-A narrowly stated value is not necessarily well supported, and a well-supported account may remain broad. Preserve both what the person or source supports and how narrow the value is. Do not force a distribution, rate, or threshold below the granularity the operation can observe.
-
-### Treat patterns as hypotheses
-
-Operational situation patterns expose conditional information needs; they do not generate the process model. Ask whether a pattern is present and let the person's account supply its structure and vocabulary.
-
-### Keep elicitation and construction reversible
-
-Construction may reveal that a distinction is missing, ambiguous, or unrepresentable. Return to the smallest relevant question, update the workpiece, and reconstruct. Do not reinterpret the transcript silently to rescue a net.
-
-### Construct only through available authority
-
-When Petrinaut construction tools are mounted, their accepted schemas and the inspected resulting definition govern net changes. When they are absent, prepare construction-ready workpiece material without claiming that a loadable or simulatable net exists.
+Keep entity or activity type, direction, operating regime, calendar, load, resource state, and other selecting conditions when they change what occurs or how a quantity applies. Do not collapse distinct operational contexts into one target parameter for convenience.
 
 ## Recognition
 
-Recognition entries name possibilities, not facts or automatic next steps. Confirm the operational meaning before recording or constructing it.
+Recognition entries identify possibilities, not facts or automatic next steps. Confirm the operational meaning before recording it.
 
-### Language and account signals
+### Language and situation signals
 
-- **“It depends”** may indicate a branch, practiced decision rule, contextual quantity, or distinction between types of work or resource.
-- **“Sometimes it breaks,” “we have to wait,” or “it arrives unexpectedly”** may indicate a disruption with an occurrence pattern and duration, a blocked prerequisite, or an uncontrolled boundary input.
-- **“We would,” “the procedure says,” or “you are supposed to”** may indicate prescribed behavior whose relationship to practice remains unknown.
-- **“Always” or “never”** may indicate a constraint, policy, invariant, or unexamined exception.
-- **Warming up, wearing down, charging, filling, cooling, or draining** may indicate continuous change, a threshold, or a mode change with time, material, or capacity loss.
-- **A duration that crosses a shift, opening window, or calendar boundary** may depend on availability rather than work time alone.
-- **A person, machine, team, vehicle, bay, tool, or dataset named in passing** may participate as a performer, contended resource, prerequisite, information source, or merely contextual detail.
-- **A place named in the account** may matter as a boundary, capacity, eligibility condition, source of travel time, state distinction, or resource. A physical location does not imply a Petri-net place.
-- **Approval, instruction, receipt, schedule, threshold, or event language** may identify what starts or enables work rather than a normal process step.
-- **A memorable failure** identifies a mechanism and consequence, not its probability.
+- **“It depends”** may indicate a branch, decision rule, contextual quantity, or distinction between types of work or resource.
+- **“Sometimes it breaks,” “we have to wait,” or “it arrives unexpectedly”** may indicate a disruption, blocked prerequisite, or uncontrolled boundary input.
+- **“Always” or “never”** may indicate an operational constraint, policy, or exception boundary.
+- **Warming up, wearing down, charging, filling, cooling, or draining** may indicate continuous change, a threshold, or a mode change.
+- **A duration crossing a shift, opening window, or calendar boundary** may indicate that availability and elapsed work time differ.
+- **A person, machine, team, vehicle, bay, tool, or dataset named in passing** may play the role of performer, contended resource, prerequisite, or information source.
+- **A physical location** may matter through boundary, capacity, eligibility, travel, state, or resource effects; it does not imply a Petri-net place.
+- **Approval, instruction, receipt, schedule, threshold, or event language** may identify what admits or enables work rather than an ordinary step.
 
-### Operational situation patterns
+### Recurring operational shapes
 
 #### Timed work
 
-A step occupies elapsed time or timing affects the objective. Possible distinctions include start and finish, what is unavailable while it runs, whether duration is constant enough for the purpose, what variation or tail matters, and whether time depends on load, type, calendar, or resource availability.
+A step occupies elapsed time or timing affects the objective. This may require distinguishing an activity from its in-progress interval.
 
-#### Probabilistic or conditional outcome
+#### Conditional or probabilistic outcome
 
-A step is not guaranteed to succeed or different next states may follow. Possible distinctions include what decides the branch, what each branch produces, whether an observed rate exists, which conditions alter it, and what recovery follows.
+The same activity can produce different outcomes. This may require a deciding condition, observed likelihood, or explicit unknown.
 
 #### Contended resource
 
-Several activities want the same people, machine, bay, vehicle, tool, space, or other limited capability. Possible distinctions include count, indivisibility, joint staffing, reservation and release, eligibility, practiced priority, tie-breaking, overrides, and a borderline case that exposes the real rule.
+Several activities want the same limited capability. This may be a reusable resource that becomes unavailable while held rather than an input that is consumed.
 
 #### Consumed, reserved, or read input
 
-A step uses an input in one of several materially different ways. It may consume or transform it, reserve it so others cannot use it until release, or read it without making it unavailable. The same named thing may play different roles in different activities.
+An activity uses something by transforming it, holding it temporarily, or observing it without making it unavailable. The same thing may play different roles in different activities.
 
 #### Batch, lot, load, or grouped movement
 
-Work moves or is processed in groups. Possible distinctions include what forms a group, minimum or preferred size, count-versus-clock release, whether members stay together, splitting or merging, and the cost of breaking the group.
+Work moves or is processed as a group whose formation, cohesion, split, or release may affect behavior.
 
 #### Gate, release, trigger, or prerequisite
 
-Work becomes enabled by an observable event or condition. Possible distinctions include what is observed, who or what changes it, where it is visible, whether it is external to the process, and what overrides it.
+An observable event or condition enables work. It may originate outside the process or be produced by an earlier activity.
 
 #### Mode change
 
-Setup, changeover, restart, warm-up, handover, reconfiguration, or cleaning changes what can happen next. Possible distinctions include direction, time, scrap, material, capacity, cascade effects, and the source of an unknown loss.
+Setup, changeover, restart, warm-up, handover, reconfiguration, or cleaning changes what can happen next and may have direction-dependent loss.
 
 #### Event rather than step
 
-A failure, interruption, deadline expiry, unplanned arrival, or external trigger befalls the operation rather than advancing its normal flow. Possible distinctions include occurrence, duration, affected work, effect on the case, recovery, and dependence on operating state.
+A failure, interruption, deadline expiry, or unplanned arrival befalls the operation rather than advancing its normal flow.
 
 #### Threshold on a changing quantity
 
-A level, temperature, charge, wear state, count, or other quantity crosses a consequential boundary. Possible distinctions include direction and rate of change, noise, what crossing triggers, which activity resets it, and whether several components combine or compete.
+A level, temperature, charge, wear state, count, or other evolving quantity crosses a boundary that changes process behavior.
 
 #### Policy under pressure
 
-More than one action is possible or more than one claimant wants the same capability. Possible distinctions include posted and practiced rules, local judgment, tie-breaking, exception authority, and the conditions under which a different rule applies.
+More than one action is possible or more than one claimant wants the same capability. The practiced selection rule may differ from the posted rule.
 
 #### Hidden waiting
 
-A gap between activities may be caused by unavailable input, resource contention, calendar, release policy, batching, transport, approval, or recovery. Waiting is evidence to explain through surrounding behavior, not automatically a node to elicit.
+A gap between activities may reflect an unavailable input, resource, calendar, release rule, batch, transport, approval, or recovery condition rather than an independently elicited queue.
 
 #### Failure, retry, and recovery
 
-A case can fail to complete, repeat part or all of its work, enter an unhappy path, degrade, or recover. Possible distinctions include the entering condition, affected work and resources, outputs, rollback or compensation, retry limit, and terminal outcome.
+A case can fail to complete, repeat part or all of its work, enter an unhappy path, degrade, or recover.
 
 ## Operations
 
-Use the universal Operations as the primary interviewing methods. These additions bind those methods to operational-process and SDCPN concerns.
+Use the universal Operations as the interviewing methods. These moves bind them to operational-process and SDCPN concerns.
 
-### Choose the case unit before slicing
+### Choose the case unit
 
-When several things flow, ask which unit makes one concrete case intelligible—an order, item, batch, patient, vehicle, request, or another term the person supplies. Follow that unit from the event that admits it to the outcome that ends or hands it beyond the chosen boundary.
-
-### Link the slice to the objective
-
-As the case unfolds, note which activities, decisions, resources, conditions, and outcomes the stated objective depends on. If the objective still depends on nothing in the account, say that the supporting process is missing and continue the slice rather than collecting detached detail.
+When several things flow, ask which unit makes one concrete case intelligible—an order, item, batch, patient, vehicle, request, or another term the person supplies. Use that unit for the first slice.
 
 ### Expose the process spine
 
-Ask what starts the case, what happens next, what each activity needs and changes, how branches are decided, where waiting occurs, and what ends the case. A list of activities without order, triggers, or outcomes is not a process spine.
+Follow the chosen case from admission to outcome. Ask what happens next, what each activity needs and changes, how branches are decided, where waiting occurs, and what ends or hands off the case.
 
-### Sweep operational concerns, not headings
+### Link the slice to the simulation objective
 
-After the slice, choose one property that matters to the objective and examine it across the relevant things already discovered. Useful sweeps include duration, input-use mode, availability, type-dependent variation, practiced policy, failure/recovery, boundary behavior, or evidence quality. Do not march through every Coverage subsection merely because it exists.
+As the case unfolds, ask which activities, decisions, resources, conditions, and outcomes the stated simulation question depends on. Return to the case when the objective still has no operational support.
 
-### Distinguish consumed, reserved, and read inputs
+### Sweep one operational relation
 
-For each load-bearing activity/input relation, ask whether the input is used up or transformed, made unavailable and later released, or observed while remaining available. If reserved, establish when and in what state it returns. Use operational phrasing before target-formalism terms.
+After the slice, choose one objective-relevant relation and examine it across the things already discovered. Useful process sweeps include duration, input-use mode, availability, type-dependent variation, practiced policy, failure/recovery, and boundary behavior.
 
-### Sweep what can befall an activity
+### Classify activity inputs
 
-Across the activities the slice exposed, investigate relevant disruptions: work-item failure, deadline expiry, resource unavailability, external event, and constraint violation. For each one the person recognizes, establish what happens to the work in hand, to the case, to occupied resources, and during recovery.
+For each load-bearing activity/input relation, ask whether the input is transformed, made unavailable and later released, or observed while remaining available. For a reserved input, follow when and in what state it returns.
 
-### Test practiced policy with a borderline case
+### Trace disruption and recovery
 
-When a document or general rule says who goes next, ask about the last contested or exceptional case. Preserve the prescribed account, practiced account, and the context that selects between them rather than averaging them.
+For a disruption the person recognizes, follow what happens to the work in hand, the whole case, occupied resources, retry, recovery, and terminal outcome.
 
-### Close a resource account
+### Test contention with a borderline case
 
-For a contended resource, establish how many usable instances exist, eligibility, joint requirements, acquisition, unavailability while held, release, changed state on return, and the rule used when demand exceeds availability.
+When demand can exceed a resource's availability, ask about a recent contested or exceptional case to expose the practiced priority, tie-break, override, acquisition, and release behavior.
 
-### Close a mode change in both directions
+### Follow waiting to its enabling condition
 
-Ask whether A-to-B differs from B-to-A and whether losses propagate beyond the local activity. Preserve time, material, capacity, and sequencing consequences separately when the operation does.
+Ask what the case is waiting for and which observable event makes it able to continue. Locate the surrounding prerequisite, resource, policy, calendar, batch, transport, or recovery condition.
 
-### Turn waiting into a causal question
+### Compare both directions of a mode change
 
-Ask what the case is waiting for and what observable event makes it able to continue. Record the surrounding prerequisite, resource, policy, calendar, batch, transport, or failure condition rather than naming a queue merely because waiting exists.
+Ask whether A-to-B differs from B-to-A and whether the loss propagates beyond the local activity. Pursue time, material, capacity, and sequencing consequences only where the operation distinguishes them.
 
-### Ask what is conserved
+### Surface conservation
 
-When quantities enter and leave a process, ask what total should remain constant, where loss is possible, and which units the operation uses. Treat the answer as a target-relevant constraint only when the person's account supports it.
+When quantities enter and leave a process, ask what total should remain constant, where loss is possible, and which units the operation uses.
 
-### Establish validation from observable behavior
+### Anchor validation in an observable comparison
 
-Ask what observation, replay, historical comparison, or expert judgment would make the model credible for its intended question. Do not ask the person to predict the model's answer and store that prediction as process structure.
-
-### Re-enter from construction
-
-When construction cannot choose among materially different structures without inventing a fact, name the smallest missing operational distinction and formulate the question in the person's vocabulary. Ask it only when interactive elicitation is available; in construct-only execution, deposit the question for a later elicitation and stop the unsupported construction path.
+Ask what observation, replay, historical comparison, or expert judgment would make the simulation model credible for its intended question. Do not substitute the person's prediction of the answer for validation of the modeled process.
 
 ## Coverage
 
-Coverage identifies what the workpiece may need for the stated objective and downstream SDCPN construction. It is not a questionnaire, a closed ontology, or a demand to populate irrelevant sections.
+Coverage identifies what the workpiece may need for the stated simulation use and later SDCPN construction. It is not a questionnaire, closed ontology, or demand to populate irrelevant sections.
 
 ### Purpose, goals, measures, constraints, and thresholds
 
-Preserve what the model must answer or compare, for whom, what should improve or be avoided, what may be varied, what “better” means, and any importance, trade-off, safety condition, or threshold the person can actually judge. An objective needs a traceable dependency on the operational account. Quantitative objectives may need metrics; qualitative objectives must not be forced into invented weights.
-
-Keep qualitative goals and trade-offs in the workpiece when the person cannot support a numerical measure. Construction guidance owns the later choice of target representation.
+Preserve what the model must answer or compare, what may be varied, what should improve or be avoided, what “better” means, and any trade-off, safety condition, or threshold the person can judge. Record which operational material each objective depends on. Qualitative goals remain qualitative when no supported metric or weight exists.
 
 ### Process boundary, triggers, prerequisites, and initial conditions
 
-Preserve what is inside and outside, what enters or leaves, what starts a case, calendars and availability, approvals or instructions, external events, initial populations, and reliability of boundary inputs. Distinguish a trigger from an ordinary activity and a prerequisite from a resource that the activity consumes.
-
-These concerns define the operational starting and enabling context. Construction guidance owns how that context is represented.
+Preserve what is inside and outside; what enters or leaves; what starts or admits a case; calendars and availability; approvals or instructions; external events; initial populations; and reliability of boundary inputs.
 
 ### Participants, locations, flowing things, and resources
 
-Preserve who or what flows, performs, decides, supplies, occupies, or constrains the process; distinctions the operation treats differently; relevant carried state; counts and population shape; qualifications and compatibility; and how locations affect behavior. A resource is a domain-facing role, not necessarily a separate target kind: its instances may be represented as typed elements subject to policy, capacity, and availability.
-
-A physical location deserves target representation only when the operation treats being there as consequential. Construction guidance owns the representational choice.
+Preserve who or what flows, performs, decides, supplies, occupies, or constrains the process; distinctions the operation treats differently; consequential carried state; counts and population shape; qualifications and compatibility; and the operational effect of location. A resource is a role combining a usable thing with availability, capacity, and contention behavior, not necessarily a separate target kind.
 
 ### Activities, inputs, outputs, and resource use
 
-For each consequential activity, preserve its name in operational vocabulary, preconditions, performer, inputs, whether each input is consumed/reserved/read, outputs and state changes, duration, success and failure outcomes, occurrence if it is an event, mode-change loss, and variation by type or context.
+For each consequential activity, preserve its operational name, preconditions, performer, inputs, consumed/reserved/read use, outputs and state changes, duration, success and failure outcomes, occurrence when it is an event, mode-change loss, and variation by type or context.
 
 ### Flow, branching, joining, failure, retry, and recovery
 
-Preserve the order activities occur, what decides branches and joins, what can interrupt normal flow, conditions for unhappy paths, retry and recovery behavior, what happens to work and resources, and terminal outcomes. Activities without stated order do not yet form a constructible process spine.
+Preserve activity order, branch and join conditions, interruptions, unhappy paths, retry and recovery behavior, effects on work and occupied resources, and terminal outcomes. Activities without stated order do not yet form a process spine.
 
 ### Time, quantities, arrivals, and stochastic behavior
 
-Preserve durations, rates, counts, capacities, probabilities, arrival and availability patterns, relevant typical and tail behavior, dependence on type/load/calendar/state, continuous quantities, direction and rate of change, variation, thresholds, and resets. Keep unsupported precision broad or parameterized rather than manufacturing a distribution.
+Preserve durations, rates, counts, capacities, probabilities, arrival and availability patterns, relevant typical and tail behavior, dependence on type/load/calendar/state, continuous quantities, direction and rate of change, variation, thresholds, and resets. Keep each value at the context and precision its source supports.
 
 ### Policies, exceptions, practiced rules, and contextual regimes
 
-Preserve the rule applied when more than one thing could happen, contention priorities, tie-breaking, release conditions, overrides, prescribed versus practiced accounts, and the context in which each account holds. Determine whether divergence is correction, unresolved conflict, or contextual coexistence.
-
-Construction later determines which rules are representable. Political judgment, unnamed exceptions, and unsupported conditions remain workpiece-only and must appear as losses rather than invented logic.
+Preserve the rule used when more than one thing could happen, contention priorities, tie-breaking, release conditions, overrides, prescribed and practiced accounts, and the context selecting each account. Keep correction, unresolved conflict, and contextual coexistence distinguishable.
 
 ### Validation, evidence sources, and data bindings
 
-Preserve how the person would know the model is credible for its intended question, what observations or historical data could test it, which variables a real feed might drive, who or what is authoritative for missing values, and where evidence remains unavailable.
+Preserve the observation or comparison that would make the model credible, variables a real source might drive, units and update context, who or what is authoritative for missing values, and evidence that is not currently available. Unsupported live bindings and qualitative validation remain workpiece knowledge rather than implied implementation.
 
-Live data connections and qualitative validation may remain unsupported by the current target tooling; preserve them in the workpiece rather than implying implementation.
+### Cross-cutting simulation qualifiers
 
-### Cross-cutting evidence and uncertainty
+Across the concerns above, preserve only the target-relevant qualifiers not already supplied by the universal reference: entity or activity type, direction, operating regime, calendar, load, resource state, and the context and supported precision of simulation quantities.
 
-For every consequential concern, preserve the person's exact evidence where wording matters; normalized account; agent inference; assumption with reason and check; unknown, unasked, declined, or deferred material; unresolved conflict; correction; contextual variation; omission; and known target loss as applicable. These are workpiece obligations, not mandatory labels on every sentence.
+### Concepts that do not imply independent target nodes
 
-### Things not independently elicited as target nodes
-
-- A queue, buffer, or waiting state is ordinarily explained by the activities and conditions around it and may emerge as target structure during construction.
-- A scenario is assembled for simulation from boundary conditions, initial state, parameters, and candidate policies; it is not necessarily one elicited process element.
-- A resource is an operational role that may combine entity distinctions, capacity, availability, and policy rather than requiring one universal target node shape.
-- A location is operational context until its effect on state, eligibility, travel, capacity, boundary, or resource use is established.
+- Waiting is explained by surrounding activities and enabling conditions and may later produce target structure.
+- A scenario is assembled from boundary conditions, initial state, parameters, and candidate policies.
+- A resource combines a usable thing with capacity, availability, and contention behavior.
+- A physical location becomes target-relevant only through an operational effect.
 
 ## Verification
 
-Use this register while eliciting and maintaining the workpiece. Read and apply `references/checks.md` when preparing to construct or delivering a net.
+These checks assess the elicited operational account and its readiness for SDCPN construction. Universal Verification continues to own authorship, uncertainty, interaction load, generic divergence, and honest stopping.
 
 ### Purpose and spine
 
 - At least one simulation question, decision, or comparison is stated in the person's terms.
-- The workpiece identifies a meaningful process boundary and at least one concrete case.
-- The case has an explicit trigger or admission, ordered activities, branch conditions where present, and an outcome or handoff.
-- Every objective depends on recorded process material or is visibly marked unsupported.
+- The account identifies a meaningful process boundary and concrete case.
+- The case has an admission or trigger, ordered activities, branch conditions where present, and an outcome or handoff.
+- Every claimed objective depends on recorded process material or is visibly unsupported.
 
 ### Resources and activity semantics
 
-- Load-bearing inputs are distinguished as consumed, reserved and later released, or read while remaining available.
-- A contended resource has count or an honest unknown, acquisition, unavailability while held, release, and practiced contention policy where the objective needs it.
-- Hidden waiting is explained through a prerequisite, availability, policy, calendar, batching, transport, or disruption when the evidence supports one.
-- Mode-change losses preserve direction and context where they differ.
+- Each load-bearing input is classified as consumed, reserved/released, or read.
+- Each objective-relevant contended resource has acquisition, unavailability while held, release, and an honest count or unknown.
+- Waiting is associated with an evidenced enabling condition rather than treated as a self-explanatory queue.
+- Direction-dependent mode changes retain their distinct losses.
 
-### Time and uncertainty
+### Time and contextual variation
 
-- A duration, rate, probability, count, or threshold preserves the context and precision the evidence supports.
-- One incident has not silently become a frequency.
-- A point value is used only when constancy or purpose-relative simplification is supported and named.
-- Prescribed and practiced regimes or contextual variants have not been averaged into one false value.
-
-### Authorship and change
-
-- Exact expert evidence, normalized account, and agent inference remain distinguishable where consequential.
-- A genuine correction leaves one active account while retaining enough history to explain the change.
-- Conflict and contextual coexistence retain multiple accounts with their unresolved or selecting conditions.
-- Unknown, not-yet-asked, declined, and deferred states are not conflated.
+- Each consequential duration, rate, probability, count, or threshold retains its applicable context and supported precision.
+- A point value represents evidenced constancy or a named purpose-relative simplification, not missing variation.
+- Prescribed/practiced regimes and other contextual variants remain distinct where they change behavior.
 
 ### Construction readiness
 
-- Construction can identify what flows, what happens, in what order, what enables it, and what resources it occupies without inventing a missing process spine.
-- Target-relevant gaps and unrepresentable material are explicit.
-- The workpiece, not transcript memory, contains the information construction would use.
-- Failure of one check returns to the smallest relevant Coverage concern or Operation; it does not license filling the gap from generic process knowledge.
+- The workpiece states what flows, what happens, in what order, what enables it, and what reusable resources it occupies.
+- Target-relevant gaps and material known to be unrepresentable are visible.
+- Construction can use the workpiece without recovering a load-bearing operational fact from transcript memory.
 
-### Failure signals and repairs
+### Target-specific failure signals and repairs
 
-- **Unsupported objective:** the model question depends on no recorded process material. Return to a concrete case that bears on the objective.
-- **Dead process spine:** activities exist but their order, triggers, or outcomes do not. Continue the slice or ask the smallest connecting question.
-- **Resource disappearance:** a reusable capability is acquired but its release or changed return state is missing. Re-enter resource-use coverage.
-- **Policy from paper:** a document's rule is recorded as practice without an operational case. Use a borderline or last-occurrence probe.
-- **Point estimate as distribution:** one average stands for consequential variation. Restore the evidence-supported form and investigate typical versus tail only if the objective needs it.
-- **Pattern-generated fact:** a situation pattern supplied structure the person did not establish. Remove or mark the assumption, then ask whether the pattern applies.
-- **Net vocabulary in the interview:** questions are framed as places, transitions, or arcs. Translate back to operational events, conditions, things, and consequences.
+- **Unsupported simulation objective:** no process material bears on the question. Return to a concrete case that can expose the dependency.
+- **Dead process spine:** activities exist without order, admission, or outcome. Continue the slice at the missing connection.
+- **Resource disappearance:** a reusable capability is acquired without release or an explicit terminal loss. Re-enter the activity/input relation.
+- **Posted policy compiled as practice:** a document supplies the operative rule without an observed case. Test a contested or exceptional case.
+- **Unsupported stochastic precision:** an average or invented distribution replaces consequential variation. Restore the source-supported value and context.
+- **Pattern-generated process fact:** a recurring shape supplied structure the person did not establish. Remove the claim or ask whether the shape applies.
+- **Formalism-shaped interview:** questions are framed as places, transitions, or arcs. Translate the active gap back into operational events, conditions, things, and consequences.

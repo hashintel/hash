@@ -2,9 +2,15 @@
 
 This workpiece candidate pairs with [`formalism-primary.md`](formalism-primary.md). It exists to compare Coverage indexing fairly; do not load it alongside the domain-primary `../workpiece-template.md` in one run.
 
-It is structurally organized but not a closed semantic claim system. Follow the person's thread during the conversation; do not read these headings aloud as a questionnaire. Each active fact has one authoritative home.
+It is structurally organized but not a closed semantic claim system. Follow the person's thread during the conversation; do not read these headings aloud as a questionnaire.
 
-Use distinctions such as **Expert evidence**, **Working account**, **Agent inference**, **Assumed**, **Unknown**, **Not yet asked**, **Declined**, **Deferred**, **Conflict**, **Correction**, **Contextual variation**, **Omitted**, and **Loss** only where they carry information. They are not mandatory fields on every statement.
+## Locality rule
+
+Every operational claim has one authoritative home under the relevant target concern. Keep exact expert wording, normalized interpretation, agent inference, uncertainty, assumptions, corrections, conflicts, and contextual variation beside that claim when those distinctions matter. Do not repeat the claim in a centralized evidence section or ledger.
+
+Labels such as **Expert evidence**, **Working account**, **Agent inference**, **Assumed**, **Unknown**, **Not yet asked**, **Declined**, **Deferred**, **Conflict**, **Correction**, **Contextual variation**, **Omitted**, and **Loss** are optional annotations, not mandatory fields or a closed type system. An assumption states why it was introduced and how it could be checked. A correction identifies the account it replaces without leaving both active. Contextual coexistence keeps each account beside the condition selecting it.
+
+Use the cross-cutting issue ledger only when an unresolved matter affects several authoritative claims or needs a later return path. Ledger entries reference those claims; they do not summarize them again.
 
 Whenever this workpiece changes substantially, emit the full current document in a fenced block whose language tag is exactly `runbook-ir`. Emit the full latest document again before a construction handoff and before workpiece-only delivery.
 
@@ -23,7 +29,7 @@ Whenever this workpiece changes substantially, emit the full current document in
 
 ## Target-relevant operational account
 
-These concepts are filing and checking addresses, not interview order. Use only the sections relevant to the stated purpose; keep consequential unsupported material visible.
+These concepts are filing and checking addresses, not interview order. Use only the sections relevant to the stated purpose; keep consequential unsupported material visible. Place each operational claim once and attach evidence or epistemic annotations at that location when needed.
 
 ### Objectives
 
@@ -83,53 +89,15 @@ Variables a real data source could drive, their source, units, update behavior, 
 
 Observation, replay, historical comparison, or expert judgment that would make the model credible enough for its intended use.
 
-## Cross-cutting evidence and interpretation
+## Cross-cutting issue ledger
 
-Keep evidence beside the affected material where practical. Use this section for evidence or interpretation that bears across several target concepts.
+Use only for an unresolved matter that affects several target concerns or needs later re-entry. In one compact entry, reference the authoritative claim locations, state what remains unresolved and what it prevents, and name the evidence or event that would re-enter it. Do not copy the affected claims here.
 
-### Exact expert evidence
-
-### Normalized account
-
-### Agent inferences and proposed structure
-
-### Contextual quantities and regimes
-
-## Open matters and authorship
-
-### Assumptions
-
-For each assumption: what was supplied, why it was introduced, what it affects, and how it could be checked.
-
-### Unknown to the person
-
-### Not yet asked
-
-### Declined
-
-### Deferred and deposits
-
-For each deferral: what is missing, why it matters, where an answer could come from, and what would re-enter it.
-
-### Ambiguities and conflicts
-
-Preserve alternatives and their evidence. Do not choose or average without support.
-
-### Corrections
-
-State the current account and what it replaced. Retain enough history to understand the correction without leaving both statements active.
-
-### Contextual coexistence
-
-Preserve accounts that differ by person, time, operating condition, direction, policy regime, or other context, with the condition selecting each one.
-
-### Deliberate omissions and simplifications
-
-State what was left out, why the purpose permits it, and what would be lost if that judgment is wrong.
+- **<issue>** — affects: <heading references>; unresolved: <gap, conflict, assumption, deferral, or other matter>; consequence: <what it prevents>; re-enter when: <source, observation, decision, or question>.
 
 ## Construction notes
 
-Open this section when construction begins; do not use it to script ordinary elicitation.
+Open this section when construction begins; do not use it to script ordinary elicitation. Reference authoritative workpiece claims rather than reproducing them.
 
 ### Candidate target structures
 
@@ -141,6 +109,8 @@ Open this section when construction begins; do not use it to script ordinary eli
 
 ## Delivery status
 
+Summarize status by reference to the authoritative account and issue ledger; do not create a second model summary.
+
 ### What this workpiece currently supports
 
 ### Consequential gaps
@@ -149,6 +119,15 @@ Open this section when construction begins; do not use it to script ordinary eli
 
 State whether no construction was attempted, construction is blocked, a partial net exists, or a net was constructed and checked through mounted tools. Do not infer simulatable status from workpiece quality alone.
 ```
+
+## Maintenance guidance
+
+- Prefer the person's terms for names and process descriptions even when filing them under target concerns.
+- Update the claim at its authoritative location when understanding changes; do not append a competing summary elsewhere.
+- Keep evidence and epistemic treatment local even when a cross-cutting issue references the claim.
+- Update the authoritative ordering-flow section when case behavior changes; reference local activity and entity claims rather than repeating them.
+- Empty sections may be removed when irrelevant. Use **Not yet asked**, **Unknown**, or **Omitted** only when that state itself matters to later work.
+- Construction consumes this workpiece. If construction needs transcript archaeology to recover a load-bearing fact, the workpiece is incomplete at that point.
 
 ## Comparison pressure
 
