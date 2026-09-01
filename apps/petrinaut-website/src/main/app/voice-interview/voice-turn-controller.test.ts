@@ -1046,9 +1046,7 @@ describe("VoiceTurnController", () => {
   test("does not flush a pending transcript after speech fails", async () => {
     const harness = createHarness();
     harness.playback.play.mockRejectedValueOnce(
-      new Error(
-        "The response could not be spoken. Read the visible text instead.",
-      ),
+      new VoiceError("speech", "network", "voice-request-pending-speech"),
     );
     await harness.controller.start();
     updateChatStatus(harness.controller, "streaming");
@@ -1076,8 +1074,8 @@ describe("VoiceTurnController", () => {
 
     expect(harness.submitText).not.toHaveBeenCalled();
     expect(harness.controller.getSnapshot()).toMatchObject({
-      errorMessage:
-        "The response could not be spoken. Read the visible text instead.",
+      errorCode: "network",
+      errorRequestId: "voice-request-pending-speech",
       phase: "recoverable-error",
     });
   });
@@ -1090,9 +1088,7 @@ describe("VoiceTurnController", () => {
     });
     harness.submitText.mockImplementationOnce(() => delivery);
     harness.playback.play.mockRejectedValueOnce(
-      new Error(
-        "The response could not be spoken. Read the visible text instead.",
-      ),
+      new VoiceError("speech", "network", "voice-request-in-flight-speech"),
     );
     await harness.controller.start();
     harness.emit({
@@ -1119,8 +1115,8 @@ describe("VoiceTurnController", () => {
     await Promise.resolve();
 
     expect(harness.controller.getSnapshot()).toMatchObject({
-      errorMessage:
-        "The response could not be spoken. Read the visible text instead.",
+      errorCode: "network",
+      errorRequestId: "voice-request-in-flight-speech",
       phase: "recoverable-error",
     });
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
