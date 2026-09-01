@@ -444,6 +444,17 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     // eslint-disable-next-line no-use-before-define -- closure; ref is defined later in render
     const scenarioToCompile = scenarioToCompileRef.current;
 
+    // Refused before anything is torn down: a definition that does not
+    // compile leaves the run that is already going, and only reports.
+    if (scenarioToCompile?.kind === "invalid") {
+      const refusal = new Error(
+        `The inline initial state does not compile:\n${scenarioToCompile.messages.join("\n")}`,
+      );
+      setError(refusal.message);
+      setErrorItemId(null);
+      throw refusal;
+    }
+
     // Dispose any active simulation before starting a new one. Update both
     // the ref and React state so same-tick callers see the cleared handle.
     const previous = simulationRef.current;
@@ -460,11 +471,6 @@ export const SimulationProvider: React.FC<SimulationProviderProps> = ({
     try {
       let initialMarking = manualInitialMarking;
       let parameterValues: Record<string, string> = manualParameterValues;
-      if (scenarioToCompile?.kind === "invalid") {
-        throw new Error(
-          `The inline initial state does not compile:\n${scenarioToCompile.messages.join("\n")}`,
-        );
-      }
       if (scenarioToCompile) {
         const scenarioHir = await requestScenarioHir(
           {
