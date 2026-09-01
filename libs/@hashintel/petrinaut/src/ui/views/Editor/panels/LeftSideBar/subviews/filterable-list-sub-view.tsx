@@ -6,7 +6,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 import { EditorContext } from "../../../../../../react/state/editor-context";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
-import { RowActionSlot } from "./row-action-slot";
+import { RowActionCell } from "./row-action-cell";
 
 import type {
   SubView,
@@ -48,33 +48,27 @@ const listItemRowStyle = cva({
     fontWeight: "medium",
     color: "neutral.s115",
     backgroundColor: "[transparent]",
-
+    cursor: "pointer",
     transition: "[background-color 100ms ease-out, opacity 150ms ease-out]",
+
+    /* Focus shows as a background change, like hover. */
+    _focus: {
+      outline: "none",
+      backgroundColor: "neutral.s25",
+    },
+
+    /* The action button shows on hover, while the row or the button holds
+       focus, or while its menu is open. Hidden with `display` so it takes no
+       width until shown. */
+    "& [data-row-action]": {
+      display: "none",
+    },
+    "&:hover [data-row-action], &:focus-within [data-row-action], & [data-row-action]:has([data-state=open])":
+      {
+        display: "flex",
+      },
   },
   variants: {
-    selectable: {
-      true: {
-        cursor: "pointer",
-
-        /* Focus is shown as a background change, matching the hover treatment */
-        _focus: {
-          outline: "none",
-          backgroundColor: "neutral.s25",
-        },
-
-        /* Reveal the action slot on hover, while the row or the slot holds
-           focus, or while its menu is open. Hidden with `display` rather than
-           `opacity` so it takes no space and the label keeps the full row
-           width until the slot is shown. */
-        "& [data-row-action]": {
-          display: "none",
-        },
-        "&:hover [data-row-action], &:focus-within [data-row-action], & [data-row-action]:has([data-state=open]), & [data-row-action][data-state=open]":
-          {
-            display: "flex",
-          },
-      },
-    },
     isSelected: {
       true: {
         backgroundColor: "blue.s30",
@@ -85,14 +79,7 @@ const listItemRowStyle = cva({
           backgroundColor: "blue.s40",
         },
       },
-      false: {},
-    },
-  },
-  compoundVariants: [
-    {
-      selectable: true,
-      isSelected: false,
-      css: {
+      false: {
         _hover: {
           backgroundColor: "neutral.bg.surface.hover",
         },
@@ -101,7 +88,7 @@ const listItemRowStyle = cva({
         },
       },
     },
-  ],
+  },
 });
 
 const listItemContentStyle = css({
@@ -245,20 +232,40 @@ export const RowMenu: React.FC<{ items: MenuItem[] }> = ({ items }) => {
 const targetKey = (target: FocusStopTarget): string =>
   `${target.stopId}:${target.column}`;
 
-const NonEmptyFilterableListContent = <T extends FilterableListItem>({
+interface VisibleRow<T> {
+  item: T;
+  isGroup: boolean;
+}
+
+/** The rows the keyboard flow walks, in document order; a collapsed group hides its children. */
+const visibleRowsOf = <T extends FilterableListItem>(
+  items: T[],
+  collapsedGroups: Set<string>,
+): VisibleRow<T>[] =>
+  items.flatMap((item): VisibleRow<T>[] => {
+    const children = item.children as T[] | undefined;
+    if (children === undefined) {
+      return [{ item, isGroup: false }];
+    }
+    const visibleChildren = collapsedGroups.has(item.id) ? [] : children;
+    return [
+      { item, isGroup: true },
+      ...visibleChildren.map((child) => ({ item: child, isGroup: false })),
+    ];
+  });
+
+const FilterableListContent = <T extends FilterableListItem>({
   items,
   getSelectionItem,
   renderItem,
   renderRowMenu: RenderRowMenu,
-  collapsedGroups,
-  toggleGroup,
+  emptyMessage,
 }: {
   items: T[];
   getSelectionItem: (item: T) => SelectionItem;
   renderItem: (item: T, isSelected: boolean) => ReactNode;
   renderRowMenu?: ComponentType<{ item: T }>;
-  collapsedGroups: Set<string>;
-  toggleGroup: (groupId: string) => void;
+  emptyMessage: string;
 }) => {
   const {
     isSelected: checkIsSelected,
@@ -268,57 +275,18 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
     setSelection,
   } = use(EditorContext);
 
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    () => new Set(),
+  );
   // The Shift-range anchor: the item the last plain selection landed on.
   const [anchorId, setAnchorId] = useState<string | null>(null);
   const targets = useRef<Map<string, HTMLElement>>(new Map());
 
-  // Flatten tree: items with children become group header + child rows.
-  // Children are always included (even when collapsed) so the DOM stays
-  // stable for height animation. The `hidden` flag marks collapsed children
-  // so they stay out of the keyboard flow.
-  const flatRows: {
-    item: T;
-    depth: number;
-    isGroup: boolean;
-    hidden: boolean;
-    emptyGroupMessage?: string;
-  }[] = [];
-  for (const item of items) {
-    const children = item.children as T[] | undefined;
-    const isGroup = children !== undefined;
-    flatRows.push({ item, depth: 0, isGroup, hidden: false });
-    if (isGroup) {
-      const isCollapsed = collapsedGroups.has(item.id);
-      if (children!.length > 0) {
-        for (const child of children!) {
-          flatRows.push({
-            item: child,
-            depth: 1,
-            isGroup: false,
-            hidden: isCollapsed,
-          });
-        }
-      } else if (item.emptyGroupMessage) {
-        flatRows.push({
-          item,
-          depth: 1,
-          isGroup: false,
-          hidden: isCollapsed,
-          emptyGroupMessage: item.emptyGroupMessage,
-        });
-      }
-    }
-  }
-
-  // The rows the keyboard flow walks, in document order.
-  const focusableRows = flatRows.filter(
-    (row) => !row.hidden && !row.emptyGroupMessage,
-  );
-  const stops: FocusStop[] = focusableRows.map((row) => ({
+  const visibleRows = visibleRowsOf(items, collapsedGroups);
+  const stops: FocusStop[] = visibleRows.map((row) => ({
     id: row.item.id,
     kind: "row",
   }));
-
   const {
     onKeyDown: onStopsKeyDown,
     onFocusTarget,
@@ -326,7 +294,7 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
     attach,
   } = useFocusStops({
     stops,
-    // Column 0 is the row itself; column 1 its action slot (menu / add).
+    // Column 0 is the row, column 1 its action button (menu or add).
     columnCount: 2,
     focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
   });
@@ -340,45 +308,61 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
       }
     };
 
-  const selectRange = (fromId: string | null, toId: string) => {
-    const ids = focusableRows.map((row) => row.item.id);
+  const toggleGroup = (groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(groupId)) {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
+
+  const select = (item: T) => {
+    selectItem(getSelectionItem(item));
+    setAnchorId(item.id);
+  };
+
+  const selectRange = (toId: string) => {
+    const ids = visibleRows.map((row) => row.item.id);
     const toIndex = ids.indexOf(toId);
     if (toIndex === -1) {
       return;
     }
-    const fromIndex = fromId === null ? toIndex : ids.indexOf(fromId);
-    const start = Math.min(fromIndex === -1 ? toIndex : fromIndex, toIndex);
-    const end = Math.max(fromIndex === -1 ? toIndex : fromIndex, toIndex);
-    const newSelection: SelectionMap = new Map();
-    for (let i = start; i <= end; i++) {
-      const row = focusableRows[i]!;
+    const anchorIndex = anchorId === null ? -1 : ids.indexOf(anchorId);
+    const fromIndex = anchorIndex === -1 ? toIndex : anchorIndex;
+    const selection: SelectionMap = new Map();
+    for (const row of visibleRows.slice(
+      Math.min(fromIndex, toIndex),
+      Math.max(fromIndex, toIndex) + 1,
+    )) {
       if (!row.isGroup) {
-        const selItem = getSelectionItem(row.item);
-        newSelection.set(selItem.id, selItem);
+        const entry = getSelectionItem(row.item);
+        selection.set(entry.id, entry);
       }
     }
-    setSelection(newSelection);
+    setSelection(selection);
   };
 
-  /** Arrows select as they move: sync the selection to wherever focus landed. */
-  const selectFollowingFocus = (extendRange: boolean) => {
-    const active = document.activeElement;
-    const landed = focusableRows.find(
-      (row) => targets.current.get(`${row.item.id}:0`) === active,
+  /** Arrows select as they move: apply the selection to the row that took focus. */
+  const selectFocusedRow = (extendRange: boolean) => {
+    const landed = visibleRows.find(
+      (row) =>
+        targets.current.get(targetKey({ stopId: row.item.id, column: 0 })) ===
+        document.activeElement,
     );
     if (!landed || landed.isGroup) {
       return;
     }
     if (extendRange) {
-      selectRange(anchorId, landed.item.id);
+      selectRange(landed.item.id);
     } else {
-      selectItem(getSelectionItem(landed.item));
-      setAnchorId(landed.item.id);
+      select(landed.item);
     }
   };
 
   const onRowKeyDown =
-    (row: (typeof flatRows)[number]): React.KeyboardEventHandler =>
+    (row: VisibleRow<T>): React.KeyboardEventHandler =>
     (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
@@ -386,14 +370,13 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
         if (row.isGroup) {
           toggleGroup(row.item.id);
         } else {
-          selectItem(getSelectionItem(row.item));
-          setAnchorId(row.item.id);
+          select(row.item);
         }
         return;
       }
-      // A group header owns the horizontal arrow that changes its state;
-      // the other direction falls through to the flow (ArrowRight on an
-      // expanded group walks to its action slot).
+      // A group header owns the horizontal arrow that changes its state; the
+      // other one falls through to the flow (ArrowRight on an expanded group
+      // reaches its action button).
       if (
         row.isGroup &&
         (event.key === "ArrowLeft" || event.key === "ArrowRight")
@@ -406,39 +389,98 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
           return;
         }
       }
-      const vertical = event.key === "ArrowUp" || event.key === "ArrowDown";
       onStopsKeyDown({ stopId: row.item.id, column: 0 })(event);
-      if (vertical) {
-        selectFollowingFocus(event.shiftKey);
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        selectFocusedRow(event.shiftKey);
       }
     };
 
-  const handleRowClick = (
-    event: React.MouseEvent,
-    row: { item: T; isGroup: boolean },
-  ) => {
+  const onRowClick = (event: React.MouseEvent, row: VisibleRow<T>) => {
     event.stopPropagation();
-
     if (row.isGroup) {
       toggleGroup(row.item.id);
-      return;
-    }
-
-    const selectionItem = getSelectionItem(row.item);
-    if (event.shiftKey && anchorId !== null) {
-      selectRange(anchorId, row.item.id);
+    } else if (event.shiftKey && anchorId !== null) {
+      selectRange(row.item.id);
     } else if (event.metaKey || event.ctrlKey) {
-      toggleItem(selectionItem);
+      toggleItem(getSelectionItem(row.item));
       setAnchorId(row.item.id);
     } else {
-      selectItem(selectionItem);
-      setAnchorId(row.item.id);
+      select(row.item);
     }
   };
 
-  const handleContainerClick = () => {
+  const clear = () => {
     clearSelection();
     setAnchorId(null);
+  };
+
+  // A collapsed group's children stay mounted for the height animation; they
+  // are out of `stops`, so `tabIndexFor` keeps them out of the tab order.
+  const renderRow = (item: T, depth: number, isGroup: boolean) => {
+    const row: VisibleRow<T> = { item, isGroup };
+    const selected = !isGroup && checkIsSelected(item.id);
+    const rowTarget: FocusStopTarget = { stopId: item.id, column: 0 };
+    const actionTarget: FocusStopTarget = { stopId: item.id, column: 1 };
+    const action = isGroup ? (
+      item.renderGroupAction ? (
+        <item.renderGroupAction />
+      ) : null
+    ) : RenderRowMenu ? (
+      <RenderRowMenu item={item} />
+    ) : null;
+
+    return (
+      <div
+        key={item.id}
+        role="option"
+        aria-selected={selected}
+        ref={registerTarget(rowTarget)}
+        tabIndex={tabIndexFor(rowTarget)}
+        className={listItemRowStyle({ isSelected: selected })}
+        style={
+          depth > 0 ? { paddingLeft: depth * NESTING_INDENT + 4 } : undefined
+        }
+        onClick={(event) => onRowClick(event, row)}
+        onKeyDown={onRowKeyDown(row)}
+        onFocus={(event) => {
+          // Focus bubbles: the row reports its own position, its action
+          // button reports through the cell.
+          if (event.target === event.currentTarget) {
+            onFocusTarget(rowTarget);
+          }
+        }}
+      >
+        <div className={listItemContentStyle}>
+          {isGroup ? (
+            <span
+              className={chevronStyle({
+                expanded: !collapsedGroups.has(item.id),
+              })}
+            >
+              <Icon name="chevronRight" size="xxs" />
+            </span>
+          ) : null}
+          {item.icon ? (
+            <span
+              className={listItemIconStyle}
+              style={{ color: item.iconColor ?? LIST_ITEM_ICON_COLOR }}
+            >
+              <item.icon size={LIST_ITEM_ICON_SIZE} />
+            </span>
+          ) : null}
+          <div className={listItemNameStyle}>{renderItem(item, selected)}</div>
+        </div>
+        {action ? (
+          <RowActionCell
+            registerButton={registerTarget(actionTarget)}
+            onArrowKeyDown={onStopsKeyDown(actionTarget)}
+            onButtonFocus={() => onFocusTarget(actionTarget)}
+          >
+            {action}
+          </RowActionCell>
+        ) : null}
+      </div>
+    );
   };
 
   return (
@@ -448,205 +490,51 @@ const NonEmptyFilterableListContent = <T extends FilterableListItem>({
       role="listbox"
       aria-multiselectable="true"
       tabIndex={-1}
-      onClick={handleContainerClick}
+      onClick={clear}
       onKeyDown={(event) => {
-        // Bubbled from the rows, which do not handle Escape themselves.
         if (event.key === "Escape") {
-          clearSelection();
-          setAnchorId(null);
+          clear();
         }
       }}
     >
-      {items.map((topItem) => {
-        const children = topItem.children as T[] | undefined;
-        const isGroup = children !== undefined;
-        const isCollapsed = isGroup && collapsedGroups.has(topItem.id);
-
-        const itemRow = (item: T, depth: number) => {
-          const row = flatRows.find(
-            (candidate) => candidate.item === item && candidate.depth === depth,
-          )!;
-          const isItemGroup = item === topItem && isGroup;
-          const selected = !isItemGroup && checkIsSelected(item.id);
-          const inFlow = !row.hidden;
-          const rowTarget: FocusStopTarget = { stopId: item.id, column: 0 };
-          const actionTarget: FocusStopTarget = { stopId: item.id, column: 1 };
-
+      {items.length === 0 ? (
+        <div className={emptyMessageStyle}>{emptyMessage}</div>
+      ) : (
+        items.map((item) => {
+          const children = item.children as T[] | undefined;
+          if (children === undefined) {
+            return renderRow(item, 0, false);
+          }
+          const collapsed = collapsedGroups.has(item.id);
           return (
-            <div
-              key={`${depth}-${item.id}`}
-              ref={inFlow ? registerTarget(rowTarget) : undefined}
-              onClick={(event) =>
-                handleRowClick(event, {
-                  item,
-                  isGroup: isItemGroup,
-                })
-              }
-              onKeyDown={inFlow ? onRowKeyDown(row) : undefined}
-              onFocus={
-                inFlow
-                  ? (event) => {
-                      // Focus bubbles: only the row itself, not its action
-                      // slot, reports the row position.
-                      if (event.target === event.currentTarget) {
-                        onFocusTarget(rowTarget);
-                      }
-                    }
-                  : undefined
-              }
-              role="option"
-              tabIndex={inFlow ? tabIndexFor(rowTarget) : -1}
-              aria-selected={selected}
-              className={listItemRowStyle({
-                selectable: true,
-                isSelected: selected,
-              })}
-              style={
-                depth > 0
-                  ? { paddingLeft: depth * NESTING_INDENT + 4 }
-                  : undefined
-              }
-            >
-              <div className={listItemContentStyle}>
-                {isItemGroup && (
-                  <span className={chevronStyle({ expanded: !isCollapsed })}>
-                    <Icon name="chevronRight" size="xxs" />
-                  </span>
-                )}
-                {item.icon && (
-                  <span
-                    className={listItemIconStyle}
-                    style={{
-                      color: item.iconColor ?? LIST_ITEM_ICON_COLOR,
-                    }}
+            <Fragment key={item.id}>
+              {renderRow(item, 0, true)}
+              <div
+                className={groupChildrenStyle}
+                style={{ height: collapsed ? 0 : "auto" }}
+              >
+                {children.length > 0 ? (
+                  children.map((child) => renderRow(child, 1, false))
+                ) : item.emptyGroupMessage ? (
+                  <div
+                    className={emptyMessageStyle}
+                    style={{ paddingLeft: NESTING_INDENT + 4 }}
                   >
-                    <item.icon size={LIST_ITEM_ICON_SIZE} />
-                  </span>
-                )}
-                <div className={listItemNameStyle}>
-                  {renderItem(item, selected)}
-                </div>
+                    {item.emptyGroupMessage}
+                  </div>
+                ) : null}
               </div>
-              {isItemGroup && item.renderGroupAction && (
-                <RowActionSlot
-                  registerButton={registerTarget(actionTarget)}
-                  onArrowKeyDown={onStopsKeyDown(actionTarget)}
-                  onButtonFocus={() => onFocusTarget(actionTarget)}
-                >
-                  <item.renderGroupAction />
-                </RowActionSlot>
-              )}
-              {!isItemGroup && RenderRowMenu && (
-                <RowActionSlot
-                  registerButton={registerTarget(actionTarget)}
-                  onArrowKeyDown={onStopsKeyDown(actionTarget)}
-                  onButtonFocus={() => onFocusTarget(actionTarget)}
-                >
-                  <RenderRowMenu item={item} />
-                </RowActionSlot>
-              )}
-            </div>
+            </Fragment>
           );
-        };
-
-        if (!isGroup) {
-          return itemRow(topItem, 0);
-        }
-
-        return (
-          <Fragment key={topItem.id}>
-            {itemRow(topItem, 0)}
-            <div
-              className={groupChildrenStyle}
-              style={{ height: isCollapsed ? 0 : "auto" }}
-            >
-              {children!.length > 0
-                ? children!.map((child) => itemRow(child, 1))
-                : topItem.emptyGroupMessage && (
-                    <div
-                      className={listItemRowStyle({
-                        selectable: false,
-                        isSelected: false,
-                      })}
-                      style={{ paddingLeft: NESTING_INDENT + 4 }}
-                    >
-                      <div className={listItemContentStyle}>
-                        <div
-                          className={listItemNameStyle}
-                          style={{ color: "var(--colors-neutral-s65)" }}
-                        >
-                          {topItem.emptyGroupMessage}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-            </div>
-          </Fragment>
-        );
-      })}
+        })
+      )}
     </div>
   );
 };
 
-const FilterableListContent = <T extends FilterableListItem>({
-  items,
-  getSelectionItem,
-  renderItem,
-  renderRowMenu,
-  emptyMessage,
-}: {
-  items: T[];
-  getSelectionItem: (item: T) => SelectionItem;
-  renderItem: (item: T, isSelected: boolean) => ReactNode;
-  renderRowMenu?: ComponentType<{ item: T }>;
-  emptyMessage: string;
-}) => {
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    () => new Set(),
-  );
-
-  const toggleGroup = (groupId: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupId)) {
-        next.delete(groupId);
-      } else {
-        next.add(groupId);
-      }
-      return next;
-    });
-  };
-
-  if (items.length === 0) {
-    return (
-      <div
-        className={listContainerStyle}
-        role="listbox"
-        aria-multiselectable="true"
-      >
-        <div className={emptyMessageStyle}>{emptyMessage}</div>
-      </div>
-    );
-  }
-
-  return (
-    <NonEmptyFilterableListContent
-      items={items}
-      getSelectionItem={getSelectionItem}
-      renderItem={renderItem}
-      renderRowMenu={renderRowMenu}
-      collapsedGroups={collapsedGroups}
-      toggleGroup={toggleGroup}
-    />
-  );
-};
-
 /**
- * Creates a SubView definition for a filterable list.
- *
- * This factory function encapsulates the common pattern of a list of selectable items
- * with a filter button in the header. Each subview can optionally provide an additional
- * header action (e.g., an "Add" button) and customize how items are rendered.
+ * A left-sidebar list of selectable items with a search button in its header,
+ * an optional extra header action, and per-row menus.
  */
 export function createFilterableListSubView<T extends FilterableListItem>(
   config: FilterableListSubViewConfig<T>,

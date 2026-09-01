@@ -11,7 +11,7 @@ import { useIsReadOnly } from "../../../../../../react/state/use-is-read-only";
 import { UI_MESSAGES } from "../../../../../constants/ui-messages";
 import { focusLands } from "../../../../../worksheet/focus-flow";
 import { useFocusStops } from "../../../../../worksheet/use-focus-stops";
-import { RowActionSlot } from "./row-action-slot";
+import { RowActionCell } from "./row-action-cell";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
@@ -47,8 +47,8 @@ const itemStyle = cva({
       outline: "none",
       backgroundColor: "neutral.bg.surface.hover",
     },
-    /* Reveal the delete slot on hover or while the row or the slot holds
-       focus. Hidden with `display` so it takes no space until shown. */
+    /* The delete button shows on hover or while the row or the button holds
+       focus. Hidden with `display` so it takes no width until shown. */
     "& [data-row-action]": {
       display: "none",
     },
@@ -169,7 +169,7 @@ const NetsListContent: React.FC = () => {
     attach,
   } = useFocusStops({
     stops,
-    // Column 0 is the row itself; column 1 its delete slot.
+    // Column 0 is the row, column 1 its delete button.
     columnCount: 2,
     focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
   });
@@ -189,10 +189,6 @@ const NetsListContent: React.FC = () => {
       inputRef.current?.select();
     }
   }, [editingId]);
-
-  const handleSelect = (subnetId: string | null) => {
-    setActiveSubnetId(subnetId);
-  };
 
   const startEditing = (subnetId: string, currentName: string) => {
     if (isReadOnly) return;
@@ -252,7 +248,7 @@ const NetsListContent: React.FC = () => {
     return {
       ref: registerTarget(rowTarget),
       onFocus: (event: React.FocusEvent) => {
-        // Focus bubbles: the rename input and the delete slot report their
+        // Focus bubbles: the rename input and the delete button report their
         // own positions.
         if (event.target === event.currentTarget) {
           onFocusTarget(rowTarget);
@@ -266,8 +262,8 @@ const NetsListContent: React.FC = () => {
       <div
         {...rowFocusProps(ROOT_STOP_ID)}
         className={itemStyle({ active: activeSubnetId === null })}
-        onClick={() => handleSelect(null)}
-        onKeyDown={onRowKeyDown(ROOT_STOP_ID, () => handleSelect(null))}
+        onClick={() => setActiveSubnetId(null)}
+        onKeyDown={onRowKeyDown(ROOT_STOP_ID, () => setActiveSubnetId(null))}
         role="option"
         aria-selected={activeSubnetId === null}
         tabIndex={tabIndexFor({ stopId: ROOT_STOP_ID, column: 0 })}
@@ -289,11 +285,13 @@ const NetsListContent: React.FC = () => {
             className={itemStyle({ active: activeSubnetId === subnet.id })}
             onClick={() => {
               if (editingId !== subnet.id) {
-                handleSelect(subnet.id);
+                setActiveSubnetId(subnet.id);
               }
             }}
             onDoubleClick={() => startEditing(subnet.id, subnet.name)}
-            onKeyDown={onRowKeyDown(subnet.id, () => handleSelect(subnet.id))}
+            onKeyDown={onRowKeyDown(subnet.id, () =>
+              setActiveSubnetId(subnet.id),
+            )}
             role="option"
             aria-selected={activeSubnetId === subnet.id}
             tabIndex={tabIndexFor({ stopId: subnet.id, column: 0 })}
@@ -319,7 +317,7 @@ const NetsListContent: React.FC = () => {
               <span className={nameStyle}>{subnet.name}</span>
             )}
             {editingId !== subnet.id && (
-              <RowActionSlot
+              <RowActionCell
                 registerButton={registerTarget(actionTarget)}
                 onArrowKeyDown={onStopsKeyDown(actionTarget)}
                 onButtonFocus={() => onFocusTarget(actionTarget)}
@@ -339,7 +337,7 @@ const NetsListContent: React.FC = () => {
                     deleteSubnet(subnet.id);
                   }}
                 />
-              </RowActionSlot>
+              </RowActionCell>
             )}
           </div>
         );

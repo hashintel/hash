@@ -1,16 +1,13 @@
 import type { ReactNode } from "react";
 
 /**
- * The focusable slot for a list row's trailing action (a row menu, an add or
- * delete button). It registers the first button inside it as the row's
- * action column in the enclosing focus-stops table, reports focus back, and
- * hands arrow keys to the table while keeping every other key (Enter, Space,
- * clicks) inside the slot so the row's own handlers never double-fire.
- *
- * Carries `data-row-action` so the list's hover / focus-within reveal styles
- * apply to the whole slot.
+ * A list row's trailing action (row menu, add or delete button), wired as
+ * column 1 of the row's focus stop: registers the first button inside it,
+ * reports its focus, hands arrow keys to the flow, and stops every other
+ * event before it reaches the row's handlers. `data-row-action` drives the
+ * row's reveal styles.
  */
-export const RowActionSlot: React.FC<{
+export const RowActionCell: React.FC<{
   registerButton: (element: HTMLElement | null) => void;
   onArrowKeyDown: React.KeyboardEventHandler;
   onButtonFocus: () => void;
