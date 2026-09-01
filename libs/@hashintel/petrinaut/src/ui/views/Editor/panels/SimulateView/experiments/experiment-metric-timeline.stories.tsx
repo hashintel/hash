@@ -151,6 +151,64 @@ export const Complete: Story = {
   ),
 };
 
+/**
+ * Frames on two lattices at once: the host's exact initial frame (a single
+ * integer value) followed by frames binned at a stride of 2, as a windowed
+ * GPU histogram delivers them. The heatmap must paint each stride-2 bin
+ * across both rows it spans — not light one row and leave the next empty.
+ */
+function buildMixedLatticeFrames(): MetricFrame[] {
+  const distribution = (
+    frameNumber: number,
+    bins: [number, number][],
+    binExtent?: { below: number; above: number },
+  ): MetricFrame => {
+    const runSampleCount = bins.reduce((sum, [, count]) => sum + count, 0);
+    return {
+      metricId: "infected",
+      label: "Infected",
+      outputType: "distribution",
+      frameNumber,
+      time: frameNumber,
+      bins,
+      binExtent,
+      value: null,
+      frameValue: null,
+      timeValue: null,
+      runSampleCount,
+      timeSampleCount: runSampleCount,
+    };
+  };
+  const frames: MetricFrame[] = [distribution(0, [[10, 1_000]])];
+  for (let frameNumber = 1; frameNumber < FRAME_COUNT; frameNumber++) {
+    const center = 10 + frameNumber * 1.4;
+    const bins: [number, number][] = [];
+    // Bins at odd values only (lo = 11, stride 2), a bell around `center`.
+    // The GPU labels an even stride by its lower count, so bin 11 holds the
+    // counts 11 and 12: half a count below its label, one and a half above.
+    for (let value = 11; value <= 95; value += 2) {
+      const count = Math.round(
+        1_000 *
+          Math.exp(-((value - center) ** 2) / (2 * (4 + frameNumber / 6) ** 2)),
+      );
+      if (count > 0) {
+        bins.push([value, count]);
+      }
+    }
+    frames.push(distribution(frameNumber, bins, { below: 0.5, above: 1.5 }));
+  }
+  return frames;
+}
+
+export const MixedLattice: Story = {
+  name: "Mixed bin lattices (exact frame 0 + stride-2 frames)",
+  render: () => (
+    <Card caption="Frame 0 sits on the integer lattice; every later frame is binned at a stride of 2. Rows follow the finest gap, so each wide bin must fill two rows.">
+      <SizedTimeline frames={buildMixedLatticeFrames()} />
+    </Card>
+  ),
+};
+
 export const Empty: Story = {
   name: "Waiting for data",
   render: () => (
