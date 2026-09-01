@@ -742,6 +742,79 @@ Mission 3 locked one off-canvas PN JSON result, Petrinaut validation, manual loa
 
 The close decision is “runbook/workpiece path accepted; real-model semantic construction false.” Do not rewrite Mission 3 as if all original proof items passed. Its falsified construction route is now Mission 5's first boundary.
 
+# Gherkin second-reference pressure test — paper design, not a mission
+
+The Ampcode prompt-architecture draft has now been tested against the intended second reference pairing: **software behavior as the reusable domain typology and Gherkin documents as the target formalism**. This is a non-authoritative paper design under `packages/core/_drafts/ampcode`; it does not promote Gherkin into the production app composition or change the current SDCPN-only route.
+
+The local `packages/plugin-gherkin/plugin.yaml` is evidence of the intended content territory—feature, rule, example, step, software-behavior guidance, and proposal language—but not of a working prompt/skill architecture. It remains attached to the inactive generalized YAML machinery, its TypeScript package exports only a verbatim proposal, and no Flue skill, Gherkin parser, step-definition index, binding check, or execution path is currently wired. The historical worked IR examples are the stronger guide at one disputed boundary: behavior is recorded in the person's language and target projection may factor one case into steps; elicitation must not require a mandatory step-kind decomposition merely because Gherkin is the destination.
+
+The generalization survives at the level of responsibilities:
+
+- Three disclosure layers remain useful: a concise always-on core plus plugin append, one activated lifecycle skill, and resources read when their role becomes active.
+- Core owns universal epistemic conduct and interviewing moves; the plugin owns only the consequences of software behavior and Gherkin. The five additive registers—Directives, Recognition, Operations, Coverage, and Verification—accept those additions without becoming a lifecycle or schema.
+- Prompting and recognition remain Brunch-owned; Gherkin's grammar and semantics must come from its authoritative formalism source; Flue remains the only packaging mechanism.
+- Elicitation, recording, target authoring, and checking remain distinct semantic roles. Honest output still requires a recoverable account of person evidence, agent proposals, current-versus-proposed behavior, conflict, deferral, open matters, and capability limits.
+- Parse validity, step-definition binding, runtime executability, and behavioral adequacy are separate claims. A plugin must report only the checks it actually ran.
+
+The exact SDCPN topology does not generalize. File count, phase count, and a terminal tool-mediated construction branch are consequences of that formalism's distance and lossiness, not core architecture. Gherkin projection is textual and near the behavior account, so authoring may serve as a correction surface after one coherent rule/example rather than waiting for a terminal construction phase. It still needs a companion workpiece while authorship, uncertainty, or unresolved behavior remains consequential; hiding that material in comments would only create a worse sidecar inside the target.
+
+Three shapes were compared:
+
+- **A — Mirror SDCPN exactly:** separate behavior workpiece, construction phase, construction resource, and checks. Rejected as overfitting a distant, tool-mediated formalism to a low-distance textual projection.
+- **B — Use `.feature` as both workpiece and target:** rejected because polished Gherkin cannot honestly preserve unsupported rules, agent authorship, current-versus-proposed status, conflicts, deferrals, and unchecked bindings without contaminating comments with a hidden second artifact.
+- **C — Keep a lightweight near-target behavior workpiece and combine Gherkin authoring with checks:** selected as the current paper-design hypothesis. The workpiece stores feature purpose, rules, concrete context/event-or-action/outcome examples, domain terms, status, authorship, and open matters without requiring `Given`/`When`/`Then`. The skill may draft target text as a correction surface, while one combined resource owns document structure, grammar semantics, factoring, parse checks, binding honesty, revision, and delivery.
+
+A read-only Oracle review independently selected Shape C for the same invariant: the workpiece should carry only the epistemic delta that Gherkin cannot. Its agreement is design advice, not runtime evidence. It also sharpened the reversal conditions: repeated authorship laundering would justify a workpiece less shaped like the target; repeated zero-delta transcription would justify collapsing toward target text plus a minimal open-matters companion; a real codebase step-binding capability could earn a separately disclosed checking phase.
+
+Fog remains empirical. Early target drafting may improve correction, or it may anchor people to agent wording; no Gherkin run has tested that trade-off. The compact append → skill → resource route has not been exercised for this plugin. No parser or step corpus exists locally to support parse or binding claims. A future tracer should first wire the smallest real software-behavior/Gherkin path through Flue, observe whether required resources are actually read, preserve authoring provenance, and distinguish authored-only output from parser, binding, and execution evidence before deepening this paper topology.
+
+# Dafny third-reference pressure test — verification intent, formalization, and proof
+
+The article [“From Intent to Proof: Dafny Verification for Web Apps”](http://midspiral.com/blog/from-intent-to-proof-dafny-verification-for-web-apps/) exposes a third plugin pairing and a program-level concern: whether Brunch can help people identify valuable formal-verification use cases, state what they intend to guarantee, and specify exactly how that intent should become a checkable proof obligation. This remains design capture, not a production route or a decision to make Brunch generate verified implementations.
+
+The umbrella concern **formal-verification use cases** is not itself a valid Brunch plugin boundary. It names neither one reusable subject-matter typology nor one target formalism. The current candidate pairing is:
+
+- **Domain typology: software correctness obligations.** Reusable ways to recognize and investigate claims about values, states, operations, representations, histories, refinement, termination, authority, and trusted boundaries.
+- **Target formalism: Dafny specification modules and program contracts.** Dafny types, predicates, preconditions, postconditions, frame and termination clauses, abstract interfaces, and lemma statements whose actual proof status can be checked by the Dafny verifier.
+
+Two alternatives lose at this boundary. **Verified state evolution × Dafny kernel/domain contracts** overfits the article's state/action presentation and would miss correctness obligations that are functional, representational, refinement-based, boundary-facing, or otherwise not state-transition shaped. **Formal-verification brief × no selected prover** is target-neutral and therefore not a plugin under the paired-unit contract; its useful content survives as the workpiece and as plugin-selection activity above any one plugin.
+
+The source repository sharpens the distinction between a reusable typology and one project's contract. It has no uniform `Model`/`Action`/`Inv`/`Valid`/`Apply` interface. Replay uses `Init`, `Inv`, `Apply`, and `Normalize` plus initialization and preservation lemmas; Authority uses partial `TryStep`; MultiCollaboration adds `Rebase`, `Candidates`, `Explains`, and `CandidatesComplete`. A kernel interface is therefore supplied project context to inspect and satisfy, not ontology to bake into a plugin. Those names remain useful recognition examples, never required elicitation decomposition.
+
+The article's headline invariant argument also requires qualification. Transition preservation establishes reachable-state safety only when initialization establishes the invariant, and it establishes only the property expressed by that invariant. The non-negative counter invariant does not detect the stale-redo bug because the wrong historical state can still satisfy `n ≥ 0`; the replay source separately proves that a new `Do` clears the future and proves undo/redo laws. The plugin must therefore recognize more than state invariants:
+
+- initialization and representation invariants;
+- function and operation preconditions, postconditions, and frame conditions;
+- transition preservation, rejection behavior, and unchanged-on-failure guarantees;
+- history, trace, round-trip, determinism, and idempotence laws;
+- abstraction, refinement, simulation, normalization, and intent-preservation relations;
+- termination and progress obligations where Dafny and the intended scope can express them; and
+- assumptions and trusted boundaries whose failure sits outside the proved claim.
+
+This is a recognition repertoire, not a closed property-kind schema. The person states what failure would matter and what should be true in their language. Formalization chooses the mathematical objects, quantification, domains, predicates, and obligation shape only after that intent is recoverable. A familiar property family may suggest a question or candidate encoding; it must not manufacture a requirement.
+
+The Ampcode architecture survives at the role level: concise core plus plugin append, one activated skill, additive five-register teaching, a recoverable workpiece, target-formalism guidance, and capability-aware checks. Dafny does not inherit Gherkin's combined authoring/checking shape. Formalization is semantic, high-stakes, and tool-mediated, and a passing verifier can create more false confidence than parse acceptance; separate Dafny authoring and proof-evidence resources are therefore plausible if a tracer earns them. File and phase cardinality remain plugin consequences rather than core law.
+
+Three distinctions are non-negotiable across the workpiece, target projection, and delivery:
+
+1. **Intent ≠ formalization ≠ proof.** What the person wants to be true, how the agent encoded it, and what Dafny verified are separately attributable. A verified `Explains` predicate proves consequences of its authored definition, not that the definition captures human intent.
+2. **Stated ≠ assumed ≠ discharged ≠ trusted.** A lemma signature states an obligation; `assume` or `{:axiom}` removes an obligation by trust; a verifier result for the exact source discharges what it actually checked; an external boundary remains trusted or out of scope. None may silently become another.
+3. **Verified source ≠ compiled artifact ≠ integrated system.** The examined repository verifies and translates in separate commands, translation may use `--no-verify`, some CI paths are skipped, and JavaScript marshalling, wrappers, UI dispatch, authentication, persistence, concurrency, compiler/runtime correctness, and deployment remain outside many theorems. Every claim names its source artifact, tool/version, assumptions, skipped material, and trusted perimeter.
+
+A fourth check follows from those distinctions: preconditions, admissibility predicates, abstraction functions, and candidate relations can make a theorem vacuous or weaker than the person's intent. The elicitor must ask what inputs or states the guarantee is allowed to exclude, seek a witness and nearby counterexample, and surface every formalization move that weakens, strengthens, normalizes, or reinterprets the original claim. Proof search may propose such a change; it may never edit the authoritative specification silently to obtain green verification.
+
+A plausible single-skill lifecycle is: orient to the decision and cost of failure; identify one candidate correctness claim and its verification envelope; elicit concrete satisfying and violating cases; maintain an intent/formalization/evidence workpiece; inspect any supplied kernel or code contract; author or revise a Dafny specification module; show a semantic diff back to the person; run syntax, resolution, verification, and compilation checks only when those capabilities exist; and deliver the exact claim ladder and trust boundary. Render-only and verify-only branches consume a supplied workpiece or exact target artifact without reopening an interview.
+
+The minimum target artifact is a **Dafny specification module**, not a full implementation or completed proof: types or abstract types, specification predicates, function or method signatures, `requires`/`ensures`/`reads`/`modifies`/`decreases` clauses where relevant, and named lemma statements. An abstract module may make the contract checkable while remaining non-compilable. Missing proof bodies and axiom-backed declarations remain visibly stated or assumed, never proved. A companion obligation manifest maps each person-recognizable claim to its Dafny declaration, formalization choices, current evidence status, and trusted dependencies.
+
+The workpiece carries the epistemic delta the Dafny source cannot honestly settle by itself: purpose and verification economics; the failure or harm to prevent; intended claim in the person's language; concrete witnesses, counterexamples, and boundary cases; relevant state, operations, inputs, outputs, histories, and observations; current implementation or kernel context; assumptions and environmental dependencies; proposed formalization with authorship; strengthening or weakening deltas; obligation and tool status; and the unverified integration perimeter. It should also permit the honest conclusion that the candidate is not presently worth or suited to Dafny verification because the behavior is unresolved, the property is primarily empirical or performance-based, the integration boundary dominates, or proof cost exceeds the consequence.
+
+A read-only Oracle review independently selected this pairing over the state-evolution and target-neutral alternatives. Its strongest reversal evidence is operational. Multiple independent Dafny projects converging on one stable state/action contract could justify a narrower state-evolution plugin. Repeated real conversations in which Dafny-shaped recognition anchors people away from a clearly better target such as temporal model checking or property-based testing would justify a target-selection stage above plugin activation. Until either appears, kernel shape is input, prover selection is upstream, and the plugin owns software-correctness elicitation plus honest Dafny projection.
+
+Fog remains before a tracer: whether formal contract text helps people correct intent or anchors them to agent-authored mathematics; whether a Dafny abstract module plus obligation manifest is the smallest useful target; how a semantic diff can expose quantifier, domain, precondition, and trust-boundary changes without demanding formal-methods fluency; and whether use-case triage can remain additive to universal elicitation rather than becoming a generic consulting interview. The first real proof should be one narrow correctness claim in an existing codebase, its exact Dafny contract, one verifier run, and a human decision on whether the intent/formalization/proof separation stayed legible.
+
+The Ampcode paper prototype now carries this conclusion at the design boundary without pretending the Dafny plugin is specified: `core/SYSTEM.md` owns the universal source-intent → recoverable-account → target-transformation → check-evidence → surrounding-system claim separation, while `README.md` records the prospective pairing, disclosure shape, property-family repertoire, claim ladder, and reversal evidence. No Dafny plugin resource files or production wiring were added.
+
 # Standing decisions
 
 Not missions.
