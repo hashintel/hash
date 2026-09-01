@@ -6,8 +6,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createCommandRegistry } from "@hashintel/petrinaut-core";
 
-import { CommandRegistryProvider, useCommands } from "./context";
-import { useCommand } from "./use-command";
+import {
+  CommandRegistryProvider,
+  useCommand,
+  useCommands,
+} from "./command-registry";
 
 import type { CommandRegistry } from "@hashintel/petrinaut-core";
 
@@ -64,8 +67,10 @@ describe("useCommand", () => {
     expect(ids(registry)).toEqual(["a"]);
   });
 
-  it("keeps the freshest run closure across re-renders", () => {
+  it("runs the latest closure without re-registering on every render", () => {
     const registry = createCommandRegistry();
+    const listener = vi.fn();
+    registry.subscribe(listener);
     const first = vi.fn();
     const second = vi.fn();
     const view = render(
@@ -82,6 +87,7 @@ describe("useCommand", () => {
     registry.execute("a");
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 
   it("is a no-op without a provider", () => {

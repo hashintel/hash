@@ -8,18 +8,14 @@
  * @role Contexts, hooks and providers that mirror core state into React
  */
 
-// --- Palette commands (React bindings over the core registry) ---
+// --- Palette commands ---
 export {
-  CommandRegistryContext,
   CommandRegistryProvider,
+  useCommand,
   useCommandRegistry,
   useCommands,
-} from "../commands/context";
-export { useCommand } from "../commands/use-command";
-export {
-  formatShortcutKeys,
-  isApplePlatform,
-} from "../commands/format-shortcut";
+} from "./commands/command-registry";
+export { formatShortcutKeys } from "./commands/format-shortcut";
 
 // --- Instance access + low-level adapters ---
 export { PetrinautInstanceContext } from "./instance-context";

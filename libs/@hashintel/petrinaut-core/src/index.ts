@@ -78,12 +78,12 @@ export type {
 export {
   combineCommandRegistries,
   createCommandRegistry,
-} from "./command-registry";
+} from "./command-registry/command-registry";
 export type {
   Command,
   CommandRegistry,
   CommandRegistryView,
-} from "./command-registry";
+} from "./command-registry/command-registry";
 
 // --- Instance ---
 export { createPetrinaut } from "./instance";

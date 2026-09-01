@@ -97,9 +97,9 @@ const matchesQuery = (haystack: string, query: string): boolean =>
   haystack.toLowerCase().includes(query.toLowerCase());
 
 /**
- * The demo site's own command palette — host code, not part of Petrinaut.
- * Renders whatever the ambient command registry holds (Petrinaut's commands
- * plus the demo's) and owns its ⌘K / Ctrl+K opener.
+ * The demo site's command palette: host code rendered over the ambient
+ * registry (Petrinaut's commands plus the demo's). Owns the ⌘K / Ctrl+K
+ * opener.
  */
 export const CommandPalette = () => {
   const registry = useCommandRegistry();

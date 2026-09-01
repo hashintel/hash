@@ -12,7 +12,7 @@ import {
   stripDisabledExtensionData,
 } from "./extensions";
 
-import type { CommandRegistry } from "./command-registry";
+import type { CommandRegistry } from "./command-registry/command-registry";
 import type {
   PetrinautExtensionSettings,
   ResolvedPetrinautHandleCapabilities,
@@ -85,10 +85,9 @@ export type CreatePetrinautConfig = {
   document: PetrinautDocHandle;
   readonly?: boolean;
   /**
-   * A palette command registry to register the instance's own commands
-   * into. Registrations live for the instance's lifetime: `dispose()`
-   * removes them. The registry is typically host-owned and shared with the
-   * React layer's `CommandRegistryProvider`.
+   * Receives the instance's own palette commands for its lifetime;
+   * `dispose()` removes them. Usually the registry the host also gives to
+   * `CommandRegistryProvider`.
    */
   commandRegistry?: CommandRegistry;
 };

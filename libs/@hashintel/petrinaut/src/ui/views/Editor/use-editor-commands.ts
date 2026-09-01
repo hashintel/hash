@@ -1,15 +1,15 @@
 import { use } from "react";
 
-import { useCommand } from "../../../commands/use-command";
+import { useCommand } from "../../../react/commands/command-registry";
 import { EditorContext } from "../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
 import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 
 /**
- * The editor's built-in palette commands. A no-op unless the host mounted a
- * `CommandRegistryProvider`; the `shortcut` strings are display metadata —
- * the bindings themselves still live in the keyboard-shortcut handler.
+ * The editor's palette commands. A no-op unless the host mounted a
+ * `CommandRegistryProvider`. The `shortcut` strings are display metadata;
+ * the keyboard handler still binds the keys.
  */
 function useEditorCommands(): void {
   const {
@@ -25,8 +25,8 @@ function useEditorCommands(): void {
   const isReadOnly = useIsReadOnly();
   const canEditNet = mode === "edit" && !isReadOnly;
 
-  // Listed whenever the document handle provides history, matching the
-  // shortcut, which also no-ops when there is nothing to undo.
+  // Listed whenever the document handle provides history; like the
+  // shortcut, they no-op on empty history.
   useCommand(
     {
       id: "petrinaut.edit.undo",
@@ -92,17 +92,20 @@ function useEditorCommands(): void {
     },
     { when: canEditNet },
   );
+
   useCommand({
     id: "petrinaut.search.open",
     label: "Search the net",
     category: "Editor",
-    keywords: ["find", "filter"],
+    keywords: ["find"],
     shortcut: "mod+f",
     run: () => setSearchOpen(true),
   });
   useCommand({
-    id: "petrinaut.sidebar.toggle",
-    label: "Toggle the left sidebar",
+    id: "petrinaut.left-sidebar.toggle",
+    label: isLeftSidebarOpen
+      ? "Hide the left sidebar"
+      : "Show the left sidebar",
     category: "Editor",
     keywords: ["panel"],
     run: () => setLeftSidebarOpen(!isLeftSidebarOpen),
@@ -117,9 +120,9 @@ function useEditorCommands(): void {
 }
 
 /**
- * Declares the editor's commands as a null-rendering leaf, so their context
- * subscriptions (the undo/redo value changes on every document mutation)
- * re-render this leaf alone rather than the whole `EditorView` tree.
+ * Declares the editor's commands from a null-rendering leaf, so the context
+ * subscriptions behind them (undo/redo changes on every document mutation)
+ * re-render this leaf and not the `EditorView` tree.
  */
 export const EditorCommands: React.FC = () => {
   useEditorCommands();

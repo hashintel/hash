@@ -29,37 +29,30 @@ guide lives in the architecture docs:
 
 ## Commands and the palette
 
-Petrinaut declares its user-invocable actions into a **command registry** the
-host owns; the host renders the palette (Petrinaut ships none). Wrap the
-editor in `CommandRegistryProvider`, read the live command list with
-`useCommands()`, and invoke entries with `registry.execute(id)`:
+Petrinaut registers its user-invocable actions (undo, tools, search, panel
+toggles, auto-layout) into a command registry the host owns. The host renders
+the palette; Petrinaut ships none.
 
 ```tsx
 import {
   CommandRegistryProvider,
-  useCommand,
+  useCommands,
 } from "@hashintel/petrinaut/react";
 
 <CommandRegistryProvider>
   <Petrinaut handle={handle} />
-  <MyCommandPalette /> {/* renders from useCommands() */}
+  <MyPalette /> {/* lists useCommands(), runs registry.execute(id) */}
 </CommandRegistryProvider>;
 ```
 
-The command bindings are also re-exported from the package root; prefer
-`@hashintel/petrinaut/react`, which carries the React bindings without the
-editor's visual chunk.
-
-Host components register their own commands with the same
-`useCommand(command, { when })` hook — `when` is a plain boolean, and the
-command leaves the registry the moment it turns false or the component
-unmounts. Non-React code registers imperatively:
-`createCommandRegistry()` / `registry.register(command)` (returns a
-disposer) live in `@hashintel/petrinaut-core`, `createPetrinaut` accepts the
-registry via its `commandRegistry` option, and
-`combineCommandRegistries(...)` merges several sources into one read view
-for the palette. The **Commands / Command palette** Storybook story and the
-demo website's ⌘K palette are reference host implementations.
+Host components add their own commands with `useCommand(command, { when })`;
+a command leaves the registry when `when` turns false or the component
+unmounts. Outside React, `createCommandRegistry()` and
+`combineCommandRegistries()` from `@hashintel/petrinaut-core` create and merge
+registries, and `createPetrinaut({ commandRegistry })` registers the
+instance's commands. The guide, with a reference palette, lives in the
+architecture docs:
+[Commands and the palette](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/commands/usage-manual.mdx).
 
 ## Storybook
 

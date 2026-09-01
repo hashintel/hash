@@ -3,7 +3,7 @@ import "@fontsource-variable/inter-tight";
 import "@fontsource-variable/jetbrains-mono";
 import "@xyflow/react/dist/style.css";
 import "./index.css";
-import { type FunctionComponent, use, useEffect, useMemo, useRef } from "react";
+import { type FunctionComponent, useEffect, useMemo, useRef } from "react";
 
 import { PortalContainerContext } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
@@ -17,7 +17,7 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { CommandRegistryContext } from "../commands/context";
+import { useCommandRegistry } from "../react/commands/command-registry";
 import { PetrinautProvider } from "../react/petrinaut-provider";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
@@ -139,9 +139,8 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   navigation,
 }) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
-  // The ambient host registry (if any) travels into the instance so its
-  // instance-level commands land beside the view-level ones.
-  const commandRegistry = use(CommandRegistryContext);
+  // The host's registry, so the instance's commands land beside the views'.
+  const commandRegistry = useCommandRegistry();
   const instance = useMemo<Instance>(
     () =>
       createPetrinaut({

@@ -1,0 +1,26 @@
+# Hand-written; rendered by the arch-docs build. Palette matches the classes in
+# src/emit/d2.ts: core nodes use the `core` class, React bindings the `react`
+# class, and the host application the `other` class.
+direction: right
+
+host: "Host application" {
+  style.fill: "#f2f2f2"
+  style.stroke: "#777777"
+  components: "Host components\nuseCommand(command, { when })" {style.fill: "#ffffff"; style.stroke: "#777777"}
+  palette: "Palette\nuseCommands(), execute(id)" {style.fill: "#ffffff"; style.stroke: "#777777"}
+}
+
+registry: "CommandRegistry\ncreateCommandRegistry()" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+petrinaut: "Petrinaut" {
+  style.fill: "#e8e0ff"
+  style.stroke: "#7051b5"
+  instance: "createPetrinaut({ commandRegistry })\nauto-layout" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+  editor: "EditorCommands\nundo, tools, search, panels" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+}
+
+host.components -> registry: register
+petrinaut.instance -> registry: register
+petrinaut.editor -> registry: register
+registry -> host.palette: "list(), subscribe()"
+host.palette -> registry: "execute(id)"

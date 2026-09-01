@@ -21,10 +21,6 @@ describe("formatShortcutKeys", () => {
       "Shift",
       "Z",
     ]);
-    expect(formatShortcutKeys("mod+f", { apple: false })).toEqual([
-      "Ctrl",
-      "F",
-    ]);
   });
 
   it("uppercases single keys and capitalizes unknown named keys", () => {

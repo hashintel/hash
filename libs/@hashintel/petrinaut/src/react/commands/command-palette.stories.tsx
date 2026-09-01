@@ -1,19 +1,18 @@
-import fuzzysort from "fuzzysort";
 import { useEffect, useState } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 import { createJsonDocHandle } from "@hashintel/petrinaut-core";
 
-import { Petrinaut } from "../ui/petrinaut";
+import { Petrinaut } from "../../ui/petrinaut";
 import {
   CommandRegistryProvider,
+  useCommand,
   useCommandRegistry,
   useCommands,
-} from "./context";
+} from "./command-registry";
 import { formatShortcutKeys } from "./format-shortcut";
-import { useCommand } from "./use-command";
 
-import type { SDCPN } from "@hashintel/petrinaut-core";
+import type { Command, SDCPN } from "@hashintel/petrinaut-core";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -27,11 +26,10 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-// -- An example host palette ----------------------------------------------
+// -- A host palette --------------------------------------------------------
 //
 // Petrinaut ships no palette: the host renders one over `useCommands()` and
-// owns its opener binding. This is the reference implementation the demo
-// website mirrors.
+// owns the opener chord. The demo website carries the same component.
 
 const overlayStyle = css({
   position: "fixed",
@@ -40,20 +38,20 @@ const overlayStyle = css({
   alignItems: "flex-start",
   justifyContent: "center",
   paddingTop: "[12vh]",
-  // Nearly invisible scrim; `modal` sits above every editor panel (the
-  // panels layer around the `sticky` token).
   backgroundColor: "[rgba(15, 18, 24, 0.08)]",
   zIndex: "modal",
 });
 
 const paletteStyle = css({
   fontFamily: "['Inter Variable', system-ui, sans-serif]",
+  fontSize: "sm",
   width: "[540px]",
   maxWidth: "[90vw]",
   maxHeight: "[60vh]",
   display: "flex",
   flexDirection: "column",
   backgroundColor: "neutral.s00",
+  color: "neutral.s120",
   borderRadius: "lg",
   borderWidth: "[1px]",
   borderStyle: "solid",
@@ -62,58 +60,57 @@ const paletteStyle = css({
   overflow: "hidden",
 });
 
-const paletteInputStyle = css({
+const inputStyle = css({
   font: "[inherit]",
+  fontSize: "[15px]",
   border: "none",
   outline: "none",
   padding: "[14px 16px]",
-  fontSize: "[15px]",
   borderBottomWidth: "[1px]",
   borderBottomStyle: "solid",
   borderBottomColor: "neutral.bd.subtle",
 });
 
-const paletteListStyle = css({
+const listStyle = css({
   overflowY: "auto",
   padding: "[6px]",
   display: "flex",
   flexDirection: "column",
 });
 
-const paletteRowStyle = css({
+const rowStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "2",
   padding: "[8px 10px]",
   borderRadius: "md",
-  fontSize: "sm",
   textAlign: "left",
   backgroundColor: "[transparent]",
   border: "none",
   cursor: "pointer",
+  font: "[inherit]",
   "&[data-active='true']": {
     backgroundColor: "blue.s30",
   },
 });
 
-const paletteCategoryStyle = css({
+const categoryStyle = css({
   color: "neutral.s80",
   fontSize: "xs",
   minWidth: "[64px]",
 });
 
-const paletteLabelStyle = css({ flex: "1" });
+const labelStyle = css({ flex: "1" });
 
-const paletteShortcutStyle = css({
+const keysStyle = css({
   display: "flex",
   gap: "[3px]",
 });
 
-const paletteKeyStyle = css({
-  // Square keycaps: single-symbol keys are 20x20; longer labels keep the
-  // height and grow.
-  width: "[20px]",
+// Square keycaps: a single symbol fills a 20x20 cap, longer labels widen it.
+const keyStyle = css({
   height: "[20px]",
+  minWidth: "[20px]",
   flexShrink: 0,
   display: "inline-flex",
   alignItems: "center",
@@ -128,16 +125,20 @@ const paletteKeyStyle = css({
   borderRadius: "sm",
   boxShadow: "[0 1px 0 {colors.neutral.bd.subtle}]",
   "&[data-wide='true']": {
-    width: "[auto]",
     paddingInline: "[5px]",
   },
 });
 
-const paletteEmptyStyle = css({
+const emptyStyle = css({
   padding: "[16px]",
-  fontSize: "sm",
   color: "neutral.s80",
 });
+
+const matches = (command: Command, query: string): boolean =>
+  [command.label, command.category, ...(command.keywords ?? [])]
+    .join(" ")
+    .toLowerCase()
+    .includes(query.toLowerCase());
 
 const HostCommandPalette: React.FC = () => {
   const registry = useCommandRegistry();
@@ -146,7 +147,6 @@ const HostCommandPalette: React.FC = () => {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // The opener chord is the host's own binding, not Petrinaut's.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -166,16 +166,11 @@ const HostCommandPalette: React.FC = () => {
 
   const trimmed = query.trim();
   const results = trimmed
-    ? fuzzysort
-        .go(trimmed, commands, {
-          keys: ["label", "category"],
-          threshold: -1000,
-        })
-        .map((result) => result.obj)
+    ? commands.filter((command) => matches(command, trimmed))
     : commands;
   const active = Math.min(activeIndex, Math.max(results.length - 1, 0));
 
-  const runCommand = (id: string) => {
+  const run = (id: string) => {
     setOpen(false);
     registry?.execute(id);
   };
@@ -194,7 +189,7 @@ const HostCommandPalette: React.FC = () => {
       >
         <input
           ref={(element) => element?.focus()}
-          className={paletteInputStyle}
+          className={inputStyle}
           placeholder="Type a command…"
           value={query}
           onChange={(event) => {
@@ -212,34 +207,32 @@ const HostCommandPalette: React.FC = () => {
               setActiveIndex(Math.max(active - 1, 0));
             } else if (event.key === "Enter" && results[active]) {
               event.preventDefault();
-              runCommand(results[active].id);
+              run(results[active].id);
             }
           }}
         />
-        <div className={paletteListStyle}>
+        <div className={listStyle}>
           {results.length === 0 ? (
-            <div className={paletteEmptyStyle}>No matching commands</div>
+            <div className={emptyStyle}>No matching commands</div>
           ) : (
             results.map((command, index) => (
               <button
                 key={command.id}
                 type="button"
                 data-active={index === active}
-                className={paletteRowStyle}
+                className={rowStyle}
                 onPointerEnter={() => setActiveIndex(index)}
-                onClick={() => runCommand(command.id)}
+                onClick={() => run(command.id)}
               >
-                <span className={paletteCategoryStyle}>
-                  {command.category ?? ""}
-                </span>
-                <span className={paletteLabelStyle}>{command.label}</span>
+                <span className={categoryStyle}>{command.category}</span>
+                <span className={labelStyle}>{command.label}</span>
                 {command.shortcut ? (
-                  <span className={paletteShortcutStyle} aria-hidden>
+                  <span className={keysStyle} aria-hidden>
                     {formatShortcutKeys(command.shortcut).map((key) => (
                       <kbd
                         key={key}
                         data-wide={key.length > 1}
-                        className={paletteKeyStyle}
+                        className={keyStyle}
                       >
                         {key}
                       </kbd>
@@ -255,7 +248,7 @@ const HostCommandPalette: React.FC = () => {
   );
 };
 
-// -- Demo host components registering commands -----------------------------
+// -- Host components declaring commands -------------------------------------
 
 const hintStyle = css({
   fontFamily: "['Inter Variable', system-ui, sans-serif]",
@@ -276,8 +269,7 @@ const HostCounter: React.FC = () => {
     category: "Host app",
     run: () => setCount((value) => value + 1),
   });
-  // `when` keeps a command registered only while its condition holds: this
-  // one disappears from the palette until the counter is above zero.
+  // `when` keeps the command registered only while its condition holds.
   useCommand(
     {
       id: "host.counter.reset",
@@ -293,8 +285,7 @@ const HostCounter: React.FC = () => {
       <strong>Press ⌘K / Ctrl+K to open the host palette.</strong>
       <span>Counter: {count}</span>
       <span>
-        “Reset the counter” only appears in the palette while the counter is
-        above zero.
+        “Reset the counter” is listed only while the counter is above zero.
       </span>
     </div>
   );
@@ -310,7 +301,7 @@ export const HostPalette: Story = {
   ),
 };
 
-// -- The same palette over the full editor ---------------------------------
+// -- The same palette over the editor ---------------------------------------
 
 const EMPTY_NET: SDCPN = {
   places: [],
