@@ -636,9 +636,15 @@ return fleet.reduce((sum, m) => sum + m.machine_damage_ratio, 0) / fleet.length;
             type: "code",
             content: `return {
   RawMaterial: scenario.raw_material,
+  // machine_id seeds the Machine identity key: each index converts to a
+  // distinct, stable uuid, so the status view tracks every machine
+  // separately across runs.
   AvailableMachines: Array.from(
     { length: scenario.machines_count },
-    () => ({ machine_damage_ratio: scenario.initial_machine_damage }),
+    (_, index) => ({
+      machine_id: index + 1,
+      machine_damage_ratio: scenario.initial_machine_damage,
+    }),
   ),
 };`,
           },
