@@ -143,7 +143,7 @@ impl From<AuthenticationError> for Problem<'static> {
         Self::new(
             error.status_code(),
             ProblemType::Unauthenticated,
-            error.client_message(),
+            error.kind().client_message(),
         )
     }
 }
@@ -153,7 +153,7 @@ impl From<&AuthenticationError> for Problem<'static> {
         Self::new(
             error.status_code(),
             ProblemType::Unauthenticated,
-            error.client_message(),
+            error.kind().client_message(),
         )
     }
 }

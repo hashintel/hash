@@ -16,9 +16,7 @@ use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts},
     http::request::Parts,
 };
-use hash_middleware::authentication::{
-    AuthenticatedActorId, AuthenticationRejection, request::AuthenticationError,
-};
+use hash_middleware::authentication::{AuthenticatedActorId, AuthenticationRejection};
 use type_system::principal::actor::ActorId;
 
 use super::{
@@ -72,10 +70,10 @@ where
             )),
             // The rejection is answered as a `Problem` rather than through the rejection's own
             // response, so the middleware's rejection counter does not see it.
-            Err(AuthenticationRejection::Authentication { metrics: _, report }) => {
-                AuthenticationError::log(&report);
-                Err(report.current_context().into())
-            }
+            Err(AuthenticationRejection::Authentication {
+                metrics: _,
+                ref report,
+            }) => Err(report.current_context().into()),
         }
     }
 }

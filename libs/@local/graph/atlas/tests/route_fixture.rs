@@ -94,10 +94,9 @@ impl AuthenticationProvider<Option<ActorId>> for HeaderDelegation {
     {
         core::future::ready(match actor_id_from_header(headers) {
             Ok(actor) => ControlFlow::Break(Ok(Some(ActorId::User(UserId::new(actor))))),
-            Err(AuthenticationError {
-                kind: AuthenticationErrorKind::MissingDelegatedActor,
-                ..
-            }) => ControlFlow::Continue(()),
+            Err(error) if *error.kind() == AuthenticationErrorKind::MissingDelegatedActor => {
+                ControlFlow::Continue(())
+            }
             Err(error) => ControlFlow::Break(Err(Report::new(error))),
         })
     }

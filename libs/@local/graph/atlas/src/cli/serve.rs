@@ -439,14 +439,14 @@ impl ServeCommand {
                 limiters: Arc::clone(&limiters),
                 service_secret: Arc::clone(&service_secret),
             })
-            .route_layer(AuthenticationLayer {
+            .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
                 provider,
                 service_secret: Arc::clone(&service_secret),
                 metrics: Arc::new(AuthenticationMetrics::new(&meter)),
                 // The atlas names no bootstrap route, so no route answers on the service
                 // secret alone.
                 bootstrap_route: |_path| false,
-                caller: core::marker::PhantomData::<Option<ActorId>>,
+                caller: core::marker::PhantomData,
             })
             .layer(IpGateLayer {
                 limiters,
