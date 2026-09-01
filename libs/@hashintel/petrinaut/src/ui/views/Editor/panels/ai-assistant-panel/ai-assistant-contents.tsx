@@ -604,11 +604,20 @@ export const AiAssistantContents = ({
   // Voice failures (microphone denied, connection dropped) are reported by the
   // host rather than thrown, and get the same treatment: a toast, with the
   // recovery action left on the session's own controls.
+  const notifiedVoiceErrorRef = useRef<string | null>(null);
   useEffect(() => {
-    if (voiceSessionPhase !== "error" || voiceSessionErrorMessage === null) {
+    if (voiceSessionPhase !== "error") {
+      notifiedVoiceErrorRef.current = null;
+      return;
+    }
+    if (
+      voiceSessionErrorMessage === null ||
+      notifiedVoiceErrorRef.current === voiceSessionErrorMessage
+    ) {
       return;
     }
 
+    notifiedVoiceErrorRef.current = voiceSessionErrorMessage;
     addNotification({
       message: voiceSessionErrorMessage,
       tone: "error",

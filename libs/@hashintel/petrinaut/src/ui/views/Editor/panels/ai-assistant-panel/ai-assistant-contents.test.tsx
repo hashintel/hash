@@ -15,6 +15,10 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 
+import {
+  NotificationsContext,
+  type NotificationsContextValue,
+} from "../../../../../react/notifications/context";
 import { NotificationsProvider } from "../../../../../react/notifications/provider";
 import { VoiceSessionContext } from "../../../../../react/voice-session/context";
 import { createVoiceSessionStore } from "../../../../../react/voice-session/store";
@@ -290,6 +294,55 @@ describe("AiAssistantContents", () => {
     expect(toast.textContent).toBe(
       "Microphone unavailable. Check your browser permissions.",
     );
+  });
+
+  test("does not repeat a voice error toast until the session recovers", () => {
+    const store = createVoiceSessionStore();
+    const errorState = {
+      caption: "",
+      errorMessage: "Microphone unavailable. Check your browser permissions.",
+      microphoneLevel: 0,
+      phase: "error" as const,
+    };
+    store.setState(errorState);
+    const dismissNotification = vi.fn();
+    const firstAddNotification = vi.fn(() => "first-notification");
+    const secondAddNotification = vi.fn(() => "second-notification");
+    const renderWithNotifier = (
+      addNotification: NotificationsContextValue["addNotification"],
+    ) => (
+      <NotificationsContext value={{ addNotification, dismissNotification }}>
+        <VoiceSessionContext.Provider value={store}>
+          <AiAssistantContents
+            input=""
+            messages={[]}
+            onClose={noop}
+            onInputChange={noop}
+            onStop={noop}
+            onSubmit={noop}
+            status="ready"
+          />
+        </VoiceSessionContext.Provider>
+      </NotificationsContext>
+    );
+    const { rerender } = render(renderWithNotifier(firstAddNotification));
+
+    expect(firstAddNotification).toHaveBeenCalledOnce();
+    rerender(renderWithNotifier(secondAddNotification));
+    expect(secondAddNotification).not.toHaveBeenCalled();
+
+    act(() => {
+      store.setState({
+        caption: "",
+        errorMessage: null,
+        microphoneLevel: 0,
+        phase: "listening",
+      });
+    });
+    act(() => {
+      store.setState(errorState);
+    });
+    expect(secondAddNotification).toHaveBeenCalledOnce();
   });
 
   test("isolates microphone-level updates from completed transcript messages", () => {
