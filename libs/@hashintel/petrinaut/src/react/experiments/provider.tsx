@@ -606,8 +606,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       axes,
       runCount: experiment.runCount,
       seed: experiment.seed,
-      // ~2 publishes per frame at 60fps; the charts cannot show more.
-      publishThrottleMs: 40,
+      // Leading-edge, so the first frames publish instantly; while a batch
+      // streams, ~10 re-renders a second read as live on a chart and leave
+      // the rest of the UI (sliders, drags, the editor behind the drawer)
+      // most of each frame's budget.
+      publishThrottleMs: 100,
       instantiateBatch: async ({
         parameterValues,
         draws,
