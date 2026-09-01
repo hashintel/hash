@@ -879,7 +879,7 @@ mod tests {
         let report =
             expect_rejection::<ActorId>(provider.authenticate(&session_token_header()).await);
         assert_matches!(
-            report.current_context().kind,
+            report.current_context().kind(),
             AuthenticationErrorKind::InvalidSession,
             "the first request should carry the provider's rejection"
         );

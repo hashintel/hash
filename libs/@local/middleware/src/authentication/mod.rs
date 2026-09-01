@@ -660,11 +660,11 @@ mod tests {
         fn authenticate(
             &self,
             _headers: &HeaderMap,
-        ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send
+        ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send
         {
-            core::future::ready(ControlFlow::Break(Err(Report::new(
+            core::future::ready(ControlFlow::Break(Err(Arc::new(Report::new(
                 AuthenticationError::missing_delegated_actor(),
-            ))))
+            )))))
         }
     }
 
