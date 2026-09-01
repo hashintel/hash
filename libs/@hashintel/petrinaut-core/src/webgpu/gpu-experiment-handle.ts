@@ -457,6 +457,8 @@ export async function createGpuMonteCarloExperiment(
       frameNumber: 0,
       metricId: metric.id,
       bins: [[count, config.runCount]] as [number, number][],
+      // An exact count: the cell of one integer.
+      binExtent: { below: 0.5, above: 0.5 },
       sampleCount: config.runCount,
     };
   });

@@ -77,6 +77,7 @@ function toMetricFrame(
       frameValue: null,
       timeValue: null,
       bins: histogram.bins,
+      binExtent: histogram.binExtent,
       runSampleCount: histogram.sampleCount,
       timeSampleCount: histogram.sampleCount,
     };

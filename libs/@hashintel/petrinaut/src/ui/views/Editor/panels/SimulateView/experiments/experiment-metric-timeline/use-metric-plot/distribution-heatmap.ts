@@ -2,13 +2,19 @@
  * The distribution heatmap: a uPlot plugin that paints every streamed
  * distribution frame as one column of a density image.
  *
- * The pipeline is fixed. Each frame's bins are splatted onto a value-axis
+ * The pipeline is fixed. Each frame's bins are painted onto a value-axis
  * grid at the histogram's own resolution (one row per bin step, capped at
- * plot-pixel resolution), each column is normalized against its own
- * maximum (full color marks the most likely value at that time step), and
- * the grid is drawn through a magma lookup table in a single `drawImage` —
- * no per-bin canvas state, no smoothing: what is dark is exactly where the
- * runs concentrated.
+ * plot-pixel resolution), each bin spread over the rows its extent covers,
+ * each column normalized against its own maximum (full color marks the most
+ * likely value at that time step), and the grid drawn through a magma lookup
+ * table in a single `drawImage` — no per-bin canvas state: what is dark is
+ * exactly where the runs concentrated.
+ *
+ * Bins are painted by the extent their producer declared, not as points:
+ * frames on different lattices (the host-emitted exact initial frame next
+ * to GPU frames binned at a stride; a probe's guessed window next to the
+ * calibrated one) would otherwise alias into alternating dark and empty
+ * rows.
  */
 import uPlot from "uplot";
 
@@ -20,7 +26,10 @@ import type {
 } from "../shared/metric-frames";
 
 /** The slice of a distribution frame the heatmap reads. */
-export type HeatmapFrame = Pick<DistributionMetricFrame, "time" | "bins">;
+export type HeatmapFrame = Pick<
+  DistributionMetricFrame,
+  "time" | "bins" | "binExtent"
+>;
 
 /** One grid row per this many device pixels of plot height, at most. */
 const DEVICE_PIXELS_PER_ROW = 2;
@@ -39,6 +48,8 @@ type ValueLattice = {
   /** [min, max] over every bin value, padded to a span > 0. */
   range: [number, number];
   rows: number;
+  /** The smallest gap between any two bin values across the chart. */
+  minGap: number;
 };
 
 /**
@@ -82,24 +93,29 @@ function valueLattice(
     return null;
   }
   if (min === max) {
-    return { range: [min - 0.5, max + 0.5], rows: 1 };
-  }
-  if (distinct.size > rowCap) {
-    return { range: [min, max], rows: rowCap };
+    return { range: [min - 0.5, max + 0.5], rows: 1, minGap: 1 };
   }
   const sorted = [...distinct].sort((left, right) => left - right);
   let minGap = Number.POSITIVE_INFINITY;
   for (let index = 1; index < sorted.length; index++) {
     minGap = Math.min(minGap, sorted[index]! - sorted[index - 1]!);
   }
+  if (distinct.size > rowCap) {
+    return { range: [min, max], rows: rowCap, minGap };
+  }
   const latticeRows = Math.round((max - min) / minGap) + 1;
-  return { range: [min, max], rows: Math.min(latticeRows, rowCap) };
+  return { range: [min, max], rows: Math.min(latticeRows, rowCap), minGap };
 }
 
 /**
  * Rasterize the frames into a column-normalized density grid: each bin's
- * count is spread over the two grid rows nearest its value (linear splat),
- * then every column is scaled so its own densest cell is 1.
+ * count is spread over the rows its extent covers (`[v - below, v + above]`
+ * as the producer declared it; an exact bin gets the cell of one lattice
+ * step around its value), weighted by overlap, then every column is scaled
+ * so its own densest cell is 1. A bin exactly on the lattice lands wholly in
+ * its row; a bin wider than a row fills every row it spans evenly; a bin
+ * between rows shares out by area. Nothing is inferred from which values a
+ * frame happens to occupy: a sparse or two-mode frame stays sparse.
  */
 export function buildHeatmapDensityGrid(
   frames: readonly HeatmapFrame[],
@@ -111,18 +127,42 @@ export function buildHeatmapDensityGrid(
   }
   const { rows } = lattice;
   const [valueMin, valueMax] = lattice.range;
-  const span = valueMax - valueMin;
+  const rowStep = rows > 1 ? (valueMax - valueMin) / (rows - 1) : 1;
   const columns = frames.length;
   const densities = new Float32Array(rows * columns);
 
   for (let column = 0; column < columns; column++) {
-    for (const [value, count] of frames[column]!.bins) {
-      const position = ((value - valueMin) / span) * (rows - 1);
-      const lowRow = Math.floor(position);
-      const highRow = Math.min(lowRow + 1, rows - 1);
-      const highWeight = position - lowRow;
-      densities[lowRow * columns + column]! += count * (1 - highWeight);
-      densities[highRow * columns + column]! += count * highWeight;
+    const frame = frames[column]!;
+    const below = frame.binExtent?.below ?? lattice.minGap / 2;
+    const above = frame.binExtent?.above ?? lattice.minGap / 2;
+    for (const [value, count] of frame.bins) {
+      // The bin's extent in row units, where row r spans [r - 0.5, r + 0.5].
+      const lower = (value - below - valueMin) / rowStep;
+      const upper = (value + above - valueMin) / rowStep;
+      const extent = upper - lower;
+      if (extent <= 0) {
+        // Narrower than floating point resolves at this value (the chart
+        // has more distinct values than rows, so the lattice gap is far
+        // below the row step): the whole count goes to the row the value
+        // falls in. Dropping it would erase runs that happened.
+        const row = Math.round((value - valueMin) / rowStep);
+        if (row >= 0 && row < rows) {
+          densities[row * columns + column]! += count;
+        }
+        continue;
+      }
+      // Weight by overlap with the bin's full extent. The half bin reaching
+      // past the outermost row centers is off the grid and simply not drawn
+      // — renormalizing it into the edge rows made them darker than the
+      // interior, an artifact of the grid's bounds rather than the data.
+      const firstRow = Math.max(0, Math.floor(lower + 0.5));
+      const lastRow = Math.min(rows - 1, Math.floor(upper + 0.5));
+      for (let row = firstRow; row <= lastRow; row++) {
+        const overlap = Math.min(upper, row + 0.5) - Math.max(lower, row - 0.5);
+        if (overlap > 0) {
+          densities[row * columns + column]! += (count * overlap) / extent;
+        }
+      }
     }
 
     let max = 0;

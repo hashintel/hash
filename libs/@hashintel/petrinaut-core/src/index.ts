@@ -278,6 +278,7 @@ export type {
   MonteCarloUserDefinedMetricAggregation,
   MonteCarloUserDefinedMetricConfig,
   MonteCarloUserDefinedDistributionMetricFrame,
+  MonteCarloUserDefinedMetricBinExtent,
   MonteCarloUserDefinedMetricDistributionBin,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloUserDefinedMetricMeasureInput,
