@@ -92,3 +92,7 @@ The shared checks distinguish tool-schema acceptance, agent-reviewed structural 
 Stage 1 does not choose between A and C. Stage 2 must compare their owner-led case traces, especially whether A's always-visible readiness checks expose target gaps at useful times or whether C's construction-only reference projection preserves operational questioning while surfacing those gaps no later than needed.
 
 Progressive-disclosure strain was not established by this audit. Word count alone does not earn another resource split.
+
+## Post-Stage 2 disposition
+
+The Stage 1 instruction to retain Candidate B's source applied until final candidate selection. After the owner accepted Candidate A in Stage 2, the B and C instrument sources were removed under the protocol's disposition rule. Their exact evaluated forms remain recoverable at commit `2fb4c779a2`.

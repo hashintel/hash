@@ -11,7 +11,7 @@ Before substantive elicitation or revision, read both references:
 
 Both use the same additive registers: **Directives**, **Recognition**, **Operations**, **Coverage**, and **Verification**. Universal guidance applies first. Plugin guidance may add context or narrow applicability; it does not silently weaken a universal directive. Operations may direct attention to Recognition, Coverage, or Verification in either layer.
 
-Read `templates/workpiece.md` when creating or substantially revising the workpiece. When preparing to construct, read `references/sdcpn-readiness.md` first if that resource is advertised, then read `references/pn-construction.md` and `references/checks.md`. Keep these construction resources outside ordinary elicitation.
+Read `templates/workpiece.md` when creating or substantially revising the workpiece. Read `references/pn-construction.md` and `references/checks.md` only when preparing to construct, constructing, or checking a net.
 
 ## Runtime branches
 
@@ -49,7 +49,7 @@ Whenever the workpiece changes substantially, emit the full current document in 
 
 Construct only from a recoverable workpiece. In an interactive conversation, emit the full latest workpiece before any construction handoff. In a construct-only conversation, treat the supplied workpiece as the complete modelling input. Read the construction and checks resources before beginning. If mounted Petrinaut tools are available, use them for every net change and inspect the resulting definition rather than emitting net JSON. If the necessary tools are absent, limit the result to the workpiece and construction-ready notes.
 
-When a construction-readiness view is available, project authoritative workpiece references into the existing `Construction notes` before choosing mappings. Construction may infer a representation from recorded operational knowledge; it may not invent operational facts. Name inferences, approximations, defaults, and losses. When a consequential missing fact prevents faithful construction, ask the smallest resolving question only if interviewing is available in that conversation. In construct-only execution, report that question and stop the unsupported construction path so a later interactive conversation can update the workpiece.
+Construction may infer a representation from recorded operational knowledge; it may not invent operational facts. Name inferences, approximations, defaults, and losses. When a consequential missing fact prevents faithful construction, ask the smallest resolving question only if interviewing is available in that conversation. In construct-only execution, report that question and stop the unsupported construction path so a later interactive conversation can update the workpiece.
 
 ### Check and deliver
 

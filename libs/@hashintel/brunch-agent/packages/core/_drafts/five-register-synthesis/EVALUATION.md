@@ -1,6 +1,6 @@
 # Five-Register Synthesis Evaluation Protocol
 
-**Status: Stage 1 complete; Candidates A and C remain eligible, Candidate B is eliminated, and no candidate has won.** See [`evaluation/stage-1-mechanical-and-authority-audit.md`](evaluation/stage-1-mechanical-and-authority-audit.md). This protocol belongs to the non-authoritative workbench. It does not modify the frozen prospective v1 baseline or authorize a paid run.
+**Status: paper comparison complete; the owner selected Candidate A.** Candidate B was eliminated in [`Stage 1`](evaluation/stage-1-mechanical-and-authority-audit.md); [`Stage 2`](evaluation/stage-2-owner-led-paper-walkthrough.md) found Candidate C feasible but not earned and applied the protocol's smaller-reversible fallback. The losing instrument sources were removed after disposition and remain recoverable at commit `2fb4c779a2`. Stage 3 is skipped. This protocol belongs to the non-authoritative workbench and does not modify the frozen prospective v1 baseline.
 
 ## Decision this protocol must produce
 
@@ -14,19 +14,19 @@ This protocol can establish which candidate best satisfies the current Mission 4
 
 Use `plugin-sdcpn/sdcpn-modelling/profile.md` and `plugin-sdcpn/sdcpn-modelling/workpiece-template.md` as currently authored. Target readiness remains distributed between the profile's Verification register and `checks.md`.
 
-**Stage 1: eligible.**
+**Selected by owner after Stage 2.**
 
 ### B — formalism-primary Coverage and workpiece
 
-Replace the profile's Coverage register with `plugin-sdcpn/sdcpn-modelling/coverage-alternatives/formalism-primary.md` and use `plugin-sdcpn/sdcpn-modelling/coverage-alternatives/formalism-primary-workpiece-template.md`. All other authored material remains identical to A.
+This historical candidate replaced the shared profile's Coverage register with a formalism-primary index and paired it with a formalism-primary workpiece. Its exact source is retained at commit `2fb4c779a2`.
 
-**Stage 1: eliminated.** Its mandatory Coverage resource exposes concrete SDCPN construction mechanics during ordinary elicitation, violating a preregistered hard gate.
+**Eliminated in Stage 1 and removed after owner disposition.** Its mandatory Coverage resource exposed concrete SDCPN construction mechanics during ordinary elicitation, violating a preregistered hard gate.
 
 ### C — domain-primary elicitation plus a separate construction-readiness view
 
-Use [`plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/`](plugin-sdcpn/sdcpn-modelling/candidates/domain-primary-with-readiness/). Its candidate-specific profile retains domain-primary Coverage and removes construction-readiness checks from ordinary elicitation; its skill composition reuses the domain-primary workpiece and adds a construction-only SDCPN readiness resource. The resulting view cites authoritative workpiece claims under the existing `Construction notes` without reorganizing or duplicating them. This candidate was preregistered here before its wording was authored.
+This historical candidate retained domain-primary Coverage and the domain-primary workpiece, removed construction-readiness checks from ordinary elicitation, and added a construction-only SDCPN readiness resource. The resulting view cited authoritative workpiece claims under the existing `Construction notes` without reorganizing or duplicating them. Its exact source is retained at commit `2fb4c779a2`.
 
-**Stage 1: eligible.**
+**Eliminated in Stage 2 and removed after owner disposition.** The extra readiness pass added no authored frozen-case distinction, evidence, or oracle; the owner accepted Candidate A as the smaller reversible instrument.
 
 ## Shared invariants
 
@@ -72,6 +72,8 @@ For each candidate, record:
 A candidate fails this stage if a resource pointer is broken, a workpiece proposition has competing authoritative homes, construction mechanics enter ordinary elicitation, or a check claims a stronger oracle than the available method.
 
 ## Stage 2 — owner-led paper walkthrough
+
+The executed walkthrough is recorded in [`evaluation/stage-2-owner-led-paper-walkthrough.md`](evaluation/stage-2-owner-led-paper-walkthrough.md).
 
 Walk every Stage 1-eligible candidate through the same cases without rewriting candidate guidance during the comparison.
 
@@ -160,7 +162,7 @@ A parser-accepted or tool-schema-accepted definition is not behavioral success. 
 
 ## Stage 4 — selected-candidate campaign against the frozen control
 
-Select one candidate through Stages 1–3 before running the Mission 4 campaign. Do not pay to campaign every lightly reasoned variant.
+Select one candidate through every applicable comparison stage before running the Mission 4 campaign. Stage 3 is needed only when paper evidence leaves a discriminating behavioral question; this comparison selected Candidate A at Stage 2 and skipped Stage 3. Do not pay to campaign every lightly reasoned variant.
 
 Create a new versioned protocol/output location based on `evaluations/protocols/prospective-runbook-v1/`. Preserve its case wall, grader separation, immutable manifests, artifact retention, and three-invocation campaign shape unless a separately accepted protocol decision changes one. Never write into `docs/evidence/evaluations/vestera-prospective-baseline-v1/`.
 

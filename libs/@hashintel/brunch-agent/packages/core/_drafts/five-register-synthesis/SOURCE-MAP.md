@@ -13,14 +13,12 @@ This map accounts for the primary working and draft material used to produce the
 | `sdcpn-modelling/instructions.md` | Conceptual lifecycle, runtime branches, and packaged-resource routing | Active `sdcpn-modelling/SKILL.md`; accepted Mission 3 information hierarchy; predecessor elicitation procedure |
 | `sdcpn-modelling/skill.ts.example` | Explicit composition of separately authored resources into one Flue skill | Installed Flue `defineSkill` contract; verified core-package → plugin-package → production Flue-app spike |
 | `sdcpn-modelling/profile.md` | Strictly additive operational-process domain typology and SDCPN profile under five role-pure registers | Active APPEND target material; active `elicitation.md` SDCPN/mixed material; Ciaran outline; current plugin YAML concepts |
-| `workpiece-template.md` | Provisional domain-primary recoverable process-model workpiece | Active `ir-template.md`; Mission 4 proof obligations; Ciaran investigation headings |
-| `coverage-alternatives/formalism-primary-workpiece-template.md` | Workpiece paired with the formalism-primary Coverage alternative for a fair comparison | Active `ir-template.md`; formalism-primary Coverage candidate; Mission 4 proof obligations |
+| `workpiece-template.md` | Selected domain-primary recoverable process-model workpiece | Active `ir-template.md`; Mission 4 proof obligations; Ciaran investigation headings |
 | `pn-construction.md` | SDCPN mappings, construction patterns, inference, bounded change, and losses | Active `pn-construction.md`; APPEND `Maps To` material; Ciaran transformation patterns |
 | `checks.md` | Phase-boundary, net, fidelity, revision, and delivery checks | Active `checks.md`; APPEND smells/rabbit holes/failure signatures; current construction tool contract |
-| `coverage-alternatives/*` | Concrete comparison at the unresolved Coverage-index fog-line | Active typology table; Ciaran headings; predecessor kind-indexed question reference |
-| `candidates/domain-primary-with-readiness/*` | Candidate C's domain-primary elicitation profile, construction-only SDCPN readiness projection, and complete skill composition | Preregistered third candidate; shared domain-primary profile/workpiece; construction boundary; workpiece locality rule |
 | `EVALUATION.md` | Preregistered authority audit, owner-led walkthrough, model-facing comparison, campaign boundary, and disposition rule | Competing-design review; Mission 4 proof and fog-line; `prospective-runbook-v1`; `ir-quality-ruler-v1`; frozen baseline adjudication |
 | `evaluation/stage-1-mechanical-and-authority-audit.md` | Executed candidate manifests, context accounting, structural checks, hard-gate adjudication, and Stage 1 dispositions | `EVALUATION.md`; Candidates A–C at source commit `bc032a4264`; resource/import/register/duplication probes |
+| `evaluation/stage-2-owner-led-paper-walkthrough.md` | Eight frozen-case traces, cross-candidate comparison, structural discriminator, and accepted owner disposition | `EVALUATION.md`; Stage 1-eligible Candidates A and C at source commit `2fb4c779a2`; universal/profile/workpiece/construction/check resources |
 
 ## Active core system prompt
 
@@ -47,7 +45,7 @@ Source: `packages/plugin-sdcpn/src/APPEND_SYSTEM.md`.
 | Source section | Destination and treatment |
 | --- | --- |
 | Plugin job | Condensed into the SDCPN append specialization and profile Directives |
-| Typology table | Domain-primary and formalism-primary Coverage candidates; downstream mapping detail moved to construction |
+| Typology table | Selected domain-primary Coverage; the eliminated formalism-primary comparison remains recoverable at commit `2fb4c779a2`; downstream mapping detail moved to construction |
 | Things that look like kinds and are not | Plugin Coverage and construction principles |
 | Quantity, source-regime, evidence, and precision attributes | Universal authorship/uncertainty plus plugin context/precision Directives and Verification |
 | Per-kind aspects | Distributed into plugin Coverage; no longer presented as question order |
@@ -68,7 +66,7 @@ Sources: `packages/plugin-sdcpn/src/skills/sdcpn-modelling/`.
 
 The active skill's conceptual lifecycle, `runbook-ir` full-document emission convention, partial delivery, and phase resource routing move to plain `instructions.md`. The candidate requires a final full workpiece emission before construction handoff and workpiece-only delivery. It also distinguishes the current interactive and construct-only runtime branches: construct-only execution reports a re-entry question instead of interviewing. Existing-model revision applies fully to the workpiece and only to net changes supported by mounted mutation capabilities.
 
-The plugin-owned `skill.ts.example` demonstrates Flue's native `defineSkill` to map the instructions, core-owned universal reference, and plugin-owned profile/template/construction/check resources into one packaged skill. Flue synthesizes the packaged `SKILL.md`; no authored duplicate remains. Candidate C supplies its own complete composition example that substitutes a profile without ordinary elicitation readiness checks and advertises a construction-only readiness resource while reusing the shared domain-primary workpiece.
+The plugin-owned `skill.ts.example` demonstrates Flue's native `defineSkill` to map the instructions, core-owned universal reference, and plugin-owned profile/template/construction/check resources into one packaged skill. Flue synthesizes the packaged `SKILL.md`; no authored duplicate remains. The eliminated Candidate C composition remains recoverable at commit `2fb4c779a2`; its additional readiness resource was not retained in the selected instrument.
 
 ### `elicitation.md`
 
@@ -82,7 +80,7 @@ The active file's Ciaran-derived “What to investigate” headings seed the dom
 
 ### `ir-template.md`
 
-The candidate retains a human-readable Markdown workpiece, full `runbook-ir` emission, expert vocabulary, assumptions, unknowns, conflict, omissions, and losses. Each operational claim now owns its exact evidence, normalized account, agent inference, assumption, correction, conflict, or contextual variation locally when those distinctions matter. A compact central ledger holds only unresolved matters spanning concerns or requiring re-entry and references rather than restates authoritative claims. These annotations are structural aids, not mandatory per-statement types. Because Coverage indexing remains unresolved, the workbench contains aligned domain-primary and formalism-primary workpiece candidates under the same locality rule rather than treating one artifact shape as settled. Candidate C reuses the domain-primary workpiece and places a derived reference-only SDCPN view inside its existing `Construction notes`; it does not introduce a second operational account.
+The selected candidate retains a human-readable domain-primary Markdown workpiece, full `runbook-ir` emission, expert vocabulary, assumptions, unknowns, conflict, omissions, and losses. Each operational claim owns its exact evidence, normalized account, agent inference, assumption, correction, conflict, or contextual variation locally when those distinctions matter. A compact central ledger holds only unresolved matters spanning concerns or requiring re-entry and references rather than restates authoritative claims. These annotations are structural aids, not mandatory per-statement types. The eliminated formalism-primary workpiece and Candidate C readiness projection remain recoverable at commit `2fb4c779a2`; their comparison and disposition are preserved in the evaluation artifacts.
 
 ### `pn-construction.md`
 
@@ -166,7 +164,7 @@ Retained design shape:
 - adding a question does not require adding a target kind;
 - operations project from general coverage to a situated question rather than reading a catalogue verbatim.
 
-The predecessor intent-graph kinds and closed ontology are not imported. Its kind-primary organization motivates the formalism-primary Coverage alternative for comparison.
+The predecessor intent-graph kinds and closed ontology are not imported. Its kind-primary organization motivated the formalism-primary Coverage alternative evaluated and eliminated in Stage 1.
 
 ### Behavioral kernels
 
@@ -202,6 +200,6 @@ The synthesized set does not claim or introduce:
 - Whether one plugin profile containing both operational-process and SDCPN knowledge becomes too large despite the register structure.
 - Whether freeform register contents make cross-register routing ambiguous enough to earn a card grammar.
 - Whether the verified `defineSkill` composition retains its observed resource names, lazy reads, and one-skill behavior when promoted through the repository's actual package exports and built-agent tests.
-- Whether domain-primary Coverage hides target obligations or formalism-primary Coverage induces schema-shaped questioning.
+- Whether the selected domain-primary Coverage hides target obligations in model-facing execution despite passing the paper comparison.
 - Whether the workpiece's explicit epistemic homes feel like an unwanted semantic type system.
 - Whether existing-model analysis/revision remains too weakly specified to support the universal identity claim.
