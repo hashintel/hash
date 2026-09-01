@@ -7,7 +7,8 @@ role: Demo site and embed host for the Petrinaut editor
 
 A website for demoing Petrinaut (libs/@hashintel/petrinaut).
 
-A SPA with API functions for AI assistance and JSON oEmbed discovery.
+A SPA with API functions for AI assistance, voice initialization, and JSON
+oEmbed discovery.
 
 ## Quickstart
 
@@ -18,7 +19,7 @@ cp .env.example .env.local
 turbo run dev
 ```
 
-The dev server runs at [http://localhost:5173](http://localhost:5173). A plugin in `vite.config.ts` loads the API function.
+The dev server runs at [http://localhost:5173](http://localhost:5173). A plugin in `vite.config.ts` loads the API functions.
 
 In production, the functions in the `api` folder are automatically deployed as
 Vercel Functions.
@@ -60,15 +61,39 @@ provides a fake optimizer for isolated UI development.
 
 ## Environment variables
 
-| Name                          | Required         | Used by          | Notes                                                     |
-| ----------------------------- | ---------------- | ---------------- | --------------------------------------------------------- |
-| `OPENAI_API_KEY`              | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.        |
-| `PETRINAUT_AI_MODEL`          | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                    |
-| `PETRINAUT_OPT_ORIGIN`        | no               | `vite.config.ts` | Overrides the local optimizer proxy target.               |
-| `VITE_PETRINAUT_OPT_PROVIDER` | no               | website          | Set to `service` to enable the optimization route.        |
-| `SENTRY_DSN`                  | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time. |
+| Name                             | Required         | Used by          | Notes                                                      |
+| -------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------- |
+| `OPENAI_API_KEY`                 | for chat to work | `api/chat.ts`    | OpenAI key the function uses to call `streamText`.         |
+| `OPENAI_VOICE_API_KEY`           | for voice input  | voice API        | Dedicated OpenAI key used only by the Realtime call proxy. |
+| `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice outside production.          |
+| `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                     |
+| `PETRINAUT_OPT_ORIGIN`           | no               | `vite.config.ts` | Overrides the local optimizer proxy target.                |
+| `VITE_BRUNCH_CHAT_ENDPOINT`      | for voice input  | website          | Full Brunch Petrinaut chat endpoint used by the panel.     |
+| `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the optimization route.         |
+| `SENTRY_DSN`                     | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.  |
 
-Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the chat function. In production, set these in the Vercel project settings.
+Local values live in `.env.local`; Vite's `loadEnv` (see [`vite.config.ts`](vite.config.ts)) copies them into `process.env` for both the dev server and the API functions. In production, set these in the Vercel project settings.
+
+### Brunch voice-input preview
+
+Voice input is disabled by default and always unavailable when `VERCEL_ENV` is
+`production`. To exercise the preview locally or in a Vercel preview, set a
+real `VITE_BRUNCH_CHAT_ENDPOINT`, `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and a
+dedicated `OPENAI_VOICE_API_KEY`. The browser sends its SDP offer to this app;
+the server initializes an OpenAI transcription-only Realtime session and keeps
+the provider key, model, language, and vocabulary policy private. The session
+uses `gpt-live-transcribe`'s default server VAD because OpenAI's unified call
+currently times out when explicit turn detection is included during setup.
+
+Only finalized transcripts enter the existing Petrinaut composer and Brunch AI
+SDK transport. Partial transcripts remain display-only. The preview derives a
+stable conversation id from the locally saved net; it is diagnostic identity,
+not production authentication or conversation authority.
+
+The Brunch deployment must allow the website origin through its
+`BRUNCH_PETRINAUT_ORIGINS` setting. Starting voice input requests browser
+microphone permission. Denying permission leaves the existing text composer
+available and does not submit anything to Brunch.
 
 ## Testing the API against the built output
 

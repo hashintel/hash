@@ -25,6 +25,8 @@ behaves like text sent with the keyboard: it joins the same conversation and, wh
 question is waiting for an answer, completes that question rather than starting an unrelated
 message. A host can explicitly submit a separate message instead when the text is a correction or
 other follow-up that must not answer the pending question.
+If the host offers voice input, a finalized spoken turn is held while an existing response
+finishes and is submitted when the conversation is ready.
 
 **Clear AI chat** via the delete button in the top right of the panel: wipes the conversation, stops any in-flight stream, and tells the host app to forget the messages (if the host persists them).
 

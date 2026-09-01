@@ -10,6 +10,10 @@
       "types": "./src/index.ts",
       "import": "./dist/index.js"
     },
+    "./client-tools": {
+      "types": "./src/client-tools.ts",
+      "import": "./dist/client-tools.js"
+    },
     "./headers": {
       "types": "./src/headers.ts",
       "import": "./dist/headers.js"
@@ -23,6 +27,7 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
+    "@hashintel/brunch-agent": "workspace:*",
     "ai": "6.0.182",
     "valibot": "1.4.2"
   },

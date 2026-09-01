@@ -57,6 +57,7 @@ import {
 import type { PetrinautAiAssistant } from "../../../petrinaut";
 import type {
   PetrinautAiComposerControlContext,
+  PetrinautAiComposerSubmitText,
   PetrinautAiComposerSubmitTextResult,
 } from "../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
@@ -733,6 +734,60 @@ export const AiAssistantPanel = ({
     [composerSubmissionStateRef],
   );
 
+  const pendingVoiceInputRef = useRef<{
+    input: Parameters<PetrinautAiComposerSubmitText>[0];
+    reject: (reason: unknown) => void;
+    resolve: (result: PetrinautAiComposerSubmitTextResult) => void;
+  } | null>(null);
+  const submitVoiceInput = useCallback<PetrinautAiComposerSubmitText>(
+    (voiceInput) => {
+      const currentStatus = composerSubmissionStateRef.current.status;
+      if (currentStatus !== "submitted" && currentStatus !== "streaming") {
+        return submitText(voiceInput);
+      }
+
+      if (pendingVoiceInputRef.current) {
+        const submissionError = new Error(
+          "Wait for the queued voice input before submitting another.",
+        );
+        setStreamError(submissionError);
+        return Promise.reject(submissionError);
+      }
+
+      return new Promise((resolve, reject) => {
+        pendingVoiceInputRef.current = {
+          input: voiceInput,
+          reject,
+          resolve,
+        };
+      });
+    },
+    [composerSubmissionStateRef, submitText],
+  );
+
+  useEffect(() => {
+    const pendingVoiceInput = pendingVoiceInputRef.current;
+    if (!pendingVoiceInput) {
+      return;
+    }
+    if (status === "error") {
+      pendingVoiceInputRef.current = null;
+      pendingVoiceInput.reject(
+        new Error("Brunch could not accept the queued voice input."),
+      );
+      return;
+    }
+    if (status !== "ready") {
+      return;
+    }
+
+    pendingVoiceInputRef.current = null;
+    void submitText(pendingVoiceInput.input).then(
+      pendingVoiceInput.resolve,
+      pendingVoiceInput.reject,
+    );
+  }, [status, submitText]);
+
   const stopStateRef = useLatest({ status, stop });
 
   // Like submitText, stop is exposed to host controls and must stay stable.
@@ -802,6 +857,7 @@ export const AiAssistantPanel = ({
     status,
     stop: stopComposer,
     submitText,
+    submitVoiceInput,
   };
   /* eslint-disable react-hooks-js/refs -- The public render prop receives
      stable event callbacks that read their refs only when the host invokes

@@ -24,6 +24,8 @@ const loadServerEnv = (mode: string) => {
 const apiModules = [
   ["/api/chat", "/api/chat.ts"],
   ["/api/oembed", "/api/oembed.ts"],
+  ["/api/voice/config", "/api/voice/config.ts"],
+  ["/api/voice/realtime-call", "/api/voice/realtime-call.ts"],
 ] as const;
 
 // Plugin required to serve the Vercel fetch handlers in dev. In production,

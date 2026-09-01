@@ -358,6 +358,91 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(observedConversationIds).toEqual(new Set(["voice-conversation-1"]));
   });
 
+  test("queues one voice input while the current response is streaming", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    let finishFirstResponse: (() => void) | undefined;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        if (requestMessages.length > 1) {
+          return Promise.resolve(
+            streamChunks(textChunks("voice-response", "Voice input accepted")),
+          );
+        }
+
+        return Promise.resolve(
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({ type: "start-step" });
+              controller.enqueue({ type: "text-start", id: "first-response" });
+              controller.enqueue({
+                type: "text-delta",
+                id: "first-response",
+                delta: "First response",
+              });
+              finishFirstResponse = () => {
+                controller.enqueue({
+                  type: "text-end",
+                  id: "first-response",
+                });
+                controller.close();
+              };
+            },
+          }),
+        );
+      }),
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderComposerControl: ({ submitText, submitVoiceInput }) => (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                void submitText({ text: "Start generic response" });
+              }}
+            >
+              Start generic response
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                void submitVoiceInput({
+                  id: "queued-voice-turn",
+                  text: "Queued voice turn",
+                });
+              }}
+            >
+              Submit queued voice input
+            </button>
+          </>
+        ),
+        transport,
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Start generic response" }),
+    );
+    await screen.findByText("First response");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Submit queued voice input" }),
+    );
+
+    expect(requestMessages).toHaveLength(1);
+    finishFirstResponse?.();
+
+    await screen.findByText("Voice input accepted");
+    expect(requestMessages).toHaveLength(2);
+    expect(requestMessages[1]?.at(-1)).toMatchObject({
+      id: "queued-voice-turn",
+      parts: [{ text: "Queued voice turn", type: "text" }],
+      role: "user",
+    });
+  });
+
   test("stops the current response through the host composer control", async () => {
     const aborted = vi.fn();
     const transport: PetrinautAiTransport = {
