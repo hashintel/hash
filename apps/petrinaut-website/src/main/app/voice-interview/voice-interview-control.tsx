@@ -1290,6 +1290,7 @@ const AvailableVoiceInterviewControl = ({
   const [microphoneCheck, setMicrophoneCheck] = useState("");
   const [correction, setCorrection] = useState("");
   const [editing, setEditing] = useState(false);
+  const [endRequested, setEndRequested] = useState(false);
   const { interactionMode, openSidebar, setActive, setInteractionMode } =
     context;
   const openSidebarRef = useRef(openSidebar);
@@ -1314,7 +1315,7 @@ const AvailableVoiceInterviewControl = ({
     store,
   ]);
 
-  const active = snapshot.phase !== "idle";
+  const active = !endRequested && snapshot.phase !== "idle";
 
   useEffect(() => {
     setActive(active);
@@ -1329,7 +1330,11 @@ const AvailableVoiceInterviewControl = ({
       handledInterviewSelectionRef.current = false;
       return;
     }
-    if (active || handledInterviewSelectionRef.current) {
+    if (
+      active ||
+      endRequested ||
+      handledInterviewSelectionRef.current
+    ) {
       return;
     }
 
@@ -1342,7 +1347,7 @@ const AvailableVoiceInterviewControl = ({
     } else {
       setPresentation("start");
     }
-  }, [active, interactionMode, setActive, store]);
+  }, [active, endRequested, interactionMode, setActive, store]);
 
   useEffect(() => {
     if (snapshot.phase === "recoverable-error") {
@@ -1367,11 +1372,15 @@ const AvailableVoiceInterviewControl = ({
   );
 
   const end = () => {
+    setEndRequested(true);
     setCorrection("");
     setEditing(false);
     context.setActive(false);
     context.setInteractionMode("chat");
-    void store.controller.end();
+    void store.controller.end().then(
+      () => setEndRequested(false),
+      () => setEndRequested(false),
+    );
   };
 
   const minimize = () => context.setInteractionMode("chat");

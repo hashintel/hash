@@ -405,9 +405,17 @@ describe("voice interview stage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
     await screen.findByText("Listening");
     fireEvent.click(screen.getByRole("button", { name: "End interview" }));
+
+    expect(screen.getByText("Chat mode")).not.toBeNull();
+    expect(screen.getByText("Interview inactive")).not.toBeNull();
+    expect(
+      screen.queryByRole("region", { name: "Voice interview mini bar" }),
+    ).toBeNull();
+
     fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
 
     expect(connect).toHaveBeenCalledOnce();
+    expect(screen.getByText("Interview inactive")).not.toBeNull();
     finishDisconnect?.();
 
     await waitFor(() => expect(connect).toHaveBeenCalledTimes(2));
