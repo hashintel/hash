@@ -2,6 +2,7 @@
 
 use alloc::sync::Arc;
 use core::{
+    num::NonZero,
     ops::ControlFlow,
     sync::atomic::{AtomicBool, Ordering},
     time::Duration,
@@ -122,7 +123,7 @@ pub struct SessionCacheConfig {
     /// delay: a revoked session keeps authenticating for at most this duration.
     pub ttl: Duration,
     /// Maximum number of verified sessions kept.
-    pub capacity: u64,
+    pub capacity: NonZero<u64>,
 }
 
 /// Configuration for [`KratosSessionProvider`].
@@ -166,7 +167,7 @@ impl SessionCache {
             // Time-to-live, not time-to-idle: steady traffic on a revoked session must not
             // keep it authenticating past the bound.
             MokaCache::builder()
-                .max_capacity(config.capacity)
+                .max_capacity(config.capacity.get())
                 .time_to_live(config.ttl)
                 .build(),
         );
@@ -379,6 +380,7 @@ mod tests {
     use alloc::sync::Arc;
     use core::{
         assert_matches,
+        num::NonZero,
         ops::ControlFlow,
         sync::atomic::{AtomicUsize, Ordering},
         time::Duration,
@@ -586,10 +588,10 @@ mod tests {
     }
 
     /// A cache whose TTL no test outlasts.
-    const fn cache_config() -> SessionCacheConfig {
+    fn cache_config() -> SessionCacheConfig {
         SessionCacheConfig {
             ttl: Duration::from_secs(60),
-            capacity: 64,
+            capacity: NonZero::new(64).expect("the capacity literal should be non-zero"),
         }
     }
 
@@ -1062,7 +1064,7 @@ mod tests {
             known_user(actor_id),
             Some(SessionCacheConfig {
                 ttl: Duration::from_secs(2),
-                capacity: 64,
+                capacity: NonZero::new(64).expect("the capacity literal should be non-zero"),
             }),
             &noop_meter(),
         )

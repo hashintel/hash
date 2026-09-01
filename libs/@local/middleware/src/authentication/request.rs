@@ -439,8 +439,6 @@ where
     P: AuthenticationProvider<C>,
     C: Caller,
 {
-    // TODO(BE-755): cache verified credentials so repeated requests do not re-verify against the
-    //               provider and the principal store each time
     match provider.authenticate(headers).await {
         ControlFlow::Break(Ok(caller)) => Ok(caller),
         ControlFlow::Break(Err(report)) => {

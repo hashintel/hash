@@ -16,7 +16,7 @@ use hash_graph_authentication::{
 pub use hash_graph_authentication::{
     cloudflare::CloudflareAccessProvider,
     jwt::{JwtValidator, JwtValidatorConfig},
-    kratos::{KratosAdminConfig, KratosSessionConfig},
+    kratos::{KratosAdminConfig, KratosSessionConfig, SessionCacheConfig},
 };
 use hash_graph_authorization::policies::store::PrincipalStore;
 use hash_graph_store::pool::StorePool;
