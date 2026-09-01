@@ -10,6 +10,7 @@ import { validateEntityName } from "@hashintel/petrinaut-core";
 
 import { usePetrinautMutations } from "../../../../../../../react";
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { DescriptionField } from "../../../../../../components/description-field";
 import { Section, SectionList } from "../../../../../../components/section";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
 import { useDraftField } from "../../../../../../hooks/use-draft-field";
@@ -96,6 +97,19 @@ const ComponentInstanceMainContent: React.FC = () => {
             />
           </Tooltip>
         </Form.Field>
+
+        <DescriptionField
+          sourceId={instance.id}
+          sourceValue={instance.description}
+          onCommit={(description) =>
+            updateComponentInstance({
+              instanceId: instance.id,
+              update: { description },
+            })
+          }
+          disabled={isDisabled}
+          tooltip={readOnlyTooltip}
+        />
 
         <Form.Field label="Subnet" size="sm">
           <div className={hintTextStyle}>

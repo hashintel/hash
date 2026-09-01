@@ -7,6 +7,8 @@ const sourceDocument = {
   version: 1,
   meta: { generator: "Petrinaut" },
   title: "Test Net",
+  description: "A test net",
+  metadata: { source: "test" },
   places: [
     {
       id: "p1",
@@ -31,7 +33,16 @@ const sourceDocument = {
       y: 200,
     },
   ],
-  subnets: [{ id: "subnet1", name: "Subnet 1", places: [], transitions: [] }],
+  subnets: [
+    {
+      id: "subnet1",
+      name: "Subnet 1",
+      description: "A subnet",
+      metadata: { origin: "test" },
+      places: [],
+      transitions: [],
+    },
+  ],
   componentInstances: [
     { id: "instance1", name: "Instance 1", subnetId: "subnet1", x: 0, y: 0 },
   ],
@@ -122,6 +133,8 @@ describe("serializeSDCPN", () => {
       "version",
       "meta",
       "title",
+      "description",
+      "metadata",
       "parameters",
       "types",
       "differentialEquations",
@@ -135,6 +148,8 @@ describe("serializeSDCPN", () => {
     expect(Object.keys(document.subnets![0]!)).toEqual([
       "id",
       "name",
+      "description",
+      "metadata",
       "parameters",
       "types",
       "differentialEquations",

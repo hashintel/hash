@@ -16,6 +16,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { useIsReadOnly } from "../../../../../../../react/state/use-is-read-only";
+import { DescriptionField } from "../../../../../../components/description-field";
 import { DraftFieldInput } from "../../../../../../components/draft-field-input";
 import { SectionList } from "../../../../../../components/section";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
@@ -334,6 +335,19 @@ const TypeMainContent: React.FC = () => {
             updateType({
               typeId: type.id,
               update: { name },
+            })
+          }
+          disabled={isDisabled}
+          tooltip={isDisabled ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+        />
+
+        <DescriptionField
+          sourceId={type.id}
+          sourceValue={type.description}
+          onCommit={(description) =>
+            updateType({
+              typeId: type.id,
+              update: { description },
             })
           }
           disabled={isDisabled}

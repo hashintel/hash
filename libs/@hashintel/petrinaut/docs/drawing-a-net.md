@@ -56,7 +56,7 @@ Use the bottom toolbar to add nodes:
 - **Add Place** (shortcut: **N**) -- click the canvas to drop a place, or click and drag the button onto the canvas.
 - **Add Transition** (shortcut: **T**) -- click the canvas to drop a transition, or drag the button onto the canvas.
 
-New nodes are named automatically (Place1, Place2, Transition1, etc.). Rename them by selecting the node and editing the name in the properties panel.
+New nodes are named automatically (Place1, Place2, Transition1, etc.). Rename them by selecting the node and editing the name in the properties panel. Places, transitions, component instances, and types can also carry an optional **Description**, edited in the same panel below the name.
 
 <img width="160" height="58" alt="add-place-transition-toolbar" src="https://github.com/user-attachments/assets/9bb72c0b-6faa-4d17-a74d-ae6962087dab" />
 

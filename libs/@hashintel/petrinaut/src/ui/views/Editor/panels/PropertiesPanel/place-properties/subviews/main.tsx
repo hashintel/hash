@@ -17,6 +17,7 @@ import { usePetrinautMutations } from "../../../../../../../react";
 import { ActiveNetContext } from "../../../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../../../react/state/sdcpn-context";
+import { DescriptionTextArea } from "../../../../../../components/description-field";
 import { Section, SectionList } from "../../../../../../components/section";
 import { PlaceIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
@@ -150,6 +151,21 @@ const PlaceMainContent: React.FC = () => {
           {nameField.error && (
             <div className={errorMessageStyle}>{nameField.error}</div>
           )}
+        </Section>
+
+        <Section title="Description">
+          <DescriptionTextArea
+            sourceId={place.id}
+            sourceValue={place.description}
+            onCommit={(description) =>
+              updatePlace({
+                placeId: place.id,
+                update: { description },
+              })
+            }
+            disabled={isReadOnly}
+            tooltip={isReadOnly ? UI_MESSAGES.READ_ONLY_MODE : undefined}
+          />
         </Section>
 
         {extensions.colors && (
