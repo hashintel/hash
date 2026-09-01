@@ -3,7 +3,10 @@ import {
   createTokenRegionViews,
   encodeTokenToBytes,
 } from "../simulation/engine/token-layout";
-import { defaultTokenAttributeValue } from "../simulation/engine/token-values";
+import {
+  coerceTokenRecord,
+  defaultTokenAttributeValue,
+} from "../simulation/engine/token-values";
 import { ACTUAL_MODE_TIMELINE_TICK_MS } from "./constants";
 import {
   getActualModeMarkingAtTransitionFiringIndex,
@@ -208,9 +211,15 @@ export const createActualModeTimelineFrameReader = (params: {
 
     const placeMarking = marking[place.id];
     if (isActualModeTokenColourArray(placeMarking)) {
+      // Recorded token values are at-rest JSON (uuid values are canonical
+      // strings) and may carry only a subset of attributes; coercion brings
+      // them to runtime form with type defaults for the rest, matching what
+      // simulation frames expose.
       tokensByPlaceId.set(
         place.id,
-        placeMarking.map((token) => ({ ...token })),
+        placeMarking.map((token) =>
+          coerceTokenRecord(token, color.elements, `actual-mode.${place.name}`),
+        ),
       );
       continue;
     }

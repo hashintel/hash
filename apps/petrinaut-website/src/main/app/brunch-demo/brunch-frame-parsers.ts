@@ -117,7 +117,9 @@ export const parseMarkingFrame = (event: MessageEvent): ActualModeMarking =>
  *
  * This runs after JSON decoding and before the provider appends the event to
  * Actual Mode state. The accepted schema is the transition effect protocol:
- * `{ transitionId, input, output, ts }`.
+ * `{ transitionId, input, output, inputTokens?, outputTokens?, ts }`, where
+ * the optional `inputTokens`/`outputTokens` carry consumed/produced token
+ * attribute values keyed like `input`/`output`.
  */
 export const parseTransitionFiringFrameData = (
   data: unknown,

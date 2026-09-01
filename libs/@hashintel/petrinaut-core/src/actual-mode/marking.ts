@@ -2,16 +2,16 @@ import { createUserKeyedRecord } from "../validation/record-keys";
 
 import type {
   ActualModeMarking,
-  ActualModeTokenColour,
+  ActualModeTokenRecord,
   ActualModeTransitionFiring,
 } from "./types";
 
 export const isActualModeTokenColourArray = (
-  markingValue: number | ActualModeTokenColour[] | undefined,
-): markingValue is ActualModeTokenColour[] => Array.isArray(markingValue);
+  markingValue: number | ActualModeTokenRecord[] | undefined,
+): markingValue is ActualModeTokenRecord[] => Array.isArray(markingValue);
 
 export const getActualModePlaceMarkingTokenCount = (
-  markingValue: number | ActualModeTokenColour[] | undefined,
+  markingValue: number | ActualModeTokenRecord[] | undefined,
 ): number => {
   if (markingValue === undefined) {
     return 0;
@@ -24,15 +24,17 @@ export const getActualModePlaceMarkingTokenCount = (
       : 0;
 };
 
-const cloneTokenColour = (
-  token: ActualModeTokenColour,
-): ActualModeTokenColour => ({ ...token });
+const cloneTokenRecord = (
+  token: ActualModeTokenRecord,
+): ActualModeTokenRecord => ({
+  ...token,
+});
 
 const cloneMarkingValue = (
-  markingValue: number | ActualModeTokenColour[],
-): number | ActualModeTokenColour[] =>
+  markingValue: number | ActualModeTokenRecord[],
+): number | ActualModeTokenRecord[] =>
   Array.isArray(markingValue)
-    ? markingValue.map((token) => cloneTokenColour(token))
+    ? markingValue.map((token) => cloneTokenRecord(token))
     : markingValue;
 
 // Keyed by place ids from recorded firings: no prototype, so the writes in
@@ -45,22 +47,63 @@ const cloneMarking = (marking: ActualModeMarking): ActualModeMarking => {
   return next;
 };
 
-const emptyTokens = (count: number): ActualModeTokenColour[] =>
+const emptyTokens = (count: number): ActualModeTokenRecord[] =>
   Array.from(
     { length: getActualModePlaceMarkingTokenCount(count) },
     () => ({}),
   );
 
 const toTokenArray = (
-  markingValue: number | ActualModeTokenColour[] | undefined,
-): ActualModeTokenColour[] => {
+  markingValue: number | ActualModeTokenRecord[] | undefined,
+): ActualModeTokenRecord[] => {
   if (markingValue === undefined) {
     return [];
   }
 
   return Array.isArray(markingValue)
-    ? markingValue.map((token) => cloneTokenColour(token))
+    ? markingValue.map((token) => cloneTokenRecord(token))
     : emptyTokens(markingValue);
+};
+
+/**
+ * A recorded token value may carry only a subset of the colour's attributes
+ * (at least the identity key elements), so a marking token matches when it
+ * agrees on every attribute the record carries.
+ */
+const tokenMatchesRecordedValues = (
+  token: ActualModeTokenRecord,
+  recordedToken: ActualModeTokenRecord,
+): boolean =>
+  Object.entries(recordedToken).every(
+    ([attributeName, attributeValue]) =>
+      token[attributeName] === attributeValue,
+  );
+
+/**
+ * Removes the consumed tokens from a place's token array. Tokens matching
+ * the recorded values are removed by value; a recorded token with no match
+ * (or consumption beyond the recorded values) falls back to FIFO so the
+ * count always drops by the firing's `input` count.
+ */
+const removeConsumedTokens = (
+  currentTokens: ActualModeTokenRecord[],
+  inputCount: number,
+  recordedInputTokens: ActualModeTokenRecord[] | undefined,
+): ActualModeTokenRecord[] => {
+  if (!recordedInputTokens || recordedInputTokens.length === 0) {
+    return currentTokens.slice(inputCount);
+  }
+
+  const remaining = [...currentTokens];
+  for (const recordedToken of recordedInputTokens) {
+    const matchIndex = remaining.findIndex((token) =>
+      tokenMatchesRecordedValues(token, recordedToken),
+    );
+    remaining.splice(matchIndex === -1 ? 0 : matchIndex, 1);
+  }
+
+  const extraConsumed = inputCount - recordedInputTokens.length;
+  return extraConsumed > 0 ? remaining.slice(extraConsumed) : remaining;
 };
 
 export const applyActualModeTransitionFiring = (
@@ -72,22 +115,36 @@ export const applyActualModeTransitionFiring = (
     ...Object.keys(next),
     ...Object.keys(firing.input),
     ...Object.keys(firing.output),
+    ...Object.keys(firing.inputTokens ?? {}),
+    ...Object.keys(firing.outputTokens ?? {}),
   ]);
 
   for (const placeId of placeIds) {
     const currentValue = next[placeId];
     const inputValue = firing.input[placeId];
     const outputValue = firing.output[placeId];
+    const recordedInputTokens = firing.inputTokens?.[placeId];
+    const recordedOutputTokens = firing.outputTokens?.[placeId];
 
     if (
       Array.isArray(currentValue) ||
       Array.isArray(inputValue) ||
-      Array.isArray(outputValue)
+      Array.isArray(outputValue) ||
+      recordedInputTokens !== undefined ||
+      recordedOutputTokens !== undefined
     ) {
       const currentTokens = toTokenArray(currentValue);
       const inputCount = getActualModePlaceMarkingTokenCount(inputValue);
-      const outputTokens = toTokenArray(outputValue);
-      next[placeId] = currentTokens.slice(inputCount).concat(outputTokens);
+      const remainingTokens = removeConsumedTokens(
+        currentTokens,
+        inputCount,
+        recordedInputTokens,
+      );
+      const producedTokens =
+        recordedOutputTokens && recordedOutputTokens.length > 0
+          ? recordedOutputTokens.map((token) => cloneTokenRecord(token))
+          : toTokenArray(outputValue);
+      next[placeId] = remainingTokens.concat(producedTokens);
       continue;
     }
 
