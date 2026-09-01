@@ -21,10 +21,14 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
   {
     title: "Production With Machine Failure",
     petriNetDefinition: {
+      description:
+        "Manufacturing line where machines turn raw material into products, accumulate damage as they run, break down, and are repaired by travelling technicians. Production is a race between finishing a batch and a damage-driven failure hazard.",
       places: [
         {
           id: "place__d662407f-c56d-4a96-bcbb-ead785a9c594",
           name: "RawMaterial",
+          description:
+            "Stock of unprocessed material; each production run consumes one unit.",
           colorId: null,
           dynamicsEnabled: false,
           differentialEquationId: null,
@@ -35,6 +39,8 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
         {
           id: "place__2bdd959f-a5bc-404a-bd03-34fafcef66b8",
           name: "AvailableMachines",
+          description:
+            "Idle machines ready to start a production run, each carrying the damage it has accumulated so far.",
           colorId: "type__1762560152725",
           dynamicsEnabled: false,
           differentialEquationId: null,
@@ -45,6 +51,8 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
         {
           id: "place__81e551b4-11dc-4781-9cd7-dd882fd7e947",
           name: "MachinesProducing",
+          description:
+            "Machines working on a batch. The Production Dynamics advance their transformation progress while adding wear, so a long run raises the failure hazard.",
           colorId: "type__1762560154179",
           dynamicsEnabled: true,
           differentialEquationId: "ca26e5e2-0373-46a9-920e-a6eacadd92e8",
@@ -54,6 +62,8 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
         {
           id: "place__d5f92ae2-c8c4-49cb-935e-4a35e4f7b5fe",
           name: "BadProduct",
+          description:
+            "Defective output: one token per batch ruined by a machine failure mid-run.",
           colorId: null,
           dynamicsEnabled: false,
           differentialEquationId: null,
@@ -63,6 +73,8 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
         {
           id: "place__7b695ff5-a397-4237-8e30-ddf8cbc9e2c4",
           name: "GoodProduct",
+          description:
+            "Finished output: one token per batch completed without a failure.",
           colorId: null,
           dynamicsEnabled: false,
           differentialEquationId: null,
@@ -72,6 +84,8 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
         {
           id: "place__e5af0410-d80a-4c8b-b3bf-692918b98e6c",
           name: "BrokenMachines",
+          description:
+            "Machines that failed mid-run and are waiting for a technician to be dispatched.",
           colorId: "type__1762560152725",
           dynamicsEnabled: false,
           differentialEquationId: null,
@@ -81,6 +95,8 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
         {
           id: "place__17c65d6e-0c3e-48e6-a677-2914e28131ac",
           name: "MachinesBeingRepaired",
+          description:
+            "Machines paired with a technician. The Reparation Dynamics drive their damage ratio down to zero.",
           colorId: "type__1762560152725",
           dynamicsEnabled: true,
           differentialEquationId: "5bfea547-faaf-4626-8662-6400d07c049e",
@@ -90,6 +106,8 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
         {
           id: "place__4b72cf19-907b-4fc0-ac0a-555453e95d4b",
           name: "TechniciansComing",
+          description:
+            "Technicians travelling to the site. The Technician Travel Dynamics count their remaining distance down to zero.",
           colorId: "type__1762560159263",
           dynamicsEnabled: true,
           differentialEquationId: "887245c3-183c-4dac-a1aa-d602d21b6450",
@@ -99,6 +117,8 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
         {
           id: "place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa",
           name: "AvailableTechnicians",
+          description:
+            "Technicians on site and ready to be paired with a machine that needs repair.",
           colorId: "type__1762560159263",
           dynamicsEnabled: false,
           differentialEquationId: null,
@@ -108,6 +128,8 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
         {
           id: "place__9cb073fb-f1d7-4613-8b10-8d1b08796f24",
           name: "MachinesToRepair",
+          description:
+            "Broken machines whose technician has been dispatched, queued until one is free to start the repair.",
           colorId: "type__1762560152725",
           dynamicsEnabled: false,
           differentialEquationId: null,
@@ -119,6 +141,8 @@ export const productionMachines: { title: string; petriNetDefinition: SDCPN } =
         {
           id: "transition__76f23aa1-404a-4696-ac14-5a634af01221",
           name: "Production Success",
+          description:
+            "The batch completes once transformation progress reaches 100%: a good product ships and the machine returns to the available pool, keeping its wear.",
           inputArcs: [
             {
               placeId: "place__81e551b4-11dc-4781-9cd7-dd882fd7e947",
@@ -154,6 +178,8 @@ return {
         {
           id: "transition__b524484d-263e-4065-b8b2-7a8e49529260",
           name: "Machine Fail",
+          description:
+            "A producing machine breaks down, ruining the batch. The hazard is the damage ratio raised to the 100th power, so failure is rare until a machine is badly worn.",
           inputArcs: [
             {
               placeId: "place__81e551b4-11dc-4781-9cd7-dd882fd7e947",
@@ -192,6 +218,8 @@ return {
         {
           id: "transition__c4b30ba4-da08-4407-b97b-41e2db5d6879",
           name: "Start Production",
+          description:
+            "Pairs one unit of raw material with an idle machine and starts a batch, resetting the machine's transformation progress to zero.",
           inputArcs: [
             {
               placeId: "place__d662407f-c56d-4a96-bcbb-ead785a9c594",
@@ -230,6 +258,8 @@ return {
         {
           id: "transition__cc61df1f-00f3-456f-8a80-03e8b68f3007",
           name: "Finish Repair",
+          description:
+            "Once the repair dynamics have driven a machine's damage to zero, it returns to the available pool fully repaired.",
           inputArcs: [
             {
               placeId: "place__17c65d6e-0c3e-48e6-a677-2914e28131ac",
@@ -260,6 +290,8 @@ return {
         {
           id: "transition__11f0b21a-d0f2-4bd5-b4c1-d23627f921c5",
           name: "Call Technician",
+          description:
+            "Dispatches a technician for a broken machine (starting 10 distance units away) and queues the machine for repair.",
           inputArcs: [
             {
               placeId: "place__e5af0410-d80a-4c8b-b3bf-692918b98e6c",
@@ -295,6 +327,8 @@ return {
         {
           id: "transition__514730c0-7ac5-47d5-8def-91446a248a83",
           name: "Technician Ready",
+          description:
+            "A travelling technician arrives on site (remaining distance zero) and becomes available for repair work.",
           inputArcs: [
             {
               placeId: "place__4b72cf19-907b-4fc0-ac0a-555453e95d4b",
@@ -324,6 +358,8 @@ return {
         {
           id: "transition__0efcd1bf-b1ff-466f-8a8f-c329ddce0ce8",
           name: "Start Repair",
+          description:
+            "Pairs an available technician with a waiting machine and begins working its damage back down.",
           inputArcs: [
             {
               placeId: "place__eaca89b8-1db1-45fa-8c3a-6eb6f0419ffa",
@@ -362,6 +398,8 @@ return {
         {
           id: "type__1762560152725",
           name: "Machine",
+          description:
+            "A machine idle, broken, or under repair, tracked by its accumulated damage ratio (0 = pristine, 1 = certain failure).",
           iconSlug: "circle",
           displayColor: "#3b82f6",
           elements: [
@@ -375,6 +413,8 @@ return {
         {
           id: "type__1762560154179",
           name: "Machine Producing Product",
+          description:
+            "A machine mid-batch: its damage ratio plus the batch's transformation progress (complete at 1).",
           iconSlug: "circle",
           displayColor: "#733bf6ff",
           elements: [
@@ -393,6 +433,8 @@ return {
         {
           id: "type__1762560159263",
           name: "Technician",
+          description:
+            "A repair technician, tracked by their remaining travel distance to the site.",
           iconSlug: "circle",
           displayColor: "#3bf689ff",
           elements: [

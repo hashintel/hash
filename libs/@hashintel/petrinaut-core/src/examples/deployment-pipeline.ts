@@ -23,10 +23,14 @@ export const deploymentPipelineSDCPN: {
 } = {
   title: "Deployment Pipeline",
   petriNetDefinition: {
+    description:
+      "Software release pipeline with a single-deployment safety gate and an incident feedback loop: releases queue up, deploy one at a time while no incident is open, and either complete or fail and open a new incident that closes the gate.",
     places: [
       {
         id: "place__deployment-ready",
         name: "DeploymentReady",
+        description:
+          "Release queue: deployments waiting for the safety gate to open, each with a sampled size and risk.",
         colorId: "type__deployment",
         dynamicsEnabled: true,
         differentialEquationId: "dynamics__deployment_age",
@@ -65,6 +69,8 @@ export default Visualization(({ tokens }) => {
       {
         id: "place__incident-being-investigated",
         name: "IncidentBeingInvestigated",
+        description:
+          "Open incidents under investigation. Any token here closes the deployment gate through the inhibitor arc into Start Deployment.",
         colorId: "type__incident",
         dynamicsEnabled: true,
         differentialEquationId: "dynamics__incident_age",
@@ -103,6 +109,8 @@ export default Visualization(({ tokens }) => {
       {
         id: "place__deployment-in-progress",
         name: "DeploymentInProgress",
+        description:
+          "The deployment currently rolling out — at most one, enforced by this place's inhibitor arc into Start Deployment. It either finishes successfully or fails and opens an incident.",
         colorId: "type__deployment",
         dynamicsEnabled: true,
         differentialEquationId: "dynamics__deployment_age",
@@ -141,6 +149,8 @@ export default Visualization(({ tokens }) => {
       {
         id: "place__completed-deployments",
         name: "CompletedDeployments",
+        description:
+          "Archive of releases that finished without causing an incident, keeping their size, risk, and run time for metrics.",
         colorId: "type__deployment",
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -175,6 +185,8 @@ export default Visualization(({ tokens }) => {
       {
         id: "place__resolved-incidents",
         name: "ResolvedIncidents",
+        description:
+          "Archive of closed incidents; they no longer block deployments but keep their severity and age as a record of operational load.",
         colorId: "type__incident",
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -208,6 +220,8 @@ export default Visualization(({ tokens }) => {
       {
         id: "place__failed-deployments",
         name: "FailedDeployments",
+        description:
+          "Archive of releases that failed mid-rollout and opened an incident, kept for failure-share metrics.",
         colorId: "type__deployment",
         dynamicsEnabled: false,
         differentialEquationId: null,
@@ -247,6 +261,8 @@ export default Visualization(({ tokens }) => {
       {
         id: "transition__create-deployment",
         name: "Create Deployment",
+        description:
+          "External arrival of release candidates into the queue, with lognormal size and Gaussian risk sampled per deployment.",
         inputArcs: [],
         outputArcs: [
           {
@@ -291,6 +307,8 @@ return {
       {
         id: "transition__incident-raised",
         name: "Incident Raised",
+        description:
+          "External incidents (infrastructure failures, customer-impacting issues) that open independently of deployments and close the release gate.",
         inputArcs: [],
         outputArcs: [
           {
@@ -330,6 +348,8 @@ return {
       {
         id: "transition__start-deployment",
         name: "Start Deployment",
+        description:
+          "The safety gate: takes one queued release into the deployment lane, but only while no incident is open and no other deployment is running (both enforced by inhibitor arcs).",
         inputArcs: [
           {
             placeId: "place__deployment-ready",
@@ -387,6 +407,8 @@ return {
       {
         id: "transition__finish-deployment",
         name: "Finish Deployment",
+        description:
+          "The running deployment completes successfully; larger and riskier releases finish more slowly.",
         inputArcs: [
           {
             placeId: "place__deployment-in-progress",
@@ -436,6 +458,8 @@ return {
       {
         id: "transition__close-incident",
         name: "Close Incident",
+        description:
+          "Resolves an open incident; higher-severity incidents take longer. Closing the last one reopens the deployment gate.",
         inputArcs: [
           {
             placeId: "place__incident-being-investigated",
@@ -482,6 +506,8 @@ return {
       {
         id: "transition__deployment-causes-incident",
         name: "Deployment Causes Incident",
+        description:
+          "The failure outcome competing with Finish Deployment: the running release rolls back into the failed archive and opens a new incident whose severity scales with the release's risk.",
         inputArcs: [
           {
             placeId: "place__deployment-in-progress",
@@ -549,6 +575,8 @@ return {
       {
         id: "type__deployment",
         name: "Deployment",
+        description:
+          "A software release, described by its size (lognormal), risk in [0.02, 0.95], and age since creation or start.",
         iconSlug: "rocket",
         displayColor: "#2563eb",
         elements: [
@@ -572,6 +600,8 @@ return {
       {
         id: "type__incident",
         name: "Incident",
+        description:
+          "An operational incident, described by its severity in [0.05, 1] (slower to resolve when higher) and age since it opened.",
         iconSlug: "alert-triangle",
         displayColor: "#dc2626",
         elements: [
