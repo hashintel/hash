@@ -58,7 +58,7 @@ use axum::{
 use clap::Parser;
 use error_stack::Report;
 use hash_graph_atlas::cli::{
-    RequestFacilities, RootArgs, ServeArgs, ServeCommand, VisibilityLimits,
+    RootArgs, SecretString, ServeArgs, ServeCommand, ServeOptions, VisibilityLimits,
 };
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStorePool,
@@ -365,9 +365,9 @@ async fn served_router() -> axum::Router {
 
     let invocation = Invocation::parse_from(["route-fixture", "--no-delta"]);
     let quota = |value| NonZeroU32::new(value).expect("the quota is non-zero");
-    let facilities = RequestFacilities {
+    let facilities = ServeOptions {
         provider: Arc::new(HeaderDelegation),
-        service_secret: Arc::from("route-fixture-service-secret"),
+        service_secret: SecretString::from("route-fixture-service-secret"),
         rate_limit: RateLimitConfig {
             rate_limit_mode: RateLimitMode::Observe,
             client_ip_source: ClientIpSource::ConnectInfo,
@@ -378,15 +378,12 @@ async fn served_router() -> axum::Router {
             rate_limit_actor_per_hour: quota(6000),
             rate_limit_actor_burst: quota(100),
         },
+        workflow: None,
+        pool: Arc::new(pool),
+        visibility: VisibilityLimits::default(),
     };
-
     ServeCommand::new(invocation.root, invocation.serve)
-        .run(
-            Arc::new(pool),
-            VisibilityLimits::default(),
-            None,
-            facilities,
-        )
+        .run(facilities)
         .expect("the root holds an activated generation and a wire secret is configured")
 }
 

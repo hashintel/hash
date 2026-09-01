@@ -108,11 +108,11 @@
     pointer_is_aligned_to,
     portable_simd,
     ptr_metadata,
-    slice_ptr_get,
     step_trait,
     sync_nonpoison,
     time_saturating_systemtime,
     variant_count,
+    unwrap_infallible,
 )]
 #![cfg_attr(feature = "cli", feature(exitcode_exit_method))]
 #![cfg_attr(test, feature(iter_intersperse))]

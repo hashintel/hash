@@ -3,7 +3,15 @@ use core::{net::SocketAddr, time::Duration};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_api::rest::{probe, telemetry};
+use hash_graph_api::rest::{
+    probe,
+    telemetry::{self, HttpTracingLayer},
+};
+use hash_graph_atlas::cli;
+use hash_graph_postgres_store::store::{
+    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
+};
+use hash_graph_store::filter::protection::PropertyProtectionFilterConfig;
 use reqwest::Client;
 use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
@@ -69,14 +77,6 @@ pub struct AtlasArgs {
     pub command: Option<AtlasCommand>,
 }
 
-/// Placeholder service surface: the health probe reports liveness and nothing else.
-///
-/// The SALT Atlas implementation replaces this router while keeping the
-/// subcommand, address, and healthcheck wiring.
-fn router() -> Router {
-    probe::router().layer(telemetry::layer())
-}
-
 /// The explicit atlas operations. When absent, the subcommand serves.
 #[derive(Debug, clap::Subcommand)]
 pub enum AtlasCommand {
@@ -132,14 +132,16 @@ pub(crate) async fn run_atlas(
 
     // Every request answers under the scope of the actor it names.
     let router = cli::ServeCommand::new(args.root, args.serve)
-        .run(
-            Arc::new(pool),
-            hash_graph_atlas::cli::VisibilityLimits::default(),
+        .run(cli::ServeOptions {
+            provider: (),
+            service_secret: (),
+            rate_limit: (),
+            pool: Arc::new(pool),
+            visibility: hash_graph_atlas::cli::VisibilityLimits::default(),
             workflow,
-        )
+        })
         .map_err(Report::new)
-        .change_context(GraphError)?
-        .layer(HttpTracingLayer);
+        .change_context(GraphError)?;
 
     let listener = TcpListener::bind((&*args.address.atlas_host, args.address.atlas_port))
         .await
