@@ -66,6 +66,13 @@ export interface LocatedEntityProperty {
  * colour of its dot (shown at the chip's right).
  */
 export interface LocatedEntityTypeChip {
+  /**
+   * The type's stable identity (its versioned URL), used as the chip's React
+   * key. It must be unique within a card's chip list — `label` cannot key the
+   * chips, since two types can share a title (different versions, or distinct
+   * types with the same name) while carrying different colours or icons.
+   */
+  readonly typeId: string;
   readonly label: string;
   readonly color: string;
   /** The type's icon — emoji or ds glyph — drawn at the chip's left. */
@@ -126,7 +133,11 @@ export interface LocatedNodeDetail extends LocatedEntityDetailShared {
   readonly types: readonly LocatedEntityTypeChip[];
   /** The node's edge/neighbour count, shown as a subtle caption under the header. */
   readonly connectionCount: number;
-  /** Whether the ego-graph is whole; `false` suffixes the count with a "+". */
+  /**
+   * Whether the ego-graph is whole. `false` suffixes the count with a "+",
+   * and keeps the caption shown even at a count of zero — a capped locate
+   * that delivered no edges is not known to be an isolated node.
+   */
   readonly connectionsComplete: boolean;
 }
 
@@ -616,7 +627,7 @@ export const LocatedEntityPopover = ({
           <div className={titleStyles}>{detail.title}</div>
 
           {chips.map((chip) => (
-            <TypeChip key={chip.label} chip={chip} />
+            <TypeChip key={chip.typeId} chip={chip} />
           ))}
 
           {!detail.typesComplete ? (
@@ -629,7 +640,11 @@ export const LocatedEntityPopover = ({
           ) : null}
         </div>
 
-        {detail.kind === "node" && detail.connectionCount > 0 ? (
+        {/* Like types and properties, "empty but incomplete" stays visible:
+            a capped ego-graph that delivered no edges shows "0+ connections"
+            rather than reading as an isolated node. */}
+        {detail.kind === "node" &&
+        (detail.connectionCount > 0 || !detail.connectionsComplete) ? (
           <div className={connectionCountStyles}>
             {formatConnectionCount(
               detail.connectionCount,
