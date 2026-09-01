@@ -3,8 +3,8 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📚 RECOMMENDED SKILLS:
-  → documenting-rust-code
-    Rust documentation practices for HASH codebase. Use when writing doc comments, documenting functions/types/traits/modules, creating error sections, using intra-doc links, or following rustdoc conventions.
+  → managing-git-workflow
+    Git and pull-request workflow for HASH, including conditional Linear conventions and merge-queue diagnostics. Use when naming a branch, opening or reviewing a pull request, interpreting its checks, or diagnosing a merge-queue ejection.
 
 ACTION: Use Skill tool BEFORE responding
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
