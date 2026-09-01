@@ -440,6 +440,7 @@ export const flattenComponentInstancesForSimulation = ({
     parameters: [],
     scenarios: sdcpn.scenarios?.map((scenario) => ({ ...scenario })),
     metrics: sdcpn.metrics?.map((metric) => ({ ...metric })),
+    identities: sdcpn.identities?.map((identity) => ({ ...identity })),
     statusViews: sdcpn.statusViews?.map((statusView) => ({ ...statusView })),
     subnets: [],
     componentInstances: [],

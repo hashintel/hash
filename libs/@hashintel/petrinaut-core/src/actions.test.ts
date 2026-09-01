@@ -652,6 +652,58 @@ describe("Petrinaut core actions", () => {
     ]);
   });
 
+  test("adds, updates, and removes identities, clearing references on removal", () => {
+    const instance = createInstance();
+
+    instance.mutations.addIdentity({
+      id: "identity-ticket",
+      name: "Ticket",
+      keyElementTypes: ["string"],
+    });
+    instance.mutations.updateIdentity({
+      identityId: "identity-ticket",
+      update: { keyElementTypes: ["uuid"] },
+    });
+    expect(instance.definition.get().identities).toEqual([
+      { id: "identity-ticket", name: "Ticket", keyElementTypes: ["uuid"] },
+    ]);
+
+    instance.mutations.addType({
+      id: "type-1",
+      name: "Ticket",
+      iconSlug: "circle",
+      displayColor: "#1E90FF",
+      elements: [
+        {
+          elementId: "element-1",
+          name: "ticket_id",
+          type: "uuid",
+          identityRef: "identity-ticket",
+        },
+      ],
+    });
+    instance.mutations.addStatusView({
+      id: "view-1",
+      name: "Ticket status",
+      identityRef: "identity-ticket",
+      labels: [
+        {
+          id: "label-1",
+          name: "Todo",
+          displayColor: "#808080",
+          places: ["p1"],
+        },
+      ],
+    });
+
+    instance.mutations.removeIdentity({ identityId: "identity-ticket" });
+
+    const definition = instance.definition.get();
+    expect(definition.identities).toEqual([]);
+    expect(definition.types[0]!.elements[0]!.identityRef).toBeUndefined();
+    expect(definition.statusViews).toEqual([]);
+  });
+
   test("adds, updates, moves labels within, and removes status views", () => {
     const instance = createInstance();
 

@@ -46,6 +46,29 @@ const sourceDocument = {
   componentInstances: [
     { id: "instance1", name: "Instance 1", subnetId: "subnet1", x: 0, y: 0 },
   ],
+  types: [
+    {
+      id: "color1",
+      name: "Ticket",
+      iconSlug: "circle",
+      displayColor: "#1E90FF",
+      elements: [
+        {
+          elementId: "element1",
+          name: "ticket_id",
+          type: "string",
+          identityRef: "identity-ticket",
+        },
+      ],
+    },
+  ],
+  identities: [
+    {
+      id: "identity-ticket",
+      name: "Ticket",
+      keyElementTypes: ["string"],
+    },
+  ],
   statusViews: [
     {
       id: "view1",
@@ -182,6 +205,7 @@ describe("serializeSDCPN", () => {
       "description",
       "metadata",
       "parameters",
+      "identities",
       "types",
       "differentialEquations",
       "subnets",
