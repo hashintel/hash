@@ -23,7 +23,7 @@ import { DraftFieldInput } from "../../../../../../components/draft-field-input"
 import { SectionList } from "../../../../../../components/section";
 import { TokenTypeIcon } from "../../../../../../constants/entity-icons";
 import { UI_MESSAGES } from "../../../../../../constants/ui-messages";
-import { ColorSelect } from "../color-select";
+import { ColorSelect } from "../../../shared/color-select";
 import { useTypePropertiesContext } from "../context";
 
 import type { SubView } from "../../../../../../components/sub-view/types";

@@ -12,6 +12,7 @@ import { ExperimentsView } from "./experiments/experiments-view";
 import { MetricsView } from "./metrics/metrics-view";
 import { OptimizationsView } from "./optimizations/optimizations-view";
 import { ScenariosView } from "./scenarios/scenarios-view";
+import { StatusViewsView } from "./status-views/status-views-view";
 
 import type { SegmentedControlItem } from "@hashintel/ds-components";
 import type { ComponentType } from "react";
@@ -65,6 +66,12 @@ const modeOptions: SegmentedControlItem<SimulateViewMode>[] = [
     tooltip: "Metrics",
     tooltipOptions: { position: "right" },
   },
+  {
+    value: "status-views",
+    iconName: "squareCheck",
+    tooltip: "Status views",
+    tooltipOptions: { position: "right" },
+  },
 ];
 
 const views = {
@@ -72,6 +79,7 @@ const views = {
   scenarios: ScenariosView,
   metrics: MetricsView,
   optimizations: OptimizationsView,
+  "status-views": StatusViewsView,
 } satisfies Record<SimulateViewMode, ComponentType>;
 
 // -- Component -----------------------------------------------------------------

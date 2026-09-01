@@ -34,7 +34,8 @@ export type SimulateViewMode =
   | "scenarios"
   | "metrics"
   | "experiments"
-  | "optimizations";
+  | "optimizations"
+  | "status-views";
 
 export type SimulateDrawerState =
   | { type: "closed" }
@@ -44,7 +45,9 @@ export type SimulateDrawerState =
   | { type: "create-metric" }
   | { type: "view-experiment"; experimentId: string }
   | { type: "create-experiment" }
-  | { type: "create-optimization" };
+  | { type: "create-optimization" }
+  | { type: "view-status-view"; statusViewId: string }
+  | { type: "create-status-view" };
 
 export type EditorNavigationTarget = {
   globalMode?: EditorGlobalMode;
