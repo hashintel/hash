@@ -11,7 +11,7 @@ import {
 } from "./use-get-viewport-nodes";
 
 import type { AtlasTileCoordinate } from "./atlas-tile-coordinate";
-import type { TileEdge } from "./fetch-edges-for-tiles";
+import type { FetchedEdges, TileEdge } from "./fetch-edges-for-tiles";
 import type { FetchedTile, TileNode } from "./fetch-tile";
 import type { EntityId } from "@blockprotocol/type-system";
 
@@ -50,6 +50,23 @@ const countingFetcher = (
 /** A stub edges fetcher for node-focused tests: never any edges. */
 const noEdges: EdgesFetcher = () =>
   Promise.resolve({ edges: [], complete: true });
+
+interface DeferredEdgesFetch {
+  readonly signal: AbortSignal | undefined;
+  readonly resolve: (result: FetchedEdges) => void;
+}
+
+/** A manually settled edges fetcher that records each request's abort signal. */
+const deferredEdgesFetcher = (): EdgesFetcher & {
+  readonly requests: DeferredEdgesFetch[];
+} => {
+  const requests: DeferredEdgesFetch[] = [];
+  const fetcher: EdgesFetcher = (_tiles, controls) =>
+    new Promise((resolve) => {
+      requests.push({ signal: controls?.signal, resolve });
+    });
+  return Object.assign(fetcher, { requests });
+};
 
 /** An edges fetcher returning a fixed edge list, recording each call's tiles. */
 const stubEdges = (
@@ -469,6 +486,102 @@ describe("getViewportNodes edges", () => {
 
     expect(nodes.length).toBeGreaterThan(0);
     expect(edges).toEqual([]);
+  });
+});
+
+describe("getViewportNodes cancellation", () => {
+  it("rejects a pre-aborted call before it touches the cache", async () => {
+    const fetcher = countingFetcher();
+    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+    const controller = new AbortController();
+    controller.abort(new Error("already superseded"));
+
+    await expect(
+      getViewportNodes(viewportAt(10_000, 10_000, 1_000, 3), cache, {
+        signal: controller.signal,
+      }),
+    ).rejects.toThrow("already superseded");
+
+    expect(fetcher.total()).toBe(0);
+    expect(cache.history).toHaveLength(0);
+  });
+
+  it("stops the descent at the abort, without recording movement or prefetching", async () => {
+    const fetcher = deferredFetcher();
+    const cache = new TileCache({ fetcher, edgesFetcher: noEdges });
+    const controller = new AbortController();
+
+    // A depth-3 viewport whose descent would fetch depths 0..3 — the root
+    // request is issued synchronously and left pending.
+    const stale = getViewportNodes(
+      viewportAt(10_000, 10_000, 1_000, 3),
+      cache,
+      {
+        signal: controller.signal,
+      },
+    );
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    // Supersede the call while the root fetch is in flight, then let it land.
+    controller.abort(new Error("superseded"));
+    fetcher.requests[0]?.resolve({
+      nodes: [{ id: 1, x: 0, y: 0 }],
+      complete: false,
+    });
+
+    await expect(stale).rejects.toThrow("superseded");
+    // The descent stopped: the root's (incomplete) children were never fetched,
+    // and the stale call neither recorded movement nor scheduled prefetches.
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(cache.history).toHaveLength(0);
+    expect(cache.prefetchStats.issued).toBe(0);
+    // The in-flight tile still landed: geometry is viewport-independent, and
+    // the load may be shared with the viewport that superseded this one.
+    expect(cache.has({ z: 0, x: 0, y: 0 })).toBe(true);
+  });
+
+  it("does not rewrite resident edge state when aborted during the edge fetch", async () => {
+    const fetcher = countingFetcher();
+    const edgesFetcher = deferredEdgesFetcher();
+    const cache = new TileCache({ fetcher, edgesFetcher });
+    const viewport = viewportAt(32_768, 32_768, 30_000, 1);
+    // Crosses tiles z1/0 and z1/1 (countingFetcher's id scheme).
+    const crossEdge: TileEdge = {
+      id: "id-800" as EntityId,
+      source: 1_000_000,
+      target: 1_000_010,
+    };
+    const controller = new AbortController();
+
+    const stale = getViewportNodes(viewport, cache, {
+      signal: controller.signal,
+    });
+    // Let the (instantly resolving) node descent finish and issue the edge fetch.
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+    expect(edgesFetcher.requests).toHaveLength(1);
+
+    controller.abort(new Error("superseded"));
+    // The viewport's signal reached the edge transport…
+    expect(edgesFetcher.requests[0]?.signal?.aborted).toBe(true);
+    // …and a response landing after the abort must not bucket, re-sign, or pin.
+    edgesFetcher.requests[0]?.resolve({ edges: [crossEdge], complete: true });
+
+    await expect(stale).rejects.toThrow("superseded");
+    expect(cache.edgeBucketCount).toBe(0);
+
+    // A live call over the same tiles starts from a clean slate and buckets.
+    const live = getViewportNodes(viewport, cache);
+    await new Promise((resolve) => {
+      setTimeout(resolve, 0);
+    });
+    expect(edgesFetcher.requests).toHaveLength(2);
+    edgesFetcher.requests[1]?.resolve({ edges: [crossEdge], complete: true });
+
+    const { edges } = await live;
+    expect(edges).toHaveLength(1);
+    expect(cache.edgeBucketCount).toBe(1);
   });
 });
 

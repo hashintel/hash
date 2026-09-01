@@ -697,6 +697,7 @@ export const NetworkGraphView = ({
         seenBaseUrls.add(baseUrl);
         const icon = typeIconFor(entityTypeId);
         chips.push({
+          typeId: entityTypeId,
           label: resolveTypeMeta(entityTypeId)?.title ?? entityTypeId,
           color,
           ...(icon !== undefined ? { icon } : {}),
@@ -1562,6 +1563,7 @@ export const NetworkGraphView = ({
         const edgeTypes: LocatedEntityTypeChip[] = edgeTypeIds.map((typeId) => {
           const icon = typeIconFor(typeId);
           return {
+            typeId,
             label: resolveTypeMeta(typeId)?.title ?? typeId,
             color: noColor,
             ...(icon !== undefined ? { icon } : {}),
