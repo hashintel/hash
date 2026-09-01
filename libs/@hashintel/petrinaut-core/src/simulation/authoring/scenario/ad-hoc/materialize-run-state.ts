@@ -193,6 +193,13 @@ export function classicRunParameterValues(
       continue;
     }
     const text = variable.expression.trim();
+    // An emptied cell reads as its type's neutral everywhere else in the
+    // form, so a run takes the neutral too. Ignoring it instead left the
+    // previous value running behind a cell that showed `0` / `false`.
+    if (text === "") {
+      values.push({ identifier: parameter.identifier, value: "0" });
+      continue;
+    }
     if (parameter.type === "boolean") {
       if (text === "true" || text === "false") {
         values.push({
@@ -202,7 +209,7 @@ export function classicRunParameterValues(
       }
       continue;
     }
-    if (text !== "" && Number.isFinite(Number(text))) {
+    if (Number.isFinite(Number(text))) {
       values.push({ identifier: parameter.identifier, value: text });
     }
   }
