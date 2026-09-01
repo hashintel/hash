@@ -217,6 +217,8 @@ class Typechecker {
         // Scenario functions have no declared parameters — `parameters` and
         // `scenario` are ambient.
         return HIR_TYPE_UNKNOWN;
+      case "status-condition":
+        return tokenRecordType(context.tokenAttributes);
       case "metric":
         return {
           kind: "record",
@@ -294,7 +296,11 @@ class Typechecker {
       case "localRef":
         return env.get(expr.name) ?? HIR_TYPE_UNKNOWN;
       case "paramRef": {
-        const parameter = this.context.parameters.find(
+        const contextParameters =
+          this.context.surface === "status-condition"
+            ? []
+            : this.context.parameters;
+        const parameter = contextParameters.find(
           (candidate) => candidate.name === expr.name,
         );
         if (!parameter) {
@@ -894,6 +900,16 @@ class Typechecker {
             bodySpan,
             "hir:scenario-return",
             `This expression must produce a number, got ${formatHirType(returnType)}.`,
+          );
+        }
+        return;
+      }
+      case "status-condition": {
+        if (!isBoolish(returnType)) {
+          this.report(
+            bodySpan,
+            "hir:status-condition-return",
+            `Status label conditions must produce a boolean, got ${formatHirType(returnType)}.`,
           );
         }
         return;
