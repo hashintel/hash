@@ -17,6 +17,7 @@ import {
   compileScenario,
   createUserKeyedRecord,
   EMPTY_AD_HOC_STATE,
+  initialMarkingToAdHocPlaces,
 } from "@hashintel/petrinaut-core";
 
 import { SimulationContext } from "../../../../../../react/simulation/context";
@@ -425,6 +426,7 @@ const SimulationSettingsContent: React.FC = () => {
     adHocScenario,
     setAdHocScenario,
     adHocNetParameters,
+    initialMarking,
   } = use(SimulationContext);
 
   const { enableAdHocScenarios } = use(UserSettingsContext);
@@ -515,6 +517,21 @@ const SimulationSettingsContent: React.FC = () => {
   if (!selectedAdHocScenario && !selectedClassicScenario && scenarioRun) {
     setScenarioRun(null);
   }
+  // Until a definition exists, the form stands in for the markings entered
+  // on the canvas: those are what a run uses while the draft is null, so
+  // showing an empty place for each of them would be a lie the run does not
+  // tell. Seeding also means the first edit materializes a draft that
+  // already holds them, so nothing is silently zeroed. No row cap: a cap
+  // here would drop tokens from the draft the moment the user typed.
+  const seededAdHocState: AdHocScenarioState = {
+    ...EMPTY_AD_HOC_STATE,
+    places: initialMarkingToAdHocPlaces(
+      initialMarking,
+      { places, types: extensions.colors ? types : [] },
+      Number.POSITIVE_INFINITY,
+    ).places,
+  };
+
   const adHocFormContext = {
     // The quick-sim embedding sees the overlaid parameters the run compiles
     // against (the raw panel inputs are hidden while it is live); a selected
@@ -810,7 +827,7 @@ const SimulationSettingsContent: React.FC = () => {
            the keyboard flow. This embedding offers no Optimize/expose
            toggles. */
         <AdHocScenarioForm
-          state={adHocScenario ?? EMPTY_AD_HOC_STATE}
+          state={adHocScenario ?? seededAdHocState}
           onChange={setAdHocScenario}
           context={adHocFormContext}
           selection="none"

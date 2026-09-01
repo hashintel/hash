@@ -104,6 +104,26 @@ describe("initialMarkingToAdHocPlaces", () => {
     expect(truncated).toEqual([{ placeName: "Space", shown: 100, total: 130 }]);
   });
 
+  it("keeps every token when the cap is lifted", () => {
+    // The quick-simulation form seeds its editable draft from the marking,
+    // where a cap would drop tokens the moment the user typed.
+    const long = {
+      "place-space": Array.from({ length: 130 }, (_unused, index) => ({
+        altitude: index,
+        active: false,
+        tag: "t",
+      })),
+    };
+    const { places, truncated } = initialMarkingToAdHocPlaces(
+      long,
+      CONTEXT,
+      Number.POSITIVE_INFINITY,
+    );
+    const space = places["place-space"]!;
+    expect(space.kind === "coloured" && space.rows.length).toBe(130);
+    expect(truncated).toEqual([]);
+  });
+
   it("skips places absent from the marking", () => {
     const { places } = initialMarkingToAdHocPlaces(
       { "place-debris": 0 },
