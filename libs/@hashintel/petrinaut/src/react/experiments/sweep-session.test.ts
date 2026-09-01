@@ -523,6 +523,41 @@ describe("createSweepSession", () => {
   });
 });
 
+describe("batches", () => {
+  it("lists live batches selection-first and drops them as they finish", async () => {
+    const { session, batches, settle } = makeHarness(25, point(0, 0));
+    await settle();
+    expect(session.batches.get()).toMatchObject([
+      { kind: "selection", runCount: 8, completedRuns: 0 },
+    ]);
+
+    void session.sampleCells([{ x: 0, y: 0 }], 2);
+    await settle();
+    expect(session.batches.get().map((batch) => batch.kind)).toEqual([
+      "selection",
+      "surface",
+    ]);
+
+    // The pipelined successor joins the list once the first rung streams.
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    await settle();
+    expect(session.batches.get().map((batch) => batch.kind)).toEqual([
+      "selection",
+      "selection",
+      "surface",
+    ]);
+
+    batches[0]!.complete();
+    await settle();
+    expect(
+      session.batches.get().filter((batch) => batch.kind === "selection"),
+    ).toHaveLength(1);
+
+    session.dispose();
+    expect(session.batches.get()).toEqual([]);
+  });
+});
+
 describe("pipelined ladder rungs", () => {
   it("starts the next rung once the current one streams, before it completes", async () => {
     const { session, batches, settle } = makeHarness(25, point(0, 0));

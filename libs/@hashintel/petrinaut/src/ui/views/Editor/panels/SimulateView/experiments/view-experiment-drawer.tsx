@@ -18,6 +18,7 @@ import {
 import { formatDurationMs } from "./format-duration";
 import { SweepNavigator } from "./sweep-navigator";
 import { SweepSurface } from "./sweep-surface";
+import { ComputeActivity } from "./view-experiment-drawer/compute-activity";
 
 /**
  * Which backend ran an experiment.
@@ -73,18 +74,8 @@ const statValueStyle = css({
   whiteSpace: "nowrap",
 });
 
-const progressBarStyle = css({
-  height: "[6px]",
-  width: "full",
-  backgroundColor: "neutral.s30",
-  borderRadius: "full",
-  overflow: "hidden",
+const activityStyle = css({
   marginTop: "2",
-});
-
-const progressFillStyle = css({
-  height: "full",
-  backgroundColor: "neutral.s120",
 });
 
 const errorStyle = css({
@@ -243,10 +234,6 @@ const ExperimentSummary = ({
   experiment: ExperimentRecord;
 }) => {
   const progress = experiment.progress;
-  const progressPercent =
-    progress && experiment.maxTime > 0
-      ? Math.min(100, (progress.time / experiment.maxTime) * 100)
-      : 0;
   const now = useNow(isExperimentActive(experiment));
   const elapsedMs = getExperimentElapsedMs(experiment, now);
   const hasFinished = experiment.finishedAt !== null;
@@ -296,11 +283,8 @@ const ExperimentSummary = ({
           </span>
         </div>
       </div>
-      <div className={progressBarStyle}>
-        <div
-          className={progressFillStyle}
-          style={{ width: `${progressPercent}%` }}
-        />
+      <div className={activityStyle}>
+        <ComputeActivity experiment={experiment} />
       </div>
       {experiment.error ? (
         <span className={errorStyle}>{experiment.error}</span>
