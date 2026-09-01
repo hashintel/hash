@@ -54,9 +54,13 @@ REQUESTED_PATHS: dict[str, list[str]] = {
         "libs/@hashintel/brunch-agent/evaluations",
         "libs/@hashintel/brunch-agent/scripts",
     ],
-    # The app's condition-5 test executes the evaluation runner as a child
-    # process; the context root is not a workspace and must be copied explicitly.
-    "@apps/brunch-agent": ["libs/@hashintel/brunch-agent/evaluations"],
+    # The app's tests execute evaluation runners and validate committed mission
+    # artifacts; the context root is not a workspace and must be copied explicitly.
+    "@apps/brunch-agent": [
+        "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless",
+        "libs/@hashintel/brunch-agent/docs/inbox/sdcpn-examples-to-validate",
+        "libs/@hashintel/brunch-agent/evaluations",
+    ],
 }
 
 TURBO_QUERY = """

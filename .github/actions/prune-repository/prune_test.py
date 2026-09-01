@@ -44,10 +44,14 @@ class BrunchRequestedExtras(unittest.TestCase):
             ],
         )
 
-    def test_app_job_adds_the_baseline_evaluation_paths(self) -> None:
+    def test_app_job_adds_its_non_workspace_test_fixtures(self) -> None:
         self.assertEqual(
             extra_paths_for_requested({APP}),
-            ["libs/@hashintel/brunch-agent/evaluations"],
+            [
+                "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless",
+                "libs/@hashintel/brunch-agent/docs/inbox/sdcpn-examples-to-validate",
+                "libs/@hashintel/brunch-agent/evaluations",
+            ],
         )
 
     def test_sibling_or_website_job_does_not_add_context_paths(self) -> None:
