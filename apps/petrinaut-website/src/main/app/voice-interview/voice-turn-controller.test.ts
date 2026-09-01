@@ -810,6 +810,45 @@ describe("VoiceTurnController", () => {
     expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
   });
 
+  test("shows waiting after speech drains while Brunch is still busy", async () => {
+    const harness = createHarness();
+    let finishPlayback: (() => void) | undefined;
+    harness.playback.play.mockImplementationOnce(async (_segment, events) => {
+      events?.onPlaying?.();
+      await new Promise<void>((resolve) => {
+        finishPlayback = resolve;
+      });
+    });
+    await harness.controller.start();
+    harness.emit({
+      key: key(1, "answer"),
+      text: "A finalized answer",
+      type: "completed",
+    });
+    await vi.waitFor(() => expect(harness.submitText).toHaveBeenCalledOnce());
+
+    harness.controller.updateChat({
+      canonicalSegments: [
+        canonicalSegment(
+          "canonical-speech:busy-response:text%3A0:fnv1a32:12345678",
+        ),
+      ],
+      status: "streaming",
+    });
+
+    expect(harness.controller.getSnapshot().phase).toBe("playing");
+    finishPlayback?.();
+    await vi.waitFor(() =>
+      expect(harness.controller.getSnapshot().phase).toBe("waiting"),
+    );
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+
+    updateChatStatus(harness.controller, "ready");
+    expect(harness.controller.getSnapshot().phase).toBe("listening");
+  });
+
   test("speaks finalized segments in order and reopens only after the queue drains", async () => {
     const harness = createHarness();
     const playbackResolvers: Array<() => void> = [];

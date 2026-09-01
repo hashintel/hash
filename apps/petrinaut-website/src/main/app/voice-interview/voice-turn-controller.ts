@@ -541,6 +541,9 @@ export class VoiceTurnController {
     if (this.#awaitingChatCycle) {
       if (!this.#sawBusyChatStatus || this.#chatStatus !== "ready") {
         this.#session.setMicrophoneEnabled(false);
+        if (this.#snapshot.phase !== "waiting") {
+          this.#update({ phase: "waiting" });
+        }
         return;
       }
       this.#awaitingChatCycle = false;
