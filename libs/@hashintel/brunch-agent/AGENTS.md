@@ -132,6 +132,7 @@ on it, same as an ADR.
 - **Linear and GitHub writing:** follow
   [`docs/agents/issue-writing.md`](docs/agents/issue-writing.md) whenever creating or editing an
   issue, pull request, or comment.
+- **Plugin scope:** each plugin pairs one reusable domain typology with one target formalism; it may name concepts from that typology but never facts or nouns from a concrete domain, organization, situation, or scenario.
 - **Topology gates** (enforced by tests): core and plugins may expose Flue-native production resources through dedicated `./flue` subpaths; plugins depend inward on core, never bindings, and never import `@hashintel/brunch-agent/prompts`; transport packages never depend on a binding; bindings translate generalized capture machinery into the selected substrate. Evaluation answer keys stay on the evaluation side, never inside interviewee or elicitor inputs.
 - **Posture:** prototype · stakes high — persisted capture data and merge gates must fail loudly,
   never corrupt silently · horizon: current milestone.

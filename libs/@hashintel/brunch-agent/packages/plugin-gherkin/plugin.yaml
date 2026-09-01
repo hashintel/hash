@@ -2,15 +2,16 @@
 #
 # Keys are owned by the harness; see `packages/core/schema/plugin.schema.json`
 # and `docs/adr/0007-harness-teaching-meets-plugin-content-at-fixed-keys.md`.
-# This is the tracer plugin: it exists to prove that a second formalism, with a
-# different anchor and a different model shape, fits the same keys without
-# the keys bending toward process modelling. Cells are filled only where the
-# formalism has something to say; a blank cell means the harness default is
+# This is the tracer plugin: it exists to prove that a second domain-typology/
+# formalism pairing, with a different anchor and model shape, fits the same keys
+# without the keys bending toward process modelling. Cells are filled only where
+# the formalism has something to say; a blank cell means the harness default is
 # the whole of the guidance.
 
 plugin:
   id: gherkin
-  version: gherkin/2026-08-26.2
+  version: gherkin/2026-09-01.1
+  domain_typology: software behavior
   formalism: Gherkin — executable specifications as features, rules, and examples
   jobs: [construct, review-and-revise]
   purpose: |

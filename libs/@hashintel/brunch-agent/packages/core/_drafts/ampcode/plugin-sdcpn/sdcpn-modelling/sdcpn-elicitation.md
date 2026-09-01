@@ -8,7 +8,7 @@ The registers are not a questionnaire or phase sequence. **Recognition** suggest
 
 ### Build the operational account the purpose needs
 
-Elicit or revise an account that can support the person's stated simulation question, comparison, or decision. Establish what should improve or be avoided, what may be varied, how outcomes are judged, and what observation would make the model credible enough for its intended use.
+For the person's simulation question, comparison, or decision, establish what should improve or be avoided, what may be varied, how outcomes are judged, and what observation would make the model credible enough for its intended use.
 
 Every objective needs a traceable dependency on process material. Do not collect operational detail merely because the target could represent it, and do not record the person's prediction of an objective's answer as process structure.
 
@@ -18,11 +18,7 @@ Ask about work, things, people, resources, conditions, decisions, time, failures
 
 ### Preserve operational context
 
-A value without its applicable item, activity, direction, mode, operating regime, calendar, load, location, resource, or other condition may simulate as a falsehood. Preserve context when the operation treats cases differently. Do not average distinct regimes merely to obtain one parameter.
-
-### Separate evidence from precision
-
-A narrowly stated value is not necessarily well supported, and a well-supported account may remain broad. Preserve what the person or source supports separately from how narrow the value is. Do not force a distribution, rate, probability, or threshold below the granularity the operation can observe.
+A value without its applicable item, activity, direction, mode, operating regime, calendar, load, location, resource, or other condition may simulate as a falsehood. Preserve context when the operation treats cases differently. Keep quantities at the granularity the operation or available source can observe, and do not average distinct regimes merely to obtain one parameter.
 
 ### Treat operational patterns as hypotheses
 
@@ -41,7 +37,6 @@ Recognition entries identify possibilities to test, not facts to record automati
 - **Duration that crosses a shift, opening window, or calendar boundary** may depend on availability rather than work time alone.
 - **A person, machine, team, vehicle, bay, tool, dataset, or location named in passing** may participate as performer, contended resource, prerequisite, information source, transport concern, boundary, or merely context.
 - **Approval, instruction, receipt, schedule, threshold, or event language** may identify what starts or enables work rather than an ordinary process activity.
-- **A memorable failure** establishes a possible mechanism and consequence, not its probability.
 
 ### Operational situation patterns
 
@@ -123,7 +118,7 @@ Across the activities exposed by a slice, investigate relevant disruptions: work
 
 ### Test practiced policy with a borderline case
 
-When a document or general rule says what happens next, ask about the last contested or exceptional case. Preserve prescribed and practiced accounts and the context selecting between them rather than averaging them.
+When a stated rule decides what happens next, ask about the last contested or exceptional case to expose tie-breaking, overrides, and the conditions selecting a different practiced rule.
 
 ### Close a resource account
 
@@ -148,10 +143,6 @@ Ask whether failure repeats one activity, a subsequence, or the whole case; dive
 ### Establish validation from observable behavior
 
 Ask what observation, replay, historical comparison, or expert judgment would make the model credible for its intended question. Preserve validation evidence separately from the process behavior it tests.
-
-### Re-enter from construction narrowly
-
-When construction cannot choose among materially different structures without inventing an operational fact, name the smallest missing distinction in the person's vocabulary. Ask it only in an interactive conversation; otherwise deposit it as a re-entry question.
 
 ## Coverage
 
@@ -205,7 +196,6 @@ Apply these checks while eliciting and maintaining the workpiece. Construction a
 - At least one simulation question, comparison, or decision is stated in the person's terms.
 - Every objective depends on recorded process material or remains visibly unsupported.
 - A concrete case has an admission or trigger, ordered activities, relevant branch conditions, and an outcome or handoff.
-- Questions follow the person's active thread rather than the Coverage headings.
 
 ### Operational semantics
 
@@ -217,8 +207,7 @@ Apply these checks while eliciting and maintaining the workpiece. Construction a
 
 ### Quantities and context
 
-- A duration, rate, probability, count, or threshold preserves the context and precision the evidence supports.
-- One memorable incident has not silently become a frequency.
+- A duration, rate, probability, count, or threshold retains the item, activity, mode, direction, load, location, calendar, or other condition that selects it.
 - A point value stands only where constancy or a purpose-relative simplification is supported and named.
 - Prescribed and practiced regimes or contextual variants have not been averaged into one false value.
 
@@ -229,6 +218,5 @@ Apply these checks while eliciting and maintaining the workpiece. Construction a
 - **Resource disappearance:** a reusable capability is acquired but its release or changed return state is missing. Re-enter resource-use Coverage.
 - **Practice laundering:** a document's rule is recorded as practice without an operational case. Use a borderline or last-occurrence operation.
 - **Context collapse:** values differing by item, direction, mode, location, load, or source regime become one unconditional value. Restore the selecting context.
-- **False quantitative confidence:** a vivid incident becomes a probability or an unknown spread becomes a conventional distribution. Restore the supported form.
 - **Pattern-generated fact:** a situation pattern supplied structure the person did not establish. Remove or mark the assumption, then ask whether the pattern applies.
 - **Target leakage:** questions are framed as places, transitions, arcs, or workpiece fields. Translate back to operational events, conditions, things, and consequences.

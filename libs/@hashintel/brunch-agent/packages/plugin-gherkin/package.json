@@ -2,7 +2,7 @@
   "name": "@hashintel/brunch-agent-plugin-gherkin",
   "version": "0.0.0-private",
   "private": true,
-  "description": "The gherkin target: the tracer plugin, wired end-to-end first as the cheap mechanism proof.",
+  "description": "The software-behavior domain typology and Gherkin target formalism: the tracer plugin wired first as the cheap mechanism proof.",
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {

@@ -14,7 +14,7 @@ These checks support judgment; no external harness computes completion. Readines
 - Precise claims have evidence or visible agent authorship; prescribed and practiced accounts are not silently merged.
 - Assumptions, unknowns, conflicts, deferrals, omissions, and target losses remain distinguishable where present.
 
-If materially different nets remain possible because one consequential fact is absent, construction is blocked at that fact. Ask the smallest resolving question only when interactive elicitation is available; otherwise report it for re-entry.
+If materially different nets remain possible because one consequential operational fact is absent, construction is blocked at that fact. Name the smallest missing distinction in the person's vocabulary. Ask it only when interactive elicitation is available; otherwise report it for re-entry.
 
 ## During construction
 

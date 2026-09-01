@@ -23,6 +23,7 @@ import type { SlotAssertion } from "../src/plugin/slot-assertion";
 export const FIXTURE_PLUGIN_YAML = `plugin:
   id: fixture
   version: fixture/2026-08-25.1
+  domain_typology: things and steps
   formalism: fixture
   jobs: [construct]
   purpose: Interview someone about things and steps.

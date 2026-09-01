@@ -68,9 +68,10 @@ const capture = (assertion: SlotAssertion): CaptureEnvelope => {
 
 describe("the SDCPN plugin", () => {
   test("is the parsed file plus one slot-assertion proposal type", () => {
+    expect(sdcpn.domainTypology).toBe("operational processes");
     expect(sdcpn.targetFormalism).toBe("sdcpn");
     expect(sdcpn.definition).toBe(sdcpnDefinition);
-    expect(sdcpnDefinition.version).toBe("sdcpn/2026-08-26.2");
+    expect(sdcpnDefinition.version).toBe("sdcpn/2026-09-01.1");
     expect(sdcpn.proposalCatalog.map((proposal) => proposal.name)).toEqual([
       "slot-asserted",
     ]);

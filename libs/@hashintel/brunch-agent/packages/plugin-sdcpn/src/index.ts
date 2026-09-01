@@ -1,5 +1,6 @@
 /**
- * `@hashintel/brunch-agent-plugin-sdcpn` — the SDCPN target formalism (ADR-0006).
+ * `@hashintel/brunch-agent-plugin-sdcpn` — the operational-process domain
+ * typology paired with the SDCPN target formalism.
  *
  * The plugin is `plugin.yaml`: data under the harness-owned keys (ADR-0007)
  * whose contract keys the harness reads into the model vocabulary, the demand
@@ -7,7 +8,7 @@
  * what the repertoire teaches. This module loads that definition and declares
  * the one proposal type a kind-and-slot plugin needs: a slot assertion
  * addressed to a kind, node, and slot the definition names. The definition
- * names no domain, and neither does this code.
+ * names no concrete domain, situation, or scenario, and neither does this code.
  *
  * This substrate-neutral descriptor depends inward on `@hashintel/brunch-agent`
  * and remains storage-blind. It is compiled and tested but not imported by the
@@ -52,6 +53,7 @@ export type SlotAssertedProposalInput = v.InferInput<
 
 export const sdcpn = definePlugin({
   name: "plugin-sdcpn",
+  domainTypology: sdcpnDefinition.identity.domainTypology,
   targetFormalism: "sdcpn",
   definition: sdcpnDefinition,
   proposalCatalog: [

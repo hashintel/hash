@@ -8,10 +8,10 @@ This map accounts for the primary working and draft material used to produce the
 | --- | --- | --- |
 | `core/SYSTEM.md` | Compact always-on universal role and invariants | Active core `src/SYSTEM.md`; `_drafts/system-prompts/assemblies/*`; prompt audit and section workbench |
 | `core/universal-elicitation.md` | Progressive universal strategies and methods under five registers | Active SDCPN `elicitation.md` entries marked universal; core `repertoire.yaml`; current APPEND cues/probes/movements/licenses/guards that do not depend on SDCPN; predecessor `elicit/SKILL.md` |
-| `core/flue.ts` | Raw-string export of the core-owned progressive reference through the existing core Flue subpath | Verified `?raw` library build and cross-package `defineSkill` composition spike |
+| `core/flue.ts.example` | Raw-string export of the core-owned progressive reference through the existing core Flue subpath | Verified `?raw` library build and cross-package `defineSkill` composition spike |
 | `plugin-sdcpn/APPEND_SYSTEM.md` | Concise operational-process/SDCPN specialization and router | Active plugin `flue.ts` inline instruction; active APPEND role; current skill lifecycle and construction boundary |
 | `sdcpn-modelling/instructions.md` | Conceptual lifecycle, runtime branches, and packaged-resource routing | Active `sdcpn-modelling/SKILL.md`; accepted Mission 3 information hierarchy; predecessor elicitation procedure |
-| `sdcpn-modelling/skill.ts` | Explicit composition of separately authored resources into one Flue skill | Installed Flue `defineSkill` contract; verified core-package → plugin-package → production Flue-app spike |
+| `sdcpn-modelling/skill.ts.example` | Explicit composition of separately authored resources into one Flue skill | Installed Flue `defineSkill` contract; verified core-package → plugin-package → production Flue-app spike |
 | `sdcpn-modelling/profile.md` | Unified operational-process domain typology and SDCPN profile under five registers | Active APPEND target material; active `elicitation.md` SDCPN/mixed material; Ciaran outline; current plugin YAML concepts |
 | `workpiece-template.md` | Provisional domain-primary recoverable process-model workpiece | Active `ir-template.md`; Mission 4 proof obligations; Ciaran investigation headings |
 | `coverage-alternatives/formalism-primary-workpiece-template.md` | Workpiece paired with the formalism-primary Coverage alternative for a fair comparison | Active `ir-template.md`; formalism-primary Coverage candidate; Mission 4 proof obligations |
@@ -61,11 +61,11 @@ Source: `packages/plugin-sdcpn/src/APPEND_SYSTEM.md`.
 
 Sources: `packages/plugin-sdcpn/src/skills/sdcpn-modelling/`.
 
-### `SKILL.md` → `instructions.md` plus `skill.ts`
+### `SKILL.md` → `instructions.md` plus `skill.ts.example`
 
 The active skill's conceptual lifecycle, `runbook-ir` full-document emission convention, partial delivery, and phase resource routing move to plain `instructions.md`. The candidate requires a final full workpiece emission before construction handoff and workpiece-only delivery. It also distinguishes the current interactive and construct-only runtime branches: construct-only execution reports a re-entry question instead of interviewing. Existing-model revision applies fully to the workpiece and only to net changes supported by mounted mutation capabilities.
 
-The plugin-owned `skill.ts` uses Flue's native `defineSkill` to map the instructions, core-owned universal reference, and plugin-owned profile/template/construction/check resources into one packaged skill. Flue synthesizes the packaged `SKILL.md`; no authored duplicate remains.
+The plugin-owned `skill.ts.example` demonstrates Flue's native `defineSkill` to map the instructions, core-owned universal reference, and plugin-owned profile/template/construction/check resources into one packaged skill. Flue synthesizes the packaged `SKILL.md`; no authored duplicate remains.
 
 ### `elicitation.md`
 

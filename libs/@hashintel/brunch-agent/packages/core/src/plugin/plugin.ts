@@ -11,8 +11,9 @@ import type { PluginDefinition } from "./plugin-definition";
  * says the trivial target must not freeze the plugin contract before the hard
  * target has stressed it, so nothing in this scaffold ratifies the SDK export
  * surface. What the descriptor fixes now is only what the topology needs —
- * that a plugin declares which target formalism it defines, and does so through
- * Valibot like every other boundary in the system (spec §12.4).
+ * that a plugin declares the reusable domain typology it investigates and the
+ * target formalism it defines, and does so through Valibot like every other
+ * boundary in the system (spec §12.4).
  *
  * ADR-0007 adds the plugin definition: `plugin.yaml` under the harness-owned
  * keys, whose contract keys parameterise the harness's fold, completion, and
@@ -25,7 +26,9 @@ export const PluginDescriptor = v.object({
     v.string(),
     v.regex(/^plugin-[a-z][a-z0-9-]*$/, "expected a `plugin-<name>` name"),
   ),
-  /** The target formalism this plugin elicits toward — gherkin, sdcpn — never a domain. */
+  /** The reusable subject-matter typology this plugin investigates — never a concrete domain. */
+  domainTypology: v.pipe(v.string(), v.nonEmpty()),
+  /** The artifact formalism this plugin elicits toward — gherkin, sdcpn. */
   targetFormalism: v.pipe(v.string(), v.nonEmpty()),
 });
 

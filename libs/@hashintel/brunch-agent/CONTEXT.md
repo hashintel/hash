@@ -18,10 +18,8 @@ the `ask` API, capture envelope, issue queue, sweep bookkeeping). Injected into 
 narrow context; never owned by them.
 _Avoid_: kernel, core (as a prose shell name; the package path `packages/core` is exempt).
 
-**Plugin** — the innermost shell: target-defining policy, one per **target formalism** and never
-per domain. Authored as cells under harness-owned **keys**; receives capabilities by injection;
-mechanism stays in the harness.
-_Avoid_: extension, pack (a pack is a unit within a plugin).
+**Plugin** — the innermost shell: reusable elicitation and modelling policy for one **domain typology** / **target formalism** pairing, never for a concrete **domain**, situation, or scenario. It owns how the typology is recognized and investigated and how the resulting knowledge is preserved, transformed, and checked for the formalism; mechanism stays in the harness.
+_Avoid_: extension, pack (a pack is a unit within a plugin), formalism-only plugin.
 
 **Binding** — the substrate-facing adapter implementing the harness's named substrate-capability
 list (tool registration, instruction assembly, persistent state, affordance emission,
@@ -31,19 +29,16 @@ _Avoid_: adapter, integration, wrapper.
 
 ## Sessions and durability
 
-**Target formalism** — the artifact family a plugin projects into (Gherkin, SDCPN, assurance
-arguments, BPMN); the unit a plugin is written for.
+**Domain typology** — the reusable subject-matter concepts and recurring situations a plugin uses to recognize and investigate what may matter (for example, operational processes or software behavior). It is paired with a **target formalism** but does not contain facts or nouns from a concrete **domain**.
+_Avoid_: domain, target-domain, use case, scenario.
+
+**Target formalism** — the artifact family a plugin projects into (Gherkin, SDCPN, assurance arguments, BPMN): the representational half of a plugin's pairing, not the plugin unit by itself.
 _Avoid_: target-domain; bare "target" where family vs instance is ambiguous.
 
-**Domain** — the operational system the expert knows and the model describes (a packaging line, a
-truck fleet). Unknown before the conversation; discovered during it; never a plugin unit, key,
-row, or noun in a plugin definition.
-_Avoid_: target-domain, use case.
+**Domain** — the concrete system or situation the person knows and the model describes (a particular packaging line or truck fleet). Unknown before the conversation and discovered during it; never itself a plugin unit. Its facts populate the workpiece, while the plugin's **domain typology** supplies reusable ways to recognize and investigate them.
+_Avoid_: domain typology, target-domain, use case.
 
-**Target-document** — the durable unit sessions attach to: one target formalism, its capture
-store, and its session history. Its authoritative state is the capture store plus session logs,
-never the rendered artifact (renders are derived and disposable). Endures independently of any
-session; completion is a derived status, not a write gate.
+**Target-document** — the durable unit sessions attach to: one concrete domain under one plugin's domain-typology / target-formalism pairing, plus its capture store and session history. Its authoritative state is the capture store plus session logs, never the rendered artifact (renders are derived and disposable). Endures independently of any session; completion is a derived status, not a write gate.
 _Avoid_: spec, workpiece, case, target-output.
 
 **Session** — one substrate conversation: the full log of entries (user, agent, tool calls,
@@ -144,29 +139,16 @@ retired ElicitationPack.
 **Demand row** — one row of a plugin's must-know table: a slot on a kind, its required precision,
 whether "not applicable" is accepted, and why the model needs it. Kind-level only.
 
-**Pattern** — a discretionary, kind-indexed heuristic under a plugin's `patterns` key: a machine
-trigger (declared kind, optionally one unsatisfied demanded slot), `when` text, and an `ask`
-question. Never names a domain.
+**Pattern** — a discretionary, kind-indexed heuristic under a plugin's `patterns` key: a machine trigger (declared kind, optionally one unsatisfied demanded slot), `when` text, and an `ask` question. It may use the plugin's domain typology but never names a concrete domain.
 
-**Runbook** — the structurally typed, human-readable definition for eliciting and constructing
-one **target formalism**. It pairs universal repertoire teaching with formalism-specific purpose,
-investigation typologies, guidance, an IR template, transformation knowledge, completion, and
-checks in a nested Markdown hierarchy. `kickoff`, `trajectory`, and `close` are lifecycle regions
-inside the runbook, not its whole definition; the existing YAML field named `runbooks` keeps that
-narrower code-level meaning. Structural headings do not require captures or IR contents to use
-closed semantic types. Mission 3 delivers the first runbook through one Flue skill and disclosed
-resources; that packaging is not part of the term's definition.
+**Runbook** — the structurally typed, human-readable definition for eliciting and constructing through one plugin's **domain typology** / **target formalism** pairing. It pairs universal repertoire teaching with the plugin's purpose, investigation typology, target guidance, IR template, transformation knowledge, completion, and checks in a nested Markdown hierarchy. `kickoff`, `trajectory`, and `close` are lifecycle regions inside the runbook, not its whole definition; the existing YAML field named `runbooks` keeps that narrower code-level meaning. Structural headings do not require captures or IR contents to use closed semantic types. Mission 3 delivers the first runbook through one Flue skill and disclosed resources; that packaging is not part of the term's definition.
 
 **Key** — one fixed, harness-owned heading of the YAML plugin/repertoire precursor: the harness
 defines, teaches, and ships a default; a plugin specialises it in a cell. Four groups: contract
 data, guidance, runbook, machinery. Rendered key → harness default → plugin cell. Mission 3 mines
 this authoring structure as evidence; it does not restore the renderer as the runbook architecture.
 
-**Repertoire** — generally applicable elicitation concepts, directives, procedures, judgment
-activations, caveats, and failure knowledge: how an expert-knowledge interview goes well regardless
-of target formalism. The current YAML is the harness's evidence-admitted filling of guidance and
-lifecycle keys behind core's guarded `./prompts` subpath. A rendered runbook may incorporate this
-teaching without using that runtime.
+**Repertoire** — generally applicable elicitation concepts, directives, procedures, judgment activations, caveats, and failure knowledge: how an expert-knowledge interview goes well regardless of domain typology or target formalism. The current YAML is the harness's evidence-admitted filling of guidance and lifecycle keys behind core's guarded `./prompts` subpath. A rendered runbook may incorporate this teaching without using that runtime.
 
 **Mechanism type** — how a guidance key works on the interviewer: a **license** permits what the
 model would hedge on; a **technique** is a form of question or move; an **attention** key names

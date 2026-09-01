@@ -22,6 +22,7 @@ describe("the synthetic fixture definition", () => {
     expect(definition.version).toBe("fixture/2026-08-25.1");
     expect(definition.identity).toEqual({
       id: "fixture",
+      domainTypology: "things and steps",
       formalism: "fixture",
       jobs: ["construct"],
       purpose: "Interview someone about things and steps.",
@@ -130,6 +131,11 @@ describe("contract violations fail to load", () => {
       /yyyy-mm-dd/u,
     ],
     [
+      "a missing domain typology",
+      FIXTURE_PLUGIN_YAML.replace("  domain_typology: things and steps\n", ""),
+      /plugin\.domain_typology/u,
+    ],
+    [
       "a demand row for an unknown kind",
       FIXTURE_PLUGIN_YAML.replace(
         "{ kind: step, slot: who performs it",
@@ -215,15 +221,19 @@ const readShipped = (packageName: string): PluginDefinition =>
     ),
   );
 
-/** Words that would mean the plugin knows a domain rather than a formalism. */
-const DOMAIN_WORDS =
+/** Words that would mean the plugin knows a concrete domain rather than a reusable domain typology. */
+const CONCRETE_DOMAIN_WORDS =
   /\b(hospital|patient|coating|vestera|truck|packaging|warehouse|factory|bakery|clinic)\b/iu;
 
 describe.skipIf(!contextRootPresent)("the shipped plugin definitions", () => {
-  test.each(["plugin-sdcpn", "plugin-gherkin"])(
-    "%s validates, adds no key, and names no domain",
-    (packageName) => {
+  test.each([
+    ["plugin-sdcpn", "operational processes"],
+    ["plugin-gherkin", "software behavior"],
+  ])(
+    "%s validates, declares its domain typology, adds no key, and names no concrete domain",
+    (packageName, domainTypology) => {
       const definition = readShipped(packageName);
+      expect(definition.identity.domainTypology).toBe(domainTypology);
       expect(definition.identity.id).toBe(packageName.replace("plugin-", ""));
       expect(definition.kinds.length).toBeGreaterThan(0);
       expect(
@@ -234,7 +244,7 @@ describe.skipIf(!contextRootPresent)("the shipped plugin definitions", () => {
         ),
       ).toBe(true);
       const text = JSON.stringify(definition);
-      expect(text).not.toMatch(DOMAIN_WORDS);
+      expect(text).not.toMatch(CONCRETE_DOMAIN_WORDS);
       for (const key of GUIDANCE_KEYS) {
         expect(definition.guidance).toHaveProperty(key);
       }

@@ -4,7 +4,7 @@ Plausible future missions are the ordered `# Mission N — …` headings. Impera
 
 Archived Mission 2 is the mechanical capture pipe. Mission 3 is closed with a split result: the real Flue runbook and elicitation-to-workpiece path is the accepted control, while real-model semantic construction failed at the provider-schema boundary. Its frozen prospective campaign contains one invalid runtime member and two valid independently graded members; the campaign adjudication is the comparison input, not permission to rewrite observed artifacts.
 
-Live Mission 4 is the owner-led runbook/workpiece redesign in [`MISSION.md`](MISSION.md), tracked by FE-1563. Do not implement another numbered cluster on this branch. The detailed Mission 5–7 clusters below are provisional based on current evidence; Mission 4's manual redesign may alter their workpiece assumptions and join contracts before they are cut.
+Live Mission 4 is the owner-led runbook/workpiece redesign in [`MISSION.md`](MISSION.md), tracked by FE-1563. Do not implement another numbered cluster on this branch. The detailed Mission 5–8 clusters below are provisional based on current evidence; Mission 4's manual redesign may alter their workpiece assumptions and join contracts before they are cut.
 
 ```text
 M1 chat (done)    M2 mechanical capture (archived)    M3 runbook/workpiece (closed)
@@ -14,7 +14,8 @@ M4 owner-led, research-informed runbook/workpiece redesign (live)
 FE-1476 delivery spine
 ├─ M5 traceable prebuilt workpiece → live SDCPN → provenance answer       beats 1–3
 ├─ M6 bounded reviewer re-elicitation → revised workpiece → scoped patch  beats 4–5
-└─ M7 whole-story rehearsal → optimisation handoff                        beat 6
+├─ M7 whole-story rehearsal → optimisation handoff                        beat 6
+└─ M8 image/infra contract → restricted smoke → gated remote release      container work may run in parallel; public join follows the exercised path
 
 Other asynchronous evidence tracks, admitted only when their boundary is stable
 ├─ provider-visible Petrinaut schema path
@@ -321,6 +322,252 @@ The completed artifact need not represent every Vestera fact. It must carry a co
 - Stop if the handoff consumer must reconstruct model intent from the original transcript.
 - Stop if optimisation runs against a net that passed only parser shape and not the workpiece-specific semantic checks.
 - Stop if deployment bypasses the ratified remote-release gates.
+
+# Mission 8 — containerize and safely deploy Brunch on HASH infrastructure
+
+This cluster is the self-contained candidate successor for the deployment work currently tracked by FE-1441 and gated by FE-1423. It records the 2026-09-01 application and monorepo audit rather than assuming that “there is a Docker container” is the whole deployment contract. Container correctness, a restricted infrastructure smoke deployment, and public remote release are distinct thresholds. Container and infrastructure-contract work may proceed in a separate worktree while Missions 5–7 establish the product path, but the public routing/release join must consume the exercised path rather than inventing one in deployment. A cut may narrow to the first two thresholds only if the result is explicitly private and disposable; it may not call that public deployment or silently inherit the later gates.
+
+The least deployment shape is a long-running Node/Flue HTTP service on HASH infrastructure, initially one live replica, with Anthropic egress and durable conversation storage. The public product path remains Petrinaut panel → AI SDK HTTP transport → Brunch Flue `ChatAgent`; Brunch remains a second assistant rather than replacing the stock Petrinaut modeller. HASH Graph, Temporal, Redis, the HASH API, S3, and Petrinaut Optimizer are not current Brunch runtime dependencies and must not be added for symmetry.
+
+The current repository does not contain production Terraform, ECS task definitions, load balancer configuration, runtime secret declarations, or backup policy. It contains local Compose and a GitHub workflow that builds/publishes known images and force-redeploys pre-existing ECS services. Infrastructure provisioning therefore remains a handoff to Tim's infrastructure authority or another repository; this mission must record the external artifact and owner rather than pretending a workflow catalog entry creates the service.
+
+## Observed starting point
+
+These are high-confidence facts observed at the real local boundary unless a qualification says otherwise.
+
+- `yarn workspace @apps/brunch-agent build` emits `dist/server.mjs`, the server chunk, `dist/app.mjs`, and a built browser client under `dist/client/`. Starting `node apps/brunch-agent/dist/server.mjs` with a temporary `PORT` succeeded, bound `*:PORT`, served `/` with HTTP 200, and created SQLite `conversations.db`, `-wal`, and `-shm` files. This proves the generated Node entry can start; it does not prove container correctness, provider calls, restart recovery, remote safety, or deployment infrastructure.
+- The generated server reads `PORT`, defaults to `3000`, installs graceful `SIGINT`/`SIGTERM`/disconnect handling, and gives shutdown up to 60 seconds. The development-only Vite listener at `127.0.0.1:4321` is not the production listen contract.
+- The emitted server is not standalone. Running a copied `dist/` directory without the production dependency graph failed on the external `@flue/runtime` import. A runtime image must retain the focused production Node dependencies and built workspace packages, not copy `dist/` alone.
+- `apps/brunch-agent/package.json` has `build` but no `start` or `build:docker` task. There is no `apps/brunch-agent/docker/Dockerfile`, Compose service, deploy-workflow catalog entry, ECS registration, or `/health` route.
+- The root `.dockerignore` excludes general Markdown. Brunch's production graph imports `packages/core/src/SYSTEM.md?raw` and the SDCPN `SKILL.md` plus its sibling resources. A repository-root Docker build will omit required production inputs unless narrow exceptions admit the core system prompt and `packages/plugin-sdcpn/src/skills/sdcpn-modelling/*.md`. The existing Petrinaut user-guide Markdown exception does not cover these files.
+- `src/db.ts` configures Flue's canonical conversation store with Node SQLite. `BRUNCH_DEV_DB_PATH` can move the file; absent an override it writes under the application package's `.data-wipe-me/` directory. The adapter starts in WAL mode and provisions/verifies Flue tables at boot.
+- Brunch's capture machinery is a second persistence concern: `applyCaptureSweep` uses `createLocalCaptureStore` to write one JSON document per Flue instance beside the conversation database. The current runbook/workpiece production path does not invoke that capture pipe, so migrating it merely because the interface exists may be speculative; any remote path that does invoke it must not leave those files ephemeral.
+- The model provider is statically restricted to Anthropic in `flue.config.ts`. Normal turns require `ANTHROPIC_API_KEY`; `BRUNCH_CHAT_MODEL` defaults to `claude-haiku-4-5`. The direct provider normally calls `api.anthropic.com` over HTTPS unless its standard base URL is deliberately overridden.
+- `app.ts` registers `createOpenTelemetryInstrumentation({ content: false })`, but no Node OTel SDK/exporter currently sends spans to HASH's collector. Instrumentation registration is not operational telemetry.
+- The browser-facing AI SDK door is `GET | POST | OPTIONS /api/chat`. It accepts `x-brunch-principal`, the conversation id, and AI SDK message bodies, and emits an AI SDK UI-message stream. Internal history reads and dispatch use in-process `app.fetch`; the Petrinaut `/api/chat` path does not need a public network hop to the mounted Flue route.
+- The mounted `/agents/chat/:id` route requires `x-brunch-principal` and `x-brunch-conversation` and checks that they derive the path instance id. This is ownership consistency, not authentication: the browser currently mints the principal UUID in localStorage, and a caller can self-assert one. The bundled debug UI at `/` uses the fixed principal `local` and can start billable model turns if exposed.
+- `BRUNCH_PETRINAUT_ORIGINS` is an exact comma-separated CORS allowlist. Its defaults admit only the local Petrinaut ports. CORS does not authenticate non-browser callers or prevent direct abuse.
+- `apps/petrinaut-website` currently owns its production `/api/chat` with the stock modeller. Only the Brunch local Vite configuration removes that handler and proxies the route to Brunch. A remote service URL alone does not connect the production panel, and replacing that route wholesale would violate the locked second-assistant decision.
+- HASH's deploy workflow treats its embedded service catalog as the build/publication/redeployment registry. Package-based change detection looks for `build:docker`, builds repository-root Dockerfiles on native arm64 and amd64 runners, publishes arm64 ECR images and multi-arch GHCR manifests, and then calls `aws ecs update-service --force-new-deployment` for already-created services. It does not create ECR, ECS, IAM, networking, DNS, secrets, databases, target groups, or backups.
+
+## Service and communication contract
+
+```text
+Petrinaut browser
+  → selected same-origin proxy or explicitly allowed Brunch origin
+  → Brunch POST/GET /api/chat (long-lived streamed response)
+  → in-process Flue ChatAgent route and conversation coordinator
+  → Anthropic HTTPS API
+  → response stream back to Petrinaut
+
+Brunch process
+  → durable Flue conversation/submission store
+  → Brunch capture store only on paths that actually invoke capture
+  → OTel collector after an exporter is wired
+```
+
+| Boundary | Direction | Current requirement | Confidence and flexibility |
+| --- | --- | --- | --- |
+| Petrinaut panel | Browser → Brunch | `GET`, `POST`, and `OPTIONS /api/chat`; streamed AI SDK response; principal and conversation identity | High that this is the product door. Low on same-origin proxy versus separate origin, picker location, and exact public path. |
+| Direct Flue route | Browser/diagnostics → `/agents/chat/:id` | Required by the bundled debug UI and diagnostics, but not by Petrinaut's `/api/chat` network path | High that broad public exposure is unnecessary for the panel. Whether to keep it private, authenticate it, or omit it from public ingress is a cut-time decision. |
+| Anthropic | Brunch → provider HTTPS | `ANTHROPIC_API_KEY`; model selected by `BRUNCH_CHAT_MODEL` | High. A provider proxy or Bedrock path would be a separate product/provider decision, not infra substitution. |
+| Durable database | Brunch → storage | State must survive process and task replacement before release | High on durability; medium that Postgres is the selected mechanism because FE-1441 says so and HASH has it, but the current code has no Postgres adapter. |
+| OTel collector | Brunch → telemetry backend | Remote failures, model/tool spans, duration, usage, and attributable conversation identity must be inspectable without prompt content by default | High as a release gate; medium on exact SDK/bootstrap package and environment variable names until HASH's collector convention is checked. |
+| Other HASH services | — | No current call | High. Do not introduce Graph, Temporal, Redis, API, S3, Kratos, or Petrinaut Optimizer as runtime dependencies unless a concrete auth/storage/routing decision requires one. |
+
+## Application-owned deployment surface
+
+The Brunch branch should own the executable artifact and its behavioral contract, not infrastructure resource creation.
+
+- Add `apps/brunch-agent/docker/Dockerfile` using the repository root as context and the repository-locked Node `22.21.1`. Follow the existing Turbo-prune graph via `.github/scripts/prune-scopes.sh '@apps/brunch-agent'`, immutable Yarn install, dependency builds, and `turbo build --filter '@apps/brunch-agent' --env-mode=loose`.
+- Keep only the production dependency closure and built workspace outputs in the runner where practical. Existing HASH Node images copy the whole pruned tree, while `petrinaut-opt` demonstrates a focused production runtime; either shape is acceptable if the image proves all external imports and skill resources are present. Image slimness is subordinate to a correct first container.
+- Add narrow `.dockerignore` exceptions for the production Markdown inputs. Do not broadly re-admit all Brunch research, mission, evidence, or evaluation Markdown into the image.
+- Run `node dist/server.mjs` through an explicit `start` script or direct exec-form container command. The stable contract is the generated `dist/server.mjs`, not the hashed server chunk or `dist/app.mjs` loader.
+- Run as a dedicated non-root user, set `NODE_ENV=production`, use an init process or platform init, and create only the writable directory the selected persistence mode needs. Never require write access to the source tree.
+- Add an unauthenticated, cheap liveness route such as `/health`; do not use `/`, which reads a UI asset and carries product behavior. Startup should fail before readiness when required storage migration/connection fails. The liveness response should not make a billable Anthropic call or require every external dependency to be healthy.
+- Add `build:docker` so the existing affected-package machinery can see Brunch, and add a container smoke test that starts the image, observes health, exercises the built skill/resource presence, and proves the process writes only to approved writable locations. The existing build-artifact tests remain necessary but do not prove the Docker context.
+- Add a deploy-workflow catalog entry only after the target image names and pre-provisioned ECS service identifiers are agreed with infra. Local Compose parity is optional unless it reveals or protects a real deployment contract; do not make Compose a ceremonial requirement.
+- Document the runtime variables, secrets, ingress, egress, persistence, shutdown, and recovery contract beside the application. Do not bake secrets or environment-specific public URLs into build args or image layers.
+
+## Infrastructure-owned deployment surface
+
+Tim or the owning infrastructure repository must provide or explicitly decline each relevant resource. This checkout cannot evidence their implementation.
+
+- Image repository and pull permissions for the selected ECR/GHCR publication path. Current HASH convention publishes both; ECR-only is sufficient for ECS if public GHCR distribution has no consumer.
+- A pre-provisioned ECS task definition and service, selected cluster, execution/task roles, runtime secret injection, security groups, private networking, outbound DNS/HTTPS to Anthropic, and database network access. Existing names under `h-stage-euc1-app` are precedent, not authority for the Brunch target.
+- ALB or equivalent routing, TLS, DNS, target-group health check, idle timeout suitable for model/tool streaming, request-size controls, access logging, and the chosen public/private exposure boundary.
+- Postgres database/schema/role and connection secret if Postgres remains selected, including encryption, network restriction, backup retention, point-in-time recovery expectations, and an exercised restore path appropriate to the release stakes.
+- OTel collector reachability and the organization-approved service/resource attributes, retention, dashboards, and alert destinations.
+- Deployment strategy and stop/drain settings compatible with Flue's one-live-owner rule and the generated server's 60-second graceful-shutdown window.
+- CPU, memory, ephemeral disk, desired count, autoscaling, and cost alarms based on a measured representative conversation. No current evidence supports a numeric CPU/memory request or concurrency target.
+
+## Joint application/infra decisions
+
+These boundaries cannot be settled correctly by either side alone.
+
+### Restricted smoke versus public release
+
+A private smoke deployment may use one ECS task behind VPN, Cloudflare Access, an internal ALB, or another independently enforced boundary. It may temporarily use task-local SQLite only if restart loss is intentional, no durable user promise is made, and the environment is labelled disposable. An EFS-backed SQLite singleton is technically plausible but unproven here and should not become an accidental production architecture merely because it postpones Postgres work.
+
+Public exposure requires the remote-release properties below. A working image, HTTP 200, CORS allowlist, obscure conversation id, or browser-minted UUID does not discharge them.
+
+### Identity, authentication, and authorization
+
+Per-conversation ownership enforcement is non-negotiable; the identity source is flexible. The present code proves that a principal plus conversation id can derive and guard a Flue instance, but it trusts a caller-supplied principal. FE-1439's issue text calls the browser UUID sufficient for an accepted demo threat model and says it discharges the authentication gate, while FE-1423 and this draft's standing constraints still say no remote exposure while authentication is open. That policy conflict must be resolved explicitly before cutting or releasing this mission.
+
+Candidate identity sources include existing HASH/Ory identity, a server-issued unforgeable anonymous session, or a restricted-preview access identity. The mission should not preselect Kratos merely because HASH uses it elsewhere. Whatever wins must establish the server-side principal, bind each conversation to it, reject cross-principal reads and writes, and preserve that binding through restart. CORS remains a browser-origin control, never the authentication mechanism.
+
+### Front door and Petrinaut routing
+
+The production Petrinaut site already uses `/api/chat` for the stock assistant. Brunch must remain independently selectable and the stock assistant must remain functional when Brunch is unavailable. Same-origin path routing is attractive because it simplifies browser policy, but it creates a route-selection contract at the Petrinaut host. A separate Brunch origin avoids the path collision but requires explicit CORS, credentials/identity propagation, and another public hostname. The first public cut must name which topology it proves and how the panel selects it; infrastructure should not guess from the local proxy.
+
+Only routes needed by that topology should be reachable through public ingress. In particular, decide whether `/`, `/assets/*`, and `/agents/chat/:id` are disabled, access-controlled, or internal. The bundled debug UI's fixed `local` principal is a release blocker if the root remains public without a stronger front door.
+
+### Rate limits and cost controls
+
+FE-1441 names per-principal and per-IP rate limits. The properties are higher confidence than the mechanism or thresholds: one caller must not exhaust provider budget; retries and reconnects must not be charged as independent abuse; legitimate long conversations must remain usable; and rejected requests must be observable without recording sensitive prompt content. Enforcement could live in WAF/ALB, an authenticated gateway, the application, or a deliberate combination. In-memory counters are not durable or replica-safe. Exact request, token, concurrency, and spend limits require representative traffic and an owner-set budget rather than invention in the infrastructure manifest.
+
+### Streaming and availability
+
+Flue's Node target is a long-running service with an in-process coordinator and long-lived conversation reads; do not deploy it as Lambda, a short-lived function, or scale-to-zero. The server itself sets no request timeout. The proxy idle timeout must tolerate the longest expected silent model/tool interval or the client reconnection protocol must be proven across that timeout. The current Petrinaut Vercel function permits five minutes, which is useful precedent but not an earned ALB value.
+
+One replica is the least honest first deployment. Shared Postgres enables replacement recovery but does not by itself permit active-active handling of the same conversation. Before desired count exceeds one, prove how requests for one instance reach one live owner. Before a rolling singleton deployment is called durable, prove the overlap/drain behavior: ECS may start a replacement while the old task still owns work, while stopping old-first trades ownership safety for downtime. Deployment percentages, sticky routing, leases, and reconnect behavior remain design fog until exercised.
+
+## Persistence, migration, and recovery contract
+
+FE-1441 records Postgres as the intended HASH deployment store, but current implementation and current product usage make the exact application scope less certain than the infrastructure requirement suggests.
+
+- Flue canonical conversations, accepted submissions, and persisted state are active production data. Their store must survive process restart and ECS task replacement. The selected Flue Postgres adapter should provision/version its own tables at startup and refuse incompatible formats rather than continue ambiguously.
+- Brunch capture documents are application data behind `CaptureStore`, not Flue records. If the deployed path invokes capture, a Postgres-backed implementation or another explicitly durable implementation must preserve owner-key refusal, atomic command semantics, format validation, and session-log/capture consistency. If the deployed Mission 8 path still never invokes capture, do not build a speculative Postgres capture subsystem merely to satisfy an old topology sketch; record that capture is inactive and make enabling it conditional on durable storage.
+- A restart proof must distinguish process restart on one task, task replacement on another host, interrupted accepted work, reconnecting stream, and database restoration. Passing only the first is not “restart durability” on ECS.
+- Schema/version policy must say which changes migrate, which refuse startup, who runs or authorizes migration, and how rollback behaves when old and new tasks overlap. Flue's internal format migration does not settle Brunch capture schema policy.
+- Backup policy must identify the backed-up state, retention, encryption, access, restore owner, recovery-point objective, and recovery-time expectation at the level the deployment owner actually accepts. “RDS has backups” without a restore expectation is not evidence.
+- Conversation content contains expert operational knowledge and is sent to Anthropic, stored in the database, and potentially represented in logs/traces/backups. Retention, deletion, access, provider/data-region policy, and incident handling are owner decisions that constrain infra. OTel content remains off by default until an explicit privacy policy permits otherwise.
+
+## Runtime configuration candidates
+
+| Name | Role | Secret? | Current status and flexibility |
+| --- | --- | --- | --- |
+| `ANTHROPIC_API_KEY` | Authenticates model calls | Yes | Required for useful turns; inject at runtime from the approved secret store, never as a build arg. |
+| `PORT` | HTTP listen port | No | Supported now; defaults to `3000`. Infra may select another port if task, target group, health check, and docs agree. |
+| `NODE_ENV` | Production runtime behavior | No | Set to `production`. |
+| `BRUNCH_CHAT_MODEL` | Anthropic model id | No | Optional; default `claude-haiku-4-5`. Release should pin an accepted model deliberately rather than inherit a default unnoticed. |
+| `BRUNCH_PETRINAUT_ORIGINS` | Exact browser CORS allowlist | No | Required for a direct or Origin-bearing browser call. Values depend on the chosen preview/public host topology. No wildcard. |
+| `BRUNCH_TRANSPORT_AISDK_INSPECT` | Structured transport diagnostics to stdout | No | Optional and off by default. Decide whether emitted metadata is appropriate for production logs before enabling. |
+| `BRUNCH_DEV_DB_PATH` | Current SQLite file path | No | Useful only for local/private singleton storage. The development-named variable should not become a permanent public persistence contract by accident. |
+| `BRUNCH_CHAT_DB_PATH` | Hermetic test database override | No | Test-only in the current design; do not configure in production. |
+| Postgres connection variable | Flue and possibly capture-store database connection | Yes | Not implemented. `DATABASE_URL` is Flue documentation precedent, not a current Brunch input; settle naming with the chosen adapter and HASH secret convention. |
+| OTel endpoint/resource variables | Export telemetry to HASH collector | Usually no, possibly authenticated | Not implemented. Verify whether HASH expects standard `OTEL_EXPORTER_OTLP_*`, existing `HASH_OTLP_ENDPOINT`, or an application bootstrap; do not set variables that no SDK reads. |
+| Authentication configuration | Establish trusted server-side principal | Likely partly secret | Unsettled. Depends on Ory, gateway, anonymous session, or restricted-preview decision. |
+
+## Operational visibility and health
+
+Remote release must make failures and cost attributable without turning user conversations into ambient logs.
+
+- Wire a real Node OTel SDK/exporter or the approved HASH bootstrap around the existing Flue instrumentation, and verify one model turn, tool call, settlement failure, duration, token usage, and cost reach the collector with stable service, deployment, model, submission, and conversation correlation. `gen_ai.conversation.id` should equal the Flue instance id unless an accepted telemetry convention says otherwise.
+- Keep `content: false` initially. Verify prompts, responses, tool arguments/results, provider keys, database URLs, and raw authorization material do not appear in traces, logs, health responses, or deployment metadata. Any later content capture needs a retention/access/redaction decision.
+- Decide whether incoming `traceparent` should cross `/api/chat`; current dispatch does not propagate it. This is useful for Petrinaut-to-Brunch correlation but is not permission to delay a basic remote-failure floor.
+- Emit and alert on process startup failure, database migration/connect failure, failed submission settlement, provider authentication/rate-limit/error outcomes, abnormal stream termination, task restart loops, latency, token/cost budget, database capacity, and absence of expected traffic where appropriate. Exact dashboards and thresholds remain infra/product decisions.
+- `/health` should prove process liveness cheaply. Readiness may be represented by successful startup because Flue connects/migrates storage before listening, or by a separate endpoint if HASH orchestration requires it. Do not make health depend on a paid provider request. Document what the chosen probe does and does not establish.
+
+## CI, publication, and deployment wiring
+
+The repository-side path should converge with the existing workflow rather than create a second image pipeline.
+
+1. Add `start` and `build:docker` tasks to `@apps/brunch-agent` so local use and affected-package detection name the production contract.
+2. Add the root-context Dockerfile and narrow `.dockerignore` exceptions.
+3. Build and smoke-test the image on the architectures the workflow will publish. A local host build alone does not establish arm64 runtime correctness.
+4. Add the deploy service-catalog entry with `package: "@apps/brunch-agent"`, `service: "brunch-agent"`, root context, Dockerfile path, selected registries, and only the ECS service identifiers that infra has actually provisioned.
+5. Record the external infrastructure location and identifiers: account/region, cluster/service/task family, image repository, hostname/path, target group/health path, database/schema/role, secret references, collector, backup policy, and deployment owner. Do not put secret values in the repository.
+6. Exercise an immutable image build, restricted deployment, health transition, one representative streamed conversation, process restart, task replacement, failed provider call visibility, and rollback behavior at the selected threshold before widening exposure.
+
+A local Compose entry is useful only if it exercises the same image/configuration and catches a real gap. Updating the obsolete-looking `load-docker-images` action is unnecessary unless a current consumer is found; no current workflow references it.
+
+## Confidence map
+
+### High confidence — observed or owner/issue-settled
+
+- Brunch is a long-running Flue Node service, not a serverless function, and `dist/server.mjs` is the generated production entry.
+- The runtime image requires production Node dependencies and built workspace outputs in addition to `dist/`.
+- The Docker build needs repository-root context and explicit admission of production Markdown prompt/skill files.
+- The current product door is Petrinaut's AI SDK `/api/chat`, with long-lived streamed responses.
+- Anthropic is the only current model-provider dependency; no current Graph, Temporal, Redis, HASH API, S3, or optimizer dependency exists.
+- The current SQLite/JSON state is not sufficient for ordinary replaceable ECS tasks without a separately accepted persistent-filesystem singleton design.
+- Public exposure is forbidden until conversation authorization, remote telemetry, state versioning/backup, and restart durability hold. The public debug root cannot safely retain its fixed `local` identity without another access boundary.
+- The stock Petrinaut assistant must remain available and its conversation history must not be spliced with Brunch history.
+- The existing deploy workflow can build/publish/redeploy Brunch only after both repository catalog wiring and external ECS provisioning exist.
+
+### Medium confidence — plausible first mechanisms, not yet proved
+
+- Postgres is the best production store because FE-1441 records it, HASH already operates it, and Flue documents a Postgres adapter. The exact capture-store scope and schema remain unproved.
+- One ECS task behind an ALB, with Postgres and no autoscaling, is the least mechanism for the first durable restricted deployment.
+- Same-origin proxying from Petrinaut is likely simpler than a separate browser origin, but it competes with the stock `/api/chat` route and needs the product mode-selection contract.
+- Per-principal plus per-IP rate limiting is a useful abuse floor from FE-1441, but its layer, persistence, and thresholds need the selected identity and traffic model.
+- A liveness-only `/health`, storage-gated startup, and content-free Flue OTel spans match existing HASH service conventions, but exact readiness and collector bootstrap need infra confirmation.
+- ECR publication and the existing staging app cluster are likely deployment conventions. GHCR publication, cluster name, hostname, and production promotion are flexible until Tim confirms consumers and environment ownership.
+
+### Low confidence — must alter the first move or remain visible
+
+- Whether the target of the next branch is a private smoke deployment, an authenticated preview, or public production. These have different required gates and should not be averaged.
+- Whether a browser-minted UUID remains an accepted anonymous demo identity or FE-1423 requires real authenticated identity. Issue history and current standing constraints are not fully consistent.
+- Whether to migrate only active Flue conversation state first or both Flue and currently inactive Brunch capture state in one mission.
+- The exact Postgres database/schema tenancy, driver, pool sizing, migration/rollback policy, backup retention, and restore objectives.
+- The Petrinaut routing shape: same-origin selected path, separate hostname, backend proxy, or another mode boundary; also whether selection may change mid-net.
+- Which public routes remain reachable and whether the bundled debug UI ships at all.
+- The authentication authority and token/cookie propagation mechanism.
+- Rate-limit, request-size, concurrent-turn, token, and spend thresholds, and whether WAF/gateway/application share enforcement.
+- CPU, memory, disk, concurrency, autoscaling, availability, and cost targets. No load evidence currently supports numbers.
+- ALB idle timeout, stream reconnection behavior under silent provider intervals, rolling-deployment overlap, task-drain behavior, and multi-replica conversation ownership.
+- HASH's exact Node OTel bootstrap and environment vocabulary, incoming trace propagation, telemetry retention, and alert thresholds.
+- Where the infrastructure source of truth lives. This checkout has no production Terraform/task definitions despite labeler references to `infra/terraform/**`.
+- Data retention, deletion, residency, access, provider terms, and whether backups/traces may contain customer operational knowledge.
+
+## Constraints already earned
+
+- Do not expose Brunch remotely merely because an image starts. A restricted smoke must remain access-controlled and explicitly labelled; public release must satisfy the remote gates.
+- Do not treat the caller-supplied principal, conversation hash, CORS, or an unguessable id as authentication.
+- Do not replace or destabilize the stock Petrinaut assistant, splice histories, or rewrite the panel onto `@flue/react` to simplify deployment.
+- Do not add Graph, Temporal, Redis, HASH API, Kratos, or another platform dependency without a selected boundary that requires it.
+- Do not put provider/database/auth secrets in Docker build args, image layers, repository files, logs, or health responses.
+- Do not invent a second image/redeployment pipeline while the existing service catalog can carry the package.
+- Do not copy only `dist/`, omit production Markdown, run as root, require a writable source tree, or rely on a package-local ephemeral database while claiming replacement durability.
+- Do not infer active-active safety from shared Postgres. Keep one live replica until ownership/routing is proved.
+- Do not turn the inactive capture path into a speculative Postgres subsystem unless the deployed throughline consumes it; if it is consumed, do not leave it on local JSON.
+- Keep trace content off until privacy, retention, and access policy are accepted. Operational observability must not depend on exporting prompts.
+- Preserve the current Node/Flue happy path and generated server lifecycle rather than wrapping it in a custom HTTP process manager.
+
+## Fog-line
+
+Resolve these at the smallest real deployment boundary before cutting beyond them:
+
+- What exposure threshold is actually being requested: infra-only image handoff, private smoke, authenticated preview, or public release?
+- What exact remote threat model and identity policy does the owner accept, given the conflict between the browser-UUID demo posture and the still-open authentication gate?
+- Which hostname/path and Petrinaut mode-selection mechanism route to Brunch without stealing the stock `/api/chat` contract?
+- Which routes must be public, internal, or absent?
+- Does the selected throughline invoke Brunch capture persistence, or only Flue conversation/workpiece history? Which state must Postgres own in this mission?
+- Where does the infrastructure source live, and which ECS cluster/service, image registry, database, collector, secret store, DNS zone, and backup owner has Tim selected?
+- What database isolation, migration, rollback, backup, restore, retention, and deletion contract is accepted?
+- What rate-limit and spend budget protects Anthropic usage, and at which enforcement layer can principal/IP identity be trusted?
+- What representative streamed interaction sets CPU/memory and idle-timeout evidence, and what reconnect behavior is required when an intermediary closes a quiet stream?
+- How does a rolling singleton deployment avoid simultaneous ownership or unacceptable downtime, and what would justify a second replica?
+- Which OTel bootstrap and resource attributes match HASH production, and which failures/usage signals must alert before the URL widens?
+- What data classification applies to expert interviews, provider transmission, database rows, backups, logs, and traces?
+
+## Stop or reorient
+
+- Stop if public DNS or unrestricted ingress is created before the identity, authorization, rate-limit, telemetry, persistence, and recovery gates are accepted and observed.
+- Stop if a green Docker build is represented as a deployed or durable product path without running the real streamed conversation through the image and selected infrastructure.
+- Stop if task replacement loses or forks conversation/workpiece state, accepted work, owner binding, or any capture state the deployed path claims to preserve.
+- Stop if rolling deployment or horizontal scaling can give one conversation two live owners without a proven routing/lease contract.
+- Stop if the frontend integration replaces the stock assistant, merges histories, or depends on Brunch being available when stock mode is selected.
+- Stop if the public root or mounted Flue route permits unauthenticated billable turns, cross-owner reads/writes, or bypass of the intended gateway.
+- Stop if CORS, UUID entropy, ALB obscurity, or rate limiting is presented as authentication.
+- Stop if telemetry variables are configured but no exported failure/turn/tool span reaches the approved backend, or if observability exports prompt/tool content without accepted policy.
+- Stop if `DATABASE_URL` or another Postgres secret is provisioned but current SQLite/JSON code still ignores it while release claims Postgres durability.
+- Stop if backup is claimed without naming the backed-up state and demonstrating a restore expectation, or if schema mismatch silently proceeds.
+- Stop if container slimming drops external runtime dependencies, the core prompt, skill resources, client assets, or architecture support.
+- Stop if arbitrary CPU, memory, timeout, replica, retention, or rate-limit numbers harden into infrastructure without a measured or owner-accepted premise.
+- Reorient to a restricted singleton smoke if public-release prerequisites cannot be settled in the mission window; preserve the real image and operational evidence without weakening the public gate.
 
 # Parallel and asynchronous proof tracks
 

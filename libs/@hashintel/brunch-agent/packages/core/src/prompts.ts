@@ -5,7 +5,7 @@ import repertoireYaml from "./teaching/repertoire.yaml?raw";
  * The harness's validated default teaching.
  *
  * The repertoire fills every guidance and runbook key before a plugin adds its
- * formalism-specific cells. Every entry names its evidence source, and reading
+ * domain-typology- and target-formalism-specific cells. Every entry names its evidence source, and reading
  * fails at module load if a key is empty or unsourced. Bindings and evaluation
  * composition may import `@hashintel/brunch-agent/prompts`; plugins may not.
  *

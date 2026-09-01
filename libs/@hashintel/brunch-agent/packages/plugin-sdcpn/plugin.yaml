@@ -1,10 +1,11 @@
 # The SDCPN plugin — authored under the harness-owned keys of ADR-0007.
 #
-# Every key below is defined and taught by the harness; this file specialises each for one target
-# formalism. Cells add to the harness default and never override it; a cell left blank means the
-# default suffices. Nothing here may name a domain: the same file must serve any operational
-# system unchanged. A case that seems to need a new row or a new key is a finding about the
-# abstraction, recorded in the schema changelog, never content added here.
+# Every key below is defined and taught by the harness; this file specialises each for one
+# reusable domain typology paired with one target formalism. Cells add to the harness default and
+# never override it; a cell left blank means the default suffices. Nothing here may name a concrete
+# domain, situation, or scenario: the same file must serve any operational process unchanged. A case
+# that seems to need a new row or a new key is a finding about the abstraction, recorded in the
+# schema changelog, never content added here.
 #
 # Migrated from plugin.md (sdcpn/2026-08-25.1) with no semantic change to the three tables. The
 # guidance the v0 prompt contributed — open with objectives, slice then sweep, probe, keep the
@@ -14,7 +15,8 @@
 
 plugin:
   id: sdcpn
-  version: sdcpn/2026-08-26.2
+  version: sdcpn/2026-09-01.1
+  domain_typology: operational processes
   formalism: stochastic dynamic coloured Petri nets (Petrinaut)
   jobs: [construct, review-and-revise]
   purpose: |

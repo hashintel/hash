@@ -65,6 +65,8 @@ The resource names in `SKILL.md` are logical addresses in one assembled Flue ski
 
 If a rule must bind before a lazy resource might be read, it does not belong only in that resource. If material merely teaches how to carry out one phase, it does not earn always-on prompt space.
 
+Resources read together must be additive: when the universal and plugin elicitation references state the same rule, core owns it and the plugin retains only the operational-process or target-formalism consequence. Resources read at different moments may project a universal invariant into a local recording or checking obligation.
+
 ## Shared elicitation registers
 
 - **Directives** bind conduct within elicitation and revision.

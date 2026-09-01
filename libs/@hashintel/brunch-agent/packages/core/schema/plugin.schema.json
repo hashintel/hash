@@ -15,6 +15,10 @@
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]*\\/\\d{4}-\\d{2}-\\d{2}\\.\\d+$"
         },
+        "domain_typology": {
+          "type": "string",
+          "minLength": 1
+        },
         "formalism": {
           "type": "string",
           "minLength": 1
@@ -32,7 +36,14 @@
           "minLength": 1
         }
       },
-      "required": ["id", "version", "formalism", "jobs", "purpose"],
+      "required": [
+        "id",
+        "version",
+        "domain_typology",
+        "formalism",
+        "jobs",
+        "purpose"
+      ],
       "additionalProperties": false
     },
     "ontology": {

@@ -107,7 +107,7 @@ Who wins a contended resource. What a document says versus what people do. Unwri
 
 What observation or replay would make the result accurate enough. Do not ask the expert to predict the model's answer and store that prediction as structure.
 
-## Target-formalism guidance
+## Operational-process and SDCPN guidance
 
 ### Lenses
 

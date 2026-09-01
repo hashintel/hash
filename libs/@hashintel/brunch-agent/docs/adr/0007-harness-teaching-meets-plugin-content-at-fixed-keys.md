@@ -12,6 +12,7 @@ a harness package, never in app `skills/` directories), [ADR-0003](0003-three-re
 (three registers), [ADR-0005](0005-model-assisted-sdcpn-realization.md) (`project` / `validate`
 as code), IR Layer B's rule that interview ordering is derived from completion rather than
 taught, and completion rule 15 (whether a session may stop is session control, never guidance)
+Corrected by Mission 4 on 2026-09-01: references below to a plugin naming “no domain” mean no concrete domain, organization, situation, or scenario. A plugin now explicitly pairs a reusable domain typology with its target formalism; its cells may use that typology.
 Decided on: the `ln/fe-1406-harness-teaching-adr` branch, from the
 [lineage audit](../evidence/audits/harness-teaching-lineage-audit.md) and the
 [penciled directions of 2026-08-14](../archive/planning-inputs/penciled-directions-2026-08-14.md);
@@ -20,7 +21,7 @@ owning issue FE-1406 (gist: what the harness teaches)
 ## Context
 
 Kernel spec §11.5 has said since 2026-08-11 that **guidance ownership follows vocabulary
-ownership**: a plugin teaches what to notice in its formalism; the harness teaches how to work an
+ownership**: a plugin teaches what to notice through its domain typology and for its target formalism; the harness teaches how to work an
 interview situation the shared envelope can name. The rule was reaffirmed by FE-1397, ADR-0002,
 FE-1406, and ADR-0006's supersession map, and it has never been designed. The
 [audit](../evidence/audits/harness-teaching-lineage-audit.md) finds fifteen restatements,
@@ -63,7 +64,7 @@ regex over prose and the completion anchor found by naming convention — the si
 1. **One principle for every key: the harness defines and teaches the concept; the plugin
    specialises it in the harness's terms.** Plugin authoring is a fixed set of **keys**. The
    harness owns every key, its meaning, and its default text; a plugin fills cells under those keys
-   with content that names its kinds and never a domain. Rendering interleaves, key by key: the
+   with content that names its domain typology and kinds and never a concrete domain. Rendering interleaves, key by key: the
    key, the harness default, then the plugin's cell if it is not blank. Cells add; they never
    override a default — a default a plugin needs to contradict is a finding about the harness.
    Once the catalogue is frozen (decision 9), adding a key is an amendment to this record and the

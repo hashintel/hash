@@ -3,7 +3,8 @@
  * (ADR-0007 decision 8).
  *
  * A plugin is data under fixed keys in four groups — contract (`ontology`,
- * `schema`, `patterns`), guidance, runbooks, machinery — plus an identity block.
+ * `schema`, `patterns`), guidance, runbooks, machinery — plus an identity block
+ * naming its reusable domain typology and target formalism.
  * The schema here is the contract: an unknown key anywhere is rejected, so a
  * plugin can specialise every key and add none. The cross-checks below are the
  * facts a schema cannot state — that every row names a declared kind, that the
@@ -148,6 +149,7 @@ export interface PluginDefinition {
   readonly version: string;
   readonly identity: {
     readonly id: string;
+    readonly domainTypology: string;
     readonly formalism: string;
     readonly jobs: readonly Job[];
     readonly purpose: string;
@@ -229,6 +231,7 @@ export const PluginDefinitionSchema = v.strictObject({
   plugin: v.strictObject({
     id: identifier,
     version,
+    domain_typology: text,
     formalism: text,
     jobs: v.pipe(v.array(v.picklist(JOBS)), v.minLength(1)),
     purpose: text,
@@ -467,6 +470,7 @@ export function readPluginDefinition(yamlText: string): PluginDefinition {
     version: input.plugin.version,
     identity: {
       id: input.plugin.id,
+      domainTypology: input.plugin.domain_typology,
       formalism: input.plugin.formalism,
       jobs,
       purpose: input.plugin.purpose,

@@ -6,6 +6,16 @@ or left alone, and why, with the evidence that moved it. `plugin.schema.json`
 is derived from `PluginDefinitionSchema` in `src/plugin/plugin-definition.ts`; a test
 fails when the two drift.
 
+## Cycle 3 — 2026-09-01
+
+Corrected the plugin identity after the Mission 4 prompt/runbook synthesis exposed that the previous formalism-only description had discarded an authored layer.
+
+- Added required `plugin.domain_typology` alongside `plugin.formalism`.
+- A plugin now names one reusable domain typology / target formalism pairing. `plugin-sdcpn` pairs operational processes with SDCPN; `plugin-gherkin` pairs software behavior with Gherkin.
+- Preserved the concrete-domain boundary: no plugin definition may name a particular operation, organization, situation, or scenario.
+- Bumped both shipped definition versions to `2026-09-01.1` because their identity contract changed.
+- Added no guidance key, semantic claim type, or runtime composition mechanism.
+
 ## Cycle 1 — 2026-08-25
 
 First materialisation. Both test-case plugins (`plugin-sdcpn`, `plugin-gherkin`)

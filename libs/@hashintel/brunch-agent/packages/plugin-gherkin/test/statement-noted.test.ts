@@ -19,6 +19,11 @@ const statementNoted = {
 };
 
 describe("the Gherkin verbatim-grade proposal floor", () => {
+  test("declares both its domain typology and target formalism", () => {
+    expect(gherkin.domainTypology).toBe("software behavior");
+    expect(gherkin.targetFormalism).toBe("gherkin");
+  });
+
   test("leaves rule coverage to the sweep, pattern, and check without a duplicate failure mode", () => {
     expect(
       gherkinDefinition.guidance.failure_modes.map(

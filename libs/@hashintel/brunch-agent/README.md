@@ -16,8 +16,8 @@ Brunch is the stateful elicitation harness and package family at `libs/@hashinte
   subpath ships the harness repertoire, rendered by bindings and never imported by plugins.
 - [`packages/binding-flue/`](./packages/binding-flue/) is the Flue binding.
 - [`packages/transport-aisdk/`](./packages/transport-aisdk/) is the AI SDK transport.
-- [`packages/plugin-gherkin/`](./packages/plugin-gherkin/) and
-  [`packages/plugin-sdcpn/`](./packages/plugin-sdcpn/) are the target plugins.
+- [`packages/plugin-gherkin/`](./packages/plugin-gherkin/) pairs the software-behavior domain typology with the Gherkin target formalism.
+- [`packages/plugin-sdcpn/`](./packages/plugin-sdcpn/) pairs the operational-process domain typology with the SDCPN target formalism.
 - [`../../../apps/brunch-agent/`](../../../apps/brunch-agent/) is the server and diagnostics app.
 
 HASH's repository root owns package discovery, dependency policy, the lockfile, and the Turbo task

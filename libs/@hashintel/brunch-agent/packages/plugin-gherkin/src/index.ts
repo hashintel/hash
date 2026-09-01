@@ -1,10 +1,12 @@
 /**
- * `@hashintel/brunch-agent-plugin-gherkin` — the gherkin target formalism (spec §13.1).
+ * `@hashintel/brunch-agent-plugin-gherkin` — the software-behavior domain
+ * typology paired with the Gherkin target formalism.
  *
  * The tracer target: cheap enough to wire end-to-end first, and deliberately
  * different in shape from the process-model plugin, so that the plugin
- * contract is co-authored against two formalisms and freezes toward neither
- * (spec §13's two-targets-on-each-axis rule; ADR-0007 decision 9). Its
+ * contract is co-authored against two domain-typology/formalism pairings and
+ * freezes toward neither
+ * (spec §13's two-targets rule; ADR-0007 decision 9). Its
  * definition is `plugin.yaml` — a feature-anchored tree of rules, examples,
  * and steps under the same harness-owned keys as every plugin. Its proposal
  * stays at the verbatim floor in this cycle; `project` and `validate` land
@@ -55,6 +57,7 @@ export const gherkinDefinition = readPluginDefinition(pluginYaml);
 
 export const gherkin = definePlugin({
   name: "plugin-gherkin",
+  domainTypology: gherkinDefinition.identity.domainTypology,
   targetFormalism: "gherkin",
   definition: gherkinDefinition,
   proposalCatalog: [

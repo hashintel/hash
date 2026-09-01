@@ -27,12 +27,12 @@ five-register-synthesis/
 ├── SOURCE-MAP.md
 ├── core/
 │   ├── SYSTEM.md
-│   ├── flue.ts
+│   ├── flue.ts.example
 │   └── universal-elicitation.md
 └── plugin-sdcpn/
     ├── APPEND_SYSTEM.md
     └── sdcpn-modelling/
-        ├── skill.ts
+        ├── skill.ts.example
         ├── instructions.md
         ├── profile.md
         ├── workpiece-template.md
@@ -47,10 +47,10 @@ five-register-synthesis/
 ### Responsibilities
 
 - [`core/SYSTEM.md`](core/SYSTEM.md) contains the context- and target-independent role and invariants needed from the first turn.
-- [`core/universal-elicitation.md`](core/universal-elicitation.md) contains progressive universal strategies and methods under the five registers; [`core/flue.ts`](core/flue.ts) exports its raw text through the existing core Flue subpath for explicit composition.
+- [`core/universal-elicitation.md`](core/universal-elicitation.md) contains progressive universal strategies and methods under the five registers; [`core/flue.ts.example`](core/flue.ts.example) shows how its raw text would be exported through the existing core Flue subpath for explicit composition.
 - [`plugin-sdcpn/APPEND_SYSTEM.md`](plugin-sdcpn/APPEND_SYSTEM.md) selects operational-process/SDCPN modelling, requires skill activation, states workpiece-first construction, and protects the elicitation/construction boundary.
 - [`plugin-sdcpn/sdcpn-modelling/instructions.md`](plugin-sdcpn/sdcpn-modelling/instructions.md) describes the conceptual lifecycle, distinguishes the currently available interactive and construct-only runtime branches, and routes to packaged resource names.
-- [`plugin-sdcpn/sdcpn-modelling/skill.ts`](plugin-sdcpn/sdcpn-modelling/skill.ts) uses Flue's native `defineSkill` to compose the instructions, core-owned universal reference, and plugin-owned resources into one skill. Flue synthesizes the packaged `SKILL.md`.
+- [`plugin-sdcpn/sdcpn-modelling/skill.ts.example`](plugin-sdcpn/sdcpn-modelling/skill.ts.example) shows Flue's native `defineSkill` composing the instructions, core-owned universal reference, and plugin-owned resources into one skill. Flue synthesizes the packaged `SKILL.md`.
 - [`plugin-sdcpn/sdcpn-modelling/profile.md`](plugin-sdcpn/sdcpn-modelling/profile.md) is the unified additive plugin profile coupling operational-process domain typology and SDCPN consequences.
 - [`plugin-sdcpn/sdcpn-modelling/workpiece-template.md`](plugin-sdcpn/sdcpn-modelling/workpiece-template.md) is the recoverable process-model artifact.
 - [`plugin-sdcpn/sdcpn-modelling/pn-construction.md`](plugin-sdcpn/sdcpn-modelling/pn-construction.md) contains construction mappings and patterns disclosed only during construction.
@@ -69,7 +69,7 @@ They deliberately do not mirror headings. Evaluate whether the append adds a spe
 
 ### Activated modelling lifecycle
 
-Read [`plugin-sdcpn/sdcpn-modelling/instructions.md`](plugin-sdcpn/sdcpn-modelling/instructions.md), then inspect [`plugin-sdcpn/sdcpn-modelling/skill.ts`](plugin-sdcpn/sdcpn-modelling/skill.ts). The instructions should make the lifecycle and packaged-resource pointers legible without embedding the reference content itself; the definition should contain composition only, not duplicate their prose.
+Read [`plugin-sdcpn/sdcpn-modelling/instructions.md`](plugin-sdcpn/sdcpn-modelling/instructions.md), then inspect [`plugin-sdcpn/sdcpn-modelling/skill.ts.example`](plugin-sdcpn/sdcpn-modelling/skill.ts.example). The instructions should make the lifecycle and packaged-resource pointers legible without embedding the reference content itself; the definition should contain composition only, not duplicate their prose.
 
 For elicitation or revision, follow its pointers to:
 

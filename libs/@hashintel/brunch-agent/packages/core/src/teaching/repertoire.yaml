@@ -4,8 +4,8 @@
 # interviewer is taught before any plugin says a word. Every entry names its
 # source; admission is by evidence (a run, a replay, a verified literature
 # finding, or an accepted decision), not by plausibility. Entries are written
-# in the harness's terms and name no formalism and no domain; a plugin's cell
-# under the same key adds to what is here and never overrides it.
+# in the harness's terms and name no domain typology, target formalism, or concrete domain; a
+# plugin's cell under the same key adds to what is here and never overrides it.
 #
 # Paths are relative to the Brunch context root.
 
