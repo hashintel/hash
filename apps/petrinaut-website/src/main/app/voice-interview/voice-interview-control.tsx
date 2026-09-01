@@ -287,15 +287,11 @@ const AvailableVoiceInterviewControl = ({
 }) => {
   "use no memo";
 
-  const contextRef = useRef(context);
-  useEffect(() => {
-    contextRef.current = context;
-  }, [context]);
   const [pendingVoiceInput, setPendingVoiceInput] =
     useState<PendingVoiceInputRepresentation | null>(null);
-  /* eslint-disable react-hooks-js/refs -- The bridge callback reads the ref
-     only when Realtime submits an answer, never during render. */
   const [store] = useState(() => {
+    let latestMessages = context.messages;
+    let latestSubmitVoiceInput = context.submitVoiceInput;
     const session = new OpenAIRealtimeSession({
       cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
@@ -312,14 +308,11 @@ const AvailableVoiceInterviewControl = ({
     const bridge = new RealtimeBrunchBridge({
       session,
       submitInterviewAnswer: (input) => {
-        const currentContext = contextRef.current;
         setPendingVoiceInput({
-          baselineToolCallIds: representedVoiceToolCallIds(
-            currentContext.messages,
-          ),
+          baselineToolCallIds: representedVoiceToolCallIds(latestMessages),
           messageId: input.id,
         });
-        return currentContext.submitVoiceInput(input);
+        return latestSubmitVoiceInput(input);
       },
     });
     const controller = new VoiceTurnController({
@@ -333,9 +326,15 @@ const AvailableVoiceInterviewControl = ({
       getSnapshot: () => controller.getSnapshot(),
       subscribe: (listener: (snapshot: VoiceTurnSnapshot) => void) =>
         controller.subscribe(listener),
+      updateSubmissionContext: (
+        nextMessages: PetrinautAiVoiceModeContext["messages"],
+        nextSubmitVoiceInput: PetrinautAiVoiceModeContext["submitVoiceInput"],
+      ) => {
+        latestMessages = nextMessages;
+        latestSubmitVoiceInput = nextSubmitVoiceInput;
+      },
     };
   });
-  /* eslint-enable react-hooks-js/refs */
   const snapshot = useSyncExternalStore(
     store.subscribe,
     store.getSnapshot,
@@ -353,12 +352,22 @@ const AvailableVoiceInterviewControl = ({
   } = context;
 
   useLayoutEffect(() => {
+    store.updateSubmissionContext(
+      context.messages,
+      context.submitVoiceInput,
+    );
     store.controller.updateChat({
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
       canonicalSegments: selectCanonicalSpeechSegments(context.messages),
       status: context.status,
     });
-  }, [context.canAcceptVoiceInput, context.messages, context.status, store]);
+  }, [
+    context.canAcceptVoiceInput,
+    context.messages,
+    context.status,
+    context.submitVoiceInput,
+    store,
+  ]);
 
   const active = snapshot.connection !== "idle";
 

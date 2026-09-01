@@ -321,7 +321,13 @@ export const LocalStorageDemoApp = () => {
   const conversationId = currentNetId
     ? getOrCreateBrunchConversationId(currentNetId)
     : null;
-  const flueHistory = useFlueChatHistory(conversationId ?? "", brunchPrincipal);
+  const flueHistory = useFlueChatHistory(
+    conversationId ?? "",
+    brunchPrincipal,
+    brunchPreviewConfig.isBrunchConfigured
+      ? brunchPreviewConfig.chatEndpoint
+      : null,
+  );
   const petrinautAiChatTransport = useMemo(
     () =>
       conversationId === null

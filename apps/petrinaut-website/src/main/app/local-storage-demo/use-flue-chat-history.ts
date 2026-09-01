@@ -7,6 +7,7 @@ import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 export const useFlueChatHistory = (
   conversationId: string,
   principal: string,
+  chatEndpoint: string | null,
 ): {
   readonly messages: PetrinautAiMessage[] | undefined;
   readonly ready: boolean;
@@ -17,14 +18,14 @@ export const useFlueChatHistory = (
   }>();
 
   useEffect(() => {
-    if (conversationId.length === 0) {
+    if (chatEndpoint === null || conversationId.length === 0) {
       return;
     }
     let cancelled = false;
     const load = async (): Promise<void> => {
       try {
         const response = await fetch(
-          `/api/chat?id=${encodeURIComponent(conversationId)}`,
+          `${chatEndpoint}?id=${encodeURIComponent(conversationId)}`,
           { headers: { [BRUNCH_PRINCIPAL_HEADER]: principal } },
         );
         if (!response.ok) {
@@ -47,7 +48,7 @@ export const useFlueChatHistory = (
     return () => {
       cancelled = true;
     };
-  }, [conversationId, principal]);
+  }, [chatEndpoint, conversationId, principal]);
 
   const ready =
     conversationId.length > 0 && loaded?.conversationId === conversationId;
