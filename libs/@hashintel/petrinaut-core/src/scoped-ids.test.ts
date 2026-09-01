@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatScopedId,
-  isScopedId,
   parseScopedId,
   SCOPED_ID_SEPARATOR,
 } from "./scoped-ids";
@@ -61,9 +60,11 @@ describe("parseScopedId", () => {
   });
 });
 
-describe("isScopedId", () => {
-  it("distinguishes scoped from unscoped ids", () => {
-    expect(isScopedId("place-1")).toBe(false);
-    expect(isScopedId("instance-1::place-1")).toBe(true);
+describe("root ids containing the separator", () => {
+  it("misattributes such an id to an instance path, which is why formatScopedId rejects them", () => {
+    expect(parseScopedId("a::b")).toEqual({
+      instancePath: ["a"],
+      entityId: "b",
+    });
   });
 });

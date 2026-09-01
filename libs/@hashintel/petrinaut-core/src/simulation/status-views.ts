@@ -93,6 +93,10 @@ export function createStatusViewTracker(args: {
   const { statusView, evaluateFrame } = args;
   const exitLabelId = getStatusViewExitLabel(statusView)?.id ?? null;
   const instances = new Map<InstanceKey, TrackedInstance>();
+  // Instances whose current label is a place-bound one: only they can fall
+  // to the exit label, so the per-frame exit sweep stays proportional to
+  // live instances rather than to every instance ever seen.
+  const exitCandidateKeys = new Set<InstanceKey>();
   let lastTimeMs = 0;
 
   const transitionTo = (
@@ -113,6 +117,11 @@ export function createStatusViewTracker(args: {
     if (labelId !== null) {
       instance.intervals.push({ labelId, fromMs: timeMs, toMs: null });
     }
+    if (labelId === null || labelId === exitLabelId) {
+      exitCandidateKeys.delete(key);
+    } else {
+      exitCandidateKeys.add(key);
+    }
   };
 
   return {
@@ -125,18 +134,15 @@ export function createStatusViewTracker(args: {
         if (!instances.has(key)) {
           instances.set(key, {
             keyValues: assignment.keyValues,
-            currentLabelId: assignment.labelId,
+            currentLabelId: null,
             enteredCurrentAtMs: timeMs,
-            intervals: [
-              { labelId: assignment.labelId, fromMs: timeMs, toMs: null },
-            ],
+            intervals: [],
           });
-          continue;
         }
         transitionTo(key, assignment.labelId, timeMs);
       }
 
-      for (const key of instances.keys()) {
+      for (const key of exitCandidateKeys) {
         if (!assignments.has(key)) {
           transitionTo(key, exitLabelId, timeMs);
         }

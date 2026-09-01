@@ -21,6 +21,7 @@ import {
   scenarioSchema as currentScenarioSchema,
 } from "../schemas/scenario-schema";
 import {
+  assertStatusViewLabelInvariants,
   statusLabelSchema as currentStatusLabelSchema,
   statusViewObjectSchema as currentStatusViewObjectSchema,
 } from "../schemas/status-view-schema";
@@ -145,13 +146,15 @@ const statusLabelSchema = z.object({
   displayColor: z.string().optional(),
 });
 
-const statusViewSchema = z.object({
-  ...currentStatusViewObjectSchema.shape,
-  id: z.string(),
-  name: z.string(),
-  identityRef: z.string(),
-  labels: z.array(statusLabelSchema).default([]),
-});
+const statusViewSchema = z
+  .object({
+    ...currentStatusViewObjectSchema.shape,
+    id: z.string(),
+    name: z.string(),
+    identityRef: z.string(),
+    labels: z.array(statusLabelSchema).default([]),
+  })
+  .check(assertStatusViewLabelInvariants);
 
 const componentInstanceSchema = z.object({
   ...currentComponentInstanceSchema.shape,

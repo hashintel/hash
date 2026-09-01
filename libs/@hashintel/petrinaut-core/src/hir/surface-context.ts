@@ -30,7 +30,7 @@ import {
   getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../extensions";
-import { parseScopedId } from "../scoped-ids";
+import { resolveStatusViewLabelPlace } from "../status-view-scope";
 
 import type {
   Color,
@@ -416,20 +416,10 @@ export function buildStatusConditionContext(
   extensions: PetrinautExtensionSettings = DEFAULT_PETRINAUT_EXTENSIONS,
 ): HirStatusConditionContext {
   const colorById = collectColors(sdcpn, extensions);
-  const placeById = new Map<string, Place>();
-  for (const place of sdcpn.places) {
-    placeById.set(place.id, place);
-  }
-  for (const subnet of sdcpn.subnets ?? []) {
-    for (const place of subnet.places) {
-      placeById.set(place.id, place);
-    }
-  }
 
   const attributesByName = new Map<string, HirTokenElementInfo>();
   for (const placeId of label.places) {
-    const { entityId } = parseScopedId(placeId);
-    const place = placeById.get(entityId);
+    const place = resolveStatusViewLabelPlace(sdcpn, placeId);
     const color = place?.colorId ? colorById.get(place.colorId) : undefined;
     for (const element of color?.elements ?? []) {
       if (!attributesByName.has(element.name)) {

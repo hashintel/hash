@@ -276,6 +276,37 @@ describe("parseSDCPNFile", () => {
       });
     });
 
+    it("rejects status views violating the label invariants", () => {
+      const makeLabel = (id: string, name: string) => ({
+        id,
+        name,
+        displayColor: "#808080",
+        places: [],
+      });
+      const result = parseSDCPNFile({
+        version: 1,
+        ...minimalSDCPN,
+        identities: [
+          { id: "identity-1", name: "Ticket", keyElementTypes: ["string"] },
+        ],
+        statusViews: [
+          {
+            id: "view-1",
+            name: "Ticket status",
+            identityRef: "identity-1",
+            labels: [
+              makeLabel("label-1", "Todo"),
+              makeLabel("label-1", "Doing"),
+            ],
+          },
+        ],
+      });
+
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.error).toMatch(/Duplicate label id/);
+    });
+
     it("strips version and meta from the returned sdcpn", () => {
       const result = parseSDCPNFile({
         version: 1,

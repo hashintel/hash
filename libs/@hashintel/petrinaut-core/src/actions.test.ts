@@ -682,6 +682,15 @@ describe("Petrinaut core actions", () => {
         },
       ],
     });
+    instance.mutations.addPlace({
+      id: "p1",
+      name: "Todo",
+      colorId: "type-1",
+      dynamicsEnabled: false,
+      differentialEquationId: null,
+      x: 0,
+      y: 0,
+    });
     instance.mutations.addStatusView({
       id: "view-1",
       name: "Ticket status",
@@ -704,8 +713,29 @@ describe("Petrinaut core actions", () => {
     expect(definition.statusViews).toEqual([]);
   });
 
-  test("adds, updates, moves labels within, and removes status views", () => {
+  const createInstanceForStatusViews = () => {
     const instance = createInstance();
+    instance.mutations.addIdentity({
+      id: "identity-ticket",
+      name: "Ticket",
+      keyElementTypes: ["string"],
+    });
+    for (const placeId of ["p1", "p2"]) {
+      instance.mutations.addPlace({
+        id: placeId,
+        name: placeId.toUpperCase(),
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 0,
+        y: 0,
+      });
+    }
+    return instance;
+  };
+
+  test("adds, updates, moves labels within, and removes status views", () => {
+    const instance = createInstanceForStatusViews();
 
     instance.mutations.addStatusView({
       id: "view-1",
@@ -769,6 +799,241 @@ describe("Petrinaut core actions", () => {
 
     instance.mutations.removeStatusView({ statusViewId: "view-1" });
     expect(instance.definition.get().statusViews).toHaveLength(0);
+  });
+
+  test("moveStatusViewLabel handles ends, clamping, unknown ids, and exit labels", () => {
+    const instance = createInstanceForStatusViews();
+    instance.mutations.addStatusView({
+      id: "view-1",
+      name: "Ticket status",
+      identityRef: "identity-ticket",
+      labels: [
+        {
+          id: "label-1",
+          name: "Todo",
+          displayColor: "#808080",
+          places: ["p1"],
+        },
+        {
+          id: "label-2",
+          name: "Done",
+          displayColor: "#00AA00",
+          places: ["p2"],
+        },
+        {
+          id: "label-exit",
+          name: "Gone",
+          displayColor: "#333333",
+          places: [],
+          isExit: true,
+        },
+      ],
+    });
+    const labelIds = () =>
+      instance.definition
+        .get()
+        .statusViews![0]!.labels.map((label) => label.id);
+
+    instance.mutations.moveStatusViewLabel({
+      statusViewId: "view-1",
+      labelId: "label-1",
+      toIndex: 2,
+    });
+    expect(labelIds()).toEqual(["label-2", "label-exit", "label-1"]);
+
+    instance.mutations.moveStatusViewLabel({
+      statusViewId: "view-1",
+      labelId: "label-2",
+      toIndex: 99,
+    });
+    expect(labelIds()).toEqual(["label-exit", "label-1", "label-2"]);
+
+    instance.mutations.moveStatusViewLabel({
+      statusViewId: "view-1",
+      labelId: "label-unknown",
+      toIndex: 0,
+    });
+    expect(labelIds()).toEqual(["label-exit", "label-1", "label-2"]);
+
+    instance.mutations.moveStatusViewLabel({
+      statusViewId: "view-unknown",
+      labelId: "label-1",
+      toIndex: 0,
+    });
+    expect(labelIds()).toEqual(["label-exit", "label-1", "label-2"]);
+  });
+
+  test("addStatusView rejects unknown identities and unresolvable label places", () => {
+    const instance = createInstanceForStatusViews();
+
+    expect(() =>
+      instance.mutations.addStatusView({
+        id: "view-1",
+        name: "Ticket status",
+        identityRef: "identity-unknown",
+        labels: [
+          { id: "label-1", name: "Todo", displayColor: "#808080", places: [] },
+        ],
+      }),
+    ).toThrow(/identity ID `identity-unknown`/);
+
+    expect(() =>
+      instance.mutations.addStatusView({
+        id: "view-1",
+        name: "Ticket status",
+        identityRef: "identity-ticket",
+        labels: [
+          {
+            id: "label-1",
+            name: "Todo",
+            displayColor: "#808080",
+            places: ["missing-place"],
+          },
+        ],
+      }),
+    ).toThrow(/place ID `missing-place`/);
+
+    expect(instance.definition.get().statusViews ?? []).toHaveLength(0);
+  });
+
+  test("removePlace prunes the place from status-view labels", () => {
+    const instance = createInstanceForStatusViews();
+    instance.mutations.addStatusView({
+      id: "view-1",
+      name: "Ticket status",
+      identityRef: "identity-ticket",
+      labels: [
+        {
+          id: "label-1",
+          name: "Todo",
+          displayColor: "#808080",
+          places: ["p1", "p2"],
+        },
+      ],
+    });
+
+    instance.mutations.removePlace({ placeId: "p1" });
+
+    expect(
+      instance.definition.get().statusViews![0]!.labels[0]!.places,
+    ).toEqual(["p2"]);
+  });
+
+  test("addIdentity rejects duplicate ids and names", () => {
+    const instance = createInstance();
+    instance.mutations.addIdentity({
+      id: "identity-1",
+      name: "Ticket",
+      keyElementTypes: ["string"],
+    });
+
+    expect(() =>
+      instance.mutations.addIdentity({
+        id: "identity-1",
+        name: "Other",
+        keyElementTypes: ["string"],
+      }),
+    ).toThrow(/already exists/);
+    expect(() =>
+      instance.mutations.addIdentity({
+        id: "identity-2",
+        name: "Ticket",
+        keyElementTypes: ["string"],
+      }),
+    ).toThrow(/already exists/);
+    expect(instance.definition.get().identities).toHaveLength(1);
+  });
+
+  test("rejects identity key elements whose types diverge from the identity", () => {
+    const instance = createInstance();
+    instance.mutations.addIdentity({
+      id: "identity-machine",
+      name: "Machine",
+      keyElementTypes: ["uuid"],
+    });
+    instance.mutations.addType({
+      id: "type-1",
+      name: "Machine",
+      iconSlug: "circle",
+      displayColor: "#1E90FF",
+      elements: [
+        { elementId: "element-1", name: "machine_id", type: "uuid" },
+        { elementId: "element-2", name: "label", type: "string" },
+      ],
+    });
+
+    expect(() =>
+      instance.mutations.updateTypeElement({
+        typeId: "type-1",
+        elementId: "element-2",
+        update: { identityRef: "identity-machine" },
+      }),
+    ).toThrow(/requires \[uuid\]/);
+    expect(
+      instance.definition.get().types[0]!.elements[1]!.identityRef,
+    ).toBeUndefined();
+
+    instance.mutations.updateTypeElement({
+      typeId: "type-1",
+      elementId: "element-1",
+      update: { identityRef: "identity-machine" },
+    });
+
+    // A second key element on the same colour would silently turn the key
+    // into a 2-tuple that can never correlate with single-key colours.
+    expect(() =>
+      instance.mutations.updateTypeElement({
+        typeId: "type-1",
+        elementId: "element-2",
+        update: { identityRef: "identity-machine", type: "uuid" },
+      }),
+    ).toThrow(/requires \[uuid\]/);
+
+    expect(() =>
+      instance.mutations.updateIdentity({
+        identityId: "identity-machine",
+        update: { keyElementTypes: ["string"] },
+      }),
+    ).toThrow(/requires \[string\]/);
+  });
+
+  test("removeIdentity clears identityRef inside subnet colours", () => {
+    const instance = createInstance();
+    instance.mutations.addIdentity({
+      id: "identity-ticket",
+      name: "Ticket",
+      keyElementTypes: ["string"],
+    });
+    instance.mutations.addSubnet({
+      id: "subnet-1",
+      name: "Worker",
+      places: [],
+      transitions: [],
+      types: [
+        {
+          id: "subnet-type-1",
+          name: "Ticket",
+          iconSlug: "circle",
+          displayColor: "#1E90FF",
+          elements: [
+            {
+              elementId: "element-1",
+              name: "ticket_id",
+              type: "string",
+              identityRef: "identity-ticket",
+            },
+          ],
+        },
+      ],
+      differentialEquations: [],
+      parameters: [],
+    });
+
+    instance.mutations.removeIdentity({ identityId: "identity-ticket" });
+
+    expect(
+      instance.definition.get().subnets![0]!.types[0]!.elements[0]!.identityRef,
+    ).toBeUndefined();
   });
 
   test("deleteItemsByIds removes referenced types and equations", () => {
