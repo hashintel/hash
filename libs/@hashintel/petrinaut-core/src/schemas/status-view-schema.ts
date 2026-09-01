@@ -55,8 +55,19 @@ export const statusViewObjectSchema = z.strictObject({
   }),
 });
 
-const assertStatusViewLabelInvariants = (ctx: {
-  value: { labels: StatusLabel[] };
+type StatusLabelInvariantShape = Pick<
+  StatusLabel,
+  "id" | "name" | "places" | "isExit"
+>;
+
+/**
+ * Whole-view label invariants: unique label ids and names, at most one exit
+ * label, and no places on the exit label. Applied by `statusViewSchema` and
+ * by the file-format document schema, so hand-edited documents fail the
+ * import parse instead of feeding downstream code that assumes them.
+ */
+export const assertStatusViewLabelInvariants = (ctx: {
+  value: { labels: StatusLabelInvariantShape[] };
   issues: {
     push(issue: {
       code: "custom";
