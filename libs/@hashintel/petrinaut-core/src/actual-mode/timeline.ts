@@ -182,6 +182,13 @@ export const createActualModeTimelineFrameReader = (params: {
   transitionFiringTimesMs: readonly number[];
   point: ActualModeTimelinePoint;
   number: number;
+  /**
+   * The reconstructed marking at `point`, for callers that replay a range
+   * of points with a shared cursor (each firing applied once) instead of
+   * paying a from-zero replay per reader. The reader only reads it. Omitted,
+   * the marking is reconstructed by replaying from `initialState`.
+   */
+  marking?: ActualModeMarking;
 }): SimulationFrameReader => {
   const {
     definition,
@@ -191,11 +198,13 @@ export const createActualModeTimelineFrameReader = (params: {
     transitionFirings,
     transitionFiringTimesMs,
   } = params;
-  const marking = getActualModeMarkingAtTransitionFiringIndex({
-    initialState,
-    transitionFirings,
-    transitionFiringIndex: point.transitionFiringIndex,
-  });
+  const marking =
+    params.marking ??
+    getActualModeMarkingAtTransitionFiringIndex({
+      initialState,
+      transitionFirings,
+      transitionFiringIndex: point.transitionFiringIndex,
+    });
   const colorById = new Map(definition.types.map((color) => [color.id, color]));
   const tokensByPlaceId = new Map<string, readonly TokenRecord[]>();
 

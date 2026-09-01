@@ -1,20 +1,26 @@
-import { use } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { Button, Icon, Menu, type MenuItem } from "@hashintel/ds-components";
 import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { ActualModeContext } from "../../../../../../react/actual-mode-context";
+import { StatusConditionArtifactsContext } from "../../../../../../react/status-condition-artifacts";
 import { exportActualModeRecording } from "../../../../../file-io/export-actual-mode-recording";
 import { exportSDCPN } from "../../../../../file-io/export-sdcpn";
+import { formatDwellMs } from "../../../../shared/format-dwell";
 import {
-  deriveActualEventStatusChanges,
+  createActualEventStatusDeriver,
   type ActualEventStatusChange,
+  type ActualEventStatusDeriver,
 } from "./actual-events/derive-status-changes";
 
 import type { SubView } from "../../../../../components/sub-view/types";
 import type {
   ActualModeMarking,
   ActualModeTransitionFiring,
+  HirStatusConditionArtifact,
+  SDCPN,
+  StatusView,
 } from "@hashintel/petrinaut-core";
 
 const MAX_VISIBLE_EVENTS = 500;
@@ -161,21 +167,92 @@ const statusColumnStyle = css({
   width: "[260px]",
 });
 
-const formatDwell = (dwellMs: number): string => {
-  const totalSeconds = dwellMs / 1_000;
-  return totalSeconds >= 60
-    ? `${Math.floor(totalSeconds / 60)}m ${Math.round(totalSeconds % 60)}s`
-    : `${Math.round(totalSeconds * 10) / 10}s`;
-};
-
 const formatStatusChange = (change: ActualEventStatusChange): string => {
   const from = change.fromLabelName ?? "—";
   const to = change.toLabelName ?? "—";
   const dwell =
     change.dwellMs === null || change.fromLabelName === null
       ? ""
-      : ` (${formatDwell(change.dwellMs)} in ${change.fromLabelName})`;
+      : ` (${formatDwellMs(change.dwellMs)} in ${change.fromLabelName})`;
   return `${change.keyDisplay}: ${from} → ${to}${dwell}`;
+};
+
+type StatusDeriverInputs = {
+  statusView: StatusView;
+  definition: SDCPN;
+  initialState: ActualModeMarking;
+  statusConditions: Record<string, HirStatusConditionArtifact>;
+};
+
+const emptyInitialState: ActualModeMarking = {};
+
+/**
+ * The per-firing status changes, derived incrementally: the deriver lives in
+ * a ref and folds in only the firings appended since the previous render —
+ * re-deriving the whole history per arriving event is the O(n^2) this
+ * avoids.
+ */
+const useActualEventStatusChanges = (
+  args: {
+    statusView: StatusView | undefined;
+    definition: SDCPN | null;
+    initialState: ActualModeMarking | null;
+    statusConditions: Record<string, HirStatusConditionArtifact>;
+  },
+  transitionFirings: readonly ActualModeTransitionFiring[],
+): ActualEventStatusChange[][] | null => {
+  const { statusView, definition, initialState, statusConditions } = args;
+  const [changesByFiring, setChangesByFiring] = useState<
+    ActualEventStatusChange[][] | null
+  >(null);
+  const deriverRef = useRef<{
+    deriver: ActualEventStatusDeriver;
+    inputs: StatusDeriverInputs;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!statusView || !definition || initialState === null) {
+      deriverRef.current = null;
+      return;
+    }
+    let cancelled = false;
+    void Promise.resolve().then(() => {
+      if (cancelled) {
+        return;
+      }
+      const inputs: StatusDeriverInputs = {
+        statusView,
+        definition,
+        initialState,
+        statusConditions,
+      };
+      const cached = deriverRef.current;
+      const entry =
+        cached &&
+        cached.inputs.statusView === inputs.statusView &&
+        cached.inputs.definition === inputs.definition &&
+        cached.inputs.initialState === inputs.initialState &&
+        cached.inputs.statusConditions === inputs.statusConditions
+          ? cached
+          : { deriver: createActualEventStatusDeriver(inputs), inputs };
+      deriverRef.current = entry;
+      setChangesByFiring(entry.deriver.deriveUpTo(transitionFirings));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    statusView,
+    definition,
+    initialState,
+    statusConditions,
+    transitionFirings,
+  ]);
+
+  if (!statusView || !definition || initialState === null) {
+    return null;
+  }
+  return changesByFiring;
 };
 
 const formatTimestamp = (timestamp: string): string => {
@@ -284,17 +361,22 @@ const ActualEventsContent: React.FC = () => {
   const visibleFirings = transitionFirings.slice(-MAX_VISIBLE_EVENTS);
   const firstVisibleIndex = transitionFirings.length - visibleFirings.length;
 
-  const statusView = actualMode.available
-    ? actualMode.definition?.statusViews?.[0]
-    : undefined;
-  const statusChangesByFiring =
-    statusView && actualMode.available && actualMode.definition
-      ? deriveActualEventStatusChanges({
-          statusView,
-          definition: actualMode.definition,
-          transitionFirings,
-        })
-      : null;
+  const { statusConditions } = use(StatusConditionArtifactsContext);
+  const statusViews = actualMode.available
+    ? (actualMode.definition?.statusViews ?? [])
+    : [];
+  const statusView = statusViews[0];
+  const statusChangesByFiring = useActualEventStatusChanges(
+    {
+      statusView,
+      definition: actualMode.available ? actualMode.definition : null,
+      initialState: actualMode.available
+        ? (actualMode.initialState ?? emptyInitialState)
+        : null,
+      statusConditions,
+    },
+    transitionFirings,
+  );
 
   const handleExportStream = () => {
     if (!actualMode.available || !canExportStream) {
@@ -428,7 +510,11 @@ const ActualEventsContent: React.FC = () => {
                       statusColumnStyle,
                     )}
                   >
-                    Status changes
+                    {/* Name the view when others exist, since only the
+                        first status view drives this column. */}
+                    {statusViews.length > 1 && statusView
+                      ? `Status changes (${statusView.name})`
+                      : "Status changes"}
                   </th>
                 )}
               </tr>

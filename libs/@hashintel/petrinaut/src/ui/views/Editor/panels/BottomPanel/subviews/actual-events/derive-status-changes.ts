@@ -1,11 +1,18 @@
 import {
+  applyActualModeTransitionFiring,
+  createStatusViewFrameEvaluator,
+  createStatusViewTracker,
+  createActualModeTimelineFrameReader,
   getActualModeTransitionFiringTimesMs,
-  getStatusViewExitLabel,
+  getStatusViewEvaluationScope,
 } from "@hashintel/petrinaut-core";
 
 import type {
-  ActualModeTokenRecord,
+  ActualModeMarking,
   ActualModeTransitionFiring,
+  HirStatusConditionArtifact,
+  InstanceLabelState,
+  InstanceKey,
   SDCPN,
   StatusView,
 } from "@hashintel/petrinaut-core";
@@ -21,125 +28,163 @@ export type ActualEventStatusChange = {
   dwellMs: number | null;
 };
 
+export type ActualEventStatusDeriver = {
+  /**
+   * Folds newly appended firings into the derived history and returns one
+   * entry per firing seen so far. Feeding a list that is not an extension of
+   * the previous one (fewer firings, or a different firing at the seam)
+   * rederives from scratch.
+   */
+  deriveUpTo(
+    transitionFirings: readonly ActualModeTransitionFiring[],
+  ): ActualEventStatusChange[][];
+};
+
 /**
- * Derives, per firing, the status changes its recorded token values caused
- * under one status view: which instances entered a new label and how long
- * they spent in the previous one. A place's label is the first non-exit
- * label listing it, in array order; an instance consumed without a produced
- * token carrying its key falls to the view's exit label. Firings without
- * token values cause no entries.
+ * Derives, per firing, the status changes under one status view: which
+ * instances entered a new label and how long they spent in the previous one.
+ * Statuses come from the same frame evaluator and tracker as the Kanban
+ * board and canvas badges — label array order, token conditions, scoped
+ * (`instanceId::placeId`) places, and the exit label all behave identically —
+ * by reconstructing a frame per firing and diffing consecutive instance
+ * label states. The pre-firing marking is observed first (emitting nothing),
+ * so instances present in the initial state report their real starting
+ * label and dwell on their first change.
  */
-export function deriveActualEventStatusChanges(args: {
+export function createActualEventStatusDeriver(args: {
   statusView: StatusView;
-  definition: Pick<SDCPN, "places" | "types">;
-  transitionFirings: readonly ActualModeTransitionFiring[];
-}): ActualEventStatusChange[][] {
-  const { statusView, definition, transitionFirings } = args;
+  definition: SDCPN;
+  initialState: ActualModeMarking;
+  /** Compiled label conditions, from `HirArtifacts.statusConditions`. */
+  statusConditions?: Record<string, HirStatusConditionArtifact>;
+}): ActualEventStatusDeriver {
+  const { statusView, definition, initialState, statusConditions } = args;
 
-  const labelNameByPlaceId = new Map<string, string>();
-  for (const label of statusView.labels) {
-    if (label.isExit) {
-      continue;
-    }
-    for (const placeId of label.places) {
-      if (!labelNameByPlaceId.has(placeId)) {
-        labelNameByPlaceId.set(placeId, label.name);
-      }
-    }
-  }
-
-  const colorById = new Map(definition.types.map((color) => [color.id, color]));
-  const keyElementNamesByPlaceId = new Map<string, string[]>();
-  for (const place of definition.places) {
-    const color = place.colorId ? colorById.get(place.colorId) : undefined;
-    const keyElementNames = (color?.elements ?? [])
-      .filter((element) => element.identityRef === statusView.identityRef)
-      .map((element) => element.name);
-    if (keyElementNames.length > 0) {
-      keyElementNamesByPlaceId.set(place.id, keyElementNames);
-    }
-  }
-
-  const exitLabelName = getStatusViewExitLabel(statusView)?.name ?? null;
-  const firingTimesMs = getActualModeTransitionFiringTimesMs(
-    transitionFirings,
-    null,
-    null,
-  );
-
-  const keyOf = (
-    placeId: string,
-    token: ActualModeTokenRecord,
-  ): string | null => {
-    const keyElementNames = keyElementNamesByPlaceId.get(placeId);
-    if (!keyElementNames) {
-      return null;
-    }
-    const keyValues: string[] = [];
-    for (const elementName of keyElementNames) {
-      const value = token[elementName];
-      if (value === undefined) {
-        return null;
-      }
-      keyValues.push(String(value));
-    }
-    return keyValues.join(", ");
+  const { places, types } = getStatusViewEvaluationScope(definition);
+  const readerDefinition = {
+    places,
+    transitions: definition.transitions,
+    types,
   };
+  const labelNameById = new Map(
+    statusView.labels.map((label) => [label.id, label.name]),
+  );
+  const labelName = (labelId: string | null): string | null =>
+    labelId === null ? null : (labelNameById.get(labelId) ?? null);
 
-  const instanceState = new Map<
-    string,
-    { labelName: string | null; sinceMs: number }
-  >();
-  const changesByFiring: ActualEventStatusChange[][] = [];
+  let tracker = createStatusViewTracker({
+    statusView,
+    evaluateFrame: createStatusViewFrameEvaluator({
+      statusView,
+      places,
+      types,
+      statusConditions,
+    }),
+  });
+  let marking = initialState;
+  let previousLabelStates = new Map<InstanceKey, InstanceLabelState>();
+  let baselineObserved = false;
+  let processedCount = 0;
+  let lastProcessedFiring: ActualModeTransitionFiring | null = null;
+  let changesByFiring: ActualEventStatusChange[][] = [];
 
-  for (const [firingIndex, firing] of transitionFirings.entries()) {
-    const timeMs = firingTimesMs[firingIndex] ?? 0;
-    const changes: ActualEventStatusChange[] = [];
-
-    const recordTransition = (
-      keyDisplay: string,
-      toLabelName: string | null,
-    ): void => {
-      const prior = instanceState.get(keyDisplay);
-      if (prior && prior.labelName === toLabelName) {
-        return;
+  return {
+    deriveUpTo(transitionFirings) {
+      const isExtension =
+        transitionFirings.length >= processedCount &&
+        (processedCount === 0 ||
+          transitionFirings[processedCount - 1] === lastProcessedFiring);
+      if (!isExtension) {
+        tracker = createStatusViewTracker({
+          statusView,
+          evaluateFrame: createStatusViewFrameEvaluator({
+            statusView,
+            places,
+            types,
+            statusConditions,
+          }),
+        });
+        marking = initialState;
+        previousLabelStates = new Map();
+        baselineObserved = false;
+        processedCount = 0;
+        lastProcessedFiring = null;
+        changesByFiring = [];
       }
-      changes.push({
-        keyDisplay,
-        fromLabelName: prior?.labelName ?? null,
-        toLabelName,
-        dwellMs: prior ? timeMs - prior.sinceMs : null,
-      });
-      instanceState.set(keyDisplay, {
-        labelName: toLabelName,
-        sinceMs: timeMs,
-      });
-    };
 
-    const producedKeys = new Set<string>();
-    for (const [placeId, tokens] of Object.entries(firing.outputTokens ?? {})) {
-      for (const token of tokens) {
-        const keyDisplay = keyOf(placeId, token);
-        if (keyDisplay === null) {
+      const transitionFiringTimesMs = getActualModeTransitionFiringTimesMs(
+        transitionFirings,
+        null,
+        null,
+      );
+
+      if (!baselineObserved) {
+        tracker.observeFrame(
+          createActualModeTimelineFrameReader({
+            definition: readerDefinition,
+            initialState,
+            transitionFirings,
+            transitionFiringTimesMs,
+            point: { kind: "initial", timeMs: 0, transitionFiringIndex: null },
+            number: 0,
+            marking,
+          }),
+        );
+        previousLabelStates = tracker.getInstanceLabelStates();
+        baselineObserved = true;
+      }
+
+      for (
+        let firingIndex = processedCount;
+        firingIndex < transitionFirings.length;
+        firingIndex += 1
+      ) {
+        const firing = transitionFirings[firingIndex];
+        if (!firing) {
           continue;
         }
-        producedKeys.add(keyDisplay);
-        recordTransition(keyDisplay, labelNameByPlaceId.get(placeId) ?? null);
-      }
-    }
+        const timeMs = transitionFiringTimesMs[firingIndex] ?? 0;
+        marking = applyActualModeTransitionFiring(marking, firing);
+        tracker.observeFrame(
+          createActualModeTimelineFrameReader({
+            definition: readerDefinition,
+            initialState,
+            transitionFirings,
+            transitionFiringTimesMs,
+            point: {
+              kind: "transition_firing",
+              timeMs,
+              transitionFiringIndex: firingIndex,
+            },
+            number: firingIndex + 1,
+            marking,
+          }),
+        );
 
-    for (const [placeId, tokens] of Object.entries(firing.inputTokens ?? {})) {
-      for (const token of tokens) {
-        const keyDisplay = keyOf(placeId, token);
-        if (keyDisplay === null || producedKeys.has(keyDisplay)) {
-          continue;
+        const labelStates = tracker.getInstanceLabelStates();
+        const changes: ActualEventStatusChange[] = [];
+        for (const [key, labelState] of labelStates) {
+          const previous = previousLabelStates.get(key);
+          if (previous?.currentLabelId === labelState.currentLabelId) {
+            continue;
+          }
+          if (!previous && labelState.currentLabelId === null) {
+            continue;
+          }
+          changes.push({
+            keyDisplay: labelState.keyValues.join(", "),
+            fromLabelName: labelName(previous?.currentLabelId ?? null),
+            toLabelName: labelName(labelState.currentLabelId),
+            dwellMs: previous ? timeMs - previous.enteredCurrentAtMs : null,
+          });
         }
-        recordTransition(keyDisplay, exitLabelName);
+        previousLabelStates = labelStates;
+        changesByFiring.push(changes);
+        lastProcessedFiring = firing;
       }
-    }
+      processedCount = transitionFirings.length;
 
-    changesByFiring.push(changes);
-  }
-
-  return changesByFiring;
+      return [...changesByFiring];
+    },
+  };
 }
