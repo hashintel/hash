@@ -157,8 +157,7 @@
           "Linear issue",
           "merge queue",
           "GitHub Actions",
-          "branch protection",
-          "changeset"
+          "branch protection"
         ],
         "intentPatterns": [
           "\\b(open|create|submit|review)\\b.*?\\b(PR|pull request)\\b",
@@ -184,6 +183,33 @@
       "promptTriggers": {
         "keywords": ["naming", "rename", "identifier", "variable name"],
         "intentPatterns": []
+      },
+      "fileTriggers": {
+        "include": [],
+        "exclude": [],
+        "content": [],
+        "create-only": false
+      },
+      "blockMessage": "Skill is required to proceed",
+      "skipConditions": {}
+    },
+    "publishing-packages": {
+      "type": "domain",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Conventions for publishing npm packages from this repository, including when a PR needs a changeset and how to write one. Use when adding or editing a changeset, versioning or releasing a package, or deciding whether a change to a publishable library needs a changelog entry.",
+      "promptTriggers": {
+        "keywords": [
+          "changeset",
+          "changelog",
+          "npm publish",
+          "release",
+          "version bump"
+        ],
+        "intentPatterns": [
+          "\\b(add|write|create|edit|split)\\b.*?\\bchangesets?\\b",
+          "\\b(publish|release|version)\\b.*?\\bpackages?\\b"
+        ]
       },
       "fileTriggers": {
         "include": [],
