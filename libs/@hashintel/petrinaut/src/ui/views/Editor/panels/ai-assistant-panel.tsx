@@ -30,6 +30,7 @@ import {
   formatReadOnlyReason,
   useReadOnlyReason,
 } from "../../../../react/state/use-read-only-reason";
+import { VoiceSessionContext } from "../../../../react/voice-session/context";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { AiAssistantContents } from "./ai-assistant-panel/ai-assistant-contents";
 import {
@@ -61,6 +62,7 @@ import type {
   PetrinautAiInputMode,
   PetrinautAiVoiceModeContext,
   PetrinautAiVoiceModeControls,
+  PetrinautAiVoiceSessionState,
 } from "../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
 
@@ -321,6 +323,7 @@ export const AiAssistantPanel = ({
   } = use(EditorContext);
 
   const { petriNetDefinition, setTitle, title } = use(SDCPNContext);
+  const voiceSessionStore = use(VoiceSessionContext);
 
   const [input, setInput] = useState("");
   const [voiceActive, setVoiceActiveState] = useState(false);
@@ -349,17 +352,6 @@ export const AiAssistantPanel = ({
   const voiceHandoffPendingRef = useRef(false);
   const voiceModeControlsRef = useRef<PetrinautAiVoiceModeControls | null>(
     null,
-  );
-  const registerVoiceModeControls = useCallback(
-    (controls: PetrinautAiVoiceModeControls) => {
-      voiceModeControlsRef.current = controls;
-      return () => {
-        if (voiceModeControlsRef.current === controls) {
-          voiceModeControlsRef.current = null;
-        }
-      };
-    },
-    [],
   );
   const queuedVoiceInputRef = useRef<QueuedVoiceInput | null>(null);
   const consumedInitialInteractionModeRef = useRef<PetrinautAiInputMode | null>(
@@ -437,7 +429,7 @@ export const AiAssistantPanel = ({
   // are otherwise opaque to the user — `useChat` resets `status` to `"ready"`
   // and clears its internal `error` value once a follow-up send happens, but
   // the user sees nothing in the meantime. Capture them into local state so
-  // the surface can render the failure under the conversation.
+  // the surface can show the failure in a toast.
   const [streamError, setStreamError] = useState<Error | null>(null);
 
   // Surfaces a subtle "Response stopped" note after the user aborts a
@@ -475,6 +467,39 @@ export const AiAssistantPanel = ({
       selectInteractionMode(nextMode);
     },
     [selectInteractionMode, setVoiceActive],
+  );
+
+  // Petrinaut renders every live Voice surface itself — the dock in this panel
+  // and the toolbar segment on the canvas — from the state the host reports
+  // here, so both always agree about the same session.
+  const reportVoiceSessionState = useCallback(
+    (state: PetrinautAiVoiceSessionState | null) => {
+      voiceSessionStore.setState(state);
+    },
+    [voiceSessionStore],
+  );
+
+  const registerVoiceModeControls = useCallback(
+    (controls: PetrinautAiVoiceModeControls) => {
+      voiceModeControlsRef.current = controls;
+      voiceSessionStore.setActions({
+        // Ending returns the composer to text, which is also the path that
+        // invalidates the host's active generation.
+        end: () => requestInputMode("text"),
+        pause: () => controls.pause(),
+        reconnect: () => controls.reconnect(),
+        resume: () => controls.resume(),
+      });
+
+      return () => {
+        if (voiceModeControlsRef.current === controls) {
+          voiceModeControlsRef.current = null;
+          voiceSessionStore.setActions(null);
+          voiceSessionStore.setState(null);
+        }
+      };
+    },
+    [requestInputMode, voiceSessionStore],
   );
 
   const stopRequestedRef = useRef(false);
@@ -1183,6 +1208,7 @@ export const AiAssistantPanel = ({
     inputMode: interactionMode,
     isAiAssistantOpen,
     registerVoiceModeControls,
+    reportVoiceSessionState,
     setInputMode: requestInputMode,
     setVoiceActive,
     submitVoiceInput,

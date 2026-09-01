@@ -27,6 +27,9 @@ export type {
   PetrinautAiInputMode,
   PetrinautAiVoiceMode,
   PetrinautAiVoiceModeContext,
+  PetrinautAiVoiceModeControls,
+  PetrinautAiVoiceSessionPhase,
+  PetrinautAiVoiceSessionState,
 } from "./types/ai-assistant-composer-control";
 export type {
   PetrinautNavigationAction,

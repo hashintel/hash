@@ -3,14 +3,24 @@ import { type ReactNode, useState } from "react";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
+import { NotificationsProvider } from "../../../../../react/notifications/provider";
+import { VoiceSessionContext } from "../../../../../react/voice-session/context";
+import { createVoiceSessionStore } from "../../../../../react/voice-session/store";
 import { AiAssistantContents } from "./ai-assistant-contents";
-import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
+import type { PetrinautAiVoiceSessionState } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./types";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Editor / AI Assistant",
+  decorators: [
+    (Story) => (
+      <NotificationsProvider>
+        <Story />
+      </NotificationsProvider>
+    ),
+  ],
   parameters: {
     layout: "fullscreen",
   },
@@ -192,22 +202,13 @@ const errorMessage = new Error(
   "The assistant could not reach the AI endpoint.",
 );
 
-const voicePreviewStyle = css({
+const hostSlotStyle = css({
   display: "flex",
-  width: "full",
   flexDirection: "column",
-  gap: "2",
-  paddingY: "1",
-});
-
-const partialBubbleStyle = css({
-  display: "flex",
-  maxWidth: "[92%]",
-  alignSelf: "flex-end",
   alignItems: "flex-start",
   gap: "2",
   paddingX: "3",
-  paddingY: "2.5",
+  paddingY: "3",
   borderWidth: "thin",
   borderStyle: "solid",
   borderColor: "neutral.a20",
@@ -215,163 +216,31 @@ const partialBubbleStyle = css({
   backgroundColor: "neutral.s20",
   color: "neutral.s100",
   fontSize: "sm",
-  fontWeight: "medium",
   lineHeight: "relaxed",
-  textAlign: "right",
 });
 
-const voiceDividerStyle = css({
-  display: "flex",
-  minHeight: "[32px]",
-  alignItems: "center",
-  gap: "2",
-  color: "neutral.s80",
+const hostSlotTitleStyle = css({
+  fontSize: "sm",
+  fontWeight: "semibold",
 });
 
-const voiceDividerLineStyle = css({
-  minWidth: "4",
-  height: "[1px]",
-  flex: "1",
-  backgroundColor: "neutral.a20",
-});
-
-const voiceWaveformStyle = css({
-  display: "inline-flex",
-  height: "[16px]",
-  flexShrink: "0",
-  alignItems: "center",
-  gap: "[2px]",
-  color: "blue.s70",
-  "& > span": {
-    display: "block",
-    width: "[2px]",
-    minHeight: "[3px]",
-    borderRadius: "full",
-    backgroundColor: "[currentColor]",
-  },
-});
-
-const voiceStatusStyle = css({
-  color: "neutral.s80",
-  fontSize: "xs",
-  fontWeight: "medium",
-  lineHeight: "none",
-  whiteSpace: "nowrap",
-});
-
-const voiceActionsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "1",
-});
-
-const recoveryMessageStyle = css({
-  alignSelf: "center",
-  paddingX: "3",
-  color: "red.s90",
-  fontSize: "xs",
-  lineHeight: "snug",
-  textAlign: "center",
-});
-
-const technicalDetailsStyle = css({
-  alignSelf: "center",
-  color: "neutral.s80",
-  fontSize: "xs",
-  lineHeight: "snug",
-  "& > summary": {
-    cursor: "pointer",
-    fontWeight: "medium",
-  },
-});
-
-type VoicePreviewStatus =
-  | "Listening"
-  | "Speaking"
-  | "Paused"
-  | "Connection interrupted";
-
-const waveformHeightsByStatus: Record<VoicePreviewStatus, readonly number[]> = {
-  Listening: [5, 11, 15, 9, 4],
-  Speaking: [6, 11, 15, 9, 5],
-  Paused: [4, 6, 8, 6, 4],
-  "Connection interrupted": [4, 6, 8, 6, 4],
-};
-const voiceWaveformBarIds = [
-  "leading",
-  "middle-left",
-  "center",
-  "middle-right",
-  "trailing",
-] as const;
-
-const VoiceModePreview = ({
-  partialText,
-  status,
-}: {
-  partialText?: string;
-  status: VoicePreviewStatus;
-}) => {
-  const showReconnect = status === "Connection interrupted";
-  const showResume = status === "Paused";
-
-  return (
-    <section aria-label={`Voice mode: ${status}`} className={voicePreviewStyle}>
-      {partialText && (
-        <div className={partialBubbleStyle}>
-          <VoiceInputProvenance />
-          <span>{partialText}</span>
-        </div>
-      )}
-      <div className={voiceDividerStyle}>
-        <span className={voiceDividerLineStyle} />
-        <span aria-hidden="true" className={voiceWaveformStyle}>
-          {voiceWaveformBarIds.map((waveformBarId, index) => (
-            <span
-              key={waveformBarId}
-              style={{
-                height: `${waveformHeightsByStatus[status][index]}px`,
-              }}
-            />
-          ))}
-        </span>
-        <span className={voiceStatusStyle}>{status}</span>
-        <span className={voiceDividerLineStyle} />
-        <span className={voiceActionsStyle}>
-          {showResume && (
-            <Button iconName="play" size="xs" type="button" variant="solid">
-              Resume
-            </Button>
-          )}
-          {showReconnect && (
-            <Button iconName="rotate" size="xs" type="button" variant="solid">
-              Reconnect
-            </Button>
-          )}
-          <Button
-            aria-label="Voice mode actions"
-            iconName="ellipsis"
-            size="xs"
-            tooltip="Voice mode actions"
-            type="button"
-            variant="ghost"
-          />
-        </span>
-      </div>
-      {showReconnect && (
-        <>
-          <div className={recoveryMessageStyle}>
-            Check your connection, then reconnect.
-          </div>
-          <details className={technicalDetailsStyle}>
-            <summary>Technical details</summary>
-            <code>network</code>
-          </details>
-        </>
-      )}
-    </section>
-  );
-};
+/**
+ * Stands in for a host's pre-session slot. Once a session is running the host
+ * reports state instead of rendering, and Petrinaut's own dock takes over.
+ */
+const HostVoiceSlotPreview = () => (
+  <section aria-label="Voice mode consent" className={hostSlotStyle}>
+    <span className={hostSlotTitleStyle}>Voice mode</span>
+    <span>
+      OpenAI processes live audio to speak the interviewer's questions.
+      Petrinaut keeps finalized answers in the conversation rather than the
+      audio.
+    </span>
+    <Button size="xs" type="button" variant="solid">
+      Start voice mode
+    </Button>
+  </section>
+);
 
 const Frame = ({
   error,
@@ -381,6 +250,7 @@ const Frame = ({
   stopped = false,
   voiceMode,
   voiceModeAvailable = false,
+  voiceSession,
 }: {
   error?: Error;
   inputMode?: "text" | "voice";
@@ -389,29 +259,56 @@ const Frame = ({
   stopped?: boolean;
   voiceMode?: ReactNode;
   voiceModeAvailable?: boolean;
+  voiceSession?: PetrinautAiVoiceSessionState;
 }) => {
   const [input, setInput] = useState("");
+  // Stands in for the host, which reports session state rather than rendering
+  // the live surfaces itself.
+  const [voiceSessionStore] = useState(() => {
+    const store = createVoiceSessionStore();
+    store.setActions({
+      end: () => {},
+      pause: () => {},
+      reconnect: () => {},
+      resume: () => {},
+    });
+    store.setState(voiceSession ?? null);
+
+    return store;
+  });
 
   return (
-    <div style={{ height: "720px", position: "relative", width: "100%" }}>
-      <AiAssistantContents
-        error={error}
-        input={input}
-        inputMode={inputMode}
-        messages={messages}
-        onClose={() => {}}
-        onInputChange={setInput}
-        onInputModeChange={() => {}}
-        onStop={() => {}}
-        onSubmit={() => setInput("")}
-        status={status}
-        stopped={stopped}
-        voiceMode={voiceMode}
-        voiceModeAvailable={voiceModeAvailable}
-      />
-    </div>
+    <VoiceSessionContext.Provider value={voiceSessionStore}>
+      <div style={{ height: "720px", position: "relative", width: "100%" }}>
+        <AiAssistantContents
+          error={error}
+          input={input}
+          inputMode={inputMode}
+          messages={messages}
+          onClose={() => {}}
+          onInputChange={setInput}
+          onInputModeChange={() => {}}
+          onStop={() => {}}
+          onSubmit={() => setInput("")}
+          status={status}
+          stopped={stopped}
+          voiceMode={voiceMode}
+          voiceModeAvailable={voiceModeAvailable}
+        />
+      </div>
+    </VoiceSessionContext.Provider>
   );
 };
+
+const liveSession = (
+  overrides: Partial<PetrinautAiVoiceSessionState>,
+): PetrinautAiVoiceSessionState => ({
+  caption: "",
+  errorMessage: null,
+  microphoneLevel: 0,
+  phase: "listening",
+  ...overrides,
+});
 
 export const Empty: Story = {
   render: () => <Frame messages={[]} />,
@@ -421,51 +318,78 @@ export const EmptyWithVoiceAvailable: Story = {
   render: () => <Frame messages={[]} voiceModeAvailable />,
 };
 
-export const VoiceModeWithTranscript: Story = {
+export const VoiceModeAwaitingConsent: Story = {
   render: () => (
     <Frame
       inputMode="voice"
       messages={[userMessage, assistantMarkdownMessage]}
-      voiceMode={
-        <VoiceModePreview
-          partialText="The pharmacist checks the delivery against the order"
-          status="Listening"
-        />
-      }
+      voiceMode={<HostVoiceSlotPreview />}
       voiceModeAvailable
     />
   ),
 };
 
-export const VoiceModeSpeaking: Story = {
+export const VoiceSessionListening: Story = {
   render: () => (
     <Frame
       inputMode="voice"
       messages={[userMessage, assistantMarkdownMessage]}
-      voiceMode={<VoiceModePreview status="Speaking" />}
       voiceModeAvailable
+      voiceSession={liveSession({
+        caption: "The pharmacist checks the delivery against the order",
+        microphoneLevel: 0.6,
+      })}
     />
   ),
 };
 
-export const VoiceModePaused: Story = {
+export const VoiceSessionSpeaking: Story = {
   render: () => (
     <Frame
       inputMode="voice"
       messages={[userMessage, assistantMarkdownMessage]}
-      voiceMode={<VoiceModePreview status="Paused" />}
       voiceModeAvailable
+      voiceSession={liveSession({
+        caption: "Which step in that flow fails most often?",
+        phase: "speaking",
+      })}
     />
   ),
 };
 
-export const VoiceModeRecovery: Story = {
+export const VoiceSessionThinking: Story = {
   render: () => (
     <Frame
       inputMode="voice"
       messages={[userMessage, assistantMarkdownMessage]}
-      voiceMode={<VoiceModePreview status="Connection interrupted" />}
       voiceModeAvailable
+      voiceSession={liveSession({ phase: "thinking" })}
+    />
+  ),
+};
+
+export const VoiceSessionPaused: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "paused" })}
+    />
+  ),
+};
+
+export const VoiceSessionRecovery: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({
+        errorMessage:
+          "Connection interrupted. Check your connection. (network)",
+        phase: "error",
+      })}
     />
   ),
 };

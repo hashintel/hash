@@ -20,6 +20,7 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { PetrinautInstanceContext } from "../../../../react/instance-context";
+import { NotificationsProvider } from "../../../../react/notifications/provider";
 import {
   EditorContext,
   initialEditorState,
@@ -196,16 +197,20 @@ const renderTestPanel = ({
     nextInitialMessage = initialMessage,
   ) => (
     <PetrinautInstanceContext.Provider value={instance}>
-      <EditorContext.Provider value={nextEditorContext}>
-        <SDCPNContext.Provider value={sdcpnContext}>
-          <AiAssistantPanel
-            aiAssistant={nextAiAssistant}
-            initialInteractionMode={nextInitialInteractionMode}
-            initialMessage={nextInitialMessage}
-            onInitialInteractionModeConsumed={onInitialInteractionModeConsumed}
-          />
-        </SDCPNContext.Provider>
-      </EditorContext.Provider>
+      <NotificationsProvider>
+        <EditorContext.Provider value={nextEditorContext}>
+          <SDCPNContext.Provider value={sdcpnContext}>
+            <AiAssistantPanel
+              aiAssistant={nextAiAssistant}
+              initialInteractionMode={nextInitialInteractionMode}
+              initialMessage={nextInitialMessage}
+              onInitialInteractionModeConsumed={
+                onInitialInteractionModeConsumed
+              }
+            />
+          </SDCPNContext.Provider>
+        </EditorContext.Provider>
+      </NotificationsProvider>
     </PetrinautInstanceContext.Provider>
   );
   const rendered = render(renderPanel(aiAssistant, editorContext));
@@ -268,6 +273,8 @@ describe("AiAssistantPanel composer submissions", () => {
           registerVoiceModeControls({
             end: endVoice,
             pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
           }),
         [registerVoiceModeControls],
       );
@@ -347,6 +354,8 @@ describe("AiAssistantPanel composer submissions", () => {
           registerVoiceModeControls({
             end: endVoice,
             pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
           }),
         [registerVoiceModeControls],
       );
@@ -415,6 +424,8 @@ describe("AiAssistantPanel composer submissions", () => {
           registerVoiceModeControls({
             end: endVoice,
             pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
           }),
         [registerVoiceModeControls],
       );
@@ -493,6 +504,8 @@ describe("AiAssistantPanel composer submissions", () => {
           registerVoiceModeControls({
             end: endVoice,
             pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
           }),
         [registerVoiceModeControls],
       );
@@ -566,6 +579,8 @@ describe("AiAssistantPanel composer submissions", () => {
           context.registerVoiceModeControls({
             end: endVoice,
             pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
           }),
         [context],
       );
@@ -641,6 +656,8 @@ describe("AiAssistantPanel composer submissions", () => {
           context.registerVoiceModeControls({
             end: endVoice,
             pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
           }),
         [context],
       );
@@ -714,6 +731,8 @@ describe("AiAssistantPanel composer submissions", () => {
           context.registerVoiceModeControls({
             end: endVoice,
             pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
           }),
         [context],
       );
@@ -792,6 +811,8 @@ describe("AiAssistantPanel composer submissions", () => {
           context.registerVoiceModeControls({
             end: endVoice,
             pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
           }),
         [context],
       );
@@ -862,6 +883,8 @@ describe("AiAssistantPanel composer submissions", () => {
           registerVoiceModeControls({
             end: async () => undefined,
             pause: pauseVoice,
+            reconnect: vi.fn(),
+            resume: vi.fn(),
           }),
         [registerVoiceModeControls],
       );
@@ -921,6 +944,8 @@ describe("AiAssistantPanel composer submissions", () => {
           registerVoiceModeControls({
             end: async () => undefined,
             pause: pauseVoice,
+            reconnect: vi.fn(),
+            resume: vi.fn(),
           }),
         [registerVoiceModeControls],
       );
@@ -1050,6 +1075,8 @@ describe("AiAssistantPanel composer submissions", () => {
           registerVoiceModeControls({
             end: endVoice,
             pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
           }),
         [registerVoiceModeControls],
       );

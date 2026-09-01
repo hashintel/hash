@@ -11,14 +11,21 @@ interactive-tool text mapping, explicit separate-message targeting for correctio
 queue-aware voice submission path. Present text and voice through one transcript and composer whose
 trailing action switches between waveform, Send, and Stop. `renderComposerControl` remains a
 supported public seam for hosts that only need their own control beside the message box,
-independently of Voice mode.
+independently of Voice mode. Surface assistant request failures as error toasts instead of
+transcript entries.
 
-Show partial speech as an ephemeral user-style bubble and render compact waveform provenance on
-persisted spoken messages and the exact interactive-tool answer completed by Voice. Keep session
-state in a subtle transcript divider with input-responsive listening bars, deterministic speaking
-motion, throttled announcements, reduced-motion behavior, and compact recovery controls. Keep Pause
-and End voice mode in an overflow menu, expose collapsed privacy-safe technical details, and request
-one-time consent before the host starts the microphone.
+Render every live Voice surface from a session snapshot the host reports through
+`reportVoiceSessionState`, so hosts describe their session while Petrinaut owns its chrome. Replace
+the composer with a low-profile Voice dock -- an ephemeral caption over a five-bar indicator that
+follows microphone input while listening, switches to deterministic motion while the assistant
+speaks, and names one phase at a time -- with throttled announcements and reduced-motion behavior.
+Hold spoken turns out of the transcript until the session ends, then reveal them together under a
+turn-count divider, while typed messages and interactive tools awaiting an answer stay visible
+throughout. Place Pause, Resume, Reconnect, and End in a glass segment above the canvas toolbar, and
+fall back to the same actions in the dock when that toolbar is absent. Surface voice recovery
+failures as toasts with privacy-safe diagnostic references, and request one-time consent before the
+host starts the microphone. Render compact waveform provenance on persisted spoken messages and the
+exact interactive-tool answer completed by Voice.
 
 End Voice mode before submitting typed text exactly once through the shared composer, preserving the
 draft if handoff fails. Pause active media before the AI panel closes and reopen the mounted session

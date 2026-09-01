@@ -13,10 +13,7 @@ import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
 import { selectCanonicalSpeechSegments } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
-import {
-  VoiceInterviewControlView,
-  type VoiceInterviewControlViewProps,
-} from "./voice-interview-inline-view";
+import { toVoiceSessionState } from "./voice-session-state";
 import {
   VoiceTurnController,
   type VoiceLatencyEvent,
@@ -24,11 +21,6 @@ import {
 } from "./voice-turn-controller";
 
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
-
-export {
-  VoiceInterviewControlView,
-  type VoiceInterviewControlViewProps,
-} from "./voice-interview-inline-view";
 
 export interface OpenAIVoiceConfig {
   readonly available: true;
@@ -290,6 +282,9 @@ const AvailableVoiceInterviewControl = ({
   const [pendingVoiceInput, setPendingVoiceInput] =
     useState<PendingVoiceInputRepresentation | null>(null);
   const [store] = useState(() => {
+    // Realtime submits an answer long after the render that created the
+    // bridge, so these callbacks read what the layout effect below installs
+    // rather than what was captured here.
     let latestMessages = context.messages;
     let latestSubmitVoiceInput = context.submitVoiceInput;
     const session = new OpenAIRealtimeSession({
@@ -319,7 +314,7 @@ const AvailableVoiceInterviewControl = ({
       bridge,
       onLatencyEvent: recordLatency,
       session,
-      submitText: context.submitVoiceInput,
+      submitText: (input) => latestSubmitVoiceInput(input),
     });
     return {
       controller,
@@ -348,14 +343,12 @@ const AvailableVoiceInterviewControl = ({
     inputMode,
     isAiAssistantOpen,
     registerVoiceModeControls,
+    reportVoiceSessionState,
     setVoiceActive,
   } = context;
 
   useLayoutEffect(() => {
-    store.updateSubmissionContext(
-      context.messages,
-      context.submitVoiceInput,
-    );
+    store.updateSubmissionContext(context.messages, context.submitVoiceInput);
     store.controller.updateChat({
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
       canonicalSegments: selectCanonicalSpeechSegments(context.messages),
@@ -376,6 +369,10 @@ const AvailableVoiceInterviewControl = ({
       registerVoiceModeControls({
         end: () => store.controller.end(),
         pause: () => store.controller.pause(),
+        reconnect: () => {
+          void store.controller.reconnect();
+        },
+        resume: () => store.controller.resume(),
       }),
     [registerVoiceModeControls, store],
   );
@@ -422,11 +419,24 @@ const AvailableVoiceInterviewControl = ({
     [store],
   );
 
-  const end = () => {
-    context.setVoiceActive(false);
-    context.setInputMode("text");
-    void store.controller.end();
-  };
+  const committedTextRepresented =
+    pendingVoiceInput !== null &&
+    isVoiceInputRepresented(context.messages, pendingVoiceInput);
+
+  // Petrinaut owns every live Voice surface, so this control only reports the
+  // session's state and keeps the consent step to itself.
+  useEffect(() => {
+    reportVoiceSessionState(
+      toVoiceSessionState({ committedTextRepresented, snapshot }),
+    );
+  }, [committedTextRepresented, reportVoiceSessionState, snapshot]);
+
+  useEffect(
+    () => () => {
+      reportVoiceSessionState(null);
+    },
+    [reportVoiceSessionState],
+  );
 
   if (!active) {
     if (!showDisclosure || inputMode !== "voice") {
@@ -460,20 +470,7 @@ const AvailableVoiceInterviewControl = ({
     );
   }
 
-  const viewProps: VoiceInterviewControlViewProps = {
-    committedTextRepresented:
-      pendingVoiceInput !== null &&
-      isVoiceInputRepresented(context.messages, pendingVoiceInput),
-    onEnd: end,
-    onPause: () => store.controller.pause(),
-    onReconnect: () => {
-      void store.controller.reconnect();
-    },
-    onResume: () => store.controller.resume(),
-    snapshot,
-  };
-
-  return <VoiceInterviewControlView {...viewProps} />;
+  return null;
 };
 
 export const VoiceInterviewControl = ({

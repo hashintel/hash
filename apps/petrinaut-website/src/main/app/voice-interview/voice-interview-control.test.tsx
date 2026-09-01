@@ -23,16 +23,15 @@ import {
 } from "./voice-interview-control";
 import { VoiceTurnController } from "./voice-turn-controller";
 
-import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
+import type {
+  PetrinautAiVoiceModeContext,
+  PetrinautAiVoiceModeControls,
+  PetrinautAiVoiceSessionState,
+} from "@hashintel/petrinaut/ui";
 
 const config = { available: true as const, connectionTimeoutMs: 15_000 };
 
-let registeredVoiceModeControls:
-  | {
-      end: () => Promise<void>;
-      pause: () => void;
-    }
-  | undefined;
+let registeredVoiceModeControls: PetrinautAiVoiceModeControls | undefined;
 
 const VoiceInterviewHarness = () => {
   "use no memo";
@@ -41,6 +40,10 @@ const VoiceInterviewHarness = () => {
   const [inputMode, setInputMode] =
     useState<PetrinautAiVoiceModeContext["inputMode"]>("text");
   const [isAiAssistantOpen, setAiAssistantOpen] = useState(true);
+  // Stands in for Petrinaut, which renders every live Voice surface from the
+  // state this control reports.
+  const [sessionState, setSessionState] =
+    useState<PetrinautAiVoiceSessionState | null>(null);
   const context: PetrinautAiVoiceModeContext = {
     canAcceptVoiceInput: true,
     conversationId: "voice-control-test",
@@ -55,6 +58,7 @@ const VoiceInterviewHarness = () => {
         }
       };
     },
+    reportVoiceSessionState: setSessionState,
     setInputMode,
     setVoiceActive: setActive,
     status: "ready",
@@ -83,6 +87,23 @@ const VoiceInterviewHarness = () => {
       >
         Toggle panel
       </button>
+      {/* Mirrors Petrinaut's End control, which ends the session and returns
+          the composer to text. */}
+      <button
+        type="button"
+        onClick={() => {
+          void registeredVoiceModeControls?.end();
+          setActive(false);
+          setInputMode("text");
+        }}
+      >
+        End session
+      </button>
+      <output>
+        {sessionState === null
+          ? "No session"
+          : `Session: ${sessionState.phase}`}
+      </output>
       <output>{active ? "Voice active" : "Voice inactive"}</output>
       <output>{inputMode === "voice" ? "Voice mode" : "Text mode"}</output>
       <output>{isAiAssistantOpen ? "Panel open" : "Panel closed"}</output>
@@ -318,7 +339,7 @@ describe("voice interview control", () => {
     expect(document.activeElement).toBe(disclosure);
   });
 
-  test("starts one inline session after consent and keeps it inline across host presentation changes", async () => {
+  test("starts one session after consent and keeps reporting it across host presentation changes", async () => {
     const getUserMedia = stubUnavailableMicrophone();
     render(
       <StrictMode>
@@ -330,34 +351,21 @@ describe("voice interview control", () => {
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
 
-    const voiceSession = await screen.findByRole("region", {
-      name: "Voice session",
-    });
-    expect(voiceSession).not.toBeNull();
-    expect(screen.getByText("Microphone unavailable")).not.toBeNull();
+    expect(await screen.findByText("Session: error")).not.toBeNull();
     expect(screen.getByText("Voice active")).not.toBeNull();
     expect(getUserMedia).toHaveBeenCalledOnce();
-    expect(document.activeElement?.getAttribute("aria-label")).toBe(
-      "Voice session",
-    );
+    // The control itself renders nothing once a session is running.
+    expect(screen.queryByRole("region", { name: "Voice session" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Select Text" }));
     fireEvent.click(screen.getByRole("button", { name: "Toggle panel" }));
 
     expect(screen.getByText("Text mode")).not.toBeNull();
     expect(screen.getByText("Panel closed")).not.toBeNull();
-    expect(
-      screen.getByRole("region", { name: "Voice session" }),
-    ).not.toBeNull();
-    expect(
-      screen.queryByRole("region", { name: "Voice interview mini bar" }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: /Expand voice interview/u }),
-    ).toBeNull();
+    expect(screen.getByText("Session: error")).not.toBeNull();
   });
 
-  test("starts directly after acknowledgement and ends through the inline action", async () => {
+  test("starts directly after acknowledgement and ends through the registered control", async () => {
     window.localStorage.setItem(
       VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
       "acknowledged",
@@ -370,24 +378,12 @@ describe("voice interview control", () => {
     expect(
       screen.queryByRole("region", { name: "Voice mode consent" }),
     ).toBeNull();
-    expect(
-      await screen.findByRole("region", { name: "Voice session" }),
-    ).not.toBeNull();
+    expect(await screen.findByText("Session: error")).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Voice mode actions" }));
-    const endItem = await screen.findByRole("menuitem", {
-      name: "End voice mode",
-    });
-    fireEvent.pointerMove(endItem, { pointerType: "mouse" });
-    await waitFor(() =>
-      expect(endItem.hasAttribute("data-highlighted")).toBe(true),
-    );
-    fireEvent.click(endItem);
+    fireEvent.click(screen.getByRole("button", { name: "End session" }));
 
     await waitFor(() => {
-      expect(
-        screen.queryByRole("region", { name: "Voice session" }),
-      ).toBeNull();
+      expect(screen.getByText("No session")).not.toBeNull();
     });
     expect(screen.getByText("Text mode")).not.toBeNull();
     expect(screen.getByText("Voice inactive")).not.toBeNull();
@@ -417,16 +413,8 @@ describe("voice interview control", () => {
     render(<VoiceInterviewHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
-    await screen.findByText("Listening");
-    fireEvent.click(screen.getByRole("button", { name: "Voice mode actions" }));
-    const endItem = await screen.findByRole("menuitem", {
-      name: "End voice mode",
-    });
-    fireEvent.pointerMove(endItem, { pointerType: "mouse" });
-    await waitFor(() =>
-      expect(endItem.hasAttribute("data-highlighted")).toBe(true),
-    );
-    fireEvent.click(endItem);
+    await screen.findByText("Session: listening");
+    fireEvent.click(screen.getByRole("button", { name: "End session" }));
     await screen.findByText("Text mode");
     fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
 
@@ -435,7 +423,7 @@ describe("voice interview control", () => {
 
     await waitFor(() => expect(connect).toHaveBeenCalledTimes(2));
     expect(screen.getByText("Voice active")).not.toBeNull();
-    expect(screen.getByText("Listening")).not.toBeNull();
+    expect(screen.getByText("Session: listening")).not.toBeNull();
   });
 
   test("pauses once when the panel closes and stays paused after reopening", async () => {
@@ -453,16 +441,15 @@ describe("voice interview control", () => {
     render(<VoiceInterviewHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
-    await screen.findByText("Listening");
+    await screen.findByText("Session: listening");
     expect(registeredVoiceModeControls).toBeDefined();
 
     fireEvent.click(screen.getByRole("button", { name: "Toggle panel" }));
-    await screen.findByText("Paused");
+    await screen.findByText("Session: paused");
     expect(pause).toHaveBeenCalledOnce();
 
     fireEvent.click(screen.getByRole("button", { name: "Toggle panel" }));
-    expect(screen.getByText("Paused")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Resume" })).not.toBeNull();
+    expect(screen.getByText("Session: paused")).not.toBeNull();
     expect(pause).toHaveBeenCalledOnce();
   });
 
@@ -485,11 +472,11 @@ describe("voice interview control", () => {
     render(<VoiceInterviewHarness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
-    await screen.findByText("Connecting");
+    await screen.findByText("Session: connecting");
     fireEvent.click(screen.getByRole("button", { name: "Toggle panel" }));
     finishConnection?.(1);
 
-    await screen.findByText("Paused");
+    await screen.findByText("Session: paused");
     expect(setMicrophoneEnabled).toHaveBeenCalledWith(false);
     expect(setMicrophoneEnabled).not.toHaveBeenCalledWith(true);
     expect(screen.getByText("Panel closed")).not.toBeNull();

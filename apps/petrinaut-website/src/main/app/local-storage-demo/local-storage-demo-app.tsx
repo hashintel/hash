@@ -95,6 +95,12 @@ const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
 );
 
+// Only Brunch keeps a conversation to hydrate from; the generic fallback route
+// has no history door.
+const brunchHistoryEndpoint = brunchPreviewConfig.isBrunchConfigured
+  ? brunchPreviewConfig.chatEndpoint
+  : null;
+
 export const getBrunchVoiceMode = (
   config: OpenAIVoiceConfig | null | undefined,
 ): PetrinautAiVoiceMode | undefined =>
@@ -322,11 +328,9 @@ export const LocalStorageDemoApp = () => {
     ? getOrCreateBrunchConversationId(currentNetId)
     : null;
   const flueHistory = useFlueChatHistory(
+    brunchHistoryEndpoint,
     conversationId ?? "",
     brunchPrincipal,
-    brunchPreviewConfig.isBrunchConfigured
-      ? brunchPreviewConfig.chatEndpoint
-      : null,
   );
   const petrinautAiChatTransport = useMemo(
     () =>

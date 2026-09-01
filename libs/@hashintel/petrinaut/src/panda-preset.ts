@@ -106,6 +106,29 @@ export const petrinautPandaPreset = {
           from: { opacity: "1", transform: "translateX(0)" },
           to: { opacity: "0", transform: "translateX(100px)" },
         },
+        petrinautVoiceSpeak: {
+          "0%, 100%": { height: "4px" },
+          "50%": { height: "18px" },
+        },
+        petrinautVoiceSpeakCompact: {
+          "0%, 100%": { height: "3px" },
+          "50%": { height: "12px" },
+        },
+        petrinautVoiceWait: {
+          "0%, 100%": { opacity: "0.35" },
+          "50%": { opacity: "1" },
+        },
+        // Squash played once whenever the turn passes between the two voices,
+        // so the hand-off reads without the indicator changing size or place.
+        petrinautVoiceHandoff: {
+          "0%": { transform: "scaleX(1)" },
+          "40%": { transform: "scaleX(0.62)" },
+          "100%": { transform: "scaleX(1)" },
+        },
+        petrinautVoiceReveal: {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
     },
   },

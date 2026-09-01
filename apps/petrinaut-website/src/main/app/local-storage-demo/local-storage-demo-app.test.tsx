@@ -41,6 +41,7 @@ describe("local storage demo Brunch voice integration", () => {
       isAiAssistantOpen: true,
       messages: [],
       registerVoiceModeControls: vi.fn(() => () => undefined),
+      reportVoiceSessionState: vi.fn(),
       setInputMode: vi.fn(),
       setVoiceActive: vi.fn(),
       status: "ready",

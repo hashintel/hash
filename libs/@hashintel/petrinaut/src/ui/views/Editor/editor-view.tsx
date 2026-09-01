@@ -30,6 +30,7 @@ import { useEffectiveGlobalMode } from "../../../react/state/use-effective-globa
 import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { VoiceSessionProvider } from "../../../react/voice-session/provider";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import {
@@ -471,69 +472,73 @@ export const EditorView = ({
         slots={slots}
       />
 
-      <Stack direction="row" className={rowContainerStyle}>
-        {effectiveMode === "simulate" ? (
-          <SimulateView />
-        ) : effectiveMode === "notebook" ? (
-          <NotebookView key={petriNetId ?? "no-net"} />
-        ) : (
-          <Box className={canvasContainerStyle}>
-            {/* Left Sidebar - Tools and content panels */}
-            <LeftSideBar />
+      {/* Voice session state is shared between the assistant panel that owns
+          the session and the toolbar segment that controls it. */}
+      <VoiceSessionProvider>
+        <Stack direction="row" className={rowContainerStyle}>
+          {effectiveMode === "simulate" ? (
+            <SimulateView />
+          ) : effectiveMode === "notebook" ? (
+            <NotebookView key={petriNetId ?? "no-net"} />
+          ) : (
+            <Box className={canvasContainerStyle}>
+              {/* Left Sidebar - Tools and content panels */}
+              <LeftSideBar />
 
-            {/* Properties Panel - Right Side */}
-            <PropertiesPanel />
+              {/* Properties Panel - Right Side */}
+              <PropertiesPanel />
 
-            {/* SDCPN Visualization */}
-            <SDCPNView viewportActions={viewportActions} />
+              {/* SDCPN Visualization */}
+              <SDCPNView viewportActions={viewportActions} />
 
-            {showEmptyAiHero && (
-              <AiCtaModal
-                bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
-                onDismiss={() => setIsAiCtaDismissed(true)}
-                onStartVoiceMode={() => {
-                  setPendingAiInteractionMode("voice");
-                  setAiAssistantOpen(true);
-                }}
-                onSubmit={(message) => {
-                  setPendingAiAssistantMessage(message);
-                  setPendingAiInteractionMode("text");
-                  setAiAssistantOpen(true);
-                }}
-                voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
+              {showEmptyAiHero && (
+                <AiCtaModal
+                  bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
+                  onDismiss={() => setIsAiCtaDismissed(true)}
+                  onStartVoiceMode={() => {
+                    setPendingAiInteractionMode("voice");
+                    setAiAssistantOpen(true);
+                  }}
+                  onSubmit={(message) => {
+                    setPendingAiAssistantMessage(message);
+                    setPendingAiInteractionMode("text");
+                    setAiAssistantOpen(true);
+                  }}
+                  voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
+                />
+              )}
+
+              {/* Bottom Panel */}
+              <BottomPanel />
+
+              <BottomBar
+                mode={effectiveMode}
+                editionMode={editionMode}
+                onEditionModeChange={setEditionMode}
+                cursorMode={cursorMode}
+                onCursorModeChange={setCursorMode}
+                hasAiAssistant={aiAssistant !== undefined}
               />
-            )}
 
-            {/* Bottom Panel */}
-            <BottomPanel />
-
-            <BottomBar
-              mode={effectiveMode}
-              editionMode={editionMode}
-              onEditionModeChange={setEditionMode}
-              cursorMode={cursorMode}
-              onCursorModeChange={setCursorMode}
-              hasAiAssistant={aiAssistant !== undefined}
-            />
-
-            {aiAssistant && (
-              <AiAssistantPanel
-                /** Reset state (e.g. initial messages) when the active net changes */
-                key={petriNetId ?? "no-net"}
-                aiAssistant={aiAssistant}
-                initialMessage={pendingAiAssistantMessage}
-                initialInteractionMode={pendingAiInteractionMode}
-                onInitialMessageConsumed={() =>
-                  setPendingAiAssistantMessage(null)
-                }
-                onInitialInteractionModeConsumed={() =>
-                  setPendingAiInteractionMode(null)
-                }
-              />
-            )}
-          </Box>
-        )}
-      </Stack>
+              {aiAssistant && (
+                <AiAssistantPanel
+                  /** Reset state (e.g. initial messages) when the active net changes */
+                  key={petriNetId ?? "no-net"}
+                  aiAssistant={aiAssistant}
+                  initialMessage={pendingAiAssistantMessage}
+                  initialInteractionMode={pendingAiInteractionMode}
+                  onInitialMessageConsumed={() =>
+                    setPendingAiAssistantMessage(null)
+                  }
+                  onInitialInteractionModeConsumed={() =>
+                    setPendingAiInteractionMode(null)
+                  }
+                />
+              )}
+            </Box>
+          )}
+        </Stack>
+      </VoiceSessionProvider>
 
       <SimulationCreationDrawer />
     </>

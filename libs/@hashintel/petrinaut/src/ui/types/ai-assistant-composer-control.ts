@@ -51,6 +51,38 @@ export type PetrinautAiVoiceModeControls = {
   end: () => Promise<void>;
   /** Pauses microphone capture and active Voice output synchronously. */
   pause: () => void;
+  /** Re-establishes a session that dropped, keeping the conversation. */
+  reconnect: () => void;
+  /** Resumes microphone capture after `pause`. */
+  resume: () => void;
+};
+
+/** Which side of a Voice session currently holds the turn. */
+export type PetrinautAiVoiceSessionPhase =
+  | "connecting"
+  | "error"
+  | "listening"
+  | "paused"
+  | "speaking"
+  | "thinking";
+
+/**
+ * Live state of a host-owned Voice session.
+ *
+ * Petrinaut renders every live Voice surface from this snapshot, so hosts
+ * report state rather than rendering their own status UI. Report it from an
+ * effect: it changes at microphone-sampling rate.
+ */
+export type PetrinautAiVoiceSessionState = {
+  /**
+   * Speech for the turn in flight, shown as an ephemeral caption. Finalized
+   * turns reach the transcript through the conversation, not through this.
+   */
+  caption: string;
+  errorMessage: string | null;
+  /** Normalized 0–1 input level driving the listening indicator. */
+  microphoneLevel: number;
+  phase: PetrinautAiVoiceSessionPhase;
 };
 
 /** Stable controls and conversation state supplied to a host-owned Voice mode. */
@@ -66,6 +98,11 @@ export type PetrinautAiVoiceModeContext = PetrinautAiComposerControlContext & {
   registerVoiceModeControls: (
     controls: PetrinautAiVoiceModeControls,
   ) => () => void;
+  /**
+   * Publishes the live session state Petrinaut renders from. Pass `null` once
+   * no session is running so Petrinaut can retire its Voice surfaces.
+   */
+  reportVoiceSessionState: (state: PetrinautAiVoiceSessionState | null) => void;
   setInputMode: (mode: PetrinautAiInputMode) => void;
   /** Tell Petrinaut to protect an active voice session from accidental clearing. */
   setVoiceActive: (active: boolean) => void;

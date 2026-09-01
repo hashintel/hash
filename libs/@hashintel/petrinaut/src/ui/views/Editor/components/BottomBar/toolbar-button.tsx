@@ -40,6 +40,16 @@ const buttonStyle = cva({
         opacity: "[0.4]",
       },
     },
+    tone: {
+      danger: {
+        _hover: {
+          color: "red.s100",
+        },
+        _active: {
+          color: "red.s100",
+        },
+      },
+    },
   },
 });
 
@@ -62,6 +72,8 @@ interface ToolbarButtonProps {
   draggable?: boolean;
   /** Drag start handler */
   onDragStart?: (event: React.DragEvent) => void;
+  /** Tints the button on hover, for destructive actions such as ending a session */
+  tone?: "danger";
   /** Forwarded to the underlying `<button>` (e.g. to anchor a popover) */
   ref?: Ref<HTMLButtonElement>;
 }
@@ -81,6 +93,7 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
   draggable = false,
   onDragStart,
   ref,
+  tone,
 }) => {
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if ((event.key === "Enter" || event.key === " ") && onClick) {
@@ -96,7 +109,7 @@ export const ToolbarButton: React.FC<ToolbarButtonProps> = ({
         type="button"
         onClick={onClick}
         onKeyDown={handleKeyDown}
-        className={buttonStyle({ isSelected, isDisabled: disabled })}
+        className={buttonStyle({ isSelected, isDisabled: disabled, tone })}
         aria-label={ariaLabel}
         aria-expanded={ariaExpanded}
         aria-pressed={isSelected}

@@ -1,7 +1,9 @@
 import {
+  Fragment,
   memo,
   type ReactNode,
   type RefObject,
+  use,
   useEffect,
   useRef,
   useState,
@@ -11,9 +13,16 @@ import ReactMarkdown from "react-markdown";
 import { Button } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+import { NotificationsContext } from "../../../../../react/notifications/context";
+import { VoiceSessionContext } from "../../../../../react/voice-session/context";
+import {
+  useVoiceSessionErrorMessage,
+  useVoiceSessionPhase,
+} from "../../../../../react/voice-session/use-voice-session";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { ResizeHandle } from "../../../../resize/resize-handle";
 import { AiVoiceModeButton } from "../../components/ai-voice-mode-button";
+import { partitionVoiceSessionMessages } from "./ai-assistant-contents/defer-voice-messages";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
   PromptChips,
@@ -25,6 +34,7 @@ import {
   AiAssistantToolList,
   type OnInteractiveToolSubmit,
 } from "./ai-assistant-contents/tool-list";
+import { LiveVoiceDock } from "./ai-assistant-contents/voice-dock";
 import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
 import type { PetrinautAiInputMode } from "../../../../types/ai-assistant-composer-control";
@@ -249,6 +259,40 @@ const messageStyle = cva({
         textAlign: "right",
       },
     },
+    // Spoken turns land in the transcript together once the session ends, so
+    // they arrive with a single entrance rather than appearing out of nowhere.
+    revealed: {
+      true: {
+        animationName: "[petrinautVoiceReveal]",
+        animationDuration: "[420ms]",
+        animationTimingFunction: "[cubic-bezier(0.22, 0.9, 0.3, 1)]",
+        "@media (prefers-reduced-motion: reduce)": {
+          animationName: "[none]",
+        },
+      },
+    },
+  },
+});
+
+const voiceSessionMetaStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  paddingX: "1",
+  color: "neutral.s90",
+  fontSize: "xs",
+  fontWeight: "medium",
+  _before: {
+    flex: "[1]",
+    height: "[1px]",
+    backgroundColor: "neutral.a30",
+    content: '""',
+  },
+  _after: {
+    flex: "[1]",
+    height: "[1px]",
+    backgroundColor: "neutral.a30",
+    content: '""',
   },
 });
 
@@ -258,16 +302,6 @@ const messageStyle = cva({
 const userTextStyle = css({
   whiteSpace: "pre-wrap",
   wordBreak: "break-word",
-});
-
-const errorStyle = css({
-  borderRadius: "lg",
-  padding: "2",
-  backgroundColor: "red.bg.subtle",
-  color: "red.s100",
-  fontSize: "sm",
-  fontWeight: "medium",
-  userSelect: "text",
 });
 
 const stoppedNoteStyle = css({
@@ -384,10 +418,12 @@ const AiAssistantMessage = memo(
     handlersRef,
     interactiveTools,
     message,
+    revealed = false,
   }: {
     handlersRef: MessageHandlersRef;
     interactiveTools: readonly PetrinautAiInteractiveTool[];
     message: PetrinautAiMessage;
+    revealed?: boolean;
   }) => {
     const role = message.role === "user" ? "user" : "assistant";
     const renderItems = getMessageRenderItems(message, interactiveTools);
@@ -396,7 +432,7 @@ const AiAssistantMessage = memo(
 
     return (
       <div
-        className={messageStyle({ role })}
+        className={messageStyle({ revealed, role })}
         data-role={role}
         data-voice-origin={hasVoiceOrigin || undefined}
       >
@@ -475,13 +511,109 @@ export const AiAssistantContents = ({
   voiceMode,
   voiceModeAvailable = false,
 }: AiAssistantContentsProps) => {
+  const { addNotification } = use(NotificationsContext);
+  const voiceSessionStore = use(VoiceSessionContext);
+  const voiceSessionPhase = useVoiceSessionPhase();
+  const voiceSessionErrorMessage = useVoiceSessionErrorMessage();
+  const isVoiceSessionLive = voiceSessionPhase !== null;
   const isBusy = status === "submitted" || status === "streaming";
   const hasInput = input.trim().length > 0;
   const canSubmit = hasInput && !isBusy && !voiceHandoffPending;
 
+  // Index of the first message belonging to the current or most recent voice
+  // session. Everything from here on is held back while that session runs, and
+  // revealed together once it ends.
+  const [sessionBaselineIndex, setSessionBaselineIndex] = useState<
+    number | null
+  >(() =>
+    voiceSessionStore.getSnapshot().state === null ? null : messages.length,
+  );
+
+  const messageCountRef = useRef(messages.length);
+  useEffect(() => {
+    messageCountRef.current = messages.length;
+  }, [messages]);
+
+  // Read from the store rather than from a render effect, so the baseline is
+  // captured on the event that starts the session instead of a render that
+  // happens to observe it.
+  useEffect(() => {
+    let wasLive = voiceSessionStore.getSnapshot().state !== null;
+
+    return voiceSessionStore.subscribe(() => {
+      const isLive = voiceSessionStore.getSnapshot().state !== null;
+      if (isLive === wasLive) {
+        return;
+      }
+      wasLive = isLive;
+
+      if (isLive) {
+        setSessionBaselineIndex(messageCountRef.current);
+      }
+    });
+  }, [voiceSessionStore]);
+
+  const sessionPartition =
+    sessionBaselineIndex === null
+      ? null
+      : partitionVoiceSessionMessages({
+          deferredFromIndex: sessionBaselineIndex,
+          interactiveTools,
+          messages,
+        });
+
+  const visibleMessages =
+    isVoiceSessionLive && sessionPartition !== null
+      ? sessionPartition.visible
+      : messages;
+
+  // Held turns become "revealed" the moment the session ends: they carry the
+  // entrance animation and are counted in the divider above them.
+  const revealedIds = new Set(
+    isVoiceSessionLive || sessionPartition === null
+      ? []
+      : sessionPartition.deferred.map((message) => message.id),
+  );
+  const firstRevealedMessageId = visibleMessages.find((message) =>
+    revealedIds.has(message.id),
+  )?.id;
+  const revealedVoiceTurnCount = visibleMessages.filter(
+    (message) => revealedIds.has(message.id) && message.role === "user",
+  ).length;
+
   const [assistantWidth, setAssistantWidth] = useState(defaultAssistantWidth);
 
   const [chipsDismissed, setChipsDismissed] = useState(false);
+
+  const notifiedErrorRef = useRef<Error | undefined>(undefined);
+  useEffect(() => {
+    if (!error) {
+      notifiedErrorRef.current = undefined;
+      return;
+    }
+    if (notifiedErrorRef.current === error) {
+      return;
+    }
+    notifiedErrorRef.current = error;
+    addNotification({
+      message: error.message,
+      tone: "error",
+    });
+  }, [addNotification, error]);
+
+  // Voice failures (microphone denied, connection dropped) are reported by the
+  // host rather than thrown, and get the same treatment: a toast, with the
+  // recovery action left on the session's own controls.
+  useEffect(() => {
+    if (voiceSessionPhase !== "error" || voiceSessionErrorMessage === null) {
+      return;
+    }
+
+    addNotification({
+      message: voiceSessionErrorMessage,
+      tone: "error",
+    });
+  }, [addNotification, voiceSessionErrorMessage, voiceSessionPhase]);
 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -614,123 +746,142 @@ export const AiAssistantContents = ({
               </div>
             </div>
           )}
-          {messages.map((message) => (
-            <AiAssistantMessage
-              interactiveTools={interactiveTools}
-              key={message.id}
-              message={message}
-              handlersRef={handlersRef}
-            />
+          {visibleMessages.map((message) => (
+            <Fragment key={message.id}>
+              {message.id === firstRevealedMessageId &&
+                revealedVoiceTurnCount > 0 && (
+                  <div className={voiceSessionMetaStyle}>
+                    {`Voice session · ${revealedVoiceTurnCount} ${
+                      revealedVoiceTurnCount === 1 ? "turn" : "turns"
+                    }`}
+                  </div>
+                )}
+              <AiAssistantMessage
+                interactiveTools={interactiveTools}
+                message={message}
+                handlersRef={handlersRef}
+                revealed={revealedIds.has(message.id)}
+              />
+            </Fragment>
           ))}
-          {error && <div className={errorStyle}>{error.message}</div>}
           {stopped && !error && (
             <div className={stoppedNoteStyle}>Response stopped</div>
-          )}
-          {voiceMode && (
-            <div className={voiceModeStyle} data-testid="ai-voice-mode">
-              {voiceMode}
-            </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        <div
-          className={`${composerWrapStyle} ${panelContentStyle({ visible: isOpen })}`}
-        >
-          {showChips && (
-            <PromptChips
-              chips={promptChips}
-              disabled={isBusy}
-              onDismiss={() => setChipsDismissed(true)}
-              onSelect={(prompt) => onSendPrompt(prompt)}
-            />
-          )}
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              const submitter = (event.nativeEvent as SubmitEvent).submitter;
-              if (
-                canSubmit &&
-                submitter?.hasAttribute("data-ai-assistant-submit")
-              ) {
-                onSubmit();
-              }
-            }}
+        {voiceMode && (
+          <div
+            className={`${voiceModeStyle} ${panelContentStyle({ visible: isOpen })}`}
+            data-testid="ai-voice-mode"
           >
-            <div className={composerStyle}>
-              <textarea
-                ref={inputRef}
-                className={composerTextareaStyle}
-                rows={1}
-                value={input}
-                onChange={(event) => onInputChange(event.currentTarget.value)}
-                onKeyDown={(event) => {
-                  // Enter sends; Shift+Enter inserts a newline (the textarea's
-                  // native behaviour, so we just let it through). The
-                  // `isComposing` guard stops an IME confirmation keystroke
-                  // from sending a half-finished message.
-                  if (
-                    event.key === "Enter" &&
-                    !event.shiftKey &&
-                    !event.nativeEvent.isComposing
-                  ) {
-                    event.preventDefault();
-                    if (canSubmit) {
-                      onSubmit();
-                    }
-                  }
-                }}
-                placeholder={
-                  messages.length === 0
-                    ? "Describe the process you want to create"
-                    : "Continue iterating..."
-                }
-                aria-label="Message AI assistant"
-                disabled={voiceHandoffPending}
+            {voiceMode}
+          </div>
+        )}
+
+        {isVoiceSessionLive ? (
+          <div className={panelContentStyle({ visible: isOpen })}>
+            <LiveVoiceDock />
+          </div>
+        ) : (
+          <div
+            className={`${composerWrapStyle} ${panelContentStyle({ visible: isOpen })}`}
+          >
+            {showChips && (
+              <PromptChips
+                chips={promptChips}
+                disabled={isBusy}
+                onDismiss={() => setChipsDismissed(true)}
+                onSelect={(prompt) => onSendPrompt(prompt)}
               />
-              {composerControl}
-              {isBusy ? (
-                <Button
-                  aria-label="Stop AI response"
-                  iconName="stopFilled"
-                  onClick={onStop}
-                  size="sm"
-                  tone="neutral"
-                  tooltip="Stop AI response"
-                  type="button"
-                  variant="subtle"
+            )}
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                const submitter = (event.nativeEvent as SubmitEvent).submitter;
+                if (
+                  canSubmit &&
+                  submitter?.hasAttribute("data-ai-assistant-submit")
+                ) {
+                  onSubmit();
+                }
+              }}
+            >
+              <div className={composerStyle}>
+                <textarea
+                  ref={inputRef}
+                  className={composerTextareaStyle}
+                  rows={1}
+                  value={input}
+                  onChange={(event) => onInputChange(event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    // Enter sends; Shift+Enter inserts a newline (the textarea's
+                    // native behaviour, so we just let it through). The
+                    // `isComposing` guard stops an IME confirmation keystroke
+                    // from sending a half-finished message.
+                    if (
+                      event.key === "Enter" &&
+                      !event.shiftKey &&
+                      !event.nativeEvent.isComposing
+                    ) {
+                      event.preventDefault();
+                      if (canSubmit) {
+                        onSubmit();
+                      }
+                    }
+                  }}
+                  placeholder={
+                    messages.length === 0
+                      ? "Describe the process you want to create"
+                      : "Continue iterating..."
+                  }
+                  aria-label="Message AI assistant"
+                  disabled={voiceHandoffPending}
                 />
-              ) : canSubmit ? (
-                <Button
-                  aria-label="Send message"
-                  data-ai-assistant-submit
-                  iconName="arrowUp"
-                  size="sm"
-                  tone="brand"
-                  tooltip="Send message"
-                  type="submit"
-                  variant="solid"
-                />
-              ) : !hasInput && voiceModeAvailable && onInputModeChange ? (
-                <AiVoiceModeButton
-                  onClick={() => onInputModeChange("voice")}
-                  size="sm"
-                />
-              ) : (
-                <Button
-                  aria-label="Send message"
-                  disabled
-                  iconName="arrowUp"
-                  size="sm"
-                  tone="brand"
-                  tooltip="Send message"
-                  type="submit"
-                  variant="solid"
-                />
-              )}
-            </div>
-          </form>
-        </div>
+                {composerControl}
+                {isBusy ? (
+                  <Button
+                    aria-label="Stop AI response"
+                    iconName="stopFilled"
+                    onClick={onStop}
+                    size="sm"
+                    tone="neutral"
+                    tooltip="Stop AI response"
+                    type="button"
+                    variant="subtle"
+                  />
+                ) : canSubmit ? (
+                  <Button
+                    aria-label="Send message"
+                    data-ai-assistant-submit
+                    iconName="arrowUp"
+                    size="sm"
+                    tone="brand"
+                    tooltip="Send message"
+                    type="submit"
+                    variant="solid"
+                  />
+                ) : !hasInput && voiceModeAvailable && onInputModeChange ? (
+                  <AiVoiceModeButton
+                    onClick={() => onInputModeChange("voice")}
+                    size="sm"
+                  />
+                ) : (
+                  <Button
+                    aria-label="Send message"
+                    disabled
+                    iconName="arrowUp"
+                    size="sm"
+                    tone="brand"
+                    tooltip="Send message"
+                    type="submit"
+                    variant="solid"
+                  />
+                )}
+              </div>
+            </form>
+          </div>
+        )}
       </div>
     </aside>
   );
