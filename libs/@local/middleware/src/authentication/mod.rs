@@ -113,6 +113,7 @@ impl AuthenticationMetrics {
 ///
 /// A rejection records itself when it drops, whether or not a response was rendered from it,
 /// so no holder logs or counts one.
+#[derive(Clone)]
 pub enum AuthenticationRejection {
     /// The credentials did not resolve to a caller the route admits.
     Authentication {
