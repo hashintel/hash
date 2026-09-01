@@ -412,6 +412,106 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(await screen.findByText("Response stopped")).not.toBeNull();
   });
 
+  test("does not carry an idle host stop into a later incidental abort", async () => {
+    let requestCount = 0;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() => {
+        requestCount += 1;
+        if (requestCount === 1) {
+          return Promise.resolve(
+            streamChunks([
+              { type: "start-step" },
+              {
+                type: "tool-input-available",
+                dynamic: true,
+                toolCallId: "confirmation-1",
+                toolName: "confirmAction",
+                input: { question: "Continue?" },
+              },
+            ]),
+          );
+        }
+
+        return Promise.resolve(
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({ type: "start-step" });
+              controller.enqueue({
+                type: "text-start",
+                id: "interrupted-follow-up",
+              });
+              controller.enqueue({
+                type: "text-delta",
+                id: "interrupted-follow-up",
+                delta: "Partial follow-up",
+              });
+              setTimeout(() => {
+                controller.error(new DOMException("Aborted", "AbortError"));
+              }, 0);
+            },
+          }),
+        );
+      }),
+    };
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "confirmAction",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { confirmed: boolean },
+      },
+      component: ({ input, submit }) => (
+        <button
+          type="button"
+          onClick={() => {
+            submit({ confirmed: true });
+          }}
+        >
+          {input.question}
+        </button>
+      ),
+    });
+
+    renderTestPanel({
+      aiAssistant: {
+        interactiveTools: [hostTool],
+        renderComposerControl: ({ status, stop }) => (
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                void stop();
+              }}
+            >
+              Stop while idle
+            </button>
+            <span data-testid="host-status">{status}</span>
+          </>
+        ),
+        transport,
+      },
+      initialMessage: "Ask for confirmation",
+    });
+
+    await screen.findByRole("button", { name: "Continue?" });
+    await waitFor(() =>
+      expect(screen.getByTestId("host-status").textContent).toBe("ready"),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop while idle" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue?" }));
+
+    await waitFor(() =>
+      expect(transport.sendMessages).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("host-status").textContent).toBe("ready"),
+    );
+    expect(screen.queryByText("Response stopped")).toBeNull();
+  });
+
   test("maps text to one unresolved host tool before sending another message", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const transport: PetrinautAiTransport = {

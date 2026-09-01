@@ -733,12 +733,18 @@ export const AiAssistantPanel = ({
     [composerSubmissionStateRef],
   );
 
-  const stopStateRef = useLatest(stop);
+  const stopStateRef = useLatest({ status, stop });
 
   // Like submitText, stop is exposed to host controls and must stay stable.
   const stopComposer = useCallback(async () => {
+    const { status: currentStatus, stop: stopCurrentResponse } =
+      stopStateRef.current;
+    if (currentStatus !== "submitted" && currentStatus !== "streaming") {
+      return;
+    }
+
     stopRequestedRef.current = true;
-    await stopStateRef.current();
+    await stopCurrentResponse();
   }, [stopStateRef]);
 
   useEffect(() => {
