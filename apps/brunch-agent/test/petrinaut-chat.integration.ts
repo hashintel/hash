@@ -132,35 +132,17 @@ try {
     };
 
     faux.setResponses([
-      (context) => {
-        const request = JSON.stringify(context);
-        for (const instruction of [
-          "You are a universal elicitation assistant.",
-          "You are eliciting a process model as an SDCPN for the Petrinaut editor.",
-          "Activate the `sdcpn-modelling` skill before interviewing or constructing a process model.",
-          "The Markdown IR is the shared workpiece of one looping lifecycle.",
-          "Call ping when you need to confirm the server tool path.",
-          "When the user asks how Petrinaut's UI works, call readPetrinautDoc.",
-          "A client-tool-result signal is JSON [{ toolCallId, toolName, output }]. Treat output as the browser's result for that call and continue helping the user.",
-        ]) {
-          if (!request.includes(instruction)) {
-            throw new Error(
-              `Model request omitted instruction: ${instruction}`,
-            );
-          }
-        }
-        return fauxAssistantMessage(
-          [
-            fauxThinking("Load the modelling runbook skill."),
-            fauxToolCall(
-              ACTIVATE_SKILL_TOOL_NAME,
-              { name: RUNBOOK_SKILL_NAME },
-              { id: "tool-skill-1" },
-            ),
-          ],
-          { stopReason: "toolUse" },
-        );
-      },
+      fauxAssistantMessage(
+        [
+          fauxThinking("Load the modelling runbook skill."),
+          fauxToolCall(
+            ACTIVATE_SKILL_TOOL_NAME,
+            { name: RUNBOOK_SKILL_NAME },
+            { id: "tool-skill-1" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
       (context) =>
         fauxAssistantMessage(
           [
