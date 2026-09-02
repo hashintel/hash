@@ -132,6 +132,7 @@ export class VoiceTurnController {
   #currentQuestionId: string | null = null;
   #generation = 0;
   #inputStateOnResume: Exclude<VoiceInputState, "paused"> | null = null;
+  #inputTurnPending = false;
   #pauseRequested = false;
   #snapshot = initialSnapshot;
   #speechSource: InterviewSpeechSource | null = null;
@@ -194,6 +195,7 @@ export class VoiceTurnController {
     }
 
     this.#inputStateOnResume = null;
+    this.#inputTurnPending = false;
     this.#pauseRequested = false;
     this.#bridgeStarted = false;
     this.#activeSpeechOutputEnded = false;
@@ -244,6 +246,7 @@ export class VoiceTurnController {
     this.#bridgeStarted = false;
     this.#currentQuestionId = null;
     this.#inputStateOnResume = null;
+    this.#inputTurnPending = false;
     this.#submittingQuestionId = null;
     this.#pauseRequested = false;
     this.#transcriptItemId = null;
@@ -436,6 +439,7 @@ export class VoiceTurnController {
       if (paused) {
         this.#inputStateOnResume = "submitting";
       }
+      this.#inputTurnPending = false;
       this.#answerFinalizedAt = this.#now();
       this.#submittingQuestionId = this.#currentQuestionId;
       this.#transcriptItemId = null;
@@ -532,6 +536,7 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "input-speech-started") {
+      this.#inputTurnPending = true;
       this.#bridge.cancelPendingSpeech();
       this.#transcriptItemId = event.itemId;
       this.#transcriptKey = null;
@@ -567,6 +572,7 @@ export class VoiceTurnController {
     if (event.key.connectionEpoch !== this.#activeEpoch) return;
     if (event.key.itemId !== this.#transcriptItemId) return;
     if (event.type === "transcription-failed") {
+      this.#inputTurnPending = false;
       this.#transcriptItemId = null;
       this.#transcriptKey = null;
       this.#update({ partialText: "" });
@@ -598,6 +604,7 @@ export class VoiceTurnController {
     this.#activeSpeechResponseId = null;
     this.#activeSpeechResponseTerminal = false;
     this.#inputStateOnResume = null;
+    this.#inputTurnPending = false;
     this.#bridgeStarted = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
@@ -649,6 +656,7 @@ export class VoiceTurnController {
     return (
       snapshot.connection === "connected" &&
       snapshot.input === "listening" &&
+      !this.#inputTurnPending &&
       this.#activeSpeechResponseId === null &&
       (snapshot.output === "idle" || snapshot.output === "interrupted")
     );

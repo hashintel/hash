@@ -65,6 +65,7 @@ export const selectInterviewSpeech = (
 
     const contextSegments: CanonicalSpeechSegment[] = [];
     const questionSegments: CanonicalSpeechSegment[] = [];
+    let hasAskPart = false;
 
     for (const [partIndex, part] of message.parts.entries()) {
       if (
@@ -83,11 +84,11 @@ export const selectInterviewSpeech = (
         continue;
       }
 
-      if (
-        part.type !== "dynamic-tool" ||
-        part.toolName !== ASK_TOOL_NAME ||
-        part.state !== "input-available"
-      ) {
+      if (part.type !== "dynamic-tool" || part.toolName !== ASK_TOOL_NAME) {
+        continue;
+      }
+      hasAskPart = true;
+      if (part.state !== "input-available") {
         continue;
       }
 
@@ -107,16 +108,19 @@ export const selectInterviewSpeech = (
     }
 
     const questionSegment = questionSegments.at(-1) ?? null;
-    if (contextSegments.length > 0 || questionSegment) {
-      automaticSource = {
-        contextSegments,
-        fullResponseSegments: [
-          ...contextSegments,
-          ...(questionSegment ? [questionSegment] : []),
-        ],
-        messageId: message.id,
-        questionSegment,
-      };
+    if (contextSegments.length > 0 || hasAskPart) {
+      automaticSource =
+        questionSegment || !hasAskPart
+          ? {
+              contextSegments,
+              fullResponseSegments: [
+                ...contextSegments,
+                ...(questionSegment ? [questionSegment] : []),
+              ],
+              messageId: message.id,
+              questionSegment,
+            }
+          : null;
     }
   }
 

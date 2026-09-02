@@ -133,11 +133,7 @@ describe("canonical speech selection", () => {
       },
     ]);
 
-    expect(selection.automaticSource).toMatchObject({
-      contextSegments: [{ text: "Canonical context." }],
-      fullResponseSegments: [{ text: "Canonical context." }],
-      questionSegment: null,
-    });
+    expect(selection.automaticSource).toBeNull();
     expect(selection.canonicalSegments).toHaveLength(1);
   });
 

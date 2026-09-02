@@ -239,6 +239,46 @@ describe("VoiceTurnController", () => {
     );
   });
 
+  test("keeps replay disabled after barge-in until the input turn settles", async () => {
+    const harness = createHarness();
+    const source = speechSource();
+    harness.controller.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitBridge({ type: "speech-delivery-pending" });
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      itemId: "item-user",
+      type: "input-speech-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      itemId: "item-user",
+      type: "input-speech-stopped",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: false,
+      canRepeatQuestion: false,
+      output: "interrupted",
+    });
+
+    harness.emitSession({
+      key: { connectionEpoch: 1, contentIndex: 0, itemId: "item-user" },
+      type: "transcription-failed",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: true,
+      canRepeatQuestion: true,
+    });
+  });
+
   test("refuses replay after audio stops until the response is terminal", async () => {
     const harness = createHarness();
     const source = speechSource();
