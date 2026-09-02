@@ -115,6 +115,9 @@ function assess(
         ...(options.odeMethod === undefined
           ? {}
           : { odeMethod: options.odeMethod }),
+        ...(instantiateOptions?.signal === undefined
+          ? {}
+          : { signal: instantiateOptions.signal }),
         ...(instantiateOptions?.onNote === undefined
           ? {}
           : {

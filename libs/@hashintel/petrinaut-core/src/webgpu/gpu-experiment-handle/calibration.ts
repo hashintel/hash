@@ -291,10 +291,16 @@ export const probeDerivedCapacities = async (options: {
   windowInputs: readonly MetricWindowInput[];
   placeCounts: readonly number[];
   execute: ExecuteAttempt;
+  /**
+   * Whether the caller has abandoned the experiment, checked between
+   * attempts and before the recompile at the probed slabs.
+   */
+  stopped?: () => boolean;
 }): Promise<
   { ok: true; windows: MetricWindow[] } | { ok: false; reason: string }
 > => {
   const { session, runCount, placeCounts, execute } = options;
+  const stopped = options.stopped ?? (() => false);
   const probeWindows = planInitialWindows(
     options.windowInputs,
     session.shader.histogramBins,
@@ -305,10 +311,16 @@ export const probeDerivedCapacities = async (options: {
     windows: probeWindows,
     execute,
     policy: PROBE_POLICY,
-    stopped: () => false,
+    stopped,
   });
   if (!probe.ok) {
     return probe;
+  }
+  if (probe.result.cancelled || stopped()) {
+    return {
+      ok: false,
+      reason: "The capacity probe was abandoned before it finished.",
+    };
   }
   if (probe.result.overflowRuns > 0) {
     const largest = Math.max(0, ...session.capacities.values());

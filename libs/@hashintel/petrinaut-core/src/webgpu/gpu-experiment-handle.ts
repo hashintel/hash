@@ -40,6 +40,7 @@ import {
 } from "./metric-windows";
 import { GPU_PREVIEW_RUNS, runGpuExperiment } from "./runner";
 
+import type { AbortSignalLike } from "../environment";
 import type { ExperimentRunPlan } from "../experiments/experiment-request";
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirArtifacts } from "../hir-runtime";
@@ -97,6 +98,13 @@ export type CreateGpuMonteCarloExperimentConfig = {
   /** Caps runs per tile below the device's limit. For tests and benchmarks. */
   maxRunsPerTile?: number;
   /**
+   * Abandons creation: checked after acquiring the backend and between the
+   * capacity probe's attempts, each of which is a GPU round-trip. Creation
+   * then throws an `AbortError`, which the selection walk rethrows rather
+   * than treating as a refusal that sends the experiment to the CPU.
+   */
+  signal?: AbortSignalLike;
+  /**
    * Called with problems only detectable once the run has finished — a
    * histogram whose edge bins clamped samples. The `warnings` returned at
    * creation are assembled before the run and cannot carry these.
@@ -139,6 +147,15 @@ const initialProgress = (runCount: number): MonteCarloWorkerProgress => ({
   runCount,
   time: 0,
 });
+
+/** The cancellation the selection walk rethrows rather than treating as a refusal. */
+const abortError = (): Error => {
+  const error = new Error(
+    "The experiment was cancelled while the GPU backend was being prepared.",
+  );
+  error.name = "AbortError";
+  return error;
+};
 
 /** A place's initial token count: a plain count, or a typed marking's length. */
 const initialCount = (marking: InitialMarking[string] | undefined): number =>
@@ -223,6 +240,11 @@ export async function createGpuMonteCarloExperiment(
       backend.handle.device.destroy();
     }
   };
+  const creationAborted = (): boolean => config.signal?.aborted ?? false;
+  if (creationAborted()) {
+    releaseBackend();
+    throw abortError();
+  }
 
   // The CPU's rounding: snap within an epsilon of a whole step, else ceil
   // (`monte-carlo/time.ts`), so both backends step the same frame count.
@@ -239,10 +261,11 @@ export async function createGpuMonteCarloExperiment(
   let running = false;
   let aborted = false;
   // A minimal `AbortSignalLike`: the runner only reads `aborted`, and building
-  // a real AbortController would pull a DOM global into this package.
+  // a real AbortController would pull a DOM global into this package. The
+  // creation signal folds in so an abandoned probe stops at its next chunk.
   const signal = {
     get aborted() {
-      return aborted;
+      return aborted || creationAborted();
     },
     addEventListener: () => {},
     removeEventListener: () => {},
@@ -467,7 +490,13 @@ export async function createGpuMonteCarloExperiment(
       windowInputs,
       placeCounts,
       execute: executeAttempt,
+      stopped: creationAborted,
     });
+    if (creationAborted()) {
+      disposed = true;
+      releaseBackend();
+      throw abortError();
+    }
     if (!probed.ok) {
       disposed = true;
       releaseBackend({ evict: true });

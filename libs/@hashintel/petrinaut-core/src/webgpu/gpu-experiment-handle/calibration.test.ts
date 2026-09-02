@@ -333,6 +333,28 @@ describe("probeDerivedCapacities", () => {
     // 21 counts observed, margin ceil(21 × 0.25) = 6 → [14, 46] over 64 bins.
     expect(probed).toEqual({ ok: true, windows: [{ lo: 14, stride: 1 }] });
   });
+
+  it("hands back an abandoned probe without recompiling", async () => {
+    const current = session({ p: 64 });
+    const { execute } = scripted([
+      {
+        ok: true,
+        result: outcome({ derivedPlaceMaxes: [{ max: 10, meanRunMax: 8 }] }),
+      },
+    ]);
+
+    const probed = await probeDerivedCapacities({
+      session: current,
+      runCount: 10_000,
+      windowInputs: [{ initialCount: 30, countCeiling: null }],
+      placeCounts: [3],
+      execute,
+      stopped: () => true,
+    });
+
+    expect(probed).toMatchObject({ ok: false, reason: /abandoned/ });
+    expect(current.capacities).toEqual(new Map([["p", 64]]));
+  });
 });
 
 describe("rememberCalibration", () => {
