@@ -80,8 +80,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "vite build && yarn check:browser-safe-entries",
-    "check:browser-safe-entries": "node scripts/check-browser-safe-entries.mjs",
+    "build": "vite build && node scripts/check-browser-safe-entries.mjs",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
