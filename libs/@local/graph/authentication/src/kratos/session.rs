@@ -408,7 +408,7 @@ mod tests {
         assert_matches,
         num::NonZero,
         ops::ControlFlow,
-        sync::atomic::{AtomicUsize, Ordering},
+        sync::atomic::{AtomicBool, AtomicUsize, Ordering},
         time::Duration,
     };
     use std::collections::HashMap;
@@ -659,8 +659,32 @@ mod tests {
         (provider, verifications)
     }
 
-    /// Spawns a fake Kratos parking every request until the test releases it: it signals
-    /// `started` on arrival, waits for `release`, and answers with `failure` when one is given.
+    /// A one-way latch: requests arriving before it opens wait, later ones pass straight through.
+    struct Gate {
+        open: AtomicBool,
+        opened: tokio::sync::Notify,
+    }
+
+    impl Gate {
+        fn open(&self) {
+            self.open.store(true, Ordering::Release);
+            self.opened.notify_waiters();
+        }
+
+        async fn passed(&self) {
+            // Register before checking the flag, so an `open` between the check and the wait
+            // still wakes this waiter.
+            let opened = self.opened.notified();
+            tokio::pin!(opened);
+            opened.as_mut().enable();
+            if !self.open.load(Ordering::Acquire) {
+                opened.await;
+            }
+        }
+    }
+
+    /// Spawns a fake Kratos parking every request at `gate` until the test opens it: it signals
+    /// `started` on arrival and answers with `failure` when one is given.
     async fn gated_provider(
         failure: Option<StatusCode>,
         session: FakeSession,
@@ -671,26 +695,29 @@ mod tests {
         Arc<KratosSessionProvider<FixedActorResolver>>,
         Arc<AtomicUsize>,
         Arc<tokio::sync::Notify>,
-        Arc<tokio::sync::Notify>,
+        Arc<Gate>,
     ) {
         let verifications = Arc::new(AtomicUsize::new(0));
         let started = Arc::new(tokio::sync::Notify::new());
-        let release = Arc::new(tokio::sync::Notify::new());
+        let gate = Arc::new(Gate {
+            open: AtomicBool::new(false),
+            opened: tokio::sync::Notify::new(),
+        });
         let whoami = session.into_whoami_json();
         let counter = Arc::clone(&verifications);
         let gate_started = Arc::clone(&started);
-        let gate_release = Arc::clone(&release);
+        let handler_gate = Arc::clone(&gate);
         let router = Router::new().route(
             "/sessions/whoami",
             get(move || {
                 let whoami = whoami.clone();
                 let counter = Arc::clone(&counter);
                 let started = Arc::clone(&gate_started);
-                let release = Arc::clone(&gate_release);
+                let gate = Arc::clone(&handler_gate);
                 async move {
                     counter.fetch_add(1, Ordering::Relaxed);
                     started.notify_one();
-                    release.notified().await;
+                    gate.passed().await;
                     failure.map_or_else(
                         || Json(whoami.clone()).into_response(),
                         axum::response::IntoResponse::into_response,
@@ -708,7 +735,7 @@ mod tests {
             FixedActorResolver::new(actors),
             meter,
         ));
-        (provider, verifications, started, release)
+        (provider, verifications, started, gate)
     }
 
     fn cache_config() -> SessionCacheConfig {
@@ -1184,7 +1211,7 @@ mod tests {
     #[tokio::test]
     async fn concurrent_requests_share_one_verification() {
         let actor_id = random_actor();
-        let (provider, verifications, started, release) = gated_provider(
+        let (provider, verifications, started, gate) = gated_provider(
             None,
             FakeSession::active_for(actor_id),
             known_user(actor_id),
@@ -1213,7 +1240,7 @@ mod tests {
         // Give the waiter time to join the in-flight verification. Arriving after it resolved
         // still hits the cache, so the assertion below holds either way.
         tokio::time::sleep(Duration::from_millis(100)).await;
-        release.notify_one();
+        gate.open();
 
         for handle in [leader, waiter] {
             let authentication = handle.await.expect("the request should not panic");
@@ -1234,7 +1261,7 @@ mod tests {
     async fn shared_failed_verification_rejects_every_waiter() {
         let (meter_provider, exporter) = recording_meter();
         let actor_id = random_actor();
-        let (provider, _verifications, started, release) = gated_provider(
+        let (provider, _verifications, started, gate) = gated_provider(
             Some(StatusCode::UNAUTHORIZED),
             FakeSession::active_for(actor_id),
             known_user(actor_id),
@@ -1261,7 +1288,7 @@ mod tests {
             }
         });
         tokio::time::sleep(Duration::from_millis(100)).await;
-        release.notify_one();
+        gate.open();
 
         for handle in [leader, waiter] {
             let report = expect_rejection(handle.await.expect("the request should not panic"));
