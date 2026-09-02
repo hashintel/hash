@@ -340,9 +340,7 @@ describe("OpenAIRealtimeSession", () => {
       },
     ]);
 
-    harness.session.completeFunctionCall("call-1", [
-      canonicalSegment("ask-2", "Who acts next?"),
-    ]);
+    harness.session.completeFunctionCall("call-1", ["Who acts next?"]);
     const [functionOutput, responseCreate] = sentEvents(channel).slice(-2);
     expect(functionOutput).toEqual({
       type: "conversation.item.create",
@@ -362,6 +360,36 @@ describe("OpenAIRealtimeSession", () => {
         tool_choice: "none",
         tools: [],
       },
+    });
+  });
+
+  test("renders prepared strings through the verbatim out-of-band audio response", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+
+    harness.session.speakPrepared([
+      "Prepared concise context.",
+      "Which operator confirms the batch?",
+    ]);
+
+    const responseCreate = sentEvents(harness.channels[0]!).at(-1)!;
+    expect(responseCreate).toMatchObject({
+      type: "response.create",
+      response: {
+        conversation: "none",
+        output_modalities: ["audio"],
+        tool_choice: "none",
+        tools: [],
+      },
+    });
+    const response = responseCreate.response as {
+      input: Array<{ content: Array<{ text: string }> }>;
+    };
+    expect(JSON.parse(response.input[0]!.content[0]!.text)).toEqual({
+      response_text: [
+        "Prepared concise context.",
+        "Which operator confirms the batch?",
+      ],
     });
   });
 

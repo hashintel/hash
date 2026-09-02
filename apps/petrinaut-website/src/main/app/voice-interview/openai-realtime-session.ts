@@ -473,17 +473,21 @@ export class OpenAIRealtimeSession {
   }
 
   public speakCanonical(segments: CanonicalSpeechSegment[]): void {
-    this.#requestCanonicalSpeech(segments, true);
+    this.#requestSpeech(this.#canonicalResponseText(segments), true);
+  }
+
+  public speakPrepared(responseText: readonly string[]): void {
+    this.#requestSpeech(this.#validResponseText(responseText), true);
   }
 
   public completeFunctionCall(
     callId: string,
-    segments: CanonicalSpeechSegment[],
+    responseTextInput: readonly string[],
   ): void {
     if (!callId) {
       throw new VoiceError("speech", "invalid-response", "");
     }
-    const responseText = this.#canonicalResponseText(segments);
+    const responseText = this.#validResponseText(responseTextInput);
     this.#send({
       type: "conversation.item.create",
       item: {
@@ -492,7 +496,7 @@ export class OpenAIRealtimeSession {
         output: JSON.stringify({ response_text: responseText }),
       },
     });
-    this.#requestCanonicalSpeech(segments, false);
+    this.#requestSpeech(responseText, false);
   }
 
   public prepareInterviewSpeech(
@@ -654,21 +658,24 @@ export class OpenAIRealtimeSession {
   }
 
   #canonicalResponseText(segments: CanonicalSpeechSegment[]): string[] {
-    const responseText = segments
+    return this.#validResponseText(segments.map(({ text }) => text));
+  }
+
+  #validResponseText(responseTextInput: readonly string[]): string[] {
+    const responseText = responseTextInput
       .slice(0, MAX_CANONICAL_SEGMENTS)
-      .map(({ text }) => text.trim())
+      .map((text) => text.trim())
       .filter(Boolean);
-    if (responseText.length === 0 || responseText.length !== segments.length) {
+    if (
+      responseText.length === 0 ||
+      responseText.length !== responseTextInput.length
+    ) {
       throw new VoiceError("speech", "invalid-response", "");
     }
     return responseText;
   }
 
-  #requestCanonicalSpeech(
-    segments: CanonicalSpeechSegment[],
-    outOfBand: boolean,
-  ): void {
-    const responseText = this.#canonicalResponseText(segments);
+  #requestSpeech(responseText: string[], outOfBand: boolean): void {
     const speechRequestId = `canonical-${this.#activeEpoch}-${++this.#speechRequestSequence}`;
     this.#pendingSpeechRequests.set(speechRequestId, {
       requestId:
