@@ -25,7 +25,9 @@ reqwest       = { workspace = true, public = true }
 # Private third-party dependencies
 cookie         = { workspace = true }
 derive_more    = { workspace = true, features = ["display", "error"] }
+hmac           = { workspace = true }
 moka           = { workspace = true, features = ["future"] }
+rand           = { workspace = true, features = ["thread_rng"] }
 serde          = { workspace = true, features = ["derive"] }
 serde_json     = { workspace = true }
 sha2           = { workspace = true }

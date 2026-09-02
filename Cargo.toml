@@ -172,6 +172,7 @@ governor                           = { version = "0.10.4", default-features = fa
 guppy                              = { version = "0.17.20", default-features = false }
 hashbrown                          = { version = "0.17.0", default-features = false, features = ["inline-more", "nightly", "raw-entry"] }
 hifijson                           = { version = "0.4.0", default-features = false }
+hmac                               = { version = "0.13.0", default-features = false }
 hostname                           = { version = "0.4.2", default-features = false }
 http                               = { version = "1.3.1", default-features = false }
 humansize                          = { version = "2.1.3", default-features = false }

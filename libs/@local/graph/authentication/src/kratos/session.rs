@@ -9,6 +9,7 @@ use hash_middleware::authentication::{
     provider::{AuthenticationProvider, Caller},
     request::AuthenticationError,
 };
+use hmac::{Hmac, KeyInit as _, Mac as _};
 use http::{HeaderMap, header};
 use moka::future::Cache as MokaCache;
 use opentelemetry::{
@@ -17,7 +18,7 @@ use opentelemetry::{
 };
 use reqwest::{Client, Url, redirect};
 use serde::Deserialize;
-use sha2::{Digest as _, Sha256};
+use sha2::Sha256;
 use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
 
 use super::{MetadataPublic, provider_response, read_response_body};
@@ -28,39 +29,29 @@ pub const SESSION_TOKEN_HEADER: &str = "X-Session-Token";
 /// Name of the Kratos session cookie within the `Cookie` header.
 pub const SESSION_COOKIE_NAME: &str = "ory_kratos_session";
 
+/// A Kratos session token, as carried by the `X-Session-Token` header.
+struct SessionToken<'h>(&'h str);
+
+/// The value of the `ory_kratos_session` cookie: the session token, its expiry and a nonce,
+/// encrypted by Kratos.
+struct SessionCookie<'h>(&'h str);
+
 /// A session credential extracted from request headers.
 enum SessionCredential<'h> {
-    /// A Kratos session token from the `X-Session-Token` header.
-    Token(&'h str),
-    /// The value of the `ory_kratos_session` cookie.
-    Cookie(&'h str),
+    Token(SessionToken<'h>),
+    Cookie(SessionCookie<'h>),
 }
 
-/// The cache key of a session credential: SHA-256 over its form byte and value.
+/// The cache key of a session credential: HMAC-SHA-256 over its form byte and value, under a
+/// key drawn once per cache.
 ///
-/// The cache holds these digests, so session secrets do not sit in memory for an entry's
-/// lifetime. Hashing keeps the digest uninvertible only because Kratos session credentials are
-/// high-entropy — a low-entropy credential must not be keyed through this. Without [`Debug`],
-/// so the digest of a live credential cannot reach logs.
+/// Two properties carry the cache. Collision resistance makes the digest the credential's
+/// identity — not injectivity, which a cookie's state space already exceeds the digest for.
+/// The key keeps a digest from being enumerated back to its credential, whatever the
+/// credential's entropy, so the cache holds no session secrets. Without [`Debug`], so a digest
+/// cannot reach logs.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 struct SessionCacheKey([u8; 32]);
-
-impl SessionCredential<'_> {
-    /// Hashes the credential into its cache key.
-    ///
-    /// The leading byte separates the token and cookie forms: the same byte string is a
-    /// different credential in a header than in a cookie.
-    fn cache_key(&self) -> SessionCacheKey {
-        let (form, value) = match self {
-            Self::Token(token) => (0_u8, *token),
-            Self::Cookie(value) => (1_u8, *value),
-        };
-        let mut digest = Sha256::new();
-        digest.update([form]);
-        digest.update(value.as_bytes());
-        SessionCacheKey(digest.finalize().into())
-    }
-}
 
 /// Extracts a session credential from request headers.
 ///
@@ -76,7 +67,7 @@ fn extract_session_credential(
         return Some(
             token
                 .to_str()
-                .map(SessionCredential::Token)
+                .map(|token| SessionCredential::Token(SessionToken(token)))
                 .change_context(AuthenticationError::malformed_credential()),
         );
     }
@@ -97,7 +88,7 @@ fn extract_session_credential(
                 }
             });
         if let Some(value) = value {
-            return Some(Ok(SessionCredential::Cookie(value)));
+            return Some(Ok(SessionCredential::Cookie(SessionCookie(value))));
         }
     }
 
@@ -175,6 +166,7 @@ impl CacheOutcome {
 /// The verified-session cache and the instrument its lookups are counted on.
 struct SessionCache {
     verified: Arc<MokaCache<SessionCacheKey, UserId>>,
+    key: [u8; 32],
     lookups: Counter<u64>,
 }
 
@@ -203,12 +195,29 @@ impl SessionCache {
 
         Self {
             verified,
+            key: rand::random(),
             lookups: meter
                 .u64_counter("hash.authentication.session_cache.lookups")
                 .with_description("Session-cache lookups by outcome")
                 .with_unit("{lookup}")
                 .build(),
         }
+    }
+
+    /// Derives the cache key of a credential.
+    ///
+    /// The leading byte separates the token and cookie forms: the same byte string is a
+    /// different credential in a header than in a cookie.
+    fn key(&self, credential: &SessionCredential<'_>) -> SessionCacheKey {
+        let (form, value) = match credential {
+            SessionCredential::Token(SessionToken(token)) => (0_u8, *token),
+            SessionCredential::Cookie(SessionCookie(value)) => (1_u8, *value),
+        };
+        let mut mac = Hmac::<Sha256>::new_from_slice(&self.key)
+            .expect("HMAC should accept a key of any length");
+        mac.update(&[form]);
+        mac.update(value.as_bytes());
+        SessionCacheKey(mac.finalize().into_bytes().into())
     }
 
     /// Resolves the key from the cache, verifying and caching on a miss.
@@ -302,11 +311,11 @@ where
         credential: SessionCredential<'_>,
     ) -> Result<ActorEntityUuid, Report<AuthenticationError>> {
         let request = match credential {
-            SessionCredential::Token(token) => self
+            SessionCredential::Token(SessionToken(token)) => self
                 .http_client
                 .get(self.whoami_url.clone())
                 .header(SESSION_TOKEN_HEADER, token),
-            SessionCredential::Cookie(cookie_value) => {
+            SessionCredential::Cookie(SessionCookie(cookie_value)) => {
                 self.http_client.get(self.whoami_url.clone()).header(
                     header::COOKIE,
                     format!("{SESSION_COOKIE_NAME}={cookie_value}"),
@@ -380,8 +389,9 @@ where
 
         let resolution = match &self.cache {
             Some(cache) => {
+                let key = cache.key(&credential);
                 cache
-                    .resolve(credential.cache_key(), self.verify_and_resolve(credential))
+                    .resolve(key, self.verify_and_resolve(credential))
                     .await
             }
             None => self.verify_and_resolve(credential).await.map_err(Arc::new),
