@@ -275,6 +275,48 @@ describe("VoiceTurnController", () => {
     ]);
   });
 
+  test("refuses replay when an unrelated response becomes terminal", async () => {
+    const harness = createHarness();
+    const source = speechSource();
+    harness.controller.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-a",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-a",
+      type: "output-stopped",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-b",
+      status: "completed",
+      type: "response-terminal",
+    });
+
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-a",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([
+      source.questionSegment,
+    ]);
+  });
+
   test("refuses interrupted replay until the response is terminal", async () => {
     const harness = createHarness();
     const source = speechSource();

@@ -123,6 +123,7 @@ export class VoiceTurnController {
   readonly #session: RealtimeSession;
   readonly #submitText: (input: SubmitTextInput) => Promise<unknown>;
   #activeEpoch: number | null = null;
+  #activeSpeechResponseId: string | null = null;
   #answerFinalizedAt: number | null = null;
   #answeredQuestionId: string | null = null;
   #bridgeStarted = false;
@@ -130,7 +131,6 @@ export class VoiceTurnController {
   #generation = 0;
   #inputStateOnResume: Exclude<VoiceInputState, "paused"> | null = null;
   #pauseRequested = false;
-  #responseTerminal = true;
   #snapshot = initialSnapshot;
   #speechSource: InterviewSpeechSource | null = null;
   #submittingQuestionId: string | null = null;
@@ -194,7 +194,7 @@ export class VoiceTurnController {
     this.#inputStateOnResume = null;
     this.#pauseRequested = false;
     this.#bridgeStarted = false;
-    this.#responseTerminal = true;
+    this.#activeSpeechResponseId = null;
     this.#update({
       connection: "connecting",
       errorCode: null,
@@ -232,6 +232,7 @@ export class VoiceTurnController {
   public async end(): Promise<void> {
     ++this.#generation;
     this.#activeEpoch = null;
+    this.#activeSpeechResponseId = null;
     this.#answerFinalizedAt = null;
     this.#answeredQuestionId = null;
     this.#bridgeStarted = false;
@@ -239,7 +240,6 @@ export class VoiceTurnController {
     this.#inputStateOnResume = null;
     this.#submittingQuestionId = null;
     this.#pauseRequested = false;
-    this.#responseTerminal = true;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
     this.#bridge.stop();
@@ -486,7 +486,7 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "output-started") {
-      this.#responseTerminal = false;
+      this.#activeSpeechResponseId = event.responseId;
       if (this.#snapshot.input === "paused") {
         this.#cancelOutput();
         this.#update({ output: "interrupted" });
@@ -521,8 +521,10 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "response-terminal") {
-      this.#responseTerminal = true;
-      this.#update({});
+      if (event.responseId === this.#activeSpeechResponseId) {
+        this.#activeSpeechResponseId = null;
+        this.#update({});
+      }
       return;
     }
     if (
@@ -564,9 +566,9 @@ export class VoiceTurnController {
   ): void {
     ++this.#generation;
     this.#activeEpoch = null;
+    this.#activeSpeechResponseId = null;
     this.#inputStateOnResume = null;
     this.#bridgeStarted = false;
-    this.#responseTerminal = true;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
     this.#bridge.stop();
@@ -617,7 +619,7 @@ export class VoiceTurnController {
     return (
       snapshot.connection === "connected" &&
       snapshot.input === "listening" &&
-      this.#responseTerminal &&
+      this.#activeSpeechResponseId === null &&
       (snapshot.output === "idle" || snapshot.output === "interrupted")
     );
   }
