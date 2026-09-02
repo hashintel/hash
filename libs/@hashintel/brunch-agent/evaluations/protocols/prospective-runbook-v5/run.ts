@@ -5,7 +5,7 @@
  * the aborted v2 operational campaign.
  * Build first, then run one explicitly numbered replication:
  *   BRUNCH_RUNBOOK_REPLICATION=1 \
- *     yarn workspace @apps/brunch-agent runbook:elicit:architecture-v4
+ *     yarn workspace @apps/brunch-agent runbook:elicit:architecture-v5
  */
 
 import { execFile } from "node:child_process";
@@ -47,8 +47,8 @@ import type Anthropic from "@anthropic-ai/sdk";
 import type { Provider } from "@earendil-works/pi-ai";
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
-const PROTOCOL_ID = "prospective-runbook-v4";
-const OUTPUT_NAMESPACE_ID = "vestera-architecture-candidate-v4";
+const PROTOCOL_ID = "prospective-runbook-v5";
+const OUTPUT_NAMESPACE_ID = "vestera-architecture-candidate-v5";
 const COMPARISON_TARGET = {
   protocolId: "prospective-runbook-v1",
   outputNamespaceId: "vestera-prospective-baseline-v1",
@@ -73,7 +73,7 @@ const evaluationRoot = new URL("../../", import.meta.url);
 const caseDirectory = new URL("cases/vestera-scheduling/", evaluationRoot);
 const candidateOutputDirectory = fileURLToPath(
   new URL(
-    "../../../docs/evidence/evaluations/vestera-architecture-candidate-v4/",
+    "../../../docs/evidence/evaluations/vestera-architecture-candidate-v5/",
     import.meta.url,
   ),
 );
@@ -144,7 +144,7 @@ if (isHermeticRun) {
   });
   if (outputDirectory === canonicalCandidateOutputDirectory) {
     throw new Error(
-      "Hermetic runs cannot write to vestera-architecture-candidate-v4.",
+      "Hermetic runs cannot write to vestera-architecture-candidate-v5.",
     );
   }
   if (apiKey) {
@@ -156,12 +156,12 @@ if (isHermeticRun) {
   }
   if (outputDirectory !== canonicalCandidateOutputDirectory) {
     throw new Error(
-      "Paid candidate runs must write to vestera-architecture-candidate-v4.",
+      "Paid candidate runs must write to vestera-architecture-candidate-v5.",
     );
   }
   if (!usesFrozenConfiguration) {
     throw new Error(
-      "Paid candidate runs require the frozen prospective-runbook-v4 model, turn, and latency configuration.",
+      "Paid candidate runs require the frozen prospective-runbook-v5 model, turn, and latency configuration.",
     );
   }
   if (allowDirtyInstrument) {
@@ -207,10 +207,10 @@ const instrumentFiles = [
   "libs/@hashintel/brunch-agent/evaluations/protocols/ir-quality-ruler-v1/omniscient-grader.md",
   "libs/@hashintel/brunch-agent/evaluations/protocols/ir-quality-ruler-v1/cold-ir-reviewer.md",
   "libs/@hashintel/brunch-agent/evaluations/protocols/mission-4-product-witness-v2/protocol.md",
-  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/protocol.md",
-  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/run.ts",
-  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/grade.ts",
-  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/score-report.ts",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/protocol.md",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/run.ts",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/grade.ts",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/score-report.ts",
   "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md",
   "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-prospective-baseline-v1/runbook-elicitation-2026-08-31T10-50-28-709Z-20a4817f.ir.md",
   "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-prospective-baseline-v1/runbook-elicitation-2026-08-31T10-50-28-709Z-20a4817f.omniscient.md",
@@ -684,7 +684,7 @@ try {
   }
 
   process.stdout.write(
-    `PROSPECTIVE_RUNBOOK_V4_RESULT ${JSON.stringify({
+    `PROSPECTIVE_RUNBOOK_V5_RESULT ${JSON.stringify({
       protocolId: PROTOCOL_ID,
       outputNamespaceId: OUTPUT_NAMESPACE_ID,
       replication,
@@ -762,7 +762,7 @@ try {
     retentionFailure = retentionError;
   }
   process.stderr.write(
-    `PROSPECTIVE_RUNBOOK_V4_FAILURE ${JSON.stringify({
+    `PROSPECTIVE_RUNBOOK_V5_FAILURE ${JSON.stringify({
       runId,
       artifact: retentionFailure === undefined ? failureArtifact : undefined,
       failure,
@@ -851,7 +851,7 @@ try {
       retentionFailure = error;
     }
     process.stderr.write(
-      `PROSPECTIVE_RUNBOOK_V4_CLEANUP_FAILURE ${JSON.stringify({
+      `PROSPECTIVE_RUNBOOK_V5_CLEANUP_FAILURE ${JSON.stringify({
         runId,
         artifact: retentionFailure === undefined ? cleanupArtifact : undefined,
         cleanupFailures,

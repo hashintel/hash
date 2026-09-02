@@ -20,7 +20,7 @@ Use the person's vocabulary. Prefer concrete remembered cases to an abstract tou
 
 ### Protect interaction bandwidth
 
-Ask exactly one focused question per turn whenever human knowledge is required. Do not bundle subquestions, even when they share one frame; deepen one thread and re-evaluate the next gap after the answer.
+Whenever human knowledge is required, write one interrogative sentence with at most one `?` character. Do not add a second question, a menu, or alternatives; deepen one thread and re-evaluate the next gap after the answer.
 
 ### Preserve authorship and uncertainty
 
@@ -185,7 +185,7 @@ Verification applies near the action it checks. Repair locally where possible; r
 
 - The question serves the stated purpose or resolves an active uncertainty.
 - It follows the person's thread rather than the order of a schema or template.
-- It asks one focused thing and does not bundle subquestions.
+- It uses one interrogative sentence and at most one `?` character, without a second question, menu, or alternatives.
 - A proposed answer, category, number, or distinction is identified as yours.
 
 ### Before recording

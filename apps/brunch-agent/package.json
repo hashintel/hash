@@ -12,8 +12,8 @@
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
-    "runbook:elicit:architecture-v4": "vite build && node --experimental-strip-types ../../libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/run.ts",
-    "runbook:grade:architecture-v4": "node --experimental-strip-types ../../libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/grade.ts",
+    "runbook:elicit:architecture-v5": "vite build && node --experimental-strip-types ../../libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/run.ts",
+    "runbook:grade:architecture-v5": "node --experimental-strip-types ../../libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/grade.ts",
     "runbook:headless": "vite build && node --experimental-strip-types src/evaluations/runbook/construction-run.ts",
     "test:unit": "vitest run --config vitest.config.ts",
     "transcript": "node --experimental-strip-types src/diagnostics/transcript-cli.ts"

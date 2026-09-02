@@ -10,7 +10,7 @@ import { runNodeScript } from "./run-node-script";
 const testDirectory = import.meta.dirname;
 const runnerPath = join(
   testDirectory,
-  "../../../libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/run.ts",
+  "../../../libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/run.ts",
 );
 const repositoryRoot = join(testDirectory, "../../..");
 const frozenBaselineDirectory = join(
@@ -143,7 +143,7 @@ test("paid candidate runs reject a different output namespace", async () => {
 
     expect(exitCode).not.toBe(0);
     expect(stderr).toContain(
-      "Paid candidate runs must write to vestera-architecture-candidate-v4",
+      "Paid candidate runs must write to vestera-architecture-candidate-v5",
     );
   } finally {
     await rm(outputDirectory, { recursive: true, force: true });
@@ -162,7 +162,7 @@ test("paid candidate runs reject changed frozen configuration", async () => {
 
   expect(exitCode).not.toBe(0);
   expect(stderr).toContain(
-    "require the frozen prospective-runbook-v4 model, turn, and latency configuration",
+    "require the frozen prospective-runbook-v5 model, turn, and latency configuration",
   );
 });
 
@@ -180,10 +180,10 @@ test("the hermetic candidate run records its exact instrument and workpiece", as
     expect(exitCode, stderr || stdout).toBe(0);
     const resultLine = stdout
       .split("\n")
-      .find((line) => line.startsWith("PROSPECTIVE_RUNBOOK_V4_RESULT "));
+      .find((line) => line.startsWith("PROSPECTIVE_RUNBOOK_V5_RESULT "));
     expect(resultLine, stdout).toBeDefined();
     const result = JSON.parse(
-      resultLine!.slice("PROSPECTIVE_RUNBOOK_V4_RESULT ".length),
+      resultLine!.slice("PROSPECTIVE_RUNBOOK_V5_RESULT ".length),
     ) as {
       artifactBase: string;
       hasIr: boolean;
@@ -195,8 +195,8 @@ test("the hermetic candidate run records its exact instrument and workpiece", as
       wroteCaptureStore: boolean;
     };
     expect(result).toMatchObject({
-      protocolId: "prospective-runbook-v4",
-      outputNamespaceId: "vestera-architecture-candidate-v4",
+      protocolId: "prospective-runbook-v5",
+      outputNamespaceId: "vestera-architecture-candidate-v5",
       replication: 1,
       hasIr: true,
       wroteCaptureStore: false,
@@ -318,7 +318,7 @@ test("the hermetic candidate run records its exact instrument and workpiece", as
       "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/pn-construction.md",
       "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/checks.md",
       "apps/brunch-agent/src/agents/chat-agent/agent.ts",
-      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/run.ts",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/run.ts",
       "libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/opening-message.md",
       "libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/situation-pack.md",
       "libs/@hashintel/brunch-agent/evaluations/oracles/vestera-scheduling/truth-ledger-v1-prospective.yaml",
@@ -326,10 +326,10 @@ test("the hermetic candidate run records its exact instrument and workpiece", as
       "libs/@hashintel/brunch-agent/evaluations/protocols/ir-quality-ruler-v1/omniscient-grader.md",
       "libs/@hashintel/brunch-agent/evaluations/protocols/ir-quality-ruler-v1/cold-ir-reviewer.md",
       "libs/@hashintel/brunch-agent/evaluations/protocols/mission-4-product-witness-v2/protocol.md",
-      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/protocol.md",
-      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/run.ts",
-      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/grade.ts",
-      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/score-report.ts",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/protocol.md",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/run.ts",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/grade.ts",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/score-report.ts",
     ]) {
       expect(record.instrument.fileSha256).toHaveProperty(requiredPath);
     }
@@ -442,7 +442,7 @@ test("a runtime failure retains a machine-readable candidate artifact", async ()
     );
 
     expect(exitCode).not.toBe(0);
-    expect(stderr).toContain("PROSPECTIVE_RUNBOOK_V4_FAILURE");
+    expect(stderr).toContain("PROSPECTIVE_RUNBOOK_V5_FAILURE");
     const files = await readdir(outputDirectory);
     expect(files).toHaveLength(1);
     expect(files[0]).toMatch(/\.failure-[0-9a-f]{8}\.json$/u);
@@ -459,15 +459,15 @@ test("a runtime failure retains a machine-readable candidate artifact", async ()
       rawConversationSnapshot?: unknown;
     };
     expect(failureRecord).toMatchObject({
-      protocolId: "prospective-runbook-v4",
-      outputNamespaceId: "vestera-architecture-candidate-v4",
+      protocolId: "prospective-runbook-v5",
+      outputNamespaceId: "vestera-architecture-candidate-v5",
       replication: 1,
       status: "invalid",
       invalidReason: "runtime-failure",
       failure: { message: "Deliberate faux expert failure" },
     });
     expect(failureRecord.runId).toContain(
-      "prospective-runbook-v4-replication-1",
+      "prospective-runbook-v5-replication-1",
     );
     expect(failureRecord.rawConversationSnapshot).toBeDefined();
   } finally {
@@ -527,13 +527,13 @@ test("cleanup errors are visible and retained without masking the run", async ()
     );
 
     expect(exitCode).not.toBe(0);
-    expect(stderr).toContain("PROSPECTIVE_RUNBOOK_V4_CLEANUP_FAILURE");
+    expect(stderr).toContain("PROSPECTIVE_RUNBOOK_V5_CLEANUP_FAILURE");
     const resultLine = stdout
       .split("\n")
-      .find((line) => line.startsWith("PROSPECTIVE_RUNBOOK_V4_RESULT "));
+      .find((line) => line.startsWith("PROSPECTIVE_RUNBOOK_V5_RESULT "));
     expect(resultLine).toBeDefined();
     const { artifactBase } = JSON.parse(
-      resultLine!.slice("PROSPECTIVE_RUNBOOK_V4_RESULT ".length),
+      resultLine!.slice("PROSPECTIVE_RUNBOOK_V5_RESULT ".length),
     ) as { artifactBase: string };
     databasePath = join(tmpdir(), `${basename(artifactBase)}.db`);
     const cleanupName = (await readdir(outputDirectory)).find((name) =>

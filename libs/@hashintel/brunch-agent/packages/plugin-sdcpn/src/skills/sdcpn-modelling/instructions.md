@@ -22,7 +22,7 @@ answer a resolvable review question, or frame the first elicitation question.
 Construct only when the mounted capabilities actually permit construction in
 this conversation.
 
-Before asking any interactive question, verify that every resource required by the selected branch has already returned successfully. Before emitting a new or materially revised `runbook-ir`, also verify that the workpiece template has returned successfully. If either gate is incomplete, read the missing resource first; never continue from memory or a failed read.
+Before asking any interactive question, verify that every resource required by the selected branch has already returned successfully. Write one interrogative sentence with at most one `?` character; never add a second question, a menu, or alternatives. A new or materially revised `runbook-ir` requires a successful `templates/workpiece.md` read in the current conversation. If either gate is incomplete, read the missing resource first; never continue from memory or a failed read.
 
 ### Construct-only execution
 

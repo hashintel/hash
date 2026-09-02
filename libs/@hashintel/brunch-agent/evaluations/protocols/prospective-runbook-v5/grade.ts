@@ -9,10 +9,10 @@ import { scoreReport } from "./score-report.ts";
 const repositoryRootPath = resolve(import.meta.dirname, "../../../../../..");
 const candidateDirectory = join(
   repositoryRootPath,
-  "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-architecture-candidate-v4",
+  "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-architecture-candidate-v5",
 );
-const protocolId = "prospective-runbook-v4";
-const outputNamespaceId = "vestera-architecture-candidate-v4";
+const protocolId = "prospective-runbook-v5";
+const outputNamespaceId = "vestera-architecture-candidate-v5";
 const comparisonTarget = {
   protocolId: "prospective-runbook-v1",
   outputNamespaceId: "vestera-prospective-baseline-v1",
@@ -48,10 +48,10 @@ if (attempt !== undefined && !/^[2-9][0-9]*$/u.test(attempt)) {
 const artifactBase = resolve(artifactBaseInput);
 if (
   artifactBase !== join(candidateDirectory, basename(artifactBase)) ||
-  !basename(artifactBase).startsWith("prospective-runbook-v4-replication-")
+  !basename(artifactBase).startsWith("prospective-runbook-v5-replication-")
 ) {
   throw new Error(
-    "The grader accepts only a v4 artifact in the frozen candidate namespace.",
+    "The grader accepts only a v5 artifact in the frozen candidate namespace.",
   );
 }
 
@@ -102,14 +102,14 @@ if (
   record.violations.length !== 0 ||
   record.workpiece === undefined
 ) {
-  throw new Error("Only an exact valid v4 campaign member may be graded.");
+  throw new Error("Only an exact valid v5 campaign member may be graded.");
 }
 
 const campaignRecordNames = (await readdir(candidateDirectory)).filter((name) =>
-  /^prospective-runbook-v4-replication-[123]-.*\.json$/u.test(name),
+  /^prospective-runbook-v5-replication-[123]-.*\.json$/u.test(name),
 );
 if (campaignRecordNames.length !== 3) {
-  throw new Error("Complete all three v4 replications before grading.");
+  throw new Error("Complete all three v5 replications before grading.");
 }
 
 const ir = (await readFile(`${artifactBase}.ir.md`, "utf8")).trimEnd();
@@ -132,8 +132,8 @@ if (
 
 for (const sourcePath of [
   "apps/brunch-agent/src/evaluations/runbook/campaign-integrity.ts",
-  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/grade.ts",
-  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/score-report.ts",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/grade.ts",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/score-report.ts",
 ] as const) {
   const source = await readFile(join(repositoryRootPath, sourcePath), "utf8");
   if (record.instrument.fileSha256[sourcePath] !== sha256(source)) {
@@ -270,7 +270,7 @@ await writeFile(
 );
 
 process.stdout.write(
-  `ARCHITECTURE_V4_GRADE ${JSON.stringify({
+  `ARCHITECTURE_V5_GRADE ${JSON.stringify({
     mode,
     runId: record.runId,
     requestedModel,

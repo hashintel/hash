@@ -36,6 +36,12 @@ describe("the authored sdcpn-modelling skill", () => {
     expect(instructions).toContain(
       "Before asking any interactive question, verify that every resource required by the selected branch has already returned successfully",
     );
+    expect(instructions).toContain(
+      "Write one interrogative sentence with at most one `?` character",
+    );
+    expect(instructions).toContain(
+      "A new or materially revised `runbook-ir` requires a successful `templates/workpiece.md` read in the current conversation",
+    );
     expect(instructions).toMatch(
       /Read `templates\/workpiece\.md` only when first creating or materially revising\s+the workpiece/u,
     );
@@ -69,6 +75,12 @@ describe("the authored sdcpn-modelling skill", () => {
     expect(append).toContain("Activate the `sdcpn-modelling` skill");
     expect(append).toContain(
       "Do not ask an interactive question or create or revise a workpiece until the activated skill's required branch resources have returned successfully",
+    );
+    expect(append).toContain(
+      "one interrogative sentence with at most one `?` character",
+    );
+    expect(append).toContain(
+      "read `templates/workpiece.md` successfully before emitting it",
     );
   });
 });

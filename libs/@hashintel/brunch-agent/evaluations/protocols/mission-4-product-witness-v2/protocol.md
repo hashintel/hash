@@ -9,7 +9,7 @@ Prove that the final frozen Mission 4 production instrument crosses the real loc
 ## Preconditions
 
 - The parent has frozen and committed the final production instrument.
-- At least one valid v4 campaign member identifies the same source commit, instrument fingerprint, and built-server artifact manifest.
+- At least one valid member of the final accepted Mission 4 campaign identifies the same source commit, instrument fingerprint, and built-server artifact manifest.
 - No instrument file has changed since that member, and the witness's Brunch bundle matches that retained built-server manifest byte for byte.
 - The parent starts and records the production Brunch and Petrinaut entrypoints; stale bundles are rebuilt before the witness begins.
 - The witness uses a fresh browser conversation and does not receive construction mode or construction tools.
@@ -27,7 +27,7 @@ If the product boundary exposes an instrument defect, stop. Any repair creates a
 
 ## Required retained evidence
 
-Retain under `docs/evidence/evaluations/vestera-architecture-candidate-v4/product-witness/`:
+Retain under the final accepted campaign's `product-witness/` evidence directory:
 
 - screenshots of the submitted request, first question, resource/tool activity, and visible workpiece;
 - browser accessibility snapshots for the same states;

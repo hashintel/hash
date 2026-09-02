@@ -3,7 +3,7 @@ import { join } from "node:path";
 
 import { describe, expect, test } from "vitest";
 
-import { scoreReport } from "../../../libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/score-report.ts";
+import { scoreReport } from "../../../libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v5/score-report.ts";
 
 describe("architecture score report validation", () => {
   test("recomputes the weighted omniscient total", () => {
