@@ -18,7 +18,7 @@
 //!
 //! # Authentication
 //!
-//! All routes except `/health` run behind [`auth::authentication_middleware`], with the operator
+//! All routes except `/health` run behind [`AuthenticationLayer`], with the operator
 //! chain: Cloudflare Access JWT, then service delegation. A Kratos session does **not**
 //! authenticate here — these endpoints erase entities and delete users, and the handlers do not
 //! authorize beyond requiring some actor, so operators arrive through Access and internal services
@@ -49,7 +49,9 @@ use hash_graph_store::{
     pool::StorePool as _,
     user_deletion::{self, UserDeletionError},
 };
-use hash_middleware::authentication::provider::AuthenticationProvider;
+#[cfg(feature = "unsafe-dev-endpoints")]
+use hash_middleware::authentication::ServiceSecretLayer;
+use hash_middleware::authentication::{AuthenticationLayer, provider::AuthenticationProvider};
 use hash_status::{Status, StatusCode};
 use serde::Deserialize as _;
 #[cfg(feature = "unsafe-dev-endpoints")]
@@ -107,31 +109,24 @@ where
         .route("/entities/delete", post(delete_entities))
         .route("/users/delete", post(delete_user));
 
-    #[cfg(feature = "unsafe-dev-endpoints")]
-    let secret_gate_secret = Arc::clone(&service_secret);
-    #[cfg(feature = "unsafe-dev-endpoints")]
-    let secret_gate_metrics = Arc::clone(&authentication_metrics);
-
     let kratos = Arc::new(KratosIdentityProvider::new(
         external_services.kratos_admin_url.clone(),
         KRATOS_HTTP_TIMEOUT,
     ));
 
-    let router = probe::router().merge(protected.route_layer(axum::middleware::from_fn(
-        move |request, next| {
-            let provider = Arc::clone(&authentication_provider);
-            let service_secret = Arc::clone(&service_secret);
-            let metrics = Arc::clone(&authentication_metrics);
-            auth::authentication_middleware::<_, ActorId>(
-                provider,
-                service_secret,
-                metrics,
-                auth::is_bootstrap_route,
-                request,
-                next,
-            )
-        },
-    )));
+    #[cfg(feature = "unsafe-dev-endpoints")]
+    let secret_layer = ServiceSecretLayer {
+        service_secret: Arc::clone(&service_secret),
+        metrics: Arc::clone(&authentication_metrics),
+    };
+
+    let router = probe::router().merge(protected.route_layer(AuthenticationLayer::<_, ActorId> {
+        provider: authentication_provider,
+        service_secret,
+        metrics: authentication_metrics,
+        bootstrap_route: auth::is_bootstrap_route,
+        caller: core::marker::PhantomData,
+    }));
 
     // Layering an empty router panics, so the group only exists with its routes.
     #[cfg(feature = "unsafe-dev-endpoints")]
@@ -142,11 +137,7 @@ where
             .route("/data-types", delete(delete_data_types))
             .route("/property-types", delete(delete_property_types))
             .route("/entity-types", delete(delete_entity_types))
-            .route_layer(axum::middleware::from_fn(move |request, next| {
-                let service_secret = Arc::clone(&secret_gate_secret);
-                let metrics = Arc::clone(&secret_gate_metrics);
-                auth::service_secret_middleware(service_secret, metrics, request, next)
-            })),
+            .route_layer(secret_layer),
     );
 
     router

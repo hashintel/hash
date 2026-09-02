@@ -71,7 +71,13 @@ use hash_graph_temporal_versioning::{
 };
 use hash_graph_type_fetcher::TypeFetcher;
 use hash_graph_types::Embedding;
-use hash_middleware::authentication::provider::{AuthenticationProvider, Caller};
+use hash_middleware::{
+    authentication::{
+        AuthenticationLayer,
+        provider::{AuthenticationProvider, Caller},
+    },
+    rate_limit::{IpGateLayer, PrincipalLimitLayer},
+};
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
@@ -581,40 +587,25 @@ fn attach_request_middlewares<P, C>(
 ) -> Router
 where
     P: AuthenticationProvider<C> + Send + Sync + 'static,
-    C: Caller + Send + 'static,
+    C: Caller + Send + Sync + 'static,
 {
-    let auth_secret = Arc::clone(&service_secret);
-    let gate_secret = Arc::clone(&service_secret);
-    let gate_limiters = Arc::clone(&rate_limiters);
-
     routes
-        .route_layer(axum::middleware::from_fn(move |request, next| {
-            rate_limit::principal_limit_middleware(
-                Arc::clone(&rate_limiters),
-                Arc::clone(&service_secret),
-                request,
-                next,
-            )
-        }))
-        .route_layer(axum::middleware::from_fn(move |request, next| {
-            auth::authentication_middleware::<_, C>(
-                Arc::clone(&provider),
-                Arc::clone(&auth_secret),
-                Arc::clone(&authentication_metrics),
-                auth::is_bootstrap_route,
-                request,
-                next,
-            )
-        }))
+        .route_layer(PrincipalLimitLayer {
+            limiters: Arc::clone(&rate_limiters),
+            service_secret: Arc::clone(&service_secret),
+        })
+        .route_layer(AuthenticationLayer::<_, C> {
+            provider,
+            service_secret: Arc::clone(&service_secret),
+            metrics: authentication_metrics,
+            bootstrap_route: auth::is_bootstrap_route,
+            caller: core::marker::PhantomData,
+        })
         .merge(unauthenticated)
-        .layer(axum::middleware::from_fn(move |request, next| {
-            rate_limit::ip_gate_middleware(
-                Arc::clone(&gate_limiters),
-                Arc::clone(&gate_secret),
-                request,
-                next,
-            )
-        }))
+        .layer(IpGateLayer {
+            limiters: rate_limiters,
+            service_secret,
+        })
 }
 
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.

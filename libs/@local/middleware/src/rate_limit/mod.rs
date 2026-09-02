@@ -1,17 +1,17 @@
 //! Rate limiting for HTTP request handling.
 //!
-//! Two middlewares share the limiter state in `RateLimiters`. `ip_gate_middleware` runs ahead of
-//! the authentication middleware and throttles each client address before credential
-//! verification. `principal_limit_middleware` runs behind it and budgets requests by the resolved
-//! principal: the actor for authenticated requests, counted across every address it connects
-//! from, and the client address for anonymous ones.
+//! Two middlewares share the limiter state in `RateLimiters`. [`IpGateLayer`] runs ahead of the
+//! authentication layer and throttles each client address before credential verification.
+//! [`PrincipalLimitLayer`] runs behind it and budgets requests by the resolved principal: the
+//! actor for authenticated requests, counted across every address it connects from, and the
+//! client address for anonymous ones.
 //!
 //! Requests presenting the service secret pass both middlewares unchecked. Both middlewares and
-//! [`authentication_middleware`] have to share one secret: the principal limiter treats a stored
+//! [`AuthenticationLayer`] have to share one secret: the principal limiter treats a stored
 //! authentication error as unreachable because the requests it could arise from passed by secret
 //! above.
 //!
-//! [`authentication_middleware`]: crate::authentication::authentication_middleware
+//! [`AuthenticationLayer`]: crate::authentication::AuthenticationLayer
 //!
 //! A request over its budget receives `429 Too Many Requests` with `Retry-After` in
 //! [`RateLimitMode::Enforce`], the default, and is served unchanged in
@@ -34,11 +34,14 @@ mod config;
 mod tests;
 
 use alloc::sync::Arc;
-use core::{fmt, num::NonZeroU64, time::Duration};
+use core::{fmt, future, num::NonZero, task, time::Duration};
 use std::sync::LazyLock;
 
-use axum::{body::Body, extract::Request, middleware::Next, response::Response};
-use bytes::Bytes;
+use axum::{
+    body::Body,
+    response::{IntoResponse, Response},
+};
+use futures::{TryFutureExt as _, future::Either};
 use governor::{
     Quota, RateLimiter,
     clock::{Clock as _, DefaultClock},
@@ -284,27 +287,82 @@ impl RateLimitMetrics {
     }
 }
 
+/// The `429 Too Many Requests` answer for a request over its budget.
+pub struct TooManyRequests {
+    /// Whole seconds until the crossed budget admits the request again, at least one.
+    pub retry_after: NonZero<u64>,
+}
+
+impl IntoResponse for TooManyRequests {
+    fn into_response(self) -> Response {
+        static BODY: LazyLock<&'static [u8]> =
+            LazyLock::new(|| error_body("rate limit exceeded").leak());
+
+        let mut response = Response::new(Body::from(*BODY));
+        *response.status_mut() = http::StatusCode::TOO_MANY_REQUESTS;
+        let headers = response.headers_mut();
+        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        headers.insert(RETRY_AFTER, HeaderValue::from(self.retry_after.get()));
+        response
+    }
+}
+
+/// The response a request the principal limiter cannot serve is answered with.
+///
+/// [`IpGateLayer`] rejects with [`TooManyRequests`] alone: only the principal limiter, building
+/// on the layers above it, can find a route miswired.
+pub enum RateLimitRejection {
+    /// The request is over its budget.
+    TooManyRequests(TooManyRequests),
+    /// The route is wired without the middleware the principal limiter builds on, answered as
+    /// an internal error.
+    InternalError,
+}
+
+impl From<TooManyRequests> for RateLimitRejection {
+    fn from(error: TooManyRequests) -> Self {
+        Self::TooManyRequests(error)
+    }
+}
+
+impl IntoResponse for RateLimitRejection {
+    fn into_response(self) -> Response {
+        match self {
+            Self::TooManyRequests(too_many_requests) => too_many_requests.into_response(),
+            Self::InternalError => error_response(
+                http::StatusCode::INTERNAL_SERVER_ERROR,
+                "internal server error",
+            ),
+        }
+    }
+}
+
 /// A request found to be over its budget.
 struct Denial {
     /// Whole seconds until the budget admits the request again, at least one.
-    retry_after: NonZeroU64,
+    retry_after: NonZero<u64>,
     mode: RateLimitMode,
 }
 
 impl Denial {
-    /// Answers the request, awaiting `served` where the mode does not enforce the denial.
-    async fn apply(self, served: impl Future<Output = Response>) -> Response {
-        match self.mode {
-            RateLimitMode::Enforce => too_many_requests(self.retry_after),
-            RateLimitMode::Observe => served.await,
+    const fn apply(self) -> Option<TooManyRequests> {
+        match self {
+            Self {
+                mode: RateLimitMode::Observe,
+                retry_after: _,
+            } => None,
+            Self {
+                mode: RateLimitMode::Enforce,
+                retry_after,
+            } => Some(TooManyRequests { retry_after }),
         }
     }
 }
 
 /// The shared limiter state both rate-limiting middlewares charge against.
 ///
-/// [`start`] one per router from the configuration and hand it to [`ip_gate_middleware`] and
-/// [`principal_limit_middleware`]; it maintains itself for as long as it is held.
+/// [`start`] one per router from the configuration and hand it to [`IpGateLayer`] and
+/// [`PrincipalLimitLayer`]; it maintains itself for as long as it is held.
 ///
 /// [`start`]: Self::start
 pub struct RateLimiters {
@@ -409,10 +467,11 @@ impl RateLimiters {
     ///
     /// Falls back to the connection's address when the configured header is unusable, which keys
     /// every client behind that proxy into one budget.
-    fn client_key(&self, request: &Request) -> Option<BucketKey> {
+    fn client_key<B>(&self, request: &http::Request<B>) -> Option<BucketKey> {
         let Some(header) = self.client_ip_source.header() else {
             return address::peer(request);
         };
+
         match address::from_header(request, header) {
             Ok(key) => Some(key),
             Err(fallback) => {
@@ -499,7 +558,7 @@ impl RateLimiters {
         self.metrics
             .denial(budget, self.mode.denial_outcome(), wait);
         let seconds = wait.as_secs() + u64::from(wait.subsec_nanos() > 0);
-        let retry_after = NonZeroU64::new(seconds).unwrap_or(NonZeroU64::MIN);
+        let retry_after = NonZero::new(seconds).unwrap_or(NonZero::<u64>::MIN);
         tracing::debug!(
             budget = budget.as_str(),
             key = %key,
@@ -537,8 +596,8 @@ where
 /// ```
 /// # use core::num::NonZeroU32;
 /// # use std::sync::Arc;
-/// # use axum::{Router, middleware, routing::get};
-/// use hash_middleware::rate_limit::{RateLimiters, ip_gate_middleware};
+/// # use axum::{Router, routing::get};
+/// use hash_middleware::rate_limit::{IpGateLayer, RateLimiters};
 /// # use hash_middleware::rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode};
 ///
 /// # #[tokio::main(flavor = "current_thread")]
@@ -555,49 +614,85 @@ where
 /// #     rate_limit_actor_burst: quota(100),
 /// # };
 /// # let meter = opentelemetry::global::meter("doc");
-/// let limiters = RateLimiters::start(&config, &meter);
-/// let service_secret: Arc<str> = Arc::from("service-secret");
-///
 /// // A `layer` rather than a `route_layer`, so unmatched paths draw on a budget too.
-/// let router: Router =
-///     Router::new()
-///         .route("/entities", get(async || "ok"))
-///         .layer(middleware::from_fn(move |request, next| {
-///             ip_gate_middleware(
-///                 Arc::clone(&limiters),
-///                 Arc::clone(&service_secret),
-///                 request,
-///                 next,
-///             )
-///         }));
+/// let router: Router = Router::new()
+///     .route("/entities", get(async || "ok"))
+///     .layer(IpGateLayer {
+///         limiters: RateLimiters::start(&config, &meter),
+///         service_secret: Arc::from("service-secret"),
+///     });
 /// # }
 /// ```
-pub async fn ip_gate_middleware(
+#[derive(Clone)]
+pub struct IpGateLayer {
+    /// The shared limiter state requests are charged against.
+    pub limiters: Arc<RateLimiters>,
+    /// The secret whose presenters pass unchecked.
+    pub service_secret: Arc<str>,
+}
+
+impl<S> tower::Layer<S> for IpGateLayer {
+    type Service = IpGateService<S>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        IpGateService {
+            inner,
+            limiters: Arc::clone(&self.limiters),
+            service_secret: Arc::clone(&self.service_secret),
+        }
+    }
+}
+
+/// The service [`IpGateLayer`] wraps its inner service into.
+#[derive(Clone)]
+pub struct IpGateService<S> {
+    inner: S,
+
     limiters: Arc<RateLimiters>,
     service_secret: Arc<str>,
-    mut request: Request,
-    next: Next,
-) -> Response {
-    if presents_service_secret(request.headers(), &service_secret) {
-        limiters
-            .metrics
-            .unchecked(Stage::Gate, UncheckedReason::ServiceSecret);
-        return next.run(request).await;
+}
+
+impl<B, S> tower::Service<http::Request<B>> for IpGateService<S>
+where
+    S: tower::Service<http::Request<B>>,
+{
+    type Error = S::Error;
+    type Response = Result<S::Response, TooManyRequests>;
+
+    type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
+
+    fn poll_ready(&mut self, cx: &mut task::Context<'_>) -> task::Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
     }
 
-    let resolved = limiters.client_key(&request);
-    request.extensions_mut().insert(resolved.map_or(
-        ResolvedClientAddress::Unknown,
-        ResolvedClientAddress::Bucketed,
-    ));
-    let Some(key) = resolved else {
-        limiters.note_unknown_address();
-        return next.run(request).await;
-    };
+    fn call(&mut self, mut req: http::Request<B>) -> Self::Future {
+        if presents_service_secret(req.headers(), &self.service_secret) {
+            self.limiters
+                .metrics
+                .unchecked(Stage::Gate, UncheckedReason::ServiceSecret);
 
-    match limiters.charge(Budget::Gate(key)) {
-        Ok(()) => next.run(request).await,
-        Err(denial) => denial.apply(next.run(request)).await,
+            return Either::Right(self.inner.call(req).map_ok(Ok));
+        }
+
+        let resolved = self.limiters.client_key(&req);
+        req.extensions_mut().insert(resolved.map_or(
+            ResolvedClientAddress::Unknown,
+            ResolvedClientAddress::Bucketed,
+        ));
+
+        let Some(key) = resolved else {
+            self.limiters.note_unknown_address();
+            return Either::Right(self.inner.call(req).map_ok(Ok));
+        };
+
+        match self
+            .limiters
+            .charge(Budget::Gate(key))
+            .map_err(Denial::apply)
+        {
+            Ok(()) | Err(None) => Either::Right(self.inner.call(req).map_ok(Ok)),
+            Err(Some(error)) => Either::Left(future::ready(Ok(Err(error)))),
+        }
     }
 }
 
@@ -613,20 +708,18 @@ pub async fn ip_gate_middleware(
 /// documentation shows the full stack:
 ///
 /// ```
-/// # use core::{num::NonZeroU32, ops::ControlFlow};
+/// # use core::{marker::PhantomData, num::NonZeroU32, ops::ControlFlow};
 /// # use std::sync::Arc;
-/// # use axum::{Router, middleware, routing::get};
+/// # use axum::{Router, routing::get};
 /// # use error_stack::Report;
 /// # use hash_middleware::authentication::{
-/// #     AuthenticationMetrics, authentication_middleware,
+/// #     AuthenticationLayer, AuthenticationMetrics,
 /// #     provider::{AuthenticationProvider, Caller},
 /// #     request::AuthenticationError,
 /// # };
 /// # use http::HeaderMap;
 /// # use type_system::principal::actor::ActorId;
-/// use hash_middleware::rate_limit::{
-///     RateLimiters, ip_gate_middleware, principal_limit_middleware,
-/// };
+/// use hash_middleware::rate_limit::{IpGateLayer, PrincipalLimitLayer, RateLimiters};
 /// # use hash_middleware::rate_limit::{ClientIpSource, RateLimitConfig, RateLimitMode};
 ///
 /// # struct Verifier;
@@ -655,129 +748,133 @@ pub async fn ip_gate_middleware(
 /// let limiters = RateLimiters::start(&config, &meter);
 /// let service_secret: Arc<str> = Arc::from("service-secret");
 /// # let provider = Arc::new(Verifier);
-/// # let auth_secret = Arc::clone(&service_secret);
 /// # let auth_metrics = Arc::new(AuthenticationMetrics::new(&meter));
-/// let principal_limiters = Arc::clone(&limiters);
-/// let principal_secret = Arc::clone(&service_secret);
 ///
 /// let router: Router = Router::new()
 ///     .route("/entities", get(async || "ok"))
-///     .route_layer(middleware::from_fn(move |request, next| {
-///         principal_limit_middleware(
-///             Arc::clone(&principal_limiters),
-///             Arc::clone(&principal_secret),
-///             request,
-///             next,
-///         )
-///     }))
-///     .route_layer(middleware::from_fn(move |request, next| {
-///         # let provider = Arc::clone(&provider);
-///         # let auth_secret = Arc::clone(&auth_secret);
-///         # let auth_metrics = Arc::clone(&auth_metrics);
-///         authentication_middleware::<_, Option<ActorId>>(
-///             provider,
-///             auth_secret,
-///             auth_metrics,
-///             |_path| false,
-///             request,
-///             next,
-///         )
-///     }))
-///     .layer(middleware::from_fn(move |request, next| {
-///         ip_gate_middleware(
-///             Arc::clone(&limiters),
-///             Arc::clone(&service_secret),
-///             request,
-///             next,
-///         )
-///     }));
+///     .route_layer(PrincipalLimitLayer {
+///         limiters: Arc::clone(&limiters),
+///         service_secret: Arc::clone(&service_secret),
+///     })
+///     .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
+///         provider,
+///         service_secret: Arc::clone(&service_secret),
+///         metrics: auth_metrics,
+///         bootstrap_route: |_path| false,
+///         caller: PhantomData,
+///     })
+///     .layer(IpGateLayer {
+///         limiters,
+///         service_secret,
+///     });
 /// # }
 /// ```
-pub async fn principal_limit_middleware(
+#[derive(Clone)]
+pub struct PrincipalLimitLayer {
+    /// The shared limiter state requests are charged against.
+    pub limiters: Arc<RateLimiters>,
+    /// The secret whose presenters pass unchecked.
+    pub service_secret: Arc<str>,
+}
+
+impl<S> tower::Layer<S> for PrincipalLimitLayer {
+    type Service = PrincipalLimitService<S>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        PrincipalLimitService {
+            inner,
+            limiters: Arc::clone(&self.limiters),
+            service_secret: Arc::clone(&self.service_secret),
+        }
+    }
+}
+
+/// The service [`PrincipalLimitLayer`] wraps its inner service into.
+#[derive(Clone)]
+pub struct PrincipalLimitService<S> {
+    inner: S,
+
     limiters: Arc<RateLimiters>,
     service_secret: Arc<str>,
-    request: Request,
-    next: Next,
-) -> Response {
-    if presents_service_secret(request.headers(), &service_secret) {
-        limiters
-            .metrics
-            .unchecked(Stage::Principal, UncheckedReason::ServiceSecret);
-        return next.run(request).await;
+}
+
+impl<B, S> tower::Service<http::Request<B>> for PrincipalLimitService<S>
+where
+    S: tower::Service<http::Request<B>>,
+{
+    type Error = S::Error;
+    type Response = Result<S::Response, RateLimitRejection>;
+
+    type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
+
+    fn poll_ready(&mut self, cx: &mut task::Context<'_>) -> task::Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
     }
-    let Some(resolved) = request.extensions().get::<ResolvedAuthentication>() else {
-        tracing::error!(
-            path = request.uri().path(),
-            "`principal_limit_middleware` ran on a route without authentication middleware"
-        );
-        limiters
-            .metrics
-            .misconfiguration(Misconfiguration::MissingAuthentication);
-        return internal_error();
-    };
-    let actor = match resolved.outcome() {
-        Ok(actor) => *actor,
-        Err(error) => {
-            // `authentication_middleware` stores an error only as `MissingDelegatedActor` on a
-            // bootstrap route, and those requests present the service secret and passed above.
-            // Reaching this means the middleware order broke, so the report's attachments are
-            // the only account of what the provider saw — `Display` would print the first
-            // context and drop them.
-            tracing::error!(error = ?error, "authentication error reached the rate limiter unrejected");
-            limiters
+
+    fn call(&mut self, req: http::Request<B>) -> Self::Future {
+        if presents_service_secret(req.headers(), &self.service_secret) {
+            self.limiters
                 .metrics
-                .misconfiguration(Misconfiguration::UnrejectedAuthenticationError);
-            return internal_error();
+                .unchecked(Stage::Principal, UncheckedReason::ServiceSecret);
+            return Either::Right(self.inner.call(req).map_ok(Ok));
         }
-    };
 
-    let budget = if let Some(actor) = actor {
-        Budget::Actor(actor)
-    } else {
-        let Some(resolved) = request.extensions().get::<ResolvedClientAddress>() else {
+        let Some(resolved) = req.extensions().get::<ResolvedAuthentication>() else {
             tracing::error!(
-                path = request.uri().path(),
-                "`principal_limit_middleware` ran on a route without the address gate"
+                path = req.uri().path(),
+                "`PrincipalLimitLayer` ran on a route without authentication middleware"
             );
-            limiters
-                .metrics
-                .misconfiguration(Misconfiguration::MissingAddressGate);
-            return internal_error();
-        };
-        let Some(key) = resolved.key() else {
-            // Counted per stage, so the gate's count of this address does not stand in for the
-            // principal stage.
-            limiters
-                .metrics
-                .unchecked(Stage::Principal, UncheckedReason::UnknownAddress);
-            return next.run(request).await;
-        };
-        Budget::Anonymous(key)
-    };
 
-    match limiters.charge(budget) {
-        Ok(()) => next.run(request).await,
-        Err(denial) => denial.apply(next.run(request)).await,
+            self.limiters
+                .metrics
+                .misconfiguration(Misconfiguration::MissingAuthentication);
+            return Either::Left(future::ready(Ok(Err(RateLimitRejection::InternalError))));
+        };
+
+        let actor = match resolved.outcome() {
+            Ok(actor) => *actor,
+            Err(error) => {
+                // A stored error means a bootstrap route tolerated the failure, and those
+                // requests presented the service secret and passed above. Reaching this
+                // arm means the middleware order broke, so the report's attachments are the only
+                // account of what the provider saw: `Display` would print the first context and
+                // drop them.
+                tracing::error!(error = ?error, "authentication error reached the rate limiter unrejected");
+
+                self.limiters
+                    .metrics
+                    .misconfiguration(Misconfiguration::UnrejectedAuthenticationError);
+                return Either::Left(future::ready(Ok(Err(RateLimitRejection::InternalError))));
+            }
+        };
+
+        let budget = if let Some(actor) = actor {
+            Budget::Actor(actor)
+        } else {
+            let Some(resolved) = req.extensions().get::<ResolvedClientAddress>() else {
+                tracing::error!(
+                    path = req.uri().path(),
+                    "`PrincipalLimitLayer` ran on a route without the address gate"
+                );
+                self.limiters
+                    .metrics
+                    .misconfiguration(Misconfiguration::MissingAddressGate);
+                return Either::Left(future::ready(Ok(Err(RateLimitRejection::InternalError))));
+            };
+            let Some(key) = resolved.key() else {
+                // Counted per stage, so the gate's count of this address does not stand in for the
+                // principal stage.
+                self.limiters
+                    .metrics
+                    .unchecked(Stage::Principal, UncheckedReason::UnknownAddress);
+                return Either::Right(self.inner.call(req).map_ok(Ok));
+            };
+            Budget::Anonymous(key)
+        };
+
+        match self.limiters.charge(budget).map_err(Denial::apply) {
+            Ok(()) | Err(None) => Either::Right(self.inner.call(req).map_ok(Ok)),
+            Err(Some(error)) => Either::Left(future::ready(Ok(Err(error.into())))),
+        }
     }
-}
-
-/// The body every enforced denial answers with, built once.
-static TOO_MANY_REQUESTS: LazyLock<Bytes> =
-    LazyLock::new(|| Bytes::from(error_body("rate limit exceeded".to_owned())));
-
-/// Builds the 429 response for a denied request.
-fn too_many_requests(retry_after: NonZeroU64) -> Response {
-    let mut response = Response::new(Body::from(TOO_MANY_REQUESTS.clone()));
-    *response.status_mut() = http::StatusCode::TOO_MANY_REQUESTS;
-    let headers = response.headers_mut();
-    headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-    headers.insert(RETRY_AFTER, HeaderValue::from(retry_after.get()));
-    response
-}
-
-fn internal_error() -> Response {
-    error_response(
-        http::StatusCode::INTERNAL_SERVER_ERROR,
-        "internal server error".to_owned(),
-    )
 }

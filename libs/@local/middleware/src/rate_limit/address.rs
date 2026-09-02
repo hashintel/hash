@@ -6,7 +6,7 @@ use core::{
     str::FromStr,
 };
 
-use axum::extract::{ConnectInfo, Request};
+use axum::extract::ConnectInfo;
 use http::HeaderName;
 
 /// The key an address-keyed budget is charged against.
@@ -90,7 +90,10 @@ impl Fallback {
 /// the closest proxy received from, so every client behind that one shares a budget.
 ///
 /// Accepts a bare address or an `address:port` pair.
-pub(super) fn from_header(request: &Request, header: &HeaderName) -> Result<BucketKey, Fallback> {
+pub(super) fn from_header<B>(
+    request: &http::Request<B>,
+    header: &HeaderName,
+) -> Result<BucketKey, Fallback> {
     let Some(value) = request.headers().get_all(header).iter().next_back() else {
         return Err(Fallback::HeaderMissing);
     };
@@ -103,7 +106,7 @@ pub(super) fn from_header(request: &Request, header: &HeaderName) -> Result<Buck
 ///
 /// [`None`] when the router was served without [`ConnectInfo`], which leaves nothing to key a
 /// budget by.
-pub(super) fn peer(request: &Request) -> Option<BucketKey> {
+pub(super) fn peer<B>(request: &http::Request<B>) -> Option<BucketKey> {
     request
         .extensions()
         .get::<ConnectInfo<SocketAddr>>()
