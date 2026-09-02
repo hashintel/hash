@@ -146,6 +146,15 @@ const Stat = ({
 );
 
 /** Longest status label, so the strip never reflows as the status changes. */
+/**
+ * Simulated time to show when no batch is publishing progress: an idle sweep
+ * or a complete run has taken every run to the end.
+ */
+const settledTime = (experiment: ExperimentRecord): number =>
+  experiment.status === "idle" || experiment.status === "complete"
+    ? experiment.maxTime
+    : 0;
+
 const STATUS_CHARS =
   Math.max(
     ...Object.values(STATUS_DISPLAY).map((entry) => entry.label.length),
@@ -191,7 +200,7 @@ export const ExperimentSummary = ({
                 .length
             }
           >
-            {formatNumber(progress?.time ?? 0)} /{" "}
+            {formatNumber(progress?.time ?? settledTime(experiment))} /{" "}
             {formatNumber(experiment.maxTime)}
           </Stat>
           {/* Wall-clock, as distinct from the simulated time; dashed out
