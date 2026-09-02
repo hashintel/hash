@@ -1,11 +1,13 @@
 # Prospective runbook candidate v2
 
-Status: **frozen candidate protocol; not executed**
+Status: **aborted after two immutable invalid members**
 
 Protocol id: `prospective-runbook-v2`  
 Observed-output namespace: `vestera-prospective-candidate-v2`
 
 This protocol drives the built production `ChatAgent` against the same Vestera case and frozen ruler as the immutable Mission 3 control. It creates three independent candidate members for comparison with that control. It does not alter, replace, or add members to `vestera-prospective-baseline-v1`, and it does not authorize paid calls or grading.
+
+Execution stopped after replication 1 inherited a stale credential and replication 2 encountered a simulated-expert refusal before workpiece delivery. The owner subsequently narrowed the Mission 4 question to workpiece-quality scoring against the latest valid flat-prompt controls. Preserve the v2 artifacts as operational evidence; do not run replication 3 or use v2 as the quality campaign. The replacement is [`prospective-runbook-v3`](../prospective-runbook-v3/protocol.md).
 
 ## Frozen campaign configuration
 
