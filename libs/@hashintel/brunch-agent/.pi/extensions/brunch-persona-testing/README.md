@@ -11,7 +11,15 @@ This directory owns the local Pi extension that drives the production Brunch eli
 - [The original spike evidence](../../../docs/evidence/evaluations/live-observable-persona-spike/README.md) records the observed text-only run and proof disposition at the paths used by that run.
 - [`MISSION.next.md`](../../../MISSION.next.md#observability-and-simulation-viewing) owns future observability and simulation-viewing work.
 
-Reusable interviewee-visible source truth belongs under [`evaluations/cases/`](../../../evaluations/cases/), hidden answer keys under [`evaluations/oracles/`](../../../evaluations/oracles/), and prompts, fixtures, runners, and procedures under [`evaluations/protocols/`](../../../evaluations/protocols/). The Vestera scheduling case is currently the only full multi-turn persona-ready case. Bounded approval probes are not general persona cases, and the gas, truck-fleet, semiconductor-fab, and cold-chain material remains too thin to port without more source documentation.
+Reusable interviewee-visible source truth belongs under
+[`evaluations/cases/`](../../../evaluations/cases/), hidden answer keys under
+[`evaluations/oracles/`](../../../evaluations/oracles/), and prompts, fixtures, runners, and
+procedures under [`evaluations/protocols/`](../../../evaluations/protocols/). Vestera is the
+executed exemplar. Industrial-gas VMI, truck-fleet maintenance, semiconductor-fab operations,
+data-centre thermal operations, and pharma cold chain now have full greenfield situation packs,
+opening messages, and prospective ledgers. They remain unvalidated in 6–10-turn runs and are not
+yet bound to a frozen protocol. Bounded approval probes remain skill-composition probes rather
+than general persona cases.
 
 ## Context and authority boundary
 
@@ -89,6 +97,10 @@ The final Pi tool details contain every observed server call and every hosted cl
 1. Start the local app with `yarn workspace @apps/brunch-agent dev`.
 2. From this Brunch context root, launch Pi (directly or through Herdr) with a unique `PI_SUBAGENT_NAME`. Choose the persona model and thinking level with Pi's native `--model <provider/model>` and `--thinking <level>` options.
 3. Supply the situation pack inline with the objective and turn budget. The extension treats this launch content as opaque Markdown or plain text and does not parse or validate a pack schema. An `@file` token in a launch task is not expanded into persona context.
+   For comparable runs, use only the text below the `---` separator in the case's
+   `opening-message.md` as the visible first turn; keep its header, the situation pack, and the
+   oracle private. In a 6–10-turn run, bound the objective to the named incident and its immediate
+   options rather than asking the persona to disclose the entire pack.
 4. Wait until the first `brunch_turn` admission is visible in Pi.
 5. Attach the browser to `http://127.0.0.1:4321/?mode=observe&principal=local&id=<PI_SUBAGENT_NAME>`.
 6. After the run, inspect canonical history with `yarn workspace @apps/brunch-agent transcript -- --principal local --id <PI_SUBAGENT_NAME>`.
