@@ -23,6 +23,7 @@ import type {
   FormInputSize,
   FormInputWidth,
   SharedInputProps,
+  Tone,
 } from "../../util/form-shared";
 import type { IconName } from "../Icon/icon";
 
@@ -36,6 +37,8 @@ export type MultiSelectItem<TValue extends string = string> =
   SelectItem<TValue> & {
     /** How selection is indicated for this item in the dropdown. Defaults to `checkbox`. */
     variant?: "checkbox" | "tick" | "highlight";
+    /** The tone of this item's selected indicator (checkbox fill, tick or highlight color). Defaults to `neutral`. */
+    tone?: Exclude<Tone, "warning" | "success">;
   };
 
 type SelectBaseProps<TValue extends string> = {
@@ -197,6 +200,7 @@ function mapToMenuItems<TValue extends string>(
       (options.selectableValues !== undefined &&
         !options.selectableValues.has(it.value)),
     selectedStyle: options.multiple ? (it.variant ?? "checkbox") : "tick",
+    selectedTone: it.tone,
     subItems: undefined,
     onClick: () => {},
   });
@@ -387,6 +391,7 @@ export const Select = <TValue extends string>({
     size,
     align,
     width,
+    multiple: !!multiple,
     invalid: !!invalid,
     disabled: !!disabled,
     loading: !!loading,
