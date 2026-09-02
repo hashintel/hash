@@ -143,8 +143,24 @@ export const chevronIcons = (
     ? { right: "chevronRight", down: "chevronDown" }
     : { right: "chevronRightHeavy", down: "chevronDownHeavy" };
 
-const isTextChildren = (children: React.ReactNode): boolean =>
-  typeof children === "string" || typeof children === "number";
+/**
+ * Whether `children` renders as plain text and can take the truncating
+ * `label` class. Composed children like `{first} {last}` arrive as an array
+ * of strings, so arrays of text count too; nullish/boolean entries render
+ * nothing and don't disqualify. Anything containing elements renders via
+ * `custom`, untruncated.
+ */
+const isTextChildren = (children: React.ReactNode): boolean => {
+  if (Array.isArray(children)) {
+    return children.every(isTextChildren);
+  }
+  return (
+    typeof children === "string" ||
+    typeof children === "number" ||
+    children == null ||
+    typeof children === "boolean"
+  );
+};
 
 export const ItemContent = ({
   item,
