@@ -10,7 +10,7 @@ import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
-import { selectCanonicalSpeechSegments } from "./canonical-speech";
+import { selectInterviewSpeech } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import { toVoiceSessionState } from "./voice-session-state";
@@ -290,9 +290,11 @@ const AvailableVoiceInterviewControl = ({
 
   useLayoutEffect(() => {
     store.updateSubmissionContext(context.submitVoiceInput);
+    const speechSelection = selectInterviewSpeech(context.messages);
     store.controller.updateChat({
+      automaticSource: speechSelection.automaticSource,
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
-      canonicalSegments: selectCanonicalSpeechSegments(context.messages),
+      canonicalSegments: [...speechSelection.canonicalSegments],
       status: context.status,
     });
   }, [

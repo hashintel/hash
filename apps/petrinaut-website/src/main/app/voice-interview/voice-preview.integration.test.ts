@@ -5,7 +5,7 @@ import {
   VOICE_REQUEST_ID_HEADER,
   type VoiceDiagnosticEvent,
 } from "../../../voice-diagnostics";
-import { selectCanonicalSpeechSegments } from "./canonical-speech";
+import { selectInterviewSpeech } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import { VoiceTurnController } from "./voice-turn-controller";
@@ -17,11 +17,13 @@ const browserOffer = "v=0\r\na=private-browser-sdp\r\n";
 const providerAnswer = "v=0\r\na=private-provider-sdp\r\n";
 const spokenAnswer = "The supervisor approves it.";
 const canonicalReply = "Thanks. I have recorded that.";
+const preparedReply = "Approval recorded.";
 const canonicalQuestion = "Who is informed next?";
 const requestIds = [
   "00000000-0000-4000-8000-000000000011",
   "00000000-0000-4000-8000-000000000012",
   "00000000-0000-4000-8000-000000000013",
+  "00000000-0000-4000-8000-000000000014",
 ] as const;
 
 class FakeDataChannel extends EventTarget {
@@ -81,12 +83,8 @@ const responseMessages = [
   ...initialMessages,
   {
     id: "canonical-response-message",
-    parts: [{ state: "done", text: canonicalReply, type: "text" }],
-    role: "assistant",
-  },
-  {
-    id: "next-question-message",
     parts: [
+      { state: "done", text: canonicalReply, type: "text" },
       {
         input: { question: canonicalQuestion },
         state: "input-available",
@@ -217,9 +215,11 @@ describe("controlled voice preview", () => {
       session,
       submitText: submitInterviewAnswer,
     });
+    const initialSpeech = selectInterviewSpeech(initialMessages);
     controller.updateChat({
+      automaticSource: initialSpeech.automaticSource,
       canAcceptInterviewAnswer: true,
-      canonicalSegments: selectCanonicalSpeechSegments(initialMessages),
+      canonicalSegments: [...initialSpeech.canonicalSegments],
       status: "ready",
     });
 
@@ -286,16 +286,63 @@ describe("controlled voice preview", () => {
       output: "waiting-for-tool",
     });
 
+    const pendingSpeech = selectInterviewSpeech(initialMessages);
     controller.updateChat({
+      automaticSource: pendingSpeech.automaticSource,
       canAcceptInterviewAnswer: false,
-      canonicalSegments: selectCanonicalSpeechSegments(initialMessages),
+      canonicalSegments: [...pendingSpeech.canonicalSegments],
       status: "streaming",
     });
+    const responseSpeech = selectInterviewSpeech(responseMessages);
     controller.updateChat({
+      automaticSource: responseSpeech.automaticSource,
       canAcceptInterviewAnswer: true,
-      canonicalSegments: selectCanonicalSpeechSegments(responseMessages),
+      canonicalSegments: [...responseSpeech.canonicalSegments],
       status: "ready",
     });
+
+    const preparationCreate = sentEvents(dataChannel).at(-1)!;
+    expect(preparationCreate).toMatchObject({
+      type: "response.create",
+      response: {
+        metadata: { petrinaut_kind: "speech-preparation" },
+        output_modalities: ["text"],
+      },
+    });
+    const preparationResponse = preparationCreate.response as {
+      input: Array<{ content: Array<{ text: string }> }>;
+      metadata: Record<string, unknown>;
+    };
+    expect(JSON.parse(preparationResponse.input[0]!.content[0]!.text)).toEqual({
+      context_text: [canonicalReply],
+      maximum_words: 46,
+    });
+    dataChannel.receive({
+      response: {
+        id: "response-prepared-reply",
+        metadata: preparationResponse.metadata,
+      },
+      type: "response.created",
+    });
+    dataChannel.receive({
+      delta: preparedReply,
+      response_id: "response-prepared-reply",
+      type: "response.output_text.delta",
+    });
+    dataChannel.receive({
+      response: {
+        id: "response-prepared-reply",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    await vi.waitFor(() =>
+      expect(sentEvents(dataChannel)).toContainEqual(
+        expect.objectContaining({ type: "conversation.item.create" }),
+      ),
+    );
 
     const [functionOutput, responseCreate] = sentEvents(dataChannel).slice(-2);
     expect(functionOutput).toEqual({
@@ -304,7 +351,7 @@ describe("controlled voice preview", () => {
         type: "function_call_output",
         call_id: "call-1",
         output: JSON.stringify({
-          response_text: [canonicalReply, canonicalQuestion],
+          response_text: [preparedReply, canonicalQuestion],
         }),
       },
     });
@@ -378,6 +425,7 @@ describe("controlled voice preview", () => {
       providerAnswer,
       spokenAnswer,
       canonicalReply,
+      preparedReply,
       canonicalQuestion,
       environment.OPENAI_VOICE_API_KEY,
     ]) {

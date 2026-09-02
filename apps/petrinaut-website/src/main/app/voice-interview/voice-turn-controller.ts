@@ -1,6 +1,9 @@
 import { VoiceError, type VoiceErrorCode } from "../../../voice-diagnostics";
 
-import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type {
+  CanonicalSpeechSegment,
+  InterviewSpeechSource,
+} from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type {
   RealtimeBridgeErrorCode,
@@ -57,6 +60,7 @@ interface RealtimeSession {
 }
 
 interface RealtimeBridge {
+  cancelPendingSpeech(): void;
   start(connectionEpoch: number): void;
   stop(): void;
   subscribe(listener: (event: RealtimeBrunchBridgeEvent) => void): () => void;
@@ -77,6 +81,7 @@ interface VoiceTurnControllerDependencies {
 }
 
 interface ChatUpdate {
+  readonly automaticSource?: InterviewSpeechSource | null;
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
   readonly status: ChatStatus;
@@ -274,7 +279,7 @@ export class VoiceTurnController {
     this.#inputStateOnResume = this.#snapshot.input;
     this.#pauseRequested = true;
     const output = this.#snapshot.output === "idle" ? "idle" : "interrupted";
-    this.#session.cancelOutput();
+    this.#cancelOutput();
     this.#session.setMicrophoneEnabled(false);
     this.#update({
       input: "paused",
@@ -373,7 +378,7 @@ export class VoiceTurnController {
     }
     this.#bridge.updateChat(update);
     if (this.#snapshot.input === "paused") {
-      this.#session.cancelOutput();
+      this.#cancelOutput();
     }
   }
 
@@ -410,7 +415,7 @@ export class VoiceTurnController {
     const paused = this.#snapshot.input === "paused";
     if (paused) {
       this.#inputStateOnResume = "listening";
-      this.#session.cancelOutput();
+      this.#cancelOutput();
     }
     this.#update({
       input: paused ? "paused" : "listening",
@@ -441,7 +446,7 @@ export class VoiceTurnController {
     }
     if (event.type === "output-started") {
       if (this.#snapshot.input === "paused") {
-        this.#session.cancelOutput();
+        this.#cancelOutput();
         this.#update({ output: "interrupted" });
         return;
       }
@@ -463,6 +468,7 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "input-speech-started") {
+      this.#bridge.cancelPendingSpeech();
       this.#transcriptItemId = event.itemId;
       this.#transcriptKey = null;
       if (this.#snapshot.output === "speaking") {
@@ -534,6 +540,11 @@ export class VoiceTurnController {
       output: "idle",
       partialText: "",
     });
+  }
+
+  #cancelOutput(): void {
+    this.#bridge.cancelPendingSpeech();
+    this.#session.cancelOutput();
   }
 
   #recordLatency(name: VoiceLatencyEvent["name"], questionId: string): void {

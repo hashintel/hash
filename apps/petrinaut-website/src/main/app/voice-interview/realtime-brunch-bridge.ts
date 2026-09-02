@@ -1,7 +1,9 @@
-import type {
-  CanonicalSpeechSegment,
-  InterviewSpeechSource,
+import {
+  hashCanonicalSpeechText,
+  type CanonicalSpeechSegment,
+  type InterviewSpeechSource,
 } from "./canonical-speech";
+
 import type {
   InterviewSpeechPreparationRequest,
   InterviewSpeechPreparationResult,
@@ -147,11 +149,13 @@ const spokenWordCount = (text: string): number => {
 const preparationCacheKey = (
   source: InterviewSpeechSource,
   contextWordBudget: number,
-): string =>
-  JSON.stringify([
+): string => {
+  const sourceIdentity = JSON.stringify([
     ...source.contextSegments.map(({ contentHash, id }) => [id, contentHash]),
     contextWordBudget,
   ]);
+  return `speech-preparation:${hashCanonicalSpeechText(sourceIdentity)}`;
+};
 
 const parseContinueInterviewArguments = (
   argumentsJson: string,
@@ -175,6 +179,7 @@ const parseContinueInterviewArguments = (
 export class RealtimeBrunchBridge {
   readonly #argumentDeltas = new Map<string, ArgumentStream>();
   readonly #listeners = new Set<BridgeListener>();
+  readonly #preparedContextCache = new Map<string, string>();
   readonly #processedCalls = new Set<string>();
   readonly #session: RealtimeBridgeSession;
   readonly #submitInterviewAnswer: (
@@ -207,6 +212,9 @@ export class RealtimeBrunchBridge {
 
   public start(connectionEpoch: number): void {
     ++this.#generation;
+    if (this.#activeEpoch !== connectionEpoch) {
+      this.#preparedContextCache.clear();
+    }
     this.#activeEpoch = connectionEpoch;
     this.#activeSubmission = null;
     this.#argumentDeltas.clear();
@@ -237,7 +245,12 @@ export class RealtimeBrunchBridge {
     this.#activeEpoch = null;
     this.#activeSubmission = null;
     this.#argumentDeltas.clear();
+    this.#preparedContextCache.clear();
     this.#terminalResponseIds.clear();
+  }
+
+  public cancelPendingSpeech(): void {
+    ++this.#generation;
   }
 
   public updateChat(update: ChatUpdate): void {
@@ -557,9 +570,27 @@ export class RealtimeBrunchBridge {
       contextWordBudget,
       sourceSegmentIds: source.contextSegments.map(({ id }) => id),
     };
+    const cachedContext = this.#preparedContextCache.get(request.cacheKey);
+    if (cachedContext !== undefined) {
+      this.#deliverPreparedSpeech(
+        assemblePreparedInterviewSpeech({
+          preparation: {
+            context: cachedContext,
+            kind: "prepared",
+            sourceSegmentIds: request.sourceSegmentIds,
+          },
+          source,
+        }).text,
+        delivery,
+      );
+      return;
+    }
     void this.#session.prepareInterviewSpeech(request).then((preparation) => {
       if (generation !== this.#generation) {
         return;
+      }
+      if (preparation.kind === "prepared") {
+        this.#preparedContextCache.set(request.cacheKey, preparation.context);
       }
       this.#deliverPreparedSpeech(
         assemblePreparedInterviewSpeech({ preparation, source }).text,

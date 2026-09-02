@@ -12,6 +12,7 @@ import type {
   InterviewSpeechSource,
 } from "./canonical-speech";
 import type {
+  InterviewSpeechPreparationRequest,
   InterviewSpeechPreparationResult,
   OpenAIRealtimeSessionEvent,
 } from "./openai-realtime-session";
@@ -59,7 +60,9 @@ const createHarness = () => {
   const session = {
     completeFunctionCall: vi.fn(),
     prepareInterviewSpeech: vi.fn(
-      async (request): Promise<InterviewSpeechPreparationResult> => ({
+      async (
+        request: InterviewSpeechPreparationRequest,
+      ): Promise<InterviewSpeechPreparationResult> => ({
         context: "Prepared concise context.",
         kind: "prepared",
         sourceSegmentIds: request.sourceSegmentIds,
@@ -160,8 +163,11 @@ describe("RealtimeBrunchBridge", () => {
     await vi.waitFor(() =>
       expect(harness.session.speakPrepared).toHaveBeenCalledOnce(),
     );
-    expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledWith({
-      cacheKey: expect.any(String),
+    const preparationRequest =
+      harness.session.prepareInterviewSpeech.mock.calls[0]?.[0];
+    expect(typeof preparationRequest?.cacheKey).toBe("string");
+    expect(preparationRequest).toEqual({
+      cacheKey: preparationRequest?.cacheKey,
       contextText: [context.text],
       contextWordBudget: 42,
       sourceSegmentIds: [context.id],
@@ -285,6 +291,108 @@ describe("RealtimeBrunchBridge", () => {
       sourceSegmentIds: [context.id, question.id],
       text: ["Prepared context.", question.text],
     });
+  });
+
+  test("reuses prepared context only while its epoch, content, and budget match", async () => {
+    const harness = createHarness();
+    const context = segment("context", "Complete context.", "assistant-text");
+    const question = segment("ask-current", "Exact question?");
+    const source = speechSource({ context: [context], question });
+    harness.bridge.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+
+    harness.bridge.start(4);
+    await vi.waitFor(() =>
+      expect(harness.session.speakPrepared).toHaveBeenCalledOnce(),
+    );
+    harness.bridge.start(4);
+    await vi.waitFor(() =>
+      expect(harness.session.speakPrepared).toHaveBeenCalledTimes(2),
+    );
+    expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledOnce();
+
+    const changedContext = { ...context, contentHash: "fnv1a32:changed" };
+    const changedContentSource = speechSource({
+      context: [changedContext],
+      question,
+    });
+    harness.bridge.updateChat({
+      automaticSource: changedContentSource,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...changedContentSource.fullResponseSegments],
+      status: "ready",
+    });
+    harness.bridge.start(4);
+    await vi.waitFor(() =>
+      expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledTimes(2),
+    );
+
+    const longerQuestion = { ...question, text: "What is the exact question?" };
+    const changedBudgetSource = speechSource({
+      context: [changedContext],
+      question: longerQuestion,
+    });
+    harness.bridge.updateChat({
+      automaticSource: changedBudgetSource,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...changedBudgetSource.fullResponseSegments],
+      status: "ready",
+    });
+    harness.bridge.start(4);
+    await vi.waitFor(() =>
+      expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledTimes(3),
+    );
+
+    harness.bridge.start(5);
+    await vi.waitFor(() =>
+      expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledTimes(4),
+    );
+    harness.bridge.stop();
+    harness.bridge.start(5);
+    await vi.waitFor(() =>
+      expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledTimes(5),
+    );
+  });
+
+  test("does not cache fallback or deliver preparation cancelled by lifecycle", async () => {
+    const harness = createHarness();
+    const context = segment("context", "Complete context.", "assistant-text");
+    const question = segment("ask-current", "Exact question?");
+    const source = speechSource({ context: [context], question });
+    let finishPreparation:
+      | ((result: InterviewSpeechPreparationResult) => void)
+      | undefined;
+    harness.session.prepareInterviewSpeech.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishPreparation = resolve;
+        }),
+    );
+    harness.bridge.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    harness.bridge.start(4);
+
+    harness.bridge.cancelPendingSpeech();
+    finishPreparation?.({
+      kind: "fallback",
+      reason: "interrupted",
+      sourceSegmentIds: [context.id],
+    });
+    await Promise.resolve();
+
+    expect(harness.session.speakPrepared).not.toHaveBeenCalled();
+    harness.bridge.start(4);
+    await vi.waitFor(() =>
+      expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledTimes(2),
+    );
   });
 
   test("speaks the current canonical turn without replaying history", () => {

@@ -28,6 +28,7 @@ const createHarness = () => {
     ),
   };
   const bridge = {
+    cancelPendingSpeech: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
     subscribe: vi.fn((listener: (event: RealtimeBrunchBridgeEvent) => void) => {
@@ -115,6 +116,33 @@ describe("VoiceTurnController", () => {
       output: "interrupted",
     });
     expect(harness.session.cancelOutput).not.toHaveBeenCalled();
+    expect(harness.bridge.cancelPendingSpeech).toHaveBeenCalledOnce();
+  });
+
+  test("invalidates pending preparation before pausing or cancelling paused output", async () => {
+    const harness = createHarness();
+    const order: string[] = [];
+    harness.bridge.cancelPendingSpeech.mockImplementation(() =>
+      order.push("bridge-cancel"),
+    );
+    harness.bridge.updateChat.mockImplementation(() =>
+      order.push("chat-update"),
+    );
+    harness.session.cancelOutput.mockImplementation(() =>
+      order.push("session-cancel"),
+    );
+    await harness.controller.start();
+
+    harness.controller.pause();
+    expect(order).toEqual(["bridge-cancel", "session-cancel"]);
+
+    order.length = 0;
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question("ask-paused")],
+      status: "ready",
+    });
+    expect(order).toEqual(["chat-update", "bridge-cancel", "session-cancel"]);
   });
 
   test("represents submitting and output independently without closing capture", async () => {
