@@ -163,12 +163,20 @@ export const createDistributionHeatmapPlugin = (
         // image extends half a cell beyond the outermost centers. Every
         // coordinate comes from `valToPos`, keeping the image aligned with
         // the axes whatever range the y scale settled on.
-        const yTop = u.valToPos(grid.valueMax, "y", true);
-        const yBottom = u.valToPos(grid.valueMin, "y", true);
         const cellHeight =
           grid.rows > 1
-            ? (yBottom - yTop) / (grid.rows - 1)
+            ? (u.valToPos(grid.valueMin, "y", true) -
+                u.valToPos(grid.valueMax, "y", true)) /
+              (grid.rows - 1)
             : 8 * uPlot.pxRatio;
+        // A one-row grid has no lattice spacing to pad by: its band centres
+        // on the value instead of spanning the padded range.
+        const yTop =
+          grid.rows > 1
+            ? u.valToPos(grid.valueMax, "y", true)
+            : u.valToPos((grid.valueMin + grid.valueMax) / 2, "y", true);
+        const yBottom =
+          grid.rows > 1 ? u.valToPos(grid.valueMin, "y", true) : yTop;
         const xFirst = u.valToPos(timeFirst, "x", true);
         const xLast = u.valToPos(timeLast, "x", true);
         const cellWidth =
