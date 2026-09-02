@@ -39,6 +39,9 @@ describe("the authored sdcpn-modelling skill", () => {
     expect(instructions).toMatch(
       /If it already answers\s+the question, answer without reading the elicitation references or interviewing/u,
     );
+    expect(instructions).toContain(
+      "pass the exact `/.flue/packaged-skills/...` URI advertised after `→`",
+    );
     expect(profile).not.toMatch(/Vestera|truck fleet|semiconductor/iu);
     expect(workpiece).toContain(
       "Every operational claim has one authoritative home",

@@ -6,7 +6,7 @@
 
 A fresh builder must resolve these authorities and evidence before choosing a mechanism:
 
-- [`../../MISSION.md`](../../MISSION.md) — sole execution authority. Mission 6 may be cut only after Mission 4 and Mission 5 have actually closed their accepted joins.
+- [`../mission-archive/4-accepted-prompt-skill-workpiece-architecture.md`](../mission-archive/4-accepted-prompt-skill-workpiece-architecture.md) and [`../evidence/evaluations/vestera-architecture-candidate-v3/mission-5-handoff.md`](../evidence/evaluations/vestera-architecture-candidate-v3/mission-5-handoff.md) — accepted Mission 4 architecture and exact successor join. Mission 6 may be cut only after Mission 5 has closed its accepted join.
 - [`../../MISSION.next.md`](../../MISSION.next.md) — compact future spine, FE-1476 floor, cross-mission obligations, standing locks, and current Mission 7 handoff.
 - [`5-capture-backed-review.md`](5-capture-backed-review.md) — provisional predecessor contract. At cut time replace assumptions with Mission 5's accepted archive/evidence and exact current workpiece/derivation seam.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) and [`../evidence/implementations/fe-1525-headless-runbook-pn.md`](../evidence/implementations/fe-1525-headless-runbook-pn.md) — accepted workpiece leg, canonical callback fixture, provider-visible nested-schema failure, vacuous empty-net result, and explicit next-boundary decision.

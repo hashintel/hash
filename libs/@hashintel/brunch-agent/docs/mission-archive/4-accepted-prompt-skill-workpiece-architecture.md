@@ -2,9 +2,15 @@
 
 ## Status
 
-Live. Amended close contract owner-accepted on 2026-09-02. This file is execution authority for [FE-1563](https://linear.app/hash/issue/FE-1563/redesign-the-elicitation-runbook-and-workpiece-against-the-frozen).
+Closed on 2026-09-02 with the owner-selected prompt, skill, and workpiece architecture promoted and accepted as baseline-competitive with explicit limitations. This archived contract is no longer execution authority. Mission 5 remains uncut and unimplemented.
 
-Mission 3's prospective campaign is the immutable control: one invalid runtime member and two valid independently graded workpieces, with the adjudicated range in [`docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md`](docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md). Its observed artifacts and source revision `b738aa1be1a62a9f9cdde89ced78558f04293a77` remain the exact v1 instrument of record.
+Close evidence:
+
+- [`../evidence/evaluations/vestera-architecture-candidate-v3/campaign-adjudication.md`](../evidence/evaluations/vestera-architecture-candidate-v3/campaign-adjudication.md) compares the one valid candidate workpiece only with the latest two valid flat-prompt controls: omniscient `72.5 / 100`, cold `3.2 / 4`, conditional readiness, and no hard-failure gate.
+- [`../evidence/evaluations/vestera-architecture-candidate-v3/product-witness.md`](../evidence/evaluations/vestera-architecture-candidate-v3/product-witness.md) records the accepted local/restricted Petrinaut → AI SDK → production Flue `ChatAgent` witness, the exposed relative-resource-path failure, and the owner-authorized exact-URI repair.
+- [`../evidence/evaluations/vestera-architecture-candidate-v3/mission-5-handoff.md`](../evidence/evaluations/vestera-architecture-candidate-v3/mission-5-handoff.md) freezes the selected workpiece, exact source snapshot and message binding, candidate manifest, grades, adjudication, and remaining gaps.
+
+Mission 3's prospective campaign remains the immutable control: one invalid runtime member and two valid independently graded workpieces, with the adjudicated range in [`../evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md`](../evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md). Its observed artifacts and source revision `b738aa1be1a62a9f9cdde89ced78558f04293a77` remain the exact v1 instrument of record.
 
 ### Accepted architecture and interaction decisions
 
@@ -104,4 +110,4 @@ Stop and surface the evidence if:
 
 Mission 5 owns capture-backed review and the first visible evidence-backed “why” answer over the frozen prepared pair. Mission 6 owns automatic traceable projection into one meaningful live SDCPN region. Mission 7 owns bounded authorized reviewer revision and scoped net patching. Mission 8's deployment branch stopped after local application proof and retains the unresolved infrastructure/release gates. Mission 9 owns the eventual accepted optimisation handoff after its consumer contract exists.
 
-The inferential observer, host/session continuity beyond the fixed local witness, compaction, voice, broad observability, simulated-conversation viewing, remote release, and public product choice remain in [`MISSION.next.md`](MISSION.next.md) unless the real Mission 4 throughline exposes a direct blocker. No deferred item is implementation authority here.
+The inferential observer, host/session continuity beyond the fixed local witness, compaction, voice, broad observability, simulated-conversation viewing, remote release, and public product choice remain in [`../../MISSION.next.md`](../../MISSION.next.md). No deferred item is implementation authority here.

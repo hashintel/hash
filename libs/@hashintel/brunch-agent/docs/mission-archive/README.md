@@ -6,3 +6,4 @@ Closed `MISSION.md` files, moved here on close or explicit owner-directed branch
 - [`2-mechanical-capture-sweep.md`](2-mechanical-capture-sweep.md) — Mission 2, accepted 2026-08-27.
 - [`3-structurally-typed-runbook-to-headless-pn.md`](3-structurally-typed-runbook-to-headless-pn.md) — Mission 3, closed 2026-08-31 with the runbook/workpiece path accepted and real-model construction falsified on the exercised route.
 - [`4-owner-led-runbook-and-workpiece-redesign.md`](4-owner-led-runbook-and-workpiece-redesign.md) — Mission 4, closed for branch transition by owner direction on 2026-09-01; this archive does not independently adjudicate every proof item.
+- [`4-accepted-prompt-skill-workpiece-architecture.md`](4-accepted-prompt-skill-workpiece-architecture.md) — Mission 4, accepted 2026-09-02 as baseline-competitive with explicit quality, routing, and campaign limitations.

@@ -68,4 +68,4 @@ An explicit stop opens no new topic. In an interactive conversation, emit the be
 
 ## Resource discipline
 
-Read resources directly from this skill's advertised resource list. Do not treat Markdown links as includes, follow references recursively, or read construction material merely to frame ordinary interview questions.
+Read resources directly from this skill's advertised resource list. When calling `read_skill_resource`, pass the exact `/.flue/packaged-skills/...` URI advertised after `→`; the relative resource name is only a label and will fail. Do not treat Markdown links as includes, follow references recursively, or read construction material merely to frame ordinary interview questions.

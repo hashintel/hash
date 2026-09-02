@@ -1,25 +1,25 @@
 # Brunch future mission spine
 
-> Canonical future-planning spine, shared frame, and backlog index only. This file is not execution authority and authorizes no implementation. [`MISSION.md`](MISSION.md) is the sole live authority. Detailed provisional clusters are context repositories, not missions; re-evaluate and convert one into `MISSION.md` before acting.
+> Canonical future-planning spine, shared frame, and backlog index only. This file is not execution authority and authorizes no implementation. No mission is live after Mission 4 close; re-evaluate one draft and create a new `MISSION.md` on its own issue, branch, and PR before acting.
 
 This spine and its four linked drafts form one future-planning record. Keep each consequential meaning in one authoritative planning home: shared contracts and unallocated concerns live here; mission-specific detail lives in its draft. A spine pointer is not a second contract. Material omitted from a future cut returns to this record at full fidelity, and the consumed draft is removed.
 
 ## Current authority and accepted spine
 
-Mission 4 remains live on this branch. Its exit handoff is a selected frozen workpiece, exact source Flue conversation, exact candidate-instrument manifest, and comparative evaluation/adjudication. The parallel deployment branch's decision to archive Mission 4 and install Mission 8 as live authority is historical to that branch and is **not imported here**.
+Mission 4 closed on 2026-09-02. Its [archive](docs/mission-archive/4-accepted-prompt-skill-workpiece-architecture.md) and [Mission 5 handoff](docs/evidence/evaluations/vestera-architecture-candidate-v3/mission-5-handoff.md) freeze the selected workpiece, exact source Flue snapshot, candidate manifest, comparative adjudication, visible witness, and accepted limitations. The parallel deployment branch's decision to install Mission 8 as live authority remains historical to that branch and is **not imported here**.
 
-Mission 4's `Deferred` paragraph was intentionally left unchanged by this documentation remediation and therefore retains the pre-split future numbering (projection/provenance as Mission 5, revision as Mission 6, rehearsal/handoff as Mission 7). This owner-ratified planning remediation supersedes only those future planning addresses with the accepted spine below; it does not alter Mission 4's live imperative, architecture, proof, or constraints. When a successor is eventually cut, use the linked draft numbering below and re-evaluate it into `MISSION.md`; do not infer that the unchanged `Deferred` labels authorize implementation.
+Mission 5 is the next candidate, not a live mission. Re-evaluate its linked draft against the frozen handoff and current deployment reality before cutting separate execution authority.
 
 ```text
-M4  live — ship the accepted prompt/skill/workpiece architecture
-M5  capture-backed review — ship a mechanical-evidence “why” answer over an honest prebuilt pair
+M4  closed — accepted prompt/skill/workpiece architecture, with explicit limitations
+M5  next draft — capture-backed review over an honest prebuilt pair
 M6  automatic projection — ship one meaningful region of traceable live SDCPN projection
 M7  revision — ship bounded authorized reviewer revision and a scoped patch
 M8  deployment handoff — stopped after local application proof, before infrastructure deployment
 M9  optimisation — ship an accepted optimisation handoff after its consumer contract exists
 ```
 
-Every numbered mission from Mission 4 onward must produce a distinct visible advancement through the deployed Petrinaut/Brunch boundary once that boundary exists. Architecture, schema repair, fixtures, evaluation, rehearsal, and spikes may support that advancement but cannot be its sole outcome. Parallel work means separate issue, branch, PR, and mission authority; it never means multiple live missions here.
+Every numbered mission from Mission 5 onward must produce a distinct visible advancement through the deployed Petrinaut/Brunch boundary once that boundary exists. Architecture, schema repair, fixtures, evaluation, rehearsal, and spikes may support that advancement but cannot be its sole outcome. Parallel work means separate issue, branch, PR, and mission authority; it never means multiple live missions here.
 
 ## FE-1476 product frame
 
@@ -365,7 +365,7 @@ The candidate split has one live authority, one compact spine, four provisional 
 | Standing decisions | Shared constraints and standing locks | Retained with packaged-B disposition, authority boundaries, capture/workpiece separation, platform locks, and no generalized runtime/TUI. |
 | Structured-question semantics from accepted planning | Unallocated backlog / Structured-question vertical capability | Added to its sole planning home with the required model-to-resumed-turn proof and no `brunch_ask` reactivation. |
 
-Material was removed only where the deployment branch's observed application artifact superseded its earlier proposal or where a spine summary now points to a detailed draft. All open consequences and re-entry conditions remain above. The migration was documentation-only: Mission 4 remains live, `MISSION.md` and the archive remain unchanged, and no future mission or remote deployment was promoted.
+Material was removed only where the deployment branch's observed application artifact superseded its earlier proposal or where a spine summary now points to a detailed draft. All open consequences and re-entry conditions remain above. Mission 4 subsequently closed into its archive and frozen Mission 5 handoff; no future mission or remote deployment was promoted.
 
 ## Planning-split close record
 
