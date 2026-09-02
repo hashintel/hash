@@ -2,6 +2,8 @@
 
 import { type ConversationStreamChunk } from "@flue/sdk";
 
+import { ASK_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+
 import { providerExecutedFor } from "./client-tool.ts";
 
 import type { UIMessageChunk } from "ai";
@@ -139,6 +141,7 @@ export const createFlueUiStream = (
             toolCallId: chunk.toolCallId,
             toolName: chunk.toolName,
             input: chunk.input,
+            ...(chunk.toolName === ASK_TOOL_NAME ? { dynamic: true } : {}),
             ...(providerExecuted === undefined ? {} : { providerExecuted }),
           });
           return;

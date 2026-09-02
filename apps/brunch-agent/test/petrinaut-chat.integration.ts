@@ -334,7 +334,8 @@ try {
           role: "assistant",
           parts: [
             {
-              type: `tool-${ASK_TOOL_NAME}`,
+              type: "dynamic-tool",
+              toolName: ASK_TOOL_NAME,
               toolCallId: askCall?.toolCallId,
               state: "output-available",
               input: askCall?.input,
