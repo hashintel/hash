@@ -28,6 +28,12 @@ export type ExperimentRunPlan = {
   /** Overridden net parameter variable names, sorted. */
   readonly ids: readonly string[];
   readonly values: Float64Array;
+  /**
+   * Pinned per-run seeds, `runCount` long, for batches whose runs must draw
+   * the same trajectories however they are chunked. Absent, each run's seed
+   * derives from the experiment's seed.
+   */
+  readonly seeds?: readonly number[];
 };
 
 export type ExperimentRequest = {
@@ -41,8 +47,8 @@ export type ExperimentRequest = {
   readonly runCount: number;
   /**
    * Per-run overrides, indexed by global run index; `runs.length` must equal
-   * `runCount` when present. Carries what `runPlan` cannot — per-run seeds,
-   * markings, non-numeric values. At most one of `runs` and `runPlan` may be
+   * `runCount` when present. Carries what `runPlan` cannot — per-run markings
+   * and non-numeric values. At most one of `runs` and `runPlan` may be
    * present.
    */
   readonly runs?: readonly MonteCarloRunConfig[];

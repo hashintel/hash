@@ -41,13 +41,21 @@ export const expandRunPlan = (
   );
   const width = plan.ids.length;
   return Array.from({ length: runCount }, (_, run) => {
-    const parameterValues = createUserKeyedRecord<string>();
-    plan.ids.forEach((id, index) => {
-      parameterValues[id] = formatPlanValue(
-        plan.values[run * width + index],
-        typeByName.get(id),
-      );
-    });
-    return { parameterValues };
+    const config: MonteCarloRunConfig = {};
+    const seed = plan.seeds?.[run];
+    if (seed !== undefined) {
+      config.seed = seed;
+    }
+    if (width > 0) {
+      const parameterValues = createUserKeyedRecord<string>();
+      plan.ids.forEach((id, index) => {
+        parameterValues[id] = formatPlanValue(
+          plan.values[run * width + index],
+          typeByName.get(id),
+        );
+      });
+      config.parameterValues = parameterValues;
+    }
+    return config;
   });
 };

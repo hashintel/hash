@@ -48,6 +48,33 @@ describe("expandRunPlan", () => {
     ]);
   });
 
+  it("pins each run's seed when the plan carries seeds", () => {
+    const runs = expandRunPlan(
+      {
+        ids: ["rate"],
+        values: Float64Array.of(0.25, 0.5),
+        seeds: [11, 12],
+      },
+      2,
+      parameters,
+    );
+
+    expect(runs).toEqual([
+      { seed: 11, parameterValues: { rate: "0.25" } },
+      { seed: 12, parameterValues: { rate: "0.5" } },
+    ]);
+  });
+
+  it("expands a plan with seeds and no ids to seed-only configs", () => {
+    const runs = expandRunPlan(
+      { ids: [], values: new Float64Array(0), seeds: [11, 12] },
+      2,
+      parameters,
+    );
+
+    expect(runs).toEqual([{ seed: 11 }, { seed: 12 }]);
+  });
+
   it("leaves a boolean value other than 1/0 for the engine's parser to reject", () => {
     const [run] = expandRunPlan(
       { ids: ["enabled"], values: Float64Array.of(0.5) },

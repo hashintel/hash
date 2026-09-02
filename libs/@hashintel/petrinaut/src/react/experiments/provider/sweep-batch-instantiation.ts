@@ -13,7 +13,6 @@ import type {
   ExperimentRequestOverride,
   SweptScenarioCompiler,
 } from "./shared/experiment-request";
-import type { MonteCarloRunConfig } from "@hashintel/petrinaut-core";
 import type {
   ExperimentBackend,
   ExperimentBackendRegistration,
@@ -23,30 +22,18 @@ import type {
   SelectExperimentBackendResult,
 } from "@hashintel/petrinaut-core/experiments";
 
-/**
- * Pinned per-run seeds ride only the record form, so a seeded batch expands
- * its plan into run records — booleans back to the engine's "true"/"false".
- * Seeded batches are small surface chunks; the records cost nothing there.
- */
-const seededRuns = (
-  runSeeds: readonly number[],
+/** The batch's plan with its pinned seeds attached; seeds alone make a plan too. */
+const seededPlan = (
   plan: ExperimentRunPlan | undefined,
-  baseParameters: Readonly<Record<string, number | boolean>>,
-): MonteCarloRunConfig[] =>
-  runSeeds.map((seed, run) => {
-    if (plan === undefined) {
-      return { seed };
-    }
-    const parameterValues: Record<string, string> = {};
-    for (const [column, id] of plan.ids.entries()) {
-      const value = plan.values[run * plan.ids.length + column]!;
-      parameterValues[id] =
-        typeof baseParameters[id] === "boolean"
-          ? String(value === 1)
-          : String(value);
-    }
-    return { seed, parameterValues };
-  });
+  runSeeds: readonly number[] | undefined,
+): ExperimentRunPlan | undefined =>
+  runSeeds === undefined
+    ? plan
+    : {
+        ids: plan?.ids ?? [],
+        values: plan?.values ?? new Float64Array(0),
+        seeds: runSeeds,
+      };
 
 /**
  * Builds the sweep session's `instantiateBatch` for one experiment.
@@ -111,16 +98,13 @@ export const createSweepBatchInstantiator = ({
             compileRunNumbers: compiler.compileRunNumbers,
             netParameterVariableNames,
           });
+    const runPlan = seededPlan(plan, runSeeds);
     const override: ExperimentRequestOverride = {
       parameterValues: compiled.result.parameterValues,
       initialMarking: compiled.result.initialState,
       seed,
       runCount,
-      ...(runSeeds !== undefined
-        ? { runs: seededRuns(runSeeds, plan, baseParameters) }
-        : plan !== undefined
-          ? { runPlan: plan }
-          : {}),
+      ...(runPlan === undefined ? {} : { runPlan }),
     };
 
     const lane = decideBatchLane({
