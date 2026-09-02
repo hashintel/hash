@@ -24,8 +24,8 @@ if ! jq -e --arg crate "$CRATE" '.packages | any(.name == $crate)' <<< "$METADAT
     exit 1
 fi
 
-# Doc-tests need a library target, which binary-only crates do not have
-HAS_LIB=$(jq --arg crate "$CRATE" '.packages[] | select(.name == $crate) | .targets | any(.kind | contains(["lib"]))' <<< "$METADATA")
+# Binary-only crates have no target that carries doc-tests
+HAS_DOCTESTS=$(jq --arg crate "$CRATE" '.packages[] | select(.name == $crate) | .targets | any(.doctest)' <<< "$METADATA")
 
 declare -a COMMON_ARGUMENTS
 COMMON_ARGUMENTS+=("-p" "$CRATE")
@@ -83,7 +83,7 @@ if [[ $COVERAGE == "true" || ${TEST_COVERAGE:-false} == 'true' || ${TEST_COVERAG
 
     cargo llvm-cov clean --workspace
     cargo hack "${HACK_ARGUMENTS[@]}" llvm-cov "${LLVM_COV_ARGUMENTS[@]}" --no-report nextest "${NEXTEST_ARGUMENTS[@]}" --cargo-profile coverage "${ARGUMENTS[@]:-}"
-    if [[ $HAS_LIB == "true" ]]; then
+    if [[ $HAS_DOCTESTS == "true" ]]; then
         cargo llvm-cov "${LLVM_COV_ARGUMENTS[@]}" "${LLVM_COV_REPORT_ARGUMENTS[@]}" --no-clean --doctests test "${COMMON_ARGUMENTS[@]}" --all-features --profile coverage --doc
     else
         cargo llvm-cov report --profile coverage --branch --ignore-filename-regex "$EXCLUSIONS" "${LLVM_COV_REPORT_ARGUMENTS[@]}"
@@ -94,6 +94,6 @@ fi
 
 cargo hack "${HACK_ARGUMENTS[@]}" nextest run "${NEXTEST_ARGUMENTS[@]}" "${ARGUMENTS[@]:-}"
 
-if [[ $HAS_LIB == "true" ]]; then
+if [[ $HAS_DOCTESTS == "true" ]]; then
     cargo test "${COMMON_ARGUMENTS[@]}" --all-features --doc
 fi
