@@ -4097,7 +4097,14 @@ fn uniform(mut rng: impl rand::Rng) -> f64 {
 
 #[cfg(test)]
 mod tests {
+    use core::ops::RangeInclusive;
     use std::collections::HashSet;
+
+    use proptest::{
+        prop_assert, prop_assert_eq, prop_oneof, property_test,
+        sample::Index,
+        strategy::{Just, Strategy},
+    };
 
     use super::{
         ChainAudit, DotBudget, FillRule, GenerationLayout, RefineOrder, Refinement,
@@ -4105,7 +4112,7 @@ mod tests {
     };
     use crate::morton::{Depth, MortonKey};
 
-    /// The corpus scale the module's own checks run at.
+    /// The corpus scale the module's exhaustive checks run at.
     const POINTS: usize = 8_000;
 
     /// The fixture seed.
@@ -4117,16 +4124,86 @@ mod tests {
     /// The dot budget the last round measured as the knee: the cells one zoom step coarser hold.
     const KNEE: usize = 1024;
 
+    /// The corpus scales a property builds per case.
+    ///
+    /// Small enough to build hundreds of times in one run; large enough that a gaussian cluster's
+    /// points share cut cells, so budgets bind and refinement has cells to resolve.
+    const CORPUS: RangeInclusive<usize> = 64..=1_024;
+
+    /// The visible fractions a property masks with, from everything hidden to nothing.
+    const VISIBLE: RangeInclusive<f64> = 0.0..=1.0;
+
+    /// The constant budgets a property refines under.
+    ///
+    /// From one dot to twice the largest corpus: budgets the cut-depth floor overrides, budgets
+    /// that bind, and budgets nothing reaches.
+    const BUDGETS: RangeInclusive<usize> = 1..=2_048;
+
     /// Builds the fixture under one mask.
     fn masked(clustered: bool, visible: f64) -> WalkBench {
-        let mut bench = WalkBench::build(POINTS, SEED);
+        corpus(POINTS, SEED, clustered, visible)
+    }
+
+    /// Builds a corpus of `points` rows from `seed` and masks it with the same seed.
+    fn corpus(points: usize, seed: u64, clustered: bool, visible: f64) -> WalkBench {
+        let mut bench = WalkBench::build(points, seed);
         if clustered {
-            bench.mask_clustered(visible, SEED);
+            bench.mask_clustered(visible, seed);
         } else {
-            bench.mask_uniform(visible, SEED);
+            bench.mask_uniform(visible, seed);
         }
 
         bench
+    }
+
+    /// Every refinement order.
+    fn refine_order() -> impl Strategy<Value = RefineOrder> {
+        prop_oneof![
+            Just(RefineOrder::Whole),
+            Just(RefineOrder::Morton),
+            Just(RefineOrder::Population),
+        ]
+    }
+
+    /// A refined rule under a constant budget drawn from [`BUDGETS`].
+    fn constant_refinement() -> impl Strategy<Value = FillRule> {
+        (BUDGETS, refine_order()).prop_map(|(budget, order)| {
+            FillRule::Refined(Refinement {
+                budget: DotBudget::Constant(budget),
+                order,
+            })
+        })
+    }
+
+    /// A refined rule under the scheduled budget.
+    fn scheduled_refinement() -> impl Strategy<Value = FillRule> {
+        refine_order().prop_map(|order| {
+            FillRule::Refined(Refinement {
+                budget: DotBudget::Scheduled,
+                order,
+            })
+        })
+    }
+
+    /// The rank-representative rules whose delivery is a function of the visible view alone.
+    ///
+    /// The coarse rule and every constant-budget refinement. The scheduled budget reads the corpus
+    /// before masking, so it is the family's known leak and stays out.
+    fn hidden_independent_rule() -> impl Strategy<Value = FillRule> {
+        prop_oneof![
+            1 => Just(FillRule::CoverageRank),
+            3 => constant_refinement(),
+        ]
+    }
+
+    /// Every rule the served engine serves: [`hidden_independent_rule`] plus the scheduled budget
+    /// in every refinement order, weighted as the exhaustive family is.
+    fn served_rule() -> impl Strategy<Value = FillRule> {
+        prop_oneof![
+            1 => Just(FillRule::CoverageRank),
+            6 => constant_refinement(),
+            3 => scheduled_refinement(),
+        ]
     }
 
     /// Every refinement order under one budget.
@@ -4341,47 +4418,68 @@ mod tests {
         None
     }
 
-    #[test]
-    fn the_served_form_delivers_the_scanning_form_exactly() {
-        for clustered in [false, true] {
-            for visible in [1.0, 0.75, 0.5, 0.05] {
-                let bench = masked(clustered, visible);
-                let pyramid = bench.pyramid();
-                let column = bench.column();
-                let view = VisibleView::new(&pyramid, &column);
-                let oracle = bench.generation(GenerationLayout::Inline);
-                let generation = bench.indexed_generation(GenerationLayout::Inline);
-                assert_eq!(generation, oracle);
-                assert_eq!(generation.len(), bench.visible_rows());
-
-                for rule in served_rules() {
-                    for (z, x, y) in tiles(&bench) {
-                        assert_eq!(
-                            bench.served_delivery(rule, z, x, y, &generation),
-                            bench.delivery(rule, z, x, y, view),
-                            "{rule:?} serves a different delivery sequence at tile {z}/{x}/{y}, \
-                             clustered {clustered}, visible {visible}",
-                        );
-                        assert_eq!(
-                            bench.served_cumulative_delivery(rule, z, x, y, &generation),
-                            bench.cumulative_delivery(rule, z, x, y, view),
-                            "{rule:?} serves a different cumulative delivery at tile {z}/{x}/{y}, \
-                             clustered {clustered}, visible {visible}",
-                        );
-                        assert_eq!(
-                            counts(bench.served_audit(rule, z, x, y, &generation)),
-                            counts(bench.audit(rule, z, x, y, view)),
-                            "{rule:?} serves a different audit at tile {z}/{x}/{y}, clustered \
-                             {clustered}, visible {visible}",
-                        );
-                    }
-                }
-            }
-        }
+    /// Picks one of the tiles a check sweeps.
+    fn tile(bench: &WalkBench, pick: Index) -> (u8, u32, u32) {
+        let tiles = tiles(bench);
+        tiles[pick.index(tiles.len())]
     }
 
+    /// The served engine is the scanning engine at any tile of any corpus under any served rule.
+    ///
+    /// Delivery sequence, cumulative delivery and audit agree between the two, and the indexed
+    /// generation the served engine reads is the cascade oracle.
+    #[property_test]
+    fn served_matches_scanning(
+        #[strategy = CORPUS] points: usize,
+        seed: u64,
+        clustered: bool,
+        #[strategy = VISIBLE] visible: f64,
+        #[strategy = served_rule()] rule: FillRule,
+        pick: Index,
+    ) {
+        let bench = corpus(points, seed, clustered, visible);
+        let pyramid = bench.pyramid();
+        let column = bench.column();
+        let view = VisibleView::new(&pyramid, &column);
+        let oracle = bench.generation(GenerationLayout::Inline);
+        let generation = bench.indexed_generation(GenerationLayout::Inline);
+        prop_assert_eq!(&generation, &oracle);
+        prop_assert_eq!(generation.len(), bench.visible_rows());
+
+        let (z, x, y) = tile(&bench, pick);
+        prop_assert_eq!(
+            bench.served_delivery(rule, z, x, y, &generation),
+            bench.delivery(rule, z, x, y, view),
+            "{:?} serves a different delivery sequence at tile {}/{}/{}",
+            rule,
+            z,
+            x,
+            y
+        );
+        prop_assert_eq!(
+            bench.served_cumulative_delivery(rule, z, x, y, &generation),
+            bench.cumulative_delivery(rule, z, x, y, view),
+            "{:?} serves a different cumulative delivery at tile {}/{}/{}",
+            rule,
+            z,
+            x,
+            y
+        );
+        prop_assert_eq!(
+            counts(bench.served_audit(rule, z, x, y, &generation)),
+            counts(bench.audit(rule, z, x, y, view)),
+            "{:?} serves a different audit at tile {}/{}/{}",
+            rule,
+            z,
+            x,
+            y
+        );
+    }
+
+    /// A generation prefix read at the cut and two depths below holds one representative per
+    /// occupied cell and agrees with the column's coverage.
     #[test]
-    fn a_generation_prefix_holds_one_representative_per_occupied_cell() {
+    fn generation_prefix_one_per_occupied_cell() {
         for clustered in [false, true] {
             for visible in [1.0, 0.5, 0.05] {
                 let bench = masked(clustered, visible);
@@ -4425,8 +4523,10 @@ mod tests {
         }
     }
 
+    /// Neighbour deletion, the bucket merge, the shared-order filter, the indexed stack and the
+    /// radix stack each build the cascade's generation, in both layouts.
     #[test]
-    fn neighbour_separation_assigns_the_cascade_s_buckets() {
+    fn separation_matches_cascade_buckets() {
         for clustered in [false, true] {
             for visible in [1.0, 0.5, 0.05] {
                 let bench = masked(clustered, visible);
@@ -4467,8 +4567,10 @@ mod tests {
         }
     }
 
+    /// Masking leaves a visible point's bucket or moves it shallower, never deeper, and some point
+    /// moves.
     #[test]
-    fn masking_never_moves_a_visible_point_to_a_deeper_bucket() {
+    fn masked_bucket_not_deeper() {
         let mut strict = 0_usize;
         for clustered in [false, true] {
             for visible in [0.75, 0.5, 0.05] {
@@ -4501,8 +4603,10 @@ mod tests {
         );
     }
 
+    /// The shared layout serves the inline layout's delivery under every served rule, in fewer
+    /// bytes.
     #[test]
-    fn the_shared_layout_serves_what_the_inline_layout_serves() {
+    fn shared_layout_matches_inline() {
         for clustered in [false, true] {
             let bench = masked(clustered, 0.5);
             let inline = bench.indexed_generation(GenerationLayout::Inline);
@@ -4521,27 +4625,41 @@ mod tests {
         }
     }
 
-    #[test]
-    fn a_hidden_row_never_moves_a_served_delivery() {
-        let mut rules = vec![FillRule::CoverageRank];
-        rules.extend(refinements(DotBudget::Constant(BUDGET)));
+    /// The served engine delivers identical rows over the masked corpus and over its visible-only
+    /// twin, at any tile and in the same order, under any hidden-independent rule.
+    #[property_test]
+    fn served_noninterference(
+        #[strategy = CORPUS] points: usize,
+        seed: u64,
+        clustered: bool,
+        #[strategy = VISIBLE] visible: f64,
+        #[strategy = hidden_independent_rule()] rule: FillRule,
+        pick: Index,
+    ) {
+        let hidden = corpus(points, seed, clustered, visible);
+        let alone = hidden.visible_only();
+        prop_assert_eq!(alone.visible_rows(), hidden.visible_rows());
 
-        for rule in rules {
-            for clustered in [false, true] {
-                for visible in [0.75, 0.5, 0.05] {
-                    assert_eq!(
-                        served_interference(rule, clustered, visible),
-                        None,
-                        "{rule:?} serves different rows once hidden rows exist, clustered \
-                         {clustered}, visible {visible}",
-                    );
-                }
-            }
-        }
+        let generation = hidden.indexed_generation(GenerationLayout::Inline);
+        let alone_generation = alone.indexed_generation(GenerationLayout::Inline);
+        prop_assert_eq!(generation.len(), alone_generation.len());
+
+        let (z, x, y) = tile(&hidden, pick);
+        prop_assert_eq!(
+            hidden.rows(hidden.served_delivery(rule, z, x, y, &generation)),
+            alone.rows(alone.served_delivery(rule, z, x, y, &alone_generation)),
+            "{:?} serves different rows once hidden rows exist at tile {}/{}/{}",
+            rule,
+            z,
+            x,
+            y
+        );
     }
 
+    /// The served noninterference check still separates the scheduled budget, which reads the
+    /// corpus before masking.
     #[test]
-    fn a_served_rule_reading_a_hidden_quantity_fails_the_noninterference_check() {
+    fn served_noninterference_rejects_scheduled() {
         for rule in refinements(DotBudget::Scheduled) {
             assert!(
                 served_interference(rule, false, 0.5).is_some(),
@@ -4551,8 +4669,10 @@ mod tests {
         }
     }
 
+    /// The public uniform grid occupies each occupied cell once, delivers in scope-bucket order,
+    /// selects the set the cell-order read selects, and stays within its geometric per-tile bound.
     #[test]
-    fn a_public_uniform_grid_is_proportional_in_bucket_order() {
+    fn uniform_grid_proportional_in_bucket_order() {
         for additional_depth in [0_u8, 1] {
             for clustered in [false, true] {
                 for visible in [1.0, 0.5, 0.05] {
@@ -4629,8 +4749,10 @@ mod tests {
         }
     }
 
+    /// The public grid's per-level deltas inside a tile cell accumulate to its cumulative delivery,
+    /// plain and stepped, and the stepped prefix is the occupied-cell census.
     #[test]
-    fn public_uniform_grid_deltas_accumulate_to_the_prefix() {
+    fn uniform_grid_deltas_accumulate() {
         for additional_depth in [0_u8, 1] {
             let bench = masked(false, 0.5);
             let generation = bench.indexed_generation(GenerationLayout::Inline);
@@ -4713,8 +4835,13 @@ mod tests {
         }
     }
 
+    /// The stepped public grid's terminal step is the unmasked full cut.
+    ///
+    /// Below the refinement step a tile delivers no deeper tail and above it no natural row, the
+    /// step itself delivers a natural run followed by a tail, and the deepest tile's cumulative
+    /// delivery is every visible row it gathers.
     #[test]
-    fn scope_bucket_order_preserves_the_wire_split_and_full_cut_delivery() {
+    fn bucket_order_wire_split_and_full_cut() {
         let full = masked(false, 1.0);
         let full_generation = full.indexed_generation(GenerationLayout::Inline);
         let pyramid = full.pyramid();
@@ -4775,8 +4902,10 @@ mod tests {
         );
     }
 
+    /// The public grids, plain and stepped, deliver the same rows once hidden rows exist, while the
+    /// scheduled budget beside them still fails.
     #[test]
-    fn a_public_uniform_grid_keeps_rows_invariant_while_the_known_bad_rule_fails() {
+    fn uniform_grid_noninterference() {
         for additional_depth in [0_u8, 1] {
             for clustered in [false, true] {
                 for visible in [0.75, 0.5, 0.05] {
@@ -4812,8 +4941,10 @@ mod tests {
         }
     }
 
+    /// The proportional-density metric accepts the coarse rank rule and the public grid, and
+    /// rejects today's unmasked rule and a per-tile budget.
     #[test]
-    fn the_density_metric_accepts_public_grids_and_rejects_per_tile_budgets() {
+    fn density_metric_accepts_grids_rejects_budgets() {
         let mut today_rejected = false;
         let mut budget_rejected = false;
         for clustered in [false, true] {
@@ -4915,74 +5046,96 @@ mod tests {
         );
     }
 
-    #[test]
-    fn the_served_form_shows_every_cell_holding_visible_content() {
-        for rule in served_rules() {
-            for clustered in [false, true] {
-                for visible in [0.75, 0.5, 0.05] {
-                    let bench = masked(clustered, visible);
-                    let generation = bench.generation(GenerationLayout::Inline);
-                    let (codes, _, _) = bench.columns();
+    /// The served engine leaves no cell holding visible content empty.
+    ///
+    /// At the tile's cut and at the grid its refinement resolved, the served cumulative delivery
+    /// occupies exactly the occupied cells. The audit's coverage is the cut's cell count, and the
+    /// tile's own delivery stays within its budget or its cut-depth floor.
+    #[property_test]
+    fn served_covers_visible_cells(
+        #[strategy = CORPUS] points: usize,
+        seed: u64,
+        clustered: bool,
+        #[strategy = VISIBLE] visible: f64,
+        #[strategy = served_rule()] rule: FillRule,
+        pick: Index,
+    ) {
+        let bench = corpus(points, seed, clustered, visible);
+        let generation = bench.generation(GenerationLayout::Inline);
+        let (codes, _, _) = bench.columns();
 
-                    for (z, x, y) in tiles(&bench) {
-                        let audit = bench.served_audit(rule, z, x, y, &generation);
-                        let delivered =
-                            bench.served_cumulative_delivery(rule, z, x, y, &generation);
-                        let cut =
-                            Depth::new(z + bench.span()).expect("the cut lies in the key width");
-                        let grid = Depth::new(cut.get() + audit.refined)
-                            .expect("the delivered grid lies within the key width");
+        let (z, x, y) = tile(&bench, pick);
+        let audit = bench.served_audit(rule, z, x, y, &generation);
+        let delivered = bench.served_cumulative_delivery(rule, z, x, y, &generation);
+        let cut = Depth::new(z + bench.span()).expect("the cut lies in the key width");
+        let grid = Depth::new(cut.get() + audit.refined)
+            .expect("the delivered grid lies within the key width");
 
-                        for depth in [cut, grid] {
-                            let shown: HashSet<u64> = delivered
-                                .iter()
-                                .map(|&position| {
-                                    MortonKey::from_bits(codes[position as usize]).prefix(depth)
-                                })
-                                .collect();
-                            assert_eq!(
-                                shown,
-                                bench.occupied_cells(z, x, y, depth),
-                                "{rule:?} serves a depth-{} cell empty over visible content at \
-                                 tile {z}/{x}/{y}, clustered {clustered}, visible {visible}",
-                                depth.get(),
-                            );
-                        }
-
-                        assert_eq!(audit.covered, bench.occupied_cells(z, x, y, cut).len());
-                        assert!(
-                            audit.delivered <= bound(&bench, rule, z, x, y).max(audit.covered),
-                            "{rule:?} served {} past both the budget and its own cut grid at tile \
-                             {z}/{x}/{y}",
-                            audit.delivered,
-                        );
-                    }
-                }
-            }
+        for depth in [cut, grid] {
+            let shown: HashSet<u64> = delivered
+                .iter()
+                .map(|&position| MortonKey::from_bits(codes[position as usize]).prefix(depth))
+                .collect();
+            prop_assert_eq!(
+                shown,
+                bench.occupied_cells(z, x, y, depth),
+                "{:?} serves a depth-{} cell empty over visible content at tile {}/{}/{}",
+                rule,
+                depth.get(),
+                z,
+                x,
+                y
+            );
         }
+
+        prop_assert_eq!(audit.covered, bench.occupied_cells(z, x, y, cut).len());
+        prop_assert!(
+            audit.delivered <= bound(&bench, rule, z, x, y).max(audit.covered),
+            "{:?} served {} past both the budget and its own cut grid at tile {}/{}/{}",
+            rule,
+            audit.delivered,
+            z,
+            x,
+            y
+        );
     }
 
-    #[test]
-    fn a_hidden_row_never_moves_a_rank_rule_delivery() {
-        let mut rules = vec![FillRule::CoverageRank];
-        rules.extend(refinements(DotBudget::Constant(BUDGET)));
+    /// The scanning engine delivers identical rows over the masked corpus and over its
+    /// visible-only twin, at any tile and in the same order, under any hidden-independent rule.
+    #[property_test]
+    fn rank_rule_noninterference(
+        #[strategy = CORPUS] points: usize,
+        seed: u64,
+        clustered: bool,
+        #[strategy = VISIBLE] visible: f64,
+        #[strategy = hidden_independent_rule()] rule: FillRule,
+        pick: Index,
+    ) {
+        let hidden = corpus(points, seed, clustered, visible);
+        let alone = hidden.visible_only();
+        prop_assert_eq!(alone.visible_rows(), hidden.visible_rows());
 
-        for rule in rules {
-            for clustered in [false, true] {
-                for visible in [0.75, 0.5, 0.05] {
-                    assert_eq!(
-                        interference(rule, clustered, visible),
-                        None,
-                        "{rule:?} delivers different rows once hidden rows exist, clustered \
-                         {clustered}, visible {visible}",
-                    );
-                }
-            }
-        }
+        let (pyramid, column) = (hidden.pyramid(), hidden.column());
+        let (alone_pyramid, alone_column) = (alone.pyramid(), alone.column());
+        let view = VisibleView::new(&pyramid, &column);
+        let alone_view = VisibleView::new(&alone_pyramid, &alone_column);
+
+        let (z, x, y) = tile(&hidden, pick);
+        prop_assert_eq!(
+            hidden.rows(hidden.delivery(rule, z, x, y, view)),
+            alone.rows(alone.delivery(rule, z, x, y, alone_view)),
+            "{:?} delivers different rows once hidden rows exist at tile {}/{}/{}",
+            rule,
+            z,
+            x,
+            y
+        );
     }
 
+    /// The noninterference check still separates each rule reading a hidden quantity: the unmasked,
+    /// coverage, visible and cell rules, and the scheduled budget.
     #[test]
-    fn a_rule_reading_a_hidden_quantity_fails_the_noninterference_check() {
+    fn noninterference_rejects_hidden_readers() {
         let mut rules = vec![
             FillRule::Unmasked,
             FillRule::Coverage,
@@ -5000,8 +5153,9 @@ mod tests {
         }
     }
 
+    /// The unmasked rule is the chained variant, selection and delivery, down the densest descent.
     #[test]
-    fn the_unmasked_rule_reproduces_the_chained_variant() {
+    fn unmasked_matches_chained() {
         for clustered in [false, true] {
             for visible in [1.0, 0.5, 0.05] {
                 let bench = masked(clustered, visible);
@@ -5025,8 +5179,10 @@ mod tests {
         }
     }
 
+    /// The pyramid and the column count what the visible cascade covers, and the cascade's reach
+    /// and schedule are independent of its rank order.
     #[test]
-    fn the_pyramid_counts_what_the_visible_cascade_reaches() {
+    fn pyramid_matches_visible_cascade() {
         for clustered in [false, true] {
             for visible in [1.0, 0.5, 0.05] {
                 let bench = masked(clustered, visible);
@@ -5066,8 +5222,10 @@ mod tests {
         }
     }
 
+    /// A chain's inherited count is the number of ancestor deliveries inside the tile cell, up to
+    /// the first ancestor whose audit reports `spent` or `dry`.
     #[test]
-    fn the_chain_inherits_exactly_its_ancestor_deliveries() {
+    fn chain_inherited_matches_ancestors() {
         for rule in [FillRule::Unmasked, FillRule::Coverage, FillRule::Visible] {
             for clustered in [false, true] {
                 for visible in [0.5, 0.05] {
@@ -5110,8 +5268,10 @@ mod tests {
         }
     }
 
+    /// With nothing hidden, the coverage, visible and cell rules audit as the unmasked rule does,
+    /// and the cumulative delivery is the coverage.
     #[test]
-    fn an_all_visible_mask_makes_every_rule_agree() {
+    fn full_visibility_rules_agree() {
         let bench = WalkBench::build(POINTS, SEED);
         let pyramid = bench.pyramid();
         let column = bench.column();
@@ -5131,8 +5291,9 @@ mod tests {
         }
     }
 
+    /// The cell rule represents every covered cell without running its chain short.
     #[test]
-    fn the_cell_rule_occupies_every_covered_cell() {
+    fn cell_rule_covers_cut_cells() {
         for clustered in [false, true] {
             for visible in [0.75, 0.5, 0.05] {
                 let bench = masked(clustered, visible);
@@ -5155,59 +5316,66 @@ mod tests {
         }
     }
 
-    #[test]
-    fn a_rank_rule_shows_every_cell_holding_visible_content() {
-        let mut rules = vec![FillRule::CoverageRank];
-        rules.extend(refinements(DotBudget::Constant(BUDGET)));
-        rules.extend(refinements(DotBudget::Scheduled));
+    /// A rank-representative rule leaves no cell holding visible content empty.
+    ///
+    /// At the tile's cut and at the grid its refinement resolved, the cumulative delivery occupies
+    /// exactly the occupied cells. The audit's coverage is the cut's cell count, and the tile's own
+    /// delivery stays within its budget or its cut-depth floor.
+    #[property_test]
+    fn rank_rule_covers_visible_cells(
+        #[strategy = CORPUS] points: usize,
+        seed: u64,
+        clustered: bool,
+        #[strategy = VISIBLE] visible: f64,
+        #[strategy = served_rule()] rule: FillRule,
+        pick: Index,
+    ) {
+        let bench = corpus(points, seed, clustered, visible);
+        let pyramid = bench.pyramid();
+        let column = bench.column();
+        let view = VisibleView::new(&pyramid, &column);
+        let (codes, _, _) = bench.columns();
 
-        for rule in rules {
-            for clustered in [false, true] {
-                for visible in [0.75, 0.5, 0.05] {
-                    let bench = masked(clustered, visible);
-                    let pyramid = bench.pyramid();
-                    let column = bench.column();
-                    let view = VisibleView::new(&pyramid, &column);
-                    let (codes, _, _) = bench.columns();
+        let (z, x, y) = tile(&bench, pick);
+        let audit = bench.audit(rule, z, x, y, view);
+        let delivered = bench.cumulative_delivery(rule, z, x, y, view);
+        let cut = Depth::new(z + bench.span()).expect("the cut lies within the key width");
+        let grid = Depth::new(cut.get() + audit.refined)
+            .expect("the delivered grid lies within the key width");
 
-                    for (z, x, y) in tiles(&bench) {
-                        let audit = bench.audit(rule, z, x, y, view);
-                        let delivered = bench.cumulative_delivery(rule, z, x, y, view);
-                        let cut = Depth::new(z + bench.span())
-                            .expect("the cut lies within the key width");
-                        let grid = Depth::new(cut.get() + audit.refined)
-                            .expect("the delivered grid lies within the key width");
-
-                        for depth in [cut, grid] {
-                            let shown: HashSet<u64> = delivered
-                                .iter()
-                                .map(|&position| {
-                                    MortonKey::from_bits(codes[position as usize]).prefix(depth)
-                                })
-                                .collect();
-                            assert_eq!(
-                                shown,
-                                bench.occupied_cells(z, x, y, depth),
-                                "{rule:?} leaves a depth-{} cell empty over visible content at \
-                                 tile {z}/{x}/{y}, clustered {clustered}, visible {visible}",
-                                depth.get(),
-                            );
-                        }
-
-                        assert_eq!(audit.covered, bench.occupied_cells(z, x, y, cut).len());
-                        assert!(
-                            audit.delivered <= bound(&bench, rule, z, x, y),
-                            "{rule:?} delivered {} past the budget at tile {z}/{x}/{y}",
-                            audit.delivered,
-                        );
-                    }
-                }
-            }
+        for depth in [cut, grid] {
+            let shown: HashSet<u64> = delivered
+                .iter()
+                .map(|&position| MortonKey::from_bits(codes[position as usize]).prefix(depth))
+                .collect();
+            prop_assert_eq!(
+                shown,
+                bench.occupied_cells(z, x, y, depth),
+                "{:?} leaves a depth-{} cell empty over visible content at tile {}/{}/{}",
+                rule,
+                depth.get(),
+                z,
+                x,
+                y
+            );
         }
+
+        prop_assert_eq!(audit.covered, bench.occupied_cells(z, x, y, cut).len());
+        prop_assert!(
+            audit.delivered <= bound(&bench, rule, z, x, y).max(audit.covered),
+            "{:?} delivered {} past both the budget and its own cut grid at tile {}/{}/{}",
+            rule,
+            audit.delivered,
+            z,
+            x,
+            y
+        );
     }
 
+    /// A budget below the cut grid's cell count still shows every cut cell: the cut-depth floor
+    /// overrides it, and the overrun happens.
     #[test]
-    fn a_budget_below_the_cut_grid_still_shows_every_cut_cell() {
+    fn small_budget_covers_cut_cells() {
         /// A budget far below the 4096 cells a tile's cut grid holds.
         const SMALL: usize = 256;
 
@@ -5245,8 +5413,10 @@ mod tests {
         );
     }
 
+    /// The coarse rank rule delivers the visible-only schedule, and above the catch-all its
+    /// cumulative delivery is the visible-only generation's cut prefix.
     #[test]
-    fn the_coarse_rank_rule_delivers_the_visible_only_generation() {
+    fn coverage_rank_matches_visible_only() {
         for clustered in [false, true] {
             for visible in [0.75, 0.5, 0.05] {
                 let bench = masked(clustered, visible);
@@ -5290,8 +5460,12 @@ mod tests {
         }
     }
 
+    /// The pyramid's depths run from the cut span to the deepest cut.
+    ///
+    /// Its footprint is its levels' occupied cells in bytes, and at each depth the root's count is
+    /// that depth's occupancy.
     #[test]
-    fn the_pyramid_holds_every_cut_depth() {
+    fn pyramid_holds_cut_depths() {
         let bench = WalkBench::build(POINTS, SEED);
         let pyramid = bench.pyramid();
         let depths: Vec<Depth> = pyramid.depths().into_iter().collect();
