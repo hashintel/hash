@@ -11,6 +11,10 @@ import { ExperimentsProvider } from "./experiments/provider";
 import { PetrinautInstanceContext } from "./instance-context";
 import { LanguageClientProvider } from "./lsp/provider";
 import {
+  PetrinautNavigationProvider,
+  type PetrinautNavigationController,
+} from "./navigation";
+import {
   NetManagementContext,
   type NetManagement,
 } from "./net-management-context";
@@ -45,6 +49,8 @@ export type PetrinautProviderProps = {
    * LSP worker themselves rather than relying on the inlined-blob default.
    */
   lspWorkerFactory?: LspWorkerFactory;
+  /** Optional host-owned, router-neutral app location. */
+  navigation?: PetrinautNavigationController;
   children: ReactNode;
 };
 
@@ -60,42 +66,51 @@ export const PetrinautProvider: React.FC<PetrinautProviderProps> = ({
   simulationWorkerFactory,
   monteCarloWorkerFactory,
   lspWorkerFactory,
+  navigation,
   children,
 }) => {
   const handleHistoryUndoRedo = useHandleHistoryAsUndoRedo(
     instance.handle.history,
   );
 
-  // Keyed by handle id so a net switch fully resets net-scoped worker state.
+  // Keyed by handle id so a net switch fully resets net-scoped worker state
+  // and uncontrolled app locations.
   const inner = (
     <SDCPNProvider>
-      <LanguageClientProvider
+      <PetrinautNavigationProvider
+        controller={navigation}
         key={instance.handle.id}
-        workerFactory={lspWorkerFactory}
       >
-        <NotificationsProvider>
-          <SimulationProvider
-            key={instance.handle.id}
-            workerFactory={simulationWorkerFactory}
-          >
-            <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
-              <OptimizationsProvider>
-                <PlaybackProvider>
-                  <UserSettingsProvider>
-                    <ActiveNetProvider>
-                      <EditorProvider>
-                        <ExecutionFrameProvider>
-                          {children}
-                        </ExecutionFrameProvider>
-                      </EditorProvider>
-                    </ActiveNetProvider>
-                  </UserSettingsProvider>
-                </PlaybackProvider>
-              </OptimizationsProvider>
-            </ExperimentsProvider>
-          </SimulationProvider>
-        </NotificationsProvider>
-      </LanguageClientProvider>
+        <LanguageClientProvider
+          key={instance.handle.id}
+          workerFactory={lspWorkerFactory}
+        >
+          <NotificationsProvider>
+            {/* Above SimulationProvider: the simulation provider reads the
+                Ad-hoc scenarios setting to gate the inline definition. */}
+            <UserSettingsProvider>
+              <SimulationProvider
+                key={instance.handle.id}
+                workerFactory={simulationWorkerFactory}
+              >
+                <ExperimentsProvider workerFactory={monteCarloWorkerFactory}>
+                  <OptimizationsProvider>
+                    <PlaybackProvider>
+                      <ActiveNetProvider>
+                        <EditorProvider>
+                          <ExecutionFrameProvider>
+                            {children}
+                          </ExecutionFrameProvider>
+                        </EditorProvider>
+                      </ActiveNetProvider>
+                    </PlaybackProvider>
+                  </OptimizationsProvider>
+                </ExperimentsProvider>
+              </SimulationProvider>
+            </UserSettingsProvider>
+          </NotificationsProvider>
+        </LanguageClientProvider>
+      </PetrinautNavigationProvider>
     </SDCPNProvider>
   );
 

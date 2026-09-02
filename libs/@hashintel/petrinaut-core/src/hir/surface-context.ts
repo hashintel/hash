@@ -18,7 +18,7 @@
  * which occupy no floats but must still be produced by kernels).
  *
  * When several arcs reference places with the same display name, the runtime
- * `tokensByPlace` object keeps the LAST arc's tokens (object key overwrite) —
+ * `input` object keeps the LAST arc's tokens (object key overwrite) —
  * both the merged `inputPlaces` bindings and name-based slot resolution
  * follow that rule.
  */
@@ -194,7 +194,7 @@ function toParameterInfos(parameters: Parameter[]): HirParameterInfo[] {
 /**
  * Display name for the place an arc points at — must match the property keys
  * generated for the LSP `Input`/`Output` types and the runtime
- * `tokensByPlace` objects (`Instance::Port` scoping for component ports).
+ * `input` objects (`Instance::Port` scoping for component ports).
  */
 function getArcPlaceDisplayName(
   arc: InputArc | OutputArc,
@@ -270,7 +270,7 @@ function collectArcs(
     }));
 
     // Last arc with a given name wins, matching the runtime's object-key
-    // overwrite when building `tokensByPlace`.
+    // overwrite when building `input`.
     bindings.set(name, {
       name,
       colorId: color.id,

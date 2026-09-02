@@ -7,9 +7,11 @@
  * side — type checking and interpretation — lives in `compileScenario`,
  * which takes the result of this function as an argument.
  */
+import { synthesizeAdHocScenario } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import { createUserKeyedRecord } from "../validation/record-keys";
 import { lowerTypeScriptToHir } from "./lower-typescript";
 
+import type { AdHocSynthesisContext } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import type { Scenario } from "../types/sdcpn";
 import type { HirDiagnostic, HirFunction } from "./hir";
 
@@ -51,13 +53,57 @@ export type ScenarioLoweringInput = Pick<
   "parameterOverrides" | "initialState"
 >;
 
+export type LowerScenarioToHirOptions = {
+  /**
+   * The net context an ad-hoc initial state synthesizes against. Required
+   * to lower a scenario whose `initialState.type` is `"adhoc"` — the
+   * definition generates code-mode source from the net's places and types.
+   */
+  adHocContext?: AdHocSynthesisContext;
+};
+
+/** A lowering-level failure with no user-source span to point at. */
+const loweringError = (message: string): ScenarioHirItem => ({
+  ok: false,
+  diagnostics: [
+    {
+      code: "hir:adhoc-synthesis",
+      message,
+      severity: "error",
+      span: { start: 0, length: 0 },
+    },
+  ],
+});
+
+/** Synthesizes an ad-hoc definition and lowers the generated code body. */
+function lowerAdHocInitialState(
+  state: Extract<Scenario["initialState"], { type: "adhoc" }>["content"],
+  context: AdHocSynthesisContext | undefined,
+): ScenarioHirItem {
+  if (!context) {
+    return loweringError(
+      "This scenario's ad-hoc initial state needs the net context to lower; pass adHocContext.",
+    );
+  }
+  const synthesized = synthesizeAdHocScenario(state, context);
+  if (!synthesized.ok) {
+    return loweringError(
+      synthesized.errors.map((error) => error.message).join("\n"),
+    );
+  }
+  return synthesized.scenario.initialState.type === "code"
+    ? lowerItem(synthesized.scenario.initialState.content, "scenario-code")
+    : loweringError("Ad-hoc synthesis produced no code-mode initial state.");
+}
+
 /**
  * Lowers every expression and code block of `scenario` to HIR. Pure text
- * transformation: no net context is needed — `compileScenario` type-checks
- * the result against the net's parameters and places before interpreting.
+ * transformation needing no net context — except an ad-hoc initial state,
+ * which synthesizes against `options.adHocContext` first.
  */
 export function lowerScenarioToHir(
   scenario: ScenarioLoweringInput,
+  options: LowerScenarioToHirOptions = {},
 ): ScenarioHir {
   // Keyed by parameter/place ids from the net definition: no prototype.
   const parameterOverrides = createUserKeyedRecord<ScenarioHirItem>();
@@ -82,6 +128,11 @@ export function lowerScenarioToHir(
         placeExpressions[placeId] = lowerItem(value, "scenario-expression");
       }
     }
+  } else if (scenario.initialState.type === "adhoc") {
+    initialStateCode = lowerAdHocInitialState(
+      scenario.initialState.content,
+      options.adHocContext,
+    );
   } else if (scenario.initialState.content.trim() !== "") {
     initialStateCode = lowerItem(
       scenario.initialState.content,

@@ -6,12 +6,14 @@ import {
   type BrunchAskOutput,
   parseBrunchAskInput,
   parseBrunchAskOutput,
-} from "@hashintel/brunch-agent-transport-aisdk/client-tools";
+} from "@hashintel/brunch-agent/client-tools";
 import { css } from "@hashintel/ds-helpers/css";
 import {
   definePetrinautAiInteractiveTool,
   type PetrinautAiInteractiveToolWidgetProps,
 } from "@hashintel/petrinaut/ui";
+
+import { brunchAskFromComposerText } from "./brunch-ask-mapping";
 
 const containerStyle = css({
   display: "flex",
@@ -144,5 +146,6 @@ export const brunchAskInteractiveTool = definePetrinautAiInteractiveTool({
   toolName: ASK_TOOL_NAME,
   inputSchema: { parse: parseBrunchAskInput },
   outputSchema: { parse: parseBrunchAskOutput },
+  fromComposerText: brunchAskFromComposerText,
   component: BrunchAskWidget,
 });

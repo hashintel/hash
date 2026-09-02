@@ -1,0 +1,455 @@
+---
+title: The ad-hoc scenario form
+description: How an inline Initial State + Parameters definition becomes a generated scenario, an optimization manifest, and a live-type-checked spreadsheet.
+sidebar_order: 10
+attachTo: ui.adhoc-form
+---
+
+import { Lanes } from "@diagrams/lanes";
+import { Pipeline } from "@diagrams/pipeline";
+import { Sequence } from "@diagrams/sequence";
+
+The ad-hoc form lets a user define Initial State and Parameters inline —
+without saving a [scenario](layer:core.simulation.authoring) — and compiles
+what they enter through a scenario **generated at run time and never
+persisted**. Three consumers mount the same component, differing only in
+what selecting a value means (`selection` prop): quick simulation and plain
+experiment creation pass `"none"` (no toggles), and the optimization drawer
+passes `"optimize"` (a value is selected for the optimizer, with bounds). A
+third mode, `"expose"`, is the scenario creation form's: it offers no value
+toggles at all, and instead each top-level Variable row grows a "Scenario
+Parameter" toggle (`AdHocVariable.exposed`) — the saved scenario exposes
+those Variables as its tunable parameters. Optimize selections write the
+`optimize` settings object; expose writes the boolean `exposed` flag. In
+that consumer alone the definition persists (see **The persisted format**
+below); everywhere else the generated scenario stays ephemeral. A fourth
+consumer reuses the component in `mode="run"`: Simulation Settings and the
+experiment drawer show every selected scenario through the form read-only,
+with only the scenario parameters' values editable; each edit resolves to
+an ordinary scenario-parameter value for the run. The experiment drawer
+adds a collapsed "Computed state" sub-section, materialized only while
+open. An ad-hoc scenario renders its stored
+definition; a classic (`code` or `per_place`) scenario has none, so its
+compiled initial marking is materialized into literal fixed rows
+(`classicScenarioRunState` in petrinaut-core), recomputed per parameter
+edit and capped per place, with the scenario parameters named by their
+identifiers verbatim so value pushes bypass the ad-hoc snake_case mapping.
+
+The design is the scenario **code editor's model, constrained**: everything
+the form can express synthesizes to code-mode scenario source that the
+existing `compileScenario` already evaluates, so the compiler is untouched.
+
+## The three shapes
+
+Everything flows through three types declared in the
+[core ad-hoc layer](layer:core.simulation.authoring.adhoc)
+(`core/simulation/authoring/scenario/ad-hoc/ad-hoc-scenario.ts`):
+
+<Pipeline
+  title="From form state to the pipeline"
+  steps={[
+    {
+      label: "AdHocScenarioState",
+      note: "The form's editing model: Variables at two scopes, net-parameter overrides, per-place token rows",
+    },
+    {
+      label: "synthesize",
+      note: "Validates names, expressions, bounds; emits code-mode scenario source",
+    },
+    {
+      label: "AdHocSynthesisOutput",
+      note: "A generated `Scenario` plus one `AdHocOptimizedField` per enabled Optimize toggle",
+    },
+    {
+      label: "Downstream",
+      note: "`output.scenario` feeds compileScenario; `adHocOptimizationBindings(fields)` fills a manifest's parameterBindings",
+    },
+  ]}
+/>
+
+`synthesizeAdHocScenario` is the plain-run entry (Optimize ignored, scenario
+only); `synthesizeAdHocOptimization` is the optimization entry (full output).
+Each `AdHocOptimizedField` carries the generated parameter's deterministic
+`adhoc_*` name, its typed domain, its target path, and an attribution label
+(`Space › item 0 › x`) — the join key from optimization results back to the
+thing the user selected.
+
+## The persisted format
+
+A scenario saved from the form is an ordinary `Scenario` whose
+`initialState` takes the third of its three variants, declared beside the
+other two in `core/types/sdcpn.ts`:
+
+- `{ type: "per_place", content }` — the classical spreadsheet of static
+  values;
+- `{ type: "code", content }` — a hand-written code block;
+- `{ type: "adhoc", content: AdHocScenarioState }` — the form's state,
+  verbatim.
+
+`AdHocScenarioState` (the [core ad-hoc
+layer](layer:core.simulation.authoring.adhoc)) is a JSON-serializable tree,
+so it saves as YAML or JSON with the rest of the model document; the zod
+schema in `ad-hoc/ad-hoc-state-schema.ts` validates it on load. Its parts:
+
+- `variables: AdHocVariable[]` — name, declared type, the value slot, and
+  the `exposed` flag expose mode writes.
+- `netParameters: AdHocNetParameter[]` — a `parameterId` plus a value slot
+  per overridden net parameter; an empty expression keeps the default.
+- `places: Record<PlaceID, AdHocPlaceState>` — a coloured place holds
+  per-place `variables`, `rows` (`fixed`, or `template` with a count), and
+  `sharedColumns`; an uncoloured place holds one `count`.
+- Every value slot is an `AdHocValue`: the expression string plus the
+  Optimize bounds while that toggle is on. The `retained*` fields
+  (`retainedOptimize`, `retainedCount`, `retainedSharedColumns`) persist
+  too, so a toggle switched off, saved, and switched back on restores what
+  it held.
+
+Two scenario fields are **derived on save** rather than stored as more
+state: `useAdHocScenarioAuthoring` runs `synthesizeAdHocScenario` and
+writes the result's `scenarioParameters` (one per exposed Variable,
+snake_case-named, defaulting to its expression's constant value) and
+`parameterOverrides` onto the scenario. Downstream consumers — experiments,
+optimization manifests, the CLI's `metadata` — read those derived fields;
+`content` stays the single editable source, and the edit drawer loads it
+back into the form verbatim.
+
+Code exists only at compile time: `lowerScenarioToHir` synthesizes the
+state to code-mode scenario source and
+[`compileScenario`](layer:core.simulation.authoring) takes its ordinary
+code branch. The generated source is never persisted.
+
+## The row grammar
+
+The Initial State section renders one block per place. A coloured place is a
+token spreadsheet: one column per colour element, one row per token line.
+Rows come in three user-facing kinds (`adHocRowKindOf`), mixing freely
+within a place:
+
+- **Fixed** (`#n` in the gutter): one token, one expression per cell.
+- **Dynamic** (`i`, blue): a count expression's worth of tokens; a quiet
+  strip above the cells carries `×` and the count, and inside the row `i`
+  runs from 0 to count − 1.
+- **Optimized/controlled count** (`i`, purple): a dynamic row whose count
+  carries optimize settings — in the model, `kind: "template"` with
+  `count.optimize` non-null.
+
+Column headers toggle **shared columns**: one value supersedes every cell of
+that column, the cells render as dimmed derived copies whose clicks edit the
+shared value, and un-sharing restores the cells exactly. An uncoloured place
+is a single line: its name and a count slot. Variables render in the same
+spreadsheet grammar at two scopes — top-level (referenced as
+`scenario.<name>`) and per-place (bare identifier) — as gutter + name +
+type + value + toggle rows. Parameters are read-only name/type plus an
+override slot that shows `default (…)` while empty.
+
+Every table ends in a **phantom line**, slightly shorter than content rows:
+clicking its `+` gutter or its message line materializes the entry (a fixed
+row, a fresh `variableN`) and opens the natural editor.
+
+## The editing model: actions, reducer, history
+
+Every edit is a **serializable action** dispatched through
+`AdHocFormContext.dispatch`. The action vocabulary and the pure reducer live
+in core (`ad-hoc-actions.ts`): `setExpression`, `setDomainField`,
+`toggleSelection`, variable actions (`add`, `rename` — optionally rewriting
+references — `setType`, `delete`, `duplicate`), token-row actions (`add`,
+`delete`, `duplicate`, `setKind`), and `shareColumn`/`unshareColumn`. Each
+action has a zod input schema (`adHocActionInputSchemas`), mirroring the net
+editor's mutation actions. `applyAdHocAction(state, context, action)` is
+pure and returns the same reference when an action changes nothing.
+
+The undo history (`use-form-history.ts`) is redux-like: a stack of state
+snapshots with a cursor. Dispatch applies the reducer, appends a snapshot,
+and hands the new state to the caller's `onChange` — the form stays
+controlled. **Undo and redo never dispatch**; they move the cursor and
+replay the recorded snapshot, so redo after undo restores the identical
+state value. Consecutive dispatches whose `adHocActionCoalescingKey`
+matches (typing in one slot — expression, one bound, a rename without
+rewrite) collapse into one entry; the key match is identity-based, not
+time-based, and goes cold on undo/redo or an external state change, so a
+burst never merges into an entry the user has navigated to. The history is
+ephemeral: it lives with the form instance and dies with the drawer.
+Cmd/Ctrl+Z and Shift+Cmd/Ctrl+Z (or Ctrl+Y) work anywhere in the form except
+inside an open text field or Monaco editor, which own their own stacks
+while open.
+
+## The interaction model
+
+Cells follow a **select-then-edit** contract: focus selects (plain `:focus`
+styling — a pointer click must show it too), and Enter, a second click, or
+a double-click opens the editor. The value editor opens **in place**: a
+frameless single-line Monaco exactly over the cell, the slot's attribution
+path floating above, the mode's toggle pill below. Turning the toggle on
+swaps the expression editor for a small bounds spreadsheet in the same slab
+— Min/Max/Scale (Step where the domain is integer), each bound an
+expression cell with the same select-then-edit contract. Escape peels one
+layer at a time: bound edit → bound cell → closed slab → the cell. Only one
+editor is open at a time; opening one closes the rest.
+
+**Gutters select rows.** Focusing any gutter selects its whole row (every
+cell paints the selection wash) and drives the dependency highlight as if
+each cell in the row were focused. A pointer click on a gutter only
+selects; Enter or the trailing `⋯` dots affordance (visible on row hover or
+focus) opens the row menu — kinds and Delete for token rows, Delete for
+variables. Delete/Backspace on a selected gutter deletes directly, moving
+focus to the neighbouring row or the phantom line.
+
+**Dependency highlighting** (`dependency-highlight.ts`) is pure reference
+extraction over expressions: focusing a value highlights the Variable and
+Parameter rows it reads; focusing a Variable or Parameter also highlights
+every cell that reads it. Highlight (a neutral slate wash) and selection (a shade of the row's own accent)
+are background images, so they compose over row tints.
+
+## The keyboard contract
+
+Arrow keys walk each table as a grid; moves past an edge continue into the
+neighbouring **zone** in document order (grids, section headers, place
+headers — the worksheet layer's `FocusStack` walk, which skips members that
+decline focus, e.g. collapsed ones). Tab stays native throughout the form;
+the one interception is an open gutter menu, where Tab dismisses the menu
+back to its gutter, as menus do. Section
+and place headers are stops of the walk: Left collapses, Right expands, and
+a collapsed place renders as one line with a row/token summary. Inside the
+token spreadsheet the vertical walk passes through every line — column
+headers, the shared-values line, each dynamic row's count strip, the rows,
+the phantom line — and returns to the column a vertical move started from
+after crossing a full-width stop. The type select and the bounds Scale
+select join the grid: arrows navigate while closed, Enter opens, and the
+open list owns its keys.
+
+**Escape never reaches the host.** The form's embeddings (drawers, dialogs)
+close on Escape via a document-capture listener, so the form root and the
+value-editor slab intercept Escape on `window` capture — above document —
+and peel exactly one layer: a Monaco suggestion list, then an open bound
+edit, then the slab itself (back to the selected cell), and on a plain
+selected cell Escape is swallowed as a no-op. Closing a drawer from inside
+the form is the close button's job. Ark's own layers (the type select's
+dropdown, the gutter menu) are left to their layer stack, which already
+spares the host.
+
+## Slots: one join key for errors, diagnostics, and cells
+
+A **target** names a value-carrying location (`cell`, `column`, `count`,
+`variable`, `netParameter`); a **slot** is a target plus a part
+(`expression`, `min`, `max`, `step`, `name`). `adHocSlotKey(slot)` renders a
+stable, path-safe string used three ways:
+
+- synthesis errors carry their slot, so the form renders each error on the
+  editor it belongs to;
+- the [LSP session](layer:core.lsp) names each slot's virtual TypeScript
+  document `…/_temp/adhoc/<session>/values/<slotKey>.ts`, so diagnostics map
+  back the same way;
+- the form computes the same key when rendering, closing the loop.
+
+The same keys anchor undo coalescing: `adHocActionCoalescingKey` derives a
+slot key for the actions that type into one slot.
+
+A cell superseded by a shared column passes its **column's** target, so the
+shared value's problems surface on every cell it derives.
+
+## Type checking end to end
+
+<Sequence
+  title="One keystroke, both checkers"
+  actors={["Form (main thread)", "LSP worker"]}
+  rows={[
+    {
+      phase:
+        "On the main thread, every render dry-runs synthesizeAdHocOptimization and maps its slot-anchored errors (bounds rules, name collisions, …) to the cells.",
+    },
+    {
+      direction: "right",
+      label: "`temp/adhoc/didChange`",
+      note: "The whole `AdHocScenarioState`, via `updateAdHocSession`",
+    },
+    {
+      phase:
+        "The worker regenerates one wrapped TypeScript document per non-empty slot, scoped like the generated code.",
+    },
+    {
+      direction: "left",
+      label: "`publishDiagnostics`",
+      note: "Per slot-document URI; the form joins them back by `adHocSlotKey`",
+    },
+  ]}
+/>
+
+The worker generates one wrapped document per non-empty slot, with the scope
+the generated code will actually have: `parameters.<name>` ambiently,
+top-level Variables as `scenario.<name>`, and — inside a place's rows — the
+per-place Variables declared **in order** plus `i` and `count`, so a Variable
+referencing itself or a later sibling fails in the editor exactly as it would
+at run time. Optimize bounds see only the constant scope, so `i` in a bound is
+a type error. An open cell is a Monaco document with inline markers; a closed
+cell underlines in red and carries the first synthesis error or diagnostic as
+its tooltip.
+
+## The expression vocabulary
+
+| Written as          | Resolves to                                                                    |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `parameters.<name>` | a net parameter (override-aware)                                               |
+| `scenario.<name>`   | a top-level Variable (they stand in for scenario parameters)                   |
+| bare identifier     | a per-place Variable, in its place's rows                                      |
+| `i`, `count`        | per row: position and row count (fixed rows: `i` = list position, `count` = 1) |
+
+A dynamic row's count also reads the place's Variables by bare name: it
+evaluates once, before any row exists, so synthesis inlines the Variables it
+references and rejects — with an error at the count's slot — any whose value
+uses `i` or `count`. The count's LSP document declares the place's Variables
+but not `i`/`count`.
+
+In generated code the compiler's `scenario` object (which carries the
+generated `adhoc_*` values during optimization) is captured as
+`__adhocParams` before the Variables shadow `scenario`, in both the
+initial-state body and wrapped override expressions.
+
+## Who owns what
+
+<Lanes
+  title="The component split"
+  lanes={[
+    {
+      title: "core.simulation.authoring.adhoc",
+      accent: "core",
+      boxes: [
+        {
+          label: "ad-hoc-scenario.ts",
+          note: "Shapes, transitions (toggle / share / row kind), synthesis, slots, labels, place totals",
+        },
+        {
+          label: "ad-hoc-actions.ts",
+          note: "The action schemas, the pure reducer, rename-with-rewrite and duplication helpers, coalescing keys",
+        },
+      ],
+    },
+    {
+      title: "core.lsp",
+      accent: "core",
+      boxes: [
+        {
+          label: "generateAdHocSessionFiles",
+          note: "One wrapped virtual document per non-empty slot",
+        },
+        {
+          label: "temp/adhoc/* protocol",
+          note: "Session lifecycle in the worker, mirroring scenario sessions",
+        },
+      ],
+    },
+    {
+      title: "ui.adhoc-form",
+      accent: "ui",
+      boxes: [
+        {
+          label: "ad-hoc-scenario-form.tsx",
+          note: "Sections, the LSP session, the error map, the AdHocFormContext provider (dispatch included)",
+        },
+        {
+          label: "use-form-history.ts",
+          note: "The dispatch + snapshot-stack undo model described above",
+        },
+        {
+          label: "token-table.tsx",
+          note: "The spreadsheet: gutter kind menu, strips, shared columns, totals",
+        },
+        {
+          label: "value-editor.tsx",
+          note: "The in-place cell editor: Monaco, bounds, the mode's toggle pill",
+        },
+        {
+          label: "ui.adhoc-form.spreadsheet",
+          note: "The state-agnostic building blocks the three tables compose: the table shell, gutter cells with their menu choreography, the trailing add-lines, the row-selection model",
+        },
+        {
+          label: "ui.worksheet",
+          note: "Zone registry: each grid or header owns its arrows; an edge move focuses the next zone in DOM order, skipping collapsed ones",
+        },
+        {
+          label: "dependency-highlight.ts",
+          note: "Pure reference extraction: the rows a focused expression reads, and the cells reading a focused Variable or Parameter",
+        },
+        {
+          label: "variable-rows / parameter-rows / place-block / form-table",
+          note: "Rows at both scopes, collapsible place blocks, the shared spreadsheet style grammar",
+        },
+      ],
+    },
+    {
+      title: "Consumers",
+      accent: "ui",
+      boxes: [
+        {
+          label: "Simulation Settings (inline)",
+          note: "Quick simulation embeds the bare, variables-less form; react.simulation synthesizes and compiles on every change, so errors surface live",
+        },
+        {
+          label: "Create-experiment drawer",
+          note: "react.experiments compiles it at experiment start",
+        },
+        {
+          label: "Create-optimization drawer",
+          note: "Optimized fields become manifest parameterBindings",
+        },
+      ],
+    },
+  ]}
+/>
+
+`AdHocFormContext` is the internal seam: the form provides the whole editing
+state, the `dispatch` write path, the net context, the selection mode, the
+LSP session id, per-slot error/URI lookup, the dependency highlight, and the
+focused-value reporter, so the components beneath carry only their own value
+and location.
+
+## Mounting the form
+
+```tsx
+const [state, setState] = useState<AdHocScenarioState>(EMPTY_AD_HOC_STATE);
+
+<AdHocScenarioForm
+  state={state}
+  onChange={setState}
+  context={{ netParameters, places, types }} // from the SDCPN
+  selection="none" // "optimize" | "expose" where the toggles apply
+/>;
+```
+
+The sections render Variables first, then Parameters, then Initial state —
+a net-parameter override may read the Variables, so the reading order
+matches the data flow.
+
+Two props shape an **embedding**: `withVariables={false}` removes the
+Variables section (an expression referencing `scenario.<name>` then fails as
+unknown), and `bare` renders the exposed groups without the collapsible
+section chrome, for hosts with their own heading grammar. The Parameters
+section removes itself the same way when the context carries no net
+parameters. Quick simulation combines all three — `bare`,
+`withVariables={false}`, `netParameters: []` — so Simulation Settings shows
+exactly one group, the places, under the panel's own "Initial state"
+heading, with the panel's parameter inputs staying the single owner of
+parameter values.
+
+The form runs its own LSP session against `LanguageClientContext`; with the
+default no-op client (tests, stories without the provider) it degrades to
+synthesis-only validation. State is plain data — hold it wherever the consumer
+already keeps its draft (component state in the drawers, `SimulationContext`
+for quick simulation) and hand `output.scenario` to `compileScenario` when
+the consumer needs it: the drawers compile at experiment/optimization start,
+while quick simulation synthesizes and compiles eagerly on every change, so
+its Simulation Settings error banner stays live.
+
+## Invariants worth knowing
+
+- **Nothing is ever thrown away.** Toggling Optimize retains the expression
+  and the previous bounds; changing a row's kind retains its count; releasing
+  a shared column restores every cell exactly, including held Optimize state.
+- **Every edit is one dispatched action**, applied by the pure reducer in
+  core; undo replays snapshots and never dispatches.
+- **Generated names are deterministic** (`adhoc.<place>.r<row>.<field>`,
+  `adhoc.count.<place>`, `adhoc.var.net.<name>`, `adhoc.param.<name>`), so
+  optimization results attribute across runs; place-name duplicates among
+  participating places are a synthesis error because the generated initial
+  state is keyed by place name.
+- **The generated scenario is never persisted** — no consumer writes it into
+  the net file, and the experiments table shows it as "Ad-hoc scenario".

@@ -3,14 +3,14 @@
 use core::ops::ControlFlow;
 
 use error_stack::Report;
-use http::HeaderMap;
-use type_system::principal::actor::{ActorId, UserId};
-
-use crate::{
-    jwt::{JwtError, JwtValidator},
+use hash_middleware::authentication::{
     provider::{AuthenticationProvider, Caller},
     request::AuthenticationError,
 };
+use http::HeaderMap;
+use type_system::principal::actor::{ActorId, UserId};
+
+use crate::jwt::{JwtError, JwtValidator};
 
 /// Name of the header carrying the Cloudflare Access JWT.
 ///
@@ -28,11 +28,11 @@ pub trait ResolveEmailActor: Send + Sync {
     /// - [`NotProvisioned`] if the identity has no Graph actor provisioned
     /// - [`ActorNotFound`], [`NotAUser`], or [`StoreError`] from actor validation
     ///
-    /// [`IdentityWithoutActor`]: AuthenticationError::IdentityWithoutActor
-    /// [`NotProvisioned`]: AuthenticationError::NotProvisioned
-    /// [`ActorNotFound`]: AuthenticationError::ActorNotFound
-    /// [`NotAUser`]: AuthenticationError::NotAUser
-    /// [`StoreError`]: AuthenticationError::StoreError
+    /// [`IdentityWithoutActor`]: hash_middleware::authentication::request::AuthenticationErrorKind::IdentityWithoutActor
+    /// [`NotProvisioned`]: hash_middleware::authentication::request::AuthenticationErrorKind::NotProvisioned
+    /// [`ActorNotFound`]: hash_middleware::authentication::request::AuthenticationErrorKind::ActorNotFound
+    /// [`NotAUser`]: hash_middleware::authentication::request::AuthenticationErrorKind::NotAUser
+    /// [`StoreError`]: hash_middleware::authentication::request::AuthenticationErrorKind::StoreError
     fn resolve_email_actor(
         &self,
         email: &str,
@@ -69,22 +69,22 @@ where
         let claims = self.jwt_validator.validate(token).await.map_err(|report| {
             match report.current_context() {
                 JwtError::JwksFetch => {
-                    report.change_context(AuthenticationError::ProviderUnreachable)
+                    report.change_context(AuthenticationError::provider_unreachable())
                 }
                 // The provider named a key it cannot supply a usable entry for, so every token
                 // signed with it fails. Reporting that as a bad token would answer 401 at debug
                 // level and hide an outage behind "your token is invalid".
                 JwtError::UnusableKey { .. } => {
-                    report.change_context(AuthenticationError::InvalidProviderResponse)
+                    report.change_context(AuthenticationError::invalid_provider_response())
                 }
                 JwtError::Validation | JwtError::MissingKeyId | JwtError::UnknownKeyId { .. } => {
-                    report.change_context(AuthenticationError::InvalidAccessToken)
+                    report.change_context(AuthenticationError::invalid_access_token())
                 }
             }
         })?;
 
         let Some(email) = claims.email else {
-            return Err(Report::new(AuthenticationError::InvalidAccessToken)
+            return Err(Report::new(AuthenticationError::invalid_access_token())
                 .attach("the token carries no email claim"));
         };
 
@@ -106,7 +106,9 @@ where
         };
 
         let Ok(token) = token.to_str() else {
-            return ControlFlow::Break(Err(Report::new(AuthenticationError::MalformedCredential)));
+            return ControlFlow::Break(Err(Report::new(
+                AuthenticationError::malformed_credential(),
+            )));
         };
 
         ControlFlow::Break(
@@ -119,7 +121,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use core::{net::SocketAddr, ops::ControlFlow, time::Duration};
+    use core::{assert_matches, net::SocketAddr, ops::ControlFlow, time::Duration};
     use std::{
         collections::HashMap,
         time::{SystemTime, UNIX_EPOCH},
@@ -127,6 +129,10 @@ mod tests {
 
     use axum::{Json, Router, routing::get};
     use error_stack::Report;
+    use hash_middleware::authentication::{
+        provider::{AuthenticationProvider as _, expect_rejection},
+        request::{AuthenticationError, AuthenticationErrorKind},
+    };
     use http::{HeaderMap, HeaderValue, StatusCode};
     use jsonwebtoken::{Algorithm, EncodingKey, Header};
     use reqwest::Url;
@@ -136,11 +142,7 @@ mod tests {
     use uuid::Uuid;
 
     use super::{ACCESS_JWT_HEADER, CloudflareAccessProvider, ResolveEmailActor};
-    use crate::{
-        jwt::{JwtValidator, JwtValidatorConfig},
-        provider::{AuthenticationProvider as _, tests::expect_rejection},
-        request::AuthenticationError,
-    };
+    use crate::jwt::{JwtValidator, JwtValidatorConfig};
 
     const KEY_ID: &str = "jwt-test-key";
     const AUDIENCE: &str = "test-audience";
@@ -194,7 +196,7 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 self.actors
                     .get(email)
                     .copied()
-                    .ok_or_else(|| Report::new(AuthenticationError::IdentityWithoutActor)),
+                    .ok_or_else(|| Report::new(AuthenticationError::identity_without_actor())),
             )
         }
     }
@@ -353,11 +355,9 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
         );
 
         let report = expect_rejection::<ActorId>(provider.authenticate(&headers).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::MalformedCredential
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::MalformedCredential,
             "a non-ASCII Access token should be rejected as malformed, not ignored"
         );
     }
@@ -390,13 +390,10 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 .authenticate(&access_token_header(&mint_token(&claims)))
                 .await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidAccessToken
-            ),
-            "the token should fail authentication, got {:?}",
-            report.current_context()
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::InvalidAccessToken,
+            "the token should fail authentication"
         );
     }
 
@@ -418,11 +415,9 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
 
         let report =
             expect_rejection::<ActorId>(provider.authenticate(&access_token_header(&token)).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidAccessToken
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::InvalidAccessToken,
             "a token signed with a disallowed algorithm should fail authentication"
         );
     }
@@ -444,11 +439,9 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
 
         let report =
             expect_rejection::<ActorId>(provider.authenticate(&access_token_header(&forged)).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidAccessToken
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::InvalidAccessToken,
             "a token with a signature from another token should fail authentication"
         );
     }
@@ -478,13 +471,10 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 .authenticate(&access_token_header(&mint_token(&claims)))
                 .await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidAccessToken
-            ),
-            "a token without `{claim}` should fail authentication, got {:?}",
-            report.current_context()
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::InvalidAccessToken,
+            "a token without `{claim}` should fail authentication"
         );
     }
 
@@ -526,11 +516,9 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 .authenticate(&access_token_header(&mint_token(&claims)))
                 .await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidAccessToken
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::InvalidAccessToken,
             "a token without an email claim should fail authentication"
         );
     }
@@ -544,11 +532,9 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 .authenticate(&access_token_header(&mint_token(&valid_claims(EMAIL))))
                 .await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::IdentityWithoutActor
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::IdentityWithoutActor,
             "a resolver failure should surface as the resolver's rejection"
         );
     }
@@ -568,13 +554,10 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
 
         let report =
             expect_rejection::<ActorId>(provider.authenticate(&access_token_header(&token)).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidAccessToken
-            ),
-            "the token should fail authentication, got {:?}",
-            report.current_context()
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::InvalidAccessToken,
+            "the token should fail authentication"
         );
     }
 
@@ -594,11 +577,9 @@ i3YB+IEvO6Qr8c5tSNv9NB0=
                 .authenticate(&access_token_header(&mint_token(&valid_claims(EMAIL))))
                 .await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::ProviderUnreachable
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::ProviderUnreachable,
             "a failing JWKS endpoint should fail as provider unavailability, not as a bad token"
         );
     }

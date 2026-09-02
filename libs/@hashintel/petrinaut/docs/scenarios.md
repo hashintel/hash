@@ -17,7 +17,7 @@ You can save as many scenarios as you like; they are stored on the net alongside
 
 ## No built-in default scenario
 
-A new net starts with the scenario list empty and **no scenario selected** (the Simulation Settings dropdown shows "No scenario"). In that state the simulation uses each place's manually-entered initial marking and the net-level parameter defaults.
+A new net starts with the scenario list empty and **no scenario selected** (the Simulation Settings dropdown shows "No scenario"). In that state the simulation uses each place's manually-entered initial marking and the values in the panel's Parameters inputs (pre-filled with the net-level defaults) — unless you define an [ad-hoc initial state](ad-hoc-scenarios.md) in the panel's Initial state column, which overrides the manual marking for every place it defines.
 
 You will need scenarios when you want to:
 
@@ -36,6 +36,8 @@ You will need scenarios when you want to:
 7. Click **Create**. Save is blocked while the form has validation or LSP errors -- hover the disabled button to see why.
 
 The view drawer (opened by clicking a row in the Scenarios list) is the same form populated with the existing values. It has **Close** and **Save** buttons.
+
+With the experimental [Ad-hoc scenarios](ad-hoc-scenarios.md#enabling-the-feature) setting on, the Create Scenario drawer instead shows the [ad-hoc form](ad-hoc-scenarios.md#saved-ad-hoc-scenarios): name and description above one inline Initial State + Parameters form, with a **Scenario Parameter** toggle on each Variable and no "Define as code" toggle. A scenario created that way always edits through the same form.
 
 ## Initial state: per-place vs code
 

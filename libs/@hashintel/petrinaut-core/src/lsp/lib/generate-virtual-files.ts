@@ -6,8 +6,17 @@ import {
   getTransitionLogicAvailability,
   type PetrinautExtensionSettings,
 } from "../../extensions";
+import { AMBIENT_INPUT_NAMES, type DualFormSurfaceKind } from "../../hir";
+import {
+  adHocSlotKey,
+  isValidAdHocVariableName,
+  type AdHocScenarioState,
+  type AdHocSlot,
+  type AdHocValue,
+} from "../../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import { SCENARIO_HELPER_TYPE_DECLARATIONS } from "../../simulation/authoring/scenario/helpers";
 import { TYPE_POLICIES } from "../../simulation/engine/type-policies";
+import { applyFormWrapper } from "./create-language-service-host";
 import { getItemFilePath } from "./file-paths";
 
 import type {
@@ -91,6 +100,54 @@ function toKernelOutputTokenType(
   return properties.length > 0
     ? `{\n${properties}\n}`
     : "Record<string, never>";
+}
+
+/**
+ * Builds a dual-form code file for a dynamics/lambda/kernel item. The module
+ * wrapper declares the constructor for `export default <Ctor>(...)` code; the
+ * body wrapper types the code as a bare function body whose parameters are
+ * the surface's ambient input object and `parameters`.
+ *
+ * The body wrapper's suffix appends an unreachable `return undefined as
+ * never;` so an empty or unfinished body is not a TypeScript error (no
+ * TS2355/TS2366) — the HIR lint reports a missing `return` with a
+ * friendlier, correctly-positioned message, and an empty lambda is valid
+ * (the runtime default applies). Unlike widening the return type with
+ * `| void`, this keeps mismatch messages exact ("not assignable to type
+ * 'boolean'", with no `void` the user never wrote).
+ */
+function dualFormCodeFile(options: {
+  content: string;
+  surface: DualFormSurfaceKind;
+  /** Lines injected before module-form code (constructor import + declare). */
+  modulePrefixLines: string[];
+  /** Import lines for the types the body wrapper's signature references. */
+  bodyImportLines: string[];
+  /** TypeScript type of the ambient input object. */
+  inputType: string;
+  /** Declared return type of the body. */
+  returnType: string;
+  parametersDefsPath: string;
+}): VirtualFile {
+  const inputName = AMBIENT_INPUT_NAMES[options.surface];
+  return applyFormWrapper({
+    content: options.content,
+    formWrappers: {
+      module: {
+        prefix: `${options.modulePrefixLines.join("\n")}\n`,
+        suffix: "",
+      },
+      body: {
+        prefix: [
+          `import type { Parameters } from "${options.parametersDefsPath}";`,
+          ...options.bodyImportLines,
+          `function __${options.surface}(${inputName}: ${options.inputType}, parameters: Parameters): ${options.returnType} {`,
+          "",
+        ].join("\n"),
+        suffix: "\nreturn undefined as never;\n}",
+      },
+    },
+  });
 }
 
 /**
@@ -230,25 +287,33 @@ export function generateVirtualFiles(
           : "",
         ``,
         sanitizedColorId
-          ? `type Tokens = Array<Color_${sanitizedColorId}>;`
-          : `type Tokens = Array<number>;`,
+          ? `export type Tokens = Array<Color_${sanitizedColorId}>;`
+          : `export type Tokens = Array<number>;`,
         color
-          ? `type Derivative = ${toDynamicsDerivativeType(color)};`
-          : `type Derivative = Record<string, never>;`,
+          ? `export type Derivative = ${toDynamicsDerivativeType(color)};`
+          : `export type Derivative = Record<string, never>;`,
         `export type Dynamics = (fn: (tokens: Tokens, parameters: Parameters) => Derivative[]) => void;`,
       ].join("\n"),
     });
 
-    // User code file with injected declarations
-    files.set(deCodePath, {
-      prefix: [
-        `import type { Dynamics } from "${deDefsPath}";`,
-        // TODO: Directly wrap user code in Dynamics call to remove need for user to write it.
-        `declare const Dynamics: Dynamics;`,
-        "",
-      ].join("\n"),
-      content: de.code,
-    });
+    // User code file, wrapped according to its authoring form
+    files.set(
+      deCodePath,
+      dualFormCodeFile({
+        content: de.code,
+        surface: "dynamics",
+        modulePrefixLines: [
+          `import type { Dynamics } from "${deDefsPath}";`,
+          `declare const Dynamics: Dynamics;`,
+        ],
+        bodyImportLines: [
+          `import type { Derivative, Tokens } from "${deDefsPath}";`,
+        ],
+        inputType: "Tokens",
+        returnType: "Derivative[]",
+        parametersDefsPath,
+      }),
+    );
   }
 
   // Generate files for each transition
@@ -382,15 +447,22 @@ export function generateVirtualFiles(
         ].join("\n"),
       });
 
-      // Lambda code file
-      files.set(lambdaCodePath, {
-        prefix: [
-          `import type { Lambda } from "${lambdaDefsPath}";`,
-          `declare const Lambda: Lambda;`,
-          "",
-        ].join("\n"),
-        content: transition.lambdaCode,
-      });
+      // Lambda code file, wrapped according to its authoring form
+      files.set(
+        lambdaCodePath,
+        dualFormCodeFile({
+          content: transition.lambdaCode,
+          surface: "lambda",
+          modulePrefixLines: [
+            `import type { Lambda } from "${lambdaDefsPath}";`,
+            `declare const Lambda: Lambda;`,
+          ],
+          bodyImportLines: [`import type { Input } from "${lambdaDefsPath}";`],
+          inputType: "Input",
+          returnType: lambdaReturnType,
+          parametersDefsPath,
+        }),
+      );
     }
 
     if (availability.transitionKernel) {
@@ -407,15 +479,24 @@ export function generateVirtualFiles(
         ].join("\n"),
       });
 
-      // TransitionKernel code file
-      files.set(kernelCodePath, {
-        prefix: [
-          `import type { TransitionKernel } from "${kernelDefsPath}";`,
-          `declare const TransitionKernel: TransitionKernel;`,
-          "",
-        ].join("\n"),
-        content: transition.transitionKernelCode,
-      });
+      // TransitionKernel code file, wrapped according to its authoring form
+      files.set(
+        kernelCodePath,
+        dualFormCodeFile({
+          content: transition.transitionKernelCode,
+          surface: "kernel",
+          modulePrefixLines: [
+            `import type { TransitionKernel } from "${kernelDefsPath}";`,
+            `declare const TransitionKernel: TransitionKernel;`,
+          ],
+          bodyImportLines: [
+            `import type { Input, Output } from "${kernelDefsPath}";`,
+          ],
+          inputType: "Input",
+          returnType: "Output",
+          parametersDefsPath,
+        }),
+      );
     }
   }
 
@@ -684,6 +765,225 @@ export function generateMetricSessionFiles(
     content: session.code,
     suffix: `\n}`,
   });
+
+  return files;
+}
+
+/**
+ * Data required to generate virtual files for an ad-hoc scenario editing
+ * session. The SDCPN provides the net context (parameters, places, colour
+ * types); the state is the form's editing model.
+ */
+export type AdHocSessionData = {
+  sessionId: string;
+  state: AdHocScenarioState;
+};
+
+/**
+ * Generates virtual files for an ad-hoc scenario editing session: one code
+ * file per non-empty value slot (cell, shared column, count, Variable, net
+ * parameter override, and each optimize bound), wrapped so the expression is
+ * type-checked as the slot's type. Scope mirrors the generated code: net
+ * parameters as `parameters.<name>`, top-level Variables as
+ * `scenario.<name>`, and inside a place's rows the per-place Variables plus
+ * `i` and `count`. A dynamic row's count sees the place's Variables but not
+ * `i`/`count`. Bounds must be constants, so they see only the top-level
+ * scope.
+ */
+export function generateAdHocSessionFiles(
+  sdcpn: SDCPN,
+  session: AdHocSessionData,
+): Map<string, VirtualFile> {
+  const files = new Map<string, VirtualFile>();
+  const { sessionId, state } = session;
+
+  const parametersDefsPath = getItemFilePath("parameters-defs");
+  const scenarioProps = state.variables
+    .filter((variable) => isValidAdHocVariableName(variable.name))
+    .map((variable) => `  "${variable.name}": ${toTsType(variable.type)};`)
+    .join("\n");
+  const scenarioTypeDecl =
+    scenarioProps.length > 0
+      ? `declare const scenario: {\n${scenarioProps}\n};`
+      : `declare const scenario: Record<string, never>;`;
+
+  const commonPrefix = [
+    `import type { Parameters } from "${parametersDefsPath}";`,
+    `declare const parameters: Parameters;`,
+    scenarioTypeDecl,
+    SCENARIO_HELPER_TYPE_DECLARATIONS,
+  ].join("\n");
+
+  files.set(getItemFilePath("adhoc-session-defs", { sessionId }), {
+    content: commonPrefix,
+  });
+
+  const addSlotFile = (
+    slot: AdHocSlot,
+    expression: string,
+    returnType: string,
+    extraDeclarations: string,
+  ): void => {
+    if (expression.trim() === "") {
+      return;
+    }
+    const filePath = getItemFilePath("adhoc-value-code", {
+      sessionId,
+      slotKey: adHocSlotKey(slot),
+    });
+    files.set(filePath, {
+      prefix: `${commonPrefix}\n${extraDeclarations}function __check(): ${returnType} { return (\n`,
+      content: expression,
+      suffix: `\n); }`,
+    });
+  };
+
+  const addValue = (
+    target: AdHocSlot["target"],
+    value: AdHocValue,
+    returnType: string,
+    extraDeclarations: string,
+  ): void => {
+    addSlotFile(
+      { target, part: "expression" },
+      value.expression,
+      returnType,
+      extraDeclarations,
+    );
+    if (value.optimize) {
+      addSlotFile({ target, part: "min" }, value.optimize.min, "number", "");
+      addSlotFile({ target, part: "max" }, value.optimize.max, "number", "");
+      if (value.optimize.step !== undefined) {
+        addSlotFile(
+          { target, part: "step" },
+          value.optimize.step,
+          "number",
+          "",
+        );
+      }
+    }
+  };
+
+  for (const [index, variable] of state.variables.entries()) {
+    addValue(
+      { kind: "variable", placeId: null, index },
+      variable,
+      toTsType(variable.type),
+      "",
+    );
+  }
+
+  const parameterById = new Map(
+    sdcpn.parameters.map((parameter) => [parameter.id, parameter]),
+  );
+  for (const entry of state.netParameters) {
+    const parameter = parameterById.get(entry.parameterId);
+    if (!parameter) {
+      continue;
+    }
+    addValue(
+      { kind: "netParameter", parameterId: entry.parameterId },
+      entry,
+      toTsType(parameter.type),
+      "",
+    );
+  }
+
+  const colorById = new Map(sdcpn.types.map((color) => [color.id, color]));
+  for (const [placeId, placeState] of Object.entries(state.places)) {
+    const place = sdcpn.places.find((candidate) => candidate.id === placeId);
+    if (!place) {
+      continue;
+    }
+
+    if (placeState.kind === "uncoloured") {
+      addValue(
+        { kind: "count", placeId, row: null },
+        placeState.count,
+        "number",
+        "",
+      );
+      continue;
+    }
+
+    const elements = place.colorId
+      ? (colorById.get(place.colorId)?.elements ?? [])
+      : [];
+    // Generated code declares the place's Variables in order inside each
+    // row's scope, so a Variable may read earlier siblings but not itself or
+    // later ones; the ambient scope of each Variable's documents mirrors
+    // that. Cells and shared columns evaluate after every declaration.
+    const rowScopeDeclarations = (visibleVariables: number): string =>
+      `${[
+        "declare const i: number;",
+        "declare const count: number;",
+        ...placeState.variables
+          .slice(0, visibleVariables)
+          .filter((variable) => isValidAdHocVariableName(variable.name))
+          .map(
+            (variable) =>
+              `declare const ${variable.name}: ${toTsType(variable.type)};`,
+          ),
+      ].join("\n")}\n`;
+    const fullRowScope = rowScopeDeclarations(placeState.variables.length);
+    // A dynamic row's count runs once, outside any row: the place's
+    // Variables are in scope (the generated code inlines them), but `i` and
+    // `count` are not — the count is what defines them. A Variable whose
+    // value uses `i`/`count` type-checks here and is rejected by synthesis
+    // with an error at the count's slot.
+    const countScope = `${placeState.variables
+      .filter((variable) => isValidAdHocVariableName(variable.name))
+      .map(
+        (variable) =>
+          `declare const ${variable.name}: ${toTsType(variable.type)};`,
+      )
+      .join("\n")}\n`;
+
+    for (const [index, variable] of placeState.variables.entries()) {
+      addValue(
+        { kind: "variable", placeId, index },
+        variable,
+        toTsType(variable.type),
+        rowScopeDeclarations(index),
+      );
+    }
+
+    for (const [field, shared] of Object.entries(placeState.sharedColumns)) {
+      const column = elements.findIndex((element) => element.name === field);
+      if (column < 0) {
+        continue;
+      }
+      addValue(
+        { kind: "column", placeId, column },
+        shared,
+        toTsType(elements[column]!.type),
+        fullRowScope,
+      );
+    }
+
+    for (const [rowIndex, row] of placeState.rows.entries()) {
+      if (row.kind === "template") {
+        addValue(
+          { kind: "count", placeId, row: rowIndex },
+          row.count,
+          "number",
+          countScope,
+        );
+      }
+      for (const [column, cell] of row.cells.entries()) {
+        const element = elements[column];
+        if (!element || placeState.sharedColumns[element.name]) {
+          continue;
+        }
+        addValue(
+          { kind: "cell", placeId, row: rowIndex, column },
+          cell,
+          toTsType(element.type),
+          fullRowScope,
+        );
+      }
+    }
+  }
 
   return files;
 }

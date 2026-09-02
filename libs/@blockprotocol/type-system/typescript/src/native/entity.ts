@@ -15,12 +15,8 @@ import type {
   PropertyValueWithMetadata,
   PropertyWithMetadata,
   VersionedUrl,
-} from "@blockprotocol/type-system-rs";
-import type {
-  DraftId,
-  EntityUuid,
-  WebId,
-} from "@blockprotocol/type-system-rs/types";
+} from "../generated/type-system.js";
+import type { DraftId, EntityUuid, WebId } from "../generated/types.js";
 
 export type TypeIdsAndPropertiesForEntity = {
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];

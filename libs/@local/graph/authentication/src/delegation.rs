@@ -3,44 +3,16 @@
 use core::ops::ControlFlow;
 
 use error_stack::Report;
-use http::{HeaderMap, header};
-use subtle::ConstantTimeEq as _;
+use hash_middleware::authentication::{
+    provider::{AuthenticationProvider, Caller},
+    request::{AuthenticationError, actor_id_from_header},
+    service_secret::{presents_service_secret, service_credential},
+};
+use http::HeaderMap;
 use type_system::principal::actor::ActorId;
 use uuid::Uuid;
 
-use crate::{
-    actor::{ResolveActor, resolve_actor},
-    provider::{AuthenticationProvider, Caller},
-    request::{AuthenticationError, actor_id_from_header},
-};
-
-/// The `Authorization` scheme carrying the service secret.
-pub const SERVICE_AUTH_SCHEME: &str = "HASH-Service";
-
-/// Returns the service secret carried in the `Authorization` header.
-///
-/// Returns [`None`] when the header is absent, does not decode, or names a different scheme, so
-/// credentials of other schemes pass through unrecognized. The scheme is matched
-/// case-insensitively.
-#[must_use]
-pub fn service_credential(headers: &HeaderMap) -> Option<&str> {
-    let credentials = headers.get(header::AUTHORIZATION)?.to_str().ok()?;
-    let (scheme, token) = credentials.split_once(' ').unwrap_or((credentials, ""));
-    scheme
-        .eq_ignore_ascii_case(SERVICE_AUTH_SCHEME)
-        .then(|| token.trim_ascii())
-}
-
-/// Returns whether the request carries the expected service secret.
-///
-/// Compares the value in constant time, the length is not hidden. An empty secret never
-/// matches, since an empty credential is legal HTTP.
-#[must_use]
-pub fn presents_service_secret(headers: &HeaderMap, secret: &str) -> bool {
-    !secret.is_empty()
-        && service_credential(headers)
-            .is_some_and(|token| token.as_bytes().ct_eq(secret.as_bytes()).into())
-}
+use crate::actor::{ResolveActor, resolve_actor};
 
 /// Authenticates internal services acting on behalf of an actor.
 ///
@@ -71,7 +43,7 @@ where
     /// Runs the delegation flow up to the actor the service acts for.
     ///
     /// `Ok(None)` means the actor header carried the nil UUID, its encoding for acting for
-    /// nobody. `Continue` means the request carries no service secret.
+    /// nobody. `Continue` means the request carries no service credential.
     async fn delegated_actor(
         &self,
         headers: &HeaderMap,
@@ -80,7 +52,9 @@ where
             return ControlFlow::Continue(());
         }
         if !presents_service_secret(headers, &self.secret) {
-            return ControlFlow::Break(Err(Report::new(AuthenticationError::InvalidServiceSecret)));
+            return ControlFlow::Break(Err(Report::new(
+                AuthenticationError::invalid_service_secret(),
+            )));
         }
 
         let actor_uuid = match actor_id_from_header(headers) {
@@ -118,7 +92,7 @@ where
             // chain requiring an actor is missing the delegated actor, not the credential.
             ControlFlow::Break(Ok(None)) => ControlFlow::Break(
                 C::anonymous()
-                    .map_err(|_error| Report::new(AuthenticationError::MissingDelegatedActor)),
+                    .map_err(|_error| Report::new(AuthenticationError::missing_delegated_actor())),
             ),
             ControlFlow::Break(Err(report)) => ControlFlow::Break(Err(report)),
         }
@@ -127,20 +101,21 @@ where
 
 #[cfg(test)]
 mod tests {
-    use core::ops::ControlFlow;
+    use core::{assert_matches, ops::ControlFlow};
     use std::collections::HashMap;
 
     use error_stack::Report;
+    use hash_middleware::authentication::{
+        provider::{AuthenticationProvider as _, Caller, expect_rejection},
+        request::{ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind},
+        service_secret::SERVICE_AUTH_SCHEME,
+    };
     use http::HeaderMap;
     use type_system::principal::actor::{ActorEntityUuid, ActorId};
     use uuid::Uuid;
 
-    use super::{SERVICE_AUTH_SCHEME, ServiceDelegationProvider};
-    use crate::{
-        actor::tests::{FixedActorResolver, known_user, random_actor},
-        provider::{AuthenticationProvider as _, Caller, tests::expect_rejection},
-        request::{ACTOR_ID_HEADER, AuthenticationError},
-    };
+    use super::ServiceDelegationProvider;
+    use crate::actor::tests::{FixedActorResolver, known_user, random_actor};
 
     const SERVICE_SECRET: &str = "hash-svc-test-secret";
 
@@ -255,13 +230,10 @@ mod tests {
             )
             .await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::ActorNotFound { .. }
-            ),
-            "a delegated actor that does not exist should be rejected, got {:?}",
-            report.current_context()
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::ActorNotFound { .. },
+            "a delegated actor that does not exist should be rejected"
         );
     }
 
@@ -288,11 +260,9 @@ mod tests {
             )
             .await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidServiceSecret
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::InvalidServiceSecret,
             "a wrong service secret should be rejected"
         );
     }
@@ -312,11 +282,9 @@ mod tests {
         let report = expect_rejection(
             authenticate::<ActorId>(&provider(), &headers(Some(SERVICE_SECRET), None)).await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::MissingDelegatedActor
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::MissingDelegatedActor,
             "the service secret should require the actor-ID header"
         );
     }
@@ -330,13 +298,10 @@ mod tests {
             )
             .await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::ActorNotFound { .. }
-            ),
-            "an unknown delegated actor should never degrade to the public actor, got {:?}",
-            report.current_context()
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::ActorNotFound { .. },
+            "an unknown delegated actor should never degrade to the public actor"
         );
     }
 
@@ -371,11 +336,9 @@ mod tests {
             )
             .await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::MissingDelegatedActor
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::MissingDelegatedActor,
             "the nil actor header should be rejected where an actor is required"
         );
     }
@@ -398,11 +361,9 @@ mod tests {
         );
 
         let report = expect_rejection(authenticate::<ActorId>(&provider(), &request_headers).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidActorIdHeader
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::InvalidActorIdHeader,
             "a malformed actor-ID header should be rejected as invalid"
         );
     }

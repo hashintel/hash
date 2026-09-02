@@ -455,6 +455,7 @@ export const mutationActionInputSchemas = {
       "Include `scenarioParameters` for key user-tunable assumptions (reference them in expressions as `scenario.<identifier>`).",
       "`parameterOverrides` keys MUST be existing net-level parameter IDs; omit the field entirely when nothing is overridden.",
       "`initialState.content` keys are place IDs when `type` is `per_place`, but place NAMES when `type` is `code` (note the asymmetry).",
+      "Never author `initialState.type` `adhoc` — that variant belongs to the in-app form; use `per_place` or `code`.",
     ].join(" "),
   }),
   updateScenario: z

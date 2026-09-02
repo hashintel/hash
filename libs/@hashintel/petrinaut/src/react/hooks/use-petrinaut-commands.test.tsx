@@ -38,6 +38,7 @@ const editorContextValue = (
 ): EditorContextValue => ({
   ...initialEditorState,
   globalMode,
+  navigateTo: () => {},
   setGlobalMode: () => {},
   setEditionMode: () => {},
   setAddComponentMode: () => {},
@@ -56,6 +57,8 @@ const editorContextValue = (
   isNotHoveredConnection: () => false,
   selectedConnections: new Map(),
   setSelection: () => {},
+  beginSelectionGesture: () => {},
+  endSelectionGesture: () => {},
   selectItem: () => {},
   toggleItem: () => {},
   clearSelection: () => {},
@@ -76,7 +79,6 @@ const editorContextValue = (
   toggleAiAssistant: () => {},
   searchInputRef: { current: null },
   triggerPanelAnimation: () => {},
-  __reinitialize: () => {},
 });
 
 type WrapperOptions = {
@@ -125,6 +127,9 @@ const createWrapper = (options: WrapperOptions = {}) => {
             scenarioParameterValues: {},
             compiledScenarioResult: null,
             scenarioCompilationErrors: null,
+            adHocScenario: null,
+            adHocNetParameters: [],
+            setAdHocScenario: () => {},
             dt: 0.01,
             maxTime: null,
             totalFrames: 0,

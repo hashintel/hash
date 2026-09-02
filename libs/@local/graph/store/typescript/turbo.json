@@ -1,0 +1,20 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "codegen": {
+      "dependsOn": ["^build", "@rust/hash-graph-store#build:types"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        {
+          "mode": "dependencyOutputs",
+          "globs": ["types/index.snap.d.ts"],
+          "from": ["@rust/hash-graph-store#build:types"]
+        }
+      ],
+      "outputs": ["src/generated/**"]
+    },
+    "build": {
+      "outputs": ["dist/**"]
+    }
+  }
+}

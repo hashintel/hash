@@ -1,0 +1,408 @@
+/**
+ * @layerRoot ui.adhoc-form
+ * @role The inline Initial State + Parameters form compiling to a generated, never-persisted scenario
+ *
+ * The ad-hoc scenario form: define Initial State + Parameters inline and let
+ * the caller compile them through `synthesizeAdHocScenario` (plain runs) or
+ * `synthesizeAdHocOptimization` (optimization). The generated scenario is
+ * never persisted; this component only edits `AdHocScenarioState`.
+ *
+ * Three consumers share it: Quick Simulation and plain experiment creation
+ * render it with `selection` "none"; optimization experiments render it
+ * with "optimize", which grows an Optimize toggle on every value slot; the
+ * scenario creation form renders it with "expose", which offers a
+ * "Scenario Parameter" toggle on each top-level Variable — the saved
+ * scenario exposes those Variables as its tunable parameters.
+ *
+ * The form runs its own ad-hoc LSP session, so every expression is
+ * type-checked live: open editors are Monaco documents with inline markers,
+ * and closed slots underline in red carrying the first synthesis error or
+ * LSP diagnostic as their tooltip.
+ *
+ * The whole form is keyboard-editable: every table is an arrow-key grid with
+ * a phantom trailing row, grids and collapsible section/place headers chain
+ * into one vertical walk (a vertical `FocusStack` from the worksheet
+ * layer), and
+ * Cmd/Ctrl+Z / Shift+Cmd/Ctrl+Z walk a form-level undo history (open text
+ * fields keep their own). Focusing a value highlights the rows it reads and
+ * the cells that read it (`dependency-highlight`).
+ */
+
+import { use, useEffect, useRef, useState } from "react";
+
+import { css, cx } from "@hashintel/ds-helpers/css";
+import {
+  adHocPlaceStateFor,
+  adHocSlotKey,
+  getAdHocDocumentUri,
+  synthesizeAdHocOptimization,
+} from "@hashintel/petrinaut-core";
+
+import { LanguageClientContext } from "../../../react/lsp/context";
+import { FocusRoot, FocusStack } from "../../worksheet/focus-stack";
+import { useFocusClearance } from "../../worksheet/use-focus-clearance";
+import { useFocusHeader } from "../../worksheet/use-focus-member";
+import { Section, SectionList } from "../section";
+import { computeAdHocHighlight } from "./dependency-highlight";
+import { AdHocFormContext } from "./form-context";
+import { ParameterRows } from "./parameter-rows";
+import { ColouredPlaceBlock, UncolouredPlaceBlock } from "./place-block";
+import { ScenarioParameterRows } from "./scenario-parameter-rows";
+import { useAdHocLspSession } from "./use-ad-hoc-lsp-session";
+import { useAdHocFormHistory } from "./use-form-history";
+import { VariableRows } from "./variable-rows";
+
+import type { AdHocFocusTarget } from "./dependency-highlight";
+import type {
+  AdHocFormMode,
+  AdHocFormSelection,
+  AdHocFormServices,
+} from "./form-context";
+import type {
+  AdHocScenarioState,
+  AdHocSlot,
+  AdHocSynthesisContext,
+} from "@hashintel/petrinaut-core";
+
+// The CSS twin of useFocusClearance (which carries the shared 25px
+// constant): scrolls the browser performs itself to reveal a focused
+// trigger respect scroll-margin, parking it clear of the hosts' faded
+// scroll-area edges.
+const focusClearanceStyle = css({
+  "& :is(button, input, select, textarea)": {
+    scrollMargin: "[25px]",
+  },
+});
+
+const placesListStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1.5",
+});
+
+export interface AdHocScenarioFormProps {
+  state: AdHocScenarioState;
+  onChange: (state: AdHocScenarioState) => void;
+  context: AdHocSynthesisContext;
+  /** What selecting a value means; "none" hides the toggles. */
+  selection: AdHocFormSelection;
+  /**
+   * "author" (default) is the full editor. "run" shows a saved scenario
+   * for a run: only the exposed top-level Variables (the scenario's
+   * parameters) accept value edits, auxiliary Variables are hidden, and
+   * everything else is read-only yet keyboard-navigable and selectable.
+   */
+  mode?: AdHocFormMode;
+  /**
+   * Whether the Variables section is offered. Embeddings that provide no
+   * scenario Variables (quick simulation's Simulation Settings) turn it
+   * off; an expression referencing `scenario.<name>` then fails as unknown,
+   * exactly as it should. The Parameters section hides itself the same way
+   * when the context carries no net parameters.
+   */
+  withVariables?: boolean;
+  /**
+   * Custom arrangement: the host receives each group — already wired to the
+   * form's contexts — and lays them out itself (e.g. Simulation Settings
+   * places Variables + Parameters and Initial state in separate panel
+   * columns). The groups render without section chrome; a group the props
+   * withhold (`withVariables`, an empty `netParameters`) is `null`. The
+   * host's own chrome may render inside too — the wrapper only carries the
+   * form's keyboard handling. Wrap each visual column of the layout in a
+   * `FormLayoutColumn`: vertical arrows chain the column's groups, and
+   * horizontal moves at a table's side cross into the neighbouring column.
+   */
+  renderLayout?: (groups: {
+    variables: React.ReactNode;
+    parameters: React.ReactNode;
+    places: React.ReactNode;
+  }) => React.ReactNode;
+  /** Classname for the form's root element (the keyboard-handling div). */
+  className?: string;
+  /**
+   * Externally-owned LSP session id, so the host can address this form's
+   * diagnostics (a drawer footer summing errors); generated when omitted.
+   */
+  sessionId?: string;
+}
+
+/**
+ * One keyboard column of a custom layout: hosts wrap each visual column of
+ * their `renderLayout` output in one. Vertical arrows chain the column's
+ * groups top to bottom, and a horizontal move at a table's side crosses
+ * into the neighbouring column, entering at its remembered position. A
+ * FocusStack renders display:contents, so the host's layout is untouched.
+ */
+export const FormLayoutColumn: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => <FocusStack axis="vertical">{children}</FocusStack>;
+
+/**
+ * A Section that participates in the form's keyboard walk: its collapse
+ * trigger is a navigation stop, Left collapses, Right expands.
+ */
+const NavigableSection: React.FC<{
+  title: string;
+  tooltip: string;
+  children: React.ReactNode;
+}> = ({ title, tooltip, children }) => {
+  const [open, setOpen] = useState(true);
+  const header = useFocusHeader({
+    collapse: () => setOpen(false),
+    expand: () => setOpen(true),
+  });
+  return (
+    <Section
+      title={title}
+      tooltip={tooltip}
+      collapsible
+      unmountOnCollapse
+      open={open}
+      onOpenChange={setOpen}
+      triggerRef={header.attach}
+      onTriggerKeyDown={header.onHeaderKeyDown}
+    >
+      {children}
+    </Section>
+  );
+};
+
+export const AdHocScenarioForm: React.FC<AdHocScenarioFormProps> = ({
+  state,
+  onChange,
+  context,
+  selection,
+  mode = "author",
+  withVariables = true,
+  renderLayout,
+  className,
+  sessionId: externalSessionId,
+}) => {
+  const sessionId = useAdHocLspSession(state, externalSessionId);
+  const { diagnosticsByUri, requestFormatExpression } = use(
+    LanguageClientContext,
+  );
+  // Every edit below is an action dispatched through the history: the pure
+  // reducer in petrinaut-core computes the next state, and Cmd/Ctrl+Z
+  // anywhere in the form (open text fields excepted — those own their own
+  // undo) moves a cursor over the recorded snapshots.
+  const { dispatch, handleKeyDown } = useAdHocFormHistory(
+    state,
+    context,
+    onChange,
+    // Run mode shows a saved scenario: the host owns the computed
+    // parameters and marking and recomputes them from the values edited
+    // here, so those arrivals are not separate undo steps.
+    mode === "run",
+  );
+
+  // Escape pressed while focus is inside the form never reaches the host:
+  // the drawers/dialogs the form embeds in close on Escape via a document
+  // capture listener (Zag's dismissable), so a cell-focused Escape after
+  // closing an editor would close the whole drawer. The listener sits on
+  // `window` capture — above document — and swallows Escape when the event
+  // originates inside the form. Inner editors and menus portal outside the
+  // form root, so their own Escape handling is untouched.
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const clearance = useFocusClearance();
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const root = rootRef.current;
+      if (
+        event.key !== "Escape" ||
+        !root ||
+        !(event.target instanceof Element) ||
+        !root.contains(event.target)
+      ) {
+        return;
+      }
+      // An open Ark select (the type column) dismisses itself through the
+      // Zag layer stack, which already spares the host drawer. Scoped to
+      // select triggers: plain expanded disclosures (place headers, section
+      // headers) are NOT layers — letting their Escape through would reach
+      // the host.
+      if (
+        event.target.closest(
+          '[data-scope="select"][data-part="trigger"][aria-expanded="true"]',
+        )
+      ) {
+        return;
+      }
+      event.preventDefault();
+      // Not stopImmediatePropagation: in-form editors (the name cell) and
+      // the value-editor overlay listen on window capture too — registered
+      // after this one, they still see the event and peel their own layer.
+      event.stopPropagation();
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, []);
+
+  // The focused value drives the dependency highlight: the rows it reads,
+  // and — for a Variable or Parameter — the cells that read it.
+  const [focusedValue, setFocusedValue] = useState<AdHocFocusTarget | null>(
+    null,
+  );
+  const highlight = computeAdHocHighlight(state, context, focusedValue);
+
+  // A synthesis dry-run per change surfaces the rules the type system cannot
+  // (bounds resolution, name collisions, optimize legality) at their slots.
+  // Optimize toggles are included even for plain consumers so a stale kept
+  // selection never hides an error it would cause later.
+  const synthesisErrors = new Map<string, string>();
+  const synthesized = synthesizeAdHocOptimization(state, context);
+  if (!synthesized.ok) {
+    for (const error of synthesized.errors) {
+      const key = adHocSlotKey(error.slot);
+      if (!synthesisErrors.has(key)) {
+        synthesisErrors.set(key, error.message);
+      }
+    }
+  }
+
+  // Delete/Backspace acts inside the form (clear a cell, delete a row) and
+  // must never bubble to the app, where it would hit the canvas's
+  // delete-selection shortcut. Shared with the portaled value-editor slab,
+  // which sits outside the root and would otherwise leak both this and the
+  // undo capture.
+  const stopDeleteKeys = (event: React.KeyboardEvent) => {
+    if (event.key === "Delete" || event.key === "Backspace") {
+      event.stopPropagation();
+    }
+  };
+
+  const services: AdHocFormServices = {
+    formState: state,
+    dispatch,
+    synthesisContext: context,
+    selection,
+    sessionId,
+    uriFor: (slot: AdHocSlot) =>
+      getAdHocDocumentUri(sessionId, adHocSlotKey(slot)),
+    errorFor: (slot: AdHocSlot) => {
+      const key = adHocSlotKey(slot);
+      const synthesisError = synthesisErrors.get(key);
+      if (synthesisError) {
+        return synthesisError;
+      }
+      const diagnostics = diagnosticsByUri.get(
+        getAdHocDocumentUri(sessionId, key),
+      );
+      return diagnostics?.[0]?.message;
+    },
+    highlight,
+    setFocusedValue,
+    formatExpression: requestFormatExpression,
+    mode,
+    dense: renderLayout !== undefined,
+    overlayKeyDown: { capture: handleKeyDown, bubble: stopDeleteKeys },
+  };
+
+  const parameterRows =
+    context.netParameters.length > 0 ? (
+      <ParameterRows entries={state.netParameters} />
+    ) : null;
+
+  // Run mode lists the scenario's parameters (the exposed Variables, value
+  // edits only); authoring gets the full Variables editor.
+  const variableRows =
+    mode === "run" ? (
+      <ScenarioParameterRows variables={state.variables} />
+    ) : withVariables ? (
+      <VariableRows
+        scopeLabel="Top-level variables"
+        placeId={null}
+        variables={state.variables}
+      />
+    ) : null;
+
+  const placesList = (
+    <div className={placesListStyle}>
+      {context.places.map((place) => {
+        const placeState = adHocPlaceStateFor(state, context, place.id);
+        const colour = place.colorId
+          ? context.types.find((type) => type.id === place.colorId)
+          : undefined;
+
+        if (placeState.kind === "coloured" && colour) {
+          return (
+            <ColouredPlaceBlock
+              key={place.id}
+              place={place}
+              colour={colour}
+              state={placeState}
+            />
+          );
+        }
+        if (placeState.kind === "uncoloured") {
+          return (
+            <UncolouredPlaceBlock
+              key={place.id}
+              place={place}
+              state={placeState}
+            />
+          );
+        }
+        return null;
+      })}
+    </div>
+  );
+
+  return (
+    <AdHocFormContext value={services}>
+      <FocusRoot>
+        {/* Undo/redo listens in the capture phase, so it sees keys before any
+          cell handler; open text fields and Monaco pass through untouched. */}
+        <div
+          ref={rootRef}
+          className={cx(focusClearanceStyle, className)}
+          role="group"
+          aria-label="Ad-hoc scenario definition"
+          onKeyDownCapture={handleKeyDown}
+          onPointerDownCapture={clearance.onPointerDownCapture}
+          onFocusCapture={clearance.onFocusCapture}
+          onKeyDown={stopDeleteKeys}
+        >
+          {renderLayout ? (
+            <FocusStack axis="horizontal">
+              {renderLayout({
+                variables: variableRows,
+                parameters: parameterRows,
+                places: placesList,
+              })}
+            </FocusStack>
+          ) : (
+            <FocusStack axis="vertical">
+              <SectionList>
+                {variableRows ? (
+                  <NavigableSection
+                    title="Variables"
+                    tooltip="Named values written scenario.<name> in every expression below. They stand in for scenario parameters."
+                  >
+                    {variableRows}
+                  </NavigableSection>
+                ) : null}
+
+                {parameterRows ? (
+                  <NavigableSection
+                    title="Parameters"
+                    tooltip="Override a net parameter's value for this run. Empty keeps its default. Overrides may read the Variables above."
+                  >
+                    {parameterRows}
+                  </NavigableSection>
+                ) : null}
+
+                <NavigableSection
+                  title="Initial state"
+                  tooltip="Token counts and values per place. Every value is an expression."
+                >
+                  {placesList}
+                </NavigableSection>
+              </SectionList>
+            </FocusStack>
+          )}
+        </div>
+      </FocusRoot>
+    </AdHocFormContext>
+  );
+};

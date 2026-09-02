@@ -1,6 +1,12 @@
+/**
+ * @layerRoot website.local-storage-demo
+ * @role Editable demo shell: nets in local storage, one live document handle
+ */
+
 import { produce } from "immer";
 import { useEffect, useMemo, useState } from "react";
 
+import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
 import {
   createJsonDocHandle,
   type MinimalNetMetadata,
@@ -11,13 +17,25 @@ import {
 import {
   DefaultChatTransport,
   Petrinaut,
-  type PetrinautAiChatTransport,
   type PetrinautAiMessage,
+  type PetrinautAiVoiceMode,
+  type PetrinautAiVoiceModeContext,
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
+import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
+import {
+  loadOpenAIVoiceConfig,
+  type OpenAIVoiceConfig,
+  VoiceInterviewControl,
+} from "../voice-interview/voice-interview-control";
 import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
+import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
+import { createBrunchPanelTransport } from "./brunch-panel-transport";
+import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
+import { getOrCreateBrunchPrincipal } from "./brunch-principal";
+import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import {
   type SDCPNInLocalStorage,
@@ -73,6 +91,25 @@ const DEMO_CAPABILITIES = {
   disabledExtensions: [],
 } satisfies PetrinautHandleCapabilities;
 
+const brunchPreviewConfig = resolveBrunchPreviewConfig(
+  import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
+);
+
+// Only Brunch keeps a conversation to hydrate from; the generic fallback route
+// has no history door.
+const brunchHistoryEndpoint = brunchPreviewConfig.isBrunchConfigured
+  ? brunchPreviewConfig.chatEndpoint
+  : null;
+
+export const getBrunchVoiceMode = (
+  config: OpenAIVoiceConfig | null | undefined,
+): PetrinautAiVoiceMode | undefined =>
+  config
+    ? (context: PetrinautAiVoiceModeContext) => (
+        <VoiceInterviewControl {...context} config={config} />
+      )
+    : undefined;
+
 const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
   createJsonDocHandle({
     id: net.id,
@@ -80,10 +117,15 @@ const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
     capabilities: DEMO_CAPABILITIES,
   });
 
-const petrinautAiChatTransport: PetrinautAiChatTransport =
-  new DefaultChatTransport({
-    api: "/api/chat",
-  });
+const brunchPrincipal = getOrCreateBrunchPrincipal();
+
+const stockChatTransport = new DefaultChatTransport({
+  api: brunchPreviewConfig.chatEndpoint,
+  headers: () => ({
+    [BRUNCH_PRINCIPAL_HEADER]: brunchPrincipal,
+    [VOICE_REQUEST_ID_HEADER]: crypto.randomUUID(),
+  }),
+});
 
 const getStoredSDCPNsForDisplay = (
   storedSDCPNs: Record<string, SDCPNInLocalStorage>,
@@ -118,10 +160,37 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
  */
 export const LocalStorageDemoApp = () => {
   const sentryFeedbackAction = useSentryFeedbackAction();
+  const [openAIVoiceConfig, setOpenAIVoiceConfig] =
+    useState<OpenAIVoiceConfig | null>();
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
   const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(storedSDCPNs);
+
+  useEffect(() => {
+    if (!brunchPreviewConfig.isBrunchConfigured) {
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Resolve the loading sentinel when voice is not configured.
+      setOpenAIVoiceConfig(null);
+      return;
+    }
+
+    const abortController = new AbortController();
+    void loadOpenAIVoiceConfig(
+      globalThis.fetch.bind(globalThis),
+      abortController.signal,
+    ).then((config) => {
+      if (!abortController.signal.aborted) {
+        setOpenAIVoiceConfig(config);
+      }
+    });
+
+    return () => abortController.abort();
+  }, []);
+
+  const brunchVoiceMode = useMemo(
+    () => getBrunchVoiceMode(openAIVoiceConfig),
+    [openAIVoiceConfig],
+  );
 
   // Pick the most recently modified net
   const mostRecentlyModifiedNet =
@@ -255,11 +324,32 @@ export const LocalStorageDemoApp = () => {
     );
   };
 
+  const conversationId = currentNetId
+    ? getOrCreateBrunchConversationId(currentNetId)
+    : null;
+  const flueHistory = useFlueChatHistory(
+    brunchHistoryEndpoint,
+    conversationId ?? "",
+    brunchPrincipal,
+  );
+  const petrinautAiChatTransport = useMemo(
+    () =>
+      conversationId === null
+        ? createBrunchPanelTransport(stockChatTransport, "")
+        : createBrunchPanelTransport(stockChatTransport, conversationId),
+    [conversationId],
+  );
+
   const aiAssistant = useMemo(
     () => ({
+      ...(conversationId === null ? {} : { conversationId }),
       interactiveTools: [brunchAskInteractiveTool],
       transport: petrinautAiChatTransport,
-      messages: currentNetId ? aiMessagesByNetId[currentNetId] : undefined,
+      messages: flueHistory.ready
+        ? flueHistory.messages
+        : currentNetId
+          ? aiMessagesByNetId[currentNetId]
+          : undefined,
       onMessages: (messages: PetrinautAiMessage[]) => {
         if (!currentNetId) {
           return;
@@ -281,8 +371,22 @@ export const LocalStorageDemoApp = () => {
           return next;
         });
       },
+      ...(brunchVoiceMode
+        ? {
+            renderVoiceMode: brunchVoiceMode,
+          }
+        : {}),
     }),
-    [aiMessagesByNetId, currentNetId, setAiMessagesByNetId],
+    [
+      aiMessagesByNetId,
+      brunchVoiceMode,
+      conversationId,
+      currentNetId,
+      flueHistory.messages,
+      flueHistory.ready,
+      petrinautAiChatTransport,
+      setAiMessagesByNetId,
+    ],
   );
 
   if (!currentNet) {

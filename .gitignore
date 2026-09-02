@@ -98,6 +98,10 @@ blocks/**/.env
 **/build
 **/target
 **/pkg
+libs/@blockprotocol/type-system/typescript/src/generated
+libs/@local/codec/typescript/src/generated
+libs/@local/graph/authorization/typescript/src/generated
+libs/@local/graph/store/typescript/src/generated
 
 # vscode config
 **/.vscode/*
@@ -128,6 +132,8 @@ blocks/**/.env
 
 # generated files
 *.gen.*
+# TanStack Router plugin scratch output.
+.tanstack/
 *.tsbuildinfo
 feed.atom
 feed.rss

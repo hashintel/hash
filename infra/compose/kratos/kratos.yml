@@ -149,6 +149,9 @@ selfservice:
       enabled: true
       # Set `ui_url` through the `SELFSERVICE_FLOWS_RECOVERY_UI_URL` environment variable
       use: code
+      after:
+        hooks:
+          - hook: revoke_active_sessions
 
     settings:
       # Set `ui_url` through the `SELFSERVICE_FLOWS_SETTINGS_UI_URL` environment variable

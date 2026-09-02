@@ -159,7 +159,9 @@ X-Session-Token: {{session_token}}
   });
 %}
 
-### Invalid session token is rejected
+### Invalid session token reads as anonymous
+# The verified rejection degrades to anonymous, so an endpoint requiring an actor answers as it
+# would a request without credentials — not with the invalid-session text.
 GET http://127.0.0.1:4000/actors/machine/identifier/h
 Content-Type: application/json
 X-Session-Token: invalid-session-token
@@ -168,10 +170,10 @@ X-Session-Token: invalid-session-token
   client.test("status", function() {
     client.assert(response.status === 401, "Response status is not 401");
   });
-  client.test("session was verified against Kratos", function() {
+  client.test("invalid session degrades to anonymous", function() {
     client.assert(
-      response.body.message === "session is invalid or expired",
-      "Response message is not the invalid-session text"
+      response.body.message === "no credentials provided",
+      `Unexpected message: ${response.body.message}`
     );
   });
 %}

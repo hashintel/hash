@@ -528,8 +528,26 @@ export function compileScenario(
   const initialState: InitialMarking = createUserKeyedRecord();
   const typeById = new Map(types.map((t) => [t.id, t]));
 
-  if (scenario.initialState.type === "code") {
-    if (scenario.initialState.content.trim() !== "") {
+  if (scenario.initialState.type === "per_place") {
+    compilePerPlaceInitialState({
+      content: scenario.initialState.content,
+      hir,
+      context: expressionContext,
+      bindings,
+      placeById: new Map(places.map((p) => [p.id, p])),
+      typeById,
+      initialState,
+      errors,
+    });
+  } else {
+    // Code mode; an ad-hoc definition lowers to the same code-mode HIR
+    // (`lowerScenarioToHir` synthesizes it against the net), and its derived
+    // scenarioParameters and parameterOverrides are persisted on the
+    // scenario itself, which steps 1 and 2 already applied.
+    const hasCode =
+      scenario.initialState.type === "adhoc" ||
+      scenario.initialState.content.trim() !== "";
+    if (hasCode) {
       compileCodeModeInitialState({
         item: hir.initialStateCode,
         context: buildScenarioCodeContext(
@@ -545,17 +563,6 @@ export function compileScenario(
         errors,
       });
     }
-  } else {
-    compilePerPlaceInitialState({
-      content: scenario.initialState.content,
-      hir,
-      context: expressionContext,
-      bindings,
-      placeById: new Map(places.map((p) => [p.id, p])),
-      typeById,
-      initialState,
-      errors,
-    });
   }
 
   if (errors.length > 0) {

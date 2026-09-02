@@ -86,9 +86,10 @@ export const PlaybackProvider: React.FC<PlaybackProviderProps> = ({
   const [playback] = useState<Playback>(() =>
     createPlayback({ mode: playMode }),
   );
-  useEffect(() => {
-    return playback.dispose;
-  }, [playback]);
+  // Playback only owns in-memory state; its rAF and store subscriptions are
+  // cleaned up by their respective effects. Disposing this handle from an
+  // effect cleanup would permanently disable it during React StrictMode's
+  // development-only setup → cleanup → setup replay.
 
   const snapshot = useStore(playback.state);
   const { playState, frameIndex, speed, mode: requestedMode } = snapshot;

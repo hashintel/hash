@@ -34,9 +34,14 @@ type ModalData = {
 
 export const InheritanceRow = ({
   entityTypeId,
+  headingId,
   typeTitle,
 }: {
   entityTypeId: VersionedUrl;
+  /**
+   * The `Extends` heading this row sits under, which names it.
+   */
+  headingId: string;
   typeTitle: string;
 }) => {
   const [typeSelectorOpen, setTypeSelectorOpen] = useState(false);
@@ -203,7 +208,9 @@ export const InheritanceRow = ({
   return (
     <>
       <Stack
+        aria-labelledby={headingId}
         direction="row"
+        role="group"
         alignItems="center"
         sx={{ height: TYPE_SELECTOR_HEIGHT }}
       >

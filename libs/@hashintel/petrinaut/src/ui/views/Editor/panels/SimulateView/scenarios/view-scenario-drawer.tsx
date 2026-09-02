@@ -1,5 +1,5 @@
 import { useStore } from "@tanstack/react-form";
-import { use } from "react";
+import { use, useState } from "react";
 
 import { Button, Drawer } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -13,6 +13,10 @@ import { usePetrinautMutations } from "../../../../../../react";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { DrawerErrorDisplay } from "../drawer-error-display";
+import {
+  AdHocScenarioAuthoringBody,
+  useAdHocScenarioAuthoring,
+} from "./ad-hoc-scenario-authoring";
 import {
   ScenarioFormBody,
   type ScenarioFormInstance,
@@ -125,6 +129,99 @@ const ViewScenarioFooter = ({
   );
 };
 
+// -- Ad-hoc scenarios (initialState.type "adhoc") ------------------------------
+
+/**
+ * Editing a scenario the ad-hoc form authored: the same expose-mode form,
+ * seeded from the persisted state; saving re-derives the scenario's
+ * parameters and overrides. Rendered whatever the Ad-hoc scenarios setting
+ * says — the classical form cannot represent this scenario, and falling
+ * back to it would silently rewrite the initial state as per-place.
+ */
+const ViewAdHocScenarioContent = ({
+  scenario,
+  onClose,
+}: {
+  scenario: Scenario & { initialState: { type: "adhoc" } };
+  onClose: () => void;
+}) => {
+  const { petriNetDefinition } = use(SDCPNContext);
+  const { updateScenario } = usePetrinautMutations();
+  const existingScenarioNames = new Set(
+    (petriNetDefinition.scenarios ?? [])
+      .filter((candidate) => candidate.id !== scenario.id)
+      .map((candidate) => candidate.name),
+  );
+  // A schema rejection after a passing form would otherwise be a silent
+  // no-op click; surface it in the footer instead.
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const authoring = useAdHocScenarioAuthoring({
+    initial: {
+      name: scenario.name,
+      description: scenario.description ?? "",
+      state: scenario.initialState.content,
+    },
+    existingScenarioNames,
+  });
+
+  const save = () => {
+    const updated = authoring.buildScenario(scenario.id);
+    if (!updated) {
+      return;
+    }
+    const result = scenarioSchema.safeParse(updated);
+    if (!result.success) {
+      setSaveError(
+        result.error.issues[0]?.message ?? "The scenario failed validation.",
+      );
+      return;
+    }
+    updateScenario({
+      scenarioId: scenario.id,
+      update: {
+        name: result.data.name,
+        description: result.data.description,
+        scenarioParameters: result.data.scenarioParameters,
+        parameterOverrides: result.data.parameterOverrides,
+        initialState: result.data.initialState,
+      },
+    });
+    onClose();
+  };
+
+  return (
+    <Drawer showBackdrop={false} onClose={onClose} swapKey="scenario">
+      <Drawer.Header title={scenario.name} />
+      <AdHocScenarioAuthoringBody authoring={authoring} />
+      <Drawer.Footer
+        secondaryActions={
+          <DrawerErrorDisplay
+            count={authoring.errorCount + (saveError ? 1 : 0)}
+            firstMessage={authoring.firstError ?? saveError ?? undefined}
+          />
+        }
+        actions={
+          <>
+            <Button variant="subtle" tone="neutral" size="sm" onClick={onClose}>
+              Close
+            </Button>
+            <Button
+              variant="solid"
+              tone="neutral"
+              size="sm"
+              disabled={!authoring.canSave}
+              tooltip={authoring.firstError}
+              onClick={save}
+            >
+              Save
+            </Button>
+          </>
+        }
+      />
+    </Drawer>
+  );
+};
+
 // -- Inner content (remounts when scenario changes via `key`) -----------------
 
 const ViewScenarioContent = ({
@@ -219,6 +316,16 @@ export const ViewScenarioDrawer = ({
 }: ViewScenarioDrawerProps) => {
   if (!open || !scenario) {
     return null;
+  }
+
+  if (scenario.initialState.type === "adhoc") {
+    return (
+      <ViewAdHocScenarioContent
+        key={scenario.id}
+        scenario={scenario as Scenario & { initialState: { type: "adhoc" } }}
+        onClose={onClose}
+      />
+    );
   }
 
   return (

@@ -25,6 +25,7 @@ import { OptimizationsProvider } from "../../../../../react/optimizations/provid
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { UserSettingsProvider } from "../../../../../react/state/user-settings-provider";
 import { MonacoProvider } from "../../../../monaco/provider";
+import { SimulationCreationDrawer } from "../../simulation-creation-drawer";
 import {
   FakeEditorProvider,
   FakeExperimentsProvider,
@@ -58,11 +59,16 @@ const rootStyle = css({
   backgroundColor: "neutral.s00",
 });
 
+// Covers the story, so presses fall through to it — but the portalled
+// surfaces themselves are this layer's children and have to stay clickable.
 const portalContainerStyle = css({
   position: "absolute",
   inset: "[0]",
   zIndex: "modal",
   pointerEvents: "none",
+  "& > *": {
+    pointerEvents: "auto",
+  },
 });
 
 type StoryExample = {
@@ -317,6 +323,7 @@ const SimulateViewStory = ({
                     className={portalContainerStyle}
                   />
                   <SimulateView />
+                  <SimulationCreationDrawer />
                 </div>
               </FakeExperimentsProvider>
             </FakeEditorProvider>
@@ -359,6 +366,7 @@ const RunnableSimulateViewStory = ({
                           className={portalContainerStyle}
                         />
                         <SimulateView />
+                        <SimulationCreationDrawer />
                       </div>
                     </OptimizationsProvider>
                   </ExperimentsProvider>

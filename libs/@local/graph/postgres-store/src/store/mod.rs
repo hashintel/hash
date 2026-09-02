@@ -11,8 +11,8 @@ pub use self::{
         AsClient, BeginReadOnlyTransaction, Context, EntityDeletion, EntityEnd, EntityEvent,
         EntityEventStream, EntityUpdate, GenericClientIter, InTransaction, IsolationLevel,
         NoTransaction, PostgresStore, PostgresStorePool, PostgresStoreSettings,
-        PostgresStoreTransactionBuilder, Transaction, TransactionBuilder, TransactionOptions,
-        TransactionState,
+        PostgresStoreTransactionBuilder, SemanticSearchSettings, Transaction, TransactionBuilder,
+        TransactionOptions, TransactionState,
     },
     validation::{StoreCache, StoreProvider},
 };

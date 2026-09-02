@@ -149,39 +149,35 @@ export const probabilisticSatellitesSDCPN: {
         ],
         lambdaType: "predicate",
         lambdaCode: `// Check if two satellites collide (are within collision threshold)
-export default Lambda((tokens, parameters) => {
-  const { collision_threshold, satellite_radius } = parameters;
+const { collision_threshold, satellite_radius } = parameters;
 
-  // Get the two satellites
-  const [a, b] = tokens.Space;
+// Get the two satellites
+const [a, b] = input.Space;
 
-  // Calculate distance between satellites
-  const distance = Math.hypot(b.x - a.x, b.y - a.y);
+// Calculate distance between satellites
+const distance = Math.hypot(b.x - a.x, b.y - a.y);
 
-  // Collision occurs when the satellite surfaces are within the threshold
-  return distance < satellite_radius * 2 + collision_threshold;
-})`,
+// Collision occurs when the satellite surfaces are within the threshold
+return distance < satellite_radius * 2 + collision_threshold;`,
         transitionKernelCode: `// When satellites collide, they become debris (lose velocity)
-export default TransitionKernel((tokens) => {
-  // Both satellites become stationary debris at their collision point
-  return {
-    Debris: [
-      // Position preserved, direction and velocity zeroed
-      {
-        x: tokens.Space[0].x,
-        y: tokens.Space[0].y,
-        velocity: 0,
-        direction: 0
-      },
-      {
-        x: tokens.Space[1].x,
-        y: tokens.Space[1].y,
-        velocity: 0,
-        direction: 0
-      },
-    ]
-  };
-})`,
+// Both satellites become stationary debris at their collision point
+return {
+  Debris: [
+    // Position preserved, direction and velocity zeroed
+    {
+      x: input.Space[0].x,
+      y: input.Space[0].y,
+      velocity: 0,
+      direction: 0
+    },
+    {
+      x: input.Space[1].x,
+      y: input.Space[1].y,
+      velocity: 0,
+      direction: 0
+    },
+  ]
+};`,
         x: 18 * GRID_SIZE,
         y: 12 * GRID_SIZE,
       },
@@ -203,32 +199,28 @@ export default TransitionKernel((tokens) => {
         ],
         lambdaType: "predicate",
         lambdaCode: `// Check if satellite crashes into planet (within crash threshold of origin)
-export default Lambda((tokens, parameters) => {
-  const { planet_radius, crash_threshold, satellite_radius } = parameters;
+const { planet_radius, crash_threshold, satellite_radius } = parameters;
 
-  // Get satellite position
-  const { x, y } = tokens.Space[0];
+// Get satellite position
+const { x, y } = input.Space[0];
 
-  // Calculate distance from planet center (origin)
-  const distance = Math.hypot(x, y);
+// Calculate distance from planet center (origin)
+const distance = Math.hypot(x, y);
 
-  // Crash occurs if satellite is too close to planet
-  return distance < planet_radius + crash_threshold + satellite_radius;
-})`,
+// Crash occurs if satellite is too close to planet
+return distance < planet_radius + crash_threshold + satellite_radius;`,
         transitionKernelCode: `// When satellite crashes into planet, it becomes debris at crash site
-export default TransitionKernel((tokens) => {
-  return {
-    Debris: [
-      {
-        // Position preserved, direction and velocity zeroed
-        x: tokens.Space[0].x,
-        y: tokens.Space[0].y,
-        direction: 0,
-        velocity: 0
-      },
-    ]
-  };
-})`,
+return {
+  Debris: [
+    {
+      // Position preserved, direction and velocity zeroed
+      x: input.Space[0].x,
+      y: input.Space[0].y,
+      direction: 0,
+      velocity: 0
+    },
+  ]
+};`,
         x: 18 * GRID_SIZE,
         y: 1 * GRID_SIZE,
       },
@@ -243,26 +235,22 @@ export default TransitionKernel((tokens) => {
           },
         ],
         lambdaType: "stochastic",
-        lambdaCode: `export default Lambda((tokensByPlace, parameters) => {
-  return parameters.launch_rate;
-});`,
-        transitionKernelCode: `export default TransitionKernel((tokensByPlace, parameters) => {
-  const { planet_radius, altitude, initial_velocity } = parameters;
+        lambdaCode: `return parameters.launch_rate;`,
+        transitionKernelCode: `const { planet_radius, altitude, initial_velocity } = parameters;
 
-  const distance = planet_radius + altitude;
-  const angle = Distribution.Uniform(0, Math.PI * 2);
+const distance = planet_radius + altitude;
+const angle = Distribution.Uniform(0, Math.PI * 2);
 
-  return {
-    Space: [
-      {
-        x: angle.map(a => Math.cos(a) * distance),
-        y: angle.map(a => Math.sin(a) * distance),
-        direction: Distribution.Uniform(0, Math.PI * 2),
-        velocity: Distribution.Gaussian(initial_velocity, initial_velocity * 0.1)
-      }
-    ],
-  };
-});`,
+return {
+  Space: [
+    {
+      x: angle.map(a => Math.cos(a) * distance),
+      y: angle.map(a => Math.sin(a) * distance),
+      direction: Distribution.Uniform(0, Math.PI * 2),
+      velocity: Distribution.Gaussian(initial_velocity, initial_velocity * 0.1)
+    }
+  ],
+};`,
         x: -17 * GRID_SIZE,
         y: 2 * GRID_SIZE,
       },
@@ -303,27 +291,25 @@ export default TransitionKernel((tokens) => {
         colorId: "f8e9d7c6-b5a4-3210-fedc-ba9876543210",
         name: "Satellite Orbit Dynamics",
         code: `// Example of ODE for Satellite in orbit (simplified)
-export default Dynamics((tokens, parameters) => {
-  const mu = parameters.gravitational_constant; // Gravitational parameter
+const mu = parameters.gravitational_constant; // Gravitational parameter
 
-  // Process each token (satellite)
-  return tokens.map(({ x, y, direction, velocity }) => {
-    const r = Math.hypot(x, y); // Distance to planet center
+// Process each token (satellite)
+return tokens.map(({ x, y, direction, velocity }) => {
+  const r = Math.hypot(x, y); // Distance to planet center
 
-    // Gravitational acceleration vector (points toward origin)
-    const ax = (-mu * x) / (r * r * r);
-    const ay = (-mu * y) / (r * r * r);
+  // Gravitational acceleration vector (points toward origin)
+  const ax = (-mu * x) / (r * r * r);
+  const ay = (-mu * y) / (r * r * r);
 
-    // Return derivatives for this token
-    return {
-      x: velocity * Math.cos(direction),
-      y: velocity * Math.sin(direction),
-      direction:
-        (-ax * Math.sin(direction) + ay * Math.cos(direction)) / velocity,
-      velocity:
-        ax * Math.cos(direction) + ay * Math.sin(direction),
-    }
-  })
+  // Return derivatives for this token
+  return {
+    x: velocity * Math.cos(direction),
+    y: velocity * Math.sin(direction),
+    direction:
+      (-ax * Math.sin(direction) + ay * Math.cos(direction)) / velocity,
+    velocity:
+      ax * Math.cos(direction) + ay * Math.sin(direction),
+  }
 })`,
       },
     ],

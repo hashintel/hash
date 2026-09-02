@@ -1,5 +1,22 @@
 # @hashintel/petrinaut
 
+## Unreleased
+
+### Patch Changes
+
+- Add generic host-rendered AI composer controls and the provider-neutral `renderVoiceMode`
+  contract. Export `PetrinautAiInputMode` and expose stable Voice mode state, controls, and
+  exactly-once submission through the existing conversation. Text and Voice mode now share one
+  transcript and composer; its trailing action shows the waveform when empty, Send for typed text,
+  and Stop while the assistant is busy. `renderComposerControl` remains available independently.
+
+- Keep Voice mode mounted inline with the transcript, pause it before the panel closes, and reopen
+  it paused. Show provisional speech as an ephemeral user bubble, retain waveform provenance on
+  finalized spoken messages and exact interactive-tool answers without duplication, and end Voice
+  mode before handing typed text to the shared submission path. The compact state divider includes
+  live listening levels, reduced-motion speaking feedback, throttled announcements, overflow
+  actions, collapsed technical details, and actionable recovery.
+
 ## 0.0.19
 
 ### Patch Changes

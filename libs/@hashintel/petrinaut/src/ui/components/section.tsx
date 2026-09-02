@@ -37,8 +37,16 @@ const sectionStyle = css({
   zIndex: "[0]",
   // No vertical padding here — the sticky header owns its own padding so it
   // can fully cover scrolling content underneath it.
+  //
+  // A focused section paints over its unfocused siblings, but never over a
+  // sticky header: sections nest (a drawer section hosting the ad-hoc form,
+  // which brings its own), and the host's header sits at 2 in the same
+  // stacking context. Lifting a focused section above that let the nested
+  // section's title and rows paint straight through the header pinned above
+  // them, so 1 is the ceiling here — high enough to win against a sibling
+  // at 0, low enough to stay under every header.
   "&:focus-within": {
-    zIndex: "[3]",
+    zIndex: "[1]",
   },
 });
 
@@ -151,9 +159,17 @@ interface SectionProps {
   tooltip?: string;
   collapsible?: boolean;
   defaultOpen?: boolean;
+  /** Controls the collapsible state; leave unset for uncontrolled. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Unmounts the content while collapsed (default keeps it mounted). */
+  unmountOnCollapse?: boolean;
   fillHeight?: boolean;
   renderHeaderLeading?: () => ReactNode;
   renderHeaderAction?: () => ReactNode;
+  /** Registers the collapse trigger, e.g. for keyboard navigation. */
+  triggerRef?: (element: HTMLButtonElement | null) => void;
+  onTriggerKeyDown?: React.KeyboardEventHandler;
   children: ReactNode;
   className?: string;
 }
@@ -163,9 +179,14 @@ export const Section = ({
   tooltip,
   collapsible = false,
   defaultOpen = true,
+  open,
+  onOpenChange,
+  unmountOnCollapse = false,
   fillHeight = false,
   renderHeaderLeading,
   renderHeaderAction,
+  triggerRef,
+  onTriggerKeyDown,
   children,
   className,
 }: SectionProps) => {
@@ -183,6 +204,12 @@ export const Section = ({
     return (
       <Collapsible.Root
         defaultOpen={defaultOpen}
+        open={open}
+        onOpenChange={
+          onOpenChange ? (details) => onOpenChange(details.open) : undefined
+        }
+        lazyMount={unmountOnCollapse}
+        unmountOnExit={unmountOnCollapse}
         className={cx(sectionStyle, className)}
       >
         <div className={headerStyle}>
@@ -190,11 +217,13 @@ export const Section = ({
           {renderHeaderAction && <div>{renderHeaderAction()}</div>}
           <Collapsible.Trigger className={triggerButtonStyle} asChild>
             <TriggerButton
+              ref={triggerRef}
               size="xs"
               variant="ghost"
-              aria-label="Toggle section"
+              aria-label={`Toggle ${title} section`}
               iconName="chevronUp"
               tooltip="Toggle section"
+              onKeyDown={onTriggerKeyDown}
             />
           </Collapsible.Trigger>
         </div>

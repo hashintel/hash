@@ -18,9 +18,13 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 | **Name**                | `Experiment`                      | Free text.                                                                                                                                                                                                         |
 | **Scenario**            | `(Default)`                       | Either `(Default)` (no scenario; uses each place's manually-set initial marking and net-level parameter defaults) or one of your saved [scenarios](scenarios.md). An experiment runs against exactly one scenario. |
 | **Scenario parameters** | each scenario parameter's default | When a scenario is selected, you can override its scenario parameters per experiment. Expressions are evaluated once at start.                                                                                     |
-| **Runs**                | `1000`                            | Positive integer; how many independent simulations to run.                                                                                                                                                         |
-| **Time step (dt)**      | `0.1`                             | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)).                                                                                                                          |
-| **Max time (seconds)**  | `180`                             | Each run advances until simulation time reaches this value, then completes.                                                                                                                                        |
+
+With "No scenario" selected, the Scenario section shows the [ad-hoc scenario form](ad-hoc-scenarios.md): define the initial state and parameter values inline for this experiment, without saving a scenario. Left untouched, the experiment runs from the manually-set markings and defaults as before. The experiments table shows "Ad-hoc scenario" in its Scenario column for such runs.
+
+With a scenario selected (and ad-hoc scenarios enabled), the Scenario section shows it through the same form: the scenario parameters take value edits in worksheet style, and a collapsed **Computed state** sub-section underneath previews the exact parameter values and initial tokens each run will start with -- computed only when you open it, and recomputed as you change the values above. The preview sits in its own tinted panel and scrolls as one, so a net with many places leaves the rest of the drawer in reach.
+| **Runs** | `1000` | Positive integer; how many independent simulations to run. |
+| **Time step (dt)** | `0.1` | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)). |
+| **Max time (seconds)** | `180` | Each run advances until simulation time reaches this value, then completes. |
 
 The model used is a snapshot of the current net at the time you press **Run**. Editing the net afterwards does not change runs that have already started.
 
@@ -32,23 +36,40 @@ Experiments progress through five status labels:
 
 | Status           | Meaning                                                                                           |
 | ---------------- | ------------------------------------------------------------------------------------------------- |
-| **Initializing** | The experiment has been created and the worker is starting up.                                    |
+| **Initializing** | The experiment has been created and its workers are starting up.                                  |
 | **Running**      | Runs are in progress.                                                                             |
 | **Complete**     | All runs finished without error.                                                                  |
 | **Error**        | The experiment failed to start or hit an unrecoverable error. The drawer shows the error message. |
-| **Cancelled**    | You clicked **Cancel**, or the worker was cancelled.                                              |
+| **Cancelled**    | You clicked **Cancel**, or the experiment was cancelled.                                          |
 
-Each experiment runs in its own background Web Worker, so simulation playback and editor interactions stay responsive. Multiple experiments can run concurrently.
+Experiments run in background Web Workers, so simulation playback and editor interactions stay responsive. Multiple experiments can run concurrently.
+
+### Parallel runs
+
+Because every run is independent, an experiment splits its runs across several workers and runs them at the same time -- by default one worker per processor core, leaving one core free so the editor stays responsive. A 1000-run experiment on an 8-core machine runs roughly 4x faster than it would on a single worker.
+
+Each run's seed is derived from its position in the experiment rather than from which worker happens to execute it, and the per-frame statistics from each worker are combined into the same distributions you would get from running everything sequentially. Re-running an experiment with the same configuration and seed gives the same numbers regardless of how many cores the machine has, so long as runs keep going for the full experiment; when every run a worker owns stops early (for example, the net deadlocks), those runs stop counting toward later time points, which can shift late-experiment statistics slightly between machines with different core counts.
+
+Two consequences worth knowing:
+
+- Progress reports the slowest worker's position, so the progress bar never runs ahead of the results behind it.
+- Several experiments running at once each use the same number of workers, so they compete for cores and all of them slow down. Run them one at a time if you want any single one to finish as fast as possible.
 
 ### Actions
 
 In the experiment's view drawer (open it by clicking a row in the list, or any experiment in the top-bar **Active experiments** popover):
 
 - **Cancel** -- stops the experiment. Only available while it is initializing or running.
-- **Remove** -- deletes the record and disposes the worker. Available after completion, cancellation, or error.
+- **Remove** -- deletes the record and disposes the experiment's workers. Available after completion, cancellation, or error.
 - **Close** -- closes the drawer without affecting the experiment.
 
 There is no built-in restart action -- to re-run with the same configuration, **Create** a new experiment with the same settings.
+
+Opening and closing an existing experiment participates in Browser Back /
+Forward history on hosts with app navigation enabled. Experiment records and
+results remain session data: browser navigation can reopen a record while the
+current Petrinaut session is mounted, but reloading a copied experiment URL
+does not recreate the run.
 
 A confirmation prompt blocks browser/tab close while any experiment is initializing or running.
 

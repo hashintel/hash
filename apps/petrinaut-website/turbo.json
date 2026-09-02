@@ -2,12 +2,37 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["codegen", "examples:generate", "^build"],
       "outputs": ["dist/**"],
-      "cache": false
+      // `vite.config.ts` inlines these into the bundle through `define`, so a
+      // cached `dist` from one environment must never be restored for another.
+      // `loadEnv` reads them from `.env*` as well as the environment, and the
+      // gitignored `.env.local` is outside Turborepo's default inputs.
+      "env": ["SENTRY_DSN", "VITE_PETRINAUT_OPT_PROVIDER", "VITE_VERCEL_ENV"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"]
+    },
+    "codegen": {
+      "outputs": ["src/routeTree.gen.ts"]
+    },
+    "examples:generate": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "scripts/generate-example-artifacts.ts",
+        "src/examples/catalog-metadata.ts",
+        "src/examples/models/**",
+        "src/examples/normalize-example.ts"
+      ],
+      "outputs": ["src/examples/generated/**"]
     },
     "lint:tsc": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["codegen", "examples:generate", "^build"]
+    },
+    "test:unit": {
+      "dependsOn": ["codegen", "examples:generate", "^build"],
+      // Restated because a package task definition replaces the root one, and
+      // the root declares this so a coverage run cannot reuse a plain cache
+      // entry.
+      "env": ["TEST_COVERAGE"]
     }
   }
 }

@@ -91,7 +91,11 @@ class PetrinautSession:
     def from_model_file(
         path: str | os.PathLike[str], **options: Any
     ) -> PetrinautSession:
-        """Serve a model JSON file (``petrinaut serve --model <path> --stdio``)."""
+        """Serve a model file (``petrinaut serve --model <path> --stdio``).
+
+        The file may be YAML or JSON; the CLI detects the format from the
+        content.
+        """
         return PetrinautSession(
             serve_arguments=("--model", os.fspath(path), "--stdio"),
             **options,

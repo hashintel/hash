@@ -10,12 +10,39 @@
  */
 
 export { Petrinaut } from "./petrinaut";
-export type { PetrinautAiMessage } from "./views/Editor/panels/ai-assistant-panel";
+export type {
+  PetrinautAiMessage,
+  PetrinautAiMessageMetadata,
+} from "./views/Editor/panels/ai-assistant-panel";
 export type {
   PetrinautAiAssistant,
   PetrinautAiChatTransport,
   PetrinautProps,
 } from "./petrinaut";
+export type {
+  PetrinautAiComposerControl,
+  PetrinautAiComposerControlContext,
+  PetrinautAiComposerStatus,
+  PetrinautAiComposerSubmitTextResult,
+  PetrinautAiInputMode,
+  PetrinautAiVoiceMode,
+  PetrinautAiVoiceModeContext,
+  PetrinautAiVoiceModeControls,
+  PetrinautAiVoiceSessionPhase,
+  PetrinautAiVoiceSessionState,
+} from "./types/ai-assistant-composer-control";
+export type {
+  PetrinautNavigationAction,
+  PetrinautNavigationController,
+  PetrinautNavigationHistory,
+  PetrinautNavigationHistoryPolicy,
+  PetrinautNavigationIntent,
+  PetrinautNavigationOverlay,
+  PetrinautNavigationState,
+  PetrinautNavigationUpdate,
+  PetrinautNavigationUpdater,
+  PetrinautSimulateResource,
+} from "../react/navigation";
 export { definePetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
 export type {
   PetrinautAiInteractiveTool,

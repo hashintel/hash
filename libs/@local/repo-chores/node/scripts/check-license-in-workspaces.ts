@@ -5,31 +5,47 @@ import { globby } from "globby";
 
 import { getWorkspaceInfoLookup, monorepoRootDirPath } from "./shared/monorepo";
 
+const ignoredDirGlobs = [
+  "**/dist/**",
+  "**/node_modules/**",
+  "**/runner_venv/**",
+  "**/target/**",
+  "**/venv/**",
+  "**/.venv/**",
+];
+
+const cargoAndPyprojectGlobs = ["**/Cargo.toml", "**/pyproject.toml"];
+
 const script = async () => {
-  console.log("Checking license files in Yarn workspaces...");
+  console.log("Checking license files in package directories...");
 
   const yarnWorkspaceInfoLookup = await getWorkspaceInfoLookup();
 
-  const yarnWorkspaceDirPaths = [
-    monorepoRootDirPath,
-    ...Object.entries(yarnWorkspaceInfoLookup).map(([, yarnWorkspaceInfo]) =>
-      path.resolve(monorepoRootDirPath, yarnWorkspaceInfo.location),
-    ),
-  ];
+  const cargoAndPyprojectFilePaths = await globby(cargoAndPyprojectGlobs, {
+    absolute: true,
+    cwd: monorepoRootDirPath,
+    dot: true,
+    ignore: ignoredDirGlobs,
+  });
+
+  const packageDirPaths = [
+    ...new Set([
+      monorepoRootDirPath,
+      ...Object.entries(yarnWorkspaceInfoLookup).map(([, yarnWorkspaceInfo]) =>
+        path.resolve(monorepoRootDirPath, yarnWorkspaceInfo.location),
+      ),
+      ...cargoAndPyprojectFilePaths.map((manifestFilePath) =>
+        path.dirname(manifestFilePath),
+      ),
+    ]),
+  ].sort();
 
   const licenseFilePaths = await globby("**/licen{c,s}e*", {
     absolute: true,
     caseSensitiveMatch: false,
     cwd: monorepoRootDirPath,
     dot: true,
-    ignore: [
-      "**/dist/**",
-      "**/node_modules/**",
-      "**/runner_venv/**",
-      "**/target/**",
-      "**/venv/**",
-      "**/.venv/**",
-    ],
+    ignore: ignoredDirGlobs,
   });
 
   const misspelledLicenseFileSet = new Set<string>();
@@ -45,18 +61,13 @@ const script = async () => {
 
   let checkFailed = false;
 
-  for (const yarnWorkspaceDirPath of yarnWorkspaceDirPaths) {
-    const canonicalLicenseFilePath = path.resolve(
-      yarnWorkspaceDirPath,
-      "LICENSE.md",
-    );
+  for (const packageDirPath of packageDirPaths) {
+    const canonicalLicenseFilePath = path.resolve(packageDirPath, "LICENSE.md");
 
     const currentLicenseFilePaths = licenseFilePaths.filter(
       (licenseFilePath) =>
-        licenseFilePath.startsWith(yarnWorkspaceDirPath) &&
-        !licenseFilePath
-          .slice(yarnWorkspaceDirPath.length + 1)
-          .includes(path.sep),
+        licenseFilePath.startsWith(packageDirPath) &&
+        !licenseFilePath.slice(packageDirPath.length + 1).includes(path.sep),
     );
 
     let canonicalLicenseFilePathIsPresent = false;
@@ -130,7 +141,7 @@ const script = async () => {
   if (checkFailed) {
     console.log(
       chalk.red(
-        "Please make sure that each Yarn workspace has a LICENSE.md file. Additional license files need to be named as LICENSE-*.md (all caps)",
+        "Each directory holding a package.json, Cargo.toml or pyproject.toml needs a LICENSE.md file. Additional license files need to be named as LICENSE-*.md (all caps)",
       ),
     );
   }
@@ -138,7 +149,7 @@ const script = async () => {
   if (extraLicenseFilesArePresent) {
     console.log(
       chalk.yellow(
-        "You may want to delete or relocate extra license files which are not located in Yarn workspaces",
+        "You may want to delete or relocate extra license files which are not located in package directories",
       ),
     );
   }

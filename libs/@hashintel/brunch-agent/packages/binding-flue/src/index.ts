@@ -29,27 +29,37 @@ import {
   SWEEP_RESULT_STATUSES,
   advanceSweepHighWater,
   askProtocolInstructionFragments,
+  buildCompletionCueSignal,
   buildSettlementCheckSignal,
   buildReplyBindingSignalPayload,
   buildSweepExtractionPrompt,
+  buildSweepList,
   buildSweepRepairSignal,
+  completionDemands,
   computeUnaccountedAskAdvisories,
   createSweepExtractionResultSchema,
   createInitialSweepState,
   decidePendingAffordance,
   decideSettlementTrigger,
+  deriveCaptureStatus,
+  evaluateCompletion,
+  foldElicitedModel,
   mintAskAffordance,
   parseSweepState,
   pendingSweepRepair,
+  renderInstructions,
   reopenSweepAfterRefusal,
   settlementProtocolInstructionFragments,
+  slotAssertionExtractionGuidance,
   sweepableRange,
   toolName,
   type CaptureStore,
+  type CaptureStoreSnapshot,
   type FreeTextAffordanceValue,
   type Plugin,
   type SweepState,
 } from "@hashintel/brunch-agent";
+import { repertoire } from "@hashintel/brunch-agent/prompts";
 
 import { capturedUserEntryIdsForSession } from "./capture-accounting";
 import {
@@ -104,6 +114,31 @@ export function useElicitation(
   let pendingAtFinish = pending;
   let sweepState = parseSweepState(storedSweepState);
   const extractionResult = createSweepExtractionResultSchema(plugin);
+  const { definition } = plugin;
+  // The fold and the completion cue know slot assertions; a definition whose
+  // proposals do not include them has a model the harness cannot yet fold.
+  const slotModel =
+    definition?.proposals.some((p) => p.type === "slot-asserted") === true
+      ? definition
+      : undefined;
+  const demands =
+    slotModel === undefined ? undefined : completionDemands(slotModel);
+  // Read-time derivation, never stored: fold the active captures, evaluate
+  // completion over the objective slices, and render the cue (ADR-0003,
+  // ADR-0006). Returned as a tool result so the model sees a harness fact
+  // without any state reaching the instructions.
+  const completionCue = (snapshot: CaptureStoreSnapshot) => {
+    if (slotModel === undefined || demands === undefined) return undefined;
+    const model = foldElicitedModel(snapshot, slotModel);
+    const report = evaluateCompletion(model, demands);
+    const sweepList = buildSweepList(model, report, slotModel.patterns);
+    return {
+      ...report,
+      unsatisfied: report.failures.length,
+      unmapped: model.unmapped,
+      cue: buildCompletionCueSignal(model, report, sweepList).body,
+    };
+  };
   const writeAffordance = useDataWriter("affordance", {
     schema: FreeTextAffordance,
   });
@@ -163,10 +198,13 @@ export function useElicitation(
             await harness.prompt(
               buildSweepExtractionPrompt(
                 {
-                  targetDomain: plugin.targetDomain,
+                  targetFormalism: plugin.targetFormalism,
                   proposalNames: plugin.proposalCatalog.map(
                     (proposal) => proposal.name,
                   ),
+                  ...(slotModel === undefined
+                    ? {}
+                    : { guidance: slotAssertionExtractionGuidance(slotModel) }),
                 },
                 range,
               ),
@@ -208,13 +246,16 @@ export function useElicitation(
         applied.snapshot,
         session.sessionId,
       );
+      const appliedCaptureIds =
+        "appliedCaptureIds" in applied.value
+          ? applied.value.appliedCaptureIds
+          : [];
+      const completion =
+        slotModel === undefined ? undefined : completionCue(applied.snapshot);
       return {
         output: {
           status: "applied" as const,
-          appliedCaptureIds:
-            "appliedCaptureIds" in applied.value
-              ? applied.value.appliedCaptureIds
-              : [],
+          appliedCaptureIds,
           skippedDedupKeys:
             "skippedDedupKeys" in applied.value
               ? applied.value.skippedDedupKeys
@@ -223,6 +264,12 @@ export function useElicitation(
             ...("advisories" in applied.value ? applied.value.advisories : []),
             ...computeUnaccountedAskAdvisories(range, accountedEntryIds),
           ],
+          captures: applied.snapshot.captures.map((capture) =>
+            Object.assign({}, capture, {
+              status: deriveCaptureStatus(applied.snapshot, capture.id),
+            }),
+          ),
+          ...(completion === undefined ? {} : { completion }),
         },
       };
     },
@@ -258,7 +305,10 @@ export function useElicitation(
   });
 
   return [
-    ...askProtocolInstructionFragments(plugin.targetDomain),
+    ...askProtocolInstructionFragments(plugin.targetFormalism),
     ...settlementProtocolInstructionFragments(),
+    ...(definition === undefined
+      ? []
+      : [renderInstructions(repertoire, definition)]),
   ].join("\n\n");
 }

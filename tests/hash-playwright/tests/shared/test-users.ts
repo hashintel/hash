@@ -34,6 +34,11 @@ export const testUsers = {
   // Password
   pwChange: user("pw-change@example.com", "pw-change", "PW Change"),
   pwRecovery: user("pw-recovery@example.com", "pw-recovery", "PW Recovery"),
+  pwRecoverySignedIn: user(
+    "pw-recovery-signed-in@example.com",
+    "pw-recovery-signed-in",
+    "PW Recovery Signed In",
+  ),
 
   // MFA
   mfaEnable: user("mfa-enable@example.com", "mfa-enable", "MFA Enable"),

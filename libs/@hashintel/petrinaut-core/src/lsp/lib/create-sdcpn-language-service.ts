@@ -2,13 +2,16 @@ import ts from "typescript";
 
 import {
   createLanguageServiceHost,
+  virtualFileEquals,
   type LanguageServiceHostController,
   type VirtualFile,
 } from "./create-language-service-host";
 import {
+  generateAdHocSessionFiles,
   generateMetricSessionFiles,
   generateScenarioSessionFiles,
   generateVirtualFiles,
+  type AdHocSessionData,
   type MetricSessionData,
   type ScenarioSessionData,
 } from "./generate-virtual-files";
@@ -19,6 +22,11 @@ import type { SDCPN } from "../../types/sdcpn";
 /**
  * Adjusts diagnostic positions to account for injected prefix and suffix.
  * Diagnostics in the suffix area are clamped to the end of user content.
+ * Diagnostics in the prefix keep their (negative) adjusted offset: some are
+ * load-bearing with no user-side twin — the scenario/metric wrappers rely on
+ * TS2355 ("must return a value"), reported on the wrapper signature, to flag
+ * a body that never returns — and editors clamp negative offsets to the
+ * start of the document.
  */
 function adjustDiagnostics<T extends ts.Diagnostic>(
   diagnostics: readonly T[],
@@ -83,10 +91,7 @@ export class SDCPNLanguageServer {
         this.controller.addFile(name, newFile);
       } else {
         const existing = this.controller.getFile(name)!;
-        if (
-          existing.content !== newFile.content ||
-          existing.prefix !== newFile.prefix
-        ) {
+        if (!virtualFileEquals(existing, newFile)) {
           this.controller.updateFile(name, newFile);
         }
       }
@@ -117,11 +122,7 @@ export class SDCPNLanguageServer {
         this.controller.addFile(name, newFile);
       } else {
         const existing = this.controller.getFile(name)!;
-        if (
-          existing.content !== newFile.content ||
-          existing.prefix !== newFile.prefix ||
-          existing.suffix !== newFile.suffix
-        ) {
+        if (!virtualFileEquals(existing, newFile)) {
           this.controller.updateFile(name, newFile);
         }
       }
@@ -141,6 +142,57 @@ export class SDCPNLanguageServer {
   /** Get all file paths that belong to a scenario session. */
   getScenarioFileNames(sessionId: string): string[] {
     const sessionPrefix = `/_temp/scenarios/${sessionId}/`;
+    return this.controller
+      .getFileNames()
+      .filter((name) => name.startsWith(sessionPrefix));
+  }
+
+  /**
+   * Sync virtual files for an ad-hoc scenario editing session.
+   * Updates content from the session data (form state is the source of truth).
+   */
+  syncAdHocFiles(sdcpn: SDCPN, session: AdHocSessionData): void {
+    const sessionPrefix = `/_temp/adhoc/${session.sessionId}/`;
+    const newFiles = generateAdHocSessionFiles(sdcpn, session);
+
+    for (const existingName of this.controller.getFileNames()) {
+      if (
+        existingName.startsWith(sessionPrefix) &&
+        !newFiles.has(existingName)
+      ) {
+        this.controller.removeFile(existingName);
+      }
+    }
+
+    for (const [name, newFile] of newFiles) {
+      if (!this.controller.hasFile(name)) {
+        this.controller.addFile(name, newFile);
+      } else {
+        const existing = this.controller.getFile(name)!;
+        if (
+          existing.content !== newFile.content ||
+          existing.prefix !== newFile.prefix ||
+          existing.suffix !== newFile.suffix
+        ) {
+          this.controller.updateFile(name, newFile);
+        }
+      }
+    }
+  }
+
+  /** Remove all virtual files for an ad-hoc scenario session. */
+  removeAdHocSession(sessionId: string): void {
+    const sessionPrefix = `/_temp/adhoc/${sessionId}/`;
+    for (const name of this.controller.getFileNames()) {
+      if (name.startsWith(sessionPrefix)) {
+        this.controller.removeFile(name);
+      }
+    }
+  }
+
+  /** Get all file paths that belong to an ad-hoc scenario session. */
+  getAdHocFileNames(sessionId: string): string[] {
+    const sessionPrefix = `/_temp/adhoc/${sessionId}/`;
     return this.controller
       .getFileNames()
       .filter((name) => name.startsWith(sessionPrefix));
@@ -170,11 +222,7 @@ export class SDCPNLanguageServer {
         this.controller.addFile(name, newFile);
       } else {
         const existing = this.controller.getFile(name)!;
-        if (
-          existing.content !== newFile.content ||
-          existing.prefix !== newFile.prefix ||
-          existing.suffix !== newFile.suffix
-        ) {
+        if (!virtualFileEquals(existing, newFile)) {
           this.controller.updateFile(name, newFile);
         }
       }
@@ -204,13 +252,14 @@ export class SDCPNLanguageServer {
     this.controller.updateContent(fileName, content);
   }
 
-  /** Get the full text content (prefix + user content) of a virtual file. */
+  /** Get the full text content (prefix + user content + suffix) of a virtual
+   * file — the text the TypeScript service checks. */
   getFileContent(fileName: string): string | undefined {
     const file = this.controller.getFile(fileName);
     if (!file) {
       return undefined;
     }
-    return (file.prefix ?? "") + file.content;
+    return (file.prefix ?? "") + file.content + (file.suffix ?? "");
   }
 
   /** Get only the user-visible content of a virtual file (without the injected prefix). */

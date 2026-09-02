@@ -149,9 +149,11 @@ export const MULTIPLE_VALUES_CELL_WIDTH = 170;
 
 export const MultipleValuesCell = ({
   index,
+  typeTitle,
   variant,
 }: {
   index: number;
+  typeTitle: string;
   variant: "property" | "link";
 }) => {
   const { control, setValue } = useFormContext<EntityTypeEditorFormData>();
@@ -274,6 +276,7 @@ export const MultipleValuesCell = ({
             <Checkbox
               {...arrayController.field}
               checked={arrayController.field.value}
+              inputProps={{ "aria-label": `Allow multiple: ${typeTitle}` }}
               onChange={(evt) => {
                 handleArrayChange(evt.target.checked);
               }}

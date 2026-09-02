@@ -47,8 +47,15 @@ type PetrinautAiUiTools = {
   };
 };
 
+/** Persisted provenance for finalized input submitted through Voice mode. */
+export type PetrinautAiMessageMetadata = {
+  source: "voice";
+  /** Identifies the interactive tool output carrying the spoken answer. */
+  toolCallId?: string;
+};
+
 export type PetrinautAiMessage = UIMessage<
-  unknown,
+  PetrinautAiMessageMetadata,
   UIDataTypes,
   PetrinautAiUiTools
 >;

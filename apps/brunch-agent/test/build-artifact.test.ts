@@ -40,13 +40,17 @@ beforeAll(() => {
 
 /** The pinned identity of every agent module in the app, read from source. */
 function declaredAgentIdentities(): string[] {
-  const agentSource = readFileSync(
-    join(DEV_APP, "src/agents/gherkin-elicitor.ts"),
-    "utf8",
-  );
-  return [
-    ...agentSource.matchAll(/\w+\.agentName\s*=\s*(["'])([^"']+)\1/gu),
-  ].map((match) => match[2]!);
+  const agentsDirectory = join(DEV_APP, "src/agents");
+  return readdirSync(agentsDirectory)
+    .filter((entry) => entry.endsWith(".ts"))
+    .flatMap((entry) =>
+      Array.from(
+        readFileSync(join(agentsDirectory, entry), "utf8").matchAll(
+          /\w+\.agentName\s*=\s*(["'])([^"']+)\1/gu,
+        ),
+      ),
+    )
+    .map((match) => match[2]!);
 }
 
 describe("the emitted server bundle", () => {
@@ -91,7 +95,12 @@ describe("the emitted server bundle", () => {
     // default-adapter fallback, so both match even when the mount or db.ts
     // never reach the bundle. (Bare `/agents/` is no better — a bundler
     // region comment for `src/agents/` carries it.)
-    expect(bundle).toContain("route(`/agents/"); // app.ts's mount call
+    expect(bundle).toContain(
+      "app.route(chatAgentMount, createAgentRouter(ChatAgent));",
+    );
+    expect(bundle).toContain(
+      `chatAgentMount = \`/agents/\${CHAT_AGENT_ROUTE}\``,
+    );
     expect(bundle).toContain("BRUNCH_DEV_DB_PATH"); // db.ts's env override
     expect(bundle).toContain(".data-wipe-me"); // db.ts's default store path
   });

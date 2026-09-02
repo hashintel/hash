@@ -1,7 +1,29 @@
-import babel from "@rolldown/plugin-babel";
-import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import react from "@vitejs/plugin-react";
 import { dts } from "rolldown-plugin-dts";
 import { defineConfig, esmExternalRequirePlugin } from "vite";
+
+const declarationFilePattern = /\.d\.[cm]?ts$/;
+
+const externalDependencies = [
+  "@hashintel/ds-components",
+  "@hashintel/ds-helpers",
+  /^@hashintel\/petrinaut-core(\/.*)?$/,
+  "react",
+  "react-dom",
+  "@xyflow/react",
+  "@babel/standalone",
+  // Pure-CJS dep pulled in transitively by @tanstack/react-form →
+  // @tanstack/react-store. Rolldown can't safely transform its
+  // `require("react")` when react is external, so it falls back to a
+  // runtime require helper that throws in the browser. Externalising it
+  // pushes CJS→ESM interop to the consumer's bundler.
+  /^use-sync-external-store(\/.*)?$/,
+] as const;
+
+const isExternalDependency = (id: string) =>
+  externalDependencies.some((dependency) =>
+    typeof dependency === "string" ? id === dependency : dependency.test(id),
+  );
 
 /**
  * Library build config
@@ -9,8 +31,8 @@ import { defineConfig, esmExternalRequirePlugin } from "vite";
 export default defineConfig(({ command }) => ({
   build: {
     lib: {
-      // Three entry points: the legacy `main` (back-compat), plus the
-      // React/UI split per RFC 0001. Each emits its own JS + dts bundle.
+      // Keep the legacy `main` entry for back-compat alongside the React/UI
+      // split from RFC 0001 and the preset consumed by host Panda pipelines.
       entry: {
         main: "src/main.ts",
         react: "src/react/index.ts",
@@ -27,33 +49,25 @@ export default defineConfig(({ command }) => ({
       formats: ["es"],
     },
     rolldownOptions: {
-      external: [
-        "@hashintel/ds-components",
-        "@hashintel/ds-helpers",
-        /^@hashintel\/petrinaut-core(\/.*)?$/,
-        "react",
-        "react-dom",
-        "@xyflow/react",
-        "@babel/standalone",
-        // Pure-CJS dep pulled in transitively by @tanstack/react-form →
-        // @tanstack/react-store. Rolldown can't safely transform its
-        // `require("react")` when react is external, so it falls back to a
-        // runtime require helper that throws in the browser. Externalising it
-        // pushes CJS→ESM interop to the consumer's bundler.
-        /^use-sync-external-store(\/.*)?$/,
-      ],
-      output: {
-        globals: {
-          react: "React",
-          "react-dom": "ReactDOM",
-        },
-      },
+      external: (id, importer) =>
+        isExternalDependency(id) ||
+        // Keep the AI SDK's transitive declaration graph out of Petrinaut's
+        // bundled types without externalizing its runtime JavaScript.
+        (id === "ai" &&
+          importer !== undefined &&
+          declarationFilePattern.test(importer)),
     },
     sourcemap: true,
     minify: true,
     // Vite 8 defaults to LightningCSS which is still unstable.
     // e.g. https://github.com/parcel-bundler/lightningcss/issues/695
     cssMinify: "esbuild",
+  },
+
+  // rolldown-plugin-dts emits declaration modules that Vite must not
+  // transform as JavaScript. Setting this replaces Vite's default exclusions.
+  oxc: {
+    exclude: [/\.js$/, declarationFilePattern],
   },
 
   plugins: [
@@ -65,8 +79,7 @@ export default defineConfig(({ command }) => ({
       ],
     }),
 
-    react(),
-    babel({
+    react({
       // Default excludes node_modules. Also skip workspace `dist/` outputs:
       // those are pre-bundled JSX → `jsx(tag, { ref, ... })` calls, and
       // React Compiler flags the inlined `ref` prop as "Passing a ref to a
@@ -74,25 +87,17 @@ export default defineConfig(({ command }) => ({
       exclude: [
         /[\\/]node_modules[\\/]/,
         /[\\/]libs[\\/]@hashintel[\\/][^\\/]+[\\/]dist[\\/]/,
+        declarationFilePattern,
         /^0rolldown\/runtime\.js$/,
       ],
-      presets: [
-        reactCompilerPreset({
-          target: "19",
-          compilationMode: "infer",
-          // @ts-expect-error - panicThreshold is accepted at runtime
-          panicThreshold: "critical_errors",
-        }),
-      ],
+      compiler: {
+        target: "19",
+        compilationMode: "infer",
+        panicThreshold: "critical_errors",
+      },
     }),
 
-    command === "build" &&
-      dts({ tsgo: true }).map((plugin) =>
-        // Ensure runs before Vite's native TypeScript transform
-        plugin.name.endsWith("fake-js")
-          ? { ...plugin, enforce: "pre" }
-          : plugin,
-      ),
+    command === "build" && dts({ generator: "tsgo" }),
   ],
 
   experimental: {

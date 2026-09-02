@@ -15,7 +15,7 @@ Select a place and open the **State** sub-view in its properties:
 
 If no initial marking is set, a place starts empty (zero tokens).
 
-When a [scenario](scenarios.md) is selected in Simulation Settings, the per-place State sub-view becomes read-only ("Defined by scenario") and the scenario's initial state is used instead.
+When a [scenario](scenarios.md) is selected in Simulation Settings, the per-place State sub-view becomes read-only ("Defined by scenario") and the scenario's initial state is used instead. With no scenario selected, an [ad-hoc initial state](ad-hoc-scenarios.md) defined in the panel's Initial state column likewise takes precedence over the manual marking for every place it defines — the State sub-view stays editable, but the run uses the ad-hoc value until you clear the definition.
 
 ## Simulation settings
 
@@ -25,14 +25,14 @@ Open the **Simulation Settings** tab in the bottom panel to configure:
 
 The **Scenario** dropdown lists "No scenario" plus every saved [scenario](scenarios.md). Selecting a scenario overrides parameters and the per-place initial marking with the scenario's values for this run. The picker is locked while a simulation is running; reset to change scenario.
 
-Quick-action buttons next to the picker let you edit the selected scenario, create a new scenario, or jump to the [Scenarios](scenarios.md) management view in Simulate mode.
+Quick-action buttons next to the picker let you edit the selected scenario, create a new scenario, or jump to the [Scenarios](scenarios.md) management view in Simulate mode. With "No scenario" selected, the panel becomes an [ad-hoc scenario](ad-hoc-scenarios.md) for the next run, without saving anything: **Variables** and **Parameters** share the left column and an **Initial state** column fills the right; a **Clear** button next to the Initial state title resets it.
 
 ### Parameters
 
 Override values for this run:
 
 - With **No scenario** selected: each [net-level parameter](petri-net-extensions.md#global-parameters) shows its name and variable name. Boolean parameters use a toggle; real and integer parameters use a numeric input pre-filled with the default.
-- With a scenario selected: the **scenario parameters** are shown instead, pre-filled with that scenario's defaults. Net-level parameter values are fixed by the scenario's [parameter bindings](scenarios.md#parameter-bindings) and are not editable here.
+- With a scenario selected: the **scenario parameters** are shown instead, pre-filled with that scenario's defaults. Net-level parameter values are fixed by the scenario's [parameter bindings](scenarios.md#parameter-bindings) and are not editable here. Every selected scenario shows through the [ad-hoc form](ad-hoc-scenarios.md): its scenario parameters take value edits in the left column, and its parameter overrides and initial state sit read-only in the right one -- browsable with the same keyboard navigation, but only a scenario edit (the pencil next to the picker) changes them. A scenario saved from the ad-hoc form shows its definition; any other scenario shows a computed preview of the exact tokens the run will start with, recomputed as you change parameter values (very large places preview their first 100 rows).
 
 Changes here do not modify the parameter definition or the scenario -- they only apply to the simulation. Parameter values are locked while a simulation is running. Reset the simulation to change them.
 
@@ -66,11 +66,11 @@ Each simulation step proceeds in two phases:
 1. **Continuous dynamics** -- for every place with dynamics enabled, the differential equation is integrated one step (Euler method, step size = dt). This updates all token dimension values.
 
 2. **Discrete transitions** -- transitions are evaluated in definition order (deterministic, not random). For each transition:
-   - Checks structural enablement (enough tokens for standard/read input arcs, inhibitor conditions met).
+   - Checks structural enablement (enough tokens for standard/read input arcs, inhibitor conditions met, and enough room in any output place with a [token capacity](drawing-a-net.md#token-capacity)).
    - Evaluates the lambda when one is active for the transition. If no lambda is active, the transition is treated as enabled once its structural arc conditions are met.
    - If the transition fires, removes standard input tokens **immediately** (subsequent transitions see the updated state). Read and inhibitor arcs do not consume tokens.
 
-   All produced output tokens are added at the end of the step. If no transition kernel is active, uncoloured output tokens are generated from the output arc weights.
+   All produced output tokens are added at the end of the step. If no transition kernel is active, uncoloured output tokens are generated from the output arc weights. Because output is applied at the end of the step, capacity accounts for tokens that transitions earlier in the same step have already produced -- several transitions feeding one capped place cannot collectively overflow it.
 
 Simulation time advances by `dt` each frame.
 
@@ -81,6 +81,8 @@ If no transition fires in a step **and** no transition is structurally enabled (
 This only stops computation: the simulation will continue to playback computed frames until no more are available.
 
 If transitions are structurally enabled but their lambdas prevent firing, the simulation continues stepping.
+
+A transition blocked only because its output place is at [capacity](drawing-a-net.md#token-capacity) is _not_ structurally enabled, so a net whose remaining transitions are all blocked by full places reports deadlock rather than stepping on with nothing happening.
 
 ## Playback controls
 

@@ -11,24 +11,26 @@
  */
 
 import { tmpdir } from "node:os";
-import { dirname, isAbsolute, join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, test } from "vitest";
 
-import { conversationDbPath } from "../src/db-path";
-import { targetDocumentPath } from "../src/target-document-path";
+import { conversationDbPath, captureStorePath } from "../src/db-path";
 
 const appDir = fileURLToPath(new URL("..", import.meta.url));
 
 describe("the conversation store path", () => {
   const originalCwd = process.cwd();
   const originalOverride = process.env.BRUNCH_DEV_DB_PATH;
+  const originalChatDb = process.env.BRUNCH_CHAT_DB_PATH;
 
   afterEach(() => {
     process.chdir(originalCwd);
     if (originalOverride === undefined) delete process.env.BRUNCH_DEV_DB_PATH;
     else process.env.BRUNCH_DEV_DB_PATH = originalOverride;
+    if (originalChatDb === undefined) delete process.env.BRUNCH_CHAT_DB_PATH;
+    else process.env.BRUNCH_CHAT_DB_PATH = originalChatDb;
   });
 
   test("is anchored to the package, wherever the process was launched from", () => {
@@ -57,26 +59,29 @@ describe("the conversation store path", () => {
   });
 });
 
-describe("the target-document store path", () => {
-  const originalOverride = process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR;
+describe("the capture store path", () => {
+  const originalChatDb = process.env.BRUNCH_CHAT_DB_PATH;
+  const originalOverride = process.env.BRUNCH_DEV_DB_PATH;
 
   afterEach(() => {
-    if (originalOverride === undefined)
-      delete process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR;
-    else process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR = originalOverride;
+    if (originalChatDb === undefined) delete process.env.BRUNCH_CHAT_DB_PATH;
+    else process.env.BRUNCH_CHAT_DB_PATH = originalChatDb;
+    if (originalOverride === undefined) delete process.env.BRUNCH_DEV_DB_PATH;
+    else process.env.BRUNCH_DEV_DB_PATH = originalOverride;
   });
 
-  test("uses a stable opaque filename below the host-selected directory", () => {
-    process.env.BRUNCH_DEV_TARGET_DOCUMENT_DIR =
-      "/tmp/brunch-target-documents-test";
-    const first = targetDocumentPath("../shared-target");
-
-    expect(first).toBe(targetDocumentPath("../shared-target"));
-    expect(dirname(first)).toBe("/tmp/brunch-target-documents-test");
-    expect(first).not.toContain("shared-target");
+  test("sits beside the conversation database, named by Flue instance id", () => {
+    delete process.env.BRUNCH_CHAT_DB_PATH;
+    delete process.env.BRUNCH_DEV_DB_PATH;
+    expect(captureStorePath("flue-instance-1")).toBe(
+      join(appDir, ".data-wipe-me", "flue-instance-1.json"),
+    );
   });
 
-  test("refuses an empty target-document identity", () => {
-    expect(() => targetDocumentPath("")).toThrow("cannot be empty");
+  test("follows the hermetic chat database directory", () => {
+    process.env.BRUNCH_CHAT_DB_PATH = join(tmpdir(), "conversations.db");
+    expect(captureStorePath("flue-instance-1")).toBe(
+      join(tmpdir(), "flue-instance-1.json"),
+    );
   });
 });

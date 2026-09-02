@@ -41,9 +41,7 @@ const withoutIncumbentChatHandler = (
 export default defineConfig(async (environment) => {
   const websiteRoot = process.env.PETRINAUT_WEBSITE_ROOT;
   if (!websiteRoot) {
-    throw new Error(
-      "PETRINAUT_WEBSITE_ROOT must point at hash/apps/petrinaut-website for the real-panel run.",
-    );
+    throw new Error("PETRINAUT_WEBSITE_ROOT is required.");
   }
   const root = resolve(websiteRoot);
   // Babel resolves the React compiler plugin from the launched project's cwd,

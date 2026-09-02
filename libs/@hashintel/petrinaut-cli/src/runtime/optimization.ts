@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import {
   compileScenario,
   deriveRunSeed,
+  parseDocumentText,
   petrinautOptimizationEvaluateParamsSchema,
   petrinautOptimizationManifestSchema,
 } from "@hashintel/petrinaut-core";
@@ -55,13 +56,11 @@ export async function loadOptimizationManifest(
   path: string,
 ): Promise<PetrinautOptimizationManifest> {
   const text = await readFile(path, "utf8");
-  let data: unknown;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error("Optimization manifest must be valid JSON");
+  const document = parseDocumentText(text);
+  if (!document.ok) {
+    throw new Error(`Invalid optimization manifest: ${document.error}`);
   }
-  return parseOptimizationManifest(data);
+  return parseOptimizationManifest(document.data);
 }
 
 function describeParameter(
@@ -181,7 +180,14 @@ export function createOptimizationProtocol(args: {
 
   // Lower the scenario's expressions once per study; each trial re-runs only
   // the type-check and the interpreter with that trial's parameter values.
-  const scenarioHir = lowerScenarioToHir(scenario);
+  const definition = manifest.model.definition;
+  const scenarioHir = lowerScenarioToHir(scenario, {
+    adHocContext: {
+      netParameters: definition.parameters,
+      places: definition.places,
+      types: definition.types,
+    },
+  });
 
   return {
     describe() {

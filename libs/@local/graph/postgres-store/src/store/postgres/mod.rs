@@ -8,7 +8,9 @@ mod seed_policies;
 mod traversal_context;
 
 use alloc::{borrow::Cow, sync::Arc};
-use core::{borrow::Borrow, fmt::Debug, hash::Hash, marker::PhantomData};
+use core::{
+    borrow::Borrow, fmt::Debug, hash::Hash, marker::PhantomData, num::NonZero, ops::RangeInclusive,
+};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, TryReportStreamExt as _};
@@ -91,6 +93,55 @@ use crate::store::error::{
     StoreError, VersionedUrlAlreadyExists,
 };
 
+/// The range `hnsw.ef_search` accepts.
+const HNSW_EF_SEARCH_RANGE: RangeInclusive<usize> = 1..=1000;
+
+/// How a semantic search walks the vector index before its results are re-scored exactly.
+#[derive(Debug, Clone, Copy)]
+pub struct SemanticSearchSettings {
+    /// Multiplier from a search's limit to the number of candidates ranked on the quantized
+    /// embedding.
+    ///
+    /// The exact re-scoring only reorders the candidates the walk produced, so this decides
+    /// whether a true neighbour can reach the result at all. It covers the quantization's
+    /// misordering alone — filters participate in the ranking itself, never in the re-scoring.
+    pub candidate_overfetch: NonZero<usize>,
+
+    /// Lower bound for `hnsw.ef_search`.
+    ///
+    /// Deriving the search list from the candidate pool alone leaves the walk shallow for
+    /// searches asking for few results, which is where a missed neighbour is most likely.
+    pub minimum_ef_search: usize,
+}
+
+impl Default for SemanticSearchSettings {
+    fn default() -> Self {
+        Self {
+            candidate_overfetch: NonZero::new(4).expect("4 is not zero"),
+            minimum_ef_search: 400,
+        }
+    }
+}
+
+impl SemanticSearchSettings {
+    /// The number of candidates to rank for a search returning at most `limit` records.
+    #[must_use]
+    pub const fn candidate_pool(&self, limit: usize) -> usize {
+        limit.saturating_mul(self.candidate_overfetch.get())
+    }
+
+    /// The size of the search list a walk over `candidate_pool` candidates uses.
+    ///
+    /// A scan stops once its list is exhausted, so the list must hold the whole pool; the
+    /// iterative scan resumes the walk beyond the setting's upper bound.
+    #[must_use]
+    pub fn ef_search(&self, candidate_pool: usize) -> usize {
+        candidate_pool
+            .max(self.minimum_ef_search)
+            .clamp(*HNSW_EF_SEARCH_RANGE.start(), *HNSW_EF_SEARCH_RANGE.end())
+    }
+}
+
 #[derive(Debug)]
 pub struct PostgresStoreSettings {
     pub validate_links: bool,
@@ -100,6 +151,7 @@ pub struct PostgresStoreSettings {
     /// When set, filters on protected properties will automatically exclude
     /// specified entity types to prevent enumeration attacks.
     pub filter_protection: PropertyProtectionFilterConfig<'static>,
+    pub semantic_search: SemanticSearchSettings,
 }
 
 impl Default for PostgresStoreSettings {
@@ -108,6 +160,7 @@ impl Default for PostgresStoreSettings {
             validate_links: true,
             skip_embedding_creation: false,
             filter_protection: PropertyProtectionFilterConfig::hash_default(),
+            semantic_search: SemanticSearchSettings::default(),
         }
     }
 }
@@ -4268,5 +4321,76 @@ where
             .change_context(DeletionError)?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::num::NonZero;
+
+    use super::{HNSW_EF_SEARCH_RANGE, SemanticSearchSettings};
+
+    fn settings(candidate_overfetch: usize, minimum_ef_search: usize) -> SemanticSearchSettings {
+        SemanticSearchSettings {
+            candidate_overfetch: NonZero::new(candidate_overfetch)
+                .expect("the test overfetch should be non-zero"),
+            minimum_ef_search,
+        }
+    }
+
+    #[test]
+    fn candidate_pool_scales_with_the_limit() {
+        let settings = settings(4, 400);
+
+        assert_eq!(settings.candidate_pool(0), 0);
+        assert_eq!(settings.candidate_pool(1), 4);
+        assert_eq!(settings.candidate_pool(100), 400);
+        assert_eq!(
+            settings.candidate_pool(usize::MAX),
+            usize::MAX,
+            "an unreachable limit should saturate instead of wrapping"
+        );
+    }
+
+    #[test]
+    fn ef_search_holds_the_whole_pool() {
+        let settings = settings(4, 1);
+
+        assert_eq!(settings.ef_search(40), 40);
+        assert_eq!(
+            settings.ef_search(4000),
+            *HNSW_EF_SEARCH_RANGE.end(),
+            "a pool beyond the setting's range should cap, leaving the rest to the iterative scan"
+        );
+    }
+
+    #[test]
+    fn ef_search_keeps_the_walk_deep_for_small_pools() {
+        let settings = settings(4, 400);
+
+        assert_eq!(
+            settings.ef_search(4),
+            400,
+            "a search for a single record should still walk deeply"
+        );
+        assert_eq!(
+            settings.ef_search(800),
+            800,
+            "a pool above the floor should decide the walk itself"
+        );
+    }
+
+    #[test]
+    fn ef_search_stays_within_the_accepted_range() {
+        assert_eq!(
+            settings(4, 0).ef_search(0),
+            *HNSW_EF_SEARCH_RANGE.start(),
+            "an empty pool should still emit a value the setting accepts"
+        );
+        assert_eq!(
+            settings(4, usize::MAX).ef_search(0),
+            *HNSW_EF_SEARCH_RANGE.end(),
+            "an unreachable floor should cap instead of being emitted"
+        );
     }
 }

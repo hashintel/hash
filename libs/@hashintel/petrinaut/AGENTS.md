@@ -4,7 +4,7 @@ Visual editor for Stochastic Dynamic Colored Petri Nets (SDCPN). Published npm p
 
 ## Stack
 
-- React 19 with React Compiler (babel-plugin-react-compiler)
+- React 19 with React Compiler (oxc-transform-react)
 - TypeScript (type-checked with `tsgo`)
 - Vite 8 + Rolldown (library build + demo site)
 - Panda CSS for styling
@@ -45,3 +45,49 @@ yarn test:unit        # Unit tests (vitest)
 - Styles via Panda CSS (`css()`, `cva()` from `@hashintel/ds-helpers/css`)
 - No `@local/*` imports — this is a published package
 - Prefix unused parameters with `_`
+
+## User-facing docs
+
+The Petrinaut user guide lives at `docs/*.md` and is the source of truth for end-user behaviour. The in-app AI assistant reads these pages at runtime via the `readPetrinautDoc` tool, so stale docs lead directly to wrong advice in the product.
+
+When you change UI or behaviour in `petrinaut` or `petrinaut-core`, you MUST:
+
+1. Review the user-facing docs that mention the affected feature and update them in the same change.
+2. If you add a brand-new user-facing surface (panel, view, mode, tool, settings dialog, ...), add a corresponding page and link it from `docs/README.md`.
+3. When you add a new doc page, also register it in `petrinautDocNames` and `petrinautDocSummaries` in `libs/@hashintel/petrinaut-core/src/ai.ts`, and add a `?raw` import in `src/ui/views/Editor/panels/ai-assistant-panel/petrinaut-docs-content.ts`. The tests in `libs/@hashintel/petrinaut-core/src/ai.test.ts` and `petrinaut-docs-content.test.ts` enforce that every enum value has a summary and a content entry.
+4. Keep the docs end-user-focused: describe what the user sees, what they click, what happens. Do not document Storybook, internal modules, or test setup in the user guide.
+5. If UI changes may make screenshots in the docs outdated, prompt the user to replace the screenshots.
+
+If a change ships without doc updates, call that out in your summary so the user can decide whether to follow up.
+
+## Architecture docs
+
+The architecture docs describe the shape of the code. They are generated from annotations in the source by `@local/petrinaut-arch-docs`, and building the bundle fails when they drift.
+
+The architecture is declared **next to the code it describes** — never in a central mapping file. Three tags, and that is the whole vocabulary:
+
+- `@layerRoot <id>` plus `@role <one line>` in a doc comment on a folder's primary file declares a layer. Prefer this — it needs no new file.
+- A folder's `README.md` frontmatter (`layer` and `role`) does the same, and the prose below becomes that layer's page. Use it when the folder has real prose to carry, or when no single file is the obvious host.
+- `@talksTo <layer-id> via <protocol>` in any scanned doc comment or docstring declares an edge no import produces, such as a spawned subprocess or a postMessage channel. The declaring file's own layer is the edge source; the build fails on an unknown target or on a pair the imports already prove.
+- Files with no annotation inherit from the nearest declaring ancestor. Do not annotate every file.
+
+Any other tag is ignored. In a declaring README's frontmatter, `layer` and `role` are the only keys and anything else fails the build.
+
+The generated docs are **build output and are not committed**. Only the annotations are versioned.
+
+When you change structure in `petrinaut-core`, `petrinaut`, or `petrinaut-cli`, you MUST add a declaration if you introduce a folder that is a new architectural unit — a new boundary or a distinct responsibility, not only a new directory.
+
+Verify with `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`. To read the docs, `turbo run doc:architecture --filter @local/petrinaut-arch-docs` writes the bundle to `libs/@local/petrinaut-arch-docs/bundle/` (git-ignored). Full reference: `libs/@local/petrinaut-arch-docs/README.md`. Browse with `turbo run dev --filter @apps/petrinaut-docs`.
+
+Hand-written MDX in `libs/@local/petrinaut-arch-docs/content/` is optional. Give such a page `attachTo: <layer id>` in its frontmatter. Link with `[text](layer:core.simulation.engine)` or `[text](doc:simulation/memory-model)`; relative paths break when a page's `attachTo` changes, and unresolved targets fail CI.
+
+## Shipping conventions
+
+These apply to changes in `petrinaut`, `petrinaut-core`, and `petrinaut-cli`.
+
+- Changesets: `@hashintel/petrinaut` and `@hashintel/petrinaut-core` always get a `patch` bump, never `minor`, whatever the change. One changeset per PR; pure refactors get none. `@local/*` and `@apps/*` packages never publish.
+- Review fixes and scope additions land as dedicated commits on an open PR.
+- Never commit `mise.lock` changes or generated arch-docs output. Stage explicit paths, not `git add -A`.
+- Diagrams in Petrinaut documentation are D2, in `libs/@local/petrinaut-arch-docs/content/diagrams/`. Design and performance write-ups live in that package's `content/` tree, not in loose package `.md` files. A documented flaw that needs a refactor gets a `:::danger` aside and a Linear ticket.
+- READMEs and docs state what a package does. No people, no meeting history, no volatile counts, no infrastructure or access-control detail.
+- CI: Bench-CI is non-blocking. The playwright `types-page.spec.ts` check is flaky; rerun it once before diagnosing the diff. The "Vercel – petrinaut-docs" check can fail for Vercel-side reasons while the Actions build of the same docs passes; compare both before blaming the change.

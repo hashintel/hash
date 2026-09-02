@@ -42,8 +42,6 @@ textarea {
 
 .eyebrow,
 .message__role,
-.question__index,
-.question__hint,
 .status,
 .composer label {
   font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -119,38 +117,9 @@ h1 {
   white-space: pre-wrap;
 }
 
-.question {
-  position: relative;
-  padding: 1.4rem 1.5rem 1.2rem;
-  border: 1px solid #29271f;
-  background: #f7f3e9;
-  box-shadow: 0.45rem 0.45rem 0 #c8bfa7;
-}
-
-.question__index {
-  color: #ba5a36;
-}
-
-.question__markdown {
-  margin: 1rem 0 1.4rem;
-  font-size: clamp(1.5rem, 4vw, 2.25rem);
-  line-height: 1.08;
-  white-space: pre-wrap;
-}
-
-.question__hint {
-  color: #766e56;
-  text-transform: none;
-}
-
-.opening,
-.error {
-  color: #766e56;
-  font-style: italic;
-}
-
 .error {
   color: #9c3f28;
+  font-style: italic;
 }
 
 .composer {

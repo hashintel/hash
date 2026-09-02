@@ -20,7 +20,15 @@ export type MonteCarloInitMessage = {
   /** Precompiled HIR artifacts (`compileHirArtifacts`) — required for any
    * dynamics/lambda/kernel user code in the net. */
   hirArtifacts?: HirArtifacts;
+  /** Number of runs this worker owns — a slice of the experiment when sharded. */
   runCount: number;
+  /**
+   * Index of this worker's first run within the whole experiment.
+   *
+   * Seeds derive from the global index, so an experiment sharded across workers
+   * runs the same set of seeds as an unsharded one.
+   */
+  runIndexOffset?: number;
   batchSize?: number;
   metricSpecs?: readonly MonteCarloMetricSpec[];
 };

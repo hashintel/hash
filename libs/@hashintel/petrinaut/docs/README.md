@@ -8,7 +8,7 @@ It lets you build, configure, and simulate Petri nets. It has support for variou
 
 Petrinaut is available at [demo.petrinaut.org](https://demo.petrinaut.org).
 
-Net data will be stored in local browser storage. You can also export and import nets as JSON files for transfer between devices and browsers.
+Net data will be stored in local browser storage. You can also export and import nets as YAML or JSON files for transfer between devices and browsers.
 
 ## Concepts
 
@@ -35,9 +35,10 @@ Petrinaut has three global modes in the top bar, though **Actual** is only enabl
 - [Useful Patterns](useful-patterns.md) -- Common modelling techniques, including duration and resource pools.
 - [Simulation](simulation.md) -- Set initial state, run a single simulation, use the timeline, control playback.
 - [Scenarios](scenarios.md) -- Save and switch between named simulation configurations.
+- [Ad-hoc Scenarios](ad-hoc-scenarios.md) -- Define initial state and parameters inline for one run, without saving a scenario.
 - [Experiments](experiments.md) -- Run Monte Carlo batches and inspect token-count distributions over time.
 - [Optimization](optimization.md) -- Search scenario parameter ranges to maximize or minimize a metric.
 - [Actual Mode](actual-mode.md) -- View a host-provided live Petri net execution, currently via Brunch.
-- [AI Assistant](ai-assistant.md) -- Build, review, and revise nets using natural language.
+- [AI Assistant](ai-assistant.md) -- Build, review, and revise nets with text or inline Voice mode.
 - [Visual Settings](visual-settings.md) -- Configure the editor appearance and behavior.
 - [Examples](examples.md) -- Walkthrough of the built-in example nets.

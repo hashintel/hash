@@ -4,6 +4,8 @@ import libEs2015Core from "typescript/lib/lib.es2015.core.d.ts?raw";
 import libEs2015Iterable from "typescript/lib/lib.es2015.iterable.d.ts?raw";
 import libEs2015Symbol from "typescript/lib/lib.es2015.symbol.d.ts?raw";
 
+import { detectUserCodeForm } from "../../hir";
+
 /** Bundled TypeScript lib files (with absolute paths) */
 const BUNDLED_LIBS: Record<string, string> = {
   "/lib.es5.d.ts": libEs5,
@@ -31,12 +33,55 @@ const COMPILER_OPTIONS: ts.CompilerOptions = {
   types: [],
 };
 
+/** Injected text around the user content of a virtual file. */
+export type VirtualFileWrapper = {
+  prefix: string;
+  suffix: string;
+};
+
 /** Virtual file entry with optional prefix/suffix (for injected declarations and expression wrapping) */
 export type VirtualFile = {
   prefix?: string;
   content: string;
   suffix?: string;
+  /**
+   * Wrappers per user-code form for files that accept both authoring forms
+   * (dynamics/lambda/kernel code). When set, `prefix`/`suffix` are re-derived
+   * from the current content's detected form on every write, so the file
+   * type-checks as an `export default <Ctor>(...)` module or as a bare
+   * function body depending on what the user wrote.
+   */
+  formWrappers?: {
+    module: VirtualFileWrapper;
+    body: VirtualFileWrapper;
+  };
 };
+
+/** Structural equality over every field that affects type checking, used to
+ * skip no-op updates when re-syncing virtual files. */
+export function virtualFileEquals(a: VirtualFile, b: VirtualFile): boolean {
+  return (
+    a.content === b.content &&
+    a.prefix === b.prefix &&
+    a.suffix === b.suffix &&
+    a.formWrappers?.module.prefix === b.formWrappers?.module.prefix &&
+    a.formWrappers?.module.suffix === b.formWrappers?.module.suffix &&
+    a.formWrappers?.body.prefix === b.formWrappers?.body.prefix &&
+    a.formWrappers?.body.suffix === b.formWrappers?.body.suffix
+  );
+}
+
+/**
+ * Returns the entry with the wrapper matching the content's detected form
+ * applied. Files without `formWrappers` are returned unchanged.
+ */
+export function applyFormWrapper(file: VirtualFile): VirtualFile {
+  if (!file.formWrappers) {
+    return file;
+  }
+  const wrapper = file.formWrappers[detectUserCodeForm(file.content)];
+  return { ...file, prefix: wrapper.prefix, suffix: wrapper.suffix };
+}
 
 /** Controller for the virtual file system backing the LanguageServiceHost. */
 export type LanguageServiceHostController = {
@@ -90,7 +135,7 @@ export function createLanguageServiceHost(
   };
 
   const addFile = (fileName: string, file: VirtualFile) => {
-    files.set(fileName, file);
+    files.set(fileName, applyFormWrapper(file));
     versions.set(fileName, 0);
   };
 
@@ -100,14 +145,14 @@ export function createLanguageServiceHost(
   };
 
   const updateFile = (fileName: string, file: VirtualFile) => {
-    files.set(fileName, file);
+    files.set(fileName, applyFormWrapper(file));
     bumpVersion(fileName);
   };
 
   const updateContent = (fileName: string, content: string) => {
     const entry = files.get(fileName);
     if (entry) {
-      entry.content = content;
+      files.set(fileName, applyFormWrapper({ ...entry, content }));
       bumpVersion(fileName);
     }
   };

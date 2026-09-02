@@ -341,6 +341,14 @@ export type {
 
 // --- Domain types ---
 export type * from "./types/sdcpn";
+export { normalizeSDCPN } from "./types/sdcpn-input";
+export type {
+  SDCPNInput,
+  SDCPNInputArcInput,
+  SDCPNOutputArcInput,
+  SDCPNPlaceInput,
+  SDCPNTransitionInput,
+} from "./types/sdcpn-input";
 export { parseArcId } from "./types/selection";
 export type * from "./types/selection";
 
@@ -410,6 +418,71 @@ export type {
   ScenarioHirItem,
   ScenarioLoweringInput,
 } from "./hir/scenario";
+export {
+  AD_HOC_DEFAULT_OPTIMIZE,
+  AD_HOC_DEFAULT_COUNT_OPTIMIZE,
+  adHocOptimizationBindings,
+  adHocExposedParameterIdentifier,
+  adHocParameterName,
+  adHocPlaceKey,
+  adHocSlotKey,
+  adHocTargetLabel,
+  adHocRowKindOf,
+  cycleAdHocRowKind,
+  setAdHocRowKind,
+  adHocNeutralExpression,
+  resolveAdHocPlaceTotal,
+  shareAdHocColumn,
+  synthesizeAdHocOptimization,
+  synthesizeAdHocScenario,
+  toggleAdHocOptimize,
+  unshareAdHocColumn,
+  type AdHocColouredPlace,
+  type AdHocRow,
+  type AdHocRowKind,
+  type AdHocNetParameter,
+  type AdHocOptimizedField,
+  type AdHocOptimizeSettings,
+  type AdHocPlaceState,
+  type AdHocPlaceTotal,
+  type AdHocScenarioState,
+  type AdHocSlot,
+  type AdHocSynthesisContext,
+  type AdHocSynthesisError,
+  type AdHocSynthesisOutput,
+  type AdHocUncolouredPlace,
+  type AdHocValue,
+  type AdHocValuePart,
+  type AdHocValueTarget,
+  type AdHocVariable,
+  type SynthesizeAdHocOptimizationOutcome,
+  type SynthesizeAdHocScenarioOutcome,
+} from "./simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
+export {
+  adHocActionCoalescingKey,
+  adHocActionInputSchemas,
+  adHocPlaceStateFor,
+  adHocValueTargetSchema,
+  applyAdHocAction,
+  cloneAdHocScenarioState,
+  defaultAdHocCellsFor,
+  EMPTY_AD_HOC_STATE,
+  emptyAdHocValue,
+  newAdHocVariable,
+  rewriteAdHocReference,
+  type AdHocAction,
+  type AdHocActionInput,
+  type AdHocActionName,
+} from "./simulation/authoring/scenario/ad-hoc/ad-hoc-actions";
+export {
+  CLASSIC_RUN_ROW_CAP,
+  classicRunParameterValues,
+  classicRunVariables,
+  classicScenarioRunState,
+  initialMarkingToAdHocPlaces,
+  type TruncatedPlace,
+} from "./simulation/authoring/scenario/ad-hoc/materialize-run-state";
+export { adHocScenarioStateSchema } from "./simulation/authoring/scenario/ad-hoc/ad-hoc-state-schema";
 export { createHirMetricEvaluator } from "./simulation/frames/hir-metric";
 export {
   coerceTokenAttributeValue,
@@ -465,6 +538,13 @@ export { runSandboxed, SHADOWED_GLOBALS } from "./simulation/authoring/sandbox";
 
 // --- File, clipboard, and editor protocol helpers ---
 export {
+  parseDocumentText,
+  serializeDocument,
+  type DocumentFormat,
+  type ParseDocumentTextResult,
+} from "./file-format/document-text";
+export {
+  parseSDCPNDocument,
   parseSDCPNFile,
   type ImportResult,
 } from "./file-format/parse-sdcpn-file";
@@ -482,7 +562,9 @@ export {
 } from "./clipboard/types";
 export {
   getDocumentUri,
+  getAdHocDocumentUri,
   getMetricDocumentUri,
   getScenarioDocumentUri,
+  parseAdHocDocumentUri,
   parseDocumentUri,
 } from "./lsp/lib/document-uris";

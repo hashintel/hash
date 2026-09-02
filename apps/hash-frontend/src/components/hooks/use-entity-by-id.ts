@@ -17,7 +17,7 @@ import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
 import type {
   EntityTraversalPath,
   GraphResolveDepths,
-} from "@rust/hash-graph-store/types";
+} from "@local/hash-graph-store/types";
 
 export const useEntityById = ({
   entityId,

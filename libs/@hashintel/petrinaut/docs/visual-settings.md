@@ -2,6 +2,10 @@
 
 Access the settings dialog via the **gear icon** in the viewport controls (bottom-right corner of the canvas). The viewport controls are a small floating cluster of buttons -- zoom in / out, fit-to-view, and the gear icon -- anchored to the bottom-right of the canvas.
 
+On hosts with app navigation enabled, opening or closing this dialog is part of
+Browser Back / Forward history. The setting values themselves remain saved
+preferences and are not reverted by browser navigation.
+
 ## Available settings
 
 ### Animations
@@ -39,6 +43,10 @@ Controls selection box behavior in [Select mode](drawing-a-net.md#pan-and-select
 ### Entities tree view (experimental)
 
 Replaces the tabbed left sidebar with a unified **tree view** showing all entities (nodes, types, equations, parameters) in a single hierarchy.
+
+### Ad-hoc scenarios (experimental)
+
+Off by default. Enables the [ad-hoc scenario form](ad-hoc-scenarios.md): defining initial state and parameters inline in Simulation Settings, the experiment and optimization drawers, and the scenario creation form. Off, "No scenario" everywhere means the model's own initial marking, as before.
 
 ### Arcs rendering
 

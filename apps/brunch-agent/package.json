@@ -2,7 +2,7 @@
   "name": "@apps/brunch-agent",
   "version": "0.0.0-private",
   "private": true,
-  "description": "Remote Brunch server, local development loop, target gallery, and diagnostic probe surface.",
+  "description": "Remote Brunch server, local development loop, and Petrinaut /api/chat door.",
   "license": "AGPL-3.0",
   "type": "module",
   "scripts": {
@@ -12,16 +12,18 @@
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
-    "test:unit": "vitest run --config vitest.config.ts"
+    "test:unit": "vitest run --config vitest.config.ts",
+    "transcript": "node --experimental-strip-types src/transcript-cli.ts"
   },
   "dependencies": {
+    "@flue/opentelemetry": "2.0.3",
     "@flue/react": "2.0.3",
     "@flue/runtime": "2.0.3",
     "@flue/sdk": "2.0.3",
-    "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/brunch-agent-binding-flue": "workspace:*",
-    "@hashintel/brunch-agent-plugin-gherkin": "workspace:*",
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*",
+    "@hashintel/petrinaut-core": "workspace:*",
+    "@opentelemetry/api": "1.9.1",
     "hono": "4.13.2",
     "react": "19.2.6",
     "react-dom": "19.2.6",

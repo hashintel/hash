@@ -12,9 +12,9 @@ Transports:
   --socket <path>  JSON lines over a Unix socket
 
 Model sources:
-  --model <path>          Load the model from a JSON file
+  --model <path>          Load the model from a YAML or JSON file
   --model-stdin           Read a legacy model JSON object from the first stdin line
-  --optimization <path>  Load an optimization manifest from a JSON file (stdio only)
+  --optimization <path>  Load an optimization manifest from a YAML or JSON file (stdio only)
   --optimization-stdin   Read an optimization manifest from the first stdin line (stdio only)
 
 Methods:

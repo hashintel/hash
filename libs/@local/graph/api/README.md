@@ -8,7 +8,7 @@ The API includes automatic OpenAPI specification generation. To generate the lat
 specification:
 
 ```bash
-yarn codegen:generate-openapi-specs
+yarn build:openapi
 ```
 
 This will generate the OpenAPI specification in the `openapi/` directory, which can be used

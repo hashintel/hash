@@ -1,0 +1,16 @@
+# Hand-written; rendered by the arch-docs build. Palette matches the classes in
+# src/emit/d2.ts: website nodes use the `website` class, and anything outside
+# the model the `other` class.
+direction: right
+
+consumer: "Consumer\n(CMS, blog, chat)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+endpoint: "website.api\n/api/oembed" {style.fill: "#eef3d9"; style.stroke: "#6f8f2f"}
+catalog: "website.examples\ncatalog + contract" {style.fill: "#eef3d9"; style.stroke: "#6f8f2f"}
+embed: "website.routes\n/embed/examples/:slug" {style.fill: "#eef3d9"; style.stroke: "#6f8f2f"}
+
+consumer -> endpoint: "GET ?url=<canonical page>"
+endpoint -> catalog: "slug known? state valid?"
+catalog -> endpoint: "canonical search"
+endpoint -> consumer: "JSON: iframe html, width, height"
+consumer -> embed: "iframe src"
+embed -> consumer: "read-only editor"

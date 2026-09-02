@@ -7,7 +7,14 @@
     },
     "test:unit": {
       "dependsOn": ["@rust/harpc-wire-protocol#build:cli"],
-      "inputs": ["../../wire-protocol/dist/release/codec", "$TURBO_DEFAULT$"]
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        {
+          "mode": "dependencyOutputs",
+          "globs": ["./dist/release/codec"],
+          "from": ["@rust/harpc-wire-protocol#build:cli"]
+        }
+      ]
     }
   }
 }

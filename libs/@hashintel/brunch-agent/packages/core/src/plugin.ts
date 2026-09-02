@@ -1,6 +1,7 @@
 import * as v from "valibot";
 
 import type { CaptureInputProposal } from "./capture-store";
+import type { PluginDefinition } from "./plugin-definition";
 
 /**
  * The plugin descriptor — identity only, at this stage.
@@ -10,8 +11,13 @@ import type { CaptureInputProposal } from "./capture-store";
  * says the trivial target must not freeze the plugin contract before the hard
  * target has stressed it, so nothing in this scaffold ratifies the SDK export
  * surface. What the descriptor fixes now is only what the topology needs —
- * that a plugin declares which target-domain it defines, and does so through
+ * that a plugin declares which target formalism it defines, and does so through
  * Valibot like every other boundary in the system (spec §12.4).
+ *
+ * ADR-0007 adds the plugin definition: `plugin.yaml` under the harness-owned
+ * keys, whose contract keys parameterise the harness's fold, completion, and
+ * cue and whose guidance and runbook cells specialise what the repertoire
+ * teaches. A plugin that carries one is a kind-and-slot plugin.
  */
 export const PluginDescriptor = v.object({
   /** Package-level identity, matching the `plugin-*` role prefix (spec §12.2). */
@@ -19,8 +25,8 @@ export const PluginDescriptor = v.object({
     v.string(),
     v.regex(/^plugin-[a-z][a-z0-9-]*$/, "expected a `plugin-<name>` name"),
   ),
-  /** The artifact family this plugin elicits — gherkin scenarios, assurance arguments. */
-  targetDomain: v.pipe(v.string(), v.nonEmpty()),
+  /** The target formalism this plugin elicits toward — gherkin, sdcpn — never a domain. */
+  targetFormalism: v.pipe(v.string(), v.nonEmpty()),
 });
 
 export interface PluginProposalType {
@@ -32,6 +38,8 @@ export interface PluginProposalType {
 export type Plugin = v.InferOutput<typeof PluginDescriptor> & {
   /** FE-1392's declared floor; FE-1393 grows the catalog and SDK around it. */
   readonly proposalCatalog: readonly [PluginProposalType];
+  /** The plugin definition (ADR-0007); absent only for a plugin without a model. */
+  readonly definition?: PluginDefinition;
 };
 
 /**
@@ -57,5 +65,8 @@ export function definePlugin(descriptor: Plugin): Plugin {
   return {
     ...identity,
     proposalCatalog: [{ ...proposal, name, description }],
+    ...(descriptor.definition === undefined
+      ? {}
+      : { definition: descriptor.definition }),
   };
 }

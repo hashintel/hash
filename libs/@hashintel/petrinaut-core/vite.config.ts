@@ -17,12 +17,18 @@ export default defineConfig(({ command }) => ({
         // Node/tooling-only reusable model compiler. This depends on the
         // TypeScript-powered HIR compiler and must stay out of the main entry.
         "compiled-model": resolve(packageRoot, "src/compiled-model.ts"),
-        // HIR compiler (bundles the TypeScript frontend — heavy; used by the
+        // HIR compiler (bundles the TypeScript frontend, heavy; used by the
         // LSP worker internally and by tooling/playgrounds).
         hir: resolve(packageRoot, "src/hir.ts"),
         // Dependency-free instantiation of compiled HIR artifacts.
         "hir-runtime": resolve(packageRoot, "src/hir-runtime.ts"),
         optimization: resolve(packageRoot, "src/optimization.ts"),
+        // Dependency-free entry: the selection vocabulary alone, for hosts that
+        // validate selection in a route or a server function.
+        selection: resolve(packageRoot, "src/selection.ts"),
+        // Backend contract and selection. A separate entry so a heavy backend
+        // can be registered without dragging its implementation in with it.
+        experiments: resolve(packageRoot, "src/experiments.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),
         "workers/monte-carlo": resolve(
@@ -36,10 +42,9 @@ export default defineConfig(({ command }) => ({
     },
     rolldownOptions: {
       external: [
-        // Peer (optional): only the ./hir compiler entry needs it.
-        "typescript",
         "elkjs",
         "immer",
+        "js-yaml",
         "uuid",
         "vscode-languageserver-types",
         "zod",
@@ -48,6 +53,12 @@ export default defineConfig(({ command }) => ({
     sourcemap: true,
     minify: true,
     emptyOutDir: true,
+  },
+
+  // rolldown-plugin-dts emits declaration modules that Vite must not
+  // transform as JavaScript. Setting this replaces Vite's default exclusions.
+  oxc: {
+    exclude: [/\.js$/, /\.d\.[cm]?ts$/],
   },
 
   define: {
@@ -70,15 +81,11 @@ export default defineConfig(({ command }) => ({
 
   plugins: [
     esmExternalRequirePlugin({
+      // Peer (optional): only the ./hir compiler entry needs it.
       external: ["typescript"],
     }),
 
-    command === "build" &&
-      dts({ tsgo: true }).map((plugin) =>
-        plugin.name.endsWith("fake-js")
-          ? { ...plugin, enforce: "pre" }
-          : plugin,
-      ),
+    command === "build" && dts({ generator: "tsgo" }),
   ],
 
   experimental: {

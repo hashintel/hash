@@ -103,6 +103,10 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setUseEntitiesTreeView,
     enableNetComponents,
     setEnableNetComponents,
+    enableNotebookView,
+    setEnableNotebookView,
+    enableAdHocScenarios,
+    setEnableAdHocScenarios,
   } = use(UserSettingsContext);
   const { extensions } = use(SDCPNContext);
 
@@ -197,6 +201,23 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             size="sm"
           />
         </SettingRow>
+        <SettingRow
+          label={
+            <>
+              Notebook view{" "}
+              <Chip size="xs" color="orange" variant="outline" shape="round">
+                Experimental
+              </Chip>
+            </>
+          }
+          description="Add a read-only Notebook mode to the top bar, listing the net as expandable cells"
+        >
+          <Toggle
+            value={enableNotebookView}
+            onChange={setEnableNotebookView}
+            size="sm"
+          />
+        </SettingRow>
         {extensions.subnets && (
           <SettingRow
             label={
@@ -216,6 +237,23 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
             />
           </SettingRow>
         )}
+        <SettingRow
+          label={
+            <>
+              Ad-hoc scenarios{" "}
+              <Chip size="xs" color="orange" variant="outline" shape="round">
+                Experimental
+              </Chip>
+            </>
+          }
+          description="Define initial state and parameters inline in simulation, experiment, and scenario forms"
+        >
+          <Toggle
+            value={enableAdHocScenarios}
+            onChange={setEnableAdHocScenarios}
+            size="sm"
+          />
+        </SettingRow>
       </Dialog.Body>
       <Dialog.Footer
         actions={

@@ -2839,6 +2839,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28dea519a9695b9977216879a3ebfddf92f1c08c05d984f8996aecd6ecdc811d"
 
 [[package]]
+name = "figment"
+version = "0.10.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cb01cd46b0cf372153850f4c6c272d9cbea2da513e07538405148f95bd789f3"
+dependencies = [
+ "atomic",
+ "serde",
+ "uncased",
+ "version_check",
+]
+
+[[package]]
 name = "filedescriptor"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3556,6 +3568,11 @@ dependencies = [
 name = "hash-config"
 version = "0.0.0"
 dependencies = [
+ "error-stack",
+ "figment",
+ "serde",
+ "serde_core",
+ "serde_json",
  "simple-mermaid",
 ]
 
@@ -3583,6 +3600,7 @@ dependencies = [
  "jsonwebtoken",
  "mimalloc",
  "multiaddr",
+ "opentelemetry",
  "rayon",
  "regex",
  "reqwest",
@@ -3610,7 +3628,6 @@ dependencies = [
  "frunk",
  "futures",
  "futures-channel",
- "governor",
  "harpc-client",
  "harpc-codec",
  "harpc-server",
@@ -3624,10 +3641,10 @@ dependencies = [
  "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
- "hash-graph-type-defs",
  "hash-graph-type-fetcher",
  "hash-graph-types",
  "hash-graph-validation",
+ "hash-middleware",
  "hash-status",
  "hash-temporal-client",
  "hashql-ast",
@@ -3644,7 +3661,6 @@ dependencies = [
  "md-5",
  "mime",
  "opentelemetry",
- "opentelemetry-semantic-conventions",
  "reqwest",
  "sentry",
  "serde",
@@ -3656,7 +3672,6 @@ dependencies = [
  "tower",
  "tower-http",
  "tracing",
- "tracing-opentelemetry",
  "type-system",
  "utoipa",
  "utoipa-scalar",
@@ -3673,7 +3688,7 @@ dependencies = [
  "error-stack",
  "hash-graph-authorization",
  "hash-graph-store",
- "hash-status",
+ "hash-middleware",
  "http 1.4.2",
  "jsonwebtoken",
  "reqwest",
@@ -3681,7 +3696,6 @@ dependencies = [
  "serde",
  "serde_json",
  "simple-mermaid",
- "subtle",
  "tokio",
  "tracing",
  "type-system",
@@ -3960,16 +3974,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hash-graph-type-defs"
-version = "0.0.0"
-dependencies = [
- "hash-status",
- "serde",
- "serde_json",
- "simple-mermaid",
-]
-
-[[package]]
 name = "hash-graph-type-fetcher"
 version = "0.0.0"
 dependencies = [
@@ -4050,7 +4054,30 @@ dependencies = [
 name = "hash-middleware"
 version = "0.0.0"
 dependencies = [
+ "axum",
+ "axum-core",
+ "clap",
+ "derive_more",
+ "error-stack",
+ "futures",
+ "governor",
+ "http 1.4.2",
+ "opentelemetry",
+ "opentelemetry-semantic-conventions",
+ "opentelemetry_sdk",
+ "serde",
+ "serde_json",
  "simple-mermaid",
+ "subtle",
+ "tokio",
+ "tower",
+ "tower-layer",
+ "tower-service",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
+ "type-system",
+ "uuid",
 ]
 
 [[package]]
@@ -10822,6 +10849,15 @@ name = "unarray"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eaea85b334db583fe3274d12b4cd1880032beab409c0d774be044d4480ab9a94"
+
+[[package]]
+name = "uncased"
+version = "0.9.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1b88fcfe09e89d3866a5c11019378088af2d24c3fbd4f0543f96b479ec90697"
+dependencies = [
+ "version_check",
+]
 
 [[package]]
 name = "unicase"

@@ -6,14 +6,22 @@ import { use } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  type AdHocScenarioState,
   type MonteCarloUserDefinedMetricFrame,
   DEFAULT_PETRINAUT_EXTENSIONS,
   type SDCPN,
   type WorkerLike,
 } from "@hashintel/petrinaut-core";
-import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
+import {
+  compileHirArtifacts,
+  lowerScenarioToHir,
+} from "@hashintel/petrinaut-core/hir";
 
 import { LanguageClientContext } from "../lsp/context";
+import {
+  PetrinautNavigationProvider,
+  usePetrinautNavigation,
+} from "../navigation";
 import {
   NotificationsContext,
   type AddNotificationInput,
@@ -23,6 +31,7 @@ import { ExperimentsContext, type ExperimentsContextValue } from "./context";
 import { ExperimentsProvider } from "./provider";
 
 import type { LanguageClientContextValue } from "../lsp/context";
+import type { PetrinautNavigationState } from "../navigation";
 import type {
   MonteCarloToMainMessage,
   MonteCarloToWorkerMessage,
@@ -77,6 +86,11 @@ function makeMetricFrame(): MonteCarloUserDefinedMetricFrame {
     timeValue: null,
     runSampleCount: 2,
     timeSampleCount: 1,
+    // Carried on every scalar frame so a sharded experiment can merge across
+    // shards before reducing.
+    runAggregate: { count: 2, sum: 2, min: 1, max: 1, last: 1 },
+    aggregateRuns: "mean",
+    aggregateTime: "none",
   };
 }
 
@@ -128,9 +142,18 @@ class FakeMonteCarloWorker {
   }
 }
 
+/**
+ * Lets experiment setup run to the point where it reaches the worker.
+ *
+ * A macrotask boundary drains the entire microtask queue, so this holds however
+ * many awaits setup takes. It used to await exactly two microtasks, which was the
+ * count at the time and broke the moment a step was added — selecting a backend
+ * inserts several.
+ */
 const flushWorkerSetup = async () => {
-  await Promise.resolve();
-  await Promise.resolve();
+  await new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
 };
 
 const sdcpnContextValue: SDCPNContextValue = {
@@ -165,6 +188,10 @@ const LanguageClientOverride = ({
           requestHirArtifacts ??
           ((sdcpn, extensions) =>
             Promise.resolve(compileHirArtifacts(sdcpn, extensions))),
+        // Lower for real (inline instead of in a worker), so scenarios the
+        // provider synthesizes — the ad-hoc path — actually compile.
+        requestScenarioHir: (scenario, adHocContext) =>
+          Promise.resolve(lowerScenarioToHir(scenario, { adHocContext })),
       }}
     >
       {children}
@@ -182,16 +209,31 @@ const ExperimentsContextConsumer = ({
   return null;
 };
 
+const NavigationContextConsumer = ({
+  onNavigationState,
+}: {
+  onNavigationState: (state: Readonly<PetrinautNavigationState>) => void;
+}) => {
+  onNavigationState(usePetrinautNavigation().state);
+  return null;
+};
+
 const TestWrapper = ({
   addNotification,
   requestHirArtifacts,
   worker,
   onContextValue,
+  initialNavigationState,
+  onNavigationState,
+  petriNetDefinition,
 }: {
   addNotification?: (notification: AddNotificationInput) => string;
   requestHirArtifacts?: LanguageClientContextValue["requestHirArtifacts"];
   worker: FakeMonteCarloWorker;
   onContextValue: (value: ExperimentsContextValue) => void;
+  initialNavigationState?: Partial<PetrinautNavigationState>;
+  onNavigationState: (state: Readonly<PetrinautNavigationState>) => void;
+  petriNetDefinition?: SDCPN;
 }) => (
   <NotificationsContext
     value={{
@@ -199,18 +241,30 @@ const TestWrapper = ({
       dismissNotification: () => {},
     }}
   >
-    <SDCPNContext.Provider value={sdcpnContextValue}>
+    <SDCPNContext.Provider
+      value={
+        petriNetDefinition
+          ? { ...sdcpnContextValue, petriNetDefinition }
+          : sdcpnContextValue
+      }
+    >
       <LanguageClientOverride requestHirArtifacts={requestHirArtifacts}>
-        <ExperimentsProvider
-          workerFactory={() =>
-            worker as WorkerLike<
-              MonteCarloToWorkerMessage,
-              MonteCarloToMainMessage
-            >
-          }
-        >
-          <ExperimentsContextConsumer onContextValue={onContextValue} />
-        </ExperimentsProvider>
+        <PetrinautNavigationProvider initialState={initialNavigationState}>
+          <NavigationContextConsumer onNavigationState={onNavigationState} />
+          <ExperimentsProvider
+            workerFactory={() =>
+              worker as WorkerLike<
+                MonteCarloToWorkerMessage,
+                MonteCarloToMainMessage
+              >
+            }
+            // One shard, so a single fake worker stands in for the whole
+            // experiment. Sharding itself is covered in petrinaut-core.
+            experimentShardCount={1}
+          >
+            <ExperimentsContextConsumer onContextValue={onContextValue} />
+          </ExperimentsProvider>
+        </PetrinautNavigationProvider>
       </LanguageClientOverride>
     </SDCPNContext.Provider>
   </NotificationsContext>
@@ -221,12 +275,18 @@ function renderExperimentsProvider(
   options: {
     addNotification?: (notification: AddNotificationInput) => string;
     requestHirArtifacts?: LanguageClientContextValue["requestHirArtifacts"];
+    initialNavigationState?: Partial<PetrinautNavigationState>;
+    petriNetDefinition?: SDCPN;
   } = {},
 ): {
   getValue: () => ExperimentsContextValue;
+  getNavigationState: () => Readonly<PetrinautNavigationState>;
   renderResult: RenderResult;
 } {
   const valueHolder = { current: null as ExperimentsContextValue | null };
+  const navigationStateHolder = {
+    current: null as Readonly<PetrinautNavigationState> | null,
+  };
   const captureValue = (value: ExperimentsContextValue) => {
     valueHolder.current = value;
   };
@@ -237,16 +297,56 @@ function renderExperimentsProvider(
       requestHirArtifacts={options.requestHirArtifacts}
       worker={worker}
       onContextValue={captureValue}
+      initialNavigationState={options.initialNavigationState}
+      onNavigationState={(state) => {
+        navigationStateHolder.current = state;
+      }}
+      petriNetDefinition={options.petriNetDefinition}
     />,
   );
 
   return {
     getValue: () => valueHolder.current!,
+    getNavigationState: () => navigationStateHolder.current!,
     renderResult,
   };
 }
 
 describe("ExperimentsProvider", () => {
+  it("replaces the creation overlay with the created experiment location", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getNavigationState, getValue, renderResult } =
+      renderExperimentsProvider(worker, {
+        initialNavigationState: { overlay: { type: "create-experiment" } },
+      });
+
+    try {
+      let experimentId = "";
+      await act(async () => {
+        experimentId = await getValue().createExperiment({
+          name: "Navigated experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          runCount: 1,
+          seed: 42,
+          dt: 1,
+          maxTime: 10,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+        await flushWorkerSetup();
+      });
+
+      expect(getNavigationState()).toMatchObject({
+        mode: "simulate",
+        simulateView: "experiments",
+        simulateResource: { type: "experiment", id: experimentId },
+        overlay: null,
+      });
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
   it("creates an initializing experiment before the worker reports ready", async () => {
     const worker = new FakeMonteCarloWorker();
     const { getValue, renderResult } = renderExperimentsProvider(worker);
@@ -589,6 +689,104 @@ describe("ExperimentsProvider", () => {
       renderResult.unmount();
       addEventListenerSpy.mockRestore();
       removeEventListenerSpy.mockRestore();
+    }
+  });
+
+  it("compiles an ad-hoc scenario into the experiment's initial marking", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const petriNetDefinition: SDCPN = {
+      ...EMPTY_SDCPN,
+      places: [
+        {
+          id: "place-queue",
+          name: "Queue",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      ],
+    };
+    const { getValue, renderResult } = renderExperimentsProvider(worker, {
+      petriNetDefinition,
+    });
+    const adHocScenario: AdHocScenarioState = {
+      variables: [
+        { name: "batches", type: "integer", expression: "3", optimize: null },
+      ],
+      netParameters: [],
+      places: {
+        "place-queue": {
+          kind: "uncoloured",
+          count: { expression: "scenario.batches * 2", optimize: null },
+        },
+      },
+    };
+
+    try {
+      await act(async () => {
+        const createPromise = getValue().createExperiment({
+          name: "Ad-hoc experiment",
+          scenarioId: null,
+          scenarioParameterValues: {},
+          adHocScenario,
+          runCount: 2,
+          seed: 42,
+          dt: 1,
+          maxTime: 1,
+          metricSpecs: CONSTANT_METRIC_SPEC,
+        });
+
+        await flushWorkerSetup();
+        const initMessage = worker.sent[0];
+        if (initMessage?.type !== "init") {
+          throw new Error("Expected the experiment init message");
+        }
+        expect(initMessage.initialMarking["place-queue"]).toBe(6);
+        worker.emit({ type: "ready" });
+        await createPromise;
+      });
+
+      expect(getValue().selectedExperiment?.scenarioName).toBe(
+        "Ad-hoc scenario",
+      );
+    } finally {
+      renderResult.unmount();
+    }
+  });
+
+  it("rejects an experiment whose ad-hoc scenario does not synthesize", async () => {
+    const worker = new FakeMonteCarloWorker();
+    const { getValue, renderResult } = renderExperimentsProvider(worker);
+    const adHocScenario: AdHocScenarioState = {
+      variables: [
+        { name: "1bad", type: "real", expression: "1", optimize: null },
+      ],
+      netParameters: [],
+      places: {},
+    };
+
+    try {
+      await act(async () => {
+        await expect(
+          getValue().createExperiment({
+            name: "Broken ad-hoc experiment",
+            scenarioId: null,
+            scenarioParameterValues: {},
+            adHocScenario,
+            runCount: 2,
+            seed: 42,
+            dt: 1,
+            maxTime: 1,
+            metricSpecs: CONSTANT_METRIC_SPEC,
+          }),
+        ).rejects.toThrow(/1bad/);
+      });
+
+      expect(worker.sent).toHaveLength(0);
+    } finally {
+      renderResult.unmount();
     }
   });
 

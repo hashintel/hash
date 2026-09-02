@@ -33,7 +33,7 @@ const fixtureProposalSchema = v.strictObject({
 export function pluginFixture(overrides: Partial<Plugin> = {}): Plugin {
   return definePlugin({
     name: "plugin-fixture",
-    targetDomain: "fixture",
+    targetFormalism: "fixture",
     proposalCatalog: [
       {
         name: "fixture-proposal",

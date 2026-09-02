@@ -200,6 +200,10 @@ export const placeSchema = z
       description:
         "ID of the differential equation used for continuous dynamics, or null when dynamics are disabled. The referenced equation's `colorId` MUST match this place's `colorId`.",
     }),
+    capacity: z.int().nonnegative().nullable().optional().meta({
+      description:
+        "Optional maximum number of tokens this place will hold. A transition whose firing would take this place past its capacity is NOT enabled, exactly like a transition without enough input tokens — so a full place blocks the transitions that feed it and the limit is never exceeded. The check uses the net change per firing, so a transition that both consumes from and produces into this place is not blocked by its own output. A capacity of 0 means the place can never receive tokens. Omit or set null for unbounded. The initial marking must not exceed it.",
+    }),
     isPort: z.boolean().optional().meta({
       description:
         "When true, this place is exposed as a component port on instances of the subnet that contains it.",
@@ -244,7 +248,7 @@ export const transitionSchema = z
     }),
     lambdaCode: z.string().meta({
       description: [
-        "Optional module: `export default Lambda((input, parameters) => …)`.",
+        "Optional function body ending in `return`, with `input` and `parameters` ambient (the legacy `export default Lambda((input, parameters) => …)` module form is also accepted).",
         "Lambda code is meaningful only when stochasticity is enabled OR when colours are enabled and the transition has at least one standard or read input arc from a coloured place.",
         "`input` is keyed by INPUT PLACE NAME (PascalCase) for coloured standard and read arcs, and the value is a tuple sized to that arc's weight (weight 2 means a 2-token array).",
         "Read arc tokens are present in `input` but are not consumed when the transition fires.",
@@ -259,7 +263,7 @@ export const transitionSchema = z
     }),
     transitionKernelCode: z.string().meta({
       description: [
-        "Optional module: `export default TransitionKernel((input, parameters) => …)`.",
+        "Optional function body ending in `return`, with `input` and `parameters` ambient (the legacy `export default TransitionKernel((input, parameters) => …)` module form is also accepted).",
         "Transition kernel code is meaningful only when colours are enabled and the transition has at least one coloured output place.",
         "`input` and `parameters` have the same shape as the transition's lambda.",
         "MUST return an object keyed by OUTPUT PLACE NAME with a tuple sized to that arc's weight. Coloured output places MUST be present; uncoloured output places MUST be omitted (they are auto-populated with empty tokens).",
@@ -315,7 +319,7 @@ export const differentialEquationSchema = z
     }),
     code: z.string().meta({
       description: [
-        "Module: `export default Dynamics((tokens, parameters) => …)`.",
+        "Function body ending in `return`, with `tokens` and `parameters` ambient (the legacy `export default Dynamics((tokens, parameters) => …)` module form is also accepted).",
         "`tokens` is THIS place's current tokens only — NOT all places' tokens.",
         "MUST return an array of the SAME LENGTH where each entry provides real-valued derivatives (i.e. dx/dt, NOT the new value).",
         "Integer and boolean elements are discrete and remain unchanged by dynamics.",

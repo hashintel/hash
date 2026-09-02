@@ -12,12 +12,18 @@ import {
 } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
 
+import {
+  PetrinautNavigationProvider,
+  usePetrinautNavigation,
+} from "../navigation";
 import { PetrinautOptimizationContext } from "../optimization-context";
 import {
   OptimizationsContext,
   type OptimizationsContextValue,
 } from "./context";
 import { OptimizationsProvider } from "./provider";
+
+import type { PetrinautNavigationState } from "../navigation";
 
 const scenario = sirModel.petriNetDefinition.scenarios?.find(
   (candidate) => candidate.id === "scenario__seasonal_flu",
@@ -70,6 +76,15 @@ const CaptureContext = ({
   onValue: (value: OptimizationsContextValue) => void;
 }) => {
   onValue(use(OptimizationsContext));
+  return null;
+};
+
+const CaptureNavigation = ({
+  onValue,
+}: {
+  onValue: (value: Readonly<PetrinautNavigationState>) => void;
+}) => {
+  onValue(usePetrinautNavigation().state);
   return null;
 };
 
@@ -161,6 +176,59 @@ class FakeClassifiedError extends Error {
 }
 
 describe("OptimizationsProvider", () => {
+  it("replaces the creation overlay with the created optimization location", async () => {
+    const capability: PetrinautOptimization = {
+      createOptimizationRun: () => Promise.resolve({ runId: "run-navigation" }),
+      async *attachOptimizationRun() {
+        yield {
+          type: "complete",
+          requestedTrials: 2,
+          completedTrials: 0,
+          prunedTrials: 0,
+          failedTrials: 0,
+          best: null,
+          seq: 1,
+        };
+      },
+      cancelOptimizationRun: () => Promise.resolve(),
+    };
+    let latest: OptimizationsContextValue | null = null;
+    let navigationState: Readonly<PetrinautNavigationState> | null = null;
+
+    render(
+      <PetrinautOptimizationContext value={capability}>
+        <PetrinautNavigationProvider
+          initialState={{ overlay: { type: "create-optimization" } }}
+        >
+          <CaptureNavigation
+            onValue={(value) => {
+              navigationState = value;
+            }}
+          />
+          <OptimizationsProvider>
+            <CaptureContext
+              onValue={(value) => {
+                latest = value;
+              }}
+            />
+          </OptimizationsProvider>
+        </PetrinautNavigationProvider>
+      </PetrinautOptimizationContext>,
+    );
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await latest!.createOptimization(input);
+    });
+
+    expect(navigationState).toMatchObject({
+      mode: "simulate",
+      simulateView: "optimizations",
+      simulateResource: { type: "optimization", id: optimizationId },
+      overlay: null,
+    });
+  });
+
   it("retries a failed optimization from its original input", async () => {
     let call = 0;
     const capability: PetrinautOptimization = {

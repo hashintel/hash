@@ -10,6 +10,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import {
   calculateGraphLayout,
   layoutNodeDimensions,
+  type DocumentFormat,
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
@@ -23,11 +24,13 @@ import {
 
 import { usePetrinautCommands } from "../../../react";
 import { ActualModeContext } from "../../../react/actual-mode-context";
-import { ExperimentsContext } from "../../../react/experiments/context";
 import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
+import { useEffectiveGlobalMode } from "../../../react/state/use-effective-global-mode";
+import { useIsReadOnly } from "../../../react/state/use-is-read-only";
 import { useSelectionCleanup } from "../../../react/state/use-selection-cleanup";
 import { UserSettingsContext } from "../../../react/state/user-settings-context";
+import { VoiceSessionProvider } from "../../../react/voice-session/provider";
 import { Box } from "../../components/box";
 import { Stack } from "../../components/stack";
 import {
@@ -38,6 +41,7 @@ import { WalkthroughDialog } from "../../components/walkthrough/walkthrough-dial
 import { exportSDCPN } from "../../file-io/export-sdcpn";
 import { exportTikZ } from "../../file-io/export-tikz";
 import { importSDCPN } from "../../file-io/import-sdcpn";
+import { NotebookView } from "../Notebook/notebook-view";
 import { SDCPNView } from "../SDCPN/sdcpn-view";
 import { AiCtaModal } from "./components/ai-cta-modal";
 import { BottomBar } from "./components/BottomBar/bottom-bar";
@@ -48,8 +52,10 @@ import { BottomPanel } from "./panels/BottomPanel/panel";
 import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 import { SimulateView } from "./panels/SimulateView/simulate-view";
+import { SimulationCreationDrawer } from "./simulation-creation-drawer";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
+import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
 import type { PetrinautSlots } from "../../types/petrinaut-slots";
 import type { ViewportAction } from "../../types/viewport-action";
 
@@ -79,8 +85,13 @@ const formatRelativeTime = (isoTimestamp: string): string => {
   }).format(new Date(isoTimestamp));
 };
 
+// The remaining space under the TopBar, never 100% of the root: a full-height
+// row overflows the root by the TopBar's height, and although the root hides
+// overflow, scrollIntoView can still scroll it programmatically — pushing the
+// TopBar out of view.
 const rowContainerStyle = css({
-  height: "full",
+  flex: "[1]",
+  minHeight: "[0]",
   userSelect: "none",
 });
 
@@ -116,6 +127,9 @@ export const EditorView = ({
   viewportActions?: ViewportAction[];
 }) => {
   const showNetManagementMenuItems = hideNetManagementControls === undefined;
+  // Auto-layout moves nodes, which a read-only net rejects, so the menu would
+  // otherwise offer an item that silently does nothing.
+  const isReadOnly = useIsReadOnly();
   // Get data from sdcpn-store
   const {
     createNewNet,
@@ -130,30 +144,37 @@ export const EditorView = ({
 
   // Get editor context
   const {
-    globalMode: mode,
     isAiAssistantOpen,
+    navigateTo,
     setGlobalMode,
     editionMode,
     setEditionMode,
     cursorMode,
     setCursorMode,
     clearSelection,
-    setSimulateViewMode,
     setAiAssistantOpen,
     isBottomPanelOpen,
     bottomPanelHeight,
   } = use(EditorContext);
-  const { setSelectedExperimentId } = use(ExperimentsContext);
   const actualMode = use(ActualModeContext);
 
   const [pendingAiAssistantMessage, setPendingAiAssistantMessage] = useState<
     string | null
   >(null);
+  const [pendingAiInteractionMode, setPendingAiInteractionMode] =
+    useState<PetrinautAiInputMode | null>(null);
   const [isAiCtaDismissed, setIsAiCtaDismissed] = useState(false);
 
-  const { showWalkthroughOnInit, setShowWalkthroughOnInit } =
-    use(UserSettingsContext);
+  const {
+    enableNotebookView,
+    showWalkthroughOnInit,
+    setShowWalkthroughOnInit,
+  } = use(UserSettingsContext);
   const walkthrough = use(WalkthroughContext);
+
+  // Shared with useReadOnlyReason so the rendered view and the mutation
+  // rules never disagree.
+  const effectiveMode = useEffectiveGlobalMode();
 
   // Live open state for the walkthrough. Seeded once from the persisted
   // "show on init" preference, so toggling that preference only takes effect
@@ -195,12 +216,12 @@ export const EditorView = ({
     handleCreateEmpty();
   }
 
-  function handleExport() {
-    exportSDCPN({ petriNetDefinition, title });
+  function handleExport(format: DocumentFormat) {
+    exportSDCPN({ petriNetDefinition, title, format });
   }
 
-  function handleExportWithoutVisualInfo() {
-    exportSDCPN({ petriNetDefinition, title, removeVisualInfo: true });
+  function handleExportWithoutVisualInfo(format: DocumentFormat) {
+    exportSDCPN({ petriNetDefinition, title, removeVisualInfo: true, format });
   }
 
   function handleExportTikZ() {
@@ -208,9 +229,11 @@ export const EditorView = ({
   }
 
   function handleRunningExperimentClick(experimentId: string) {
-    setGlobalMode("simulate");
-    setSimulateViewMode("experiments");
-    setSelectedExperimentId(experimentId);
+    navigateTo({
+      globalMode: "simulate",
+      simulateViewMode: "experiments",
+      simulateDrawer: { type: "view-experiment", experimentId },
+    });
   }
 
   async function handleImport() {
@@ -294,14 +317,24 @@ export const EditorView = ({
       text: "Export",
       subItems: [
         {
-          id: "export-json",
-          text: "JSON",
-          onClick: handleExport,
+          id: "export-yaml",
+          text: "YAML",
+          onClick: () => handleExport("yaml"),
         },
         {
-          id: "export-without-visuals",
+          id: "export-yaml-without-visuals",
+          text: "YAML without visual info",
+          onClick: () => handleExportWithoutVisualInfo("yaml"),
+        },
+        {
+          id: "export-json",
+          text: "JSON",
+          onClick: () => handleExport("json"),
+        },
+        {
+          id: "export-json-without-visuals",
           text: "JSON without visual info",
-          onClick: handleExportWithoutVisualInfo,
+          onClick: () => handleExportWithoutVisualInfo("json"),
         },
         {
           id: "export-tikz",
@@ -319,13 +352,17 @@ export const EditorView = ({
           },
         ]
       : []),
-    {
-      id: "layout",
-      text: "Layout",
-      onClick: () => {
-        void applyAutoLayout();
-      },
-    },
+    ...(isReadOnly
+      ? []
+      : [
+          {
+            id: "layout",
+            text: "Layout",
+            onClick: () => {
+              void applyAutoLayout();
+            },
+          },
+        ]),
     ...(showNetManagementMenuItems
       ? [
           {
@@ -422,11 +459,12 @@ export const EditorView = ({
       {/* Top Bar - always visible */}
       <TopBar
         actualModeAvailable={actualMode.available}
+        notebookViewAvailable={enableNotebookView}
         menuItems={menuItems}
         title={title}
         onTitleChange={setTitle}
         hideNetManagementControls={hideNetManagementControls}
-        mode={mode}
+        mode={effectiveMode}
         onModeChange={setGlobalMode}
         onRunningExperimentClick={(experiment) =>
           handleRunningExperimentClick(experiment.id)
@@ -434,57 +472,75 @@ export const EditorView = ({
         slots={slots}
       />
 
-      <Stack direction="row" className={rowContainerStyle}>
-        {mode === "simulate" ? (
-          <SimulateView />
-        ) : (
-          <Box className={canvasContainerStyle}>
-            {/* Left Sidebar - Tools and content panels */}
-            <LeftSideBar />
+      {/* Voice session state is shared between the assistant panel that owns
+          the session and the toolbar segment that controls it. */}
+      <VoiceSessionProvider>
+        <Stack direction="row" className={rowContainerStyle}>
+          {effectiveMode === "simulate" ? (
+            <SimulateView />
+          ) : effectiveMode === "notebook" ? (
+            <NotebookView key={petriNetId ?? "no-net"} />
+          ) : (
+            <Box className={canvasContainerStyle}>
+              {/* Left Sidebar - Tools and content panels */}
+              <LeftSideBar />
 
-            {/* Properties Panel - Right Side */}
-            <PropertiesPanel />
+              {/* Properties Panel - Right Side */}
+              <PropertiesPanel />
 
-            {/* SDCPN Visualization */}
-            <SDCPNView viewportActions={viewportActions} />
+              {/* SDCPN Visualization */}
+              <SDCPNView viewportActions={viewportActions} />
 
-            {showEmptyAiHero && (
-              <AiCtaModal
-                bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
-                onDismiss={() => setIsAiCtaDismissed(true)}
-                onSubmit={(message) => {
-                  setPendingAiAssistantMessage(message);
-                  setAiAssistantOpen(true);
-                }}
+              {showEmptyAiHero && (
+                <AiCtaModal
+                  bottomClearance={isBottomPanelOpen ? bottomPanelHeight : 0}
+                  onDismiss={() => setIsAiCtaDismissed(true)}
+                  onStartVoiceMode={() => {
+                    setPendingAiInteractionMode("voice");
+                    setAiAssistantOpen(true);
+                  }}
+                  onSubmit={(message) => {
+                    setPendingAiAssistantMessage(message);
+                    setPendingAiInteractionMode("text");
+                    setAiAssistantOpen(true);
+                  }}
+                  voiceModeAvailable={aiAssistant.renderVoiceMode !== undefined}
+                />
+              )}
+
+              {/* Bottom Panel */}
+              <BottomPanel />
+
+              <BottomBar
+                mode={effectiveMode}
+                editionMode={editionMode}
+                onEditionModeChange={setEditionMode}
+                cursorMode={cursorMode}
+                onCursorModeChange={setCursorMode}
+                hasAiAssistant={aiAssistant !== undefined}
               />
-            )}
 
-            {/* Bottom Panel */}
-            <BottomPanel />
+              {aiAssistant && (
+                <AiAssistantPanel
+                  /** Reset state (e.g. initial messages) when the active net changes */
+                  key={petriNetId ?? "no-net"}
+                  aiAssistant={aiAssistant}
+                  initialMessage={pendingAiAssistantMessage}
+                  initialInteractionMode={pendingAiInteractionMode}
+                  onInitialMessageConsumed={() =>
+                    setPendingAiAssistantMessage(null)
+                  }
+                  onInitialInteractionModeConsumed={() =>
+                    setPendingAiInteractionMode(null)
+                  }
+                />
+              )}
+            </Box>
+          )}
+        </Stack>
+      </VoiceSessionProvider>
 
-            <BottomBar
-              mode={mode}
-              editionMode={editionMode}
-              onEditionModeChange={setEditionMode}
-              cursorMode={cursorMode}
-              onCursorModeChange={setCursorMode}
-              hasAiAssistant={aiAssistant !== undefined}
-            />
-
-            {aiAssistant && (
-              <AiAssistantPanel
-                /** Reset state (e.g. initial messages) when the active net changes */
-                key={petriNetId ?? "no-net"}
-                aiAssistant={aiAssistant}
-                initialMessage={pendingAiAssistantMessage}
-                onInitialMessageConsumed={() =>
-                  setPendingAiAssistantMessage(null)
-                }
-              />
-            )}
-          </Box>
-        )}
-      </Stack>
+      <SimulationCreationDrawer />
     </>
   );
 };

@@ -1,10 +1,14 @@
 import { SDCPNItemError } from "../../errors";
-import { materializeEngineFrame } from "../frames/internal-frame";
+import {
+  materializeEngineFrame,
+  readEngineFrame,
+} from "../frames/internal-frame";
 import {
   executeBufferKernel,
   fillPlaceBases,
   fillTokenIndices,
 } from "./buffer-transition";
+import { hasCapacityHeadroom } from "./capacity";
 import { enumerateWeightedMarkingIndicesGenerator } from "./enumerate-weighted-markings";
 import { nextRandom } from "./seeded-rng";
 import { createTokenRegionViews } from "./token-layout";
@@ -33,6 +37,11 @@ export function computePossibleTransition(
   simulation: SimulationInstance,
   transitionId: string,
   rngState: number,
+  /**
+   * Tokens earlier transitions in the same step have produced but not yet
+   * written into the frame; see `executeTransitions`.
+   */
+  pendingOutputCounts: Uint32Array | null = null,
 ): {
   firing: null | {
     remove: Record<PlaceID, Set<number> | number>;
@@ -78,6 +87,22 @@ export function computePossibleTransition(
 
   // A disabled transition consumes no randomness.
   if (!isTransitionEnabled) {
+    return { firing: null, newRngState: rngState };
+  }
+
+  // A full output place blocks its producers, mirroring an input arc that
+  // cannot be satisfied. Removals are applied between transitions, so the
+  // frame's counts are current, but additions land once at the end of the
+  // step: `pendingOutputCounts` carries them so several transitions feeding
+  // one capped place cannot collectively overflow it.
+  if (
+    transition.capacityConstraints.length > 0 &&
+    !hasCapacityHeadroom(
+      transition.capacityConstraints,
+      readEngineFrame(simulation.frameLayout, frame).placeCounts,
+      pendingOutputCounts,
+    )
+  ) {
     return { firing: null, newRngState: rngState };
   }
 

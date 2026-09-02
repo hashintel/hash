@@ -22,8 +22,8 @@ import type {
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import type { GraphResolveDepths } from "@local/hash-graph-store/types";
 import type { EmptyObject } from "@local/hash-isomorphic-utils/util";
-import type { GraphResolveDepths } from "@rust/hash-graph-store/types";
 
 type SystemDefinedOntologyTypeProperties = "$id" | "kind" | "$schema";
 

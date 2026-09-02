@@ -1,19 +1,22 @@
 import { BrunchActualModeProvider } from "./brunch-actual-mode-provider";
-import { getBrunchEndpointFromLocation } from "./brunch-endpoint";
+import { getBrunchEndpoint } from "./brunch-endpoint";
 import { BrunchPetrinaut } from "./brunch-petrinaut";
 import { BrunchStatusPage } from "./brunch-status-page";
 
+import type { BrunchRouteSearch } from "./brunch-search";
 import type { ViewportAction } from "@hashintel/petrinaut/ui";
 
-export { BrunchActualModeProvider } from "./brunch-actual-mode-provider";
-export { getBrunchEndpointFromLocation } from "./brunch-endpoint";
-
 export const BrunchActualModeRoute = ({
+  search,
   viewportActions,
 }: {
+  search: BrunchRouteSearch;
   viewportActions: ViewportAction[];
 }) => {
-  const endpointResult = getBrunchEndpointFromLocation(window.location);
+  const endpointResult = getBrunchEndpoint({
+    baseUrl: window.location.href,
+    search,
+  });
 
   if (!endpointResult.ok) {
     return (

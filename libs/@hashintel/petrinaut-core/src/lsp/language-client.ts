@@ -9,9 +9,11 @@ import {
 import type { PetrinautExtensionSettings } from "../extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
 import type { HirCompileResult, ScenarioHir } from "../hir";
+import type { AdHocSynthesisContext } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import type { ReadableStore } from "../store";
 import type { Scenario, SDCPN } from "../types/sdcpn";
 import type {
+  AdHocSessionParams,
   ClientMessage,
   MetricSessionParams,
   PublishDiagnosticsParams,
@@ -68,6 +70,10 @@ export interface LanguageClient {
   updateMetricSession(this: void, params: MetricSessionParams): void;
   killMetricSession(this: void, sessionId: string): void;
 
+  initializeAdHocSession(this: void, params: AdHocSessionParams): void;
+  updateAdHocSession(this: void, params: AdHocSessionParams): void;
+  killAdHocSession(this: void, sessionId: string): void;
+
   // --- Requests (return Promise) ---
   requestCompletion(
     this: void,
@@ -98,12 +104,23 @@ export interface LanguageClient {
   /**
    * Lowers a scenario's expressions and code-mode body to HIR (in the
    * worker, where the TypeScript frontend lives). Pass the result to
-   * `compileScenario`, which type-checks and interprets it.
+   * `compileScenario`, which type-checks and interprets it. A scenario
+   * whose initial state is `adhoc` synthesizes against `adHocContext`
+   * first — without it, lowering that scenario reports an error item.
    */
   requestScenarioHir(
     this: void,
     scenario: Pick<Scenario, "parameterOverrides" | "initialState">,
+    adHocContext?: AdHocSynthesisContext,
   ): Promise<ScenarioHir>;
+
+  /**
+   * Re-prints a single scenario-expression canonically (in the worker, where
+   * the TypeScript frontend lives): normalized spacing, minimal parentheses,
+   * numeric literals preserved. Resolves null when the code does not lower —
+   * callers keep the user's text untouched in that case.
+   */
+  requestFormatExpression(this: void, code: string): Promise<string | null>;
 
   /**
    * Tear down the transport. Pending requests reject with "Worker terminated".
@@ -306,6 +323,28 @@ export function createLanguageClient(
       });
     },
 
+    initializeAdHocSession(params) {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/adhoc/initialize",
+        params,
+      });
+    },
+    updateAdHocSession(params) {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/adhoc/didChange",
+        params,
+      });
+    },
+    killAdHocSession(sessionId) {
+      sendNotification({
+        jsonrpc: "2.0",
+        method: "temp/adhoc/kill",
+        params: { sessionId },
+      });
+    },
+
     requestCompletion(uri, position) {
       return sendRequest<CompletionList>("textDocument/completion", {
         textDocument: { uri },
@@ -330,8 +369,14 @@ export function createLanguageClient(
         extensions,
       });
     },
-    requestScenarioHir(scenario) {
-      return sendRequest<ScenarioHir>("sdcpn/lowerScenario", { scenario });
+    requestScenarioHir(scenario, adHocContext) {
+      return sendRequest<ScenarioHir>("sdcpn/lowerScenario", {
+        scenario,
+        adHocContext,
+      });
+    },
+    requestFormatExpression(code) {
+      return sendRequest<string | null>("sdcpn/formatExpression", { code });
     },
 
     dispose() {

@@ -4,15 +4,12 @@
   "private": true,
   "description": "HASH Graph API",
   "license": "AGPL-3",
-  "exports": {
-    "./openapi.json": "./openapi/openapi.json"
-  },
   "scripts": {
-    "codegen:generate-openapi-specs": "cargo run --bin openapi-spec-generator",
+    "build:openapi": "cargo run --bin openapi-spec-generator",
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-api --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
-    "test:unit": "mise run test:unit @rust/hash-graph-api && yarn codegen:generate-openapi-specs && git --no-pager diff --exit-code --color openapi"
+    "test:unit": "mise run test:unit @rust/hash-graph-api && yarn build:openapi && git --no-pager diff --exit-code --color openapi"
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "workspace:*",
@@ -30,10 +27,10 @@
     "@rust/hash-graph-postgres-store": "workspace:*",
     "@rust/hash-graph-store": "workspace:*",
     "@rust/hash-graph-temporal-versioning": "workspace:*",
-    "@rust/hash-graph-type-defs": "workspace:*",
     "@rust/hash-graph-type-fetcher": "workspace:*",
     "@rust/hash-graph-types": "workspace:*",
     "@rust/hash-graph-validation": "workspace:*",
+    "@rust/hash-middleware": "workspace:*",
     "@rust/hash-status": "workspace:*",
     "@rust/hash-temporal-client": "workspace:*",
     "@rust/hashql-ast": "workspace:*",

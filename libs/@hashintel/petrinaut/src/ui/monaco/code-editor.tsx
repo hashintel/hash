@@ -1,4 +1,4 @@
-import { Suspense, use, useRef } from "react";
+import { Suspense, use, useRef, useState } from "react";
 
 import { Tooltip } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
@@ -43,7 +43,8 @@ const singleLineContainerStyle = cva({
     borderColor: "neutral.bd.subtle",
     borderRadius: "lg",
     overflow: "hidden",
-    height: `[${SINGLE_LINE_TOTAL_HEIGHT}px]`,
+    // Literal: Panda's extractor cannot resolve interpolated constants.
+    height: "[28px]",
     flex: "1",
     minWidth: "[0]",
     transition: "[border-color 0.15s ease, box-shadow 0.15s ease]",
@@ -73,6 +74,17 @@ const singleLineContainerStyle = cva({
         },
       },
     },
+    frameless: {
+      true: {
+        borderColor: "[transparent]",
+        borderRadius: "[0]",
+        _hover: { borderColor: "[transparent]" },
+        _focusWithin: {
+          borderColor: "[transparent]",
+          boxShadow: "[none]",
+        },
+      },
+    },
   },
 });
 
@@ -98,14 +110,14 @@ const singleLineLoadingStyle = css({
 
 const placeholderStyle = css({
   position: "absolute",
-  top: `[${SINGLE_LINE_PADDING_Y}px]`,
+  top: "[6px]",
   left: "[12px]",
   fontSize: "xs",
-  fontFamily: `[${CODE_FONT_FAMILY}]`,
+  fontFamily: "['JetBrains Mono Variable', monospace]",
   color: "neutral.s80",
   pointerEvents: "none",
   zIndex: "[1]",
-  lineHeight: `[${SINGLE_LINE_HEIGHT}px]`,
+  lineHeight: "[16px]",
 });
 
 // -- Props --------------------------------------------------------------------
@@ -124,6 +136,18 @@ export type CodeEditorProps = Omit<EditorProps, "theme"> & {
   onEditorBlur?: () => void;
   /** Show error styling (red border) */
   hasError?: boolean;
+  /**
+   * Drop the single-line container's own border, radius, and focus ring, for
+   * hosts that draw the frame themselves (the ad-hoc form's editor slab).
+   */
+  frameless?: boolean;
+  /**
+   * Where the caret lands on mount: "end" puts it after the content (typing
+   * continues), "all" selects the whole content (typing replaces). Omitted,
+   * the caret is only positioned when the reused per-path model needed a
+   * value sync (the pre-existing behaviour).
+   */
+  mountSelection?: "all" | "end";
 };
 
 // -- Inner component ----------------------------------------------------------
@@ -138,10 +162,17 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   onSubmit,
   value,
   onChange,
+  mountSelection,
   ...props
 }) => {
   const { Editor } = use(use(MonacoContext));
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  // While the editor has focus its model is the source of truth: the wrapper
+  // must not echo the (possibly one-keystroke-stale) controlled value back
+  // into the model mid-typing — that reset teleports the cursor to the end.
+  // Withholding `value` makes @monaco-editor/react skip its sync; the prop
+  // resumes syncing external changes once focus leaves.
+  const [editorFocused, setEditorFocused] = useState(false);
 
   const handleMount = (
     editorInstance: editor.IStandaloneCodeEditor,
@@ -149,15 +180,45 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
   ) => {
     editorRef.current = editorInstance;
 
+    // With a `path`, @monaco-editor/react reuses the existing model and
+    // ignores `value` — a reopened editor would show the model's stale text
+    // instead of the committed (possibly re-formatted) value. Sync once on
+    // mount; while focused the model stays authoritative (see below).
+    const mountedModel = editorInstance.getModel();
+    const synced =
+      value !== undefined &&
+      mountedModel !== null &&
+      mountedModel.getValue() !== value;
+    if (synced) {
+      mountedModel.setValue(value);
+    }
+    // A fresh model mounts with the caret at the start; a reused one keeps
+    // its stale position. `mountSelection` makes the landing explicit —
+    // otherwise a synced model still gets the caret moved to the end so a
+    // type-to-overwrite character keeps typing where it left off.
+    if (mountedModel && (mountSelection !== undefined || synced)) {
+      if (mountSelection === "all") {
+        editorInstance.setSelection(mountedModel.getFullModelRange());
+      } else {
+        const lastLine = mountedModel.getLineCount();
+        editorInstance.setPosition({
+          lineNumber: lastLine,
+          column: mountedModel.getLineMaxColumn(lastLine),
+        });
+      }
+    }
+
     if (singleLine) {
       // Reactively strip newlines — this handles Enter key, paste, and any
       // other source of newlines without blocking Enter from being used by
-      // the suggest widget to accept completions.
+      // the suggest widget to accept completions. Removed, not replaced
+      // with spaces: Enter-to-validate must not edit the text under the
+      // cursor.
       editorInstance.onDidChangeModelContent(() => {
         const model = editorInstance.getModel();
         if (model && model.getLineCount() > 1) {
           const fullText = model.getValue();
-          const flat = fullText.replace(/[\n\r]/g, " ");
+          const flat = fullText.replace(/[\n\r]/g, "");
           model.setValue(flat);
           const endCol = model.getLineMaxColumn(1);
           editorInstance.setPosition({ lineNumber: 1, column: endCol });
@@ -174,12 +235,14 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
       });
     }
 
-    if (onEditorFocus) {
-      editorInstance.onDidFocusEditorText(() => onEditorFocus());
-    }
-    if (onEditorBlur) {
-      editorInstance.onDidBlurEditorText(() => onEditorBlur());
-    }
+    editorInstance.onDidFocusEditorText(() => {
+      setEditorFocused(true);
+      onEditorFocus?.();
+    });
+    editorInstance.onDidBlurEditorText(() => {
+      setEditorFocused(false);
+      onEditorBlur?.();
+    });
 
     onMount?.(editorInstance, monacoInstance);
   };
@@ -215,6 +278,9 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
         renderLineHighlight: "none",
         contextmenu: false,
         suggest: { showStatusBar: false },
+        // The textarea input path: EditContext lets macOS smart punctuation
+        // rewrite code (double-space becomes a period).
+        editContext: false,
         ...options,
         tabFocusMode: true,
       }
@@ -230,6 +296,7 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
         lineNumbersMinChars: 3,
         padding: { top: 8, bottom: 8 },
         fixedOverflowWidgets: true,
+        editContext: false,
         ...options,
       };
 
@@ -239,11 +306,11 @@ const CodeEditorInner: React.FC<CodeEditorProps> = ({
         <div className={placeholderStyle}>{placeholder}</div>
       )}
       <Editor
-        theme="vs-light"
+        theme="petrinaut-light"
         height={singleLine ? SINGLE_LINE_TOTAL_HEIGHT : "100%"}
         options={editorOptions}
         onMount={handleMount}
-        value={value}
+        value={editorFocused ? undefined : value}
         onChange={onChange}
         {...props}
       />
@@ -259,12 +326,13 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   height,
   singleLine = false,
   hasError = false,
+  frameless = false,
   ...props
 }) => {
   const isReadOnly = options?.readOnly === true;
 
   const containerClass = singleLine
-    ? singleLineContainerStyle({ isReadOnly, hasError })
+    ? singleLineContainerStyle({ isReadOnly, hasError, frameless })
     : multiLineContainerStyle({ isReadOnly });
 
   const fallback = singleLine ? (

@@ -2,6 +2,7 @@
 require("setimmediate");
 
 import { Box, Stack, ThemeProvider, Typography } from "@mui/material";
+import { useId } from "react";
 
 import { fluidFontClassName, theme } from "@hashintel/design-system/theme";
 
@@ -69,6 +70,8 @@ export const EntityTypeEditor = ({
   ontologyFunctions,
   readonly,
 }: EntityTypeEditorProps) => {
+  const extendsHeadingId = useId();
+
   return (
     <ThemeProvider theme={theme}>
       <ReadonlyContext.Provider value={readonly || !ontologyFunctions}>
@@ -85,11 +88,12 @@ export const EntityTypeEditor = ({
                 >
                   <Stack spacing={6.5} className={fluidFontClassName}>
                     <Box>
-                      <Typography variant="h5" mb={2}>
+                      <Typography id={extendsHeadingId} variant="h5" mb={2}>
                         Extends
                       </Typography>
                       <InheritanceRow
                         entityTypeId={entityType.schema.$id}
+                        headingId={extendsHeadingId}
                         typeTitle={entityType.schema.title}
                       />
                     </Box>

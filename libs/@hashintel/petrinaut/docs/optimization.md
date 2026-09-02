@@ -14,20 +14,26 @@ attempted during the outage instead reports an error in its result drawer.
 
 An optimization requires:
 
-- A saved [scenario](scenarios.md) with at least one scenario parameter.
+- A saved [scenario](scenarios.md) with at least one scenario parameter, **or**
+  an [ad-hoc scenario](ad-hoc-scenarios.md) defined inline while creating the
+  optimization.
 - A numeric objective, either from a saved metric or custom metric code entered
   while creating the optimization.
 
 Only scenario parameters can be optimized. Petrinaut does not expose arbitrary
-model fields or nested paths to the optimizer.
+model fields or nested paths to the optimizer. The ad-hoc form works within
+that rule: each value you mark **Optimize** becomes a generated scenario
+parameter behind the scenes.
 
 ## Creating an optimization
 
 1. Switch to **Simulate** mode and choose **Optimizations**.
 2. Click **Create**.
-3. Explicitly select a scenario in the first section. Petrinaut never picks a
-   scenario automatically. Selecting another scenario resets the optimization
-   form for that scenario.
+3. Explicitly select a scenario in the first section, or pick **Ad-hoc
+   (define inline)** to [define initial state and parameters
+   inline](ad-hoc-scenarios.md) with Optimize toggles on every value.
+   Petrinaut never picks a scenario automatically. Selecting another scenario
+   resets the optimization form for that scenario.
 4. Give the optimization a name and choose its number of optimization steps
    (between 1 and 1,000), time step (default `0.1`), and maximum simulation
    time.

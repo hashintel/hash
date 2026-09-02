@@ -106,7 +106,7 @@ carries the coupling.
 ### Inheritance is what keeps this small
 
 A file with no tags belongs to the nearest ancestor folder that declares a layer.
-That is why 37 declarations cover 413 files: you declare a layer where the
+That is why 58 declarations cover 555 files: you declare a layer where the
 architecture actually changes, not on every file.
 
 ## The output: a portable bundle

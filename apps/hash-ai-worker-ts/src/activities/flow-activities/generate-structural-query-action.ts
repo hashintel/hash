@@ -1,4 +1,3 @@
-import graphOpenApiSpec from "@rust/hash-graph-api/openapi.json" with { type: "json" };
 import dedent from "dedent";
 
 /**
@@ -13,6 +12,7 @@ import {
   getSimpleGraph,
   type SimpleEntityWithoutHref,
 } from "@local/hash-backend-utils/simplified-graph";
+import graphOpenApiSpec from "@local/hash-graph-client/openapi.json" with { type: "json" };
 import {
   queryEntitySubgraph,
   summarizeEntities,

@@ -1,0 +1,81 @@
+---
+title: oEmbed and iframe embedding
+description: The JSON oEmbed endpoint, the embed route it points at, and how a third-party site embeds an example.
+attachTo: website.api
+sidebar_order: 10
+---
+
+An example page is an ordinary SPA route, and its response headers forbid
+framing. Embedding goes through a second route built for it, and consumers
+discover that route through [oEmbed 1.0](https://oembed.com/).
+
+![An oEmbed request and the iframe it produces](@diagrams/oembed-request-flow.svg)
+
+## The endpoint
+
+`GET /api/oembed?url=<canonical example URL>` returns a `rich` oEmbed response.
+The handler:
+
+- accepts only `https://demo.petrinaut.org/examples/<slug>`, and answers 404
+  for a well-formed URL it cannot embed, 400 for a request it cannot read;
+- carries state over by decoding the source URL through the shared contract in
+  `website.examples` and re-encoding it, so the endpoint cannot drift from what
+  the embed route accepts;
+- fits `maxwidth` and `maxheight` by scaling down only, never up, keeping the
+  16:9 ratio, and reads them as positive integers;
+- answers 501 for a `format` other than `json`, as the spec requires, and
+  serves `HEAD` like `GET`, bodiless on every path.
+
+It imports the contract and the catalog metadata, never the editor: the
+function bundles neither React nor the model.
+
+## The embed route
+
+The response's iframe points at `/embed/examples/<slug>`, which renders the
+editor read-only. The route answers for itself when something goes wrong: a
+frame-sized panel, carrying no link, replaces both the site's full-page 404 and
+an editor chunk that fails to load.
+
+Framing policy is HTTP, not JavaScript. `vercel.json` sends
+`frame-ancestors 'none'` plus `X-Frame-Options: DENY` for every path outside
+`/api` and `/embed/examples/`, allows all ancestors under `/embed/examples/*`,
+and marks that path `X-Robots-Tag: noindex` so it is not indexed alongside the
+canonical page.
+
+The iframe carries `sandbox="allow-scripts allow-same-origin"`. Both tokens are
+required: without `allow-same-origin` the framed document runs with an opaque
+origin, its module scripts fail CORS, and the embed renders blank.
+
+## Embedding an example in your site
+
+If your platform speaks oEmbed, paste the canonical example URL and you are
+done. The example pages also carry an `application/json+oembed` discovery link
+for consumers that execute page JavaScript.
+
+Otherwise, call the endpoint and use the `html` it returns:
+
+```sh
+curl "https://demo.petrinaut.org/api/oembed?url=https%3A%2F%2Fdemo.petrinaut.org%2Fexamples%2Fgases-1-pn&maxwidth=800"
+```
+
+```html
+<iframe
+  src="https://demo.petrinaut.org/embed/examples/gases-1-pn"
+  title="Gases 1 — One Customer"
+  width="800"
+  height="450"
+  style="border: 0"
+  loading="lazy"
+  sandbox="allow-scripts allow-same-origin"
+  referrerpolicy="no-referrer"
+  allowfullscreen
+></iframe>
+```
+
+To open the embed on a particular view, add the contract's params to the source
+URL before calling the endpoint, or to the iframe `src` directly:
+`?scenario=<id>&subnet=<id>&itemType=place&itemId=<id>`. Anything else in the
+query string is ignored.
+
+Embed URLs are stable but not immutable: they always render the current model
+for that slug.

@@ -47,17 +47,12 @@ export default [
     },
   },
   {
-    // Story files are intentionally excluded from `tsconfig.json` (they live
-    // in `tsconfig.beta.json`). Running type-aware lint rules on them forces
-    // ESLint's project service into a slow default-project fallback per file
-    // *and* type-instantiates the very heavy generated `styled-system` types
-    // for every single story. Disable type-aware linting entirely for the
-    // story surface — they're demo code, not shipped to consumers.
-    files: [
-      "src/**/*.story.ts{x,}",
-      "src/beta/**/*.stories.ts{x,}",
-      "src/tokens/**/*.{ts,tsx,mdx}",
-    ],
+    // Running type-aware lint rules on story files forces ESLint's project
+    // service into a slow default-project fallback per file *and*
+    // type-instantiates the very heavy generated `styled-system` types for
+    // every single story. Disable type-aware linting entirely for the story
+    // surface — they're demo code, not shipped to consumers.
+    files: ["src/**/*.story.ts{x,}"],
     languageOptions: {
       parserOptions: {
         // Drop the type-aware project lookup for story files. Without this,

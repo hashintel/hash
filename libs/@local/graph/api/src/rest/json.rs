@@ -11,12 +11,11 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bytes::{BufMut as _, BytesMut};
-use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloadInfo};
 use hash_status::StatusCode;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::error::Category;
 
-use super::status::BoxedResponse;
+use super::status::{BoxedResponse, ErrorInfo, Status};
 use crate::rest::status::status_to_response;
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -38,14 +37,14 @@ where
                 status_to_response(Status::new(
                     StatusCode::InvalidArgument,
                     Some("Failed to buffer body of request".to_owned()),
-                    vec![StatusPayloadInfo::Error(ErrorInfo::new(
+                    vec![ErrorInfo::new(
                         HashMap::from([(
                             "bufferError".to_owned(),
                             serde_json::to_value(err.to_string())
                                 .expect("Failed to convert string to serde_json::Value"),
                         )]),
                         "UNKNOWN".to_owned(),
-                    ))],
+                    )],
                 ))
             })?;
 
@@ -74,14 +73,14 @@ where
                     return Err(status_to_response(Status::new(
                         StatusCode::InvalidArgument,
                         Some(message),
-                        vec![StatusPayloadInfo::Error(ErrorInfo::new(
+                        vec![ErrorInfo::new(
                             HashMap::from([(
                                 "deserializationError".to_owned(),
                                 serde_json::to_value(err.to_string())
                                     .expect("Failed to convert string to serde_json::Value"),
                             )]),
                             reason,
-                        ))],
+                        )],
                     )));
                 }
             };
@@ -140,14 +139,14 @@ where
             Err(err) => status_to_response(Status::new(
                 StatusCode::Internal,
                 Some("Failed to serialize response".to_owned()),
-                vec![StatusPayloadInfo::Error(ErrorInfo::new(
+                vec![ErrorInfo::new(
                     HashMap::from([(
                         "serializationError".to_owned(),
                         serde_json::to_value(err.to_string())
                             .expect("Failed to convert string to serde_json::Value"),
                     )]),
                     "UNKNOWN".to_owned(),
-                ))],
+                )],
             ))
             .into_response(),
         }

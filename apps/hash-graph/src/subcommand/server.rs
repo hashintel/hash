@@ -29,11 +29,14 @@ use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::{OpenAiEmbeddingClient, OpenAiEmbeddingClientConfig};
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
+    SemanticSearchSettings,
 };
 use hash_graph_store::{filter::protection::PropertyProtectionFilterConfig, pool::StorePool};
 use hash_graph_type_fetcher::FetchingPool;
+use hash_telemetry::Telemetry;
 use hash_temporal_client::{TemporalClient, TemporalClientConfig};
 use multiaddr::{Multiaddr, Protocol};
+use opentelemetry::metrics::Meter;
 use regex::Regex;
 use reqwest::{Client, Url};
 use tokio::{io, net::TcpListener, signal, time::timeout};
@@ -276,6 +279,28 @@ pub struct ServerConfig {
     #[clap(long, env = "HASH_GRAPH_SKIP_EMBEDDING_CREATION")]
     pub skip_embedding_creation: bool,
 
+    /// Candidates a semantic search ranks per requested result.
+    ///
+    /// Raising this recovers neighbours the quantized ranking misordered, at the cost of reading
+    /// more full vectors when re-scoring.
+    #[clap(
+        long,
+        default_value_t = SemanticSearchSettings::default().candidate_overfetch,
+        env = "HASH_GRAPH_SEMANTIC_SEARCH_CANDIDATE_OVERFETCH",
+    )]
+    pub semantic_search_candidate_overfetch: NonZero<usize>,
+
+    /// Lower bound for the size of a semantic search's vector-index walk.
+    ///
+    /// Searches asking for few results otherwise walk the index too shallowly to find the
+    /// neighbours their re-scoring could order.
+    #[clap(
+        long,
+        default_value_t = SemanticSearchSettings::default().minimum_ef_search,
+        env = "HASH_GRAPH_SEMANTIC_SEARCH_MINIMUM_EF_SEARCH",
+    )]
+    pub semantic_search_minimum_ef_search: usize,
+
     /// Disables filter protection that prevents enumeration attacks on protected properties.
     ///
     /// When enabled (protection disabled), queries filtering on protected properties like email
@@ -514,6 +539,10 @@ pub(crate) struct AuthenticationSetup {
     pub service_secret: String,
 }
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Every parameter is a distinct resource the one caller assembles."
+)]
 async fn start_server<S>(
     pool: S,
     postgres: PostgresStorePool,
@@ -521,6 +550,7 @@ async fn start_server<S>(
     config: ServerConfig,
     authentication: AuthenticationSetup,
     query_logger: Option<QueryLogger>,
+    meter: Meter,
     lifecycle: &ServerLifecycle,
 ) -> Result<(), Report<GraphError>>
 where
@@ -559,6 +589,7 @@ where
         cloudflare_access: authentication.cloudflare_access,
         service_secret: authentication.service_secret,
         rate_limit: config.rate_limit,
+        meter,
         compiler,
         clustering: Arc::new(ClusteringContext::new(config.clustering_concurrency_limit)),
         serve_api_reference: config.serve_api_reference,
@@ -580,7 +611,7 @@ where
     clippy::too_many_lines,
     reason = "Sequential startup flow, no natural split point"
 )]
-pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
+pub async fn server(mut args: ServerArgs, telemetry: &Telemetry) -> Result<(), Report<GraphError>> {
     if args.healthcheck.healthcheck {
         return wait_healthcheck(
             || healthcheck(args.config.http_address.clone()),
@@ -621,6 +652,10 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
             } else {
                 PropertyProtectionFilterConfig::hash_default()
             },
+            semantic_search: SemanticSearchSettings {
+                candidate_overfetch: args.config.semantic_search_candidate_overfetch,
+                minimum_ef_search: args.config.semantic_search_minimum_ef_search,
+            },
         },
     )
     .await
@@ -642,7 +677,15 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
     let postgres = pool.clone();
 
     if args.embed_admin {
-        start_admin_server(pool.clone(), args.admin, service_secret.clone(), &lifecycle);
+        // The admin surface gets its own meter scope, as running it standalone would, so its
+        // rejections stay a separate series from the public API's.
+        start_admin_server(
+            pool.clone(),
+            args.admin,
+            service_secret.clone(),
+            telemetry.meter("Graph Admin API"),
+            &lifecycle,
+        );
     }
 
     if args.embed_type_fetcher {
@@ -707,6 +750,7 @@ pub async fn server(mut args: ServerArgs) -> Result<(), Report<GraphError>> {
             service_secret,
         },
         query_logger,
+        telemetry.meter("Graph API"),
         &lifecycle,
     )
     .await

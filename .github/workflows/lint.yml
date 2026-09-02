@@ -38,9 +38,9 @@ jobs:
       - name: Determine changed packages
         id: packages
         run: |
-          PACKAGES_QUERY='query { affectedPackages(base: "HEAD^") { items { name path } } }'
-          PACKAGES=$(turbo query "$PACKAGES_QUERY" \
-            | jq --compact-output '.data.affectedPackages.items | [(.[] | select(.name != "//"))] | { name: [.[].name], include: . }')
+          # The steps gate on the per-task keys — the tasks are independent and
+          # can differ in what they consider affected.
+          PACKAGES=$(.github/scripts/affected-packages.sh codegen lint:eslint lint:tsc lint:clippy lint:ruff lint:types)
 
           echo "packages=$PACKAGES" | tee -a "$GITHUB_OUTPUT"
 
@@ -76,6 +76,11 @@ jobs:
     if: needs.setup.outputs.packages != '{"name":[],"include":[]}'
     runs-on: ubuntu-24.04
     steps:
+      - name: Show selection reason
+        env:
+          MATRIX: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX"
+
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -99,33 +104,14 @@ jobs:
       - name: Find lint steps to run
         id: lints
         run: |
-          set -x
-          ESLINT=$(turbo run lint:eslint --filter '${{ matrix.name }}' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "eslint=$ESLINT" | tee -a "$GITHUB_OUTPUT"
-
-          TSC=$(turbo run lint:tsc --filter '${{ matrix.name }}' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "tsc=$TSC" | tee -a "$GITHUB_OUTPUT"
-
-          CODEGEN=$(turbo run codegen --filter '${{ matrix.name }}' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "codegen" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "codegen=$CODEGEN" | tee -a "$GITHUB_OUTPUT"
-
-          CLIPPY=$(turbo run lint:clippy --filter '${{ matrix.name }}' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:clippy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "clippy=$CLIPPY" | tee -a "$GITHUB_OUTPUT"
-
-          RUFF=$(turbo run lint:ruff --filter '${{ matrix.name }}' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:ruff" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "ruff=$RUFF" | tee -a "$GITHUB_OUTPUT"
-
-          PYTHON_TYPES=$(turbo run lint:types --filter '${{ matrix.name }}' --dry-run=json \
-            | jq '[.tasks[] | select(.task == "lint:types" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "python-types=$PYTHON_TYPES" | tee -a "$GITHUB_OUTPUT"
-
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a "$GITHUB_OUTPUT"
+
+          # The codegen step is also the drift check for committed generated
+          # files; those are excluded from the codegen task's own inputs, so a
+          # hand-edit never marks the task affected.
+          HAS_CODEGEN=$(jq -e '.scripts.codegen' "${{ matrix.path }}/package.json" > /dev/null 2>&1 && echo 'true' || echo 'false')
+          echo "has-codegen=$HAS_CODEGEN" | tee -a "$GITHUB_OUTPUT"
 
       - name: Warm up repository
         uses: $/.github/actions/warm-up-repo
@@ -134,7 +120,7 @@ jobs:
         run: df -h
 
       - name: Run codegen
-        if: always() && steps.lints.outputs.codegen == 'true'
+        if: always() && steps.lints.outputs.has-codegen == 'true'
         run: |
           set -o pipefail
           turbo run codegen --force --filter "${{ matrix.name }}"
@@ -143,25 +129,25 @@ jobs:
               echo "Checking diff of ${{ matrix.path }}/$line"
               git --no-pager diff --exit-code --color -- "${{ matrix.path }}/$line"
             fi
-          done <<< "$(grep -v '^ *//' ${{ matrix.path }}/turbo.json | jq -r '.pipeline.codegen.outputs | if . == null then "." else .[] end')"
+          done <<< "$(grep -v '^ *//' ${{ matrix.path }}/turbo.json | jq -r '.tasks.codegen.outputs | if . == null then "." else .[] end')"
 
       - name: Show disk usage
         run: df -h
 
       - name: Run ESLint
-        if: always() && steps.lints.outputs.eslint == 'true'
+        if: always() && matrix['lint:eslint'] != null
         run: turbo run lint:eslint --filter "${{ matrix.name }}"
 
       - name: Run TSC
-        if: always() && steps.lints.outputs.tsc == 'true'
+        if: always() && matrix['lint:tsc'] != null
         run: turbo run lint:tsc --filter "${{ matrix.name }}"
 
       - name: Run Ruff
-        if: always() && steps.lints.outputs.ruff == 'true'
+        if: always() && matrix['lint:ruff'] != null
         run: turbo run lint:ruff --filter "${{ matrix.name }}"
 
       - name: Run basedpyright
-        if: always() && steps.lints.outputs.python-types == 'true'
+        if: always() && matrix['lint:types'] != null
         run: turbo run lint:types --filter "${{ matrix.name }}"
 
       - name: Run rustfmt
@@ -170,7 +156,7 @@ jobs:
         run: just format --check
 
       - name: Run clippy
-        if: always() && steps.lints.outputs.clippy == 'true'
+        if: always() && matrix['lint:clippy'] != null
         # `bash` gives us `pipefail`, so a failing `turbo`/`clippy` fails the step instead of
         # being masked by a later pipeline stage exiting 0.
         shell: bash
@@ -196,7 +182,7 @@ jobs:
           fi
 
       - name: Print clippy errors to summary
-        if: failure() && steps.lints.outputs.clippy == 'true'
+        if: failure() && matrix['lint:clippy'] != null
         run: |
           {
             echo '```'
@@ -206,7 +192,7 @@ jobs:
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@45cbd0c69e560cd9e7cd7f8c32362050c9b7ded2 # v4.32.2
-        if: always() && steps.lints.outputs.clippy == 'true'
+        if: always() && matrix['lint:clippy'] != null
         with:
           sarif_file: ${{ matrix.path }}/clippy.sarif
           category: ${{ matrix.name }}
@@ -321,7 +307,7 @@ jobs:
             exit 1
           fi
 
-      - name: Validate Claude Code skills
+      - name: Validate Agent Skills
         if: ${{ success() || failure() }}
         run: |
           yarn lint:skill
@@ -332,7 +318,7 @@ jobs:
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
             echo 'Changes were detected in .claude/skills/skill-rules.json file after running "yarn agents:skill-management generate-skill-rules".'
-            echo 'This indicates that there are changes inside of the skill files that haven not yet been upstreamed into the skill-rules.json file.'
+            echo 'This indicates that changes in .agents/skills have not yet been reflected in .claude/skills/skill-rules.json.'
             echo 'Try running "yarn agents:skill-management generate-skill-rules" locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1;

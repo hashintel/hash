@@ -217,14 +217,17 @@ export const buildSettlementCheckSignal = (
 
 export const buildSweepExtractionPrompt = (
   plugin: {
-    readonly targetDomain: string;
+    readonly targetFormalism: string;
     readonly proposalNames: readonly string[];
+    /** Plugin-file-derived addressing guidance for kind-and-slot plugins. */
+    readonly guidance?: readonly string[];
   },
   tail: readonly SweepSessionEntry[],
 ): string =>
   [
-    `Extract capture proposals for the ${plugin.targetDomain} target from this settled conversation range.`,
-    `Use only the declared proposal schema: ${plugin.proposalNames.join(", ")}. Do not add parsed structure or undeclared proposal types.`,
+    `Extract capture proposals for the ${plugin.targetFormalism} target from this settled conversation range.`,
+    `Use only the declared proposal schema: ${plugin.proposalNames.join(", ")}. Do not add structure the schema does not declare, or undeclared proposal types.`,
+    ...(plugin.guidance ?? []),
     "Every user-grounded proposal must cite one or more exact verbatim quotes from the user lines below. Never supply entry ids, ranges, pointers, or evidence sources; the harness resolves those.",
     "The declared verbatim interior must preserve what was said without paraphrase or normalization. Return an empty proposal list when no honest capture is available.",
     renderTail(tail),

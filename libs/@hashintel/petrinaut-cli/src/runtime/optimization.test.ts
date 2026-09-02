@@ -5,6 +5,8 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it, vi } from "vitest";
 
+import { serializeDocument } from "@hashintel/petrinaut-core";
+
 import {
   createOptimizationProtocol,
   deriveTrialSeeds,
@@ -211,6 +213,18 @@ describe("createOptimizationProtocol", () => {
     const path = join(directory, "optimize.json");
     try {
       await writeFile(path, JSON.stringify(manifest));
+      await expect(loadOptimizationManifest(path)).resolves.toEqual(manifest);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("loads a versioned manifest from a YAML file", async () => {
+    const manifest = await createManifest();
+    const directory = await mkdtemp(join(tmpdir(), "petrinaut-optimization-"));
+    const path = join(directory, "optimize.yaml");
+    try {
+      await writeFile(path, serializeDocument(manifest, "yaml"));
       await expect(loadOptimizationManifest(path)).resolves.toEqual(manifest);
     } finally {
       await rm(directory, { recursive: true, force: true });

@@ -53,6 +53,7 @@
     "@local/advanced-types": "workspace:*",
     "@local/hash-graph-client": "workspace:*",
     "@local/hash-graph-sdk": "workspace:*",
+    "@local/hash-graph-store": "workspace:*",
     "@local/hash-isomorphic-utils": "workspace:*",
     "@local/status": "workspace:*",
     "@mantine/hooks": "8.3.5",

@@ -46,8 +46,10 @@
     "@local/advanced-types": "workspace:*",
     "@local/harpc-client": "workspace:*",
     "@local/hash-backend-utils": "workspace:*",
+    "@local/hash-graph-authorization": "workspace:*",
     "@local/hash-graph-client": "workspace:*",
     "@local/hash-graph-sdk": "workspace:*",
+    "@local/hash-graph-store": "workspace:*",
     "@local/hash-isomorphic-utils": "workspace:*",
     "@local/petrinaut-optimizer-client": "workspace:*",
     "@local/status": "workspace:*",
@@ -114,7 +116,7 @@
     "ws": "8.21.0"
   },
   "devDependencies": {
-    "@faker-js/faker": "10.4.0",
+    "@faker-js/faker": "10.5.0",
     "@graphql-codegen/cli": "^6.2.1",
     "@graphql-codegen/introspection": "5.0.1",
     "@graphql-codegen/typescript": "5.0.9",

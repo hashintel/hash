@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { lstat, mkdir, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 // eslint-disable-next-line id-length
@@ -7,7 +7,12 @@ import chalk from "chalk";
 import { pathExists } from "fs-extra";
 
 import { Name } from "./schemas";
-import { findSkillsDir, loadTemplate, toTitleCase } from "./shared";
+import {
+  findClaudeSkillsDir,
+  findSkillsDir,
+  loadTemplate,
+  toTitleCase,
+} from "./shared";
 
 const copyTemplate = async (
   templateName: string,
@@ -34,9 +39,25 @@ const copyTemplate = async (
   }
 };
 
+export const createSymlinkIfMissing = async (
+  target: string,
+  linkPath: string,
+): Promise<void> => {
+  try {
+    await lstat(linkPath);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      await symlink(target, linkPath);
+      return;
+    }
+
+    throw error;
+  }
+};
+
 const run = async (unverifiedName: string) => {
   const skillsDir = await findSkillsDir();
-  const templateDir = path.join(skillsDir, "skill-creator/assets");
+  const templateDir = path.join(import.meta.dirname, "templates");
 
   const name = await Name.parseAsync(unverifiedName);
 
@@ -93,6 +114,12 @@ const run = async (unverifiedName: string) => {
   }
 
   if (success) {
+    const claudeAlias = path.join(await findClaudeSkillsDir(), name);
+    await createSymlinkIfMissing(
+      path.relative(path.dirname(claudeAlias), skillDir),
+      claudeAlias,
+    );
+
     console.log(chalk.green(`\nSkill '${name}' created at ${skillDir}`));
     console.log(chalk.dim("\nNext steps:"));
     console.log(chalk.dim("  1. Edit SKILL.md to complete TODO items"));

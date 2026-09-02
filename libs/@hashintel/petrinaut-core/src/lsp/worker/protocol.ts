@@ -13,6 +13,10 @@
  * upstream package directly.
  */
 import type { PetrinautExtensionSettings } from "../../extensions";
+import type {
+  AdHocScenarioState,
+  AdHocSynthesisContext,
+} from "../../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import type { Scenario, ScenarioParameter, SDCPN } from "../../types/sdcpn";
 import type {
   Diagnostic,
@@ -44,6 +48,16 @@ export type ScenarioSessionParams = {
   initialStateCode?: string;
   /** Which initial state mode is active. Only the active mode's files are linted. */
   initialStateAsCode: boolean;
+};
+
+/**
+ * Data describing an ad-hoc scenario editing session for the language server.
+ * The server derives net context (parameters, places, colour types) from the
+ * SDCPN it already holds.
+ */
+export type AdHocSessionParams = {
+  sessionId: string;
+  state: AdHocScenarioState;
 };
 
 /**
@@ -102,6 +116,21 @@ type ClientNotification =
     }
   | {
       jsonrpc: "2.0";
+      method: "temp/adhoc/initialize";
+      params: AdHocSessionParams;
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/adhoc/didChange";
+      params: AdHocSessionParams;
+    }
+  | {
+      jsonrpc: "2.0";
+      method: "temp/adhoc/kill";
+      params: { sessionId: string };
+    }
+  | {
+      jsonrpc: "2.0";
       method: "temp/metric/initialize";
       params: MetricSessionParams;
     }
@@ -151,6 +180,17 @@ type ClientRequest =
       method: "sdcpn/lowerScenario";
       params: {
         scenario: Pick<Scenario, "parameterOverrides" | "initialState">;
+        /** Net context an `adhoc` initial state synthesizes against. */
+        adHocContext?: AdHocSynthesisContext;
+      };
+    }
+  | {
+      jsonrpc: "2.0";
+      id: number;
+      method: "sdcpn/formatExpression";
+      params: {
+        /** A single scenario-expression to re-print canonically. */
+        code: string;
       };
     };
 

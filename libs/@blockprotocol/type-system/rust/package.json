@@ -4,32 +4,12 @@
   "private": true,
   "description": "Definitions of types within the Block Protocol Type System",
   "license": "MIT OR Apache-2.0",
-  "type": "module",
-  "typesVersions": {
-    "*": {
-      "*": [
-        "./pkg/type-system.d.ts"
-      ],
-      "types": [
-        "./types/index.snap.d.ts"
-      ],
-      "wasm": [
-        "./pkg/type-system_bg.wasm.d.ts"
-      ]
-    }
-  },
-  "exports": {
-    ".": "./pkg/type-system.js",
-    "./types": "./types/index.snap.js",
-    "./wasm": "./pkg/type-system_bg.wasm"
-  },
   "scripts": {
     "build:types": "INSTA_UPDATE=always mise exec --env dev cargo:cargo-insta -- cargo-insta test --features codegen --test codegen",
     "build:wasm": "mise exec --env prod github:wasm-bindgen/wasm-pack -- wasm-pack build --target web --out-name type-system --scope blockprotocol --release . && rm pkg/package.json",
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root type-system --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
-    "lint:tsc": "tsc --noEmit",
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
@@ -38,8 +18,6 @@
     "@rust/hash-graph-temporal-versioning": "workspace:*"
   },
   "devDependencies": {
-    "@local/tsconfig": "workspace:*",
-    "@rust/hash-codegen": "workspace:*",
-    "typescript": "5.9.3"
+    "@rust/hash-codegen": "workspace:*"
   }
 }

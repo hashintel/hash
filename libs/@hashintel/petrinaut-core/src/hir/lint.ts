@@ -98,7 +98,8 @@ function canEmitBufferProgram(
 }
 
 /**
- * Lints one piece of user code (a full `export default Ctor(...)` module).
+ * Lints one piece of user code (a bare function body or a legacy
+ * `export default Ctor(...)` module — see `user-code-form.ts`).
  *
  * Callers should skip this when the TypeScript checker already reports errors
  * for the same code — HIR lints assume syntactically and type-valid input.

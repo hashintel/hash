@@ -7,9 +7,9 @@ import { use, useEffect, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
 import {
-  createMonteCarloExperiment,
   compileScenario,
   getOwn,
+  synthesizeAdHocScenario,
   type InitialMarking,
   type MonteCarloExperiment,
   type MonteCarloExperimentState,
@@ -17,12 +17,23 @@ import {
   type Scenario,
   type ScenarioParameter,
 } from "@hashintel/petrinaut-core";
+import {
+  createWorkerPoolExperimentBackend,
+  selectExperimentBackend,
+  WORKER_POOL_BACKEND_ID,
+  type ExperimentBackendRegistration,
+  type ExperimentRequest,
+} from "@hashintel/petrinaut-core/experiments";
 import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
 
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
 import { useLatest } from "../hooks/use-latest";
 import { useStableCallback } from "../hooks/use-stable-callback";
 import { LanguageClientContext } from "../lsp/context";
+import {
+  openPetrinautSimulationResource,
+  usePetrinautNavigation,
+} from "../navigation";
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import {
@@ -36,6 +47,15 @@ import {
 
 type ExperimentsProviderProps = React.PropsWithChildren<{
   workerFactory?: WorkerFactory;
+  /**
+   * How many workers each experiment splits its runs across.
+   *
+   * Defaults to one per logical core minus one. Sharding never changes an
+   * experiment's results, only how quickly it finishes, so this exists for hosts
+   * that need to cap CPU use (or pin behaviour in tests) rather than to affect
+   * output.
+   */
+  experimentShardCount?: number;
 }>;
 
 type ExperimentHandleRegistration = {
@@ -164,15 +184,18 @@ function assertExperimentInput(input: CreateExperimentInput): void {
 export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   children,
   workerFactory,
+  experimentShardCount,
 }) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
   const { requestHirArtifacts, requestScenarioHir } = use(
     LanguageClientContext,
   );
   const { addNotification } = use(NotificationsContext);
+  const navigation = usePetrinautNavigation();
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
   const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
+  const shardCountRef = useLatest(experimentShardCount);
   const registrationsRef = useRef(
     new Map<string, ExperimentHandleRegistration>(),
   );
@@ -180,9 +203,22 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     new Map<string, PendingExperimentRegistration>(),
   );
   const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
-  const [selectedExperimentId, setSelectedExperimentId] = useState<
-    string | null
-  >(null);
+  const selectedExperimentId =
+    navigation.state.simulateResource?.type === "experiment"
+      ? navigation.state.simulateResource.id
+      : null;
+  const setSelectedExperimentId: ExperimentsContextValue["setSelectedExperimentId"] =
+    (experimentId) => {
+      navigation.navigate(
+        experimentId
+          ? openPetrinautSimulationResource({
+              type: "experiment",
+              id: experimentId,
+            })
+          : { simulateResource: null },
+        { cause: "user", action: "simulation-resource" },
+      );
+    };
   useBlockWindowClose({ shouldBlock: experiments.some(isExperimentActive) });
 
   useEffect(() => {
@@ -200,6 +236,18 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       registrations.clear();
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      selectedExperimentId &&
+      !experiments.some(({ id }) => id === selectedExperimentId)
+    ) {
+      navigation.navigate(
+        { simulateResource: null },
+        { cause: "normalization", action: "simulation-resource" },
+      );
+    }
+  }, [experiments, navigation, selectedExperimentId]);
 
   const patchExperiment = (
     experimentId: string,
@@ -321,7 +369,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         throw new Error(parsedScenarioValues.errors.join("\n"));
       }
 
-      const scenarioHir = await requestScenarioHir(selectedScenario);
+      const scenarioHir = await requestScenarioHir(selectedScenario, {
+        netParameters: globalParameters,
+        places: sdcpn.places,
+        types: sdcpn.types,
+      });
       const compiledScenario = compileScenario(
         selectedScenario,
         scenarioHir,
@@ -329,6 +381,38 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         sdcpn.places,
         sdcpn.types,
         { scenarioParameterValues: parsedScenarioValues.values },
+      );
+      if (!compiledScenario.ok) {
+        throw new Error(
+          compiledScenario.errors
+            .map((error) => `${error.source}:${error.itemId} ${error.message}`)
+            .join("\n"),
+        );
+      }
+
+      parameterValues = compiledScenario.result.parameterValues;
+      initialMarking = compiledScenario.result.initialState;
+    } else if (input.adHocScenario) {
+      const synthesized = synthesizeAdHocScenario(input.adHocScenario, {
+        netParameters: globalParameters,
+        places: sdcpn.places,
+        types: sdcpn.types,
+      });
+      if (!synthesized.ok) {
+        throw new Error(
+          synthesized.errors
+            .map((error) => `${error.source}:${error.itemId} ${error.message}`)
+            .join("\n"),
+        );
+      }
+
+      const scenarioHir = await requestScenarioHir(synthesized.scenario);
+      const compiledScenario = compileScenario(
+        synthesized.scenario,
+        scenarioHir,
+        globalParameters,
+        sdcpn.places,
+        sdcpn.types,
       );
       if (!compiledScenario.ok) {
         throw new Error(
@@ -348,7 +432,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       name: input.name.trim(),
       createdAt: Date.now(),
       scenarioId: input.scenarioId,
-      scenarioName: selectedScenario?.name ?? null,
+      scenarioName:
+        selectedScenario?.name ??
+        (input.adHocScenario ? "Ad-hoc scenario" : null),
       runCount: input.runCount,
       seed: input.seed,
       dt: input.dt,
@@ -420,7 +506,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           return { ...spec, artifact };
         });
 
-        const experimentConfigBase = {
+        const request: ExperimentRequest = {
           // Artifact fingerprints cover the complete sanitized SDCPN, including
           // its metric definitions. Run the worker against the exact snapshot
           // used above rather than the pre-substitution model.
@@ -431,21 +517,54 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           seed: input.seed,
           dt: input.dt,
           maxTime: input.maxTime,
-          hirArtifacts: artifacts,
           runCount: input.runCount,
+          metricSpecs,
+          hirArtifacts: artifacts,
         };
 
-        const handle = await createMonteCarloExperiment({
-          ...experimentConfigBase,
-          createWorker: workerFactoryRef.current,
-          metricSpecs,
-          signal: abortController.signal,
+        // Preference order, best first. Only one backend today; the point of
+        // going through the registry is that adding another is a registration
+        // rather than an edit to this branch.
+        const registrations: ExperimentBackendRegistration[] = [
+          {
+            id: WORKER_POOL_BACKEND_ID,
+            label: "CPU (Web Workers)",
+            load: () =>
+              Promise.resolve(
+                createWorkerPoolExperimentBackend({
+                  createWorker: workerFactoryRef.current,
+                  ...(shardCountRef.current === undefined
+                    ? {}
+                    : { shardCount: shardCountRef.current }),
+                }),
+              ),
+          },
+        ];
+
+        const selection = await selectExperimentBackend({
+          registrations,
+          buildRequest: () => Promise.resolve(request),
+          instantiateOptions: { signal: abortController.signal },
         });
 
+        // Setup cannot be aborted mid-flight. A cancelled or removed experiment
+        // must stop here rather than turning a late result into a running handle.
         if (!pendingRegistrationsRef.current.has(experimentId)) {
-          handle.dispose();
+          if (selection.ok) {
+            selection.handle.dispose();
+          }
           return;
         }
+
+        if (!selection.ok) {
+          throw new Error(
+            selection.declined
+              .map((entry) => `${entry.backendId}: ${entry.reason}`)
+              .join("; ") || "No compute backend could run this experiment.",
+          );
+        }
+
+        const { handle } = selection;
 
         pendingRegistrationsRef.current.delete(experimentId);
         registerExperimentHandle(experiment, handle);
@@ -496,9 +615,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     setExperiments((prev) =>
       prev.filter((experiment) => experiment.id !== experimentId),
     );
-    setSelectedExperimentId((current) =>
-      current === experimentId ? null : current,
-    );
+    if (selectedExperimentId === experimentId) {
+      navigation.navigate(
+        { simulateResource: null },
+        { cause: "normalization", action: "simulation-resource" },
+      );
+    }
   };
 
   const selectedExperiment =

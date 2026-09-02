@@ -22,13 +22,21 @@ import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
 import { EditorView } from "./views/Editor/editor-view";
 
+// `clip`, not `hidden`: a hidden-overflow box is still programmatically
+// scrollable, and focusing an element the canvas transform pushed past the
+// edge (a value editor opening) scrolled the whole app sideways with no
+// way back. `clip` forbids all scrolling of the box.
 const editorRootStyle = css({
   position: "relative",
   height: "full",
-  overflow: "hidden",
+  overflow: "clip",
   backgroundColor: "neutral.s25",
 });
 
+import type {
+  PetrinautAiComposerControl,
+  PetrinautAiVoiceMode,
+} from "./types/ai-assistant-composer-control";
 import type { PetrinautAiInteractiveTool } from "./types/ai-interactive-tool";
 import type {
   PetrinautAiMessage,
@@ -38,14 +46,21 @@ import type {
 export type PetrinautAiChatTransport = PetrinautAiTransport;
 
 export type PetrinautAiAssistant = {
+  /** Optional host-owned identity; `useChat` generates one when omitted. */
+  conversationId?: string;
   /** Host-owned dynamic tools that render inline in the AI conversation. */
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
   messages?: PetrinautAiMessage[];
   onClearMessages?: () => void;
   onMessages?: (messages: PetrinautAiMessage[]) => void;
+  /** Render a host-owned control inside the assistant composer. */
+  renderComposerControl?: PetrinautAiComposerControl;
+  /** Render one persistent, provider-neutral Voice mode. */
+  renderVoiceMode?: PetrinautAiVoiceMode;
   transport: PetrinautAiTransport;
 };
 
+import type { PetrinautNavigationController } from "../react/navigation";
 import type { NetManagement } from "../react/net-management-context";
 import type { PetrinautSlots } from "./types/petrinaut-slots";
 import type { ViewportAction } from "./types/viewport-action";
@@ -96,6 +111,8 @@ export type PetrinautProps = {
    * `?worker` against the host's own copy of the worker source.
    */
   lspWorkerFactory?: LspWorkerFactory;
+  /** Optional host-controlled, router-neutral app location. */
+  navigation?: PetrinautNavigationController;
 };
 
 const noop = () => {};
@@ -123,6 +140,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   simulationWorkerFactory,
   monteCarloWorkerFactory,
   lspWorkerFactory,
+  navigation,
 }) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const instance = useMemo<Instance>(
@@ -148,6 +166,7 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
         simulationWorkerFactory={simulationWorkerFactory}
         monteCarloWorkerFactory={monteCarloWorkerFactory}
         lspWorkerFactory={lspWorkerFactory}
+        navigation={navigation}
       >
         <MonacoProvider>
           <Stack

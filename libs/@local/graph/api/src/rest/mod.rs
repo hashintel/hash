@@ -14,9 +14,9 @@ pub mod status;
 
 pub mod admin;
 pub mod auth;
-pub mod http_tracing_layer;
 pub mod probe;
 pub mod rate_limit;
+pub mod telemetry;
 
 pub mod hashql;
 mod json;
@@ -39,7 +39,6 @@ use axum::{
 use error_stack::{Report, ResultExt as _};
 use futures::{SinkExt as _, channel::mpsc::Sender};
 use hash_codec::numeric::Real;
-use hash_graph_authentication::provider::{AuthenticationProvider, Caller};
 use hash_graph_authorization::policies::store::{PolicyStore, PrincipalStore};
 use hash_graph_embeddings::{EmbeddingError, EmbeddingGenerator as _, OpenAiEmbeddingClient};
 use hash_graph_postgres_store::store::{PostgresStorePool, error::VersionedUrlAlreadyExists};
@@ -72,6 +71,13 @@ use hash_graph_temporal_versioning::{
 };
 use hash_graph_type_fetcher::TypeFetcher;
 use hash_graph_types::Embedding;
+use hash_middleware::{
+    authentication::{
+        AuthenticationLayer,
+        provider::{AuthenticationProvider, Caller},
+    },
+    rate_limit::{IpGateLayer, PrincipalLimitLayer},
+};
 use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use include_dir::{Dir, include_dir};
@@ -525,6 +531,7 @@ where
     pub cloudflare_access: Option<auth::CloudflareAccessConfig>,
     pub service_secret: String,
     pub rate_limit: rate_limit::RateLimitConfig,
+    pub meter: opentelemetry::metrics::Meter,
     pub compiler: Arc<hashql::CompilerContext>,
     pub clustering: Arc<ClusteringContext>,
     /// Whether to serve an interactive rendering of the `OpenAPI` specification.
@@ -575,42 +582,30 @@ fn attach_request_middlewares<P, C>(
     unauthenticated: Router,
     provider: Arc<P>,
     service_secret: Arc<str>,
+    authentication_metrics: Arc<auth::AuthenticationMetrics>,
     rate_limiters: Arc<rate_limit::RateLimiters>,
 ) -> Router
 where
     P: AuthenticationProvider<C> + Send + Sync + 'static,
-    C: Caller + Send + 'static,
+    C: Caller + Send + Sync + 'static,
 {
-    let auth_secret = Arc::clone(&service_secret);
-    let gate_secret = Arc::clone(&service_secret);
-    let gate_limiters = Arc::clone(&rate_limiters);
-
     routes
-        .route_layer(axum::middleware::from_fn(move |request, next| {
-            rate_limit::principal_limit_middleware(
-                Arc::clone(&rate_limiters),
-                Arc::clone(&service_secret),
-                request,
-                next,
-            )
-        }))
-        .route_layer(axum::middleware::from_fn(move |request, next| {
-            auth::authentication_middleware::<_, C>(
-                Arc::clone(&provider),
-                Arc::clone(&auth_secret),
-                request,
-                next,
-            )
-        }))
+        .route_layer(PrincipalLimitLayer {
+            limiters: Arc::clone(&rate_limiters),
+            service_secret: Arc::clone(&service_secret),
+        })
+        .route_layer(AuthenticationLayer::<_, C> {
+            provider,
+            service_secret: Arc::clone(&service_secret),
+            metrics: authentication_metrics,
+            bootstrap_route: auth::is_bootstrap_route,
+            caller: core::marker::PhantomData,
+        })
         .merge(unauthenticated)
-        .layer(axum::middleware::from_fn(move |request, next| {
-            rate_limit::ip_gate_middleware(
-                Arc::clone(&gate_limiters),
-                Arc::clone(&gate_secret),
-                request,
-                next,
-            )
-        }))
+        .layer(IpGateLayer {
+            limiters: rate_limiters,
+            service_secret,
+        })
 }
 
 /// A [`Router`] that serves all of the REST API routes, and the `OpenAPI` specification.
@@ -630,9 +625,10 @@ where
         &dependencies.store,
     ));
     let service_secret: Arc<str> = Arc::from(dependencies.service_secret);
+    let authentication_metrics = Arc::new(auth::AuthenticationMetrics::new(&dependencies.meter));
 
-    let rate_limiters = Arc::new(rate_limit::RateLimiters::new(&dependencies.rate_limit));
-    rate_limit::spawn_maintenance(Arc::downgrade(&rate_limiters));
+    let rate_limiters =
+        rate_limit::RateLimiters::start(&(&dependencies.rate_limit).into(), &dependencies.meter);
 
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S>()
@@ -651,6 +647,7 @@ where
         openapi_only_router(dependencies.serve_api_reference),
         authentication_provider,
         service_secret,
+        authentication_metrics,
         rate_limiters,
     )
     .layer(
@@ -658,7 +655,7 @@ where
             .layer(NewSentryLayer::new_from_top())
             .layer(SentryHttpLayer::default().enable_transaction()),
     )
-    .layer(http_tracing_layer::HttpTracingLayer)
+    .layer(telemetry::layer())
     .layer(Extension(dependencies.store))
     .layer(Extension(Arc::new(dependencies.postgres)))
     .layer(Extension(dependencies.temporal_client))
