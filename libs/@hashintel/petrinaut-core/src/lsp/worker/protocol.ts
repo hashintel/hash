@@ -1,3 +1,7 @@
+import type {
+  ConstraintSource,
+  LowerConstraintContext,
+} from "../../constraint/lower";
 /**
  * LSP-inspired protocol types for the language server WebWorker.
  *
@@ -14,10 +18,6 @@
  */
 import type { PetrinautExtensionSettings } from "../../extensions";
 import type { CompileHirArtifactsOptions } from "../../hir/compile";
-import type {
-  LowerOptimizationConstraintContext,
-  OptimizationConstraintSpace,
-} from "../../hir/constraint";
 import type {
   AdHocScenarioState,
   AdHocSynthesisContext,
@@ -204,9 +204,8 @@ type ClientRequest =
       id: number;
       method: "sdcpn/lowerConstraint";
       params: {
-        code: string;
-        space: OptimizationConstraintSpace;
-        context: LowerOptimizationConstraintContext;
+        source: ConstraintSource;
+        context: LowerConstraintContext;
       };
     };
 

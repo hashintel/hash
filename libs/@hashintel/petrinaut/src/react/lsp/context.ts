@@ -4,9 +4,9 @@ import type {
   AdHocSynthesisContext,
   CompileHirArtifactsOptions,
   CompletionList,
-  LowerOptimizationConstraintContext,
-  LowerOptimizationConstraintResult,
-  OptimizationConstraintSpace,
+  ConstraintSource,
+  LowerConstraintContext,
+  LowerConstraintResult,
   Diagnostic,
   DocumentUri,
   HirCompileResult,
@@ -77,14 +77,13 @@ export interface LanguageClientContextValue {
    */
   requestFormatExpression: (code: string) => Promise<string | null>;
   /**
-   * Lower one optimization constraint's source to HIR (in the language
-   * worker) and check it produces a boolean.
+   * Lower one constraint's source to HIR (in the language worker) and check
+   * it produces a boolean.
    */
-  requestConstraintHir: (
-    code: string,
-    space: OptimizationConstraintSpace,
-    context: LowerOptimizationConstraintContext,
-  ) => Promise<LowerOptimizationConstraintResult>;
+  requestConstraint: (
+    source: ConstraintSource,
+    context: LowerConstraintContext,
+  ) => Promise<LowerConstraintResult>;
   /** Initialize a temporary scenario editing session. */
   initializeScenarioSession: (params: ScenarioSessionParams) => void;
   /** Update a scenario editing session. */
@@ -133,7 +132,7 @@ export const DEFAULT_LANGUAGE_CLIENT_CONTEXT: LanguageClientContextValue = {
       placeExpressions: {},
     }),
   requestFormatExpression: () => Promise.resolve(null),
-  requestConstraintHir: () =>
+  requestConstraint: () =>
     Promise.resolve({
       ok: false as const,
       diagnostics: [

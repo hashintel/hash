@@ -39,7 +39,7 @@ function makeLanguageClientValue(): LanguageClientContextValue {
     ),
     requestHover: vi.fn(() => Promise.resolve(null)),
     requestSignatureHelp: vi.fn(() => Promise.resolve(null)),
-    requestConstraintHir: vi.fn(() =>
+    requestConstraint: vi.fn(() =>
       Promise.resolve({
         ok: false as const,
         diagnostics: [],
