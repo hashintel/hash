@@ -1,7 +1,7 @@
 import type {
   PetrinautAiVoiceSessionPhase,
   PetrinautAiVoiceSessionState,
-} from "../../ui/types/ai-assistant-composer-control";
+} from "./types";
 
 /** Lifecycle actions Petrinaut's own Voice surfaces invoke. */
 export type VoiceSessionActions = {

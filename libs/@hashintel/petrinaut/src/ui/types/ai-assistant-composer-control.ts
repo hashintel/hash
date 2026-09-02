@@ -1,5 +1,11 @@
+import type {
+  PetrinautAiVoiceSessionPhase,
+  PetrinautAiVoiceSessionState,
+} from "../../react/voice-session/types";
 import type { PetrinautAiMessage } from "../views/Editor/panels/ai-assistant-panel/types";
 import type { ReactNode } from "react";
+
+export type { PetrinautAiVoiceSessionPhase, PetrinautAiVoiceSessionState };
 
 /** The active way a user is providing input to the AI assistant. */
 export type PetrinautAiInputMode = "text" | "voice";
@@ -61,30 +67,6 @@ export type PetrinautAiVoiceModeControls = {
    * whole session when Petrinaut closes the panel.
    */
   setMicrophoneMuted: (muted: boolean) => void;
-};
-
-/** Which side of a Voice session currently holds the turn. */
-export type PetrinautAiVoiceSessionPhase =
-  | "connecting"
-  | "error"
-  | "listening"
-  | "muted"
-  | "paused"
-  | "speaking"
-  | "thinking";
-
-/**
- * Live state of a host-owned Voice session.
- *
- * Petrinaut renders every live Voice surface from this snapshot, so hosts
- * report state rather than rendering their own status UI. Report it from an
- * effect: it changes at microphone-sampling rate.
- */
-export type PetrinautAiVoiceSessionState = {
-  errorMessage: string | null;
-  /** Normalized 0–1 input level driving the listening indicator. */
-  microphoneLevel: number;
-  phase: PetrinautAiVoiceSessionPhase;
 };
 
 /** Stable controls and conversation state supplied to a host-owned Voice mode. */

@@ -2,8 +2,8 @@ import { use, useCallback, useSyncExternalStore } from "react";
 
 import { VoiceSessionContext } from "./context";
 
-import type { PetrinautAiVoiceSessionPhase } from "../../ui/types/ai-assistant-composer-control";
 import type { VoiceSessionActions } from "./store";
+import type { PetrinautAiVoiceSessionPhase } from "./types";
 
 /**
  * Each hook selects a single field so a microphone-level update only
