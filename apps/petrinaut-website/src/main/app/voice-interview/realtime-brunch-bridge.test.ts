@@ -392,6 +392,47 @@ describe("RealtimeBrunchBridge", () => {
     );
   });
 
+  test("restores pending speech after rejected input", async () => {
+    const harness = createHarness();
+    const context = segment("context", "Complete context.", "assistant-text");
+    const question = segment("ask-current", "Exact question?");
+    const source = speechSource({ context: [context], question });
+    let finishCancelledPreparation:
+      | ((result: InterviewSpeechPreparationResult) => void)
+      | undefined;
+    harness.session.prepareInterviewSpeech.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishCancelledPreparation = resolve;
+        }),
+    );
+    harness.bridge.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    harness.bridge.start(4);
+
+    harness.bridge.cancelPendingSpeech();
+    harness.bridge.restoreCancelledSpeech();
+
+    await vi.waitFor(() =>
+      expect(harness.session.speakPrepared).toHaveBeenCalledWith([
+        "Prepared concise context.",
+        question.text,
+      ]),
+    );
+    finishCancelledPreparation?.({
+      context: "Late cancelled context.",
+      kind: "prepared",
+      sourceSegmentIds: [context.id],
+    });
+    await Promise.resolve();
+
+    expect(harness.session.speakPrepared).toHaveBeenCalledOnce();
+  });
+
   test("speaks nothing when preparation is cancelled after a transcript submission", async () => {
     const harness = createHarness();
     const question = segment("ask-current", "What happens after approval?");
@@ -865,6 +906,15 @@ describe("RealtimeBrunchBridge", () => {
     await vi.waitFor(() =>
       expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
     );
+    submitTranscript(harness, 3, "", "silent-item");
+    harness.emit(transcriptFailed(3, "failed-item"));
+    await Promise.resolve();
+
+    expect(harness.events.slice(-2)).toEqual([
+      { reason: "unavailable", type: "transcript-rejected" },
+      { reason: "unavailable", type: "transcript-rejected" },
+    ]);
+
     submitTranscript(harness, 3, "Overlapping answer.", "second-item");
     await Promise.resolve();
 

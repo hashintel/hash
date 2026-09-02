@@ -72,6 +72,7 @@ interface RealtimeSession {
 
 interface RealtimeBridge {
   cancelPendingSpeech(): void;
+  restoreCancelledSpeech(): void;
   start(connectionEpoch: number): void;
   stop(): void;
   subscribe(listener: (event: RealtimeBrunchBridgeEvent) => void): () => void;
@@ -468,15 +469,24 @@ export class VoiceTurnController {
       // or a transcription failure is surfaced as a recoverable notice; other
       // rejections (duplicate redelivery, overlap with an in-flight answer)
       // are diagnostics only.
+      this.#inputTurnPending = false;
+      this.#transcriptItemId = null;
+      this.#transcriptKey = null;
       if (event.reason === "empty" || event.reason === "failed") {
         this.#update({ inputNotice: "not-heard", partialText: "" });
+      } else {
+        this.#update({});
       }
+      this.#bridge.restoreCancelledSpeech();
       return;
     }
     if (event.type === "submission-accepted") {
       this.#answeredQuestionId = this.#submittingQuestionId;
       this.#submittingQuestionId = null;
-      this.#update({ lastAnswerDelivery: "delivered" });
+      this.#update({
+        inputNotice: "none",
+        lastAnswerDelivery: "delivered",
+      });
       return;
     }
     if (event.type === "speech-delivery-pending") {

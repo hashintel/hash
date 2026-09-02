@@ -212,7 +212,9 @@ export class RealtimeBrunchBridge {
     canonicalSegments: [],
     status: "ready",
   };
+  #cancelledSpeechSource: InterviewSpeechSource | null = null;
   #generation = 0;
+  #pendingSpeechSource: InterviewSpeechSource | null = null;
   #speechGeneration = 0;
 
   public constructor({
@@ -237,6 +239,8 @@ export class RealtimeBrunchBridge {
     }
     this.#activeEpoch = connectionEpoch;
     this.#activeSubmission = null;
+    this.#cancelledSpeechSource = null;
+    this.#pendingSpeechSource = null;
     this.#seenSegmentIds.clear();
     for (const segment of this.#chat.canonicalSegments) {
       this.#seenSegmentIds.add(segment.id);
@@ -261,11 +265,26 @@ export class RealtimeBrunchBridge {
     ++this.#generation;
     this.#activeEpoch = null;
     this.#activeSubmission = null;
+    this.#cancelledSpeechSource = null;
+    this.#pendingSpeechSource = null;
     this.#preparedContextCache.clear();
   }
 
   public cancelPendingSpeech(): void {
     ++this.#speechGeneration;
+    if (this.#pendingSpeechSource) {
+      this.#cancelledSpeechSource = this.#pendingSpeechSource;
+      this.#pendingSpeechSource = null;
+    }
+  }
+
+  public restoreCancelledSpeech(): void {
+    const source = this.#cancelledSpeechSource;
+    if (!source || this.#activeEpoch === null) {
+      return;
+    }
+    this.#cancelledSpeechSource = null;
+    this.#prepareAndDeliver(source);
   }
 
   public updateChat(update: ChatUpdate): void {
@@ -324,6 +343,8 @@ export class RealtimeBrunchBridge {
   ): void {
     ++this.#generation;
     this.#activeSubmission = null;
+    this.#cancelledSpeechSource = null;
+    this.#pendingSpeechSource = null;
     this.#emit({ code, message, type: "error" });
   }
 
@@ -343,6 +364,15 @@ export class RealtimeBrunchBridge {
       return;
     }
     this.#processedTranscripts.add(transcriptId);
+    const question = latestPendingQuestion(this.#chat.canonicalSegments);
+    if (
+      this.#activeSubmission ||
+      !this.#chat.canAcceptInterviewAnswer ||
+      (!question && this.#chat.status !== "ready")
+    ) {
+      this.#emit({ reason: "unavailable", type: "transcript-rejected" });
+      return;
+    }
     if (event.type === "transcription-failed") {
       this.#emit({ reason: "failed", type: "transcript-rejected" });
       return;
@@ -357,17 +387,9 @@ export class RealtimeBrunchBridge {
       this.#emit({ reason: "too-long", type: "transcript-rejected" });
       return;
     }
-    const question = latestPendingQuestion(this.#chat.canonicalSegments);
-    if (
-      this.#activeSubmission ||
-      !this.#chat.canAcceptInterviewAnswer ||
-      (!question && this.#chat.status !== "ready")
-    ) {
-      this.#emit({ reason: "unavailable", type: "transcript-rejected" });
-      return;
-    }
 
     const generation = this.#generation;
+    this.#cancelledSpeechSource = null;
     this.#activeSubmission = {
       baselineSegmentIds: new Set(
         this.#chat.canonicalSegments.map(({ id }) => id),
@@ -474,9 +496,11 @@ export class RealtimeBrunchBridge {
   }
 
   #prepareAndDeliver(source: InterviewSpeechSource): void {
-    this.#emit({ type: "speech-delivery-pending" });
     const generation = this.#generation;
     const speechGeneration = this.#speechGeneration;
+    this.#cancelledSpeechSource = null;
+    this.#pendingSpeechSource = source;
+    this.#emit({ type: "speech-delivery-pending" });
     const questionWordCount = source.questionSegment
       ? spokenWordCount(source.questionSegment.text)
       : 0;
@@ -500,6 +524,7 @@ export class RealtimeBrunchBridge {
           source: questionOnlySource,
         }).text,
       );
+      this.#pendingSpeechSource = null;
       return;
     }
 
@@ -521,6 +546,7 @@ export class RealtimeBrunchBridge {
           source,
         }).text,
       );
+      this.#pendingSpeechSource = null;
       return;
     }
     void this.#session.prepareInterviewSpeech(request).then((preparation) => {
@@ -536,6 +562,7 @@ export class RealtimeBrunchBridge {
         // the caller owns the next utterance.
         return;
       }
+      this.#pendingSpeechSource = null;
       if (preparation.kind === "prepared") {
         this.#preparedContextCache.set(request.cacheKey, preparation.context);
       }

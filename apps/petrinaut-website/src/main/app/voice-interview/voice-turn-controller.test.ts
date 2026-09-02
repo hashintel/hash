@@ -33,6 +33,7 @@ const createHarness = () => {
   };
   const bridge = {
     cancelPendingSpeech: vi.fn(),
+    restoreCancelledSpeech: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
     subscribe: vi.fn((listener: (event: RealtimeBrunchBridgeEvent) => void) => {
@@ -707,9 +708,11 @@ describe("VoiceTurnController", () => {
     "returns to listening with a recoverable notice when a transcript is rejected as %s",
     async (reason) => {
       const harness = createHarness();
+      const source = speechSource();
       harness.controller.updateChat({
+        automaticSource: source,
         canAcceptInterviewAnswer: true,
-        canonicalSegments: [question("ask-1")],
+        canonicalSegments: [...source.fullResponseSegments],
         status: "ready",
       });
       await harness.controller.start();
@@ -727,8 +730,10 @@ describe("VoiceTurnController", () => {
       harness.emitBridge({ reason, type: "transcript-rejected" });
 
       expect(harness.controller.getSnapshot()).toMatchObject({
+        canReadFullResponse: true,
+        canRepeatQuestion: true,
         connection: "connected",
-        currentQuestion: "What happens after approval?",
+        currentQuestion: "Who approves release?",
         input: "listening",
         inputNotice: "not-heard",
         lastAnswerDelivery: "none",
@@ -736,6 +741,7 @@ describe("VoiceTurnController", () => {
         output: "idle",
         partialText: "",
       });
+      expect(harness.bridge.restoreCancelledSpeech).toHaveBeenCalledOnce();
       expect(harness.submitText).not.toHaveBeenCalled();
 
       harness.emitSession({
