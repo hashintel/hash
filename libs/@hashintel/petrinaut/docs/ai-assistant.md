@@ -64,17 +64,22 @@ also begins with the same chip immediately before the answer, so Voice provenanc
 without duplicating an answer as a separate user message.
 
 Microphone capture pauses while the interviewer speaks so speaker echo cannot be submitted as your
-answer. Wait for playback to finish; Voice resumes listening automatically in your previous mute
-state. Semantic voice detection finishes each answer after a natural pause and is tuned to allow
-longer thinking pauses. There is no required done-speaking action.
+answer. Wait for playback to finish, or select **Your turn** while the interviewer is preparing or
+speaking. **Your turn** cancels pending speech, stops playback, and clears audio already buffered for
+the turn without disconnecting Voice. The microphone reopens only after that cancellation finishes,
+and only speech that begins after you selected **Your turn** is accepted as your answer. The
+interrupted question remains visible and available from **Repeat question** if you want to hear it
+again. Voice otherwise resumes listening automatically in your previous mute state. Semantic voice
+detection finishes each answer after a natural pause and is tuned to allow longer thinking pauses.
+There is no required done-speaking action.
 
 Every session control lives in the dock: **Show transcription in chat** on the left, and on the right
-**Mute microphone** (**Unmute microphone** once muted) beside **End voice mode**. Muting stops
-sending audio without ending the turn, so the assistant plays out whatever it is saying and unmuting
-drops you straight back into the conversation. **Resume voice mode** replaces the microphone action
-while a session is paused, and **Reconnect voice mode** replaces it after a failure. Nothing is added
-to the canvas toolbar. To send a typed message, first select **End voice mode** to restore the
-composer.
+**Your turn** while the interviewer is preparing or speaking, **Mute microphone** (**Unmute
+microphone** once muted), and **End voice mode**. Muting stops sending audio without ending the turn,
+so the assistant plays out whatever it is saying and unmuting drops you straight back into the
+conversation. **Resume voice mode** replaces the microphone action while a session is paused, and
+**Reconnect voice mode** replaces it after a failure. Nothing is added to the canvas toolbar. To send
+a typed message, first select **End voice mode** to restore the composer.
 
 The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the
 authority on your system. Brunch still chooses every question and interview decision. Its exact
