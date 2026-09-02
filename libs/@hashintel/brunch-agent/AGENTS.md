@@ -24,77 +24,61 @@ from this file.
 
 ## Mission contract
 
-When work starts on a branch, state these six things in [`MISSION.md`](MISSION.md) and copy them
-into the branch/PR description. Do not create additional planning or control documents, except the
-next-concerns draft and bounded side quest described below.
+When work starts on a branch, state these six things in [`MISSION.md`](MISSION.md) and copy them into the branch/PR description. These sections are required semantic addresses, not a ceiling on detail or a fixed template budget.
 
 - **Imperative** — what must become true, and why now.
 - **Throughline** — the real entrypoint or boundary being changed.
-- **Proof** — the observable evidence that would establish progress, and the claim it does not
-  make. A path, a connected skeleton, and a discharged contract are different completions.
+- **Proof** — the observable evidence that would establish progress, and the claim it does not make. A path, a connected skeleton, and a discharged contract are different completions.
 - **Constraints** — the few already-earned truths that must stay true.
-- **Fog-line** — uncertainty that current evidence cannot yet decide between consequential
-  alternatives, and must not be designed past. Clarifying intent is not clearing terrain. Capture
-  unresolved flags here: why they matter, what they constrain, and what would re-enter them.
-  Running the path may lengthen this list; that is calibration, not regression.
+- **Fog-line** — uncertainty that current evidence cannot yet decide between consequential alternatives, and must not be designed past. Clarifying intent is not clearing terrain. Capture unresolved flags here: why they matter, what they constrain, and what would re-enter them. Running the path may lengthen this list; that is calibration, not regression.
 - **Stop or reorient** — evidence that invalidates or changes the route.
 
-The six sections are the contract. Missions have also carried two additions that earned their
-keep: a short **Status** header (live / accepted) above the contract, and a closing **Deferred**
-section pointing at the draft. Keep both on future missions.
+The six sections are the live mission contract. Keep a short **Status** header (live / accepted) above the contract and a closing **Deferred** section pointing into the future planning record.
 
-### One live mission, next-concerns draft
+Preserve known precision whenever it changes builder behavior, scope, proof, risk, or handoff. Nest cold-start reads, boundary crossings, risks and assumptions, oracle-bound acceptance leaves, guarded invariants, layered verification, cross-cutting obligations, expected touched paths, and readiness-ratchet sections under the six semantic addresses when earned. Compact trees and flow diagrams are welcome when they make topology or sequencing more legible; omit unearned symmetric filler.
 
-[`MISSION.md`](MISSION.md) is the only execution authority. Agents and humans implement against it.
+Every final proof leaf in a live mission or side quest must name a credible oracle: an exact test or command, fixture, artifact inspection, human witness, or adjudication that can distinguish the claimed result from mere presence. A provisional mission draft may instead mark `ORACLE GAP` and state what must resolve it, but that gap must close before the draft is cut with that leaf as a claim.
 
-[`SIDE_QUEST.md`](SIDE_QUEST.md), when present, is one temporary, user-authorized experiment or
-remediation inside the live mission. It is legitimate only when evidence from that mission has
-exposed a bounded set of concrete residual failures whose investigation helps close the mission or
-informs named later clusters. It must state its relationship to the live mission, imperative,
-throughlines, proof, constraints, stop conditions, and budget for each paid activity. It must not
-supersede or contradict `MISSION.md`, broaden into speculative future work, create a second live
-mission, or coexist with another active side quest. Record its outcome in mission evidence and any
-affected `MISSION.next.md` clusters, then remove the active side-quest file before archiving the
-mission.
+### Throughline proof, readiness gate, and stratum closure
 
-[`MISSION.next.md`](MISSION.next.md) is the self-contained canonical capture repository for
-upcoming work: the draft missions and the comprehensive record of ideas, observations, questions,
-and named mechanisms already raised. It may hold a longer horizon than a single mission. It is not
-a mission: do not implement it, do not treat it as a second concurrent mission, and do not declare
-its focus until a cluster is cut.
+- **Throughline proof** is the smallest deployed end-to-end path showing that a capability crosses the real product boundary.
+- **Readiness gate** is the decision after that path works: enumerate the lateral obligations now exposed, decide which are required to trust the current visible capability, and identify which first become load-bearing for the next visible product advance.
+- **Stratum closure** completes breadth, fidelity, invalid-state, durability, identity, failure, and oracle obligations across one named contract layer and accepted scenario or peer set.
 
-Update the draft during planning, design, grilling, or other mission elicitation while the context
-is active. Keep every hypothesis, observation, question, and named mechanism at conversational
-fidelity. A heading plus a one-line label is not a record of a design. Rejected alternatives and
-the reason they lost belong next to the locked choice. Ungrilled fog stays marked unasked. The
-draft must stand on its own; do not rely on or link to a transcript as a substitute for capturing
-that content here.
+A vertical tracer does not automatically require horizontal completion. Close an obligation now when the current visible claim would otherwise be false or unsafe. Carry it only when the next visible product mission is its first real consumer, and name that owner, re-entry gate, and oracle; “later” is not a disposition.
 
-When regrouping or cutting, compare the draft before and after. Every item must either move into
-the live mission or remain in the draft at the same fidelity. Once an elicitation session is over,
-the draft — not an external transcript — is the source for future cuts.
+Use the recursive operating model:
 
-Group plausible future missions as ordered, numbered `# Mission N — …` headings. Spikes that are
-not missions, standing lock / out-of-scope decisions, and a live mission's leftover / Deferred
-items get their own unnumbered headings — they are not fake missions. Do not pre-fill Imperative,
-Throughline, Proof, or Status on a cluster; those sections are the cut into `MISSION.md`. Record
-Constraints, Fog-line, and Stop or reorient on a cluster only when the conversation already earned
-them.
+```text
+survey the real territory, not only its maps
+→ establish a working line of communication, transport, and evidence
+→ stage a dependable camp/base by closing the contract stratum the line has made load-bearing
+→ launch the next survey and throughline from that stronger departure point
+```
 
-A current mission's **Deferred** items belong in that draft as well. Do not silently drop or
-supersede them when adding other concerns.
+Terrain claims require inspection or probes at the real production or deployed boundary. A working line crosses entry to visible exit with the least mechanism that carries product data, control, evidence, and failure. A dependable base closes only the earned coverage, identity, durability, recovery, observability, and oracle obligations required by accepted consumers. Never silently treat a provisional line as a hardened departure base, and do not fortify every adjacent contract merely because one route exposed it.
 
-When the current mission is accepted and the next focus is resolved:
+This is an expeditionary posture, not a defensive one. Survey only until the next consequential and reversible move is warranted. Once downside is bounded or explicitly accepted, advance; uncertainty is terrain to reduce through action, not a reason to hold position. Stage only the base the next operation needs, not the safest or most complete base imaginable.
 
-1. Move `MISSION.md` to `docs/mission-archive/{n}-{slug}.md`.
-2. Cut a single focused `MISSION.md` from one cluster (the six-section contract above).
-3. Leave everything that did not make the cut in `MISSION.next.md` at the same fidelity — still
-   hypotheses, still rejected alternatives, still named mechanisms. A cut is a copy of one cluster
-   into authority, not a summary of the remainder.
+### One live mission and bounded planning surfaces
 
-Do not promote `MISSION.next.md` wholesale. Do not keep two live missions. Do not delete a closed
-mission; the archive is evidence of what was proven, not marching orders. Re-earn before building
-on it, same as an ADR.
+One Linear issue = one Graphite branch = one GitHub PR, and only one live mission may exist on that branch. [`MISSION.md`](MISSION.md) is the sole execution authority; agents and humans implement only against it.
+
+Only three additional planning or control surfaces are permitted:
+
+1. [`MISSION.next.md`](MISSION.next.md), the compact canonical future spine, shared frame, cross-mission constraints, and unallocated-backlog index.
+2. Linked provisional drafts under [`docs/mission-drafts/`](docs/mission-drafts/), which preserve detailed cold-start context for named future clusters under the [draft authority and lifecycle rules](docs/mission-drafts/README.md).
+3. `SIDE_QUEST.md`, when present, as the one temporary user-authorized experiment or remediation inside the live mission.
+
+`MISSION.next.md` and its linked provisional drafts form the combined future planning record. They are not execution authority, do not create concurrent missions, and must not be implemented before conversion into `MISSION.md`. Give every planning item one authoritative planning home; the compact spine may carry a concise summary and link, but must not duplicate the detailed contract. Keep each hypothesis, observation, accepted decision, rejected alternative and reason, re-entry condition, question, named mechanism, constraint, fog item, stop condition, scenario class, and evidence source at the fidelity needed for a cold-start builder. Do not rely on a transcript as the surviving record.
+
+A side quest is legitimate only when live-mission evidence exposes a bounded set of concrete residual failures whose investigation helps close that mission or informs named future clusters. It must state its relationship to the live mission, imperative, throughlines, oracle-bound proof, constraints, stop conditions, and budget for each paid activity. It must not supersede or contradict `MISSION.md`, broaden into speculative future work, create a second live mission, or coexist with another active side quest. Record its outcome in affected future-planning homes and in any mission evidence it produced, then remove the active file before archiving the mission. A documentation-only remediation that produces no separate implementation or evaluation evidence records its oracle-bound close audit in the canonical future-planning record rather than inventing another evidence document.
+
+### Conversion and lifecycle
+
+Promotion is re-evaluation and conversion, never a rename or wholesale promotion. The ordered conversion and archival procedure lives in [`docs/mission-drafts/README.md`](docs/mission-drafts/README.md#lifecycle).
+
+The always-loaded invariants are: keep exactly one live mission; return every item omitted from a cut to the combined future planning record at full fidelity; remove the consumed draft so it cannot remain duplicate quasi-authority; and compare every affected planning file before and after with no unexplained loss or duplication. A current mission's **Deferred** items belong in that record and must not be silently dropped or superseded.
 
 ## Correctives
 
