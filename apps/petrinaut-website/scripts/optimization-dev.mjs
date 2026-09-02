@@ -69,11 +69,19 @@ const capture = (command, args) =>
  * it was built from.
  */
 const removeLeftoverContainers = async () => {
+  // Anchored, because Docker's name filter matches substrings; the optional
+  // numeric suffix catches containers older launchers named by process id.
+  // Only stopped containers are swept, so a launcher already serving on the
+  // port keeps its container and is reused below.
   const names = await capture("docker", [
     "ps",
     "--all",
     "--filter",
-    `name=${container}`,
+    `name=^${container}(-[0-9]+)?$`,
+    "--filter",
+    "status=exited",
+    "--filter",
+    "status=created",
     "--format",
     "{{.Names}}",
   ]).catch(() => "");
@@ -109,15 +117,17 @@ const waitForOptimizer = async () => {
   throw new Error("Petrinaut Opt did not become healthy within 30 seconds");
 };
 
-let containerStarted = false;
+/** The container this launcher started, by id, so it never stops another launcher's. */
+let startedContainerId = null;
 let websiteProcess;
 
 const stopContainer = async () => {
-  if (!containerStarted) {
+  if (startedContainerId === null) {
     return;
   }
-  containerStarted = false;
-  await run("docker", ["stop", "--timeout", "5", container], {
+  const containerId = startedContainerId;
+  startedContainerId = null;
+  await run("docker", ["stop", "--timeout", "5", containerId], {
     stdio: "ignore",
   }).catch(() => undefined);
 };
@@ -150,19 +160,20 @@ try {
     ]);
 
     console.log("Starting Petrinaut Opt on http://127.0.0.1:4004...");
-    await run("docker", [
-      "run",
-      "--detach",
-      "--init",
-      "--read-only",
-      "--rm",
-      "--name",
-      container,
-      "--publish",
-      "127.0.0.1:4004:4004",
-      image,
-    ]);
-    containerStarted = true;
+    startedContainerId = (
+      await capture("docker", [
+        "run",
+        "--detach",
+        "--init",
+        "--read-only",
+        "--rm",
+        "--name",
+        container,
+        "--publish",
+        "127.0.0.1:4004:4004",
+        image,
+      ])
+    ).trim();
     await waitForOptimizer();
   }
 

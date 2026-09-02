@@ -155,6 +155,7 @@ seed-users.json
 AGENTS.local.md
 CLAUDE.local.md
 .claude/settings.local.json
+.claude/launch.json
 
 # Terraform
 **/.terraform
