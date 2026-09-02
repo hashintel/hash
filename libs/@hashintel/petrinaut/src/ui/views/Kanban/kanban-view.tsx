@@ -5,7 +5,7 @@
 import { use, useEffect, useRef, useState } from "react";
 
 import { Select } from "@hashintel/ds-components";
-import { css } from "@hashintel/ds-helpers/css";
+import { css, cva } from "@hashintel/ds-helpers/css";
 import {
   getStatusViewEvaluationScope,
   type InstanceStatus,
@@ -14,23 +14,43 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { ExecutionFrameSourceContext } from "../../../react/execution-frame/context";
+import { EditorContext } from "../../../react/state/editor-context";
 import { SDCPNContext } from "../../../react/state/sdcpn-context";
 import { StatusConditionArtifactsContext } from "../../../react/status-condition-artifacts";
 import { formatDwellMs } from "../shared/format-dwell";
+import { getBoardInsets } from "./kanban-view/board-insets";
 import {
   createBoardReplay,
   type BoardSnapshot,
 } from "./kanban-view/board-replay";
 
+/**
+ * Fills the canvas container like the net canvas does. The left, right, and
+ * bottom edges are set inline from the overlay panels' current sizes so the
+ * board only ever occupies the visible region between them.
+ */
 const rootStyle = css({
+  position: "absolute",
+  top: "[0]",
   display: "flex",
   flexDirection: "column",
-  flex: "[1]",
   minWidth: "[0]",
   minHeight: "[0]",
   gap: "3",
   padding: "4",
   backgroundColor: "neutral.s10",
+});
+
+const rootAnimatingStyle = cva({
+  base: {},
+  variants: {
+    animating: {
+      true: {
+        transition:
+          "[left 150ms ease-in-out, right 150ms ease-in-out, bottom 150ms ease-in-out]",
+      },
+    },
+  },
 });
 
 const toolbarStyle = css({
@@ -337,6 +357,16 @@ const KanbanBoard = ({ statusView }: { statusView: StatusView }) => {
  */
 export const KanbanView = () => {
   const { petriNetDefinition } = use(SDCPNContext);
+  const {
+    isLeftSidebarOpen,
+    isSearchOpen,
+    leftSidebarWidth,
+    hasSelection,
+    propertiesPanelWidth,
+    isBottomPanelOpen,
+    bottomPanelHeight,
+    isPanelAnimating,
+  } = use(EditorContext);
   const statusViews = petriNetDefinition.statusViews ?? [];
   const [selectedStatusViewId, setSelectedStatusViewId] = useState<
     string | null
@@ -346,9 +376,20 @@ export const KanbanView = () => {
     statusViews.find((view) => view.id === selectedStatusViewId) ??
     statusViews[0];
 
+  const rootClassName = `${rootStyle} ${rootAnimatingStyle({ animating: isPanelAnimating })}`;
+  const insets = getBoardInsets({
+    isLeftSidebarOpen,
+    isSearchOpen,
+    leftSidebarWidth,
+    hasSelection,
+    propertiesPanelWidth,
+    isBottomPanelOpen,
+    bottomPanelHeight,
+  });
+
   if (!statusView) {
     return (
-      <div className={rootStyle}>
+      <div className={rootClassName} style={insets}>
         <span className={emptyStyle}>
           No status views yet. Create one in the Simulate panel's Status views
           tab to project net state onto a board.
@@ -358,7 +399,7 @@ export const KanbanView = () => {
   }
 
   return (
-    <div className={rootStyle}>
+    <div className={rootClassName} style={insets}>
       <div className={toolbarStyle}>
         <div className={viewSelectStyle}>
           <Select
