@@ -33,7 +33,9 @@ controls and a `muted` session phase, so muting stops capture without interrupti
 is saying, unlike pausing. Surface voice recovery failures as toasts with privacy-safe diagnostic
 references, and request one-time consent before the host starts the microphone. Mark persisted spoken
 messages and the exact interactive-tool answer completed by Voice with an inline Voice chip ahead of
-the words themselves.
+the words themselves. Add a backwards-compatible submitted-output prefix slot to interactive-tool
+widgets: opted-in widgets can place Voice provenance inside their submitted-value box, while existing
+widgets retain the trailing fallback.
 
 End Voice mode before submitting typed text exactly once through the shared composer, preserving the
 draft if handoff fails. Pause active media before the AI panel closes and reopen the mounted session

@@ -93,11 +93,12 @@ const answerStyle = css({
   fontSize: "sm",
 });
 
-const BrunchAskWidget = ({
+export const BrunchAskWidget = ({
   input,
   state,
   submit,
   submittedOutput,
+  submittedOutputPrefix,
 }: PetrinautAiInteractiveToolWidgetProps<BrunchAskInput, BrunchAskOutput>) => {
   const answerId = useId();
   const [answer, setAnswer] = useState("");
@@ -115,7 +116,10 @@ const BrunchAskWidget = ({
     <section className={containerStyle}>
       <p className={questionStyle}>{input.question}</p>
       {state === "submitted" ? (
-        <p className={answerStyle}>{submittedOutput.answer}</p>
+        <p className={answerStyle}>
+          {submittedOutputPrefix}
+          <span>{submittedOutput.answer}</span>
+        </p>
       ) : (
         <form className={formStyle} onSubmit={onSubmit}>
           <label className={labelStyle} htmlFor={answerId}>
@@ -147,5 +151,6 @@ export const brunchAskInteractiveTool = definePetrinautAiInteractiveTool({
   inputSchema: { parse: parseBrunchAskInput },
   outputSchema: { parse: parseBrunchAskOutput },
   fromComposerText: brunchAskFromComposerText,
+  supportsSubmittedOutputPrefix: true,
   component: BrunchAskWidget,
 });

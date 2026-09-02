@@ -31,5 +31,7 @@ export type InteractiveToolDefinition<Input = unknown, Output = unknown> = {
   parseOutput: (raw: unknown) => Output;
   /** Map composer text to a validated tool output when the host opts in. */
   fromComposerText?: (params: { input: Input; text: string }) => Output;
+  /** Whether the widget positions a submitted-output prefix supplied by Petrinaut. */
+  supportsSubmittedOutputPrefix?: true;
   Widget: ComponentType<InteractiveToolWidgetProps<Input, Output>>;
 };

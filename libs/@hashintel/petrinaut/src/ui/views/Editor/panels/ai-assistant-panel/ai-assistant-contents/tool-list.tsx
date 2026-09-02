@@ -525,6 +525,9 @@ const InteractiveToolItem = ({
   const typedInput = definition.parseInput(input);
 
   if (submitted) {
+    const positionsVoicePrefix =
+      tool.voiceOrigin && definition.supportsSubmittedOutputPrefix === true;
+
     return (
       <div className={interactiveToolStyle} data-tool-call-id={tool.id}>
         <Widget
@@ -532,9 +535,12 @@ const InteractiveToolItem = ({
           state="submitted"
           submit={() => {}}
           submittedOutput={definition.parseOutput(submittedOutput)}
+          submittedOutputPrefix={
+            positionsVoicePrefix ? <VoiceInputProvenance /> : undefined
+          }
           toolCallId={tool.id}
         />
-        {tool.voiceOrigin && <VoiceInputProvenance />}
+        {tool.voiceOrigin && !positionsVoicePrefix && <VoiceInputProvenance />}
       </div>
     );
   }

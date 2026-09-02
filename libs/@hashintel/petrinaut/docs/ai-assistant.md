@@ -59,8 +59,9 @@ never held back either way: anything you typed, and any inline question waiting 
 the session ends, the held turns appear together under a **Voice session · N turns** divider. Only
 finalized answers and canonical Brunch text become chat history; provisional transcription and
 Realtime audio are ephemeral. Finalized spoken user messages carry a small **Voice** chip in front of
-the words themselves, and the exact inline answer completed by speech carries the same chip, so Voice
-provenance remains visible without duplicating an answer.
+the words themselves. The submitted-answer box for the exact inline question completed by speech
+also begins with the same chip immediately before the answer, so Voice provenance remains visible
+without duplicating an answer as a separate user message.
 
 Microphone capture pauses while the interviewer speaks so speaker echo cannot be submitted as your
 answer. Wait for playback to finish; Voice resumes listening automatically in your previous mute

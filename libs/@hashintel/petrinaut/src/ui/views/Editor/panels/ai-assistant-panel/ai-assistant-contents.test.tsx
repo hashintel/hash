@@ -649,11 +649,11 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    expect(
-      within(
-        screen.getByText("Spoken workflow").closest("[data-role]")!,
-      ).getByTestId("voice-input-provenance"),
-    ).not.toBeNull();
+    const spokenText = screen.getByText("Spoken workflow");
+    const spokenProvenance = within(
+      spokenText.closest("[data-role]")!,
+    ).getByTestId("voice-input-provenance");
+    expect(spokenProvenance.nextElementSibling).toBe(spokenText);
     expect(
       within(
         screen.getByText("Typed follow-up").closest("[data-role]")!,
@@ -670,8 +670,17 @@ describe("AiAssistantContents", () => {
       outputSchema: {
         parse: (raw: unknown) => raw as { answer: string },
       },
-      component: ({ submittedOutput, toolCallId }) => (
-        <span>{`${toolCallId}: ${submittedOutput?.answer}`}</span>
+      supportsSubmittedOutputPrefix: true,
+      component: ({
+        state,
+        submittedOutput,
+        submittedOutputPrefix,
+        toolCallId,
+      }) => (
+        <span data-testid={`answer-${toolCallId}`}>
+          {state === "submitted" ? submittedOutputPrefix : null}
+          <span>{`${toolCallId}: ${submittedOutput?.answer}`}</span>
+        </span>
       ),
     });
     const messages = [
@@ -713,23 +722,74 @@ describe("AiAssistantContents", () => {
       />,
     );
 
+    const voiceAnswer = screen.getByTestId("answer-question-voice");
+    const voiceProvenance = within(voiceAnswer).getByTestId(
+      "voice-input-provenance",
+    );
+    const voiceText = screen.getByText("question-voice: The shift lead");
+    expect(voiceProvenance.nextElementSibling).toBe(voiceText);
     expect(
-      within(
-        screen
-          .getByText("question-voice: The shift lead")
-          .closest("[data-tool-call-id]")!,
-      ).getByTestId("voice-input-provenance"),
-    ).not.toBeNull();
-    expect(
-      within(
-        screen
-          .getByText("question-typed: The operator")
-          .closest("[data-tool-call-id]")!,
-      ).queryByTestId("voice-input-provenance"),
+      within(screen.getByTestId("answer-question-typed")).queryByTestId(
+        "voice-input-provenance",
+      ),
     ).toBeNull();
     expect(screen.getAllByTestId("voice-input-provenance")).toHaveLength(1);
     expect(screen.queryByText("The shift lead", { exact: true })).toBeNull();
     expect(container.querySelectorAll('[data-role="user"]')).toHaveLength(0);
+  });
+
+  test("keeps trailing voice provenance for interactive tools without a submitted-output prefix", () => {
+    const hostTool = definePetrinautAiInteractiveTool({
+      toolName: "legacyAnswerQuestion",
+      inputSchema: {
+        parse: (raw: unknown) => raw as { question: string },
+      },
+      outputSchema: {
+        parse: (raw: unknown) => raw as { answer: string },
+      },
+      component: ({ submittedOutput }) => (
+        <span data-testid="legacy-answer">{submittedOutput?.answer}</span>
+      ),
+    });
+    const messages = [
+      {
+        id: "assistant-legacy-question",
+        metadata: { source: "voice", toolCallId: "legacy-question" },
+        role: "assistant",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolName: "legacyAnswerQuestion",
+            state: "output-available",
+            toolCallId: "legacy-question",
+            input: { question: "Who approves it?" },
+            output: { answer: "The shift lead" },
+          },
+        ],
+      },
+    ] as unknown as PetrinautAiMessage[];
+
+    render(
+      <AiAssistantContents
+        input=""
+        interactiveTools={[hostTool]}
+        messages={messages}
+        onClose={noop}
+        onInputChange={noop}
+        onStop={noop}
+        onSubmit={noop}
+        status="ready"
+      />,
+    );
+
+    const legacyAnswer = screen.getByTestId("legacy-answer");
+    const toolContainer = legacyAnswer.closest(
+      "[data-tool-call-id]",
+    ) as HTMLElement;
+    const voiceProvenance = within(toolContainer).getByTestId(
+      "voice-input-provenance",
+    );
+    expect(legacyAnswer.nextElementSibling).toBe(voiceProvenance);
   });
 
   test("keeps completed messages memoized when interactive tools are omitted", () => {
