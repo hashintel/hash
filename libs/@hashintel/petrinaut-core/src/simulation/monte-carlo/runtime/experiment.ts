@@ -469,6 +469,14 @@ function createLocalMonteCarloExperiment(
 export function createMonteCarloExperiment(
   config: CreateMonteCarloExperimentConfig,
 ): Promise<MonteCarloExperiment> {
+  if (config.runs && config.runs.length !== config.runCount) {
+    return Promise.reject(
+      new Error(
+        `Monte Carlo experiment received ${config.runs.length} run configs for ${config.runCount} runs`,
+      ),
+    );
+  }
+
   if ("metrics" in config && config.metrics !== undefined) {
     return createLocalMonteCarloExperiment(config);
   }
@@ -493,14 +501,6 @@ export function createMonteCarloExperiment(
         ),
       ),
     });
-  }
-
-  if (config.runs && config.runs.length !== config.runCount) {
-    return Promise.reject(
-      new Error(
-        `Monte Carlo experiment received ${config.runs.length} run configs for ${config.runCount} runs`,
-      ),
-    );
   }
 
   // A caller-supplied transport is a single channel, so it cannot be sharded.

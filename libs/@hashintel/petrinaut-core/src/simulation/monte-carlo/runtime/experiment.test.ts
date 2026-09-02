@@ -243,6 +243,55 @@ describe("createMonteCarloExperiment run results", () => {
     ).rejects.toThrow("3 runs");
   });
 
+  it("rejects a short runs list on the local path too", async () => {
+    await expect(
+      createMonteCarloExperiment({
+        sdcpn: empty(),
+        initialMarking: {},
+        parameterValues: {},
+        seed: 1,
+        dt: 1,
+        maxTime: 10,
+        runCount: 3,
+        runs: [{ seed: 1 }],
+        metricSpecs: [],
+      }),
+    ).rejects.toThrow("3 runs");
+  });
+
+  it("stops an in-process worker's compute loop when the experiment is disposed", async () => {
+    const handle = await createMonteCarloExperiment({
+      createWorker: createInProcessMonteCarloWorker,
+      sdcpn: empty(),
+      initialMarking: {},
+      parameterValues: {},
+      seed: 1,
+      dt: 0.001,
+      maxTime: 1_000,
+      runCount: 1,
+      metricSpecs: [],
+    });
+    // The core compiles against no host types, so the host timer is reached
+    // structurally, as the worker itself does.
+    const host = globalThis as unknown as {
+      setTimeout: (handler: () => void, timeout?: number) => unknown;
+    };
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => host.setTimeout(resolve, ms));
+    handle.start();
+    await wait(20);
+    handle.dispose();
+
+    const timers = vi.spyOn(host, "setTimeout");
+    await wait(20);
+    const scheduledAfterDispose = timers.mock.calls.length;
+    await wait(20);
+    const scheduledLater = timers.mock.calls.length;
+    timers.mockRestore();
+    // Only this test's own wait was scheduled; the batch loop is quiet.
+    expect(scheduledLater - scheduledAfterDispose).toBe(1);
+  });
+
   it("collects per-run final values across in-process worker shards", async () => {
     const experiment = await createMonteCarloExperiment({
       createWorker: createInProcessMonteCarloWorker,

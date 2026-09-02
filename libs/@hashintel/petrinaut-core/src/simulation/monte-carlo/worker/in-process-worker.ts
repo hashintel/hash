@@ -85,6 +85,10 @@ export function createInProcessMonteCarloWorker(): WorkerLike {
       mainListeners.delete(listener);
     },
     terminate() {
+      // A `cancel` posted just before terminating still sits on a microtask,
+      // so deliver it now: the protocol's handler is synchronous and stops the
+      // compute loop before the loopback closes.
+      workerListener?.({ type: "cancel" });
       terminated = true;
       mainListeners.clear();
       workerListener = null;

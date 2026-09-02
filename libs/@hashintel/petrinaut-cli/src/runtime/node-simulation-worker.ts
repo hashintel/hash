@@ -41,10 +41,10 @@ export function createNodeSimulationWorkerFactory(options?: {
   }
 
   return () => {
+    // The worker stays referenced: the trial that asked for it disposes the
+    // experiment in a `finally`, which terminates every worker, so the process
+    // neither exits before a reply is written nor outlives the request.
     const worker = new Worker(entryUrl);
-    // A worker thread holds the process open; simulations must not outlive
-    // the request that asked for them.
-    worker.unref();
 
     return {
       postMessage: (message) => {
