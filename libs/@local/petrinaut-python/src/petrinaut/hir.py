@@ -310,6 +310,10 @@ def _range(args: Sequence[float]) -> list[Value]:
     if step == 0:
         raise HirEvaluationError("range() step must not be zero.")
     span = (end - start) / step
+    if span == -math.inf:
+        # A backward range whose bounds overflow a double: TypeScript ceilings
+        # the span to 0 and yields nothing.
+        return []
     if not math.isfinite(span):
         raise HirEvaluationError(
             f"range() would produce more than {_MAX_RANGE_LENGTH} elements."
