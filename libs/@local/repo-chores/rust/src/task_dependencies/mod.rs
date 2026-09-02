@@ -69,6 +69,7 @@ struct Package {
     name: String,
     path: String,
     direct_dependencies: Items<Named>,
+    tasks: Items<Named>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -159,16 +160,25 @@ where
     Ok(response.data)
 }
 
-/// Every task name declared by the root and the packages.
+/// Every task name a package could run.
 ///
-/// The names come from the `turbo.json` files rather than from a query: `affectedTasks`
-/// answers with the tasks of the packages a diff touches, which would tie the documents to
-/// the branch they are generated on.
+/// Two sources, because neither is complete on its own: a package's `tasks` carry the ones
+/// turbo synthesizes for a Cargo crate, which no `turbo.json` declares, while the
+/// `turbo.json` files carry the declared names, which that query drops for a crate. Names
+/// nothing implements are dropped by the dry run.
+///
+/// `affectedTasks` would list both but answers with the tasks of the packages a diff
+/// touches, which would tie the documents to the branch they are generated on.
 async fn task_names(
     root: &Path,
     packages: &[Package],
 ) -> Result<Vec<String>, Report<TaskDependenciesError>> {
-    let mut names = BTreeSet::new();
+    let mut names: BTreeSet<String> = packages
+        .iter()
+        .flat_map(|package| &package.tasks.items)
+        .map(|task| task.name.clone())
+        .filter(|name| !name.contains('#'))
+        .collect();
 
     for package in packages {
         let path = root.join(&package.path).join("turbo.json");
@@ -396,7 +406,8 @@ pub(crate) async fn sync_task_dependencies() -> Result<(), Report<[TaskDependenc
 
     let packages: PackagesData = query(
         &root,
-        "{ packages { items { name path directDependencies { items { name } } } } }",
+        "{ packages { items { name path directDependencies { items { name } } tasks { items { \
+         name } } } } }",
         TaskDependenciesError::PackageList,
     )
     .await?;
