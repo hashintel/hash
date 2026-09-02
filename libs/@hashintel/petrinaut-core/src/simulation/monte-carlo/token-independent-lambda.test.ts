@@ -9,8 +9,11 @@ import { describe, expect, it } from "vitest";
 
 import { compileHirArtifacts } from "../../hir";
 import { createMonteCarloSimulator } from "./monte-carlo-simulator";
+import { createRunState } from "./run-state";
+import { computeTransitionEffect } from "./transition-effect";
 
 import type { HirArtifacts } from "../../hir";
+import type { HirCompiledBufferLambda } from "../../hir/instantiate";
 import type { SDCPN } from "../../types/sdcpn";
 
 const sdcpn: SDCPN = {
@@ -123,5 +126,57 @@ describe("token-independent lambda fast path", () => {
         (snapshot) => (snapshot.placeTokenCounts.sink ?? 0) > 0,
       ),
     ).toBe(true);
+  });
+
+  it("evaluates the lambda once instead of once per combination", () => {
+    // Rate 0 never fires, so the enumerating path examines every C(6, 2) = 15
+    // pair while the flagged path examines one, with the same outcome and the
+    // same RNG state afterwards.
+    const { artifacts } = compileHirArtifacts(sdcpn);
+    const runWith = (tokenIndependent: boolean) => {
+      const run = createRunState(
+        {
+          sdcpn,
+          initialMarking: {
+            pool: [{ v: 1 }, { v: 2 }, { v: 3 }, { v: 4 }, { v: 5 }, { v: 6 }],
+            sink: [],
+          },
+          parameterValues: { rate: "0" },
+          seed: 7,
+          dt: 0.1,
+          maxTime: 5,
+          runCount: 1,
+          hirArtifacts: artifacts,
+        },
+        undefined,
+        0,
+      );
+      const transition = run.simulation.compiledTransitions.get("pair")!;
+      let calls = 0;
+      const counting: HirCompiledBufferLambda = (...args) => {
+        calls += 1;
+        return transition.lambdaFn(...args);
+      };
+      const { firing, newRngState } = computeTransitionEffect(
+        run,
+        run.currentFrame,
+        {
+          ...transition,
+          lambdaFn: counting,
+          lambdaReadsNoInputTokens: tokenIndependent,
+        },
+        null,
+      );
+      return { calls, firing, newRngState };
+    };
+
+    const flagged = runWith(true);
+    const flagless = runWith(false);
+
+    expect(flagged.calls).toBe(1);
+    expect(flagless.calls).toBe(15);
+    expect(flagged.firing).toBeNull();
+    expect(flagless.firing).toBeNull();
+    expect(flagged.newRngState).toBe(flagless.newRngState);
   });
 });

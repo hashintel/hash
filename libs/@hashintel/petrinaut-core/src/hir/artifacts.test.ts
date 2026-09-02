@@ -266,4 +266,24 @@ describe("readsNoInputTokens", () => {
       ).readsNoInputTokens,
     ).toBe(true);
   });
+
+  it("is absent for a token-free lambda that draws randomness", () => {
+    // Skipping enumeration would evaluate the draw once per frame instead of
+    // once per combination, changing how often the transition fires.
+    expect(
+      lambdaArtifactFor("export default Lambda(() => Math.random() > 0.5);")
+        .readsNoInputTokens,
+    ).toBeUndefined();
+  });
+
+  it("is absent for a lambda that reads only a token count", () => {
+    const inputPlace = sdcpn.places.find(
+      (place) => place.id === sdcpn.transitions[0]!.inputArcs[0]!.placeId,
+    )!;
+    expect(
+      lambdaArtifactFor(
+        `export default Lambda((input) => input.${inputPlace.name}.length > 1);`,
+      ).readsNoInputTokens,
+    ).toBeUndefined();
+  });
 });
