@@ -311,7 +311,6 @@ fn scope_battery(atlas: &Atlas) -> Vec<(&'static str, VisibilityProof)> {
 /// accumulates every delta chain and checks it against the total response, so
 /// accumulation-equals-total covers every proof and offset rather than one fixture.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn restricted_delivery_agrees_with_the_scope_cascade_reference() {
     let (_generation, atlas) = publish("scope-reference").await;
     let node_codec = test_codec(&atlas);
@@ -428,7 +427,6 @@ async fn restricted_delivery_agrees_with_the_scope_cascade_reference() {
 /// Every route takes a bound view, so a refused offset never reaches assembly and the whole-tile
 /// refusal holds by construction.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn resolved_cut_past_the_key_width_refuses_the_whole_tile() {
     let (_generation, atlas) = publish("cut-refusal").await;
     let proof = mask_hiding(&atlas, &[0]);
@@ -455,7 +453,6 @@ async fn resolved_cut_past_the_key_width_refuses_the_whole_tile() {
 /// can receive a mismatched pair. The pair is checked where it is assembled, and [`View::bind`] is
 /// the only entry point still accepting the four inputs apart.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn mismatched_proof_and_schedule_refuse_the_contract() {
     let (_generation, atlas) = publish("contract-refusal").await;
     let masked = mask_hiding(&atlas, &[0]);
@@ -501,7 +498,6 @@ async fn mismatched_proof_and_schedule_refuse_the_contract() {
 /// The offset zero case runs beside it, so the refusal is about the value rather than about the
 /// pair.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn operator_proof_refuses_a_nonzero_offset() {
     let (_generation, atlas) = publish("operator-offset-refusal").await;
     let corpus = ViewSchedule::Corpus(ArrivalOverlay::empty());
@@ -561,7 +557,6 @@ fn discriminating_tile_lists() -> Vec<Vec<TileCoordinate>> {
 /// asserts the count is nonzero, so a fixture that stopped discriminating fails this assertion
 /// rather than passing the test for the wrong reason.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn scoped_edges_bound_the_view_cascade_delivery() {
     let (generation, atlas) = publish("scope-edges").await;
     let endpoints: Vec<[u64; 2]> = open_edge_artifacts(&generation)
@@ -657,7 +652,6 @@ async fn scoped_edges_bound_the_view_cascade_delivery() {
 /// The reference finds the zoom by search where the implementation subtracts. No arithmetic is
 /// shared between them. The sweep then counts where the scope answer parts from the corpus one.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn scoped_locate_flies_to_the_view_cut_zoom() {
     let (_generation, atlas) = publish("scope-locate").await;
     let row_ids = atlas.row_ids();
@@ -736,7 +730,6 @@ async fn scoped_locate_flies_to_the_view_cut_zoom() {
 /// The sweep therefore serves the whole grid at three offsets against the cascade reference. It
 /// pins beside that the operator contract's refusal of the offset this caller is served at.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn an_all_row_scope_serves_the_restricted_contract() {
     let (_generation, atlas) = publish("scope-all-rows").await;
     let all_rows = mask_hiding(&atlas, &[]);
@@ -790,7 +783,6 @@ async fn an_all_row_scope_serves_the_restricted_contract() {
 /// axis shares it too. The overfire is the bug class on the other side. A scope hiding even one
 /// node row must build its own cascade, because the shared one delivers the hidden row.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn saturated_scopes_share_one_cascade() {
     let (_generation, atlas) = publish("saturated-memo").await;
 
@@ -947,7 +939,6 @@ fn assert_saturated_scope_grid(
 /// counters assert that state rather than describe it. A corpus that gains such a pair therefore
 /// fails here and earns the stronger assertion it then deserves.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn a_scoped_locate_cap_selects_among_authorised_partners() {
     let (_generation, atlas) = publish("scope-locate-cap").await;
     let row_ids = atlas.row_ids();

@@ -459,10 +459,6 @@ fn tiny_neighbour_lists() -> NeighbourLists<NodeRowId> {
 /// retag. The site is downgraded to out-with-reason on this measurement; the ignore below is the
 /// existing crate pattern for the same false positive, not a new one.
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn from_lists_over_the_smallest_fixture_measures_the_miri_cost() {
     let lists = tiny_neighbour_lists();
 
@@ -495,10 +491,6 @@ where
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn build_matches_hand_computed_neighbours() {
     let rows = plane_fixture();
     let matrix = Matrix::new(&rows);
@@ -538,10 +530,6 @@ fn build_matches_hand_computed_neighbours() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn build_rejects_unsatisfiable_shapes() {
     let rows = plane_fixture();
     let matrix = Matrix::new(&rows);
@@ -587,10 +575,6 @@ fn build_rejects_unsatisfiable_shapes() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn build_rejects_malformed_backend_responses() {
     let rows = plane_fixture();
     let matrix = Matrix::new(&rows);
@@ -628,10 +612,6 @@ fn build_rejects_malformed_backend_responses() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn descent_converges_on_known_geometry() {
     let rows = fan_fixture(64, 0.02);
     let matrix = Matrix::new(&rows);
@@ -686,10 +666,6 @@ fn descent_converges_on_known_geometry() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn descent_passes_the_admission_gate() {
     // l2-normalized, honouring the construction's input contract: the
     // production pipeline admits representations through the norm spot
@@ -763,10 +739,6 @@ fn descent_rejects_degenerate_corpora() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn descent_clamps_the_width_to_the_corpus() {
     let rows = plane_fixture();
     let matrix = Matrix::new(&rows);
@@ -783,10 +755,6 @@ fn descent_clamps_the_width_to_the_corpus() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn an_observed_construction_reports_its_insertion_then_its_readback() {
     let rows = fan_fixture(64, 0.02);
     let matrix = Matrix::new(&rows);
@@ -815,10 +783,6 @@ fn an_observed_construction_reports_its_insertion_then_its_readback() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn watching_a_construction_does_not_change_its_lists() {
     let rows = fan_fixture(64, 0.02);
     let matrix = Matrix::new(&rows);
@@ -848,10 +812,6 @@ fn watching_a_construction_does_not_change_its_lists() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn an_observed_descent_reports_every_iteration_it_ran() {
     let rows = fan_fixture(64, 0.02);
     let matrix = Matrix::new(&rows);
@@ -998,10 +958,6 @@ fn validation_rejects_each_broken_invariant() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn spot_check_scores_an_exact_backend_perfectly() {
     let rows = fan_fixture(8, 0.15);
     let matrix = Matrix::new(&rows);
@@ -1023,10 +979,6 @@ fn spot_check_scores_an_exact_backend_perfectly() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn spot_check_fails_a_degraded_backend() {
     let rows = fan_fixture(60, 0.02);
     let matrix = Matrix::new(&rows);
@@ -1049,10 +1001,6 @@ fn spot_check_fails_a_degraded_backend() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn spot_check_honours_configured_options() {
     // The same degraded backend passes under a laxer minimum: the
     // criterion travels with the options, and the evidence records it.
@@ -1096,10 +1044,6 @@ fn spot_check_honours_configured_options() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn spot_check_rejects_a_one_sided_confidence_at_or_below_one_half() {
     let rows = fan_fixture(4, 0.15);
     let matrix = Matrix::new(&rows);
@@ -1121,10 +1065,6 @@ fn spot_check_rejects_a_one_sided_confidence_at_or_below_one_half() {
 
 /// A backend far above the floor resolves its clearance at the pilot's size.
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn spot_check_sizes_a_decisive_verdict_sample_at_the_pilot_floor() {
     let rows = fan_fixture(60, 0.02);
     let matrix = Matrix::new(&rows);
@@ -1153,10 +1093,6 @@ fn spot_check_sizes_a_decisive_verdict_sample_at_the_pilot_floor() {
 
 /// A minimum close to the measured recall sizes the verdict sample up to the corpus.
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn spot_check_sizes_the_verdict_sample_to_the_measured_clearance() {
     let rows = fan_fixture(60, 0.02);
     let matrix = Matrix::new(&rows);
@@ -1193,10 +1129,6 @@ fn spot_check_sizes_the_verdict_sample_to_the_measured_clearance() {
 /// A budget that buys nothing leaves the verdict sample at the pilot's size, and a shortfall it
 /// cannot demonstrate reads as unresolved rather than refused.
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "rayon's crossbeam-epoch registry trips a known Stacked Borrows false positive"
-)]
 fn spot_check_stops_at_the_sampling_budget() {
     let rows = fan_fixture(60, 0.02);
     let matrix = Matrix::new(&rows);
@@ -1247,10 +1179,6 @@ fn spot_check_stops_at_the_sampling_budget() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "whole-file mappings and the parallel build go through machinery Miri cannot execute"
-)]
 fn published_table_reopens_mapped() {
     let dir = std::env::temp_dir().join(format!(
         "hash-graph-atlas-knn-artifact-{}",
@@ -1344,7 +1272,6 @@ fn published_table_reopens_mapped() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore = "LMDB maps files through FFI Miri cannot execute")]
 fn hannoy_honours_the_seam_contract() {
     let dir = std::env::temp_dir().join(format!("hash-graph-atlas-knn-{}", std::process::id()));
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
@@ -1501,7 +1428,6 @@ fn assert_construction_path_admits(
 }
 
 #[test]
-#[cfg_attr(miri, ignore = "LMDB maps files through FFI Miri cannot execute")]
 fn a_watched_hannoy_construction_reports_its_phases_between_the_loops() {
     let dir = std::env::temp_dir().join(format!(
         "hash-graph-atlas-knn-watched-{}",

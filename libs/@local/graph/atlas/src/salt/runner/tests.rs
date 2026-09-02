@@ -284,7 +284,6 @@ impl Progress for RecordingBattery {
 
 /// A run whose report passes activates what it publishes.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn passing_run_activates_the_generation() {
     let root = GenerationRoot::new(scratch("activates")).expect("the root should open");
     let dataset = dataset();
@@ -344,7 +343,6 @@ async fn passing_run_activates_the_generation() {
 
 /// A run whose report refuses admission publishes a candidate and leaves the pointer alone.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn refused_run_leaves_a_candidate() {
     let root = GenerationRoot::new(scratch("candidate")).expect("the root should open");
     let dataset = dataset();
@@ -386,7 +384,6 @@ async fn refused_run_leaves_a_candidate() {
 
 /// The second run reuses the active generation as its prior, while a fresh run ignores it.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn prior_modes_route_reuse() {
     let root = GenerationRoot::new(scratch("prior")).expect("the root should open");
     let dataset = dataset();

@@ -1654,7 +1654,6 @@ fn runner_probe_options() -> QualityRunOptions {
 /// The real fit publishes a generation. The runner reopens its artifacts and probes them against
 /// the same dataset, then resolves anchor types and reports.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn runner_reports_a_published_generation() {
     let path = runner_scratch("runner");
     let root = GenerationRoot::new(&path).expect("the root should open");

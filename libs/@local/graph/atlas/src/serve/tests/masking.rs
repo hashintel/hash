@@ -25,7 +25,6 @@ use crate::{
 /// row's wire id answers exactly the [`None`] an out-of-universe value answers, so forbidden and
 /// nonexistent are indistinguishable downstream of the resolution.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn resolve_collapses_every_failure_to_one_none() {
     let (_generation, atlas) = publish("resolve-seam").await;
     let node_codec = test_codec(&atlas);
@@ -60,7 +59,6 @@ async fn resolve_collapses_every_failure_to_one_none() {
 /// rows - a visible row may sit shallower than the corpus schedule placed it, because its
 /// hidden competitor is out of its view.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn masked_root_serves_the_scope_cascades_rows_in_both_modes() {
     let (_, atlas) = publish("masked-tile").await;
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
@@ -132,7 +130,6 @@ async fn masked_root_serves_the_scope_cascades_rows_in_both_modes() {
 /// Empty is empty: the runs and children bits match a never-populated cell's, and the head's
 /// occupancy fields carry no evidence of hidden points.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn fully_masked_tile_vs_empty_tile() {
     let (generation, atlas) = publish("masked-tile-empty").await;
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
@@ -195,7 +192,6 @@ async fn fully_masked_tile_vs_empty_tile() {
 /// proof before edges qualify, so the response is byte-identical to the qualifying computation over
 /// the visible row set.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn masked_edges_inherit_endpoint_visibility() {
     let (generation, atlas) = publish("masked-edges").await;
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
@@ -235,7 +231,6 @@ async fn masked_edges_inherit_endpoint_visibility() {
 /// A hidden node's id is an absent key exactly like a nonexistent id. An edge is absent when either
 /// endpoint hides (edge visibility derives) and present while both endpoints show.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn translate_answers_missing_for_denied() {
     use crate::serve::translate::{TranslateLimits, TranslateRequest};
 
@@ -287,7 +282,6 @@ async fn translate_answers_missing_for_denied() {
 /// drops with its edges BEFORE the cap selects - `complete` stays `true`, so the response never
 /// discloses that the mask withheld anything.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_filters_partners_under_the_mask() {
     let (_generation, atlas) = publish("masked-locate").await;
     let limits = ServeLimits::default();
@@ -370,7 +364,6 @@ async fn locate_filters_partners_under_the_mask() {
 /// rule stated over endpoints can answer this response - it must drop both or neither - and a rule
 /// that over-drops loses row 4 with it.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn hidden_link_row_is_withheld_from_the_edges_grid() {
     let (generation, atlas) = publish("masked-link-edges").await;
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
@@ -427,7 +420,6 @@ async fn hidden_link_row_is_withheld_from_the_edges_grid() {
 /// exactly one edge - a shape an endpoint-level rule cannot produce. `complete` stays true:
 /// visibility is not truncation.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn hidden_link_row_leaves_the_locate_partner_delivered() {
     let (_generation, atlas) = publish("masked-link-locate").await;
     let limits = ServeLimits::default();
@@ -468,7 +460,6 @@ async fn hidden_link_row_leaves_the_locate_partner_delivered() {
 /// the absence is the link row's own: the two edges name the same two entities, and only the hidden
 /// one is missing from the response.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn hidden_link_row_is_an_absent_key_in_translate() {
     use crate::serve::translate::{TranslateLimits, TranslateRequest};
 
@@ -615,7 +606,6 @@ fn visibility_proof_is_fail_closed() {
 /// the law verbatim. Locate's ground truth is the fixture edge list itself, the visible ego-graph
 /// derived edge by edge.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn composition_law_holds_under_random_masks() {
     let (generation, atlas) = publish("composition-sweep").await;
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
@@ -911,7 +901,6 @@ fn assert_locate_delivers_the_visible_ego_graph(
 /// those values, so equal values are equal response bytes: the collapse law, swept rather than
 /// sampled.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
     use crate::serve::translate::{TranslateLimits, TranslateRequest};
 
@@ -1039,7 +1028,6 @@ async fn hidden_and_nonexistent_collapse_at_every_id_bearing_ingress() {
 /// assuming them, because a mask that vacates no edge and empties no cell could not fail on the
 /// defect.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn masked_root_publishes_the_visible_views_own_census() {
     let (generation, atlas) = publish("masked-census").await;
     let Artifacts {
@@ -1150,7 +1138,6 @@ async fn masked_root_publishes_the_visible_views_own_census() {
 /// regimes must agree on. It therefore pins the fast path against the general one. Both
 /// constructors carry different digests by design, and their censuses may not differ at all.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn unmasked_census_agrees_with_the_walked_one() {
     let (_generation, atlas) = publish("census-regimes").await;
 
@@ -1173,7 +1160,6 @@ async fn unmasked_census_agrees_with_the_walked_one() {
 /// corpus depth coincide there and a census ignoring the mask would answer correctly by accident.
 /// This case hides exactly the deepest bucket's rows, so the two must part.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn masked_root_publishes_the_views_own_depth() {
     let (generation, atlas) = publish("masked-depth").await;
     let Artifacts { morton, rows, .. } = open_artifacts(&generation);

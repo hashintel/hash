@@ -78,7 +78,6 @@ fn assert_census(occupancy: &ViewOccupancy, keys: &[MortonKey]) {
 /// exactly the cell the hidden cluster occupied, which is why the case hides every row sharing one
 /// key rather than an arbitrary subset.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn hiding_a_cluster_removes_its_cell() {
     let (_generation, atlas) = publish("cluster-occupancy").await;
 
@@ -131,7 +130,6 @@ async fn hiding_a_cluster_removes_its_cell() {
 /// drift with permissions that changed nothing about the view's shape. The fixture's clusters make
 /// this observable - every third row leaves each cell still occupied.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn hiding_co_located_rows_moves_no_count() {
     let (_generation, atlas) = publish("co-located-occupancy").await;
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
@@ -162,7 +160,6 @@ async fn hiding_co_located_rows_moves_no_count() {
 /// The degenerate view a scope with no permissions presents. An aggregate carrying the domain's
 /// floor of one occupied cell would report geometry to a caller who may see none.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn proof_admitting_nothing_occupies_nothing() {
     let (_generation, atlas) = publish("empty-occupancy").await;
     let universe = u32::try_from(atlas.row_ids().len()).expect("the fixture universe fits u32");
@@ -189,7 +186,6 @@ async fn proof_admitting_nothing_occupies_nothing() {
 /// operator proof sees and still answers its own aggregate, because it serves its own cascade: a
 /// declared scope stays a scope whatever its masks admit.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn operator_proof_offers_the_policy_no_view() {
     let (_generation, atlas) = publish("operator-offset").await;
     let policy = DensityPolicy::new(

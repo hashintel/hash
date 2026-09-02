@@ -387,10 +387,6 @@ fn one_sided_edges_keep_their_directed_membership() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "whole-file mappings go through machinery Miri cannot execute"
-)]
 fn published_graph_reopens_mapped() {
     let dir = std::env::temp_dir().join(format!(
         "hash-graph-atlas-semantic-artifact-{}",

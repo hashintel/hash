@@ -322,7 +322,6 @@ impl TamperFixture {
 
 /// Open refuses a node identity table short of the code column, under `Identities`.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn short_node_identity_table_refuses() {
     let fixture = TamperFixture::publish("open-node-identities").await;
     let nodes = fixture.nodes;
@@ -342,7 +341,6 @@ async fn short_node_identity_table_refuses() {
 /// Open refuses an edge identity table short of the adjacency's edge domain, under
 /// `EdgeIdentities`.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn short_edge_identity_table_refuses() {
     let fixture = TamperFixture::publish("open-edge-identities").await;
     let edges = fixture.edges();
@@ -361,7 +359,6 @@ async fn short_edge_identity_table_refuses() {
 
 /// Open refuses an ontology identity table short of the postings' type domain, under `Types`.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn short_ontology_identity_table_refuses() {
     let fixture = TamperFixture::publish("open-ontology-identities").await;
     let files = &fixture.generation.repository().files;
@@ -384,7 +381,6 @@ async fn short_ontology_identity_table_refuses() {
 
 /// Open refuses a base-order column short of the code column, under `Columns`.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn short_rank_column_refuses() {
     let fixture = TamperFixture::publish("open-rank-column").await;
     let nodes = fixture.nodes;
@@ -414,7 +410,6 @@ async fn short_rank_column_refuses() {
 
 /// Open refuses an adjacency spanning an extra node row, under `Nodes`.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn respanned_adjacency_refuses() {
     let fixture = TamperFixture::publish("open-adjacency-span").await;
     let nodes = fixture.nodes;
@@ -439,7 +434,6 @@ async fn respanned_adjacency_refuses() {
 
 /// Open refuses an endpoint column short of the adjacency's edge domain, under `Edges`.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn short_endpoint_column_refuses() {
     let fixture = TamperFixture::publish("open-endpoint-column").await;
     let edges = fixture.edges();
@@ -462,7 +456,6 @@ async fn short_endpoint_column_refuses() {
 /// Open refuses a quadtree root whose subtree count lies below the point count, under
 /// `Subtree`.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn retargeted_quad_root_refuses() {
     let fixture = TamperFixture::publish("open-quad-root").await;
     let nodes = fixture.nodes;
@@ -486,7 +479,6 @@ async fn retargeted_quad_root_refuses() {
 
 /// Open refuses a postings point domain above the code column's count, under `Points`.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn retargeted_postings_points_refuses() {
     let fixture = TamperFixture::publish("open-postings-points").await;
     let nodes = fixture.nodes;
@@ -512,7 +504,6 @@ async fn retargeted_postings_points_refuses() {
 /// tampers here keep each column valid at its own format, so the only thing that moves is the
 /// pairing under test, and the reopen after each repair is the negative control.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn rank_pair_tampers_name_their_own_variants() {
     let (root, generation) = fit_fixture("open-rank-pair").await;
     store_identities(&generation);

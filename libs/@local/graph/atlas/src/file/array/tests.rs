@@ -212,7 +212,6 @@ fn expected_file_len_is_the_single_rule() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore = "mmap is not supported under miri")]
 fn writer_and_file_round_trip_aligned_vectors() {
     let rows: [[f32; 8]; 3] = [[0.5; 8], [-2.0; 8], [1024.0; 8]];
 
@@ -248,7 +247,6 @@ fn writer_and_file_round_trip_aligned_vectors() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore = "mmap is not supported under miri")]
 fn zero_rows_seal_as_the_empty_array() {
     let mut buffer = Cursor::new(Vec::new());
     let writer = ArrayWriter::new(&mut buffer, ArrayVariant::F32, &[Dim::new(512)])
@@ -267,7 +265,6 @@ fn zero_rows_seal_as_the_empty_array() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore = "mmap is not supported under miri")]
 fn open_rejects_what_the_header_contradicts() {
     // An unfinished write leaves the reserved zero header, which no
     // parse accepts.
@@ -313,7 +310,6 @@ fn open_rejects_what_the_header_contradicts() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore = "mmap is not supported under miri")]
 fn vectors_exists_exactly_for_f32_matrices() {
     // A u8 file never views as vectors.
     let mut bytes = Vec::new();

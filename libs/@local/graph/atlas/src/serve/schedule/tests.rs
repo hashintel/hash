@@ -261,7 +261,6 @@ fn empty_view_delivers_nothing() {
 /// this equality witnesses the loaded reverse against the column it claims to invert, over
 /// saturated, empty, singleton, one-hidden, prefix, suffix, and random views.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn scope_of_equals_a_rank_sorted_forward_gather_for_every_node_mask() {
     let (_generation, atlas) = publish("morton-proof-exhaustive-masks").await;
 
@@ -325,7 +324,6 @@ async fn scope_of_equals_a_rank_sorted_forward_gather_for_every_node_mask() {
 /// The generation's saturated memo is byte-identical to a schedule built directly under the
 /// saturated mask proof - equality of content, past the sharing the memo's own test pins.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn saturated_memo_equals_a_directly_built_scope_schedule() {
     let (_generation, atlas) = publish("morton-proof-saturated-content").await;
 

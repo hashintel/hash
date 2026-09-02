@@ -291,7 +291,6 @@ async fn capacity_bound_prices_retained_bytes() {
 /// weigher reached the memo through its building accessor and billed the first small scope's
 /// resolution for the whole corpus's cascade construction.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn small_scope_memo_unbuilt() {
     let (_generation, atlas) = publish("cache-weigher-memo-unbuilt").await;
     let atlas = Arc::new(atlas);
@@ -328,7 +327,6 @@ async fn small_scope_memo_unbuilt() {
 /// and the issuance witness beside it. The schedule's place in that order has its own witness in
 /// the delivery test below, which takes the entry to bytes.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn entry_census_folded_occupancy_unfolded() {
     let (_generation, atlas) = publish("cache-census-folded").await;
     let atlas = Arc::new(atlas);
@@ -384,7 +382,6 @@ async fn entry_census_folded_occupancy_unfolded() {
 /// makes the equal aggregates a statement rather than a tautology, and the folded proof's own
 /// occupancy pins that the harness holds the condition.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn mint_occupancy_ignores_fold() {
     let (_generation, atlas) = publish("cache-mint-occupancy").await;
     let atlas = Arc::new(atlas);
@@ -452,7 +449,6 @@ async fn mint_occupancy_ignores_fold() {
 /// own publication binds it - with no capture left to subtract, so the entry's delivery is the
 /// whole authority.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn entry_withholds_cohort_withdrawn() {
     let (_generation, atlas) = publish("cache-entry-delivery").await;
     let atlas = Arc::new(atlas);

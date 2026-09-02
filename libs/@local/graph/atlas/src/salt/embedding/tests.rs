@@ -187,10 +187,6 @@ fn cards(texts: &[&str]) -> IdVec<OntologyRowId, Card> {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn embeds_each_unique_text_once_in_row_order() {
     let embedder = RecordingEmbedder::new(b"contract", 0.0);
     let cards = cards(&["alpha", "beta", "alpha"]);
@@ -218,10 +214,6 @@ async fn embeds_each_unique_text_once_in_row_order() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn reuses_prior_rows_under_an_equal_fingerprint() {
     let prior_embedder = RecordingEmbedder::new(b"contract", 0.0);
     let (prior, _) = embed_cards(&prior_embedder, &cards(&["alpha"]), None, &NoProgress)
@@ -253,10 +245,6 @@ async fn reuses_prior_rows_under_an_equal_fingerprint() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn the_resolved_split_reaches_the_observer_before_the_provider_does() {
     let prior_embedder = RecordingEmbedder::new(b"contract", 0.0);
     let (prior, _) = embed_cards(&prior_embedder, &cards(&["alpha"]), None, &NoProgress)
@@ -288,10 +276,6 @@ async fn the_resolved_split_reaches_the_observer_before_the_provider_does() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn a_wholly_reused_workload_still_reports_its_split() {
     let prior_embedder = RecordingEmbedder::new(b"contract", 0.0);
     let (prior, _) = embed_cards(
@@ -327,10 +311,6 @@ async fn a_wholly_reused_workload_still_reports_its_split() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn skips_the_provider_when_every_row_reuses() {
     let prior_embedder = RecordingEmbedder::new(b"contract", 0.0);
     let (prior, _) = embed_cards(
@@ -365,10 +345,6 @@ async fn skips_the_provider_when_every_row_reuses() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn ignores_a_prior_table_from_another_contract() {
     let prior_embedder = RecordingEmbedder::new(b"contract a", 0.0);
     let (prior, _) = embed_cards(&prior_embedder, &cards(&["alpha"]), None, &NoProgress)
@@ -397,10 +373,6 @@ async fn ignores_a_prior_table_from_another_contract() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn rejects_a_provider_row_count_mismatch() {
     let result = embed_cards(
         &ShortEmbedder,
@@ -420,10 +392,6 @@ async fn rejects_a_provider_row_count_mismatch() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn rejects_non_finite_components() {
     let result = embed_cards(&NanEmbedder, &cards(&["alpha"]), None, &NoProgress).await;
 
@@ -435,10 +403,6 @@ async fn rejects_non_finite_components() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn embeds_nothing_for_an_empty_card_list() {
     let embedder = RecordingEmbedder::new(b"contract", 0.0);
 
@@ -505,10 +469,6 @@ async fn three_row_table() -> super::CardEmbeddingTable {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 #[expect(
     clippy::little_endian_bytes,
     reason = "the array format pins its data to canonical little-endian bytes"
@@ -550,10 +510,6 @@ async fn writes_the_embedding_matrix_as_an_array_file() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn writes_the_hash_column_as_an_array_file() {
     let table = three_row_table().await;
 

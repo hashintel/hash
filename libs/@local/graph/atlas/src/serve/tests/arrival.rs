@@ -262,7 +262,6 @@ fn expected_bucket(atlas: &Atlas, proof: &VisibilityProof, wire: Vec2, deepest: 
 /// resolution must produce identical bytes, which pins delivery against the cohort map's
 /// iteration order.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn scoped_tile_serves_placed_arrival_with_captured_display() {
     let (_generation, atlas) = publish("arrival-tile").await;
     let (wire, coordinate) = vacant_cell(&atlas);
@@ -326,7 +325,6 @@ async fn scoped_tile_serves_placed_arrival_with_captured_display() {
 /// The control withdraws an identity the cell never delivers and must leave the baseline bytes
 /// untouched.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn ingress_withdrawal_subtracts_retained_arrival_from_tiles() {
     let (_generation, atlas) = publish("arrival-tile-withdrawn").await;
     let (wire, coordinate) = vacant_cell(&atlas);
@@ -377,7 +375,6 @@ async fn ingress_withdrawal_subtracts_retained_arrival_from_tiles() {
 /// Both are position-bounded walks over the generation's columns, so the cut offset `k` an
 /// issuance resolves from them cannot move when arrivals join a scope.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn occupancy_and_census_never_read_cohort() {
     let (_generation, atlas) = publish("arrival-occupancy").await;
     let snapshot = arriving(&atlas, Vec2::new(0.25, -0.5));
@@ -413,7 +410,6 @@ fn ask() -> TranslateRequest {
 /// The empty-cohort control runs the same request and must answer an absent key, which is the
 /// resolution that read no publication.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 #[expect(
     clippy::float_cmp,
     reason = "the projected coordinate is copied verbatim into the response, so bit equality is \
@@ -477,7 +473,6 @@ async fn translate_answers_placed_arrival_from_entry_cohort() {
 /// withdraws an identity the request never names and must leave the response equal to the
 /// baseline.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn withdrawn_arrival_answers_absent_key_while_cohort_retains_it() {
     let (_generation, atlas) = publish("arrival-withdrawn").await;
     let snapshot = arriving(&atlas, Vec2::new(0.25, -0.5));
@@ -511,7 +506,6 @@ async fn withdrawn_arrival_answers_absent_key_while_cohort_retains_it() {
 /// end of that law. A node mask holding the slot serves the arrival, and the control proof,
 /// which admits every fitted row and no slot, answers an absent key for the same cohort.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn scoped_proof_admits_arrival_only_through_widened_mask() {
     let (_generation, atlas) = publish("arrival-scoped").await;
     let snapshot = arriving(&atlas, Vec2::new(0.25, -0.5));
@@ -556,7 +550,6 @@ async fn scoped_proof_admits_arrival_only_through_widened_mask() {
 /// into the corpus catch-all. A second resolution must produce identical bytes, which pins delivery
 /// against the cohort map's iteration order.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn corpus_tile_serves_placed_arrival_with_captured_display() {
     let (_generation, atlas) = publish("arrival-corpus-tile").await;
     let (wire, coordinate) = vacant_cell(&atlas);
@@ -634,7 +627,6 @@ async fn corpus_tile_serves_placed_arrival_with_captured_display() {
 /// equal-key ordering law in one pass. The root coordinates then check the merged global
 /// aggregates against the census and the arrivals' own buckets.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn corpus_saturated_and_folded_arrival_deliveries_agree() {
     let (_generation, atlas) = publish("arrival-parity").await;
     let (vacant, _) = vacant_cell(&atlas);
@@ -747,7 +739,6 @@ async fn corpus_saturated_and_folded_arrival_deliveries_agree() {
 /// The control withdraws an identity the cohort never held and must leave the baseline bytes
 /// untouched.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn ingress_withdrawal_subtracts_spliced_arrival_from_corpus_tiles() {
     let (_generation, atlas) = publish("arrival-corpus-withdrawn").await;
     let (vacant, coordinate) = vacant_cell(&atlas);
@@ -871,7 +862,6 @@ fn arrival_zoom_and_cell(
 /// projected coordinate's tile there. The saturated shape must agree on the zoom through its
 /// overlay, which pins both scoped bucket sources against one law.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn arrival_source_point_cut_rule() {
     let (_, atlas) = publish("arrival-source-point").await;
     let (wire, _) = vacant_cell(&atlas);
@@ -931,7 +921,6 @@ async fn arrival_source_point_cut_rule() {
 /// once the store resolution answers, and the edge columns stay empty. A second assembly must
 /// produce identical bytes.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_serves_placed_arrival_from_both_ingress_domains() {
     let (generation, atlas) = publish("arrival-locate").await;
     let (wire, _) = vacant_cell(&atlas);
@@ -1013,7 +1002,6 @@ async fn locate_serves_placed_arrival_from_both_ingress_domains() {
 /// zoom. A fitted source's response must not move when a cohort rides the view, which pins the
 /// fitted locate path against arrival ingress.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn corpus_locate_clamps_arrival_zoom_into_catch_all() {
     let (_generation, atlas) = publish("arrival-locate-corpus").await;
     let (vacant, _) = vacant_cell(&atlas);
@@ -1073,7 +1061,6 @@ async fn corpus_locate_clamps_arrival_zoom_into_catch_all() {
 /// control withdraws an identity the request never names and must leave both resolutions
 /// standing.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn withdrawn_or_unadmitted_arrival_locates_nowhere() {
     let (_generation, atlas) = publish("arrival-locate-withdrawn").await;
     let (wire, _) = vacant_cell(&atlas);
@@ -1137,7 +1124,6 @@ async fn withdrawn_or_unadmitted_arrival_locates_nowhere() {
 /// publishes a link. Corpus and saturated views holding a link-free cohort must answer the
 /// exact bytes their arrival-free counterparts answer over the whole served grid.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn arrival_bounds_no_edge_in_edges_response() {
     let (_generation, atlas) = publish("arrival-edges").await;
     let (vacant, _) = vacant_cell(&atlas);

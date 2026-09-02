@@ -178,10 +178,6 @@ fn fingerprints_distinguish_field_boundaries() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn embeds_in_input_order_within_one_request() {
     let generator = RecordingGenerator::default();
     let provider =
@@ -199,10 +195,6 @@ async fn embeds_in_input_order_within_one_request() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn splits_requests_at_the_document_ceiling() {
     let generator = RecordingGenerator::default();
     let provider = ExternalEmbeddingProvider::new(
@@ -233,10 +225,6 @@ async fn splits_requests_at_the_document_ceiling() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn every_completed_request_reports_its_position_in_the_workload() {
     let progress = RecordingProgress::default();
     let provider = ExternalEmbeddingProvider::new(
@@ -268,10 +256,6 @@ async fn every_completed_request_reports_its_position_in_the_workload() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn a_failed_request_reports_nothing() {
     let progress = RecordingProgress::default();
     let provider = ExternalEmbeddingProvider::new(
@@ -292,10 +276,6 @@ async fn a_failed_request_reports_nothing() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn splits_requests_at_the_token_ceiling() {
     let generator = RecordingGenerator::default();
     // Each fixture word counts one cl100k token in at most four bytes, so
@@ -327,10 +307,6 @@ async fn splits_requests_at_the_token_ceiling() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn splits_requests_at_the_byte_estimate_ceiling() {
     // A word whose byte estimate exceeds its exact count, so the
     // provider's admission gate binds the request size rather than the
@@ -374,10 +350,6 @@ async fn splits_requests_at_the_byte_estimate_ceiling() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn rejects_a_text_above_the_token_ceiling() {
     let provider = ExternalEmbeddingProvider::new(
         RecordingGenerator::default(),
@@ -401,10 +373,6 @@ async fn rejects_a_text_above_the_token_ceiling() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn rejects_a_text_above_the_byte_estimate_ceiling() {
     let provider = ExternalEmbeddingProvider::new(
         RecordingGenerator::default(),
@@ -431,10 +399,6 @@ async fn rejects_a_text_above_the_byte_estimate_ceiling() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn rejects_reserved_tokens_before_any_request() {
     let generator = RecordingGenerator::default();
     let provider =
@@ -450,10 +414,6 @@ async fn rejects_reserved_tokens_before_any_request() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn rejects_vectors_of_the_wrong_width() {
     let provider = ExternalEmbeddingProvider::new(
         NarrowGenerator,
@@ -474,10 +434,6 @@ async fn rejects_vectors_of_the_wrong_width() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn surfaces_provider_failures() {
     let provider = ExternalEmbeddingProvider::new(
         FailingGenerator,
@@ -496,10 +452,6 @@ async fn surfaces_provider_failures() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn a_preflight_spends_one_request_on_one_text() {
     let progress = RecordingProgress::default();
     let provider = ExternalEmbeddingProvider::new(
@@ -523,10 +475,6 @@ async fn a_preflight_spends_one_request_on_one_text() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn a_preflight_surfaces_provider_failures() {
     let provider = ExternalEmbeddingProvider::new(
         FailingGenerator,
@@ -545,10 +493,6 @@ async fn a_preflight_surfaces_provider_failures() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn a_preflight_rejects_vectors_of_the_wrong_width() {
     let provider = ExternalEmbeddingProvider::new(
         NarrowGenerator,
@@ -569,10 +513,6 @@ async fn a_preflight_rejects_vectors_of_the_wrong_width() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn a_preflight_refuses_an_answer_of_the_wrong_length() {
     let provider = ExternalEmbeddingProvider::new(
         SilentGenerator,

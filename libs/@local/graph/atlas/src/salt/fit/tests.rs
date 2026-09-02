@@ -521,7 +521,6 @@ fn assert_digests_match(path: &Utf8Path, repository: &SaltRepository) {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn fit_publishes_a_complete_generation() {
     let path = scratch("complete");
     let root = GenerationRoot::new(&path).expect("the root should open");
@@ -769,7 +768,6 @@ fn assert_postings_read_back(published: &Utf8Path, repository: &SaltRepository) 
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn policy_artifacts_publish_and_read_back() {
     let root = GenerationRoot::new(scratch("policy")).expect("the root should open");
     let dataset = dataset();
@@ -828,7 +826,6 @@ async fn policy_artifacts_publish_and_read_back() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn lod_columns_publish_in_base_order() {
     let root = GenerationRoot::new(scratch("lod")).expect("the root should open");
     let dataset = dataset();
@@ -922,7 +919,6 @@ async fn lod_columns_publish_in_base_order() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn supplied_verdicts_publish_verbatim() {
     let root = GenerationRoot::new(scratch("verdicts")).expect("the root should open");
     let dataset = dataset();
@@ -1093,7 +1089,6 @@ fn annotation_document() -> String {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn annotation_corpus_fits_and_stages_the_classifier() {
     let root = GenerationRoot::new(scratch("annotations")).expect("the root should open");
     let dataset = dataset();
@@ -1214,7 +1209,6 @@ async fn annotation_corpus_fits_and_stages_the_classifier() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn prior_generation_seeds_reuse_and_retention() {
     let root = GenerationRoot::new(scratch("prior")).expect("the root should open");
     let dataset = dataset();
@@ -1283,7 +1277,6 @@ async fn prior_generation_seeds_reuse_and_retention() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn override_supersedes_the_classifier() {
     let root = GenerationRoot::new(scratch("override")).expect("the root should open");
     let dataset = dataset();
@@ -1346,7 +1339,6 @@ async fn override_supersedes_the_classifier() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn equal_seeds_publish_equal_generations() {
     let first_root = GenerationRoot::new(scratch("repeat-a")).expect("the root should open");
     let second_root = GenerationRoot::new(scratch("repeat-b")).expect("the root should open");
@@ -1391,7 +1383,6 @@ async fn equal_seeds_publish_equal_generations() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn defective_corpus_publishes_nothing() {
     let path = scratch("defective");
     let root = GenerationRoot::new(&path).expect("the root should open");
@@ -1549,7 +1540,6 @@ fn default_placement_is_the_trained_projector() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn forceless_projector_publishes_the_baseline_step() {
     let root = GenerationRoot::new(scratch("projector-vacuous")).expect("the root should open");
     let dataset = dataset();
@@ -1708,7 +1698,6 @@ fn assert_paired_replay(published: &Utf8Path, repository: &SaltRepository) {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn trained_lens_publishes_the_canonical_step_aligned() {
     let root = GenerationRoot::new(scratch("projector-ladder")).expect("the root should open");
     let dataset = dataset();
@@ -1936,7 +1925,6 @@ fn assert_cluster_shares_one_point(
 /// list, one landmark ordinal, and one published coordinate bit for bit, so the distinct-domain
 /// training evidence and the full-domain column describe one field.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
     let root = GenerationRoot::new(scratch("duplicates")).expect("the root should open");
     let dataset = duplicate_dataset();
@@ -2051,7 +2039,6 @@ async fn duplicate_rows_train_distinct_and_publish_the_row_domain() {
 /// the vacuous placement is exactly what unblocks it: the same configuration trains and publishes
 /// with the relation evidence withheld.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn vacuous_placement_trains_without_reviews() {
     let dataset = dataset();
     // The Proximal override gives the link type full force, and
@@ -2170,7 +2157,6 @@ async fn vacuous_placement_trains_without_reviews() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn canonical_condition_outside_the_schedule_publishes_nothing() {
     let path = scratch("projector-unknown-step");
     let root = GenerationRoot::new(&path).expect("the root should open");
@@ -2407,7 +2393,6 @@ fn assert_attraction_reads_back(attraction: &AttractionArchive<NodeRowId, EdgeRo
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn edge_artifacts_publish_and_read_back() {
     let root = GenerationRoot::new(scratch("edge-artifacts")).expect("the root should open");
     let dataset = relation_dataset();

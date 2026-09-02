@@ -336,7 +336,6 @@ fn edges_with(
 /// call pins determinism across the cohort map's iteration order, and the empty-cohort control
 /// answers the fitted set alone on the same path.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn corpus_link_identity_order() {
     let (generation, atlas) = publish("delta-edges-corpus").await;
     let snapshot = publishing(&atlas, &[], &[(LOW_LINK, 0, 1), (HIGH_LINK, 2, 3)]);
@@ -389,7 +388,6 @@ async fn corpus_link_identity_order() {
 /// the second link's row, and the empty set serves the fitted edges alone even while the cohort
 /// publishes both links.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn scoped_admitted_links() {
     let (generation, atlas) = publish("delta-edges-admission").await;
     let snapshot = publishing(&atlas, &[], &[(LOW_LINK, 0, 1), (HIGH_LINK, 2, 3)]);
@@ -448,7 +446,6 @@ async fn scoped_admitted_links() {
 /// drops the arrival-endpoint link alone, and hiding the slot from the proof drops it again
 /// with both tiles listed, while the self-loop control survives every case.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn arrival_endpoint_qualification() {
     let (_generation, atlas) = publish("delta-edges-arrival").await;
     let (vacant, arrival_tile) = vacant_cell(&atlas);
@@ -517,7 +514,6 @@ async fn arrival_endpoint_qualification() {
 /// The control capture withdraws an identity the response never names and answers byte-exactly
 /// the capture-free response.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn withdrawal_kills_retained_link() {
     let (generation, atlas) = publish("delta-edges-ingress").await;
     let (vacant, _) = vacant_cell(&atlas);
@@ -604,7 +600,6 @@ async fn withdrawal_kills_retained_link() {
 /// endpoint ranks past every generation row, and the head reports the truncation. One more
 /// slot serves the whole union complete.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn cap_ranks_arrivals_last() {
     let (generation, atlas) = publish("delta-edges-cap").await;
     let (vacant, _) = vacant_cell(&atlas);
@@ -690,7 +685,6 @@ fn endpoint_ranks(generation: &Generation) -> (Vec<[u64; 2]>, Vec<u32>) {
 /// link keys past every fitted candidate and stays out. The expectation is the full-sort law
 /// over the union, the same selection the bounded fold must reproduce.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn truncating_cap_admits_winner() {
     let (generation, atlas) = publish("delta-edges-rank-cap").await;
     let (endpoints, row_ranks) = endpoint_ranks(&generation);
@@ -809,7 +803,6 @@ async fn truncating_cap_admits_winner() {
 /// the head reports the truncation. The delivered columns are the fitted set either way, and
 /// only the completeness bit separates the two.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn full_cap_refusal_vs_truncation() {
     let (generation, atlas) = publish("delta-edges-full-cap").await;
     let (vacant, _) = vacant_cell(&atlas);
@@ -878,7 +871,6 @@ impl EdgesStore for ExpectedTypesStore {
 /// order's first slot. The fitted labels stay the generation's payloads, empty under the
 /// fixture's identity rewrite.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn delta_display_head_slot() {
     let (generation, atlas) = publish("delta-edges-trailer").await;
     let url: VersionedUrl = "https://example.com/wired/v/1"
@@ -1020,7 +1012,6 @@ fn cycling_types_dataset() -> crate::dataset::memory::MemoryDataset {
 /// captured display occupies the head slot of the same trailer. Expected values derive from the
 /// published artifacts alone, through [`type_expectations`].
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn compose_trailer_types() {
     let (generation, atlas) =
         super::publish_dataset("delta-edges-composed-trailer", &cycling_types_dataset()).await;
@@ -1114,7 +1105,6 @@ async fn compose_trailer_types() {
 /// A revised fitted link's captured display reaches the edges trailer, overriding the
 /// generation legend at that edge's own slot alone.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn revised_fitted_trailer_overlay() {
     let (generation, atlas) = publish("revised-fitted-trailer").await;
     let fitted = fitted_triples(&atlas, &generation);
@@ -1291,7 +1281,6 @@ fn fold_oracle_union(
 /// `union.len() <= cap`. Withdrawn fitted link identities put non-qualifying candidates in the
 /// walk, so the exactly-cap completeness law is under test at every trial.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn fold_matches_full_sort() {
     let (generation, atlas) = publish("review-fold-differential").await;
     let (endpoints, row_ranks) = endpoint_ranks(&generation);
@@ -1469,7 +1458,6 @@ fn reciprocal_pairs_dataset() -> crate::dataset::memory::MemoryDataset {
 /// the identity, and the strict form of the rank exclusion is what a `>=` mutation breaks here
 /// while every targeted witness stays green.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn rank_tie_admits_better_identity() {
     let (generation, atlas) =
         super::publish_dataset("review-dense", &reciprocal_pairs_dataset()).await;
@@ -1565,7 +1553,6 @@ fn link_ask() -> TranslateRequest {
 /// its cohort slot, all under the snapshot's own universe. The empty-cohort control runs the
 /// same request and must answer absent keys, which is the resolution that read no publication.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn translate_answers_published_link_endpoints() {
     let (_generation, atlas) = publish("delta-translate").await;
     let (vacant, _) = vacant_cell(&atlas);
@@ -1626,7 +1613,6 @@ async fn translate_answers_published_link_endpoints() {
 /// the next request. The control capture withdraws an identity the request never names and must
 /// leave the response equal to the baseline.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn withdrawal_answers_absent_key_for_translated_link() {
     let (_generation, atlas) = publish("delta-translate-ingress").await;
     let (vacant, _) = vacant_cell(&atlas);
@@ -1712,7 +1698,6 @@ async fn withdrawal_answers_absent_key_for_translated_link() {
 /// admitting both links while hiding the slot refuses the arrival-endpoint link whole, and the
 /// fitted-endpoint link survives as the same-path control.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn scoped_translate_admits_links_through_identity_set_and_mask() {
     let (_generation, atlas) = publish("delta-translate-scope").await;
     let (vacant, _) = vacant_cell(&atlas);
@@ -1780,7 +1765,6 @@ fn viewing_delta<'scope>(
 /// arrival partner as its table vessel, and the empty-cohort control answers the fitted edge
 /// alone on the same path.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_ego_graph_folds_cohort_links() {
     let (_generation, atlas) = publish("delta-locate-fold").await;
     let (vacant, _) = vacant_cell(&atlas);
@@ -1868,7 +1852,6 @@ async fn locate_ego_graph_folds_cohort_links() {
 /// the lone-node answer on the same path, so the fold widens the arrival source without moving
 /// the linkless case.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn arrival_source_ego_graph_serves_cohort_links() {
     let (_generation, atlas) = publish("delta-locate-arrival-source").await;
     let (vacant, _) = vacant_cell(&atlas);
@@ -1931,7 +1914,6 @@ async fn arrival_source_ego_graph_serves_cohort_links() {
 /// and the fitted edge through one rule. Withdrawing the arrival kills its incident link alone,
 /// and the unrelated control moves nothing.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn withdrawal_subtracts_from_locate_fold() {
     let (_generation, atlas) = publish("delta-locate-ingress").await;
     let (vacant, _) = vacant_cell(&atlas);
@@ -1996,7 +1978,6 @@ async fn withdrawal_subtracts_from_locate_fold() {
 /// the arrival-endpoint link refuses whole while the fitted-endpoint link and the fitted edge
 /// survive as the same-path controls.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn scoped_locate_admits_links_through_identity_set_and_mask() {
     let (_generation, atlas) = publish("delta-locate-scope").await;
     let (vacant, _) = vacant_cell(&atlas);
@@ -2050,7 +2031,6 @@ async fn scoped_locate_admits_links_through_identity_set_and_mask() {
 /// 1, so a cap of two keeps both row-1 edges and drops the arrival-endpoint link with its
 /// partner. One more slot serves the whole fold complete.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn truncation_prices_arrival_partners() {
     let (_generation, atlas) = publish("delta-locate-truncation").await;
     let positions = atlas.positions();
@@ -2273,7 +2253,6 @@ fn expected_node_three_envelope(
 /// The register captures a revised display for fitted node 3 and for its one incident fitted
 /// link, and the locate response serves both captured labels at their own slots.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn captured_displays_reach_locate_labels() {
     let (generation, atlas) = publish("delta-locate-labels").await;
 
@@ -2290,7 +2269,6 @@ async fn captured_displays_reach_locate_labels() {
 
 /// An empty cohort serves the payload labels.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_baseline_payload_labels() {
     let (generation, atlas) = publish("delta-locate-baseline").await;
 
@@ -2303,7 +2281,6 @@ async fn locate_baseline_payload_labels() {
 
 /// Same-path control: a capture the response never delivers moves no byte.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn unrelated_capture_baseline_bytes() {
     let (_generation, atlas) = publish("delta-locate-unrelated").await;
 
@@ -2400,7 +2377,6 @@ fn dormant_arrival_snapshot(atlas: &Atlas) -> DeltaSnapshot {
 /// The dormant-arrival publication keeps the link and withdraws the identity, while the holder
 /// leaves the nodes map.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn dormant_arrival_publication_shape() {
     let (_generation, atlas) = publish("probe-dormant-shape").await;
     let snapshot = dormant_arrival_snapshot(&atlas);
@@ -2429,7 +2405,6 @@ async fn dormant_arrival_publication_shape() {
 
 /// Locate refuses the dormant-endpoint link rather than fabricating an unindexable endpoint.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_refuses_dormant_link() {
     let (_generation, atlas) = publish("probe-dormant-locate").await;
     let snapshot = dormant_arrival_snapshot(&atlas);
@@ -2456,7 +2431,6 @@ async fn locate_refuses_dormant_link() {
 
 /// Translate answers an absent key for the dormant-endpoint link.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn translate_dormant_link_absent() {
     let (_generation, atlas) = publish("probe-dormant-translate").await;
     let snapshot = dormant_arrival_snapshot(&atlas);
@@ -2481,7 +2455,6 @@ async fn translate_dormant_link_absent() {
 
 /// The edges route's delivered set refuses the dormant-endpoint link.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn edges_refuse_dormant_link() {
     let (_generation, atlas) = publish("probe-dormant-edges").await;
     let snapshot = dormant_arrival_snapshot(&atlas);

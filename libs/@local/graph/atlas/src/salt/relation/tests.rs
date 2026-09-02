@@ -737,10 +737,6 @@ fn build_is_order_independent_and_sorted(
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "whole-file mappings go through FFI Miri cannot execute"
-)]
 fn published_index_reopens_mapped() {
     let dir =
         std::env::temp_dir().join(format!("hash-graph-atlas-relation-{}", std::process::id()));
@@ -801,10 +797,6 @@ fn published_index_reopens_mapped() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "whole-file mappings go through FFI Miri cannot execute"
-)]
 fn published_attraction_index_reopens_mapped() {
     let dir = std::env::temp_dir().join(format!(
         "hash-graph-atlas-attraction-{}",
@@ -877,10 +869,6 @@ fn published_attraction_index_reopens_mapped() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "whole-file mappings go through FFI Miri cannot execute"
-)]
 #[expect(
     clippy::little_endian_bytes,
     reason = "the corrupted fields are pinned to the format's canonical little-endian bytes"

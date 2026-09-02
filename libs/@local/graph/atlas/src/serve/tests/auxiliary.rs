@@ -219,7 +219,6 @@ fn expected_trailer(labels: &[String], icons: &[&str]) -> Vec<u8> {
 /// against the wire document built directly over the fixture's own assignment tables: each
 /// delivered position's label is its row's, each icon its row's case resolution.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 #[expect(
     clippy::single_range_in_vec_init,
     reason = "an array of one range is what a root delta delivery IS"
@@ -329,7 +328,6 @@ async fn detailed_tiles_hydrate_labels_and_icons_from_the_generation() {
 /// trailer the delivered rows' assignments encode. The envelope writes the trailer last, so the
 /// tail comparison addresses it.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn deepest_grid_tiles_align_every_icon_precedence_case() {
     let (_generation, atlas) = publish_dataset("auxiliary-grid", &displaying_dataset()).await;
 

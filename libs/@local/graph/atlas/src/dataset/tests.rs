@@ -92,10 +92,6 @@ fn fixture() -> MemoryDataset {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn memory_dataset_streams_rows_in_construction_order() {
     let dataset = fixture();
 
@@ -129,10 +125,6 @@ async fn memory_dataset_streams_rows_in_construction_order() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 #[expect(
     clippy::float_cmp,
     reason = "the fixture's exactly representable 1.0 must round-trip bit-identically"
@@ -152,10 +144,6 @@ async fn memory_dataset_serves_canonical_embeddings() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn memory_dataset_renders_cards() {
     let dataset = fixture();
 
@@ -181,10 +169,6 @@ async fn memory_dataset_renders_cards() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn memory_dataset_streams_display_columns() {
     let mut dataset = fixture();
 

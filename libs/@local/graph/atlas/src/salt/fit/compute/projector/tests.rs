@@ -662,7 +662,6 @@ fn fit_config() -> FitConfig {
 }
 
 #[test]
-#[cfg_attr(miri, ignore = "the publish half stages files through the platform")]
 #[expect(
     clippy::significant_drop_tightening,
     reason = "the staging directory is read back after the publish returns; dropping it early \
@@ -778,7 +777,6 @@ fn publish_vacuous_baseline() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore = "the publish half stages files through the platform")]
 #[expect(
     clippy::significant_drop_tightening,
     reason = "the staging directory is read back after the publish returns; dropping it early \

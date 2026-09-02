@@ -178,10 +178,6 @@ fn matrices_without_an_on_disk_form_are_rejected() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "whole-file mappings go through FFI Miri cannot execute"
-)]
 fn written_matrix_reopens_as_the_same_view() {
     let dir = std::env::temp_dir().join(format!("hash-graph-atlas-sprs-{}", std::process::id()));
     let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&dir);
@@ -325,10 +321,6 @@ impl super::SprsValue for Narrow {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "whole-file mappings go through FFI Miri cannot execute"
-)]
 fn opaque_values_are_identified_by_width_alone() {
     let dir = std::env::temp_dir().join(format!(
         "hash-graph-atlas-sprs-opaque-{}",
@@ -388,10 +380,6 @@ fn opaque_values_are_identified_by_width_alone() {
 }
 
 #[test]
-#[cfg_attr(
-    miri,
-    ignore = "whole-file mappings go through FFI Miri cannot execute"
-)]
 fn column_compressed_matrix_round_trips() {
     let dir =
         std::env::temp_dir().join(format!("hash-graph-atlas-sprs-csc-{}", std::process::id()));

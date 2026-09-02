@@ -412,10 +412,6 @@ fn reseal(directory: &Utf8Path, kind: StreamKind, bytes: &[u8]) {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn dump_origin_names_the_manifest_bytes() {
     let directory = scratch("origin-manifest");
     Fixture::new()
@@ -439,10 +435,6 @@ async fn dump_origin_names_the_manifest_bytes() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn dump_roundtrips_byte_identically() {
     let first = scratch("roundtrip-first");
     let second = scratch("roundtrip-second");
@@ -496,10 +488,6 @@ async fn dump_roundtrips_byte_identically() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 #[expect(
     clippy::float_cmp,
     reason = "a served embedding must round-trip bit-identically"
@@ -587,10 +575,6 @@ async fn offline_dataset_serves_the_row_streams_verbatim() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 #[expect(
     clippy::float_cmp,
     reason = "a served embedding must round-trip bit-identically"
@@ -643,10 +627,6 @@ async fn offline_dataset_serves_the_request_streams_verbatim() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn served_embeddings_borrow_the_mapped_stream_files() {
     let directory = scratch("borrow-proof");
     let source = Fixture::new();
@@ -695,10 +675,6 @@ async fn served_embeddings_borrow_the_mapped_stream_files() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 #[expect(
     clippy::float_cmp,
     reason = "a served embedding must round-trip bit-identically"
@@ -734,10 +710,6 @@ async fn offline_embedder_serves_hits_and_refuses_misses() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn open_refuses_a_tampered_stream() {
     let directory = scratch("digest-tamper");
     Fixture::new()
@@ -765,10 +737,6 @@ async fn open_refuses_a_tampered_stream() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 #[expect(
     clippy::little_endian_bytes,
     reason = "the archive's structural fields are little-endian by rkyv's format, and the test \
@@ -805,10 +773,6 @@ async fn open_refuses_a_defective_archive() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn open_refuses_an_embedding_position_outside_the_column() {
     let directory = scratch("edge-position");
     Fixture::new()

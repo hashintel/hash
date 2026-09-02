@@ -61,7 +61,6 @@ fn tile_with(
 /// withdrawing a fitted row the root does not deliver walks the same subtraction to identical
 /// bytes, and one withdrawing an unfitted identity skips the walk whole.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn corpus_subtract_splits_range() {
     let (generation, atlas) = publish("withdrawal-root").await;
     let Artifacts {
@@ -181,7 +180,6 @@ async fn corpus_subtract_splits_range() {
 /// vouched for the head. The negative control withdraws a row the mask already hides, through
 /// the same path.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn scoped_drops_withdrawn_only() {
     let (generation, atlas) = publish("withdrawal-scoped").await;
     let Artifacts { rows, .. } = open_artifacts(&generation);
@@ -239,7 +237,6 @@ async fn scoped_drops_withdrawn_only() {
 /// the wire's zero-length-entry law reads. The negative control is the baseline: the same cell
 /// with no snapshot serves its full run.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn all_withdrawn_empty_shape() {
     let (generation, atlas) = publish("withdrawal-empty").await;
     let Artifacts {
@@ -308,7 +305,6 @@ async fn all_withdrawn_empty_shape() {
 /// endpoint kills every edge at it, a withdrawn link dies while both endpoints keep serving, and
 /// the control snapshot withdrawing an unfitted identity leaves the baseline bytes.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn edges_subtract_withdrawn_endpoints_and_links() {
     let (generation, atlas) = publish("withdrawal-edges").await;
     let artifacts = open_artifacts(&generation);
@@ -421,7 +417,6 @@ async fn edges_subtract_withdrawn_endpoints_and_links() {
 /// through the one edge-rule site, so a partner's withdrawal kills its edge with no second
 /// mechanism. The control withdraws an identity the subgraph never touches.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_withdrawn_refusal() {
     let (_generation, atlas) = publish("withdrawal-locate").await;
 
@@ -494,7 +489,6 @@ async fn locate_withdrawn_refusal() {
 /// next-request death law the neighbourhood read applies. The control withdraws an identity
 /// the request never names, no endpoint among them, and must leave the response equal.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn translate_answers_withdrawn_identities_as_absent_keys() {
     use crate::serve::translate::{TranslateLimits, TranslateRequest};
 
@@ -560,7 +554,6 @@ async fn translate_answers_withdrawn_identities_as_absent_keys() {
 /// same refresh-boundary semantics arrivals already have. The control folds a snapshot whose
 /// one withdrawal the mask already hides, which must move no byte.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn a_folded_proof_delivers_the_subtracted_rows_with_nothing_to_subtract() {
     let (_generation, atlas) = publish("withdrawal-fold").await;
 
@@ -670,7 +663,6 @@ fn aggregate_parting_seeds(
 /// every axis, so each equality distinguishes the folded view rather than restating it. The
 /// owner ruled the aggregate split at the fold's landing, so the witness pins settled law.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn the_folded_scoped_root_publishes_the_folded_views_aggregates() {
     let (generation, atlas) = publish("withdrawal-fold-aggregates").await;
     let Artifacts {
@@ -772,7 +764,6 @@ async fn the_folded_scoped_root_publishes_the_folded_views_aggregates() {
 /// stretching the corpus extent until refit. One snapshot therefore pins both regimes against
 /// the scoped witness above, recording the split the owner ruled at the fold's landing.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn corpus_root_aggregates_ignore_fold() {
     let (generation, atlas) = publish("withdrawal-fold-corpus-aggregates").await;
     let Artifacts {
@@ -808,7 +799,6 @@ async fn corpus_root_aggregates_ignore_fold() {
 /// authority into a scope. The admission walk stays that proof's whole withdrawal authority,
 /// which the corpus-proof subtraction witnesses above already pin.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn the_fold_leaves_a_corpus_proof_admitting_everything() {
     let (_generation, atlas) = publish("withdrawal-fold-corpus").await;
 
@@ -824,7 +814,6 @@ async fn the_fold_leaves_a_corpus_proof_admitting_everything() {
 /// not imply and a withdrawal runs the same domains in reverse. The admitted delta-link set drops
 /// exactly the withdrawn identity, and its sibling stays.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn the_fold_removes_link_tombstones_and_withdrawn_delta_identities() {
     let (_generation, atlas) = publish("withdrawal-fold-links").await;
 
@@ -871,7 +860,6 @@ async fn the_fold_removes_link_tombstones_and_withdrawn_delta_identities() {
 /// capture re-names the folded row, and subtracting it edits nothing because no delivered set
 /// holds it.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn a_withdrawal_after_the_fold_subtracts_as_the_residue() {
     let (_generation, atlas) = publish("withdrawal-fold-residue").await;
 

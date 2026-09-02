@@ -614,7 +614,6 @@ mod tests {
     /// empty, so all-empty details stand in for the hydrated columns. The encoded bytes must equal
     /// the wire document built directly with the trailer.
     #[tokio::test]
-    #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
     #[expect(
         clippy::single_range_in_vec_init,
         reason = "an array of one range is what a root delta delivery IS"
@@ -715,7 +714,6 @@ mod tests {
     /// with the captured label at that slot alone. The control capture names an undelivered
     /// identity and must answer the baseline bytes.
     #[tokio::test]
-    #[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
     async fn captured_display_reaches_tile_labels() {
         let (generation, atlas) = publish("revised-tile-labels").await;
         let Artifacts { morton, rows, .. } = open_artifacts(&generation);

@@ -82,10 +82,6 @@ fn nodes_only(embeddings: Vec<BoxedVecN<PROJECTOR_DIMENSIONS>>) -> MemoryDataset
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn representations_persist_row_aligned_with_the_node_stream() {
     let embeddings = vec![unit(0), unit(7), unit(511)];
     let dataset = nodes_only(embeddings.clone());
@@ -118,10 +114,6 @@ async fn representations_persist_row_aligned_with_the_node_stream() {
 }
 
 #[tokio::test]
-#[cfg_attr(
-    miri,
-    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
-)]
 async fn empty_dataset_seals_an_empty_matrix() {
     let dataset = nodes_only(vec![]);
 
@@ -221,7 +213,6 @@ fn spot_check_honours_a_configured_tolerance() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore = "a 700-row kernel sweep is too slow interpreted")]
 fn spot_check_samples_large_matrices() {
     let matrix = Matrix::units(700);
     let check = norm::spot_check(

@@ -893,7 +893,6 @@ pub(crate) fn extremes_vacating_a_root_cell(
 ///
 /// The scoped side of the sweep lives in `schedule.rs`, and both reach it through [`head_counts`].
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn operator_head_accounting() {
     let (generation, atlas) = publish("operator-head").await;
     let Artifacts { quad, .. } = open_artifacts(&generation);
@@ -921,7 +920,6 @@ async fn operator_head_accounting() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn serves_published_tiles() {
     let (generation, atlas) = publish("serves").await;
     assert_eq!(atlas.generation(), generation.id());
@@ -1042,7 +1040,6 @@ async fn serves_published_tiles() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn serves_empty_and_deepest_cells() {
     let (generation, atlas) = publish("cells").await;
     let Artifacts {
@@ -1124,7 +1121,6 @@ async fn serves_empty_and_deepest_cells() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn tile_contract_rejections() {
     let (_generation, atlas) = publish("rejects").await;
 
@@ -1397,7 +1393,6 @@ fn expected_edges_bytes(generation: &Generation, complete: bool, edges: &EdgeCol
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn edges_full_coverage() {
     let (generation, atlas) = publish("edges-full").await;
     let artifacts = open_edge_artifacts(&generation);
@@ -1455,7 +1450,6 @@ async fn edges_full_coverage() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn edges_root_visible_subgraph() {
     let (generation, atlas) = publish("edges-root").await;
     let artifacts = open_artifacts(&generation);
@@ -1505,7 +1499,6 @@ async fn edges_root_visible_subgraph() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn edges_exclude_partially_delivered_pairs() {
     let (generation, atlas) = publish("edges-cross").await;
     let artifacts = open_artifacts(&generation);
@@ -1572,7 +1565,6 @@ async fn edges_exclude_partially_delivered_pairs() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn edges_cap_truncates_by_worse_endpoint_rank() {
     let (generation, atlas) = publish("edges-cap").await;
     let edge_artifacts = open_edge_artifacts(&generation);
@@ -1667,7 +1659,6 @@ async fn edges_cap_truncates_by_worse_endpoint_rank() {
 }
 
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn edges_contract_rejections() {
     let (generation, atlas) = publish("edges-rejects").await;
     let root = TileCoordinate { z: 0, x: 0, y: 0 };
@@ -1734,7 +1725,6 @@ async fn edges_contract_rejections() {
 /// rewrite persists empty payloads - and the store capability answers the type column, all-`null`
 /// here (G6 pins the non-null trailer bytes).
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn detailed_edges_trailer() {
     use crate::salt::wire::edges::EdgesTrailer;
 
@@ -1863,7 +1853,6 @@ fn type_expectations(
 /// The store receives the distinct uuids in first-occurrence order over the delivered edges,
 /// which is the deduplication this path exists to buy.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn detailed_edges_types() {
     use alloc::rc::Rc;
     use core::cell::RefCell;
@@ -1968,7 +1957,6 @@ async fn detailed_edges_types() {
 /// The resolved (zoom, cell) tile delivers the row under the cumulative schedule, and at zoom > 0
 /// the parent tile's schedule does not. `zoom` is therefore the first visible zoom.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_first_visible_tile() {
     let (_generation, atlas) = publish("locate-resolve").await;
     let node_codec = test_codec(&atlas);
@@ -2078,7 +2066,6 @@ async fn locate_first_visible_tile() {
 /// incident set - both directions, a self-loop exactly once - ascending link-entity identity
 /// bytes (for the fixture, ascending edge row).
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_ego_graph() {
     use super::locate::LocateLimits;
 
@@ -2182,7 +2169,6 @@ fn wire_distance_bits(atlas: &Atlas, from: u32, to: u32) -> u32 {
 /// nonzero cap, and partner 1's only edge truncates - the partner leaves with its edge and the
 /// source stands alone.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_cap_self_loop() {
     use super::locate::LocateLimits;
 
@@ -2233,7 +2219,6 @@ async fn locate_cap_self_loop() {
 /// bytes, the delivered nodes are exactly the survivors' partners, and assembly repeats
 /// identically.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_cap_vs_independent_key() {
     use super::locate::LocateLimits;
 
@@ -2348,7 +2333,6 @@ fn edges_body_contract() {
 /// `TYPE_MASK` rides the request at full shape, unresolvable ids read 0 in every mask, and a
 /// fixture type URL resolves to real bits.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn colored_types_zero_unknowns() {
     let (_generation, atlas) = publish("colored-masks-e2e").await;
 
@@ -2389,7 +2373,6 @@ async fn colored_types_zero_unknowns() {
 ///
 /// The open fails on the key kind.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn foreign_key_kinds_fail_open() {
     use super::error::{IdentityDomain, OpenAtlasError};
     use crate::salt::fit::prepare::identity::InvalidIdentityFile;
@@ -2740,7 +2723,6 @@ fn translate_rejects_over_cap() {
 /// The rewritten store-width identities resolve end to end. Node row and wire position agree with
 /// the serving columns. An edge id answers its row, and an unknown id reads absent.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn translate_store_identities() {
     use super::translate::{TranslateLimits, TranslateRequest, TranslatedEdge, TranslatedNode};
 
@@ -2942,7 +2924,6 @@ fn locate_request(entity_id: String) -> super::LocateRequest {
 /// the encoded image collapses into `unknown-entity`, and assembly rejects a body carrying
 /// both or neither source field by name with its count.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_by_wire_row_matches_by_entity() {
     let (_generation, atlas) = publish("locate-by-row").await;
     let limits = ServeLimits::default();
@@ -3039,7 +3020,6 @@ async fn locate_by_wire_row_matches_by_entity() {
 /// nothing resolves: the mandatory trailer rides empty tables and null columns, and both source
 /// completeness flags read `false` - an unresolved source can attest nothing.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_pinned_envelope() {
     use crate::salt::{
         postings::artifact::Membership,
@@ -3139,7 +3119,6 @@ async fn locate_pinned_envelope() {
 ///
 /// The unknown-entity doctrine treats unparsable, unknown, and wrong-domain ids identically.
 #[tokio::test]
-#[cfg_attr(miri, ignore = "the search backend maps LMDB files through FFI")]
 async fn locate_rejection_names() {
     let (_generation, atlas) = publish("locate-rejects").await;
     let limits = ServeLimits::default();
