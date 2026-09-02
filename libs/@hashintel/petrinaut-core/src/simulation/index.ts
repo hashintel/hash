@@ -21,6 +21,7 @@ export { PETRINAUT_DEFAULT_SEED } from "./api";
 export {
   addAllMonteCarloMetricValues,
   createMonteCarloExperiment,
+  runExperimentToCompletion,
   createMonteCarloMetricHistogramAccumulator,
   createMonteCarloMetricNumericAccumulator,
   createMonteCarloSimulator,
@@ -34,6 +35,7 @@ export type {
   MonteCarloAdvanceResult,
   MonteCarloActiveRunPlaceCountsVisitor,
   MonteCarloExperiment,
+  ExperimentCompletion,
   MonteCarloExperimentEvent,
   MonteCarloExperimentMetrics,
   MonteCarloExperimentState,
