@@ -1,5 +1,6 @@
 ---
 "@hashintel/petrinaut": patch
+"@hashintel/ds-components": patch
 ---
 
-Parameter sweeps declare an interval per swept parameter instead of a value count. The navigator becomes a range slider per parameter — the whole interval selected by default, resizable, collapsible to a point — with the interval quantized into ~50 positions so revisited positions restore their cached runs. A range selection samples points across the region in a low-discrepancy order and streams the merged distribution over the region; a point behaves as before.
+Swept parameters declare an interval instead of a value count, and the navigator becomes a range slider per parameter: the whole interval by default, resizable, collapsible to a point. A range selection samples the region and streams the merged distribution over it. The design system gains `RangeSlider`, a two-thumb slider selecting an inclusive range whose thumbs may coincide.
