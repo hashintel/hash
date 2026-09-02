@@ -427,7 +427,6 @@ pub(crate) struct SaltMetadata {
     /// `None` records a generation published before the document carried its source. A writer
     /// that carries the section always emits a present body, so an unrecorded source stays
     /// distinguishable from a recorded one.
-    #[serde(default)]
     pub dataset: Option<DatasetOrigin>,
     pub placement: Placement,
     pub ranking: RankingOrigin,
