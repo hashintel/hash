@@ -49,7 +49,18 @@ export const selectRecipe = sva({
         opacity: "1",
         visibility: "visible",
       },
+      // Visibility and opacity are split across the two focus rules: focus-within
+      // drives visibility so the clear stays keyboard-reachable (Chromium's tab
+      // navigation honours :focus-within-dependent visibility but skips elements
+      // revealed via :has(:focus-visible)), while opacity — the actual visual
+      // reveal — only applies for keyboard (:focus-visible) focus.
       "&:focus-within [data-part='clear']": {
+        visibility: "visible",
+      },
+      "&:has(:focus-visible) [data-part='clear']": {
+        opacity: "1",
+      },
+      "&:has([data-part='trigger'][data-state='open']) [data-part='clear']": {
         opacity: "1",
         visibility: "visible",
       },
