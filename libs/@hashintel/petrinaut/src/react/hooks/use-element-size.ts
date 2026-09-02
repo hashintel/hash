@@ -101,6 +101,8 @@ export function useElementSize(
     () => () => {
       observerRef.current?.disconnect();
       observerRef.current = null;
+      // A replayed setup (Strict Mode) must observe the element again.
+      observedRef.current = null;
       if (timerRef.current != null) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
