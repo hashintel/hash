@@ -5,7 +5,7 @@ import { css } from "@hashintel/ds-helpers/css";
 import { Select } from "./select";
 
 import type { ItemOrGroup } from "../Menu/SelectableList/selectable-list";
-import type { SelectItem } from "./select";
+import type { MultiSelectItem, SelectItem } from "./select";
 import type { Story, StoryDefault } from "@ladle/react";
 
 export default {
@@ -97,6 +97,13 @@ const tonedItems = [
   { value: "error", text: "Error", tone: "error" as const },
 ];
 
+const suffixItems: Array<MultiSelectItem> = [
+  { value: "apple", text: "Apple", suffix: "52 kcal", showOnlyButton: true },
+  { value: "banana", text: "Banana", suffix: "89 kcal", showOnlyButton: true },
+  { value: "cherry", text: "Cherry", showOnlyButton: true },
+  { value: "date", text: "Date", suffix: "282 kcal" },
+];
+
 export const Multiple: Story = () => {
   const [fruits, setFruits] = useState<string[]>(["apple", "banana"]);
   const [byVariant, setByVariant] = useState<Record<string, string[]>>({
@@ -112,6 +119,10 @@ export const Multiple: Story = () => {
     highlight: ["neutral", "brand", "error"],
   });
   const [capped, setCapped] = useState<string[]>(["apple", "banana"]);
+  const [suffixValues, setSuffixValues] = useState<string[]>([
+    "apple",
+    "banana",
+  ]);
   const [colors, setColors] = useState<ColorValue[]>(["red", "blue"]);
   const [clearableValues, setClearableValues] = useState<string[]>(["cherry"]);
 
@@ -190,6 +201,18 @@ export const Multiple: Story = () => {
             />
           ))}
         </div>
+      </div>
+      <div className={groupStyle}>
+        <span style={subheadingStyle}>
+          suffix + showOnlyButton — hover a row: "Only" replaces the suffix
+          (Date has a suffix but no Only button)
+        </span>
+        <Select
+          multiple
+          items={suffixItems}
+          value={suffixValues}
+          onChange={setSuffixValues}
+        />
       </div>
       <div className={groupStyle}>
         <span style={subheadingStyle}>
