@@ -6,10 +6,10 @@ import {
   fireEvent,
   render,
   screen,
+  within,
   waitFor,
 } from "@testing-library/react";
 import { StrictMode, useState } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
@@ -19,90 +19,49 @@ import {
   loadOpenAIVoiceConfig,
   VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
   VoiceInterviewControl,
-  VoiceInterviewControlView,
-  type VoiceInterviewControlViewProps,
 } from "./voice-interview-control";
+import { VoiceTurnController } from "./voice-turn-controller";
 
-import type { VoiceTurnSnapshot } from "./voice-turn-controller";
-import type { PetrinautAiInterviewStageContext } from "@hashintel/petrinaut/ui";
-
-const snapshot = {
-  canReviseLastAnswer: false,
-  connection: "connected",
-  currentQuestion: "What happens after approval?",
-  errorCode: null,
-  errorMessage: "",
-  errorRequestId: "",
-  input: "listening",
-  lastAnswerDelivery: "none" as const,
-  lastCommittedText: "",
-  microphoneEnabled: true,
-  microphoneLevel: 0.24,
-  output: "idle",
-  partialText: "The request goes to",
-} satisfies VoiceTurnSnapshot;
+import type {
+  PetrinautAiVoiceModeContext,
+  PetrinautAiVoiceModeControls,
+  PetrinautAiVoiceSessionState,
+} from "@hashintel/petrinaut/ui";
 
 const config = { available: true as const, connectionTimeoutMs: 15_000 };
 
-const viewProps = (
-  overrides: Partial<VoiceInterviewControlViewProps> = {},
-): VoiceInterviewControlViewProps => ({
-  consented: true,
-  correction: "",
-  coverage: null,
-  editing: false,
-  microphoneCheck: "",
-  onCheckMicrophone: vi.fn(),
-  onConsentChange: vi.fn(),
-  onCorrectionChange: vi.fn(),
-  onEdit: vi.fn(),
-  onEnd: vi.fn(),
-  onExpand: vi.fn(),
-  onMinimize: vi.fn(),
-  onPause: vi.fn(),
-  onReconnect: vi.fn(),
-  onResume: vi.fn(),
-  onStart: vi.fn(),
-  onSubmitCorrection: vi.fn(),
-  onTypeInstead: vi.fn(),
-  placement: "sidebar",
-  presentation: "full",
-  snapshot,
-  ...overrides,
-});
+let registeredVoiceModeControls: PetrinautAiVoiceModeControls | undefined;
 
-const StatefulVoiceInterviewHarness = ({
-  onFocusComposer = vi.fn(),
-  onOpenSidebar,
-}: {
-  onFocusComposer?: () => void;
-  onOpenSidebar: () => void;
-}) => {
+const VoiceInterviewHarness = () => {
   "use no memo";
 
   const [active, setActive] = useState(false);
-  const [interactionMode, setInteractionMode] =
-    useState<PetrinautAiInterviewStageContext["interactionMode"]>("chat");
-  const [sidebarOpenRequests, setSidebarOpenRequests] = useState(0);
-  const context: PetrinautAiInterviewStageContext = {
-    canAcceptInterviewAnswer: true,
-    conversationId: "interview-test",
-    focusComposer: onFocusComposer,
-    interactionMode,
+  const [inputMode, setInputMode] =
+    useState<PetrinautAiVoiceModeContext["inputMode"]>("text");
+  const [isAiAssistantOpen, setAiAssistantOpen] = useState(true);
+  // Stands in for Petrinaut, which renders every live Voice surface from the
+  // state this control reports.
+  const [sessionState, setSessionState] =
+    useState<PetrinautAiVoiceSessionState | null>(null);
+  const context: PetrinautAiVoiceModeContext = {
+    canAcceptVoiceInput: true,
+    conversationId: "voice-control-test",
+    inputMode,
+    isAiAssistantOpen,
     messages: [],
-    openSidebar: () => {
-      onOpenSidebar();
-      setSidebarOpenRequests((requests) => requests + 1);
+    registerVoiceModeControls: (controls) => {
+      registeredVoiceModeControls = controls;
+      return () => {
+        if (registeredVoiceModeControls === controls) {
+          registeredVoiceModeControls = undefined;
+        }
+      };
     },
-    placement: "sidebar",
-    setActive,
-    setInteractionMode,
+    reportVoiceSessionState: setSessionState,
+    setInputMode,
+    setVoiceActive: setActive,
     status: "ready",
     stop: vi.fn(async () => undefined),
-    submitInterviewAnswer: vi.fn(async () => ({
-      kind: "message" as const,
-      messageId: "voice-answer",
-    })),
     submitText: vi.fn(async () => ({
       kind: "message" as const,
       messageId: "typed-answer",
@@ -115,17 +74,38 @@ const StatefulVoiceInterviewHarness = ({
 
   return (
     <>
-      <button type="button" onClick={() => setInteractionMode("chat")}>
-        Select Chat
+      <button type="button" onClick={() => setInputMode("voice")}>
+        Select Voice
       </button>
-      <button type="button" onClick={() => setInteractionMode("interview")}>
-        Select Interview
+      <button type="button" onClick={() => setInputMode("text")}>
+        Select Text
       </button>
-      <output>{active ? "Interview active" : "Interview inactive"}</output>
+      <button
+        type="button"
+        onClick={() => setAiAssistantOpen((currentOpen) => !currentOpen)}
+      >
+        Toggle panel
+      </button>
+      {/* Mirrors Petrinaut's End control, which ends the session and returns
+          the composer to text. */}
+      <button
+        type="button"
+        onClick={() => {
+          void registeredVoiceModeControls?.end();
+          setActive(false);
+          setInputMode("text");
+        }}
+      >
+        End session
+      </button>
       <output>
-        {interactionMode === "chat" ? "Chat mode" : "Interview mode"}
+        {sessionState === null
+          ? "No session"
+          : `Session: ${sessionState.phase}`}
       </output>
-      <output>{sidebarOpenRequests} sidebar open requests</output>
+      <output>{active ? "Voice active" : "Voice inactive"}</output>
+      <output>{inputMode === "voice" ? "Voice mode" : "Text mode"}</output>
+      <output>{isAiAssistantOpen ? "Panel open" : "Panel closed"}</output>
       <VoiceInterviewControl {...context} config={config} />
     </>
   );
@@ -156,6 +136,26 @@ const stubUnavailableMicrophone = () => {
 };
 
 beforeEach(() => {
+  registeredVoiceModeControls = undefined;
+  vi.stubGlobal(
+    "PointerEvent",
+    class extends MouseEvent {
+      public readonly pointerType: string;
+
+      public constructor(type: string, init: PointerEventInit = {}) {
+        super(type, init);
+        this.pointerType = init.pointerType ?? "";
+      }
+    },
+  );
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      public disconnect() {}
+      public observe() {}
+      public unobserve() {}
+    },
+  );
   const values = new Map<string, string>();
   Object.defineProperty(window, "localStorage", {
     configurable: true,
@@ -174,12 +174,13 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   window.localStorage.clear();
   vi.unstubAllGlobals();
 });
 
-describe("voice interview stage", () => {
-  test("stores and reads the current disclosure acknowledgement", () => {
+describe("voice interview control", () => {
+  test("stores and reads the versioned disclosure acknowledgement", () => {
     const values = new Map<string, string>();
     const storage = {
       getItem: (key: string) => values.get(key) ?? null,
@@ -216,14 +217,13 @@ describe("voice interview stage", () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json({ available: true, connectionTimeoutMs: 15_000 }),
     );
-    await expect(loadOpenAIVoiceConfig(fetch)).resolves.toEqual({
-      available: true,
-      connectionTimeoutMs: 15_000,
+
+    await expect(loadOpenAIVoiceConfig(fetch)).resolves.toEqual(config);
+    expect(fetch.mock.calls[0]?.[0]).toBe("/api/voice/config");
+    expect(fetch.mock.calls[0]?.[1]).toMatchObject({
+      cache: "no-store",
+      method: "GET",
     });
-    const [url, request] = fetch.mock.calls[0]!;
-    expect(url).toBe("/api/voice/config");
-    expect(request).toMatchObject({ cache: "no-store", method: "GET" });
-    expect(request?.signal).toBeInstanceOf(AbortSignal);
 
     fetch.mockResolvedValueOnce(
       Response.json({ available: false, connectionTimeoutMs: 15_000 }),
@@ -235,169 +235,84 @@ describe("voice interview stage", () => {
     await expect(loadOpenAIVoiceConfig(fetch)).resolves.toBeNull();
   });
 
-  test("shows disclosure and requires consent before starting", () => {
-    const html = renderToStaticMarkup(
-      <VoiceInterviewControlView
-        {...viewProps({ consented: false, presentation: "start" })}
-      />,
-    );
-    render(
-      <VoiceInterviewControlView
-        {...viewProps({ consented: false, presentation: "start" })}
-      />,
-    );
+  test("keeps the first-use disclosure inline without a text-handoff action", () => {
+    render(<VoiceInterviewHarness />);
 
-    expect(html).toContain("Voice interview");
-    expect(html).toContain("Talk through your process with AI");
-    expect(html).toContain("OpenAI processes live audio");
-    expect(html).toContain("keeps finalized answers");
-    expect(html).toContain("not the audio");
-    expect(html.indexOf("Start interview")).toBeLessThan(
-      html.indexOf("Check microphone"),
-    );
-    expect(html).toMatch(/<button[^>]*disabled[^>]*>Start interview/u);
-    expect(html).toContain('aria-label="Use text instead"');
-    expect(html).toContain("Check microphone");
-    expect(html).toContain("pos_absolute");
-    expect(html).not.toContain("pos_fixed");
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
 
-    const textButton = screen.getByRole("button", { name: "Use text instead" });
-    expect(textButton.querySelector("svg")).not.toBeNull();
-    expect(textButton.parentElement?.getAttribute("data-scope")).toBe(
-      "tooltip",
-    );
-    expect(textButton.textContent.replaceAll("\u200B", "").trim()).toBe("");
+    const disclosure = screen.getByRole("region", {
+      name: "Voice mode consent",
+    });
+    expect(disclosure).not.toBeNull();
+    expect(within(disclosure).getByText("Voice mode")).not.toBeNull();
+    expect(
+      screen.getByText("OpenAI processes live audio", { exact: false }),
+    ).not.toBeNull();
+    expect(
+      screen
+        .getByRole("button", { name: "Start voice mode" })
+        .hasAttribute("disabled"),
+    ).toBe(true);
+    expect(
+      screen.queryByRole("button", { name: "Use text instead" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("region", { name: "Voice interview stage" }),
+    ).toBeNull();
+    expect(document.activeElement).toBe(disclosure);
   });
 
-  test("keeps diagnostic recovery details visible without reopening the microphone", () => {
-    const html = renderToStaticMarkup(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            connection: "error",
-            errorCode: "microphone-permission",
-            errorMessage:
-              "Allow microphone access in your browser settings, then reconnect voice input.",
-            errorRequestId: "voice-request-permission",
-            input: "paused",
-            microphoneEnabled: false,
-            microphoneLevel: 0,
-            output: "idle",
-            partialText: "",
-          },
-        })}
-      />,
-    );
-
-    expect(html).toContain("We couldn’t reconnect the microphone");
-    expect(html).toContain(
-      "Allow microphone access in your browser settings, then reconnect voice input.",
-    );
-    expect(html).toContain("<summary>Technical details</summary>");
-    expect(html).toContain("microphone-permission");
-    expect(html).toContain("voice-request-permission");
-    expect(html).toContain(">Reconnect<");
-    expect(html).toContain('aria-label="Use text instead"');
-    expect(html).not.toContain(">Type instead<");
-  });
-
-  test("starts in the full stage and keeps recovery visible under Strict Mode", async () => {
+  test("starts one session after consent and keeps reporting it across host presentation changes", async () => {
     const getUserMedia = stubUnavailableMicrophone();
-    const openSidebar = vi.fn();
-
     render(
       <StrictMode>
-        <StatefulVoiceInterviewHarness onOpenSidebar={openSidebar} />
+        <VoiceInterviewHarness />
       </StrictMode>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
     fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Start interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
 
-    expect(
-      await screen.findByRole("region", { name: "Voice interview stage" }),
-    ).not.toBeNull();
-    expect(
-      await screen.findByText(
-        /Microphone off · Allow microphone access in your browser settings, then reconnect voice input\./u,
-      ),
-    ).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Reconnect" })).not.toBeNull();
-    expect(screen.getByText("Interview active")).not.toBeNull();
-    expect(screen.getByText("Interview mode")).not.toBeNull();
-    expect(screen.getByText("1 sidebar open requests")).not.toBeNull();
-    expect(openSidebar).toHaveBeenCalledOnce();
+    expect(await screen.findByText("Session: error")).not.toBeNull();
+    expect(screen.getByText("Voice active")).not.toBeNull();
     expect(getUserMedia).toHaveBeenCalledOnce();
+    // The control itself renders nothing once a session is running.
+    expect(screen.queryByRole("region", { name: "Voice session" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Select Chat" }));
-    expect(
-      screen.getByRole("region", { name: "Voice interview mini bar" }),
-    ).not.toBeNull();
-    expect(screen.getByText("Chat mode")).not.toBeNull();
-    expect(openSidebar).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Select Text" }));
+    fireEvent.click(screen.getByRole("button", { name: "Toggle panel" }));
+
+    expect(screen.getByText("Text mode")).not.toBeNull();
+    expect(screen.getByText("Panel closed")).not.toBeNull();
+    expect(screen.getByText("Session: error")).not.toBeNull();
   });
 
-  test("uses full Interview and compact Chat presentations without ending", async () => {
-    window.localStorage.setItem(
-      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
-      "acknowledged",
-    );
-    const getUserMedia = stubUnavailableMicrophone();
-    render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
-    expect(
-      await screen.findByRole("region", { name: "Voice interview stage" }),
-    ).not.toBeNull();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Minimize voice interview" }),
-    );
-    expect(
-      screen.getByRole("region", { name: "Voice interview mini bar" }),
-    ).not.toBeNull();
-    expect(screen.getByText("Interview active")).not.toBeNull();
-
-    fireEvent.click(
-      screen.getByRole("button", { name: /Expand voice interview/u }),
-    );
-    expect(
-      screen.getByRole("region", { name: "Voice interview stage" }),
-    ).not.toBeNull();
-    expect(screen.getByText("Interview mode")).not.toBeNull();
-    expect(getUserMedia).toHaveBeenCalledOnce();
-  });
-
-  test("ends the interview and returns to Chat", async () => {
+  test("starts directly after acknowledgement and ends through the registered control", async () => {
     window.localStorage.setItem(
       VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
       "acknowledged",
     );
     stubUnavailableMicrophone();
-    render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
+    render(<VoiceInterviewHarness />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+
     expect(
-      await screen.findByRole("region", { name: "Voice interview stage" }),
-    ).not.toBeNull();
+      screen.queryByRole("region", { name: "Voice mode consent" }),
+    ).toBeNull();
+    expect(await screen.findByText("Session: error")).not.toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "End interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "End session" }));
 
-    expect(screen.getByText("Chat mode")).not.toBeNull();
-    expect(screen.getByText("Interview inactive")).not.toBeNull();
     await waitFor(() => {
-      expect(
-        screen.queryByRole("region", { name: "Voice interview stage" }),
-      ).toBeNull();
-      expect(
-        screen.queryByRole("region", { name: "Voice interview mini bar" }),
-      ).toBeNull();
+      expect(screen.getByText("No session")).not.toBeNull();
     });
+    expect(screen.getByText("Text mode")).not.toBeNull();
+    expect(screen.getByText("Voice inactive")).not.toBeNull();
   });
 
-  test("restarts when Interview is reselected before teardown completes", async () => {
+  test("restarts when Voice is reselected before teardown completes", async () => {
     window.localStorage.setItem(
       VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
       "acknowledged",
@@ -418,686 +333,92 @@ describe("voice interview stage", () => {
       OpenAIRealtimeSession.prototype,
       "setMicrophoneEnabled",
     ).mockImplementation(() => {});
-    render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
+    render(<VoiceInterviewHarness />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
-    await screen.findByText("Listening");
-    fireEvent.click(screen.getByRole("button", { name: "End interview" }));
-
-    expect(screen.getByText("Chat mode")).not.toBeNull();
-    expect(screen.getByText("Interview inactive")).not.toBeNull();
-    expect(
-      screen.queryByRole("region", { name: "Voice interview mini bar" }),
-    ).toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+    await screen.findByText("Session: listening");
+    fireEvent.click(screen.getByRole("button", { name: "End session" }));
+    await screen.findByText("Text mode");
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
 
     expect(connect).toHaveBeenCalledOnce();
-    expect(screen.getByText("Interview inactive")).not.toBeNull();
     finishDisconnect?.();
 
     await waitFor(() => expect(connect).toHaveBeenCalledTimes(2));
-    expect(screen.getByText("Interview active")).not.toBeNull();
-    expect(screen.getByText("Listening")).not.toBeNull();
+    expect(screen.getByText("Voice active")).not.toBeNull();
+    expect(screen.getByText("Session: listening")).not.toBeNull();
   });
 
-  test("records acknowledgement only when the interview starts", async () => {
-    window.localStorage.clear();
-    stubUnavailableMicrophone();
-    render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
+  test("pauses once when the panel closes and stays paused after reopening", async () => {
+    window.localStorage.setItem(
+      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      "acknowledged",
+    );
+    vi.spyOn(OpenAIRealtimeSession.prototype, "connect").mockResolvedValue(1);
+    vi.spyOn(OpenAIRealtimeSession.prototype, "disconnect").mockResolvedValue();
+    vi.spyOn(
+      OpenAIRealtimeSession.prototype,
+      "setMicrophoneEnabled",
+    ).mockImplementation(() => {});
+    const pause = vi.spyOn(VoiceTurnController.prototype, "pause");
+    render(<VoiceInterviewHarness />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+    await screen.findByText("Session: listening");
+    expect(registeredVoiceModeControls).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: "Toggle panel" }));
+    await screen.findByText("Session: paused");
+    expect(pause).toHaveBeenCalledOnce();
+
+    fireEvent.click(screen.getByRole("button", { name: "Toggle panel" }));
+    expect(screen.getByText("Session: paused")).not.toBeNull();
+    expect(pause).toHaveBeenCalledOnce();
+  });
+
+  test("latches panel closure while the Voice connection is pending", async () => {
+    window.localStorage.setItem(
+      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      "acknowledged",
+    );
+    let finishConnection: ((epoch: number) => void) | undefined;
+    vi.spyOn(OpenAIRealtimeSession.prototype, "connect").mockImplementation(
+      () =>
+        new Promise<number>((resolve) => {
+          finishConnection = resolve;
+        }),
+    );
+    vi.spyOn(OpenAIRealtimeSession.prototype, "disconnect").mockResolvedValue();
+    const setMicrophoneEnabled = vi
+      .spyOn(OpenAIRealtimeSession.prototype, "setMicrophoneEnabled")
+      .mockImplementation(() => {});
+    render(<VoiceInterviewHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
+    await screen.findByText("Session: connecting");
+    fireEvent.click(screen.getByRole("button", { name: "Toggle panel" }));
+    finishConnection?.(1);
+
+    await screen.findByText("Session: paused");
+    expect(setMicrophoneEnabled).toHaveBeenCalledWith(false);
+    expect(setMicrophoneEnabled).not.toHaveBeenCalledWith(true);
+    expect(screen.getByText("Panel closed")).not.toBeNull();
+  });
+
+  test("records acknowledgement only when the interview starts", () => {
+    stubUnavailableMicrophone();
+    render(<VoiceInterviewHarness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Voice" }));
     fireEvent.click(screen.getByRole("button", { name: "Check microphone" }));
     expect(
       window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
     ).toBeNull();
 
     fireEvent.click(screen.getByRole("checkbox"));
-    fireEvent.click(screen.getByRole("button", { name: "Start interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
     expect(
       window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
     ).toBe("acknowledged");
-  });
-
-  test("does not record acknowledgement when choosing text instead", async () => {
-    window.localStorage.clear();
-    const focusComposer = vi.fn();
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof globalThis.fetch>(async () =>
-        Response.json({ available: true, connectionTimeoutMs: 15_000 }),
-      ),
-    );
-    render(
-      <StatefulVoiceInterviewHarness
-        onFocusComposer={focusComposer}
-        onOpenSidebar={vi.fn()}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
-    fireEvent.click(screen.getByRole("button", { name: "Use text instead" }));
-    expect(
-      window.localStorage.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY),
-    ).toBeNull();
-    expect(screen.getByText("Chat mode")).not.toBeNull();
-    expect(focusComposer).toHaveBeenCalledOnce();
-  });
-
-  test("uses text from an active interview without ending the session", async () => {
-    window.localStorage.setItem(
-      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
-      "acknowledged",
-    );
-    const focusComposer = vi.fn();
-    stubUnavailableMicrophone();
-    render(
-      <StatefulVoiceInterviewHarness
-        onFocusComposer={focusComposer}
-        onOpenSidebar={vi.fn()}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
-    expect(
-      await screen.findByRole("region", { name: "Voice interview stage" }),
-    ).not.toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: "Use text instead" }));
-
-    expect(screen.getByText("Chat mode")).not.toBeNull();
-    expect(screen.getByText("Interview active")).not.toBeNull();
-    expect(
-      screen.getByRole("region", { name: "Voice interview mini bar" }),
-    ).not.toBeNull();
-    expect(focusComposer).toHaveBeenCalledOnce();
-  });
-
-  test("skips the disclosure after it has been acknowledged", async () => {
-    stubUnavailableMicrophone();
-    window.localStorage.setItem(
-      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
-      "acknowledged",
-    );
-    render(<StatefulVoiceInterviewHarness onOpenSidebar={vi.fn()} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Select Interview" }));
-
-    expect(
-      screen.queryByRole("region", { name: "Start voice interview" }),
-    ).toBeNull();
-    expect(
-      await screen.findByRole("region", { name: "Voice interview stage" }),
-    ).not.toBeNull();
-  });
-
-  test("keeps the question visible and names microphone level", () => {
-    const html = renderToStaticMarkup(
-      <VoiceInterviewControlView {...viewProps()} />,
-    );
-
-    expect(html).toContain("What happens after approval?");
-    expect(html).toContain("Live transcript");
-    expect(html).toContain("Listening");
-    expect(html).toContain("Microphone input level: Medium");
-    expect(html).not.toContain('aria-label="Done speaking"');
-    expect(html).not.toContain('aria-label="Interrupt and speak"');
-    expect(html).toContain("motionReduce:vis_hidden");
-    expect(html).toContain("pos_relative");
-    expect(html).not.toContain("pos_fixed");
-    expect(html).toContain('aria-live="polite"');
-  });
-
-  test("invites a spoken kickoff when no interview question exists", () => {
-    render(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            currentQuestion: "",
-            partialText: "",
-          },
-        })}
-      />,
-    );
-
-    expect(
-      screen.getByText("Tell me about the process you want to model."),
-    ).not.toBeNull();
-  });
-
-  test("centers a circular microphone and waveform without visible level copy", () => {
-    render(<VoiceInterviewControlView {...viewProps()} />);
-
-    expect(screen.getByTestId("voice-microphone-focal")).not.toBeNull();
-    expect(screen.getByTestId("voice-waveform")).not.toBeNull();
-    expect(screen.getByText("Listening")).not.toBeNull();
-
-    const accessibleLevel = screen.getByText("Microphone input level: Medium");
-    expect(accessibleLevel.className).toContain("pos_absolute");
-    expect(
-      screen.queryByText("Microphone on · Listening", {
-        selector: ":not([role='status'])",
-      }),
-    ).toBeNull();
-  });
-
-  test("shows compact recording and sent transcript statuses", () => {
-    const rendered = render(<VoiceInterviewControlView {...viewProps()} />);
-
-    expect(screen.getByText("Live transcript")).not.toBeNull();
-    expect(screen.getByText("Recording")).not.toBeNull();
-    expect(screen.queryByText("What we’re hearing · Not sent yet")).toBeNull();
-    expect(screen.getByRole("status").textContent).toContain("Not sent yet");
-
-    rendered.rerender(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            lastAnswerDelivery: "delivered",
-            lastCommittedText: "The shift lead assigns an owner.",
-            partialText: "",
-          },
-        })}
-      />,
-    );
-
-    expect(screen.getByText("Your answer")).not.toBeNull();
-    expect(screen.getByText("Sent")).not.toBeNull();
-    expect(screen.getByText("The shift lead assigns an owner.")).not.toBeNull();
-  });
-
-  test("shows a sending status while the answer is still being delivered", () => {
-    render(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            input: "submitting",
-            lastAnswerDelivery: "pending",
-            lastCommittedText: "The shift lead assigns an owner.",
-            output: "waiting-for-tool",
-            partialText: "",
-          },
-        })}
-      />,
-    );
-
-    expect(screen.getByText("Your answer")).not.toBeNull();
-    expect(screen.getByText("Sending")).not.toBeNull();
-    expect(screen.queryByText("Sent")).toBeNull();
-  });
-
-  test("shows a not-sent status when delivery failed", () => {
-    render(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            connection: "error",
-            errorCode: null,
-            errorMessage:
-              "The interview could not accept that answer. Use the composer to retry.",
-            input: "paused",
-            lastAnswerDelivery: "failed",
-            lastCommittedText: "The shift lead assigns an owner.",
-            microphoneEnabled: false,
-            microphoneLevel: 0,
-            output: "idle",
-            partialText: "",
-          },
-        })}
-      />,
-    );
-
-    expect(screen.getByText("Not sent")).not.toBeNull();
-    expect(screen.queryByText("Sent")).toBeNull();
-    expect(screen.getByText("The shift lead assigns an owner.")).not.toBeNull();
-  });
-
-  test("uses voice-app icon controls while listening", () => {
-    render(<VoiceInterviewControlView {...viewProps()} />);
-
-    for (const name of ["Use text instead", "Pause"]) {
-      const button = screen.getByRole("button", { name });
-      expect(button.querySelector("svg")).not.toBeNull();
-      expect(button.parentElement?.getAttribute("data-scope")).toBe("tooltip");
-    }
-    expect(screen.queryByRole("button", { name: "Done speaking" })).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: "Interrupt and speak" }),
-    ).toBeNull();
-  });
-
-  test("orders the full listening actions as keyboard then pause", () => {
-    const html = renderToStaticMarkup(
-      <VoiceInterviewControlView {...viewProps()} />,
-    );
-
-    expect(html.indexOf('aria-label="Use text instead"')).toBeLessThan(
-      html.indexOf('aria-label="Pause"'),
-    );
-    expect(html).not.toContain('aria-label="Done speaking"');
-  });
-
-  test("offers only resume and keyboard actions while paused", () => {
-    render(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            input: "paused",
-            microphoneEnabled: false,
-            microphoneLevel: 0,
-            partialText: "",
-          },
-        })}
-      />,
-    );
-
-    expect(screen.getByText("Paused")).not.toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Resume listening" }),
-    ).not.toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Use text instead" }),
-    ).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Done speaking" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Pause" })).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: "Interrupt and speak" }),
-    ).toBeNull();
-  });
-
-  test("shows the waveform whenever the continuous microphone is active", () => {
-    const rendered = render(<VoiceInterviewControlView {...viewProps()} />);
-
-    expect(screen.getByTestId("voice-waveform")).not.toBeNull();
-
-    rendered.rerender(
-      <VoiceInterviewControlView
-        {...viewProps({ snapshot: { ...snapshot, output: "speaking" } })}
-      />,
-    );
-    expect(screen.getByTestId("voice-waveform")).not.toBeNull();
-    expect(screen.getByText("Interviewer speaking")).not.toBeNull();
-
-    rendered.rerender(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            input: "paused",
-            microphoneEnabled: false,
-            microphoneLevel: 0,
-            partialText: "",
-          },
-        })}
-      />,
-    );
-    expect(screen.queryByTestId("voice-waveform")).toBeNull();
-    expect(screen.queryByText(/Microphone input level:/u)).toBeNull();
-  });
-
-  test("keeps reconnect visible and makes secondary recovery icon-only", () => {
-    render(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            connection: "error",
-            errorCode: "microphone-permission",
-            errorMessage:
-              "Allow microphone access in your browser settings, then reconnect voice input.",
-            errorRequestId: "voice-request-permission",
-            input: "paused",
-            microphoneEnabled: false,
-            microphoneLevel: 0,
-            output: "idle",
-            partialText: "",
-          },
-        })}
-      />,
-    );
-
-    expect(
-      screen.getByText("We couldn’t reconnect the microphone"),
-    ).not.toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Reconnect" }).textContent,
-    ).toContain("Reconnect");
-    expect(
-      screen
-        .getByRole("button", { name: "Use text instead" })
-        .querySelector("svg"),
-    ).not.toBeNull();
-    expect(screen.getByText("Technical details")).not.toBeNull();
-  });
-
-  test("names the recovery problem for each error family", () => {
-    const recovery = (
-      errorCode: VoiceTurnSnapshot["errorCode"],
-      errorMessage: string,
-    ) => (
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            connection: "error",
-            errorCode,
-            errorMessage,
-            input: "paused",
-            microphoneEnabled: false,
-            microphoneLevel: 0,
-            output: "idle",
-            partialText: "",
-          },
-        })}
-      />
-    );
-
-    const rendered = render(
-      recovery(
-        "microphone-device",
-        "Connect or select a microphone, then reconnect voice input.",
-      ),
-    );
-    expect(
-      screen.getByText("We couldn’t reconnect the microphone"),
-    ).not.toBeNull();
-    expect(screen.getByText("Microphone unavailable")).not.toBeNull();
-    expect(
-      screen.getByText(
-        "Connect or select a microphone, then reconnect voice input.",
-      ),
-    ).not.toBeNull();
-
-    rendered.rerender(
-      recovery(
-        "timeout",
-        "The voice connection timed out. Check your connection, then reconnect voice input.",
-      ),
-    );
-    expect(screen.getByText("We lost the voice connection")).not.toBeNull();
-    expect(screen.getByText("Connection paused")).not.toBeNull();
-
-    rendered.rerender(
-      recovery(
-        "invalid-response",
-        "The interview could not accept that answer. Use the composer to retry.",
-      ),
-    );
-    expect(screen.getByText("The interview couldn’t continue")).not.toBeNull();
-    expect(screen.getByText("Interview paused")).not.toBeNull();
-
-    rendered.rerender(
-      recovery(
-        null,
-        "The interview could not accept that answer. Use the composer to retry.",
-      ),
-    );
-    expect(screen.getByText("The interview couldn’t continue")).not.toBeNull();
-    expect(screen.getByText("Interview paused")).not.toBeNull();
-    expect(
-      screen.queryByText("We couldn’t reconnect the microphone"),
-    ).toBeNull();
-  });
-
-  test("renders icons for the listening controls", () => {
-    render(<VoiceInterviewControlView {...viewProps()} />);
-
-    for (const name of ["Minimize voice interview", "End interview", "Pause"]) {
-      expect(
-        screen.getByRole("button", { name }).querySelector("svg"),
-      ).not.toBeNull();
-    }
-  });
-
-  test("does not describe an unavailable meter while the microphone is off", () => {
-    const waitingHtml = renderToStaticMarkup(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            input: "paused",
-            microphoneEnabled: false,
-            microphoneLevel: 0,
-            partialText: "",
-          },
-        })}
-      />,
-    );
-
-    expect(waitingHtml).not.toContain(
-      "Microphone input level unavailable while microphone is off",
-    );
-  });
-
-  test("renders committed edit separately from pause, minimize, and end", () => {
-    const html = renderToStaticMarkup(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            lastCommittedText: "The shift lead approves it.",
-            partialText: "",
-          },
-        })}
-      />,
-    );
-
-    for (const name of [
-      "Minimize voice interview",
-      "End interview",
-      "Edit text",
-      "Use text instead",
-    ]) {
-      expect(html).toContain(name);
-    }
-  });
-
-  test("enables repair actions only while the last answer can be revised", () => {
-    const rendered = render(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            canReviseLastAnswer: false,
-            lastCommittedText: "The shift lead approves it.",
-            partialText: "",
-          },
-        })}
-      />,
-    );
-
-    expect(
-      screen
-        .getByRole("button", { name: "Edit text" })
-        .hasAttribute("disabled"),
-    ).toBe(true);
-
-    rendered.rerender(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            canReviseLastAnswer: true,
-            lastCommittedText: "The shift lead approves it.",
-            partialText: "",
-          },
-        })}
-      />,
-    );
-
-    expect(
-      screen
-        .getByRole("button", { name: "Edit text" })
-        .hasAttribute("disabled"),
-    ).toBe(false);
-  });
-
-  test("keeps listening and offers no manual interrupt during playback", () => {
-    const html = renderToStaticMarkup(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            output: "speaking",
-            partialText: "",
-          },
-        })}
-      />,
-    );
-
-    expect(html).toContain(
-      "Microphone on · Interviewer speaking · Speak to interrupt",
-    );
-    expect(html).not.toContain('aria-label="Interrupt and speak"');
-    expect(html).toContain('aria-label="Pause"');
-  });
-
-  test("uses a detached bottom mini bar with independent expand, type, pause, and end controls", () => {
-    render(
-      <VoiceInterviewControlView
-        {...viewProps({ placement: "detached", presentation: "mini" })}
-      />,
-    );
-
-    expect(
-      screen.getByRole("region", { name: "Voice interview mini bar" }),
-    ).not.toBeNull();
-    expect(
-      screen.getByRole("button", {
-        name: "Expand voice interview. Microphone on · Listening. Question: What happens after approval?",
-      }),
-    ).not.toBeNull();
-    expect(screen.getByText("Listening")).not.toBeNull();
-    expect(screen.queryByText("Microphone on · Listening")).toBeNull();
-    expect(screen.getByText("What happens after approval?")).not.toBeNull();
-    expect(screen.getByRole("button", { name: "Pause" })).not.toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Use text instead" }),
-    ).not.toBeNull();
-    expect(
-      screen.getByRole("button", { name: "End interview" }),
-    ).not.toBeNull();
-
-    for (const name of ["Pause", "Use text instead", "End interview"]) {
-      const button = screen.getByRole("button", { name });
-      expect(button.querySelector("svg")).not.toBeNull();
-      expect(button.parentElement?.getAttribute("data-scope")).toBe("tooltip");
-    }
-
-    const html = renderToStaticMarkup(
-      <VoiceInterviewControlView
-        {...viewProps({ placement: "detached", presentation: "mini" })}
-      />,
-    );
-    expect(html).toContain("--voice-interview-right");
-    expect(html).toContain("[@media_(min-width:_768px)]");
-    expect(html).not.toContain("md:right_4");
-  });
-
-  test("shows only the valid compact phase action", () => {
-    const rendered = render(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: {
-            ...snapshot,
-            input: "paused",
-            microphoneEnabled: false,
-          },
-          presentation: "mini",
-        })}
-      />,
-    );
-
-    expect(
-      screen.getByRole("button", { name: "Resume listening" }),
-    ).not.toBeNull();
-    expect(screen.queryByRole("button", { name: "Done speaking" })).toBeNull();
-    expect(
-      screen
-        .getByRole("button", { name: "Resume listening" })
-        .querySelector("svg"),
-    ).not.toBeNull();
-    expect(
-      screen
-        .getByRole("button", { name: "Resume listening" })
-        .parentElement?.getAttribute("data-scope"),
-    ).toBe("tooltip");
-
-    rendered.rerender(
-      <VoiceInterviewControlView
-        {...viewProps({
-          snapshot: { ...snapshot, output: "speaking" },
-          presentation: "mini",
-        })}
-      />,
-    );
-    expect(screen.getByRole("button", { name: "Pause" })).not.toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Pause" }).querySelector("svg"),
-    ).not.toBeNull();
-    expect(
-      screen
-        .getByRole("button", { name: "Pause" })
-        .parentElement?.getAttribute("data-scope"),
-    ).toBe("tooltip");
-    expect(
-      screen.queryByRole("button", { name: "Interrupt and speak" }),
-    ).toBeNull();
-  });
-
-  test("announces compact question and provisional transcript context", () => {
-    render(
-      <VoiceInterviewControlView
-        {...viewProps({ placement: "detached", presentation: "mini" })}
-      />,
-    );
-
-    expect(
-      screen.getByRole("button", {
-        name: "Expand voice interview. Microphone on · Listening. Question: What happens after approval?",
-      }),
-    ).not.toBeNull();
-    expect(screen.getByRole("status").textContent).toBe(
-      "Microphone on · Listening. Question: What happens after approval? Not sent yet: The request goes to",
-    );
-  });
-
-  test("shows authoritative covered and still-exploring facts without a question count", () => {
-    const html = renderToStaticMarkup(
-      <VoiceInterviewControlView
-        {...viewProps({
-          coverage: {
-            complete: false,
-            covered: ["dispatch"],
-            stillExploring: ["approval — how long it takes"],
-          },
-        })}
-      />,
-    );
-
-    expect(html).toContain("Covered");
-    expect(html).toContain("Still exploring");
-    expect(html).not.toMatch(/\d+ of \d+/u);
-  });
-
-  test("keeps interview coverage as a low-emphasis details row", () => {
-    const html = renderToStaticMarkup(
-      <VoiceInterviewControlView
-        {...viewProps({
-          coverage: {
-            complete: false,
-            covered: ["dispatch"],
-            stillExploring: ["approval — how long it takes"],
-          },
-        })}
-      />,
-    );
-
-    expect(html).toMatch(/<details class="[^"]*fs_xs/u);
   });
 });

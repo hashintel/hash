@@ -1,12 +1,26 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
+import { Button } from "@hashintel/ds-components";
+import { css } from "@hashintel/ds-helpers/css";
+
+import { NotificationsProvider } from "../../../../../react/notifications/provider";
+import { VoiceSessionContext } from "../../../../../react/voice-session/context";
+import { createVoiceSessionStore } from "../../../../../react/voice-session/store";
 import { AiAssistantContents } from "./ai-assistant-contents";
 
+import type { PetrinautAiVoiceSessionState } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./types";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
   title: "Editor / AI Assistant",
+  decorators: [
+    (Story) => (
+      <NotificationsProvider>
+        <Story />
+      </NotificationsProvider>
+    ),
+  ],
   parameters: {
     layout: "fullscreen",
   },
@@ -188,38 +202,206 @@ const errorMessage = new Error(
   "The assistant could not reach the AI endpoint.",
 );
 
+const hostSlotStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: "2",
+  paddingX: "3",
+  paddingY: "3",
+  borderWidth: "thin",
+  borderStyle: "solid",
+  borderColor: "neutral.a20",
+  borderRadius: "xl",
+  backgroundColor: "neutral.s20",
+  color: "neutral.s100",
+  fontSize: "sm",
+  lineHeight: "relaxed",
+});
+
+const hostSlotTitleStyle = css({
+  fontSize: "sm",
+  fontWeight: "semibold",
+});
+
+/**
+ * Stands in for a host's pre-session slot. Once a session is running the host
+ * reports state instead of rendering, and Petrinaut's own dock takes over.
+ */
+const HostVoiceSlotPreview = () => (
+  <section aria-label="Voice mode consent" className={hostSlotStyle}>
+    <span className={hostSlotTitleStyle}>Voice mode</span>
+    <span>
+      OpenAI processes live audio to speak the interviewer's questions.
+      Petrinaut keeps finalized answers in the conversation rather than the
+      audio.
+    </span>
+    <Button size="xs" type="button" variant="solid">
+      Start voice mode
+    </Button>
+  </section>
+);
+
 const Frame = ({
   error,
+  inputMode = "text",
   messages,
   status = "ready",
   stopped = false,
+  voiceMode,
+  voiceModeAvailable = false,
+  voiceSession,
 }: {
   error?: Error;
+  inputMode?: "text" | "voice";
   messages: PetrinautAiMessage[];
   status?: "submitted" | "streaming" | "ready" | "error";
   stopped?: boolean;
+  voiceMode?: ReactNode;
+  voiceModeAvailable?: boolean;
+  voiceSession?: PetrinautAiVoiceSessionState;
 }) => {
   const [input, setInput] = useState("");
+  // Stands in for the host, which reports session state rather than rendering
+  // the live surfaces itself.
+  const [voiceSessionStore] = useState(() => {
+    const store = createVoiceSessionStore();
+    store.setActions({
+      end: () => {},
+      pause: () => {},
+      reconnect: () => {},
+      resume: () => {},
+      setMicrophoneMuted: () => {},
+    });
+    store.setState(voiceSession ?? null);
+
+    return store;
+  });
 
   return (
-    <div style={{ height: "720px", position: "relative", width: "100%" }}>
-      <AiAssistantContents
-        error={error}
-        input={input}
-        messages={messages}
-        onClose={() => {}}
-        onInputChange={setInput}
-        onStop={() => {}}
-        onSubmit={() => setInput("")}
-        status={status}
-        stopped={stopped}
-      />
-    </div>
+    <VoiceSessionContext.Provider value={voiceSessionStore}>
+      <div style={{ height: "720px", position: "relative", width: "100%" }}>
+        <AiAssistantContents
+          error={error}
+          input={input}
+          inputMode={inputMode}
+          messages={messages}
+          onClose={() => {}}
+          onInputChange={setInput}
+          onInputModeChange={() => {}}
+          onStop={() => {}}
+          onSubmit={() => setInput("")}
+          status={status}
+          stopped={stopped}
+          voiceMode={voiceMode}
+          voiceModeAvailable={voiceModeAvailable}
+        />
+      </div>
+    </VoiceSessionContext.Provider>
   );
 };
 
+const liveSession = (
+  overrides: Partial<PetrinautAiVoiceSessionState>,
+): PetrinautAiVoiceSessionState => ({
+  errorMessage: null,
+  microphoneLevel: 0,
+  microphoneMuted: false,
+  phase: "listening",
+  ...overrides,
+});
+
 export const Empty: Story = {
   render: () => <Frame messages={[]} />,
+};
+
+export const EmptyWithVoiceAvailable: Story = {
+  render: () => <Frame messages={[]} voiceModeAvailable />,
+};
+
+export const VoiceModeAwaitingConsent: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceMode={<HostVoiceSlotPreview />}
+      voiceModeAvailable
+    />
+  ),
+};
+
+export const VoiceSessionListening: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({
+        microphoneLevel: 0.6,
+      })}
+    />
+  ),
+};
+
+export const VoiceSessionSpeaking: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({
+        phase: "speaking",
+      })}
+    />
+  ),
+};
+
+export const VoiceSessionThinking: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "thinking" })}
+    />
+  ),
+};
+
+export const VoiceSessionMuted: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({ microphoneMuted: true, phase: "muted" })}
+    />
+  ),
+};
+
+export const VoiceSessionPaused: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({ phase: "paused" })}
+    />
+  ),
+};
+
+export const VoiceSessionRecovery: Story = {
+  render: () => (
+    <Frame
+      inputMode="voice"
+      messages={[userMessage, assistantMarkdownMessage]}
+      voiceModeAvailable
+      voiceSession={liveSession({
+        errorMessage:
+          "Connection interrupted. Check your connection. (network)",
+        phase: "error",
+      })}
+    />
+  ),
 };
 
 export const StreamingMarkdown: Story = {

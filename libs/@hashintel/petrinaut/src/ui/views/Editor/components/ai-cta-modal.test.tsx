@@ -9,15 +9,16 @@ import { AiCtaModal } from "./ai-cta-modal";
 afterEach(cleanup);
 
 describe("AiCtaModal", () => {
-  test("switches from Chat creation to the Interview entry point", () => {
-    const onStartInterview = vi.fn();
+  test("offers one waveform action without mode tabs and requests Voice mode once", () => {
+    const onStartVoiceMode = vi.fn();
+    const onSubmit = vi.fn();
     render(
       <AiCtaModal
         bottomClearance={0}
-        interviewAvailable={true}
+        voiceModeAvailable={true}
         onDismiss={vi.fn()}
-        onStartInterview={onStartInterview}
-        onSubmit={vi.fn()}
+        onStartVoiceMode={onStartVoiceMode}
+        onSubmit={onSubmit}
       />,
     );
 
@@ -26,71 +27,109 @@ describe("AiCtaModal", () => {
         name: "Describe the process you want to create",
       }),
     ).not.toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Interview" }));
     expect(
-      screen.getByRole("heading", {
-        name: "Talk through your process with AI",
-      }),
+      screen
+        .getByRole("heading", {
+          name: "Describe the process you want to create",
+        })
+        .parentElement?.previousElementSibling?.querySelector(
+          'svg[viewBox="0 0 15 15"]',
+        ),
     ).not.toBeNull();
+    expect(
+      screen.queryByRole("group", { name: "AI interaction mode" }),
+    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Chat" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Interview" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Start interview" }));
-    expect(onStartInterview).toHaveBeenCalledOnce();
+    const voiceButton = screen.getByRole("button", {
+      name: "Start voice mode",
+    });
+    expect(voiceButton.querySelector("svg")).not.toBeNull();
+    expect(voiceButton.parentElement?.getAttribute("data-scope")).toBe(
+      "tooltip",
+    );
+
+    fireEvent.click(voiceButton);
+
+    expect(onStartVoiceMode).toHaveBeenCalledOnce();
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  test("keeps the current chat-only card when interview is unavailable", () => {
+  test("switches the trailing action from Voice mode to trimmed text submission", () => {
+    const onStartVoiceMode = vi.fn();
+    const onSubmit = vi.fn();
     render(
       <AiCtaModal
         bottomClearance={0}
-        interviewAvailable={false}
+        voiceModeAvailable={true}
         onDismiss={vi.fn()}
-        onStartInterview={vi.fn()}
-        onSubmit={vi.fn()}
+        onStartVoiceMode={onStartVoiceMode}
+        onSubmit={onSubmit}
       />,
     );
 
+    const input = screen.getByLabelText(
+      "Describe the process you want to create",
+    );
+    expect(document.activeElement).toBe(input);
+
+    fireEvent.change(input, { target: { value: "   " } });
     expect(
-      screen.queryByRole("group", { name: "AI interaction mode" }),
-    ).toBeNull();
-    expect(
-      screen.getByLabelText("Describe the process you want to create"),
+      screen.getByRole("button", { name: "Start voice mode" }),
     ).not.toBeNull();
+
+    fireEvent.change(input, {
+      target: { value: "  Model an SIR outbreak  " },
+    });
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Send first AI assistant message",
+      }),
+    );
+
+    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(onSubmit).toHaveBeenCalledWith("Model an SIR outbreak");
+    expect(onStartVoiceMode).not.toHaveBeenCalled();
   });
 
-  test("returns to Chat when Interview becomes unavailable", () => {
-    const { rerender } = render(
+  test("retains a disabled Send action when Voice mode is unavailable", () => {
+    render(
       <AiCtaModal
         bottomClearance={0}
-        interviewAvailable={true}
+        voiceModeAvailable={false}
         onDismiss={vi.fn()}
-        onStartInterview={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Interview" }));
-    expect(
-      screen.getByRole("heading", {
-        name: "Talk through your process with AI",
-      }),
-    ).not.toBeNull();
-
-    rerender(
-      <AiCtaModal
-        bottomClearance={0}
-        interviewAvailable={false}
-        onDismiss={vi.fn()}
-        onStartInterview={vi.fn()}
+        onStartVoiceMode={vi.fn()}
         onSubmit={vi.fn()}
       />,
     );
 
     expect(
-      screen.queryByRole("group", { name: "AI interaction mode" }),
+      screen.queryByRole("button", { name: "Start voice mode" }),
     ).toBeNull();
     expect(
-      screen.getByRole("heading", {
-        name: "Describe the process you want to create",
-      }),
-    ).not.toBeNull();
+      screen.getByRole<HTMLButtonElement>("button", {
+        name: "Send first AI assistant message",
+      }).disabled,
+    ).toBe(true);
+  });
+
+  test("keeps outside-click and Escape dismissal", () => {
+    const onDismiss = vi.fn();
+    render(
+      <AiCtaModal
+        bottomClearance={0}
+        voiceModeAvailable={true}
+        onDismiss={onDismiss}
+        onStartVoiceMode={vi.fn()}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    fireEvent.mouseDown(document.body);
+    expect(onDismiss).toHaveBeenCalledOnce();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onDismiss).toHaveBeenCalledTimes(2);
   });
 });

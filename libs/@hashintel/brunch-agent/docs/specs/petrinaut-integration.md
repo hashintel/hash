@@ -45,13 +45,13 @@ which the design needs anyway:
 3. **The storage port seam** (ADR-0002 N5): the owner key is tested as store-level refusals.
 4. **The artifact seam** (`parseSDCPNFile` / `sdcpnFileSchema`): unchanged; net validity
    checked in CI through the pure parser.
-5. **The generic composer seam**: a host may render a control beside Petrinaut's text composer and
-   receive stable `submitText` and `stop` callbacks plus the effective AI SDK conversation identity
-   and state. Finalized alternate text uses the same AI SDK `useChat` instance as keyboard input.
-   When exactly one unresolved interactive tool registers a schema-validated text mapper,
-   `submitText` completes that tool; otherwise it submits a stable-ID user message. Ambiguous mapped
-   tools are refused. A host may explicitly target an ordinary message for a correction that must
-   not answer the pending tool.
+5. **The generic composer and Voice mode seam**: a host may render a control beside Petrinaut's text
+   composer or one provider-neutral Voice mode inline with its transcript. Both receive stable
+   submission controls, the effective AI SDK conversation identity and current state. Finalized
+   alternate text uses the same AI SDK `useChat` instance as keyboard input. When exactly one
+   unresolved interactive tool registers a schema-validated text mapper, submission completes that
+   tool; otherwise it creates a stable-ID user message. Ambiguous mapped tools are refused. A host
+   may explicitly target an ordinary message for a correction that must not answer the pending tool.
 
 ## Attach Contract
 
@@ -72,8 +72,13 @@ The panel and the voice edge attach to Brunch through one stable surface:
    is answered only through the existing correlated tool-output path; text is not silently
    downgraded to an ordinary user message when more than one mapped ask is pending. Explicit
    corrections target new messages rather than silently mutating or answering another pending ask.
+5. **Voice mode publication**: Petrinaut accepts an optional `renderVoiceMode` callback and publishes
+   provider-neutral input mode, panel visibility, messages, readiness, stable lifecycle controls,
+   and `submitVoiceInput`. Finalized Voice input enters the same correlated submission path and
+   carries persisted Voice provenance on either the ordinary user message or the exact
+   `brunch_ask` tool output, never both.
 
-These four parts change only with notice to the panel and voice-edge owners. A provider-specific
+These five parts change only with notice to the panel and voice-edge owners. A provider-specific
 voice requirement does not silently alter this surface; provider code and policy remain in the
 host application under ADR-0009, while reusable Petrinaut and Brunch packages stay provider-free.
 
@@ -127,6 +132,9 @@ host application under ADR-0009, while reusable Petrinaut and Brunch packages st
     evolving it never archaeology-digs through the library.
 22. As a Petrinaut host, I want finalized alternate input to share keyboard submission and pending
     interactive-tool correlation, so that a host control cannot create a second conversation path.
+23. As a demo.petrinaut.org visitor, I want Voice mode to stay inside the same transcript and
+    composer as text, so that provisional speech, finalized answers, and recovery remain legible
+    without creating a second conversation.
 
 ## Implementation Decisions
 
@@ -175,19 +183,33 @@ host application under ADR-0009, while reusable Petrinaut and Brunch packages st
   is a generic host-supplied-handlers extension to the `aiAssistant` prop (post-import,
   per ADR-0004's boundary discipline).
 
-**Generic composer control**
+**Generic composer and Voice mode controls**
 
-- `@hashintel/petrinaut` accepts an optional conversation ID and host render callback. The callback
-  receives the effective host-supplied or generated AI SDK conversation identity, current messages
-  and status, plus stable `submitText` and `stop` functions.
+- `@hashintel/petrinaut` accepts an optional conversation ID, `renderComposerControl`, and
+  `renderVoiceMode`. The callbacks receive the effective host-supplied or generated AI SDK
+  conversation identity, current messages and status, plus stable submission and lifecycle
+  functions. The Voice mode callback additionally receives panel visibility, input mode, active
+  state, one-answer readiness, and a registration seam for pause and end controls.
 - A host interactive tool may define `fromComposerText({ input, text })`. Petrinaut parses the
   pending input, invokes the mapper, and parses its output before submitting the correlated tool
   result. Unknown or unmapped tools preserve ordinary message submission; multiple eligible tools
   fail visibly rather than guessing. The host may explicitly target a separate message for a
   correction or follow-up that must not resolve a pending tool.
+- Text and Voice mode share one transcript and composer. An empty composer shows the waveform when
+  Voice mode is available, typed text shows **Send**, and an active stream shows **Stop**. The
+  host-rendered Voice mode stays mounted inline as a compact divider. Provisional transcription
+  appears immediately before it and is replaced by one finalized ordinary message or correlated
+  tool output with persisted waveform provenance. Provisional transcription and Realtime audio are
+  not persisted as chat history.
+- Typed text ends active Voice mode before exactly one shared-path submission and keeps its draft
+  if the handoff fails. Closing the panel pauses Voice mode before hiding it; reopening retains the
+  mounted session paused. Consent, pause and end overflow controls, actionable recovery, collapsed
+  technical details, live announcements and motion preferences belong to the app-owned
+  presentation.
 - The seam is provider- and elicitor-agnostic. OpenAI WebRTC, transcription policy, speech, and
-  half-duplex state belong to `apps/petrinaut-website`; Brunch remains behind the existing
-  transport. See [ADR-0009](../adr/0009-openai-voice-ui-turn-shell.md).
+  duplex media state belong to `apps/petrinaut-website`; Brunch remains behind the existing
+  transport and remains authoritative for questions, captures, completion and durable history. See
+  [ADR-0009](../adr/0009-openai-voice-ui-turn-shell.md).
 
 **Identity and storage**
 
@@ -233,6 +255,11 @@ host application under ADR-0009, while reusable Petrinaut and Brunch packages st
      `transport-aisdk` output drives the real panel — text, reasoning, and
      server-tool parts render; client tool calls execute; the diagnostics decorator fires.
      Its transcript becomes the golden fixtures.
+- **Unified Voice mode surface**: Petrinaut panel tests pin action priority, one transcript,
+  persistent mounting, typed handoff, pending-question correlation and provenance. Website tests
+  pin inline ordering, provisional replacement, consent, pause-before-close, recovery, overflow
+  focus, live-announcement throttling and generated reduced-motion styles without requiring live
+  media. The package build validates Panda extraction.
 
 ## Out of Scope
 

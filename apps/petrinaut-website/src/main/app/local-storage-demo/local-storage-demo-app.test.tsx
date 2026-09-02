@@ -5,7 +5,7 @@ import { isValidElement, type ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
-import { getBrunchVoiceInterviewStage } from "./local-storage-demo-app";
+import { getBrunchVoiceMode } from "./local-storage-demo-app";
 
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
@@ -28,28 +28,24 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
 
 describe("local storage demo Brunch voice integration", () => {
   test("does not install voice on the generic local chat fallback", () => {
-    expect(getBrunchVoiceInterviewStage(null)).toBeUndefined();
+    expect(getBrunchVoiceMode(null)).toBeUndefined();
   });
 
   test("installs the app-owned voice control for a configured Brunch transport", () => {
     const config = { available: true as const, connectionTimeoutMs: 15_000 };
-    const stage = getBrunchVoiceInterviewStage(config);
-    const control = stage?.({
-      canAcceptInterviewAnswer: true,
+    const voiceMode = getBrunchVoiceMode(config);
+    const control = voiceMode?.({
+      canAcceptVoiceInput: true,
       conversationId: "petrinaut-preview:net-1",
-      focusComposer: vi.fn(),
-      interactionMode: "chat",
+      inputMode: "text",
+      isAiAssistantOpen: true,
       messages: [],
-      openSidebar: vi.fn(),
-      placement: "sidebar",
-      setActive: vi.fn(),
-      setInteractionMode: vi.fn(),
+      registerVoiceModeControls: vi.fn(() => () => undefined),
+      reportVoiceSessionState: vi.fn(),
+      setInputMode: vi.fn(),
+      setVoiceActive: vi.fn(),
       status: "ready",
       stop: vi.fn(async () => undefined),
-      submitInterviewAnswer: vi.fn(async () => ({
-        kind: "message" as const,
-        messageId: "message-1",
-      })),
       submitText: vi.fn(async () => ({
         kind: "message" as const,
         messageId: "message-1",

@@ -1,15 +1,10 @@
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
-import {
-  AiInteractionModeTabs,
-  AiMicrophoneIcon,
-} from "./ai-interaction-mode-tabs";
-
-import type { PetrinautAiInteractionMode } from "../../../types/ai-assistant-composer-control";
+import { AiVoiceModeButton } from "./ai-voice-mode-button";
 
 const aiCtaModalLayerStyle = css({
   position: "absolute",
@@ -28,19 +23,19 @@ const aiCtaModalStyle = css({
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  gap: "5",
-  width: "[min(560px, calc(100% - 48px))]",
-  padding: "[28px]",
+  gap: "6",
+  width: "[min(600px, calc(100% - 48px))]",
+  padding: "[32px]",
   borderRadius: "[24px]",
   borderWidth: "thin",
   borderStyle: "solid",
-  borderColor: "blue.a30",
+  borderColor: "neutral.a30",
   backgroundColor: "white.a95",
   boxShadow:
-    "[0px 20px 60px rgba(15, 23, 42, 0.18), 0px 2px 8px rgba(15, 23, 42, 0.08), inset 0px 1px 0px rgba(255, 255, 255, 0.9)]",
+    "[0px 20px 60px rgba(15, 23, 42, 0.14), 0px 2px 8px rgba(15, 23, 42, 0.06)]",
   textAlign: "center",
   userSelect: "text",
-  backdropFilter: "[blur(14px)]",
+  backdropFilter: "[blur(12px)]",
 });
 
 const aiCtaModalCloseStyle = css({
@@ -64,14 +59,8 @@ const aiCtaModalIconStyle = css({
 const aiCtaModalCopyStyle = css({
   display: "flex",
   flexDirection: "column",
-  gap: "2",
-  maxWidth: "[420px]",
-});
-
-const aiCtaModalDescriptionStyle = css({
-  margin: "0",
-  color: "neutral.s80",
-  textStyle: "sm",
+  gap: "1",
+  maxWidth: "[460px]",
 });
 
 const aiCtaModalTitleStyle = css({
@@ -83,22 +72,32 @@ const aiCtaModalTitleStyle = css({
   lineHeight: "[30px]",
 });
 
+const aiCtaModalInputStyle = css({
+  overflow: "hidden",
+  borderRadius: "[18px]",
+  boxShadow:
+    "[0px 0px 0px 1px rgba(0,0,0,0.06), 0px 8px 24px rgba(15, 23, 42, 0.06)]",
+  "& > div": {
+    minHeight: "[56px]",
+    borderRadius: "[18px]",
+    backgroundColor: "neutral.s00",
+  },
+});
+
 export const AiCtaModal = ({
   bottomClearance,
-  interviewAvailable,
   onDismiss,
-  onStartInterview,
+  onStartVoiceMode,
   onSubmit,
+  voiceModeAvailable,
 }: {
   bottomClearance: number;
-  interviewAvailable: boolean;
   onDismiss: () => void;
-  onStartInterview: () => void;
+  onStartVoiceMode: () => void;
   onSubmit: (message: string) => void;
+  voiceModeAvailable: boolean;
 }) => {
   const [promptInput, setPromptInput] = useState("");
-  const [interactionMode, setInteractionMode] =
-    useState<PetrinautAiInteractionMode>("chat");
 
   const canSubmit = promptInput.trim().length > 0;
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -135,10 +134,6 @@ export const AiCtaModal = ({
     };
   }, [onDismiss]);
 
-  const effectiveInteractionMode = interviewAvailable
-    ? interactionMode
-    : "chat";
-
   return (
     <div className={aiCtaModalLayerStyle} style={{ bottom: bottomClearance }}>
       <form
@@ -163,72 +158,56 @@ export const AiCtaModal = ({
           aria-label="Dismiss"
           iconName="close"
         />
-        {interviewAvailable && (
-          <AiInteractionModeTabs
-            mode={interactionMode}
-            onModeChange={setInteractionMode}
-          />
-        )}
-        {effectiveInteractionMode === "chat" ? (
-          <>
-            <div className={aiCtaModalIconStyle}>
-              <AiAssistantIcon size={32} />
-            </div>
-            <div className={aiCtaModalCopyStyle}>
-              <h2 className={aiCtaModalTitleStyle}>
-                Describe the process you want to create
-              </h2>
-            </div>
-            <TextInput
-              inputRef={inputRef}
-              value={promptInput}
-              onChange={setPromptInput}
-              placeholder="e.g. Model an SIR outbreak with recovery"
-              aria-label="Describe the process you want to create"
-              size="lg"
-              suffix={{
-                variant: "subtle",
-                content: (
-                  <Button
-                    type="submit"
-                    size="lg"
-                    variant="solid"
-                    tone="brand"
-                    disabled={!canSubmit}
-                    aria-label="Send first AI assistant message"
-                    iconName="arrowUp"
-                    tooltip="Send first AI assistant message"
-                    className={css({ margin: "2" })}
-                  />
-                ),
-              }}
-            />
-          </>
-        ) : (
-          <>
-            <div className={aiCtaModalIconStyle} aria-hidden="true">
-              <AiMicrophoneIcon />
-            </div>
-            <div className={aiCtaModalCopyStyle}>
-              <h2 className={aiCtaModalTitleStyle}>
-                Talk through your process with AI
-              </h2>
-              <p className={aiCtaModalDescriptionStyle}>
-                Answer a few guided questions and Petrinaut will create the
-                model.
-              </p>
-            </div>
-            <Button
-              type="button"
-              size="md"
-              variant="solid"
-              tone="brand"
-              onClick={onStartInterview}
-            >
-              Start interview
-            </Button>
-          </>
-        )}
+        <div className={aiCtaModalIconStyle}>
+          <AiAssistantIcon size={32} />
+        </div>
+        <div className={aiCtaModalCopyStyle}>
+          <h2 className={aiCtaModalTitleStyle}>
+            Describe the process you want to create
+          </h2>
+        </div>
+        <TextInput
+          aria-label="Describe the process you want to create"
+          className={aiCtaModalInputStyle}
+          inputRef={inputRef}
+          onChange={setPromptInput}
+          placeholder="e.g. Model an SIR outbreak with recovery"
+          size="lg"
+          suffix={{
+            variant: "subtle",
+            content: canSubmit ? (
+              <Button
+                aria-label="Send first AI assistant message"
+                className={css({ margin: "2" })}
+                iconName="arrowUp"
+                size="lg"
+                tone="brand"
+                tooltip="Send first AI assistant message"
+                type="submit"
+                variant="solid"
+              />
+            ) : voiceModeAvailable ? (
+              <AiVoiceModeButton
+                className={css({ margin: "2" })}
+                onClick={onStartVoiceMode}
+                size="lg"
+              />
+            ) : (
+              <Button
+                aria-label="Send first AI assistant message"
+                className={css({ margin: "2" })}
+                disabled
+                iconName="arrowUp"
+                size="lg"
+                tone="brand"
+                tooltip="Send first AI assistant message"
+                type="submit"
+                variant="solid"
+              />
+            ),
+          }}
+          value={promptInput}
+        />
       </form>
     </div>
   );

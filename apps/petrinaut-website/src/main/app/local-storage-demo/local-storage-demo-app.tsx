@@ -17,9 +17,9 @@ import {
 import {
   DefaultChatTransport,
   Petrinaut,
-  type PetrinautAiInterviewStage,
-  type PetrinautAiInterviewStageContext,
   type PetrinautAiMessage,
+  type PetrinautAiVoiceMode,
+  type PetrinautAiVoiceModeContext,
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
@@ -95,11 +95,17 @@ const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
 );
 
-export const getBrunchVoiceInterviewStage = (
+// Only Brunch keeps a conversation to hydrate from; the generic fallback route
+// has no history door.
+const brunchHistoryEndpoint = brunchPreviewConfig.isBrunchConfigured
+  ? brunchPreviewConfig.chatEndpoint
+  : null;
+
+export const getBrunchVoiceMode = (
   config: OpenAIVoiceConfig | null | undefined,
-): PetrinautAiInterviewStage | undefined =>
+): PetrinautAiVoiceMode | undefined =>
   config
-    ? (context: PetrinautAiInterviewStageContext) => (
+    ? (context: PetrinautAiVoiceModeContext) => (
         <VoiceInterviewControl {...context} config={config} />
       )
     : undefined;
@@ -181,8 +187,8 @@ export const LocalStorageDemoApp = () => {
     return () => abortController.abort();
   }, []);
 
-  const brunchVoiceInterviewStage = useMemo(
-    () => getBrunchVoiceInterviewStage(openAIVoiceConfig),
+  const brunchVoiceMode = useMemo(
+    () => getBrunchVoiceMode(openAIVoiceConfig),
     [openAIVoiceConfig],
   );
 
@@ -321,7 +327,11 @@ export const LocalStorageDemoApp = () => {
   const conversationId = currentNetId
     ? getOrCreateBrunchConversationId(currentNetId)
     : null;
-  const flueHistory = useFlueChatHistory(conversationId ?? "", brunchPrincipal);
+  const flueHistory = useFlueChatHistory(
+    brunchHistoryEndpoint,
+    conversationId ?? "",
+    brunchPrincipal,
+  );
   const petrinautAiChatTransport = useMemo(
     () =>
       conversationId === null
@@ -361,15 +371,15 @@ export const LocalStorageDemoApp = () => {
           return next;
         });
       },
-      ...(brunchVoiceInterviewStage
+      ...(brunchVoiceMode
         ? {
-            renderInterviewStage: brunchVoiceInterviewStage,
+            renderVoiceMode: brunchVoiceMode,
           }
         : {}),
     }),
     [
       aiMessagesByNetId,
-      brunchVoiceInterviewStage,
+      brunchVoiceMode,
       conversationId,
       currentNetId,
       flueHistory.messages,

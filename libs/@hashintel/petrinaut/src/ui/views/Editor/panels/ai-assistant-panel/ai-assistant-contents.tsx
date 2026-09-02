@@ -1,19 +1,30 @@
 import {
+  Fragment,
   memo,
   type ReactNode,
   type RefObject,
+  use,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
 import ReactMarkdown from "react-markdown";
 
-import { Button } from "@hashintel/ds-components";
+import { Button, Icon } from "@hashintel/ds-components";
 import { css, cva } from "@hashintel/ds-helpers/css";
 
+import { NotificationsContext } from "../../../../../react/notifications/context";
+import { VoiceSessionContext } from "../../../../../react/voice-session/context";
+import {
+  useVoiceSessionErrorMessage,
+  useVoiceSessionPhase,
+} from "../../../../../react/voice-session/use-voice-session";
 import { AiAssistantIcon } from "../../../../components/ai-assistant-icon";
 import { ResizeHandle } from "../../../../resize/resize-handle";
-import { AiInteractionModeTabs } from "../../components/ai-interaction-mode-tabs";
+import { AiVoiceModeIcon } from "../../components/ai-voice-mode-button";
+import { partitionVoiceSessionMessages } from "./ai-assistant-contents/defer-voice-messages";
+import { aiFooterMinHeight } from "./ai-assistant-contents/footer-height";
 import { getMessageRenderItems } from "./ai-assistant-contents/get-message-render-items";
 import {
   PromptChips,
@@ -25,8 +36,10 @@ import {
   AiAssistantToolList,
   type OnInteractiveToolSubmit,
 } from "./ai-assistant-contents/tool-list";
+import { LiveVoiceDock } from "./ai-assistant-contents/voice-dock";
+import { VoiceInputProvenance } from "./ai-assistant-contents/voice-input-provenance";
 
-import type { PetrinautAiInteractionMode } from "../../../../types/ai-assistant-composer-control";
+import type { PetrinautAiInputMode } from "../../../../types/ai-assistant-composer-control";
 import type { PetrinautAiInteractiveTool } from "../../../../types/ai-interactive-tool";
 import type { AiToolTarget } from "./tool-summaries";
 import type { PetrinautAiMessage } from "./types";
@@ -41,16 +54,14 @@ export type AiAssistantContentsProps = {
   composerFocusRequest?: number;
   error?: Error;
   input: string;
-  interactionMode?: PetrinautAiInteractionMode;
-  interviewAvailable?: boolean;
-  interviewStage?: ReactNode;
+  inputMode?: PetrinautAiInputMode;
   interactiveTools?: readonly PetrinautAiInteractiveTool[];
   isOpen?: boolean;
   messages: PetrinautAiMessage[];
   onClearMessages?: () => void;
   onClose: () => void;
+  onInputModeChange?: (mode: PetrinautAiInputMode) => void;
   onInputChange: (value: string) => void;
-  onInteractionModeChange?: (mode: PetrinautAiInteractionMode) => void;
   onInteractiveToolSubmit?: OnInteractiveToolSubmit;
   onSelectToolTarget?: (target: AiToolTarget) => void;
   onSendPrompt?: (prompt: string) => void;
@@ -60,6 +71,9 @@ export type AiAssistantContentsProps = {
   rightOffset?: number;
   status: AiAssistantStatus;
   stopped?: boolean;
+  voiceHandoffPending?: boolean;
+  voiceMode?: ReactNode;
+  voiceModeAvailable?: boolean;
 };
 
 const defaultAssistantWidth = 500;
@@ -71,6 +85,9 @@ const shellStyle = cva({
     zIndex: "[calc(var(--z-index-sticky) + 2)]",
     pointerEvents: "auto",
     transition: "[right 150ms ease-in-out]",
+    "@media (prefers-reduced-motion: reduce)": {
+      transition: "[none]",
+    },
   },
   variants: {
     open: {
@@ -146,7 +163,7 @@ const panelContentStyle = cva({
   },
 });
 
-const interviewStageStyle = css({
+const voiceModeStyle = css({
   position: "relative",
   zIndex: "[2]",
   flexShrink: "0",
@@ -164,32 +181,23 @@ const headerStyle = css({
   flexShrink: 0,
 });
 
-const tabStyle = cva({
-  base: {
-    display: "flex",
-    alignItems: "center",
-    height: "[28px]",
-    maxWidth: "[112px]",
-    paddingX: "3",
-    borderTopLeftRadius: "lg",
-    borderTopRightRadius: "lg",
-    fontSize: "xs",
-    fontWeight: "medium",
-    lineHeight: "[12px]",
-    color: "neutral.s90",
-    overflow: "hidden",
-    whiteSpace: "nowrap",
-    textOverflow: "ellipsis",
-  },
-  variants: {
-    active: {
-      true: {
-        backgroundColor: "neutral.s00",
-        boxShadow: "[0px 0px 0px 1px rgba(0,0,0,0.08)]",
-        color: "neutral.s100",
-      },
-    },
-  },
+const headerLabelStyle = css({
+  display: "flex",
+  alignItems: "center",
+  height: "[28px]",
+  maxWidth: "[112px]",
+  paddingX: "3",
+  borderTopLeftRadius: "lg",
+  borderTopRightRadius: "lg",
+  backgroundColor: "neutral.s00",
+  boxShadow: "[0px 0px 0px 1px rgba(0,0,0,0.08)]",
+  color: "neutral.s100",
+  fontSize: "xs",
+  fontWeight: "medium",
+  lineHeight: "[12px]",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
 });
 
 const headerButtonStyle = css({
@@ -253,6 +261,40 @@ const messageStyle = cva({
         textAlign: "right",
       },
     },
+    // Spoken turns land in the transcript together once the session ends, so
+    // they arrive with a single entrance rather than appearing out of nowhere.
+    revealed: {
+      true: {
+        animationName: "[petrinautVoiceReveal]",
+        animationDuration: "[420ms]",
+        animationTimingFunction: "[cubic-bezier(0.22, 0.9, 0.3, 1)]",
+        "@media (prefers-reduced-motion: reduce)": {
+          animationName: "[none]",
+        },
+      },
+    },
+  },
+});
+
+const voiceSessionMetaStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "2",
+  paddingX: "1",
+  color: "neutral.s90",
+  fontSize: "xs",
+  fontWeight: "medium",
+  _before: {
+    flex: "[1]",
+    height: "[1px]",
+    backgroundColor: "neutral.a30",
+    content: '""',
+  },
+  _after: {
+    flex: "[1]",
+    height: "[1px]",
+    backgroundColor: "neutral.a30",
+    content: '""',
   },
 });
 
@@ -262,16 +304,6 @@ const messageStyle = cva({
 const userTextStyle = css({
   whiteSpace: "pre-wrap",
   wordBreak: "break-word",
-});
-
-const errorStyle = css({
-  borderRadius: "lg",
-  padding: "2",
-  backgroundColor: "red.bg.subtle",
-  color: "red.s100",
-  fontSize: "sm",
-  fontWeight: "medium",
-  userSelect: "text",
 });
 
 const stoppedNoteStyle = css({
@@ -285,10 +317,29 @@ const stoppedNoteStyle = css({
 const composerWrapStyle = css({
   display: "flex",
   flexDirection: "column",
+  justifyContent: "center",
   gap: "2",
   padding: "2",
   backgroundColor: "neutral.bg.subtle",
   flexShrink: 0,
+  boxSizing: "border-box",
+  minHeight: `[${aiFooterMinHeight}px]`,
+  animationName: "[petrinautVoiceSwap]",
+  animationDuration: "[200ms]",
+  animationTimingFunction: "[ease-out]",
+  "@media (prefers-reduced-motion: reduce)": {
+    animationName: "[none]",
+  },
+});
+
+const composerActionGlyphStyle = css({
+  display: "inline-flex",
+  animationName: "[petrinautComposerActionSwap]",
+  animationDuration: "[140ms]",
+  animationTimingFunction: "[cubic-bezier(0.2, 0.9, 0.3, 1)]",
+  "@media (prefers-reduced-motion: reduce)": {
+    animationName: "[none]",
+  },
 });
 
 const composerStyle = css({
@@ -329,6 +380,9 @@ const composerTextareaStyle = css({
   // Animates the height changes driven by the auto-grow effect, so adding a
   // line (Shift+Enter) or wrapping expands the box smoothly.
   transition: "[height 120ms ease]",
+  "@media (prefers-reduced-motion: reduce)": {
+    transition: "[none]",
+  },
   _placeholder: {
     color: "neutral.s70",
   },
@@ -352,7 +406,9 @@ const getMessagesScrollKey = (messages: PetrinautAiMessage[]): string => {
   let partSignature = "";
   if (lastPart) {
     if (lastPart.type === "text" || lastPart.type === "reasoning") {
-      partSignature = `${lastPart.type}:${lastPart.state ?? ""}:${lastPart.text.length}`;
+      partSignature = `${lastPart.type}:${lastPart.state ?? ""}:${
+        lastPart.text.length
+      }`;
     } else {
       partSignature =
         "state" in lastPart
@@ -385,22 +441,37 @@ const AiAssistantMessage = memo(
     handlersRef,
     interactiveTools,
     message,
+    revealed = false,
   }: {
     handlersRef: MessageHandlersRef;
     interactiveTools: readonly PetrinautAiInteractiveTool[];
     message: PetrinautAiMessage;
+    revealed?: boolean;
   }) => {
     const role = message.role === "user" ? "user" : "assistant";
     const renderItems = getMessageRenderItems(message, interactiveTools);
+    const hasVoiceOrigin =
+      role === "user" && message.metadata?.source === "voice";
+    // The mark belongs in front of the words that were spoken. Only a message
+    // with no text of its own — a bare tool answer — falls back to trailing it.
+    const firstTextKey =
+      renderItems.find((item) => item.type === "text")?.key ?? null;
 
     return (
-      <div className={messageStyle({ role })} data-role={role}>
+      <div
+        className={messageStyle({ revealed, role })}
+        data-role={role}
+        data-voice-origin={hasVoiceOrigin || undefined}
+      >
         {renderItems.map((item) => {
           switch (item.type) {
             case "text":
               return role === "user" ? (
                 <div className={userTextStyle} key={item.key}>
-                  {item.part.text}
+                  {hasVoiceOrigin && item.key === firstTextKey && (
+                    <VoiceInputProvenance />
+                  )}
+                  <span>{item.part.text}</span>
                 </div>
               ) : (
                 <div className={markdownStyle} key={item.key}>
@@ -436,6 +507,7 @@ const AiAssistantMessage = memo(
             }
           }
         })}
+        {hasVoiceOrigin && firstTextKey === null && <VoiceInputProvenance />}
       </div>
     );
   },
@@ -448,16 +520,14 @@ export const AiAssistantContents = ({
   composerFocusRequest = 0,
   error,
   input,
-  interactionMode = "chat",
-  interviewAvailable = false,
-  interviewStage,
+  inputMode = "text",
   interactiveTools = EMPTY_INTERACTIVE_TOOLS,
   isOpen = true,
   messages,
   onClearMessages,
   onClose,
+  onInputModeChange,
   onInputChange,
-  onInteractionModeChange,
   onInteractiveToolSubmit,
   onSelectToolTarget,
   onSendPrompt,
@@ -467,17 +537,208 @@ export const AiAssistantContents = ({
   rightOffset = 0,
   status,
   stopped = false,
+  voiceHandoffPending = false,
+  voiceMode,
+  voiceModeAvailable = false,
 }: AiAssistantContentsProps) => {
+  const { addNotification } = use(NotificationsContext);
+  const voiceSessionStore = use(VoiceSessionContext);
+  const voiceSessionPhase = useVoiceSessionPhase();
+  const voiceSessionErrorMessage = useVoiceSessionErrorMessage();
+  const isVoiceSessionLive = voiceSessionPhase !== null;
   const isBusy = status === "submitted" || status === "streaming";
-  const canSubmit = input.trim().length > 0 && !isBusy;
+  const hasInput = input.trim().length > 0;
+  const canSubmit = hasInput && !isBusy && !voiceHandoffPending;
+
+  const composerAction: {
+    disabled: boolean;
+    glyph: "arrowUp" | "stopFilled" | "voice";
+    isSubmit: boolean;
+    label: string;
+    onClick?: () => void;
+    tone: "brand" | "neutral";
+    type: "button" | "submit";
+    variant: "solid" | "subtle";
+  } = isBusy
+    ? {
+        disabled: false,
+        glyph: "stopFilled",
+        isSubmit: false,
+        label: "Stop AI response",
+        onClick: onStop,
+        tone: "neutral",
+        type: "button",
+        variant: "subtle",
+      }
+    : canSubmit
+      ? {
+          disabled: false,
+          glyph: "arrowUp",
+          isSubmit: true,
+          label: "Send message",
+          tone: "brand",
+          type: "submit",
+          variant: "solid",
+        }
+      : !hasInput && voiceModeAvailable && onInputModeChange
+        ? {
+            disabled: false,
+            glyph: "voice",
+            isSubmit: false,
+            label: "Start voice mode",
+            onClick: () => onInputModeChange("voice"),
+            tone: "brand",
+            type: "button",
+            variant: "solid",
+          }
+        : {
+            disabled: true,
+            glyph: "arrowUp",
+            isSubmit: false,
+            label: "Send message",
+            tone: "brand",
+            type: "submit",
+            variant: "solid",
+          };
+
+  // Index of the first message belonging to the current or most recent voice
+  // session. Everything from here on is held back while that session runs, and
+  // revealed together once it ends.
+  const [sessionBaselineIndex, setSessionBaselineIndex] = useState<
+    number | null
+  >(() =>
+    voiceSessionStore.getSnapshot().state === null ? null : messages.length,
+  );
+
+  // Off by default: the dock's transcription action writes spoken turns into
+  // the conversation as they land instead of holding them to the end.
+  const [transcriptionShown, setTranscriptionShown] = useState(false);
+
+  const messageCountRef = useRef(messages.length);
+  useEffect(() => {
+    messageCountRef.current = messages.length;
+  }, [messages]);
+
+  // Read from the store rather than from a render effect, so the baseline is
+  // captured on the event that starts the session instead of a render that
+  // happens to observe it.
+  useEffect(() => {
+    let wasLive = voiceSessionStore.getSnapshot().state !== null;
+
+    return voiceSessionStore.subscribe(() => {
+      const isLive = voiceSessionStore.getSnapshot().state !== null;
+      if (isLive === wasLive) {
+        return;
+      }
+      wasLive = isLive;
+
+      if (isLive) {
+        setSessionBaselineIndex(messageCountRef.current);
+        setTranscriptionShown(false);
+      }
+    });
+  }, [voiceSessionStore]);
+
+  const isHoldingVoiceTurns = isVoiceSessionLive && !transcriptionShown;
+
+  const sessionPartition =
+    sessionBaselineIndex === null
+      ? null
+      : partitionVoiceSessionMessages({
+          deferredFromIndex: sessionBaselineIndex,
+          interactiveTools,
+          messages,
+        });
+
+  const visibleMessages =
+    isHoldingVoiceTurns && sessionPartition !== null
+      ? sessionPartition.visible
+      : messages;
+
+  // Held turns become "revealed" once they are let through — by the
+  // transcription action mid-session, or by the session ending — so they carry
+  // the entrance animation either way.
+  const revealedIds = new Set(
+    isHoldingVoiceTurns || sessionPartition === null
+      ? []
+      : sessionPartition.deferred.map((message) => message.id),
+  );
+  // The divider counts a finished session, so it waits for the session to end
+  // rather than growing a turn at a time under a live transcription.
+  const firstRevealedMessageId = isVoiceSessionLive
+    ? undefined
+    : visibleMessages.find((message) => revealedIds.has(message.id))?.id;
+  const revealedVoiceTurnCount = visibleMessages.filter(
+    (message) => revealedIds.has(message.id) && message.role === "user",
+  ).length;
 
   const [assistantWidth, setAssistantWidth] = useState(defaultAssistantWidth);
 
   const [chipsDismissed, setChipsDismissed] = useState(false);
 
+  const notifiedErrorRef = useRef<Error | undefined>(undefined);
+  useEffect(() => {
+    if (!error) {
+      notifiedErrorRef.current = undefined;
+      return;
+    }
+    if (notifiedErrorRef.current === error) {
+      return;
+    }
+    notifiedErrorRef.current = error;
+    addNotification({
+      message: error.message,
+      tone: "error",
+    });
+  }, [addNotification, error]);
+
+  // Voice failures (microphone denied, connection dropped) are reported by the
+  // host rather than thrown, and get the same treatment: a toast, with the
+  // recovery action left on the session's own controls.
+  const notifiedVoiceErrorRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (voiceSessionPhase !== "error") {
+      notifiedVoiceErrorRef.current = null;
+      return;
+    }
+    if (
+      voiceSessionErrorMessage === null ||
+      notifiedVoiceErrorRef.current === voiceSessionErrorMessage
+    ) {
+      return;
+    }
+
+    notifiedVoiceErrorRef.current = voiceSessionErrorMessage;
+    addNotification({
+      message: voiceSessionErrorMessage,
+      tone: "error",
+    });
+  }, [addNotification, voiceSessionErrorMessage, voiceSessionPhase]);
+
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesRef = useRef<HTMLDivElement | null>(null);
   const messagesScrollKey = getMessagesScrollKey(messages);
+
+  const distanceFromEndRef = useRef(0);
+
+  const recordDistanceFromEnd = () => {
+    const node = messagesRef.current;
+    if (node === null) {
+      return;
+    }
+    distanceFromEndRef.current =
+      node.scrollHeight - node.scrollTop - node.clientHeight;
+  };
+
+  useLayoutEffect(() => {
+    const node = messagesRef.current;
+    if (node === null) {
+      return;
+    }
+    node.scrollTop =
+      node.scrollHeight - node.clientHeight - distanceFromEndRef.current;
+  }, [isVoiceSessionLive]);
 
   const showChips =
     !chipsDismissed &&
@@ -509,15 +770,21 @@ export const AiAssistantContents = ({
   // after which it scrolls internally). Resetting to `auto` before measuring
   // `scrollHeight` lets the box shrink again when text is removed; both writes
   // happen synchronously so the browser only paints the final height and the
-  // CSS `height` transition animates the change.
+  // CSS `height` transition animates the change. `scrollHeight` is a rounded
+  // integer, so the height it yields can land a fraction of a pixel under the
+  // real content and raise a scrollbar on a box that visibly fits; scrolling
+  // is therefore only allowed once the content genuinely passes the cap.
   useEffect(() => {
     const textarea = inputRef.current;
     if (!textarea) {
       return;
     }
     textarea.style.height = "auto";
-    textarea.style.height = `${Math.min(textarea.scrollHeight, composerMaxHeight)}px`;
-  }, [input]);
+    const contentHeight = textarea.scrollHeight;
+    textarea.style.height = `${Math.min(contentHeight, composerMaxHeight)}px`;
+    textarea.style.overflowY =
+      contentHeight > composerMaxHeight ? "auto" : "hidden";
+  }, [input, isOpen]);
 
   const hasScrolledOnceRef = useRef(false);
 
@@ -541,7 +808,7 @@ export const AiAssistantContents = ({
 
   return (
     <aside
-      aria-hidden={!isOpen && !interviewStage ? true : undefined}
+      aria-hidden={!isOpen ? true : undefined}
       aria-label="AI assistant"
       className={shellStyle({ open: isOpen })}
       style={{
@@ -553,7 +820,9 @@ export const AiAssistantContents = ({
           the visible card border, but the card clips overflow and the shell's
           padding pushes the shell edge away from it. */}
       <div
-        className={`${resizeAnchorStyle} ${panelContentStyle({ visible: isOpen })}`}
+        className={`${resizeAnchorStyle} ${panelContentStyle({
+          visible: isOpen,
+        })}`}
       >
         <ResizeHandle
           edge="left"
@@ -565,18 +834,11 @@ export const AiAssistantContents = ({
           label="Resize AI assistant"
         />
       </div>
-      <div className={cardStyle({ open: isOpen })}>
+      <div className={cardStyle({ open: isOpen })} data-input-mode={inputMode}>
         <div
           className={`${headerStyle} ${panelContentStyle({ visible: isOpen })}`}
         >
-          {interviewAvailable && onInteractionModeChange ? (
-            <AiInteractionModeTabs
-              mode={interactionMode}
-              onModeChange={onInteractionModeChange}
-            />
-          ) : (
-            <div className={tabStyle({ active: true })}>AI</div>
-          )}
+          <div className={headerLabelStyle}>AI</div>
           <div style={{ flex: 1 }} />
           <Button
             size="xs"
@@ -601,7 +863,12 @@ export const AiAssistantContents = ({
         </div>
 
         <div
-          className={`${messagesStyle} ${panelContentStyle({ visible: isOpen })}`}
+          className={`${messagesStyle} ${panelContentStyle({
+            visible: isOpen,
+          })}`}
+          data-testid="ai-transcript"
+          onScroll={recordDistanceFromEnd}
+          ref={messagesRef}
         >
           {messages.length === 0 && (
             <div className={emptyStyle}>
@@ -612,34 +879,55 @@ export const AiAssistantContents = ({
               </div>
             </div>
           )}
-          {messages.map((message) => (
-            <AiAssistantMessage
-              interactiveTools={interactiveTools}
-              key={message.id}
-              message={message}
-              handlersRef={handlersRef}
-            />
+          {visibleMessages.map((message) => (
+            <Fragment key={message.id}>
+              {message.id === firstRevealedMessageId &&
+                revealedVoiceTurnCount > 0 && (
+                  <div className={voiceSessionMetaStyle}>
+                    {`Voice session · ${revealedVoiceTurnCount} ${
+                      revealedVoiceTurnCount === 1 ? "turn" : "turns"
+                    }`}
+                  </div>
+                )}
+              <AiAssistantMessage
+                interactiveTools={interactiveTools}
+                message={message}
+                handlersRef={handlersRef}
+                revealed={revealedIds.has(message.id)}
+              />
+            </Fragment>
           ))}
-          {error && <div className={errorStyle}>{error.message}</div>}
           {stopped && !error && (
             <div className={stoppedNoteStyle}>Response stopped</div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        {interviewStage && (
+        {voiceMode && (
           <div
-            className={interviewStageStyle}
-            data-placement={isOpen ? "sidebar" : "detached"}
-            data-testid="ai-interview-stage"
+            className={`${voiceModeStyle} ${panelContentStyle({
+              visible: isOpen,
+            })}`}
+            data-testid="ai-voice-mode"
           >
-            {interviewStage}
+            {voiceMode}
           </div>
         )}
 
-        {interactionMode === "chat" && (
+        {isVoiceSessionLive ? (
+          <div className={panelContentStyle({ visible: isOpen })}>
+            <LiveVoiceDock
+              onTranscriptionToggle={() =>
+                setTranscriptionShown(!transcriptionShown)
+              }
+              transcriptionShown={transcriptionShown}
+            />
+          </div>
+        ) : (
           <div
-            className={`${composerWrapStyle} ${panelContentStyle({ visible: isOpen })}`}
+            className={`${composerWrapStyle} ${panelContentStyle({
+              visible: isOpen,
+            })}`}
           >
             {showChips && (
               <PromptChips
@@ -690,23 +978,33 @@ export const AiAssistantContents = ({
                       : "Continue iterating..."
                   }
                   aria-label="Message AI assistant"
+                  disabled={voiceHandoffPending}
                 />
                 {composerControl}
                 <Button
-                  data-ai-assistant-submit
-                  type={isBusy ? "button" : "submit"}
+                  aria-label={composerAction.label}
+                  data-ai-assistant-submit={
+                    composerAction.isSubmit || undefined
+                  }
+                  disabled={composerAction.disabled}
+                  onClick={composerAction.onClick}
+                  prefix={
+                    <span
+                      className={composerActionGlyphStyle}
+                      key={composerAction.glyph}
+                    >
+                      {composerAction.glyph === "voice" ? (
+                        <AiVoiceModeIcon size={16} />
+                      ) : (
+                        <Icon name={composerAction.glyph} size="sm" />
+                      )}
+                    </span>
+                  }
                   size="sm"
-                  variant={isBusy ? "subtle" : "solid"}
-                  tone={isBusy ? "neutral" : "brand"}
-                  disabled={!isBusy && !canSubmit}
-                  aria-label={isBusy ? "Stop AI response" : "Send message"}
-                  onClick={() => {
-                    if (isBusy) {
-                      onStop();
-                    }
-                  }}
-                  iconName={isBusy ? "stopFilled" : "arrowUp"}
-                  tooltip={isBusy ? "Stop AI response" : "Send message"}
+                  tone={composerAction.tone}
+                  tooltip={composerAction.label}
+                  type={composerAction.type}
+                  variant={composerAction.variant}
                 />
               </div>
             </form>

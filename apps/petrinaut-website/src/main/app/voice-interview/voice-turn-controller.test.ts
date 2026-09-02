@@ -401,6 +401,107 @@ describe("VoiceTurnController", () => {
     });
   });
 
+  test("mutes capture without interrupting what the interviewer is saying", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-1",
+      type: "output-started",
+    });
+
+    harness.controller.setMicrophoneMuted(true);
+
+    expect(harness.session.cancelOutput).not.toHaveBeenCalled();
+    expect(harness.bridge.stop).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      microphoneEnabled: false,
+      microphoneLevel: 0,
+      output: "speaking",
+    });
+
+    harness.emitSession({ level: 0.8, type: "microphone-level" });
+    expect(harness.controller.getSnapshot().microphoneLevel).toBe(0);
+
+    harness.controller.setMicrophoneMuted(false);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      microphoneEnabled: true,
+    });
+  });
+
+  test("ignores muting while the session is paused", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.controller.pause();
+    harness.session.setMicrophoneEnabled.mockClear();
+
+    harness.controller.setMicrophoneMuted(false);
+
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "paused",
+      microphoneEnabled: false,
+    });
+  });
+
+  test("latches pause while connecting and requires an explicit resume", async () => {
+    const harness = createHarness();
+    let finishConnection: ((epoch: number) => void) | undefined;
+    harness.session.connect.mockImplementationOnce(
+      () =>
+        new Promise<number>((resolve) => {
+          finishConnection = resolve;
+        }),
+    );
+
+    const start = harness.controller.start();
+    harness.controller.pause();
+    finishConnection?.(1);
+    await start;
+
+    expect(harness.bridge.start).not.toHaveBeenCalled();
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledWith(false);
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalledWith(true);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      connection: "connected",
+      input: "paused",
+      microphoneEnabled: false,
+      output: "idle",
+    });
+
+    harness.controller.resume();
+    expect(harness.bridge.start).toHaveBeenCalledWith(1);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      microphoneEnabled: true,
+    });
+  });
+
+  test("cancels output that starts while paused without exposing speaking", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.controller.pause();
+    harness.session.cancelOutput.mockClear();
+    const observedOutputs: string[] = [];
+    harness.controller.subscribe(({ output }) => observedOutputs.push(output));
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-after-pause",
+      type: "output-started",
+    });
+
+    expect(harness.session.cancelOutput).toHaveBeenCalledOnce();
+    expect(observedOutputs).not.toContain("speaking");
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "paused",
+      microphoneEnabled: false,
+      output: "interrupted",
+    });
+  });
+
   test("ends all media and rejects events from the previous epoch", async () => {
     const harness = createHarness();
     await harness.controller.start();
