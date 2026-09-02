@@ -3,17 +3,25 @@ import {
   type AgentReadResult,
   type AgentSendResult,
   type FlueClient,
+  type FlueConversationPart,
+  type FlueConversationSnapshot,
 } from "@flue/sdk";
 import { describe, expect, test, vi } from "vitest";
 
 import {
   createBrunchTurnTool,
+  createMockClientToolHost,
+  createRealHeadlessClientToolHost,
   registerBrunchTurn,
   type BrunchTurnExtensionApi,
   type BrunchTurnTool,
-} from "../../../libs/@hashintel/brunch-agent/.pi/extensions/brunch-turn.ts";
+} from "../../../libs/@hashintel/brunch-agent/.pi/extensions/brunch-persona-testing/index.ts";
+import {
+  AWAITING_CLIENT,
+  CLIENT_TOOL_RESULT_SIGNAL,
+} from "../src/conversation/client-tools";
 
-type BrunchFlueClient = Pick<FlueClient, "read" | "send">;
+type BrunchFlueClient = Pick<FlueClient, "history" | "read" | "send">;
 
 const admission = (submissionId: string, uid: string): AgentSendResult => ({
   streamUrl: `http://brunch.local/stream/${submissionId}`,
@@ -33,10 +41,37 @@ const reply = (
   data: {},
 });
 
+const snapshot = (
+  submissionId?: string,
+  parts: FlueConversationPart[] = [],
+): FlueConversationSnapshot => ({
+  v: 1,
+  conversationId: "test-conversation",
+  offset: "1",
+  messages:
+    submissionId === undefined
+      ? []
+      : [
+          {
+            id: `message-${submissionId}`,
+            role: "assistant",
+            purpose: "assistant",
+            display: "visible",
+            submissionId,
+            parts,
+          },
+        ],
+  settlements:
+    submissionId === undefined ? [] : [{ submissionId, outcome: "completed" }],
+});
+
 const controlledClient = (
   send: BrunchFlueClient["send"],
   read: BrunchFlueClient["read"],
-): BrunchFlueClient => ({ send, read });
+  history: BrunchFlueClient["history"] = vi
+    .fn<BrunchFlueClient["history"]>()
+    .mockResolvedValue(snapshot()),
+): BrunchFlueClient => ({ send, read, history });
 
 const renderTheme = {
   bold: (text: string) => text,
@@ -122,8 +157,10 @@ describe("brunch_turn", () => {
       details: {
         conversationId: "persona-sequential",
         submissionId: "submission-1",
+        submissionIds: ["submission-1"],
         status: "elicitor-replied",
         elicitorText: "First elicitor reply",
+        toolActivity: [],
       },
     });
     expect(secondResult.details).toMatchObject({
@@ -225,6 +262,252 @@ describe("brunch_turn", () => {
     expect(send).toHaveBeenCalledOnce();
   });
 
+  test("records server tool execution without changing the persona-visible reply", async () => {
+    const admitted = admission("submission-server-tool", "incarnation-tools");
+    const history = vi.fn<BrunchFlueClient["history"]>().mockResolvedValue(
+      snapshot("submission-server-tool", [
+        {
+          type: "dynamic-tool",
+          toolCallId: "tool-server-1",
+          toolName: "activate_skill",
+          state: "output-available",
+          input: { name: "sdcpn-modelling" },
+          output: { activated: true },
+        },
+      ]),
+    );
+    const tool = createBrunchTurnTool({
+      conversationId: "persona-server-tool",
+      client: controlledClient(
+        vi.fn<BrunchFlueClient["send"]>().mockResolvedValue(admitted),
+        vi
+          .fn<BrunchFlueClient["read"]>()
+          .mockResolvedValue(
+            reply(
+              "submission-server-tool",
+              "incarnation-tools",
+              "What happens first?",
+            ),
+          ),
+        history,
+      ),
+    });
+
+    const result = await tool.execute("tool-call-server", {
+      message: "I want to describe the process.",
+    });
+
+    expect(result.content).toEqual([
+      { type: "text", text: "What happens first?" },
+    ]);
+    expect(result.details.toolActivity).toEqual([
+      {
+        sequence: 1,
+        submissionId: "submission-server-tool",
+        toolCallId: "tool-server-1",
+        toolName: "activate_skill",
+        executor: "server",
+        outcome: "output",
+        input: { name: "sdcpn-modelling" },
+        output: { activated: true },
+      },
+    ]);
+  });
+
+  test("services client-deferred calls with ordered mocks and resumes the exact submission", async () => {
+    const firstAdmission = admission(
+      "submission-client-tool",
+      "incarnation-tools",
+    );
+    const resumeAdmission = admission(
+      "submission-client-resume",
+      "incarnation-tools",
+    );
+    const send = vi
+      .fn<BrunchFlueClient["send"]>()
+      .mockResolvedValueOnce(firstAdmission)
+      .mockResolvedValueOnce(resumeAdmission);
+    const read = vi
+      .fn<BrunchFlueClient["read"]>()
+      .mockResolvedValueOnce(
+        reply(
+          "submission-client-tool",
+          "incarnation-tools",
+          "I will check the guide.",
+        ),
+      )
+      .mockResolvedValueOnce(
+        reply(
+          "submission-client-resume",
+          "incarnation-tools",
+          "Open Simulation settings first.",
+        ),
+      );
+    const history = vi
+      .fn<BrunchFlueClient["history"]>()
+      .mockResolvedValueOnce(
+        snapshot("submission-client-tool", [
+          {
+            type: "dynamic-tool",
+            toolCallId: "tool-doc-1",
+            toolName: "readPetrinautDoc",
+            state: "output-available",
+            input: { doc: "simulation" },
+            output: { awaiting: AWAITING_CLIENT },
+          },
+        ]),
+      )
+      .mockResolvedValueOnce(snapshot("submission-client-resume"));
+    const host = createMockClientToolHost([
+      {
+        toolName: "readPetrinautDoc",
+        input: { doc: "simulation" },
+        output: "Simulation guide fixture",
+      },
+    ]);
+    const tool = createBrunchTurnTool({
+      conversationId: "persona-client-tool",
+      client: controlledClient(send, read, history),
+      resolveClientToolHost: () => host,
+    });
+
+    const result = await tool.execute("tool-call-client", {
+      message: "How do I run a simulation?",
+    });
+
+    expect(send).toHaveBeenNthCalledWith(2, {
+      message: {
+        kind: "signal",
+        type: CLIENT_TOOL_RESULT_SIGNAL,
+        tagName: CLIENT_TOOL_RESULT_SIGNAL,
+        body: JSON.stringify([
+          {
+            toolCallId: "tool-doc-1",
+            toolName: "readPetrinautDoc",
+            output: "Simulation guide fixture",
+          },
+        ]),
+        attributes: { toolCallIds: "tool-doc-1" },
+      },
+      uid: "incarnation-tools",
+      signal: undefined,
+    });
+    expect(read).toHaveBeenNthCalledWith(1, firstAdmission, {
+      signal: undefined,
+    });
+    expect(read).toHaveBeenNthCalledWith(2, resumeAdmission, {
+      signal: undefined,
+    });
+    expect(result).toEqual({
+      content: [{ type: "text", text: "Open Simulation settings first." }],
+      details: {
+        conversationId: "persona-client-tool",
+        submissionId: "submission-client-resume",
+        submissionIds: ["submission-client-tool", "submission-client-resume"],
+        status: "elicitor-replied",
+        elicitorText: "Open Simulation settings first.",
+        toolActivity: [
+          {
+            sequence: 1,
+            submissionId: "submission-client-tool",
+            toolCallId: "tool-doc-1",
+            toolName: "readPetrinautDoc",
+            executor: "mock",
+            outcome: "output",
+            input: { doc: "simulation" },
+            output: "Simulation guide fixture",
+          },
+        ],
+      },
+    });
+
+    const rendered = tool
+      .renderResult(result, { isPartial: false }, renderTheme, {
+        isError: false,
+      })
+      .render(80)
+      .join("\n");
+    expect(rendered).toContain("Tool activity");
+    expect(rendered).toContain("readPetrinautDoc");
+    expect(rendered).toContain("mock; output");
+  });
+
+  test("fails closed on a mock mismatch and blocks later user sends", async () => {
+    const admitted = admission("submission-mock-mismatch", "incarnation-tools");
+    const send = vi.fn<BrunchFlueClient["send"]>().mockResolvedValue(admitted);
+    const tool = createBrunchTurnTool({
+      conversationId: "persona-mock-mismatch",
+      client: controlledClient(
+        send,
+        vi
+          .fn<BrunchFlueClient["read"]>()
+          .mockResolvedValue(
+            reply("submission-mock-mismatch", "incarnation-tools", ""),
+          ),
+        vi.fn<BrunchFlueClient["history"]>().mockResolvedValue(
+          snapshot("submission-mock-mismatch", [
+            {
+              type: "dynamic-tool",
+              toolCallId: "tool-doc-mismatch",
+              toolName: "readPetrinautDoc",
+              state: "output-available",
+              input: { doc: "simulation" },
+              output: { awaiting: AWAITING_CLIENT },
+            },
+          ]),
+        ),
+      ),
+      resolveClientToolHost: () =>
+        createMockClientToolHost([
+          {
+            toolName: "readPetrinautDoc",
+            input: { doc: "scenarios" },
+            output: "Wrong fixture",
+          },
+        ]),
+    });
+
+    await expect(
+      tool.execute("tool-call-mismatch", { message: "Check simulation" }),
+    ).rejects.toThrow(/mock client-tool host failed.*mismatch/iu);
+    await expect(
+      tool.execute("tool-call-after-mismatch", { message: "Do not send" }),
+    ).rejects.toThrow(/inspect canonical Flue history/u);
+    expect(send).toHaveBeenCalledOnce();
+  });
+
+  test("executes real Petrinaut docs and construction callbacks headlessly", async () => {
+    const host = createRealHeadlessClientToolHost("Persona tool proof");
+    try {
+      const guide = await host.execute({
+        submissionId: "submission-doc",
+        toolCallId: "tool-doc-real",
+        toolName: "readPetrinautDoc",
+        input: { doc: "simulation" },
+      });
+      const mutation = await host.execute({
+        submissionId: "submission-place",
+        toolCallId: "tool-place-real",
+        toolName: "addPlace",
+        input: {
+          id: "line_idle",
+          name: "LineIdle",
+          colorId: null,
+          dynamicsEnabled: false,
+          differentialEquationId: null,
+          x: 0,
+          y: 0,
+        },
+      });
+
+      expect(guide).toEqual(expect.stringContaining("# Simulation"));
+      expect(guide).not.toEqual(expect.stringContaining("<img"));
+      expect(mutation).toEqual({ applied: true });
+    } finally {
+      await host.dispose?.();
+    }
+  });
+
   test("reports admission progress with the submission id", async () => {
     const admitted = admission("submission-progress", "incarnation-progress");
     const onUpdate =
@@ -278,8 +561,10 @@ describe("brunch_turn", () => {
         details: {
           conversationId: "persona-render",
           submissionId: "submission-render",
+          submissionIds: ["submission-render"],
           status: "elicitor-replied",
           elicitorText: "The elicitor's reply.",
+          toolActivity: [],
         },
       },
       { isPartial: false },

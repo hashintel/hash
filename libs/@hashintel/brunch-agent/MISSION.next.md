@@ -340,11 +340,9 @@ all settled messages after reload. The harness was useful but not load-bearing f
 candidate run because the inherited headless production path remains available and no candidate
 attempt failed for lack of this view.
 
-The missing future capability is still a broader second observer, not a Herdr webview, PTY polling,
-or mandatory Petrinaut client tools. Rendering `dynamic-tool`, `data-*`, and skill activation could
-make the observer more useful only when a named consumer requires it. Re-enter pre-creation
-discovery, longer/full persona runs, client-tool execution, pending-admission recovery, or remote
-access only with that consumer and its oracle.
+The harness now lives at `.pi/extensions/brunch-persona-testing/` with its persona policy and implementation decisions. A subsequent owner-authorized local remediation added explicit `none`, ordered-exact `mock`, and `real-headless` client-tool host modes. The bridge inspects only the settled submission's dynamic-tool parts, records server execution out of band, services client-deferred calls through the selected host, resumes Brunch with the existing `client-tool-result` signal and incarnation uid, and returns only the final resumed assistant text to the persona. The real-headless mode reuses the existing in-memory Petrinaut callbacks and reads checked-out Petrinaut docs; it does not claim browser execution or mount production tools. The contract suite proves server observation, mock suspension/resume and mismatch closure, real headless callback execution, and rendering, while direct Pi loading proves the relocated extension exposes its flags. No paid live tool turn was run, so live provider behavior and product/browser parity remain unproved.
+
+The missing future capability is still a broader second observer, not a Herdr webview or PTY polling. Rendering `dynamic-tool`, `data-*`, and skill activation could make the browser observer more useful only when a named consumer requires it; Pi's evaluation-side tool trace is not that product surface. Re-enter pre-creation discovery, longer/full persona runs, paid live tool-host validation, pending-admission recovery, or remote access only with that consumer and its oracle.
 
 ### Simulation-backed checking
 
