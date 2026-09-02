@@ -112,6 +112,10 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
     setWebGpuEnabled,
     showCompilationOutput,
     setShowCompilationOutput,
+    enableParameterSweeps,
+    setEnableParameterSweeps,
+    enableOptimizationSurface,
+    setEnableOptimizationSurface,
   } = use(UserSettingsContext);
   const { extensions } = use(SDCPNContext);
   // Gated on runtime availability rather than a build flag, so the control is
@@ -299,6 +303,40 @@ export const ViewportSettingsDialog: React.FC<ViewportSettingsDialogProps> = ({
           <Toggle
             value={showCompilationOutput}
             onChange={setShowCompilationOutput}
+            size="sm"
+          />
+        </SettingRow>
+        <SettingRow
+          label={
+            <>
+              Parameter sweeps{" "}
+              <Chip size="xs" color="orange" variant="outline" shape="round">
+                Experimental
+              </Chip>
+            </>
+          }
+          description="Add a Sweep toggle to numeric scenario parameters when creating an experiment, so it explores an interval of values instead of one"
+        >
+          <Toggle
+            value={enableParameterSweeps}
+            onChange={setEnableParameterSweeps}
+            size="sm"
+          />
+        </SettingRow>
+        <SettingRow
+          label={
+            <>
+              Optimization surface{" "}
+              <Chip size="xs" color="orange" variant="outline" shape="round">
+                Experimental
+              </Chip>
+            </>
+          }
+          description="Show a contour of the objective over two optimized parameters in a study's drawer, computed locally on this machine"
+        >
+          <Toggle
+            value={enableOptimizationSurface}
+            onChange={setEnableOptimizationSurface}
             size="sm"
           />
         </SettingRow>

@@ -125,7 +125,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "ai-assistant":
     "In-app AI assistant: opening the panel, one text and Voice mode transcript/composer, waveform start, inline Voice state and provenance, typed handoff, consent/recovery, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
   "visual-settings":
-    "Animations, keep-panels-mounted, minimap, snap-to-grid, compact vs classic nodes, partial selection, tree view, arc rendering style, compute backend, compilation output.",
+    "Animations, keep-panels-mounted, minimap, snap-to-grid, compact vs classic nodes, partial selection, tree view, arc rendering style, compute backend, compilation output, parameter sweeps, optimization surface.",
   "compilation-output":
     "The Compilation bottom-panel tab: enabling it, the GPU verdict line, structural blockers, shader emission failures, per-item GPU/CPU/untested/no-HIR/unused status, and HIR node counts.",
   examples:

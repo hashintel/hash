@@ -92,6 +92,10 @@ kept, and a **Retry** action starts a fresh run with the same settings.
 
 ## The surface view
 
+The surface is experimental and off by default. Turn on **Optimization
+surface** under Simulation in the [settings
+dialog](visual-settings.md#optimization-surface-experimental) to see it.
+
 A study with two or more optimized numeric parameters grows a **Surface**
 section between the best parameters and the step list: an Optuna-style contour
 of the objective over two parameters you pick. The study's own trials appear as rings (the best

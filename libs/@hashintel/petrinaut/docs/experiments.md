@@ -59,6 +59,8 @@ Two consequences worth knowing:
 
 ### Parameter sweeps
 
+Parameter sweeps are experimental and off by default. Turn on **Parameter sweeps** under Simulation in the [settings dialog](visual-settings.md#parameter-sweeps-experimental) to get the Sweep toggle.
+
 Flip **Sweep** on any numeric scenario parameter to explore an interval of values instead of one. Set the minimum and the maximum — that is all a sweep declares. Petrinaut quantizes the interval finely (about fifty steps; integer parameters step by whole numbers) so results can be cached and restored per position.
 
 A sweep computes **what you have selected**. The results drawer grows a **Parameters** strip — pinned while you scroll — with one slider per swept parameter. Each slider selects a range on its interval, and starts spanning the whole of it:

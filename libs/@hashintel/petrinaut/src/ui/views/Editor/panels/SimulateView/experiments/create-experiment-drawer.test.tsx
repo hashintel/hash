@@ -29,7 +29,7 @@ import type { CreateExperimentInput } from "../../../../../../react/experiments/
 import type { LanguageClientContextValue } from "../../../../../../react/lsp/context";
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { UserSettingsContextValue } from "../../../../../../react/state/user-settings-context";
-import type { SDCPN } from "@hashintel/petrinaut-core";
+import type { Scenario, SDCPN } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
 
 vi.mock("../../../../../monaco/code-editor", () => ({
@@ -108,10 +108,12 @@ function makeLanguageClient(): LanguageClientContextValue {
 
 const TestProviders = ({
   webGpuEnabled,
+  enableParameterSweeps = false,
   sdcpnContextValue = sirSdcpnContextValue,
   createExperiment = () => Promise.resolve("experiment-test"),
 }: {
   webGpuEnabled: boolean;
+  enableParameterSweeps?: boolean;
   sdcpnContextValue?: SDCPNContextValue;
   createExperiment?: (input: CreateExperimentInput) => Promise<string>;
 }) => {
@@ -119,6 +121,7 @@ const TestProviders = ({
   const settings: UserSettingsContextValue = {
     ...defaultUserSettings,
     webGpuEnabled,
+    enableParameterSweeps,
     setShowAnimations: () => {},
     setKeepPanelsMounted: () => {},
     setCompactNodes: () => {},
@@ -141,6 +144,8 @@ const TestProviders = ({
     setShowWalkthroughOnInit: () => {},
     setWebGpuEnabled: () => {},
     setShowCompilationOutput: () => {},
+    setEnableParameterSweeps: () => {},
+    setEnableOptimizationSurface: () => {},
     updateSubViewSection: () => {},
   };
 
@@ -190,6 +195,25 @@ const colouredContextValue: SDCPNContextValue = {
     ),
   },
   extensions: DEFAULT_PETRINAUT_EXTENSIONS,
+};
+
+/** The SIR net with one scenario exposing a numeric parameter, so the form
+ * renders a parameter row. */
+const sweptScenario: Scenario = {
+  id: "scenario-swept",
+  name: "Swept",
+  scenarioParameters: [
+    { identifier: "transmission_rate", type: "real", default: 0.3 },
+  ],
+  parameterOverrides: {},
+  initialState: { type: "per_place", content: {} },
+};
+const sweptContextValue: SDCPNContextValue = {
+  ...sirSdcpnContextValue,
+  petriNetDefinition: {
+    ...sirSdcpnContextValue.petriNetDefinition,
+    scenarios: [sweptScenario],
+  },
 };
 
 beforeEach(() => {
@@ -310,5 +334,34 @@ describe("CreateExperimentDrawer GPU switch", () => {
     expect(findGpuControl().disabled).toBe(false);
     expect(findGpuControl().checked).toBe(false);
     expect(selectedSideLabel()).toBe("CPU");
+  });
+});
+
+describe("CreateExperimentDrawer parameter sweeps setting", () => {
+  it("offers no Sweep toggle while the setting is off", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        sdcpnContextValue={sweptContextValue}
+      />,
+    );
+
+    // The parameter rows render; only the toggle is missing.
+    await screen.findByText("transmission_rate");
+    expect(screen.queryByLabelText(/^Sweep /)).toBeNull();
+  });
+
+  it("offers a Sweep toggle per numeric parameter when the setting is on", async () => {
+    render(
+      <TestProviders
+        webGpuEnabled={false}
+        enableParameterSweeps
+        sdcpnContextValue={sweptContextValue}
+      />,
+    );
+
+    expect(
+      await screen.findByLabelText("Sweep transmission_rate"),
+    ).toBeInstanceOf(HTMLElement);
   });
 });
