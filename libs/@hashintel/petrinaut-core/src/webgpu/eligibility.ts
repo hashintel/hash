@@ -11,7 +11,10 @@
  * shader-compile time where the cause would be opaque.
  */
 import { getArcEndpointPlaceId } from "../arc-endpoints";
-import { normalizePlaceCapacity } from "../simulation/engine/capacity";
+import {
+  normalizePlaceCapacity,
+  PLACE_CAPACITY_UNBOUNDED,
+} from "../simulation/engine/capacity";
 
 import type { SDCPN } from "../types/sdcpn";
 
@@ -29,7 +32,6 @@ const MAX_COLORED_INPUT_ARC_WEIGHT = 2;
 export type GpuIneligibilityReason = {
   /** Stable code, for tests and for grouping in the UI. */
   code:
-    | "colored-place-without-capacity"
     | "unsupported-attribute-type"
     | "colored-input-arc-weight"
     | "no-transitions"
@@ -48,32 +50,7 @@ export type GpuEligibility =
  */
 export type GpuNetProfile = {
   /** Places in frame order, with their GPU storage shape. */
-  places: {
-    id: string;
-    name: string;
-    /** Token *slots* to allocate; 0 for uncoloured places, which store only a count. */
-    capacity: number;
-    /**
-     * Where the slot count comes from. A declared capacity is the modeler's
-     * own bound, enforced as blocking semantics on both backends. A derived
-     * capacity is a buffer size the backend measures by probing — the
-     * shader detects overflow and the handle grows it, never blocking a
-     * firing the CPU would allow.
-     */
-    capacitySource: "declared" | "derived";
-    /**
-     * The place's declared #9177 token limit in its dense runtime form
-     * (`PLACE_CAPACITY_UNBOUNDED` when absent). Distinct from `capacity`:
-     * an uncoloured place allocates no slots but may still be capped, and
-     * dropping that cap would let the GPU run past a limit the CPU enforces.
-     */
-    declaredCapacity: number;
-    /** Names of `real` attributes, in declaration order. These are integrated. */
-    realFields: string[];
-    /** Names of `integer`/`boolean` attributes, carried but not integrated. */
-    discreteFields: string[];
-    colored: boolean;
-  }[];
+  places: GpuPlaceProfile[];
   /** Whether every place is uncoloured, so per-run state is just counts. */
   uncolouredOnly: boolean;
   /**
@@ -84,6 +61,52 @@ export type GpuNetProfile = {
   bytesPerRun: number;
 };
 
+export type GpuPlaceProfile = {
+  id: string;
+  name: string;
+  /** Token *slots* to allocate; 0 for uncoloured places, which store only a count. */
+  capacity: number;
+  /**
+   * Where the slot count comes from. A declared capacity is the modeler's
+   * own bound, enforced as blocking semantics on both backends. A derived
+   * capacity is a buffer size the backend measures by probing — the
+   * shader detects overflow and the handle grows it, never blocking a
+   * firing the CPU would allow.
+   */
+  capacitySource: "declared" | "derived";
+  /**
+   * The place's declared token limit in its dense runtime form
+   * (`PLACE_CAPACITY_UNBOUNDED` when absent). Distinct from `capacity`:
+   * an uncoloured place allocates no slots but may still be capped, and
+   * dropping that cap would let the GPU run past a limit the CPU enforces.
+   */
+  declaredCapacity: number;
+  /** Names of `real` attributes, in declaration order. These are integrated. */
+  realFields: string[];
+  /** Names of `integer`/`boolean` attributes, carried but not integrated. */
+  discreteFields: string[];
+  colored: boolean;
+};
+
+/**
+ * The largest token count `place` can reach, or null when nothing bounds it:
+ * a typed place's slot capacity, else its declared capacity. A derived slab
+ * bounds counts too, because the shader halts a run that outgrows it.
+ */
+export const placeCountCeiling = (place: GpuPlaceProfile): number | null => {
+  if (place.colored) {
+    return place.capacity;
+  }
+  return place.declaredCapacity === PLACE_CAPACITY_UNBOUNDED
+    ? null
+    : place.declaredCapacity;
+};
+
+/** Storage words per token: one f32 per real field, one u32 per discrete field. */
+export const tokenWordCount = (
+  place: Pick<GpuPlaceProfile, "realFields" | "discreteFields">,
+): number => place.realFields.length + place.discreteFields.length;
+
 /**
  * Attribute types the GPU backend can hold.
  *
@@ -91,11 +114,6 @@ export type GpuNetProfile = {
  * so neither can be represented. See `emit-wgsl.ts`.
  */
 const SUPPORTED_ATTRIBUTE_TYPES = new Set(["real", "integer", "boolean"]);
-
-/** Storage words per token: one f32 per real field, one u32 per discrete field. */
-function wordsPerToken(realCount: number, discreteCount: number): number {
-  return realCount + discreteCount;
-}
 
 /**
  * Decides whether `sdcpn` can run on the GPU backend.
@@ -148,8 +166,7 @@ export function assessGpuEligibility(
       const capacity = place.capacity;
       const derived = capacity === undefined || capacity === null;
       if (!derived) {
-        stateWords +=
-          capacity * wordsPerToken(realFields.length, discreteFields.length);
+        stateWords += capacity * tokenWordCount({ realFields, discreteFields });
       }
       places.push({
         id: place.id,
