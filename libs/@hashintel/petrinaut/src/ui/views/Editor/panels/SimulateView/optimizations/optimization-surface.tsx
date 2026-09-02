@@ -15,6 +15,7 @@ import { use, useEffect, useRef, useState } from "react";
 
 import { Slider } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { createUserKeyedRecord, getOwn } from "@hashintel/petrinaut-core";
 
 import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
 import { distributionStats } from "../../../../../../react/experiments/distribution-stats";
@@ -103,7 +104,7 @@ const readoutStyle = css({
 const sampleStudyCell = async (options: {
   sampleDetachedObjective: ExperimentsContextValue["sampleDetachedObjective"];
   cache: Map<string, SweepCellSnapshot>;
-  optimization: OptimizationRecord;
+  optimization: Pick<OptimizationRecord, "id" | "input">;
   axes: readonly OptimizationSurfaceAxis[];
   xAxisId: string;
   yAxisId: string;
@@ -140,7 +141,7 @@ const sampleStudyCell = async (options: {
       .map((entry) => entry.split("=") as [string, string]),
   );
 
-  const values: Record<string, number | boolean> = {};
+  const values = createUserKeyedRecord<number | boolean>();
   for (const [identifier, binding] of Object.entries(
     input.scenario.parameterBindings,
   )) {
@@ -232,7 +233,7 @@ export const OptimizationSurface = ({
 
   /** Slider position per axis: explicit, else best trial, else midpoint. */
   const positionOf = (axis: OptimizationSurfaceAxis): number => {
-    const explicit = positions[axis.identifier];
+    const explicit = getOwn(positions, axis.identifier);
     if (explicit !== undefined) {
       return explicit;
     }
@@ -308,13 +309,17 @@ export const OptimizationSurface = ({
     },
   });
 
+  const optimizationId = optimization.id;
   // The selected point's refinement: escalating batches, streaming the
   // objective's mean/median into the readout and refreshing its grid cell.
   useEffect(() => {
-    const walkAxes = buildOptimizationSurfaceAxes(optimization.input);
+    // Only the study's identity and input drive the refinement; streamed
+    // trials replace the record without restarting it.
+    const study = { id: optimizationId, input };
+    const walkAxes = buildOptimizationSurfaceAxes(input);
     const walkXAxis = walkAxes.find((axis) => axis.identifier === xAxisId);
     const walkYAxis = walkAxes.find((axis) => axis.identifier === yAxisId);
-    const walkMetricId = optimization.input.objective.metricId;
+    const walkMetricId = input.objective.metricId;
     if (!walkXAxis || !walkYAxis || walkXAxis === walkYAxis) {
       return;
     }
@@ -333,7 +338,7 @@ export const OptimizationSurface = ({
         const snapshot = await sampleStudyCell({
           sampleDetachedObjective,
           cache: cellCacheRef.current,
-          optimization,
+          optimization: study,
           axes: walkAxes,
           xAxisId,
           yAxisId,
@@ -364,7 +369,8 @@ export const OptimizationSurface = ({
       stale = true;
     };
   }, [
-    optimization,
+    optimizationId,
+    input,
     xAxisId,
     yAxisId,
     slice,

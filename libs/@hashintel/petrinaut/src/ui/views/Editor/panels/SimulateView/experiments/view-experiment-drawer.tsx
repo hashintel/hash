@@ -39,6 +39,8 @@ const drawerBodyStyle = css({
   paddingTop: "[0]",
   display: "flex",
   flexDirection: "column",
+  // The overlay body scrolls by default; here only the metric list may.
+  overflow: "hidden",
 });
 
 const fixedSectionStyle = css({

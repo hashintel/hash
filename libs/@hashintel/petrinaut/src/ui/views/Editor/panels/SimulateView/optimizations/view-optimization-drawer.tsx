@@ -76,6 +76,8 @@ const drawerBodyStyle = css({
   paddingTop: "[0]",
   display: "flex",
   flexDirection: "column",
+  // The overlay body scrolls by default; here only the step list may.
+  overflow: "hidden",
 });
 
 const fixedSectionStyle = css({
@@ -395,7 +397,10 @@ export const ViewOptimizationDrawer = ({
               defaultOpen
               className={fixedSectionStyle}
             >
-              <OptimizationSurface optimization={optimization} />
+              <OptimizationSurface
+                key={optimization.id}
+                optimization={optimization}
+              />
             </Section>
           ) : null}
           {optimization.trials.length > 0 ? (
