@@ -196,9 +196,11 @@ export const emitKernelValues = (
 
 /**
  * Emits the output side of the fire block, after compaction: writes each
- * produced token above the live count and defers the count itself to
- * `pending`, so nothing later in this frame can consume it — matching the
- * CPU, which applies additions after its transition loop.
+ * produced token above the live count and this frame's earlier output, and
+ * defers the count itself to `pending`, so nothing later in this frame can
+ * consume it — matching the CPU, which applies additions after its
+ * transition loop. A later consumption from the same place compacts these
+ * tokens down along with the survivors (`transition-firing.ts`).
  */
 export const emitOutputWrites = (
   push: (line: string) => void,

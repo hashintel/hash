@@ -656,6 +656,32 @@ describe("transition kernels", () => {
     );
   });
 
+  it("compacts this frame's produced tokens down with the survivors", () => {
+    // LaunchSatellite writes into Space above the live count; a Crash later in
+    // the same frame consumes from Space and shifts everything above the chosen
+    // slot down. Stopping the sweep at the live count would leave the new
+    // tokens in place, so the end-of-frame fold would count stale slots as
+    // live and strand the launched satellite past the end.
+    const net: SDCPN = {
+      ...satellites,
+      places: satellites.places.map((place) => ({ ...place, capacity: 16 })),
+      transitions: ["LaunchSatellite", "Crash"].map(
+        (name) =>
+          satellites.transitions.find(
+            (transition) => transition.name === name,
+          )!,
+      ),
+    };
+    const compiled = compileFor(net);
+    if (!compiled.ok) {
+      throw new Error(compiled.reason);
+    }
+
+    expect(compiled.shader.wgsl).toMatch(
+      /for \(var m: u32 = sel_0 \+ 1u; m < counts\[(\d+)u\] \+ u32\(max\(0, pending\[\1u\]\)\); m = m \+ 1u\)/,
+    );
+  });
+
   it("refuses a typed output whose kernel has no HIR rather than zeroing it", () => {
     // Writing nothing would leave every attribute at zero and report that as a
     // result, which is the failure mode this replaced.

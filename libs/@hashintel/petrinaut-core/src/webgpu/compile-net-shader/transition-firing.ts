@@ -309,6 +309,12 @@ export const emitFiringChoice = (
  * keep their relative order and shift down into the gaps. A swap-remove would
  * reorder the array, so later frames would enumerate candidates in a
  * different order and consume different tokens — divergence, not noise.
+ *
+ * The sweep runs past the live count through the tokens earlier transitions
+ * produced this frame, which sit above it awaiting the end-of-frame fold:
+ * they shift down with the survivors, or the fold would count stale slots as
+ * live and leave the new tokens past the end. The candidate scan still stops
+ * at the live count, so they stay unselectable this frame.
  */
 export const emitConsumption = (
   push: (line: string) => void,
@@ -331,7 +337,7 @@ export const emitConsumption = (
     );
     push(`        var write_slot: u32 = sel_0;`);
     push(
-      `        for (var m: u32 = sel_0 + 1u; m < counts[${scanPlaceIndex}u]; m = m + 1u) {`,
+      `        for (var m: u32 = sel_0 + 1u; m < counts[${scanPlaceIndex}u] + u32(max(0, pending[${scanPlaceIndex}u])); m = m + 1u) {`,
     );
     if (skipped !== "") {
       push(`          if (${skipped}) { continue; }`);
