@@ -1,4 +1,4 @@
-# ADR-0009: OpenAI voice uses the app-owned UI turn shell
+# ADR-0009: OpenAI Realtime media plane, Brunch control plane
 
 Date: 2026-08-26
 Status: accepted for the bounded H-6763 preview stack
@@ -6,130 +6,86 @@ Extends: [ADR-0004](0004-in-petrinaut-staging-and-the-monorepo-import.md), which
 Petrinaut composition in applications and reusable libraries mutually unaware
 Preserves: [ADR-0003](0003-three-register-ir.md), which makes Brunch's capture fold authoritative,
 and the [Petrinaut integration attach contract](../specs/petrinaut-integration.md#attach-contract)
-Decided on: `kostandin/h-6763-petrinaut-composer-api`, from the approved H-6763 OpenAI voice plan
 
 ## Context
 
-H-6763 adds spoken input and output to a Brunch elicitation shown in Petrinaut. The existing
-production boundary already has the semantics the feature needs: one AI SDK UI-message stream,
-the correlated `brunch_ask` tool, and a principal-owned conversation. A voice implementation can
-either preserve that boundary or create a second conversation authority in the audio provider.
-Only the first choice preserves Brunch's durable history, captures, pending asks, completion, and
-projection contracts.
+H-6763 adds a spoken interface to a Brunch interview shown in Petrinaut. Brunch already owns the
+durable AI SDK conversation, correlated `brunch_ask`, captures, completion and projection. OpenAI
+Realtime provides a lower-latency media path with semantic turn detection, speech output and
+WebRTC interruption, but its conversation history is neither durable nor authoritative.
 
-The first rollout is a disabled preview. FE-1505's privacy-safe Brunch spans exist in this
-ancestry, but the production contracts for authenticated ownership, distributed quotas, complete
-voice telemetry, replay, and final Petrinaut projection do not all exist yet. The preview
-therefore needs a boundary that permits input and output experiments without claiming production
-recovery or public availability.
+The first rollout remains a disabled preview. Its authentication, distributed quotas, replay,
+complete voice telemetry and final projection contracts are not production-ready.
 
 ## Decision
 
-1. **The host application owns voice.** `apps/petrinaut-website` owns OpenAI policy, WebRTC,
-   transcript event parsing, half-duplex state, playback, feature UI, and server routes.
-   `@hashintel/petrinaut` exposes provider-neutral seams only: a generic composer control
-   (`renderComposerControl`) and a persistent host-rendered interview stage
-   (`renderInterviewStage`) whose `PetrinautAiInterviewStageContext` supplies finalized-text
-   submission, conversation identity, sidebar placement and focus, active-conversation
-   protection, and the Chat / Interview interaction mode. Petrinaut owns the mode switch and
-   composer focus; it knows nothing about OpenAI, audio, or transcription. Brunch packages
-   contain no provider code.
-2. **OpenAI is the only runtime voice provider.** Do not add a provider abstraction, selector,
-   compatibility layer, or ElevenLabs dependency, configuration, route, script, test, or
-   diagnostic.
-3. **Realtime is transcription-only.** The server atomically combines browser SDP with trusted
-   transcription policy and calls OpenAI's unified WebRTC initialization endpoint. The fixed
-   model is `gpt-live-transcribe`. Turn detection uses that model's default server VAD because the
-   unified endpoint currently times out when either VAD mode is configured during initialization;
-   semantic VAD remains a tunable evaluation setting once initialization supports it. Partial
-   transcription events do not disable capture. Provider keys, prompts, vocabulary, language
-   policy, and model selection remain server-side. Realtime never generates assistant responses.
-4. **Completed provider items are the only admitted audio input.** Partials are display-only.
-   Completed items are keyed by connection epoch, provider item ID, and content index, then enter
-   the existing Petrinaut composer and AI SDK transport once. A pending `brunch_ask` uses its
-   existing correlated tool-output path; otherwise the final becomes a stable-ID user message.
-   A user-initiated correction is a new explicit message and opts out of pending-tool mapping
-   rather than being silently inferred from its wording.
-5. **The interaction is half-duplex.** The microphone is closed while speech is synthesized or
-   playing, and while a turn the interview cannot yet absorb is outstanding. Petrinaut may
-   retain exactly one finalized answer while the normal chat stream settles, so a pending
-   `brunch_ask` keeps capture open for that one answer instead of waiting for generic chat
-   settlement; the buffered answer still enters the conversation through the canonical composer
-   path. Barge-in and simultaneous listening and playback are out of scope.
-6. **Speech receives canonical Brunch text exactly.** A dedicated OpenAI Speech request receives
-   only finalized assistant text or the validated `brunch_ask.input.question` selected from the
-   AI SDK message structure. The application does not scrape rendered DOM, ask Realtime to "say
-   exactly," or ask a model to rewrite the text. Failure leaves the same text visible.
-7. **The preview fails closed and is disabled by default.** Voice is unavailable when server
-   policy, credentials, or the Brunch transport are unavailable. Text chat remains available.
-   Public production remains disabled until FE-1439, FE-1420, platform authentication,
-   distributed quotas, production voice telemetry building on FE-1505, and FE-1438/FE-1440
-   completion and projection contracts are available and consumed.
+1. **Realtime is the media plane; Brunch is the control plane.** The app uses exactly
+   `gpt-realtime-2` as an ephemeral duplex shell for microphone input, semantic turn detection,
+   remote audio output and barge-in. Brunch alone chooses questions, updates interview state,
+   records captures and decides completion. Realtime history is disposable.
+2. **The website owns the bridge.** `apps/petrinaut-website` owns trusted OpenAI policy, WebRTC,
+   strict GA event parsing and the Realtime–Brunch bridge. `@hashintel/petrinaut` continues to
+   expose provider-neutral composer and interview-stage seams. Brunch packages contain no OpenAI
+   code, and there is no generic voice-provider abstraction.
+3. **Server policy is fixed.** The website server combines browser SDP with a trusted Realtime
+   session and calls the unified `/v1/realtime/calls` endpoint. The session enables audio output,
+   low reasoning effort, the `marin` voice and semantic VAD with low eagerness, automatic response
+   creation and interruption. Optional input transcription is display-only. API credentials,
+   model selection, instructions and tools never enter browser-controlled configuration.
+4. **One narrow function crosses the planes.** Realtime must call `continue_interview` once with a
+   complete spoken answer and must not speak first. The browser validates streamed arguments,
+   serializes calls and derives stable submission identity from the connection epoch and Realtime
+   call ID. It submits through Petrinaut's existing composer path and accepts the result only when
+   it correlates to the pending `brunch_ask`.
+5. **Only canonical Brunch output may be spoken.** The bridge waits for the correlated Brunch turn,
+   returns new canonical segments as the function result, then explicitly requests an audio-only
+   response with no available tools. Initial and keyboard-triggered canonical segments use the
+   same constrained response path. Realtime is instructed to speak only those strings in order;
+   the visible Brunch text remains authoritative because generated speech is not guaranteed to be
+   lexically identical. Canonical `response.create` requests are serialized behind Realtime
+   response terminal events. Cancelled argument streams are discarded by response identity, and
+   only exactly correlated provider no-op errors are treated as recoverable.
+6. **The interaction is duplex.** The microphone stays active while the interviewer speaks and
+   while Brunch handles a tool call. Semantic VAD finalizes turns without a required button.
+   Speech during assistant audio interrupts playback and WebRTC truncates unheard provider audio;
+   this does not roll back canonical Brunch history. Pause, end, failure and reconnect explicitly
+   mute or release media and reject events from old connection epochs.
+7. **State is orthogonal.** The browser exposes connection (`idle`, `connecting`, `connected`,
+   `error`), input (`listening`, `paused`, `submitting`) and output (`idle`, `waiting-for-tool`,
+   `speaking`, `interrupted`) independently. Presentation status is derived from these values, so
+   partial transcripts and assistant playback never falsely imply that capture is off.
+8. **The preview fails closed.** Malformed, duplicate, overlapping or stale provider events cannot
+   create another Brunch submission or unrestricted conversational output. Provider errors and
+   diagnostics never include audio, SDP, prompts, transcripts, canonical speech, credentials or
+   provider response bodies. Text chat remains available, and production remains disabled.
 
 ## Consequences
 
-- Petrinaut's public API gains a generic host control with stable `submitText`, `stop`, messages,
-  status, and the effective host-supplied or generated conversation identity. Interactive tools may
-  opt into a schema-validated text-to-output mapper. Keyboard and alternate finalized text therefore
-  cannot bypass ask correlation by default; the host may explicitly target a separate message for
-  a correction. It also gains the interview-stage seam and `PetrinautAiInteractionMode`, which keep
-  Chat / Interview ownership, docked and detached placement, and one-answer buffering inside
-  Petrinaut rather than in provider code.
-- OpenAI implementation names and policy stay in `apps/petrinaut-website`. The existing
-  `transport-aisdk` package remains the sole browser-to-Brunch conversation transport.
-- Preview PRs may demonstrate transcription and exact canonical speech before production
-  recovery exists, but they may not claim durable redelivery, authenticated access, distributed
-  rate enforcement, production telemetry, or final projection.
-- A later provider choice, full duplex, sentence-level streaming speech, mobile support, or
-  acoustic-pronunciation guarantee requires a new decision. Exact lexical input to Speech is the
-  enforceable fidelity contract in this record.
+- The transcription-only `gpt-live-transcribe` session, dedicated Speech API route, MP3 synthesis,
+  browser playback queue and manual **Interrupt and speak** flow are removed. There is one permanent
+  voice architecture.
+- Realtime can affect timing and audio delivery but cannot author durable interview content. If it
+  violates the canonical-output contract, the voice session fails closed while Brunch text remains
+  visible.
+- Exactly-once handling is scoped to a connection epoch plus provider call ID. Reconnect creates a
+  new epoch and invalidates in-flight events and results from the previous connection.
+- The existing production-disabled policy and Petrinaut text-composer behavior do not change.
 
-## Voice PR 3 implementation evidence
+## Verification evidence
 
-- The website selects only finalized assistant text parts and schema-validated
-  `brunch_ask.input.question` values. Segment identity combines the AI SDK message ID, text-part
-  index or tool-call ID, and an exact-text fingerprint. Reasoning, user/system text, partial text,
-  tool output, malformed asks, and other tools are excluded.
-- The Brunch projection test fixes the structured-ask boundary: an awaiting `brunch_ask` emits no
-  duplicate plain-text question. If that contract changes, the projection must be corrected
-  rather than hiding duplicates with fuzzy text matching in the voice layer.
-- The app-owned Speech edge forwards the exact selected text to OpenAI's dedicated Speech API with
-  fixed server policy: `gpt-4o-mini-tts`, the `marin` voice, MP3 response format, and no delivery
-  instruction. The Realtime session remains transcription-only.
-- The turn controller receives chat status and canonical segments atomically, queues speech in
-  order, seeds pre-existing segments as already seen, and rejects stale playback generations.
-  The microphone cannot reopen between Brunch becoming ready and speech being queued; ending or
-  reconnecting cancels synthesis and playback before media teardown.
-- The preview visibly discloses that spoken responses use an AI-generated OpenAI voice. Speech
-  failure keeps the canonical response visible, closes the microphone, and requires an explicit
-  recovery action.
-
-## Controlled-preview reliability follow-up evidence
-
-- Browser and server failures use only actionable categories: microphone permission, microphone
-  device, interrupted request, network, timeout, invalid provider response, and unavailable or
-  disabled. Provider bodies and thrown details remain suppressed; the UI gives recovery guidance
-  plus a sanitized code and request reference where applicable.
-- Realtime connection and Speech requests share a validated random `x-request-id` across browser
-  and website server diagnostics. Transcript completion has a content-free browser timing, voice
-  routes expose `Server-Timing`, and the existing Petrinaut-to-Brunch transport supplies
-  `x-request-id` to FE-1505's content-suppressed Brunch inspection path. Events contain only
-  operation, stage, outcome, duration, request ID, and optional status or error code—never audio,
-  SDP, transcripts, prompts, canonical speech text, credentials, or provider response bodies.
-- Focused tests cover startup, permission/device and network failures, abort, timeout, malformed
-  provider responses, reconnect, and media/playback cleanup. One local integration test exercises
-  browser session setup through both app-owned voice handlers, a completed transcript at the
-  Brunch composer boundary, canonical response selection, Speech streaming, and playback using
-  only local fakes.
-- This evidence is a reliability follow-up above Voice PR 3, not production PR 4. It does not test
-  real OpenAI media or write to a configured remote Brunch conversation, does not add recovery or
-  rollout infrastructure, and does not change the production-disabled policy.
+- Policy tests pin `gpt-realtime-2`, low-effort reasoning, semantic VAD and the single required
+  function. Session tests cover remote media attachment, automatic interruption, strict GA event
+  parsing, tool-free canonical output, malformed events and cleanup.
+- Bridge and controller tests cover streamed argument validation, pending-ask correlation,
+  exactly-once submission, stale and duplicate rejection, asynchronous canonical response waiting,
+  continuous capture, pause, end, reconnect and independent state transitions.
+- A local integration test crosses the mocked unified Realtime handler, WebRTC data channel,
+  `continue_interview`, Petrinaut composer boundary and canonical remote-audio request without a
+  separate speech endpoint.
 
 ## Revisit condition
 
-Revisit if the unified OpenAI WebRTC initialization API cannot enforce server-owned transcription
-policy; if the generic composer and interview-stage seams cannot preserve the existing AI SDK and
-`brunch_ask` paths;
-or if production authentication, replay, telemetry, or projection contracts require a boundary
-change rather than an application adapter. Do not address any of these by making browser or
-provider history authoritative.
+Revisit if `gpt-realtime-2` cannot enforce this server-owned session policy, if generated speech
+cannot be constrained to canonical Brunch segments closely enough for the preview, or if production
+authentication, replay, telemetry or projection requires a different application boundary. Do not
+resolve those failures by making OpenAI history authoritative or by restoring a second voice path.
