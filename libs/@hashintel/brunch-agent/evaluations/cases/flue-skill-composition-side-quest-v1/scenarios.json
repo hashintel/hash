@@ -1,0 +1,32 @@
+{
+  "S1": {
+    "title": "Underspecified interactive request",
+    "prompt": "Help me model our approval process as an SDCPN.",
+    "stopAfter": "The first consequential question.",
+    "expected": "Ask one high-yield question in operational vocabulary after loading universal and SDCPN elicitation judgment."
+  },
+  "S2": {
+    "title": "Adequate construct-only request",
+    "prompt": "Use the supplied account as complete modelling input. Do not interview me. Stop after stating the first consequential SDCPN construction decision; do not mutate a net.\n\nPurpose: compare approval turnaround under one reviewer versus two.\nBoundary: one request from submission through approval or rejection.\nCase spine: submission admits one request. A reviewer reserves the request and one available reviewer, checks it for 20 minutes, then records either approved or rejected according to the documented eligibility rule. Recording the outcome releases the reviewer. Approved and rejected requests leave the boundary.\nResources and initial state: requests are distinct work items. There is initially one available reviewer; the comparison changes that count to two. A reviewer cannot check two requests concurrently.\nBranch evidence: the documented eligibility rule deterministically selects approved or rejected from request data already carried by the request.\nTiming and arrivals: checks take a fixed 20 minutes for this comparison. Requests arrive one at a time every 30 minutes.\nAssumptions and limits: ignore reviewer breaks, rework, and priority overrides. Do not claim the model represents them.",
+    "stopAfter": "The first consequential construction decision.",
+    "expected": "Enter construction guidance without loading universal elicitation or asking a question."
+  },
+  "S3": {
+    "title": "Review with a resolvable target defect",
+    "prompt": "Review the described target against the supplied operational account. Stop after identifying the first supported formalism-specific defect and its evidence. Do not interview me or mutate a net.\n\nOperational account: each request check reserves one reusable reviewer at start. The reviewer is unavailable during the check and becomes available again when either approval or rejection is recorded.\nTarget description: AvailableReviewer supplies one reviewer token to StartCheck. CheckInProgress supplies the held reviewer token to RecordApproval. RecordApproval returns that token to AvailableReviewer. RecordRejection consumes CheckInProgress but has no output arc returning the reviewer token.",
+    "stopAfter": "The first supported defect finding.",
+    "expected": "Identify the missing reviewer return on rejection without loading universal elicitation."
+  },
+  "S4": {
+    "title": "Review exposing a human-knowledge gap",
+    "prompt": "Review the described target against the supplied operational account. Stop after the first consequential action. Do not invent an operational rule or mutate a net.\n\nOperational account: a reviewer is reserved while a request is being checked. If the request is approved, recording approval releases the reviewer. The account does not say whether a rejected request releases the reviewer immediately or keeps that reviewer assigned during an appeal window.\nTarget description: StartCheck reserves one AvailableReviewer token. RecordApproval returns it. RecordRejection currently returns it immediately.",
+    "stopAfter": "One focused question about the unresolved release distinction.",
+    "expected": "Load universal elicitation and ask whether rejection releases the reviewer or retains assignment through appeal."
+  },
+  "S5": {
+    "title": "Missing core capability",
+    "prompt": "Help me model our approval process as an SDCPN.",
+    "stopAfter": "The native missing-capability result and the first resulting behavior.",
+    "expected": "Expose Flue's actual response when the plugin asks for an unmounted elicitation skill."
+  }
+}

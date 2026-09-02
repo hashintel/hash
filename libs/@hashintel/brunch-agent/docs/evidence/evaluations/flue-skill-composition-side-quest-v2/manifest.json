@@ -1,0 +1,82 @@
+{
+  "sideQuestId": "flue-skill-composition-side-quest-v2",
+  "sourceCommit": "5249a73f09977ad2ef007e08de7b7314f94568e1",
+  "sourceState": "dirty side-quest instrument; every instrument file is content-addressed below",
+  "model": "anthropic/claude-haiku-4-5",
+  "runtime": {
+    "boundary": "built production ChatAgent loaded from apps/brunch-agent/dist/app.mjs",
+    "flue": "2.0.3",
+    "hermeticProvider": "@earendil-works/pi-ai faux provider 0.83.0",
+    "constructionToolsMounted": false,
+    "stop": "first consequential question, finding, or construction decision"
+  },
+  "intervention": "Replace only the shared interactive routing sentence with the frozen v2 required-disclosure gate; normalize the one candidate-specific action line for parity.",
+  "candidateRenderedText": {
+    "independentPluginActivation": "runs/hermetic/independent-S1.json#/toolCalls/0/output",
+    "independentElicitationActivation": "runs/hermetic/independent-S1.json#/toolCalls/1/output",
+    "packagedPluginActivation": "runs/hermetic/packaged-S1.json#/toolCalls/0/output",
+    "packagedUniversalResource": "runs/hermetic/packaged-S1.json#/toolCalls/1/output"
+  },
+  "sourceSha256": {
+    "apps/brunch-agent/src/agents/chat-agent/agent.ts": "6a1bbb68da22eed1f1179aa133bb9f41a094ef9162300a14c30661f9bad2e0b7",
+    "apps/brunch-agent/src/evaluations/skill-composition/candidate-contract.ts": "b6aa515d5805ef0f7f637cd58afc350d4ae67ff9612d78f2f3f434c90519628b",
+    "apps/brunch-agent/src/evaluations/skill-composition/candidates.ts": "451a12b35374721f32cd9b5aac85a29ff8c8ee66741afb1b2360bc172dbc8fe8",
+    "apps/brunch-agent/src/evaluations/skill-composition/run.ts": "c04354de75321d89c33ef98e823d670275a4d1f8dbd659bb326a833450792e41",
+    "libs/@hashintel/brunch-agent/evaluations/cases/flue-skill-composition-side-quest-v1/scenarios.json": "10e5b6897319045485a33e556d1de05241cbdbe9ddf5e8fa6c72ef73199252c1",
+    "libs/@hashintel/brunch-agent/evaluations/protocols/flue-skill-composition-side-quest-v2/protocol.md": "1ff13a4c5e30c698dd5d2ac252074597639b620b1d9cbaf4d1380fcaa3f9ca32",
+    "libs/@hashintel/brunch-agent/evaluations/oracles/flue-skill-composition-side-quest-v1.md": "c16d5faaa7a450a41d6888dd6d2b3eac88e4687779b0c8f8e6fe4eceeeb241c6",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/core/universal-elicitation.md": "a4aedd68317bcde4b98490ea73efa4ee7881e2fe3cbcf3363e3db26e29180716",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/SKILL.md": "b09a02e92602bf67f54ce3988a4e1af438b344fb7dd654936e127905451f0025",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/checks.md": "9487f40c73398e2008c10cd6f85c60735c34e59ab2f5bb4f59dddf863552f2a5",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/instructions.md": "b6d632a0e9ad5b21253fdbae792e1546ce5bd9cb0a0c999befc7e3dfd2f3e7f4",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/pn-construction.md": "57edbdfebd733ed6c1d5eb02f81dc13e6d5b9c7357f00018c1d0f2b1b1a3f694",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/sdcpn-elicitation.md": "11e5547ea055bb390d7ff96f3469a39a36c84a4ed8a182153965e6d841b5e4bf",
+    "libs/@hashintel/brunch-agent/packages/core/_drafts/ampcode/plugin-sdcpn/sdcpn-modelling/workpiece-template.md": "4ee0dad11d802ff7918ef8660c42e3be8caef0eb923e92ab4084b70f2f110ec9",
+    "libs/@hashintel/brunch-agent/packages/core/src/SYSTEM.md": "527fc0b3472b5c1953a89b691da0883dc2eb93dad1cdaed21b1cc7e1db0c8187",
+    "libs/@hashintel/brunch-agent/packages/core/src/agent/index.ts": "18ff63996ea2c0656f246e3e36a30962de3e03c106a25305614eb66ebf0f5717",
+    "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/flue.ts": "b4959142f10c74e9b04a5d0c0dfb3b74dbab8c492a26e34d2c2c8ff9e3eb7cfa"
+  },
+  "renderedSha256": {
+    "elicitationInstructions": "a4aedd68317bcde4b98490ea73efa4ee7881e2fe3cbcf3363e3db26e29180716",
+    "independentPluginInstructions": "0c10c1e3bc61fb39fc799584d050e1170c7b7befd07f74dd6ebca8921f3398fd",
+    "packagedPluginInstructions": "4a2410540717af8c740c57d7e74efd290f74cf3a23590d41acb632bd3f31a0f5",
+    "packagedUniversalResource": "a4aedd68317bcde4b98490ea73efa4ee7881e2fe3cbcf3363e3db26e29180716"
+  },
+  "parity": {
+    "universalSubstanceByteIdentical": true,
+    "normalizedPluginInstructionsByteIdentical": true,
+    "intentionalDifferences": [
+      "Candidate A mounts elicitation independently; Candidate B packages universal-elicitation.md.",
+      "The v2 required-action line uses activate_skill for A and read_skill_resource for B.",
+      "Candidate A adds the mechanically required elicitation skill name and activation-cue description."
+    ]
+  },
+  "hermeticRuns": [
+    "runs/hermetic/independent-S1.json",
+    "runs/hermetic/packaged-S1.json",
+    "runs/hermetic/independent-S2.json",
+    "runs/hermetic/packaged-S2.json",
+    "runs/hermetic/independent-S3.json",
+    "runs/hermetic/packaged-S3.json",
+    "runs/hermetic/independent-S4.json",
+    "runs/hermetic/packaged-S4.json"
+  ],
+  "paidRuns": [
+    "runs/paid/independent-S1-r1.json",
+    "runs/paid/packaged-S1-r1.json",
+    "runs/paid/independent-S4-r1.json",
+    "runs/paid/packaged-S4-r1.json"
+  ],
+  "budget": {
+    "cumulativeAuthorizedModelInvocations": 48,
+    "v1ModelInvocations": 4,
+    "v2ModelInvocations": 7,
+    "cumulativeModelInvocations": 11,
+    "cumulativeAuthorizedUsd": 1,
+    "v1Usd": 0.0241825,
+    "v2Usd": 0.04946605,
+    "cumulativeUsd": 0.07364855,
+    "stopReason": "Both S4 candidates bypassed sdcpn-modelling, creating a shared job-routing failure before topology; the side-quest stop rule forbids continuing to S2 or replications."
+  },
+  "outcome": "invalid-or-inconclusive"
+}
