@@ -1,5 +1,6 @@
 ---
 "@hashintel/petrinaut": patch
+"@hashintel/ds-components": patch
 ---
 
-Optimization studies with two or more optimized numeric parameters gain a Surface section: an Optuna-style contour of the objective over two chosen parameters, filled by points computed locally against the study's frozen model snapshot, with the study's trials drawn as markers. Sliders navigate the space, the selected point refines with escalating batches while the readout streams the objective's mean and median, and clicking the plot moves the selection.
+Optimization studies with two or more optimized numeric parameters gain a Surface section: a contour of the objective over two chosen parameters, computed locally against the study's frozen model, with the study's trials as markers. Sliders and clicks move the selected point, which refines with escalating batches. `Slider` accepts `step` and `onChangeEnd`.
