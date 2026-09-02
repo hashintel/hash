@@ -13,6 +13,8 @@ import {
 import { sqlite, start } from "@flue/runtime/node";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
+import { ASK_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+
 import {
   ACTIVATE_SKILL_TOOL_NAME,
   CHAT_MODEL_ID,
@@ -149,9 +151,24 @@ try {
         ],
         { stopReason: "toolUse" },
       ),
+      fauxAssistantMessage(
+        [
+          fauxThinking("The user explicitly requested an interview."),
+          fauxText(
+            "The guide says the assistant can read its own documentation pages.",
+          ),
+          fauxToolCall(
+            ASK_TOOL_NAME,
+            { question: "What outcome should this process reliably produce?" },
+            { id: "tool-ask-1" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
       fauxAssistantMessage([
+        fauxThinking("Use the correlated client-tool answer."),
         fauxText(
-          "The guide says the assistant can read its own documentation pages.",
+          "I received your answer: a reliable handoff. The Petrinaut canvas was not modified.",
         ),
       ]),
       fauxAssistantMessage([
@@ -179,6 +196,12 @@ try {
     if (userMessage === undefined) {
       throw new Error("panel-initial.post.json is missing the user message");
     }
+    userMessage.parts = [
+      {
+        type: "text",
+        text: "Start an interview and run the FE-1435 transport probe.",
+      },
+    ];
 
     const initialResponse = await app.fetch(
       new Request("http://brunch.test/api/chat", {
@@ -275,6 +298,64 @@ try {
       }),
     );
     const resumedChunks = chunksFrom(await resumeResponse.text());
+    const askCall =
+      resumedChunks.find(
+        (
+          chunk,
+        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
+          chunk.type === "tool-input-available" &&
+          chunk.toolName === ASK_TOOL_NAME,
+      ) ?? null;
+    const pendingAskHistoryResponse = await app.fetch(
+      new Request(
+        `http://brunch.test/api/chat?id=${encodeURIComponent(conversationId)}`,
+        {
+          method: "GET",
+          headers: { "x-brunch-principal": principalKey },
+        },
+      ),
+    );
+    const pendingAskHistoryBody = (await pendingAskHistoryResponse.json()) as {
+      messages?: {
+        parts?: { toolCallId?: string; state?: string }[];
+      }[];
+    };
+    const pendingHistoryAskState = pendingAskHistoryBody.messages
+      ?.flatMap((message) => message.parts ?? [])
+      .find((part) => part.toolCallId === askCall?.toolCallId)?.state;
+    const answerResumeBody = {
+      id: conversationId,
+      trigger: "submit-message",
+      messageId: startChunk?.messageId,
+      messages: [
+        userMessage,
+        {
+          id: startChunk?.messageId,
+          role: "assistant",
+          parts: [
+            {
+              type: `tool-${ASK_TOOL_NAME}`,
+              toolCallId: askCall?.toolCallId,
+              state: "output-available",
+              input: askCall?.input,
+              output: { answer: "A reliable handoff." },
+            },
+          ],
+        },
+      ],
+    };
+    const answerResumeResponse = await app.fetch(
+      new Request("http://brunch.test/api/chat", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-brunch-principal": principalKey,
+          "x-request-id": "request-mission-1-ask-resume",
+        },
+        body: JSON.stringify(answerResumeBody),
+      }),
+    );
+    const answerResumeChunks = chunksFrom(await answerResumeResponse.text());
     const retriedResumeResponse = await app.fetch(
       new Request("http://brunch.test/api/chat", {
         method: "POST",
@@ -409,6 +490,19 @@ try {
         .map((chunk) => chunk.delta)
         .join(""),
       resumedFinish: resumedChunks.at(-1),
+      askCall,
+      askToolOutputsBeforeResume: resumedChunks.filter(
+        (chunk) =>
+          chunk.type === "tool-output-available" &&
+          chunk.toolCallId === askCall?.toolCallId,
+      ),
+      pendingHistoryAskState,
+      answerResumeStatus: answerResumeResponse.status,
+      answerResumeText: answerResumeChunks
+        .filter((chunk) => chunk.type === "text-delta")
+        .map((chunk) => chunk.delta)
+        .join(""),
+      answerResumeFinish: answerResumeChunks.at(-1),
       retriedStatus: retriedResponse.status,
       retriedResumeStatus: retriedResumeResponse.status,
       historyUserEntryCount: userEntryIds.length,

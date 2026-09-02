@@ -78,26 +78,48 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     expect(result.resumedText).toContain(
       "The guide says the assistant can read its own documentation pages.",
     );
+    expect(result.askCall).toMatchObject({
+      type: "tool-input-available",
+      toolName: "brunch_ask",
+      input: { question: "What outcome should this process reliably produce?" },
+    });
+    expect(result.askCall).not.toHaveProperty("providerExecuted");
+    expect(result.askToolOutputsBeforeResume).toEqual([]);
     expect(result.resumedFinish).toEqual({
+      type: "finish",
+      finishReason: "tool-calls",
+    });
+    expect(result.pendingHistoryAskState).toBe("input-available");
+    expect(result.answerResumeStatus).toBe(200);
+    expect(result.answerResumeText).toContain(
+      "I received your answer: a reliable handoff.",
+    );
+    expect(result.answerResumeFinish).toEqual({
       type: "finish",
       finishReason: "stop",
     });
     expect(result.retriedStatus).toBe(200);
     expect(result.retriedResumeStatus).toBe(200);
     expect(result.historyUserEntryCount).toBe(1);
-    expect(result.historyClientToolResultCount).toBe(1);
+    expect(result.historyClientToolResultCount).toBe(2);
 
     expect(result.historyGetStatus).toBe(200);
     expect(result.historyUserText).toContain(
-      "Run the FE-1435 transport probe.",
+      "Start an interview and run the FE-1435 transport probe.",
     );
     expect(result.foreignHistoryMessages).toBe(0);
     expect(result.unauthenticatedHistoryStatus).toBe(401);
     expect(result.foreignAgentHistoryStatus).toBe(403);
-    expect(result.transcript).toContain("Run the FE-1435 transport probe.");
+    expect(result.transcript).toContain(
+      "Start an interview and run the FE-1435 transport probe.",
+    );
     expect(result.transcript).toContain("Checking the server, then the docs.");
     expect(result.transcript).toContain("tool ping");
     expect(result.transcript).toContain("tool readPetrinautDoc");
+    expect(result.transcript).toContain("tool brunch_ask");
+    expect(result.transcript).toContain(
+      '"output":{"answer":"A reliable handoff."}',
+    );
     expect(result.transcript).toContain("tool activate_skill");
     expect(result.transcript).toContain(
       "The assistant can read its own documentation pages.",
@@ -107,20 +129,21 @@ test("the committed /api/chat door streams a plain Flue agent through server and
       toolName: "activate_skill",
       input: { name: "confirm-path" },
     });
-    expect(result.interviewerToolNames).toContain("activate_skill");
-    expect(result.interviewerToolNames).toContain("ping");
-    expect(result.interviewerToolNames).toContain("readPetrinautDoc");
-    expect(result.interviewerToolNames).not.toContain("sweep");
-    expect(result.interviewerToolNames).not.toContain("brunch_sweep");
+    expect(result.interviewerToolNames).toEqual([
+      "activate_skill",
+      "ping",
+      "readPetrinautDoc",
+      "brunch_ask",
+    ]);
     expect(result.captureIds.length).toBe(1);
     expect(result.captureExcerpts).toEqual([
-      "Run the FE-1435 transport probe.",
+      "Start an interview and run the FE-1435 transport probe.",
     ]);
     expect(result.capturePayloads).toEqual([{}]);
     expect(result.recaptureIds).toEqual(result.captureIds);
     expect(result.skippedDedupKeys.length).toBeGreaterThan(0);
     expect(result.captureUserText).toContain(
-      "Run the FE-1435 transport probe.",
+      "Start an interview and run the FE-1435 transport probe.",
     );
 
     expect(inspectionLines[0]).toMatchObject({
@@ -145,6 +168,11 @@ test("the committed /api/chat door streams a plain Flue agent through server and
       },
       {
         type: "request-finish",
+        requestId: "request-mission-1-ask-resume",
+        terminal: "completed",
+      },
+      {
+        type: "request-finish",
         requestId: "request-mission-1-resume-retry",
         terminal: "completed",
       },
@@ -156,7 +184,7 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     ]);
     expect(
       inspectionLines.filter((event) => event.type === "history-read"),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
 
     const resumed = await runNodeScript(
       join(testDirectory, "petrinaut-chat.integration.ts"),
@@ -176,10 +204,11 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     ) as PetrinautResumeResult;
     expect(resumeResult.historyGetStatus).toBe(200);
     expect(resumeResult.historyUserText).toContain(
-      "Run the FE-1435 transport probe.",
+      "Start an interview and run the FE-1435 transport probe.",
     );
     expect(resumeResult.transcript).toContain("tool ping");
     expect(resumeResult.transcript).toContain("tool readPetrinautDoc");
+    expect(resumeResult.transcript).toContain("tool brunch_ask");
     expect(resumeResult.transcript).toContain("tool activate_skill");
   } finally {
     await rm(dbDirectory, { recursive: true, force: true });
