@@ -1,12 +1,13 @@
-import { tokenWordCount } from "../eligibility";
 /**
  * How a run's state, and each token within it, is laid out in u32 words.
  *
  * A token's words are its `real` attributes as f32 bit patterns, then its
  * `integer`/`boolean` attributes as u32. Every read and write of an attribute
- * — in the shader and on the host — goes through this module, so a wider
- * attribute type is added here and nowhere else.
+ * — in the shader and on the host — goes through this module; a wider
+ * attribute type changes its word encoding here and its admission in
+ * `eligibility.ts`.
  */
+import { tokenWordCount } from "../eligibility";
 import { WgslBailError } from "../emit-wgsl";
 
 import type { InitialMarking } from "../../simulation/api";

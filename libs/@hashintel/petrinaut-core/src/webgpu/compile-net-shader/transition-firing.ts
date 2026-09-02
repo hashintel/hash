@@ -4,16 +4,13 @@
  * Enabledness is structural (arc weights, inhibitors, capacity) and then the
  * lambda's say. A typed input needs a *choice* of tokens: the CPU walks
  * `indexCombinations` and fires on the first passing combination, so the
- * shader scans candidates in that same order. One typed input place is
- * supported; several would enumerate the Cartesian product of their
- * combinations, which is a mixed-radix scan over per-place counts, and it
- * would land in this module.
+ * shader scans candidates in that same order.
  */
 import { buildLambdaContext } from "../../hir/surface-context";
-import { emitPairScanWgsl } from "./pair-selection";
 import { computeTransitionCapacityConstraints } from "../../simulation/engine/capacity";
 import { WgslBailError, WgslEmitter } from "../emit-wgsl";
 import { commentSafe } from "../wgsl-identifiers";
+import { emitPairScanWgsl } from "./pair-selection";
 import {
   makeTokenReader,
   tokenSlotExpr,

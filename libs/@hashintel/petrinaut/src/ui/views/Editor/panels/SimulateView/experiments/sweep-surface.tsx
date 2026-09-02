@@ -47,8 +47,8 @@ import type {
 const SURFACE_CHUNK_CELLS = 24;
 
 /**
- * Chunks in flight at once. The session holds four background-batch slots;
- * keeping one in reserve leaves navigator-click refinement a lane of its own.
+ * Chunks in flight at once. Wide background lanes each take a third of the
+ * worker pool, so three of them fill it.
  */
 const SURFACE_LANES = 3;
 

@@ -71,9 +71,9 @@ experiment's max time.
 
 ## Where the pieces live
 
-- The session and its private pieces (selection keys and range draws, the
-  batch registry, the throttle) sit next to `sweep-session.ts` in
-  [react.experiments](layer:react.experiments).
+- The session's private pieces (selection keys and range draws, cell
+  batching, the batch registry, the throttle) sit next to `sweep-session.ts`
+  in [react.experiments.sweep](layer:react.experiments.sweep).
 - The provider's backend lanes, the detached objective sampler used by the
   optimization surface, experiment creation and record patching sit under
   `provider/`.

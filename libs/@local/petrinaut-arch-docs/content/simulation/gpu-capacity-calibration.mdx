@@ -102,7 +102,7 @@ first skip the device request, the shader compile, and the window probe.
 
 ## The preview tile
 
-A streamed experiment's first tile is small (`GPU_PREVIEW_TILE_RUNS`, 128):
+A streamed experiment's first tile is small (`GPU_PREVIEW_RUNS`, 128):
 every tile re-delivers the whole time axis cumulatively, so a fast first
 tile puts a statistically usable picture on screen while the bulk still
 computes — the GPU's version of the ladder's first rung. Seeds derive from
