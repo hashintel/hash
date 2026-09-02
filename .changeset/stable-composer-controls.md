@@ -39,3 +39,11 @@ End Voice mode before submitting typed text exactly once through the shared comp
 draft if handoff fails. Pause active media before the AI panel closes and reopen the mounted session
 paused. Provisional transcription and Realtime audio remain ephemeral rather than becoming
 persisted chat history.
+
+Prepare concise spoken context within a strict 50-word budget while preserving Brunch's exact
+protected question, which application code appends unchanged for tool-disabled audio rendering.
+Fall back to canonical context and question whenever preparation is unavailable, invalid, or times
+out.
+
+Add canonical replay controls for repeating the question or reading the full response without
+speech preparation.

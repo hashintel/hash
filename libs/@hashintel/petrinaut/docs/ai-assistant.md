@@ -77,10 +77,16 @@ composer or first-run prompt ends Voice mode before it sends the message once th
 conversation; repeated send actions are ignored while that short handoff completes.
 
 The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the
-authority on your system. Brunch still chooses every question and interview decision; OpenAI only
-delivers its words. The question and finalized response shown in the Petrinaut conversation are
-authoritative. Spoken audio is generated from that Brunch text but may not be verbatim. Interrupting
-audio does not undo the visible response or change the interview's saved history.
+authority on your system. Brunch still chooses every question and interview decision. Its exact
+question and canonical response in the conversation remain unchanged and authoritative. Voice may
+prepare a shorter context for listening, with a strict 50-word allowance that includes the protected
+question. The exact question is always appended to that context before it is spoken. If preparation
+is unavailable, invalid, or takes too long, Voice reads Brunch's canonical context and question.
+Preparation and generated audio are ephemeral and never become chat history.
+
+Beside **Show transcription in chat**, the compact **Voice playback options** menu offers **Repeat
+question** and **Read full response**. These replay Brunch's exact canonical question or its canonical
+context and question, bypassing preparation.
 
 Closing the AI panel pauses microphone capture and active speech, then hides the dock until you
 reopen the panel. The same mounted session stays paused; choose **Resume voice mode** when you are
