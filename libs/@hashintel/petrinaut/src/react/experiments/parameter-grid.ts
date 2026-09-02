@@ -220,7 +220,12 @@ export function normalizeSweepSelection(
   );
 }
 
-const HALTON_BASES = [2, 3, 5, 7, 11, 13, 17, 19];
+// One prime base per swept axis: two axes sharing a base would draw along a
+// diagonal. A sweep can range every scenario parameter, so the list is long.
+const HALTON_BASES = [
+  2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71,
+  73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131,
+];
 
 /** Radical inverse of `index` in `base` — the Halton sequence's coordinate. */
 function radicalInverse(index: number, base: number): number {
