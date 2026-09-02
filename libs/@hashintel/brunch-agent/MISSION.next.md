@@ -369,32 +369,59 @@ Material was removed only where the deployment branch's observed application art
 
 ## Planning-split close record
 
-Outcome: **planning split completed on 2026-09-02 against fixed point `06ed66c083`.** That commit is the reproducible before-state containing the committed side-quest contract and the old `MISSION.next.md`.
+Outcome: **planning split completed and remediated on 2026-09-02 from `06ed66c083` to `f7175531c767c87f880d7def5321b1564a62a1e7`.** These immutable commits are respectively the before-state containing the side-quest contract and the reviewed split result.
 
-Semantic review identity and result: the 2026-09-02 orchestrating-agent consolidated review against `06ed66c083` accepted the architecture, topology, preservation work, Mission 8 account, and expeditionary posture, then required the five focused corrections now reflected here. The implementation-side cold reviews are contemporaneous supporting evidence, not a durable oracle: after correction they reported no remaining blocker, including Mission 9's consumer-defined full-model broadening and fog-line. The reproducible semantic review packet is `06ed66c083`'s `SIDE_QUEST.md` and `MISSION.next.md` versus current `AGENTS.md`, `MISSION.next.md`, and all five files under `docs/mission-drafts/`; the checklist is the migration ledger categories above plus authority, Mission 8 truth, line/readiness separation, Mission 9 broadening/fog, and draft lifecycle ownership.
+Semantic review accepted the authority topology, full-fidelity migration, Mission 8 account, throughline/readiness separation, Mission 9 horizon, expeditionary posture, and draft lifecycle after restoring omitted Mission 4 decisions, pinning deployment evidence, and correcting the immutable proof boundary. The review packet is the before-state `SIDE_QUEST.md` and `MISSION.next.md` versus the result's `AGENTS.md`, `MISSION.next.md`, and `docs/mission-drafts/`; the checklist is the migration ledger above plus those named concerns.
 
 Reproducible commands, run from the repository root:
 
 ```shell
 ROOT="libs/@hashintel/brunch-agent"
-git show 06ed66c083:"$ROOT/SIDE_QUEST.md" >/dev/null
-git show 06ed66c083:"$ROOT/MISSION.next.md" >/dev/null
-git diff --no-ext-diff 06ed66c083 -- "$ROOT/AGENTS.md" "$ROOT/MISSION.next.md" "$ROOT/docs/mission-drafts"
-git status --short -- "$ROOT/docs/mission-drafts"
+BEFORE=06ed66c083
+RESULT=f7175531c767c87f880d7def5321b1564a62a1e7
 
-actual=$(for draft in "$ROOT"/docs/mission-drafts/[0-9]-*.md; do basename "$draft"; done)
+# The side-quest contract exists only in the before-state; protected authority/archive files are byte-identical.
+git cat-file -e "$BEFORE:$ROOT/SIDE_QUEST.md"
+! git cat-file -e "$RESULT:$ROOT/SIDE_QUEST.md" 2>/dev/null
+git diff --exit-code "$BEFORE" "$RESULT" -- "$ROOT/MISSION.md" "$ROOT/docs/mission-archive/"
+
+# The immutable result has exactly the four numbered drafts, all warnings, and no live-authority headings.
+actual=$(git ls-tree -r --name-only "$RESULT" -- "$ROOT/docs/mission-drafts/" | awk -F/ '$NF ~ /^[0-9]+-.*\.md$/ {print $NF}')
 expected=$'5-capture-backed-review.md\n6-traceable-projection.md\n7-bounded-reviewer-revision.md\n9-optimisation-handoff.md'
 test "$actual" = "$expected"
-test "$(rg -l '^> Draft cluster only\. Not execution authority\. Do not implement until this cluster is re-evaluated and cut into `MISSION\.md`\.$' "$ROOT"/docs/mission-drafts/[0-9]-*.md | wc -l | tr -d ' ')" = 4
-test -z "$(rg -l '^## (Status|Imperative|Proof)$' "$ROOT"/docs/mission-drafts/[0-9]-*.md)"
-python3 -c 'from pathlib import Path; from urllib.parse import unquote; import re; root=Path("libs/@hashintel/brunch-agent"); files=[root/"AGENTS.md",root/"MISSION.next.md",*(sorted((root/"docs/mission-drafts").glob("*.md")))]; links=[(f,t) for f in files for t in re.findall(r"(?<!!)\[[^]]+\]\(([^)#]+)(?:#[^)]+)?\)",f.read_text()) if "://" not in t and not t.startswith("mailto:")]; broken=[(str(f),t) for f,t in links if not (f.parent/unquote(t)).resolve().exists()]; print(f"relative links: checked={len(links)} broken={len(broken)}"); assert not broken, broken'
-shasum -a 256 "$ROOT/MISSION.md"
-git diff --exit-code -- "$ROOT/MISSION.md"
-test -z "$(git status --short -- "$ROOT/docs/mission-archive")"
-git diff --check -- "$ROOT"
-yarn lint:format
+test "$(git grep -l -E '^> Draft cluster only\. Not execution authority\. Do not implement until this cluster is re-evaluated and cut into `MISSION\.md`\.$' "$RESULT" -- ":(glob)$ROOT/docs/mission-drafts/[0-9]-*.md" | wc -l | tr -d ' ')" = 4
+! git grep -E '^## (Status|Imperative|Proof)$' "$RESULT" -- ":(glob)$ROOT/docs/mission-drafts/[0-9]-*.md"
+git diff --check "$BEFORE" "$RESULT"
+
+# Relative links resolve inside the immutable result rather than the mutable working tree.
+RESULT="$RESULT" python3 - <<'PY'
+from pathlib import PurePosixPath
+from urllib.parse import unquote
+import os, re, subprocess
+
+result = os.environ["RESULT"]
+root = PurePosixPath("libs/@hashintel/brunch-agent")
+listed = subprocess.check_output(["git", "ls-tree", "-r", "--name-only", result, "--", str(root / "docs/mission-drafts")], text=True).splitlines()
+files = [root / "AGENTS.md", root / "MISSION.next.md", *[PurePosixPath(path) for path in listed if path.endswith(".md")]]
+broken = []
+checked = 0
+for file in files:
+    text = subprocess.check_output(["git", "show", f"{result}:{file}"], text=True)
+    for target in re.findall(r"(?<!!)\[[^]]+\]\(([^)#]+)(?:#[^)]+)?\)", text):
+        if "://" in target or target.startswith("mailto:"):
+            continue
+        checked += 1
+        parts = []
+        for part in (file.parent / PurePosixPath(unquote(target))).parts:
+            parts.pop() if part == ".." else parts.append(part)
+        destination = PurePosixPath(*parts)
+        if subprocess.run(["git", "cat-file", "-e", f"{result}:{destination}"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode:
+            broken.append((str(file), target))
+print(f"relative links: checked={checked} broken={len(broken)}")
+assert not broken, broken
+PY
 ```
 
-Observed results: the fixed-point packet resolves; the ledger comparison has no unexplained semantic loss or duplicate contract; exact drafts 5/6/7/9 and four warnings; no prohibited headings; 89 relative links and none broken; `MISSION.md` SHA-256 `ad7e22b5ff031a92f29a5c2f4fe3d64ece2253545a3dbf5f3e3f7669129c32b7` with no diff; clean archive status and scoped diff; formatting passed all 5,718 matched files.
+Observed results: the before/result packet resolves; `SIDE_QUEST.md` exists only before the result; `MISSION.md` and `docs/mission-archive/` are byte-identical; the result contains exactly drafts 5/6/7/9, four authority warnings, no prohibited headings, 89 relative links with none broken, and no whitespace error. Semantic review found no remaining unexplained loss, duplicate authority, false remote-deployment claim, line/readiness collapse, Mission 9 overcommitment, or lifecycle ambiguity.
 
-The temporary side quest was removed only after the result and review packet were recorded and the checks above passed. This is a non-authoritative close record: it does not close Mission 4, execute Missions 5–9, promote Mission 4's architecture, or claim Brunch is remotely deployed.
+This non-authoritative close record does not close Mission 4, execute Missions 5–9, promote Mission 4's architecture, or claim Brunch is remotely deployed.
