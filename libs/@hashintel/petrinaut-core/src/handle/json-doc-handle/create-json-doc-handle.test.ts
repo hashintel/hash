@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { ticketProcessingSDCPN } from "../../examples";
 import { createPetrinaut } from "../../instance";
 import { createReadableStore } from "../../store";
 import { createJsonDocHandle } from "./create-json-doc-handle";
@@ -94,6 +95,20 @@ describe("createJsonDocHandle", () => {
       expect(reopened.doc()).toStrictEqual(initial);
     },
   );
+
+  it("keeps the identities and status views of the initial document", () => {
+    const handle = createJsonDocHandle({
+      initial: ticketProcessingSDCPN.petriNetDefinition,
+    });
+
+    const doc = handle.doc()!;
+
+    expect(doc.identities).toHaveLength(1);
+    expect(doc.statusViews).toHaveLength(1);
+    expect(doc.statusViews![0]!.id).toBe(
+      ticketProcessingSDCPN.petriNetDefinition.statusViews![0]!.id,
+    );
+  });
 
   it("emits a change event with patches on mutation", () => {
     const handle = createJsonDocHandle({ initial: empty() });
