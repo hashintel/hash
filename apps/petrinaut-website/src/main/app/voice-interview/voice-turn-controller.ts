@@ -22,6 +22,13 @@ export type VoiceOutputState =
   | "speaking"
   | "interrupted";
 export type VoiceAnswerDelivery = "none" | "pending" | "delivered" | "failed";
+/**
+ * Recoverable notice about the user's last utterance. `not-heard` means the
+ * audio produced no usable transcript (silence, noise, or a transcription
+ * failure): nothing was submitted and the session is listening again. It clears
+ * as soon as the user starts speaking.
+ */
+export type VoiceInputNotice = "none" | "not-heard";
 
 export interface VoiceTurnSnapshot {
   readonly canReadFullResponse: boolean;
@@ -33,6 +40,7 @@ export interface VoiceTurnSnapshot {
   readonly errorMessage: string;
   readonly errorRequestId: string;
   readonly input: VoiceInputState;
+  readonly inputNotice: VoiceInputNotice;
   readonly lastAnswerDelivery: VoiceAnswerDelivery;
   readonly lastCommittedText: string;
   readonly microphoneEnabled: boolean;
@@ -102,6 +110,7 @@ const initialSnapshot: VoiceTurnSnapshot = {
   errorMessage: "",
   errorRequestId: "",
   input: "paused",
+  inputNotice: "none",
   lastAnswerDelivery: "none",
   lastCommittedText: "",
   microphoneEnabled: false,
@@ -446,11 +455,22 @@ export class VoiceTurnController {
       this.#transcriptKey = null;
       this.#update({
         input: paused ? "paused" : "submitting",
+        inputNotice: "none",
         lastAnswerDelivery: "pending",
         lastCommittedText: event.answer,
         output: "waiting-for-tool",
         partialText: "",
       });
+      return;
+    }
+    if (event.type === "transcript-rejected") {
+      // Nothing was submitted, so the interview is unchanged. Silence, noise,
+      // or a transcription failure is surfaced as a recoverable notice; other
+      // rejections (duplicate redelivery, overlap with an in-flight answer)
+      // are diagnostics only.
+      if (event.reason === "empty" || event.reason === "failed") {
+        this.#update({ inputNotice: "not-heard", partialText: "" });
+      }
       return;
     }
     if (event.type === "submission-accepted") {
@@ -541,9 +561,13 @@ export class VoiceTurnController {
       this.#transcriptItemId = event.itemId;
       this.#transcriptKey = null;
       if (this.#snapshot.output !== "idle") {
-        this.#update({ output: "interrupted", partialText: "" });
+        this.#update({
+          inputNotice: "none",
+          output: "interrupted",
+          partialText: "",
+        });
       } else {
-        this.#update({ partialText: "" });
+        this.#update({ inputNotice: "none", partialText: "" });
       }
       return;
     }
@@ -560,11 +584,7 @@ export class VoiceTurnController {
       }
       return;
     }
-    if (
-      event.type === "input-speech-stopped" ||
-      event.type === "tool-arguments-delta" ||
-      event.type === "tool-arguments-done"
-    ) {
+    if (event.type === "input-speech-stopped") {
       return;
     }
 

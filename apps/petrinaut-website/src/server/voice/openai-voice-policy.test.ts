@@ -47,17 +47,17 @@ describe("OpenAI voice policy", () => {
   });
 
   test("owns the trusted GPT-Realtime-2 duplex session policy", () => {
-    expect(OPENAI_REALTIME_POLICY_VERSION).toBe("brunch-control-plane-v1");
+    expect(OPENAI_REALTIME_POLICY_VERSION).toBe("brunch-control-plane-v2");
     expect(createOpenAIRealtimeSession()).toEqual({
       type: "realtime",
       model: "gpt-realtime-2",
       output_modalities: ["audio"],
       reasoning: { effort: "low" },
       parallel_tool_calls: false,
-      tool_choice: "required",
+      tool_choice: "none",
       instructions: `# Role and objective
 
-You are the realtime voice of an expert interviewer for process-model elicitation. The person speaking is the domain expert. Listen attentively, submit each complete spoken answer to Brunch, and deliver Brunch's next interview turn.
+You are the realtime voice of an expert interviewer for process-model elicitation. The person speaking is the domain expert. Petrinaut listens to them and submits their words to Brunch; your only job is to deliver Brunch's interview turns aloud when Petrinaut asks you to.
 
 # Personality and delivery
 
@@ -65,29 +65,16 @@ Sound warm, calm, curious, confident, concise, and professionally neutral. Speak
 
 # Authority
 
-Brunch is the sole authority for interview state, questions, captures, completion, and business decisions. You must never invent, change, summarize, or answer an interview question yourself.
+Brunch is the sole authority for interview state, questions, captures, completion, and business decisions. You must never invent, change, summarize, or answer an interview question yourself. You must never restate, guess, or fill in what the speaker said.
 
 # Turn handling
 
-After semantic turn detection finds that the user has finished a complete spoken answer, call continue_interview exactly once with that answer. Do not speak, emit a preamble, or emit conversational text before calling the tool.
+Never respond on your own after the speaker stops talking. Petrinaut transcribes their words and decides what happens next. Do not speak, acknowledge, emit a preamble, or call any tool between the speaker's turns.
 
 # Canonical output
 
-After the tool result arrives, speak only its response_text strings, in array order and verbatim. Do not add, remove, paraphrase, acknowledge, or explain anything. Never call another tool while speaking a tool result.`,
-      tools: [
-        {
-          type: "function",
-          name: "continue_interview",
-          description:
-            "Submit the user's complete spoken answer to the authoritative Brunch interview.",
-          parameters: {
-            type: "object",
-            additionalProperties: false,
-            properties: { answer: { type: "string" } },
-            required: ["answer"],
-          },
-        },
-      ],
+When Petrinaut supplies response_text, speak only those strings, in array order and verbatim. Do not add, remove, paraphrase, acknowledge, or explain anything.`,
+      tools: [],
       audio: {
         input: {
           noise_reduction: { type: "far_field" },
@@ -100,7 +87,7 @@ After the tool result arrives, speak only its response_text strings, in array or
           turn_detection: {
             type: "semantic_vad",
             eagerness: "low",
-            create_response: true,
+            create_response: false,
             interrupt_response: true,
           },
         },
@@ -109,12 +96,17 @@ After the tool result arrives, speak only its response_text strings, in array or
     });
   });
 
-  test("allows no provider-owned interview decisions or unrestricted tools", () => {
-    const serializedPolicy = JSON.stringify(createOpenAIRealtimeSession());
+  test("lets Realtime neither answer for the user nor call tools between turns", () => {
+    const policy = createOpenAIRealtimeSession();
+    const serializedPolicy = JSON.stringify(policy);
 
     expect(serializedPolicy).not.toContain("response.create");
     expect(serializedPolicy).not.toContain("gpt-realtime-1.5");
+    expect(serializedPolicy).not.toContain("continue_interview");
     expect(serializedPolicy).not.toContain('"tool_choice":"auto"');
-    expect(createOpenAIRealtimeSession().tools).toHaveLength(1);
+    expect(serializedPolicy).not.toContain('"tool_choice":"required"');
+    expect(policy.tools).toHaveLength(0);
+    expect(policy.audio.input.turn_detection.create_response).toBe(false);
+    expect(policy.audio.input.transcription.model).toBe("gpt-4o-transcribe");
   });
 });

@@ -113,10 +113,16 @@ eagerness so natural thinking pauses are less likely to end an answer early.
 Realtime is the disposable media plane: it carries continuous microphone and
 remote audio, detects complete turns, and handles barge-in. Brunch remains the
 control plane and sole authority for questions, captures, state, completion,
-and durable history. The browser bridge accepts only the configured
-`continue_interview` function, validates and serializes its arguments, rejects
-duplicate or stale calls, and submits the answer through Petrinaut's shared
-composer path with pending-`brunch_ask` correlation.
+and durable history. The completed `gpt-4o-transcribe` transcript of the
+speaker's audio is the only source of user answers: semantic VAD commits the
+audio without asking the model to respond, the session exposes no tools, and
+the model never infers or paraphrases what the speaker said. The browser bridge
+normalizes whitespace, submits each completed transcript exactly once (keyed by
+connection, item, and content index), ignores empty, duplicate, stale, or failed
+transcripts, and submits the accepted text through Petrinaut's shared composer
+path with pending-`brunch_ask` correlation and voice provenance. Silence, noise,
+or a transcription failure creates no user message; the session returns to
+listening and reports a recoverable "didn't catch that" notice.
 
 The experimental **Approach D** design waits for the correlated Brunch turn,
 then gives Realtime two bounded roles. First, an out-of-band, text-only request

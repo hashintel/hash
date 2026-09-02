@@ -143,7 +143,7 @@ const fallbackMessages = [
 ] satisfies PetrinautAiMessage[];
 
 describe("controlled voice preview", () => {
-  test("bridges one Realtime tool call through Brunch and back to canonical duplex audio", async () => {
+  test("bridges one completed user transcript through Brunch and back to canonical duplex audio", async () => {
     const responseMessagesSnapshot = structuredClone(responseMessages);
     const diagnostics: VoiceDiagnosticEvent[] = [];
     const reportDiagnostic = (event: VoiceDiagnosticEvent) =>
@@ -293,43 +293,69 @@ describe("controlled voice preview", () => {
       output: "interrupted",
     });
 
+    // Silence or noise: Realtime completes an empty transcript. Nothing is
+    // submitted and the session keeps listening with a recoverable notice.
+    dataChannel.receive({
+      content_index: 0,
+      item_id: "noise-item",
+      transcript: "   ",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    await Promise.resolve();
+    expect(submitInterviewAnswer).not.toHaveBeenCalled();
+    expect(controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      inputNotice: "not-heard",
+      lastCommittedText: "",
+    });
+
+    // A legacy model-generated tool argument stream must never become speech.
     dataChannel.receive({
       call_id: "call-1",
-      delta: `{"answer":"${spokenAnswer}"}`,
+      delta: '{"answer":"hi"}',
       item_id: "function-item-1",
       output_index: 0,
       response_id: "response-tool-1",
       type: "response.function_call_arguments.delta",
     });
+    await Promise.resolve();
+    expect(submitInterviewAnswer).not.toHaveBeenCalled();
+
     dataChannel.receive({
-      response: {
-        id: "response-tool-1",
-        output: [
-          {
-            arguments: `{"answer":"${spokenAnswer}"}`,
-            call_id: "call-1",
-            id: "function-item-1",
-            name: "continue_interview",
-            status: "completed",
-            type: "function_call",
-          },
-        ],
-        status: "completed",
-      },
-      type: "response.done",
+      content_index: 0,
+      delta: "The supervisor",
+      item_id: "user-item",
+      type: "conversation.item.input_audio_transcription.delta",
+    });
+    expect(controller.getSnapshot().partialText).toBe("The supervisor");
+    dataChannel.receive({
+      content_index: 0,
+      item_id: "user-item",
+      transcript: spokenAnswer,
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    dataChannel.receive({
+      content_index: 0,
+      item_id: "user-item",
+      transcript: spokenAnswer,
+      type: "conversation.item.input_audio_transcription.completed",
     });
 
     await vi.waitFor(() =>
       expect(submitInterviewAnswer).toHaveBeenCalledWith({
-        id: "voice-realtime:1:call-1",
+        id: "voice-realtime:1:user-item:0",
         text: spokenAnswer,
       }),
     );
+    expect(submitInterviewAnswer).toHaveBeenCalledOnce();
     expect(controller.getSnapshot()).toMatchObject({
       input: "submitting",
+      inputNotice: "none",
       lastAnswerDelivery: "delivered",
+      lastCommittedText: spokenAnswer,
       microphoneEnabled: true,
       output: "waiting-for-tool",
+      partialText: "",
     });
 
     const pendingSpeech = selectInterviewSpeech(initialMessages);
@@ -396,35 +422,32 @@ describe("controlled voice preview", () => {
     });
 
     await vi.waitFor(() =>
-      expect(sentEvents(dataChannel)).toContainEqual(
-        expect.objectContaining({ type: "conversation.item.create" }),
-      ),
+      expect(sentEvents(dataChannel).at(-1)).toMatchObject({
+        response: { metadata: { petrinaut_kind: "canonical-speech" } },
+        type: "response.create",
+      }),
     );
 
-    const [functionOutput, responseCreate] = sentEvents(dataChannel).slice(-2);
-    expect(functionOutput).toEqual({
-      type: "conversation.item.create",
-      item: {
-        type: "function_call_output",
-        call_id: "call-1",
-        output: JSON.stringify({
-          response_text: [preparedReply, canonicalQuestion],
-        }),
-      },
-    });
+    const responseCreate = sentEvents(dataChannel).at(-1)!;
     expect(responseCreate).toMatchObject({
       type: "response.create",
       response: {
+        conversation: "none",
         output_modalities: ["audio"],
         tool_choice: "none",
         tools: [],
       },
     });
-    expect(JSON.stringify([functionOutput, responseCreate])).not.toContain(
-      toolMetadata,
-    );
-    expect(JSON.stringify([functionOutput, responseCreate])).not.toContain(
-      toolError,
+    const speechResponse = responseCreate.response as {
+      input: Array<{ content: Array<{ text: string }> }>;
+    };
+    expect(JSON.parse(speechResponse.input[0]!.content[0]!.text)).toEqual({
+      response_text: [preparedReply, canonicalQuestion],
+    });
+    expect(JSON.stringify(responseCreate)).not.toContain(toolMetadata);
+    expect(JSON.stringify(responseCreate)).not.toContain(toolError);
+    expect(sentEvents(dataChannel)).not.toContainEqual(
+      expect.objectContaining({ type: "conversation.item.create" }),
     );
 
     authorizeLatestSpeechResponse(dataChannel, "response-canonical-reply");
@@ -563,6 +586,35 @@ describe("controlled voice preview", () => {
     ).toEqual({ response_text: [fallbackReply, fallbackQuestion] });
     expect(responseMessages).toEqual(responseMessagesSnapshot);
 
+    // A fabricated `continue_interview` call from Realtime fails closed: the
+    // session disconnects rather than letting the argument become an answer.
+    dataChannel.receive({
+      response: {
+        id: "response-fabricated-tool",
+        output: [
+          {
+            arguments: '{"answer":"one"}',
+            call_id: "call-fabricated",
+            id: "function-item-fabricated",
+            name: "continue_interview",
+            status: "completed",
+            type: "function_call",
+          },
+        ],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+    await Promise.resolve();
+    expect(submitInterviewAnswer).toHaveBeenCalledOnce();
+    expect(controller.getSnapshot()).toMatchObject({
+      connection: "error",
+      errorCode: "invalid-response",
+    });
+    expect(sentEvents(dataChannel)).not.toContainEqual(
+      expect.objectContaining({ type: "conversation.item.create" }),
+    );
+
     expect(browserRequests).toEqual([
       {
         path: "/api/voice/realtime-call",
@@ -580,7 +632,7 @@ describe("controlled voice preview", () => {
           turn_detection: {
             type: "semantic_vad",
             eagerness: "low",
-            create_response: true,
+            create_response: false,
             interrupt_response: true,
           },
         },

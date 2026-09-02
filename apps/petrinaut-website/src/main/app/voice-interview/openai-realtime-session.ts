@@ -19,13 +19,11 @@ export interface OpenAIRealtimeTranscriptKey {
   readonly itemId: string;
 }
 
-interface RealtimeToolEventIdentity {
-  readonly callId: string;
-  readonly connectionEpoch: number;
-  readonly itemId: string;
-  readonly responseId: string;
-}
-
+/**
+ * Events the browser control plane consumes. Completed `input_audio_transcription`
+ * transcripts (`type: "completed"`) are the only source of the user's words:
+ * the session never exposes model-generated output as user speech.
+ */
 export type OpenAIRealtimeSessionEvent =
   | {
       readonly key: OpenAIRealtimeTranscriptKey;
@@ -68,15 +66,6 @@ export type OpenAIRealtimeSessionEvent =
       readonly status: "cancelled" | "completed" | "failed" | "incomplete";
       readonly type: "response-terminal";
     }
-  | (RealtimeToolEventIdentity & {
-      readonly delta: string;
-      readonly type: "tool-arguments-delta";
-    })
-  | (RealtimeToolEventIdentity & {
-      readonly arguments: string;
-      readonly name: string;
-      readonly type: "tool-arguments-done";
-    })
   | {
       readonly code: VoiceErrorCode;
       readonly message: string;
@@ -473,37 +462,11 @@ export class OpenAIRealtimeSession {
   }
 
   public speakCanonical(segments: CanonicalSpeechSegment[]): void {
-    this.#requestSpeech(this.#canonicalResponseText(segments), true);
+    this.#requestSpeech(this.#canonicalResponseText(segments));
   }
 
   public speakPrepared(responseText: readonly string[]): void {
-    this.#requestSpeech(this.#validResponseText(responseText), true);
-  }
-
-  public completeFunctionCall(
-    callId: string,
-    responseTextInput: readonly string[],
-    {
-      speakResponse = true,
-    }: {
-      readonly speakResponse?: boolean;
-    } = {},
-  ): void {
-    if (!callId) {
-      throw new VoiceError("speech", "invalid-response", "");
-    }
-    const responseText = this.#validResponseText(responseTextInput);
-    this.#send({
-      type: "conversation.item.create",
-      item: {
-        type: "function_call_output",
-        call_id: callId,
-        output: JSON.stringify({ response_text: responseText }),
-      },
-    });
-    if (speakResponse) {
-      this.#requestSpeech(responseText, false);
-    }
+    this.#requestSpeech(this.#validResponseText(responseText));
   }
 
   public prepareInterviewSpeech(
@@ -682,7 +645,12 @@ export class OpenAIRealtimeSession {
     return responseText;
   }
 
-  #requestSpeech(responseText: string[], outOfBand: boolean): void {
+  /**
+   * Every spoken response is out of band (`conversation: "none"`) with tools
+   * disabled, so Realtime only ever renders text Petrinaut supplied and never
+   * continues the conversation on its own.
+   */
+  #requestSpeech(responseText: string[]): void {
     const speechRequestId = `canonical-${this.#activeEpoch}-${++this.#speechRequestSequence}`;
     this.#pendingSpeechRequests.set(speechRequestId, {
       requestId:
@@ -690,23 +658,19 @@ export class OpenAIRealtimeSession {
       startedAt: this.#now(),
     });
     const response = {
-      ...(outOfBand
-        ? {
-            conversation: "none",
-            input: [
-              {
-                type: "message",
-                role: "system",
-                content: [
-                  {
-                    type: "input_text",
-                    text: JSON.stringify({ response_text: responseText }),
-                  },
-                ],
-              },
-            ],
-          }
-        : {}),
+      conversation: "none",
+      input: [
+        {
+          type: "message",
+          role: "system",
+          content: [
+            {
+              type: "input_text",
+              text: JSON.stringify({ response_text: responseText }),
+            },
+          ],
+        },
+      ],
       instructions: CANONICAL_RESPONSE_INSTRUCTIONS,
       output_modalities: ["audio"],
       parallel_tool_calls: false,
@@ -855,10 +819,6 @@ export class OpenAIRealtimeSession {
       parsed.type === "output_audio_buffer.stopped"
     ) {
       this.#handleOutputBufferEvent(parsed, connectionEpoch);
-      return;
-    }
-    if (parsed.type === "response.function_call_arguments.delta") {
-      this.#handleToolEvent(parsed, connectionEpoch);
       return;
     }
     if (
@@ -1112,43 +1072,12 @@ export class OpenAIRealtimeSession {
         this.#handleConnectionFailure("invalid-response", "connection");
         return;
       }
-      const functionCalls = output
-        .map(asRecord)
-        .filter(
-          (item): item is Record<string, unknown> =>
-            item?.type === "function_call",
-        );
-      if (
-        functionCalls.length > 1 ||
-        (functionCalls.length > 0 && this.#canonicalResponseIds.has(responseId))
-      ) {
+      // The session exposes no tools, so a function call means the provider
+      // ignored the policy. Its arguments are model output, never the user's
+      // words, and must never reach the interview.
+      if (output.some((item) => asRecord(item)?.type === "function_call")) {
         this.#handleConnectionFailure("invalid-response", "connection");
         return;
-      }
-      for (const item of functionCalls) {
-        const argumentsJson = nonEmptyString(item.arguments);
-        const callId = nonEmptyString(item.call_id);
-        const itemId = nonEmptyString(item.id);
-        const name = nonEmptyString(item.name);
-        if (
-          !argumentsJson ||
-          !callId ||
-          !itemId ||
-          !name ||
-          (item.status !== undefined && item.status !== "completed")
-        ) {
-          this.#handleConnectionFailure("invalid-response", "connection");
-          return;
-        }
-        this.#emit({
-          arguments: argumentsJson,
-          callId,
-          connectionEpoch,
-          itemId,
-          name,
-          responseId,
-          type: "tool-arguments-done",
-        });
       }
       this.#emit({
         connectionEpoch,
@@ -1348,26 +1277,6 @@ export class OpenAIRealtimeSession {
     if (wasSpeaking) {
       this.#emit({ connectionEpoch, responseId, type: "output-stopped" });
     }
-  }
-
-  #handleToolEvent(
-    event: Record<string, unknown>,
-    connectionEpoch: number,
-  ): void {
-    const callId = nonEmptyString(event.call_id);
-    const itemId = nonEmptyString(event.item_id);
-    const responseId = nonEmptyString(event.response_id);
-    const outputIndex = nonNegativeInteger(event.output_index);
-    if (!callId || !itemId || !responseId || outputIndex === null) return;
-    if (typeof event.delta !== "string") return;
-    this.#emit({
-      callId,
-      connectionEpoch,
-      delta: event.delta,
-      itemId,
-      responseId,
-      type: "tool-arguments-delta",
-    });
   }
 
   #handleTranscriptEvent(
