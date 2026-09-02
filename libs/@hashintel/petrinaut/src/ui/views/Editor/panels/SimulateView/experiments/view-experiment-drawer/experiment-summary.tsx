@@ -124,12 +124,32 @@ const useNow = (active: boolean): number => {
   return now;
 };
 
-const Stat = ({ label, children }: { label: string; children: ReactNode }) => (
+const Stat = ({
+  label,
+  minChars,
+  children,
+}: {
+  label: string;
+  /** Reserve this many characters so a changing value never reflows the strip. */
+  minChars?: number;
+  children: ReactNode;
+}) => (
   <div className={statStyle}>
     <span className={statLabelStyle}>{label}</span>
-    <span className={statValueStyle}>{children}</span>
+    <span
+      className={statValueStyle}
+      style={minChars === undefined ? undefined : { minWidth: `${minChars}ch` }}
+    >
+      {children}
+    </span>
   </div>
 );
+
+/** Longest status label, so the strip never reflows as the status changes. */
+const STATUS_CHARS =
+  Math.max(
+    ...Object.values(STATUS_DISPLAY).map((entry) => entry.label.length),
+  ) + 2;
 
 export const ExperimentSummary = ({
   experiment,
@@ -145,26 +165,41 @@ export const ExperimentSummary = ({
     <div className={summaryStyle}>
       <div className={stripClipStyle}>
         <div className={stripStyle}>
-          <Stat label="Status">
+          <Stat label="Status" minChars={STATUS_CHARS}>
             <span className={statusDotStyle} data-tone={status.tone} />
             {status.label}
           </Stat>
           <Stat label="Scenario">{experiment.scenarioName ?? "Default"}</Stat>
-          <Stat label="Runs">
+          <Stat
+            label="Runs"
+            minChars={
+              `${experiment.runCount} active, ${experiment.runCount} complete`
+                .length
+            }
+          >
             {progress
               ? `${progress.activeRuns} active, ${progress.completedRuns} complete`
               : experiment.runCount}
           </Stat>
-          {(progress?.erroredRuns ?? 0) > 0 ? (
-            <Stat label="Errors">{progress?.erroredRuns}</Stat>
-          ) : null}
-          <Stat label="Time">
+          <Stat label="Errors" minChars={String(experiment.runCount).length}>
+            {progress?.erroredRuns ?? 0}
+          </Stat>
+          <Stat
+            label="Time"
+            minChars={
+              `${formatNumber(experiment.maxTime)} / ${formatNumber(experiment.maxTime)}`
+                .length
+            }
+          >
             {formatNumber(progress?.time ?? 0)} /{" "}
             {formatNumber(experiment.maxTime)}
           </Stat>
           {/* Wall-clock, as distinct from the simulated time; dashed out
               when stepping never began. */}
-          <Stat label={experiment.finishedAt === null ? "Elapsed" : "Duration"}>
+          <Stat
+            label={experiment.finishedAt === null ? "Elapsed" : "Duration"}
+            minChars={8}
+          >
             {elapsedMs === null ? "—" : formatDurationMs(elapsedMs)}
           </Stat>
         </div>

@@ -34,9 +34,14 @@ const controlLabelStyle = css({
 });
 
 const captionStyle = css({
+  display: "block",
+  minHeight: "[16px]",
   fontSize: "xs",
   color: "neutral.s80",
   fontVariantNumeric: "tabular-nums",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 });
 
 export const SurfaceFrame = ({ children }: { children: ReactNode }) => (

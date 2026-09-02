@@ -64,6 +64,13 @@ const describeComputeBackend = (experiment: ExperimentRecord): string => {
   return "Stepped on the CPU, across worker threads.";
 };
 
+// Keeps its footprint when a run can no longer be cancelled, so Remove and
+// Close do not slide when a run finishes.
+const cancelSlotStyle = css({
+  display: "inline-flex",
+  "&[data-hidden=true]": { visibility: "hidden" },
+});
+
 const ComputeBackendBadge = ({
   experiment,
 }: {
@@ -200,17 +207,22 @@ export const ViewExperimentDrawer = ({
             >
               Remove
             </Button>
-            {canCancel ? (
+            <span
+              className={cancelSlotStyle}
+              data-hidden={!canCancel}
+              aria-hidden={!canCancel}
+            >
               <Button
                 variant="subtle"
                 tone="neutral"
                 size="sm"
                 prefix={<Icon name="stop" size="sm" />}
+                disabled={!canCancel}
                 onClick={() => cancelExperiment(experiment.id)}
               >
                 Cancel
               </Button>
-            ) : null}
+            </span>
             <Button variant="solid" tone="neutral" size="sm" onClick={onClose}>
               Close
             </Button>

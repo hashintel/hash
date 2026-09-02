@@ -158,6 +158,7 @@ export const ExperimentMetricTimeline = ({
   displaySize,
   onDisplaySizeChange,
   label,
+  expectedOutputType,
   timeDomain,
   contentEpoch,
 }: {
@@ -171,6 +172,11 @@ export const ExperimentMetricTimeline = ({
    * shift. Without it, an empty component renders a plain placeholder.
    */
   label?: string;
+  /**
+   * The metric's declared output type, so the controls and chart shape are
+   * right before the first frame arrives instead of switching when it does.
+   */
+  expectedOutputType?: MetricFrame["outputType"];
   /**
    * Pins the x axis to this time window (typically `[0, maxTime]`). Without
    * it the axis fits the streamed frames and rescales as they arrive.
@@ -195,7 +201,8 @@ export const ExperimentMetricTimeline = ({
   if (latestFrame && latestFrame.outputType !== lastOutputType) {
     setLastOutputType(latestFrame.outputType);
   }
-  const outputType = latestFrame?.outputType ?? lastOutputType ?? "scalar";
+  const outputType =
+    latestFrame?.outputType ?? lastOutputType ?? expectedOutputType ?? "scalar";
   const timeDomainStart = timeDomain?.[0];
   const timeDomainEnd = timeDomain?.[1];
   const view = deriveMetricViewState({

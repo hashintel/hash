@@ -43,27 +43,24 @@ type MetricFrame = ExperimentRecord["metricFrames"][number];
 
 const metricTiles = (
   experiment: ExperimentRecord,
-): { id: string; label: string | undefined; frames: MetricFrame[] }[] => {
-  if (experiment.metricFrames.length === 0) {
-    return experiment.metricSpecs.map((spec) => ({
-      id: spec.id,
-      label: spec.label,
-      frames: [],
-    }));
-  }
-  const labelById = new Map(
-    experiment.metricSpecs.map((spec) => [spec.id, spec.label]),
-  );
+): {
+  id: string;
+  label: string;
+  frames: MetricFrame[];
+  outputType: MetricFrame["outputType"];
+}[] => {
   const framesById = new Map<string, MetricFrame[]>();
   for (const frame of experiment.metricFrames) {
     const frames = framesById.get(frame.metricId) ?? [];
     frames.push(frame);
     framesById.set(frame.metricId, frames);
   }
-  return [...framesById].map(([id, frames]) => ({
-    id,
-    label: labelById.get(id),
-    frames,
+  return experiment.metricSpecs.map((spec) => ({
+    id: spec.id,
+    label: spec.label,
+    frames: framesById.get(spec.id) ?? [],
+    outputType:
+      spec.runOutput?.type === "distribution" ? "distribution" : "scalar",
   }));
 };
 
@@ -89,6 +86,7 @@ export const ExperimentMetrics = ({
             <ExperimentMetricTimeline
               frames={tile.frames}
               label={tile.label}
+              expectedOutputType={tile.outputType}
               timeDomain={[0, experiment.maxTime]}
               contentEpoch={contentEpoch}
               displaySize={size}

@@ -90,6 +90,12 @@ const statusStyle = css({
   fontSize: "xs",
   color: "neutral.s80",
   fontVariantNumeric: "tabular-nums",
+  minHeight: "[16px]",
+});
+
+const spinnerSlotStyle = css({
+  display: "inline-flex",
+  "&[data-idle=true]": { visibility: "hidden" },
 });
 
 const AxisControl = ({
@@ -185,14 +191,14 @@ const SamplingStatus = ({
 
   return (
     <div className={statusStyle}>
+      <span className={spinnerSlotStyle} data-idle={!status.computing}>
+        <LoadingSpinner size="xs" />
+      </span>
       {status.computing ? (
-        <>
-          <LoadingSpinner size="xs" />
-          <span>
-            {status.runsSampled} of {status.runTarget ?? status.runCount} runs —{" "}
-            {activity}
-          </span>
-        </>
+        <span>
+          {status.runsSampled} of {status.runTarget ?? status.runCount} runs —{" "}
+          {activity}
+        </span>
       ) : (
         <span>
           {status.runsCompleted} of {status.runCount} runs

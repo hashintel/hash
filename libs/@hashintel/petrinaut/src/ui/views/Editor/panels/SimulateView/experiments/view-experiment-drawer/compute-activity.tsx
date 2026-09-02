@@ -38,7 +38,13 @@ const metaRowStyle = css({
   justifyContent: "space-between",
   gap: "2",
   marginTop: "1",
-  minHeight: "[20px]",
+});
+
+// The toggle stays in the row while nothing computes so the row keeps its
+// height, and the sections below hold still when batches start and finish.
+const toggleSlotStyle = css({
+  display: "inline-flex",
+  "&[data-idle=true]": { visibility: "hidden" },
 });
 
 const metaLabelStyle = css({
@@ -197,18 +203,23 @@ export const ComputeActivity = ({
       </div>
       <div className={metaRowStyle}>
         <span className={metaLabelStyle}>{barLabel}</span>
-        {sweepBatches.length > 0 ? (
+        <span
+          className={toggleSlotStyle}
+          data-idle={sweepBatches.length === 0}
+          aria-hidden={sweepBatches.length === 0}
+        >
           <button
             type="button"
             className={toggleStyle}
             aria-expanded={expanded}
+            disabled={sweepBatches.length === 0}
             onClick={() => setExpanded((previous) => !previous)}
           >
             <span className={computingDotStyle} />
             {sweepBatches.length} computing
             <Icon name={expanded ? "chevronUp" : "chevronDown"} size="xxs" />
           </button>
-        ) : null}
+        </span>
       </div>
       {expanded && sweepBatches.length > 0 ? (
         <div className={batchListStyle}>
