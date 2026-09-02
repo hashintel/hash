@@ -1,6 +1,6 @@
 # Mission 4 repaired architecture scoring v4
 
-Status: **parent-frozen repair protocol; no paid execution authorized**
+Status: **parent-frozen repair protocol; candidate and grader calls authorized under a combined US$10 ceiling after fold and clean hermetic proof**
 
 Protocol id: `prospective-runbook-v4`
 
@@ -42,7 +42,7 @@ This mirrors the flat-prompt control's three-invocation shape and seeks a two-wo
 
 ## Preconditions and freeze
 
-No paid budget is authorized. The parent must freeze the final clean instrument and obtain explicit owner authorization for a new call and cost ceiling before candidate or grader execution. Before creating a replication, the runner applies every free path, configuration, clean-instrument, fingerprint, and namespace guard, then makes a one-token credential/model-availability preflight outside campaign membership. A failed preflight creates no member. Successful preflight cost still counts against the owner ceiling.
+The owner authorized a combined US$10 ceiling for three candidate replications and complete omniscient/cold grading of each valid member, conditional on first folding the instrument onto FE-1563 and passing its clean hermetic suite there. The later visible witness is excluded and remains separately gated. Before creating a replication, the runner applies every free path, configuration, clean-instrument, fingerprint, and namespace guard, then makes a one-token credential/model-availability preflight outside campaign membership. A failed preflight creates no member. Successful preflight cost still counts against the owner ceiling.
 
 The runner hashes the complete candidate source and lock scope, complete built-server `dist/*.mjs` manifest, comparison-target artifacts, case, ledger, ruler, grader prompts, and this protocol. The first member fixes the fingerprint. Later members must match it exactly.
 
