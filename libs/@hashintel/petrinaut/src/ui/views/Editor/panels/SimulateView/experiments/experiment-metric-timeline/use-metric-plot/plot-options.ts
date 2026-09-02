@@ -6,7 +6,7 @@
 import uPlot from "uplot";
 
 import { distributionBandSeries } from "../shared/distribution-bands";
-import { binValueSummary } from "../shared/metric-frames";
+import { binValueSummary } from "./shared/bin-value-summary";
 
 import type {
   DistributionView,

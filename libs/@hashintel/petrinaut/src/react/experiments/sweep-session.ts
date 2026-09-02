@@ -60,11 +60,7 @@ import type {
 
 export type { SweepSelection } from "./parameter-grid";
 export type { SweepBatchStatus } from "./sweep-session/batch-registry";
-export {
-  sweepBatchSeed,
-  sweepCellKey,
-  sweepCellValues,
-} from "./sweep-session/selection-draws";
+export { sweepBatchSeed } from "./sweep-session/selection-draws";
 export type { SweepRunDraws } from "./sweep-session/selection-draws";
 
 /** Finished batches of one selection, merged. */

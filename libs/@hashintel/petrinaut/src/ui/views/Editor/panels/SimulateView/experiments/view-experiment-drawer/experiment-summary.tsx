@@ -13,7 +13,7 @@ import {
 } from "../../../../../../../react/experiments/context";
 import { formatDurationMs } from "../format-duration";
 import { formatNumber } from "../shared/format-number";
-import { ComputeActivity } from "./compute-activity";
+import { ComputeActivity } from "./experiment-summary/compute-activity";
 
 const summaryStyle = css({
   marginTop: "-1",

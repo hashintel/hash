@@ -1,11 +1,11 @@
 import { selectExperimentBackend } from "@hashintel/petrinaut-core/experiments";
 
-import { translateRangeDraws } from "../sweep-run-overrides";
 import { instantiateOnBackend } from "./shared/instantiate-on-backend";
 import {
   createCpuLanes,
   decideBatchLane,
 } from "./sweep-batch-instantiation/backend-lanes";
+import { translateRangeDraws } from "./sweep-batch-instantiation/sweep-run-overrides";
 
 import type { InstantiateSweepBatch } from "../sweep-session";
 import type {

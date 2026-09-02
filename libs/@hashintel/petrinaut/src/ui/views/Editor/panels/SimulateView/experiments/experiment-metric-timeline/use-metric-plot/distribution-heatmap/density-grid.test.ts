@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { summarizeBinValues } from "../../shared/metric-frames";
+import { summarizeBinValues } from "../shared/bin-value-summary";
 import { buildHeatmapDensityGrid } from "./density-grid";
 
 import type { HeatmapFrame } from "./density-grid";

@@ -6,12 +6,10 @@
 import {
   MAX_RESOLVED_BIN_VALUES,
   summarizeBinValues,
-} from "../../shared/metric-frames";
+} from "../shared/bin-value-summary";
 
-import type {
-  BinValueSummary,
-  DistributionMetricFrame,
-} from "../../shared/metric-frames";
+import type { DistributionMetricFrame } from "../../shared/metric-frames";
+import type { BinValueSummary } from "../shared/bin-value-summary";
 
 /** The slice of a distribution frame the heatmap reads. */
 export type HeatmapFrame = Pick<

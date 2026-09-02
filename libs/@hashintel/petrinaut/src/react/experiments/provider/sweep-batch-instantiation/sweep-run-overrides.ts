@@ -12,9 +12,9 @@
  * direct override where no override expression computed that name, matching
  * how the engine merges run values by variable name.
  */
-import { createCooperativeYielder } from "./cooperative-yield";
+import { createCooperativeYielder } from "../../cooperative-yield";
 
-import type { SweepRunDraws } from "./sweep-session";
+import type { SweepRunDraws } from "../../sweep-session";
 import type { ExperimentRunPlan } from "@hashintel/petrinaut-core/experiments";
 
 export type TranslateRangeDrawsOptions = {

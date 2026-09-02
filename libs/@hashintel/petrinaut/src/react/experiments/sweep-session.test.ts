@@ -2,12 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { deriveRunSeed } from "@hashintel/petrinaut-core";
 
-import {
-  createSweepSession,
-  sweepBatchSeed,
-  sweepCellKey,
-  sweepCellValues,
-} from "./sweep-session";
+import { createSweepSession, sweepBatchSeed } from "./sweep-session";
+import { sweepCellKey, sweepCellValues } from "./sweep-session/selection-draws";
 
 import type { ExperimentParameterAxis } from "./parameter-grid";
 import type {

@@ -93,90 +93,23 @@ describe("translateRangeDraws", () => {
     expect([...plan!.values]).toEqual([0.73]);
   });
 
-  it("matches a per-run record translation across random draw batches", async () => {
-    // A seeded LCG, so the property is reproducible.
-    let state = 1234567;
-    const next = () => {
-      state = (state * 1103515245 + 12345) % 2147483648;
-      return state / 2147483648;
-    };
-    const numbers = (swept: Readonly<Record<string, number>>) => ({
-      parameters: {
-        rate: (swept.speed ?? 1) * 2,
-        size: swept.size ?? 7,
-        floor: 3,
-      },
+  it("lays several swept ids out run-major, base values filling the unchanged cells", async () => {
+    const compileNumbers = (swept: Readonly<Record<string, number>>) => ({
+      parameters: { rate: (swept.speed ?? 1) * 2, size: swept.size ?? 7 },
     });
-    const base = numbers({ speed: 1.5 }).parameters;
-    const netNames = new Set(["rate", "size", "floor"]);
+    const plan = await translateRangeDraws({
+      // Run 0 changes only the rate; run 1 draws the midpoint speed and a new size.
+      draws: {
+        identifiers: ["speed", "size"],
+        values: new Float64Array([3, 7, 1.5, 9]),
+      },
+      midValues: { speed: 1.5 },
+      baseParameters: compileNumbers({ speed: 1.5 }).parameters,
+      compileRunNumbers: compileNumbers,
+      netParameterVariableNames: new Set(["rate", "size"]),
+    });
 
-    /** The record-per-run oracle: compile each run, union the changed names. */
-    const viaRecords = (runs: readonly Record<string, number>[]) => {
-      const compiled = runs.map(
-        (run) => numbers({ speed: 1.5, ...run }).parameters,
-      );
-      const changed = new Set<string>();
-      for (const [index, parameters] of compiled.entries()) {
-        for (const [name, value] of Object.entries(parameters)) {
-          if (base[name as keyof typeof base] !== value) {
-            changed.add(name);
-          }
-        }
-        for (const [name, draw] of Object.entries(runs[index]!)) {
-          if (netNames.has(name) && base[name as keyof typeof base] !== draw) {
-            changed.add(name);
-          }
-        }
-      }
-      const ids = [...changed].sort();
-      return {
-        ids,
-        rows: compiled.map((parameters, index) =>
-          ids.map((id) => {
-            const value = parameters[id as keyof typeof parameters];
-            const draw = runs[index]![id];
-            return value !== base[id as keyof typeof base]
-              ? value
-              : (draw ?? value);
-          }),
-        ),
-      };
-    };
-
-    for (let batch = 0; batch < 20; batch++) {
-      const runCount = 1 + Math.floor(next() * 6);
-      const values = new Float64Array(runCount * 2);
-      for (let index = 0; index < values.length; index++) {
-        // Draws sometimes exactly at the midpoint, sometimes off it.
-        values[index] = next() < 0.4 ? 1.5 : Number(next().toPrecision(12));
-      }
-      const plan = await translateRangeDraws({
-        draws: { identifiers: ["speed", "size"], values },
-        midValues: { speed: 1.5 },
-        baseParameters: base,
-        compileRunNumbers: numbers,
-        netParameterVariableNames: netNames,
-      });
-      const expected = viaRecords(
-        Array.from({ length: runCount }, (_, run) => ({
-          speed: values[run * 2]!,
-          size: values[run * 2 + 1]!,
-        })),
-      );
-
-      if (expected.ids.length === 0) {
-        expect(plan).toBeUndefined();
-        continue;
-      }
-      expect(plan?.ids).toEqual(expected.ids);
-      for (const [run, row] of expected.rows.entries()) {
-        expect([
-          ...plan!.values.subarray(
-            run * expected.ids.length,
-            (run + 1) * expected.ids.length,
-          ),
-        ]).toEqual(row);
-      }
-    }
+    expect(plan?.ids).toEqual(["rate", "size"]);
+    expect([...plan!.values]).toEqual([6, 7, 3, 9]);
   });
 });

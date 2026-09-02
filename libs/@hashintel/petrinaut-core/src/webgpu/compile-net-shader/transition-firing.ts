@@ -10,9 +10,9 @@
  * would land in this module.
  */
 import { buildLambdaContext } from "../../hir/surface-context";
+import { emitPairScanWgsl } from "./pair-selection";
 import { computeTransitionCapacityConstraints } from "../../simulation/engine/capacity";
 import { WgslBailError, WgslEmitter } from "../emit-wgsl";
-import { emitPairScanWgsl } from "../pair-selection";
 import { commentSafe } from "../wgsl-identifiers";
 import {
   makeTokenReader,

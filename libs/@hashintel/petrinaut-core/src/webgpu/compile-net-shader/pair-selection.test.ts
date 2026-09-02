@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { enumerateWeightedMarkingIndicesGenerator } from "../simulation/engine/enumerate-weighted-markings";
+import { enumerateWeightedMarkingIndicesGenerator } from "../../simulation/engine/enumerate-weighted-markings";
 import {
   emitPairScanWgsl,
   pairCount,

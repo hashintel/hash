@@ -10,12 +10,12 @@ import { useState } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { experimentProgressPercent } from "../../../../shared/experiment-progress";
+import { experimentProgressPercent } from "../../../../../shared/experiment-progress";
 
 import type {
   ExperimentRecord,
   SweepBatchStatus,
-} from "../../../../../../../react/experiments/context";
+} from "../../../../../../../../react/experiments/context";
 
 const barTrackStyle = css({
   height: "[6px]",

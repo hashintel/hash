@@ -12,16 +12,14 @@ import {
   rampLut,
   rasterizeNormalized,
 } from "../../../../../../../shared/color-ramp";
-import {
-  binValueSummary,
-  distributionFramesFrom,
-} from "../shared/metric-frames";
+import { distributionFramesFrom } from "../shared/metric-frames";
 import { buildHeatmapDensityGrid } from "./distribution-heatmap/density-grid";
 import {
   easeHeatmapDisplay,
   HEATMAP_SETTLE_MS,
   settleHeatmapDisplay,
 } from "./distribution-heatmap/display-easing";
+import { binValueSummary } from "./shared/bin-value-summary";
 
 import type { MetricFrame } from "../shared/metric-frames";
 import type { HeatmapDensityGrid } from "./distribution-heatmap/density-grid";

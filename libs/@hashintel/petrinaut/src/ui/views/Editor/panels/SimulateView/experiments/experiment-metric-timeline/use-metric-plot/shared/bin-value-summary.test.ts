@@ -4,9 +4,9 @@ import {
   binValueSummary,
   MAX_RESOLVED_BIN_VALUES,
   summarizeBinValues,
-} from "./metric-frames";
+} from "./bin-value-summary";
 
-import type { MetricFrame } from "./metric-frames";
+import type { MetricFrame } from "../../shared/metric-frames";
 
 const distributionFrame = (
   frameNumber: number,
