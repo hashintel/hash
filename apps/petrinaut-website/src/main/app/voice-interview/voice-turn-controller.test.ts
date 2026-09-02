@@ -389,6 +389,47 @@ describe("VoiceTurnController", () => {
     ]);
   });
 
+  test("refuses replay when unrelated audio stops after the tracked response is terminal", async () => {
+    const harness = createHarness();
+    const source = speechSource();
+    harness.controller.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-a",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-a",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-b",
+      type: "output-stopped",
+    });
+
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-a",
+      type: "output-stopped",
+    });
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([
+      source.questionSegment,
+    ]);
+  });
+
   test("represents submitting and output independently without closing capture", async () => {
     const harness = createHarness();
     await harness.controller.start();

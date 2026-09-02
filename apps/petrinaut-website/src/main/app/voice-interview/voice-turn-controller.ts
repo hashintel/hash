@@ -123,7 +123,9 @@ export class VoiceTurnController {
   readonly #session: RealtimeSession;
   readonly #submitText: (input: SubmitTextInput) => Promise<unknown>;
   #activeEpoch: number | null = null;
+  #activeSpeechOutputEnded = false;
   #activeSpeechResponseId: string | null = null;
+  #activeSpeechResponseTerminal = false;
   #answerFinalizedAt: number | null = null;
   #answeredQuestionId: string | null = null;
   #bridgeStarted = false;
@@ -194,7 +196,9 @@ export class VoiceTurnController {
     this.#inputStateOnResume = null;
     this.#pauseRequested = false;
     this.#bridgeStarted = false;
+    this.#activeSpeechOutputEnded = false;
     this.#activeSpeechResponseId = null;
+    this.#activeSpeechResponseTerminal = false;
     this.#update({
       connection: "connecting",
       errorCode: null,
@@ -232,7 +236,9 @@ export class VoiceTurnController {
   public async end(): Promise<void> {
     ++this.#generation;
     this.#activeEpoch = null;
+    this.#activeSpeechOutputEnded = false;
     this.#activeSpeechResponseId = null;
+    this.#activeSpeechResponseTerminal = false;
     this.#answerFinalizedAt = null;
     this.#answeredQuestionId = null;
     this.#bridgeStarted = false;
@@ -486,7 +492,9 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "output-started") {
+      this.#activeSpeechOutputEnded = false;
       this.#activeSpeechResponseId = event.responseId;
+      this.#activeSpeechResponseTerminal = false;
       if (this.#snapshot.input === "paused") {
         this.#cancelOutput();
         this.#update({ output: "interrupted" });
@@ -499,6 +507,13 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "output-stopped") {
+      if (event.responseId !== this.#activeSpeechResponseId) return;
+      this.#activeSpeechOutputEnded = true;
+      if (this.#activeSpeechResponseTerminal) {
+        this.#activeSpeechOutputEnded = false;
+        this.#activeSpeechResponseId = null;
+        this.#activeSpeechResponseTerminal = false;
+      }
       this.#update({ output: "idle" });
       if (this.#currentQuestionId) {
         this.#recordLatency("question-spoken", this.#currentQuestionId);
@@ -506,6 +521,13 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "output-interrupted") {
+      if (event.responseId !== this.#activeSpeechResponseId) return;
+      this.#activeSpeechOutputEnded = true;
+      if (this.#activeSpeechResponseTerminal) {
+        this.#activeSpeechOutputEnded = false;
+        this.#activeSpeechResponseId = null;
+        this.#activeSpeechResponseTerminal = false;
+      }
       this.#update({ output: "interrupted" });
       return;
     }
@@ -522,7 +544,13 @@ export class VoiceTurnController {
     }
     if (event.type === "response-terminal") {
       if (event.responseId === this.#activeSpeechResponseId) {
-        this.#activeSpeechResponseId = null;
+        if (this.#activeSpeechOutputEnded) {
+          this.#activeSpeechOutputEnded = false;
+          this.#activeSpeechResponseId = null;
+          this.#activeSpeechResponseTerminal = false;
+        } else {
+          this.#activeSpeechResponseTerminal = true;
+        }
         this.#update({});
       }
       return;
@@ -566,7 +594,9 @@ export class VoiceTurnController {
   ): void {
     ++this.#generation;
     this.#activeEpoch = null;
+    this.#activeSpeechOutputEnded = false;
     this.#activeSpeechResponseId = null;
+    this.#activeSpeechResponseTerminal = false;
     this.#inputStateOnResume = null;
     this.#bridgeStarted = false;
     this.#transcriptItemId = null;
