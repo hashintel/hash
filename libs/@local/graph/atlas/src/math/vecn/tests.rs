@@ -8,16 +8,12 @@
     reason = "alignment assertions take the pointer address modulo the SIMD alignment"
 )]
 
-use core::{
-    hash::{Hash, Hasher as _},
-    iter,
-    simd::{Simd, f32x8, num::SimdFloat as _},
-};
+use core::hash::{Hash, Hasher as _};
 use std::hash::DefaultHasher;
 
 use proptest::{prop_assert, prop_assert_eq, prop_assume, property_test, strategy::Strategy};
 
-use crate::math::{AlignedVecN, BoxedDVecN, BoxedVecN, DVecN, VecN, test_alloc::CountingAllocator};
+use crate::math::{AlignedVecN, BoxedDVecN, BoxedVecN, DVecN, VecN};
 
 /// Deterministic, sign-varying components crossing multiple 8-lane chunks.
 fn scattered<const N: usize>(offset: f32) -> [f32; N] {
@@ -229,259 +225,6 @@ fn aligned_kernels_agree_with_vecn() {
     );
 }
 
-#[test]
-fn boxed_vecn_zero_is_all_zeros_and_writable() {
-    let mut vector = BoxedVecN::<24>::zero();
-    assert_eq!(*vector.as_array(), [0.0_f32; 24]);
-
-    // The loop fills the buffer in place, the intended use of `zero`.
-    for (index, slot) in vector.as_array_mut().iter_mut().enumerate() {
-        *slot = f32::from(u8::try_from(index).expect("test dimensions are small"));
-    }
-    assert_eq!(vector.as_array()[23], 23.0);
-    assert_eq!(
-        vector.norm_squared(),
-        VecN::new(*vector.as_array()).norm_squared()
-    );
-}
-
-#[test]
-fn boxed_vecn_is_aligned_and_preserves_contents() {
-    let source: [f32; 24] = core::array::from_fn(|index| {
-        f32::from(u8::try_from(index).expect("test dimensions are small"))
-    });
-
-    // Allocate sixteen boxes so one aligned pointer cannot be luck.
-    let boxes: Vec<BoxedVecN<24>> = iter::repeat_with(|| BoxedVecN::new(VecN::from_ref(&source)))
-        .take(16)
-        .collect();
-
-    for boxed in &boxes {
-        assert_eq!(boxed.as_array(), &source);
-        assert_eq!(
-            boxed.as_array().as_ptr().addr() % align_of::<core::simd::f32x8>(),
-            0,
-            "boxed storage must be aligned for f32x8",
-        );
-    }
-}
-
-#[test]
-fn vecn_wraps_in_place() {
-    let mut source = [1.0_f32; 8];
-
-    // The wrapper must reuse the storage, not copy it.
-    assert_eq!(
-        core::ptr::from_ref(VecN::from_ref(&source)).addr(),
-        source.as_ptr().addr(),
-    );
-
-    assert_eq!(
-        core::ptr::from_mut(VecN::from_mut(&mut source)).addr(),
-        source.as_mut_ptr().addr(),
-    );
-    assert_eq!(VecN::from_ref(&source), VecN::from_ref(&[1.0; 8]));
-}
-
-/// The slice wrapper reinterprets a borrowed slice of arrays in place, in both directions.
-#[test]
-fn vecn_wrap_slice_wraps_in_place() {
-    let mut source = [[1.0_f32; 8], [2.0_f32; 8], [3.0_f32; 8]];
-
-    let wrapped = VecN::wrap_slice(&source);
-    assert_eq!(
-        core::ptr::from_ref(wrapped).cast::<u8>(),
-        core::ptr::from_ref(&source).cast::<u8>(),
-        "wrap_slice must reuse the source storage",
-    );
-    assert_eq!(wrapped[1], VecN::from_ref(&[2.0; 8]).to_owned());
-
-    let wrapped_mut = VecN::wrap_slice_mut(&mut source);
-    wrapped_mut[1] = *VecN::from_ref(&[9.0; 8]);
-    assert_eq!(
-        source[1], [9.0; 8],
-        "a write through the mut wrapper must land in the source"
-    );
-}
-
-#[test]
-fn lanes_iterate_lane_groups_in_order() {
-    let source: [f32; 16] = core::array::from_fn(|index| {
-        f32::from(u8::try_from(index).expect("test dimensions are small"))
-    });
-    let boxed = BoxedVecN::new(VecN::from_ref(&source));
-
-    let (lanes, remainder) = boxed.lanes();
-    assert!(remainder.is_empty());
-    assert_eq!(
-        lanes.iter().map(|lane| lane.to_array()).collect::<Vec<_>>(),
-        [
-            [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
-            [8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0],
-        ],
-    );
-
-    let maximum = lanes
-        .iter()
-        .map(|lane| lane.reduce_max())
-        .fold(f32::MIN, f32::max);
-    assert_eq!(maximum, 15.0);
-}
-
-#[test]
-fn lanes_split_off_partial_group_as_remainder() {
-    let source: [f32; 11] = core::array::from_fn(|index| {
-        f32::from(u8::try_from(index).expect("test dimensions are small"))
-    });
-    let boxed = BoxedVecN::new(VecN::from_ref(&source));
-
-    let (lanes, remainder) = boxed.lanes();
-    assert_eq!(lanes.len(), 1);
-    assert_eq!(
-        lanes[0].to_array(),
-        [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
-    );
-    assert_eq!(remainder, [8.0, 9.0, 10.0]);
-}
-
-#[test]
-fn aligned_vecn_rejects_misaligned_storage() {
-    let boxed = BoxedVecN::new(&VecN::new([0.0_f32; 16]));
-
-    // The box's own storage meets the f32x8 alignment, so wrapping it succeeds.
-    assert!(AlignedVecN::<16>::from_ref(boxed.as_array()).is_some());
-
-    // One component past an aligned base breaks the f32x8 alignment.
-    let slice = &boxed.as_array()[1..9];
-    let misaligned: &[f32; 8] = slice.try_into().expect("slice has length 8");
-    assert!(AlignedVecN::<8>::from_ref(misaligned).is_none());
-}
-
-#[test]
-fn boxed_vecn_clone_is_deep_and_stays_aligned() {
-    let original = BoxedVecN::from([1.0_f32, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
-    let clone = original.clone();
-
-    assert_eq!(clone, original);
-    assert_ne!(
-        clone.as_array().as_ptr().addr(),
-        original.as_array().as_ptr().addr(),
-        "a clone must own its own buffer",
-    );
-    assert_eq!(
-        clone.as_array().as_ptr().addr() % align_of::<core::simd::f32x8>(),
-        0,
-    );
-
-    // The clone must survive its source.
-    drop(original);
-    assert_eq!(clone.as_array()[7], 8.0);
-}
-
-#[test]
-fn boxed_vecn_clone_from_reuses_the_allocation() {
-    let source = BoxedVecN::from([9.0_f32; 8]);
-    let mut target = BoxedVecN::from([0.0_f32; 8]);
-    let address = target.as_array().as_ptr().addr();
-
-    target.clone_from(&source);
-
-    assert_eq!(target, source);
-    assert_eq!(
-        target.as_array().as_ptr().addr(),
-        address,
-        "clone_from must reuse the existing buffer",
-    );
-}
-
-#[test]
-fn boxed_vecn_conversions_agree() {
-    let components = [1.0_f32, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
-
-    let from_array = BoxedVecN::from(components);
-    let from_vecn = BoxedVecN::from(VecN::from_ref(&components));
-
-    assert_eq!(from_array, from_vecn);
-    assert_eq!(from_array.as_array(), &components);
-    assert_eq!(
-        AsRef::<AlignedVecN<8>>::as_ref(&from_array).as_array(),
-        &components,
-    );
-}
-
-#[test]
-fn lanes_mut_writes_back_in_place() {
-    let mut boxed = BoxedVecN::from([1.0_f32; 11]);
-
-    let (lanes, remainder) = boxed.lanes_mut();
-    for lane in lanes.iter_mut() {
-        *lane *= Simd::splat(2.0);
-    }
-    remainder.fill(5.0);
-
-    // The writes must be visible through the shared view, in place.
-    let (lanes, remainder) = boxed.lanes();
-    assert_eq!(lanes[0].to_array(), [2.0; 8]);
-    assert_eq!(remainder, [5.0; 3]);
-    assert_eq!(boxed.as_array()[..8], [2.0; 8]);
-}
-
-#[test]
-fn try_as_aligned_agrees_between_shared_and_mutable() {
-    let mut boxed = BoxedVecN::from([3.0_f32; 8]);
-
-    // Boxed storage meets the f32x8 alignment, so both reinterpretations succeed.
-    assert!(VecN::from_ref(boxed.as_array()).try_as_aligned().is_some());
-
-    let vecn = VecN::from_mut(boxed.as_array_mut());
-    let aligned = vecn.try_as_aligned_mut().expect("boxed storage is aligned");
-    aligned.as_array_mut()[0] = 7.0;
-
-    assert_eq!(boxed.as_array()[0], 7.0);
-}
-
-#[test]
-fn from_slice_yields_every_row_aligned_and_in_place() {
-    let source: [f32; 32] = scattered(0.5);
-    let matrix = BoxedVecN::from(source);
-
-    let rows = AlignedVecN::<8>::from_slice(matrix.as_array()).expect("boxed storage is aligned");
-    assert_eq!(rows.len(), 4);
-    for (index, row) in rows.iter().enumerate() {
-        assert!(
-            row.as_array().as_ptr().is_aligned_to(align_of::<f32x8>()),
-            "row {index} must satisfy the alignment invariant",
-        );
-        assert_eq!(row.as_array()[..], source[index * 8..(index + 1) * 8]);
-    }
-
-    // The rows alias the source storage: no copy happened.
-    assert!(core::ptr::eq(
-        rows.as_ptr().cast::<f32>(),
-        matrix.as_array().as_ptr(),
-    ));
-}
-
-#[test]
-fn from_slice_rejects_what_would_break_the_invariant() {
-    let matrix = BoxedVecN::<32>::zero();
-    let components = matrix.as_array().as_slice();
-
-    // A zero dimension fails compilation outright; only the runtime
-    // conditions remain to certify.
-
-    // A partial trailing row cannot be a vector.
-    assert!(AlignedVecN::<12>::from_slice(components).is_none());
-
-    // One component past an aligned base breaks the alignment: a single
-    // `f32` is narrower than `f32x8`'s alignment on every supported target.
-    assert!(AlignedVecN::<8>::from_slice(&components[1..25]).is_none());
-
-    // An empty slice at an aligned base yields zero rows.
-    let empty = AlignedVecN::<8>::from_slice(&components[..0]).expect("zero rows are valid");
-    assert!(empty.is_empty());
-}
-
 /// Components bounded to the well-conditioned `-1e3..1e3` range, in the fixed dimension 19.
 ///
 /// Two full 8-lane chunks plus a remainder of three, so every fold exercises both the batched body
@@ -567,26 +310,296 @@ fn hash_of(value: impl Hash) -> u64 {
     hasher.finish()
 }
 
-/// `Hash` follows the components and `Debug` prints them.
-#[test]
-fn boxed_hash_and_debug_follow_the_components() {
-    let low = BoxedVecN::new(&VecN::new([0.5_f32, 1.5]));
-    let high = BoxedVecN::new(&VecN::new([1.0_f32, 1.5]));
+/// The tests the `miri` nextest profile selects.
+///
+/// Each test here wraps, boxes or lane-splits component storage in place and checks the alignment
+/// invariant those views carry. The profile selects by module path, so moving a test in or out of
+/// this module is the whole edit.
+mod miri {
+    use core::{
+        iter,
+        simd::{Simd, f32x8, num::SimdFloat as _},
+    };
 
-    // A fixed-key DefaultHasher makes distinctness deterministic for fixed inputs.
-    assert_ne!(hash_of(&low), hash_of(&high));
-    assert_eq!(format!("{low:?}"), "AlignedVecN([0.5, 1.5])");
-}
+    use super::{hash_of, scattered};
+    use crate::math::{AlignedVecN, BoxedVecN, VecN, test_alloc::CountingAllocator};
 
-/// Dropping a box returns its buffer to the allocator that provided it.
-#[test]
-fn boxed_drop_returns_the_buffer_to_its_allocator() {
-    let alloc = CountingAllocator::new();
+    #[test]
+    fn boxed_vecn_zero_is_all_zeros_and_writable() {
+        let mut vector = BoxedVecN::<24>::zero();
+        assert_eq!(*vector.as_array(), [0.0_f32; 24]);
 
-    let boxed = BoxedVecN::try_new_in(&VecN::new([1.0_f32, 2.0, 3.0]), &alloc)
-        .expect("the global allocator provides a three-component buffer");
-    assert_eq!(alloc.deallocations(), 0);
+        // The loop fills the buffer in place, the intended use of `zero`.
+        for (index, slot) in vector.as_array_mut().iter_mut().enumerate() {
+            *slot = f32::from(u8::try_from(index).expect("test dimensions are small"));
+        }
+        assert_eq!(vector.as_array()[23], 23.0);
+        assert_eq!(
+            vector.norm_squared(),
+            VecN::new(*vector.as_array()).norm_squared()
+        );
+    }
 
-    drop(boxed);
-    assert_eq!(alloc.deallocations(), 1);
+    #[test]
+    fn boxed_vecn_is_aligned_and_preserves_contents() {
+        let source: [f32; 24] = core::array::from_fn(|index| {
+            f32::from(u8::try_from(index).expect("test dimensions are small"))
+        });
+
+        // Allocate sixteen boxes so one aligned pointer cannot be luck.
+        let boxes: Vec<BoxedVecN<24>> =
+            iter::repeat_with(|| BoxedVecN::new(VecN::from_ref(&source)))
+                .take(16)
+                .collect();
+
+        for boxed in &boxes {
+            assert_eq!(boxed.as_array(), &source);
+            assert_eq!(
+                boxed.as_array().as_ptr().addr() % align_of::<core::simd::f32x8>(),
+                0,
+                "boxed storage must be aligned for f32x8",
+            );
+        }
+    }
+
+    #[test]
+    fn vecn_wraps_in_place() {
+        let mut source = [1.0_f32; 8];
+
+        // The wrapper must reuse the storage, not copy it.
+        assert_eq!(
+            core::ptr::from_ref(VecN::from_ref(&source)).addr(),
+            source.as_ptr().addr(),
+        );
+
+        assert_eq!(
+            core::ptr::from_mut(VecN::from_mut(&mut source)).addr(),
+            source.as_mut_ptr().addr(),
+        );
+        assert_eq!(VecN::from_ref(&source), VecN::from_ref(&[1.0; 8]));
+    }
+
+    /// The slice wrapper reinterprets a borrowed slice of arrays in place, in both directions.
+    #[test]
+    fn vecn_wrap_slice_wraps_in_place() {
+        let mut source = [[1.0_f32; 8], [2.0_f32; 8], [3.0_f32; 8]];
+
+        let wrapped = VecN::wrap_slice(&source);
+        assert_eq!(
+            core::ptr::from_ref(wrapped).cast::<u8>(),
+            core::ptr::from_ref(&source).cast::<u8>(),
+            "wrap_slice must reuse the source storage",
+        );
+        assert_eq!(wrapped[1], VecN::from_ref(&[2.0; 8]).to_owned());
+
+        let wrapped_mut = VecN::wrap_slice_mut(&mut source);
+        wrapped_mut[1] = *VecN::from_ref(&[9.0; 8]);
+        assert_eq!(
+            source[1], [9.0; 8],
+            "a write through the mut wrapper must land in the source"
+        );
+    }
+
+    #[test]
+    fn lanes_iterate_lane_groups_in_order() {
+        let source: [f32; 16] = core::array::from_fn(|index| {
+            f32::from(u8::try_from(index).expect("test dimensions are small"))
+        });
+        let boxed = BoxedVecN::new(VecN::from_ref(&source));
+
+        let (lanes, remainder) = boxed.lanes();
+        assert!(remainder.is_empty());
+        assert_eq!(
+            lanes.iter().map(|lane| lane.to_array()).collect::<Vec<_>>(),
+            [
+                [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+                [8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0],
+            ],
+        );
+
+        let maximum = lanes
+            .iter()
+            .map(|lane| lane.reduce_max())
+            .fold(f32::MIN, f32::max);
+        assert_eq!(maximum, 15.0);
+    }
+
+    #[test]
+    fn lanes_split_off_partial_group_as_remainder() {
+        let source: [f32; 11] = core::array::from_fn(|index| {
+            f32::from(u8::try_from(index).expect("test dimensions are small"))
+        });
+        let boxed = BoxedVecN::new(VecN::from_ref(&source));
+
+        let (lanes, remainder) = boxed.lanes();
+        assert_eq!(lanes.len(), 1);
+        assert_eq!(
+            lanes[0].to_array(),
+            [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]
+        );
+        assert_eq!(remainder, [8.0, 9.0, 10.0]);
+    }
+
+    #[test]
+    fn aligned_vecn_rejects_misaligned_storage() {
+        let boxed = BoxedVecN::new(&VecN::new([0.0_f32; 16]));
+
+        // The box's own storage meets the f32x8 alignment, so wrapping it succeeds.
+        assert!(AlignedVecN::<16>::from_ref(boxed.as_array()).is_some());
+
+        // One component past an aligned base breaks the f32x8 alignment.
+        let slice = &boxed.as_array()[1..9];
+        let misaligned: &[f32; 8] = slice.try_into().expect("slice has length 8");
+        assert!(AlignedVecN::<8>::from_ref(misaligned).is_none());
+    }
+
+    #[test]
+    fn boxed_vecn_clone_is_deep_and_stays_aligned() {
+        let original = BoxedVecN::from([1.0_f32, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0]);
+        let clone = original.clone();
+
+        assert_eq!(clone, original);
+        assert_ne!(
+            clone.as_array().as_ptr().addr(),
+            original.as_array().as_ptr().addr(),
+            "a clone must own its own buffer",
+        );
+        assert_eq!(
+            clone.as_array().as_ptr().addr() % align_of::<core::simd::f32x8>(),
+            0,
+        );
+
+        // The clone must survive its source.
+        drop(original);
+        assert_eq!(clone.as_array()[7], 8.0);
+    }
+
+    #[test]
+    fn boxed_vecn_clone_from_reuses_the_allocation() {
+        let source = BoxedVecN::from([9.0_f32; 8]);
+        let mut target = BoxedVecN::from([0.0_f32; 8]);
+        let address = target.as_array().as_ptr().addr();
+
+        target.clone_from(&source);
+
+        assert_eq!(target, source);
+        assert_eq!(
+            target.as_array().as_ptr().addr(),
+            address,
+            "clone_from must reuse the existing buffer",
+        );
+    }
+
+    #[test]
+    fn boxed_vecn_conversions_agree() {
+        let components = [1.0_f32, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0];
+
+        let from_array = BoxedVecN::from(components);
+        let from_vecn = BoxedVecN::from(VecN::from_ref(&components));
+
+        assert_eq!(from_array, from_vecn);
+        assert_eq!(from_array.as_array(), &components);
+        assert_eq!(
+            AsRef::<AlignedVecN<8>>::as_ref(&from_array).as_array(),
+            &components,
+        );
+    }
+
+    #[test]
+    fn lanes_mut_writes_back_in_place() {
+        let mut boxed = BoxedVecN::from([1.0_f32; 11]);
+
+        let (lanes, remainder) = boxed.lanes_mut();
+        for lane in lanes.iter_mut() {
+            *lane *= Simd::splat(2.0);
+        }
+        remainder.fill(5.0);
+
+        // The writes must be visible through the shared view, in place.
+        let (lanes, remainder) = boxed.lanes();
+        assert_eq!(lanes[0].to_array(), [2.0; 8]);
+        assert_eq!(remainder, [5.0; 3]);
+        assert_eq!(boxed.as_array()[..8], [2.0; 8]);
+    }
+
+    #[test]
+    fn try_as_aligned_agrees_between_shared_and_mutable() {
+        let mut boxed = BoxedVecN::from([3.0_f32; 8]);
+
+        // Boxed storage meets the f32x8 alignment, so both reinterpretations succeed.
+        assert!(VecN::from_ref(boxed.as_array()).try_as_aligned().is_some());
+
+        let vecn = VecN::from_mut(boxed.as_array_mut());
+        let aligned = vecn.try_as_aligned_mut().expect("boxed storage is aligned");
+        aligned.as_array_mut()[0] = 7.0;
+
+        assert_eq!(boxed.as_array()[0], 7.0);
+    }
+
+    #[test]
+    fn from_slice_yields_every_row_aligned_and_in_place() {
+        let source: [f32; 32] = scattered(0.5);
+        let matrix = BoxedVecN::from(source);
+
+        let rows =
+            AlignedVecN::<8>::from_slice(matrix.as_array()).expect("boxed storage is aligned");
+        assert_eq!(rows.len(), 4);
+        for (index, row) in rows.iter().enumerate() {
+            assert!(
+                row.as_array().as_ptr().is_aligned_to(align_of::<f32x8>()),
+                "row {index} must satisfy the alignment invariant",
+            );
+            assert_eq!(row.as_array()[..], source[index * 8..(index + 1) * 8]);
+        }
+
+        // The rows alias the source storage: no copy happened.
+        assert!(core::ptr::eq(
+            rows.as_ptr().cast::<f32>(),
+            matrix.as_array().as_ptr(),
+        ));
+    }
+
+    #[test]
+    fn from_slice_rejects_what_would_break_the_invariant() {
+        let matrix = BoxedVecN::<32>::zero();
+        let components = matrix.as_array().as_slice();
+
+        // A zero dimension fails compilation outright; only the runtime
+        // conditions remain to certify.
+
+        // A partial trailing row cannot be a vector.
+        assert!(AlignedVecN::<12>::from_slice(components).is_none());
+
+        // One component past an aligned base breaks the alignment: a single
+        // `f32` is narrower than `f32x8`'s alignment on every supported target.
+        assert!(AlignedVecN::<8>::from_slice(&components[1..25]).is_none());
+
+        // An empty slice at an aligned base yields zero rows.
+        let empty = AlignedVecN::<8>::from_slice(&components[..0]).expect("zero rows are valid");
+        assert!(empty.is_empty());
+    }
+
+    /// `Hash` follows the components and `Debug` prints them.
+    #[test]
+    fn boxed_hash_and_debug_follow_the_components() {
+        let low = BoxedVecN::new(&VecN::new([0.5_f32, 1.5]));
+        let high = BoxedVecN::new(&VecN::new([1.0_f32, 1.5]));
+
+        // A fixed-key DefaultHasher makes distinctness deterministic for fixed inputs.
+        assert_ne!(hash_of(&low), hash_of(&high));
+        assert_eq!(format!("{low:?}"), "AlignedVecN([0.5, 1.5])");
+    }
+
+    /// Dropping a box returns its buffer to the allocator that provided it.
+    #[test]
+    fn boxed_drop_returns_the_buffer_to_its_allocator() {
+        let alloc = CountingAllocator::new();
+
+        let boxed = BoxedVecN::try_new_in(&VecN::new([1.0_f32, 2.0, 3.0]), &alloc)
+            .expect("the global allocator provides a three-component buffer");
+        assert_eq!(alloc.deallocations(), 0);
+
+        drop(boxed);
+        assert_eq!(alloc.deallocations(), 1);
+    }
 }

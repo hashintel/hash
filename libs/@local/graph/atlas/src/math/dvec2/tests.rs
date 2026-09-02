@@ -6,7 +6,7 @@
 
 use proptest::{prop_assert, prop_assert_eq, property_test};
 
-use crate::math::{DVec2, DVec2x4T, DVecN, Vec2, Vec2x4T};
+use crate::math::{DVec2, DVec2x4T, DVecN, Vec2};
 
 #[test]
 fn operators_match_component_arithmetic() {
@@ -65,71 +65,6 @@ fn batch_points() -> [Vec2; 4] {
     ]
 }
 
-#[test]
-fn dvec2x4t_widens_exactly_per_lane() {
-    let points = batch_points();
-    let batch = DVec2x4T::from(Vec2x4T::from(points));
-
-    for (index, point) in points.iter().enumerate() {
-        assert_eq!(batch.xs()[index], f64::from(point.x()));
-        assert_eq!(batch.ys()[index], f64::from(point.y()));
-    }
-}
-
-#[test]
-fn dvec2x4t_products_match_the_scalar_twin_per_lane() {
-    let sources = batch_points();
-    let targets = [
-        Vec2::new(-0.5, 1.25),
-        Vec2::new(2.5, -3.0),
-        Vec2::new(0.125, 4.0),
-        Vec2::new(-1.75, -0.25),
-    ];
-
-    let source = DVec2x4T::from(Vec2x4T::from(sources));
-    let target = DVec2x4T::from(Vec2x4T::from(targets));
-    let dot = source.dot(target);
-    let perp_dot = source.perp_dot(target);
-    let length_squared = source.length_squared();
-
-    // The lane kernels share `DVec2`'s fused shape, so the paths agree
-    // bit for bit on every input.
-    for index in 0..4 {
-        let source = DVec2::from(sources[index]);
-        let target = DVec2::from(targets[index]);
-        assert_eq!(dot[index], source.dot(target).into_raw());
-        assert_eq!(perp_dot[index], source.perp_dot(target).into_raw());
-        assert_eq!(length_squared[index], source.norm_squared().into_raw());
-    }
-}
-
-#[test]
-fn dvec2x4t_mul_add_matches_the_scalar_twin_per_lane() {
-    let points = batch_points();
-    let batch = DVec2x4T::from(Vec2x4T::from(points));
-    let factors = core::simd::Simd::from_array([0.5, -2.0, 0.25, 3.0]);
-    let accumulator = DVec2x4T::from_lanes(
-        core::simd::Simd::splat(10.0),
-        core::simd::Simd::splat(-20.0),
-    );
-
-    let accumulated = batch.mul_add(factors, accumulator);
-
-    for index in 0..4 {
-        let expected = DVec2::from(points[index]).mul_add(factors[index], DVec2::new(10.0, -20.0));
-        assert_eq!(accumulated.xs()[index], expected.x());
-        assert_eq!(accumulated.ys()[index], expected.y());
-    }
-}
-
-#[test]
-fn dvec2x4t_splat_repeats_the_vector_in_every_lane() {
-    let batch = DVec2x4T::splat(DVec2::new(1.5, -2.25));
-
-    assert_eq!(*batch.xs(), core::simd::Simd::splat(1.5));
-    assert_eq!(*batch.ys(), core::simd::Simd::splat(-2.25));
-}
-
 /// Assembles a batch from four double-precision vectors, one per lane.
 fn batch_of(vectors: [DVec2; 4]) -> DVec2x4T {
     DVec2x4T::from_lanes(
@@ -159,47 +94,6 @@ fn distance_pairs() -> ([DVec2; 4], [DVec2; 4]) {
             DVec2::new(6.351, 1.3),
         ],
     )
-}
-
-#[test]
-#[expect(
-    clippy::suboptimal_flops,
-    reason = "the potency guard contrasts the fused and separate forms, so the separate form must \
-              stay unfused"
-)]
-fn dvec2x4t_distance_squared_matches_the_scalar_twin_per_lane() {
-    let (sources, targets) = distance_pairs();
-
-    // The fixture can fail under fusion: every lane's fused form disagrees with the separate
-    // form, so a `mul_add` mutant in the kernel dies in all four lanes.
-    for (source, target) in sources.iter().zip(&targets) {
-        let dx = source.x() - target.x();
-        let dy = source.y() - target.y();
-        assert_ne!(dx.mul_add(dx, dy * dy), dx * dx + dy * dy);
-    }
-
-    let distances = batch_of(sources).distance_squared(batch_of(targets));
-
-    for index in 0..4 {
-        assert_eq!(
-            distances.as_array()[index],
-            sources[index].distance_squared(targets[index]),
-        );
-    }
-}
-
-#[test]
-fn dvec2x4t_reduce_sums_each_axis() {
-    // Integer-valued components sum exactly in any association order.
-    let batch = DVec2x4T::from(Vec2x4T::from([
-        Vec2::new(1.0, 16.0),
-        Vec2::new(2.0, 32.0),
-        Vec2::new(4.0, 64.0),
-        Vec2::new(8.0, 128.0),
-    ]));
-
-    assert_eq!(batch.reduce_sum(), DVec2::new(15.0, 240.0));
-    assert_eq!(DVec2x4T::ZERO.reduce_sum(), DVec2::ZERO);
 }
 
 /// Widening is exact for every finite f32 pair.
@@ -257,31 +151,147 @@ fn distance_squared_lanes_match_the_scalar_metric_bitwise(
     prop_assert_eq!(distances, DVecN::new([source.distance_squared(target); 4]));
 }
 
-#[test]
-fn dvec2x4t_from_lanes_inverts_lane_extraction() {
-    let batch = DVec2x4T::from(Vec2x4T::from([
-        Vec2::new(1.0, 5.0),
-        Vec2::new(2.0, 6.0),
-        Vec2::new(3.0, 7.0),
-        Vec2::new(4.0, 8.0),
-    ]));
+/// The tests the `miri` nextest profile selects.
+///
+/// Each test here runs the transposed double-precision batch beside its scalar twin, lane by lane.
+/// The profile selects by module path, so moving a test in or out of this module is the whole edit.
+mod miri {
+    use super::{batch_of, batch_points, distance_pairs};
+    use crate::math::{DVec2, DVec2x4T, Vec2, Vec2x4T};
 
-    assert_eq!(DVec2x4T::from_lanes(*batch.xs(), *batch.ys()), batch);
-}
+    #[test]
+    fn dvec2x4t_widens_exactly_per_lane() {
+        let points = batch_points();
+        let batch = DVec2x4T::from(Vec2x4T::from(points));
 
-#[test]
-fn dvec2x4t_into_lanes_extracts_axis_groups() {
-    let batch = DVec2x4T::from(Vec2x4T::from([
-        Vec2::new(1.0, 5.0),
-        Vec2::new(2.0, 6.0),
-        Vec2::new(3.0, 7.0),
-        Vec2::new(4.0, 8.0),
-    ]));
-    let (xs, ys) = batch.into_lanes();
+        for (index, point) in points.iter().enumerate() {
+            assert_eq!(batch.xs()[index], f64::from(point.x()));
+            assert_eq!(batch.ys()[index], f64::from(point.y()));
+        }
+    }
 
-    assert_eq!(xs.to_array(), [1.0, 2.0, 3.0, 4.0]);
-    assert_eq!(ys.to_array(), [5.0, 6.0, 7.0, 8.0]);
-    assert_eq!(xs, *batch.xs());
-    assert_eq!(ys, *batch.ys());
-    assert_eq!(DVec2x4T::from_lanes(xs, ys), batch);
+    #[test]
+    fn dvec2x4t_products_match_the_scalar_twin_per_lane() {
+        let sources = batch_points();
+        let targets = [
+            Vec2::new(-0.5, 1.25),
+            Vec2::new(2.5, -3.0),
+            Vec2::new(0.125, 4.0),
+            Vec2::new(-1.75, -0.25),
+        ];
+
+        let source = DVec2x4T::from(Vec2x4T::from(sources));
+        let target = DVec2x4T::from(Vec2x4T::from(targets));
+        let dot = source.dot(target);
+        let perp_dot = source.perp_dot(target);
+        let length_squared = source.length_squared();
+
+        // The lane kernels share `DVec2`'s fused shape, so the paths agree
+        // bit for bit on every input.
+        for index in 0..4 {
+            let source = DVec2::from(sources[index]);
+            let target = DVec2::from(targets[index]);
+            assert_eq!(dot[index], source.dot(target).into_raw());
+            assert_eq!(perp_dot[index], source.perp_dot(target).into_raw());
+            assert_eq!(length_squared[index], source.norm_squared().into_raw());
+        }
+    }
+
+    #[test]
+    fn dvec2x4t_mul_add_matches_the_scalar_twin_per_lane() {
+        let points = batch_points();
+        let batch = DVec2x4T::from(Vec2x4T::from(points));
+        let factors = core::simd::Simd::from_array([0.5, -2.0, 0.25, 3.0]);
+        let accumulator = DVec2x4T::from_lanes(
+            core::simd::Simd::splat(10.0),
+            core::simd::Simd::splat(-20.0),
+        );
+
+        let accumulated = batch.mul_add(factors, accumulator);
+
+        for index in 0..4 {
+            let expected =
+                DVec2::from(points[index]).mul_add(factors[index], DVec2::new(10.0, -20.0));
+            assert_eq!(accumulated.xs()[index], expected.x());
+            assert_eq!(accumulated.ys()[index], expected.y());
+        }
+    }
+
+    #[test]
+    fn dvec2x4t_splat_repeats_the_vector_in_every_lane() {
+        let batch = DVec2x4T::splat(DVec2::new(1.5, -2.25));
+
+        assert_eq!(*batch.xs(), core::simd::Simd::splat(1.5));
+        assert_eq!(*batch.ys(), core::simd::Simd::splat(-2.25));
+    }
+
+    #[test]
+    #[expect(
+        clippy::suboptimal_flops,
+        reason = "the potency guard contrasts the fused and separate forms, so the separate form \
+                  must stay unfused"
+    )]
+    fn dvec2x4t_distance_squared_matches_the_scalar_twin_per_lane() {
+        let (sources, targets) = distance_pairs();
+
+        // The fixture can fail under fusion: every lane's fused form disagrees with the separate
+        // form, so a `mul_add` mutant in the kernel dies in all four lanes.
+        for (source, target) in sources.iter().zip(&targets) {
+            let dx = source.x() - target.x();
+            let dy = source.y() - target.y();
+            assert_ne!(dx.mul_add(dx, dy * dy), dx * dx + dy * dy);
+        }
+
+        let distances = batch_of(sources).distance_squared(batch_of(targets));
+
+        for index in 0..4 {
+            assert_eq!(
+                distances.as_array()[index],
+                sources[index].distance_squared(targets[index]),
+            );
+        }
+    }
+
+    #[test]
+    fn dvec2x4t_reduce_sums_each_axis() {
+        // Integer-valued components sum exactly in any association order.
+        let batch = DVec2x4T::from(Vec2x4T::from([
+            Vec2::new(1.0, 16.0),
+            Vec2::new(2.0, 32.0),
+            Vec2::new(4.0, 64.0),
+            Vec2::new(8.0, 128.0),
+        ]));
+
+        assert_eq!(batch.reduce_sum(), DVec2::new(15.0, 240.0));
+        assert_eq!(DVec2x4T::ZERO.reduce_sum(), DVec2::ZERO);
+    }
+
+    #[test]
+    fn dvec2x4t_from_lanes_inverts_lane_extraction() {
+        let batch = DVec2x4T::from(Vec2x4T::from([
+            Vec2::new(1.0, 5.0),
+            Vec2::new(2.0, 6.0),
+            Vec2::new(3.0, 7.0),
+            Vec2::new(4.0, 8.0),
+        ]));
+
+        assert_eq!(DVec2x4T::from_lanes(*batch.xs(), *batch.ys()), batch);
+    }
+
+    #[test]
+    fn dvec2x4t_into_lanes_extracts_axis_groups() {
+        let batch = DVec2x4T::from(Vec2x4T::from([
+            Vec2::new(1.0, 5.0),
+            Vec2::new(2.0, 6.0),
+            Vec2::new(3.0, 7.0),
+            Vec2::new(4.0, 8.0),
+        ]));
+        let (xs, ys) = batch.into_lanes();
+
+        assert_eq!(xs.to_array(), [1.0, 2.0, 3.0, 4.0]);
+        assert_eq!(ys.to_array(), [5.0, 6.0, 7.0, 8.0]);
+        assert_eq!(xs, *batch.xs());
+        assert_eq!(ys, *batch.ys());
+        assert_eq!(DVec2x4T::from_lanes(xs, ys), batch);
+    }
 }

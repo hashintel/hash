@@ -201,32 +201,6 @@ fn vec2_index_out_of_bounds() {
 }
 
 #[test]
-fn from_slice_reinterprets_in_place() {
-    let components = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
-    let points = Vec2::from_slice(&components).expect("three whole vectors");
-
-    assert_eq!(
-        points,
-        [
-            Vec2::new(1.0, 2.0),
-            Vec2::new(3.0, 4.0),
-            Vec2::new(5.0, 6.0)
-        ],
-    );
-    // The points alias the component storage.
-    assert_eq!(points.as_ptr().cast::<f32>(), components.as_ptr());
-
-    assert_eq!(
-        Vec2::from_slice(&[]).expect("zero whole vectors"),
-        &[] as &[Vec2],
-    );
-    assert!(
-        Vec2::from_slice(&components[..5]).is_none(),
-        "a dangling component is not a vector"
-    );
-}
-
-#[test]
 fn from_slice_mut_writes_through_to_the_components() {
     // The mutable form aliases the same storage, so a write through a vector rewrites its
     // components where they stand.
@@ -264,18 +238,6 @@ fn natural_preserves_interleaved_order() {
 }
 
 #[test]
-fn batch_getters_agree_across_layouts() {
-    let natural = Vec2x4::from(POINTS);
-    let transposed = Vec2x4T::from(POINTS);
-
-    for (index, point) in POINTS.into_iter().enumerate() {
-        assert_eq!(natural.get(index), point);
-        assert_eq!(natural[index], point);
-        assert_eq!(transposed.get(index), point);
-    }
-}
-
-#[test]
 #[should_panic(expected = "index out of bounds")]
 fn natural_index_out_of_bounds() {
     let _: Vec2 = Vec2x4::from(POINTS)[4];
@@ -288,74 +250,6 @@ fn natural_splat_repeats_the_vector() {
     for index in 0..4 {
         assert_eq!(batch.get(index), Vec2::new(1.5, -2.0));
     }
-}
-
-#[test]
-fn natural_from_slice_splits_and_rejoins_at_every_offset() {
-    let points: Vec<Vec2> = (0..24_u8)
-        .map(|index| {
-            let value = f32::from(index);
-
-            Vec2::new(value, -value)
-        })
-        .collect();
-
-    for offset in 0..8 {
-        let window = &points[offset..];
-        let (prefix, batches, suffix) = Vec2x4::from_slice(window);
-
-        // Every point lands in exactly one part, in order.
-        assert_eq!(
-            prefix.len() + 4 * batches.len() + suffix.len(),
-            window.len(),
-            "offset {offset}",
-        );
-        let rejoined: Vec<Vec2> = prefix
-            .iter()
-            .copied()
-            .chain(batches.iter().flat_map(|batch| *batch.as_array()))
-            .chain(suffix.iter().copied())
-            .collect();
-        assert_eq!(rejoined, window, "offset {offset}");
-
-        // The middle meets the batch alignment and aliases the input storage.
-        assert!(batches.as_ptr().addr().is_multiple_of(align_of::<Vec2x4>()));
-        if !batches.is_empty() {
-            assert_eq!(
-                batches[0].as_array().as_ptr(),
-                window[prefix.len()..].as_ptr(),
-            );
-        }
-    }
-}
-
-#[test]
-fn natural_min_max_and_reductions_match_scalar() {
-    let other = [
-        Vec2::new(0.5, -1.0),
-        Vec2::new(2.0, 3.0),
-        Vec2::new(-4.0, 0.25),
-        Vec2::new(8.0, -2.0),
-    ];
-
-    let lhs = Vec2x4::from(POINTS);
-    let rhs = Vec2x4::from(other);
-
-    let min = lhs.min(rhs);
-    let max = lhs.max(rhs);
-    for index in 0..4 {
-        assert_eq!(min.get(index), POINTS[index].min(other[index]));
-        assert_eq!(max.get(index), POINTS[index].max(other[index]));
-    }
-
-    assert_eq!(
-        rhs.reduce_min(),
-        other[0].min(other[1]).min(other[2].min(other[3])),
-    );
-    assert_eq!(
-        rhs.reduce_max(),
-        other[0].max(other[1]).max(other[2].max(other[3])),
-    );
 }
 
 #[test]
@@ -396,58 +290,6 @@ fn natural_operators_match_scalar_operators() {
         assert_eq!(negated.get(index), -POINTS[index]);
         assert_eq!(scaled.get(index), POINTS[index] * 3.0);
     }
-}
-
-#[test]
-fn layout_conversions_round_trip() {
-    let natural = Vec2x4::from(POINTS);
-    let transposed = Vec2x4T::from(POINTS);
-
-    assert_eq!(Vec2x4::from(transposed), natural);
-    assert_eq!(Vec2x4T::from(natural), transposed);
-    assert_eq!(Vec2x4::from(Vec2x4T::from(natural)), natural);
-}
-
-#[test]
-fn simd_conversions_round_trip() {
-    let natural = Vec2x4::from(POINTS);
-    let transposed = Vec2x4T::from(POINTS);
-
-    assert_eq!(Vec2x4::from(natural.to_simd()), natural);
-    assert_eq!(Vec2x4T::from(transposed.to_simd()), transposed);
-}
-
-#[test]
-fn from_lanes_inverts_lane_extraction() {
-    let batch = Vec2x4T::from(POINTS);
-
-    assert_eq!(Vec2x4T::from_lanes(*batch.xs(), *batch.ys()), batch);
-}
-
-#[test]
-fn into_lanes_extracts_axis_groups() {
-    let batch = Vec2x4T::from(POINTS);
-    let (xs, ys) = batch.into_lanes();
-
-    assert_eq!(xs, *batch.xs());
-    assert_eq!(ys, *batch.ys());
-    assert_eq!(Vec2x4T::from_lanes(xs, ys), batch);
-}
-
-#[test]
-fn natural_from_lanes_interleaves_axis_groups() {
-    let xs = Simd::from_array([1.0, 2.0, 3.0, 4.0]);
-    let ys = Simd::from_array([5.0, 6.0, 7.0, 8.0]);
-
-    assert_eq!(
-        Vec2x4::from_lanes(xs, ys),
-        Vec2x4::from([
-            Vec2::new(1.0, 5.0),
-            Vec2::new(2.0, 6.0),
-            Vec2::new(3.0, 7.0),
-            Vec2::new(4.0, 8.0),
-        ])
-    );
 }
 
 /// A coordinate bounded to a well-conditioned range.
@@ -611,5 +453,175 @@ fn layout_round_trips_are_bit_exact(#[strategy = vec2_array_strategy()] points: 
     for (original, returned) in points.into_iter().zip(round_tripped) {
         prop_assert_eq!(original.x().to_bits(), returned.x().to_bits());
         prop_assert_eq!(original.y().to_bits(), returned.y().to_bits());
+    }
+}
+
+/// The tests the `miri` nextest profile selects.
+///
+/// Each test here drives a path that reinterprets or realigns memory. That covers slice views over
+/// component storage, the layout conversions between the interleaved and transposed batches, the
+/// reductions over the natural layout, and lane extraction with its inverse. The profile selects by
+/// module path, so moving a test in or out of this module is the whole edit.
+mod miri {
+    use core::simd::Simd;
+
+    use crate::math::{Vec2, Vec2x4T, tests::POINTS, vec2::Vec2x4};
+
+    #[test]
+    fn from_slice_reinterprets_in_place() {
+        let components = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
+        let points = Vec2::from_slice(&components).expect("three whole vectors");
+
+        assert_eq!(
+            points,
+            [
+                Vec2::new(1.0, 2.0),
+                Vec2::new(3.0, 4.0),
+                Vec2::new(5.0, 6.0)
+            ],
+        );
+        // The points alias the component storage.
+        assert_eq!(points.as_ptr().cast::<f32>(), components.as_ptr());
+
+        assert_eq!(
+            Vec2::from_slice(&[]).expect("zero whole vectors"),
+            &[] as &[Vec2],
+        );
+        assert!(
+            Vec2::from_slice(&components[..5]).is_none(),
+            "a dangling component is not a vector"
+        );
+    }
+
+    #[test]
+    fn batch_getters_agree_across_layouts() {
+        let natural = Vec2x4::from(POINTS);
+        let transposed = Vec2x4T::from(POINTS);
+
+        for (index, point) in POINTS.into_iter().enumerate() {
+            assert_eq!(natural.get(index), point);
+            assert_eq!(natural[index], point);
+            assert_eq!(transposed.get(index), point);
+        }
+    }
+
+    #[test]
+    fn natural_from_slice_splits_and_rejoins_at_every_offset() {
+        let points: Vec<Vec2> = (0..24_u8)
+            .map(|index| {
+                let value = f32::from(index);
+
+                Vec2::new(value, -value)
+            })
+            .collect();
+
+        for offset in 0..8 {
+            let window = &points[offset..];
+            let (prefix, batches, suffix) = Vec2x4::from_slice(window);
+
+            // Every point lands in exactly one part, in order.
+            assert_eq!(
+                prefix.len() + 4 * batches.len() + suffix.len(),
+                window.len(),
+                "offset {offset}",
+            );
+            let rejoined: Vec<Vec2> = prefix
+                .iter()
+                .copied()
+                .chain(batches.iter().flat_map(|batch| *batch.as_array()))
+                .chain(suffix.iter().copied())
+                .collect();
+            assert_eq!(rejoined, window, "offset {offset}");
+
+            // The middle meets the batch alignment and aliases the input storage.
+            assert!(batches.as_ptr().addr().is_multiple_of(align_of::<Vec2x4>()));
+            if !batches.is_empty() {
+                assert_eq!(
+                    batches[0].as_array().as_ptr(),
+                    window[prefix.len()..].as_ptr(),
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn natural_min_max_and_reductions_match_scalar() {
+        let other = [
+            Vec2::new(0.5, -1.0),
+            Vec2::new(2.0, 3.0),
+            Vec2::new(-4.0, 0.25),
+            Vec2::new(8.0, -2.0),
+        ];
+
+        let lhs = Vec2x4::from(POINTS);
+        let rhs = Vec2x4::from(other);
+
+        let min = lhs.min(rhs);
+        let max = lhs.max(rhs);
+        for index in 0..4 {
+            assert_eq!(min.get(index), POINTS[index].min(other[index]));
+            assert_eq!(max.get(index), POINTS[index].max(other[index]));
+        }
+
+        assert_eq!(
+            rhs.reduce_min(),
+            other[0].min(other[1]).min(other[2].min(other[3])),
+        );
+        assert_eq!(
+            rhs.reduce_max(),
+            other[0].max(other[1]).max(other[2].max(other[3])),
+        );
+    }
+
+    #[test]
+    fn layout_conversions_round_trip() {
+        let natural = Vec2x4::from(POINTS);
+        let transposed = Vec2x4T::from(POINTS);
+
+        assert_eq!(Vec2x4::from(transposed), natural);
+        assert_eq!(Vec2x4T::from(natural), transposed);
+        assert_eq!(Vec2x4::from(Vec2x4T::from(natural)), natural);
+    }
+
+    #[test]
+    fn simd_conversions_round_trip() {
+        let natural = Vec2x4::from(POINTS);
+        let transposed = Vec2x4T::from(POINTS);
+
+        assert_eq!(Vec2x4::from(natural.to_simd()), natural);
+        assert_eq!(Vec2x4T::from(transposed.to_simd()), transposed);
+    }
+
+    #[test]
+    fn from_lanes_inverts_lane_extraction() {
+        let batch = Vec2x4T::from(POINTS);
+
+        assert_eq!(Vec2x4T::from_lanes(*batch.xs(), *batch.ys()), batch);
+    }
+
+    #[test]
+    fn into_lanes_extracts_axis_groups() {
+        let batch = Vec2x4T::from(POINTS);
+        let (xs, ys) = batch.into_lanes();
+
+        assert_eq!(xs, *batch.xs());
+        assert_eq!(ys, *batch.ys());
+        assert_eq!(Vec2x4T::from_lanes(xs, ys), batch);
+    }
+
+    #[test]
+    fn natural_from_lanes_interleaves_axis_groups() {
+        let xs = Simd::from_array([1.0, 2.0, 3.0, 4.0]);
+        let ys = Simd::from_array([5.0, 6.0, 7.0, 8.0]);
+
+        assert_eq!(
+            Vec2x4::from_lanes(xs, ys),
+            Vec2x4::from([
+                Vec2::new(1.0, 5.0),
+                Vec2::new(2.0, 6.0),
+                Vec2::new(3.0, 7.0),
+                Vec2::new(4.0, 8.0),
+            ])
+        );
     }
 }

@@ -9,7 +9,7 @@ use std::hash::DefaultHasher;
 
 use proptest::{prop_assert, prop_assert_eq, property_test, strategy::Strategy};
 
-use crate::math::{AlignedDVecN, BoxedDVecN, DVecN, test_alloc::CountingAllocator};
+use crate::math::{BoxedDVecN, DVecN};
 
 #[test]
 fn max_and_sum_match_scalar_folds_across_chunk_sizes() {
@@ -183,27 +183,6 @@ fn div_assign_divides_every_component() {
 }
 
 #[test]
-fn aligned_accumulators_delegate_to_the_widening_kernels() {
-    // Exercises the `AlignedDVecN` delegate surface over aligned boxed
-    // storage. Expectations are plain scalar arithmetic.
-    let mut accumulator = BoxedDVecN::<11>::zero();
-    let value = crate::math::VecN::new(core::array::from_fn::<f32, 11, _>(|index| {
-        f32::from(u8::try_from(index).expect("test sizes are small")) - 4.5
-    }));
-    let mean = BoxedDVecN::new(DVecN::from_ref(&[0.5; 11]));
-
-    accumulator.add_widened(&value);
-    accumulator.add_squared_deviation(&value, &mean);
-
-    let expected: [f64; 11] = core::array::from_fn(|index| {
-        let widened = f64::from(value.as_array()[index]);
-        let centred = widened - 0.5;
-        centred.mul_add(centred, widened)
-    });
-    assert_eq!(accumulator.as_array(), &expected);
-}
-
-#[test]
 fn add_squared_deviation_matches_scalar_reference() {
     // Crosses one full 8-lane chunk plus a remainder.
     let mut accumulator = DVecN::new(core::array::from_fn::<f64, 11, _>(|index| {
@@ -223,20 +202,6 @@ fn add_squared_deviation_matches_scalar_reference() {
     accumulator.add_squared_deviation(&value, &mean);
 
     assert_eq!(accumulator.as_array(), &expected);
-}
-
-#[test]
-fn wrapping_is_in_place() {
-    let mut components = [1.0_f64; 4];
-
-    assert_eq!(
-        core::ptr::from_ref(DVecN::from_ref(&components)).addr(),
-        components.as_ptr().addr(),
-    );
-    assert_eq!(
-        core::ptr::from_mut(DVecN::from_mut(&mut components)).addr(),
-        components.as_mut_ptr().addr(),
-    );
 }
 
 /// Deterministic, sign-varying components crossing multiple 8-lane chunks.
@@ -289,44 +254,6 @@ fn norm_squared_and_abs_sum_match_plain_references() {
     // The empty folds hit their identities exactly.
     assert_eq!(DVecN::new([]).norm_squared().into_raw(), 0.0);
     assert_eq!(DVecN::new([]).abs_sum(), 0.0);
-}
-
-#[test]
-fn boxed_dvecn_is_aligned_deep_cloned_and_writable() {
-    let source: [f64; 11] = scattered(2.5);
-    let mut boxed = crate::math::BoxedDVecN::from(source);
-
-    // The allocation satisfies the alignment invariant by construction.
-    assert!(
-        boxed
-            .as_array()
-            .as_ptr()
-            .is_aligned_to(align_of::<core::simd::f64x8>())
-    );
-    assert_eq!(boxed.as_array(), &source);
-
-    // Clones are deep: writes through one box never reach the other.
-    let cloned = boxed.clone();
-    boxed.as_array_mut()[0] = 9.0;
-    assert_eq!(cloned.as_array()[0], source[0]);
-    assert_eq!(boxed.as_array()[0], 9.0);
-
-    // Writes through the lane views modify the array in place, exactly as for the f32 twin.
-    let (lanes, remainder) = boxed.lanes_mut();
-    for lane in lanes.iter_mut() {
-        *lane = core::simd::Simd::splat(2.0);
-    }
-    remainder.fill(5.0);
-    assert_eq!(boxed.as_array()[..8], [2.0; 8]);
-    assert_eq!(boxed.as_array()[8..], [5.0; 3]);
-}
-
-#[test]
-fn boxed_dvecn_zero_is_all_zeros() {
-    let zero = crate::math::BoxedDVecN::<19>::zero();
-
-    assert_eq!(zero.as_array(), &[0.0; 19]);
-    assert_eq!(zero.norm_squared().into_raw(), 0.0);
 }
 
 // The fixed dimension 11 crosses the reductions' 4-lane chunk boundary
@@ -500,7 +427,7 @@ fn stable_l2_survives_huge_components() {
 fn stable_l2_propagates_non_finite_components() {
     assert!(DVecN::new([1.0, f64::NAN]).stable_l2().is_nan());
     assert!(!DVecN::new([f64::INFINITY, 1.0]).stable_l2().is_finite());
-    // A NaN alongside only zeros hides from the maxNum scale, so the zero-scale finiteness gate
+    // A NaN alongside only zeros hides from the maxNum scale, so the zero-scale finiteness check
     // catches it.
     assert!(DVecN::new([0.0, f64::NAN, 0.0]).stable_l2().is_nan());
 }
@@ -755,56 +682,6 @@ fn negate_flips_the_aligned_lane_groups() {
     );
 }
 
-/// The checking wrapper admits aligned storage and refuses an offset view of it.
-#[test]
-fn aligned_from_mut_checks_alignment() {
-    let mut boxed = BoxedDVecN::from([7.0_f64; 9]);
-    let array: &mut [f64; 9] = boxed.as_array_mut();
-
-    let (head, _) = array.split_at_mut(8);
-    let head: &mut [f64; 8] = head.try_into().expect("eight components split off");
-    assert!(AlignedDVecN::from_mut(head).is_some());
-
-    // One component in, the view sits eight bytes past the 64-byte boundary.
-    let tail: &mut [f64; 8] = (&mut array[1..])
-        .try_into()
-        .expect("eight components remain");
-    assert!(AlignedDVecN::from_mut(tail).is_none());
-}
-
-/// The checking wrapper admits aligned storage and refuses an offset view of it, through a
-/// shared reference.
-#[test]
-fn aligned_from_ref_checks_alignment() {
-    let boxed = BoxedDVecN::from([7.0_f64; 9]);
-    let array: &[f64; 9] = boxed.as_array();
-
-    let (head, _) = array.split_at(8);
-    let head: &[f64; 8] = head.try_into().expect("eight components split off");
-    assert!(AlignedDVecN::from_ref(head).is_some());
-
-    // One component in, the view sits eight bytes past the 64-byte boundary.
-    let tail: &[f64; 8] = (&array[1..]).try_into().expect("eight components remain");
-    assert!(AlignedDVecN::from_ref(tail).is_none());
-}
-
-/// `clone_from` reuses the target's existing allocation instead of reallocating.
-#[test]
-fn boxed_dvecn_clone_from_reuses_the_allocation() {
-    let source = BoxedDVecN::from([9.0_f64; 8]);
-    let mut target = BoxedDVecN::from([0.0_f64; 8]);
-    let address = target.as_array().as_ptr().addr();
-
-    target.clone_from(&source);
-
-    assert_eq!(target, source);
-    assert_eq!(
-        target.as_array().as_ptr().addr(),
-        address,
-        "clone_from must reuse the existing buffer",
-    );
-}
-
 /// Hashes one value with the std default hasher.
 fn hash_of(value: impl Hash) -> u64 {
     let mut hasher = DefaultHasher::new();
@@ -812,26 +689,159 @@ fn hash_of(value: impl Hash) -> u64 {
     hasher.finish()
 }
 
-/// `Hash` follows the components and `Debug` prints them.
-#[test]
-fn boxed_hash_and_debug_follow_the_components() {
-    let low = BoxedDVecN::from([0.5, 1.5]);
-    let high = BoxedDVecN::from([1.0, 1.5]);
+/// The tests the `miri` nextest profile selects.
+///
+/// Each test here wraps or boxes double-precision component storage and checks the alignment those
+/// views require. The profile selects by module path, so moving a test in or out of this module is
+/// the whole edit.
+mod miri {
+    use super::{hash_of, scattered};
+    use crate::math::{AlignedDVecN, BoxedDVecN, DVecN, test_alloc::CountingAllocator};
 
-    // A fixed-key DefaultHasher makes distinctness deterministic for fixed inputs.
-    assert_ne!(hash_of(&low), hash_of(&high));
-    assert_eq!(format!("{low:?}"), "AlignedDVecN([0.5, 1.5])");
-}
+    #[test]
+    fn aligned_accumulators_delegate_to_the_widening_kernels() {
+        // Exercises the `AlignedDVecN` delegate surface over aligned boxed
+        // storage. Expectations are plain scalar arithmetic.
+        let mut accumulator = BoxedDVecN::<11>::zero();
+        let value = crate::math::VecN::new(core::array::from_fn::<f32, 11, _>(|index| {
+            f32::from(u8::try_from(index).expect("test sizes are small")) - 4.5
+        }));
+        let mean = BoxedDVecN::new(DVecN::from_ref(&[0.5; 11]));
 
-/// Dropping a box returns its buffer to the allocator that provided it.
-#[test]
-fn boxed_drop_returns_the_buffer_to_its_allocator() {
-    let alloc = CountingAllocator::new();
+        accumulator.add_widened(&value);
+        accumulator.add_squared_deviation(&value, &mean);
 
-    let boxed = BoxedDVecN::try_new_in(DVecN::from_ref(&[1.0, 2.0, 3.0]), &alloc)
-        .expect("the global allocator provides a three-component buffer");
-    assert_eq!(alloc.deallocations(), 0);
+        let expected: [f64; 11] = core::array::from_fn(|index| {
+            let widened = f64::from(value.as_array()[index]);
+            let centred = widened - 0.5;
+            centred.mul_add(centred, widened)
+        });
+        assert_eq!(accumulator.as_array(), &expected);
+    }
 
-    drop(boxed);
-    assert_eq!(alloc.deallocations(), 1);
+    #[test]
+    fn wrapping_is_in_place() {
+        let mut components = [1.0_f64; 4];
+
+        assert_eq!(
+            core::ptr::from_ref(DVecN::from_ref(&components)).addr(),
+            components.as_ptr().addr(),
+        );
+        assert_eq!(
+            core::ptr::from_mut(DVecN::from_mut(&mut components)).addr(),
+            components.as_mut_ptr().addr(),
+        );
+    }
+
+    #[test]
+    fn boxed_dvecn_is_aligned_deep_cloned_and_writable() {
+        let source: [f64; 11] = scattered(2.5);
+        let mut boxed = crate::math::BoxedDVecN::from(source);
+
+        // The allocation satisfies the alignment invariant by construction.
+        assert!(
+            boxed
+                .as_array()
+                .as_ptr()
+                .is_aligned_to(align_of::<core::simd::f64x8>())
+        );
+        assert_eq!(boxed.as_array(), &source);
+
+        // Clones are deep: writes through one box never reach the other.
+        let cloned = boxed.clone();
+        boxed.as_array_mut()[0] = 9.0;
+        assert_eq!(cloned.as_array()[0], source[0]);
+        assert_eq!(boxed.as_array()[0], 9.0);
+
+        // Writes through the lane views modify the array in place, exactly as for the f32 twin.
+        let (lanes, remainder) = boxed.lanes_mut();
+        for lane in lanes.iter_mut() {
+            *lane = core::simd::Simd::splat(2.0);
+        }
+        remainder.fill(5.0);
+        assert_eq!(boxed.as_array()[..8], [2.0; 8]);
+        assert_eq!(boxed.as_array()[8..], [5.0; 3]);
+    }
+
+    #[test]
+    fn boxed_dvecn_zero_is_all_zeros() {
+        let zero = crate::math::BoxedDVecN::<19>::zero();
+
+        assert_eq!(zero.as_array(), &[0.0; 19]);
+        assert_eq!(zero.norm_squared().into_raw(), 0.0);
+    }
+
+    /// The checking wrapper admits aligned storage and refuses an offset view of it.
+    #[test]
+    fn aligned_from_mut_checks_alignment() {
+        let mut boxed = BoxedDVecN::from([7.0_f64; 9]);
+        let array: &mut [f64; 9] = boxed.as_array_mut();
+
+        let (head, _) = array.split_at_mut(8);
+        let head: &mut [f64; 8] = head.try_into().expect("eight components split off");
+        assert!(AlignedDVecN::from_mut(head).is_some());
+
+        // One component in, the view sits eight bytes past the 64-byte boundary.
+        let tail: &mut [f64; 8] = (&mut array[1..])
+            .try_into()
+            .expect("eight components remain");
+        assert!(AlignedDVecN::from_mut(tail).is_none());
+    }
+
+    /// The checking wrapper admits aligned storage and refuses an offset view of it, through a
+    /// shared reference.
+    #[test]
+    fn aligned_from_ref_checks_alignment() {
+        let boxed = BoxedDVecN::from([7.0_f64; 9]);
+        let array: &[f64; 9] = boxed.as_array();
+
+        let (head, _) = array.split_at(8);
+        let head: &[f64; 8] = head.try_into().expect("eight components split off");
+        assert!(AlignedDVecN::from_ref(head).is_some());
+
+        // One component in, the view sits eight bytes past the 64-byte boundary.
+        let tail: &[f64; 8] = (&array[1..]).try_into().expect("eight components remain");
+        assert!(AlignedDVecN::from_ref(tail).is_none());
+    }
+
+    /// `clone_from` reuses the target's existing allocation instead of reallocating.
+    #[test]
+    fn boxed_dvecn_clone_from_reuses_the_allocation() {
+        let source = BoxedDVecN::from([9.0_f64; 8]);
+        let mut target = BoxedDVecN::from([0.0_f64; 8]);
+        let address = target.as_array().as_ptr().addr();
+
+        target.clone_from(&source);
+
+        assert_eq!(target, source);
+        assert_eq!(
+            target.as_array().as_ptr().addr(),
+            address,
+            "clone_from must reuse the existing buffer",
+        );
+    }
+
+    /// `Hash` follows the components and `Debug` prints them.
+    #[test]
+    fn boxed_hash_and_debug_follow_the_components() {
+        let low = BoxedDVecN::from([0.5, 1.5]);
+        let high = BoxedDVecN::from([1.0, 1.5]);
+
+        // A fixed-key DefaultHasher makes distinctness deterministic for fixed inputs.
+        assert_ne!(hash_of(&low), hash_of(&high));
+        assert_eq!(format!("{low:?}"), "AlignedDVecN([0.5, 1.5])");
+    }
+
+    /// Dropping a box returns its buffer to the allocator that provided it.
+    #[test]
+    fn boxed_drop_returns_the_buffer_to_its_allocator() {
+        let alloc = CountingAllocator::new();
+
+        let boxed = BoxedDVecN::try_new_in(DVecN::from_ref(&[1.0, 2.0, 3.0]), &alloc)
+            .expect("the global allocator provides a three-component buffer");
+        assert_eq!(alloc.deallocations(), 0);
+
+        drop(boxed);
+        assert_eq!(alloc.deallocations(), 1);
+    }
 }

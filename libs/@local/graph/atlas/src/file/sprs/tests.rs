@@ -4,7 +4,7 @@ use sprs::CsMatI;
 use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
 use super::{
-    ArrayShape, Dim, FileHeader, IndexVariant, SprsValue, StorageVariant, ValueTag,
+    ArrayShape, Dim, FileHeader, IndexVariant, StorageVariant, ValueTag,
     read::{OpenSprsError, SprsFile, SprsMatrixError},
     write::{WriteSprsError, write_matrix},
 };
@@ -244,9 +244,9 @@ fn written_matrix_reopens_as_the_same_view() {
         Err(OpenSprsError::Length { .. }),
     );
 
-    // The other byte-order bit parses and then refuses by name: the regions are stored in the
-    // writer's native order, and this reader's differs. The bit lives in the machine
-    // information's final byte.
+    // The other byte-order bit parses and then refuses by name: the writer stores the regions in
+    // its native order, and this reader's differs. The bit lives in the machine information's
+    // final byte.
     let foreign_order_path = dir.join("foreign-order.sprs");
     let mut foreign_order = bytes.clone();
     foreign_order[15] ^= 1;
@@ -487,10 +487,18 @@ fn structure_only_matrix_reopens_with_conjured_units() {
     assert_matches!(file.indices::<u64>(), Err(SprsMatrixError::Elements { .. }),);
 }
 
-#[test]
-fn unit_values_conjure_from_no_bytes() {
-    let units = <() as SprsValue>::view_region(&[], 7)
-        .expect("the unit view materializes at any entry count");
+/// The tests the `miri` nextest profile selects.
+///
+/// The test here conjures unit values from an empty byte region.
+/// The profile selects by module path, so moving a test in or out of this module is the whole edit.
+mod miri {
+    use crate::file::sprs::SprsValue;
 
-    assert_eq!(units.len(), 7);
+    #[test]
+    fn unit_values_conjure_from_no_bytes() {
+        let units = <() as SprsValue>::view_region(&[], 7)
+            .expect("the unit view materializes at any entry count");
+
+        assert_eq!(units.len(), 7);
+    }
 }

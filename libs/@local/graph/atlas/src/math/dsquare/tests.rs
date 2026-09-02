@@ -7,10 +7,7 @@
     reason = "the fixture pattern folds indices into small integers through a modulus"
 )]
 
-use core::simd::f64x8;
-
-use super::{DCholeskyError, DSquareMatrix, DSquareRowBlock};
-use crate::math::{DVecN, nz, test_alloc::CountingAllocator};
+use super::{DCholeskyError, DSquareMatrix};
 
 /// A deterministic integer pattern in `[−5, 5]`.
 fn pattern(row: usize, column: usize) -> f64 {
@@ -77,72 +74,6 @@ fn factor_times_its_transpose_recovers_the_lower_triangle() {
                      {tolerance}",
                 );
             }
-        }
-    }
-}
-
-#[test]
-fn the_solution_reproduces_the_right_hand_side() {
-    for order in ORDERS {
-        let factor = spd_fixture(order)
-            .cholesky()
-            .expect("the fixture is positive-definite");
-
-        let mut solution: Vec<f64> = (0..order).map(|index| pattern(index, 3)).collect();
-        factor.solve_in_place(&mut solution);
-
-        // Factor-and-substitute is backward stable: (A + ΔA)·x̂ = b with
-        // |ΔA[i][j]| ≤ c·order·ε·(max diagonal), so each residual component obeys
-        // |A·x̂ − b|ᵢ ≤ c·order·ε·(max diagonal)·Σⱼ|x̂ⱼ|. The residual recomputation below rounds
-        // at the same order. Margin 8 absorbs both constants.
-        let max_diagonal = (0..order)
-            .map(|index| fixture_entry(order, index, index))
-            .fold(0.0_f64, f64::max);
-        let magnitude_sum: f64 = solution.iter().map(|component| component.abs()).sum();
-        let tolerance = 8.0 * order as f64 * f64::EPSILON * max_diagonal * magnitude_sum;
-
-        for row in 0..order {
-            let recovered: f64 = (0..order)
-                .map(|column| fixture_entry(order, row, column) * solution[column])
-                .sum();
-            let expected = pattern(row, 3);
-            assert!(
-                (recovered - expected).abs() <= tolerance,
-                "component {row} of order {order}: |{recovered} − {expected}| > {tolerance}",
-            );
-        }
-    }
-}
-
-/// The factor's bytes are identical at every block height.
-///
-/// Heights below the order make the panel pass cross block boundaries, and the derived height at
-/// this order is the single-block path, so the sweep compares every crossing shape against the
-/// unblocked reference. The order is small enough for Miri to interpret the crossings.
-#[test]
-fn block_height_invariance() {
-    const ORDER: usize = 13;
-
-    let reference = spd_fixture(ORDER)
-        .cholesky()
-        .expect("the fixture is positive-definite");
-
-    for height in [nz!(1), nz!(2), nz!(3), nz!(5), nz!(8)] {
-        let factor = spd_fixture(ORDER)
-            .cholesky_blocked(height)
-            .expect("the fixture is positive-definite");
-
-        for (index, (blocked, derived)) in factor
-            .components()
-            .iter()
-            .zip(reference.components())
-            .enumerate()
-        {
-            assert_eq!(
-                blocked.to_bits(),
-                derived.to_bits(),
-                "height {height} moved component {index}",
-            );
         }
     }
 }
@@ -228,65 +159,6 @@ fn factoring_identical_bytes_yields_identical_bytes() {
 }
 
 #[test]
-fn both_dots_reduce_equal_inputs_to_identical_bits() {
-    // The operands come from two aligned matrix rows; the shifted copy hands the plain-slice dot a
-    // start the lane loads cannot assume. Lengths sweep zero, mid-lane tails, and whole lanes.
-    const ORDER: usize = 40;
-    let mut storage = DSquareMatrix::zeroed(ORDER);
-    for column in 0..ORDER {
-        storage.row_mut(0)[column] = pattern(3, column);
-        storage.row_mut(1)[column] = pattern(7, column);
-    }
-
-    let mut shifted = [0.0; ORDER + 1];
-    shifted[1..].copy_from_slice(storage.row(1));
-
-    for length in 0..=ORDER {
-        let left = DSquareRowBlock::from_slice(&storage.row(0)[..length]);
-        let aligned = DSquareRowBlock::from_slice(&storage.row(1)[..length]);
-
-        let through_views = left.dot(aligned).to_bits();
-        assert_eq!(
-            through_views,
-            left.dot_vector(&storage.row(1)[..length]).to_bits(),
-            "the dots disagreed at length {length}",
-        );
-        assert_eq!(
-            through_views,
-            left.dot_vector(&shifted[1..=length]).to_bits(),
-            "the shifted start changed the bits at length {length}",
-        );
-    }
-}
-
-#[test]
-fn the_row_dot_and_dvecn_dot_reduce_equal_bytes_to_identical_bits() {
-    // The module doc ties the prefix dots to the fold shape of `DVecN::dot`; the test above and
-    // dvecn's aligned-reduction test guard each family internally, and this pins the families to
-    // each other. Length 29 makes three eight-lane folds - the interleave visits both
-    // accumulators, unevenly - and a five-component scalar tail.
-    const LENGTH: usize = 29;
-    let mut storage = DSquareMatrix::zeroed(LENGTH);
-    for column in 0..LENGTH {
-        storage.row_mut(0)[column] = pattern(3, column);
-        storage.row_mut(1)[column] = pattern(7, column);
-    }
-
-    let first = DVecN::new(core::array::from_fn::<f64, LENGTH, _>(|column| {
-        pattern(3, column)
-    }));
-    let second = DVecN::new(core::array::from_fn(|column| pattern(7, column)));
-
-    let left = DSquareRowBlock::from_slice(&storage.row(0)[..LENGTH]);
-    let aligned = DSquareRowBlock::from_slice(&storage.row(1)[..LENGTH]);
-
-    assert_eq!(
-        left.dot(aligned).to_bits(),
-        first.dot(&second).into_raw().to_bits()
-    );
-}
-
-#[test]
 fn factoring_never_writes_the_padding() {
     // Orders 7 and 33 pad their strides to 8 and 40: one and seven trailing components per row.
     for order in [7, 33] {
@@ -325,77 +197,6 @@ fn the_strict_upper_triangle_never_reaches_the_factor() {
     }
 }
 
-#[test]
-fn the_zero_matrix_reads_zero_everywhere() {
-    let matrix = DSquareMatrix::zeroed(3);
-
-    assert_eq!(matrix.order, 3);
-    for row in 0..3 {
-        assert_eq!(matrix.row(row).len(), 3);
-        assert!(
-            matrix
-                .row(row)
-                .iter()
-                .all(|component| component.to_bits() == 0)
-        );
-    }
-}
-
-#[test]
-fn every_row_is_aligned_for_simd() {
-    let matrix = DSquareMatrix::zeroed(7);
-
-    for row in 0..7 {
-        assert!(
-            matrix.row(row).as_ptr().is_aligned_to(align_of::<f64x8>()),
-            "row {row} missed the alignment invariant",
-        );
-    }
-}
-
-#[test]
-#[expect(
-    clippy::float_cmp,
-    reason = "the values are stored literals, not computed results"
-)]
-fn writes_through_rows_land_at_their_offsets() {
-    let mut matrix = DSquareMatrix::zeroed(3);
-    matrix.row_mut(1)[0] = 1.0;
-    matrix.row_mut(2)[2] = 2.0;
-
-    assert_eq!(matrix.row(1)[0], 1.0);
-    assert_eq!(matrix.row(2)[2], 2.0);
-    assert_eq!(matrix.row(0), &[0.0; 3]);
-}
-
-#[test]
-#[should_panic(expected = "row index 3 is out of bounds for order 3")]
-fn a_row_past_the_order_panics() {
-    let matrix = DSquareMatrix::zeroed(3);
-    let _: &[f64] = matrix.row(3);
-}
-
-#[test]
-#[should_panic(expected = "the right-hand side's length must equal the factor's order")]
-fn a_mismatched_right_hand_side_panics() {
-    let factor = spd_fixture(2)
-        .cholesky()
-        .expect("the fixture is positive-definite");
-
-    let mut vector = [1.0; 3];
-    factor.solve_in_place(&mut vector);
-}
-
-#[test]
-fn the_empty_matrix_factors_and_solves() {
-    let factor = DSquareMatrix::zeroed(0)
-        .cholesky()
-        .expect("no pivots exist to fail");
-
-    assert_eq!(factor.order, 0);
-    factor.solve_in_place(&mut []);
-}
-
 /// A 2 × 2 factorization whose every intermediate is exact.
 ///
 /// `A = [[4, 2], [2, 5]]` factors as `L = [[2, 0], [1, 2]]`: `√4`, `2/2`, and `√(5 − 1)` all
@@ -413,36 +214,252 @@ fn exact_factor_reports_its_order_and_debug_forms() {
     assert_eq!(format!("{factor:?}"), "[[2.0], [1.0, 2.0]]");
 }
 
-/// Dropping a matrix returns its buffer to the allocator that provided it.
-#[test]
-fn matrix_drop_returns_the_buffer_to_its_allocator() {
-    let alloc = CountingAllocator::new();
-
-    let matrix = DSquareMatrix::zeroed_in(2, &alloc);
-    assert_eq!(alloc.deallocations(), 0);
-
-    drop(matrix);
-    assert_eq!(alloc.deallocations(), 1);
-}
-
-/// The factorization moves the buffer, and dropping the factor returns it exactly once.
-#[test]
-fn factor_drop_returns_the_moved_buffer_to_its_allocator() {
-    let alloc = CountingAllocator::new();
-
-    let mut matrix = DSquareMatrix::zeroed_in(2, &alloc);
-    matrix.row_mut(0).copy_from_slice(&[4.0, 2.0]);
-    matrix.row_mut(1).copy_from_slice(&[2.0, 5.0]);
-
-    let factor = matrix.cholesky().expect("the matrix is positive definite");
-    assert_eq!(alloc.deallocations(), 0);
-
-    drop(factor);
-    assert_eq!(alloc.deallocations(), 1);
-}
-
 /// The derived block height splits a production-scale order into more than one block.
 #[test]
 fn block_rows_for_production_order() {
     assert!(super::block_rows_for(super::stride_for(200)).get() < 200);
+}
+
+/// The tests the `miri` nextest profile selects.
+///
+/// Each test here drives the dense square matrix through its row storage. That covers the
+/// alignment and offsets of the rows, the dot reductions, factor and solve, and the return of the
+/// buffer to its allocator on drop. The profile selects by module path, so moving a test in or out
+/// of this module is the whole edit.
+mod miri {
+    use core::simd::f64x8;
+
+    use super::{ORDERS, fixture_entry, pattern, spd_fixture};
+    use crate::math::{
+        DVecN,
+        dsquare::{DSquareMatrix, DSquareRowBlock},
+        nz,
+        test_alloc::CountingAllocator,
+    };
+
+    #[test]
+    fn the_solution_reproduces_the_right_hand_side() {
+        for order in ORDERS {
+            let factor = spd_fixture(order)
+                .cholesky()
+                .expect("the fixture is positive-definite");
+
+            let mut solution: Vec<f64> = (0..order).map(|index| pattern(index, 3)).collect();
+            factor.solve_in_place(&mut solution);
+
+            // Factor-and-substitute is backward stable: (A + ΔA)·x̂ = b with
+            // |ΔA[i][j]| ≤ c·order·ε·(max diagonal), so each residual component obeys
+            // |A·x̂ − b|ᵢ ≤ c·order·ε·(max diagonal)·Σⱼ|x̂ⱼ|. The residual recomputation below rounds
+            // at the same order. Margin 8 absorbs both constants.
+            let max_diagonal = (0..order)
+                .map(|index| fixture_entry(order, index, index))
+                .fold(0.0_f64, f64::max);
+            let magnitude_sum: f64 = solution.iter().map(|component| component.abs()).sum();
+            let tolerance = 8.0 * order as f64 * f64::EPSILON * max_diagonal * magnitude_sum;
+
+            for row in 0..order {
+                let recovered: f64 = (0..order)
+                    .map(|column| fixture_entry(order, row, column) * solution[column])
+                    .sum();
+                let expected = pattern(row, 3);
+                assert!(
+                    (recovered - expected).abs() <= tolerance,
+                    "component {row} of order {order}: |{recovered} − {expected}| > {tolerance}",
+                );
+            }
+        }
+    }
+
+    /// The factor's bytes are identical at every block height.
+    ///
+    /// Heights below the order make the panel pass cross block boundaries, and the derived height
+    /// at this order is the single-block path, so the sweep compares every crossing shape
+    /// against the unblocked reference. The order is small enough for Miri to interpret the
+    /// crossings.
+    #[test]
+    fn block_height_invariance() {
+        const ORDER: usize = 13;
+
+        let reference = spd_fixture(ORDER)
+            .cholesky()
+            .expect("the fixture is positive-definite");
+
+        for height in [nz!(1), nz!(2), nz!(3), nz!(5), nz!(8)] {
+            let factor = spd_fixture(ORDER)
+                .cholesky_blocked(height)
+                .expect("the fixture is positive-definite");
+
+            for (index, (blocked, derived)) in factor
+                .components()
+                .iter()
+                .zip(reference.components())
+                .enumerate()
+            {
+                assert_eq!(
+                    blocked.to_bits(),
+                    derived.to_bits(),
+                    "height {height} moved component {index}",
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn both_dots_reduce_equal_inputs_to_identical_bits() {
+        // The operands come from two aligned matrix rows; the shifted copy hands the plain-slice
+        // dot a start the lane loads cannot assume. Lengths sweep zero, mid-lane tails, and
+        // whole lanes.
+        const ORDER: usize = 40;
+        let mut storage = DSquareMatrix::zeroed(ORDER);
+        for column in 0..ORDER {
+            storage.row_mut(0)[column] = pattern(3, column);
+            storage.row_mut(1)[column] = pattern(7, column);
+        }
+
+        let mut shifted = [0.0; ORDER + 1];
+        shifted[1..].copy_from_slice(storage.row(1));
+
+        for length in 0..=ORDER {
+            let left = DSquareRowBlock::from_slice(&storage.row(0)[..length]);
+            let aligned = DSquareRowBlock::from_slice(&storage.row(1)[..length]);
+
+            let through_views = left.dot(aligned).to_bits();
+            assert_eq!(
+                through_views,
+                left.dot_vector(&storage.row(1)[..length]).to_bits(),
+                "the dots disagreed at length {length}",
+            );
+            assert_eq!(
+                through_views,
+                left.dot_vector(&shifted[1..=length]).to_bits(),
+                "the shifted start changed the bits at length {length}",
+            );
+        }
+    }
+
+    #[test]
+    fn the_row_dot_and_dvecn_dot_reduce_equal_bytes_to_identical_bits() {
+        // The module doc ties the prefix dots to the fold shape of `DVecN::dot`; the test above and
+        // dvecn's aligned-reduction test guard each family internally, and this pins the families
+        // to each other. Length 29 makes three eight-lane folds - the interleave visits
+        // both accumulators, unevenly - and a five-component scalar tail.
+        const LENGTH: usize = 29;
+        let mut storage = DSquareMatrix::zeroed(LENGTH);
+        for column in 0..LENGTH {
+            storage.row_mut(0)[column] = pattern(3, column);
+            storage.row_mut(1)[column] = pattern(7, column);
+        }
+
+        let first = DVecN::new(core::array::from_fn::<f64, LENGTH, _>(|column| {
+            pattern(3, column)
+        }));
+        let second = DVecN::new(core::array::from_fn(|column| pattern(7, column)));
+
+        let left = DSquareRowBlock::from_slice(&storage.row(0)[..LENGTH]);
+        let aligned = DSquareRowBlock::from_slice(&storage.row(1)[..LENGTH]);
+
+        assert_eq!(
+            left.dot(aligned).to_bits(),
+            first.dot(&second).into_raw().to_bits()
+        );
+    }
+
+    #[test]
+    fn the_zero_matrix_reads_zero_everywhere() {
+        let matrix = DSquareMatrix::zeroed(3);
+
+        assert_eq!(matrix.order, 3);
+        for row in 0..3 {
+            assert_eq!(matrix.row(row).len(), 3);
+            assert!(
+                matrix
+                    .row(row)
+                    .iter()
+                    .all(|component| component.to_bits() == 0)
+            );
+        }
+    }
+
+    #[test]
+    fn every_row_is_aligned_for_simd() {
+        let matrix = DSquareMatrix::zeroed(7);
+
+        for row in 0..7 {
+            assert!(
+                matrix.row(row).as_ptr().is_aligned_to(align_of::<f64x8>()),
+                "row {row} missed the alignment invariant",
+            );
+        }
+    }
+
+    #[test]
+    #[expect(
+        clippy::float_cmp,
+        reason = "the values are stored literals, not computed results"
+    )]
+    fn writes_through_rows_land_at_their_offsets() {
+        let mut matrix = DSquareMatrix::zeroed(3);
+        matrix.row_mut(1)[0] = 1.0;
+        matrix.row_mut(2)[2] = 2.0;
+
+        assert_eq!(matrix.row(1)[0], 1.0);
+        assert_eq!(matrix.row(2)[2], 2.0);
+        assert_eq!(matrix.row(0), &[0.0; 3]);
+    }
+
+    #[test]
+    #[should_panic(expected = "row index 3 is out of bounds for order 3")]
+    fn a_row_past_the_order_panics() {
+        let matrix = DSquareMatrix::zeroed(3);
+        let _: &[f64] = matrix.row(3);
+    }
+
+    #[test]
+    #[should_panic(expected = "the right-hand side's length must equal the factor's order")]
+    fn a_mismatched_right_hand_side_panics() {
+        let factor = spd_fixture(2)
+            .cholesky()
+            .expect("the fixture is positive-definite");
+
+        let mut vector = [1.0; 3];
+        factor.solve_in_place(&mut vector);
+    }
+
+    #[test]
+    fn the_empty_matrix_factors_and_solves() {
+        let factor = DSquareMatrix::zeroed(0)
+            .cholesky()
+            .expect("no pivots exist to fail");
+
+        assert_eq!(factor.order, 0);
+        factor.solve_in_place(&mut []);
+    }
+
+    /// Dropping a matrix returns its buffer to the allocator that provided it.
+    #[test]
+    fn matrix_drop_returns_the_buffer_to_its_allocator() {
+        let alloc = CountingAllocator::new();
+
+        let matrix = DSquareMatrix::zeroed_in(2, &alloc);
+        assert_eq!(alloc.deallocations(), 0);
+
+        drop(matrix);
+        assert_eq!(alloc.deallocations(), 1);
+    }
+
+    /// The factorization moves the buffer, and dropping the factor returns it exactly once.
+    #[test]
+    fn factor_drop_returns_the_moved_buffer_to_its_allocator() {
+        let alloc = CountingAllocator::new();
+
+        let mut matrix = DSquareMatrix::zeroed_in(2, &alloc);
+        matrix.row_mut(0).copy_from_slice(&[4.0, 2.0]);
+        matrix.row_mut(1).copy_from_slice(&[2.0, 5.0]);
+
+        let factor = matrix.cholesky().expect("the matrix is positive definite");
+        assert_eq!(alloc.deallocations(), 0);
+
+        drop(factor);
+        assert_eq!(alloc.deallocations(), 1);
+    }
 }

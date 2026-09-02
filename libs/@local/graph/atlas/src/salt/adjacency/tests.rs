@@ -191,7 +191,7 @@ fn shifted_fencepost_column_is_rejected() {
 
     // Shift every fencepost up by one. Monotonicity and the relative
     // entry count survive the shift, but the zero anchor does not. The
-    // posts sit in the page-aligned region behind the header, eight
+    // posts occupy the page-aligned region behind the header, eight
     // bytes each.
     let mut bytes = fs::read(&path).expect("the fixture file should read");
     let posts = 2 * 2 + 1;
@@ -242,19 +242,27 @@ fn wide_indices_read_back() {
     assert_eq!(list(mapped.incoming(NodeRowId::new(0))), [0]);
 }
 
-#[test]
-fn writing_to_memory_conjures_the_unit_region() {
-    let endpoints = [
-        [NodeRowId::new(0), NodeRowId::new(1)],
-        [NodeRowId::new(1), NodeRowId::new(2)],
-        [NodeRowId::new(0), NodeRowId::new(2)],
-    ];
-    let adjacency = Adjacency::build(3, &endpoints);
+/// The tests the `miri` nextest profile selects.
+///
+/// The test here writes an adjacency into memory and conjures the unit region back from the bytes.
+/// The profile selects by module path, so moving a test in or out of this module is the whole edit.
+mod miri {
+    use crate::{file::WriteInto as _, identity::NodeRowId, salt::adjacency::Adjacency};
 
-    let mut bytes = Vec::new();
-    let _digest = adjacency
-        .write_into(&mut bytes)
-        .expect("an in-memory write cannot fail");
+    #[test]
+    fn writing_to_memory_conjures_the_unit_region() {
+        let endpoints = [
+            [NodeRowId::new(0), NodeRowId::new(1)],
+            [NodeRowId::new(1), NodeRowId::new(2)],
+            [NodeRowId::new(0), NodeRowId::new(2)],
+        ];
+        let adjacency = Adjacency::build(3, &endpoints);
 
-    assert!(!bytes.is_empty());
+        let mut bytes = Vec::new();
+        let _digest = adjacency
+            .write_into(&mut bytes)
+            .expect("an in-memory write cannot fail");
+
+        assert!(!bytes.is_empty());
+    }
 }

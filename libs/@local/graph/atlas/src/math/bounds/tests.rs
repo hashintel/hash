@@ -169,53 +169,6 @@ fn scattered_points(count: usize) -> Vec<Vec2> {
 }
 
 #[test]
-fn from_slice_matches_from_points_for_every_remainder_length() {
-    // Cover empty, remainder-only, exact-batch, and mixed lengths.
-    for length in [0, 1, 3, 4, 5, 8, 11] {
-        let points = scattered_points(length);
-
-        assert_eq!(
-            Bounds2::from_slice(&points),
-            Bounds2::from_points(points.iter().copied()),
-            "length {length}",
-        );
-    }
-}
-
-#[test]
-fn from_slice_matches_from_points_at_every_alignment_offset() {
-    // Slide the slice start across a full batch stride so the split lands
-    // every possible prefix length.
-    let points = scattered_points(64);
-
-    for offset in 0..8 {
-        let window = &points[offset..];
-
-        assert_eq!(
-            Bounds2::from_slice(window),
-            Bounds2::from_points(window.iter().copied()),
-            "offset {offset}",
-        );
-    }
-}
-
-#[test]
-fn from_slice_rejects_non_finite_in_batch_and_remainder() {
-    // Position 2 falls in the batched body, position 9 in the remainder of an 11-point slice.
-    for position in [2, 9] {
-        let mut points = scattered_points(11);
-        points[position] = Vec2::new(f32::NAN, 0.0);
-        assert!(Bounds2::from_slice(&points).is_none(), "NaN at {position}");
-
-        points[position] = Vec2::new(0.0, f32::INFINITY);
-        assert!(
-            Bounds2::from_slice(&points).is_none(),
-            "infinity at {position}",
-        );
-    }
-}
-
-#[test]
 fn from_slice_par_matches_serial() {
     // Spans three parallel chunks (chunk size is 4096).
     let points = scattered_points(10_000);
@@ -527,4 +480,61 @@ fn scaling_about_the_centre_scales_both_extents(
             && outer.max().y() >= inner.max().y() - tolerance,
         "{outer:?} does not contain {inner:?}",
     );
+}
+
+/// The tests the `miri` nextest profile selects.
+///
+/// Each test here reduces point slices through the batched kernel at every alignment offset and
+/// remainder length, beside the scalar path. The profile selects by module path, so moving a test
+/// in or out of this module is the whole edit.
+mod miri {
+    use super::scattered_points;
+    use crate::math::{Bounds2, Vec2};
+
+    #[test]
+    fn from_slice_matches_from_points_for_every_remainder_length() {
+        // Cover empty, remainder-only, exact-batch, and mixed lengths.
+        for length in [0, 1, 3, 4, 5, 8, 11] {
+            let points = scattered_points(length);
+
+            assert_eq!(
+                Bounds2::from_slice(&points),
+                Bounds2::from_points(points.iter().copied()),
+                "length {length}",
+            );
+        }
+    }
+
+    #[test]
+    fn from_slice_matches_from_points_at_every_alignment_offset() {
+        // Slide the slice start across a full batch stride so the split lands
+        // every possible prefix length.
+        let points = scattered_points(64);
+
+        for offset in 0..8 {
+            let window = &points[offset..];
+
+            assert_eq!(
+                Bounds2::from_slice(window),
+                Bounds2::from_points(window.iter().copied()),
+                "offset {offset}",
+            );
+        }
+    }
+
+    #[test]
+    fn from_slice_rejects_non_finite_in_batch_and_remainder() {
+        // Position 2 falls in the batched body, position 9 in the remainder of an 11-point slice.
+        for position in [2, 9] {
+            let mut points = scattered_points(11);
+            points[position] = Vec2::new(f32::NAN, 0.0);
+            assert!(Bounds2::from_slice(&points).is_none(), "NaN at {position}");
+
+            points[position] = Vec2::new(0.0, f32::INFINITY);
+            assert!(
+                Bounds2::from_slice(&points).is_none(),
+                "infinity at {position}",
+            );
+        }
+    }
 }

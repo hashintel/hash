@@ -4,12 +4,6 @@ use std::collections::HashMap;
 use futures::TryStreamExt as _;
 use hashql_core::id::Id as _;
 use smallvec::smallvec;
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    ontology::id::{OntologyTypeUuid, VersionedUrl},
-    principal::actor_group::WebId,
-};
-use uuid::Uuid;
 use zerocopy::{FromBytes as _, IntoBytes as _, LE, U64};
 
 use super::{
@@ -21,50 +15,11 @@ use super::{
 use crate::{
     identity::{NodeRowId, OntologyRowId},
     math::{BoxedVecN, VecN, unit_fraction},
-    postgres::id::{ArchivedEntityUuid, ArchivedOntologyTypeUuid, ArchivedWebId},
 };
 
 const UUID_BYTES: [u8; 16] = [
     0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF, 0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE,
 ];
-
-#[test]
-fn archived_entity_uuid_derefs_to_the_same_identity() {
-    let archived = ArchivedEntityUuid::read_from_bytes(&UUID_BYTES)
-        .expect("should read an archived uuid from any 16 bytes");
-
-    assert_eq!(*archived, EntityUuid::new(Uuid::from_bytes(UUID_BYTES)));
-}
-
-#[test]
-fn archived_web_id_derefs_to_the_same_identity() {
-    let archived = ArchivedWebId::read_from_bytes(&UUID_BYTES)
-        .expect("should read an archived uuid from any 16 bytes");
-
-    assert_eq!(*archived, WebId::new(Uuid::from_bytes(UUID_BYTES)));
-}
-
-#[test]
-fn archived_ontology_type_uuid_derefs_to_the_same_identity() {
-    let id = OntologyTypeUuid::from_url(
-        &"https://example.com/types/entity-type/person/v/1"
-            .parse::<VersionedUrl>()
-            .expect("should parse a well-formed versioned url"),
-    );
-
-    let archived = ArchivedOntologyTypeUuid::read_from_bytes(id.as_uuid().as_bytes())
-        .expect("should read an archived uuid from any 16 bytes");
-
-    assert_eq!(*archived, id);
-}
-
-#[test]
-fn archived_uuid_bytes_round_trip() {
-    let archived = ArchivedEntityUuid::read_from_bytes(&UUID_BYTES)
-        .expect("should read an archived uuid from any 16 bytes");
-
-    assert_eq!(archived.as_bytes(), UUID_BYTES);
-}
 
 #[test]
 fn row_ids_persist_little_endian() {
@@ -320,4 +275,60 @@ fn memory_dataset_rejects_dangling_edge_endpoints() {
         HashMap::new(),
         HashMap::new(),
     );
+}
+
+/// The tests the `miri` nextest profile selects.
+///
+/// Each test here derefs an archived identifier to the identity it wraps and round-trips the bytes
+/// behind it. The profile selects by module path, so moving a test in or out of this module is the
+/// whole edit.
+mod miri {
+    use type_system::{
+        knowledge::entity::id::EntityUuid,
+        ontology::id::{OntologyTypeUuid, VersionedUrl},
+        principal::actor_group::WebId,
+    };
+    use uuid::Uuid;
+    use zerocopy::{FromBytes as _, IntoBytes as _};
+
+    use super::UUID_BYTES;
+    use crate::postgres::id::{ArchivedEntityUuid, ArchivedOntologyTypeUuid, ArchivedWebId};
+
+    #[test]
+    fn archived_entity_uuid_derefs_to_the_same_identity() {
+        let archived = ArchivedEntityUuid::read_from_bytes(&UUID_BYTES)
+            .expect("should read an archived uuid from any 16 bytes");
+
+        assert_eq!(*archived, EntityUuid::new(Uuid::from_bytes(UUID_BYTES)));
+    }
+
+    #[test]
+    fn archived_web_id_derefs_to_the_same_identity() {
+        let archived = ArchivedWebId::read_from_bytes(&UUID_BYTES)
+            .expect("should read an archived uuid from any 16 bytes");
+
+        assert_eq!(*archived, WebId::new(Uuid::from_bytes(UUID_BYTES)));
+    }
+
+    #[test]
+    fn archived_ontology_type_uuid_derefs_to_the_same_identity() {
+        let id = OntologyTypeUuid::from_url(
+            &"https://example.com/types/entity-type/person/v/1"
+                .parse::<VersionedUrl>()
+                .expect("should parse a well-formed versioned url"),
+        );
+
+        let archived = ArchivedOntologyTypeUuid::read_from_bytes(id.as_uuid().as_bytes())
+            .expect("should read an archived uuid from any 16 bytes");
+
+        assert_eq!(*archived, id);
+    }
+
+    #[test]
+    fn archived_uuid_bytes_round_trip() {
+        let archived = ArchivedEntityUuid::read_from_bytes(&UUID_BYTES)
+            .expect("should read an archived uuid from any 16 bytes");
+
+        assert_eq!(archived.as_bytes(), UUID_BYTES);
+    }
 }

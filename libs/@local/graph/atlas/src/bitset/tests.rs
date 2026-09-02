@@ -5,12 +5,9 @@ use hashql_core::id::{
     bit_vec::{BitRelations as _, DenseBitSet},
 };
 use proptest::{arbitrary::any, prop_assert_eq, property_test};
-use zerocopy::{IntoBytes as _, TryFromBytes as _};
+use zerocopy::IntoBytes as _;
 
-use super::{
-    CompressedBitSet, DenseBitSlice, DenseBitSliceArray, ParseDenseBitSliceArrayError,
-    ParseDenseBitSliceError,
-};
+use super::{CompressedBitSet, DenseBitSlice, DenseBitSliceArray};
 use crate::identity::{EdgeRowId, NodeRowId};
 
 #[test]
@@ -295,107 +292,6 @@ fn dense_bit_slice_zero_domain_packs_to_no_words() {
     assert!(set.words().is_empty());
 }
 
-/// A live set and its frame are the same bytes in both directions.
-#[test]
-fn dense_bit_slice_frames_round_trip() {
-    let mut set = DenseBitSlice::new_empty(130);
-    set.insert(NodeRowId::new(3));
-    set.insert(NodeRowId::new(64));
-
-    let (read, rest) =
-        DenseBitSlice::<NodeRowId>::try_from_prefix(set.as_bytes()).expect("the frame parses");
-    assert_eq!(read, &*set);
-    assert_eq!(read.iter().collect::<Vec<_>>(), [3, 64].map(NodeRowId::new));
-    assert!(rest.is_empty());
-}
-
-#[test]
-fn dense_bit_slice_zero_domain_frames_parse() {
-    let set = DenseBitSlice::<NodeRowId>::new_empty(0);
-    assert_eq!(set.as_bytes().len(), 8);
-
-    let (read, rest) =
-        DenseBitSlice::<NodeRowId>::try_from_prefix(set.as_bytes()).expect("the frame parses");
-    assert_eq!(read.count(), 0);
-    assert_eq!(read.domain_size(), 0);
-    assert!(rest.is_empty());
-}
-
-/// The final word carries in-domain bits and refuses bits above the domain.
-#[test]
-fn dense_bit_slice_polices_the_final_word() {
-    let legal = frame(100, &[0, 1 << (99 - 64)]);
-    let (read, _rest) =
-        DenseBitSlice::<NodeRowId>::try_from_prefix(&legal).expect("the frame parses");
-    assert!(read.contains(NodeRowId::new(99)));
-
-    assert_eq!(
-        DenseBitSlice::<NodeRowId>::try_from_prefix(&frame(100, &[0, 1 << (100 - 64)])),
-        Err(ParseDenseBitSliceError::ExcessBits)
-    );
-}
-
-/// Every way a frame can misstate its shape is refused with the cause named.
-#[test]
-fn dense_bit_slice_refuses_misshapen_frames() {
-    assert_eq!(
-        DenseBitSlice::<NodeRowId>::try_from_prefix(&[0_u8; 4]),
-        Err(ParseDenseBitSliceError::Header { bytes: 4 })
-    );
-    assert_eq!(
-        DenseBitSlice::<NodeRowId>::try_from_prefix(&frame(64, &[0])[..12]),
-        Err(ParseDenseBitSliceError::WordCount {
-            domain_size: 64,
-            words: 0
-        })
-    );
-    assert_eq!(
-        DenseBitSlice::<NodeRowId>::try_from_prefix(&frame(65, &[0])),
-        Err(ParseDenseBitSliceError::WordCount {
-            domain_size: 65,
-            words: 1
-        })
-    );
-
-    // A buffer longer than its frame is a prefix read rather than a refusal.
-    let long = frame(64, &[0, 0]);
-    let (read, rest) =
-        DenseBitSlice::<NodeRowId>::try_from_prefix(&long).expect("the header frames the set");
-    assert_eq!(read.domain_size(), 64);
-    assert_eq!(rest, [0_u8; 8]);
-}
-
-/// The frame invariant is the type's bit validity, so the zerocopy doors validate it themselves.
-#[test]
-fn dense_bit_slice_zerocopy_doors_carry_the_frame_invariant() {
-    let valid = frame(100, &[0, 1 << (99 - 64)]);
-    let read = DenseBitSlice::<NodeRowId>::try_ref_from_bytes(&valid).expect("the frame is valid");
-    assert!(read.contains(NodeRowId::new(99)));
-
-    DenseBitSlice::<NodeRowId>::try_ref_from_bytes(&frame(65, &[0]))
-        .expect_err("the frame carries one word where a 65-row domain occupies two");
-    DenseBitSlice::<NodeRowId>::try_ref_from_bytes(&frame(100, &[0, 1 << (100 - 64)]))
-        .expect_err("the frame sets a bit above its domain in the final word");
-}
-
-/// A plain prefix read is greedy, so framing a prefix takes the header's own word count.
-#[test]
-fn dense_bit_slice_prefix_reads_take_the_header_count() {
-    let mut bytes = frame(100, &[3, 1]);
-    bytes.extend_from_slice(&[0xAB; 8]);
-
-    DenseBitSlice::<NodeRowId>::try_ref_from_prefix(&bytes)
-        .expect_err("the greedy split hands validation three words where the header claims two");
-
-    let (read, rest) = DenseBitSlice::<NodeRowId>::try_from_prefix(&bytes)
-        .expect("the header's own count frames the prefix");
-    assert_eq!(
-        read.iter().collect::<Vec<_>>(),
-        [0, 1, 64].map(NodeRowId::new)
-    );
-    assert_eq!(rest, [0xAB; 8]);
-}
-
 /// Membership, cardinality, iteration order, and the byte round trip agree with a reference set.
 #[property_test]
 fn dense_bit_slice_agrees_with_a_reference_set(
@@ -564,177 +460,301 @@ fn dense_bit_slice_relations_reject_mismatched_slice_domains() {
 }
 
 #[test]
-fn dense_bit_slice_array_starts_as_empty_frames() {
-    let sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 3);
-
-    assert_eq!(sets.len(), 3);
-    assert_eq!(sets.domain_size(), 130);
-    assert_eq!(
-        Some(sets.as_bytes().len() as u64),
-        DenseBitSliceArray::<NodeRowId>::total_byte_len(130, 3),
-        "the allocation is exactly the domain header plus the frame count's strides",
-    );
-    for rank in 0..3 {
-        assert_eq!(sets[rank].domain_size(), 130);
-        assert_eq!(sets[rank].count(), 0);
-    }
-}
-
-#[test]
-fn dense_bit_slice_array_indexes_independent_frames() {
-    let mut sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 3);
-    assert!(sets[0].insert(NodeRowId::new(3)));
-    assert!(sets[1].insert(NodeRowId::new(64)));
-    assert!(sets[1].insert(NodeRowId::new(3)));
-    assert!(sets[2].insert(NodeRowId::new(129)));
-
-    assert_eq!(sets[0].iter().collect::<Vec<_>>(), [3].map(NodeRowId::new));
-    assert_eq!(
-        sets[1].iter().collect::<Vec<_>>(),
-        [3, 64].map(NodeRowId::new)
-    );
-    assert_eq!(
-        sets[2].iter().collect::<Vec<_>>(),
-        [129].map(NodeRowId::new)
-    );
-}
-
-/// The live array and its byte region are the same bytes in both directions, and the region is
-/// the domain header, then the frames back to back: what a file write emits.
-#[test]
-fn dense_bit_slice_array_round_trips_through_its_region() {
-    let mut sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 2);
-    sets[0].insert(NodeRowId::new(0));
-    sets[1].insert(NodeRowId::new(129));
-
-    let concatenated: Vec<u8> = (0..sets.len())
-        .flat_map(|rank| sets[rank].as_bytes().to_vec())
-        .collect();
-    assert_eq!(&sets.as_bytes()[8..], concatenated);
-
-    let read = DenseBitSliceArray::<NodeRowId>::try_from_bytes(sets.as_bytes(), 130, 2)
-        .expect("the region parses");
-    assert_eq!(read, &*sets);
-    assert_eq!(read[0].iter().collect::<Vec<_>>(), [NodeRowId::new(0)]);
-    assert_eq!(read[1].iter().collect::<Vec<_>>(), [NodeRowId::new(129)]);
-}
-
-/// An array of no frames still states its domain: the header is the whole region.
-#[test]
-fn dense_bit_slice_array_of_no_frames() {
-    let sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 0);
-
-    assert_eq!(sets.len(), 0);
-    assert_eq!(sets.domain_size(), 130);
-    assert_eq!(sets.as_bytes().len(), 8);
-
-    let read = DenseBitSliceArray::<NodeRowId>::try_from_bytes(sets.as_bytes(), 130, 0)
-        .expect("the header-only region parses");
-    assert_eq!(read.len(), 0);
-    assert_eq!(read.domain_size(), 130);
-}
-
-/// Every way a region can misstate its shape is refused with the rank and cause named.
-#[test]
-fn dense_bit_slice_array_refuses_misshapen_regions() {
-    // Domain 100 takes two words, so one frame is 24 bytes behind the 8-byte region header:
-    // frame 1 occupies bytes 32..56, and position 100 is bit 4 of byte 52 in its final word.
-    let sets = DenseBitSliceArray::<NodeRowId>::new_empty(100, 2);
-    let bytes = sets.as_bytes();
-
-    assert_eq!(
-        DenseBitSliceArray::<NodeRowId>::try_from_bytes(&bytes[..bytes.len() - 8], 100, 2),
-        Err(ParseDenseBitSliceArrayError::Length {
-            expected: Some(56),
-            actual: 48
-        })
-    );
-    assert_eq!(
-        DenseBitSliceArray::<NodeRowId>::try_from_bytes(bytes, 100, u64::MAX),
-        Err(ParseDenseBitSliceArrayError::Length {
-            expected: None,
-            actual: 56
-        }),
-        "an overflowing frame count matches no real region",
-    );
-
-    // The region's own header disagreeing with the caller is refused before any frame is read.
-    assert_eq!(
-        DenseBitSliceArray::<NodeRowId>::try_from_bytes(bytes, 101, 2),
-        Err(ParseDenseBitSliceArrayError::Header {
-            expected: 101,
-            actual: 100
-        })
-    );
-
-    // A frame claiming a smaller domain parses cleanly inside its chunk. The agreement check
-    // refuses it.
-    let mut shrunk = bytes.to_vec();
-    shrunk[32..].copy_from_slice(&frame(99, &[0, 0]));
-    assert_eq!(
-        DenseBitSliceArray::<NodeRowId>::try_from_bytes(&shrunk, 100, 2),
-        Err(ParseDenseBitSliceArrayError::Domain {
-            rank: 1,
-            expected: 100,
-            actual: 99
-        })
-    );
-
-    let mut excess = bytes.to_vec();
-    excess[52] |= 0b0001_0000;
-    assert_eq!(
-        DenseBitSliceArray::<NodeRowId>::try_from_bytes(&excess, 100, 2),
-        Err(ParseDenseBitSliceArrayError::Frame {
-            rank: 1,
-            error: ParseDenseBitSliceError::ExcessBits
-        })
-    );
-}
-
-/// The region invariant is the type's bit validity, so the zerocopy doors validate it themselves.
-#[test]
-fn dense_bit_slice_array_zerocopy_doors_carry_the_region_invariant() {
-    // The fixture is two 24-byte frames of domain 100 behind the 8-byte region header: frame 1
-    // occupies bytes 32..56, and position 100 is bit 4 of byte 52 in its final word.
-    let mut sets = DenseBitSliceArray::<NodeRowId>::new_empty(100, 2);
-    sets[0].insert(NodeRowId::new(99));
-    let bytes = sets.as_bytes();
-
-    let read =
-        DenseBitSliceArray::<NodeRowId>::try_ref_from_bytes(bytes).expect("the region is valid");
-    assert_eq!(read, &*sets);
-    assert!(read[0].contains(NodeRowId::new(99)));
-
-    // Torn strides, an excess bit, and a frame claiming a foreign domain are all refused.
-    DenseBitSliceArray::<NodeRowId>::try_ref_from_bytes(&bytes[..bytes.len() - 8])
-        .expect_err("the region tears mid-stride");
-    let mut excess = bytes.to_vec();
-    excess[52] |= 0b0001_0000;
-    DenseBitSliceArray::<NodeRowId>::try_ref_from_bytes(&excess)
-        .expect_err("frame 1 sets a bit above the domain");
-    let mut shrunk = bytes.to_vec();
-    shrunk[32..].copy_from_slice(&frame(99, &[0, 0]));
-    DenseBitSliceArray::<NodeRowId>::try_ref_from_bytes(&shrunk)
-        .expect_err("frame 1 claims a foreign domain");
-
-    // A header-only region is the array of no frames.
-    let empty = DenseBitSliceArray::<NodeRowId>::new_empty(64, 0);
-    let read = DenseBitSliceArray::<NodeRowId>::try_ref_from_bytes(empty.as_bytes())
-        .expect("the header-only region is valid");
-    assert_eq!(read.len(), 0);
-    assert_eq!(read.domain_size(), 64);
-}
-
-#[test]
 #[should_panic(expected = "the rank names one of the array's frames")]
 fn dense_bit_slice_array_rejects_ranks_beyond_the_frames() {
     let sets = DenseBitSliceArray::<NodeRowId>::new_empty(100, 2);
     let _: &DenseBitSlice<NodeRowId> = &sets[2];
 }
 
-#[test]
-#[should_panic(expected = "the rank names one of the array's frames")]
-fn dense_bit_slice_array_of_no_frames_rejects_every_rank() {
-    let sets = DenseBitSliceArray::<NodeRowId>::new_empty(100, 0);
-    let _: &DenseBitSlice<NodeRowId> = &sets[0];
+/// The tests the `miri` nextest profile selects.
+///
+/// Each test here reinterprets raw words as dense bit slices and frame arrays through the zerocopy
+/// doors, including the misshapen inputs those doors refuse. The profile selects by module path, so
+/// moving a test in or out of this module is the whole edit.
+mod miri {
+    use zerocopy::{IntoBytes as _, TryFromBytes as _};
+
+    use super::frame;
+    use crate::{
+        bitset::{
+            DenseBitSlice, DenseBitSliceArray, ParseDenseBitSliceArrayError,
+            ParseDenseBitSliceError,
+        },
+        identity::NodeRowId,
+    };
+
+    /// A live set and its frame are the same bytes in both directions.
+    #[test]
+    fn dense_bit_slice_frames_round_trip() {
+        let mut set = DenseBitSlice::new_empty(130);
+        set.insert(NodeRowId::new(3));
+        set.insert(NodeRowId::new(64));
+
+        let (read, rest) =
+            DenseBitSlice::<NodeRowId>::try_from_prefix(set.as_bytes()).expect("the frame parses");
+        assert_eq!(read, &*set);
+        assert_eq!(read.iter().collect::<Vec<_>>(), [3, 64].map(NodeRowId::new));
+        assert!(rest.is_empty());
+    }
+
+    #[test]
+    fn dense_bit_slice_zero_domain_frames_parse() {
+        let set = DenseBitSlice::<NodeRowId>::new_empty(0);
+        assert_eq!(set.as_bytes().len(), 8);
+
+        let (read, rest) =
+            DenseBitSlice::<NodeRowId>::try_from_prefix(set.as_bytes()).expect("the frame parses");
+        assert_eq!(read.count(), 0);
+        assert_eq!(read.domain_size(), 0);
+        assert!(rest.is_empty());
+    }
+
+    /// The final word carries in-domain bits and refuses bits above the domain.
+    #[test]
+    fn dense_bit_slice_polices_the_final_word() {
+        let legal = frame(100, &[0, 1 << (99 - 64)]);
+        let (read, _rest) =
+            DenseBitSlice::<NodeRowId>::try_from_prefix(&legal).expect("the frame parses");
+        assert!(read.contains(NodeRowId::new(99)));
+
+        assert_eq!(
+            DenseBitSlice::<NodeRowId>::try_from_prefix(&frame(100, &[0, 1 << (100 - 64)])),
+            Err(ParseDenseBitSliceError::ExcessBits)
+        );
+    }
+
+    /// `try_from_prefix` refuses every misshapen frame and names the cause.
+    #[test]
+    fn dense_bit_slice_refuses_misshapen_frames() {
+        assert_eq!(
+            DenseBitSlice::<NodeRowId>::try_from_prefix(&[0_u8; 4]),
+            Err(ParseDenseBitSliceError::Header { bytes: 4 })
+        );
+        assert_eq!(
+            DenseBitSlice::<NodeRowId>::try_from_prefix(&frame(64, &[0])[..12]),
+            Err(ParseDenseBitSliceError::WordCount {
+                domain_size: 64,
+                words: 0
+            })
+        );
+        assert_eq!(
+            DenseBitSlice::<NodeRowId>::try_from_prefix(&frame(65, &[0])),
+            Err(ParseDenseBitSliceError::WordCount {
+                domain_size: 65,
+                words: 1
+            })
+        );
+
+        // A buffer longer than its frame is a prefix read rather than a refusal.
+        let long = frame(64, &[0, 0]);
+        let (read, rest) =
+            DenseBitSlice::<NodeRowId>::try_from_prefix(&long).expect("the header frames the set");
+        assert_eq!(read.domain_size(), 64);
+        assert_eq!(rest, [0_u8; 8]);
+    }
+
+    /// The frame invariant is the type's bit validity, so the zerocopy doors validate it
+    /// themselves.
+    #[test]
+    fn dense_bit_slice_zerocopy_doors_carry_the_frame_invariant() {
+        let valid = frame(100, &[0, 1 << (99 - 64)]);
+        let read =
+            DenseBitSlice::<NodeRowId>::try_ref_from_bytes(&valid).expect("the frame is valid");
+        assert!(read.contains(NodeRowId::new(99)));
+
+        DenseBitSlice::<NodeRowId>::try_ref_from_bytes(&frame(65, &[0]))
+            .expect_err("the frame carries one word where a 65-row domain occupies two");
+        DenseBitSlice::<NodeRowId>::try_ref_from_bytes(&frame(100, &[0, 1 << (100 - 64)]))
+            .expect_err("the frame sets a bit above its domain in the final word");
+    }
+
+    /// A plain prefix read is greedy, so framing a prefix takes the header's own word count.
+    #[test]
+    fn dense_bit_slice_prefix_reads_take_the_header_count() {
+        let mut bytes = frame(100, &[3, 1]);
+        bytes.extend_from_slice(&[0xAB; 8]);
+
+        DenseBitSlice::<NodeRowId>::try_ref_from_prefix(&bytes).expect_err(
+            "the greedy split hands validation three words where the header claims two",
+        );
+
+        let (read, rest) = DenseBitSlice::<NodeRowId>::try_from_prefix(&bytes)
+            .expect("the header's own count frames the prefix");
+        assert_eq!(
+            read.iter().collect::<Vec<_>>(),
+            [0, 1, 64].map(NodeRowId::new)
+        );
+        assert_eq!(rest, [0xAB; 8]);
+    }
+
+    #[test]
+    fn dense_bit_slice_array_starts_as_empty_frames() {
+        let sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 3);
+
+        assert_eq!(sets.len(), 3);
+        assert_eq!(sets.domain_size(), 130);
+        assert_eq!(
+            Some(sets.as_bytes().len() as u64),
+            DenseBitSliceArray::<NodeRowId>::total_byte_len(130, 3),
+            "the allocation is exactly the domain header plus the frame count's strides",
+        );
+        for rank in 0..3 {
+            assert_eq!(sets[rank].domain_size(), 130);
+            assert_eq!(sets[rank].count(), 0);
+        }
+    }
+
+    #[test]
+    fn dense_bit_slice_array_indexes_independent_frames() {
+        let mut sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 3);
+        assert!(sets[0].insert(NodeRowId::new(3)));
+        assert!(sets[1].insert(NodeRowId::new(64)));
+        assert!(sets[1].insert(NodeRowId::new(3)));
+        assert!(sets[2].insert(NodeRowId::new(129)));
+
+        assert_eq!(sets[0].iter().collect::<Vec<_>>(), [3].map(NodeRowId::new));
+        assert_eq!(
+            sets[1].iter().collect::<Vec<_>>(),
+            [3, 64].map(NodeRowId::new)
+        );
+        assert_eq!(
+            sets[2].iter().collect::<Vec<_>>(),
+            [129].map(NodeRowId::new)
+        );
+    }
+
+    /// The live array and its byte region are the same bytes in both directions, and the region is
+    /// the domain header, then the frames back to back: what a file write emits.
+    #[test]
+    fn dense_bit_slice_array_round_trips_through_its_region() {
+        let mut sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 2);
+        sets[0].insert(NodeRowId::new(0));
+        sets[1].insert(NodeRowId::new(129));
+
+        let concatenated: Vec<u8> = (0..sets.len())
+            .flat_map(|rank| sets[rank].as_bytes().to_vec())
+            .collect();
+        assert_eq!(&sets.as_bytes()[8..], concatenated);
+
+        let read = DenseBitSliceArray::<NodeRowId>::try_from_bytes(sets.as_bytes(), 130, 2)
+            .expect("the region parses");
+        assert_eq!(read, &*sets);
+        assert_eq!(read[0].iter().collect::<Vec<_>>(), [NodeRowId::new(0)]);
+        assert_eq!(read[1].iter().collect::<Vec<_>>(), [NodeRowId::new(129)]);
+    }
+
+    /// An array of no frames still states its domain: the header is the whole region.
+    #[test]
+    fn dense_bit_slice_array_of_no_frames() {
+        let sets = DenseBitSliceArray::<NodeRowId>::new_empty(130, 0);
+
+        assert_eq!(sets.len(), 0);
+        assert_eq!(sets.domain_size(), 130);
+        assert_eq!(sets.as_bytes().len(), 8);
+
+        let read = DenseBitSliceArray::<NodeRowId>::try_from_bytes(sets.as_bytes(), 130, 0)
+            .expect("the header-only region parses");
+        assert_eq!(read.len(), 0);
+        assert_eq!(read.domain_size(), 130);
+    }
+
+    /// `try_from_bytes` refuses every misshapen region and names the rank and cause.
+    #[test]
+    fn dense_bit_slice_array_refuses_misshapen_regions() {
+        // Domain 100 takes two words, so one frame is 24 bytes behind the 8-byte region header:
+        // frame 1 occupies bytes 32..56, and position 100 is bit 4 of byte 52 in its final word.
+        let sets = DenseBitSliceArray::<NodeRowId>::new_empty(100, 2);
+        let bytes = sets.as_bytes();
+
+        assert_eq!(
+            DenseBitSliceArray::<NodeRowId>::try_from_bytes(&bytes[..bytes.len() - 8], 100, 2),
+            Err(ParseDenseBitSliceArrayError::Length {
+                expected: Some(56),
+                actual: 48
+            })
+        );
+        assert_eq!(
+            DenseBitSliceArray::<NodeRowId>::try_from_bytes(bytes, 100, u64::MAX),
+            Err(ParseDenseBitSliceArrayError::Length {
+                expected: None,
+                actual: 56
+            }),
+            "an overflowing frame count matches no real region",
+        );
+
+        // `try_from_bytes` refuses a region header that disagrees with the caller before it reads
+        // any frame.
+        assert_eq!(
+            DenseBitSliceArray::<NodeRowId>::try_from_bytes(bytes, 101, 2),
+            Err(ParseDenseBitSliceArrayError::Header {
+                expected: 101,
+                actual: 100
+            })
+        );
+
+        // A frame claiming a smaller domain parses cleanly inside its chunk. The agreement check
+        // refuses it.
+        let mut shrunk = bytes.to_vec();
+        shrunk[32..].copy_from_slice(&frame(99, &[0, 0]));
+        assert_eq!(
+            DenseBitSliceArray::<NodeRowId>::try_from_bytes(&shrunk, 100, 2),
+            Err(ParseDenseBitSliceArrayError::Domain {
+                rank: 1,
+                expected: 100,
+                actual: 99
+            })
+        );
+
+        let mut excess = bytes.to_vec();
+        excess[52] |= 0b0001_0000;
+        assert_eq!(
+            DenseBitSliceArray::<NodeRowId>::try_from_bytes(&excess, 100, 2),
+            Err(ParseDenseBitSliceArrayError::Frame {
+                rank: 1,
+                error: ParseDenseBitSliceError::ExcessBits
+            })
+        );
+    }
+
+    /// The region invariant is the type's bit validity, so the zerocopy doors validate it
+    /// themselves.
+    #[test]
+    fn dense_bit_slice_array_zerocopy_doors_carry_the_region_invariant() {
+        // The fixture is two 24-byte frames of domain 100 behind the 8-byte region header: frame 1
+        // occupies bytes 32..56, and position 100 is bit 4 of byte 52 in its final word.
+        let mut sets = DenseBitSliceArray::<NodeRowId>::new_empty(100, 2);
+        sets[0].insert(NodeRowId::new(99));
+        let bytes = sets.as_bytes();
+
+        let read = DenseBitSliceArray::<NodeRowId>::try_ref_from_bytes(bytes)
+            .expect("the region is valid");
+        assert_eq!(read, &*sets);
+        assert!(read[0].contains(NodeRowId::new(99)));
+
+        // Torn strides, an excess bit, and a frame claiming a foreign domain are all refused.
+        DenseBitSliceArray::<NodeRowId>::try_ref_from_bytes(&bytes[..bytes.len() - 8])
+            .expect_err("the region tears mid-stride");
+        let mut excess = bytes.to_vec();
+        excess[52] |= 0b0001_0000;
+        DenseBitSliceArray::<NodeRowId>::try_ref_from_bytes(&excess)
+            .expect_err("frame 1 sets a bit above the domain");
+        let mut shrunk = bytes.to_vec();
+        shrunk[32..].copy_from_slice(&frame(99, &[0, 0]));
+        DenseBitSliceArray::<NodeRowId>::try_ref_from_bytes(&shrunk)
+            .expect_err("frame 1 claims a foreign domain");
+
+        // A header-only region is the array of no frames.
+        let empty = DenseBitSliceArray::<NodeRowId>::new_empty(64, 0);
+        let read = DenseBitSliceArray::<NodeRowId>::try_ref_from_bytes(empty.as_bytes())
+            .expect("the header-only region is valid");
+        assert_eq!(read.len(), 0);
+        assert_eq!(read.domain_size(), 64);
+    }
+
+    #[test]
+    #[should_panic(expected = "the rank names one of the array's frames")]
+    fn dense_bit_slice_array_of_no_frames_rejects_every_rank() {
+        let sets = DenseBitSliceArray::<NodeRowId>::new_empty(100, 0);
+        let _: &DenseBitSlice<NodeRowId> = &sets[0];
+    }
 }

@@ -54,8 +54,8 @@ const _: () = {
 };
 
 // SAFETY: `repr(C)` with `OntologyRowId` (`Unaligned` + `IntoBytes`) followed by `str` gives
-// every field alignment 1, so no padding exists at any length and every byte of the value is
-// initialized. The derive cannot compute this because its padding proof sizes each field and
+// every field alignment 1, so no padding exists at any length and the value has no uninitialized
+// byte. The derive cannot compute this because its padding proof sizes each field and
 // special-cases only a trailing slice. `str` is layout-identical to `[u8]` but not a slice type.
 unsafe impl zerocopy::IntoBytes for Legend {
     #[expect(
@@ -346,117 +346,129 @@ impl Deref for OwnedIcon {
 #[cfg(test)]
 mod tests {
     #![expect(clippy::non_ascii_literal)]
-    use core::ptr;
-
-    use hashql_core::id::Id as _;
-    use zerocopy::{IntoBytes as _, TryFromBytes as _};
-
-    use super::{Icon, Label, Legend, OwnedIcon, OwnedLabel, OwnedLegend};
-    use crate::identity::OntologyRowId;
-
-    #[test]
-    fn legend_payload_reads_validate() {
-        let representative = OntologyRowId::from_usize(7);
-        let owned = OwnedLegend::new(representative, Label::new("naïve 🦀"));
-        let legend: &Legend = owned.as_ref();
-        assert_eq!(legend.representative_ontology(), representative);
-        assert_eq!(legend.label(), "naïve 🦀");
-
-        let bytes = legend.as_bytes();
-        assert_eq!(bytes.len(), 8 + "naïve 🦀".len());
-        let back = Legend::try_ref_from_bytes(bytes).expect("wrote valid bytes");
-        assert_eq!(back.representative_ontology(), representative);
-        assert_eq!(back.label(), "naïve 🦀");
-
-        let mut corrupt = bytes.to_vec();
-        corrupt[8] = 0xFF;
-        Legend::try_ref_from_bytes(&corrupt).expect_err("invalid UTF-8 in the label");
-
-        for len in 1..8 {
-            Legend::try_ref_from_bytes(&bytes[..len]).expect_err("shorter than the header");
-        }
-
-        let empty = OwnedLegend::new(representative, Label::new(""));
-        assert_eq!(empty.as_ref().as_bytes().len(), 8);
-        assert_eq!(empty.as_ref().label(), "");
-
-        let reowned = legend.to_owned();
-        assert_eq!(reowned.as_ref().as_bytes(), bytes);
-        assert_eq!(reowned, owned.clone());
-    }
 
     /// Every UTF-8 shape the cast has to carry: empty, ASCII, two-byte, combining mark, and a
     /// four-byte scalar.
     const SHAPES: [&str; 5] = ["", "a", "naïve", "z\u{0301}", "🦀 crab"];
 
-    #[test]
-    fn label_views_the_source_text_in_place() {
-        for text in SHAPES {
-            let label = Label::new(text);
-            assert_eq!(label.as_bytes(), text.as_bytes());
-            assert_eq!(size_of_val(label), text.len());
-            assert_eq!(align_of_val(label), 1);
-            assert!(ptr::eq(label.as_bytes().as_ptr(), text.as_ptr()));
-        }
-    }
+    /// The tests the `miri` nextest profile selects.
+    ///
+    /// Each test here views auxiliary text in place over its source bytes and validates the payload
+    /// reads behind those views. The profile selects by module path, so moving a test in or out
+    /// of this module is the whole edit.
+    mod miri {
+        use core::ptr;
 
-    #[test]
-    fn icon_views_the_source_text_in_place() {
-        for text in SHAPES {
-            let icon = Icon::new(text);
-            assert_eq!(icon.as_bytes(), text.as_bytes());
-            assert_eq!(size_of_val(icon), text.len());
-            assert_eq!(align_of_val(icon), 1);
-            assert!(ptr::eq(icon.as_bytes().as_ptr(), text.as_ptr()));
-        }
-    }
+        use hashql_core::id::Id as _;
+        use zerocopy::{IntoBytes as _, TryFromBytes as _};
 
-    #[test]
-    fn owned_label_borrow_and_deref_are_one_view() {
-        for text in SHAPES {
-            let owned = OwnedLabel::from(text);
-            let borrowed: &Label = core::borrow::Borrow::borrow(&owned);
-            let dereffed: &Label = &owned;
-            assert!(ptr::eq(borrowed, dereffed));
-            assert_eq!(borrowed.as_bytes(), text.as_bytes());
-        }
-    }
+        use super::SHAPES;
+        use crate::{
+            dataset::auxiliary::{Icon, Label, Legend, OwnedIcon, OwnedLabel, OwnedLegend},
+            identity::OntologyRowId,
+        };
 
-    #[test]
-    fn owned_icon_borrow_and_deref_are_one_view() {
-        for text in SHAPES {
-            let owned = OwnedIcon::from(text);
-            let borrowed: &Icon = core::borrow::Borrow::borrow(&owned);
-            let dereffed: &Icon = &owned;
-            assert!(ptr::eq(borrowed, dereffed));
-            assert_eq!(borrowed.as_bytes(), text.as_bytes());
-        }
-    }
+        #[test]
+        fn legend_payload_reads_validate() {
+            let representative = OntologyRowId::from_usize(7);
+            let owned = OwnedLegend::new(representative, Label::new("naïve 🦀"));
+            let legend: &Legend = owned.as_ref();
+            assert_eq!(legend.representative_ontology(), representative);
+            assert_eq!(legend.label(), "naïve 🦀");
 
-    #[test]
-    fn to_owned_round_trips_both_entry_points() {
-        for text in SHAPES {
-            assert_eq!(Label::new(text).to_owned(), OwnedLabel::from(text));
-            assert_eq!(Icon::new(text).to_owned(), OwnedIcon::from(text));
-            assert_eq!(OwnedLabel::from(String::from(text)), OwnedLabel::from(text));
-            assert_eq!(OwnedIcon::from(String::from(text)), OwnedIcon::from(text));
-        }
-    }
+            let bytes = legend.as_bytes();
+            assert_eq!(bytes.len(), 8 + "naïve 🦀".len());
+            let back = Legend::try_ref_from_bytes(bytes).expect("wrote valid bytes");
+            assert_eq!(back.representative_ontology(), representative);
+            assert_eq!(back.label(), "naïve 🦀");
 
-    #[test]
-    fn payload_reads_validate_utf8() {
-        for text in SHAPES {
-            assert_eq!(
-                Label::try_ref_from_bytes(text.as_bytes()).expect("valid UTF-8 is a valid label"),
-                Label::new(text),
-            );
-            assert_eq!(
-                Icon::try_ref_from_bytes(text.as_bytes()).expect("valid UTF-8 is a valid icon"),
-                Icon::new(text),
-            );
+            let mut corrupt = bytes.to_vec();
+            corrupt[8] = 0xFF;
+            Legend::try_ref_from_bytes(&corrupt).expect_err("invalid UTF-8 in the label");
+
+            for len in 1..8 {
+                Legend::try_ref_from_bytes(&bytes[..len]).expect_err("shorter than the header");
+            }
+
+            let empty = OwnedLegend::new(representative, Label::new(""));
+            assert_eq!(empty.as_ref().as_bytes().len(), 8);
+            assert_eq!(empty.as_ref().label(), "");
+
+            let reowned = legend.to_owned();
+            assert_eq!(reowned.as_ref().as_bytes(), bytes);
+            assert_eq!(reowned, owned.clone());
         }
 
-        Label::try_ref_from_bytes(&[0xFF]).expect_err("invalid UTF-8 is not a valid label");
-        Icon::try_ref_from_bytes(&[0xC0, 0x80]).expect_err("invalid UTF-8 is not a valid icon");
+        #[test]
+        fn label_views_the_source_text_in_place() {
+            for text in SHAPES {
+                let label = Label::new(text);
+                assert_eq!(label.as_bytes(), text.as_bytes());
+                assert_eq!(size_of_val(label), text.len());
+                assert_eq!(align_of_val(label), 1);
+                assert!(ptr::eq(label.as_bytes().as_ptr(), text.as_ptr()));
+            }
+        }
+
+        #[test]
+        fn icon_views_the_source_text_in_place() {
+            for text in SHAPES {
+                let icon = Icon::new(text);
+                assert_eq!(icon.as_bytes(), text.as_bytes());
+                assert_eq!(size_of_val(icon), text.len());
+                assert_eq!(align_of_val(icon), 1);
+                assert!(ptr::eq(icon.as_bytes().as_ptr(), text.as_ptr()));
+            }
+        }
+
+        #[test]
+        fn owned_label_borrow_and_deref_are_one_view() {
+            for text in SHAPES {
+                let owned = OwnedLabel::from(text);
+                let borrowed: &Label = core::borrow::Borrow::borrow(&owned);
+                let dereffed: &Label = &owned;
+                assert!(ptr::eq(borrowed, dereffed));
+                assert_eq!(borrowed.as_bytes(), text.as_bytes());
+            }
+        }
+
+        #[test]
+        fn owned_icon_borrow_and_deref_are_one_view() {
+            for text in SHAPES {
+                let owned = OwnedIcon::from(text);
+                let borrowed: &Icon = core::borrow::Borrow::borrow(&owned);
+                let dereffed: &Icon = &owned;
+                assert!(ptr::eq(borrowed, dereffed));
+                assert_eq!(borrowed.as_bytes(), text.as_bytes());
+            }
+        }
+
+        #[test]
+        fn to_owned_round_trips_both_entry_points() {
+            for text in SHAPES {
+                assert_eq!(Label::new(text).to_owned(), OwnedLabel::from(text));
+                assert_eq!(Icon::new(text).to_owned(), OwnedIcon::from(text));
+                assert_eq!(OwnedLabel::from(String::from(text)), OwnedLabel::from(text));
+                assert_eq!(OwnedIcon::from(String::from(text)), OwnedIcon::from(text));
+            }
+        }
+
+        #[test]
+        fn payload_reads_validate_utf8() {
+            for text in SHAPES {
+                assert_eq!(
+                    Label::try_ref_from_bytes(text.as_bytes())
+                        .expect("valid UTF-8 is a valid label"),
+                    Label::new(text),
+                );
+                assert_eq!(
+                    Icon::try_ref_from_bytes(text.as_bytes()).expect("valid UTF-8 is a valid icon"),
+                    Icon::new(text),
+                );
+            }
+
+            Label::try_ref_from_bytes(&[0xFF]).expect_err("invalid UTF-8 is not a valid label");
+            Icon::try_ref_from_bytes(&[0xC0, 0x80]).expect_err("invalid UTF-8 is not a valid icon");
+        }
     }
 }
