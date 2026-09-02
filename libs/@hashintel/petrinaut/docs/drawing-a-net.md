@@ -117,6 +117,8 @@ The editor has two cursor modes, toggled from the bottom toolbar dropdown:
 | **Pan**    | H        | Click and drag to pan the canvas. This is the default. |
 | **Select** | V        | Click and drag to draw a selection box around nodes.   |
 
+The canvas remembers where you left each net. Switching to another net and back, or reloading the app, brings back the same position and zoom; a net you open for the first time is fitted to the screen.
+
 With a selection, you can:
 
 - **Move** -- drag selected nodes to reposition them.

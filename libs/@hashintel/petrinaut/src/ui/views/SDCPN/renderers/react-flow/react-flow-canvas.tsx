@@ -19,6 +19,7 @@ import {
   getMinZoomForBounds,
 } from "@hashintel/petrinaut-core";
 
+import { CanvasViewportContext } from "../../../../../react/state/canvas-viewport-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
 import { SNAP_GRID_SIZE } from "../../../../constants/ui";
@@ -88,6 +89,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
   const { compactNodes, showMinimap, partialSelection } =
     use(UserSettingsContext);
   const { hasCanvasSelection, globalMode } = use(EditorContext);
+  const { savedViewport, rememberViewport } = use(CanvasViewportContext);
   const isActualMode = globalMode === "actual";
   const nodeTypes = compactNodes ? COMPACT_NODE_TYPES : CLASSIC_NODE_TYPES;
 
@@ -101,10 +103,11 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
 
   const bounds = getBoundsOfCenteredBoxes(scene.nodes);
 
-  // The viewport at mount, centered on the net. ReactFlow owns the viewport
-  // from then on, so later bounds or container changes must not recompute it.
-  const [initialViewport] = useState(() =>
-    getInitialViewport(bounds, containerSize),
+  // The viewport at mount: where this net was last left, or centered on the
+  // net. ReactFlow owns the viewport from then on, so later bounds or
+  // container changes must not recompute it.
+  const [initialViewport] = useState(
+    () => savedViewport ?? getInitialViewport(bounds, containerSize),
   );
 
   // The min zoom (ie the max you can zoom out to) keeps the net at a readable
@@ -185,6 +188,7 @@ const ReactFlowCanvasInner: CanvasRenderer = ({
           onPaneClick={(event) =>
             interactions.clickPane(scenePositionOf(event))
           }
+          onMoveEnd={(_event, viewport) => rememberViewport(viewport)}
           onDrop={interactions.readonly ? undefined : onDrop}
           onDragOver={interactions.readonly ? undefined : onDragOver}
           defaultViewport={initialViewport}

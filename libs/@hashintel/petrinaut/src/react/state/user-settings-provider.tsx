@@ -4,7 +4,9 @@ import {
   defaultUserSettings,
   UserSettingsContext,
 } from "./user-settings-context";
+import { rememberCanvasViewport } from "./user-settings-provider/remember-canvas-viewport";
 
+import type { CanvasViewport } from "./canvas-viewport-context";
 import type {
   BottomPanelTab,
   CursorMode,
@@ -112,6 +114,15 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, enableParameterSweeps: value })),
     setEnableOptimizationSurface: (value: boolean) =>
       setState((prev) => ({ ...prev, enableOptimizationSurface: value })),
+    setCanvasViewport: (petriNetId: string, viewport: CanvasViewport) =>
+      setState((prev) => ({
+        ...prev,
+        canvasViewports: rememberCanvasViewport(
+          prev.canvasViewports,
+          petriNetId,
+          viewport,
+        ),
+      })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,
