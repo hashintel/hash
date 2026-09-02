@@ -1,5 +1,6 @@
 ---
 "@hashintel/petrinaut": patch
+"@hashintel/petrinaut-core": patch
 ---
 
-The sweep surface navigates by drag as well as click (live crosshair and value readout, commit on release) and marks the navigator's current position; the experiment summary shows a compact toggleable list of every batch computing in parallel, with the progress bar tracking the selected combination's runs instead of one batch's simulated time. Parameter sweeps and the optimization surface are experimental settings, off by default.
+The frame inspector draws a frame's distribution as a canvas histogram with value and count axes. Distribution frames carry their bins' extent and heatmaps paint each bin across the rows it covers, so mixed strides no longer stripe, and streamed updates ease in instead of snapping. The sweep surface navigates by drag as well as click and marks the navigator's position, and the summary lists every batch computing in parallel. Parameter sweeps and the optimization surface are experimental settings, off by default.
