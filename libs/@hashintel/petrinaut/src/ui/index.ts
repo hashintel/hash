@@ -21,6 +21,10 @@ export type {
   PetrinautAiComposerControlContext,
   PetrinautAiComposerStatus,
   PetrinautAiComposerSubmitTextResult,
+  PetrinautAiInteractionMode,
+  PetrinautAiInterviewStage,
+  PetrinautAiInterviewStageContext,
+  PetrinautAiInterviewStagePlacement,
 } from "./types/ai-assistant-composer-control";
 export type {
   PetrinautNavigationAction,

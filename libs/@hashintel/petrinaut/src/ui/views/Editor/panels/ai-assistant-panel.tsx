@@ -59,6 +59,7 @@ import type {
   PetrinautAiComposerControlContext,
   PetrinautAiComposerSubmitText,
   PetrinautAiComposerSubmitTextResult,
+  PetrinautAiInteractionMode,
 } from "../../../types/ai-assistant-composer-control";
 import type { PetrinautAiMessage } from "./ai-assistant-panel/types";
 
@@ -88,6 +89,14 @@ const selectTarget = (
           ? { type: "view-metric", metricId: target.itemId }
           : { type: "closed" },
   });
+};
+
+type QueuedInterviewAnswer = {
+  readonly input: Parameters<
+    PetrinautAiComposerControlContext["submitText"]
+  >[0];
+  readonly reject: (reason?: unknown) => void;
+  readonly resolve: (result: PetrinautAiComposerSubmitTextResult) => void;
 };
 
 const isPetrinautAiMutationToolName = (
@@ -202,11 +211,15 @@ const applyPetrinautAiCommand = async ({
 
 export const AiAssistantPanel = ({
   aiAssistant,
+  initialInteractionMode,
   initialMessage,
+  onInitialInteractionModeConsumed,
   onInitialMessageConsumed,
 }: {
   aiAssistant: PetrinautAiAssistant;
+  initialInteractionMode?: PetrinautAiInteractionMode | null;
   initialMessage?: string | null;
+  onInitialInteractionModeConsumed?: () => void;
   onInitialMessageConsumed?: () => void;
 }) => {
   // The wrapped AI transport closes over several refs (diagnostics version,
@@ -237,6 +250,20 @@ export const AiAssistantPanel = ({
   const { petriNetDefinition, setTitle, title } = use(SDCPNContext);
 
   const [input, setInput] = useState("");
+  const [composerFocusRequest, setComposerFocusRequest] = useState(0);
+  const [interviewActive, setInterviewActive] = useState(false);
+  const [interviewAnswerQueued, setInterviewAnswerQueued] = useState(false);
+  const [interactionMode, setInteractionMode] =
+    useState<PetrinautAiInteractionMode>("chat");
+  const selectInteractionMode = useCallback(
+    (nextMode: PetrinautAiInteractionMode) => {
+      setInteractionMode(nextMode);
+    },
+    [],
+  );
+  const queuedInterviewAnswerRef = useRef<QueuedInterviewAnswer | null>(null);
+  const consumedInitialInteractionModeRef =
+    useRef<PetrinautAiInteractionMode | null>(null);
   const submittedInitialMessageRef = useRef<string | null>(null);
 
   const titleRef = useRef(title);
@@ -790,6 +817,71 @@ export const AiAssistantPanel = ({
 
   const stopStateRef = useLatest({ status, stop });
 
+  const submitInterviewAnswer = useCallback<
+    PetrinautAiComposerControlContext["submitText"]
+  >(
+    (answer) => {
+      if (queuedInterviewAnswerRef.current) {
+        return Promise.reject(
+          new Error("The previous interview answer is still being submitted."),
+        );
+      }
+      const currentStatus = composerSubmissionStateRef.current.status;
+      if (currentStatus === "error") {
+        return Promise.reject(
+          new Error("The interview is not ready to accept an answer."),
+        );
+      }
+      if (currentStatus === "ready") {
+        return submitText(answer);
+      }
+
+      setInterviewAnswerQueued(true);
+      return new Promise((resolve, reject) => {
+        queuedInterviewAnswerRef.current = {
+          input: answer,
+          reject,
+          resolve,
+        };
+      });
+    },
+    [composerSubmissionStateRef, submitText],
+  );
+
+  useEffect(() => {
+    const queued = queuedInterviewAnswerRef.current;
+    if (!queued) {
+      return;
+    }
+    if (status === "error") {
+      queuedInterviewAnswerRef.current = null;
+      setInterviewAnswerQueued(false);
+      queued.reject(new Error("The interview could not accept that answer."));
+      return;
+    }
+    if (status !== "ready") {
+      return;
+    }
+
+    queuedInterviewAnswerRef.current = null;
+    setInterviewAnswerQueued(false);
+    void submitText(queued.input).then(
+      (result) => queued.resolve(result),
+      (caught: unknown) => queued.reject(caught),
+    );
+  }, [status, submitText]);
+
+  useEffect(
+    () => () => {
+      queuedInterviewAnswerRef.current?.reject(
+        new Error("The interview conversation changed."),
+      );
+      queuedInterviewAnswerRef.current = null;
+      setInterviewAnswerQueued(false);
+    },
+    [conversationId],
+  );
+
   // Like submitText, stop is exposed to host controls and must stay stable.
   const stopComposer = useCallback(async () => {
     const { status: currentStatus, stop: stopCurrentResponse } =
@@ -801,6 +893,51 @@ export const AiAssistantPanel = ({
     stopRequestedRef.current = true;
     await stopCurrentResponse();
   }, [stopStateRef]);
+
+  useEffect(() => {
+    if (
+      initialInteractionMode === undefined ||
+      initialInteractionMode === null
+    ) {
+      consumedInitialInteractionModeRef.current = null;
+      return;
+    }
+
+    if (
+      !isAiAssistantOpen ||
+      consumedInitialInteractionModeRef.current === initialInteractionMode
+    ) {
+      return;
+    }
+
+    selectInteractionMode(
+      initialInteractionMode === "interview" &&
+        aiAssistant.renderInterviewStage === undefined
+        ? "chat"
+        : initialInteractionMode,
+    );
+    consumedInitialInteractionModeRef.current = initialInteractionMode;
+    onInitialInteractionModeConsumed?.();
+  }, [
+    aiAssistant.renderInterviewStage,
+    initialInteractionMode,
+    isAiAssistantOpen,
+    onInitialInteractionModeConsumed,
+    selectInteractionMode,
+  ]);
+
+  useEffect(() => {
+    if (
+      interactionMode === "interview" &&
+      aiAssistant.renderInterviewStage === undefined
+    ) {
+      selectInteractionMode("chat");
+    }
+  }, [
+    aiAssistant.renderInterviewStage,
+    interactionMode,
+    selectInteractionMode,
+  ]);
 
   useEffect(() => {
     const trimmedInitialMessage = initialMessage?.trim();
@@ -833,7 +970,7 @@ export const AiAssistantPanel = ({
     sendMessage,
   ]);
 
-  if (!isAiAssistantOpen || !instance) {
+  if (!instance) {
     return null;
   }
 
@@ -865,14 +1002,35 @@ export const AiAssistantPanel = ({
   const composerControl = aiAssistant.renderComposerControl?.(
     composerControlContext,
   );
+  const interviewStage = aiAssistant.renderInterviewStage?.({
+    ...composerControlContext,
+    canAcceptInterviewAnswer: !interviewAnswerQueued,
+    focusComposer: () => {
+      selectInteractionMode("chat");
+      setAiAssistantOpen(true);
+      setComposerFocusRequest((request) => request + 1);
+    },
+    interactionMode,
+    openSidebar: () => setAiAssistantOpen(true),
+    placement: isAiAssistantOpen ? "sidebar" : "detached",
+    setActive: setInterviewActive,
+    setInteractionMode: selectInteractionMode,
+    submitInterviewAnswer,
+  });
   /* eslint-enable react-hooks-js/refs */
 
   return (
     <AiAssistantContents
+      clearMessagesDisabled={interviewActive}
       composerControl={composerControl}
+      composerFocusRequest={composerFocusRequest}
       error={streamError ?? error}
       input={input}
+      interactionMode={interactionMode}
+      interviewAvailable={aiAssistant.renderInterviewStage !== undefined}
+      interviewStage={interviewStage}
       interactiveTools={aiAssistant.interactiveTools}
+      isOpen={isAiAssistantOpen}
       messages={messages}
       onClearMessages={() => {
         // Clearing aborts any in-flight response too, which fires `onFinish`
@@ -892,6 +1050,7 @@ export const AiAssistantPanel = ({
       }}
       onClose={() => setAiAssistantOpen(false)}
       onInputChange={setInput}
+      onInteractionModeChange={selectInteractionMode}
       onInteractiveToolSubmit={({ toolCallId, toolName, output }) => {
         if (!isPetrinautAiCommandToolName(toolName)) {
           if (

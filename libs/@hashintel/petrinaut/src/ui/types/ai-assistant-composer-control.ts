@@ -1,6 +1,9 @@
 import type { PetrinautAiMessage } from "../views/Editor/panels/ai-assistant-panel/types";
 import type { ReactNode } from "react";
 
+/** The active way a user is providing input to the AI assistant. */
+export type PetrinautAiInteractionMode = "chat" | "interview";
+
 /** Current lifecycle state of Petrinaut's AI SDK conversation. */
 export type PetrinautAiComposerStatus =
   | "submitted"
@@ -40,4 +43,34 @@ export type PetrinautAiComposerControlContext = {
 /** Render callback for a host-owned control inside the assistant composer. */
 export type PetrinautAiComposerControl = (
   context: PetrinautAiComposerControlContext,
+) => ReactNode;
+
+/** Provider-neutral placement for one persistent host-owned interview stage. */
+export type PetrinautAiInterviewStagePlacement = "sidebar" | "detached";
+
+/** Stable controls and placement supplied to a host-owned interview stage. */
+export type PetrinautAiInterviewStageContext =
+  PetrinautAiComposerControlContext & {
+    /** True when Petrinaut can retain one next answer, even while chat settles. */
+    canAcceptInterviewAnswer: boolean;
+    /** Bring back the sidebar and place keyboard focus in its composer. */
+    focusComposer: () => void;
+    interactionMode: PetrinautAiInteractionMode;
+    /** Open the AI sidebar without changing the interview session. */
+    openSidebar: () => void;
+    placement: PetrinautAiInterviewStagePlacement;
+    /** Tell Petrinaut to protect the active conversation from accidental clearing. */
+    setActive: (active: boolean) => void;
+    setInteractionMode: (mode: PetrinautAiInteractionMode) => void;
+    /**
+     * Accept one finalized answer immediately. If generic chat is still busy,
+     * Petrinaut retains it and submits it through the canonical composer path
+     * as soon as that path is ready.
+     */
+    submitInterviewAnswer: PetrinautAiComposerControlContext["submitText"];
+  };
+
+/** Render callback for a persistent host-owned stage above the composer. */
+export type PetrinautAiInterviewStage = (
+  context: PetrinautAiInterviewStageContext,
 ) => ReactNode;

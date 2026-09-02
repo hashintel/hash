@@ -161,14 +161,25 @@ describe("controlled voice preview", () => {
     };
     let requestNumber = 0;
     const createRequestId = () => requestIds[requestNumber++]!;
+    const audioContext = {
+      close: vi.fn(async () => undefined),
+      createAnalyser: vi.fn(() => ({
+        fftSize: 0,
+        getByteTimeDomainData: vi.fn(),
+      })),
+      createMediaStreamSource: vi.fn(() => ({ connect: vi.fn() })),
+    };
     const session = new OpenAIRealtimeSession({
+      cancelAnimationFrame: vi.fn(),
       connectionTimeoutMs: 15_000,
+      createAudioContext: () => audioContext as unknown as AudioContext,
       createPeerConnection: () => peer as unknown as RTCPeerConnection,
       createRequestId,
       fetch: browserFetch,
       getUserMedia: async () => mediaStream,
       now: clock,
       reportDiagnostic,
+      requestAnimationFrame: vi.fn(() => 1),
     });
     const audio = createAudioHarness();
     const revokeObjectURL = vi.fn();

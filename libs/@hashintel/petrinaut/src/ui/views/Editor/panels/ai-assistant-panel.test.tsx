@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -32,12 +33,19 @@ import { definePetrinautAiInteractiveTool } from "../../../types/ai-interactive-
 import { AiAssistantPanel } from "./ai-assistant-panel";
 
 import type { PetrinautAiAssistant } from "../../../petrinaut";
-import type { PetrinautAiComposerControlContext } from "../../../types/ai-assistant-composer-control";
+import type {
+  PetrinautAiComposerControlContext,
+  PetrinautAiInteractionMode,
+  PetrinautAiInterviewStageContext,
+} from "../../../types/ai-assistant-composer-control";
 import type {
   PetrinautAiMessage,
   PetrinautAiTransport,
 } from "./ai-assistant-panel/types";
 import type { UIMessageChunk } from "ai";
+
+let interviewStageMounts = 0;
+let interviewStageUnmounts = 0;
 
 const emptySDCPN: SDCPN = {
   places: [],
@@ -149,11 +157,17 @@ const testInstances: ReturnType<typeof createPetrinaut>[] = [];
 
 const renderTestPanel = ({
   aiAssistant,
+  editorContext = editorContextValue,
+  initialInteractionMode,
   initialMessage,
+  onInitialInteractionModeConsumed,
   petriNetDefinition = emptySDCPN,
 }: {
   aiAssistant: PetrinautAiAssistant;
+  editorContext?: EditorContextValue;
+  initialInteractionMode?: PetrinautAiInteractionMode;
   initialMessage?: string;
+  onInitialInteractionModeConsumed?: () => void;
   petriNetDefinition?: SDCPN;
 }) => {
   const handle = createJsonDocHandle({
@@ -175,24 +189,31 @@ const renderTestPanel = ({
     getItemType: () => null,
   };
 
-  const renderPanel = (nextAiAssistant: PetrinautAiAssistant) => (
+  const renderPanel = (
+    nextAiAssistant: PetrinautAiAssistant,
+    nextEditorContext: EditorContextValue,
+  ) => (
     <PetrinautInstanceContext.Provider value={instance}>
-      <EditorContext.Provider value={editorContextValue}>
+      <EditorContext.Provider value={nextEditorContext}>
         <SDCPNContext.Provider value={sdcpnContext}>
           <AiAssistantPanel
             aiAssistant={nextAiAssistant}
+            initialInteractionMode={initialInteractionMode}
             initialMessage={initialMessage}
+            onInitialInteractionModeConsumed={onInitialInteractionModeConsumed}
           />
         </SDCPNContext.Provider>
       </EditorContext.Provider>
     </PetrinautInstanceContext.Provider>
   );
-  const rendered = render(renderPanel(aiAssistant));
+  const rendered = render(renderPanel(aiAssistant, editorContext));
 
   return {
     ...rendered,
-    rerenderPanel: (nextAiAssistant: PetrinautAiAssistant) =>
-      rendered.rerender(renderPanel(nextAiAssistant)),
+    rerenderPanel: (
+      nextAiAssistant: PetrinautAiAssistant,
+      nextEditorContext = editorContext,
+    ) => rendered.rerender(renderPanel(nextAiAssistant, nextEditorContext)),
   };
 };
 
@@ -204,6 +225,337 @@ afterEach(() => {
 });
 
 describe("AiAssistantPanel composer submissions", () => {
+  test("redocks one mounted interview stage when the sidebar closes and reopens", () => {
+    interviewStageMounts = 0;
+    interviewStageUnmounts = 0;
+    const Stage = ({ placement }: { placement: string }) => {
+      useEffect(() => {
+        interviewStageMounts += 1;
+        return () => {
+          interviewStageUnmounts += 1;
+        };
+      }, []);
+      return <div>{`Stage ${placement}`}</div>;
+    };
+    const aiAssistant: PetrinautAiAssistant = {
+      renderInterviewStage: ({ placement }) => <Stage placement={placement} />,
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    };
+    const rendered = renderTestPanel({ aiAssistant });
+
+    expect(screen.getByText("Stage sidebar")).not.toBeNull();
+    rendered.rerenderPanel(aiAssistant, {
+      ...editorContextValue,
+      isAiAssistantOpen: false,
+    });
+    expect(screen.getByText("Stage detached")).not.toBeNull();
+    rendered.rerenderPanel(aiAssistant, editorContextValue);
+
+    expect(screen.getByText("Stage sidebar")).not.toBeNull();
+    expect(interviewStageMounts).toBe(1);
+    expect(interviewStageUnmounts).toBe(0);
+  });
+
+  test("switches modes without unmounting the interview stage", () => {
+    interviewStageMounts = 0;
+    interviewStageUnmounts = 0;
+    const Stage = (context: PetrinautAiInterviewStageContext) => {
+      useEffect(() => {
+        interviewStageMounts += 1;
+        return () => {
+          interviewStageUnmounts += 1;
+        };
+      }, []);
+      return (
+        <button
+          type="button"
+          onClick={() => context.setInteractionMode("chat")}
+        >
+          {`Stage ${context.interactionMode}`}
+        </button>
+      );
+    };
+    const aiAssistant: PetrinautAiAssistant = {
+      renderInterviewStage: (context) => <Stage {...context} />,
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    };
+
+    renderTestPanel({ aiAssistant });
+
+    fireEvent.click(screen.getByRole("button", { name: "Interview" }));
+    expect(screen.getByText("Stage interview")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Stage interview" }));
+
+    expect(
+      screen.getByPlaceholderText("Describe the process you want to create"),
+    ).not.toBeNull();
+    expect(interviewStageMounts).toBe(1);
+    expect(interviewStageUnmounts).toBe(0);
+  });
+
+  test("moves focus to the composer only when the interview stage requests it", () => {
+    const Stage = (context: PetrinautAiInterviewStageContext) => (
+      <>
+        <button
+          type="button"
+          onClick={() => context.setInteractionMode("chat")}
+        >
+          Minimize interview
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            context.setInteractionMode("chat");
+            context.focusComposer();
+          }}
+        >
+          Use text instead
+        </button>
+      </>
+    );
+    const aiAssistant: PetrinautAiAssistant = {
+      renderInterviewStage: (context) => <Stage {...context} />,
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    };
+
+    renderTestPanel({ aiAssistant });
+    fireEvent.click(screen.getByRole("button", { name: "Interview" }));
+
+    const minimizeButton = screen.getByRole("button", {
+      name: "Minimize interview",
+    });
+    minimizeButton.focus();
+    fireEvent.click(minimizeButton);
+
+    expect(document.activeElement).toBe(minimizeButton);
+
+    fireEvent.click(screen.getByRole("button", { name: "Interview" }));
+    fireEvent.click(screen.getByRole("button", { name: "Use text instead" }));
+
+    expect(document.activeElement).toBe(
+      screen.getByPlaceholderText("Describe the process you want to create"),
+    );
+  });
+
+  test("defers and consumes an initial Interview mode once, then falls back to Chat", () => {
+    let latestInteractionMode = "chat";
+    const onInitialInteractionModeConsumed = vi.fn();
+    const aiAssistant: PetrinautAiAssistant = {
+      renderInterviewStage: (context) => {
+        latestInteractionMode = context.interactionMode;
+        return <div>Interview stage</div>;
+      },
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    };
+    const closedEditorContext = {
+      ...editorContextValue,
+      isAiAssistantOpen: false,
+    };
+    const rendered = renderTestPanel({
+      aiAssistant,
+      editorContext: closedEditorContext,
+      initialInteractionMode: "interview",
+      onInitialInteractionModeConsumed,
+    });
+
+    expect(latestInteractionMode).toBe("chat");
+    expect(onInitialInteractionModeConsumed).not.toHaveBeenCalled();
+
+    rendered.rerenderPanel(aiAssistant, editorContextValue);
+
+    expect(latestInteractionMode).toBe("interview");
+    expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
+
+    const unavailableAssistant: PetrinautAiAssistant = {
+      transport: aiAssistant.transport,
+    };
+    rendered.rerenderPanel(unavailableAssistant, editorContextValue);
+
+    expect(screen.queryByText("Interview stage")).toBeNull();
+    expect(
+      screen.getByPlaceholderText("Describe the process you want to create"),
+    ).not.toBeNull();
+    expect(onInitialInteractionModeConsumed).toHaveBeenCalledOnce();
+  });
+
+  test("accepts one interview answer while generic chat is streaming and submits it after settlement", async () => {
+    let firstStreamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    let secondStreamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const requests: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requests.push(structuredClone(messages));
+        if (requests.length === 1) {
+          return Promise.resolve(
+            new ReadableStream({
+              start(controller) {
+                firstStreamController = controller;
+                for (const chunk of textChunks("question", "Question ready")) {
+                  controller.enqueue(chunk);
+                }
+              },
+            }),
+          );
+        }
+        if (requests.length === 2) {
+          return Promise.resolve(
+            new ReadableStream({
+              start(controller) {
+                secondStreamController = controller;
+                for (const chunk of textChunks(
+                  "acknowledgement",
+                  "Answer accepted",
+                )) {
+                  controller.enqueue(chunk);
+                }
+              },
+            }),
+          );
+        }
+        return Promise.resolve(
+          streamChunks(textChunks("next-answer", "Next answer accepted")),
+        );
+      }),
+    };
+    let latestStageContext: PetrinautAiInterviewStageContext | undefined;
+
+    renderTestPanel({
+      aiAssistant: {
+        renderInterviewStage: (context) => {
+          latestStageContext = context;
+          return (
+            <button
+              type="button"
+              onClick={() => {
+                void (context.status === "ready"
+                  ? context.submitText({ text: "Begin" })
+                  : context.submitInterviewAnswer({
+                      target: "message",
+                      text: "Queued interview answer",
+                    }));
+              }}
+            >
+              {context.status === "ready" ? "Begin" : "Answer now"}
+            </button>
+          );
+        },
+        transport,
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Begin" }));
+    await screen.findByRole("button", { name: "Answer now" });
+    expect(latestStageContext?.canAcceptInterviewAnswer).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Answer now" }));
+    await waitFor(() =>
+      expect(latestStageContext?.canAcceptInterviewAnswer).toBe(false),
+    );
+    expect(requests).toHaveLength(1);
+
+    await act(async () => firstStreamController?.close());
+    await screen.findByText("Answer accepted");
+
+    expect(requests).toHaveLength(2);
+    expect(latestStageContext?.status).toBe("streaming");
+    expect(latestStageContext?.canAcceptInterviewAnswer).toBe(true);
+    expect(requests[1]?.at(-1)).toMatchObject({
+      role: "user",
+      parts: [{ type: "text", text: "Queued interview answer" }],
+    });
+
+    void latestStageContext?.submitInterviewAnswer({
+      target: "message",
+      text: "Next interview answer",
+    });
+    await waitFor(() =>
+      expect(latestStageContext?.canAcceptInterviewAnswer).toBe(false),
+    );
+    expect(requests).toHaveLength(2);
+
+    await act(async () => secondStreamController?.close());
+    await screen.findByText("Next answer accepted");
+    expect(requests).toHaveLength(3);
+  });
+
+  test("reopens the interview answer buffer when the conversation changes", async () => {
+    let streamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(() =>
+        Promise.resolve(
+          new ReadableStream({
+            start(controller) {
+              streamController = controller;
+              for (const chunk of textChunks("question", "Question ready")) {
+                controller.enqueue(chunk);
+              }
+            },
+          }),
+        ),
+      ),
+    };
+    let latestStageContext: PetrinautAiInterviewStageContext | undefined;
+    const createAiAssistant = (
+      conversationId: string,
+    ): PetrinautAiAssistant => ({
+      conversationId,
+      renderInterviewStage: (context) => {
+        latestStageContext = context;
+        return null;
+      },
+      transport,
+    });
+    const rendered = renderTestPanel({
+      aiAssistant: createAiAssistant("conversation-1"),
+    });
+    let initialSubmission: Promise<unknown> | undefined;
+    act(() => {
+      initialSubmission = latestStageContext?.submitText({ text: "Begin" });
+    });
+    void initialSubmission?.catch(() => undefined);
+    await waitFor(() => expect(latestStageContext?.status).toBe("streaming"));
+    let queuedAnswer: Promise<unknown> | undefined;
+    act(() => {
+      queuedAnswer = latestStageContext?.submitInterviewAnswer({
+        target: "message",
+        text: "Queued interview answer",
+      });
+    });
+    const queuedAnswerRejection = expect(queuedAnswer).rejects.toThrow(
+      "The interview conversation changed.",
+    );
+    await waitFor(() =>
+      expect(latestStageContext?.canAcceptInterviewAnswer).toBe(false),
+    );
+
+    rendered.rerenderPanel(createAiAssistant("conversation-2"));
+
+    await queuedAnswerRejection;
+    await waitFor(() =>
+      expect(latestStageContext?.canAcceptInterviewAnswer).toBe(true),
+    );
+    await act(async () => streamController?.close());
+  });
+
   test("exposes the generated useChat conversation identity to host controls", async () => {
     const chatIds: string[] = [];
     const observedConversationIds = new Set<string>();

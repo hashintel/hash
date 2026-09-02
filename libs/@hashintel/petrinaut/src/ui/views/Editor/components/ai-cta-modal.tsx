@@ -4,6 +4,12 @@ import { Button, TextInput } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { AiAssistantIcon } from "../../../components/ai-assistant-icon";
+import {
+  AiInteractionModeTabs,
+  AiMicrophoneIcon,
+} from "./ai-interaction-mode-tabs";
+
+import type { PetrinautAiInteractionMode } from "../../../types/ai-assistant-composer-control";
 
 const aiCtaModalLayerStyle = css({
   position: "absolute",
@@ -62,6 +68,12 @@ const aiCtaModalCopyStyle = css({
   maxWidth: "[420px]",
 });
 
+const aiCtaModalDescriptionStyle = css({
+  margin: "0",
+  color: "neutral.s80",
+  textStyle: "sm",
+});
+
 const aiCtaModalTitleStyle = css({
   margin: "0",
   color: "neutral.s110",
@@ -73,14 +85,20 @@ const aiCtaModalTitleStyle = css({
 
 export const AiCtaModal = ({
   bottomClearance,
+  interviewAvailable,
   onDismiss,
+  onStartInterview,
   onSubmit,
 }: {
   bottomClearance: number;
+  interviewAvailable: boolean;
   onDismiss: () => void;
+  onStartInterview: () => void;
   onSubmit: (message: string) => void;
 }) => {
   const [promptInput, setPromptInput] = useState("");
+  const [interactionMode, setInteractionMode] =
+    useState<PetrinautAiInteractionMode>("chat");
 
   const canSubmit = promptInput.trim().length > 0;
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -117,6 +135,10 @@ export const AiCtaModal = ({
     };
   }, [onDismiss]);
 
+  const effectiveInteractionMode = interviewAvailable
+    ? interactionMode
+    : "chat";
+
   return (
     <div className={aiCtaModalLayerStyle} style={{ bottom: bottomClearance }}>
       <form
@@ -141,38 +163,72 @@ export const AiCtaModal = ({
           aria-label="Dismiss"
           iconName="close"
         />
-        <div className={aiCtaModalIconStyle}>
-          <AiAssistantIcon size={32} />
-        </div>
-        <div className={aiCtaModalCopyStyle}>
-          <h2 className={aiCtaModalTitleStyle}>
-            Describe the process you want to create
-          </h2>
-        </div>
-        <TextInput
-          inputRef={inputRef}
-          value={promptInput}
-          onChange={setPromptInput}
-          placeholder="e.g. Model an SIR outbreak with recovery"
-          aria-label="Describe the process you want to create"
-          size="lg"
-          suffix={{
-            variant: "subtle",
-            content: (
-              <Button
-                type="submit"
-                size="lg"
-                variant="solid"
-                tone="brand"
-                disabled={!canSubmit}
-                aria-label="Send first AI assistant message"
-                iconName="arrowUp"
-                tooltip="Send first AI assistant message"
-                className={css({ margin: "2" })}
-              />
-            ),
-          }}
-        />
+        {interviewAvailable && (
+          <AiInteractionModeTabs
+            mode={interactionMode}
+            onModeChange={setInteractionMode}
+          />
+        )}
+        {effectiveInteractionMode === "chat" ? (
+          <>
+            <div className={aiCtaModalIconStyle}>
+              <AiAssistantIcon size={32} />
+            </div>
+            <div className={aiCtaModalCopyStyle}>
+              <h2 className={aiCtaModalTitleStyle}>
+                Describe the process you want to create
+              </h2>
+            </div>
+            <TextInput
+              inputRef={inputRef}
+              value={promptInput}
+              onChange={setPromptInput}
+              placeholder="e.g. Model an SIR outbreak with recovery"
+              aria-label="Describe the process you want to create"
+              size="lg"
+              suffix={{
+                variant: "subtle",
+                content: (
+                  <Button
+                    type="submit"
+                    size="lg"
+                    variant="solid"
+                    tone="brand"
+                    disabled={!canSubmit}
+                    aria-label="Send first AI assistant message"
+                    iconName="arrowUp"
+                    tooltip="Send first AI assistant message"
+                    className={css({ margin: "2" })}
+                  />
+                ),
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <div className={aiCtaModalIconStyle} aria-hidden="true">
+              <AiMicrophoneIcon />
+            </div>
+            <div className={aiCtaModalCopyStyle}>
+              <h2 className={aiCtaModalTitleStyle}>
+                Talk through your process with AI
+              </h2>
+              <p className={aiCtaModalDescriptionStyle}>
+                Answer a few guided questions and Petrinaut will create the
+                model.
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="md"
+              variant="solid"
+              tone="brand"
+              onClick={onStartInterview}
+            >
+              Start interview
+            </Button>
+          </>
+        )}
       </form>
     </div>
   );
