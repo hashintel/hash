@@ -5,6 +5,7 @@ import { ASK_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 import {
   hashCanonicalSpeechText,
   selectCanonicalSpeechSegments,
+  selectInterviewSpeech,
 } from "./canonical-speech";
 
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
@@ -13,6 +14,171 @@ const select = (messages: PetrinautAiMessage[]) =>
   selectCanonicalSpeechSegments(messages);
 
 describe("canonical speech selection", () => {
+  test("separates finalized context from an exact pending question", () => {
+    const completeCanonicalExplanation =
+      "The release needs one named approver before the batch can proceed.";
+    const question = "Who approves it: the manager or quality lead?";
+    const messages = [
+      {
+        id: "assistant-turn",
+        role: "assistant",
+        parts: [
+          {
+            type: "text",
+            text: completeCanonicalExplanation,
+            state: "done",
+          },
+          {
+            type: "dynamic-tool",
+            toolCallId: "ask-1",
+            toolName: ASK_TOOL_NAME,
+            state: "input-available",
+            input: { question },
+          },
+        ],
+      },
+    ] satisfies PetrinautAiMessage[];
+
+    const selection = selectInterviewSpeech(messages);
+
+    expect(selection.automaticSource).toMatchObject({
+      contextSegments: [
+        { source: "assistant-text", text: completeCanonicalExplanation },
+      ],
+      messageId: "assistant-turn",
+      questionSegment: { source: "brunch-ask", text: question },
+      fullResponseSegments: [
+        { source: "assistant-text", text: completeCanonicalExplanation },
+        { source: "brunch-ask", text: question },
+      ],
+    });
+    expect(selection.canonicalSegments).toEqual(
+      selection.automaticSource?.fullResponseSegments,
+    );
+  });
+
+  test("groups multiple finalized text parts into the latest assistant turn", () => {
+    const selection = selectInterviewSpeech([
+      {
+        id: "assistant-old",
+        role: "assistant",
+        parts: [{ type: "text", text: "Previous turn.", state: "done" }],
+      },
+      {
+        id: "assistant-latest",
+        role: "assistant",
+        parts: [
+          { type: "text", text: "First explanation.", state: "done" },
+          { type: "text", text: "Second explanation.", state: "done" },
+        ],
+      },
+    ]);
+
+    expect(selection.automaticSource).toMatchObject({
+      contextSegments: [
+        { text: "First explanation." },
+        { text: "Second explanation." },
+      ],
+      fullResponseSegments: [
+        { text: "First explanation." },
+        { text: "Second explanation." },
+      ],
+      messageId: "assistant-latest",
+      questionSegment: null,
+    });
+    expect(selection.canonicalSegments).toHaveLength(3);
+  });
+
+  test("selects standalone finalized assistant text for automatic speech", () => {
+    const selection = selectInterviewSpeech([
+      {
+        id: "assistant-complete",
+        role: "assistant",
+        parts: [
+          { type: "text", text: "The interview is complete.", state: "done" },
+        ],
+      },
+    ]);
+
+    expect(selection.automaticSource).toMatchObject({
+      contextSegments: [{ text: "The interview is complete." }],
+      fullResponseSegments: [{ text: "The interview is complete." }],
+      questionSegment: null,
+    });
+  });
+
+  test("excludes answered and malformed asks from the protected question", () => {
+    const selection = selectInterviewSpeech([
+      {
+        id: "assistant-ask",
+        role: "assistant",
+        parts: [
+          { type: "text", text: "Canonical context.", state: "done" },
+          {
+            type: "dynamic-tool",
+            toolCallId: "ask-answered",
+            toolName: ASK_TOOL_NAME,
+            state: "output-available",
+            input: { question: "Already answered?" },
+            output: { answer: "Yes." },
+          },
+          {
+            type: "dynamic-tool",
+            toolCallId: "ask-malformed",
+            toolName: ASK_TOOL_NAME,
+            state: "input-available",
+            input: { question: 42 },
+          },
+        ],
+      },
+    ]);
+
+    expect(selection.automaticSource).toMatchObject({
+      contextSegments: [{ text: "Canonical context." }],
+      fullResponseSegments: [{ text: "Canonical context." }],
+      questionSegment: null,
+    });
+    expect(selection.canonicalSegments).toHaveLength(1);
+  });
+
+  test("excludes streaming text, reasoning, diagnostics, tool output, and tool errors", () => {
+    const selection = selectInterviewSpeech([
+      {
+        id: "assistant-filtered",
+        role: "assistant",
+        parts: [
+          {
+            type: "text",
+            text: "Do not speak streaming text.",
+            state: "streaming",
+          },
+          { type: "reasoning", text: "Do not speak reasoning.", state: "done" },
+          {
+            type: "dynamic-tool",
+            toolCallId: "tool-output",
+            toolName: "diagnostic",
+            state: "output-available",
+            input: {},
+            output: { text: "Do not speak tool output." },
+          },
+          {
+            type: "dynamic-tool",
+            toolCallId: "tool-error",
+            toolName: "diagnostic",
+            state: "output-error",
+            input: {},
+            errorText: "Do not speak tool errors.",
+          },
+        ],
+      },
+    ]);
+
+    expect(selection).toEqual({
+      automaticSource: null,
+      canonicalSegments: [],
+    });
+  });
+
   test("selects only finalized assistant text without changing it", () => {
     const messages = [
       {
@@ -174,5 +340,22 @@ describe("canonical speech selection", () => {
     expect(changed[0]?.partId).toBe(first[0]?.partId);
     expect(changed[0]?.contentHash).not.toBe(first[0]?.contentHash);
     expect(changed[0]?.id).not.toBe(first[0]?.id);
+
+    const firstSelection = selectInterviewSpeech([
+      {
+        id: "assistant/id",
+        role: "assistant",
+        parts: [{ type: "text", text: "Exact text", state: "done" }],
+      },
+    ]);
+    expect(
+      selectInterviewSpeech([
+        {
+          id: "assistant/id",
+          role: "assistant",
+          parts: [{ type: "text", text: "Exact text", state: "done" }],
+        },
+      ]),
+    ).toEqual(firstSelection);
   });
 });
