@@ -38,6 +38,7 @@ bower_components
 .lock-wscript
 
 # Tests
+**/.playwright-cli/
 **/playwright-report/
 **/test-results/
 tests/**/.auth/
