@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { ASK_TOOL_NAME } from "@hashintel/brunch-agent-transport-aisdk/client-tools";
+import { ASK_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 
 import {
   hashCanonicalSpeechText,

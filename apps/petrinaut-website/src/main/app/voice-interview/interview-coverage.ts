@@ -1,4 +1,4 @@
-import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent-transport-aisdk/client-tools";
+import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
 

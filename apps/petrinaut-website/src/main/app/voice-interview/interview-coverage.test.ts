@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent-transport-aisdk/client-tools";
+import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 
 import { selectInterviewCoverage } from "./interview-coverage";
 

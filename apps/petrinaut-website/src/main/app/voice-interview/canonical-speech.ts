@@ -1,7 +1,7 @@
 import {
   ASK_TOOL_NAME,
   parseBrunchAskInput,
-} from "@hashintel/brunch-agent-transport-aisdk/client-tools";
+} from "@hashintel/brunch-agent/client-tools";
 
 import { hashCanonicalSpeechText } from "../../../canonical-speech-fingerprint";
 

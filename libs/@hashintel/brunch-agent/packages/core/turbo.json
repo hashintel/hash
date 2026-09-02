@@ -14,6 +14,15 @@
     },
     "linear:graph": {
       "cache": false
+    },
+    "test:unit": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/brunch-agent/**",
+        "$TURBO_ROOT$/libs/@hashintel/brunch-agent/**",
+        "!$TURBO_ROOT$/apps/brunch-agent/**/{.flue,.turbo,dist,node_modules}/**",
+        "!$TURBO_ROOT$/libs/@hashintel/brunch-agent/**/{.flue,.turbo,dist,node_modules}/**"
+      ]
     }
   }
 }

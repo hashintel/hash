@@ -40,6 +40,10 @@ const ignoredWorkspaces = [];
 
 const allowedGitDependencies = [];
 
+const brunchAgentCore = "@hashintel/brunch-agent";
+const brunchAgentTransportPrefix = `${brunchAgentCore}-transport-`;
+const brunchSubstrateScopes = ["@earendil-works/", "@flue/"];
+
 /**
  * Lifecycle scripts which Yarn runs as part of `yarn install`.
  */
@@ -319,6 +323,30 @@ function enforceNoInstallScripts({ Yarn }) {
   }
 }
 
+/**
+ * Keeps transport packages independent of Brunch mechanism and substrates.
+ *
+ * @param {Context} context - The Yarn constraint context.
+ */
+function enforceBrunchTransportBoundary({ Yarn }) {
+  for (const dependency of Yarn.dependencies()) {
+    if (
+      !dependency.workspace.ident.startsWith(brunchAgentTransportPrefix) ||
+      (dependency.ident !== brunchAgentCore &&
+        !dependency.ident.startsWith(`${brunchAgentCore}-`) &&
+        !brunchSubstrateScopes.some((scope) =>
+          dependency.ident.startsWith(scope),
+        ))
+    ) {
+      continue;
+    }
+
+    dependency.error(
+      `${dependency.workspace.ident} is a transport and cannot depend on ${dependency.ident}`,
+    );
+  }
+}
+
 module.exports = defineConfig({
   async constraints(context) {
     enforceConsistentDependenciesAcrossTheProject(context);
@@ -326,5 +354,6 @@ module.exports = defineConfig({
     enforceProtocols(context);
     enforceDevDependenciesAreProperlyDeclared(context);
     enforceNoInstallScripts(context);
+    enforceBrunchTransportBoundary(context);
   },
 });
