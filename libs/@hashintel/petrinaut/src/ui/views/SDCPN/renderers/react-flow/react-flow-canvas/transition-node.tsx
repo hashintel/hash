@@ -3,8 +3,8 @@ import { use, useEffect, useRef } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../react/state/editor-context";
-import { useFiringDelta } from "../hooks/use-firing-delta";
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { useFiringDelta } from "../../../hooks/use-firing-delta";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
@@ -13,7 +13,7 @@ import {
   type SelectionVariant,
 } from "./node-card";
 
-import type { TransitionNodeType } from "../reactflow-types";
+import type { TransitionNodeType } from "./react-flow-types";
 import type { NodeProps } from "@xyflow/react";
 
 const FIRING_ANIMATION_DURATION_MS = 300;

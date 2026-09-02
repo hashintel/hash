@@ -3,10 +3,10 @@ import { use } from "react";
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { ExecutionFrameSourceContext } from "../../../../react/execution-frame/context";
-import { SimulationContext } from "../../../../react/simulation/context";
-import { EditorContext } from "../../../../react/state/editor-context";
-import { placeBorderColor, placeFillColor } from "../styles/type-colors";
+import { ExecutionFrameSourceContext } from "../../../../../../react/execution-frame/context";
+import { SimulationContext } from "../../../../../../react/simulation/context";
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { placeBorderColor, placeFillColor } from "../../../styles/type-colors";
 import {
   iconBadgeStyle,
   iconContainerBaseStyle,
@@ -16,7 +16,7 @@ import {
 } from "./node-card";
 import { PlaceStateTooltip } from "./place-state-tooltip";
 
-import type { PlaceNodeType } from "../reactflow-types";
+import type { PlaceNodeType } from "./react-flow-types";
 import type { NodeProps } from "@xyflow/react";
 
 const placeCardStyle = css({

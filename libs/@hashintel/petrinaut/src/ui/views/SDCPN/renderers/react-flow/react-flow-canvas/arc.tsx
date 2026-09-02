@@ -9,11 +9,11 @@ import { type CSSProperties, use, useEffect, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { EditorContext } from "../../../../react/state/editor-context";
-import { UserSettingsContext } from "../../../../react/state/user-settings-context";
-import { useFiringDelta } from "../hooks/use-firing-delta";
+import { EditorContext } from "../../../../../../react/state/editor-context";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
+import { useFiringDelta } from "../../../hooks/use-firing-delta";
 
-import type { ArcData, ArcEdgeType } from "../reactflow-types";
+import type { ArcData, ArcEdgeType } from "./react-flow-types";
 
 const BASE_STROKE_WIDTH = 2;
 const ANIMATION_DURATION_MS = 500;
@@ -138,7 +138,7 @@ const weightTextStyle = css({
 });
 
 function getArcStrokeDasharray(
-  arcType: ArcData["arcType"] | undefined,
+  arcType: ArcData["kind"] | undefined,
 ): string | undefined {
   if (arcType === "read") {
     return READ_DASH_PATTERN;
@@ -327,7 +327,7 @@ export const Arc: React.FC<EdgeProps<ArcEdgeType>> = ({
           });
 
   let strokeColor = style?.stroke ?? "#b1b1b7";
-  const arcType = data?.arcType;
+  const arcType = data?.kind;
   const strokeDasharray = getArcStrokeDasharray(arcType);
 
   const tickMarks = arcType === "inhibitor" ? computeArcTickMarks(arcPath) : [];

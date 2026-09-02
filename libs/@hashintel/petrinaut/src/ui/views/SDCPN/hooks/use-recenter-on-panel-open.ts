@@ -1,12 +1,12 @@
-import { useReactFlow } from "@xyflow/react";
 import { use, useEffect, useRef } from "react";
 
 import { parseArcId } from "@hashintel/petrinaut-core";
 
 import { EditorContext } from "../../../../react/state/editor-context";
-import { recenterToFitViewport, getViewportRect } from "../../../lib/viewport";
+import { getViewportRect, recenterToFitViewport } from "../canvas-viewport";
 
-import type { ArcEdgeType, NodeType } from "../reactflow-types";
+import type { CanvasController } from "../canvas-renderer";
+import type { CanvasNode } from "../canvas-scene";
 import type { Size } from "@hashintel/petrinaut-core";
 
 const RE_CENTER_PADDING = 20;
@@ -16,8 +16,11 @@ const RE_CENTER_PADDING = 20;
  * check whether those nodes are still visible in the reduced viewport
  * and pan to bring them into view if needed.
  */
-export function useRecenterOnPanelOpen(containerSize: Size, nodes: NodeType[]) {
-  const reactFlow = useReactFlow<NodeType, ArcEdgeType>();
+export function useRecenterOnPanelOpen(
+  controller: CanvasController,
+  containerSize: Size,
+  nodes: CanvasNode[],
+) {
   const {
     isBottomPanelOpen,
     isLeftSidebarOpen,
@@ -60,7 +63,7 @@ export function useRecenterOnPanelOpen(containerSize: Size, nodes: NodeType[]) {
     const selectedNodes = nodes.filter((node) => selectedNodeIds.has(node.id));
     if (selectedNodes.length === 0) return;
 
-    const originalViewport = reactFlow.getViewport();
+    const originalViewport = controller.getViewport();
     const viewport = getViewportRect(containerSize, originalViewport, {
       left: isLeftSidebarOpen ? leftSidebarWidth : 0,
       bottom: isBottomPanelOpen ? bottomPanelHeight : 0,
@@ -82,14 +85,12 @@ export function useRecenterOnPanelOpen(containerSize: Size, nodes: NodeType[]) {
           : adjustment.y < 0
             ? RE_CENTER_PADDING * -1
             : RE_CENTER_PADDING;
-      // adjustment is in flow coordinates; convert to screen pixels for the viewport transform
-      reactFlow
-        .setViewport({
-          x: originalViewport.x - paddingX - adjustment.x * viewport.zoom,
-          y: originalViewport.y - paddingY - adjustment.y * viewport.zoom,
-          zoom: viewport.zoom,
-        })
-        .catch(() => {});
+      // adjustment is in scene coordinates; convert to screen pixels for the viewport transform
+      controller.setViewport({
+        x: originalViewport.x - paddingX - adjustment.x * viewport.zoom,
+        y: originalViewport.y - paddingY - adjustment.y * viewport.zoom,
+        zoom: viewport.zoom,
+      });
     }
   }, [
     containerSize,
@@ -101,6 +102,6 @@ export function useRecenterOnPanelOpen(containerSize: Size, nodes: NodeType[]) {
     selection,
     propertiesPanelWidth,
     nodes,
-    reactFlow,
+    controller,
   ]);
 }

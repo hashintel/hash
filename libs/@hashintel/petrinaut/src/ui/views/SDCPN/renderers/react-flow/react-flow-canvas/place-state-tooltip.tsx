@@ -9,9 +9,9 @@ import { use, useRef } from "react";
 
 import { css } from "@hashintel/ds-helpers/css";
 
-import { useElementSize } from "../../../../react/hooks/use-element-size";
-import { SDCPNContext } from "../../../../react/state/sdcpn-context";
-import { PlaceStateVisualization } from "../../shared/place-state-visualization";
+import { useElementSize } from "../../../../../../react/hooks/use-element-size";
+import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
+import { PlaceStateVisualization } from "../../../../shared/place-state-visualization";
 
 // Gap between the node and the box, in screen pixels.
 const TOOLTIP_OFFSET_PX = 12;

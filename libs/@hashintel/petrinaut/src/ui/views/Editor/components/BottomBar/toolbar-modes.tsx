@@ -8,6 +8,7 @@ import { EditorContext } from "../../../../../react/state/editor-context";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { useIsReadOnly } from "../../../../../react/state/use-is-read-only";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
+import { writeDraggedNodeKind } from "../../../shared/canvas-node-drag";
 import { ToolbarButton } from "./toolbar-button";
 import { ToolbarDivider } from "./toolbar-divider";
 
@@ -202,7 +203,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
             onDragStart={(event) => {
               // eslint-disable-next-line no-param-reassign
               event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("application/reactflow", "place");
+              writeDraggedNodeKind(event.dataTransfer, "place");
             }}
           >
             <Icon name="circlePlus" />
@@ -216,7 +217,7 @@ export const ToolbarModes: React.FC<ToolbarModesProps> = ({
             onDragStart={(event) => {
               // eslint-disable-next-line no-param-reassign
               event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("application/reactflow", "transition");
+              writeDraggedNodeKind(event.dataTransfer, "transition");
             }}
           >
             <Icon name="squarePlus" />

@@ -2,7 +2,7 @@ import { Handle, Position } from "@xyflow/react";
 
 import { css, cva } from "@hashintel/ds-helpers/css";
 
-import { handleStyling } from "../styles/styling";
+import { handleStyling } from "../../../styles/styling";
 
 import type { ReactNode } from "react";
 
