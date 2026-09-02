@@ -591,7 +591,7 @@ describe("VoiceTurnController", () => {
     });
 
     harness.controller.pause();
-    harness.controller.resume();
+    await harness.controller.resume();
 
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "submitting",
@@ -674,7 +674,7 @@ describe("VoiceTurnController", () => {
     });
     expect(harness.session.cancelOutput).toHaveBeenCalledTimes(2);
 
-    harness.controller.resume();
+    await harness.controller.resume();
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "listening",
       microphoneEnabled: true,
@@ -949,7 +949,44 @@ describe("VoiceTurnController", () => {
       output: "interrupted",
     });
 
-    harness.controller.resume();
+    await harness.controller.resume();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      microphoneEnabled: true,
+    });
+  });
+
+  test("keeps capture paused until output cancellation completes", async () => {
+    const harness = createHarness();
+    let finishCancellation: (() => void) | undefined;
+    harness.session.cancelOutput.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishCancellation = resolve;
+        }),
+    );
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-1",
+      type: "output-started",
+    });
+
+    harness.controller.pause();
+    const resumption = harness.controller.resume();
+
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "paused",
+      microphoneEnabled: false,
+    });
+
+    finishCancellation?.();
+    await resumption;
+
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "listening",
       microphoneEnabled: true,
@@ -1026,7 +1063,7 @@ describe("VoiceTurnController", () => {
       output: "idle",
     });
 
-    harness.controller.resume();
+    await harness.controller.resume();
     expect(harness.bridge.start).toHaveBeenCalledWith(1);
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "listening",

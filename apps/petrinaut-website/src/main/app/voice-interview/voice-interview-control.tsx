@@ -317,7 +317,9 @@ const AvailableVoiceInterviewControl = ({
           void store.controller.reconnect();
         },
         repeatQuestion: () => store.controller.repeatQuestion(),
-        resume: () => store.controller.resume(),
+        resume: () => {
+          void store.controller.resume();
+        },
         setMicrophoneMuted: (muted) =>
           store.controller.setMicrophoneMuted(muted),
         takeTurn: () => store.controller.takeTurn(),
