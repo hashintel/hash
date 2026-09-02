@@ -27,7 +27,7 @@
       "import": "./dist/index.js"
     },
     "./experiments": {
-      "types": "./dist/experiments.d.d.ts",
+      "types": "./dist/experiments.d.ts",
       "import": "./dist/experiments.js"
     },
     "./ai": {
@@ -71,7 +71,7 @@
       "import": "./dist/workers/simulation.js"
     },
     "./webgpu": {
-      "types": "./dist/webgpu.d.d.ts",
+      "types": "./dist/webgpu.d.ts",
       "import": "./dist/webgpu.js"
     },
     "./package.json": "./package.json"
