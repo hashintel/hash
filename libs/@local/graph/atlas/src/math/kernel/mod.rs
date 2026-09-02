@@ -45,7 +45,7 @@ mod ulp_sweep;
 pub(crate) fn verify_cpu_baseline() {
     #[cfg(target_arch = "x86_64")]
     {
-        use std::arch::x86_64::__cpuid_count;
+        use core::arch::x86_64::__cpuid_count;
 
         // cpuid rather than `is_x86_feature_detected!`: the macro folds to `true` for every feature
         // the build already assumes, and x86-64 builds of this workspace assume the whole baseline.
