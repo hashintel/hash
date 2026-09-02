@@ -152,7 +152,8 @@ const updateField = (
     state.accumulatorSize = sizeKey;
     state.field = null;
   }
-  const raster = state.accumulator.update(samples);
+  const accumulator = state.accumulator;
+  const raster = accumulator.update(samples);
 
   let min = Number.POSITIVE_INFINITY;
   let max = Number.NEGATIVE_INFINITY;
@@ -163,7 +164,7 @@ const updateField = (
 
   if (
     state.field !== null &&
-    state.field.version === state.accumulator.version &&
+    state.field.version === accumulator.version &&
     state.field.min === min &&
     state.field.max === max
   ) {
@@ -194,7 +195,7 @@ const updateField = (
       : [];
 
   state.field = {
-    version: state.accumulator.version,
+    version: accumulator.version,
     min,
     max,
     image,
