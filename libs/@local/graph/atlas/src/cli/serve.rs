@@ -352,7 +352,7 @@ impl ServeCommand {
         }: RequestFacilities<P>,
     ) -> Result<Router, ServeError>
     where
-        P: AuthenticationProvider<Option<ActorId>> + 'static,
+        P: AuthenticationProvider<ActorId> + 'static,
     {
         // Embedders reach this entry without passing through the shell's main.
         crate::math::kernel::verify_cpu_baseline();
@@ -437,7 +437,7 @@ impl ServeCommand {
                 limiters: Arc::clone(&limiters),
                 service_secret: Arc::clone(&service_secret),
             })
-            .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
+            .route_layer(AuthenticationLayer::<_, ActorId> {
                 provider,
                 service_secret: Arc::clone(&service_secret),
                 metrics: Arc::new(AuthenticationMetrics::new(&meter)),
