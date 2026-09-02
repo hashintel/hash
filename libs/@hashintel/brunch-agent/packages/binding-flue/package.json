@@ -21,8 +21,7 @@
   "dependencies": {
     "@flue/runtime": "2.0.3",
     "@flue/sdk": "2.0.3",
-    "@hashintel/brunch-agent": "workspace:*",
-    "valibot": "1.4.2"
+    "@hashintel/brunch-agent": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "22.18.13",

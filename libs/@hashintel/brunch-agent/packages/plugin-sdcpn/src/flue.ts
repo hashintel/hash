@@ -6,7 +6,7 @@ import {
 } from "@flue/runtime";
 import * as v from "valibot";
 
-import sdcpnAppend from "./APPEND_SYSTEM.md?raw";
+import sdcpnAppend from "./prompts/APPEND_SYSTEM.md?raw";
 import {
   SDCPN_MODELLING_SKILL_NAME,
   sdcpnModellingSkill,

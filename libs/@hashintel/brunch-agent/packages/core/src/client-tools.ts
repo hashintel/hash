@@ -7,7 +7,7 @@ import * as v from "valibot";
 import {
   AskInput,
   AskSubmission,
-} from "./conversation/ask-tool-contract";
+} from "./_suspended/conversation/ask-tool-contract";
 import { toolName } from "./conversation/naming";
 
 export { AskInput, AskSubmission, toolName };

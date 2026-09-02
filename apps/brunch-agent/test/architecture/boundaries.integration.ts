@@ -128,9 +128,11 @@ describe("dependency direction", () => {
       );
       expect({ file: file.relPath, substrateImports }).toEqual({
         file: file.relPath,
-        substrateImports: file.relPath.endsWith("/src/agent/index.ts")
-          ? [FLUE_RUNTIME]
-          : [],
+        substrateImports:
+          file.relPath.endsWith("/src/flue.ts") ||
+          file.relPath.endsWith("/src/skills/skill-markdown.ts")
+            ? [FLUE_RUNTIME]
+            : [],
       });
     }
   });
@@ -167,7 +169,6 @@ describe("dependency direction", () => {
             CORE,
           );
           expect(specifier).not.toBe(`${CORE}/storage`);
-          expect(specifier).not.toBe(`${CORE}/prompts`);
         }
       }
     }
@@ -191,29 +192,6 @@ describe("dependency direction", () => {
     }
   });
 
-  test("repertoire defaults are guarded core prompt data (ADR-0008)", () => {
-    expect(PACKAGES.map((pkg) => pkg.dir)).not.toContain("repertoire");
-
-    const promptImporters = PACKAGES.flatMap((pkg) =>
-      sourceFiles(pkg)
-        .filter((file) => importedPackages(file).includes(`${CORE}/prompts`))
-        .map((file) => ({ pkg: pkg.dir, file: file.relPath })),
-    );
-    expect(promptImporters.length).toBeGreaterThan(0);
-    for (const importer of promptImporters) {
-      expect(importer.pkg).toMatch(/^binding-/u);
-    }
-
-    // Plugin-only CI lints the plugin and does not run this suite. The
-    // oxlint path ban is the gate that fires then; this assertion keeps
-    // that gate from disappearing while the suite still runs.
-    for (const plugin of byRole("plugin")) {
-      expect(
-        readFileSync(join(plugin.path, ".oxlintrc.json"), "utf8"),
-      ).toContain(`"name": "${CORE}/prompts"`);
-    }
-  });
-
   test("transports consume wire contracts only — never a binding or Flue", () => {
     const transports = byRole("transport");
     expect(transports.length).toBeGreaterThan(0);
@@ -228,7 +206,6 @@ describe("dependency direction", () => {
           if (specifier.startsWith("node:")) continue;
           expect([CORE, "ai", "valibot"]).toContain(packageOf(specifier));
           expect(specifier).not.toBe(`${CORE}/storage`);
-          expect(specifier).not.toBe(`${CORE}/prompts`);
         }
       }
     }
@@ -434,33 +411,14 @@ describe("recorded Flue constraints hold by construction (spec §10)", () => {
 });
 
 describe("core auxiliary subpaths stay in their assigned lanes", () => {
-  test("core exposes Flue composition, browser contracts, prompts, storage support and testing as explicit subpaths", () => {
+  test("core exposes Flue composition, browser contracts, and storage support as explicit subpaths", () => {
     const core = PACKAGES.find((pkg) => pkg.name === CORE)!;
     expect(Object.keys(core.manifest.exports ?? {})).toEqual([
       ".",
       "./client-tools",
       "./flue",
-      "./prompts",
       "./storage",
-      "./testing",
     ]);
-    expect(core.manifest.exports?.["./prompts"]).toEqual({
-      types: "./src/prompts.ts",
-      import: "./dist/prompts.js",
-    });
-
-    const rootEntry = readFileSync(join(core.path, "src/index.ts"), "utf8");
-    expect(rootEntry).not.toMatch(/\bfrom\s+["']\.\/prompts["']/u);
-  });
-
-  test("no package source imports core/testing", () => {
-    // Fixtures, arbitraries and the replay driver belong to tests; production
-    // bundles stay clean.
-    for (const pkg of PACKAGES) {
-      for (const file of sourceFiles(pkg)) {
-        expect(importedPackages(file)).not.toContain(`${CORE}/testing`);
-      }
-    }
   });
 
   test("only bindings import core/storage", () => {
@@ -509,8 +467,6 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
       "Defines the scripted pi-ai faux provider loaded only by the hermetic prospective-runner test — no provider key, no socket, and no network model call.",
     "apps/brunch-agent/test/runbook-headless.integration.ts":
       "Boots the built Flue ChatAgent with pi-ai's faux provider and a headless Petrinaut client to prove validated construct-only tool flow without a provider key, socket, or network model call.",
-    "apps/brunch-agent/test/skill-routing.integration.ts":
-      "Boots the built Flue ChatAgent with pi-ai's faux provider to prove resolvable-review restraint, required human-gap disclosure, one-question dosage, and workpiece-revision routing without a provider key, socket, or network model call.",
   };
 
   test("no test file carries a live model credential", () => {

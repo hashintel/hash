@@ -14,6 +14,7 @@ import { setProvider } from "@flue/runtime";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
 import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
+import { ELICITATION_SKILL_NAME } from "@hashintel/brunch-agent/flue";
 
 import { PING_TOOL_NAME } from "../src/agents/chat-agent/tools/ping.ts";
 import { applyCaptureSweep } from "../src/capture/apply-sweep.ts";
@@ -143,10 +144,23 @@ try {
         ],
         { stopReason: "toolUse" },
       ),
+      fauxAssistantMessage(
+        [
+          fauxThinking("The job skill routes universal judgment to core."),
+          fauxToolCall(
+            ACTIVATE_SKILL_TOOL_NAME,
+            { name: ELICITATION_SKILL_NAME },
+            { id: "tool-skill-2" },
+          ),
+        ],
+        { stopReason: "toolUse" },
+      ),
       (context) =>
         fauxAssistantMessage(
           [
-            fauxThinking("Read elicitation teaching from the skill package."),
+            fauxThinking(
+              "Read elicitation teaching from core's skill package.",
+            ),
             fauxToolCall(
               READ_SKILL_RESOURCE_TOOL_NAME,
               {

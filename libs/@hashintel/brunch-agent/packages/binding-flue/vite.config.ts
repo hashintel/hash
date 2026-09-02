@@ -16,7 +16,6 @@ export default defineConfig({
         /^node:/u,
         /^@flue\//u,
         /^@hashintel\/brunch-agent(?:\/.*)?$/u,
-        "valibot",
       ],
     },
     sourcemap: true,

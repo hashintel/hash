@@ -116,7 +116,8 @@ describe("the emitted server bundle", () => {
     expect(bundle).toContain(
       "Every operational claim has one authoritative home",
     );
-    expect(bundle).toContain("ask exactly one focused question");
+    expect(bundle).toContain("Capability-aware lifecycle");
+    expect(bundle).toContain("Activate the `elicitation` skill");
     expect(bundle).not.toContain("## The role (core)");
     expect(bundle).not.toContain("Completion is computed by the harness");
     expect(bundle).not.toContain("splitSkillMarkdown");

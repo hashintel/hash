@@ -2,13 +2,17 @@
   "name": "@hashintel/brunch-agent-plugin-gherkin",
   "version": "0.0.0-private",
   "private": true,
-  "description": "The software-behavior domain typology and Gherkin target formalism: the tracer plugin wired first as the cheap mechanism proof.",
+  "description": "The software-behavior domain typology and Gherkin target formalism: Flue-native prompt and skill contribution bundle.",
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {
     ".": {
       "types": "./src/index.ts",
       "import": "./dist/index.js"
+    },
+    "./flue": {
+      "types": "./src/flue.ts",
+      "import": "./dist/flue.js"
     }
   },
   "scripts": {
@@ -19,8 +23,8 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "@hashintel/brunch-agent": "workspace:*",
-    "valibot": "1.4.2"
+    "@flue/runtime": "2.0.3",
+    "@hashintel/brunch-agent": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "22.18.13",

@@ -6,22 +6,21 @@
 
 ```text
 packages/core                      CORE HARNESS + Flue-native agent contribution
-├─ SYSTEM.md          ✓ authoritative context- and formalism-independent Brunch system prompt
-├─ agent/             ✓ Flue `useModel` composition and prompt loading
+├─ prompts/SYSTEM.md  ✓ authoritative context- and formalism-independent always-on prompt
+├─ skills/elicitation/ ✓ core's one capability skill: `SKILL.md` + `references/universal-elicitation.md`,
+│                        packaged through `skills/skill-markdown.ts` and mounted by `flue.ts`
+├─ flue.ts            ✓ `useBrunchAgent()`: model, elicitation skill, returned core prompt (`./flue`)
 ├─ evidence/          ✓ active capture-store and archived-session evidence authority
-├─ conversation/      ○ compiled ask, reply, affordance, settlement, and sweep protocols;
-│                        currently not mounted by the production agent
-├─ plugin/            ○ compiled plugin declaration, definition, schema, key, and slot-assertion
-│                        contracts; not imported by the production agent path
-├─ interpretation/    ○ compiled fold, completion, and cue derivation; currently not mounted
-├─ teaching/          ○ compiled repertoire and renderer; currently not mounted
+├─ conversation/      ✓ tool naming and the harness reply-event contract
+├─ _suspended/conversation/ ○ compiled ask/affordance and settlement protocols; not mounted;
+│                        re-exported only for contracts other packages still type against
 ├─ client-tools.ts    ✓ public browser/client contract subpath
-├─ prompts.ts         ○ guarded public facade over `teaching/repertoire.yaml`
 ├─ storage.ts         ✓ binding-only public facade over archived-session evidence
-├─ index.ts           ✓ substrate-neutral plugin SDK facade over authority directories
-├─ json-value.ts,
-│  readonly-deep.ts   ✓ package-wide representation primitives, not a generic utility directory
-└─ testing/           ✓ test utilities subpath; excluded from production bundles
+├─ index.ts           ✓ substrate-neutral evidence and contract facade
+└─ json-value.ts,
+   readonly-deep.ts   ✓ package-wide representation primitives, not a generic utility directory
+   (plugin/, teaching/, interpretation/, prompts.ts, testing/, and schema/ — the YAML plugin
+    definition, repertoire, and typed interpretation machinery — were removed 2026-09-02)
 
 packages/binding-flue              LANE 2 (translate harness ↔ Flue dialect)
 ├─ capabilities.ts    ✓  capability declaration — the binding's contract-of-record
@@ -33,8 +32,6 @@ packages/binding-flue              LANE 2 (translate harness ↔ Flue dialect)
 ├─ capture-accounting.ts ✓ recovers active-session Flue ids from session-qualified archived
 │                        evidence pointers; contains no accounting policy.
 ├─ index.ts           ✓  active public history, reply-projection, and local-store adapters only
-├─ suspended/typed-elicitation.ts ○ retained generalized `useElicitation` hook wiring; compiled
-│                        but neither exported nor mounted by the production agent
 └─ local-capture-store.ts ✓ versioned storage-port implementation (capture store + session-log
                          archive, legacy provisioning, parse-on-read, tmp+rename, per-path
                          queue). One per deploy target per binding. Never: business rules.
@@ -46,18 +43,21 @@ packages/transport-aisdk           UI REPLY WIRE (substrate-neutral)
                          out-of-band. Never: binding/Flue imports, inference, conversation
                          rendering, or diagnostics dispatched as user evidence.
 
-packages/plugin-gherkin            TARGET POLICY
-└─ index.ts           ✓  identity + one `statement-noted` ConditionStated verbatim floor;
-                         strict schema forbids parsed structure and silent hardening.
-                         Never: harness mechanism or storage.
+packages/plugin-gherkin            TARGET POLICY + Flue-native contribution bundle (not yet composed)
+├─ index.ts           ✓  pairing identity only (YAML definition removed 2026-09-02)
+├─ prompts/APPEND_SYSTEM.md ✓ optional always-on plugin append
+├─ skills/gherkin-specification/ ✓ `SKILL.md` + `references/` + `templates/`; routes to core `elicitation`
+└─ flue.ts            ✓  `useGherkinPlugin()`; no tools until a real parser/binding capability exists
+
+packages/plugin-dafny              STUB contribution bundle (topology pressure test; not composed)
+├─ prompts/APPEND_SYSTEM.md, skills/dafny-verification/SKILL.md, flue.ts — placeholder homes only
 
 packages/plugin-sdcpn              TARGET POLICY + Flue-native production contribution
-├─ index.ts,
-│  plugin.yaml        ○  generalized typed definition/proposal path; compiled and tested but
-│                        not imported by the production ChatAgent
-├─ flue.ts            ✓  SDCPN/Petrinaut instructions inline with skill and tool mounts
-├─ skills/sdcpn-modelling/ ✓ progressively disclosed lifecycle, elicitation, workpiece,
-│                        construction, and check material
+├─ index.ts           ✓  pairing identity only (YAML definition removed 2026-09-02)
+├─ prompts/APPEND_SYSTEM.md ✓ compact always-on SDCPN append
+├─ skills/sdcpn-modelling/ ✓ `SKILL.md` + `references/{profile,pn-construction,checks}.md`
+│                        + `templates/workpiece.md`; activates core `elicitation` for human knowledge
+├─ flue.ts            ✓  `useSdcpnPlugin()`: append, job skill, doc tool, conditional construction tools
 └─ tools/
    ├─ petrinaut-construction.ts ✓ bounded, schema-validated SDCPN realization tools
    └─ read-petrinaut-doc.ts     ✓ Petrinaut editor guidance exposed as a client-executed tool
@@ -94,7 +94,7 @@ apps/brunch-agent                  LANE 1 SHELL + remote server (imported from a
   refusal), prompt content, and advisory semantics;
   `useElicitation` contributes only Flue projection, hooks, persistent-state, private-prompt,
   refresh, and durable-step wiring. A future `binding-pi` reuses both protocol modules.
-- **N2 (plugin cells, repertoire, and the proving runbook; amended by ADR-0007, ADR-0008, Mission 3, and FE-1563).** Reusable plugin-owned policy lives in plugin packages, and harness-owned repertoire teaching lives in core behind `@hashintel/brunch-agent/prompts`; plugins may not import that guarded prompt data. FE-1563 established a separate Flue-native production seam: core's `./flue` subpath supplies the stable agent prompt, while plugin-sdcpn's `./flue` subpath and exported `SKILL.md` supply SDCPN prompt material, progressive teaching, and target-specific tools. This does not reactivate the generalized repertoire/`useElicitation()` runtime. The app retains only the directive-marked registration point and host-specific capabilities. The committed YAML remains directly assertable outside the bundle.
+- **N2 (plugin cells, repertoire, and the proving runbook; amended by ADR-0007, ADR-0008, Mission 3, and FE-1563; retired 2026-09-02).** The YAML cell/repertoire machinery described here was removed on 2026-09-02 once plugins became Flue-native contribution bundles; this paragraph is history. Reusable plugin-owned policy lives in plugin packages, and harness-owned repertoire teaching lives in core behind `@hashintel/brunch-agent/prompts`; plugins may not import that guarded prompt data. FE-1563 established a separate Flue-native production seam: core's `./flue` subpath supplies the stable agent prompt, while plugin-sdcpn's `./flue` subpath and exported `SKILL.md` supply SDCPN prompt material, progressive teaching, and target-specific tools. This does not reactivate the generalized repertoire/`useElicitation()` runtime. The app retains only the directive-marked registration point and host-specific capabilities. The committed YAML remains directly assertable outside the bundle.
 - **N3 (application composition; amended by ADR-0004 / FE-1437).** There is no dedicated demo
   shell. The standalone `apps/dev` was imported as `apps/brunch-agent`, which owns the remote
   Brunch server, target gallery, and diagnostics. `apps/petrinaut-website` owns the user-facing

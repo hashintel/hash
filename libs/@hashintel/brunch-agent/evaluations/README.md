@@ -15,8 +15,7 @@ Current process-model-elicitation assets:
 - `oracles/vestera-scheduling/` — case-specific retrospective and prospective ledgers.
 - `oracles/ir-quality-ruler-v1.md` — frozen general IR-quality ruler.
 - `protocols/prospective-runbook-v1/` — frozen executed Mission 3 control; its runner was retired after evidence capture.
-- `protocols/prospective-runbook-v2/`, `protocols/prospective-runbook-v3/`, and `protocols/prospective-runbook-v4/` — frozen failed/invalid Mission 4 attempts with archival source-resolution sidecars; do not rerun.
-- `protocols/prospective-runbook-v5/` — proposed routing-repaired Mission 4 campaign; no paid execution is authorized until parent freeze and a new owner-approved ceiling.
+- `protocols/prospective-runbook-v2/` and `protocols/prospective-runbook-v3/` — frozen failed/invalid Mission 4 attempts retained only because their hashes are part of observed evidence; do not rerun. On 2026-09-02 the owner discarded every campaign design and output after v3 (v4 protocol and evidence, v5 protocol, product-witness-v2); a new evaluation approach replaces them.
 - `protocols/ir-quality-ruler-v1/` — the independent omniscient and cold-review procedures.
 - `protocols/legacy-baseline/` — retained historical instrument; do not use it for new runs.
 
