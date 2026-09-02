@@ -1,0 +1,17 @@
+{
+  "package": "@local/hash-codec",
+  "dependencies": [
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [
+      "@local/hash-codec#codegen"
+    ],
+    "codegen": [
+      "@rust/hash-codec#build:types"
+    ],
+    "lint:tsc": [
+      "@local/hash-codec#codegen"
+    ]
+  }
+}

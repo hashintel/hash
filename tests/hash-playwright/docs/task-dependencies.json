@@ -1,0 +1,52 @@
+{
+  "package": "@tests/hash-playwright",
+  "dependencies": [
+    "@apps/hash-api",
+    "@apps/hash-frontend",
+    "@apps/plugin-browser",
+    "@blockprotocol/graph",
+    "@blockprotocol/type-system",
+    "@local/eslint",
+    "@local/hash-backend-utils",
+    "@local/hash-graph-sdk",
+    "@local/hash-isomorphic-utils",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "codegen": [
+      "@apps/hash-api#codegen",
+      "@apps/hash-frontend#codegen",
+      "@apps/plugin-browser#codegen",
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@blockprotocol/type-system#codegen",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/harpc-client#build",
+      "@local/hash-graph-authorization#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-graph-store#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/hash-isomorphic-utils#codegen",
+      "@local/internal-api-client#build",
+      "@local/status#build"
+    ],
+    "fix:eslint": [
+      "@local/eslint#build",
+      "@tests/hash-playwright#codegen"
+    ],
+    "lint:eslint": [
+      "@local/eslint#build",
+      "@tests/hash-playwright#codegen"
+    ],
+    "lint:tsc": [
+      "@tests/hash-playwright#codegen"
+    ],
+    "test:integration": [
+      "@apps/hash-api#start:test:healthcheck",
+      "@apps/hash-frontend#start:test:healthcheck",
+      "@apps/plugin-browser#build:test"
+    ]
+  }
+}

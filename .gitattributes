@@ -1,4 +1,5 @@
 **/docs/dependency-diagram.mmd linguist-generated=true
+**/docs/task-dependencies.json linguist-generated=true
 **/*.snap linguist-generated=true
 **/*.snap.* linguist-generated=true
 apps/petrinaut-opt/openapi/openapi.json linguist-generated=true

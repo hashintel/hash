@@ -256,6 +256,21 @@ jobs:
           git add --intent-to-add -- ':(glob)**/docs/**'
           git --no-pager diff --exit-code --color -- ':(glob)**/docs/**'
 
+      - name: Validate Task Dependencies
+        if: ${{ success() || failure() }}
+        run: |
+          mise run doc:task-dependencies
+          git add --intent-to-add -- ':(glob)**/docs/task-dependencies.json'
+          if ! git --no-pager diff --exit-code --color -- ':(glob)**/docs/task-dependencies.json'; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'The diff above is the task-graph change this branch has not committed yet.'
+            echo 'Run "mise run doc:task-dependencies" locally and commit the result.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1
+          fi
+
       - name: Run yarn lint:constraints
         if: ${{ success() || failure() }}
         run: |

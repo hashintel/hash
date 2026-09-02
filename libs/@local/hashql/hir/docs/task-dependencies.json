@@ -1,0 +1,16 @@
+{
+  "package": "@rust/hashql-hir",
+  "dependencies": [
+    "@rust/hashql-ast",
+    "@rust/hashql-core",
+    "@rust/hashql-diagnostics"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:unit": []
+  }
+}

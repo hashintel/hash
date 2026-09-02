@@ -1,0 +1,60 @@
+{
+  "package": "@hashintel/ds-components",
+  "dependencies": [
+    "@hashintel/ds-helpers",
+    "@local/eslint",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [
+      "@hashintel/ds-components#codegen"
+    ],
+    "build:buildinfo": [
+      "@hashintel/ds-components#codegen"
+    ],
+    "build:ladle": [
+      "@hashintel/ds-components#codegen"
+    ],
+    "build:lib": [
+      "@hashintel/ds-components#codegen"
+    ],
+    "codegen": [
+      "@local/eslint#build"
+    ],
+    "dev": [
+      "@hashintel/ds-components#codegen"
+    ],
+    "dev:ladle": [
+      "@hashintel/ds-components#codegen"
+    ],
+    "fix": [
+      "@hashintel/ds-components#codegen"
+    ],
+    "fix:eslint": [
+      "@hashintel/ds-components#codegen",
+      "@local/eslint#build"
+    ],
+    "lint": [
+      "@hashintel/ds-components#codegen"
+    ],
+    "lint:eslint": [
+      "@hashintel/ds-components#codegen",
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@hashintel/ds-components#codegen"
+    ],
+    "preview:ladle": [
+      "@hashintel/ds-components#build:ladle"
+    ],
+    "test:snapshots": [
+      "@hashintel/ds-components#build:ladle"
+    ],
+    "test:snapshots:update": [
+      "@hashintel/ds-components#build:ladle"
+    ],
+    "test:unit": [
+      "@hashintel/ds-components#build:buildinfo"
+    ]
+  }
+}

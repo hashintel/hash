@@ -1,0 +1,21 @@
+{
+  "package": "@local/advanced-types",
+  "dependencies": [
+    "@local/eslint",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [
+      "@local/eslint#build"
+    ],
+    "fix:eslint": [
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@local/eslint#build"
+    ]
+  }
+}

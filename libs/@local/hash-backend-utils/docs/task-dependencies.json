@@ -1,0 +1,72 @@
+{
+  "package": "@local/hash-backend-utils",
+  "dependencies": [
+    "@blockprotocol/graph",
+    "@blockprotocol/type-system",
+    "@local/advanced-types",
+    "@local/eslint",
+    "@local/hash-graph-client",
+    "@local/hash-graph-sdk",
+    "@local/hash-isomorphic-utils",
+    "@local/internal-api-client",
+    "@local/status",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/internal-api-client#build",
+      "@local/status#build"
+    ],
+    "fix:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/internal-api-client#build",
+      "@local/status#build"
+    ],
+    "lint:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/internal-api-client#build",
+      "@local/status#build"
+    ],
+    "lint:tsc": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/internal-api-client#build",
+      "@local/status#build"
+    ],
+    "test:unit": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/internal-api-client#build",
+      "@local/status#build"
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "package": "@hashintel/brunch-agent-plugin-gherkin",
+  "dependencies": [
+    "@hashintel/brunch-agent"
+  ],
+  "tasks": {
+    "build": [
+      "@hashintel/brunch-agent#build"
+    ],
+    "fix:eslint": [
+      "@hashintel/brunch-agent#build",
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@hashintel/brunch-agent#build",
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@hashintel/brunch-agent#build"
+    ],
+    "test:unit": [
+      "@hashintel/brunch-agent#build"
+    ]
+  }
+}

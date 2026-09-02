@@ -1,0 +1,20 @@
+{
+  "package": "@apps/petrinaut-opt",
+  "dependencies": [
+    "@local/petrinaut-python"
+  ],
+  "tasks": {
+    "codegen": [
+      "@local/petrinaut-python#codegen"
+    ],
+    "lint:ruff": [],
+    "lint:types": [],
+    "start": [
+      "@apps/petrinaut-opt#codegen"
+    ],
+    "test:unit": [
+      "@apps/petrinaut-opt#codegen",
+      "@local/petrinaut-python#codegen"
+    ]
+  }
+}

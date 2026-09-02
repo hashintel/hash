@@ -1,0 +1,50 @@
+{
+  "package": "@apps/plugin-browser",
+  "dependencies": [
+    "@blockprotocol/graph",
+    "@blockprotocol/type-system",
+    "@hashintel/block-design-system",
+    "@hashintel/design-system",
+    "@local/advanced-types",
+    "@local/eslint",
+    "@local/hash-graph-client",
+    "@local/hash-graph-sdk",
+    "@local/hash-isomorphic-utils",
+    "@local/status"
+  ],
+  "tasks": {
+    "build": [
+      "@apps/plugin-browser#codegen"
+    ],
+    "build:firefox": [
+      "@apps/plugin-browser#codegen"
+    ],
+    "build:test": [
+      "@apps/plugin-browser#codegen"
+    ],
+    "codegen": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build"
+    ],
+    "dev": [
+      "@apps/plugin-browser#codegen"
+    ],
+    "fix:eslint": [
+      "@apps/plugin-browser#codegen",
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@apps/plugin-browser#codegen",
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@apps/plugin-browser#codegen"
+    ]
+  }
+}

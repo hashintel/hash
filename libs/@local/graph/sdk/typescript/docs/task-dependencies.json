@@ -1,0 +1,66 @@
+{
+  "package": "@local/hash-graph-sdk",
+  "dependencies": [
+    "@blockprotocol/graph",
+    "@blockprotocol/type-system",
+    "@local/advanced-types",
+    "@local/eslint",
+    "@local/harpc-client",
+    "@local/hash-graph-authorization",
+    "@local/hash-graph-client",
+    "@local/hash-graph-store",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/harpc-client#build",
+      "@local/hash-graph-authorization#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-store#build"
+    ],
+    "fix:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/harpc-client#build",
+      "@local/hash-graph-authorization#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-store#build"
+    ],
+    "lint:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/harpc-client#build",
+      "@local/hash-graph-authorization#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-store#build"
+    ],
+    "lint:tsc": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/harpc-client#build",
+      "@local/hash-graph-authorization#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-store#build"
+    ],
+    "test:unit": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/harpc-client#build",
+      "@local/hash-graph-authorization#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-store#build"
+    ]
+  }
+}

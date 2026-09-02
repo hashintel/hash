@@ -1,0 +1,43 @@
+{
+  "package": "@hashintel/petrinaut",
+  "dependencies": [
+    "@hashintel/ds-components",
+    "@hashintel/ds-helpers",
+    "@hashintel/petrinaut-core",
+    "@hashintel/refractive"
+  ],
+  "tasks": {
+    "build": [
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut-core#build",
+      "@hashintel/refractive#build"
+    ],
+    "dev": [
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut-core#build",
+      "@hashintel/refractive#build"
+    ],
+    "fix:eslint": [
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut-core#build",
+      "@hashintel/refractive#build",
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut-core#build",
+      "@hashintel/refractive#build",
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut-core#build",
+      "@hashintel/refractive#build"
+    ],
+    "test:unit": [
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut-core#build",
+      "@hashintel/refractive#build"
+    ]
+  }
+}

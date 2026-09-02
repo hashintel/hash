@@ -1,0 +1,92 @@
+{
+  "package": "@apps/hash-frontend",
+  "dependencies": [
+    "@blockprotocol/graph",
+    "@blockprotocol/type-system",
+    "@hashintel/block-design-system",
+    "@hashintel/design-system",
+    "@hashintel/ds-components",
+    "@hashintel/ds-helpers",
+    "@hashintel/petrinaut",
+    "@hashintel/petrinaut-core",
+    "@hashintel/query-editor",
+    "@hashintel/type-editor",
+    "@local/advanced-types",
+    "@local/eslint",
+    "@local/hash-graph-client",
+    "@local/hash-graph-sdk",
+    "@local/hash-graph-store",
+    "@local/hash-isomorphic-utils",
+    "@local/status",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [
+      "@apps/hash-frontend#codegen",
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@hashintel/petrinaut-core#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-graph-store#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build"
+    ],
+    "build:docker": [],
+    "codegen": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@hashintel/petrinaut-core#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-graph-store#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build"
+    ],
+    "dev": [
+      "@apps/hash-frontend#codegen"
+    ],
+    "fix:eslint": [
+      "@apps/hash-frontend#codegen",
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@apps/hash-frontend#codegen",
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@apps/hash-frontend#codegen"
+    ],
+    "start": [
+      "@apps/hash-frontend#build"
+    ],
+    "start:healthcheck": [],
+    "start:test": [
+      "@apps/hash-frontend#build"
+    ],
+    "start:test:healthcheck": [],
+    "test:unit": [
+      "@apps/hash-frontend#codegen",
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@hashintel/petrinaut-core#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-graph-store#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build"
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "package": "@rust/hash-codec",
+  "dependencies": [
+    "@rust/error-stack",
+    "@rust/harpc-types",
+    "@rust/harpc-wire-protocol",
+    "@rust/hash-codegen"
+  ],
+  "tasks": {
+    "build:types": [],
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:unit": []
+  }
+}

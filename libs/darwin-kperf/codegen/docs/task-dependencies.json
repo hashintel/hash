@@ -1,0 +1,7 @@
+{
+  "package": "@rust/darwin-kperf-codegen",
+  "dependencies": [],
+  "tasks": {
+    "lint:clippy": []
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "package": "@local/hash-graph-client",
+  "dependencies": [
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [
+      "@local/hash-graph-client#codegen"
+    ],
+    "codegen": [
+      "@local/status#build"
+    ]
+  }
+}

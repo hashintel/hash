@@ -1,0 +1,15 @@
+{
+  "package": "@hashintel/refractive",
+  "dependencies": [],
+  "tasks": {
+    "build": [],
+    "dev": [],
+    "fix:eslint": [
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@local/eslint#build"
+    ],
+    "lint:tsc": []
+  }
+}

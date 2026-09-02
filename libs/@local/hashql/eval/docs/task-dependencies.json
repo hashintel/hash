@@ -1,0 +1,25 @@
+{
+  "package": "@rust/hashql-eval",
+  "dependencies": [
+    "@blockprotocol/type-system-rs",
+    "@rust/error-stack",
+    "@rust/hash-graph-authorization",
+    "@rust/hash-graph-postgres-store",
+    "@rust/hash-graph-store",
+    "@rust/hash-graph-test-data",
+    "@rust/hashql-core",
+    "@rust/hashql-diagnostics",
+    "@rust/hashql-hir",
+    "@rust/hashql-mir"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:unit": [
+      "@local/status#build"
+    ]
+  }
+}

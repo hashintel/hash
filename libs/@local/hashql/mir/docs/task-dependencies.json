@@ -1,0 +1,19 @@
+{
+  "package": "@rust/hashql-mir",
+  "dependencies": [
+    "@rust/hashql-core",
+    "@rust/hashql-diagnostics",
+    "@rust/hashql-hir"
+  ],
+  "tasks": {
+    "build:codspeed": [],
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:codspeed": [],
+    "test:miri": [],
+    "test:unit": []
+  }
+}

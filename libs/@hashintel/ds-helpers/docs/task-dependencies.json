@@ -1,0 +1,9 @@
+{
+  "package": "@hashintel/ds-helpers",
+  "dependencies": [],
+  "tasks": {
+    "codegen": [
+      "@hashintel/ds-components#codegen"
+    ]
+  }
+}

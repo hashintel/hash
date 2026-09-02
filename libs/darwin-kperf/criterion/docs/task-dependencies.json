@@ -1,0 +1,10 @@
+{
+  "package": "@rust/darwin-kperf-criterion",
+  "dependencies": [
+    "@rust/darwin-kperf",
+    "@rust/darwin-kperf-events"
+  ],
+  "tasks": {
+    "lint:clippy": []
+  }
+}

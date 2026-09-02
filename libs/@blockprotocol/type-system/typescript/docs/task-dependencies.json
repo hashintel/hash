@@ -1,0 +1,35 @@
+{
+  "package": "@blockprotocol/type-system",
+  "dependencies": [
+    "@local/eslint",
+    "@local/hash-codec",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [
+      "@blockprotocol/type-system#codegen"
+    ],
+    "codegen": [
+      "@blockprotocol/type-system-rs#build:types",
+      "@blockprotocol/type-system-rs#build:wasm",
+      "@local/eslint#build",
+      "@local/hash-codec#build"
+    ],
+    "fix:eslint": [
+      "@blockprotocol/type-system#codegen",
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@blockprotocol/type-system#codegen",
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@blockprotocol/type-system#codegen"
+    ],
+    "test:unit": [
+      "@blockprotocol/type-system#codegen",
+      "@local/eslint#build",
+      "@local/hash-codec#build"
+    ]
+  }
+}
