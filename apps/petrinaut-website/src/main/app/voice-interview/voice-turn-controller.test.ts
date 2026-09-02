@@ -155,6 +155,41 @@ describe("VoiceTurnController", () => {
     );
   });
 
+  test("restores submission state when resumed before Brunch releases the turn", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.emitBridge({
+      answer: "The supervisor approves it.",
+      callId: "call-1",
+      type: "submission-started",
+    });
+
+    harness.controller.pause();
+    harness.controller.resume();
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "submitting",
+      lastAnswerDelivery: "pending",
+      microphoneEnabled: true,
+    });
+
+    harness.emitBridge({
+      answer: "The supervisor approves it.",
+      callId: "call-1",
+      type: "submission-accepted",
+    });
+    harness.emitBridge({
+      callId: "call-1",
+      segments: [question("ask-2", "Who acts next?")],
+      type: "canonical-response-ready",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      lastAnswerDelivery: "delivered",
+    });
+  });
+
   test("does not bind an accepted answer to a question that arrived during submission", async () => {
     const harness = createHarness();
     harness.controller.updateChat({
@@ -219,6 +254,12 @@ describe("VoiceTurnController", () => {
       output: "interrupted",
     });
     expect(harness.session.cancelOutput).toHaveBeenCalledTimes(2);
+
+    harness.controller.resume();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      microphoneEnabled: true,
+    });
   });
 
   test("keeps partial transcripts display-only and capture active", async () => {

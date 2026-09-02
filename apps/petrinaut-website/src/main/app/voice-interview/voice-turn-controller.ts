@@ -117,6 +117,7 @@ export class VoiceTurnController {
   #answeredQuestionId: string | null = null;
   #currentQuestionId: string | null = null;
   #generation = 0;
+  #inputStateOnResume: Exclude<VoiceInputState, "paused"> | null = null;
   #snapshot = initialSnapshot;
   #submittingQuestionId: string | null = null;
   #teardownPromise: Promise<void> | null = null;
@@ -176,6 +177,7 @@ export class VoiceTurnController {
       if (generation !== this.#generation) return;
     }
 
+    this.#inputStateOnResume = null;
     this.#update({
       connection: "connecting",
       errorCode: null,
@@ -212,6 +214,7 @@ export class VoiceTurnController {
     this.#answerFinalizedAt = null;
     this.#answeredQuestionId = null;
     this.#currentQuestionId = null;
+    this.#inputStateOnResume = null;
     this.#submittingQuestionId = null;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
@@ -254,6 +257,7 @@ export class VoiceTurnController {
     ) {
       return;
     }
+    this.#inputStateOnResume = this.#snapshot.input;
     const output = this.#snapshot.output === "idle" ? "idle" : "interrupted";
     this.#session.cancelOutput();
     this.#session.setMicrophoneEnabled(false);
@@ -272,8 +276,10 @@ export class VoiceTurnController {
     ) {
       return;
     }
+    const input = this.#inputStateOnResume ?? "listening";
+    this.#inputStateOnResume = null;
     this.#session.setMicrophoneEnabled(true);
-    this.#update({ input: "listening", microphoneEnabled: true });
+    this.#update({ input, microphoneEnabled: true });
   }
 
   public async submitCorrection(correction: string): Promise<boolean> {
@@ -328,12 +334,16 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "submission-started") {
+      const paused = this.#snapshot.input === "paused";
+      if (paused) {
+        this.#inputStateOnResume = "submitting";
+      }
       this.#answerFinalizedAt = this.#now();
       this.#submittingQuestionId = this.#currentQuestionId;
       this.#transcriptItemId = null;
       this.#transcriptKey = null;
       this.#update({
-        input: "submitting",
+        input: paused ? "paused" : "submitting",
         lastAnswerDelivery: "pending",
         lastCommittedText: event.answer,
         output: "waiting-for-tool",
@@ -349,6 +359,7 @@ export class VoiceTurnController {
     }
     const paused = this.#snapshot.input === "paused";
     if (paused) {
+      this.#inputStateOnResume = "listening";
       this.#session.cancelOutput();
     }
     this.#update({
@@ -446,6 +457,7 @@ export class VoiceTurnController {
   ): void {
     ++this.#generation;
     this.#activeEpoch = null;
+    this.#inputStateOnResume = null;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
     this.#bridge.stop();
