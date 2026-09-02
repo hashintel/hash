@@ -1,12 +1,24 @@
 import type { SDCPN } from "../types/sdcpn";
 
 /**
+ * Ticket ids the "Steady intake" scenario seeds into the Backlog place, one
+ * request per id. "Create Ticket" turns each request into a ticket carrying
+ * that id, so every ticket in a run has a distinct, human-readable key.
+ */
+const BACKLOG_TICKET_IDS = Array.from(
+  { length: 40 },
+  (_, index) => `FE-${1045 + index * 13}`,
+);
+
+/**
  * Ticket workflow demonstrating identities and status views.
  *
- * Tickets arrive stochastically and flow Todo → In Progress → In Review →
- * Done, with a Blocked side-track and a review loop that sends work back to
- * In Progress, so one ticket can enter a status several times. Every ticket
- * carries a `ticket_id` key element referencing the Ticket identity, and the
+ * Ticket requests wait in a seeded Backlog and are opened stochastically,
+ * then flow Todo → In Progress → In Review → Done, with a Blocked side-track
+ * and a review loop that sends work back to In Progress, so one ticket can
+ * enter a status several times. Every ticket carries a `ticket_id` key
+ * element referencing the Ticket identity; the requests carry the same id
+ * without the identity, so the board only tracks opened tickets. The
  * "Ticket status" view maps each place to a label in Kanban column order.
  * Done is an explicit sink place, so completion is an ordinary place label;
  * archiving consumes the token outright, which the view's exit label
@@ -19,6 +31,15 @@ export const ticketProcessingSDCPN: {
   title: "Ticket Processing",
   petriNetDefinition: {
     places: [
+      {
+        id: "place__backlog",
+        name: "Backlog",
+        colorId: "type__ticket-request",
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: -360,
+        y: 0,
+      },
       {
         id: "place__todo",
         name: "Todo",
@@ -69,17 +90,20 @@ export const ticketProcessingSDCPN: {
       {
         id: "transition__create-ticket",
         name: "Create Ticket",
-        inputArcs: [],
+        inputArcs: [{ placeId: "place__backlog", weight: 1, type: "standard" }],
         outputArcs: [{ placeId: "place__todo", weight: 1 }],
         lambdaType: "stochastic",
-        lambdaCode: `// Ticket arrivals: expected new tickets per simulation second.
+        lambdaCode: `// Ticket arrivals: expected new tickets per simulation second while the
+// Backlog still holds requests.
 return parameters.ticket_arrival_rate;`,
-        transitionKernelCode: `// Create one Ticket token. ticket_id is omitted, so the runtime assigns a
-// fresh UUID — that key value is what identifies the ticket everywhere else.
+        transitionKernelCode: `// Open one Ticket from the next request. The request's ticket_id becomes the
+// ticket's key value, which identifies the ticket everywhere else.
+const request = input.Backlog[0];
 const rawPriority = Distribution.Gaussian(0.5, 0.2);
 return {
   Todo: [
     {
+      ticket_id: request.ticket_id,
       priority: rawPriority.map((p) => Math.max(0.05, Math.min(1, p))),
     },
   ],
@@ -202,6 +226,19 @@ return parameters.archive_rate;`,
     ],
     types: [
       {
+        id: "type__ticket-request",
+        name: "TicketRequest",
+        iconSlug: "clipboard",
+        displayColor: "#94a3b8",
+        elements: [
+          {
+            elementId: "ticket-request__id",
+            name: "ticket_id",
+            type: "string",
+          },
+        ],
+      },
+      {
         id: "type__ticket",
         name: "Ticket",
         iconSlug: "circle",
@@ -210,7 +247,7 @@ return parameters.archive_rate;`,
           {
             elementId: "ticket__id",
             name: "ticket_id",
-            type: "uuid",
+            type: "string",
             identityRef: "identity__ticket",
           },
           {
@@ -284,7 +321,7 @@ return parameters.archive_rate;`,
       {
         id: "identity__ticket",
         name: "Ticket",
-        keyElementTypes: ["uuid"],
+        keyElementTypes: ["string"],
       },
     ],
     statusViews: [
@@ -370,7 +407,9 @@ return parameters.archive_rate;`,
         },
         initialState: {
           type: "per_place",
-          content: {},
+          content: {
+            place__backlog: BACKLOG_TICKET_IDS.map((ticketId) => [ticketId]),
+          },
         },
       },
     ],

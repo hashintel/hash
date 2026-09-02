@@ -99,7 +99,7 @@ A software release process with a safety gate and an incident feedback loop. Dep
 **Demonstrates:**
 
 - **Inhibitor arcs** -- "Start Deployment" has inhibitor arcs from "IncidentBeingInvestigated" and "DeploymentInProgress", preventing new deployments while an incident is open or another deployment is running (single-deployment safety gate).
-- **Source transitions** -- "Create Deployment" and "Incident Raised" have no input arcs, modelling Poisson arrivals at configurable rates.
+- **Source transitions** -- "Incident Raised" has no input arcs, modelling Poisson arrivals at a configurable rate. "Create Deployment" fires at a configurable rate too, but draws each deployment from the "ReleaseBacklog" place, which every scenario seeds with release requests carrying human-readable ids such as `DEP-2031`.
 - **Typed deployments and incidents** -- `Deployment` carries `size`, `risk`, and `age`; `Incident` carries `severity` and `age`, with both ages advanced by `age = 1` dynamics.
 - **Distributions at creation** -- deployment `size` is `Distribution.Lognormal` and `risk`/`severity` are `Distribution.Gaussian`, clamped via `.map()` into sensible ranges.
 - **State-dependent stochastic rates** -- larger and riskier deployments finish more slowly and fail more often; higher-severity incidents resolve more slowly.

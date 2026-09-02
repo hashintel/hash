@@ -1,10 +1,26 @@
 import type { SDCPN } from "../types/sdcpn";
 
 /**
+ * Deployment ids every scenario seeds into the ReleaseBacklog place, one
+ * release request per id. "Create Deployment" turns each request into a
+ * deployment carrying that id, so every deployment in a run has a distinct,
+ * human-readable key.
+ */
+const RELEASE_BACKLOG_DEPLOYMENT_IDS = Array.from(
+  { length: 48 },
+  (_, index) => `DEP-${2031 + index * 7}`,
+);
+
+const releaseBacklogInitialState = RELEASE_BACKLOG_DEPLOYMENT_IDS.map(
+  (deploymentId) => [deploymentId],
+);
+
+/**
  * Software release pipeline with a single-deployment safety gate and an
  * incident feedback loop.
  *
- * Deployments and incidents arrive from source transitions at stochastic rates.
+ * Release requests wait in a seeded ReleaseBacklog and become deployments at
+ * a stochastic rate; incidents arrive from a source transition.
  * "Start Deployment" uses inhibitor arcs from IncidentBeingInvestigated and
  * DeploymentInProgress so a release can only begin when no incident is open and
  * no other deployment is running. In-progress deployments either finish
@@ -16,10 +32,11 @@ import type { SDCPN } from "../types/sdcpn";
  * Ships with per-place SVG visualizers, metrics (success/failure counts, queue
  * length, gate-blocked flag, failure share), and four scenarios. Each
  * deployment carries a `deployment_id` key element referencing the Deployment
- * identity, and the "Deployment status" view maps Queued / Deploying / Done /
- * Failed onto the pipeline's places — the terminal places already exist as
- * sinks, so terminal statuses stay marking-derived. See `docs/examples.md`
- * (Deployment Pipeline).
+ * identity; release requests carry the same id without the identity, so the
+ * "Deployment status" view only tracks deployments, mapping Queued /
+ * Deploying / Done / Failed onto the pipeline's places — the terminal places
+ * already exist as sinks, so terminal statuses stay marking-derived. See
+ * `docs/examples.md` (Deployment Pipeline).
  */
 export const deploymentPipelineSDCPN: {
   title: string;
@@ -30,6 +47,15 @@ export const deploymentPipelineSDCPN: {
     description:
       "Software release pipeline with a single-deployment safety gate and an incident feedback loop: releases queue up, deploy one at a time while no incident is open, and either complete or fail and open a new incident that closes the gate.",
     places: [
+      {
+        id: "place__release-backlog",
+        name: "ReleaseBacklog",
+        colorId: "type__release-request",
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: -390,
+        y: 0,
+      },
       {
         id: "place__deployment-ready",
         name: "DeploymentReady",
@@ -266,8 +292,10 @@ export default Visualization(({ tokens }) => {
         id: "transition__create-deployment",
         name: "Create Deployment",
         description:
-          "External arrival of release candidates into the queue, with lognormal size and Gaussian risk sampled per deployment.",
-        inputArcs: [],
+          "Draws release candidates from the backlog into the queue, with lognormal size and Gaussian risk sampled per deployment.",
+        inputArcs: [
+          { placeId: "place__release-backlog", weight: 1, type: "standard" },
+        ],
         outputArcs: [
           {
             placeId: "place__deployment-ready",
@@ -279,14 +307,16 @@ export default Visualization(({ tokens }) => {
  * Deployment arrivals.
  *
  * This stochastic lambda returns the expected number of new deployment
- * candidates created per simulation second. The transition has no input
- * places, so it behaves like an external arrival process feeding the
- * DeploymentReady queue.
+ * candidates created per simulation second. Requests wait in ReleaseBacklog,
+ * so this behaves like an external arrival process feeding the
+ * DeploymentReady queue until the backlog is drained.
  */
 return parameters.deployment_creation_rate;`,
         transitionKernelCode: `/**
- * Create one coloured Deployment token.
+ * Create one coloured Deployment token from the next release request.
  *
+ * - deployment_id is copied from the request; that key value identifies the
+ *   deployment everywhere else in the pipeline.
  * - size is sampled from a lognormal distribution so most releases are
  *   ordinary, with occasional large releases.
  * - risk is sampled from a Gaussian distribution and clamped to [0.02, 0.95]
@@ -294,11 +324,13 @@ return parameters.deployment_creation_rate;`,
  * - age starts at zero and is advanced by the Deployment Age dynamics while the
  *   token waits or runs.
  */
+const request = input.ReleaseBacklog[0];
 const size = Distribution.Lognormal(Math.log(Math.max(0.1, parameters.mean_deployment_size)), 0.35);
 const rawRisk = Distribution.Gaussian(0.28 * parameters.deployment_risk_multiplier, 0.16);
 return {
   DeploymentReady: [
     {
+      deployment_id: request.deployment_id,
       size,
       risk: rawRisk.map(r => Math.max(0.02, Math.min(0.95, r))),
       age: 0,
@@ -580,6 +612,19 @@ return {
     ],
     types: [
       {
+        id: "type__release-request",
+        name: "ReleaseRequest",
+        iconSlug: "clipboard",
+        displayColor: "#94a3b8",
+        elements: [
+          {
+            elementId: "release-request__id",
+            name: "deployment_id",
+            type: "string",
+          },
+        ],
+      },
+      {
         id: "type__deployment",
         name: "Deployment",
         description:
@@ -590,7 +635,7 @@ return {
           {
             elementId: "deployment__id",
             name: "deployment_id",
-            type: "uuid",
+            type: "string",
             identityRef: "identity__deployment",
           },
           {
@@ -719,7 +764,7 @@ return tokens.map(() => ({
       {
         id: "identity__deployment",
         name: "Deployment",
-        keyElementTypes: ["uuid"],
+        keyElementTypes: ["string"],
       },
     ],
     statusViews: [
@@ -847,7 +892,7 @@ return total === 0 ? 0 : failed / total;`,
         },
         initialState: {
           type: "per_place",
-          content: {},
+          content: { "place__release-backlog": releaseBacklogInitialState },
         },
       },
       {
@@ -885,7 +930,7 @@ return total === 0 ? 0 : failed / total;`,
         },
         initialState: {
           type: "per_place",
-          content: {},
+          content: { "place__release-backlog": releaseBacklogInitialState },
         },
       },
       {
@@ -923,7 +968,7 @@ return total === 0 ? 0 : failed / total;`,
         },
         initialState: {
           type: "per_place",
-          content: {},
+          content: { "place__release-backlog": releaseBacklogInitialState },
         },
       },
       {
@@ -967,7 +1012,7 @@ return total === 0 ? 0 : failed / total;`,
         },
         initialState: {
           type: "per_place",
-          content: {},
+          content: { "place__release-backlog": releaseBacklogInitialState },
         },
       },
     ],
