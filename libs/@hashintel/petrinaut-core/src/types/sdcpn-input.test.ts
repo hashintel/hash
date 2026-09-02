@@ -61,6 +61,39 @@ describe("normalizeSDCPN", () => {
     expect(Object.hasOwn(result.places[0]!, "showAsInitialState")).toBe(false);
     expect(Object.hasOwn(result, "scenarios")).toBe(false);
     expect(Object.hasOwn(result, "metrics")).toBe(false);
+    expect(Object.hasOwn(result, "identities")).toBe(false);
+    expect(Object.hasOwn(result, "statusViews")).toBe(false);
+  });
+
+  it("passes through identities and status views", () => {
+    const result = normalizeSDCPN({
+      places: [{ id: "p1", name: "P1", x: 0, y: 0 }],
+      transitions: [],
+      identities: [
+        { id: "identity1", name: "Ticket", keyElementTypes: ["uuid"] },
+      ],
+      statusViews: [
+        {
+          id: "view1",
+          name: "Ticket status",
+          identityRef: "identity1",
+          labels: [
+            {
+              id: "label1",
+              name: "Todo",
+              displayColor: "#94a3b8",
+              places: ["p1"],
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.identities).toEqual([
+      { id: "identity1", name: "Ticket", keyElementTypes: ["uuid"] },
+    ]);
+    expect(result.statusViews).toHaveLength(1);
+    expect(result.statusViews![0]!.labels[0]!.places).toEqual(["p1"]);
   });
 
   it("preserves provided extension values instead of overwriting them", () => {
