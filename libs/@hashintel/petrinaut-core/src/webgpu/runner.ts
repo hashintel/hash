@@ -225,11 +225,10 @@ export async function runGpuExperiment(
   // Dawn reports an out-of-memory `createBuffer` by returning an *error
   // buffer* rather than throwing, so allocation appears to succeed and the
   // first visible symptom is `mapAsync` failing three operations downstream.
-  // The real message only exists inside an error scope. Mappable readback is
-  // the buffer that runs out: host-visible memory is scarcer than device
-  // memory and fails well below `maxBufferSize` (measured on an Apple metal-3
-  // adapter: a 1.94 GiB readback allocates, a 2.90 GiB one does not, with
-  // `maxBufferSize` reporting 4 GiB), so no limit check can predict it.
+  // The real message only exists inside an error scope, and no limit check
+  // predicts it: an allocation can fail well below `maxBufferSize` (measured
+  // on an Apple metal-3 adapter: 1.94 GiB allocates, 2.90 GiB does not, with
+  // `maxBufferSize` reporting 4 GiB).
   device.pushErrorScope("out-of-memory");
 
   /* eslint-disable no-bitwise -- GPUBufferUsage flags are a bit field */

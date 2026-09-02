@@ -151,16 +151,19 @@ describe("describeAllocationFailure", () => {
       runCount: 1_000_000,
     });
 
-    // Measured: 3112 B/run x 1e6 runs = 2.90 GiB, which fails to allocate as a
-    // mappable buffer on an adapter reporting maxBufferSize = 4 GiB.
+    // Measured: 3112 B/run x 1e6 runs = 2.90 GiB, which fails to allocate on
+    // an adapter reporting maxBufferSize = 4 GiB.
     expect(reason).toMatch(
       /^The GPU could not allocate memory for a tile of 1000000 runs/,
     );
     expect(reason).toContain("3112 bytes per run");
-    expect(reason).toContain("2.90 GiB");
-    // The one thing the author can actually change: tiling sizes the
-    // allocation, not the experiment's run count.
+    expect(reason).toContain("2.90 GiB of run state in one device buffer");
+    // What the author can change: the per-run size, or the run count when
+    // the whole experiment fits one tile.
+    expect(reason).toMatch(/fewer runs/);
     expect(reason).toMatch(/token capacities/);
+    // Readback is a compact summary and the histogram, not the run state.
+    expect(reason).not.toMatch(/host-visible|reading it back/);
   });
 
   it("keeps the underlying message, which separates OOM from a validation bug", () => {

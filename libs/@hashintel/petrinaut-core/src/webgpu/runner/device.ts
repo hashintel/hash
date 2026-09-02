@@ -125,10 +125,12 @@ export async function createPipeline(
  * runs. It is kept, because it distinguishes running out of memory from a
  * validation mistake, but the run arithmetic goes first.
  *
- * No limit predicts this: host-visible memory for mappable readback is scarcer
- * than device memory and gives out well below `maxBufferSize`, so the honest
- * approach is to attempt the allocation and explain the failure rather than to
- * guess a threshold and refuse experiments that would have worked.
+ * The run-state buffer is the one allocation that scales with the tile: what
+ * comes back to the host is a compact per-run summary and the histogram, both
+ * small beside it. No limit predicts the failure — a device can refuse a
+ * buffer well below `maxBufferSize` — so the honest approach is to attempt
+ * the allocation and explain the failure rather than to guess a threshold and
+ * refuse experiments that would have worked.
  */
 export function describeAllocationFailure({
   message,
@@ -142,11 +144,9 @@ export function describeAllocationFailure({
   runCount: number;
 }): string {
   const gib = (bytes: number) => (bytes / 1024 ** 3).toFixed(2);
-  // Readback doubles it: the state lives on the device and again in a mappable
-  // buffer, and the mappable one is what runs out.
   return `The GPU could not allocate memory for a tile of ${runCount} runs: ${bytesPerRun} bytes per run is ${gib(
     stateBytes,
-  )} GiB of run state, and reading it back needs that much again in host-visible memory. Lower the token capacities that set the per-run size. (${message.trim()})`;
+  )} GiB of run state in one device buffer. Try fewer runs, or lower the token capacities that set the per-run size. (${message.trim()})`;
 }
 
 /**
