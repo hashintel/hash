@@ -1,5 +1,7 @@
 import { expect, test } from "vitest";
 
+import { ASK_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+
 import {
   formatFlueTranscript,
   snapshotToUiMessages,
@@ -53,6 +55,27 @@ const snapshotWithCompletedClientTool: FlueConversationSnapshot = {
   ],
 };
 
+const snapshotWithPendingAsk: FlueConversationSnapshot = {
+  ...snapshotWithPendingClientTool,
+  messages: [
+    {
+      id: "assistant-ask",
+      role: "assistant",
+      purpose: "assistant",
+      display: "visible",
+      parts: [
+        {
+          type: "dynamic-tool",
+          toolCallId: "tool-ask-1",
+          toolName: ASK_TOOL_NAME,
+          state: "input-available",
+          input: { question: "What happens after approval?" },
+        },
+      ],
+    },
+  ],
+};
+
 const snapshotWithDataPart: FlueConversationSnapshot = {
   v: 1,
   conversationId: "conversation-1",
@@ -83,6 +106,24 @@ test("history reconstruction leaves an unfinished client tool available to run",
           toolCallId: "tool-doc-1",
           state: "input-available",
           input: { doc: "ai-assistant" },
+        },
+      ],
+    },
+  ]);
+});
+
+test("history reconstructs brunch asks as dynamic tools", () => {
+  expect(snapshotToUiMessages(snapshotWithPendingAsk)).toEqual([
+    {
+      id: "assistant-ask",
+      role: "assistant",
+      parts: [
+        {
+          type: "dynamic-tool",
+          toolName: ASK_TOOL_NAME,
+          toolCallId: "tool-ask-1",
+          state: "input-available",
+          input: { question: "What happens after approval?" },
         },
       ],
     },
