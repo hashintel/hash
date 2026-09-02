@@ -33,6 +33,16 @@ export const useVoiceSessionMicrophoneLevelReader = (): (() => number) => {
   );
 };
 
+export const useVoiceSessionMicrophoneMuted = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.microphoneMuted ?? false,
+    () => false,
+  );
+};
+
 export const useVoiceSessionErrorMessage = (): string | null => {
   const store = use(VoiceSessionContext);
 

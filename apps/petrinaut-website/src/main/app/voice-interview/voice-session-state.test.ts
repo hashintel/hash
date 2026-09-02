@@ -32,6 +32,7 @@ describe("toVoiceSessionState", () => {
     expect(mapSnapshot()).toEqual({
       errorMessage: null,
       microphoneLevel: 0.24,
+      microphoneMuted: false,
       phase: "listening",
     });
   });
@@ -53,6 +54,7 @@ describe("toVoiceSessionState", () => {
 
   test("reports a muted microphone in place of the user's own turn", () => {
     expect(mapSnapshot({ microphoneEnabled: false })).toMatchObject({
+      microphoneMuted: true,
       phase: "muted",
     });
   });
@@ -60,14 +62,15 @@ describe("toVoiceSessionState", () => {
   test("keeps reporting the assistant's turn while muted", () => {
     expect(
       mapSnapshot({ microphoneEnabled: false, output: "speaking" }),
-    ).toMatchObject({ phase: "speaking" });
+    ).toMatchObject({ microphoneMuted: true, phase: "speaking" });
     expect(
       mapSnapshot({ microphoneEnabled: false, output: "waiting-for-tool" }),
-    ).toMatchObject({ phase: "thinking" });
+    ).toMatchObject({ microphoneMuted: true, phase: "thinking" });
   });
 
   test("prefers paused over the turn phases", () => {
     expect(mapSnapshot({ input: "paused", output: "speaking" })).toMatchObject({
+      microphoneMuted: false,
       phase: "paused",
     });
   });

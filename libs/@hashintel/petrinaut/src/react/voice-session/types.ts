@@ -17,6 +17,8 @@ export type PetrinautAiVoiceSessionPhase =
  */
 export type PetrinautAiVoiceSessionState = {
   errorMessage: string | null;
+  /** Whether microphone capture is muted independently of whose turn it is. */
+  microphoneMuted: boolean;
   /** Normalized 0–1 input level driving the listening indicator. */
   microphoneLevel: number;
   phase: PetrinautAiVoiceSessionPhase;

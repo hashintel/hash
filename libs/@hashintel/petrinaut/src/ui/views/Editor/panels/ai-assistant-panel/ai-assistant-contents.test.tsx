@@ -150,6 +150,7 @@ describe("AiAssistantContents", () => {
     store.setState({
       errorMessage: null,
       microphoneLevel: 0,
+      microphoneMuted: false,
       phase: "listening",
     });
     const earlierMessages = [
@@ -246,6 +247,7 @@ describe("AiAssistantContents", () => {
     store.setState({
       errorMessage: null,
       microphoneLevel: 0.4,
+      microphoneMuted: false,
       phase: "speaking",
     });
     render(
@@ -279,11 +281,12 @@ describe("AiAssistantContents", () => {
       store.setState({
         errorMessage: null,
         microphoneLevel: 0,
-        phase: "muted",
+        microphoneMuted: true,
+        phase: "speaking",
       });
     });
 
-    expect(within(dock).getByText("Muted")).not.toBeNull();
+    expect(within(dock).getByText("Speaking")).not.toBeNull();
     fireEvent.click(
       within(dock).getByRole("button", { name: "Unmute microphone" }),
     );
@@ -296,6 +299,7 @@ describe("AiAssistantContents", () => {
     store.setState({
       errorMessage: "Microphone unavailable. Check your browser permissions.",
       microphoneLevel: 0,
+      microphoneMuted: false,
       phase: "error",
     });
     render(
@@ -331,6 +335,7 @@ describe("AiAssistantContents", () => {
     const errorState = {
       errorMessage: "Microphone unavailable. Check your browser permissions.",
       microphoneLevel: 0,
+      microphoneMuted: false,
       phase: "error" as const,
     };
     store.setState(errorState);
@@ -364,6 +369,7 @@ describe("AiAssistantContents", () => {
       store.setState({
         errorMessage: null,
         microphoneLevel: 0,
+        microphoneMuted: false,
         phase: "listening",
       });
     });

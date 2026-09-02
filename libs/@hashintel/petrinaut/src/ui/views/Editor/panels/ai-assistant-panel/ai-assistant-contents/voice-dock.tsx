@@ -3,6 +3,7 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import {
   useVoiceSessionActions,
+  useVoiceSessionMicrophoneMuted,
   useVoiceSessionPhase,
 } from "../../../../../../react/voice-session/use-voice-session";
 import { LiveVoiceSessionIndicator } from "../../../components/voice-session-indicator";
@@ -101,6 +102,7 @@ export type VoiceDockProps = {
   actions: VoiceSessionActions | null;
   /** Rendered instead of the live indicator when the caller supplies one. */
   indicator?: ReactNode;
+  microphoneMuted: boolean;
   onTranscriptionToggle: () => void;
   phase: PetrinautAiVoiceSessionPhase;
   /** Whether spoken turns are currently written into the conversation live. */
@@ -116,6 +118,7 @@ export type VoiceDockProps = {
 export const VoiceDock = ({
   actions,
   indicator,
+  microphoneMuted,
   onTranscriptionToggle,
   phase,
   transcriptionShown,
@@ -123,8 +126,7 @@ export const VoiceDock = ({
   const transcriptionLabel = transcriptionShown
     ? "Hide transcription in chat"
     : "Show transcription in chat";
-  const muted = phase === "muted";
-  const microphoneLabel = muted
+  const microphoneLabel = microphoneMuted
     ? voiceSessionActionLabels.unmute
     : voiceSessionActionLabels.mute;
 
@@ -184,9 +186,9 @@ export const VoiceDock = ({
               <Button
                 aria-label={microphoneLabel}
                 disabled={phase === "connecting"}
-                onClick={() => actions.setMicrophoneMuted(!muted)}
-                prefix={<MicrophoneIcon muted={muted} />}
-                pressed={muted}
+                onClick={() => actions.setMicrophoneMuted(!microphoneMuted)}
+                prefix={<MicrophoneIcon muted={microphoneMuted} />}
+                pressed={microphoneMuted}
                 size="sm"
                 tooltip={microphoneLabel}
                 type="button"
@@ -229,6 +231,7 @@ export const LiveVoiceDock = ({
   transcriptionShown: boolean;
 }) => {
   const actions = useVoiceSessionActions();
+  const microphoneMuted = useVoiceSessionMicrophoneMuted();
   const phase = useVoiceSessionPhase();
 
   if (phase === null) {
@@ -238,6 +241,7 @@ export const LiveVoiceDock = ({
   return (
     <VoiceDock
       actions={actions}
+      microphoneMuted={microphoneMuted}
       onTranscriptionToggle={onTranscriptionToggle}
       phase={phase}
       transcriptionShown={transcriptionShown}

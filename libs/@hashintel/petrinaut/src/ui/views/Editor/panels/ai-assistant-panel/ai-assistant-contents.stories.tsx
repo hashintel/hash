@@ -306,6 +306,7 @@ const liveSession = (
 ): PetrinautAiVoiceSessionState => ({
   errorMessage: null,
   microphoneLevel: 0,
+  microphoneMuted: false,
   phase: "listening",
   ...overrides,
 });
@@ -372,7 +373,7 @@ export const VoiceSessionMuted: Story = {
       inputMode="voice"
       messages={[userMessage, assistantMarkdownMessage]}
       voiceModeAvailable
-      voiceSession={liveSession({ phase: "muted" })}
+      voiceSession={liveSession({ microphoneMuted: true, phase: "muted" })}
     />
   ),
 };

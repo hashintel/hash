@@ -95,6 +95,10 @@ export const toVoiceSessionState = ({
   return {
     errorMessage:
       snapshot.connection === "error" ? errorMessageOf(snapshot) : null,
+    microphoneMuted:
+      snapshot.connection === "connected" &&
+      snapshot.input !== "paused" &&
+      !snapshot.microphoneEnabled,
     microphoneLevel: snapshot.microphoneLevel,
     phase: phaseOf(snapshot),
   };
