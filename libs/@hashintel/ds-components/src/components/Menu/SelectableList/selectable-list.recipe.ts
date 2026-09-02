@@ -6,6 +6,15 @@ export const styles = sva({
   slots: ["content", "group", "groupLabel", "emptyContainer", "customItem"],
   base: {
     content: {
+      // A flex column so rows can re-order themselves by placement (the
+      // search row moves to the bottom edge when the dropdown flips upward).
+      // Children must not shrink, or long lists would compress rows to fit
+      // maxHeight instead of scrolling.
+      display: "flex",
+      flexDirection: "column",
+      "& > *": {
+        flexShrink: "0",
+      },
       backgroundColor: "white",
       border: "1px solid {colors.bd.subtle}",
       borderRadius: "lg",
@@ -55,6 +64,12 @@ export const styles = sva({
       width: "full",
       paddingX: "[var(--selectable-list-padding-x)]",
       paddingY: "[var(--selectable-list-padding-y)]",
+      // A search row moves to the bottom edge when the dropdown flips upward
+      "[data-placement^='top'] &": {
+        "&:has([data-selectable-list-search])": {
+          order: "[1]",
+        },
+      },
     },
   },
   variants: {
