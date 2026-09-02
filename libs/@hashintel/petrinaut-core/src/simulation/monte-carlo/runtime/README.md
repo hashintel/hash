@@ -31,3 +31,9 @@ worker in tests — and the shard count is the host's decision too.
 experiment backend: the WebGPU backend presents the identical
 `MonteCarloExperiment` handle, so the stores are shared rather than duplicated
 and cannot drift.
+
+`reusable-worker-factory.ts` wraps a host's worker factory in an idle pool:
+a lease's `terminate()` posts `cancel` and returns the worker once its
+`cancelled` ack arrives, so back-to-back experiments skip re-fetching the
+engine module. `runExperimentToCompletion` (`experiment-completion.ts`) starts
+a handle, resolves on its first terminal event and disposes it.
