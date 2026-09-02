@@ -15,7 +15,7 @@ import { PortalContainerContext } from "@hashintel/ds-components";
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { compileHirArtifacts } from "@hashintel/petrinaut-core/hir";
 
-import { ExperimentsContext } from "../../../../../../react/experiments/context";
+import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import {
@@ -147,17 +147,13 @@ const TestProviders = ({
   return (
     <PortalContainerContext value={portalContainerRef}>
       <LanguageClientContext value={makeLanguageClient()}>
-        <ExperimentsContext
+        <ExperimentsActionsContext
           value={{
-            experiments: [],
-            selectedExperimentId: null,
-            selectedExperiment: null,
             setSelectedExperimentId: () => {},
             createExperiment,
             cancelExperiment: () => {},
             removeExperiment: () => {},
             setSweepSelection: () => {},
-            sampleSweepCell: () => Promise.resolve(null),
             sampleSurfaceCells: () => Promise.resolve(null),
             sampleDetachedObjective: () => Promise.resolve(null),
           }}
@@ -168,7 +164,7 @@ const TestProviders = ({
               <CreateExperimentDrawer open onClose={() => {}} />
             </UserSettingsContext>
           </SDCPNContext>
-        </ExperimentsContext>
+        </ExperimentsActionsContext>
       </LanguageClientContext>
     </PortalContainerContext>
   );

@@ -25,7 +25,7 @@ import {
 } from "@hashintel/petrinaut-core/webgpu";
 
 import {
-  ExperimentsContext,
+  ExperimentsActionsContext,
   type ExperimentMetricSpecInput,
 } from "../../../../../../react/experiments/context";
 import {
@@ -1068,7 +1068,7 @@ export const CreateExperimentDrawer = ({
   // UserSettingsProvider and so cannot see these settings.
   const { webGpuEnabled, showAnimations, enableAdHocScenarios } =
     use(UserSettingsContext);
-  const { createExperiment } = use(ExperimentsContext);
+  const { createExperiment } = use(ExperimentsActionsContext);
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(

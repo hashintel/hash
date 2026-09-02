@@ -12,6 +12,8 @@
  * positions are quantized, so a drag emits one change per step crossed and
  * compute follows the thumb.
  */
+import { LoadingSpinner, SegmentedControl } from "@hashintel/ds-components";
+
 import {
   LoadingSpinner,
   SegmentedControl,
@@ -20,6 +22,7 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 
 import { axisValueAt } from "../../../../../../react/experiments/parameter-grid";
+import { formatAxisValue } from "../shared/format-axis-value";
 import { RangeSlider } from "./sweep-navigator/range-slider";
 
 import type {
@@ -88,16 +91,6 @@ const statusStyle = css({
   color: "neutral.s80",
   fontVariantNumeric: "tabular-nums",
 });
-
-export function formatAxisValue(value: number): string {
-  if (Number.isInteger(value)) {
-    return String(value);
-  }
-  const abs = Math.abs(value);
-  return abs !== 0 && (abs < 0.001 || abs >= 10_000)
-    ? value.toExponential(2)
-    : String(Number(value.toPrecision(4)));
-}
 
 const AxisControl = ({
   axis,

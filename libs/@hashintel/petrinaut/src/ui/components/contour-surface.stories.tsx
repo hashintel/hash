@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { coarseToFineOrder } from "../../react/experiments/contour-grid";
+import { quadTreeLevels } from "../views/Editor/panels/SimulateView/shared/surface-sampling";
 import {
   ContourSurface,
   contourSurfaceKey,
@@ -115,12 +115,12 @@ export const WithMarkers: Story = {
   ),
 };
 
-/** Adds one sampled point per tick, coarse-to-fine, the way a walk streams. */
+/** Adds one sampled point per tick, in quad-tree order, the way a walk streams. */
 const StreamingSurface = () => {
   const [values, setValues] = useState<ContourSurfaceValues>(new Map());
 
   useEffect(() => {
-    const order = [...coarseToFineOrder(GRID, GRID)];
+    const order = quadTreeLevels(GRID, GRID).flat();
     let index = 0;
     const timer = setInterval(() => {
       if (index >= order.length) {
@@ -200,7 +200,7 @@ const ClickableSurface = () => {
 const RestartingDemo = () => {
   const [values, setValues] = useState<ContourSurfaceValues>(fieldValues());
   useEffect(() => {
-    const order = coarseToFineOrder(GRID, GRID);
+    const order = quadTreeLevels(GRID, GRID).flat();
     let step = 0;
     const timer = setInterval(() => {
       step += 1;
