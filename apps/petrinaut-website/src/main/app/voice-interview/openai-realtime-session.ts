@@ -877,10 +877,14 @@ export class OpenAIRealtimeSession {
     }
 
     if (metadata?.petrinaut_kind === "speech-preparation") {
-      this.#completeResponseCreateEvent(
+      const correlated = this.#completeResponseCreateEvent(
         "speech-preparation",
         correlatedRequestId,
       );
+      if (!correlated) {
+        this.#cancelResponse(responseId);
+        return;
+      }
       this.#preparationResponseIds.set(responseId, correlatedRequestId);
       if (
         this.#cancelledPreparationRequestIds.delete(correlatedRequestId) ||
@@ -894,7 +898,15 @@ export class OpenAIRealtimeSession {
       return;
     }
 
-    this.#completeResponseCreateEvent("canonical-speech", correlatedRequestId);
+    if (
+      !this.#completeResponseCreateEvent(
+        "canonical-speech",
+        correlatedRequestId,
+      )
+    ) {
+      this.#cancelResponse(responseId);
+      return;
+    }
     this.#canonicalResponseIds.add(responseId);
     if (this.#cancelledSpeechRequestIds.delete(correlatedRequestId)) {
       this.#cancelPendingSpeechRequest(correlatedRequestId);
@@ -914,24 +926,44 @@ export class OpenAIRealtimeSession {
   #completeResponseCreateEvent(
     kind: SerializedResponseRequest["kind"],
     requestId: string,
-  ): void {
-    if (!this.#responseCreateEventId) {
-      return;
-    }
-    const pendingEvent = this.#pendingClientEvents.get(
-      this.#responseCreateEventId,
-    );
+  ): boolean {
+    const eventIds = this.#responseCreateEventId
+      ? [this.#responseCreateEventId]
+      : [];
     if (
-      pendingEvent?.kind !== "response-create" ||
-      pendingEvent.request.kind !== kind ||
-      (pendingEvent.request.kind === "canonical-speech"
-        ? pendingEvent.request.speechRequestId
-        : pendingEvent.request.preparationRequestId) !== requestId
+      kind === "speech-preparation" &&
+      this.#cancelledPreparationRequestIds.has(requestId)
     ) {
-      return;
+      eventIds.push(
+        ...[...this.#pendingClientEvents.entries()]
+          .filter(
+            ([eventId, pendingEvent]) =>
+              eventId !== this.#responseCreateEventId &&
+              pendingEvent.kind === "response-create" &&
+              pendingEvent.request.kind === "speech-preparation" &&
+              pendingEvent.request.preparationRequestId === requestId,
+          )
+          .map(([eventId]) => eventId),
+      );
     }
-    this.#pendingClientEvents.delete(this.#responseCreateEventId);
-    this.#responseCreateEventId = null;
+    for (const eventId of eventIds) {
+      const pendingEvent = this.#pendingClientEvents.get(eventId);
+      if (
+        pendingEvent?.kind !== "response-create" ||
+        pendingEvent.request.kind !== kind ||
+        (pendingEvent.request.kind === "canonical-speech"
+          ? pendingEvent.request.speechRequestId
+          : pendingEvent.request.preparationRequestId) !== requestId
+      ) {
+        continue;
+      }
+      this.#pendingClientEvents.delete(eventId);
+      if (this.#responseCreateEventId === eventId) {
+        this.#responseCreateEventId = null;
+      }
+      return true;
+    }
+    return false;
   }
 
   #handleProviderError(event: Record<string, unknown>): void {
@@ -1267,6 +1299,7 @@ export class OpenAIRealtimeSession {
       pendingCreateEvent.request.preparationRequestId === preparationRequestId
     ) {
       this.#cancelledPreparationRequestIds.add(preparationRequestId);
+      this.#responseCreateEventId = null;
     }
     const activeResponse = [...this.#preparationResponseIds].find(
       ([, requestId]) => requestId === preparationRequestId,
@@ -1275,6 +1308,7 @@ export class OpenAIRealtimeSession {
       this.#cancelResponse(activeResponse[0]);
     }
     this.#settlePreparation(preparationRequestId, "timeout");
+    this.#resumeSerializedResponseQueue();
   }
 
   #handleOutputBufferEvent(

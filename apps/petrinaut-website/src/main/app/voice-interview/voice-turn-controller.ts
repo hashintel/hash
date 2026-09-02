@@ -130,6 +130,7 @@ export class VoiceTurnController {
   #generation = 0;
   #inputStateOnResume: Exclude<VoiceInputState, "paused"> | null = null;
   #pauseRequested = false;
+  #responseTerminal = true;
   #snapshot = initialSnapshot;
   #speechSource: InterviewSpeechSource | null = null;
   #submittingQuestionId: string | null = null;
@@ -193,6 +194,7 @@ export class VoiceTurnController {
     this.#inputStateOnResume = null;
     this.#pauseRequested = false;
     this.#bridgeStarted = false;
+    this.#responseTerminal = true;
     this.#update({
       connection: "connecting",
       errorCode: null,
@@ -237,6 +239,7 @@ export class VoiceTurnController {
     this.#inputStateOnResume = null;
     this.#submittingQuestionId = null;
     this.#pauseRequested = false;
+    this.#responseTerminal = true;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
     this.#bridge.stop();
@@ -483,6 +486,7 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "output-started") {
+      this.#responseTerminal = false;
       if (this.#snapshot.input === "paused") {
         this.#cancelOutput();
         this.#update({ output: "interrupted" });
@@ -516,9 +520,13 @@ export class VoiceTurnController {
       }
       return;
     }
+    if (event.type === "response-terminal") {
+      this.#responseTerminal = true;
+      this.#update({});
+      return;
+    }
     if (
       event.type === "input-speech-stopped" ||
-      event.type === "response-terminal" ||
       event.type === "tool-arguments-delta" ||
       event.type === "tool-arguments-done"
     ) {
@@ -558,6 +566,7 @@ export class VoiceTurnController {
     this.#activeEpoch = null;
     this.#inputStateOnResume = null;
     this.#bridgeStarted = false;
+    this.#responseTerminal = true;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
     this.#bridge.stop();
@@ -608,6 +617,7 @@ export class VoiceTurnController {
     return (
       snapshot.connection === "connected" &&
       snapshot.input === "listening" &&
+      this.#responseTerminal &&
       (snapshot.output === "idle" || snapshot.output === "interrupted")
     );
   }

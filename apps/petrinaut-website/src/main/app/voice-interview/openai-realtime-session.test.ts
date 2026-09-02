@@ -674,6 +674,99 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
   });
 
+  test("releases a timed-out preparation create so canonical speech can send", async () => {
+    vi.useFakeTimers();
+    const harness = createHarness();
+    const connection = harness.session.connect();
+    await vi.runAllTimersAsync();
+    await connection;
+    const channel = harness.channels[0]!;
+    const request = preparationRequest();
+    const preparation = harness.session.prepareInterviewSpeech(request);
+    const preparationCreate = sentEvents(channel).at(-1)!;
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    await expect(preparation).resolves.toMatchObject({
+      kind: "fallback",
+      reason: "timeout",
+    });
+    harness.session.speakCanonical([
+      canonicalSegment("question-after-timeout", "What happens next?"),
+    ]);
+
+    const responseCreates = sentEvents(channel).filter(
+      ({ type }) => type === "response.create",
+    );
+    expect(responseCreates).toHaveLength(2);
+    expect(responseCreates[1]).toMatchObject({
+      response: { metadata: { petrinaut_kind: "canonical-speech" } },
+    });
+
+    channel.receive({
+      response: {
+        id: "late-preparation-response",
+        metadata: (preparationCreate.response as Record<string, unknown>)
+          .metadata,
+      },
+      type: "response.created",
+    });
+    expect(sentEvents(channel)).toContainEqual(
+      expect.objectContaining({
+        response_id: "late-preparation-response",
+        type: "response.cancel",
+      }),
+    );
+    expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
+  });
+
+  test("rejects preparation metadata for a non-current pending request", async () => {
+    vi.useFakeTimers();
+    const harness = createHarness();
+    const connection = harness.session.connect();
+    await vi.runAllTimersAsync();
+    await connection;
+    const channel = harness.channels[0]!;
+    const firstRequest = preparationRequest({ cacheKey: "first-request" });
+    const secondRequest = preparationRequest({ cacheKey: "second-request" });
+    const firstPreparation =
+      harness.session.prepareInterviewSpeech(firstRequest);
+    const secondPreparation =
+      harness.session.prepareInterviewSpeech(secondRequest);
+
+    channel.receive({
+      response: {
+        id: "mismatched-response",
+        metadata: {
+          petrinaut_kind: "speech-preparation",
+          petrinaut_request_id: secondRequest.cacheKey,
+        },
+      },
+      type: "response.created",
+    });
+    channel.receive({
+      delta: "This output must not be accepted.",
+      response_id: "mismatched-response",
+      type: "response.output_text.delta",
+    });
+    channel.receive({
+      response: {
+        id: "mismatched-response",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    await expect(firstPreparation).resolves.toMatchObject({
+      reason: "timeout",
+    });
+    await expect(secondPreparation).resolves.toMatchObject({
+      reason: "timeout",
+    });
+    expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
+  });
+
   test("settles active preparation during disconnect cleanup", async () => {
     const harness = createHarness();
     await harness.session.connect();
