@@ -1292,8 +1292,7 @@ export class OpenAIRealtimeSession {
       ) {
         this.#finishTranscription(
           itemId,
-          event.type ===
-            "conversation.item.input_audio_transcription.failed"
+          event.type === "conversation.item.input_audio_transcription.failed"
             ? "invalid-response"
             : undefined,
         );
