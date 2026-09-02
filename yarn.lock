@@ -554,7 +554,7 @@ __metadata:
     "@blockprotocol/core": "npm:0.1.5"
     "@blockprotocol/graph": "workspace:*"
     "@blockprotocol/type-system": "workspace:*"
-    "@faker-js/faker": "npm:10.4.0"
+    "@faker-js/faker": "npm:10.5.0"
     "@graphql-codegen/cli": "npm:^6.2.1"
     "@graphql-codegen/introspection": "npm:5.0.1"
     "@graphql-codegen/typescript": "npm:5.0.9"
@@ -6277,10 +6277,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@faker-js/faker@npm:10.4.0":
-  version: 10.4.0
-  resolution: "@faker-js/faker@npm:10.4.0"
-  checksum: 10c0/29f15e46f91757d654f6f42ac8313ac4aebb6591e2ebae7fdd8d36d5017490327ea67be37cff06d18303db54abf468524bcc7e4b1de53be4eb884c1f71d571c1
+"@faker-js/faker@npm:10.5.0":
+  version: 10.5.0
+  resolution: "@faker-js/faker@npm:10.5.0"
+  checksum: 10c0/2de3c7b8f41592d52cefc3ab4c99536656249bca78d5ad184a3b7ac43ecc9d946056cef2c4d37060373ef06ad992d82530de08479fabe16fdbe77b911d842446
   languageName: node
   linkType: hard
 

@@ -116,7 +116,7 @@
     "ws": "8.21.0"
   },
   "devDependencies": {
-    "@faker-js/faker": "10.4.0",
+    "@faker-js/faker": "10.5.0",
     "@graphql-codegen/cli": "^6.2.1",
     "@graphql-codegen/introspection": "5.0.1",
     "@graphql-codegen/typescript": "5.0.9",
