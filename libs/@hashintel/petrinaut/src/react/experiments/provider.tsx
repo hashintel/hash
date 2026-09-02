@@ -15,6 +15,7 @@ import {
   createReusableWorkerFactory,
   type ExperimentBackendRegistration,
   selectExperimentBackend,
+  type ExperimentBackend,
   type ReusableWorkerFactory,
 } from "@hashintel/petrinaut-core/experiments";
 import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
@@ -145,6 +146,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     new Map<string, PendingExperimentRegistration>(),
   );
   const sweepSessionsRef = useRef(new Map<string, SweepSession>());
+  /** Backends an experiment chose, disposed with the experiment. */
+  const backendsRef = useRef(new Map<string, ExperimentBackend[]>());
   const detachedObjectiveSamplerRef = useRef<DetachedObjectiveSampler | null>(
     null,
   );
@@ -171,6 +174,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     const registrations = registrationsRef.current;
     const pendingRegistrations = pendingRegistrationsRef.current;
     const sweepSessions = sweepSessionsRef.current;
+    const chosenBackends = backendsRef.current;
     return () => {
       for (const registration of pendingRegistrations.values()) {
         registration.abortController.abort();
@@ -185,6 +189,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         session.dispose();
       }
       sweepSessions.clear();
+      for (const backends of chosenBackends.values()) {
+        for (const backend of backends) {
+          backend.dispose?.();
+        }
+      }
+      chosenBackends.clear();
     };
   }, []);
 
@@ -216,6 +226,22 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     );
   };
 
+  const rememberBackend = (
+    experimentId: string,
+    backend: ExperimentBackend,
+  ) => {
+    const backends = backendsRef.current.get(experimentId) ?? [];
+    backends.push(backend);
+    backendsRef.current.set(experimentId, backends);
+  };
+
+  const disposeBackends = (experimentId: string) => {
+    for (const backend of backendsRef.current.get(experimentId) ?? []) {
+      backend.dispose?.();
+    }
+    backendsRef.current.delete(experimentId);
+  };
+
   const disposeExperimentHandle = (experimentId: string) => {
     const pendingRegistration =
       pendingRegistrationsRef.current.get(experimentId);
@@ -232,11 +258,13 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     registration.off();
     registration.handle.dispose();
     registrationsRef.current.delete(experimentId);
+    disposeBackends(experimentId);
   };
 
   const disposeSweepSession = (experimentId: string) => {
     sweepSessionsRef.current.get(experimentId)?.dispose();
     sweepSessionsRef.current.delete(experimentId);
+    disposeBackends(experimentId);
   };
 
   const registerExperimentHandle = (
@@ -334,6 +362,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         createWorker: reusableWorkerFactory,
         shardCount: shardCountRef.current ?? getDefaultMonteCarloShardCount(),
         onBackendChosen: (selection) => {
+          rememberBackend(experimentId, selection.backend);
           const [firstDeclined] = selection.declined;
           if (firstDeclined) {
             addNotification({
@@ -526,6 +555,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         }
 
         pendingRegistrationsRef.current.delete(experimentId);
+        rememberBackend(experimentId, selection.backend);
         patchExperiment(experimentId, {
           computeBackend: selection.backendId as ExperimentComputeBackend,
           computeBackendFallbackReason: firstDeclined?.reason ?? null,

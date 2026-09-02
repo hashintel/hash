@@ -63,8 +63,9 @@ export type CpuLanes = {
 /**
  * The two CPU lanes background batches use, built on first use so a sweep
  * whose surface view never opens spawns nothing extra. Narrow is one worker.
- * Wide is a third of the pool: the surface runs three chunks at once, so
- * the wide lanes together fill the pool instead of tripling it.
+ * Wide is a third of the pool, at least one worker: the surface runs three
+ * chunks at once, so the wide lanes together fill the pool without exceeding
+ * it.
  */
 export const createCpuLanes = ({
   createWorker,
@@ -81,7 +82,7 @@ export const createCpuLanes = ({
         lane = createWorkerPoolExperimentBackend({
           createWorker,
           shardCount:
-            width === "narrow" ? 1 : Math.max(2, Math.floor(shardCount / 3)),
+            width === "narrow" ? 1 : Math.max(1, Math.floor(shardCount / 3)),
         });
         lanes.set(width, lane);
       }
