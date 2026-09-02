@@ -118,11 +118,12 @@ and durable history. The browser bridge accepts only the configured
 duplicate or stale calls, and submits the answer through Petrinaut's shared
 composer path with pending-`brunch_ask` correlation.
 
-The bridge waits for the correlated Brunch turn, then gives Realtime two
-bounded roles. First, an out-of-band, text-only request semantically prepares
-the canonical context within the portion of a strict 50-word spoken budget
-left after reserving the exact Brunch question. Application code validates the
-prepared context and appends the protected question exactly. Second, a
+The experimental **Approach D** design waits for the correlated Brunch turn,
+then gives Realtime two bounded roles. First, an out-of-band, text-only request
+semantically prepares the canonical context within the portion of a strict
+50-word spoken budget left after reserving the exact Brunch question.
+Application code validates the prepared context and appends the protected
+question exactly. Second, a
 tool-disabled audio request renders only those supplied words verbatim. If
 preparation is unavailable, invalid, or times out, the bridge supplies the
 canonical context and question instead. Brunch's canonical transcript and
