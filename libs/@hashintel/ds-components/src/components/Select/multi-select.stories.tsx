@@ -99,7 +99,13 @@ const tonedItems = [
 
 const suffixItems: Array<MultiSelectItem> = [
   { value: "apple", text: "Apple", suffix: "52 kcal", showOnlyButton: true },
-  { value: "banana", text: "Banana", suffix: "89 kcal", showOnlyButton: true },
+  {
+    value: "banana",
+    text: "Banana",
+    suffix: "89 kcal",
+    showOnlyButton: true,
+    tone: "brand",
+  },
   { value: "cherry", text: "Cherry", showOnlyButton: true },
   { value: "date", text: "Date", suffix: "282 kcal" },
 ];

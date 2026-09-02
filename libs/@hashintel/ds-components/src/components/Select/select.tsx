@@ -3,7 +3,7 @@ import { Portal } from "@ark-ui/react/portal";
 import { Select as ArkSelect } from "@ark-ui/react/select";
 import { Fragment, useCallback, useId, useMemo, useRef } from "react";
 
-import { css, cx } from "@hashintel/ds-helpers/css";
+import { cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { usePortalContainerRef } from "../../util/portal-container-context";
@@ -17,7 +17,11 @@ import {
 } from "../Menu/SelectableList/selectable-list";
 import { getItemId } from "../Menu/SelectableList/selectable-list-util";
 import { InputConnector } from "../TextInput/input-connector";
-import { selectRecipe } from "./select.recipe";
+import {
+  onlyButtonRecipe,
+  selectRecipe,
+  suffixDefaultContentClass,
+} from "./select.recipe";
 
 import type {
   FormInputSize,
@@ -187,28 +191,6 @@ function findSelectItem<TValue extends string>(
   return undefined;
 }
 
-const suffixClasses = {
-  // The default suffix content, swapped out for the "Only" button while hovered
-  defaultContent: css({
-    "[data-part='item']:hover &": {
-      display: "none",
-    },
-  }),
-  onlyButton: css({
-    display: "none",
-    cursor: "pointer",
-    color: "neutral.s110",
-    fontWeight: "[500]",
-    _hover: {
-      color: "neutral.s125",
-      textDecoration: "underline",
-    },
-    "[data-part='item']:hover &": {
-      display: "inline-flex",
-    },
-  }),
-};
-
 function mapToMenuItems<TValue extends string>(
   items: ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>,
   renderItem: (value: TValue) => React.ReactNode,
@@ -227,11 +209,13 @@ function mapToMenuItems<TValue extends string>(
     return (
       <>
         {it.suffix !== undefined && (
-          <span className={suffixClasses.defaultContent}>{it.suffix}</span>
+          <span className={suffixDefaultContentClass}>{it.suffix}</span>
         )}
         <button
           type="button"
-          className={suffixClasses.onlyButton}
+          className={onlyButtonRecipe({
+            tone: it.tone === "brand" ? "brand" : "neutral",
+          })}
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
