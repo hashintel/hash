@@ -1,9 +1,9 @@
 import { createListCollection } from "@ark-ui/react/collection";
 import { Portal } from "@ark-ui/react/portal";
 import { Select as ArkSelect } from "@ark-ui/react/select";
-import { Fragment, useId, useMemo, useRef } from "react";
+import { Fragment, useCallback, useId, useMemo, useRef } from "react";
 
-import { cx } from "@hashintel/ds-helpers/css";
+import { css, cx } from "@hashintel/ds-helpers/css";
 
 import { resolveAutoFocusProps } from "../../util/form-shared";
 import { usePortalContainerRef } from "../../util/portal-container-context";
@@ -39,6 +39,10 @@ export type MultiSelectItem<TValue extends string = string> =
     variant?: "checkbox" | "tick" | "highlight";
     /** The tone of this item's selected indicator (checkbox fill, tick or highlight color). Defaults to `neutral`. */
     tone?: Exclude<Tone, "warning" | "success">;
+    /** Optional content aligned to the right of the item in the dropdown */
+    suffix?: React.ReactNode;
+    /** Show an "Only" button while the item is hovered, which sets the selection to just this item. It renders in the suffix position, replacing `suffix` while visible. */
+    showOnlyButton?: boolean;
   };
 
 type SelectBaseProps<TValue extends string> = {
@@ -183,6 +187,28 @@ function findSelectItem<TValue extends string>(
   return undefined;
 }
 
+const suffixClasses = {
+  // The default suffix content, swapped out for the "Only" button while hovered
+  defaultContent: css({
+    "[data-part='item']:hover &": {
+      display: "none",
+    },
+  }),
+  onlyButton: css({
+    display: "none",
+    cursor: "pointer",
+    color: "neutral.s110",
+    fontWeight: "[500]",
+    _hover: {
+      color: "neutral.s125",
+      textDecoration: "underline",
+    },
+    "[data-part='item']:hover &": {
+      display: "inline-flex",
+    },
+  }),
+};
+
 function mapToMenuItems<TValue extends string>(
   items: ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>,
   renderItem: (value: TValue) => React.ReactNode,
@@ -190,8 +216,40 @@ function mapToMenuItems<TValue extends string>(
     multiple: boolean;
     /** When defined, values outside the set are disabled (a multi select at `maxItems`) */
     selectableValues: ReadonlySet<string> | undefined;
+    /** Sets the selection to just the given value — backs the per-item "Only" button */
+    selectOnly: (value: TValue) => void;
   },
 ): Array<ItemOrGroup<Item>> {
+  const toSuffix = (it: MultiSelectItem<TValue>): React.ReactNode => {
+    if (!it.showOnlyButton || it.disabled) {
+      return it.suffix;
+    }
+    return (
+      <>
+        {it.suffix !== undefined && (
+          <span className={suffixClasses.defaultContent}>{it.suffix}</span>
+        )}
+        <button
+          type="button"
+          className={suffixClasses.onlyButton}
+          onPointerDown={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+          onPointerUp={(event) => {
+            event.stopPropagation();
+          }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            options.selectOnly(it.value);
+          }}
+        >
+          Only
+        </button>
+      </>
+    );
+  };
   const toItem = (it: MultiSelectItem<TValue>): Item => ({
     id: it.value,
     text: renderItem(it.value),
@@ -201,6 +259,7 @@ function mapToMenuItems<TValue extends string>(
         !options.selectableValues.has(it.value)),
     selectedStyle: options.multiple ? (it.variant ?? "checkbox") : "tick",
     selectedTone: it.tone,
+    suffix: toSuffix(it),
     subItems: undefined,
     onClick: () => {},
   });
@@ -337,11 +396,18 @@ export const Select = <TValue extends string>({
     !!multiple && maxItems !== undefined && selectedValues.length >= maxItems;
   // At maxItems only the currently-selected values stay enabled, so they can be deselected
   const selectableAtMax = atMaxItems ? selectedValues : undefined;
+  const selectOnly = useCallback(
+    (val: TValue) => {
+      (onChange as (value: TValue[]) => void)([val]);
+    },
+    [onChange],
+  );
   const menuItems = useMemo(() => {
     const mapped = mapToMenuItems(effectiveItems, resolvedRenderItem, {
       multiple: !!multiple,
       selectableValues:
         selectableAtMax === undefined ? undefined : new Set(selectableAtMax),
+      selectOnly,
     });
     if (!isOptional || mapped.length === 0) {
       return mapped;
@@ -360,6 +426,7 @@ export const Select = <TValue extends string>({
     noneValue,
     multiple,
     selectableAtMax,
+    selectOnly,
   ]);
   const collection = useMemo(() => {
     const valueToText = new Map<string, string>();
