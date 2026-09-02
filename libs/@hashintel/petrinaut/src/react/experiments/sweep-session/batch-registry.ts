@@ -55,6 +55,7 @@ export const createBatchRegistry = (
       kind: SweepBatchStatus["kind"];
       runCount: number;
       handle: MonteCarloExperiment;
+      offProgress: () => void;
     }
   >();
 
@@ -79,18 +80,26 @@ export const createBatchRegistry = (
   return {
     register: (kind, runCount, handle) => {
       const id = ++sequence;
-      active.set(id, { kind, runCount, handle });
       const offProgress = handle.progress.subscribe(progressTick.call);
+      active.set(id, { kind, runCount, handle, offProgress });
       publish();
       return () => {
-        if (!active.delete(id)) {
+        const batch = active.get(id);
+        if (batch === undefined) {
           return;
         }
-        offProgress();
+        active.delete(id);
+        batch.offProgress();
         publish();
       };
     },
+    // Background batches keep running after the session is disposed; without
+    // unsubscribing, their progress ticks would keep publishing to a host that
+    // has already dropped the experiment.
     clear: () => {
+      for (const batch of active.values()) {
+        batch.offProgress();
+      }
       active.clear();
       progressTick.cancel();
       publish();
