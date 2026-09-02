@@ -1,6 +1,26 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  notFound,
+  useNavigate,
+  useSearch,
+} from "@tanstack/react-router";
 
+import { validateSharedExampleSearch } from "../examples/example-search";
 import { OptimizationDemoApp } from "../main/app/optimization-demo/optimization-demo-app";
+
+function OptimizationRoute() {
+  const navigate = useNavigate({ from: "/optimization" });
+  const search = useSearch({ from: "/optimization" });
+
+  return (
+    <OptimizationDemoApp
+      onSearchChange={(nextSearch, history) => {
+        void navigate({ replace: history === "replace", search: nextSearch });
+      }}
+      search={search}
+    />
+  );
+}
 
 export const Route = createFileRoute("/optimization")({
   beforeLoad: () => {
@@ -8,5 +28,6 @@ export const Route = createFileRoute("/optimization")({
       throw notFound();
     }
   },
-  component: OptimizationDemoApp,
+  component: OptimizationRoute,
+  validateSearch: validateSharedExampleSearch,
 });

@@ -4,12 +4,15 @@ import { BrunchPetrinaut } from "./brunch-petrinaut";
 import { BrunchStatusPage } from "./brunch-status-page";
 
 import type { BrunchRouteSearch } from "./brunch-search";
+import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 import type { ViewportAction } from "@hashintel/petrinaut/ui";
 
 export const BrunchActualModeRoute = ({
+  navigation,
   search,
   viewportActions,
 }: {
+  navigation: PetrinautNavigationController;
   search: BrunchRouteSearch;
   viewportActions: ViewportAction[];
 }) => {
@@ -33,7 +36,10 @@ export const BrunchActualModeRoute = ({
       key={`${endpointResult.endpoint}:${endpointResult.runId ?? ""}`}
       runId={endpointResult.runId}
     >
-      <BrunchPetrinaut viewportActions={viewportActions} />
+      <BrunchPetrinaut
+        navigation={navigation}
+        viewportActions={viewportActions}
+      />
     </BrunchActualModeProvider>
   );
 };

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { brunchSearchSchema } from "./brunch-search";
+import { validateBrunchSearch } from "./brunch-search";
 
-describe("brunchSearchSchema", () => {
+describe("validateBrunchSearch", () => {
   it("keeps string parameters", () => {
     expect(
-      brunchSearchSchema.parse({
+      validateBrunchSearch({
         runId: "run-1",
         sse: "https://brunch.example/events",
       }),
@@ -19,7 +19,7 @@ describe("brunchSearchSchema", () => {
     // `?runId=1e3` reaches the schema as the number 1000, not the original
     // text, so coercing it back to a string would keep a corrupted id.
     expect(
-      brunchSearchSchema.parse({
+      validateBrunchSearch({
         runId: 1000,
         sse: true,
       }),
@@ -31,13 +31,27 @@ describe("brunchSearchSchema", () => {
 
   it("falls back for malformed structured parameters", () => {
     expect(
-      brunchSearchSchema.parse({
+      validateBrunchSearch({
         runId: ["run-1"],
         sse: { href: "https://brunch.example/events" },
       }),
     ).toEqual({
       runId: undefined,
       sse: undefined,
+    });
+  });
+
+  it("carries the shared example location next to the stream keys", () => {
+    expect(
+      validateBrunchSearch({
+        sse: "https://brunch.example/events",
+        scenario: "scenario_baseline",
+        subnet: "subnet_dispatch",
+      }),
+    ).toEqual({
+      sse: "https://brunch.example/events",
+      scenario: "scenario_baseline",
+      subnet: "subnet_dispatch",
     });
   });
 });

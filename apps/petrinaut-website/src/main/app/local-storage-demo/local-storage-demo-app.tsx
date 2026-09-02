@@ -27,6 +27,7 @@ import {
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
+import { useSharedSearchNavigation } from "../../../examples/use-shared-search-navigation";
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { CommandPalette } from "../command-palette";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
@@ -47,6 +48,8 @@ import {
   useLocalStorageSDCPNs,
 } from "./use-local-storage-sdcpns";
 import { walkthroughSteps } from "./walkthrough/walkthrough-steps";
+
+import type { SharedExampleSearch } from "../../../examples/example-search";
 
 const isEmptySDCPN = (sdcpn: SDCPN) =>
   sdcpn.places.length === 0 &&
@@ -183,10 +186,20 @@ const DemoCommands = ({
  * Switching files replaces the active handle instead of keeping handles alive
  * for background nets.
  */
-export const LocalStorageDemoApp = () => {
+export const LocalStorageDemoApp = ({
+  onSearchChange,
+  search,
+}: {
+  onSearchChange: (
+    search: SharedExampleSearch,
+    history: "push" | "replace",
+  ) => void;
+  search: SharedExampleSearch;
+}) => {
   const sentryFeedbackAction = useSentryFeedbackAction();
   const [openAIVoiceConfig, setOpenAIVoiceConfig] =
     useState<OpenAIVoiceConfig | null>();
+  const navigation = useSharedSearchNavigation(search, onSearchChange);
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
@@ -432,6 +445,7 @@ export const LocalStorageDemoApp = () => {
             existingNets={existingNets}
             createNewNet={createNewNet}
             loadPetriNet={loadPetriNet}
+            navigation={navigation}
             readonly={false}
             setTitle={setTitle}
             title={currentNet.title}

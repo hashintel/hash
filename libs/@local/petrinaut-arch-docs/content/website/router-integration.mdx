@@ -51,8 +51,19 @@ encoder to build embed URLs.
 Query params outside the contract are not rewritten on load. TanStack Router
 only re-stringifies the URL when the parsed search changes, so stripping them
 eagerly would need a document reload, which an embed must not do. The first
-navigation drops them, because both routes write a fresh contract-only search
-rather than merging into the existing one.
+navigation drops them, because the routes write a fresh contract-only search
+rather than merging into the existing one. `/brunch` is the exception: its
+`sse` and `runId` params name the stream, so it carries them over and replaces
+only the contract part.
+
+## Which routes speak the contract
+
+Every page that mounts Petrinaut does: the editable demo at `/` and
+`/optimization`, the Brunch stream at `/brunch`, and the example pages at
+`/examples/$slug` and `/embed/examples/$slug`. The demo and Brunch pages hold
+their model outside the URL, so a shared link there names a location inside
+whatever net the visitor has open; the example pages name the model in the
+path as well.
 
 ## What a URL carries, and what it does not
 
@@ -70,5 +81,5 @@ an embed with no scenario has nothing to run. The embed route itself honours
 ## Hosting Petrinaut without a router
 
 The prop is optional. Omit it and Petrinaut keeps its location in internal
-state, which is what Storybook and the local-storage demo do. Nothing about the
-editor's behaviour depends on a host router being present.
+state, which is what Storybook does. Nothing about the editor's behaviour
+depends on a host router being present.
