@@ -67,7 +67,9 @@ export const RangeSlider: React.FC<RangeSliderProps> = ({
       value={[value[0], value[1]]}
       minStepsBetweenThumbs={0}
       disabled={disabled}
-      aria-label={ariaLabel ? [ariaLabel, ariaLabel] : undefined}
+      aria-label={
+        ariaLabel ? [`${ariaLabel} minimum`, `${ariaLabel} maximum`] : undefined
+      }
       className={cx(
         css({
           position: "relative",
