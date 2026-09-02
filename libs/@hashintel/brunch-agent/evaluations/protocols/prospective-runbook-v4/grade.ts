@@ -1,14 +1,28 @@
 import { createHash, randomUUID } from "node:crypto";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, readdir, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 
 import Anthropic from "@anthropic-ai/sdk";
 
-const repositoryRootPath = resolve(import.meta.dirname, "../../../../..");
+import { scoreReport } from "./score-report.ts";
+
+const repositoryRootPath = resolve(import.meta.dirname, "../../../../../..");
 const candidateDirectory = join(
   repositoryRootPath,
-  "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-architecture-candidate-v3",
+  "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-architecture-candidate-v4",
 );
+const protocolId = "prospective-runbook-v4";
+const outputNamespaceId = "vestera-architecture-candidate-v4";
+const comparisonTarget = {
+  protocolId: "prospective-runbook-v1",
+  outputNamespaceId: "vestera-prospective-baseline-v1",
+  memberRunIds: [
+    "runbook-elicitation-2026-08-31T10-50-28-709Z-20a4817f",
+    "runbook-elicitation-2026-08-31T10-56-34-754Z-4b75737c",
+  ],
+  qualityPopulation: "valid-workpieces",
+  runtimeAccounting: "reported-separately",
+} as const;
 const requestedModel = "claude-sonnet-4-5";
 const mode = process.env["BRUNCH_ARCHITECTURE_GRADER_MODE"];
 const artifactBaseInput = process.env["BRUNCH_RUNBOOK_ARTIFACT_BASE"];
@@ -34,39 +48,99 @@ if (attempt !== undefined && !/^[2-9][0-9]*$/u.test(attempt)) {
 const artifactBase = resolve(artifactBaseInput);
 if (
   artifactBase !== join(candidateDirectory, basename(artifactBase)) ||
-  !basename(artifactBase).startsWith("prospective-runbook-v3-replication-")
+  !basename(artifactBase).startsWith("prospective-runbook-v4-replication-")
 ) {
   throw new Error(
-    "The grader accepts only a v3 artifact in the frozen candidate namespace.",
+    "The grader accepts only a v4 artifact in the frozen candidate namespace.",
   );
 }
 
 interface CandidateRecord {
   readonly campaignFingerprint: string;
   readonly comparisonTarget: unknown;
+  readonly instrument: {
+    readonly fileSha256: Record<string, string>;
+  };
+  readonly outputNamespaceId: string;
+  readonly protocolId: string;
+  readonly rawConversationSnapshot: {
+    readonly messages: readonly { readonly id: string }[];
+  };
+  readonly replication: number;
   readonly runId: string;
   readonly status: string;
   readonly transcript: string;
+  readonly violations: readonly unknown[];
   readonly workpiece?: {
     readonly content: string;
     readonly sha256: string;
+    readonly sourceMessageId: string;
+    readonly sourceMessageSha256: string;
   };
-}
-
-const record = JSON.parse(
-  await readFile(`${artifactBase}.json`, "utf8"),
-) as CandidateRecord;
-if (record.status !== "completed" || record.workpiece === undefined) {
-  throw new Error("Only a completed v3 workpiece may be graded.");
 }
 
 const sha256 = (content: string): string =>
   createHash("sha256").update(content).digest("hex");
+const record = JSON.parse(
+  await readFile(`${artifactBase}.json`, "utf8"),
+) as CandidateRecord;
+const artifactStem = basename(artifactBase);
+if (
+  record.protocolId !== protocolId ||
+  record.outputNamespaceId !== outputNamespaceId ||
+  record.runId !== artifactStem ||
+  !Number.isSafeInteger(record.replication) ||
+  record.replication < 1 ||
+  record.replication > 3 ||
+  !artifactStem.startsWith(
+    `${protocolId}-replication-${record.replication}-`,
+  ) ||
+  JSON.stringify(record.comparisonTarget) !==
+    JSON.stringify(comparisonTarget) ||
+  !/^[0-9a-f]{64}$/u.test(record.campaignFingerprint) ||
+  record.status !== "completed" ||
+  record.violations.length !== 0 ||
+  record.workpiece === undefined
+) {
+  throw new Error("Only an exact valid v4 campaign member may be graded.");
+}
+
+const campaignRecordNames = (await readdir(candidateDirectory)).filter((name) =>
+  /^prospective-runbook-v4-replication-[123]-.*\.json$/u.test(name),
+);
+if (campaignRecordNames.length !== 3) {
+  throw new Error("Complete all three v4 replications before grading.");
+}
+
 const ir = (await readFile(`${artifactBase}.ir.md`, "utf8")).trimEnd();
 if (ir !== record.workpiece.content || sha256(ir) !== record.workpiece.sha256) {
   throw new Error(
     "The selected workpiece does not match its candidate record.",
   );
+}
+const sourceMessage = record.rawConversationSnapshot.messages.find(
+  ({ id }) => id === record.workpiece?.sourceMessageId,
+);
+if (
+  sourceMessage === undefined ||
+  sha256(JSON.stringify(sourceMessage)) !== record.workpiece.sourceMessageSha256
+) {
+  throw new Error(
+    "The selected workpiece source message does not match its candidate record.",
+  );
+}
+
+for (const sourcePath of [
+  "apps/brunch-agent/src/evaluations/runbook/campaign-integrity.ts",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/grade.ts",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/score-report.ts",
+] as const) {
+  const source = await readFile(join(repositoryRootPath, sourcePath), "utf8");
+  if (record.instrument.fileSha256[sourcePath] !== sha256(source)) {
+    throw new Error(
+      `Grader source differs from the frozen member: ${sourcePath}`,
+    );
+  }
 }
 
 const artifact = async (
@@ -141,6 +215,19 @@ if (report.length === 0) {
   throw new Error(`The ${mode} grader returned no report.`);
 }
 
+let scoreValidation:
+  | ReturnType<typeof scoreReport>
+  | { readonly error: string; readonly valid: false };
+try {
+  scoreValidation = scoreReport(mode, report);
+} catch (error) {
+  scoreValidation = {
+    error: error instanceof Error ? error.message : String(error),
+    valid: false,
+  };
+}
+const complete = response.stop_reason === "end_turn" && scoreValidation.valid;
+
 const outputSuffix =
   attempt === undefined ? mode : `${mode}-attempt-${attempt}`;
 const reportPath = `${artifactBase}.${outputSuffix}.md`;
@@ -151,7 +238,9 @@ await writeFile(
   `${JSON.stringify(
     {
       schemaVersion: 1,
-      protocolId: "prospective-runbook-v3",
+      protocolId,
+      outputNamespaceId,
+      replication: record.replication,
       runId: record.runId,
       campaignFingerprint: record.campaignFingerprint,
       comparisonTarget: record.comparisonTarget,
@@ -166,6 +255,8 @@ await writeFile(
       requestedModel,
       observedModel: response.model,
       stopReason: response.stop_reason,
+      complete,
+      scoreValidation,
       usage: response.usage,
       reportPath,
       reportSha256: sha256(report),
@@ -179,13 +270,16 @@ await writeFile(
 );
 
 process.stdout.write(
-  `ARCHITECTURE_V3_GRADE ${JSON.stringify({
+  `ARCHITECTURE_V4_GRADE ${JSON.stringify({
     mode,
     runId: record.runId,
     requestedModel,
     observedModel: response.model,
     stopReason: response.stop_reason,
+    complete,
+    scoreValidation,
     reportPath,
     metadataPath,
   })}\n`,
 );
+if (!complete) process.exitCode = 1;

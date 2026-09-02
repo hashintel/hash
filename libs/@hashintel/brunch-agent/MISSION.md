@@ -2,24 +2,20 @@
 
 ## Status
 
-Closed on 2026-09-02 with the owner-selected prompt, skill, and workpiece architecture promoted and accepted as baseline-competitive with explicit limitations. This archived contract is no longer execution authority. Mission 5 remains uncut and unimplemented.
+Live. Reopened on 2026-09-02 after review found that the attempted close did not satisfy this contract. This file is again the sole execution authority for [FE-1563](https://linear.app/hash/issue/FE-1563/redesign-the-elicitation-runbook-and-workpiece-against-the-frozen). Mission 5 remains uncut and unimplemented.
 
-Close evidence:
+The production architecture is retained, but the first v3 paid campaign, repaired browser witness, adjudication, Mission 5 handoff, and close record do not satisfy proof items 3, 7, 8, 9, or 10. They remain historical failure evidence only. The [owner-gate clarification](docs/evidence/decisions/mission-4-owner-gates-2026-09-02.md) confirms that the prior budget, campaign, witness-repair, witness-acceptance, and closure authorizations occurred, but withdraws the resulting acceptance and requires the reserved owner gates to be restored. No new paid call, freeze, adjudication, witness acceptance, handoff selection, or closure is authorized by this reopening.
 
-- [`../evidence/evaluations/vestera-architecture-candidate-v3/campaign-adjudication.md`](../evidence/evaluations/vestera-architecture-candidate-v3/campaign-adjudication.md) compares the one valid candidate workpiece only with the latest two valid flat-prompt controls: omniscient `72.5 / 100`, cold `3.2 / 4`, conditional readiness, and no hard-failure gate.
-- [`../evidence/evaluations/vestera-architecture-candidate-v3/product-witness.md`](../evidence/evaluations/vestera-architecture-candidate-v3/product-witness.md) records the accepted local/restricted Petrinaut → AI SDK → production Flue `ChatAgent` witness, the exposed relative-resource-path failure, and the owner-authorized exact-URI repair.
-- [`../evidence/evaluations/vestera-architecture-candidate-v3/mission-5-handoff.md`](../evidence/evaluations/vestera-architecture-candidate-v3/mission-5-handoff.md) freezes the selected workpiece, exact source snapshot and message binding, candidate manifest, grades, adjudication, and remaining gaps.
-
-Mission 3's prospective campaign remains the immutable control: one invalid runtime member and two valid independently graded workpieces, with the adjudicated range in [`../evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md`](../evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md). Its observed artifacts and source revision `b738aa1be1a62a9f9cdde89ced78558f04293a77` remain the exact v1 instrument of record.
+Mission 3's prospective campaign remains the immutable control: one invalid runtime member and two valid independently graded workpieces, with the adjudicated range in [`docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md`](docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md). Its observed artifacts and source revision `b738aa1be1a62a9f9cdde89ced78558f04293a77` remain the exact v1 instrument of record.
 
 ### Accepted architecture and interaction decisions
 
 - A prompt carries mounted-lifetime invariants; a skill carries procedure and judgment for a recognizable job; a tool contract carries one executable operation's semantics and constraints.
 - Brunch core owns universal, context/domain/editor/formalism-independent elicitation semantics. A plugin pairs one reusable domain typology with one target formalism. The app is the directive-marked registration and host-composition shell.
 - The SDCPN plugin is an earned contribution bundle, not a symmetric inventory. It mounts one `sdcpn-modelling` job skill and packages core-authored universal elicitation as a lazy resource inside that skill.
-- Packaged skill-composition Candidate B is selected. Frozen v3 showed independent core-skill activation at `0/3` versus packaged disclosure at `2/3` on the opening case, while both candidates restrained universal disclosure on construct-only and resolvable-review cases. The review pair remained non-discriminating. Keep B without claiming full behavioral validation; do not run v4 by momentum.
+- Packaged skill-composition Candidate B is selected. Frozen v3 showed independent core-skill activation at `0/3` versus packaged disclosure at `2/3` on the opening case, while both candidates restrained universal disclosure on construct-only and resolvable-review cases. The review pair remained non-discriminating. Keep B without claiming full behavioral validation; do not run a fourth skill-composition campaign by momentum.
 - Ampcode is the conceptual basis. Retain the Five-Register domain-primary workpiece, one-authoritative-home locality, Flue-native feasibility, and explicit evidence levels for authored text, tool/schema acceptance, structural correspondence, and behavioral evidence. Do not create a third synthesis.
-- The remaining v3 content repairs are fixed: strengthen review/revision routing; after required disclosure ask exactly one focused question when human knowledge is needed; and do not load the workpiece template before first creation or material revision.
+- The remaining routing obligations are fixed by this contract but not yet behaviorally proved: strengthen review/revision routing; after required disclosure ask exactly one focused question when human knowledge is needed; and do not load the workpiece template before first creation or material revision.
 
 ## Imperative
 
@@ -83,10 +79,10 @@ Observe all of the following:
 Do not design past these remaining evidence and owner gates:
 
 - Whether the exact candidate walkthrough exposes a substantive content repair. Any repair must be presented with its observed failure, smallest correction, and regression risk before editing and must rerun affected free gates.
-- Whether the three-invocation v3 campaign yields the two valid workpieces needed to compare like-for-like with the latest flat-prompt controls without pretending to estimate universal performance.
-- The owner-approved US$10 ceiling across candidate and grader calls; stop before exceeding it.
+- Whether the proposed three-invocation v4 campaign yields the two valid workpieces needed to compare like-for-like with the latest flat-prompt controls without pretending to estimate universal performance.
+- The paid ceiling for any v4 candidate and grader calls remains unapproved; freeze first, then obtain explicit owner authorization before each paid stage.
 - Which valid candidate workpiece is the strongest cold-readable Mission 5 handoff. Select only after independent reports and human comparative adjudication.
-- Whether the accepted local/restricted visible witness exposes a product-boundary failure not visible in the headless campaign. Stop and repair the first real failed boundary rather than broadening into remote infrastructure.
+- Whether a new local/restricted visible witness of the same final frozen instrument exposes a product-boundary failure not visible in the headless campaign. Stop and repair the first real failed boundary rather than broadening into remote infrastructure.
 
 ## Stop or reorient
 
@@ -110,4 +106,4 @@ Stop and surface the evidence if:
 
 Mission 5 owns capture-backed review and the first visible evidence-backed “why” answer over the frozen prepared pair. Mission 6 owns automatic traceable projection into one meaningful live SDCPN region. Mission 7 owns bounded authorized reviewer revision and scoped net patching. Mission 8's deployment branch stopped after local application proof and retains the unresolved infrastructure/release gates. Mission 9 owns the eventual accepted optimisation handoff after its consumer contract exists.
 
-The inferential observer, host/session continuity beyond the fixed local witness, compaction, voice, broad observability, simulated-conversation viewing, remote release, and public product choice remain in [`../../MISSION.next.md`](../../MISSION.next.md). No deferred item is implementation authority here.
+The inferential observer, host/session continuity beyond the fixed local witness, compaction, voice, broad observability, simulated-conversation viewing, remote release, and public product choice remain in [`MISSION.next.md`](MISSION.next.md). No deferred item is implementation authority here.

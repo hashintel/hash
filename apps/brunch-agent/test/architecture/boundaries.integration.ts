@@ -214,19 +214,21 @@ describe("dependency direction", () => {
     }
   });
 
-  test("transports consume their wire encoder only — never core, a binding, or Flue", () => {
+  test("transports consume wire contracts only — never a binding or Flue", () => {
     const transports = byRole("transport");
     expect(transports.length).toBeGreaterThan(0);
     for (const transport of transports) {
       expect(runtimeDependencies(transport).sort()).toEqual(
-        ["ai", "valibot"].sort(),
+        [CORE, "ai", "valibot"].sort(),
       );
       for (const file of sourceFiles(transport).filter((file) =>
         file.path.startsWith(join(transport.path, "src")),
       )) {
         for (const specifier of importedPackages(file)) {
           if (specifier.startsWith("node:")) continue;
-          expect(["ai", "valibot"]).toContain(packageOf(specifier));
+          expect([CORE, "ai", "valibot"]).toContain(packageOf(specifier));
+          expect(specifier).not.toBe(`${CORE}/storage`);
+          expect(specifier).not.toBe(`${CORE}/prompts`);
         }
       }
     }
@@ -509,8 +511,6 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
       "Boots the built Flue ChatAgent with pi-ai's faux provider and a headless Petrinaut client to prove validated construct-only tool flow without a provider key, socket, or network model call.",
     "apps/brunch-agent/test/skill-routing.integration.ts":
       "Boots the built Flue ChatAgent with pi-ai's faux provider to prove resolvable-review restraint, required human-gap disclosure, one-question dosage, and workpiece-revision routing without a provider key, socket, or network model call.",
-    "apps/brunch-agent/test/turn-timing.test.ts":
-      "Types recorded Flue observations and model requests so the condition-5 purpose splitter can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
   };
 
   test("no test file carries a live model credential", () => {

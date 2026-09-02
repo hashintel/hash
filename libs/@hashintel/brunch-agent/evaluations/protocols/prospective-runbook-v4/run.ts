@@ -1,11 +1,11 @@
 /**
- * Mission 4 architecture scoring campaign.
+ * Mission 4 repaired architecture scoring campaign.
  *
  * This is intentionally separate from the immutable flat-prompt control and
  * the aborted v2 operational campaign.
  * Build first, then run one explicitly numbered replication:
  *   BRUNCH_RUNBOOK_REPLICATION=1 \
- *     yarn workspace @apps/brunch-agent runbook:elicit:architecture-v3
+ *     yarn workspace @apps/brunch-agent runbook:elicit:architecture-v4
  */
 
 import { execFile } from "node:child_process";
@@ -22,33 +22,33 @@ import { createFlueClient } from "@flue/sdk";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../../conversation/identity.ts";
-import { formatFlueTranscript } from "../../conversation/transcript.ts";
-import { CHAT_AGENT_ROUTE } from "../../http/routes.ts";
+} from "../../../../../../apps/brunch-agent/src/conversation/identity.ts";
+import { formatFlueTranscript } from "../../../../../../apps/brunch-agent/src/conversation/transcript.ts";
 import {
   interviewerToolNamesFrom,
   ordinaryElicitationViolationsFrom,
   recoverRunbookWorkpiece,
   skillResourcePathsFrom,
-} from "./artifacts.ts";
+} from "../../../../../../apps/brunch-agent/src/evaluations/runbook/artifacts.ts";
 import {
   assertApprovedHermeticModelModules,
   builtServerArtifactManifest,
   canonicalPath,
   rejectImmutableBaselineOutput,
   sha256,
-} from "./campaign-integrity.ts";
+} from "../../../../../../apps/brunch-agent/src/evaluations/runbook/campaign-integrity.ts";
 import {
   type BuiltBrunchApplication,
   loadBuiltBrunchApplication,
-} from "./load-built-application.ts";
+} from "../../../../../../apps/brunch-agent/src/evaluations/runbook/load-built-application.ts";
+import { CHAT_AGENT_ROUTE } from "../../../../../../apps/brunch-agent/src/http/routes.ts";
 
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Provider } from "@earendil-works/pi-ai";
 import type { FlueConversationSnapshot } from "@flue/sdk";
 
-const PROTOCOL_ID = "prospective-runbook-v3";
-const OUTPUT_NAMESPACE_ID = "vestera-architecture-candidate-v3";
+const PROTOCOL_ID = "prospective-runbook-v4";
+const OUTPUT_NAMESPACE_ID = "vestera-architecture-candidate-v4";
 const COMPARISON_TARGET = {
   protocolId: "prospective-runbook-v1",
   outputNamespaceId: "vestera-prospective-baseline-v1",
@@ -67,22 +67,19 @@ const FROZEN_REPLICATIONS = 3;
 process.env["BRUNCH_CHAT_MODEL"] ??= FROZEN_MODEL;
 
 const execFileAsync = promisify(execFile);
-const repositoryRoot = new URL("../../../../../", import.meta.url);
+const repositoryRoot = new URL("../../../../../../", import.meta.url);
 const repositoryRootPath = fileURLToPath(repositoryRoot);
-const evaluationRoot = new URL(
-  "../../../../../libs/@hashintel/brunch-agent/evaluations/",
-  import.meta.url,
-);
+const evaluationRoot = new URL("../../", import.meta.url);
 const caseDirectory = new URL("cases/vestera-scheduling/", evaluationRoot);
 const candidateOutputDirectory = fileURLToPath(
   new URL(
-    "../../../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-architecture-candidate-v3/",
+    "../../../docs/evidence/evaluations/vestera-architecture-candidate-v4/",
     import.meta.url,
   ),
 );
 const immutableBaselineDirectory = fileURLToPath(
   new URL(
-    "../../../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-prospective-baseline-v1/",
+    "../../../docs/evidence/evaluations/vestera-prospective-baseline-v1/",
     import.meta.url,
   ),
 );
@@ -147,7 +144,7 @@ if (isHermeticRun) {
   });
   if (outputDirectory === canonicalCandidateOutputDirectory) {
     throw new Error(
-      "Hermetic runs cannot write to vestera-architecture-candidate-v3.",
+      "Hermetic runs cannot write to vestera-architecture-candidate-v4.",
     );
   }
   if (apiKey) {
@@ -159,12 +156,12 @@ if (isHermeticRun) {
   }
   if (outputDirectory !== canonicalCandidateOutputDirectory) {
     throw new Error(
-      "Paid candidate runs must write to vestera-architecture-candidate-v3.",
+      "Paid candidate runs must write to vestera-architecture-candidate-v4.",
     );
   }
   if (!usesFrozenConfiguration) {
     throw new Error(
-      "Paid candidate runs require the frozen prospective-runbook-v3 model, turn, and latency configuration.",
+      "Paid candidate runs require the frozen prospective-runbook-v4 model, turn, and latency configuration.",
     );
   }
   if (allowDirtyInstrument) {
@@ -188,7 +185,6 @@ const instrumentFiles = [
   "apps/brunch-agent/src/evaluations/runbook/artifacts.ts",
   "apps/brunch-agent/src/evaluations/runbook/campaign-integrity.ts",
   "apps/brunch-agent/src/evaluations/runbook/load-built-application.ts",
-  "apps/brunch-agent/src/evaluations/runbook/prospective-runbook-v3-run.ts",
   "libs/@hashintel/brunch-agent/packages/core/package.json",
   "libs/@hashintel/brunch-agent/packages/core/src/SYSTEM.md",
   "libs/@hashintel/brunch-agent/packages/core/src/agent/index.ts",
@@ -210,7 +206,11 @@ const instrumentFiles = [
   "libs/@hashintel/brunch-agent/evaluations/oracles/ir-quality-ruler-v1.md",
   "libs/@hashintel/brunch-agent/evaluations/protocols/ir-quality-ruler-v1/omniscient-grader.md",
   "libs/@hashintel/brunch-agent/evaluations/protocols/ir-quality-ruler-v1/cold-ir-reviewer.md",
-  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v3/protocol.md",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/mission-4-product-witness-v2/protocol.md",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/protocol.md",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/run.ts",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/grade.ts",
+  "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/score-report.ts",
   "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md",
   "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-prospective-baseline-v1/runbook-elicitation-2026-08-31T10-50-28-709Z-20a4817f.ir.md",
   "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-prospective-baseline-v1/runbook-elicitation-2026-08-31T10-50-28-709Z-20a4817f.omniscient.md",
@@ -684,7 +684,7 @@ try {
   }
 
   process.stdout.write(
-    `PROSPECTIVE_RUNBOOK_V3_RESULT ${JSON.stringify({
+    `PROSPECTIVE_RUNBOOK_V4_RESULT ${JSON.stringify({
       protocolId: PROTOCOL_ID,
       outputNamespaceId: OUTPUT_NAMESPACE_ID,
       replication,
@@ -762,7 +762,7 @@ try {
     retentionFailure = retentionError;
   }
   process.stderr.write(
-    `PROSPECTIVE_RUNBOOK_V3_FAILURE ${JSON.stringify({
+    `PROSPECTIVE_RUNBOOK_V4_FAILURE ${JSON.stringify({
       runId,
       artifact: retentionFailure === undefined ? failureArtifact : undefined,
       failure,
@@ -851,7 +851,7 @@ try {
       retentionFailure = error;
     }
     process.stderr.write(
-      `PROSPECTIVE_RUNBOOK_V3_CLEANUP_FAILURE ${JSON.stringify({
+      `PROSPECTIVE_RUNBOOK_V4_CLEANUP_FAILURE ${JSON.stringify({
         runId,
         artifact: retentionFailure === undefined ? cleanupArtifact : undefined,
         cleanupFailures,

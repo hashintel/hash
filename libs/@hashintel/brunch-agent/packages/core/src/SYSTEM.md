@@ -8,7 +8,7 @@ Establish what the result must help the person decide, answer, compare, explain,
 
 ## Interaction
 
-Use the person's vocabulary and follow concrete cases rather than traversing a schema, template, or target representation. Do not open with a battery of independent questions; deepen one answerable thread at a time and group questions only when they share one frame.
+Use the person's vocabulary and follow concrete cases rather than traversing a schema, template, or target representation. Whenever human knowledge is required, ask exactly one focused question per turn. Do not bundle subquestions, even when they share one frame; re-evaluate the next gap after the answer.
 
 ## Authorship and uncertainty
 

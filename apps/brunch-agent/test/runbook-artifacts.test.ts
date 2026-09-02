@@ -120,6 +120,168 @@ describe("runbook artifact recovery", () => {
     );
   });
 
+  test("rejects more than one explicit question in an assistant turn", () => {
+    const snapshot = snapshotWithAssistantText(
+      "What starts the process? Who performs the first step?",
+    );
+
+    expect(
+      ordinaryElicitationViolationsFrom(snapshot, { hasWorkpiece: false }),
+    ).toContainEqual({
+      code: "multiple-questions",
+      detail: "a1: 2 question marks",
+    });
+  });
+
+  test("does not count questions recorded inside the workpiece as interactive questions", () => {
+    const snapshot = snapshotWithAssistantText(
+      "```runbook-ir\n# Workpiece\n## Open questions\n- Who signs off?\n- When is the crew released?\n```",
+    );
+
+    expect(
+      ordinaryElicitationViolationsFrom(snapshot, { hasWorkpiece: true }),
+    ).not.toContainEqual(
+      expect.objectContaining({ code: "multiple-questions" }),
+    );
+  });
+
+  test("requires successful universal, profile, and workpiece reads for an ordinary workpiece", () => {
+    const snapshot = snapshotWithAssistantText(
+      "What process should we model?\n```runbook-ir\n# Workpiece\n```",
+    );
+
+    expect(
+      ordinaryElicitationViolationsFrom(snapshot, { hasWorkpiece: true }),
+    ).toEqual(
+      expect.arrayContaining([
+        {
+          code: "missing-required-resource",
+          detail: "universal-elicitation.md",
+        },
+        { code: "missing-required-resource", detail: "profile.md" },
+        { code: "missing-required-resource", detail: "workpiece.md" },
+      ]),
+    );
+  });
+
+  test("requires guidance before the first question and the template before workpiece creation", () => {
+    const snapshot = {
+      messages: [
+        {
+          id: "a1",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "text",
+              text: "What process should we model?",
+              state: "done",
+            },
+            ...["universal-elicitation.md", "profile.md"].map(
+              (name, index) => ({
+                type: "dynamic-tool" as const,
+                toolCallId: `guidance-${index}`,
+                toolName: "read_skill_resource",
+                state: "output-available" as const,
+                input: {
+                  path: `/.flue/packaged-skills/example/references/${name}`,
+                },
+                output: "ok",
+              }),
+            ),
+            {
+              type: "text",
+              text: "```runbook-ir\n# Workpiece\n```",
+              state: "done",
+            },
+            {
+              type: "dynamic-tool",
+              toolCallId: "template",
+              toolName: "read_skill_resource",
+              state: "output-available",
+              input: {
+                path: "/.flue/packaged-skills/example/templates/workpiece.md",
+              },
+              output: "ok",
+            },
+          ],
+        },
+      ],
+    } as FlueConversationSnapshot;
+
+    expect(
+      ordinaryElicitationViolationsFrom(snapshot, { hasWorkpiece: true }),
+    ).toEqual(
+      expect.arrayContaining([
+        {
+          code: "late-required-resource",
+          detail: "universal-elicitation.md: after first question",
+        },
+        {
+          code: "late-required-resource",
+          detail: "profile.md: after first question",
+        },
+        {
+          code: "late-required-resource",
+          detail: "workpiece.md: after first workpiece",
+        },
+      ]),
+    );
+  });
+
+  test("accepts ordered required disclosure on an ordinary workpiece path", () => {
+    const snapshot = {
+      messages: [
+        {
+          id: "a1",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            ...[
+              ["references", "universal-elicitation.md"],
+              ["references", "profile.md"],
+            ].map(([directory, name], index) => ({
+              type: "dynamic-tool" as const,
+              toolCallId: `guidance-${index}`,
+              toolName: "read_skill_resource",
+              state: "output-available" as const,
+              input: {
+                path: `/.flue/packaged-skills/example/${directory}/${name}`,
+              },
+              output: "ok",
+            })),
+            {
+              type: "text",
+              text: "What process should we model?",
+              state: "done",
+            },
+            {
+              type: "dynamic-tool",
+              toolCallId: "template",
+              toolName: "read_skill_resource",
+              state: "output-available",
+              input: {
+                path: "/.flue/packaged-skills/example/templates/workpiece.md",
+              },
+              output: "ok",
+            },
+            {
+              type: "text",
+              text: "```runbook-ir\n# Workpiece\n```",
+              state: "done",
+            },
+          ],
+        },
+      ],
+    } as FlueConversationSnapshot;
+
+    expect(
+      ordinaryElicitationViolationsFrom(snapshot, { hasWorkpiece: true }),
+    ).toEqual([]);
+  });
+
   test("collects only successfully read skill resource paths", () => {
     const snapshot = {
       messages: [

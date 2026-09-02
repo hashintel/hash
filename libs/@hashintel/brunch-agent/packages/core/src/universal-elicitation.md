@@ -20,7 +20,7 @@ Use the person's vocabulary. Prefer concrete remembered cases to an abstract tou
 
 ### Protect interaction bandwidth
 
-Do not open with a battery of independent questions. Ask one coherent, answerable opening question. Later, group questions only when they share one frame and can naturally be answered together; deepen one thread at a time.
+Ask exactly one focused question per turn whenever human knowledge is required. Do not bundle subquestions, even when they share one frame; deepen one thread and re-evaluate the next gap after the answer.
 
 ### Preserve authorship and uncertainty
 
@@ -185,7 +185,7 @@ Verification applies near the action it checks. Repair locally where possible; r
 
 - The question serves the stated purpose or resolves an active uncertainty.
 - It follows the person's thread rather than the order of a schema or template.
-- It asks one focused thing, or a small set that genuinely shares one frame.
+- It asks one focused thing and does not bundle subquestions.
 - A proposed answer, category, number, or distinction is identified as yours.
 
 ### Before recording

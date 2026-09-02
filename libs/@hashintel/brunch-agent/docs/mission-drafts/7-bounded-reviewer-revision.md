@@ -6,7 +6,7 @@
 
 A fresh builder must read these sources before cutting or implementing this cluster:
 
-- [`../mission-archive/4-accepted-prompt-skill-workpiece-architecture.md`](../mission-archive/4-accepted-prompt-skill-workpiece-architecture.md) and [`../evidence/evaluations/vestera-architecture-candidate-v3/mission-5-handoff.md`](../evidence/evaluations/vestera-architecture-candidate-v3/mission-5-handoff.md) — accepted Mission 4 workpiece decisions, exact selected artifact, and carried limitations.
+- [`MISSION.md`](../../MISSION.md) — sole execution authority and the current Mission 4 workpiece decisions. Consume its exit join only after valid close evidence and owner acceptance exist.
 - [`MISSION.next.md`](../../MISSION.next.md) — compact shared frame, standing locks, and current mission joins.
 - [`README.md`](README.md) — durable draft authority, lifecycle, conversion, and oracle-gap rules.
 - [`docs/mission-archive/2-mechanical-capture-sweep.md`](../mission-archive/2-mechanical-capture-sweep.md) — exact-evidence capture, idempotency, Flue-history authority, and model-free scheduling.

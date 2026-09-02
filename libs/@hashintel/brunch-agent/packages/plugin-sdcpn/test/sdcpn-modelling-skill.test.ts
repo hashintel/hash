@@ -33,6 +33,9 @@ describe("the authored sdcpn-modelling skill", () => {
     const construction = readSkillFile("pn-construction.md");
     const checks = readSkillFile("checks.md");
     expect(instructions).toMatch(/ask exactly one focused question/u);
+    expect(instructions).toContain(
+      "Before asking any interactive question, verify that every resource required by the selected branch has already returned successfully",
+    );
     expect(instructions).toMatch(
       /Read `templates\/workpiece\.md` only when first creating or materially revising\s+the workpiece/u,
     );
@@ -64,5 +67,8 @@ describe("the authored sdcpn-modelling skill", () => {
       "substantive elicitation, review, workpiece revision, or construction",
     );
     expect(append).toContain("Activate the `sdcpn-modelling` skill");
+    expect(append).toContain(
+      "Do not ask an interactive question or create or revise a workpiece until the activated skill's required branch resources have returned successfully",
+    );
   });
 });

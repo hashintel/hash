@@ -6,7 +6,7 @@
 
 A fresh builder must read these durable sources before deepening this cluster:
 
-- [`../mission-archive/4-accepted-prompt-skill-workpiece-architecture.md`](../mission-archive/4-accepted-prompt-skill-workpiece-architecture.md) and the eventual accepted Mission 5–7 archives — inherited authority; this draft creates no live mission.
+- [`../../MISSION.md`](../../MISSION.md) — sole execution authority until Mission 4 validly closes; the eventual accepted Mission 4–7 archives become inherited authority.
 - [`../../MISSION.next.md`](../../MISSION.next.md) and [`README.md`](README.md) — shared frame, standing locks, draft authority, and lifecycle.
 - [`7-bounded-reviewer-revision.md`](7-bounded-reviewer-revision.md) and the eventual accepted Mission 5–7 close evidence — inherited real-path artifacts and proof. Draft promises are not join evidence.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) — accepted workpiece leg, falsified real-model construction, and the parser-valid-empty warning.

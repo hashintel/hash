@@ -1,25 +1,25 @@
 # Brunch future mission spine
 
-> Canonical future-planning spine, shared frame, and backlog index only. This file is not execution authority and authorizes no implementation. No mission is live after Mission 4 close; re-evaluate one draft and create a new `MISSION.md` on its own issue, branch, and PR before acting.
+> Canonical future-planning spine, shared frame, and backlog index only. This file is not execution authority and authorizes no implementation. [`MISSION.md`](MISSION.md) is the sole live authority. Detailed provisional clusters are context repositories, not missions; re-evaluate and convert one into `MISSION.md` before acting.
 
 This spine and its four linked drafts form one future-planning record. Keep each consequential meaning in one authoritative planning home: shared contracts and unallocated concerns live here; mission-specific detail lives in its draft. A spine pointer is not a second contract. Material omitted from a future cut returns to this record at full fidelity, and the consumed draft is removed.
 
 ## Current authority and accepted spine
 
-Mission 4 closed on 2026-09-02. Its [archive](docs/mission-archive/4-accepted-prompt-skill-workpiece-architecture.md) and [Mission 5 handoff](docs/evidence/evaluations/vestera-architecture-candidate-v3/mission-5-handoff.md) freeze the selected workpiece, exact source Flue snapshot, candidate manifest, comparative adjudication, visible witness, and accepted limitations. The parallel deployment branch's decision to install Mission 8 as live authority remains historical to that branch and is **not imported here**.
+Mission 4 remains live on this branch. Its exit handoff is a selected frozen workpiece, exact source Flue conversation, exact candidate-instrument manifest, and valid comparative evaluation/adjudication. The first v3 campaign and witness are historical failure evidence, not an accepted exit join. The parallel deployment branch's decision to archive Mission 4 and install Mission 8 as live authority remains historical to that branch and is **not imported here**.
 
-Mission 5 is the next candidate, not a live mission. Re-evaluate its linked draft against the frozen handoff and current deployment reality before cutting separate execution authority.
+Mission 5 is a future candidate, not a live mission. Re-evaluate its linked draft only after Mission 4 has produced and the owner has accepted its exit join.
 
 ```text
-M4  closed — accepted prompt/skill/workpiece architecture, with explicit limitations
-M5  next draft — capture-backed review over an honest prebuilt pair
+M4  live — repair and prove the accepted prompt/skill/workpiece architecture
+M5  future draft — capture-backed review over an honest prebuilt pair
 M6  automatic projection — ship one meaningful region of traceable live SDCPN projection
 M7  revision — ship bounded authorized reviewer revision and a scoped patch
 M8  deployment handoff — stopped after local application proof, before infrastructure deployment
 M9  optimisation — ship an accepted optimisation handoff after its consumer contract exists
 ```
 
-Every numbered mission from Mission 5 onward must produce a distinct visible advancement through the deployed Petrinaut/Brunch boundary once that boundary exists. Architecture, schema repair, fixtures, evaluation, rehearsal, and spikes may support that advancement but cannot be its sole outcome. Parallel work means separate issue, branch, PR, and mission authority; it never means multiple live missions here.
+Every numbered mission from Mission 4 onward must produce a distinct visible advancement through the deployed Petrinaut/Brunch boundary once that boundary exists. Architecture, schema repair, fixtures, evaluation, rehearsal, and spikes may support that advancement but cannot be its sole outcome. Parallel work means separate issue, branch, PR, and mission authority; it never means multiple live missions here.
 
 ## FE-1476 product frame
 
@@ -279,7 +279,7 @@ Do not rewrite Mission 3 as if all proof items passed. Its falsified provider-vi
 
 Selected paper hypothesis: **software behavior × Gherkin, Shape C**—a lightweight near-target behavior workpiece plus combined Gherkin authoring/checking. The workpiece holds purpose, rules, concrete context/event-or-action/outcome examples, terms, status, authorship, and open matters without mandatory Given/When/Then decomposition; target text can become a correction surface. Core owns universal epistemic conduct; plugin owns software behavior/Gherkin additions across Directives, Recognition, Operations, Coverage, Verification; grammar semantics come from authoritative Gherkin capability.
 
-The paper design lives under `packages/core/_drafts/ampcode`. Local `packages/plugin-gherkin/plugin.yaml` is content-territory evidence from inactive generalized YAML machinery, not a Flue/parser/binding route. A read-only Oracle review independently selected Shape C; that agreement is design advice, not runtime evidence.
+The retained paper instrument lives under [`evaluations/protocols/gherkin-shape-c-paper-v1/`](evaluations/protocols/gherkin-shape-c-paper-v1/protocol.md); its former temporary workbench is reconstructible at commit `5249a73f09977ad2ef007e08de7b7314f94568e1`. Local `packages/plugin-gherkin/plugin.yaml` is content-territory evidence from inactive generalized YAML machinery, not a Flue/parser/binding route. A read-only Oracle review independently selected Shape C; that agreement is design advice, not runtime evidence.
 
 Rejected **A** (mirror SDCPN's separate construction topology) overfits a distant/tool-mediated shape to near textual projection. Rejected **B** (`.feature` as workpiece and target) cannot honestly carry unsupported rules, authorship, current/proposed status, conflict, deferral, and unchecked binding without a hidden comments sidecar. Shape C reverses toward a less target-shaped workpiece if authorship laundering repeats, toward target text plus minimal open matters if transcription repeatedly has zero epistemic delta, or toward a separate checking phase if a real codebase step-binding capability earns it.
 
@@ -289,7 +289,7 @@ Evidence ladder remains authored text → parser-valid text → step-definition-
 
 Candidate pairing is **software correctness obligations × Dafny specification modules/program contracts**. “Formal-verification use cases” is too target-neutral for a plugin; “verified state evolution × kernel contracts” overfits one repository. Supplied kernels are project context, not plugin ontology: `Model`/`Action`/`Inv`/`Valid`/`Apply`, `TryStep`, `Rebase`, `Candidates`, and `Explains` are recognition examples, never required decomposition.
 
-The source prompt is [“From Intent to Proof: Dafny Verification for Web Apps”](http://midspiral.com/blog/from-intent-to-proof-dafny-verification-for-web-apps/). The Ampcode paper prototype records the pairing in its `core/SYSTEM.md` and `README.md` without Dafny plugin resources or production wiring. A read-only Oracle review selected this pairing over state-evolution and target-neutral alternatives; that remains design advice.
+The source prompt is [“From Intent to Proof: Dafny Verification for Web Apps”](http://midspiral.com/blog/from-intent-to-proof-dafny-verification-for-web-apps/). The removed Ampcode workbench recorded the pairing without Dafny plugin resources or production wiring and is reconstructible at commit `5249a73f09977ad2ef007e08de7b7314f94568e1`; this section is the current authoritative planning account. A read-only Oracle review selected this pairing over state-evolution and target-neutral alternatives; that remains design advice.
 
 Recognition spans initialization/representation invariants; pre/post/frame conditions; preservation, rejection, unchanged-on-failure; history/trace/round-trip/determinism/idempotence; abstraction/refinement/simulation/normalization/intent preservation; termination/progress; and trusted boundaries. It is an open repertoire. A nonnegative invariant can miss stale-redo while history laws catch it; initialization plus preservation proves only the expressed invariant for reachable states.
 
@@ -365,7 +365,7 @@ The candidate split has one live authority, one compact spine, four provisional 
 | Standing decisions | Shared constraints and standing locks | Retained with packaged-B disposition, authority boundaries, capture/workpiece separation, platform locks, and no generalized runtime/TUI. |
 | Structured-question semantics from accepted planning | Unallocated backlog / Structured-question vertical capability | Added to its sole planning home with the required model-to-resumed-turn proof and no `brunch_ask` reactivation. |
 
-Material was removed only where the deployment branch's observed application artifact superseded its earlier proposal or where a spine summary now points to a detailed draft. All open consequences and re-entry conditions remain above. Mission 4 subsequently closed into its archive and frozen Mission 5 handoff; no future mission or remote deployment was promoted.
+Material was removed only where the deployment branch's observed application artifact superseded its earlier proposal or where a spine summary now points to a detailed draft. All open consequences and re-entry conditions remain above. Mission 4 remains live; no future mission or remote deployment is promoted.
 
 ## Planning-split close record
 

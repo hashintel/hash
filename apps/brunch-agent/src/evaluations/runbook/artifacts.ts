@@ -89,7 +89,10 @@ export interface OrdinaryElicitationViolation {
     | "capture-tool-use"
     | "construction-resource-read"
     | "construction-tool-use"
+    | "late-required-resource"
+    | "missing-required-resource"
     | "missing-workpiece"
+    | "multiple-questions"
     | "unexpected-resource-read"
     | "unexpected-tool-use";
   readonly detail: string;
@@ -120,6 +123,61 @@ export const ordinaryElicitationViolationsFrom = (
   options: { readonly hasWorkpiece: boolean },
 ): readonly OrdinaryElicitationViolation[] => {
   const violations: OrdinaryElicitationViolation[] = [];
+  const successfulResourcePositions = new Map<string, number>();
+  let firstQuestionPosition: number | undefined;
+  let firstWorkpiecePosition: number | undefined;
+  let position = 0;
+
+  for (const message of snapshot.messages) {
+    if (message.purpose === "assistant") {
+      const questionCount = message.parts.reduce((count, part) => {
+        if (part.type !== "text") return count;
+        const interactiveText = part.text.replace(
+          /```runbook-ir\s*\n[\s\S]*?```/gu,
+          "",
+        );
+        return count + (interactiveText.match(/\?/gu)?.length ?? 0);
+      }, 0);
+      if (questionCount > 1) {
+        violations.push({
+          code: "multiple-questions",
+          detail: `${message.id}: ${questionCount} question marks`,
+        });
+      }
+    }
+    for (const part of message.parts) {
+      position += 1;
+      if (message.purpose !== "assistant") continue;
+      if (part.type === "text") {
+        if (firstQuestionPosition === undefined && part.text.includes("?")) {
+          firstQuestionPosition = position;
+        }
+        if (
+          firstWorkpiecePosition === undefined &&
+          part.text.includes(`\`\`\`${RUNBOOK_IR_FENCE}`)
+        ) {
+          firstWorkpiecePosition = position;
+        }
+        continue;
+      }
+      if (
+        part.type !== "dynamic-tool" ||
+        part.toolName !== "read_skill_resource" ||
+        part.state !== "output-available" ||
+        typeof part.input !== "object" ||
+        part.input === null ||
+        !("path" in part.input) ||
+        typeof part.input.path !== "string"
+      ) {
+        continue;
+      }
+      const resourceName = basename(part.input.path);
+      if (!successfulResourcePositions.has(resourceName)) {
+        successfulResourcePositions.set(resourceName, position);
+      }
+    }
+  }
+
   for (const toolName of interviewerToolNamesFrom(snapshot)) {
     if (ORDINARY_TOOL_NAMES.has(toolName)) continue;
     violations.push({
@@ -141,7 +199,39 @@ export const ordinaryElicitationViolationsFrom = (
       detail: path,
     });
   }
-  if (!options.hasWorkpiece) {
+
+  const requireResourceBefore = (
+    resourceName: string,
+    boundary: number | undefined,
+    boundaryDescription: string,
+  ): void => {
+    const resourcePosition = successfulResourcePositions.get(resourceName);
+    if (resourcePosition === undefined) {
+      violations.push({
+        code: "missing-required-resource",
+        detail: resourceName,
+      });
+    } else if (boundary !== undefined && resourcePosition > boundary) {
+      violations.push({
+        code: "late-required-resource",
+        detail: `${resourceName}: after ${boundaryDescription}`,
+      });
+    }
+  };
+
+  requireResourceBefore(
+    "universal-elicitation.md",
+    firstQuestionPosition,
+    "first question",
+  );
+  requireResourceBefore("profile.md", firstQuestionPosition, "first question");
+  if (options.hasWorkpiece) {
+    requireResourceBefore(
+      "workpiece.md",
+      firstWorkpiecePosition,
+      "first workpiece",
+    );
+  } else {
     violations.push({
       code: "missing-workpiece",
       detail: "No recoverable runbook-ir workpiece was emitted.",

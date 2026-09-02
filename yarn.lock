@@ -434,6 +434,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@apps/brunch-agent@workspace:apps/brunch-agent"
   dependencies:
+    "@anthropic-ai/sdk": "npm:0.74.0"
     "@earendil-works/pi-ai": "npm:0.83.0"
     "@flue/opentelemetry": "npm:2.0.3"
     "@flue/react": "npm:2.0.3"

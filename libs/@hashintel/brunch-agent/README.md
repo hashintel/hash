@@ -3,10 +3,9 @@
 Brunch is the stateful elicitation harness and package family at `libs/@hashintel/brunch-agent`.
 
 - [`AGENTS.md`](./AGENTS.md) is the agent charter.
-- No mission is currently live. A branch with active implementation must install `MISSION.md` as
-  its sole execution authority. [`MISSION.next.md`](./MISSION.next.md) is the self-contained
-  canonical future spine and is not execution authority. Closed missions live under
-  [`docs/mission-archive/`](./docs/mission-archive/).
+- [`MISSION.md`](./MISSION.md) is the current objective and stop conditions.
+  [`MISSION.next.md`](./MISSION.next.md) is the self-contained canonical future spine and is not
+  execution authority. Closed missions live under [`docs/mission-archive/`](./docs/mission-archive/).
 - [`CONTEXT.md`](./CONTEXT.md) defines the domain language.
 - [`docs/specs/`](./docs/specs/) and [`docs/adr/`](./docs/adr/) record the harness contract and
   prior design decisions (see [`docs/adr/README.md`](./docs/adr/README.md)).

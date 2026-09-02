@@ -10,7 +10,7 @@ import { runNodeScript } from "./run-node-script";
 const testDirectory = import.meta.dirname;
 const runnerPath = join(
   testDirectory,
-  "../src/evaluations/runbook/prospective-runbook-v2-run.ts",
+  "../../../libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/run.ts",
 );
 const repositoryRoot = join(testDirectory, "../../..");
 const frozenBaselineDirectory = join(
@@ -63,7 +63,7 @@ test.each([
 );
 
 test("hermetic candidate runs reject a symlink into immutable v1", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "brunch-v2-baseline-link-"));
+  const directory = await mkdtemp(join(tmpdir(), "brunch-v4-baseline-link-"));
   const outputDirectory = join(directory, "baseline-alias");
   await symlink(frozenBaselineDirectory, outputDirectory, "dir");
   try {
@@ -82,7 +82,7 @@ test("hermetic candidate runs reject a symlink into immutable v1", async () => {
 
 test("hermetic candidate runs admit only the checked-in faux modules", async () => {
   const outputDirectory = await mkdtemp(
-    join(tmpdir(), "brunch-candidate-v2-module-guard-"),
+    join(tmpdir(), "brunch-candidate-v4-module-guard-"),
   );
   try {
     const { exitCode, stderr } = await runNodeScript(
@@ -103,7 +103,7 @@ test("hermetic candidate runs admit only the checked-in faux modules", async () 
 
 test("hermetic candidate runs reject a model API key", async () => {
   const outputDirectory = await mkdtemp(
-    join(tmpdir(), "brunch-candidate-v2-key-guard-"),
+    join(tmpdir(), "brunch-candidate-v4-key-guard-"),
   );
   try {
     const { exitCode, stderr } = await runNodeScript(
@@ -124,7 +124,7 @@ test("hermetic candidate runs reject a model API key", async () => {
 
 test("paid candidate runs reject a different output namespace", async () => {
   const outputDirectory = await mkdtemp(
-    join(tmpdir(), "brunch-candidate-v2-wrong-output-"),
+    join(tmpdir(), "brunch-candidate-v4-wrong-output-"),
   );
   try {
     const { exitCode, stderr } = await runNodeScript(
@@ -143,7 +143,7 @@ test("paid candidate runs reject a different output namespace", async () => {
 
     expect(exitCode).not.toBe(0);
     expect(stderr).toContain(
-      "Paid candidate runs must write to vestera-prospective-candidate-v2",
+      "Paid candidate runs must write to vestera-architecture-candidate-v4",
     );
   } finally {
     await rm(outputDirectory, { recursive: true, force: true });
@@ -162,13 +162,13 @@ test("paid candidate runs reject changed frozen configuration", async () => {
 
   expect(exitCode).not.toBe(0);
   expect(stderr).toContain(
-    "require the frozen prospective-runbook-v2 model, turn, and latency configuration",
+    "require the frozen prospective-runbook-v4 model, turn, and latency configuration",
   );
 });
 
 test("the hermetic candidate run records its exact instrument and workpiece", async () => {
   const outputDirectory = await mkdtemp(
-    join(tmpdir(), "brunch-candidate-v2-success-"),
+    join(tmpdir(), "brunch-candidate-v4-success-"),
   );
   try {
     const { exitCode, stdout, stderr } = await runNodeScript(
@@ -180,10 +180,10 @@ test("the hermetic candidate run records its exact instrument and workpiece", as
     expect(exitCode, stderr || stdout).toBe(0);
     const resultLine = stdout
       .split("\n")
-      .find((line) => line.startsWith("PROSPECTIVE_RUNBOOK_V2_RESULT "));
+      .find((line) => line.startsWith("PROSPECTIVE_RUNBOOK_V4_RESULT "));
     expect(resultLine, stdout).toBeDefined();
     const result = JSON.parse(
-      resultLine!.slice("PROSPECTIVE_RUNBOOK_V2_RESULT ".length),
+      resultLine!.slice("PROSPECTIVE_RUNBOOK_V4_RESULT ".length),
     ) as {
       artifactBase: string;
       hasIr: boolean;
@@ -195,8 +195,8 @@ test("the hermetic candidate run records its exact instrument and workpiece", as
       wroteCaptureStore: boolean;
     };
     expect(result).toMatchObject({
-      protocolId: "prospective-runbook-v2",
-      outputNamespaceId: "vestera-prospective-candidate-v2",
+      protocolId: "prospective-runbook-v4",
+      outputNamespaceId: "vestera-architecture-candidate-v4",
       replication: 1,
       hasIr: true,
       wroteCaptureStore: false,
@@ -212,6 +212,13 @@ test("the hermetic candidate run records its exact instrument and workpiece", as
       await readFile(`${result.artifactBase}.json`, "utf8"),
     ) as {
       campaignFingerprint: string;
+      comparisonTarget: {
+        memberRunIds: string[];
+        outputNamespaceId: string;
+        protocolId: string;
+        qualityPopulation: string;
+        runtimeAccounting: string;
+      };
       expertCalls: Array<{
         observedModel: string | null;
         requestedModel: string;
@@ -240,6 +247,16 @@ test("the hermetic candidate run records its exact instrument and workpiece", as
       };
     };
     expect(record.status).toBe("completed");
+    expect(record.comparisonTarget).toEqual({
+      protocolId: "prospective-runbook-v1",
+      outputNamespaceId: "vestera-prospective-baseline-v1",
+      memberRunIds: [
+        "runbook-elicitation-2026-08-31T10-50-28-709Z-20a4817f",
+        "runbook-elicitation-2026-08-31T10-56-34-754Z-4b75737c",
+      ],
+      qualityPopulation: "valid-workpieces",
+      runtimeAccounting: "reported-separately",
+    });
     expect(record.campaignFingerprint).toMatch(/^[0-9a-f]{64}$/u);
     expect(record.instrument.sourceCommit).toMatch(/^[0-9a-f]{40}$/u);
     expect(record.instrument.builtArtifactManifestSha256).toMatch(
@@ -301,14 +318,18 @@ test("the hermetic candidate run records its exact instrument and workpiece", as
       "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/pn-construction.md",
       "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/checks.md",
       "apps/brunch-agent/src/agents/chat-agent/agent.ts",
-      "apps/brunch-agent/src/evaluations/runbook/prospective-runbook-v2-run.ts",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/run.ts",
       "libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/opening-message.md",
       "libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/situation-pack.md",
       "libs/@hashintel/brunch-agent/evaluations/oracles/vestera-scheduling/truth-ledger-v1-prospective.yaml",
       "libs/@hashintel/brunch-agent/evaluations/oracles/ir-quality-ruler-v1.md",
       "libs/@hashintel/brunch-agent/evaluations/protocols/ir-quality-ruler-v1/omniscient-grader.md",
       "libs/@hashintel/brunch-agent/evaluations/protocols/ir-quality-ruler-v1/cold-ir-reviewer.md",
-      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v2/protocol.md",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/mission-4-product-witness-v2/protocol.md",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/protocol.md",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/run.ts",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/grade.ts",
+      "libs/@hashintel/brunch-agent/evaluations/protocols/prospective-runbook-v4/score-report.ts",
     ]) {
       expect(record.instrument.fileSha256).toHaveProperty(requiredPath);
     }
@@ -319,8 +340,8 @@ test("the hermetic candidate run records its exact instrument and workpiece", as
 
 test("two identical hermetic runs retain the same build manifest and fingerprint", async () => {
   const outputDirectories = await Promise.all([
-    mkdtemp(join(tmpdir(), "brunch-candidate-v2-stability-a-")),
-    mkdtemp(join(tmpdir(), "brunch-candidate-v2-stability-b-")),
+    mkdtemp(join(tmpdir(), "brunch-candidate-v4-stability-a-")),
+    mkdtemp(join(tmpdir(), "brunch-candidate-v4-stability-b-")),
   ]);
   try {
     const records = await Promise.all(
@@ -372,7 +393,7 @@ test.each([
   "an adversarial hermetic %s is retained as invalid",
   async (_, violation, expectedCode) => {
     const outputDirectory = await mkdtemp(
-      join(tmpdir(), "brunch-candidate-v2-invalid-"),
+      join(tmpdir(), "brunch-candidate-v4-invalid-"),
     );
     try {
       const { exitCode, stdout, stderr } = await runNodeScript(
@@ -408,7 +429,7 @@ test.each([
 
 test("a runtime failure retains a machine-readable candidate artifact", async () => {
   const outputDirectory = await mkdtemp(
-    join(tmpdir(), "brunch-candidate-v2-failure-"),
+    join(tmpdir(), "brunch-candidate-v4-failure-"),
   );
   try {
     const { exitCode, stderr } = await runNodeScript(
@@ -421,7 +442,7 @@ test("a runtime failure retains a machine-readable candidate artifact", async ()
     );
 
     expect(exitCode).not.toBe(0);
-    expect(stderr).toContain("PROSPECTIVE_RUNBOOK_V2_FAILURE");
+    expect(stderr).toContain("PROSPECTIVE_RUNBOOK_V4_FAILURE");
     const files = await readdir(outputDirectory);
     expect(files).toHaveLength(1);
     expect(files[0]).toMatch(/\.failure-[0-9a-f]{8}\.json$/u);
@@ -438,15 +459,15 @@ test("a runtime failure retains a machine-readable candidate artifact", async ()
       rawConversationSnapshot?: unknown;
     };
     expect(failureRecord).toMatchObject({
-      protocolId: "prospective-runbook-v2",
-      outputNamespaceId: "vestera-prospective-candidate-v2",
+      protocolId: "prospective-runbook-v4",
+      outputNamespaceId: "vestera-architecture-candidate-v4",
       replication: 1,
       status: "invalid",
       invalidReason: "runtime-failure",
       failure: { message: "Deliberate faux expert failure" },
     });
     expect(failureRecord.runId).toContain(
-      "prospective-runbook-v2-replication-1",
+      "prospective-runbook-v4-replication-1",
     );
     expect(failureRecord.rawConversationSnapshot).toBeDefined();
   } finally {
@@ -456,7 +477,7 @@ test("a runtime failure retains a machine-readable candidate artifact", async ()
 
 test("an artifact write collision retains the original failure at a distinct path", async () => {
   const outputDirectory = await mkdtemp(
-    join(tmpdir(), "brunch-candidate-v2-write-failure-"),
+    join(tmpdir(), "brunch-candidate-v4-write-failure-"),
   );
   try {
     const { exitCode, stderr } = await runNodeScript(
@@ -492,7 +513,7 @@ test("an artifact write collision retains the original failure at a distinct pat
 
 test("cleanup errors are visible and retained without masking the run", async () => {
   const outputDirectory = await mkdtemp(
-    join(tmpdir(), "brunch-candidate-v2-cleanup-failure-"),
+    join(tmpdir(), "brunch-candidate-v4-cleanup-failure-"),
   );
   let databasePath: string | undefined;
   try {
@@ -506,13 +527,13 @@ test("cleanup errors are visible and retained without masking the run", async ()
     );
 
     expect(exitCode).not.toBe(0);
-    expect(stderr).toContain("PROSPECTIVE_RUNBOOK_V2_CLEANUP_FAILURE");
+    expect(stderr).toContain("PROSPECTIVE_RUNBOOK_V4_CLEANUP_FAILURE");
     const resultLine = stdout
       .split("\n")
-      .find((line) => line.startsWith("PROSPECTIVE_RUNBOOK_V2_RESULT "));
+      .find((line) => line.startsWith("PROSPECTIVE_RUNBOOK_V4_RESULT "));
     expect(resultLine).toBeDefined();
     const { artifactBase } = JSON.parse(
-      resultLine!.slice("PROSPECTIVE_RUNBOOK_V2_RESULT ".length),
+      resultLine!.slice("PROSPECTIVE_RUNBOOK_V4_RESULT ".length),
     ) as { artifactBase: string };
     databasePath = join(tmpdir(), `${basename(artifactBase)}.db`);
     const cleanupName = (await readdir(outputDirectory)).find((name) =>
