@@ -1185,30 +1185,30 @@ describe("prepareScenarioCompiler", () => {
     }
   });
 
-  it("compiles parameter values without evaluating the initial state", () => {
+  it("compiles parameter numbers without evaluating the initial state", () => {
     const brokenInitialState = scenario({
       scenarioParameters: [{ identifier: "speed", type: "real", default: 1 }],
       parameterOverrides: { p1: "scenario.speed * 2" },
       // An initial-state expression that fails at evaluation: `compile`
-      // reports it, the values-only entry point never runs it.
+      // reports it, the parameters-only entry point never runs it.
       initialState: { type: "per_place", content: { pl1: "unknown_name" } },
     });
     const prepared = prepareScenarioCompiler(
       brokenInitialState,
       lowerScenarioToHir(brokenInitialState),
-      [param("p1", "rate", "0.5")],
+      [param("p1", "rate", "0.5"), param("p2", "enabled", "false", "boolean")],
       [place("pl1", "Waiting", null)],
     );
 
     expect(prepared.compile({ speed: 3 }).ok).toBe(false);
-    const valuesOnly = prepared.compileParameterValues({ speed: 3 });
-    expect(valuesOnly.ok).toBe(true);
-    if (valuesOnly.ok) {
-      expect(valuesOnly.parameterValues.rate).toBe("6");
+    const numbers = prepared.compileParameterNumbers({ speed: 3 });
+    expect(numbers.ok).toBe(true);
+    if (numbers.ok) {
+      expect(numbers.parameters).toEqual({ rate: 6, enabled: false });
     }
   });
 
-  it("fails compileParameterValues on override errors, like compile", () => {
+  it("fails compileParameterNumbers on override errors, like compile", () => {
     const broken = scenario({
       parameterOverrides: { p1: "scenario.missing + 1" },
     });
@@ -1217,7 +1217,7 @@ describe("prepareScenarioCompiler", () => {
       lowerScenarioToHir(broken),
       [param("p1", "rate", "0.5")],
     );
-    const outcome = prepared.compileParameterValues({});
+    const outcome = prepared.compileParameterNumbers({});
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) {
       expect(outcome.errors[0]?.source).toBe("parameterOverride");
