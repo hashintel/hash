@@ -327,7 +327,24 @@ Voice is a git-parent/integration constraint, not a mission. Stack on `kostandin
 
 Brunch has local content-free OTLP/gRPC export and graceful flush; hosted reachability and real normal/failure attributes remain open. Prove `gen_ai.conversation.id` equals Flue instance id and decide `traceparent` propagation. Keep prompt/response/tool content off until privacy/retention/access policy. Mission 5 needs only tracer latency/tool evidence; broad OTel remains a release gate.
 
-Simulated-conversation viewing is a parallel spike, not a protocol rewrite. Drive with `createFlueClient → send → wait → history()`, not PTY polling. The human observer uses the same conversation URL. `:4321` can follow text through `useFlueAgent`; rendering `dynamic-tool`, `data-*`, and skill activation would make it useful. The missing capability is a second observer, not a Herdr webview or mandatory Petrinaut client tools.
+Simulated-conversation viewing remains evaluation infrastructure, not a protocol rewrite. The
+2026-09-02 [live-observable persona spike](docs/evidence/evaluations/live-observable-persona-spike/README.md)
+proved one local three-turn line: a restricted Herdr/Pi persona used
+`createFlueClient → send → read(admission)` against the production `ChatAgent`, while the existing
+`:4321` `useFlueAgent` view and transcript CLI projected the same canonical user/assistant order.
+Submission-scoped `read(admission)` is the actor correlation primitive; `history()` remains the
+observer/audit surface, not a latest-reply lookup. The browser must attach after the first
+admission: an observer opened before the Flue instance existed stayed idle until reloaded, whereas
+attachment to the created instance caught up history, streamed the next reply, and reconstructed
+all settled messages after reload. The harness was useful but not load-bearing for Mission 4's
+candidate run because the inherited headless production path remains available and no candidate
+attempt failed for lack of this view.
+
+The missing future capability is still a broader second observer, not a Herdr webview, PTY polling,
+or mandatory Petrinaut client tools. Rendering `dynamic-tool`, `data-*`, and skill activation could
+make the observer more useful only when a named consumer requires it. Re-enter pre-creation
+discovery, longer/full persona runs, client-tool execution, pending-admission recovery, or remote
+access only with that consumer and its oracle.
 
 ### Simulation-backed checking
 
