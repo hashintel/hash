@@ -37,6 +37,7 @@ import { createDataType } from "../../ontology/primitive/data-type";
 import { createEntityType } from "../../ontology/primitive/entity-type";
 import { createPropertyType } from "../../ontology/primitive/property-type";
 import { getOrCreateOwningWebId } from "../system-webs-and-entities";
+import { relocateWebLinksToRightEntityWeb } from "./util/relocate-links";
 import { upgradeWebEntities } from "./util/upgrade-entities";
 import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
 
@@ -1015,6 +1016,34 @@ export const upgradeEntitiesToNewTypeVersion: ImpureGraphFunction<
       migrationState,
       migrateProperties,
       webId,
+    });
+  }
+};
+
+/**
+ * Move the links of the given type into the web of their right entity, wherever the two differ.
+ */
+export const relocateLinksToRightEntityWeb: ImpureGraphFunction<
+  { linkEntityTypeBaseUrl: BaseUrl },
+  Promise<void>,
+  false,
+  true
+> = async (context, authentication, { linkEntityTypeBaseUrl }) => {
+  /**
+   *  We have to do this web-by-web because we don't have a single actor that can see all entities in all webs
+   */
+  const { users, orgs } = await getExistingUsersAndOrgs(
+    context,
+    authentication,
+    {},
+  );
+
+  for (const webEntity of [...users, ...orgs]) {
+    await relocateWebLinksToRightEntityWeb({
+      authentication,
+      context,
+      linkEntityTypeBaseUrl,
+      webId: extractWebIdFromEntityId(webEntity.metadata.recordId.entityId),
     });
   }
 };
