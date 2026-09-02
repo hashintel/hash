@@ -129,12 +129,14 @@ export const sweepRangeDraws = async (
     const globalIndex = from + localIndex;
     for (let column = 0; column < width; column++) {
       const { axis, axisIndex, low, high } = ranged[column]!;
-      const raw =
-        low + sweepRunFraction(seed, globalIndex, axisIndex) * (high - low);
-      // 12 significant digits, the precision cached rungs are keyed at.
+      const fraction = sweepRunFraction(seed, globalIndex, axisIndex);
+      // An integer axis gets one equal-width bucket per value, so the
+      // endpoints draw as often as the interior; rounding a continuous draw
+      // would halve their share.
       values[localIndex * width + column] = axis.integer
-        ? Math.round(raw)
-        : Number(raw.toPrecision(12));
+        ? low + Math.min(Math.floor(fraction * (high - low + 1)), high - low)
+        : // 12 significant digits, the precision cached rungs are keyed at.
+          Number((low + fraction * (high - low)).toPrecision(12));
     }
   }
   return { identifiers: ranged.map((entry) => entry.axis.identifier), values };

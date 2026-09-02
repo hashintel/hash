@@ -16,7 +16,10 @@ import { use, useState } from "react";
 import { Select } from "@hashintel/ds-components";
 
 import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
-import { axisValueAt } from "../../../../../../react/experiments/parameter-grid";
+import {
+  axisStep,
+  axisValueAt,
+} from "../../../../../../react/experiments/parameter-grid";
 import { ContourSurface } from "../../../../../components/contour-surface";
 import { formatAxisValue } from "../shared/format-axis-value";
 import {
@@ -177,6 +180,7 @@ export const SweepSurface = ({
   const readoutAt = (axis: ExperimentParameterAxis, fraction: number): string =>
     `${axis.identifier} = ${formatAxisValue(
       axisValueAt(axis, Math.round(fraction * axis.stepCount)),
+      axisStep(axis),
     )}`;
 
   const cellValues: ContourSurfaceValues = new Map(

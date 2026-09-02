@@ -176,6 +176,13 @@ export function axisValueAt(
   return normalizeRangeValue(axis.integer ? Math.round(raw) : raw);
 }
 
+/** The value distance between adjacent positions of an axis. */
+export const axisStep = (axis: {
+  min: number;
+  max: number;
+  stepCount: number;
+}): number => (axis.max - axis.min) / axis.stepCount;
+
 /** The quantized position nearest to `value` (0..stepCount). */
 export function axisPositionFor(
   axis: ExperimentParameterAxis,

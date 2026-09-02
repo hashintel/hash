@@ -21,7 +21,10 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { axisValueAt } from "../../../../../../react/experiments/parameter-grid";
+import {
+  axisStep,
+  axisValueAt,
+} from "../../../../../../react/experiments/parameter-grid";
 import { formatAxisValue } from "../shared/format-axis-value";
 import { RangeSlider } from "./sweep-navigator/range-slider";
 
@@ -166,10 +169,8 @@ const AxisControl = ({
       )}
       <span className={readoutStyle}>
         {isPoint
-          ? formatAxisValue(axisValueAt(axis, selected.from))
-          : `${formatAxisValue(axisValueAt(axis, selected.from))} – ${formatAxisValue(
-              axisValueAt(axis, selected.to),
-            )}`}
+          ? formatAxisValue(axisValueAt(axis, selected.from), axisStep(axis))
+          : `${formatAxisValue(axisValueAt(axis, selected.from), axisStep(axis))} – ${formatAxisValue(axisValueAt(axis, selected.to), axisStep(axis))}`}
       </span>
     </>
   );
