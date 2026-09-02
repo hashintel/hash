@@ -113,6 +113,14 @@ jobs:
               ecs:        []
             },
             {
+              package:    "@apps/brunch-agent",
+              service:    "brunch-agent",
+              push:       ["ghcr"],
+              dockerfile: "apps/brunch-agent/docker/Dockerfile",
+              context:    ".",
+              ecs:        []
+            },
+            {
               package:    "@apps/hash-ai-worker-ts",
               service:    "ai-worker-ts",
               push:       ["ecr", "ghcr"],

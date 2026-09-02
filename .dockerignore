@@ -18,6 +18,10 @@
 # Petrinaut bundles its user-facing docs into the build via `?raw` imports,
 # so they must be present in the Docker context (not just README.md).
 !libs/@hashintel/petrinaut/docs/*.md
+# Brunch imports its core prompt and authored Flue skill through the build
+# graph. Admit only those production Markdown inputs.
+!libs/@hashintel/brunch-agent/packages/core/src/SYSTEM.md
+!libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/*.md
 
 ########################
 ## Same as in .gitignore
