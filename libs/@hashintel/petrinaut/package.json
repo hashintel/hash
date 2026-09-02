@@ -50,7 +50,7 @@
     "build": "yarn build:lib && yarn build:buildinfo",
     "build:buildinfo": "panda ship --config panda.ship.config.ts --outfile dist/panda.buildinfo.json",
     "build:lib": "vite build",
-    "dev": "storybook dev",
+    "dev": "node scripts/dev.mjs",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",

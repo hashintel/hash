@@ -57,18 +57,17 @@ rebuilding it. Storybook builds the editor from source with fast refresh, and
 can run against the same real optimizer:
 
 ```sh
-yarn dev:petrinaut-optimization --storybook
+turbo run dev --filter @hashintel/petrinaut -- --with-optimizer-service
 ```
 
-The container lifecycle is identical (steps 1–3 and 6); instead of the
-website, it starts Petrinaut's Storybook through Turborepo with the provider
-environment set. Open the **Petrinaut → With real optimizer** story: the full
+The container lifecycle is identical (steps 1–3 and 5); Petrinaut's dev task
+(`libs/@hashintel/petrinaut/scripts/dev.mjs`) starts Storybook with the
+provider environment set instead of the website. Open the **Petrinaut → With real optimizer** story: the full
 editor on a net with an objective, where optimization studies created in
 Simulate mode run on the local service. Storybook's dev server carries the
 same `/api/petrinaut-opt/*` proxy as the website's, and the story explains
-how to launch when the environment is missing. Remaining arguments go to the
-Storybook script (`yarn dev:petrinaut-optimization --storybook -- --port 6007`
-through Turborepo's pass-through).
+how to launch when the environment is missing. Remaining arguments go to
+Storybook (`turbo run dev --filter @hashintel/petrinaut -- --with-optimizer-service --port 6007`).
 
 ## Why plain `yarn dev` shows no Optimizations view
 

@@ -445,7 +445,7 @@ export const Default: Story = {
 
 /**
  * Whether the host serves a real Petrinaut Optimizer behind the Storybook
- * dev proxy. `yarn dev:petrinaut-optimization --storybook` sets it.
+ * dev proxy; the dev task's `--with-optimizer-service` flag sets it.
  */
 const realOptimizerEnabled =
   (import.meta as { env?: Record<string, string | undefined> }).env?.[
@@ -483,9 +483,12 @@ export const WithRealOptimizer: Story = {
     ) : (
       <div className={realOptimizerGuidanceStyle}>
         This story talks to a real Petrinaut Optimizer and is inactive: start
-        Storybook through{" "}
-        <code>yarn dev:petrinaut-optimization --storybook</code> from the
-        repository root, which runs the optimizer container and sets{" "}
+        Storybook with{" "}
+        <code>
+          turbo run dev --filter @hashintel/petrinaut --
+          --with-optimizer-service
+        </code>{" "}
+        from the repository root, which starts the optimizer container and sets{" "}
         <code>VITE_PETRINAUT_OPT_PROVIDER=service</code>.
       </div>
     ),
