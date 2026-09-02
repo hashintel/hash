@@ -6,15 +6,15 @@ import {
   type LspWorkerFactory,
 } from "./transport";
 
+import type {
+  ConstraintSource,
+  LowerConstraintContext,
+  LowerConstraintResult,
+} from "../constraint/lower";
 import type { PetrinautExtensionSettings } from "../extensions";
 // Type-only: must not pull the compiler (`typescript`) into client bundles.
 import type { HirCompileResult, ScenarioHir } from "../hir";
 import type { CompileHirArtifactsOptions } from "../hir/compile";
-import type {
-  LowerOptimizationConstraintContext,
-  LowerOptimizationConstraintResult,
-  OptimizationConstraintSpace,
-} from "../hir/constraint";
 import type { AdHocSynthesisContext } from "../simulation/authoring/scenario/ad-hoc/ad-hoc-scenario";
 import type { ReadableStore } from "../store";
 import type { Scenario, SDCPN } from "../types/sdcpn";
@@ -135,16 +135,15 @@ export interface LanguageClient {
   requestFormatExpression(this: void, code: string): Promise<string | null>;
 
   /**
-   * Lowers one optimization constraint's TypeScript source to HIR (in the
-   * worker) and checks it produces a boolean. The result embeds in an
-   * optimization manifest.
+   * Lowers one constraint's TypeScript source to HIR (in the worker) and
+   * checks it produces a boolean. The result is the constraint ready to
+   * carry, e.g. in an optimization manifest.
    */
-  requestConstraintHir(
+  requestConstraint(
     this: void,
-    code: string,
-    space: OptimizationConstraintSpace,
-    context: LowerOptimizationConstraintContext,
-  ): Promise<LowerOptimizationConstraintResult>;
+    source: ConstraintSource,
+    context: LowerConstraintContext,
+  ): Promise<LowerConstraintResult>;
 
   /**
    * Tear down the transport. Pending requests reject with "Worker terminated".
@@ -403,11 +402,11 @@ export function createLanguageClient(
     requestFormatExpression(code) {
       return sendRequest<string | null>("sdcpn/formatExpression", { code });
     },
-    requestConstraintHir(code, space, context) {
-      return sendRequest<LowerOptimizationConstraintResult>(
-        "sdcpn/lowerConstraint",
-        { code, space, context },
-      );
+    requestConstraint(source, context) {
+      return sendRequest<LowerConstraintResult>("sdcpn/lowerConstraint", {
+        source,
+        context,
+      });
     },
 
     dispose() {

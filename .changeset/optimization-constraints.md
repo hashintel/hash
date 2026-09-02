@@ -4,4 +4,4 @@
 "@hashintel/petrinaut-cli": patch
 ---
 
-Optimization studies can carry boolean constraints — parameter-space expressions and metric-like state conditions — authored in the create-optimization drawer, lowered to serializable HIR, embedded in the manifest, exposed through the describe protocol, and evaluable from the Python binding (`petrinaut.Constraint`, value and signed margin). Declarative only: nothing enforces them yet.
+Constraints are a concept of their own: boolean conditions over the parameter space or the simulation state, authored as TypeScript, lowered to serializable HIR, and validated against a runtime schema of the full HIR grammar. Optimization studies carry a list of them, authored in the create-optimization drawer and exposed through the describe protocol, where the Python binding reads them as callables with a boolean, a signed margin, a pydantic validator, and a SymPy view. Declarative only: nothing enforces them yet.

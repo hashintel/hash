@@ -45,7 +45,8 @@ import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-cont
 import type { OptimizationParameterDraft } from "./optimization-parameter-row";
 import type {
   AdHocScenarioState,
-  LowerOptimizationConstraintResult,
+  ConstraintSource,
+  LowerConstraintResult,
   Metric,
   PetrinautOptimizationInput,
   Scenario,
@@ -337,28 +338,29 @@ function makeSuccessfulLanguageClient(): LanguageClientContextValue {
     ),
     requestHover: vi.fn(() => Promise.resolve(null)),
     requestSignatureHelp: vi.fn(() => Promise.resolve(null)),
-    requestConstraintHir: vi.fn((_code: string, space: string) =>
+    requestConstraint: vi.fn((source: ConstraintSource) =>
       Promise.resolve({
         ok: true,
-        hir: {
-          hirVersion: 1,
-          surface:
-            space === "parameterSpace" ? "scenario-expression" : "metric",
-          params: [
-            {
-              name: space === "parameterSpace" ? "scenario" : "state",
+        constraint: {
+          ...source,
+          hir: {
+            hirVersion: 1,
+            surface:
+              source.space === "parameters" ? "scenario-expression" : "metric",
+            params:
+              source.space === "parameters"
+                ? []
+                : [{ name: "state", span: { start: 0, length: 0 } }],
+            body: {
+              kind: "boolLit",
+              id: 0,
               span: { start: 0, length: 0 },
+              value: true,
             },
-          ],
-          body: {
-            kind: "boolLit",
-            id: 0,
             span: { start: 0, length: 0 },
-            value: true,
           },
-          span: { start: 0, length: 0 },
         },
-      } as LowerOptimizationConstraintResult),
+      } as LowerConstraintResult),
     ),
     requestScenarioHir: vi.fn(() =>
       Promise.resolve({
@@ -741,15 +743,18 @@ describe("CreateOptimizationDrawer", () => {
     await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
 
     expect(
-      vi.mocked(languageClient.requestConstraintHir).mock.calls[0]?.slice(0, 2),
-    ).toEqual(["scenario.infected_ratio < 0.9", "parameterSpace"]);
+      vi.mocked(languageClient.requestConstraint).mock.calls[0]?.[0],
+    ).toMatchObject({
+      space: "parameters",
+      code: "scenario.infected_ratio < 0.9",
+    });
     const submittedInput = createOptimization.mock.calls[0]![0];
-    expect(submittedInput.constraints?.parameterSpace).toHaveLength(1);
-    expect(submittedInput.constraints?.parameterSpace[0]).toMatchObject({
+    expect(submittedInput.constraints).toHaveLength(1);
+    expect(submittedInput.constraints?.[0]).toMatchObject({
+      space: "parameters",
       code: "scenario.infected_ratio < 0.9",
       hir: { surface: "scenario-expression" },
     });
-    expect(submittedInput.constraints?.stateSpace).toEqual([]);
   });
 
   it("submits a transient custom metric without persisting it", async () => {

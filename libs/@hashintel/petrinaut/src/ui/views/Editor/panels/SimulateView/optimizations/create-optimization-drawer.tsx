@@ -73,8 +73,8 @@ import type {
 import type {
   AdHocScenarioState,
   AdHocSynthesisError,
+  Constraint,
   Metric,
-  PetrinautOptimizationConstraints,
   PetrinautOptimizationInput,
   PetrinautOptimizationParameterBinding,
   Scenario,
@@ -599,7 +599,7 @@ export function buildPetrinautOptimizationInput({
   seed: number;
   dt: number;
   maxTime: number;
-  constraints?: PetrinautOptimizationConstraints;
+  constraints?: Constraint[];
 }): PetrinautOptimizationInput {
   // Keyed by scenario parameter identifiers from the net definition: no
   // prototype.
@@ -698,7 +698,7 @@ export function buildAdHocPetrinautOptimizationInput({
   seed: number;
   dt: number;
   maxTime: number;
-  constraints?: PetrinautOptimizationConstraints;
+  constraints?: Constraint[];
 }): PetrinautOptimizationInput {
   return petrinautOptimizationInputSchema.parse({
     kind: "petrinaut-optimization",
@@ -728,9 +728,7 @@ export const CreateOptimizationDrawer = ({
   onClose: () => void;
 }) => {
   const { extensions, petriNetDefinition, title } = use(SDCPNContext);
-  const { requestHirArtifacts, requestConstraintHir } = use(
-    LanguageClientContext,
-  );
+  const { requestHirArtifacts, requestConstraint } = use(LanguageClientContext);
   const { createOptimization } = use(OptimizationsContext);
   const { enableAdHocScenarios, webGpuEnabled } = use(UserSettingsContext);
   const source = useOptimizationSource();
@@ -996,42 +994,31 @@ export const CreateOptimizationDrawer = ({
         sdcpn: petriNetDefinition,
         extensions,
       };
-      const constraints: PetrinautOptimizationConstraints = {
-        parameterSpace: [],
-        stateSpace: [],
-      };
+      const constraints: Constraint[] = [];
       for (const [space, drafts_] of [
-        ["parameterSpace", parameterConstraintDrafts],
-        ["stateSpace", stateConstraintDrafts],
+        ["parameters", parameterConstraintDrafts],
+        ["state", stateConstraintDrafts],
       ] as const) {
         for (const [index, draft] of drafts_.entries()) {
           if (draft.code.trim() === "") {
             continue;
           }
-          const lowered = await requestConstraintHir(
-            draft.code,
-            space,
+          const lowered = await requestConstraint(
+            { space, id: draft.id, code: draft.code },
             constraintContext,
           );
           if (!lowered.ok) {
             setIsSubmitting(false);
             setError(
-              `${space === "parameterSpace" ? "Parameter" : "State"} constraint ${index + 1}: ${lowered.diagnostics[0]?.message ?? "does not compile"}`,
+              `${space === "parameters" ? "Parameter" : "State"} constraint ${index + 1}: ${lowered.diagnostics[0]?.message ?? "does not compile"}`,
             );
             return;
           }
-          constraints[space].push({
-            id: draft.id,
-            code: draft.code,
-            hir: lowered.hir,
-          });
+          constraints.push(lowered.constraint);
         }
       }
       const manifestConstraints =
-        constraints.parameterSpace.length > 0 ||
-        constraints.stateSpace.length > 0
-          ? constraints
-          : undefined;
+        constraints.length > 0 ? constraints : undefined;
 
       const input = adHocBindings
         ? buildAdHocPetrinautOptimizationInput({

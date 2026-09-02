@@ -80,11 +80,17 @@ export {
   type HirValue,
 } from "./hir/interpret";
 export {
-  lowerOptimizationConstraint,
-  type LowerOptimizationConstraintContext,
-  type LowerOptimizationConstraintResult,
-  type OptimizationConstraintSpace,
-} from "./hir/constraint";
+  lowerConstraint,
+  type ConstraintSource,
+  type LowerConstraintContext,
+  type LowerConstraintResult,
+} from "./constraint/lower";
+export {
+  hirExprSchema,
+  hirFunctionSchema,
+  hirSurfaceKindSchema,
+  spanSchema,
+} from "./hir/hir-schema";
 export {
   lowerTypeScriptToHir,
   type LowerTypeScriptResult,
