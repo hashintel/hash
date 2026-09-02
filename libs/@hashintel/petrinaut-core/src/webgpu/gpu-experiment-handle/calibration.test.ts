@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { PAIR_EXACT_TOKEN_LIMIT } from "../compile-net-shader/pair-selection";
 import {
   probeDerivedCapacities,
   probeRunCount,
@@ -46,7 +47,10 @@ const shaderAt = (
   };
 };
 
-const session = (capacities: Record<string, number>): CalibrationSession => {
+const session = (
+  capacities: Record<string, number>,
+  { pairConsumed = false }: { pairConsumed?: boolean } = {},
+): CalibrationSession => {
   const initial = new Map(Object.entries(capacities));
   return {
     backend: {
@@ -62,6 +66,7 @@ const session = (capacities: Record<string, number>): CalibrationSession => {
             realFields: ["x", "y"],
             discreteFields: [],
             colored: true,
+            pairConsumed,
           },
         ],
         uncolouredOnly: false,
@@ -146,6 +151,32 @@ describe("runUntilCalibrated", () => {
     expect(run.ok && run.result.overflowRuns).toBe(1);
     expect(attempts).toHaveLength(1 + PROBE_POLICY.maxSlabGrowths);
     expect(current.capacities.get("p")).toBe(4 ** PROBE_POLICY.maxSlabGrowths);
+  });
+
+  it("stops growing a pair-consumed slab at the unranking limit", async () => {
+    // Past the limit the shader would pair the wrong tokens, so the slab is
+    // held there and the still-overflowing attempt is handed back at once
+    // rather than re-run at the same size.
+    const current = session({ p: 4096 }, { pairConsumed: true });
+    const { execute, attempts } = scripted(
+      Array.from({ length: 10 }, () => ({
+        ok: true as const,
+        result: outcome({ overflowRuns: 1 }),
+      })),
+    );
+
+    const run = await runUntilCalibrated({
+      session: current,
+      runsFor: () => 8,
+      windows: [],
+      execute,
+      policy: PROBE_POLICY,
+      stopped: () => false,
+    });
+
+    expect(run.ok && run.result.overflowRuns).toBe(1);
+    expect(current.capacities.get("p")).toBe(PAIR_EXACT_TOKEN_LIMIT);
+    expect(attempts).toHaveLength(2);
   });
 
   it("replans the windows from the observed range after an escape, once", async () => {

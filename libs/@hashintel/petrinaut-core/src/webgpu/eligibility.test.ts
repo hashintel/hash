@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { sirModel } from "../examples/sir-model";
 import { supplyChainWithDisruption } from "../examples/supply-chain-with-disruption";
+import { PAIR_EXACT_TOKEN_LIMIT } from "./compile-net-shader/pair-selection";
 import { assessGpuEligibility, formatGpuIneligibility } from "./eligibility";
 
 import type { Color, Place, SDCPN, Transition } from "../types/sdcpn";
@@ -143,6 +144,34 @@ describe("assessGpuEligibility", () => {
     );
 
     expect(result.eligible).toBe(true);
+    if (!result.eligible) return;
+    expect(result.profile.places[0]?.pairConsumed).toBe(true);
+  });
+
+  it("rejects a pair arc on a typed place whose capacity exceeds the exact unranking range", () => {
+    // The shader unranks pairs in f32, and the closed form first rounds at
+    // 5793 tokens: a place that can hold that many would pair the wrong
+    // tokens silently.
+    const pairNet = (capacity: number) =>
+      net({
+        types: [color("c", [{ elementId: "x", name: "x", type: "real" }])],
+        places: [place("p", { colorId: "c", capacity })],
+        transitions: [
+          transition("t", [{ placeId: "p", weight: 2, type: "standard" }], []),
+        ],
+      });
+
+    expect(assessGpuEligibility(pairNet(PAIR_EXACT_TOKEN_LIMIT)).eligible).toBe(
+      true,
+    );
+
+    const result = assessGpuEligibility(pairNet(PAIR_EXACT_TOKEN_LIMIT + 1));
+    expect(result.eligible).toBe(false);
+    if (result.eligible) return;
+    expect(result.reasons.map((reason) => reason.code)).toContain(
+      "colored-pair-capacity",
+    );
+    expect(formatGpuIneligibility(result.reasons)).toContain("5792");
   });
 
   it("rejects an input arc wider than a pair on a typed place", () => {

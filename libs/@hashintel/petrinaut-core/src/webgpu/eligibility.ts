@@ -15,6 +15,7 @@ import {
   normalizePlaceCapacity,
   PLACE_CAPACITY_UNBOUNDED,
 } from "../simulation/engine/capacity";
+import { PAIR_EXACT_TOKEN_LIMIT } from "./compile-net-shader/pair-selection";
 
 import type { SDCPN } from "../types/sdcpn";
 
@@ -34,6 +35,7 @@ export type GpuIneligibilityReason = {
   code:
     | "unsupported-attribute-type"
     | "colored-input-arc-weight"
+    | "colored-pair-capacity"
     | "no-transitions"
     | "state-too-large";
   message: string;
@@ -86,6 +88,12 @@ export type GpuPlaceProfile = {
   /** Names of `integer`/`boolean` attributes, carried but not integrated. */
   discreteFields: string[];
   colored: boolean;
+  /**
+   * Whether a weight-2 typed arc consumes from this place. The shader
+   * unranks pairs in f32, exact only up to `PAIR_EXACT_TOKEN_LIMIT` tokens,
+   * so such a place's slots are held at that bound.
+   */
+  pairConsumed: boolean;
 };
 
 /**
@@ -101,6 +109,15 @@ export const placeCountCeiling = (place: GpuPlaceProfile): number | null => {
     ? null
     : place.declaredCapacity;
 };
+
+/**
+ * The most slots a derived-capacity place may be given: unbounded, unless a
+ * pair arc consumes from it, where the f32 unranking stops being exact.
+ */
+export const derivedSlabCeiling = (
+  place: Pick<GpuPlaceProfile, "pairConsumed">,
+): number =>
+  place.pairConsumed ? PAIR_EXACT_TOKEN_LIMIT : Number.POSITIVE_INFINITY;
 
 /** Storage words per token: one f32 per real field, one u32 per discrete field. */
 export const tokenWordCount = (
@@ -135,6 +152,14 @@ export function assessGpuEligibility(
   // Per-run state always carries: one u32 count per place and one u32 firing
   // count per transition, plus an RNG word and status.
   let stateWords = sdcpn.places.length + sdcpn.transitions.length + 2;
+
+  const pairConsumedPlaceIds = new Set(
+    sdcpn.transitions.flatMap((transition) =>
+      transition.inputArcs
+        .filter((arc) => arc.type !== "inhibitor" && arc.weight === 2)
+        .flatMap((arc) => getArcEndpointPlaceId(arc) ?? []),
+    ),
+  );
 
   for (const place of sdcpn.places) {
     const colored = place.colorId !== null;
@@ -177,6 +202,7 @@ export function assessGpuEligibility(
         realFields,
         discreteFields,
         colored: true,
+        pairConsumed: pairConsumedPlaceIds.has(place.id),
       });
     } else {
       places.push({
@@ -188,6 +214,7 @@ export function assessGpuEligibility(
         realFields: [],
         discreteFields: [],
         colored: false,
+        pairConsumed: false,
       });
     }
   }
@@ -203,22 +230,30 @@ export function assessGpuEligibility(
   // combinatorial (a product of binomials) with a data-dependent trip count,
   // which is exactly what a SIMT execution model handles worst. Weight-1 arcs
   // need no enumeration at all.
-  const coloredPlaceIds = new Set(
-    places.filter((place) => place.colored).map((place) => place.id),
-  );
+  const profileById = new Map(places.map((place) => [place.id, place]));
   for (const transition of sdcpn.transitions) {
     for (const arc of transition.inputArcs) {
       const placeId = getArcEndpointPlaceId(arc);
-      if (
-        arc.type !== "inhibitor" &&
-        arc.weight > MAX_COLORED_INPUT_ARC_WEIGHT &&
-        placeId !== null &&
-        coloredPlaceIds.has(placeId)
-      ) {
+      const place = placeId === null ? undefined : profileById.get(placeId);
+      if (arc.type === "inhibitor" || place === undefined || !place.colored) {
+        continue;
+      }
+      if (arc.weight > MAX_COLORED_INPUT_ARC_WEIGHT) {
         reasons.push({
           code: "colored-input-arc-weight",
           itemId: transition.id,
           message: `Transition \`${transition.name}\` consumes ${arc.weight} typed tokens from one place. The GPU backend supports at most ${MAX_COLORED_INPUT_ARC_WEIGHT} per place: a wider arc means choosing among \`C(n, w)\` combinations, and only the pair case has an unranking that keeps the engine's ordering.`,
+        });
+      }
+      if (
+        arc.weight === 2 &&
+        place.capacitySource === "declared" &&
+        place.declaredCapacity > PAIR_EXACT_TOKEN_LIMIT
+      ) {
+        reasons.push({
+          code: "colored-pair-capacity",
+          itemId: transition.id,
+          message: `Transition \`${transition.name}\` consumes a pair of typed tokens from \`${place.name}\`, which declares a capacity of ${place.declaredCapacity}. The GPU picks pairs by unranking in f32 arithmetic, which is exact only up to ${PAIR_EXACT_TOKEN_LIMIT} tokens; lower the capacity or run on the CPU.`,
         });
       }
     }

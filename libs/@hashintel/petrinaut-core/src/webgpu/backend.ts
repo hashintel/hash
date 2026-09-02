@@ -11,7 +11,11 @@
  */
 import { resolveNetParameterValues } from "../parameter-values";
 import { compileNetShader } from "./compile-net-shader";
-import { assessGpuEligibility, formatGpuIneligibility } from "./eligibility";
+import {
+  assessGpuEligibility,
+  derivedSlabCeiling,
+  formatGpuIneligibility,
+} from "./eligibility";
 import { hirFromArtifacts } from "./hir-from-artifacts";
 import { requestGpuDevice } from "./runner";
 
@@ -171,7 +175,10 @@ export async function requestGpuExperimentBackend(
     }
     const marking = request.initialMarking?.[place.id];
     const initialCount = Array.isArray(marking) ? marking.length : 0;
-    probeCapacities.set(place.id, Math.max(64, 4 * initialCount + 16));
+    probeCapacities.set(
+      place.id,
+      Math.min(Math.max(64, 4 * initialCount + 16), derivedSlabCeiling(place)),
+    );
   }
 
   /** The profile with concrete slabs for every derived-capacity place. */

@@ -26,6 +26,14 @@
  * entirely.
  */
 
+/**
+ * The most tokens a place may hold for {@link unrankPair} to stay exact in
+ * f32: the discriminant `(2n - 1)² - 8x` first rounds at n = 5793 (see
+ * `pair-selection.test.ts`). The eligibility gate refuses a pair-consumed
+ * place declaring more, and calibration caps a derived slab here.
+ */
+export const PAIR_EXACT_TOKEN_LIMIT = 5792;
+
 /** Number of unordered pairs over `n` tokens. */
 export function pairCount(n: number): number {
   return n < 2 ? 0 : (n * (n - 1)) / 2;
@@ -35,9 +43,8 @@ export function pairCount(n: number): number {
  * The `x`-th unordered pair `(i, j)`, `i < j`, in lexicographic order.
  *
  * Closed form rather than a search, so a GPU invocation derives its own pair from
- * a flat index with no loop. Verified exact in f32 for every pair up to n = 4096
- * (first mismatch at n = 5793), which is far above any typed-place capacity the
- * eligibility gate's per-run state cap admits — see `pair-selection.test.ts`.
+ * a flat index with no loop. Exact in f32 up to `PAIR_EXACT_TOKEN_LIMIT` tokens,
+ * which is why a pair-consumed place's capacity is held below that bound.
  */
 export function unrankPair(x: number, n: number): [number, number] {
   const a = 2 * n - 1;

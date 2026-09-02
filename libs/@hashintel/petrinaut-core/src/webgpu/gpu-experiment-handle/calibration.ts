@@ -8,8 +8,12 @@
  * escape replans the window (a uniform). Seeds derive from absolute run
  * indices, so a re-run reproduces the same trajectories: a window re-run
  * cannot escape again, and slab growth is monotone.
+ *
+ * A slab stops growing at its place's `derivedSlabCeiling`; an attempt that
+ * still overflows there is handed back as it stands, and the caller sends the
+ * experiment to the CPU.
  */
-import { tokenWordCount } from "../eligibility";
+import { derivedSlabCeiling, tokenWordCount } from "../eligibility";
 import {
   anyEscapes,
   planInitialWindows,
@@ -144,17 +148,27 @@ const recompileAt = (
 };
 /* eslint-enable no-param-reassign */
 
-const growSlabs = (session: CalibrationSession, factor: number) =>
-  recompileAt(
-    session,
-    new Map(
-      [...session.capacities].map(([placeId, capacity]) => [
-        placeId,
-        capacity * factor,
-      ]),
-    ),
-    "Recompiling at a grown token capacity failed",
+/** Every slab scaled by `factor`, each held at its place's ceiling. */
+const grownSlabs = (
+  session: CalibrationSession,
+  factor: number,
+): Map<string, number> => {
+  const ceilingById = new Map(
+    session.backend.profile.places.map((place) => [
+      place.id,
+      derivedSlabCeiling(place),
+    ]),
   );
+  return new Map(
+    [...session.capacities].map(([placeId, capacity]) => [
+      placeId,
+      Math.min(
+        capacity * factor,
+        ceilingById.get(placeId) ?? Number.POSITIVE_INFINITY,
+      ),
+    ]),
+  );
+};
 
 /**
  * Runs an attempt until neither a slab overflow nor a window escape remains,
@@ -193,10 +207,21 @@ export const runUntilCalibrated = async (options: {
       if (growths >= policy.maxSlabGrowths) {
         return { ok: true, result, windows };
       }
+      const grown = grownSlabs(session, policy.slabGrowth);
+      const atCeiling = [...grown].every(
+        ([placeId, capacity]) => capacity === session.capacities.get(placeId),
+      );
+      if (atCeiling) {
+        return { ok: true, result, windows };
+      }
       growths += 1;
-      const grown = growSlabs(session, policy.slabGrowth);
-      if (!grown.ok) {
-        return grown;
+      const recompiled = recompileAt(
+        session,
+        grown,
+        "Recompiling at a grown token capacity failed",
+      );
+      if (!recompiled.ok) {
+        return recompiled;
       }
       continue;
     }
@@ -234,10 +259,9 @@ export const slabsFromProbe = (
   ] of session.shader.derivedCapacityPlaceIndices.entries()) {
     const place = session.backend.profile.places[placeIndex]!;
     const stats = probe.derivedPlaceMaxes[slot] ?? { max: 0, meanRunMax: 0 };
-    const capacity = Math.max(
-      8,
-      Math.ceil(stats.max * 1.5) + 4,
-      placeCounts[placeIndex] ?? 0,
+    const capacity = Math.min(
+      Math.max(8, Math.ceil(stats.max * 1.5) + 4, placeCounts[placeIndex] ?? 0),
+      derivedSlabCeiling(place),
     );
     const slabBytes = capacity * Math.max(1, tokenWordCount(place)) * 4;
     if (
