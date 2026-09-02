@@ -270,7 +270,8 @@ describe("VoiceTurnController", () => {
 
     harness.emitSession({
       key: { connectionEpoch: 1, contentIndex: 0, itemId: "item-user" },
-      type: "transcription-failed",
+      text: "The supervisor approves it.",
+      type: "completed",
     });
 
     expect(harness.controller.getSnapshot()).toMatchObject({

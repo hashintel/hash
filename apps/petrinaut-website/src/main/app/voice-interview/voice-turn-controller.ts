@@ -586,6 +586,7 @@ export class VoiceTurnController {
       });
       return;
     }
+    this.#inputTurnPending = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
     this.#update({
