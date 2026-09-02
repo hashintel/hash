@@ -1,7 +1,7 @@
 import type {
   BrunchAskInput,
   BrunchAskOutput,
-} from "@hashintel/brunch-agent-transport-aisdk/client-tools";
+} from "@hashintel/brunch-agent/client-tools";
 
 export const brunchAskFromComposerText = ({
   text,

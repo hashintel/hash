@@ -22,6 +22,10 @@
           {
             "name": "@hashintel/petrinaut",
             "message": "Brunch libraries must not depend on Petrinaut implementations."
+          },
+          {
+            "name": "@hashintel/brunch-agent",
+            "message": "Brunch transports must remain independent of Brunch core."
           }
         ],
         "patterns": [
@@ -38,8 +42,8 @@
             "message": "Brunch transports must remain substrate-independent."
           },
           {
-            "group": ["@hashintel/brunch-agent-*"],
-            "message": "A transport may depend inward on the harness, not on Brunch extensions."
+            "group": ["@hashintel/brunch-agent/*", "@hashintel/brunch-agent-*"],
+            "message": "Brunch transports must remain independent of Brunch core and extensions."
           }
         ]
       }

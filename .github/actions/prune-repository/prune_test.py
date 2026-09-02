@@ -58,10 +58,10 @@ class BrunchRequestedExtras(unittest.TestCase):
         self.assertEqual(extra_paths_for_requested({TRANSPORT}), [])
         self.assertEqual(extra_paths_for_requested({WEBSITE}), [])
 
-    def test_transitive_core_in_the_closure_does_not_add_the_app(self) -> None:
+    def test_core_in_the_dependency_closure_does_not_add_the_app(self) -> None:
         dependencies = {
-            WEBSITE: frozenset({TRANSPORT}),
-            TRANSPORT: frozenset({CORE}),
+            WEBSITE: frozenset({CORE, TRANSPORT}),
+            TRANSPORT: frozenset(),
             CORE: frozenset(),
         }
         expanded = fixpoint_expand({WEBSITE}, dependencies)
