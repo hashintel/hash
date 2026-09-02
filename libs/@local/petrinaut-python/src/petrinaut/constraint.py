@@ -145,6 +145,11 @@ class StateConstraint(m.StateConstraint):
     metric body and observed while a run goes."""
 
     def _locals(self, state: Mapping[str, Any]) -> dict[str, Value]:
+        # The annotation is a promise callers can break; the check is for them.
+        if not isinstance(state, Mapping):  # pyright: ignore[reportUnnecessaryIsInstance]
+            raise HirEvaluationError(
+                f"A state constraint takes a state record, got {type(state).__name__}"
+            )
         # The metric surface declares the state record as its first parameter.
         name = self.hir.params[0].name if self.hir.params else "state"
         return {name: dict(state)}

@@ -126,8 +126,9 @@ class Study(BaseModel):
 ```
 
 A parameter constraint over plain arithmetic also has a symbolic reading with
-the `sympy` extra (`petrinaut-python[sympy]`): `ordering.to_sympy()` returns
-the relation over one real symbol per parameter, ready for
+the `sympy` extra (`petrinaut-python[sympy]`): `ordering.to_sympy()` returns a
+`SymbolicConstraint` whose `.expression` is the relation over one real symbol
+per parameter (`.scenario` and `.parameters` map names to symbols), ready for
 `sympy.solve_univariate_inequality` or `simplify`. Arrays, records, strings
 and `Math.random()` have no symbolic form and raise `NotSymbolicError`.
 
