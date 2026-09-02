@@ -556,6 +556,16 @@ class TestRunTimeShapeErrors:
                 self._node("rangeCall", args=[self._num(-1e308), self._num(1e308)])
             )
 
+    def test_overflowing_backward_range_is_empty(self) -> None:
+        # The span underflows to -Infinity; TypeScript ceilings it to zero
+        # elements, and so must the evaluator instead of calling it oversized.
+        assert (
+            self._eval(
+                self._node("rangeCall", args=[self._num(1e308), self._num(-1e308)])
+            )
+            == []
+        )
+
     def test_huge_integers_coerce_like_js_numbers(self) -> None:
         # An int past the double range is a valid Scalar; JS would read it
         # as Infinity, and so must the evaluator instead of overflowing.
