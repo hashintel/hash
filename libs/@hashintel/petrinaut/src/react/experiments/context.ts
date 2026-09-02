@@ -202,21 +202,11 @@ export type ExperimentsContextValue = {
   /** Moves a sweep's navigator; compute follows the selection. */
   setSweepSelection: (experimentId: string, selection: SweepSelection) => void;
   /**
-   * Brings a sweep combination up to at least `minRuns` finished runs on the
-   * background lane, resolving with its snapshot — the surface view's feed.
-   * Resolves null for unknown experiments and disposed sessions.
-   */
-  sampleSweepCell: (
-    experimentId: string,
-    position: Readonly<Record<string, number>>,
-    minRuns: number,
-  ) => Promise<SweepCellSnapshot | null>;
-  /**
-   * Samples many sweep-surface cells at once and returns each cell's
-   * per-metric mean, index-aligned with `positions` (null entries for cells
-   * with no finished runs). One batch when the swept parameters do not shape
-   * the initial marking (per-run parameter draws); the per-cell path
-   * otherwise. Resolves null with no session.
+   * Samples sweep-surface cells to `runsPerCell` runs each and returns each
+   * cell's per-metric mean, index-aligned with `positions` (null entries for
+   * cells with no finished runs). Waits for the navigator's own selection to
+   * stream first. One batch when the cells share an initial marking; the
+   * per-cell path otherwise. Resolves null with no session.
    */
   sampleSurfaceCells: (
     experimentId: string,
@@ -265,7 +255,6 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   cancelExperiment: () => {},
   removeExperiment: () => {},
   setSweepSelection: () => {},
-  sampleSweepCell: () => Promise.resolve(null),
   sampleSurfaceCells: () => Promise.resolve(null),
   sampleDetachedObjective: () => Promise.resolve(null),
 };
@@ -282,7 +271,13 @@ export const ExperimentsContext = createContext<ExperimentsContextValue>(
  */
 export type ExperimentsActionsValue = Pick<
   ExperimentsContextValue,
-  "setSelectedExperimentId" | "cancelExperiment" | "removeExperiment"
+  | "setSelectedExperimentId"
+  | "createExperiment"
+  | "cancelExperiment"
+  | "removeExperiment"
+  | "setSweepSelection"
+  | "sampleSurfaceCells"
+  | "sampleDetachedObjective"
 >;
 
 export const ExperimentsActionsContext = createContext<ExperimentsActionsValue>(

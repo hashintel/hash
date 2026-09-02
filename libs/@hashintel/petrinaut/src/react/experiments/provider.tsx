@@ -7,28 +7,14 @@ import { use, useEffect, useRef, useState } from "react";
 import { v4 as generateUuid } from "uuid";
 
 import {
-  compileScenario,
-  getOwn,
-  prepareScenarioCompiler,
-  synthesizeAdHocScenario,
-  type CompileScenarioOutcome,
-  type InitialMarking,
   type MonteCarloExperiment,
-  type MonteCarloExperimentState,
   getDefaultMonteCarloShardCount,
   type WorkerFactory,
-  DEFAULT_PETRINAUT_EXTENSIONS,
-  type Scenario,
-  type ScenarioParameter,
 } from "@hashintel/petrinaut-core";
 import {
   createReusableWorkerFactory,
-  createWorkerPoolExperimentBackend,
-  selectExperimentBackend,
-  WORKER_POOL_BACKEND_ID,
-  type ExperimentBackend,
   type ExperimentBackendRegistration,
-  type ExperimentRequest,
+  selectExperimentBackend,
   type ReusableWorkerFactory,
 } from "@hashintel/petrinaut-core/experiments";
 import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
@@ -44,31 +30,43 @@ import {
 import { NotificationsContext } from "../notifications/context";
 import { SDCPNContext } from "../state/sdcpn-context";
 import {
-  type CreateExperimentInput,
   type ExperimentComputeBackend,
   type ExperimentRecord,
-  type ExperimentStatus,
   ExperimentsActionsContext,
   type ExperimentsActionsValue,
   ExperimentsContext,
   type ExperimentsContextValue,
   isExperimentActive,
   isTerminalExperimentStatus,
-  type DetachedObjectiveRequest,
 } from "./context";
-import { sweepCellObjective } from "./contour-grid";
 import {
-  buildParameterAxis,
-  fullSweepSelection,
-  type ExperimentParameterAxis,
-} from "./parameter-grid";
-import { translateRangeDraws } from "./sweep-run-overrides";
+  assertExperimentInput,
+  buildSweepAxes,
+  compileExperimentScenario,
+  createExperimentRequestBuilder,
+  experimentBackendRegistrations,
+  experimentSdcpnWithMetrics,
+  newExperimentRecord,
+} from "./provider/create-experiment";
 import {
-  createSweepSession,
-  type SweepSession,
-  type SweepCellSnapshot,
-  type SweepSessionUpdate,
-} from "./sweep-session";
+  createDetachedObjectiveSampler,
+  type DetachedObjectiveSampler,
+} from "./provider/detached-objective";
+import {
+  latestFramesById,
+  mapExperimentStatus,
+  patchExperimentRecords,
+} from "./provider/experiment-records";
+import { createSweepBatchInstantiator } from "./provider/sweep-batch-instantiation";
+import { createSweepSession, type SweepSession } from "./sweep-session";
+
+import type { ExperimentParameterAxis } from "./parameter-grid";
+import type {
+  BuildExperimentRequest,
+  SweptScenarioCompiler,
+} from "./provider/shared/experiment-request";
+
+export { buildSweepAxes } from "./provider/create-experiment";
 
 type ExperimentsProviderProps = React.PropsWithChildren<{
   workerFactory?: WorkerFactory;
@@ -92,187 +90,20 @@ type PendingExperimentRegistration = {
   abortController: AbortController;
 };
 
-/**
- * Expands the create-form's per-parameter inputs into fixed string values and
- * sweep axes. Ranged inputs on parameters the scenario does not declare are
- * ignored, matching how fixed values have always behaved.
- */
-export function buildSweepAxes(
-  scenario: Scenario | null,
-  inputs: CreateExperimentInput["scenarioParameterValues"],
-): { fixedValues: Record<string, string>; axes: ExperimentParameterAxis[] } {
-  const fixedValues: Record<string, string> = {};
-  const axes: ExperimentParameterAxis[] = [];
-
-  for (const parameter of scenario?.scenarioParameters ?? []) {
-    const input = inputs[parameter.identifier] ?? { mode: "fixed", value: "" };
-    if (input.mode === "fixed") {
-      fixedValues[parameter.identifier] = input.value;
-      continue;
-    }
-
-    const outcome = buildParameterAxis(parameter, input);
-    if (!outcome.ok) {
-      throw new Error(outcome.error);
-    }
-    axes.push(outcome.axis);
-  }
-
-  return { fixedValues, axes };
-}
-
-/**
- * The last input/output pair: progress-only publishes reuse the previous
- * frames array, and rebuilding this map per publish was pure waste.
- */
-let latestFramesCache: {
-  frames: readonly ExperimentRecord["metricFrames"][number][];
-  latest: Record<string, ExperimentRecord["metricFrames"][number]>;
-} | null = null;
-
-/** Last frame per metric id, the shape the summary cards read. */
-function latestFramesById(
-  frames: readonly ExperimentRecord["metricFrames"][number][],
-): Record<string, ExperimentRecord["metricFrames"][number]> {
-  if (latestFramesCache?.frames === frames) {
-    return latestFramesCache.latest;
-  }
-  const latest: Record<string, ExperimentRecord["metricFrames"][number]> = {};
-  for (const frame of frames) {
-    latest[frame.metricId] = frame;
-  }
-  latestFramesCache = { frames, latest };
-  return latest;
-}
-
-function mapExperimentStatus(
-  status: MonteCarloExperimentState,
-): ExperimentStatus {
-  switch (status) {
-    case "Initializing":
-    case "Ready":
-      return "initializing";
-    case "Running":
-      return "running";
-    case "Complete":
-      return "complete";
-    case "Error":
-      return "error";
-    case "Cancelled":
-      return "cancelled";
-  }
-}
-
-function parseScenarioParameterValue(
-  parameter: ScenarioParameter,
-  rawValue: string | undefined,
-): number | string {
-  const value =
-    rawValue === undefined || rawValue.trim() === ""
-      ? String(parameter.default)
-      : rawValue.trim();
-
-  if (parameter.type === "boolean") {
-    const normalizedValue = value.toLowerCase();
-    if (["1", "true", "yes", "on"].includes(normalizedValue)) {
-      return 1;
-    }
-    if (["0", "false", "no", "off"].includes(normalizedValue)) {
-      return 0;
-    }
-    return `${parameter.identifier} must be true or false`;
-  }
-
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    return `${parameter.identifier} must be a finite number`;
-  }
-  if (parameter.type === "integer" && !Number.isInteger(parsed)) {
-    return `${parameter.identifier} must be an integer`;
-  }
-  if (parameter.type === "ratio" && (parsed < 0 || parsed > 1)) {
-    return `${parameter.identifier} must be between 0 and 1`;
-  }
-
-  return parsed;
-}
-
-function parseScenarioParameterValues(
-  scenario: Scenario,
-  rawValues: Record<string, string>,
-): { values: Record<string, number>; errors: string[] } {
-  const values: Record<string, number> = {};
-  const errors: string[] = [];
-
-  for (const parameter of scenario.scenarioParameters) {
-    const parsed = parseScenarioParameterValue(
-      parameter,
-      rawValues[parameter.identifier],
-    );
-
-    if (typeof parsed === "string") {
-      errors.push(parsed);
-    } else {
-      values[parameter.identifier] = parsed;
-    }
-  }
-
-  return { values, errors };
-}
-
-function assertExperimentInput(input: CreateExperimentInput): void {
-  if (input.name.trim() === "") {
-    throw new Error("Experiment name is required");
-  }
-  if (!Number.isInteger(input.runCount) || input.runCount <= 0) {
-    throw new Error("Runs must be a positive integer");
-  }
-  if (!Number.isInteger(input.seed)) {
-    throw new Error("Seed must be an integer");
-  }
-  if (!Number.isFinite(input.dt) || input.dt <= 0) {
-    throw new Error("Time step must be a positive number");
-  }
-  if (!Number.isFinite(input.maxTime) || input.maxTime <= 0) {
-    throw new Error("Max time must be a positive number");
-  }
-  if (input.metricSpecs.length === 0) {
-    throw new Error("Define at least one metric");
-  }
-
-  const metricIds = new Set<string>();
-  for (const metricSpec of input.metricSpecs) {
-    const metricId = metricSpec.id.trim();
-    if (metricId === "") {
-      throw new Error("Metric id is required");
-    }
-    if (metricIds.has(metricId)) {
-      throw new Error(`Metric id "${metricId}" is duplicated`);
-    }
-    metricIds.add(metricId);
-    if (metricSpec.label.trim() === "") {
-      throw new Error("Metric label is required");
-    }
-    if (metricSpec.kind === "expression" && metricSpec.code.trim() === "") {
-      throw new Error(`Metric "${metricSpec.label}" code is required`);
-    }
-  }
-}
-
 export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   children,
   workerFactory,
   experimentShardCount,
 }) => {
   const { extensions, petriNetDefinition } = use(SDCPNContext);
-  const { requestHirArtifacts, requestScenarioHir } = use(
-    LanguageClientContext,
-  );
+  const languageClient = use(LanguageClientContext);
   const { addNotification } = use(NotificationsContext);
   const navigation = usePetrinautNavigation();
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
+  const languageClientRef = useLatest(languageClient);
   const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
+  const shardCountRef = useLatest(experimentShardCount);
   // One worker pool per provider: batches lease workers instead of spawning
   // and killing a pool's worth per ladder rung and per surface cell. The
   // base factory is read at call time, so an injected factory stays live;
@@ -307,7 +138,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       pool?.dispose();
     };
   }, []);
-  const shardCountRef = useLatest(experimentShardCount);
   const registrationsRef = useRef(
     new Map<string, ExperimentHandleRegistration>(),
   );
@@ -315,42 +145,10 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     new Map<string, PendingExperimentRegistration>(),
   );
   const sweepSessionsRef = useRef(new Map<string, SweepSession>());
-  /**
-   * Per sweep: compiles a cell's initial marking to a comparable string
-   * (null when that cell's values do not compile). Surface chunks batch many
-   * cells into one experiment only when every cell in the chunk compiles to
-   * the batch's shared marking — checked against the actual cell values, so
-   * a marking the swept parameters shape (even jointly, or only at interior
-   * points) falls back to the per-cell path instead of running wrong.
-   */
-  /** Per sweep: unsubscribes the batch-activity feed when the session goes. */
-  const sweepBatchSubscriptionsRef = useRef(new Map<string, () => void>());
-  const surfaceMarkingProbesRef = useRef(
-    new Map<
-      string,
-      (values: Readonly<Record<string, number>>) => string | null
-    >(),
-  );
-  /** Serializes detached objective batches on one background worker. */
-  const detachedChainRef = useRef<Promise<unknown>>(Promise.resolve());
-  const detachedCpuBackendRef = useRef<ExperimentBackend | null>(null);
-  const detachedCompileCacheRef = useRef(
-    new Map<
-      string,
-      Promise<{
-        scenario: Scenario;
-        scenarioHir: Awaited<ReturnType<typeof requestScenarioHir>>;
-        artifacts: Awaited<ReturnType<typeof requestHirArtifacts>>["artifacts"];
-        metricArtifact: NonNullable<
-          Awaited<
-            ReturnType<typeof requestHirArtifacts>
-          >["artifacts"]["metrics"][string]
-        >;
-      }>
-    >(),
+  const detachedObjectiveSamplerRef = useRef<DetachedObjectiveSampler | null>(
+    null,
   );
   const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
-  const experimentsStateRef = useLatest(experiments);
   const selectedExperimentId =
     navigation.state.simulateResource?.type === "experiment"
       ? navigation.state.simulateResource.id
@@ -373,14 +171,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     const registrations = registrationsRef.current;
     const pendingRegistrations = pendingRegistrationsRef.current;
     const sweepSessions = sweepSessionsRef.current;
-    const sweepBatchSubscriptions = sweepBatchSubscriptionsRef.current;
     return () => {
-      // Before disposing the sessions: dispose fires a final (empty) batch
-      // notification, which must not reach setExperiments mid-unmount.
-      for (const unsubscribe of sweepBatchSubscriptions.values()) {
-        unsubscribe();
-      }
-      sweepBatchSubscriptions.clear();
       for (const registration of pendingRegistrations.values()) {
         registration.abortController.abort();
       }
@@ -413,35 +204,15 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     experimentId: string,
     patch: Partial<ExperimentRecord>,
   ) => {
-    // A patch that moves the experiment to a terminal status is stamped with the
-    // arrival time here rather than at each call site, so that no path — normal
-    // completion, a worker error, or cancellation — can finish an experiment
-    // without recording when it stopped.
+    // Stamped here rather than at each call site, so no path — completion, a
+    // worker error, cancellation — can finish an experiment without
+    // recording when it stopped.
     const finishedAt =
       patch.status !== undefined && isTerminalExperimentStatus(patch.status)
         ? Date.now()
         : null;
-
     setExperiments((prev) =>
-      prev.map((experiment) => {
-        if (experiment.id !== experimentId) {
-          return experiment;
-        }
-
-        return {
-          ...experiment,
-          ...patch,
-          // The status, progress and event subscriptions can each sync the same
-          // terminal status, so only the first stamp counts. Their timestamps
-          // coincide today — the engine tears its transports down on reaching a
-          // terminal state, so nothing arrives later — which is why no test can
-          // tell this apart from re-stamping. It is here so that the recorded
-          // time stays the moment the run stopped if that ever changes.
-          ...(finishedAt !== null && experiment.finishedAt === null
-            ? { finishedAt }
-            : {}),
-        };
-      }),
+      patchExperimentRecords(prev, experimentId, patch, finishedAt),
     );
   };
 
@@ -461,6 +232,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     registration.off();
     registration.handle.dispose();
     registrationsRef.current.delete(experimentId);
+  };
+
+  const disposeSweepSession = (experimentId: string) => {
+    sweepSessionsRef.current.get(experimentId)?.dispose();
+    sweepSessionsRef.current.delete(experimentId);
   };
 
   const registerExperimentHandle = (
@@ -502,11 +278,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         });
       }
 
-      // Every member of this event union is terminal — `complete`, `cancelled`,
-      // `error` — so any event means the handle is finished with. Disposal is
-      // what releases the backend's resources; for the GPU path that is
-      // `device.destroy()`, and skipping it on `error` left a live GPUDevice
-      // held until the record was removed.
+      // Every event is terminal, so any event means the handle is finished
+      // with. Disposal releases the backend's resources — for the GPU path,
+      // `device.destroy()`.
       disposeExperimentHandle(experimentId);
     });
 
@@ -523,241 +297,43 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   };
 
   /**
-   * Starts the progressive compute session behind a sweep experiment.
-   *
-   * The first batch runs the backend-selection walk (so GPU-vs-CPU choice and
-   * fallback reporting behave exactly as for a plain experiment); later
-   * batches re-assess the chosen backend with each batch's request — the GPU
-   * backend regenerates its shader for the new parameter values there.
+   * Starts the progressive compute session behind a sweep experiment and
+   * mirrors its stream into the record.
    */
-  const startSweepSession = (options: {
+  const startSweepSession = ({
+    experiment,
+    axes,
+    registrations,
+    buildRequest,
+    compiler,
+    netParameterVariableNames,
+    onNote,
+  }: {
     experiment: ExperimentRecord;
     axes: readonly ExperimentParameterAxis[];
     registrations: readonly ExperimentBackendRegistration[];
-    buildRequest: (options: {
-      needsHirTrees: boolean;
-      override?: Partial<
-        Pick<
-          ExperimentRequest,
-          | "parameterValues"
-          | "initialMarking"
-          | "seed"
-          | "runCount"
-          | "runs"
-          | "runPlan"
-        >
-      >;
-    }) => Promise<ExperimentRequest>;
-    compileForValues: (
-      swept: Readonly<Record<string, number>>,
-    ) => Extract<CompileScenarioOutcome, { ok: true }>;
-    /**
-     * Numbers-only compile for per-run draws: skips the initial state, which
-     * per-run translation never reads (per-run markings do not exist), and
-     * the string conversion, which typed-array plans never want.
-     */
-    compileRunNumbers: (swept: Readonly<Record<string, number>>) => {
-      parameters: Readonly<Record<string, number | boolean>>;
-    };
-    /** Net parameter variable names, for direct-override passthrough. */
+    buildRequest: BuildExperimentRequest;
+    compiler: SweptScenarioCompiler;
     netParameterVariableNames: ReadonlySet<string>;
+    onNote: (note: { message: string }) => void;
   }) => {
-    const {
-      experiment,
-      axes,
-      registrations,
-      buildRequest,
-      compileForValues,
-      compileRunNumbers,
-      netParameterVariableNames,
-    } = options;
     const experimentId = experiment.id;
-    surfaceMarkingProbesRef.current.set(experimentId, (values) => {
-      try {
-        return JSON.stringify(compileForValues(values).result.initialState);
-      } catch {
-        // A cell whose values do not compile cannot join a batch; the
-        // per-cell path surfaces the error the way a plain batch would.
-        return null;
-      }
-    });
-    let chosenBackend: ExperimentBackend | null = null;
-    /**
-     * Surface-sampling batches are 8 tiny runs; on the CPU they get one
-     * worker so the navigator's sharded batch keeps the cores. Built lazily —
-     * a sweep whose surface view is never opened spawns nothing extra.
-     */
-    let backgroundCpuBackend: ExperimentBackend | null = null;
-    /** The same lane, sharded — used whenever the foreground frees the pool. */
-    let backgroundWideCpuBackend: ExperimentBackend | null = null;
-
-    const onNote = (note: { message: string }) => {
-      addNotification({
-        message: `${experiment.name}: ${note.message}`,
-        tone: "error",
-      });
-    };
-
-    const describeBlockers = (
-      blockers: readonly { message: string }[],
-    ): string => blockers.map((blocker) => blocker.message).join("; ");
-
     const session = createSweepSession({
       axes,
       runCount: experiment.runCount,
       seed: experiment.seed,
-      // Leading-edge, so the first frames publish instantly; while a batch
-      // streams, ~10 re-renders a second read as live on a chart and leave
-      // the rest of the UI (sliders, drags, the editor behind the drawer)
-      // most of each frame's budget.
+      // Leading-edge, so the first frames publish instantly; while a
+      // batch streams, ~10 re-renders a second read as live on a chart
+      // and leave the rest of the UI most of each frame's budget.
       publishThrottleMs: 100,
-      instantiateBatch: async ({
-        parameterValues,
-        draws,
-        seed,
-        runCount,
-        background,
-        requiresRunResults,
-        foregroundActive,
-        runSeeds,
-        signal,
-      }) => {
-        const compiled = compileForValues(parameterValues);
-        // A run's draws are scenario values; the simulation reads net
-        // parameters. Re-evaluate the scenario's overrides at each run's
-        // draws so every backend receives net-keyed per-run values — as a
-        // typed-array plan on the common numeric path, as run records when
-        // a changed value cannot ride one.
-        const translated =
-          draws === undefined
-            ? undefined
-            : await translateRangeDraws({
-                draws,
-                signal,
-                midValues: parameterValues,
-                baseParameters: compileRunNumbers(parameterValues).parameters,
-                compileRunNumbers,
-                netParameterVariableNames,
-              });
-        // Pinned per-run seeds only ride the record form (`runs`); a numeric
-        // plan carries values alone, so a seeded batch converts its plan to
-        // records. Seeded batches are small surface chunks — the record
-        // form's cost is irrelevant at that size.
-        const perRun =
-          translated === undefined
-            ? runSeeds === undefined
-              ? {}
-              : { runs: runSeeds.map((runSeed) => ({ seed: runSeed })) }
-            : translated.kind === "runs"
-              ? {
-                  runs:
-                    runSeeds === undefined
-                      ? translated.runs
-                      : translated.runs.map((run, index) => ({
-                          ...run,
-                          seed: runSeeds[index],
-                        })),
-                }
-              : runSeeds === undefined
-                ? { runPlan: translated.plan }
-                : {
-                    runs: runSeeds.map((runSeed, index) => ({
-                      seed: runSeed,
-                      parameterValues: Object.fromEntries(
-                        translated.plan.ids.map((id, column) => [
-                          id,
-                          String(
-                            translated.plan.values[
-                              index * translated.plan.ids.length + column
-                            ],
-                          ),
-                        ]),
-                      ),
-                    })),
-                  };
-        const override = {
-          parameterValues: compiled.result.parameterValues,
-          initialMarking: compiled.result.initialState,
-          seed,
-          runCount,
-          ...perRun,
-        };
-
-        // The surface's background sampling can start before the navigator's
-        // first batch has finished the backend-selection walk. Running the
-        // walk here too would race it: two batches contending for the pool,
-        // both patching the record's backend fields. Background batches
-        // instead go straight to the CPU lane until a backend is chosen (and
-        // stay there when the choice lands on the CPU). A batch whose
-        // consumer reads per-run values stays there always: only the CPU
-        // workers report `runResults`.
-        //
-        // The lane's WIDTH adapts to foreground pressure: while the
-        // navigator's ladder computes on the CPU pool, a background batch
-        // takes one worker so the sharded foreground keeps the cores; once
-        // the ladder idles — or computes on the GPU, using no CPU workers at
-        // all — the same batch shards across the freed pool. The divisor
-        // mirrors the surface's three concurrent chunks, so the wide lanes
-        // together fill the pool instead of tripling it.
-        if (background && (!chosenBackend || requiresRunResults)) {
-          const cpuForegroundBusy =
-            foregroundActive === true &&
-            (chosenBackend === null ||
-              chosenBackend.id === WORKER_POOL_BACKEND_ID);
-          let laneBackend: ExperimentBackend;
-          if (cpuForegroundBusy) {
-            backgroundCpuBackend ??= createWorkerPoolExperimentBackend({
-              createWorker: reusableWorkerFactory,
-              shardCount: 1,
-            });
-            laneBackend = backgroundCpuBackend;
-          } else {
-            backgroundWideCpuBackend ??= createWorkerPoolExperimentBackend({
-              createWorker: reusableWorkerFactory,
-              shardCount: Math.max(
-                2,
-                Math.floor(
-                  (shardCountRef.current ?? getDefaultMonteCarloShardCount()) /
-                    3,
-                ),
-              ),
-            });
-            laneBackend = backgroundWideCpuBackend;
-          }
-          const request = await buildRequest({
-            needsHirTrees: laneBackend.needsHirTrees,
-            override,
-          });
-          const assessment = await laneBackend.assess(request);
-          if (!assessment.eligible) {
-            throw new Error(describeBlockers(assessment.blockers));
-          }
-          const instantiated = await assessment.instantiate({ signal, onNote });
-          if (!instantiated.ok) {
-            throw new Error(describeBlockers(instantiated.blockers));
-          }
-          return instantiated.handle;
-        }
-
-        // Range batches carry per-run parameter values (`runPlan`, or `runs`
-        // for the non-numeric fallback); the GPU backend uploads them to a
-        // per-run buffer, so they walk the same backend selection as point
-        // batches instead of being CPU-only.
-        if (!chosenBackend) {
-          const selection = await selectExperimentBackend({
-            registrations,
-            buildRequest: ({ needsHirTrees }) =>
-              buildRequest({ needsHirTrees, override }),
-            instantiateOptions: { signal, onNote },
-          });
-          if (!selection.ok) {
-            throw new Error(
-              selection.declined
-                .map((entry) => `${entry.backendId}: ${entry.reason}`)
-                .join("; ") || "No compute backend could run this experiment.",
-            );
-          }
-          chosenBackend = selection.backend;
+      instantiateBatch: createSweepBatchInstantiator({
+        registrations,
+        buildRequest,
+        compiler,
+        netParameterVariableNames,
+        createWorker: reusableWorkerFactory,
+        shardCount: shardCountRef.current ?? getDefaultMonteCarloShardCount(),
+        onBackendChosen: (selection) => {
           const [firstDeclined] = selection.declined;
           if (firstDeclined) {
             addNotification({
@@ -770,33 +346,19 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             computeBackendFallbackReason: firstDeclined?.reason ?? null,
             startedAt: Date.now(),
           });
-          return selection.handle;
+        },
+        onNote,
+      }),
+      initialMarkingKey: (values) => {
+        try {
+          return JSON.stringify(
+            compiler.compileForValues(values).result.initialState,
+          );
+        } catch {
+          return null;
         }
-
-        let batchBackend = chosenBackend;
-        if (background && chosenBackend.id === WORKER_POOL_BACKEND_ID) {
-          backgroundCpuBackend ??= createWorkerPoolExperimentBackend({
-            createWorker: reusableWorkerFactory,
-            shardCount: 1,
-          });
-          batchBackend = backgroundCpuBackend;
-        }
-
-        const request = await buildRequest({
-          needsHirTrees: batchBackend.needsHirTrees,
-          override,
-        });
-        const assessment = await batchBackend.assess(request);
-        if (!assessment.eligible) {
-          throw new Error(describeBlockers(assessment.blockers));
-        }
-        const instantiated = await assessment.instantiate({ signal, onNote });
-        if (!instantiated.ok) {
-          throw new Error(describeBlockers(instantiated.blockers));
-        }
-        return instantiated.handle;
       },
-      onUpdate: (update: SweepSessionUpdate) => {
+      onUpdate: (update) => {
         patchExperiment(experimentId, {
           status: update.computing ? "running" : "idle",
           metricFrames: update.metricFrames,
@@ -811,20 +373,20 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           },
         });
       },
+      onBatches: (sweepBatches) => {
+        patchExperiment(experimentId, { sweepBatches });
+      },
       onError: (message) => {
-        patchExperiment(experimentId, { error: message, status: "error" });
+        patchExperiment(experimentId, {
+          error: message,
+          status: "error",
+        });
         addNotification({
           message: `${experiment.name} failed: ${message}`,
           tone: "error",
         });
       },
     });
-
-    const offBatches = session.batches.subscribe(() => {
-      patchExperiment(experimentId, { sweepBatches: session.batches.get() });
-    });
-    sweepBatchSubscriptionsRef.current.set(experimentId, offBatches);
-
     sweepSessionsRef.current.set(experimentId, session);
   };
 
@@ -834,186 +396,39 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     assertExperimentInput(input);
 
     const sdcpn = petriNetDefinitionRef.current;
-    const selectedScenario = input.scenarioId
-      ? (sdcpn.scenarios ?? []).find(
-          (scenario) => scenario.id === input.scenarioId,
-        )
+    const experimentExtensions = extensionsRef.current;
+    const scenario = input.scenarioId
+      ? ((sdcpn.scenarios ?? []).find(({ id }) => id === input.scenarioId) ??
+        null)
       : null;
-    if (input.scenarioId && !selectedScenario) {
+    if (input.scenarioId && !scenario) {
       throw new Error("Selected scenario does not exist");
     }
 
     const { fixedValues, axes } = buildSweepAxes(
-      selectedScenario ?? null,
+      scenario,
       input.scenarioParameterValues,
     );
-
-    let parameterValues: Record<string, string> = {};
-    let initialMarking: InitialMarking = {};
-    const globalParameters = extensionsRef.current.parameters
-      ? sdcpn.parameters
-      : [];
-    const experimentSdcpn = extensionsRef.current.parameters
+    const experimentSdcpn = experimentExtensions.parameters
       ? sdcpn
       : { ...sdcpn, parameters: [] };
-
-    /**
-     * Compiles the scenario for one concrete assignment of the swept
-     * parameters. A sweep calls this per batch; a plain experiment once.
-     */
-    let compileForValues:
-      | ((
-          swept: Readonly<Record<string, number>>,
-        ) => Extract<CompileScenarioOutcome, { ok: true }>)
-      | null = null;
-    let compileRunNumbers:
-      | ((swept: Readonly<Record<string, number>>) => {
-          parameters: Readonly<Record<string, number | boolean>>;
-        })
-      | null = null;
-
-    if (selectedScenario) {
-      const parsedScenarioValues = parseScenarioParameterValues(
-        selectedScenario,
-        fixedValues,
-      );
-      if (parsedScenarioValues.errors.length > 0) {
-        // Swept parameters have no fixed value to parse; their errors are
-        // range errors, already thrown by `buildSweepAxes`.
-        const sweptIdentifiers = new Set(axes.map((axis) => axis.identifier));
-        const errors = parsedScenarioValues.errors.filter(
-          (message) =>
-            ![...sweptIdentifiers].some((identifier) =>
-              message.startsWith(identifier),
-            ),
-        );
-        if (errors.length > 0) {
-          throw new Error(errors.join("\n"));
-        }
-      }
-
-      const scenarioHir = await requestScenarioHir(selectedScenario, {
-        netParameters: globalParameters,
-        places: sdcpn.places,
-        types: sdcpn.types,
-      });
-      // Prepared once per experiment: a sweep compiles the scenario per
-      // batch and per run's draws, and preparation carries the type checks
-      // and context building those calls would otherwise repeat.
-      const preparedCompiler = prepareScenarioCompiler(
-        selectedScenario,
-        scenarioHir,
-        globalParameters,
-        sdcpn.places,
-        sdcpn.types,
-      );
-      compileForValues = (swept) => {
-        const compiled = preparedCompiler.compile({
-          ...parsedScenarioValues.values,
-          ...swept,
-        });
-        if (!compiled.ok) {
-          throw new Error(
-            compiled.errors
-              .map(
-                (error) => `${error.source}:${error.itemId} ${error.message}`,
-              )
-              .join("\n"),
-          );
-        }
-        return compiled;
-      };
-      compileRunNumbers = (swept) => {
-        const compiled = preparedCompiler.compileParameterNumbers({
-          ...parsedScenarioValues.values,
-          ...swept,
-        });
-        if (!compiled.ok) {
-          throw new Error(
-            compiled.errors
-              .map(
-                (error) => `${error.source}:${error.itemId} ${error.message}`,
-              )
-              .join("\n"),
-          );
-        }
-        return { parameters: compiled.parameters };
-      };
-
-      const compiledScenario = compileForValues({});
-      parameterValues = compiledScenario.result.parameterValues;
-      initialMarking = compiledScenario.result.initialState;
-    } else if (input.adHocScenario) {
-      const synthesized = synthesizeAdHocScenario(input.adHocScenario, {
-        netParameters: globalParameters,
-        places: sdcpn.places,
-        types: sdcpn.types,
-      });
-      if (!synthesized.ok) {
-        throw new Error(
-          synthesized.errors
-            .map((error) => `${error.source}:${error.itemId} ${error.message}`)
-            .join("\n"),
-        );
-      }
-
-      const scenarioHir = await requestScenarioHir(synthesized.scenario);
-      const compiledScenario = compileScenario(
-        synthesized.scenario,
-        scenarioHir,
-        globalParameters,
-        sdcpn.places,
-        sdcpn.types,
-      );
-      if (!compiledScenario.ok) {
-        throw new Error(
-          compiledScenario.errors
-            .map((error) => `${error.source}:${error.itemId} ${error.message}`)
-            .join("\n"),
-        );
-      }
-
-      parameterValues = compiledScenario.result.parameterValues;
-      initialMarking = compiledScenario.result.initialState;
-    }
+    const compiled = await compileExperimentScenario({
+      input,
+      scenario,
+      fixedValues,
+      axes,
+      sdcpn: experimentSdcpn,
+      requestScenarioHir: languageClientRef.current.requestScenarioHir,
+    });
 
     const experimentId = generateUuid();
-    const experiment: ExperimentRecord = {
+    const experiment = newExperimentRecord({
       id: experimentId,
-      name: input.name.trim(),
-      createdAt: Date.now(),
-      scenarioId: input.scenarioId,
+      input,
       scenarioName:
-        selectedScenario?.name ??
-        (input.adHocScenario ? "Ad-hoc scenario" : null),
-      runCount: input.runCount,
-      seed: input.seed,
-      dt: input.dt,
-      maxTime: input.maxTime,
-      status: "initializing",
-      error: null,
-      metricSpecs: input.metricSpecs,
-      computeBackend: "cpu",
-      computeBackendFallbackReason: null,
-      startedAt: null,
-      finishedAt: null,
-      progress: null,
-      latestMetricFramesById: {},
-      metricFrames: [],
-      sweepBatches: [],
-      parameterAxes: axes,
-      sweep:
-        axes.length > 0
-          ? {
-              selection: fullSweepSelection(axes),
-              runsCompleted: 0,
-              runsSampled: 0,
-              runTarget: null,
-              computing: true,
-            }
-          : null,
-    };
-
+        scenario?.name ?? (input.adHocScenario ? "Ad-hoc scenario" : null),
+      axes,
+    });
     setExperiments((prev) => [experiment, ...prev]);
     setSelectedExperimentId(experimentId);
 
@@ -1021,155 +436,45 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     pendingRegistrationsRef.current.set(experimentId, { abortController });
 
     const initializeExperiment = async () => {
-      const experimentExtensions = extensionsRef.current;
       try {
-        // Compile the net's user code to HIR artifacts in the language
-        // worker — the simulation engine has no compiler of its own. The
-        // experiment's expression metrics are compiled alongside by
-        // substituting them for the model's metrics.
-        const expressionSpecs = input.metricSpecs.filter(
-          (spec) => spec.kind === "expression",
+        // Run against the exact snapshot the artifacts are compiled from:
+        // their fingerprints cover the complete SDCPN, metrics included.
+        const compiledExperimentSdcpn = experimentSdcpnWithMetrics(
+          experimentSdcpn,
+          input.metricSpecs,
         );
-        const compiledExperimentSdcpn = {
-          ...experimentSdcpn,
-          metrics: expressionSpecs.map((spec) => ({
-            id: spec.id,
-            name: spec.label,
-            code: spec.code,
-          })),
-        };
-
-        // Built per backend rather than once, because the HIR trees roughly
-        // triple the artifact payload structured-cloned to every shard worker,
-        // and only a shader-generating backend reads them. `needsHirTrees` comes
-        // from the backend itself, so a new backend cannot be forgotten here.
-        // The artifacts are a pure function of the frozen snapshot, but
-        // every batch built a request — and a sweep builds one per rung per
-        // selection — so the language worker re-lowered the whole net each
-        // time. That round trip was most of the delay between moving a
-        // slider and the first new frames. A failed request is not cached,
-        // so a transient worker error stays retryable.
-        const artifactsMemo = new Map<
-          boolean,
-          ReturnType<typeof requestHirArtifacts>
-        >();
-        const requestArtifactsOnce = (needsHirTrees: boolean) => {
-          const cached = artifactsMemo.get(needsHirTrees);
-          if (cached) {
-            return cached;
-          }
-          const pending = requestHirArtifacts(
-            compiledExperimentSdcpn,
-            experimentExtensions,
-            { includeHir: needsHirTrees },
-          );
-          artifactsMemo.set(needsHirTrees, pending);
-          pending.catch(() => artifactsMemo.delete(needsHirTrees));
-          return pending;
-        };
-
-        const buildRequest = async ({
-          needsHirTrees,
-          override,
-        }: {
-          needsHirTrees: boolean;
-          /** Per-batch fields a sweep swaps out; a plain run passes none. */
-          override?: Partial<
-            Pick<
-              ExperimentRequest,
-              "parameterValues" | "initialMarking" | "seed" | "runCount"
-            >
-          >;
-        }): Promise<ExperimentRequest> => {
-          const { artifacts, failures } =
-            await requestArtifactsOnce(needsHirTrees);
-
-          const metricSpecs = input.metricSpecs.map((spec) => {
-            if (spec.kind !== "expression") {
-              return spec;
-            }
-            const artifact = getOwn(artifacts.metrics, spec.id);
-            if (!artifact) {
-              const diagnostics = failures
-                .filter(
-                  (failure) =>
-                    failure.itemType === "metric" && failure.itemId === spec.id,
-                )
-                .flatMap((failure) =>
-                  failure.diagnostics.map((diagnostic) => diagnostic.message),
-                );
-              throw new Error(
-                `Metric "${spec.label}" did not compile${
-                  diagnostics.length > 0 ? `: ${diagnostics.join("; ")}` : ""
-                }`,
-              );
-            }
-            return { ...spec, artifact };
-          });
-
-          return {
-            // Artifact fingerprints cover the complete sanitized SDCPN,
-            // including its metric definitions. Run against the exact snapshot
-            // compiled above rather than the pre-substitution model.
-            sdcpn: compiledExperimentSdcpn,
-            extensions: experimentExtensions,
-            initialMarking,
-            parameterValues,
-            seed: input.seed,
-            dt: input.dt,
-            maxTime: input.maxTime,
-            runCount: input.runCount,
-            metricSpecs,
-            hirArtifacts: artifacts,
-            ...override,
-          };
-        };
-
-        // Preference order, best first. The GPU backend is only a candidate when
-        // it was asked for; the worker-pool backend is always last because it
-        // accepts everything, which is what makes it the fallback.
-        const registrations: ExperimentBackendRegistration[] = [];
-        if (input.computeBackend === "webgpu") {
-          registrations.push({
-            id: "webgpu",
-            label: "GPU (WebGPU)",
-            // Imported here, not at module scope, so a session that never asks
-            // for the GPU never loads the shader generator.
-            load: async () => {
-              const { createWebGpuExperimentBackend } =
-                await import("@hashintel/petrinaut-core/webgpu");
-              return createWebGpuExperimentBackend();
-            },
-          });
-        }
-        registrations.push({
-          id: WORKER_POOL_BACKEND_ID,
-          label: "CPU (Web Workers)",
-          load: () =>
-            Promise.resolve(
-              createWorkerPoolExperimentBackend({
-                createWorker: reusableWorkerFactory,
-                // The experiment never inspects the host, so the provider — the
-                // piece that knows this is a browser — states the parallelism.
-                shardCount:
-                  shardCountRef.current ?? getDefaultMonteCarloShardCount(),
-              }),
-            ),
+        const buildRequest = createExperimentRequestBuilder({
+          input,
+          sdcpn: compiledExperimentSdcpn,
+          extensions: experimentExtensions,
+          compiled,
+          requestHirArtifacts: languageClientRef.current.requestHirArtifacts,
         });
+        const registrations = experimentBackendRegistrations({
+          computeBackend: input.computeBackend,
+          createWorker: reusableWorkerFactory,
+          shardCount: shardCountRef.current,
+        });
+        const onNote = (note: { message: string }) => {
+          addNotification({
+            message: `${experiment.name}: ${note.message}`,
+            tone: "error",
+          });
+        };
 
-        if (axes.length > 0 && compileForValues && compileRunNumbers) {
+        if (axes.length > 0 && compiled.sweptCompiler) {
           startSweepSession({
             experiment,
             axes,
             registrations,
             buildRequest,
-            compileForValues,
-            compileRunNumbers,
+            compiler: compiled.sweptCompiler,
             netParameterVariableNames: new Set(
               compiledExperimentSdcpn.parameters.map(
                 (parameter) => parameter.variableName,
               ),
             ),
+            onNote,
           });
           pendingRegistrationsRef.current.delete(experimentId);
           return;
@@ -1178,17 +483,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         const selection = await selectExperimentBackend({
           registrations,
           buildRequest,
-          instantiateOptions: {
-            signal: abortController.signal,
-            // Problems only detectable once running — a saturated histogram —
-            // arrive too late for the notes returned at selection.
-            onNote: (note) => {
-              addNotification({
-                message: `${experiment.name}: ${note.message}`,
-                tone: "error",
-              });
-            },
-          },
+          instantiateOptions: { signal: abortController.signal, onNote },
         });
 
         // Compilation and device acquisition cannot be aborted mid-flight. A
@@ -1210,11 +505,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         }
 
         const { handle } = selection;
-        const usedBackend = selection.backendId as ExperimentComputeBackend;
         // Only the backends the user chose *against* are worth reporting, and
         // only when something was declined — otherwise this is the happy path.
         const [firstDeclined] = selection.declined;
-        const fallbackReason = firstDeclined?.reason ?? null;
         if (firstDeclined) {
           addNotification({
             message: `${experiment.name} is running on the CPU: ${firstDeclined.reason}`,
@@ -1230,8 +523,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
 
         pendingRegistrationsRef.current.delete(experimentId);
         patchExperiment(experimentId, {
-          computeBackend: usedBackend,
-          computeBackendFallbackReason: fallbackReason,
+          computeBackend: selection.backendId as ExperimentComputeBackend,
+          computeBackendFallbackReason: firstDeclined?.reason ?? null,
           // Stepping starts on the next line. Setup — compiling user code,
           // spinning up workers, acquiring the GPU device — is deliberately
           // outside the measurement, so the two backends are compared on the
@@ -1243,16 +536,12 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         handle.start();
       } catch (error) {
         const wasPending = pendingRegistrationsRef.current.delete(experimentId);
-
         if (!wasPending) {
           return;
         }
 
         const message = error instanceof Error ? error.message : String(error);
-        patchExperiment(experimentId, {
-          error: message,
-          status: "error",
-        });
+        patchExperiment(experimentId, { error: message, status: "error" });
         addNotification({
           message: `${experiment.name} failed: ${message}`,
           tone: "error",
@@ -1277,13 +566,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       return;
     }
 
-    const session = sweepSessionsRef.current.get(experimentId);
-    if (session) {
-      session.dispose();
-      sweepSessionsRef.current.delete(experimentId);
-      surfaceMarkingProbesRef.current.delete(experimentId);
-      sweepBatchSubscriptionsRef.current.get(experimentId)?.();
-      sweepBatchSubscriptionsRef.current.delete(experimentId);
+    if (sweepSessionsRef.current.has(experimentId)) {
+      disposeSweepSession(experimentId);
       patchExperiment(experimentId, { status: "cancelled" });
       return;
     }
@@ -1294,11 +578,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const removeExperiment: ExperimentsContextValue["removeExperiment"] = (
     experimentId,
   ) => {
-    sweepSessionsRef.current.get(experimentId)?.dispose();
-    sweepSessionsRef.current.delete(experimentId);
-    surfaceMarkingProbesRef.current.delete(experimentId);
-    sweepBatchSubscriptionsRef.current.get(experimentId)?.();
-    sweepBatchSubscriptionsRef.current.delete(experimentId);
+    disposeSweepSession(experimentId);
     disposeExperimentHandle(experimentId);
     setExperiments((prev) =>
       prev.filter((experiment) => experiment.id !== experimentId),
@@ -1318,210 +598,18 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     sweepSessionsRef.current.get(experimentId)?.setSelection(selection);
   };
 
-  const sampleSweepCell: ExperimentsContextValue["sampleSweepCell"] = (
-    experimentId,
-    parameterValues,
-    minRuns,
-  ) =>
-    sweepSessionsRef.current
-      .get(experimentId)
-      ?.sampleCell(parameterValues, minRuns) ?? Promise.resolve(null);
-
   const sampleSurfaceCells: ExperimentsContextValue["sampleSurfaceCells"] =
     async (experimentId, positions, runsPerCell, onPartial) => {
       const session = sweepSessionsRef.current.get(experimentId);
-      if (!session || positions.length === 0) {
+      if (!session) {
         return null;
       }
-      // The navigator's selection always comes first: hold secondary chunks
-      // until the current selection has streamed its first frames (the gate
-      // re-arms on every selection change), so the metric charts fill before
-      // surface sampling competes for workers.
+      // The navigator's selection always comes first: surface chunks wait
+      // until it has streamed its first frames (the gate re-arms on every
+      // selection change), so the metric charts fill before surface sampling
+      // competes for workers.
       await session.whenSelectionStreamed();
-      // One batch shares one compiled initial marking, so batch only when
-      // every cell in this chunk compiles to the same marking as the first
-      // (checked at the actual cell values — no synthetic probe points).
-      const markingProbe = surfaceMarkingProbesRef.current.get(experimentId);
-      if (markingProbe && positions[0]) {
-        const baseMarking = markingProbe(positions[0]);
-        if (
-          baseMarking !== null &&
-          positions.every((position) => markingProbe(position) === baseMarking)
-        ) {
-          return session.sampleCells(positions, runsPerCell, onPartial);
-        }
-      }
-      // A marking-shaping (or partially non-compiling) chunk keeps the
-      // per-cell path, whose base compile follows each cell; the background
-      // slots bound how many run at once.
-      const experiment = experimentsStateRef.current.find(
-        (candidate) => candidate.id === experimentId,
-      );
-      if (!experiment) {
-        return null;
-      }
-      const metricIds = experiment.metricSpecs.map((spec) => spec.id);
-      // The per-cell path streams too: each resolved cell reports the chunk's
-      // progress so far, index-aligned like the batched path.
-      const partial: (Readonly<Record<string, number>> | null)[] =
-        positions.map(() => null);
-      return Promise.all(
-        positions.map(async (position, index) => {
-          const snapshot = await session.sampleCell(position, runsPerCell);
-          if (!snapshot) {
-            return null;
-          }
-          const values: Record<string, number> = {};
-          for (const metricId of metricIds) {
-            const value = sweepCellObjective(snapshot.metricFrames, metricId);
-            if (value !== null) {
-              values[metricId] = value;
-            }
-          }
-          partial[index] = values;
-          onPartial?.([...partial]);
-          return values;
-        }),
-      );
-    };
-
-  const runDetachedObjectiveBatch = async (
-    request: DetachedObjectiveRequest,
-  ): Promise<SweepCellSnapshot | null> => {
-    try {
-      // One compiled snapshot per study: the frozen definition, its scenario
-      // HIR, and its HIR artifacts never change for a given cacheKey.
-      let compiled = detachedCompileCacheRef.current.get(request.cacheKey);
-      if (!compiled) {
-        compiled = (async () => {
-          const scenario = (request.definition.scenarios ?? []).find(
-            (candidate: Scenario) => candidate.id === request.scenarioId,
-          );
-          if (!scenario) {
-            throw new Error(
-              `Scenario ${request.scenarioId} is not in the model snapshot`,
-            );
-          }
-          // The snapshot runs under default extensions, as it does on the
-          // optimizer service — the live editor's toggles do not apply to a
-          // frozen study.
-          const { artifacts, failures } = await requestHirArtifacts(
-            request.definition,
-            DEFAULT_PETRINAUT_EXTENSIONS,
-            { includeHir: false },
-          );
-          const metricArtifact = getOwn(artifacts.metrics, request.metric.id);
-          if (!metricArtifact) {
-            throw new Error(
-              failures
-                .map((failure) => failure.diagnostics[0]?.message)
-                .filter(Boolean)
-                .join("; ") || "The objective metric did not compile",
-            );
-          }
-          const scenarioHir = await requestScenarioHir(scenario);
-          return { scenario, scenarioHir, artifacts, metricArtifact };
-        })();
-        detachedCompileCacheRef.current.set(request.cacheKey, compiled);
-        compiled.catch(() => {
-          // A failed compile is retried on the next sample rather than cached.
-          detachedCompileCacheRef.current.delete(request.cacheKey);
-        });
-      }
-      const { scenario, scenarioHir, artifacts, metricArtifact } =
-        await compiled;
-
-      const compiledScenario = compileScenario(
-        scenario,
-        scenarioHir,
-        request.definition.parameters,
-        request.definition.places,
-        request.definition.types,
-        {
-          // Scenario compilation is numeric; boolean bindings arrive as their
-          // 0/1 encoding, matching how the engine stores boolean parameters.
-          scenarioParameterValues: Object.fromEntries(
-            Object.entries(request.scenarioParameterValues).map(
-              ([identifier, value]) => [
-                identifier,
-                typeof value === "boolean" ? (value ? 1 : 0) : value,
-              ],
-            ),
-          ),
-        },
-      );
-      if (!compiledScenario.ok) {
-        return null;
-      }
-
-      detachedCpuBackendRef.current ??= createWorkerPoolExperimentBackend({
-        createWorker: reusableWorkerFactory,
-        shardCount: 1,
-      });
-      const backend = detachedCpuBackendRef.current;
-
-      const abortController = new AbortController();
-      const assessment = await backend.assess({
-        sdcpn: request.definition,
-        extensions: DEFAULT_PETRINAUT_EXTENSIONS,
-        initialMarking: compiledScenario.result.initialState,
-        parameterValues: compiledScenario.result.parameterValues,
-        seed: request.seed,
-        dt: request.dt,
-        maxTime: request.maxTime,
-        runCount: request.runCount,
-        metricSpecs: [
-          {
-            kind: "expression",
-            id: request.metric.id,
-            label: request.metric.label,
-            code: request.metric.code,
-            sampleRuns: "all",
-            runOutput: { type: "distribution" },
-            artifact: metricArtifact,
-          },
-        ],
-        hirArtifacts: artifacts,
-      });
-      if (!assessment.eligible) {
-        return null;
-      }
-      const instantiated = await assessment.instantiate({
-        signal: abortController.signal,
-      });
-      if (!instantiated.ok) {
-        return null;
-      }
-      const handle = instantiated.handle;
-
-      const done = new Promise<boolean>((resolve) => {
-        const offEvents = handle.events.subscribe((event) => {
-          offEvents();
-          resolve(event.type === "complete");
-        });
-      });
-      handle.start();
-      const completed = await done;
-      const frames = handle.metrics.get().frames;
-      handle.dispose();
-      if (!completed) {
-        return null;
-      }
-      return { runsCompleted: request.runCount, metricFrames: frames };
-    } catch {
-      // A refused or failed batch is a hole in the surface, not an error the
-      // optimization view should surface.
-      return null;
-    }
-  };
-
-  const sampleDetachedObjective: ExperimentsContextValue["sampleDetachedObjective"] =
-    (request) => {
-      const next = detachedChainRef.current.then(() =>
-        runDetachedObjectiveBatch(request),
-      );
-      detachedChainRef.current = next.catch(() => null);
-      return next;
+      return session.sampleCells(positions, runsPerCell, onPartial);
     };
 
   const selectedExperiment =
@@ -1531,29 +619,47 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const stableSetSelectedExperimentId = useStableCallback(
     setSelectedExperimentId,
   );
+  const stableCreateExperiment = useStableCallback(createExperiment);
   const stableCancelExperiment = useStableCallback(cancelExperiment);
   const stableRemoveExperiment = useStableCallback(removeExperiment);
+  const stableSetSweepSelection = useStableCallback(setSweepSelection);
+  const stableSampleSurfaceCells = useStableCallback(sampleSurfaceCells);
+  const sampleDetachedObjective: ExperimentsContextValue["sampleDetachedObjective"] =
+    (request) => {
+      // Built on first use: a session that never opens an optimization
+      // surface spawns no extra worker lane.
+      const sampler =
+        detachedObjectiveSamplerRef.current ??
+        createDetachedObjectiveSampler({
+          languageClient: languageClientRef,
+          createWorker: reusableWorkerFactory,
+        });
+      detachedObjectiveSamplerRef.current = sampler;
+      return sampler.sample(request);
+    };
 
-  const contextValue: ExperimentsContextValue = {
-    experiments,
-    selectedExperimentId,
-    selectedExperiment,
-    setSelectedExperimentId: stableSetSelectedExperimentId,
-    createExperiment: useStableCallback(createExperiment),
-    cancelExperiment: stableCancelExperiment,
-    removeExperiment: stableRemoveExperiment,
-    setSweepSelection: useStableCallback(setSweepSelection),
-    sampleSweepCell: useStableCallback(sampleSweepCell),
-    sampleSurfaceCells: useStableCallback(sampleSurfaceCells),
-    sampleDetachedObjective: useStableCallback(sampleDetachedObjective),
-  };
+  const stableSampleDetachedObjective = useStableCallback(
+    sampleDetachedObjective,
+  );
+
   // Every callback is identity-stable, so this object never changes and
   // actions-only consumers sit out the per-publish re-render storm.
   const [actionsValue] = useState<ExperimentsActionsValue>(() => ({
     setSelectedExperimentId: stableSetSelectedExperimentId,
+    createExperiment: stableCreateExperiment,
     cancelExperiment: stableCancelExperiment,
     removeExperiment: stableRemoveExperiment,
+    setSweepSelection: stableSetSweepSelection,
+    sampleSurfaceCells: stableSampleSurfaceCells,
+    sampleDetachedObjective: stableSampleDetachedObjective,
   }));
+
+  const contextValue: ExperimentsContextValue = {
+    ...actionsValue,
+    experiments,
+    selectedExperimentId,
+    selectedExperiment,
+  };
 
   return (
     <ExperimentsContext.Provider value={contextValue}>
