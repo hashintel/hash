@@ -1,11 +1,10 @@
 import {
-  type FormEvent,
   useEffect,
   useLayoutEffect,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
-import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa6";
 
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -13,18 +12,67 @@ import { css } from "@hashintel/ds-helpers/css";
 import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
 import { selectCanonicalSpeechSegments } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
-import { SpeechPlaybackController } from "./speech-playback-controller";
+import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
+import { toVoiceSessionState } from "./voice-session-state";
 import {
   VoiceTurnController,
+  type VoiceLatencyEvent,
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
-import type { PetrinautAiComposerControlContext } from "@hashintel/petrinaut/ui";
+import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 export interface OpenAIVoiceConfig {
   readonly available: true;
   readonly connectionTimeoutMs: number;
 }
+
+export const VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY =
+  "petrinaut:voice-interview-disclosure:v1";
+const VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED = "acknowledged";
+
+const getVoiceInterviewDisclosureStorage = (): Storage | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+};
+
+export const isVoiceInterviewDisclosureAcknowledged = (
+  storage: Pick<
+    Storage,
+    "getItem"
+  > | null = getVoiceInterviewDisclosureStorage(),
+): boolean => {
+  try {
+    return (
+      storage?.getItem(VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY) ===
+      VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED
+    );
+  } catch {
+    return false;
+  }
+};
+
+export const acknowledgeVoiceInterviewDisclosure = (
+  storage: Pick<
+    Storage,
+    "setItem"
+  > | null = getVoiceInterviewDisclosureStorage(),
+): void => {
+  try {
+    storage?.setItem(
+      VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
+      VOICE_INTERVIEW_DISCLOSURE_ACKNOWLEDGED,
+    );
+  } catch {
+    // Storage is optional; the disclosure will appear again next time.
+  }
+};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -42,7 +90,6 @@ export const loadOpenAIVoiceConfig = async (
     if (!response.ok) {
       return null;
     }
-
     const body: unknown = await response.json();
     if (
       !isRecord(body) ||
@@ -62,263 +109,117 @@ export const loadOpenAIVoiceConfig = async (
   }
 };
 
-const controlStyle = css({
-  position: "relative",
-  flexShrink: "0",
-});
-
-const panelStyle = css({
-  position: "absolute",
-  right: "0",
-  bottom: "[calc(100% + 8px)]",
-  zIndex: "overlay",
+const disclosureStyle = css({
   display: "flex",
-  width: "[280px]",
+  width: "full",
   flexDirection: "column",
   gap: "2",
-  padding: "3",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.a20",
-  borderRadius: "lg",
-  backgroundColor: "neutral.s00",
-  boxShadow: "lg",
+  paddingX: "2",
+  paddingY: "2",
+  borderTopWidth: "thin",
+  borderTopStyle: "solid",
+  borderTopColor: "neutral.a20",
+  color: "neutral.s100",
 });
 
-const statusStyle = css({
-  color: "neutral.s90",
-  fontSize: "xs",
-  fontWeight: "medium",
-  lineHeight: "relaxed",
-});
-
-const disclosureStyle = css({
-  color: "neutral.s70",
-  fontSize: "xs",
-  lineHeight: "relaxed",
-});
-
-const liveRegionStyle = css({
-  position: "absolute",
-  width: "[1px]",
-  height: "[1px]",
-  padding: "0",
-  margin: "[-1px]",
-  overflow: "hidden",
-  clip: "[rect(0, 0, 0, 0)]",
-  whiteSpace: "nowrap",
-  borderWidth: "0",
-});
-
-const partialStyle = css({
+const disclosureTitleStyle = css({
   display: "flex",
   flexDirection: "column",
   gap: "1",
-  padding: "2",
-  borderRadius: "md",
-  backgroundColor: "neutral.s10",
-  color: "neutral.s100",
   fontSize: "sm",
+  fontWeight: "semibold",
 });
 
-const partialLabelStyle = css({
+const disclosureSubtitleStyle = css({
   color: "neutral.s80",
   fontSize: "xs",
+  fontWeight: "normal",
 });
 
-const correctionFormStyle = css({
+const disclosureCopyStyle = css({
+  color: "neutral.s90",
+  fontSize: "xs",
+  lineHeight: "relaxed",
+});
+
+const disclosureActionsStyle = css({
   display: "flex",
-  flexDirection: "column",
+  flexWrap: "wrap",
+  alignItems: "center",
   gap: "2",
 });
 
-const correctionInputStyle = css({
-  width: "full",
-  paddingX: "2",
-  paddingY: "1.5",
-  borderWidth: "thin",
-  borderStyle: "solid",
-  borderColor: "neutral.a30",
-  borderRadius: "md",
-  backgroundColor: "neutral.s00",
-  color: "neutral.s100",
-  fontSize: "sm",
-  _focusVisible: {
-    borderColor: "blue.a70",
-    outline: "2px solid",
-    outlineColor: "blue.a30",
-    outlineOffset: "[1px]",
-  },
-});
-
-const panelActionsStyle = css({
-  display: "flex",
-  justifyContent: "flex-end",
-  gap: "2",
-});
-
-const statusText = (snapshot: VoiceTurnSnapshot): string => {
-  switch (snapshot.phase) {
-    case "idle":
-      return "Voice input is off.";
-    case "connecting":
-      return "Microphone off. Connecting voice input.";
-    case "listening":
-      return "Microphone on. Listening.";
-    case "transcribing":
-      return "Microphone off. Finalizing the transcript.";
-    case "delivering":
-      return "Microphone off. Sending the finalized transcript to Brunch.";
-    case "waiting":
-      return "Microphone off. Waiting for Brunch.";
-    case "synthesizing":
-      return "Microphone off. Creating AI-generated speech.";
-    case "playing":
-      return "Microphone off. Playing AI-generated speech.";
-    case "recoverable-error": {
-      const diagnostic =
-        snapshot.errorCode === null
-          ? ""
-          : ` Error code: ${snapshot.errorCode}.${
-              snapshot.errorRequestId
-                ? ` Diagnostic reference: ${snapshot.errorRequestId}.`
-                : ""
-            }`;
-      return `Microphone off. ${snapshot.errorMessage}${diagnostic}`;
-    }
-  }
-};
-
-interface VoiceInterviewControlViewProps {
-  readonly correction: string;
-  readonly onCorrectionChange: (value: string) => void;
-  readonly onEnd: () => void;
-  readonly onReconnect: () => void;
-  readonly onStart: () => void;
-  readonly onSubmitCorrection: () => void;
-  readonly snapshot: VoiceTurnSnapshot;
-}
-
-export const VoiceInterviewControlView = ({
-  correction,
-  onCorrectionChange,
-  onEnd,
-  onReconnect,
+const VoiceInterviewDisclosure = ({
+  consented,
+  microphoneCheck,
+  onCheckMicrophone,
+  onConsentChange,
   onStart,
-  onSubmitCorrection,
-  snapshot,
-}: VoiceInterviewControlViewProps) => {
-  const isIdle = snapshot.phase === "idle";
-  const isConnecting = snapshot.phase === "connecting";
-  const hasError = snapshot.phase === "recoverable-error";
-  const canCorrect =
-    snapshot.phase === "listening" && snapshot.lastCommittedText.length > 0;
+}: {
+  readonly consented: boolean;
+  readonly microphoneCheck: string;
+  readonly onCheckMicrophone: () => void;
+  readonly onConsentChange: (consented: boolean) => void;
+  readonly onStart: () => void;
+}) => {
+  const disclosureRef = useRef<HTMLElement | null>(null);
 
-  const submitCorrection = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    onSubmitCorrection();
-  };
+  useEffect(() => {
+    disclosureRef.current?.focus();
+  }, []);
 
   return (
-    <div className={controlStyle}>
-      {isIdle ? (
-        <Button
-          aria-label="Start voice input"
-          prefix={<FaMicrophone aria-hidden="true" />}
-          shape="round"
-          size="sm"
-          tooltip="Start voice input"
-          type="button"
-          variant="subtle"
-          onClick={onStart}
-        />
-      ) : (
-        <Button
-          aria-label={hasError ? "Reconnect voice input" : "End voice input"}
-          disabled={isConnecting}
-          prefix={<FaMicrophoneSlash aria-hidden="true" />}
-          shape="round"
-          size="sm"
-          tooltip={hasError ? "Reconnect voice input" : "End voice input"}
-          type="button"
-          variant="subtle"
-          onClick={hasError ? onReconnect : onEnd}
-        />
+    <section
+      aria-label="Voice mode consent"
+      className={disclosureStyle}
+      ref={disclosureRef}
+      tabIndex={-1}
+    >
+      <div className={disclosureTitleStyle}>
+        <strong>Voice mode</strong>
+        <span className={disclosureSubtitleStyle}>
+          Talk through your process with AI
+        </span>
+      </div>
+      <p className={disclosureCopyStyle}>
+        OpenAI processes live audio and speaks the interviewer’s words.
+        Petrinaut keeps finalized answers in this conversation, not the audio.
+      </p>
+      <label className={disclosureCopyStyle}>
+        <input
+          checked={consented}
+          type="checkbox"
+          onChange={(event) => onConsentChange(event.currentTarget.checked)}
+        />{" "}
+        I understand how speech and transcripts are handled.
+      </label>
+      {microphoneCheck && (
+        <p aria-live="polite" className={disclosureCopyStyle}>
+          {microphoneCheck}
+        </p>
       )}
-
-      <span
-        className={liveRegionStyle}
-        role="status"
-        aria-atomic="true"
-        aria-live="polite"
-      >
-        {statusText(snapshot)}
-        {snapshot.partialText &&
-          ` Live transcript (not sent): ${snapshot.partialText}`}
-      </span>
-
-      {!isIdle && (
-        <section className={panelStyle} aria-label="Voice input status">
-          <p className={statusStyle}>{statusText(snapshot)}</p>
-          <p className={disclosureStyle}>
-            Spoken responses use an AI-generated OpenAI voice.
-          </p>
-          {snapshot.partialText && (
-            <p className={partialStyle}>
-              <span className={partialLabelStyle}>
-                Live transcript (not sent)
-              </span>
-              {snapshot.partialText}
-            </p>
-          )}
-          {canCorrect && (
-            <form className={correctionFormStyle} onSubmit={submitCorrection}>
-              <label className={partialLabelStyle} htmlFor="voice-correction">
-                Correct last voice answer
-              </label>
-              <input
-                className={correctionInputStyle}
-                id="voice-correction"
-                onChange={(event) => onCorrectionChange(event.target.value)}
-                placeholder="Enter the corrected answer"
-                value={correction}
-              />
-              <Button
-                disabled={!correction.trim()}
-                size="xs"
-                type="submit"
-                variant="subtle"
-              >
-                Send correction
-              </Button>
-            </form>
-          )}
-          <div className={panelActionsStyle}>
-            {hasError ? (
-              <Button
-                size="xs"
-                type="button"
-                variant="subtle"
-                onClick={onReconnect}
-              >
-                Reconnect voice input
-              </Button>
-            ) : (
-              <Button
-                disabled={isConnecting}
-                size="xs"
-                type="button"
-                variant="subtle"
-                onClick={onEnd}
-              >
-                End voice input
-              </Button>
-            )}
-          </div>
-        </section>
-      )}
-    </div>
+      <div className={disclosureActionsStyle}>
+        <Button disabled={!consented} type="button" onClick={onStart}>
+          Start voice mode
+        </Button>
+        <Button type="button" variant="subtle" onClick={onCheckMicrophone}>
+          Check microphone
+        </Button>
+      </div>
+    </section>
   );
+};
+
+const recordLatency = (event: VoiceLatencyEvent): void => {
+  try {
+    performance.measure(`voice-interview:${event.name}`, {
+      detail: { questionId: event.questionId },
+      duration: event.elapsedMs,
+      start: 0,
+    });
+  } catch {
+    // Performance measurement is optional and must not interrupt the interview.
+  }
 };
 
 const AvailableVoiceInterviewControl = ({
@@ -326,35 +227,48 @@ const AvailableVoiceInterviewControl = ({
   context,
 }: {
   config: OpenAIVoiceConfig;
-  context: PetrinautAiComposerControlContext & { conversationId: string };
+  context: PetrinautAiVoiceModeContext;
 }) => {
+  "use no memo";
+
   const [store] = useState(() => {
+    // Realtime submits an answer long after the render that created the
+    // bridge, so these callbacks read what the layout effect below installs
+    // rather than what was captured here.
+    let latestSubmitVoiceInput = context.submitVoiceInput;
     const session = new OpenAIRealtimeSession({
+      cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
+      createAudioContext: () => new AudioContext(),
+      createRemoteAudio: () => new Audio(),
       createPeerConnection: () => new RTCPeerConnection(),
       fetch: globalThis.fetch.bind(globalThis),
       getUserMedia: (constraints) =>
         navigator.mediaDevices.getUserMedia(constraints),
       reportDiagnostic: reportVoiceDiagnostic,
+      requestAnimationFrame: (callback) =>
+        globalThis.requestAnimationFrame(callback),
     });
-    const playback = new SpeechPlaybackController({
-      createAudio: (source) => new Audio(source),
-      createObjectURL: (blob) => URL.createObjectURL(blob),
-      fetch: globalThis.fetch.bind(globalThis),
-      reportDiagnostic: reportVoiceDiagnostic,
-      revokeObjectURL: (url) => URL.revokeObjectURL(url),
+    const bridge = new RealtimeBrunchBridge({
+      session,
+      submitInterviewAnswer: (input) => latestSubmitVoiceInput(input),
     });
     const controller = new VoiceTurnController({
-      conversationId: context.conversationId,
-      playback,
+      bridge,
+      onLatencyEvent: recordLatency,
       session,
-      submitText: context.submitVoiceInput,
+      submitText: (input) => latestSubmitVoiceInput(input),
     });
     return {
       controller,
       getSnapshot: () => controller.getSnapshot(),
       subscribe: (listener: (snapshot: VoiceTurnSnapshot) => void) =>
         controller.subscribe(listener),
+      updateSubmissionContext: (
+        nextSubmitVoiceInput: PetrinautAiVoiceModeContext["submitVoiceInput"],
+      ) => {
+        latestSubmitVoiceInput = nextSubmitVoiceInput;
+      },
     };
   });
   const snapshot = useSyncExternalStore(
@@ -362,14 +276,84 @@ const AvailableVoiceInterviewControl = ({
     store.getSnapshot,
     store.getSnapshot,
   );
-  const [correction, setCorrection] = useState("");
+  const [showDisclosure, setShowDisclosure] = useState(false);
+  const [consented, setConsented] = useState(false);
+  const [microphoneCheck, setMicrophoneCheck] = useState("");
+  const handledVoiceSelectionRef = useRef(false);
+  const {
+    inputMode,
+    isAiAssistantOpen,
+    registerVoiceModeControls,
+    reportVoiceSessionState,
+    setVoiceActive,
+  } = context;
 
   useLayoutEffect(() => {
+    store.updateSubmissionContext(context.submitVoiceInput);
     store.controller.updateChat({
+      canAcceptInterviewAnswer: context.canAcceptVoiceInput,
       canonicalSegments: selectCanonicalSpeechSegments(context.messages),
       status: context.status,
     });
-  }, [context.messages, context.status, store]);
+  }, [
+    context.canAcceptVoiceInput,
+    context.messages,
+    context.status,
+    context.submitVoiceInput,
+    store,
+  ]);
+
+  const active = snapshot.connection !== "idle";
+
+  useEffect(
+    () =>
+      registerVoiceModeControls({
+        end: () => store.controller.end(),
+        pause: () => store.controller.pause(),
+        reconnect: () => {
+          void store.controller.reconnect();
+        },
+        resume: () => store.controller.resume(),
+        setMicrophoneMuted: (muted) =>
+          store.controller.setMicrophoneMuted(muted),
+      }),
+    [registerVoiceModeControls, store],
+  );
+
+  useEffect(() => {
+    setVoiceActive(inputMode === "voice" && active);
+  }, [active, inputMode, setVoiceActive]);
+
+  useLayoutEffect(() => {
+    if (
+      !isAiAssistantOpen &&
+      (snapshot.connection === "connecting" ||
+        (snapshot.connection === "connected" && snapshot.input !== "paused"))
+    ) {
+      store.controller.pause();
+    }
+  }, [isAiAssistantOpen, snapshot.connection, snapshot.input, store]);
+
+  useEffect(() => {
+    if (inputMode === "text") {
+      handledVoiceSelectionRef.current = false;
+      if (!active) {
+        setShowDisclosure(false);
+      }
+      return;
+    }
+    if (active || handledVoiceSelectionRef.current) {
+      return;
+    }
+
+    handledVoiceSelectionRef.current = true;
+    if (isVoiceInterviewDisclosureAcknowledged()) {
+      setVoiceActive(true);
+      void store.controller.start();
+    } else {
+      setShowDisclosure(true);
+    }
+  }, [active, inputMode, setVoiceActive, store]);
 
   useEffect(
     () => () => {
@@ -378,50 +362,63 @@ const AvailableVoiceInterviewControl = ({
     [store],
   );
 
-  return (
-    <VoiceInterviewControlView
-      correction={correction}
-      onCorrectionChange={setCorrection}
-      onEnd={() => void store.controller.end()}
-      onReconnect={() => void store.controller.reconnect()}
-      onStart={() => void store.controller.start()}
-      onSubmitCorrection={() => {
-        const value = correction;
-        setCorrection("");
-        void store.controller.submitCorrection(value);
-      }}
-      snapshot={snapshot}
-    />
-  );
-};
-
-export const VoiceInterviewControl = (
-  context: PetrinautAiComposerControlContext,
-) => {
-  const [config, setConfig] = useState<OpenAIVoiceConfig | null>();
-
+  // Petrinaut owns every live Voice surface, so this control only reports the
+  // session's state and keeps the consent step to itself.
   useEffect(() => {
-    const abortController = new AbortController();
-    void loadOpenAIVoiceConfig(
-      globalThis.fetch.bind(globalThis),
-      abortController.signal,
-    ).then((loadedConfig) => {
-      if (!abortController.signal.aborted) {
-        setConfig(loadedConfig);
-      }
-    });
-    return () => abortController.abort();
-  }, []);
+    reportVoiceSessionState(toVoiceSessionState({ snapshot }));
+  }, [reportVoiceSessionState, snapshot]);
 
-  if (!config || !context.conversationId) {
-    return null;
+  useEffect(
+    () => () => {
+      reportVoiceSessionState(null);
+    },
+    [reportVoiceSessionState],
+  );
+
+  if (!active) {
+    if (!showDisclosure || inputMode !== "voice") {
+      return null;
+    }
+
+    return (
+      <VoiceInterviewDisclosure
+        consented={consented}
+        microphoneCheck={microphoneCheck}
+        onCheckMicrophone={() => {
+          setMicrophoneCheck("Checking microphone…");
+          void navigator.mediaDevices.getUserMedia({ audio: true }).then(
+            (stream) => {
+              for (const track of stream.getTracks()) {
+                track.stop();
+              }
+              setMicrophoneCheck("Microphone ready.");
+            },
+            () => setMicrophoneCheck("Microphone access was not available."),
+          );
+        }}
+        onConsentChange={setConsented}
+        onStart={() => {
+          acknowledgeVoiceInterviewDisclosure();
+          setShowDisclosure(false);
+          context.setVoiceActive(true);
+          void store.controller.start();
+        }}
+      />
+    );
   }
 
-  return (
-    <AvailableVoiceInterviewControl
-      key={context.conversationId}
-      config={config}
-      context={{ ...context, conversationId: context.conversationId }}
-    />
-  );
+  return null;
 };
+
+export const VoiceInterviewControl = ({
+  config,
+  ...context
+}: PetrinautAiVoiceModeContext & {
+  readonly config: OpenAIVoiceConfig;
+}) => (
+  <AvailableVoiceInterviewControl
+    key={context.conversationId}
+    config={config}
+    context={context}
+  />
+);

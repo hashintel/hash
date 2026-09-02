@@ -919,6 +919,7 @@ __metadata:
   dependencies:
     "@ai-sdk/openai": "npm:3.0.63"
     "@fast-check/vitest": "npm:0.4.1"
+    "@hashintel/brunch-agent": "workspace:*"
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*"
     "@hashintel/ds-components": "workspace:*"
     "@hashintel/ds-helpers": "workspace:*"
@@ -7437,7 +7438,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@hashintel/brunch-agent-transport-aisdk@workspace:libs/@hashintel/brunch-agent/packages/transport-aisdk"
   dependencies:
-    "@hashintel/brunch-agent": "workspace:*"
     "@types/node": "npm:22.18.13"
     "@typescript/native-preview": "npm:7.0.0-dev.20260511.1"
     ai: "npm:6.0.182"

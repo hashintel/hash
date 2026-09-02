@@ -122,7 +122,7 @@ export const petrinautDocSummaries: Record<PetrinautDocName, string> = {
   "actual-mode":
     "Actual mode: host-provided live execution view, Brunch stream URL route, read-only extension-free net, current limits.",
   "ai-assistant":
-    "In-app AI assistant: opening the panel, conversation surface, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
+    "In-app AI assistant: opening the panel, one text and Voice mode transcript/composer, waveform start, inline Voice state and provenance, typed handoff, consent/recovery, prompt chips, tool cards, read-only/simulate-mode rules, host configuration.",
   "visual-settings":
     "Animations, keep-panels-mounted, minimap, snap-to-grid, compact vs classic nodes, partial selection, tree view, arc rendering style.",
   examples:

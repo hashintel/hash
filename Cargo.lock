@@ -4056,10 +4056,10 @@ version = "0.0.0"
 dependencies = [
  "axum",
  "axum-core",
- "bytes",
  "clap",
  "derive_more",
  "error-stack",
+ "futures",
  "governor",
  "http 1.4.2",
  "opentelemetry",

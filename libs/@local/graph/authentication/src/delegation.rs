@@ -52,7 +52,9 @@ where
             return ControlFlow::Continue(());
         }
         if !presents_service_secret(headers, &self.secret) {
-            return ControlFlow::Break(Err(Report::new(AuthenticationError::InvalidServiceSecret)));
+            return ControlFlow::Break(Err(Report::new(
+                AuthenticationError::invalid_service_secret(),
+            )));
         }
 
         let actor_uuid = match actor_id_from_header(headers) {
@@ -90,7 +92,7 @@ where
             // chain requiring an actor is missing the delegated actor, not the credential.
             ControlFlow::Break(Ok(None)) => ControlFlow::Break(
                 C::anonymous()
-                    .map_err(|_error| Report::new(AuthenticationError::MissingDelegatedActor)),
+                    .map_err(|_error| Report::new(AuthenticationError::missing_delegated_actor())),
             ),
             ControlFlow::Break(Err(report)) => ControlFlow::Break(Err(report)),
         }
@@ -99,13 +101,13 @@ where
 
 #[cfg(test)]
 mod tests {
-    use core::ops::ControlFlow;
+    use core::{assert_matches, ops::ControlFlow};
     use std::collections::HashMap;
 
     use error_stack::Report;
     use hash_middleware::authentication::{
         provider::{AuthenticationProvider as _, Caller, expect_rejection},
-        request::{ACTOR_ID_HEADER, AuthenticationError},
+        request::{ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind},
         service_secret::SERVICE_AUTH_SCHEME,
     };
     use http::HeaderMap;
@@ -228,13 +230,10 @@ mod tests {
             )
             .await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::ActorNotFound { .. }
-            ),
-            "a delegated actor that does not exist should be rejected, got {:?}",
-            report.current_context()
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::ActorNotFound { .. },
+            "a delegated actor that does not exist should be rejected"
         );
     }
 
@@ -261,11 +260,9 @@ mod tests {
             )
             .await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidServiceSecret
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::InvalidServiceSecret,
             "a wrong service secret should be rejected"
         );
     }
@@ -285,11 +282,9 @@ mod tests {
         let report = expect_rejection(
             authenticate::<ActorId>(&provider(), &headers(Some(SERVICE_SECRET), None)).await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::MissingDelegatedActor
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::MissingDelegatedActor,
             "the service secret should require the actor-ID header"
         );
     }
@@ -303,13 +298,10 @@ mod tests {
             )
             .await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::ActorNotFound { .. }
-            ),
-            "an unknown delegated actor should never degrade to the public actor, got {:?}",
-            report.current_context()
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::ActorNotFound { .. },
+            "an unknown delegated actor should never degrade to the public actor"
         );
     }
 
@@ -344,11 +336,9 @@ mod tests {
             )
             .await,
         );
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::MissingDelegatedActor
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::MissingDelegatedActor,
             "the nil actor header should be rejected where an actor is required"
         );
     }
@@ -371,11 +361,9 @@ mod tests {
         );
 
         let report = expect_rejection(authenticate::<ActorId>(&provider(), &request_headers).await);
-        assert!(
-            matches!(
-                report.current_context(),
-                AuthenticationError::InvalidActorIdHeader
-            ),
+        assert_matches!(
+            report.current_context().kind(),
+            AuthenticationErrorKind::InvalidActorIdHeader,
             "a malformed actor-ID header should be rejected as invalid"
         );
     }

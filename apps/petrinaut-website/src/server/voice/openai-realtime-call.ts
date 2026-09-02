@@ -4,7 +4,7 @@ import {
   type VoiceErrorCode,
 } from "../../voice-diagnostics";
 import {
-  createOpenAITranscriptionSession,
+  createOpenAIRealtimeSession,
   getOpenAIVoiceAvailability,
   OPENAI_REALTIME_CONNECTION_TIMEOUT_MS,
 } from "./openai-voice-policy";
@@ -146,7 +146,7 @@ export const createOpenAIRealtimeCallHandler =
         return diagnostics.respond(sdp);
       }
 
-      const session = createOpenAITranscriptionSession();
+      const session = createOpenAIRealtimeSession();
       const form = new FormData();
       form.set("sdp", sdp);
       form.set("session", JSON.stringify(session));

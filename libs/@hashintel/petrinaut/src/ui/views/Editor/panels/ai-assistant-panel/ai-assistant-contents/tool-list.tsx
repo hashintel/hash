@@ -19,6 +19,7 @@ import {
   summarizePetrinautAiToolCall,
 } from "../tool-summaries";
 import { collapsibleContentStyle } from "./shared/collapsible-content-style";
+import { VoiceInputProvenance } from "./voice-input-provenance";
 
 import type { PetrinautAiInteractiveTool } from "../../../../../types/ai-interactive-tool";
 import type { InteractiveToolDefinition } from "../interactive-tools/types";
@@ -37,6 +38,8 @@ export type ToolRenderItem = {
   summary: AiToolSummary;
   tone: ToolTone;
   toolName: string;
+  /** True only for the persisted spoken answer to this exact tool call. */
+  voiceOrigin: boolean;
   /** Server-reported error message for tools whose state is `output-error`. */
   errorText?: string;
   /** Set when the tool requires an inline widget for human input. */
@@ -119,6 +122,12 @@ const toolItemCollapsibleStyle = css({
   "& > button": {
     borderRadius: "[0]",
   },
+});
+
+const interactiveToolStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "1",
 });
 
 const toolHeaderStyle = css({
@@ -484,6 +493,11 @@ export const toToolRenderItem = (
     summary,
     tone: getToolTone({ state, summary, toolName }),
     toolName,
+    voiceOrigin:
+      state === "output-available" &&
+      typeof part.toolCallId === "string" &&
+      message.metadata?.source === "voice" &&
+      message.metadata.toolCallId === part.toolCallId,
     errorText:
       state === "output-error" && typeof part.errorText === "string"
         ? part.errorText
@@ -512,43 +526,48 @@ const InteractiveToolItem = ({
 
   if (submitted) {
     return (
-      <Widget
-        input={typedInput}
-        state="submitted"
-        submit={() => {}}
-        submittedOutput={definition.parseOutput(submittedOutput)}
-        toolCallId={tool.id}
-      />
+      <div className={interactiveToolStyle} data-tool-call-id={tool.id}>
+        <Widget
+          input={typedInput}
+          state="submitted"
+          submit={() => {}}
+          submittedOutput={definition.parseOutput(submittedOutput)}
+          toolCallId={tool.id}
+        />
+        {tool.voiceOrigin && <VoiceInputProvenance />}
+      </div>
     );
   }
 
   return (
-    <Widget
-      input={typedInput}
-      state="awaiting"
-      submit={(output) => {
-        if (submittedOnceRef.current || !onInteractiveToolSubmit) {
-          return;
-        }
+    <div className={interactiveToolStyle} data-tool-call-id={tool.id}>
+      <Widget
+        input={typedInput}
+        state="awaiting"
+        submit={(output) => {
+          if (submittedOnceRef.current || !onInteractiveToolSubmit) {
+            return;
+          }
 
-        const parsedOutput = definition.parseOutput(output);
-        submittedOnceRef.current = true;
-        try {
-          const submission = onInteractiveToolSubmit({
-            toolCallId: tool.id,
-            toolName: tool.toolName,
-            output: parsedOutput,
-          });
-          void Promise.resolve(submission).catch(() => {
+          const parsedOutput = definition.parseOutput(output);
+          submittedOnceRef.current = true;
+          try {
+            const submission = onInteractiveToolSubmit({
+              toolCallId: tool.id,
+              toolName: tool.toolName,
+              output: parsedOutput,
+            });
+            void Promise.resolve(submission).catch(() => {
+              submittedOnceRef.current = false;
+            });
+          } catch (error) {
             submittedOnceRef.current = false;
-          });
-        } catch (error) {
-          submittedOnceRef.current = false;
-          throw error;
-        }
-      }}
-      toolCallId={tool.id}
-    />
+            throw error;
+          }
+        }}
+        toolCallId={tool.id}
+      />
+    </div>
   );
 };
 

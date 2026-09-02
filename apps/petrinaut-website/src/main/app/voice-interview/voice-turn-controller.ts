@@ -1,124 +1,145 @@
 import { VoiceError, type VoiceErrorCode } from "../../../voice-diagnostics";
 
 import type { CanonicalSpeechSegment } from "./canonical-speech";
+import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type {
-  OpenAIRealtimeSessionEvent,
-  OpenAIRealtimeTranscriptKey,
-} from "./openai-realtime-session";
+  RealtimeBridgeErrorCode,
+  RealtimeBrunchBridgeEvent,
+} from "./realtime-brunch-bridge";
 
-export type VoiceTurnPhase =
+export type VoiceConnectionState =
   | "idle"
   | "connecting"
-  | "listening"
-  | "transcribing"
-  | "delivering"
-  | "waiting"
-  | "synthesizing"
-  | "playing"
-  | "recoverable-error";
+  | "connected"
+  | "error";
+export type VoiceInputState = "listening" | "paused" | "submitting";
+export type VoiceOutputState =
+  | "idle"
+  | "waiting-for-tool"
+  | "speaking"
+  | "interrupted";
+export type VoiceAnswerDelivery = "none" | "pending" | "delivered" | "failed";
 
 export interface VoiceTurnSnapshot {
-  readonly errorCode: VoiceErrorCode | null;
+  readonly canReviseLastAnswer: boolean;
+  readonly connection: VoiceConnectionState;
+  readonly currentQuestion: string;
+  readonly errorCode: RealtimeBridgeErrorCode | VoiceErrorCode | null;
   readonly errorMessage: string;
   readonly errorRequestId: string;
+  readonly input: VoiceInputState;
+  readonly lastAnswerDelivery: VoiceAnswerDelivery;
   readonly lastCommittedText: string;
+  readonly microphoneEnabled: boolean;
+  readonly microphoneLevel: number;
+  readonly output: VoiceOutputState;
   readonly partialText: string;
-  readonly phase: VoiceTurnPhase;
+}
+
+export interface VoiceLatencyEvent {
+  readonly elapsedMs: number;
+  readonly name:
+    | "question-visible"
+    | "question-spoken-started"
+    | "question-spoken"
+    | "answer-ready";
+  readonly questionId: string;
 }
 
 type ChatStatus = "ready" | "submitted" | "streaming" | "error";
 
 interface RealtimeSession {
+  cancelOutput(): void;
   connect(): Promise<number>;
   disconnect(): Promise<void>;
   setMicrophoneEnabled(enabled: boolean): void;
   subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
 }
 
+interface RealtimeBridge {
+  start(connectionEpoch: number): void;
+  stop(): void;
+  subscribe(listener: (event: RealtimeBrunchBridgeEvent) => void): () => void;
+  updateChat(update: ChatUpdate): void;
+}
+
 interface SubmitTextInput {
-  readonly id?: string;
-  readonly target?: "auto" | "message";
+  readonly target: "message";
   readonly text: string;
 }
 
-interface SpeechPlayback {
-  cancel(): void;
-  play(
-    segment: CanonicalSpeechSegment,
-    events?: { readonly onPlaying?: () => void },
-  ): Promise<void>;
-}
-
 interface VoiceTurnControllerDependencies {
-  readonly conversationId: string;
-  readonly playback: SpeechPlayback;
+  readonly bridge: RealtimeBridge;
+  readonly now?: () => number;
+  readonly onLatencyEvent?: (event: VoiceLatencyEvent) => void;
   readonly session: RealtimeSession;
   readonly submitText: (input: SubmitTextInput) => Promise<unknown>;
 }
 
 interface ChatUpdate {
+  readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
   readonly status: ChatStatus;
 }
 
 type SnapshotListener = (snapshot: VoiceTurnSnapshot) => void;
 
-const transcriptKey = (key: OpenAIRealtimeTranscriptKey): string =>
-  `${key.connectionEpoch}:${key.itemId}:${key.contentIndex}`;
-
-export const createVoiceMessageId = (
-  conversationId: string,
-  key: OpenAIRealtimeTranscriptKey,
-): string =>
-  [
-    "voice",
-    encodeURIComponent(conversationId),
-    key.connectionEpoch,
-    encodeURIComponent(key.itemId),
-    key.contentIndex,
-  ].join(":");
-
 const initialSnapshot: VoiceTurnSnapshot = {
+  canReviseLastAnswer: false,
+  connection: "idle",
+  currentQuestion: "",
   errorCode: null,
   errorMessage: "",
   errorRequestId: "",
+  input: "paused",
+  lastAnswerDelivery: "none",
   lastCommittedText: "",
+  microphoneEnabled: false,
+  microphoneLevel: 0,
+  output: "idle",
   partialText: "",
-  phase: "idle",
 };
 
+const latestQuestion = (
+  segments: CanonicalSpeechSegment[],
+): CanonicalSpeechSegment | undefined =>
+  segments.findLast(({ source }) => source === "brunch-ask");
+
 export class VoiceTurnController {
-  readonly #conversationId: string;
+  readonly #bridge: RealtimeBridge;
   readonly #listeners = new Set<SnapshotListener>();
-  readonly #playback: SpeechPlayback;
+  readonly #now: () => number;
+  readonly #onLatencyEvent: ((event: VoiceLatencyEvent) => void) | undefined;
   readonly #session: RealtimeSession;
   readonly #submitText: (input: SubmitTextInput) => Promise<unknown>;
-  readonly #completedKeys = new Set<string>();
-  readonly #seenSpeechSegmentIds = new Set<string>();
-  readonly #speechQueue: CanonicalSpeechSegment[] = [];
   #activeEpoch: number | null = null;
-  #activeItemId: string | null = null;
-  #activeKey: string | null = null;
-  #activeSpeechSegmentId: string | null = null;
-  #awaitingChatCycle = false;
-  #chatStatus: ChatStatus = "ready";
+  #answerFinalizedAt: number | null = null;
+  #answeredQuestionId: string | null = null;
+  #bridgeStarted = false;
+  #currentQuestionId: string | null = null;
   #generation = 0;
-  #pendingDelivery: SubmitTextInput | null = null;
-  #sawBusyChatStatus = false;
+  #inputStateOnResume: Exclude<VoiceInputState, "paused"> | null = null;
+  #pauseRequested = false;
   #snapshot = initialSnapshot;
-  #speechLoopGeneration: number | null = null;
+  #submittingQuestionId: string | null = null;
+  #teardownPromise: Promise<void> | null = null;
+  #transcriptItemId: string | null = null;
+  #transcriptKey: string | null = null;
 
   public constructor({
-    conversationId,
-    playback,
+    bridge,
+    now = () => performance.now(),
+    onLatencyEvent,
     session,
     submitText,
   }: VoiceTurnControllerDependencies) {
-    this.#conversationId = conversationId;
-    this.#playback = playback;
+    this.#bridge = bridge;
+    this.#now = now;
+    this.#onLatencyEvent = onLatencyEvent;
     this.#session = session;
     this.#submitText = submitText;
     session.subscribe((event) => this.#handleSessionEvent(event));
+    bridge.subscribe((event) => this.#handleBridgeEvent(event));
   }
 
   public getSnapshot(): VoiceTurnSnapshot {
@@ -131,471 +152,419 @@ export class VoiceTurnController {
   }
 
   public async start(): Promise<void> {
-    if (this.#snapshot.phase !== "idle") {
+    if (
+      this.#snapshot.connection === "connecting" ||
+      this.#snapshot.connection === "connected"
+    ) {
       return;
     }
-    if (!this.#isChatReady()) {
-      this.#session.setMicrophoneEnabled(false);
-      this.#update({
-        errorMessage: "Wait for Brunch to finish before starting voice input.",
-        phase: "recoverable-error",
-      });
-      return;
+    const generation = ++this.#generation;
+    const teardownPromise = this.#teardownPromise;
+    if (teardownPromise) {
+      try {
+        await teardownPromise;
+      } catch (error) {
+        if (generation !== this.#generation) return;
+        const voiceError =
+          error instanceof VoiceError
+            ? error
+            : new VoiceError("connection", "network", "");
+        this.#setError(
+          voiceError.message,
+          voiceError.code,
+          voiceError.requestId,
+        );
+        return;
+      }
+      if (generation !== this.#generation) return;
     }
 
-    const generation = ++this.#generation;
-    this.#update({ errorMessage: "", phase: "connecting" });
+    this.#inputStateOnResume = null;
+    this.#pauseRequested = false;
+    this.#bridgeStarted = false;
+    this.#update({
+      connection: "connecting",
+      errorCode: null,
+      errorMessage: "",
+      errorRequestId: "",
+      input: "paused",
+      output: "idle",
+      partialText: "",
+    });
     try {
       const connectionEpoch = await this.#session.connect();
-      if (generation !== this.#generation) {
-        return;
-      }
+      if (generation !== this.#generation) return;
       this.#activeEpoch = connectionEpoch;
-      this.#activeItemId = null;
-      this.#activeKey = null;
-      this.#completedKeys.clear();
-      const canListen = this.#isChatReady() && this.#speechQueue.length === 0;
-      this.#session.setMicrophoneEnabled(canListen);
+      const microphoneEnabled = !this.#isPauseRequested();
+      this.#session.setMicrophoneEnabled(microphoneEnabled);
       this.#update({
-        partialText: "",
-        phase: canListen ? "listening" : "waiting",
+        connection: "connected",
+        input: microphoneEnabled ? "listening" : "paused",
+        microphoneEnabled,
       });
-      this.#startSpeechQueueIfNeeded();
-    } catch (error) {
-      if (generation !== this.#generation) {
-        return;
+      if (microphoneEnabled) {
+        this.#bridge.start(connectionEpoch);
+        this.#bridgeStarted = true;
       }
+    } catch (error) {
+      if (generation !== this.#generation) return;
       const voiceError =
         error instanceof VoiceError
           ? error
           : new VoiceError("connection", "invalid-response", "");
-      this.#session.setMicrophoneEnabled(false);
-      this.#update({
-        errorCode: voiceError.code,
-        errorMessage: voiceError.message,
-        errorRequestId: voiceError.requestId,
-        phase: "recoverable-error",
-      });
+      this.#setError(voiceError.message, voiceError.code, voiceError.requestId);
     }
   }
 
   public async end(): Promise<void> {
     ++this.#generation;
     this.#activeEpoch = null;
-    this.#activeItemId = null;
-    this.#activeKey = null;
-    this.#activeSpeechSegmentId = null;
-    this.#awaitingChatCycle = false;
-    this.#pendingDelivery = null;
-    this.#sawBusyChatStatus = false;
-    this.#speechLoopGeneration = null;
-    this.#speechQueue.length = 0;
-    this.#playback.cancel();
+    this.#answerFinalizedAt = null;
+    this.#answeredQuestionId = null;
+    this.#bridgeStarted = false;
+    this.#currentQuestionId = null;
+    this.#inputStateOnResume = null;
+    this.#submittingQuestionId = null;
+    this.#pauseRequested = false;
+    this.#transcriptItemId = null;
+    this.#transcriptKey = null;
+    this.#bridge.stop();
     this.#session.setMicrophoneEnabled(false);
-    await this.#session.disconnect();
-    this.#update({
-      errorMessage: "",
-      partialText: "",
-      phase: "idle",
-    });
+    const teardownPromise = this.#teardownPromise ?? this.#session.disconnect();
+    this.#teardownPromise = teardownPromise;
+    this.#update({ ...initialSnapshot });
+    try {
+      await teardownPromise;
+    } finally {
+      if (this.#teardownPromise === teardownPromise) {
+        this.#teardownPromise = null;
+      }
+    }
   }
 
   public async reconnect(): Promise<void> {
+    const pendingQuestion =
+      this.#currentQuestionId !== null &&
+      this.#answeredQuestionId !== this.#currentQuestionId &&
+      this.#snapshot.currentQuestion
+        ? {
+            id: this.#currentQuestionId,
+            text: this.#snapshot.currentQuestion,
+          }
+        : null;
     await this.end();
+    if (pendingQuestion) {
+      this.#currentQuestionId = pendingQuestion.id;
+      this.#update({ currentQuestion: pendingQuestion.text });
+    }
     await this.start();
   }
 
-  public async submitCorrection(correction: string): Promise<void> {
-    const correctedText = correction.trim();
-    const previousText = this.#snapshot.lastCommittedText;
+  public pause(): void {
+    if (this.#snapshot.connection === "connecting") {
+      this.#pauseRequested = true;
+      return;
+    }
     if (
-      !correctedText ||
-      !previousText ||
-      this.#snapshot.phase !== "listening"
+      this.#snapshot.connection !== "connected" ||
+      this.#snapshot.input === "paused"
     ) {
       return;
     }
-
+    this.#inputStateOnResume = this.#snapshot.input;
+    this.#pauseRequested = true;
+    const output = this.#snapshot.output === "idle" ? "idle" : "interrupted";
+    this.#session.cancelOutput();
     this.#session.setMicrophoneEnabled(false);
-    this.#update({ errorMessage: "", phase: "delivering" });
-    await this.#deliver({
-      target: "message",
-      text: `Correction to my previous voice answer "${previousText}": ${correctedText}`,
-    });
-  }
-
-  public updateChat({ canonicalSegments, status }: ChatUpdate): void {
-    this.#chatStatus = status;
-    const canQueueSpeech =
-      status !== "error" &&
-      this.#snapshot.phase !== "idle" &&
-      this.#snapshot.phase !== "recoverable-error";
-    for (const segment of canonicalSegments) {
-      if (this.#seenSpeechSegmentIds.has(segment.id)) {
-        continue;
-      }
-      this.#seenSpeechSegmentIds.add(segment.id);
-      if (canQueueSpeech) {
-        this.#speechQueue.push(segment);
-      }
-    }
-
-    if (this.#snapshot.phase === "recoverable-error") {
-      return;
-    }
-
-    if (
-      status === "ready" &&
-      !this.#awaitingChatCycle &&
-      this.#pendingDelivery !== null
-    ) {
-      const pendingDelivery = this.#pendingDelivery;
-      this.#pendingDelivery = null;
-      this.#session.setMicrophoneEnabled(false);
-      this.#update({ errorMessage: "", phase: "delivering" });
-      void this.#deliver(pendingDelivery);
-      return;
-    }
-
-    if (status === "error") {
-      if (this.#snapshot.phase === "idle") {
-        return;
-      }
-      const errorMessage = this.#awaitingChatCycle
-        ? "Brunch could not accept the voice turn. Use the composer to retry."
-        : "Brunch could not complete the current turn. Use the composer to retry.";
-      ++this.#generation;
-      this.#activeEpoch = null;
-      this.#activeItemId = null;
-      this.#activeKey = null;
-      this.#awaitingChatCycle = false;
-      this.#sawBusyChatStatus = false;
-      this.#speechQueue.length = 0;
-      this.#activeSpeechSegmentId = null;
-      this.#speechLoopGeneration = null;
-      this.#playback.cancel();
-      this.#session.setMicrophoneEnabled(false);
-      void this.#session.disconnect();
-      this.#update({ errorMessage, phase: "recoverable-error" });
-      return;
-    }
-
-    this.#startSpeechQueueIfNeeded();
-    if (status === "submitted" || status === "streaming") {
-      if (this.#awaitingChatCycle) {
-        this.#sawBusyChatStatus = true;
-      }
-      this.#session.setMicrophoneEnabled(false);
-      if (
-        this.#speechLoopGeneration === null &&
-        (this.#snapshot.phase === "listening" ||
-          this.#snapshot.phase === "delivering" ||
-          this.#snapshot.phase === "waiting")
-      ) {
-        this.#update({ phase: "waiting" });
-      }
-      return;
-    }
-    this.#settleListeningIfReady();
-  }
-
-  async #deliver(input: SubmitTextInput): Promise<void> {
-    if (!this.#isChatReady()) {
-      this.#pendingDelivery = input;
-      this.#session.setMicrophoneEnabled(false);
-      this.#update({ phase: "waiting" });
-      return;
-    }
-
-    const generation = this.#generation;
-    this.#awaitingChatCycle = true;
-    this.#sawBusyChatStatus = false;
-    try {
-      await this.#submitText(input);
-      if (
-        generation !== this.#generation ||
-        !this.#isAwaitingCurrentChatCycle()
-      ) {
-        return;
-      }
-      if (this.#snapshot.phase === "delivering") {
-        this.#update({ phase: "waiting" });
-      }
-      this.#settleListeningIfReady();
-    } catch {
-      if (
-        generation !== this.#generation ||
-        this.#snapshot.phase === "recoverable-error"
-      ) {
-        return;
-      }
-      if (!this.#isChatReady()) {
-        this.#pendingDelivery = input;
-        this.#awaitingChatCycle = false;
-        this.#session.setMicrophoneEnabled(false);
-        this.#update({ phase: "waiting" });
-        return;
-      }
-      this.#awaitingChatCycle = false;
-      this.#session.setMicrophoneEnabled(false);
-      this.#update({
-        errorMessage:
-          "Brunch could not accept the voice turn. Use the composer to retry.",
-        phase: "recoverable-error",
-      });
-    }
-  }
-
-  #isAwaitingCurrentChatCycle(): boolean {
-    return this.#awaitingChatCycle;
-  }
-
-  #isChatReady(): boolean {
-    return this.#chatStatus === "ready";
-  }
-
-  #handleSessionEvent(event: OpenAIRealtimeSessionEvent): void {
-    if (event.type === "error") {
-      ++this.#generation;
-      this.#activeEpoch = null;
-      this.#activeItemId = null;
-      this.#activeKey = null;
-      this.#awaitingChatCycle = false;
-      this.#pendingDelivery = null;
-      this.#sawBusyChatStatus = false;
-      this.#activeSpeechSegmentId = null;
-      this.#speechLoopGeneration = null;
-      this.#speechQueue.length = 0;
-      this.#playback.cancel();
-      this.#session.setMicrophoneEnabled(false);
-      this.#update({
-        errorCode: event.code,
-        errorMessage: event.message,
-        errorRequestId: event.requestId,
-        phase: "recoverable-error",
-      });
-      return;
-    }
-    if (this.#pendingDelivery !== null) {
-      return;
-    }
-    if (event.type === "input-committed") {
-      if (
-        event.connectionEpoch !== this.#activeEpoch ||
-        (this.#activeItemId !== null && this.#activeItemId !== event.itemId) ||
-        (this.#snapshot.phase !== "listening" &&
-          this.#snapshot.phase !== "transcribing" &&
-          this.#snapshot.phase !== "waiting")
-      ) {
-        return;
-      }
-      this.#activeItemId = event.itemId;
-      this.#session.setMicrophoneEnabled(false);
-      this.#update({ phase: "transcribing" });
-      return;
-    }
-
-    if (
-      event.key.connectionEpoch !== this.#activeEpoch ||
-      (this.#snapshot.phase !== "listening" &&
-        this.#snapshot.phase !== "transcribing" &&
-        this.#snapshot.phase !== "waiting")
-    ) {
-      return;
-    }
-    const key = transcriptKey(event.key);
-    if (this.#completedKeys.has(key)) {
-      return;
-    }
-    if (
-      (this.#activeItemId !== null &&
-        this.#activeItemId !== event.key.itemId) ||
-      (this.#activeKey !== null && this.#activeKey !== key)
-    ) {
-      return;
-    }
-    this.#activeItemId = event.key.itemId;
-    this.#activeKey = key;
-
-    if (event.type === "partial") {
-      this.#session.setMicrophoneEnabled(false);
-      this.#update({
-        partialText: `${this.#snapshot.partialText}${event.text}`,
-        phase: "transcribing",
-      });
-      return;
-    }
-    this.#completedKeys.add(key);
-
-    const finalText = event.text.trim();
-    this.#activeItemId = null;
-    this.#activeKey = null;
-    if (!finalText) {
-      this.#update({
-        partialText: "",
-        phase: "waiting",
-      });
-      this.#settleListeningIfReady();
-      return;
-    }
-
-    this.#session.setMicrophoneEnabled(false);
-    const input = {
-      id: createVoiceMessageId(this.#conversationId, event.key),
-      text: finalText,
-    };
-    const canDeliver = this.#isChatReady();
     this.#update({
-      errorMessage: "",
-      lastCommittedText: finalText,
-      partialText: "",
-      phase: canDeliver ? "delivering" : "waiting",
+      input: "paused",
+      microphoneEnabled: false,
+      microphoneLevel: 0,
+      output,
     });
-    if (canDeliver) {
-      void this.#deliver(input);
-    } else {
-      this.#pendingDelivery = input;
-    }
   }
 
-  #startSpeechQueueIfNeeded(): void {
+  /**
+   * Stops or restarts capture mid-session. Unlike {@link pause} the turn is
+   * left alone: the bridge stays up and anything the assistant is saying plays
+   * out, so unmuting drops the user straight back into the conversation.
+   */
+  public setMicrophoneMuted(muted: boolean): void {
     if (
-      this.#speechLoopGeneration !== null ||
-      this.#speechQueue.length === 0 ||
-      this.#activeEpoch === null ||
-      this.#snapshot.phase === "transcribing"
+      this.#snapshot.connection !== "connected" ||
+      this.#snapshot.input === "paused" ||
+      this.#snapshot.microphoneEnabled === !muted
     ) {
       return;
     }
-
-    const generation = this.#generation;
-    this.#speechLoopGeneration = generation;
-    this.#session.setMicrophoneEnabled(false);
-    this.#update({ errorMessage: "", phase: "synthesizing" });
-    void this.#drainSpeechQueue(generation);
+    this.#session.setMicrophoneEnabled(!muted);
+    this.#update({ microphoneEnabled: !muted, microphoneLevel: 0 });
   }
 
-  async #drainSpeechQueue(generation: number): Promise<void> {
-    while (
-      generation === this.#generation &&
-      this.#speechLoopGeneration === generation &&
-      this.#activeEpoch !== null
+  public resume(): void {
+    if (
+      this.#snapshot.connection !== "connected" ||
+      this.#snapshot.input !== "paused"
     ) {
-      const segment = this.#speechQueue.shift();
-      if (!segment) {
-        break;
-      }
-
-      this.#activeSpeechSegmentId = segment.id;
-      this.#session.setMicrophoneEnabled(false);
-      this.#update({ errorMessage: "", phase: "synthesizing" });
+      return;
+    }
+    const input = this.#inputStateOnResume ?? "listening";
+    this.#inputStateOnResume = null;
+    this.#pauseRequested = false;
+    this.#session.setMicrophoneEnabled(true);
+    if (!this.#bridgeStarted && this.#activeEpoch !== null) {
       try {
-        await this.#playback.play(segment, {
-          onPlaying: () => {
-            if (
-              generation === this.#generation &&
-              this.#speechLoopGeneration === generation &&
-              this.#activeSpeechSegmentId === segment.id
-            ) {
-              this.#update({ phase: "playing" });
-            }
-          },
-        });
+        this.#bridge.start(this.#activeEpoch);
+        this.#bridgeStarted = true;
       } catch (error) {
-        if (
-          generation !== this.#generation ||
-          this.#speechLoopGeneration !== generation
-        ) {
-          return;
-        }
         const voiceError =
           error instanceof VoiceError
             ? error
-            : new VoiceError("speech", "invalid-response", "");
-        this.#activeSpeechSegmentId = null;
-        this.#speechLoopGeneration = null;
-        this.#speechQueue.length = 0;
-        this.#session.setMicrophoneEnabled(false);
-        this.#update({
-          errorCode: voiceError.code,
-          errorMessage: voiceError.message,
-          errorRequestId: voiceError.requestId,
-          phase: "recoverable-error",
-        });
+            : new VoiceError("connection", "invalid-response", "");
+        this.#setError(
+          voiceError.message,
+          voiceError.code,
+          voiceError.requestId,
+        );
         return;
       }
-
-      if (
-        generation !== this.#generation ||
-        this.#speechLoopGeneration !== generation
-      ) {
-        return;
-      }
-      this.#activeSpeechSegmentId = null;
     }
-
-    if (
-      generation !== this.#generation ||
-      this.#speechLoopGeneration !== generation
-    ) {
-      return;
-    }
-    this.#activeSpeechSegmentId = null;
-    this.#speechLoopGeneration = null;
-    this.#settleListeningIfReady();
+    this.#update({ input, microphoneEnabled: true });
   }
 
-  #settleListeningIfReady(): void {
+  public async submitCorrection(correction: string): Promise<boolean> {
+    const correctedText = correction.trim();
+    const previousText = this.#snapshot.lastCommittedText;
+    if (!correctedText || !this.#canReviseLastAnswer()) return false;
+    const generation = this.#generation;
+    this.#update({ input: "submitting", lastAnswerDelivery: "pending" });
+    try {
+      await this.#submitText({
+        target: "message",
+        text: `Correction to my previous voice answer "${previousText}": ${correctedText}`,
+      });
+      if (generation !== this.#generation) return false;
+      this.#update({
+        input: "listening",
+        lastAnswerDelivery: "delivered",
+        lastCommittedText: correctedText,
+      });
+      return true;
+    } catch {
+      if (generation === this.#generation) {
+        this.#update({
+          input: "paused",
+          lastAnswerDelivery: "failed",
+        });
+        this.#setError(
+          "The interview could not accept that correction. Use the composer to retry.",
+        );
+      }
+      return false;
+    }
+  }
+
+  public updateChat(update: ChatUpdate): void {
+    const question = latestQuestion(update.canonicalSegments);
+    if (question && question.id !== this.#currentQuestionId) {
+      this.#currentQuestionId = question.id;
+      this.#update({ currentQuestion: question.text });
+      this.#recordLatency("question-visible", question.id);
+    }
+    this.#bridge.updateChat(update);
+    if (this.#snapshot.input === "paused") {
+      this.#session.cancelOutput();
+    }
+  }
+
+  #handleBridgeEvent(event: RealtimeBrunchBridgeEvent): void {
+    if (this.#snapshot.connection !== "connected") return;
+    if (event.type === "error") {
+      this.#setError(event.message, event.code);
+      return;
+    }
+    if (event.type === "submission-started") {
+      const paused = this.#snapshot.input === "paused";
+      if (paused) {
+        this.#inputStateOnResume = "submitting";
+      }
+      this.#answerFinalizedAt = this.#now();
+      this.#submittingQuestionId = this.#currentQuestionId;
+      this.#transcriptItemId = null;
+      this.#transcriptKey = null;
+      this.#update({
+        input: paused ? "paused" : "submitting",
+        lastAnswerDelivery: "pending",
+        lastCommittedText: event.answer,
+        output: "waiting-for-tool",
+        partialText: "",
+      });
+      return;
+    }
+    if (event.type === "submission-accepted") {
+      this.#answeredQuestionId = this.#submittingQuestionId;
+      this.#submittingQuestionId = null;
+      this.#update({ lastAnswerDelivery: "delivered" });
+      return;
+    }
+    const paused = this.#snapshot.input === "paused";
+    if (paused) {
+      this.#inputStateOnResume = "listening";
+      this.#session.cancelOutput();
+    }
+    this.#update({
+      input: paused ? "paused" : "listening",
+      output: paused ? "interrupted" : "waiting-for-tool",
+    });
+    const question = event.segments.findLast(
+      ({ source }) => source === "brunch-ask",
+    );
+    if (question) this.#recordLatency("answer-ready", question.id);
+  }
+
+  #handleSessionEvent(event: OpenAIRealtimeSessionEvent): void {
+    if (event.type === "microphone-level") {
+      if (this.#snapshot.microphoneEnabled) {
+        this.#update({ microphoneLevel: event.level });
+      }
+      return;
+    }
+    if (event.type === "error") {
+      this.#setError(event.message, event.code, event.requestId);
+      return;
+    }
     if (
-      this.#activeEpoch === null ||
-      this.#snapshot.phase === "recoverable-error" ||
-      this.#speechLoopGeneration !== null
+      "connectionEpoch" in event &&
+      event.connectionEpoch !== this.#activeEpoch
+    ) {
+      return;
+    }
+    if (event.type === "output-started") {
+      if (this.#snapshot.input === "paused") {
+        this.#session.cancelOutput();
+        this.#update({ output: "interrupted" });
+        return;
+      }
+      this.#update({ output: "speaking" });
+      if (this.#currentQuestionId) {
+        this.#recordLatency("question-spoken-started", this.#currentQuestionId);
+      }
+      return;
+    }
+    if (event.type === "output-stopped") {
+      this.#update({ output: "idle" });
+      if (this.#currentQuestionId) {
+        this.#recordLatency("question-spoken", this.#currentQuestionId);
+      }
+      return;
+    }
+    if (event.type === "output-interrupted") {
+      this.#update({ output: "interrupted" });
+      return;
+    }
+    if (event.type === "input-speech-started") {
+      this.#transcriptItemId = event.itemId;
+      this.#transcriptKey = null;
+      if (this.#snapshot.output === "speaking") {
+        this.#update({ output: "interrupted", partialText: "" });
+      } else {
+        this.#update({ partialText: "" });
+      }
+      return;
+    }
+    if (
+      event.type === "input-speech-stopped" ||
+      event.type === "response-terminal" ||
+      event.type === "tool-arguments-delta" ||
+      event.type === "tool-arguments-done"
     ) {
       return;
     }
 
-    if (this.#snapshot.phase === "transcribing") {
-      this.#session.setMicrophoneEnabled(false);
+    const key = `${event.key.connectionEpoch}:${event.key.itemId}:${event.key.contentIndex}`;
+    if (event.key.connectionEpoch !== this.#activeEpoch) return;
+    if (event.key.itemId !== this.#transcriptItemId) return;
+    if (event.type === "transcription-failed") {
+      this.#transcriptItemId = null;
+      this.#transcriptKey = null;
+      this.#update({ partialText: "" });
       return;
     }
-
-    if (this.#speechQueue.length > 0) {
-      this.#startSpeechQueueIfNeeded();
+    if (this.#transcriptKey !== null && this.#transcriptKey !== key) return;
+    this.#transcriptKey = key;
+    if (event.type === "partial") {
+      this.#update({
+        partialText: `${this.#snapshot.partialText}${event.text}`,
+      });
       return;
     }
+    this.#transcriptItemId = null;
+    this.#transcriptKey = null;
+    this.#update({
+      partialText: event.text.trim() || this.#snapshot.partialText,
+    });
+  }
 
-    if (this.#awaitingChatCycle) {
-      if (!this.#sawBusyChatStatus || this.#chatStatus !== "ready") {
-        this.#session.setMicrophoneEnabled(false);
-        if (this.#snapshot.phase !== "waiting") {
-          this.#update({ phase: "waiting" });
-        }
-        return;
-      }
-      this.#awaitingChatCycle = false;
-      this.#sawBusyChatStatus = false;
-    }
+  #setError(
+    message: string,
+    code: VoiceTurnSnapshot["errorCode"] = null,
+    requestId = "",
+  ): void {
+    ++this.#generation;
+    this.#activeEpoch = null;
+    this.#inputStateOnResume = null;
+    this.#bridgeStarted = false;
+    this.#transcriptItemId = null;
+    this.#transcriptKey = null;
+    this.#bridge.stop();
+    this.#session.setMicrophoneEnabled(false);
+    void this.#session.disconnect();
+    this.#update({
+      connection: "error",
+      errorCode: code,
+      errorMessage: message,
+      errorRequestId: requestId,
+      input: "paused",
+      lastAnswerDelivery:
+        this.#snapshot.lastAnswerDelivery === "pending"
+          ? "failed"
+          : this.#snapshot.lastAnswerDelivery,
+      microphoneEnabled: false,
+      microphoneLevel: 0,
+      output: "idle",
+      partialText: "",
+    });
+  }
 
-    if (!this.#isChatReady()) {
-      this.#session.setMicrophoneEnabled(false);
-      if (this.#snapshot.phase !== "delivering") {
-        this.#update({ phase: "waiting" });
-      }
-      return;
-    }
+  #recordLatency(name: VoiceLatencyEvent["name"], questionId: string): void {
+    if (this.#answerFinalizedAt === null) return;
+    this.#onLatencyEvent?.({
+      elapsedMs: Math.max(0, this.#now() - this.#answerFinalizedAt),
+      name,
+      questionId,
+    });
+  }
 
-    this.#session.setMicrophoneEnabled(true);
-    this.#update({ errorMessage: "", phase: "listening" });
+  #canReviseLastAnswer(snapshot = this.#snapshot): boolean {
+    return (
+      snapshot.connection === "connected" &&
+      snapshot.input === "listening" &&
+      snapshot.lastAnswerDelivery === "delivered" &&
+      Boolean(snapshot.lastCommittedText) &&
+      this.#answeredQuestionId === this.#currentQuestionId
+    );
+  }
+
+  #isPauseRequested(): boolean {
+    return this.#pauseRequested;
   }
 
   #update(update: Partial<VoiceTurnSnapshot>): void {
-    const clearedError =
-      update.errorMessage !== undefined && !("errorCode" in update)
-        ? { errorCode: null, errorRequestId: "" }
-        : {};
-    this.#snapshot = { ...this.#snapshot, ...clearedError, ...update };
-    for (const listener of this.#listeners) {
-      listener(this.#snapshot);
-    }
+    const snapshot = { ...this.#snapshot, ...update };
+    this.#snapshot = {
+      ...snapshot,
+      canReviseLastAnswer: this.#canReviseLastAnswer(snapshot),
+    };
+    for (const listener of this.#listeners) listener(this.#snapshot);
   }
 }

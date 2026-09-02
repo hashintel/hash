@@ -17,15 +17,19 @@ import {
 import {
   DefaultChatTransport,
   Petrinaut,
-  type PetrinautAiComposerControl,
-  type PetrinautAiComposerControlContext,
   type PetrinautAiMessage,
+  type PetrinautAiVoiceMode,
+  type PetrinautAiVoiceModeContext,
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
-import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
+import {
+  loadOpenAIVoiceConfig,
+  type OpenAIVoiceConfig,
+  VoiceInterviewControl,
+} from "../voice-interview/voice-interview-control";
 import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
 import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
 import { createBrunchPanelTransport } from "./brunch-panel-transport";
@@ -91,18 +95,20 @@ const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
 );
 
-const renderBrunchVoiceComposerControl = (
-  context: PetrinautAiComposerControlContext,
-) => <VoiceInterviewControl {...context} />;
+// Only Brunch keeps a conversation to hydrate from; the generic fallback route
+// has no history door.
+const brunchHistoryEndpoint = brunchPreviewConfig.isBrunchConfigured
+  ? brunchPreviewConfig.chatEndpoint
+  : null;
 
-export const getBrunchVoiceComposerControl = (
-  isBrunchConfigured: boolean,
-): PetrinautAiComposerControl | undefined =>
-  isBrunchConfigured ? renderBrunchVoiceComposerControl : undefined;
-
-const brunchVoiceComposerControl = getBrunchVoiceComposerControl(
-  brunchPreviewConfig.isBrunchConfigured,
-);
+export const getBrunchVoiceMode = (
+  config: OpenAIVoiceConfig | null | undefined,
+): PetrinautAiVoiceMode | undefined =>
+  config
+    ? (context: PetrinautAiVoiceModeContext) => (
+        <VoiceInterviewControl {...context} config={config} />
+      )
+    : undefined;
 
 const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
   createJsonDocHandle({
@@ -154,10 +160,37 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
  */
 export const LocalStorageDemoApp = () => {
   const sentryFeedbackAction = useSentryFeedbackAction();
+  const [openAIVoiceConfig, setOpenAIVoiceConfig] =
+    useState<OpenAIVoiceConfig | null>();
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
   const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(storedSDCPNs);
+
+  useEffect(() => {
+    if (!brunchPreviewConfig.isBrunchConfigured) {
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Resolve the loading sentinel when voice is not configured.
+      setOpenAIVoiceConfig(null);
+      return;
+    }
+
+    const abortController = new AbortController();
+    void loadOpenAIVoiceConfig(
+      globalThis.fetch.bind(globalThis),
+      abortController.signal,
+    ).then((config) => {
+      if (!abortController.signal.aborted) {
+        setOpenAIVoiceConfig(config);
+      }
+    });
+
+    return () => abortController.abort();
+  }, []);
+
+  const brunchVoiceMode = useMemo(
+    () => getBrunchVoiceMode(openAIVoiceConfig),
+    [openAIVoiceConfig],
+  );
 
   // Pick the most recently modified net
   const mostRecentlyModifiedNet =
@@ -294,7 +327,11 @@ export const LocalStorageDemoApp = () => {
   const conversationId = currentNetId
     ? getOrCreateBrunchConversationId(currentNetId)
     : null;
-  const flueHistory = useFlueChatHistory(conversationId ?? "", brunchPrincipal);
+  const flueHistory = useFlueChatHistory(
+    brunchHistoryEndpoint,
+    conversationId ?? "",
+    brunchPrincipal,
+  );
   const petrinautAiChatTransport = useMemo(
     () =>
       conversationId === null
@@ -334,14 +371,15 @@ export const LocalStorageDemoApp = () => {
           return next;
         });
       },
-      ...(brunchVoiceComposerControl
+      ...(brunchVoiceMode
         ? {
-            renderComposerControl: brunchVoiceComposerControl,
+            renderVoiceMode: brunchVoiceMode,
           }
         : {}),
     }),
     [
       aiMessagesByNetId,
+      brunchVoiceMode,
       conversationId,
       currentNetId,
       flueHistory.messages,

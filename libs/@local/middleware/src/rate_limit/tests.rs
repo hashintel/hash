@@ -2,13 +2,12 @@
 
 use alloc::sync::Arc;
 use core::{
+    marker::PhantomData,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use axum::{
-    Router, body::Body, extract::ConnectInfo, middleware, response::Response, routing::get,
-};
+use axum::{Router, body::Body, extract::ConnectInfo, response::Response, routing::get};
 use error_stack::Report;
 use http::{Request, StatusCode};
 use tower::ServiceExt as _;
@@ -16,13 +15,13 @@ use type_system::principal::actor::{ActorEntityUuid, ActorId, UserId};
 use uuid::Uuid;
 
 use super::{
-    ClientIpSource, RateLimitConfig, RateLimitMode, RateLimiters, ip_gate_middleware,
-    principal_limit_middleware,
+    ClientIpSource, IpGateLayer, PrincipalLimitLayer, RateLimitConfig, RateLimitMode, RateLimiters,
 };
 use crate::{
     authentication::{
-        AuthenticationMetrics, ResolvedAuthentication, authentication_middleware,
-        provider::StaticAuthenticationProvider, request::AuthenticationError,
+        AuthenticationLayer, AuthenticationMetrics, ResolvedAuthentication,
+        provider::StaticAuthenticationProvider,
+        request::{AuthenticationError, AuthenticationErrorKind},
     },
     test_metrics::{RecordedMetrics, noop_meter},
 };
@@ -57,18 +56,12 @@ fn config(burst: u32) -> RateLimitConfig {
 }
 
 fn gate_router_with(limiters: &Arc<RateLimiters>) -> Router {
-    let limiters = Arc::clone(limiters);
-    let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
     Router::new()
         .route("/entities", get(async || "ok"))
-        .route_layer(middleware::from_fn(move |request, next| {
-            ip_gate_middleware(
-                Arc::clone(&limiters),
-                Arc::clone(&service_secret),
-                request,
-                next,
-            )
-        }))
+        .route_layer(IpGateLayer {
+            limiters: Arc::clone(limiters),
+            service_secret: Arc::from(SERVICE_SECRET),
+        })
 }
 
 fn gate_router(config: &RateLimitConfig) -> Router {
@@ -80,18 +73,12 @@ fn principal_router(config: &RateLimitConfig) -> Router {
 }
 
 fn principal_router_with(limiters: &Arc<RateLimiters>) -> Router {
-    let limiters = Arc::clone(limiters);
-    let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
     Router::new()
         .route("/entities", get(async || "ok"))
-        .route_layer(middleware::from_fn(move |request, next| {
-            principal_limit_middleware(
-                Arc::clone(&limiters),
-                Arc::clone(&service_secret),
-                request,
-                next,
-            )
-        }))
+        .route_layer(PrincipalLimitLayer {
+            limiters: Arc::clone(limiters),
+            service_secret: Arc::from(SERVICE_SECRET),
+        })
 }
 
 /// Stacks the three request middlewares in the order a REST router wires them.
@@ -103,44 +90,24 @@ fn full_stack_router_with(
     limiters: &Arc<RateLimiters>,
     provider: StaticAuthenticationProvider,
 ) -> Router {
-    let limiters = Arc::clone(limiters);
-    let provider = Arc::new(provider);
-    let metrics = auth_metrics();
     let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
-    let gate_limiters = Arc::clone(&limiters);
-    let gate_secret = Arc::clone(&service_secret);
-    let principal_secret = Arc::clone(&service_secret);
     Router::new()
         .route("/entities", get(async || "ok"))
-        .route_layer(middleware::from_fn(move |request, next| {
-            principal_limit_middleware(
-                Arc::clone(&limiters),
-                Arc::clone(&principal_secret),
-                request,
-                next,
-            )
-        }))
-        .route_layer(middleware::from_fn(move |request, next| {
-            let provider = Arc::clone(&provider);
-            let service_secret = Arc::clone(&service_secret);
-            let metrics = Arc::clone(&metrics);
-            authentication_middleware::<_, Option<ActorId>>(
-                provider,
-                service_secret,
-                metrics,
-                |_path| false,
-                request,
-                next,
-            )
-        }))
-        .route_layer(middleware::from_fn(move |request, next| {
-            ip_gate_middleware(
-                Arc::clone(&gate_limiters),
-                Arc::clone(&gate_secret),
-                request,
-                next,
-            )
-        }))
+        .route_layer(PrincipalLimitLayer {
+            limiters: Arc::clone(limiters),
+            service_secret: Arc::clone(&service_secret),
+        })
+        .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
+            provider: Arc::new(provider),
+            service_secret: Arc::clone(&service_secret),
+            metrics: auth_metrics(),
+            bootstrap_route: |_path| false,
+            caller: PhantomData,
+        })
+        .route_layer(IpGateLayer {
+            limiters: Arc::clone(limiters),
+            service_secret,
+        })
 }
 
 fn request_to(path: &str, peer: IpAddr) -> Request<Body> {
@@ -659,12 +626,7 @@ async fn enforced_denials_skip_the_inner_stack() {
         rate_limit_anonymous_burst: non_zero(10),
         ..config(1)
     });
-    let provider = Arc::new(StaticAuthenticationProvider::NotRecognized);
-    let metrics = auth_metrics();
     let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
-    let gate_limiters = Arc::clone(&limiters);
-    let gate_secret = Arc::clone(&service_secret);
-    let principal_secret = Arc::clone(&service_secret);
     let router = Router::new()
         .route(
             "/entities",
@@ -673,35 +635,21 @@ async fn enforced_denials_skip_the_inner_stack() {
                 "ok"
             }),
         )
-        .route_layer(middleware::from_fn(move |request, next| {
-            principal_limit_middleware(
-                Arc::clone(&limiters),
-                Arc::clone(&principal_secret),
-                request,
-                next,
-            )
-        }))
-        .route_layer(middleware::from_fn(move |request, next| {
-            let provider = Arc::clone(&provider);
-            let service_secret = Arc::clone(&service_secret);
-            let metrics = Arc::clone(&metrics);
-            authentication_middleware::<_, Option<ActorId>>(
-                provider,
-                service_secret,
-                metrics,
-                |_path| false,
-                request,
-                next,
-            )
-        }))
-        .route_layer(middleware::from_fn(move |request, next| {
-            ip_gate_middleware(
-                Arc::clone(&gate_limiters),
-                Arc::clone(&gate_secret),
-                request,
-                next,
-            )
-        }));
+        .route_layer(PrincipalLimitLayer {
+            limiters: Arc::clone(&limiters),
+            service_secret: Arc::clone(&service_secret),
+        })
+        .route_layer(AuthenticationLayer::<_, Option<ActorId>> {
+            provider: Arc::new(StaticAuthenticationProvider::NotRecognized),
+            service_secret: Arc::clone(&service_secret),
+            metrics: auth_metrics(),
+            bootstrap_route: |_path| false,
+            caller: PhantomData,
+        })
+        .route_layer(IpGateLayer {
+            limiters,
+            service_secret,
+        });
     let client = address("192.0.2.1");
 
     assert_eq!(
@@ -732,9 +680,9 @@ async fn authentication_error_fails_loudly() {
 
     let mut request = request(IpAddr::V4(Ipv4Addr::LOCALHOST));
     request.extensions_mut().insert(ResolvedAuthentication::new(
-        Err(Arc::new(Report::new(
-            AuthenticationError::MissingDelegatedActor,
-        ))),
+        Err(Arc::new(Report::new(AuthenticationError::new(
+            AuthenticationErrorKind::MissingDelegatedActor,
+        )))),
         auth_metrics(),
     ));
 
@@ -1006,27 +954,16 @@ async fn maintenance_releases_replenished_keys_from_every_store() {
     let recorded = RecordedMetrics::new();
     let limiters = RateLimiters::start(&quotas, &recorded.meter());
     let service_secret: Arc<str> = Arc::from(SERVICE_SECRET);
-    let gate_limiters = Arc::clone(&limiters);
-    let gate_secret = Arc::clone(&service_secret);
-    let principal_limiters = Arc::clone(&limiters);
     let router = Router::new()
         .route("/entities", get(async || "ok"))
-        .route_layer(middleware::from_fn(move |request, next| {
-            principal_limit_middleware(
-                Arc::clone(&principal_limiters),
-                Arc::clone(&service_secret),
-                request,
-                next,
-            )
-        }))
-        .route_layer(middleware::from_fn(move |request, next| {
-            ip_gate_middleware(
-                Arc::clone(&gate_limiters),
-                Arc::clone(&gate_secret),
-                request,
-                next,
-            )
-        }));
+        .route_layer(PrincipalLimitLayer {
+            limiters: Arc::clone(&limiters),
+            service_secret: Arc::clone(&service_secret),
+        })
+        .route_layer(IpGateLayer {
+            limiters: Arc::clone(&limiters),
+            service_secret,
+        });
 
     let client = address("192.0.2.1");
     assert_eq!(

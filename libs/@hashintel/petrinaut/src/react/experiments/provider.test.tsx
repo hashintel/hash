@@ -142,9 +142,18 @@ class FakeMonteCarloWorker {
   }
 }
 
+/**
+ * Lets experiment setup run to the point where it reaches the worker.
+ *
+ * A macrotask boundary drains the entire microtask queue, so this holds however
+ * many awaits setup takes. It used to await exactly two microtasks, which was the
+ * count at the time and broke the moment a step was added — selecting a backend
+ * inserts several.
+ */
 const flushWorkerSetup = async () => {
-  await Promise.resolve();
-  await Promise.resolve();
+  await new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
 };
 
 const sdcpnContextValue: SDCPNContextValue = {
