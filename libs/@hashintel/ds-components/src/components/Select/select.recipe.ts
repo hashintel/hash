@@ -1,7 +1,42 @@
-import { sva } from "@hashintel/ds-helpers/css";
+import { css, cva, sva } from "@hashintel/ds-helpers/css";
 
 import { formSizes } from "../../util/form-size.recipe";
 import { formWidths } from "../../util/form-width.recipe";
+
+// The default suffix content of a multi select item, swapped out for the
+// "Only" button while the item is hovered
+export const suffixDefaultContentClass = css({
+  "[data-part='item']:hover &": {
+    display: "none",
+  },
+});
+
+export const onlyButtonRecipe = cva({
+  base: {
+    display: "none",
+    cursor: "pointer",
+    fontWeight: "[500]",
+    _hover: {
+      textDecoration: "underline",
+    },
+    "[data-part='item']:hover &": {
+      display: "inline-flex",
+    },
+  },
+  variants: {
+    tone: {
+      neutral: {
+        color: "neutral.s110",
+        _hover: { color: "neutral.s125" },
+      },
+      brand: {
+        color: "blue.s100",
+        _hover: { color: "blue.s110" },
+      },
+    },
+  },
+  defaultVariants: { tone: "neutral" },
+});
 
 export const selectRecipe = sva({
   slots: [
