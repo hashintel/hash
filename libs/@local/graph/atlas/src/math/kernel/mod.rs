@@ -23,16 +23,17 @@ mod sleef;
 #[cfg(test)]
 mod ulp_sweep;
 
-/// Aborts when the running CPU cannot execute the compiled instruction set.
+/// Refuses to run on a CPU below the x86-64-v3 baseline the crate is compiled for.
 ///
-/// x86-64 builds carry the workspace's x86-64-v3 baseline (AVX2, FMA, BMI2), so on an older machine
-/// the process would otherwise die on an illegal instruction at an arbitrary point. This check
-/// turns that into a diagnosable failure at process entry; on targets whose baseline needs no
-/// runtime support (aarch64) it compiles to nothing.
+/// The check reads the processor's own feature bits, so it stays live in a build that already
+/// assumes the baseline, and a mismatched machine reports what it lacks instead of faulting on its
+/// first vector instruction. Call it before anything else in `main`, ahead of argument parsing. On
+/// targets whose baseline needs no runtime support (aarch64) it compiles to nothing.
 ///
 /// # Panics
 ///
-/// This panics when the CPU lacks the compiled baseline's instruction-set extensions.
+/// This panics when the CPU reports no AVX, AVX2, FMA or BMI2 support, or no operating-system XSAVE
+/// support. Whether the operating system has enabled YMM register state is outside the check.
 #[cfg_attr(
     not(target_arch = "x86_64"),
     expect(
@@ -44,12 +45,25 @@ mod ulp_sweep;
 pub(crate) fn verify_cpu_baseline() {
     #[cfg(target_arch = "x86_64")]
     {
+        use std::arch::x86_64::__cpuid_count;
+
+        // cpuid rather than `is_x86_feature_detected!`: the macro folds to `true` for every feature
+        // the build already assumes, and x86-64 builds of this workspace assume the whole baseline.
+        let max_basic_leaf = __cpuid_count(0, 0).eax;
+        let processor_info = __cpuid_count(1, 0);
+        let extended_features = __cpuid_count(7, 0);
+        // The AVX and OSXSAVE bits guard the AVX2 reading: SKL052 leaves BMI bits set on Skylake
+        // parts with AVX disabled in firmware, and AVX2 is meaningless without OS-enabled extended
+        // state.
+        let avx = processor_info.ecx & (1 << 28) != 0;
+        let osxsave = processor_info.ecx & (1 << 27) != 0;
+        let fma = processor_info.ecx & (1 << 12) != 0;
+        let avx2 = max_basic_leaf >= 7 && extended_features.ebx & (1 << 5) != 0;
+        let bmi2 = max_basic_leaf >= 7 && extended_features.ebx & (1 << 8) != 0;
         assert!(
-            std::arch::is_x86_feature_detected!("avx2")
-                && std::arch::is_x86_feature_detected!("fma")
-                && std::arch::is_x86_feature_detected!("bmi2"),
-            "this binary is compiled for the x86-64-v3 baseline (AVX2, FMA, BMI2); the current \
-             CPU does not support it"
+            avx && osxsave && avx2 && fma && bmi2,
+            "this binary is compiled for the x86-64-v3 baseline (AVX2, FMA, BMI2), and the \
+             current CPU reports avx={avx} osxsave={osxsave} avx2={avx2} fma={fma} bmi2={bmi2}"
         );
     }
 }

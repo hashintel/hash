@@ -1,9 +1,11 @@
 [registries.crates-io]
 protocol = "sparse"
 
-# x86-64 builds assume the x86-64-v3 baseline (AVX2, FMA, BMI2): the math kernels pin fused
-# multiply-add semantics and take the hardware lowering from it. `hash-graph-atlas` verifies the
-# baseline at process entry, turning a mismatched machine into a diagnosable failure.
+# x86-64 builds assume the x86-64-v3 baseline (AVX2, FMA, BMI2): the atlas math kernels take
+# their fused multiply-add lowering from it, and every workspace binary inherits the requirement.
+# Hardware below the baseline predates 2013. `hash-graph-atlas::verify_cpu_baseline` reads the
+# processor's own feature bits at process entry, so a mismatched machine reports what it lacks.
+# A `RUSTFLAGS` variable in the environment replaces these flags rather than adding to them.
 [target.'cfg(target_arch = "x86_64")']
 rustflags = ["-Ctarget-cpu=x86-64-v3"]
 
