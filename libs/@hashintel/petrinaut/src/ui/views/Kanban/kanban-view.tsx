@@ -101,7 +101,10 @@ const columnStyle = css({
   flexShrink: 0,
   padding: "2",
   borderRadius: "md",
-  backgroundColor: "neutral.a05",
+  borderWidth: "[1px]",
+  borderStyle: "solid",
+  borderColor: "neutral.bd.subtle",
+  backgroundColor: "neutral.s25",
   overflowY: "auto",
 });
 
@@ -138,14 +141,12 @@ const cardStyle = css({
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",
-  borderLeftWidth: "[3px]",
   backgroundColor: "neutral.s00",
   shadow: "[0px 1px 3px rgba(0, 0, 0, 0.06)]",
 });
 
 const cardKeyStyle = css({
-  fontSize: "xs",
-  fontFamily: "mono",
+  fontSize: "sm",
   fontWeight: "medium",
   color: "neutral.s125",
   overflow: "hidden",
@@ -168,19 +169,17 @@ const KanbanCard = ({
   instance,
   labelId,
   nowMs,
-  tintColor,
 }: {
   instance: InstanceStatus;
   labelId: string;
   nowMs: number;
-  tintColor: string;
 }) => {
   const entryCount = instance.intervals.filter(
     (interval) => interval.labelId === labelId,
   ).length;
   const dwellMs = nowMs - instance.enteredCurrentAtMs;
   return (
-    <div className={cardStyle} style={{ borderLeftColor: tintColor }}>
+    <div className={cardStyle} data-kanban-interactive="">
       <div className={cardKeyStyle}>{instance.keyValues.join(", ")}</div>
       <div className={cardMetaStyle}>
         {formatDwellMs(dwellMs)} in this status
@@ -337,7 +336,6 @@ const KanbanBoard = ({ statusView }: { statusView: StatusView }) => {
                   instance={instance}
                   labelId={label.id}
                   nowMs={board.nowMs}
-                  tintColor={label.displayColor}
                 />
               ))}
             </div>
@@ -358,6 +356,7 @@ const KanbanBoard = ({ statusView }: { statusView: StatusView }) => {
 export const KanbanView = () => {
   const { petriNetDefinition } = use(SDCPNContext);
   const {
+    clearSelection,
     isLeftSidebarOpen,
     isSearchOpen,
     leftSidebarWidth,
@@ -377,6 +376,18 @@ export const KanbanView = () => {
     statusViews[0];
 
   const rootClassName = `${rootStyle} ${rootAnimatingStyle({ animating: isPanelAnimating })}`;
+
+  /**
+   * Clicking empty board background deselects, as clicking the empty net
+   * canvas does; cards and the view selector are marked interactive and keep
+   * the selection.
+   */
+  const handleBackgroundClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if ((event.target as Element).closest("[data-kanban-interactive]")) {
+      return;
+    }
+    clearSelection();
+  };
   const insets = getBoardInsets({
     isLeftSidebarOpen,
     isSearchOpen,
@@ -399,8 +410,13 @@ export const KanbanView = () => {
   }
 
   return (
-    <div className={rootClassName} style={insets}>
-      <div className={toolbarStyle}>
+    <div
+      className={rootClassName}
+      style={insets}
+      role="presentation"
+      onClick={handleBackgroundClick}
+    >
+      <div className={toolbarStyle} data-kanban-interactive="">
         <div className={viewSelectStyle}>
           <Select
             required
