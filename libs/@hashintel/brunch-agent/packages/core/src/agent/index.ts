@@ -1,6 +1,7 @@
 import { useModel } from "@flue/runtime";
 
 import systemPrompt from "../SYSTEM.md?raw";
+import universalElicitationReference from "../universal-elicitation.md?raw";
 
 /**
  * Mount the capabilities owned by Brunch core and return its system prompt.
@@ -12,3 +13,6 @@ export function useBrunchAgent(model: string): string {
   useModel(model);
   return systemPrompt.replace(/^\s+|\s+$/gu, "");
 }
+
+/** Core-owned progressive elicitation teaching for explicit skill composition. */
+export { universalElicitationReference };

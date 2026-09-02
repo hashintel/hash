@@ -13,8 +13,7 @@
     "./flue": {
       "types": "./src/flue.ts",
       "import": "./dist/flue.js"
-    },
-    "./skills/sdcpn-modelling/SKILL.md": "./src/skills/sdcpn-modelling/SKILL.md"
+    }
   },
   "scripts": {
     "build": "vite build",

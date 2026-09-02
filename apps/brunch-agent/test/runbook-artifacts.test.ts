@@ -2,7 +2,9 @@ import { describe, expect, test } from "vitest";
 
 import {
   latestRunbookIrBlock,
+  ordinaryElicitationViolationsFrom,
   recoverRunbookIr,
+  recoverRunbookWorkpiece,
   RUNBOOK_IR_FENCE,
   skillResourcePathsFrom,
 } from "../src/evaluations/runbook/artifacts.ts";
@@ -46,6 +48,76 @@ describe("runbook artifact recovery", () => {
       ].join("\n"),
     );
     expect(recoverRunbookIr(snapshot)).toContain("# Runbook IR");
+    const workpiece = recoverRunbookWorkpiece(snapshot);
+    expect(workpiece?.content).toContain("# Runbook IR");
+    expect(workpiece?.sourceMessageId).toBe("a1");
+    expect(workpiece?.sha256).toMatch(/^[0-9a-f]{64}$/u);
+    expect(workpiece?.sourceMessageSha256).toMatch(/^[0-9a-f]{64}$/u);
+  });
+
+  test.each([
+    ["construction tool", "addPlace", "construction-tool-use"],
+    ["capture tool", "brunch_sweep", "capture-tool-use"],
+    ["other tool", "ping", "unexpected-tool-use"],
+  ])("classifies %s as an ordinary-path violation", (_, toolName, code) => {
+    const snapshot = {
+      messages: [
+        {
+          id: "a1",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "t1",
+              toolName,
+              state: "output-available",
+              input: {},
+              output: "ok",
+            },
+          ],
+        },
+      ],
+    } as FlueConversationSnapshot;
+
+    expect(
+      ordinaryElicitationViolationsFrom(snapshot, { hasWorkpiece: true }),
+    ).toContainEqual(expect.objectContaining({ code, detail: toolName }));
+  });
+
+  test("construction resources and a missing workpiece invalidate an ordinary member", () => {
+    const snapshot = {
+      messages: [
+        {
+          id: "a1",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "t1",
+              toolName: "read_skill_resource",
+              state: "output-available",
+              input: {
+                path: "/.flue/packaged-skills/example/references/pn-construction.md",
+              },
+              output: "ok",
+            },
+          ],
+        },
+      ],
+    } as FlueConversationSnapshot;
+
+    expect(
+      ordinaryElicitationViolationsFrom(snapshot, { hasWorkpiece: false }),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "construction-resource-read" }),
+        expect.objectContaining({ code: "missing-workpiece" }),
+      ]),
+    );
   });
 
   test("collects only successfully read skill resource paths", () => {

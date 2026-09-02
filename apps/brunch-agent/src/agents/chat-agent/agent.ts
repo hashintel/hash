@@ -10,10 +10,10 @@
 import { useInstruction, useTool } from "@flue/runtime";
 
 import {
+  SDCPN_MODELLING_SKILL_NAME,
   sdcpnInitialDataSchema,
   useSdcpnPlugin,
 } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import sdcpnModellingSkill from "@hashintel/brunch-agent-plugin-sdcpn/skills/sdcpn-modelling/SKILL.md";
 import { useBrunchAgent } from "@hashintel/brunch-agent/flue";
 
 import { ping } from "./tools/ping.ts";
@@ -21,13 +21,13 @@ import { ping } from "./tools/ping.ts";
 export const CHAT_MODEL_ID =
   process.env["BRUNCH_CHAT_MODEL"] || "claude-haiku-4-5";
 
-export const RUNBOOK_SKILL_NAME = sdcpnModellingSkill.name;
+export const RUNBOOK_SKILL_NAME = SDCPN_MODELLING_SKILL_NAME;
 
 export const ACTIVATE_SKILL_TOOL_NAME = "activate_skill";
 
 export function ChatAgent() {
   const coreSystemPrompt = useBrunchAgent(`anthropic/${CHAT_MODEL_ID}`);
-  useSdcpnPlugin(sdcpnModellingSkill);
+  useSdcpnPlugin();
 
   useInstruction(
     `

@@ -1,5 +1,9 @@
 /** Recover Mission 3 workpieces from a Flue `history()` snapshot. */
 
+import { basename } from "node:path";
+
+import { sha256 } from "./campaign-integrity.ts";
+
 import type { FlueConversationPart, FlueConversationSnapshot } from "@flue/sdk";
 
 export const RUNBOOK_IR_FENCE = "runbook-ir";
@@ -12,21 +16,41 @@ export const latestRunbookIrBlock = (text: string): string | undefined => {
   return last === undefined ? undefined : last.trim();
 };
 
-const assistantTextFrom = (snapshot: FlueConversationSnapshot): string =>
-  snapshot.messages
-    .filter((message) => message.purpose === "assistant")
-    .flatMap((message) =>
-      message.parts.filter(
-        (part): part is Extract<FlueConversationPart, { type: "text" }> =>
-          part.type === "text",
-      ),
-    )
-    .map((part) => part.text)
-    .join("\n\n");
-
 export const recoverRunbookIr = (
   snapshot: FlueConversationSnapshot,
-): string | undefined => latestRunbookIrBlock(assistantTextFrom(snapshot));
+): string | undefined => recoverRunbookWorkpiece(snapshot)?.content;
+
+export interface RecoveredRunbookWorkpiece {
+  readonly content: string;
+  readonly sha256: string;
+  readonly sourceMessageId: string;
+  readonly sourceMessageSha256: string;
+}
+
+export const recoverRunbookWorkpiece = (
+  snapshot: FlueConversationSnapshot,
+): RecoveredRunbookWorkpiece | undefined => {
+  let recovered: RecoveredRunbookWorkpiece | undefined;
+  for (const message of snapshot.messages) {
+    if (message.purpose !== "assistant") continue;
+    const text = message.parts
+      .filter(
+        (part): part is Extract<FlueConversationPart, { type: "text" }> =>
+          part.type === "text",
+      )
+      .map((part) => part.text)
+      .join("\n");
+    const content = latestRunbookIrBlock(text);
+    if (content === undefined) continue;
+    recovered = {
+      content,
+      sha256: sha256(content),
+      sourceMessageId: message.id,
+      sourceMessageSha256: sha256(JSON.stringify(message)),
+    };
+  }
+  return recovered;
+};
 
 export const interviewerToolNamesFrom = (
   snapshot: FlueConversationSnapshot,
@@ -59,3 +83,69 @@ export const skillResourcePathsFrom = (
       return [part.input.path];
     }),
   );
+
+export interface OrdinaryElicitationViolation {
+  readonly code:
+    | "capture-tool-use"
+    | "construction-resource-read"
+    | "construction-tool-use"
+    | "missing-workpiece"
+    | "unexpected-resource-read"
+    | "unexpected-tool-use";
+  readonly detail: string;
+}
+
+const ORDINARY_TOOL_NAMES = new Set(["activate_skill", "read_skill_resource"]);
+const CONSTRUCTION_TOOL_NAMES = new Set([
+  "getLatestNetDefinition",
+  "addType",
+  "addParameter",
+  "addPlace",
+  "addTransition",
+  "addArc",
+]);
+const CAPTURE_TOOL_NAMES = new Set(["brunch_ask", "brunch_sweep"]);
+const ORDINARY_RESOURCE_NAMES = new Set([
+  "universal-elicitation.md",
+  "profile.md",
+  "workpiece.md",
+]);
+const CONSTRUCTION_RESOURCE_NAMES = new Set([
+  "pn-construction.md",
+  "checks.md",
+]);
+
+export const ordinaryElicitationViolationsFrom = (
+  snapshot: FlueConversationSnapshot,
+  options: { readonly hasWorkpiece: boolean },
+): readonly OrdinaryElicitationViolation[] => {
+  const violations: OrdinaryElicitationViolation[] = [];
+  for (const toolName of interviewerToolNamesFrom(snapshot)) {
+    if (ORDINARY_TOOL_NAMES.has(toolName)) continue;
+    violations.push({
+      code: CONSTRUCTION_TOOL_NAMES.has(toolName)
+        ? "construction-tool-use"
+        : CAPTURE_TOOL_NAMES.has(toolName)
+          ? "capture-tool-use"
+          : "unexpected-tool-use",
+      detail: toolName,
+    });
+  }
+  for (const path of skillResourcePathsFrom(snapshot)) {
+    const name = basename(path);
+    if (ORDINARY_RESOURCE_NAMES.has(name)) continue;
+    violations.push({
+      code: CONSTRUCTION_RESOURCE_NAMES.has(name)
+        ? "construction-resource-read"
+        : "unexpected-resource-read",
+      detail: path,
+    });
+  }
+  if (!options.hasWorkpiece) {
+    violations.push({
+      code: "missing-workpiece",
+      detail: "No recoverable runbook-ir workpiece was emitted.",
+    });
+  }
+  return violations;
+};

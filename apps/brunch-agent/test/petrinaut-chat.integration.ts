@@ -150,7 +150,10 @@ try {
             fauxToolCall(
               READ_SKILL_RESOURCE_TOOL_NAME,
               {
-                path: packagedSkillResourcePathFrom(context, "elicitation.md"),
+                path: packagedSkillResourcePathFrom(
+                  context,
+                  "references/universal-elicitation.md",
+                ),
               },
               { id: "tool-resource-1" },
             ),

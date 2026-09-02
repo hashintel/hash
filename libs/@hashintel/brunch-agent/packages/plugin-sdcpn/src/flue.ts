@@ -1,5 +1,4 @@
 import {
-  type Skill,
   useInitialData,
   useInstruction,
   useSkill,
@@ -7,6 +6,11 @@ import {
 } from "@flue/runtime";
 import * as v from "valibot";
 
+import sdcpnAppend from "./APPEND_SYSTEM.md?raw";
+import {
+  SDCPN_MODELLING_SKILL_NAME,
+  sdcpnModellingSkill,
+} from "./skills/sdcpn-modelling/skill";
 import { petrinautConstructionTools } from "./tools/petrinaut-construction";
 import {
   READ_PETRINAUT_DOC_TOOL_NAME,
@@ -24,17 +28,10 @@ export const sdcpnInitialDataSchema = v.optional(
 export type SdcpnInitialData = v.InferOutput<typeof sdcpnInitialDataSchema>;
 
 /** Mount the prompt material, skill, and conditional tools owned by the SDCPN plugin. */
-export function useSdcpnPlugin(sdcpnModellingSkill: Skill): void {
+export function useSdcpnPlugin(): void {
   const initialData = useInitialData<SdcpnInitialData>();
 
-  useInstruction(
-    `
-You are eliciting a process model as an SDCPN for the Petrinaut editor.
-Activate the \`sdcpn-modelling\` skill before interviewing or constructing a process model.
-The Markdown IR is the shared workpiece of one looping lifecycle.
-When the user asks how Petrinaut's UI works, call readPetrinautDoc.
-`.replace(/^\s+|\s+$/gu, ""),
-  );
+  useInstruction(sdcpnAppend.trim());
   useSkill(sdcpnModellingSkill);
   useTool(readPetrinautDoc);
 
@@ -51,6 +48,7 @@ This is a construct-only headless conversation. Use only the supplied runbook IR
 }
 
 export { READ_PETRINAUT_DOC_TOOL_NAME, readPetrinautDoc };
+export { SDCPN_MODELLING_SKILL_NAME };
 export {
   PETRINAUT_CONSTRUCTION_TOOL_NAMES,
   petrinautConstructionTools,

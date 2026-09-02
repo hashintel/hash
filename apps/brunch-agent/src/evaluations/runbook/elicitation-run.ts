@@ -29,6 +29,7 @@ import {
   recoverRunbookIr,
   skillResourcePathsFrom,
 } from "./artifacts.ts";
+import { rejectImmutableBaselineOutput } from "./campaign-integrity.ts";
 import { loadBuiltBrunchApplication } from "./load-built-application.ts";
 
 import type Anthropic from "@anthropic-ai/sdk";
@@ -38,7 +39,6 @@ import type { FlueConversationSnapshot } from "@flue/sdk";
 process.env["BRUNCH_CHAT_MODEL"] ??= "claude-sonnet-4-5";
 
 const execFileAsync = promisify(execFile);
-const FROZEN_V1_SOURCE_COMMIT = "b738aa1be1a62a9f9cdde89ced78558f04293a77";
 const repositoryRoot = new URL("../../../../../", import.meta.url);
 const repositoryRootPath = fileURLToPath(repositoryRoot);
 const evaluationRoot = new URL(
@@ -46,10 +46,12 @@ const evaluationRoot = new URL(
   import.meta.url,
 );
 const caseDirectory = new URL("cases/vestera-scheduling/", evaluationRoot);
-const defaultOutputDirectory = new URL(
-  "../../../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-prospective-baseline-v1/",
-  import.meta.url,
-).pathname;
+const immutableBaselineDirectory = fileURLToPath(
+  new URL(
+    "../../../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-prospective-baseline-v1/",
+    import.meta.url,
+  ),
+);
 
 const expertModel =
   process.env["BRUNCH_RUNBOOK_EXPERT_MODEL"] ?? "claude-sonnet-4-5";
@@ -57,8 +59,10 @@ const hardStop = Number(process.env["BRUNCH_RUNBOOK_HARD_STOP"] ?? "8");
 const latencyStopMs = Number(
   process.env["BRUNCH_RUNBOOK_LATENCY_STOP_MS"] ?? "180000",
 );
-const outputDirectory =
-  process.env["BRUNCH_RUNBOOK_OUTPUT_DIR"] ?? defaultOutputDirectory;
+const outputDirectory = await rejectImmutableBaselineOutput(
+  process.env["BRUNCH_RUNBOOK_OUTPUT_DIR"] ?? immutableBaselineDirectory,
+  immutableBaselineDirectory,
+);
 const expertClientModule = process.env["BRUNCH_RUNBOOK_ANTHROPIC_MODULE"];
 const interviewerProviderModule =
   process.env["BRUNCH_RUNBOOK_INTERVIEWER_PROVIDER_MODULE"];
@@ -77,36 +81,26 @@ if (!apiKey && !expertClientModule) {
     "ANTHROPIC_API_KEY is required unless BRUNCH_RUNBOOK_ANTHROPIC_MODULE is set",
   );
 }
-const usesFrozenV1Configuration =
-  process.env["BRUNCH_CHAT_MODEL"] === "claude-sonnet-4-5" &&
-  expertModel === "claude-sonnet-4-5" &&
-  hardStop === 8 &&
-  latencyStopMs === 180_000 &&
-  expertClientModule === undefined &&
-  interviewerProviderModule === undefined &&
-  !allowDirtyInstrument;
-if (outputDirectory === defaultOutputDirectory && !usesFrozenV1Configuration) {
-  throw new Error(
-    "Only the frozen v1 configuration may write to vestera-prospective-baseline-v1; set BRUNCH_RUNBOOK_OUTPUT_DIR for tests or a different campaign.",
-  );
-}
-
 const instrumentFiles = [
   "apps/brunch-agent/package.json",
   "apps/brunch-agent/src/agents/chat-agent/agent.ts",
   "apps/brunch-agent/src/agents/chat-agent/tools/ping.ts",
   "apps/brunch-agent/src/evaluations/runbook/artifacts.ts",
+  "apps/brunch-agent/src/evaluations/runbook/campaign-integrity.ts",
   "apps/brunch-agent/src/evaluations/runbook/elicitation-run.ts",
   "libs/@hashintel/brunch-agent/packages/core/package.json",
   "libs/@hashintel/brunch-agent/packages/core/src/SYSTEM.md",
   "libs/@hashintel/brunch-agent/packages/core/src/agent/index.ts",
+  "libs/@hashintel/brunch-agent/packages/core/src/universal-elicitation.md",
   "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/package.json",
+  "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/APPEND_SYSTEM.md",
   "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/flue.ts",
+  "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/skill.ts",
   "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/petrinaut-construction.ts",
   "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/tools/read-petrinaut-doc.ts",
-  "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md",
-  "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/elicitation.md",
-  "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/ir-template.md",
+  "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/instructions.md",
+  "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/profile.md",
+  "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/workpiece-template.md",
   "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/pn-construction.md",
   "libs/@hashintel/brunch-agent/packages/plugin-sdcpn/src/skills/sdcpn-modelling/checks.md",
   "libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/opening-message.md",
@@ -137,14 +131,6 @@ const { stdout: commitOutput } = await execFileAsync(
   { cwd: repositoryRootPath },
 );
 const sourceCommit = commitOutput.trim();
-if (
-  outputDirectory === defaultOutputDirectory &&
-  sourceCommit !== FROZEN_V1_SOURCE_COMMIT
-) {
-  throw new Error(
-    `vestera-prospective-baseline-v1 belongs to source commit ${FROZEN_V1_SOURCE_COMMIT}; set BRUNCH_RUNBOOK_OUTPUT_DIR for relocated or redesigned source.`,
-  );
-}
 const { stdout: statusOutput } = await execFileAsync(
   "git",
   ["status", "--short", "--", ...instrumentFiles],

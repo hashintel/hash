@@ -13,6 +13,7 @@
     "lint:tsc": "tsgo --noEmit",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
     "runbook:elicit": "vite build && node --experimental-strip-types src/evaluations/runbook/elicitation-run.ts",
+    "runbook:elicit:candidate-v2": "vite build && node --experimental-strip-types src/evaluations/runbook/prospective-runbook-v2-run.ts",
     "runbook:headless": "vite build && node --experimental-strip-types src/evaluations/runbook/construction-run.ts",
     "test:unit": "vitest run --config vitest.config.ts",
     "transcript": "node --experimental-strip-types src/diagnostics/transcript-cli.ts"

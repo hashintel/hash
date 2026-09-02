@@ -37,10 +37,8 @@ const CHAT_MODEL_ID = "claude-haiku-4-5";
 const RUNBOOK_SKILL_NAME = "sdcpn-modelling";
 const READ_SKILL_RESOURCE_TOOL_NAME = "read_skill_resource";
 const RUNBOOK_RESOURCE_FILES = [
-  "elicitation.md",
-  "ir-template.md",
-  "pn-construction.md",
-  "checks.md",
+  "references/pn-construction.md",
+  "references/checks.md",
 ] as const;
 
 process.env.BRUNCH_CHAT_MODEL = CHAT_MODEL_ID;
@@ -49,10 +47,7 @@ process.env.BRUNCH_DEV_DB_PATH =
   join(tmpdir(), `brunch-runbook-${crypto.randomUUID()}.db`);
 
 const irPath = fileURLToPath(
-  new URL(
-    "../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless/runbook-headless-2026-08-28T11-03-53-683Z.ir.md",
-    import.meta.url,
-  ),
+  new URL("./fixtures/candidate-process-model-workpiece.md", import.meta.url),
 );
 const filledIr = await readFile(irPath, "utf8");
 
@@ -239,7 +234,23 @@ faux.setResponses([
   ),
   fauxAssistantMessage([
     fauxText(
-      "Construction complete. Assumption: one line state is representative. Unknowns and the IR's commercial and breakdown losses remain unresolved.",
+      [
+        "The mounted tools accepted and returned a minimal self-loop, but it does not yet represent the workpiece's reservation interval. Behavior was not executed or tested.",
+        "",
+        "```runbook-ir",
+        filledIr,
+        "",
+        "## Construction update",
+        "",
+        "**Agent construction finding:** tool-schema acceptance was reached for a minimal place/transition/arc path.",
+        "",
+        "**Target-representation loss:** the constructed self-loop does not preserve crew unavailability between final inspection and sign-off, so structural correspondence with the workpiece was not established.",
+        "",
+        "## Delivery update",
+        "",
+        "Net status: tool-schema accepted; structural correspondence not established; behavior untested.",
+        "```",
+      ].join("\n"),
     ),
   ]),
 ]);
@@ -339,7 +350,7 @@ try {
 
   process.stdout.write(
     `RUNBOOK_HEADLESS_HERMETIC ${JSON.stringify({
-      sourceIrUsed: filledIr.includes("VW-02 dark tint restriction"),
+      sourceIrUsed: filledIr.includes("dispatch crew remains unavailable"),
       parseOk: parsed.ok,
       placeCount: definition.places.length,
       transitionCount: definition.transitions.length,
@@ -351,6 +362,11 @@ try {
       ),
       validationRejections,
       emittedFreeFormPnJson: assistantText.includes("```pn-json"),
+      emittedUpdatedWorkpiece: assistantText.includes("```runbook-ir"),
+      evidenceLevelHonest:
+        assistantText.includes("tool-schema accepted") &&
+        assistantText.includes("structural correspondence not established") &&
+        assistantText.includes("behavior untested"),
       userMessages: snapshot.messages.filter(
         (message) => message.purpose === "user",
       ).length,

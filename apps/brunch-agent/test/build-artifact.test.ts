@@ -109,9 +109,16 @@ describe("the emitted server bundle", () => {
   });
 
   test("packages the authored skill without the retired filesystem loader", () => {
-    expect(bundle).toContain("createSkillReference");
-    expect(bundle).toContain("skill:sdcpn-modelling:");
+    expect(bundle).toContain("defineSkill");
     expect(bundle).toContain("sdcpn-modelling");
+    expect(bundle).toContain("Universal Elicitation Reference");
+    expect(bundle).toContain("Operational-Process and SDCPN Elicitation");
+    expect(bundle).toContain(
+      "Every operational claim has one authoritative home",
+    );
+    expect(bundle).toContain("ask exactly one focused question");
+    expect(bundle).not.toContain("## The role (core)");
+    expect(bundle).not.toContain("Completion is computed by the harness");
     expect(bundle).not.toContain("splitSkillMarkdown");
     expect(bundle).not.toContain("skillFileUrl");
     expect(bundle).not.toContain("./sdcpn-modelling/SKILL.md");
