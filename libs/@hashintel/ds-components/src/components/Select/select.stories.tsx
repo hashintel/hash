@@ -220,6 +220,11 @@ const stateRows: Array<{
     extraProps: { required: true } as Partial<SingleSelectProps>,
   },
   {
+    key: "searchable",
+    label: "Searchable",
+    extraProps: { searchable: { searchable: true, onSearch: noop } },
+  },
+  {
     key: "hide-arrow",
     label: "Hide arrow",
     extraProps: { hideArrow: true },

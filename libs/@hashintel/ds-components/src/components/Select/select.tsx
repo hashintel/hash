@@ -1,7 +1,15 @@
 import { createListCollection } from "@ark-ui/react/collection";
 import { Portal } from "@ark-ui/react/portal";
-import { Select as ArkSelect } from "@ark-ui/react/select";
-import { Fragment, useCallback, useId, useMemo, useRef } from "react";
+import { Select as ArkSelect, useSelectContext } from "@ark-ui/react/select";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -12,9 +20,12 @@ import { Icon } from "../Icon/icon";
 import { LoadingSpinner } from "../Loading/loading-spinner";
 import {
   SelectableList,
+  isCustomItem,
   type Item,
   type ItemOrGroup,
 } from "../Menu/SelectableList/selectable-list";
+import { SelectableListSearch } from "../Menu/SelectableList/selectable-list-search";
+import { searchEmpty } from "../Menu/SelectableList/selectable-list-search.recipe";
 import { getItemId } from "../Menu/SelectableList/selectable-list-util";
 import { InputConnector } from "../TextInput/input-connector";
 import {
@@ -84,6 +95,11 @@ type SelectBaseProps<TValue extends string> = {
   inputRef?: React.Ref<HTMLSelectElement>;
   /** Optional custom message for scenarios where there are no items available to show */
   emptyState?: React.ReactNode;
+  /** Set to add a search field to the dropdown that filters the items by their text. onSearch is called as the search value changes, including with "" when the dropdown closes and the search resets. */
+  searchable?: {
+    searchable: boolean;
+    onSearch: (search: string) => void;
+  };
 } & Omit<
   SharedInputProps<HTMLButtonElement, string | null | undefined>,
   "value" | "onChange" | "required" | "inputRef"
@@ -254,12 +270,47 @@ function mapToMenuItems<TValue extends string>(
   );
 }
 
+/**
+ * While a search filter is active, keeps the highlight on the first visible
+ * item, so arrows/Enter from the search field always operate on the filtered
+ * results — the previous highlight may have been filtered out of the
+ * collection, which would strand zag's arrow navigation.
+ */
+const SearchHighlightSync = ({
+  search,
+  firstVisibleValue,
+}: {
+  search: string;
+  firstVisibleValue: string | undefined;
+}) => {
+  const select = useSelectContext();
+  const lastSyncedSearch = useRef("");
+
+  useEffect(() => {
+    if (lastSyncedSearch.current === search) {
+      return;
+    }
+    lastSyncedSearch.current = search;
+    if (search === "") {
+      return;
+    }
+    if (firstVisibleValue !== undefined) {
+      select.setHighlightValue(firstVisibleValue);
+    } else {
+      select.clearHighlightValue();
+    }
+  }, [search, firstVisibleValue, select]);
+
+  return null;
+};
+
+/** Flattens groups and drops custom rows (e.g. the search field), which must not enter the collection as selectable options */
 function flattenItems(items: Array<ItemOrGroup<Item>>): Item[] {
   const flat: Item[] = [];
   for (const entry of items) {
     if ("items" in entry) {
       flat.push(...entry.items);
-    } else {
+    } else if (!isCustomItem(entry)) {
       flat.push(entry);
     }
   }
@@ -302,6 +353,7 @@ export const Select = <TValue extends string>({
   invalid,
   autoFocus,
   emptyState,
+  searchable,
   ...ariaProps
 }: SelectProps<TValue>) => {
   const portalContainerRef = usePortalContainerRef();
@@ -342,6 +394,58 @@ export const Select = <TValue extends string>({
     }
     return [...orphans, ...items];
   }, [items, orphans, loading]);
+
+  const [search, setSearch] = useState("");
+  const showSearch = !!searchable?.searchable;
+  const onSearch = searchable?.onSearch;
+  const handleSearchChange = useCallback(
+    (next: string) => {
+      setSearch(next);
+      onSearch?.(next);
+    },
+    [onSearch],
+  );
+  const searchTerms = useMemo(
+    () => (showSearch ? search.toLowerCase().split(/\s+/).filter(Boolean) : []),
+    [showSearch, search],
+  );
+  const visibleItems = useMemo<
+    ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>
+  >(() => {
+    if (searchTerms.length === 0) {
+      return effectiveItems;
+    }
+    const matches = (it: MultiSelectItem<TValue>) => {
+      const label = it.text.toLowerCase();
+      return searchTerms.every((term) => label.includes(term));
+    };
+    const filtered: Array<ItemOrGroup<MultiSelectItem<TValue>>> = [];
+    for (const entry of effectiveItems) {
+      if ("items" in entry) {
+        const children = entry.items.filter(matches);
+        if (children.length > 0) {
+          filtered.push({ ...entry, items: children });
+        }
+      } else if (matches(entry)) {
+        filtered.push(entry);
+      }
+    }
+    return filtered;
+  }, [effectiveItems, searchTerms]);
+
+  const firstVisibleValue = useMemo<TValue | undefined>(() => {
+    for (const entry of visibleItems) {
+      if ("items" in entry) {
+        const first = entry.items.find((it) => !it.disabled);
+        if (first) {
+          return first.value;
+        }
+      } else if (!entry.disabled) {
+        return entry.value;
+      }
+    }
+    return undefined;
+  }, [visibleItems]);
 
   const resolvedRenderItem = useMemo<(value: TValue) => React.ReactNode>(
     () =>
@@ -386,31 +490,69 @@ export const Select = <TValue extends string>({
     },
     [onChange],
   );
+  const resolvedEmptyState =
+    emptyState ?? (loading ? "Loading options\u2026" : "No options available");
   const menuItems = useMemo(() => {
-    const mapped = mapToMenuItems(effectiveItems, resolvedRenderItem, {
-      multiple: !!multiple,
-      selectableValues:
-        selectableAtMax === undefined ? undefined : new Set(selectableAtMax),
-      selectOnly,
-    });
-    if (!isOptional || mapped.length === 0) {
+    const mapped: Array<ItemOrGroup<Item>> = mapToMenuItems(
+      visibleItems,
+      resolvedRenderItem,
+      {
+        multiple: !!multiple,
+        selectableValues:
+          selectableAtMax === undefined ? undefined : new Set(selectableAtMax),
+        selectOnly,
+      },
+    );
+    const searching = searchTerms.length > 0;
+    if (isOptional && !searching && mapped.length > 0) {
+      const noneItem: Item = {
+        id: noneValue,
+        text: "\u200B",
+        subItems: undefined,
+        onClick: () => {},
+      };
+      mapped.unshift(noneItem);
+    }
+    if (!showSearch) {
       return mapped;
     }
-    const noneItem: Item = {
-      id: noneValue,
-      text: "\u200B",
-      subItems: undefined,
-      onClick: () => {},
-    };
-    return [noneItem, ...mapped];
+    const rows: Array<ItemOrGroup<Item>> = [
+      {
+        id: `${noneValue}-search`,
+        custom: (
+          <SelectableListSearch
+            value={search}
+            onChange={handleSearchChange}
+            aria-label="Search options"
+          />
+        ),
+      },
+      ...mapped,
+    ];
+    if (mapped.length === 0) {
+      rows.push({
+        id: `${noneValue}-search-empty`,
+        custom: (
+          <span className={searchEmpty()}>
+            {searching ? "No matching options" : resolvedEmptyState}
+          </span>
+        ),
+      });
+    }
+    return rows;
   }, [
-    effectiveItems,
+    visibleItems,
     isOptional,
     resolvedRenderItem,
     noneValue,
     multiple,
     selectableAtMax,
     selectOnly,
+    showSearch,
+    search,
+    handleSearchChange,
+    searchTerms,
+    resolvedEmptyState,
   ]);
   const collection = useMemo(() => {
     const valueToText = new Map<string, string>();
@@ -493,6 +635,11 @@ export const Select = <TValue extends string>({
           (onChange as (value: TValue) => void)(next as TValue);
         }
       }}
+      onOpenChange={({ open }) => {
+        if (!open && search !== "") {
+          handleSearchChange("");
+        }
+      }}
       disabled={disabled}
       invalid={invalid}
       required={required}
@@ -507,6 +654,12 @@ export const Select = <TValue extends string>({
       className={cx(classes.wrapper, className)}
     >
       <ArkSelect.HiddenSelect ref={inputRef} />
+      {showSearch && (
+        <SearchHighlightSync
+          search={search}
+          firstVisibleValue={firstVisibleValue}
+        />
+      )}
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- click-to-focus container delegates to inner <input> */}
       <div
         ref={selectRef}
@@ -602,10 +755,7 @@ export const Select = <TValue extends string>({
             items={menuItems}
             selected={selectedValues}
             size={size}
-            emptyState={
-              emptyState ??
-              (loading ? "Loading options…" : "No options available")
-            }
+            emptyState={resolvedEmptyState}
           />
         </ArkSelect.Positioner>
       </Portal>

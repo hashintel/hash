@@ -131,6 +131,8 @@ export const Multiple: Story = () => {
   ]);
   const [colors, setColors] = useState<ColorValue[]>(["red", "blue"]);
   const [clearableValues, setClearableValues] = useState<string[]>(["cherry"]);
+  const [searchableValues, setSearchableValues] = useState<string[]>(["apple"]);
+  const [lastSearch, setLastSearch] = useState("");
 
   return (
     <div className={sectionStyle}>
@@ -254,6 +256,18 @@ export const Multiple: Story = () => {
               {values.length} selected
             </span>
           )}
+        />
+      </div>
+      <div className={groupStyle}>
+        <span style={subheadingStyle}>
+          Searchable — onSearch reported: "{lastSearch}"
+        </span>
+        <Select
+          multiple
+          searchable={{ searchable: true, onSearch: setLastSearch }}
+          items={sampleItems}
+          value={searchableValues}
+          onChange={setSearchableValues}
         />
       </div>
       <div className={groupStyle}>
