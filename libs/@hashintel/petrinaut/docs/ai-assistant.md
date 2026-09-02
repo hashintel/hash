@@ -72,9 +72,8 @@ Every session control lives in the dock: **Show transcription in chat** on the l
 sending audio without ending the turn, so the assistant plays out whatever it is saying and unmuting
 drops you straight back into the conversation. **Resume voice mode** replaces the microphone action
 while a session is paused, and **Reconnect voice mode** replaces it after a failure. Nothing is added
-to the canvas toolbar. Sending non-empty typed text from the
-composer or first-run prompt ends Voice mode before it sends the message once through the same
-conversation; repeated send actions are ignored while that short handoff completes.
+to the canvas toolbar. To send a typed message, first select **End voice mode** to restore the
+composer.
 
 The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the
 authority on your system. Brunch still chooses every question and interview decision. Its exact
