@@ -30,25 +30,35 @@ const frameKey = (frame: { metricId: string; frameNumber: number }) =>
   `${frame.metricId}${KEY_SEPARATOR}${frame.frameNumber}`;
 
 /**
- * Re-delivery is detected from frame numbers alone: within one delivery pass
- * they only rise, so a frame at or below the highest one seen is a re-run of
- * the time axis. That keeps the detector at one number rather than a key per
- * frame per metric for the experiment's lifetime.
+ * Re-delivery is detected from frame numbers alone: across chunks they only
+ * rise, so a chunk holding a frame at or below the previous chunks' highest
+ * is a re-run of the time axis. Within one chunk every metric shares the same
+ * frame numbers, so the mark advances only once the whole chunk is scanned.
  */
+export const advanceHighWaterMark = (
+  highestSoFar: number,
+  frames: readonly { frameNumber: number }[],
+): { redelivered: boolean; highest: number } => {
+  let redelivered = false;
+  let highest = highestSoFar;
+  for (const frame of frames) {
+    if (frame.frameNumber <= highestSoFar) {
+      redelivered = true;
+    }
+    highest = Math.max(highest, frame.frameNumber);
+  }
+  return { redelivered, highest };
+};
+
 export const createFrameMerger = (): FrameMerger => {
   let highestFrame = 0;
   let cumulative = false;
   return {
     ingest(state, frames) {
       if (!cumulative) {
-        let redelivered = false;
-        for (const frame of frames) {
-          if (frame.frameNumber <= highestFrame) {
-            redelivered = true;
-          }
-          highestFrame = Math.max(highestFrame, frame.frameNumber);
-        }
-        if (!redelivered) {
+        const mark = advanceHighWaterMark(highestFrame, frames);
+        highestFrame = mark.highest;
+        if (!mark.redelivered) {
           return appendMetricFrames(state, frames);
         }
         cumulative = true;

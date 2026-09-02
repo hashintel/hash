@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createEmptyMetricsState } from "../../simulation/monte-carlo/runtime/experiment-stores";
-import { createFrameMerger } from "./frame-merge";
+import { advanceHighWaterMark, createFrameMerger } from "./frame-merge";
 
 import type { MonteCarloUserDefinedMetricFrame } from "../../simulation/monte-carlo/metrics";
 
@@ -31,6 +31,31 @@ const summarize = (frames: readonly MonteCarloUserDefinedMetricFrame[]) =>
     frameNumber,
     value,
   ]);
+
+describe("advanceHighWaterMark", () => {
+  it("does not read two metrics sharing a chunk's frame numbers as a re-delivery", () => {
+    const first = advanceHighWaterMark(0, [
+      frame("a", 1, 10),
+      frame("b", 1, 20),
+      frame("a", 2, 11),
+      frame("b", 2, 21),
+    ]);
+    expect(first).toEqual({ redelivered: false, highest: 2 });
+
+    const second = advanceHighWaterMark(first.highest, [
+      frame("a", 3, 12),
+      frame("b", 3, 22),
+    ]);
+    expect(second).toEqual({ redelivered: false, highest: 3 });
+  });
+
+  it("flags a chunk that revisits an earlier frame number", () => {
+    expect(advanceHighWaterMark(2, [frame("a", 1, 30)])).toEqual({
+      redelivered: true,
+      highest: 2,
+    });
+  });
+});
 
 describe("createFrameMerger", () => {
   it("appends while frame numbers only rise", () => {
