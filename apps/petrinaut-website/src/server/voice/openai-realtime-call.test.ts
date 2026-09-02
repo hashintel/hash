@@ -86,7 +86,7 @@ describe("OpenAI Realtime call handler", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  test("forwards only the SDP and server-owned duplex Realtime policy", async () => {
+  test("forwards only the SDP and server-owned half-duplex Realtime policy", async () => {
     const reportDiagnostic = vi.fn();
     const fetch = vi.fn<typeof globalThis.fetch>(
       async () =>
@@ -140,7 +140,7 @@ describe("OpenAI Realtime call handler", () => {
             type: "semantic_vad",
             eagerness: "low",
             create_response: false,
-            interrupt_response: true,
+            interrupt_response: false,
           },
         },
       },

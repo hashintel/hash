@@ -84,7 +84,7 @@ const speechSource = (): InterviewSpeechSource => {
 };
 
 describe("VoiceTurnController", () => {
-  test("opens a continuous microphone before starting canonical question speech", async () => {
+  test("requests microphone input before starting canonical question speech", async () => {
     const harness = createHarness();
     const order: string[] = [];
     harness.session.setMicrophoneEnabled.mockImplementation((enabled) => {
@@ -109,7 +109,7 @@ describe("VoiceTurnController", () => {
     });
   });
 
-  test("keeps capture active while the interviewer speaks and interrupts automatically", async () => {
+  test("tracks playback without changing the user's requested microphone state", async () => {
     const harness = createHarness();
     await harness.controller.start();
 
@@ -123,18 +123,6 @@ describe("VoiceTurnController", () => {
       microphoneEnabled: true,
       output: "speaking",
     });
-
-    harness.emitSession({
-      connectionEpoch: 1,
-      itemId: "item-user",
-      type: "input-speech-started",
-    });
-    expect(harness.controller.getSnapshot()).toMatchObject({
-      microphoneEnabled: true,
-      output: "interrupted",
-    });
-    expect(harness.session.cancelOutput).not.toHaveBeenCalled();
-    expect(harness.bridge.cancelPendingSpeech).toHaveBeenCalledOnce();
   });
 
   test("invalidates pending preparation before pausing or cancelling paused output", async () => {

@@ -532,7 +532,7 @@ export class RealtimeBrunchBridge {
         source,
       });
       if (speechGeneration !== this.#speechGeneration) {
-        // Speech was cancelled (barge-in, pause, or replay) while preparing;
+        // Speech was cancelled (new input, pause, or replay) while preparing;
         // the caller owns the next utterance.
         return;
       }

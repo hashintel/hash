@@ -232,7 +232,7 @@ describe("OpenAIRealtimeSession", () => {
     expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
   });
 
-  test("keeps the microphone active through playback and reports automatic interruption", async () => {
+  test("does not expose audio detected during assistant playback as user speech", async () => {
     const harness = createHarness();
     await harness.session.connect();
     harness.session.setMicrophoneEnabled(true);
@@ -253,27 +253,82 @@ describe("OpenAIRealtimeSession", () => {
       item_id: "item-user",
       type: "input_audio_buffer.speech_started",
     });
+    channel.receive({
+      response_id: "response-canonical",
+      type: "output_audio_buffer.stopped",
+    });
+    channel.receive({
+      content_index: 0,
+      item_id: "item-user",
+      transcript: "Each bit.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    channel.receive({
+      content_index: 0,
+      item_id: "item-user",
+      transcript: "Each bit.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
 
+    expect(harness.events).toEqual([
+      {
+        connectionEpoch: 1,
+        responseId: "response-canonical",
+        type: "output-started",
+      },
+      {
+        connectionEpoch: 1,
+        responseId: "response-canonical",
+        type: "output-stopped",
+      },
+    ]);
+  });
+
+  test("restores only the requested microphone state after assistant playback", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    harness.session.speakCanonical([
+      canonicalSegment("ask-1", "What happens next?"),
+    ]);
+    const channel = harness.channels[0]!;
+    authorizeLatestSpeechResponse(channel, "response-canonical");
+
+    channel.receive({
+      response_id: "response-canonical",
+      type: "output_audio_buffer.started",
+    });
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+
+    channel.receive({
+      response_id: "response-canonical",
+      type: "output_audio_buffer.stopped",
+    });
     expect(harness.localTracks[0]!.enabled).toBe(true);
-    expect(harness.events).toEqual(
-      expect.arrayContaining([
-        {
-          connectionEpoch: 1,
-          responseId: "response-canonical",
-          type: "output-started",
-        },
-        {
-          connectionEpoch: 1,
-          itemId: "item-user",
-          type: "input-speech-started",
-        },
-        {
-          connectionEpoch: 1,
-          responseId: "response-canonical",
-          type: "output-interrupted",
-        },
-      ]),
-    );
+    channel.receive({
+      response: {
+        id: "response-canonical",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    harness.session.speakCanonical([
+      canonicalSegment("ask-2", "And after that?"),
+    ]);
+    authorizeLatestSpeechResponse(channel, "response-canonical-2");
+    channel.receive({
+      response_id: "response-canonical-2",
+      type: "output_audio_buffer.started",
+    });
+    harness.session.setMicrophoneEnabled(false);
+    channel.receive({
+      response_id: "response-canonical-2",
+      type: "output_audio_buffer.stopped",
+    });
+
+    expect(harness.localTracks[0]!.enabled).toBe(false);
   });
 
   test("never surfaces model-generated function-call arguments as user speech", async () => {

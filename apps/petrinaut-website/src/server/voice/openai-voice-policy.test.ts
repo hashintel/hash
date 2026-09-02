@@ -46,8 +46,8 @@ describe("OpenAI voice policy", () => {
     ).toEqual({ available: true, connectionTimeoutMs: 15_000 });
   });
 
-  test("owns the trusted GPT-Realtime-2 duplex session policy", () => {
-    expect(OPENAI_REALTIME_POLICY_VERSION).toBe("brunch-control-plane-v2");
+  test("owns the trusted GPT-Realtime-2 half-duplex session policy", () => {
+    expect(OPENAI_REALTIME_POLICY_VERSION).toBe("brunch-control-plane-v3");
     expect(createOpenAIRealtimeSession()).toEqual({
       type: "realtime",
       model: "gpt-realtime-2",
@@ -88,7 +88,7 @@ When Petrinaut supplies response_text, speak only those strings, in array order 
             type: "semantic_vad",
             eagerness: "low",
             create_response: false,
-            interrupt_response: true,
+            interrupt_response: false,
           },
         },
         output: { voice: "marin" },

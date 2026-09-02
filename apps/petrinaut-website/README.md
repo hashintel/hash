@@ -110,14 +110,17 @@ Realtime call endpoint. The provider key, model, instructions, tools, language,
 and vocabulary policy stay server-side. The session uses semantic VAD with low
 eagerness so natural thinking pauses are less likely to end an answer early.
 
-Realtime is the disposable media plane: it carries continuous microphone and
-remote audio, detects complete turns, and handles barge-in. Brunch remains the
-control plane and sole authority for questions, captures, state, completion,
-and durable history. The completed `gpt-4o-transcribe` transcript of the
-speaker's audio is the only source of user answers: semantic VAD commits the
-audio without asking the model to respond, the session exposes no tools, and
-the model never infers or paraphrases what the speaker said. The browser bridge
-normalizes whitespace, submits each completed transcript exactly once (keyed by
+Realtime is the disposable media plane: it carries microphone and remote audio
+and detects complete turns. Microphone capture is suspended during assistant
+playback so speaker echo cannot become an interview answer, then restored to
+the user's requested mute state when playback ends. Brunch remains the control
+plane and sole authority for questions, captures, state, completion, and durable
+history. The completed `gpt-4o-transcribe` transcript of the speaker's audio is
+the only source of user answers: semantic VAD commits the audio without asking
+the model to respond or interrupt playback, the session exposes no tools, and
+the model never infers or paraphrases what the speaker said. The media session
+drops playback-overlapping transcripts. The browser bridge normalizes
+whitespace, submits each remaining completed transcript exactly once (keyed by
 connection, item, and content index), ignores empty, duplicate, stale, or failed
 transcripts, and submits the accepted text through Petrinaut's shared composer
 path with pending-`brunch_ask` correlation and voice provenance. Silence, noise,
@@ -135,9 +138,10 @@ preparation is unavailable, invalid, or times out, the bridge supplies the
 canonical context and question instead. Brunch's canonical transcript and
 exact question are never rewritten and remain authoritative. Preparation,
 provisional transcription, and Realtime audio are ephemeral and are not
-persisted. The microphone stays active while the interviewer speaks and while
-Brunch is working. Speaking over assistant audio interrupts playback automatically;
-WebRTC truncates provider-side unheard audio without changing Brunch history.
+persisted. The microphone stays active while Brunch is working, but capture is
+suspended while the interviewer speaks. Wait for playback to finish before
+answering; Voice resumes listening automatically without changing Brunch
+history.
 
 The Brunch deployment must allow the website origin through its
 `BRUNCH_PETRINAUT_ORIGINS` setting. Denying microphone permission leaves the

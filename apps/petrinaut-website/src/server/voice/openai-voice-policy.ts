@@ -1,5 +1,5 @@
 export const OPENAI_REALTIME_CONNECTION_TIMEOUT_MS = 15_000;
-export const OPENAI_REALTIME_POLICY_VERSION = "brunch-control-plane-v2";
+export const OPENAI_REALTIME_POLICY_VERSION = "brunch-control-plane-v3";
 
 interface VoiceEnvironment {
   readonly NODE_ENV?: string;
@@ -45,7 +45,8 @@ When Petrinaut supplies response_text, speak only those strings, in array order 
 /**
  * The completed `gpt-4o-transcribe` transcript is the only source of the
  * user's answer. Semantic VAD therefore only commits audio and never creates a
- * response, and no tool exists for the model to invent an answer through.
+ * response or interrupts playback, and no tool exists for the model to invent
+ * an answer through.
  * Canonical speech and speech preparation are requested explicitly, out of
  * band, with tools disabled at the response level.
  */
@@ -71,7 +72,7 @@ export const createOpenAIRealtimeSession = () => ({
         type: "semantic_vad" as const,
         eagerness: "low" as const,
         create_response: false,
-        interrupt_response: true,
+        interrupt_response: false,
       },
     },
     output: { voice: "marin" as const },

@@ -143,7 +143,7 @@ const fallbackMessages = [
 ] satisfies PetrinautAiMessage[];
 
 describe("controlled voice preview", () => {
-  test("bridges one completed user transcript through Brunch and back to canonical duplex audio", async () => {
+  test("bridges one completed user transcript through Brunch and back to canonical half-duplex audio", async () => {
     const responseMessagesSnapshot = structuredClone(responseMessages);
     const diagnostics: VoiceDiagnosticEvent[] = [];
     const reportDiagnostic = (event: VoiceDiagnosticEvent) =>
@@ -276,21 +276,21 @@ describe("controlled voice preview", () => {
       type: "output_audio_buffer.started",
     });
     dataChannel.receive({
-      audio_start_ms: 300,
-      item_id: "user-item",
-      type: "input_audio_buffer.speech_started",
+      response_id: "response-initial-question",
+      type: "output_audio_buffer.stopped",
     });
     dataChannel.receive({
       response: {
         id: "response-initial-question",
-        status: "cancelled",
+        output: [],
+        status: "completed",
       },
       type: "response.done",
     });
     expect(controller.getSnapshot()).toMatchObject({
       input: "listening",
       microphoneEnabled: true,
-      output: "interrupted",
+      output: "idle",
     });
 
     // Silence or noise: Realtime completes an empty transcript. Nothing is
@@ -321,6 +321,11 @@ describe("controlled voice preview", () => {
     await Promise.resolve();
     expect(submitInterviewAnswer).not.toHaveBeenCalled();
 
+    dataChannel.receive({
+      audio_start_ms: 300,
+      item_id: "user-item",
+      type: "input_audio_buffer.speech_started",
+    });
     dataChannel.receive({
       content_index: 0,
       delta: "The supervisor",
@@ -633,7 +638,7 @@ describe("controlled voice preview", () => {
             type: "semantic_vad",
             eagerness: "low",
             create_response: false,
-            interrupt_response: true,
+            interrupt_response: false,
           },
         },
       },
