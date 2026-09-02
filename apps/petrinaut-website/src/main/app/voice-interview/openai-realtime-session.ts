@@ -1280,11 +1280,8 @@ export class OpenAIRealtimeSession {
     const contentIndex = nonNegativeInteger(event.content_index);
     if (!itemId || contentIndex === null) return;
     const key = { connectionEpoch, contentIndex, itemId };
-    const overlapsPlayback =
-      this.#speakingResponseId !== null ||
-      this.#playbackOverlappingInputItemIds.has(itemId);
+    const overlapsPlayback = this.#playbackOverlappingInputItemIds.has(itemId);
     if (overlapsPlayback) {
-      this.#playbackOverlappingInputItemIds.add(itemId);
       if (
         event.type ===
           "conversation.item.input_audio_transcription.completed" ||

@@ -284,6 +284,51 @@ describe("OpenAIRealtimeSession", () => {
     ]);
   });
 
+  test("keeps a user turn that started before assistant playback", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    harness.session.speakCanonical([
+      canonicalSegment("ask-1", "What happens next?"),
+    ]);
+    const channel = harness.channels[0]!;
+    authorizeLatestSpeechResponse(channel, "response-canonical");
+
+    channel.receive({
+      audio_start_ms: 120,
+      item_id: "item-user",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      response_id: "response-canonical",
+      type: "output_audio_buffer.started",
+    });
+    channel.receive({
+      content_index: 0,
+      item_id: "item-user",
+      transcript: "The supervisor approves it.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+
+    expect(harness.events).toEqual([
+      {
+        connectionEpoch: 1,
+        itemId: "item-user",
+        type: "input-speech-started",
+      },
+      {
+        connectionEpoch: 1,
+        responseId: "response-canonical",
+        type: "output-started",
+      },
+      {
+        key: { connectionEpoch: 1, contentIndex: 0, itemId: "item-user" },
+        text: "The supervisor approves it.",
+        type: "completed",
+      },
+    ]);
+  });
+
   test("restores only the requested microphone state after assistant playback", async () => {
     const harness = createHarness();
     await harness.session.connect();
