@@ -368,6 +368,7 @@ describe("AiAssistantContents", () => {
       canRepeatQuestion: false,
       errorMessage: null,
       microphoneLevel: 0,
+      microphoneMuted: false,
       phase: "listening",
     });
     render(

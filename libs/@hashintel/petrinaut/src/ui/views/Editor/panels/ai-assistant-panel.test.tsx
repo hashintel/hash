@@ -1084,6 +1084,7 @@ describe("AiAssistantPanel composer submissions", () => {
           canRepeatQuestion: true,
           errorMessage: null,
           microphoneLevel: 0,
+          microphoneMuted: false,
           phase: "listening",
         });
         setVoiceActive(true);
