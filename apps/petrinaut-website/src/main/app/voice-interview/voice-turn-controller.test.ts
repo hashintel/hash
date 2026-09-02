@@ -17,7 +17,7 @@ const createHarness = () => {
     | undefined;
   let bridgeListener: ((event: RealtimeBrunchBridgeEvent) => void) | undefined;
   const session = {
-    cancelOutput: vi.fn(),
+    cancelOutput: vi.fn<() => Promise<void>>(async () => undefined),
     connect: vi.fn(async () => ++epoch),
     disconnect: vi.fn(async () => undefined),
     setMicrophoneEnabled: vi.fn(),
@@ -126,6 +126,93 @@ describe("VoiceTurnController", () => {
     });
   });
 
+  test("hands over an active question once and reopens capture after cancellation", async () => {
+    const harness = createHarness();
+    const source = speechSource();
+    let finishCancellation: (() => void) | undefined;
+    harness.session.cancelOutput.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishCancellation = resolve;
+        }),
+    );
+    harness.controller.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-question",
+      type: "output-started",
+    });
+    harness.bridge.cancelPendingSpeech.mockClear();
+    harness.session.cancelOutput.mockClear();
+
+    expect(harness.controller.getSnapshot().canTakeTurn).toBe(true);
+    const firstHandoff = harness.controller.takeTurn();
+    const repeatedHandoff = harness.controller.takeTurn();
+
+    expect(repeatedHandoff).toBe(firstHandoff);
+    expect(harness.bridge.cancelPendingSpeech).toHaveBeenCalledOnce();
+    expect(harness.session.cancelOutput).toHaveBeenCalledOnce();
+    expect(harness.session.disconnect).not.toHaveBeenCalled();
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canTakeTurn: false,
+      connection: "connected",
+      currentQuestion: "Who approves release?",
+      output: "cancelling",
+    });
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-question",
+      type: "output-interrupted",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-question",
+      status: "cancelled",
+      type: "response-terminal",
+    });
+    expect(harness.controller.getSnapshot().output).toBe("cancelling");
+    finishCancellation?.();
+    await firstHandoff;
+
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canRepeatQuestion: true,
+      canTakeTurn: false,
+      connection: "connected",
+      currentQuestion: "Who approves release?",
+      microphoneEnabled: true,
+      output: "interrupted",
+    });
+  });
+
+  test("offers handoff while speech is being prepared for an unanswered question", async () => {
+    const harness = createHarness();
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question("ask-preparing")],
+      status: "ready",
+    });
+    await harness.controller.start();
+
+    harness.emitBridge({ type: "speech-delivery-pending" });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canTakeTurn: true,
+      currentQuestion: "What happens after approval?",
+      output: "waiting-for-tool",
+    });
+  });
+
   test("invalidates pending preparation before pausing or cancelling paused output", async () => {
     const harness = createHarness();
     const order: string[] = [];
@@ -135,9 +222,9 @@ describe("VoiceTurnController", () => {
     harness.bridge.updateChat.mockImplementation(() =>
       order.push("chat-update"),
     );
-    harness.session.cancelOutput.mockImplementation(() =>
-      order.push("session-cancel"),
-    );
+    harness.session.cancelOutput.mockImplementation(async () => {
+      order.push("session-cancel");
+    });
     await harness.controller.start();
 
     harness.controller.pause();

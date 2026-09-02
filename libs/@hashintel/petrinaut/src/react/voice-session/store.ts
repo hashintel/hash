@@ -12,6 +12,7 @@ export type VoiceSessionActions = {
   repeatQuestion?: () => void;
   resume: () => void;
   setMicrophoneMuted: (muted: boolean) => void;
+  takeTurn?: () => Promise<void> | void;
 };
 
 export type VoiceSessionSnapshot = {

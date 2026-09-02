@@ -34,5 +34,6 @@ export const voiceSessionActionLabels = {
   reconnect: "Reconnect voice mode",
   repeatQuestion: "Repeat question",
   resume: "Resume voice mode",
+  takeTurn: "Your turn",
   unmute: "Unmute microphone",
 } as const;

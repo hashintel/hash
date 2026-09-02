@@ -213,7 +213,7 @@ describe("voice interview control", () => {
     ).not.toThrow();
   });
 
-  test("registers canonical replay controls with the host", () => {
+  test("registers canonical replay and manual handoff controls with the host", () => {
     const repeatQuestion = vi.spyOn(
       VoiceTurnController.prototype,
       "repeatQuestion",
@@ -222,13 +222,16 @@ describe("voice interview control", () => {
       VoiceTurnController.prototype,
       "readFullResponse",
     );
+    const takeTurn = vi.spyOn(VoiceTurnController.prototype, "takeTurn");
     render(<VoiceInterviewHarness />);
 
     registeredVoiceModeControls?.repeatQuestion?.();
     registeredVoiceModeControls?.readFullResponse?.();
+    void registeredVoiceModeControls?.takeTurn?.();
 
     expect(repeatQuestion).toHaveBeenCalledOnce();
     expect(readFullResponse).toHaveBeenCalledOnce();
+    expect(takeTurn).toHaveBeenCalledOnce();
   });
 
   test("loads only a schema-valid available server configuration", async () => {

@@ -82,3 +82,13 @@ export const useVoiceSessionCanRepeatQuestion = (): boolean => {
     () => false,
   );
 };
+
+export const useVoiceSessionCanTakeTurn = (): boolean => {
+  const store = use(VoiceSessionContext);
+
+  return useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().state?.canTakeTurn ?? false,
+    () => false,
+  );
+};

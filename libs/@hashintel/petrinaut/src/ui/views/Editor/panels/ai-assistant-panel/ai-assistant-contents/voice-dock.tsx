@@ -5,6 +5,7 @@ import {
   useVoiceSessionActions,
   useVoiceSessionCanReadFullResponse,
   useVoiceSessionCanRepeatQuestion,
+  useVoiceSessionCanTakeTurn,
   useVoiceSessionMicrophoneMuted,
   useVoiceSessionPhase,
 } from "../../../../../../react/voice-session/use-voice-session";
@@ -105,6 +106,7 @@ export type VoiceDockProps = {
   actions: VoiceSessionActions | null;
   canReadFullResponse: boolean;
   canRepeatQuestion: boolean;
+  canTakeTurn: boolean;
   /** Rendered instead of the live indicator when the caller supplies one. */
   indicator?: ReactNode;
   microphoneMuted: boolean;
@@ -124,6 +126,7 @@ export const VoiceDock = ({
   actions,
   canReadFullResponse,
   canRepeatQuestion,
+  canTakeTurn,
   indicator,
   microphoneMuted,
   onTranscriptionToggle,
@@ -176,6 +179,16 @@ export const VoiceDock = ({
       <span className={`${sideStyle} ${actionsStyle}`}>
         {actions !== null && (
           <>
+            {canTakeTurn && actions.takeTurn && (
+              <Button
+                onClick={() => void actions.takeTurn?.()}
+                size="sm"
+                type="button"
+                variant="subtle"
+              >
+                {voiceSessionActionLabels.takeTurn}
+              </Button>
+            )}
             {phase === "error" ? (
               <Button
                 aria-label={voiceSessionActionLabels.reconnect}
@@ -247,6 +260,7 @@ export const LiveVoiceDock = ({
   const actions = useVoiceSessionActions();
   const canReadFullResponse = useVoiceSessionCanReadFullResponse();
   const canRepeatQuestion = useVoiceSessionCanRepeatQuestion();
+  const canTakeTurn = useVoiceSessionCanTakeTurn();
   const microphoneMuted = useVoiceSessionMicrophoneMuted();
   const phase = useVoiceSessionPhase();
 
@@ -259,6 +273,7 @@ export const LiveVoiceDock = ({
       actions={actions}
       canReadFullResponse={canReadFullResponse}
       canRepeatQuestion={canRepeatQuestion}
+      canTakeTurn={canTakeTurn}
       microphoneMuted={microphoneMuted}
       onTranscriptionToggle={onTranscriptionToggle}
       phase={phase}

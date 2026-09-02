@@ -65,6 +65,7 @@ const phaseOf = (
     return "speaking";
   }
   if (
+    snapshot.output === "cancelling" ||
     snapshot.output === "waiting-for-tool" ||
     snapshot.input === "submitting"
   ) {
@@ -95,6 +96,7 @@ export const toVoiceSessionState = ({
   return {
     canReadFullResponse: snapshot.canReadFullResponse,
     canRepeatQuestion: snapshot.canRepeatQuestion,
+    canTakeTurn: snapshot.canTakeTurn,
     errorMessage:
       snapshot.connection === "error" ? errorMessageOf(snapshot) : null,
     microphoneMuted:

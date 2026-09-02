@@ -71,6 +71,8 @@ export type PetrinautAiVoiceModeControls = {
    * whole session when Petrinaut closes the panel.
    */
   setMicrophoneMuted: (muted: boolean) => void;
+  /** Cancels Voice output and hands the live microphone turn to the user. */
+  takeTurn?: () => Promise<void> | void;
 };
 
 /** Stable controls and conversation state supplied to a host-owned Voice mode. */

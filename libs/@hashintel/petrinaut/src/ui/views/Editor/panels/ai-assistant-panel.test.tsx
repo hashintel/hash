@@ -1055,9 +1055,10 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(submitVoiceInputReferences.size).toBe(1);
   });
 
-  test("forwards registered canonical replay controls to the Voice dock", async () => {
+  test("forwards registered replay and handoff controls to the Voice dock", async () => {
     const readFullResponse = vi.fn();
     const repeatQuestion = vi.fn();
+    const takeTurn = vi.fn();
     const VoiceMode = (context: PetrinautAiVoiceModeContext) => {
       const {
         inputMode,
@@ -1078,10 +1079,12 @@ describe("AiAssistantPanel composer submissions", () => {
           repeatQuestion,
           resume: vi.fn(),
           setMicrophoneMuted: vi.fn(),
+          takeTurn,
         });
         reportVoiceSessionState({
           canReadFullResponse: true,
           canRepeatQuestion: true,
+          canTakeTurn: true,
           errorMessage: null,
           microphoneLevel: 0,
           microphoneMuted: false,
@@ -1111,6 +1114,8 @@ describe("AiAssistantPanel composer submissions", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
+    fireEvent.click(screen.getByRole("button", { name: "Your turn" }));
+    expect(takeTurn).toHaveBeenCalledOnce();
     fireEvent.click(
       screen.getByRole("button", { name: "Voice playback options" }),
     );

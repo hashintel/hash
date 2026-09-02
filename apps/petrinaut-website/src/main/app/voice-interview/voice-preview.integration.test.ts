@@ -272,29 +272,75 @@ describe("controlled voice preview", () => {
     await controller.start();
     authorizeLatestSpeechResponse(dataChannel, "response-initial-question");
     dataChannel.receive({
-      response_id: "response-initial-question",
-      type: "output_audio_buffer.started",
+      audio_start_ms: 100,
+      item_id: "item-before-handoff",
+      type: "input_audio_buffer.speech_started",
     });
     dataChannel.receive({
       response_id: "response-initial-question",
-      type: "output_audio_buffer.stopped",
+      type: "output_audio_buffer.started",
+    });
+
+    expect(controller.getSnapshot()).toMatchObject({
+      canTakeTurn: true,
+      currentQuestion: "What happens after approval?",
+      output: "speaking",
+    });
+    const handoff = controller.takeTurn();
+    const repeatedHandoff = controller.takeTurn();
+    expect(repeatedHandoff).toBe(handoff);
+    expect(sentEvents(dataChannel).slice(-3)).toEqual([
+      { type: "input_audio_buffer.clear" },
+      expect.objectContaining({
+        response_id: "response-initial-question",
+        type: "response.cancel",
+      }),
+      { type: "output_audio_buffer.clear" },
+    ]);
+    expect(track.enabled).toBe(false);
+    expect(peer.close).not.toHaveBeenCalled();
+
+    dataChannel.receive({
+      content_index: 0,
+      item_id: "item-before-handoff",
+      transcript: "This began before the handoff.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+    dataChannel.receive({ type: "input_audio_buffer.cleared" });
+    dataChannel.receive({
+      response_id: "response-initial-question",
+      type: "output_audio_buffer.cleared",
     });
     dataChannel.receive({
       response: {
         id: "response-initial-question",
         output: [],
-        status: "completed",
+        status: "cancelled",
       },
       type: "response.done",
     });
+    await handoff;
+    await repeatedHandoff;
+
+    expect(submitInterviewAnswer).not.toHaveBeenCalled();
+    expect(track.enabled).toBe(true);
     expect(controller.getSnapshot()).toMatchObject({
+      canRepeatQuestion: true,
+      canTakeTurn: false,
+      connection: "connected",
+      currentQuestion: "What happens after approval?",
       input: "listening",
       microphoneEnabled: true,
-      output: "idle",
+      output: "interrupted",
     });
 
     // Silence or noise: Realtime completes an empty transcript. Nothing is
     // submitted and the session keeps listening with a recoverable notice.
+    dataChannel.receive({
+      audio_start_ms: 200,
+      item_id: "noise-item",
+      type: "input_audio_buffer.speech_started",
+    });
     dataChannel.receive({
       content_index: 0,
       item_id: "noise-item",

@@ -320,6 +320,7 @@ const AvailableVoiceInterviewControl = ({
         resume: () => store.controller.resume(),
         setMicrophoneMuted: (muted) =>
           store.controller.setMicrophoneMuted(muted),
+        takeTurn: () => store.controller.takeTurn(),
       }),
     [registerVoiceModeControls, store],
   );

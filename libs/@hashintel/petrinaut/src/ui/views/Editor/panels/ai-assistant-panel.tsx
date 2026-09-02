@@ -495,6 +495,7 @@ export const AiAssistantPanel = ({
           : {}),
         resume: () => controls.resume(),
         setMicrophoneMuted: (muted) => controls.setMicrophoneMuted(muted),
+        ...(controls.takeTurn ? { takeTurn: controls.takeTurn } : {}),
       });
 
       return () => {

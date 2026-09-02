@@ -7,6 +7,7 @@ import type { VoiceTurnSnapshot } from "./voice-turn-controller";
 const listeningSnapshot = {
   canReadFullResponse: true,
   canRepeatQuestion: true,
+  canTakeTurn: false,
   canReviseLastAnswer: false,
   connection: "connected",
   currentQuestion: "What happens after approval?",
@@ -35,6 +36,7 @@ describe("toVoiceSessionState", () => {
     expect(mapSnapshot()).toEqual({
       canReadFullResponse: true,
       canRepeatQuestion: true,
+      canTakeTurn: false,
       errorMessage: null,
       microphoneLevel: 0.24,
       microphoneMuted: false,
@@ -43,15 +45,19 @@ describe("toVoiceSessionState", () => {
   });
 
   test("hands the turn to the assistant while it speaks", () => {
-    expect(mapSnapshot({ output: "speaking", partialText: "" })).toMatchObject({
-      phase: "speaking",
-    });
+    expect(
+      mapSnapshot({ canTakeTurn: true, output: "speaking", partialText: "" }),
+    ).toMatchObject({ canTakeTurn: true, phase: "speaking" });
   });
 
   test("treats a pending tool and a submitting turn as thinking", () => {
     expect(
       mapSnapshot({ output: "waiting-for-tool", partialText: "" }),
     ).toMatchObject({ phase: "thinking" });
+    expect(mapSnapshot({ output: "cancelling" })).toMatchObject({
+      canTakeTurn: false,
+      phase: "thinking",
+    });
     expect(mapSnapshot({ input: "submitting", partialText: "" })).toMatchObject(
       { phase: "thinking" },
     );
