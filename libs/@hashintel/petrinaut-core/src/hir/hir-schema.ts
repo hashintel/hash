@@ -414,8 +414,20 @@ export const hirFunctionSchema = z
 // declared type diverge in either direction, so a new field or node kind in
 // `hir.ts` has to be mirrored above before the package builds.
 
-/** Mutual assignability: the schema output and the declared type coincide. */
-type Equals<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+/**
+ * The schema output and the declared type coincide: mutually assignable and
+ * with the same keys. Assignability alone would let an optional field go
+ * missing on either side unnoticed.
+ */
+type Equals<A, B> = [A] extends [B]
+  ? [B] extends [A]
+    ? [keyof A] extends [keyof B]
+      ? [keyof B] extends [keyof A]
+        ? true
+        : false
+      : false
+    : false
+  : false;
 
 type SchemaKind = z.output<(typeof hirExprOptions)[number]>["kind"];
 
