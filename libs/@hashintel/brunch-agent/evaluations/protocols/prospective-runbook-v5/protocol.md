@@ -1,6 +1,6 @@
 # Mission 4 repaired architecture scoring v5
 
-Status: **draft routing-repair protocol; no paid execution authorized**
+Status: **parent-frozen routing-repair protocol; no paid execution authorized**
 
 Protocol id: `prospective-runbook-v5`
 
