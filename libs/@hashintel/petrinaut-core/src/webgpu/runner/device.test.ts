@@ -4,6 +4,7 @@ import {
   describeAllocationFailure,
   describeBufferOverflow,
   requestGpuDevice,
+  uniformBufferSize,
 } from "./device";
 
 /**
@@ -171,5 +172,20 @@ describe("describeAllocationFailure", () => {
     });
 
     expect(reason).toContain("Failed to allocate memory for buffer mapping");
+  });
+});
+
+describe("uniformBufferSize", () => {
+  it("pads the config block to the 16-byte struct size for every metric count", () => {
+    // Five fixed words plus two per metric: 20, 28, 36, 44 and 52 bytes of
+    // data, each an odd word count the uniform struct rounds up.
+    const configBytes = [0, 1, 2, 3, 4].map((metricCount) =>
+      uniformBufferSize((5 + 2 * metricCount) * 4),
+    );
+
+    expect(configBytes).toEqual([32, 32, 48, 48, 64]);
+    for (const bytes of configBytes) {
+      expect(bytes % 16).toBe(0);
+    }
   });
 });

@@ -20,6 +20,7 @@ import {
   describeAllocationFailure,
   describeBufferOverflow,
   now,
+  uniformBufferSize,
 } from "./runner/device";
 import {
   decodeHistogramFrames,
@@ -248,7 +249,7 @@ export async function runGpuExperiment(
       GPUBufferUsage.COPY_DST,
   });
   const configBuffer = device.createBuffer({
-    size: configWords.byteLength,
+    size: uniformBufferSize(configWords.byteLength),
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
   // Per metric: [observed min, observed max, escapes below, escapes above].

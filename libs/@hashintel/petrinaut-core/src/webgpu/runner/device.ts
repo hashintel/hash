@@ -150,6 +150,17 @@ export function describeAllocationFailure({
 }
 
 /**
+ * Bytes to allocate for a uniform buffer carrying `byteLength` bytes of data.
+ *
+ * A struct in the uniform address space is sized to a multiple of 16, and a
+ * binding smaller than the struct is rejected at bind-group creation, so the
+ * bare word count — odd for the config block, whatever the metric count —
+ * is never enough on its own.
+ */
+export const uniformBufferSize = (byteLength: number): number =>
+  Math.ceil(byteLength / 16) * 16;
+
+/**
  * Why this experiment cannot fit on this device even one tile at a time, or
  * `null` when it can.
  *
