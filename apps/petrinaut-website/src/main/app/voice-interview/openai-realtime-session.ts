@@ -422,10 +422,7 @@ export class OpenAIRealtimeSession {
   }
 
   public cancelOutput(): void {
-    if (
-      !this.#connected ||
-      this.#dataChannel?.readyState !== "open"
-    ) {
+    if (!this.#connected || this.#dataChannel?.readyState !== "open") {
       return;
     }
 

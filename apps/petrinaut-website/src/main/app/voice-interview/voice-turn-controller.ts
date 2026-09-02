@@ -254,8 +254,7 @@ export class VoiceTurnController {
     ) {
       return;
     }
-    const output =
-      this.#snapshot.output === "idle" ? "idle" : "interrupted";
+    const output = this.#snapshot.output === "idle" ? "idle" : "interrupted";
     this.#session.cancelOutput();
     this.#session.setMicrophoneEnabled(false);
     this.#update({
