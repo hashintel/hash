@@ -8,20 +8,31 @@ itself owns: it spawns the child for one model (or one optimization manifest),
 serializes requests to it, and shuts it down. "Session" rather than "client"
 because the object carries that lifecycle, not just the wire format.
 
+Constraints a study carries are readable without a session: `parse_constraint`
+turns the protocol's `{code, hir}` pairs into callables that evaluate the HIR
+here, as a boolean, a signed margin, or a pydantic validator.
+
 @layerRoot python-bindings
 @role Python sessions owning one CLI process each, translating protocol frames into methods and exceptions
 """
 
+from .constraint import (
+    Constraint,
+    ConstraintViolation,
+    ParameterConstraint,
+    StateConstraint,
+    parse_constraint,
+    parse_constraints,
+    violations,
+)
 from .errors import (
     PetrinautClientError,
     PetrinautProtocolError,
     PetrinautRunError,
 )
-from .hir import Constraint, HirEvaluationError, evaluate_hir
+from .hir import HirEvaluationError, evaluate_hir, hir_margin
 from .models import (
     OptimizationBooleanParameter,
-    OptimizationConstraint,
-    OptimizationConstraints,
     OptimizationDescribeResult,
     OptimizationEvaluateResult,
     OptimizationFloatParameter,
@@ -30,22 +41,30 @@ from .models import (
 )
 from .optimization import OptimizationSession
 from .session import PetrinautSession
+from .symbolic import NotSymbolicError, SymbolicConstraint
 
 __all__ = [
     "Constraint",
+    "ConstraintViolation",
     "HirEvaluationError",
+    "NotSymbolicError",
     "OptimizationBooleanParameter",
-    "OptimizationConstraint",
-    "OptimizationConstraints",
     "OptimizationDescribeResult",
     "OptimizationEvaluateResult",
     "OptimizationFloatParameter",
     "OptimizationIntParameter",
     "OptimizationReplicate",
     "OptimizationSession",
+    "ParameterConstraint",
     "PetrinautClientError",
     "PetrinautProtocolError",
     "PetrinautRunError",
     "PetrinautSession",
+    "StateConstraint",
+    "SymbolicConstraint",
     "evaluate_hir",
+    "hir_margin",
+    "parse_constraint",
+    "parse_constraints",
+    "violations",
 ]

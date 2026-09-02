@@ -1,7 +1,7 @@
 {
   "ordering": {
     "code": "scenario.min_load < scenario.max_load",
-    "space": "parameterSpace",
+    "space": "parameters",
     "hir": {
       "hirVersion": 1,
       "surface": "scenario-expression",
@@ -41,7 +41,7 @@
   },
   "compound": {
     "code": "scenario.min_load < scenario.max_load && (parameters.rate > 0 || scenario.turbo)",
-    "space": "parameterSpace",
+    "space": "parameters",
     "hir": {
       "hirVersion": 1,
       "surface": "scenario-expression",
@@ -136,7 +136,7 @@
   },
   "math": {
     "code": "Math.round(Math.abs(scenario.min_load - scenario.max_load)) >= 2",
-    "space": "parameterSpace",
+    "space": "parameters",
     "hir": {
       "hirVersion": 1,
       "surface": "scenario-expression",
@@ -217,7 +217,7 @@
   },
   "ternary": {
     "code": "scenario.turbo ? scenario.max_load <= 10 : scenario.max_load <= 6",
-    "space": "parameterSpace",
+    "space": "parameters",
     "hir": {
       "hirVersion": 1,
       "surface": "scenario-expression",
@@ -303,7 +303,7 @@
   },
   "strictEquality": {
     "code": "scenario.min_load == 1",
-    "space": "parameterSpace",
+    "space": "parameters",
     "hir": {
       "hirVersion": 1,
       "surface": "scenario-expression",
@@ -344,7 +344,7 @@
   },
   "stateBound": {
     "code": "return state.places.Queue.count <= 10;",
-    "space": "stateSpace",
+    "space": "state",
     "hir": {
       "hirVersion": 1,
       "surface": "metric",
@@ -432,7 +432,7 @@
   },
   "stateBlock": {
     "code": "const total = state.places.Queue.tokens.reduce((acc, token) => acc + 1, 0);\nreturn total <= 5 && state.places.Queue.count >= 0;",
-    "space": "stateSpace",
+    "space": "state",
     "hir": {
       "hirVersion": 1,
       "surface": "metric",

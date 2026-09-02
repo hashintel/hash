@@ -83,6 +83,53 @@ fixed-value injection, simulation, and metric evaluation. The manifest
 contract, protocol, and seeded-runs semantics are documented in the
 [CLI usage manual](../petrinaut-arch-docs/content/cli/usage-manual.mdx).
 
+## Constraints
+
+A study's constraints come back from `describe()` as `{code, hir}` pairs, and
+the binding evaluates the `hir` side itself: no TypeScript toolchain, and the
+whole tree is validated node by node against the grammar's pydantic models
+before anything runs. Two shapes, told apart by `space`:
+
+```python
+from petrinaut import parse_constraints, violations
+
+constraints = parse_constraints(description.constraints)
+for constraint in constraints:
+    print(constraint.space, constraint.code)
+
+ordering = constraints[0]                       # a ParameterConstraint
+ordering({"min_load": 2, "max_load": 8})         # True
+ordering.margin({"min_load": 2, "max_load": 8})  # 6.0, >= 0 iff satisfied
+ordering.violation({"min_load": 8, "max_load": 2})  # 6.0, <= 0 iff satisfied
+ordering.check({"min_load": 8, "max_load": 2})   # raises ConstraintViolation
+```
+
+- `ParameterConstraint` ranges over the parameter space and takes a `scenario`
+  mapping plus the net `parameters`. It is checkable before a run starts.
+- `StateConstraint` ranges over the simulation state and takes a `state`
+  record (places keyed by name, each with `count` and `tokens`) plus the net
+  `parameters`.
+
+Both give four readings of the condition: the boolean (call it), the signed
+`margin`, the `violation` in the sign Optuna's `constraints_func` expects, and
+`check`, which raises. `violations(constraints, scenario=..., state=...)`
+returns one violation per constraint for a sampler. `validator()` packages the
+check for pydantic:
+
+```python
+from typing import Annotated
+from pydantic import AfterValidator, BaseModel
+
+class Study(BaseModel):
+    scenario: Annotated[dict[str, float], AfterValidator(ordering.validator())]
+```
+
+A parameter constraint over plain arithmetic also has a symbolic reading with
+the `sympy` extra (`petrinaut-python[sympy]`): `ordering.to_sympy()` returns
+the relation over one real symbol per parameter, ready for
+`sympy.solve_univariate_inequality` or `simplify`. Arrays, records, strings
+and `Math.random()` have no symbolic form and raise `NotSymbolicError`.
+
 ## Timeouts and limits
 
 - Bootstrap (spawn to readiness) and each protocol response have deadlines,
