@@ -402,6 +402,17 @@ export const selectRecipe = sva({
     },
     willClear: { true: {} },
     hasPrefix: { true: {} },
+    // Multi-select items need the same inter-item gap as Menu lists so that
+    // adjacent highlight-style selections read as separate rows
+    multiple: {
+      true: {
+        list: {
+          "& [data-part='item'] + [data-part='item']": {
+            marginTop: "[1px]",
+          },
+        },
+      },
+    },
     connectsRight: {
       true: {
         wrapper: {

@@ -91,12 +91,25 @@ const renderColorItem = (value: string): React.ReactNode => (
 
 const multiItemVariants = ["checkbox", "tick", "highlight"] as const;
 
+const tonedItems = [
+  { value: "neutral", text: "Neutral (default)" },
+  { value: "brand", text: "Brand", tone: "brand" as const },
+  { value: "error", text: "Error", tone: "error" as const },
+];
+
 export const Multiple: Story = () => {
   const [fruits, setFruits] = useState<string[]>(["apple", "banana"]);
   const [byVariant, setByVariant] = useState<Record<string, string[]>>({
     checkbox: ["apple"],
     tick: ["apple"],
     highlight: ["apple"],
+  });
+  const [tonedByVariant, setTonedByVariant] = useState<
+    Record<string, string[]>
+  >({
+    checkbox: ["neutral", "brand", "error"],
+    tick: ["neutral", "brand", "error"],
+    highlight: ["neutral", "brand", "error"],
   });
   const [capped, setCapped] = useState<string[]>(["apple", "banana"]);
   const [colors, setColors] = useState<ColorValue[]>(["red", "blue"]);
@@ -141,6 +154,38 @@ export const Multiple: Story = () => {
               value={byVariant[itemVariant] ?? []}
               onChange={(next) =>
                 setByVariant((prev) => ({ ...prev, [itemVariant]: next }))
+              }
+            />
+          ))}
+        </div>
+      </div>
+      <div className={groupStyle}>
+        <span style={subheadingStyle}>Item tones (mapped to selectedTone)</span>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            columnGap: 32,
+            rowGap: 12,
+            alignItems: "center",
+          }}
+        >
+          {multiItemVariants.map((itemVariant) => (
+            <span key={itemVariant} style={subheadingStyle}>
+              {itemVariant}
+            </span>
+          ))}
+          {multiItemVariants.map((itemVariant) => (
+            <Select
+              key={itemVariant}
+              multiple
+              items={tonedItems.map((item) => ({
+                ...item,
+                variant: itemVariant,
+              }))}
+              value={tonedByVariant[itemVariant] ?? []}
+              onChange={(next) =>
+                setTonedByVariant((prev) => ({ ...prev, [itemVariant]: next }))
               }
             />
           ))}
