@@ -101,9 +101,10 @@ worker, a few runs per point, and the plot fills in coarse shape first.
 
 One slider per optimized parameter navigates the space; parameters not shown
 on the plot hold at their slider position, which starts at the best trial's
-value. Move a slider or **click the plot** and the selected point recomputes
-with escalating batches while the readout streams the objective's mean and
-median. Points you have visited are cached, so returning to them is instant.
+value. Move a slider, or **click or drag on the plot**, and the selected point
+recomputes with escalating batches while the readout streams the objective's
+mean and median. Points you have visited are cached, so returning to them is
+instant.
 
 Log-scale domains slide in log space, and integer domains snap to their step.
 Local points always reflect the model as it was when the study launched, even
