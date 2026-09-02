@@ -9,7 +9,7 @@ The full optimization loop runs locally without any HASH infrastructure. From
 the repository root:
 
 ```sh
-yarn dev:petrinaut-optimization
+turbo run dev --filter @apps/petrinaut-website -- --with-optimizer-service
 ```
 
 Then open [http://localhost:5173/optimization](http://localhost:5173/optimization)
@@ -17,8 +17,11 @@ Then open [http://localhost:5173/optimization](http://localhost:5173/optimizatio
 and studies created there run against the real
 [optimizer](layer:optimizer) service.
 
-The command is `apps/petrinaut-website/scripts/optimization-dev.mjs`, and it
-does six things in order:
+Turborepo builds the website's workspace dependencies first, `@hashintel/petrinaut`
+included, because `dev` depends on `codegen`, which depends on `^build`. The
+website's dev task (`apps/petrinaut-website/scripts/dev.mjs`) then hands the
+flag to `@local/petrinaut-optimizer-client`'s `dev-service` module, which does
+five things in order:
 
 1. Removes any container left behind by an earlier launcher run. A
    hard-killed launcher (closed terminal, crash) never reaches its cleanup,
@@ -35,18 +38,17 @@ does six things in order:
    seconds, then it gives up). The image bundles the [CLI](layer:cli) at
    `/usr/local/bin/petrinaut`, so the service finds its child executable
    without any checkout-specific setup.
-4. Builds `@hashintel/petrinaut` through Turborepo — the demo website consumes
-   the **built dists**, not the sources.
-5. Starts the website's Vite dev server with
+4. Starts the website's Vite dev server with
    `VITE_PETRINAUT_OPT_PROVIDER=service` and
-   `PETRINAUT_OPT_ORIGIN=http://127.0.0.1:4004`.
-6. Stops and removes its container when you stop the command. A reused
+   `PETRINAUT_OPT_ORIGIN=http://127.0.0.1:4004`. The demo website consumes
+   Petrinaut's **built dist**, not the sources.
+5. Stops and removes its container when you stop the command. A reused
    optimizer is left alone.
 
 Docker must be running unless a reusable optimizer is already serving.
-Extra arguments are forwarded to Vite, so
-`yarn dev:petrinaut-optimization --port 5175 --strictPort` pins the website
-port for tooling that needs to know it.
+Every other argument after `--` is forwarded to Vite, so
+`turbo run dev --filter @apps/petrinaut-website -- --with-optimizer-service --port 5175 --strictPort`
+pins the website port for tooling that needs to know it.
 
 ## Why plain `yarn dev` shows no Optimizations view
 
