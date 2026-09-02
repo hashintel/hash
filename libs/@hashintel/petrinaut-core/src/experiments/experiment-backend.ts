@@ -58,6 +58,15 @@ export type ExperimentBackend = {
    * while the user edits does not hold a GPU device.
    */
   assess(this: void, request: ExperimentRequest): Promise<ExperimentAssessment>;
+  /**
+   * Releases what the backend keeps between experiments.
+   *
+   * The WebGPU backend holds its last device, compiled shader and learned
+   * calibration so the next batch of a session reuses them; the host that
+   * built the backend calls this when the session ends, or that device lives
+   * on. A backend that keeps nothing leaves it undefined.
+   */
+  dispose?(this: void): void;
 };
 
 /**

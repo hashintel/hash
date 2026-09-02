@@ -276,8 +276,11 @@ export async function createGpuMonteCarloExperiment(
   // A lost device turns every later GPU call into a silent no-op, so without
   // this watcher a loss mid-run could surface as a truncated "Complete".
   // `dispose()` also triggers it, via `destroy()` — that is the one intentional
-  // loss, filtered by the `disposed` flag.
+  // loss, filtered by the `disposed` flag. Either way the device is dead for
+  // every later batch, so it leaves the cache; the lease still ends through
+  // `dispose()`.
   void backend.handle.device.lost.then((info) => {
+    config.backendCache?.invalidate(backend);
     if (!disposed) {
       fail(`GPU device lost: ${info.message || info.reason}`);
     }

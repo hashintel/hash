@@ -171,5 +171,8 @@ export function createWebGpuExperimentBackend(
     isAvailable: isWebGpuAvailable,
     assess: (request) =>
       Promise.resolve(assess(request, options, backendCache)),
+    dispose: () => {
+      backendCache.dispose();
+    },
   };
 }
