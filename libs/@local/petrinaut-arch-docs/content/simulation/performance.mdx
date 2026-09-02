@@ -198,13 +198,14 @@ buffers — and the only cross-run interaction is metric aggregation, whose
 accumulators expose `empty`/`merge`. An experiment therefore shards runs across
 workers and merges per-frame metric states on the main thread.
 [Worker sharding](doc:simulation/worker-sharding) describes the shipped
-design; this section records the measurements and the invariants that make
-shard count invisible to results:
+design; this section records the measurements and the invariants that keep
+shard count out of the results:
 
 1. **Seeds derive from the global run index**, not the shard-local one, so run
    _i_ gets the same seed no matter which shard owns it.
-2. **Merge is associative and commutative** over the per-frame accumulator
-   state, so shard completion order does not matter.
+2. **Merge is associative, and shards fold in index order**, so shard
+   completion order does not matter; `last` is not commutative and relies on
+   that ordering.
 
 No `SharedArrayBuffer` is needed. The app is not cross-origin isolated (no
 COOP/COEP headers), so `SharedArrayBuffer` — and therefore WASM threads — is
@@ -236,8 +237,10 @@ Two design points worth keeping in mind when touching this:
   correct shard-locally.
 - **Frames are released on a watermark**: a frame number finalises only once
   every still-running shard has reported it, with finished shards dropped from
-  the watermark rather than blocking it. That is why merged output matches an
-  unsharded run.
+  the watermark rather than blocking it. Merged output matches an unsharded run
+  while every shard is active; once a shard finishes, its completed runs stop
+  contributing samples to later frames, where an unsharded run keeps sampling
+  their frozen state.
 
 The CLI shards the same way through the shared experiment backend, over
 `node:worker_threads`, defaulting to one worker per core minus one. Note the
@@ -434,9 +437,11 @@ Bring-up left five records worth keeping:
   "invalid due to a previous error". Buffer creation is wrapped in an
   out-of-memory error scope so the actual message reaches the user.
 
-The two backends use different generators by necessity — the GPU uses PCG,
-and WGSL builtin accuracy is implementation-defined (`sin`/`cos` carry ~2⁻¹¹
-absolute error) — so agreement is statistical rather than seed-for-seed, and
+The two backends use different generators by choice — the GPU uses PCG, a
+stronger generator than the CPU's LCG, which 32-bit integer arithmetic could
+reproduce exactly — and WGSL builtin accuracy is implementation-defined
+(`sin`/`cos` carry ~2⁻¹¹ absolute error), so agreement is statistical rather
+than seed-for-seed, and
 GPU results are reproducible only across runs on one adapter. Verified against
 the CPU engine on identical configuration:
 

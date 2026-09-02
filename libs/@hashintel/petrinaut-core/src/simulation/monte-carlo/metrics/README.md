@@ -11,10 +11,10 @@ buffers never leave it.
 
 Every accumulator is a `MonteCarloMetricMonoid`: `empty` produces the identity
 state, `add` folds one sample into a state, and `merge` combines two states.
-`merge` is associative and commutative, which is the property worker sharding
-depends on — shards report per-frame states in any order and the merged result
-is identical to an unsharded run. `createMonteCarloMetricShardMerger`
-(`merge.ts`) performs that cross-shard merge for the experiment runtime.
+`merge` is associative, and commutative for every accumulator except `last`,
+which takes its right operand. Worker sharding depends on associativity and on
+`createMonteCarloMetricShardMerger` (`merge.ts`) folding shards in index order,
+so shard completion order does not change the merged result.
 
 Two shapes cross the thread boundary:
 
