@@ -1,19 +1,16 @@
 /**
- * The summary's compute readout: an overall progress bar plus a compact,
- * toggleable list of every batch computing right now.
- *
- * The single bar dates from one-simulation-at-a-time; a sweep now runs the
- * selection's ladder, surface chunks, and cell refinements in parallel. The
- * bar keeps meaning "the selected combination's progress" (runs sampled over
- * the run budget — the thing the charts show), and the list underneath shows
- * the parallelism: one row per live batch with its kind, priority, and its
- * own progress. Collapsed, it is one line ("N computing"); nothing renders
- * when nothing computes.
+ * The summary's compute readout: the selected combination's progress bar plus
+ * a compact, toggleable list of every batch computing right now — a sweep
+ * runs the selection's ladder, surface chunks, and cell refinements in
+ * parallel, and the list shows that parallelism. Collapsed, it is one line
+ * ("N computing"); nothing renders when nothing computes.
  */
 import { useState } from "react";
 
 import { Icon } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+
+import { experimentProgressPercent } from "../../../../shared/experiment-progress";
 
 import type {
   ExperimentRecord,
@@ -173,26 +170,25 @@ const BatchRow = ({ batch }: { batch: SweepBatchStatus }) => {
 };
 
 export const ComputeActivity = ({
-  experiment,
-}: {
-  experiment: ExperimentRecord;
-}) => {
+  sweepBatches,
+  sweep,
+  progress,
+  runCount,
+  maxTime,
+}: Pick<
+  ExperimentRecord,
+  "sweepBatches" | "sweep" | "progress" | "runCount" | "maxTime"
+>) => {
   const [expanded, setExpanded] = useState(false);
-  const batches = experiment.sweepBatches;
-  const sweep = experiment.sweep;
-
-  // The bar means "the selected combination's progress": runs sampled over
-  // the budget for a sweep, simulated time for a plain experiment.
-  const percent = sweep
-    ? experiment.runCount > 0
-      ? Math.min(100, (sweep.runsSampled / experiment.runCount) * 100)
-      : 0
-    : experiment.progress && experiment.maxTime > 0
-      ? Math.min(100, (experiment.progress.time / experiment.maxTime) * 100)
-      : 0;
+  const percent = experimentProgressPercent({
+    sweep,
+    progress,
+    runCount,
+    maxTime,
+  });
   const barLabel = sweep
-    ? `Selection · ${sweep.runsSampled.toLocaleString("en-US")} / ${experiment.runCount.toLocaleString("en-US")} runs`
-    : `Time · ${(experiment.progress?.time ?? 0).toLocaleString("en-US")} / ${experiment.maxTime.toLocaleString("en-US")}`;
+    ? `Selection · ${sweep.runsSampled.toLocaleString("en-US")} / ${runCount.toLocaleString("en-US")} runs`
+    : `Time · ${(progress?.time ?? 0).toLocaleString("en-US")} / ${maxTime.toLocaleString("en-US")}`;
 
   return (
     <div>
@@ -201,7 +197,7 @@ export const ComputeActivity = ({
       </div>
       <div className={metaRowStyle}>
         <span className={metaLabelStyle}>{barLabel}</span>
-        {batches.length > 0 ? (
+        {sweepBatches.length > 0 ? (
           <button
             type="button"
             className={toggleStyle}
@@ -209,14 +205,14 @@ export const ComputeActivity = ({
             onClick={() => setExpanded((previous) => !previous)}
           >
             <span className={computingDotStyle} />
-            {batches.length} computing
+            {sweepBatches.length} computing
             <Icon name={expanded ? "chevronUp" : "chevronDown"} size="xxs" />
           </button>
         ) : null}
       </div>
-      {expanded && batches.length > 0 ? (
+      {expanded && sweepBatches.length > 0 ? (
         <div className={batchListStyle}>
-          {batches.map((batch) => (
+          {sweepBatches.map((batch) => (
             <BatchRow key={batch.id} batch={batch} />
           ))}
         </div>

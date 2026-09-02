@@ -8,6 +8,7 @@ import {
   isExperimentActive,
   type ExperimentRecord,
 } from "../../../../../react/experiments/context";
+import { experimentProgressPercent } from "../../shared/experiment-progress";
 
 const contentWidthStyle = css({
   width: "[320px]",
@@ -107,26 +108,6 @@ function formatProgress(experiment: ExperimentRecord): string {
   return `${progress.activeRuns} active, ${progress.completedRuns} complete, ${progress.erroredRuns} errors`;
 }
 
-function getProgressPercent(experiment: ExperimentRecord): number {
-  // Sweeps run several batches in parallel; their bar tracks the selected
-  // combination's runs — the same meaning as the drawer's bar — instead of
-  // one batch's simulated time, which saws to 100% once per ladder rung.
-  if (experiment.sweep) {
-    return experiment.runCount > 0
-      ? Math.min(
-          100,
-          (experiment.sweep.runsSampled / experiment.runCount) * 100,
-        )
-      : 0;
-  }
-  const progress = experiment.progress;
-  if (!progress || experiment.maxTime <= 0) {
-    return 0;
-  }
-
-  return Math.min(100, (progress.time / experiment.maxTime) * 100);
-}
-
 const ExperimentStatusBadge = ({
   status,
 }: {
@@ -199,7 +180,7 @@ export const RunningExperimentsPopover = ({
                         <div
                           className={progressFillStyle}
                           style={{
-                            width: `${getProgressPercent(experiment)}%`,
+                            width: `${experimentProgressPercent(experiment)}%`,
                           }}
                         />
                       </div>

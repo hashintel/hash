@@ -1,9 +1,7 @@
 /**
- * The full sweep-experiment drawer against fake compute. `SweepRestream`
- * exists to pick the restream-ghost behaviour: drag a slider and watch how
- * the charts bridge the compute gap before the new selection's first frames
- * arrive — held dimmed ("dim"), held as-is ("hold"), or cleared to shells
- * ("off").
+ * The sweep-experiment drawer against fake compute: drag a parameter slider
+ * and the charts bridge the compute gap with the previous picture, dimmed,
+ * until the new selection's first frames arrive.
  */
 import { use } from "react";
 
@@ -14,7 +12,6 @@ import {
 } from "./experiments-story-fixtures";
 import { ViewExperimentDrawer } from "./view-experiment-drawer";
 
-import type { RestreamGhost } from "./view-experiment-drawer";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -24,39 +21,22 @@ const meta = {
 
 export default meta;
 
-const DrawerFromContext = ({
-  restreamGhost,
-}: {
-  restreamGhost: RestreamGhost;
-}) => {
+type Story = StoryObj<typeof meta>;
+
+const DrawerFromContext = () => {
   const { experiments } = use(ExperimentsContext);
   return (
-    <ViewExperimentDrawer
-      open
-      onClose={() => {}}
-      experiment={experiments[0]}
-      restreamGhost={restreamGhost}
-    />
+    <ViewExperimentDrawer open onClose={() => {}} experiment={experiments[0]} />
   );
 };
 
-type Args = { restreamGhost: RestreamGhost };
-
-/**
- * Drag a parameter slider: frames clear while the (fake) session recomputes,
- * and the ghost variant decides what the charts show in the gap.
- */
-export const SweepRestream: StoryObj<Args> = {
-  args: { restreamGhost: "dim" },
-  argTypes: {
-    restreamGhost: { control: "select", options: ["dim", "hold", "off"] },
-  },
-  render: (args) => (
+export const Sweep: Story = {
+  render: () => (
     <FakeExperimentsProvider
       initialExperiments={[makeParameterSweepExperiment()]}
       restreamOnSelectionChange
     >
-      <DrawerFromContext restreamGhost={args.restreamGhost} />
+      <DrawerFromContext />
     </FakeExperimentsProvider>
   ),
 };
