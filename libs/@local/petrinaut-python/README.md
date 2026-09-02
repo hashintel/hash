@@ -97,11 +97,11 @@ constraints = parse_constraints(description.constraints)
 for constraint in constraints:
     print(constraint.space, constraint.code)
 
-ordering = constraints[0]                       # a ParameterConstraint
-ordering({"min_load": 2, "max_load": 8})         # True
+ordering = constraints[0]  # a ParameterConstraint
+ordering({"min_load": 2, "max_load": 8})  # True
 ordering.margin({"min_load": 2, "max_load": 8})  # 6.0, >= 0 iff satisfied
 ordering.violation({"min_load": 8, "max_load": 2})  # 6.0, <= 0 iff satisfied
-ordering.check({"min_load": 8, "max_load": 2})   # raises ConstraintViolation
+ordering.check({"min_load": 8, "max_load": 2})  # raises ConstraintViolation
 ```
 
 - `ParameterConstraint` ranges over the parameter space and takes a `scenario`
@@ -119,6 +119,7 @@ check for pydantic:
 ```python
 from typing import Annotated
 from pydantic import AfterValidator, BaseModel
+
 
 class Study(BaseModel):
     scenario: Annotated[dict[str, float], AfterValidator(ordering.validator())]
