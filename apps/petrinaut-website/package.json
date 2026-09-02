@@ -7,7 +7,7 @@
     "brunch:fixture": "node --experimental-strip-types scripts/brunch-sse-fixture.ts",
     "build": "vite build",
     "codegen": "node --experimental-strip-types scripts/generate-route-tree.ts",
-    "dev": "node scripts/dev.mjs",
+    "dev": "bash scripts/dev.sh",
     "examples:generate": "node --experimental-strip-types scripts/generate-example-artifacts.ts",
     "fix:eslint": "oxlint --fix --type-aware --report-unused-disable-directives-severity=error .",
     "generate:icons": "node scripts/generate-favicons.mjs",

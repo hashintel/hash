@@ -19,9 +19,9 @@ and studies created there run against the real
 
 Turborepo builds the website's workspace dependencies first, `@hashintel/petrinaut`
 included, because `dev` depends on `codegen`, which depends on `^build`. The
-website's dev task (`apps/petrinaut-website/scripts/dev.mjs`) then hands the
-flag to `@local/petrinaut-optimizer-client`'s `dev-service` module, which does
-five things in order:
+website's dev task (`apps/petrinaut-website/scripts/dev.sh`) then hands the
+flag to the shell library `libs/@local/petrinaut-optimizer-client/scripts/optimizer-service.sh`,
+which does five things in order:
 
 1. Removes any container left behind by an earlier launcher run. A
    hard-killed launcher (closed terminal, crash) never reaches its cleanup,

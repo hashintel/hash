@@ -11,8 +11,7 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./dist/index.js"
-    },
-    "./dev-service": "./scripts/optimizer-service.mjs"
+    }
   },
   "scripts": {
     "build": "rimraf dist && tsc --build tsconfig.build.json",
