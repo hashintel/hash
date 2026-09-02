@@ -436,6 +436,10 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
       "Defines the scripted pi-ai faux provider loaded only by the hermetic prospective-runner test — no provider key, no socket, and no network model call.",
     "apps/brunch-agent/test/runbook-headless.integration.ts":
       "Boots the built Flue ChatAgent with pi-ai's faux provider and a headless Petrinaut client to prove validated construct-only tool flow without a provider key, socket, or network model call.",
+    "apps/brunch-agent/test/telemetry.test.ts":
+      "Constructs Flue's content-free OpenTelemetry instrumentation with local spies to prove disposal and HASH exporter ordering; it registers no global instrumentation, opens no socket, and makes no provider call.",
+    "apps/brunch-agent/test/turn-timing.test.ts":
+      "Types recorded Flue observations and model requests so the condition-5 purpose splitter can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
   };
 
   test("no test file carries a live model credential", () => {
