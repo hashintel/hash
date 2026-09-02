@@ -160,20 +160,17 @@ describe("dependency direction", () => {
     }
   });
 
-  test("transports consume wire contracts only — never a binding or Flue", () => {
+  test("transports consume their wire encoder only — never core, a binding, or Flue", () => {
     const transports = byRole("transport");
     expect(transports.length).toBeGreaterThan(0);
     for (const transport of transports) {
-      expect(runtimeDependencies(transport).sort()).toEqual(
-        [CORE, "ai", "valibot"].sort(),
-      );
+      expect(runtimeDependencies(transport).sort()).toEqual(["ai", "valibot"]);
       for (const file of sourceFiles(transport).filter((file) =>
         file.path.startsWith(join(transport.path, "src")),
       )) {
         for (const specifier of importedPackages(file)) {
           if (specifier.startsWith("node:")) continue;
-          expect([CORE, "ai", "valibot"]).toContain(packageOf(specifier));
-          expect(specifier).not.toBe(`${CORE}/storage`);
+          expect(["ai", "valibot"]).toContain(packageOf(specifier));
         }
       }
     }
