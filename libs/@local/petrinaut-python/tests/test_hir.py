@@ -1,23 +1,75 @@
 """Tests for the serialized-HIR evaluator against fixtures lowered by the
 real TypeScript frontend (`hir_fixtures.json`, generated from
-`lowerOptimizationConstraint` in `@hashintel/petrinaut-core`)."""
+`lowerConstraint` in `@hashintel/petrinaut-core`)."""
 
 import json
 import math
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
-from petrinaut import Constraint, HirEvaluationError, evaluate_hir
+from petrinaut import (
+    HirEvaluationError,
+    ParameterConstraint,
+    StateConstraint,
+    evaluate_hir,
+)
+
+SPAN = {"start": 0, "length": 1}
 
 FIXTURES = json.loads(
     (Path(__file__).parent / "hir_fixtures.json").read_text(encoding="utf-8")
 )
 
 
-def constraint(name: str) -> Constraint:
+def constraint(name: str) -> ParameterConstraint | StateConstraint:
     fixture = FIXTURES[name]
-    return Constraint({"id": name, "code": fixture["code"], "hir": fixture["hir"]})
+    data = {
+        "space": fixture["space"],
+        "id": name,
+        "code": fixture["code"],
+        "hir": fixture["hir"],
+    }
+    if fixture["space"] == "parameters":
+        return ParameterConstraint.model_validate(data)
+    return StateConstraint.model_validate(data)
+
+
+def parameter_constraint(
+    id_: str, body: dict[str, object], code: str = "<inline>"
+) -> ParameterConstraint:
+    return ParameterConstraint.model_validate(
+        {
+            "space": "parameters",
+            "id": id_,
+            "code": code,
+            "hir": {
+                "hirVersion": 1,
+                "surface": "scenario-expression",
+                "params": [],
+                "span": SPAN,
+                "body": body,
+            },
+        }
+    )
+
+
+def state_constraint(id_: str, body: dict[str, object], param: str) -> StateConstraint:
+    return StateConstraint.model_validate(
+        {
+            "space": "state",
+            "id": id_,
+            "code": "<inline>",
+            "hir": {
+                "hirVersion": 1,
+                "surface": "metric",
+                "params": [{"name": param, "span": SPAN}],
+                "span": SPAN,
+                "body": body,
+            },
+        }
+    )
 
 
 class TestParameterSpace:
@@ -146,19 +198,8 @@ class TestStringNodes:
     def _node(kind: str, **fields: object) -> dict[str, object]:
         return {"kind": kind, "id": 0, "span": {"start": 0, "length": 1}, **fields}
 
-    def _constraint(self, body: dict[str, object]) -> Constraint:
-        return Constraint(
-            {
-                "id": "strings",
-                "code": "<inline>",
-                "hir": {
-                    "hirVersion": 1,
-                    "surface": "scenario-expression",
-                    "params": [],
-                    "body": body,
-                },
-            }
-        )
+    def _constraint(self, body: dict[str, object]) -> ParameterConstraint:
+        return parameter_constraint("strings", body)
 
     def test_string_methods_evaluate(self) -> None:
         def lit(value: str) -> dict[str, object]:
@@ -207,6 +248,7 @@ class TestJsMathEdges:
                 "hirVersion": 1,
                 "surface": "scenario-expression",
                 "params": [],
+                "span": SPAN,
                 "body": body,
             }
         )
@@ -271,19 +313,8 @@ class TestNanMargins:
     def _node(kind: str, **fields: object) -> dict[str, object]:
         return {"kind": kind, "id": 0, "span": {"start": 0, "length": 1}, **fields}
 
-    def _constraint(self, body: dict[str, object]) -> Constraint:
-        return Constraint(
-            {
-                "id": "nan-margins",
-                "code": "<inline>",
-                "hir": {
-                    "hirVersion": 1,
-                    "surface": "scenario-expression",
-                    "params": [],
-                    "body": body,
-                },
-            }
-        )
+    def _constraint(self, body: dict[str, object]) -> ParameterConstraint:
+        return parameter_constraint("nan-margins", body)
 
     def _num(self, value: float) -> dict[str, object]:
         return self._node("numberLit", value=value, raw=repr(value))
@@ -340,21 +371,17 @@ class TestMarginShortCircuit:
 
     @staticmethod
     def _node(kind: str, **fields: object) -> dict[str, object]:
-        return {"kind": kind, "id": 0, "span": {"start": 0, "length": 1}, **fields}
+        node: dict[str, object] = {"kind": kind, "id": 0, "span": SPAN, **fields}
+        if kind == "fieldAccess":
+            node.setdefault("fieldSpan", SPAN)
+        return node
 
-    def _constraint(self, body: dict[str, object], params: list[str] | None = None):
-        return Constraint(
-            {
-                "id": "short-circuit",
-                "code": "<inline>",
-                "hir": {
-                    "hirVersion": 1,
-                    "surface": "metric-body" if params else "scenario-expression",
-                    "params": [{"name": name} for name in (params or [])],
-                    "body": body,
-                },
-            }
-        )
+    def _constraint(
+        self, body: dict[str, object], params: list[str] | None = None
+    ) -> ParameterConstraint | StateConstraint:
+        if params:
+            return state_constraint("short-circuit", body, params[0])
+        return parameter_constraint("short-circuit", body)
 
     def _num(self, value: float) -> dict[str, object]:
         return self._node("numberLit", value=value, raw=repr(value))
@@ -410,53 +437,63 @@ class TestMarginShortCircuit:
 
 
 class TestRejections:
-    def test_unknown_node_kind_raises(self) -> None:
-        with pytest.raises(HirEvaluationError, match="mystery"):
+    def test_unknown_node_kind_fails_validation(self) -> None:
+        with pytest.raises(ValidationError, match="mystery"):
             evaluate_hir(
                 {
                     "hirVersion": 1,
                     "surface": "scenario-expression",
                     "params": [],
-                    "body": {"kind": "mystery"},
+                    "span": SPAN,
+                    "body": {"kind": "mystery", "id": 0, "span": SPAN},
                 }
             )
 
     def test_distribution_rejected(self) -> None:
+        # Well-formed, so validation passes; the evaluator refuses it.
         with pytest.raises(HirEvaluationError, match="distribution"):
             evaluate_hir(
                 {
                     "hirVersion": 1,
                     "surface": "scenario-expression",
                     "params": [],
-                    "body": {"kind": "distribution", "dist": "Gaussian", "args": []},
+                    "span": SPAN,
+                    "body": {
+                        "kind": "distribution",
+                        "id": 0,
+                        "span": SPAN,
+                        "dist": "gaussian",
+                        "args": [],
+                    },
                 }
             )
 
-    def test_wrong_version_rejected(self) -> None:
-        with pytest.raises(HirEvaluationError, match="version"):
-            evaluate_hir({"hirVersion": 2, "params": [], "body": {"kind": "boolLit"}})
+    def test_wrong_version_fails_validation(self) -> None:
+        with pytest.raises(ValidationError, match="hirVersion"):
+            evaluate_hir(
+                {
+                    "hirVersion": 2,
+                    "surface": "scenario-expression",
+                    "params": [],
+                    "span": SPAN,
+                    "body": {"kind": "boolLit", "id": 0, "span": SPAN, "value": True},
+                }
+            )
 
     def test_non_boolean_constraint_result_raises(self) -> None:
         fixture = FIXTURES["ordering"]
         # Evaluate the raw comparison fine, but a Constraint demanding a
         # boolean rejects a numeric body.
-        numeric = Constraint(
+        numeric = parameter_constraint(
+            "numeric",
             {
-                "id": "numeric",
-                "code": "1 + 1",
-                "hir": {
-                    "hirVersion": 1,
-                    "surface": "scenario-expression",
-                    "params": fixture["hir"]["params"],
-                    "body": {
-                        "kind": "numberLit",
-                        "id": 0,
-                        "span": {"start": 0, "length": 1},
-                        "value": 2,
-                        "raw": "2",
-                    },
-                },
-            }
+                "kind": "numberLit",
+                "id": 0,
+                "span": fixture["hir"]["span"],
+                "value": 2,
+                "raw": "2",
+            },
+            code="1 + 1",
         )
         with pytest.raises(HirEvaluationError, match="boolean"):
             numeric(scenario={})
