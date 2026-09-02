@@ -214,12 +214,15 @@ export const OptimizationSurface = ({
   const [yAxisId, setYAxisId] = useState(axes[1]?.identifier ?? "");
   const [positions, setPositions] = useState<Record<string, number>>({});
   const [preview, setPreview] = useState<ContourSurfaceFraction | null>(null);
-  /** The selected point's refinement so far, tagged with its walk. */
+  /**
+   * The selected point's refinement so far, tagged with its walk: the current
+   * point's stats, and every grid cell a selection has refined within this
+   * walk, so a cell keeps its deeper value after the selection moves on.
+   */
   const [refined, setRefined] = useState<{
     walkKey: string;
     stats: DistributionStats | null;
-    /** The grid cell the point sits on, when it is one. */
-    cell: { key: string; value: number } | null;
+    cells: ReadonlyMap<string, number>;
   } | null>(null);
   /** Finished local batches per position tuple, merged across rungs. */
   const cellCacheRef = useRef(new Map<string, SweepCellSnapshot>());
@@ -343,11 +346,15 @@ export const OptimizationSurface = ({
           return;
         }
         const value = sweepCellObjective(snapshot.metricFrames, walkMetricId);
-        setRefined({
-          walkKey,
-          stats: distributionStats(snapshot.metricFrames, walkMetricId),
-          cell:
-            cellKey !== null && value !== null ? { key: cellKey, value } : null,
+        const stats = distributionStats(snapshot.metricFrames, walkMetricId);
+        setRefined((previous) => {
+          const cells = new Map(
+            previous?.walkKey === walkKey ? previous.cells : [],
+          );
+          if (cellKey !== null && value !== null) {
+            cells.set(cellKey, value);
+          }
+          return { walkKey, stats, cells };
         });
       }
     };
@@ -368,13 +375,11 @@ export const OptimizationSurface = ({
   ]);
 
   const currentRefined = refined?.walkKey === walkKey ? refined : null;
-  // The selected point is usually also a grid cell: its refined value wins.
-  const cellValues = currentRefined?.cell
-    ? new Map(walkValues).set(
-        currentRefined.cell.key,
-        currentRefined.cell.value,
-      )
-    : walkValues;
+  // A selected point is usually also a grid cell: its refined value wins.
+  const cellValues =
+    currentRefined && currentRefined.cells.size > 0
+      ? new Map([...walkValues, ...currentRefined.cells])
+      : walkValues;
 
   /** Completed trials projected onto the shown axes, as ring markers. */
   const trialMarkers: ContourSurfaceMarker[] =
