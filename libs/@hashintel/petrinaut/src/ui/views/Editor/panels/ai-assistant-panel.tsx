@@ -486,7 +486,13 @@ export const AiAssistantPanel = ({
         // invalidates the host's active generation.
         end: () => requestInputMode("text"),
         pause: () => controls.pause(),
+        ...(controls.readFullResponse
+          ? { readFullResponse: controls.readFullResponse }
+          : {}),
         reconnect: () => controls.reconnect(),
+        ...(controls.repeatQuestion
+          ? { repeatQuestion: controls.repeatQuestion }
+          : {}),
         resume: () => controls.resume(),
         setMicrophoneMuted: (muted) => controls.setMicrophoneMuted(muted),
       });

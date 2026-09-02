@@ -89,6 +89,9 @@ export type RealtimeBrunchBridgeEvent =
       readonly code: RealtimeBridgeErrorCode;
       readonly message: string;
       readonly type: "error";
+    }
+  | {
+      readonly type: "speech-delivery-pending";
     };
 
 export interface PreparedInterviewSpeech {
@@ -536,6 +539,7 @@ export class RealtimeBrunchBridge {
     source: InterviewSpeechSource,
     delivery: SpeechDelivery,
   ): void {
+    this.#emit({ type: "speech-delivery-pending" });
     const generation = this.#generation;
     const questionWordCount = source.questionSegment
       ? spokenWordCount(source.questionSegment.text)

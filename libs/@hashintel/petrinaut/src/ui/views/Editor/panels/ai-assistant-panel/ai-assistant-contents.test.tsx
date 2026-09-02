@@ -50,6 +50,25 @@ const noop = () => {};
 // instead of letting jsdom log a not-implemented error per render.
 beforeAll(() => {
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  vi.stubGlobal(
+    "PointerEvent",
+    class extends MouseEvent {
+      public readonly pointerType: string;
+
+      public constructor(type: string, init: PointerEventInit = {}) {
+        super(type, init);
+        this.pointerType = init.pointerType ?? "";
+      }
+    },
+  );
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      public disconnect() {}
+      public observe() {}
+      public unobserve() {}
+    },
+  );
 });
 
 afterEach(() => {
@@ -142,12 +161,16 @@ describe("AiAssistantContents", () => {
     const actions = {
       end: vi.fn(),
       pause: vi.fn(),
+      readFullResponse: vi.fn(),
       reconnect: vi.fn(),
+      repeatQuestion: vi.fn(),
       resume: vi.fn(),
       setMicrophoneMuted: vi.fn(),
     };
     store.setActions(actions);
     store.setState({
+      canReadFullResponse: true,
+      canRepeatQuestion: true,
       errorMessage: null,
       microphoneLevel: 0,
       microphoneMuted: false,
@@ -234,17 +257,21 @@ describe("AiAssistantContents", () => {
     ).not.toBeNull();
   });
 
-  test("keeps the session's controls in the dock", () => {
+  test("keeps the session's controls in the dock", async () => {
     const store = createVoiceSessionStore();
     const actions = {
       end: vi.fn(),
       pause: vi.fn(),
+      readFullResponse: vi.fn(),
       reconnect: vi.fn(),
+      repeatQuestion: vi.fn(),
       resume: vi.fn(),
       setMicrophoneMuted: vi.fn(),
     };
     store.setActions(actions);
     store.setState({
+      canReadFullResponse: true,
+      canRepeatQuestion: true,
       errorMessage: null,
       microphoneLevel: 0.4,
       microphoneMuted: false,
@@ -277,6 +304,39 @@ describe("AiAssistantContents", () => {
     expect(actions.setMicrophoneMuted).toHaveBeenCalledWith(true);
     expect(actions.end).toHaveBeenCalledOnce();
 
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "Voice playback options" }),
+    );
+    const readFullResponse = await screen.findByRole("menuitem", {
+      name: "Read full response",
+    });
+    expect(readFullResponse.hasAttribute("data-disabled")).toBe(false);
+    fireEvent.pointerMove(readFullResponse, { pointerType: "mouse" });
+    await waitFor(() =>
+      expect(readFullResponse.hasAttribute("data-highlighted")).toBe(true),
+    );
+    fireEvent.click(readFullResponse);
+    await waitFor(() =>
+      expect(actions.readFullResponse).toHaveBeenCalledOnce(),
+    );
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "Voice playback options" }),
+    );
+    const repeatQuestion = await screen.findByRole("menuitem", {
+      name: "Repeat question",
+    });
+    const playbackMenu = screen.getByRole("menu");
+    fireEvent.keyDown(playbackMenu, { key: "ArrowDown" });
+    await waitFor(() =>
+      expect(playbackMenu.getAttribute("aria-activedescendant")).toBe(
+        repeatQuestion.id,
+      ),
+    );
+    fireEvent.keyDown(playbackMenu, { key: "Enter" });
+
+    await waitFor(() => expect(actions.repeatQuestion).toHaveBeenCalledOnce());
+    expect(actions.readFullResponse).toHaveBeenCalledOnce();
+
     act(() => {
       store.setState({
         errorMessage: null,
@@ -292,6 +352,52 @@ describe("AiAssistantContents", () => {
     );
 
     expect(actions.setMicrophoneMuted).toHaveBeenLastCalledWith(false);
+  });
+
+  test("disables unavailable Voice playback actions", async () => {
+    const store = createVoiceSessionStore();
+    store.setActions({
+      end: vi.fn(),
+      pause: vi.fn(),
+      reconnect: vi.fn(),
+      resume: vi.fn(),
+      setMicrophoneMuted: vi.fn(),
+    });
+    store.setState({
+      canReadFullResponse: false,
+      canRepeatQuestion: false,
+      errorMessage: null,
+      microphoneLevel: 0,
+      phase: "listening",
+    });
+    render(
+      <VoiceSessionContext.Provider value={store}>
+        <AiAssistantContents
+          input=""
+          messages={[]}
+          onClose={noop}
+          onInputChange={noop}
+          onStop={noop}
+          onSubmit={noop}
+          status="ready"
+        />
+      </VoiceSessionContext.Provider>,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Voice playback options" }),
+    );
+
+    expect(
+      (
+        await screen.findByRole("menuitem", { name: "Repeat question" })
+      ).hasAttribute("data-disabled"),
+    ).toBe(true);
+    expect(
+      screen
+        .getByRole("menuitem", { name: "Read full response" })
+        .hasAttribute("data-disabled"),
+    ).toBe(true);
   });
 
   test("shows a voice recovery failure as a toast", async () => {

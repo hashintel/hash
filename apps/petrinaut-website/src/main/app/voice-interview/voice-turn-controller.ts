@@ -24,6 +24,8 @@ export type VoiceOutputState =
 export type VoiceAnswerDelivery = "none" | "pending" | "delivered" | "failed";
 
 export interface VoiceTurnSnapshot {
+  readonly canReadFullResponse: boolean;
+  readonly canRepeatQuestion: boolean;
   readonly canReviseLastAnswer: boolean;
   readonly connection: VoiceConnectionState;
   readonly currentQuestion: string;
@@ -56,6 +58,7 @@ interface RealtimeSession {
   connect(): Promise<number>;
   disconnect(): Promise<void>;
   setMicrophoneEnabled(enabled: boolean): void;
+  speakCanonical(segments: CanonicalSpeechSegment[]): void;
   subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
 }
 
@@ -90,6 +93,8 @@ interface ChatUpdate {
 type SnapshotListener = (snapshot: VoiceTurnSnapshot) => void;
 
 const initialSnapshot: VoiceTurnSnapshot = {
+  canReadFullResponse: false,
+  canRepeatQuestion: false,
   canReviseLastAnswer: false,
   connection: "idle",
   currentQuestion: "",
@@ -126,6 +131,7 @@ export class VoiceTurnController {
   #inputStateOnResume: Exclude<VoiceInputState, "paused"> | null = null;
   #pauseRequested = false;
   #snapshot = initialSnapshot;
+  #speechSource: InterviewSpeechSource | null = null;
   #submittingQuestionId: string | null = null;
   #teardownPromise: Promise<void> | null = null;
   #transcriptItemId: string | null = null;
@@ -369,12 +375,40 @@ export class VoiceTurnController {
     }
   }
 
+  public readFullResponse(): void {
+    const source = this.#speechSource;
+    if (!source || !this.#snapshot.canReadFullResponse) {
+      return;
+    }
+    this.#update({ output: "waiting-for-tool" });
+    this.#session.speakCanonical([...source.fullResponseSegments]);
+  }
+
+  public repeatQuestion(): void {
+    const question = this.#speechSource?.questionSegment;
+    if (!question || !this.#snapshot.canRepeatQuestion) {
+      return;
+    }
+    this.#update({ output: "waiting-for-tool" });
+    this.#session.speakCanonical([question]);
+  }
+
   public updateChat(update: ChatUpdate): void {
+    this.#speechSource = update.automaticSource ?? null;
+    const canReplay = this.#canReplay(this.#snapshot);
+    const replayAvailabilityChanged =
+      this.#snapshot.canReadFullResponse !==
+        (canReplay &&
+          Boolean(this.#speechSource?.fullResponseSegments.length)) ||
+      this.#snapshot.canRepeatQuestion !==
+        (canReplay && Boolean(this.#speechSource?.questionSegment));
     const question = latestQuestion(update.canonicalSegments);
     if (question && question.id !== this.#currentQuestionId) {
       this.#currentQuestionId = question.id;
       this.#update({ currentQuestion: question.text });
       this.#recordLatency("question-visible", question.id);
+    } else if (replayAvailabilityChanged) {
+      this.#update({});
     }
     this.#bridge.updateChat(update);
     if (this.#snapshot.input === "paused") {
@@ -410,6 +444,10 @@ export class VoiceTurnController {
       this.#answeredQuestionId = this.#submittingQuestionId;
       this.#submittingQuestionId = null;
       this.#update({ lastAnswerDelivery: "delivered" });
+      return;
+    }
+    if (event.type === "speech-delivery-pending") {
+      this.#update({ output: "waiting-for-tool" });
       return;
     }
     const paused = this.#snapshot.input === "paused";
@@ -471,7 +509,7 @@ export class VoiceTurnController {
       this.#bridge.cancelPendingSpeech();
       this.#transcriptItemId = event.itemId;
       this.#transcriptKey = null;
-      if (this.#snapshot.output === "speaking") {
+      if (this.#snapshot.output !== "idle") {
         this.#update({ output: "interrupted", partialText: "" });
       } else {
         this.#update({ partialText: "" });
@@ -566,6 +604,14 @@ export class VoiceTurnController {
     );
   }
 
+  #canReplay(snapshot: VoiceTurnSnapshot): boolean {
+    return (
+      snapshot.connection === "connected" &&
+      snapshot.input === "listening" &&
+      (snapshot.output === "idle" || snapshot.output === "interrupted")
+    );
+  }
+
   #isPauseRequested(): boolean {
     return this.#pauseRequested;
   }
@@ -574,6 +620,12 @@ export class VoiceTurnController {
     const snapshot = { ...this.#snapshot, ...update };
     this.#snapshot = {
       ...snapshot,
+      canReadFullResponse:
+        this.#canReplay(snapshot) &&
+        Boolean(this.#speechSource?.fullResponseSegments.length),
+      canRepeatQuestion:
+        this.#canReplay(snapshot) &&
+        Boolean(this.#speechSource?.questionSegment),
       canReviseLastAnswer: this.#canReviseLastAnswer(snapshot),
     };
     for (const listener of this.#listeners) listener(this.#snapshot);

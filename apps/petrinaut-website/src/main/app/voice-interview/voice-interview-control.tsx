@@ -312,9 +312,11 @@ const AvailableVoiceInterviewControl = ({
       registerVoiceModeControls({
         end: () => store.controller.end(),
         pause: () => store.controller.pause(),
+        readFullResponse: () => store.controller.readFullResponse(),
         reconnect: () => {
           void store.controller.reconnect();
         },
+        repeatQuestion: () => store.controller.repeatQuestion(),
         resume: () => store.controller.resume(),
         setMicrophoneMuted: (muted) =>
           store.controller.setMicrophoneMuted(muted),
