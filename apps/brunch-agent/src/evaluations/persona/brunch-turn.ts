@@ -1,8 +1,12 @@
-import { readFileSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
-import { isDeepStrictEqual } from "node:util";
-
+/**
+ * The `brunch_turn` tool: the persona harness's only path into Brunch.
+ *
+ * One call sends exactly one visible user utterance to the mounted production
+ * `ChatAgent` and waits for that submission's exact reply, servicing any
+ * client-deferred tool calls through the selected host on the way. The tool
+ * is registered with Pi by the `.pi/extensions/brunch-persona-testing.ts`
+ * entry and unit-tested against a stubbed Flue client.
+ */
 import {
   type Component,
   Markdown,
@@ -16,24 +20,23 @@ import {
 } from "@flue/sdk";
 import { Type } from "typebox";
 
-import { READ_PETRINAUT_DOC_TOOL_NAME } from "@hashintel/brunch-agent-plugin-sdcpn/flue";
-import { readPetrinautDocToolInputSchema } from "@hashintel/petrinaut-core";
-
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isAwaitingClient,
-} from "../../../../../../apps/brunch-agent/src/conversation/client-tools.ts";
+} from "../../conversation/client-tools.ts";
 import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
-} from "../../../../../../apps/brunch-agent/src/conversation/identity.ts";
-import { LOCAL_UI_PRINCIPAL } from "../../../../../../apps/brunch-agent/src/conversation/payload.ts";
+} from "../../conversation/identity.ts";
+import { LOCAL_UI_PRINCIPAL } from "../../conversation/payload.ts";
+import { defaultChatOrigin } from "../../http/local-origins.ts";
+import { CHAT_AGENT_ROUTE } from "../../http/routes.ts";
 import {
-  createHeadlessPetrinautClient,
-  isPetrinautConstructionToolName,
-} from "../../../../../../apps/brunch-agent/src/evaluations/runbook/headless-petrinaut-client.ts";
-import { defaultChatOrigin } from "../../../../../../apps/brunch-agent/src/http/local-origins.ts";
-import { CHAT_AGENT_ROUTE } from "../../../../../../apps/brunch-agent/src/http/routes.ts";
+  type BrunchClientToolCall,
+  type BrunchClientToolHost,
+  type BrunchToolExecutor,
+  TOOL_HOST_FLAG,
+} from "./client-tool-hosts.ts";
 
 type BrunchFlueClient = Pick<FlueClient, "history" | "read" | "send">;
 type DynamicToolPart = Extract<FlueConversationPart, { type: "dynamic-tool" }>;
@@ -42,8 +45,6 @@ interface TextContent {
   readonly type: "text";
   readonly text: string;
 }
-
-export type BrunchToolExecutor = "server" | "mock" | "real-headless";
 
 export interface BrunchToolActivity {
   readonly sequence: number;
@@ -119,55 +120,18 @@ export interface BrunchTurnTool {
   ): Component;
 }
 
+/** The slice of Pi's extension API the tool needs; Pi itself is not a workspace dependency. */
 export interface BrunchTurnExtensionApi {
   registerTool(tool: BrunchTurnTool): void;
 }
 
-interface BrunchPersonaExtensionApi extends BrunchTurnExtensionApi {
-  registerFlag(
-    name: string,
-    options: {
-      readonly description?: string;
-      readonly type: "string";
-      readonly default?: string;
-    },
-  ): void;
-  getFlag(name: string): boolean | string | undefined;
-  on(
-    event: "session_start" | "session_shutdown",
-    handler: () => void | Promise<void>,
-  ): void;
-}
-
-export interface BrunchClientToolCall {
-  readonly submissionId: string;
-  readonly toolCallId: string;
-  readonly toolName: string;
-  readonly input: unknown;
-}
-
-export interface BrunchClientToolHost {
-  readonly kind: Exclude<BrunchToolExecutor, "server">;
-  execute(call: BrunchClientToolCall): Promise<unknown>;
-  dispose?(): void | Promise<void>;
-}
-
-export interface MockBrunchClientToolCall {
-  readonly toolName: string;
-  readonly input: unknown;
-  readonly output: unknown;
-}
-
-interface RegisterBrunchTurnOptions {
+export interface RegisterBrunchTurnOptions {
   readonly conversationId?: string;
   readonly client?: BrunchFlueClient;
   readonly resolveClientToolHost?: () => BrunchClientToolHost | undefined;
 }
 
 const MAX_CLIENT_TOOL_ROUNDS = 20;
-const TOOL_HOST_FLAG = "brunch-tool-host";
-const TOOL_MOCKS_FLAG = "brunch-tool-mocks";
-const HEADLESS_TITLE_FLAG = "brunch-headless-title";
 
 const markdownTheme = (theme: RenderTheme): MarkdownTheme => ({
   heading: (text) => theme.fg("mdHeading", text),
@@ -196,15 +160,12 @@ const markdownComponent = (
   });
 
 const resultText = (result: BrunchTurnResult): string =>
-  result.content
-    .filter((content): content is TextContent => content.type === "text")
-    .map((content) => content.text)
-    .join("\n");
+  result.content.map((content) => content.text).join("\n");
 
 const errorMessageFrom = (error: unknown): string =>
   error instanceof Error ? error.message : String(error);
 
-const requireConversationId = (value: string | undefined): string => {
+export const requireConversationId = (value: string | undefined): string => {
   const conversationId = value?.trim();
   if (!conversationId) {
     throw new Error(
@@ -270,140 +231,6 @@ const toolActivityMarkdown = (
   ].join("\n");
 };
 
-export const createMockClientToolHost = (
-  calls: readonly MockBrunchClientToolCall[],
-): BrunchClientToolHost => {
-  let nextCallIndex = 0;
-
-  return {
-    kind: "mock",
-    async execute(call) {
-      const expected = calls[nextCallIndex];
-      if (expected === undefined) {
-        throw new Error(
-          `Mock client-tool fixture has no call ${nextCallIndex + 1}; received ${call.toolName}`,
-        );
-      }
-      if (
-        expected.toolName !== call.toolName ||
-        !isDeepStrictEqual(expected.input, call.input)
-      ) {
-        throw new Error(
-          `Mock client-tool call ${nextCallIndex + 1} mismatch: expected ${expected.toolName} ${JSON.stringify(expected.input)}, received ${call.toolName} ${JSON.stringify(call.input)}`,
-        );
-      }
-
-      nextCallIndex += 1;
-      return expected.output;
-    },
-  };
-};
-
-const stripImages = (markdown: string): string =>
-  markdown
-    .replace(/<img\b[^>]*\/?>(?:\s*<\/img>)?/giu, "")
-    .replace(/!\[[^\]]*\]\([^)]*\)/gu, "")
-    .replace(/\n{3,}/gu, "\n\n");
-
-export const createRealHeadlessClientToolHost = (
-  title: string,
-): BrunchClientToolHost => {
-  const petrinautClient = createHeadlessPetrinautClient(title);
-
-  return {
-    kind: "real-headless",
-    async execute(call) {
-      if (call.toolName === READ_PETRINAUT_DOC_TOOL_NAME) {
-        const { doc } = readPetrinautDocToolInputSchema.parse(call.input);
-        const markdown = await readFile(
-          new URL(`../../../../petrinaut/docs/${doc}.md`, import.meta.url),
-          "utf8",
-        );
-        return stripImages(markdown);
-      }
-
-      if (isPetrinautConstructionToolName(call.toolName)) {
-        const result = await petrinautClient.execute(call);
-        return result.output;
-      }
-
-      throw new Error(
-        `Real headless client-tool host does not support ${call.toolName}`,
-      );
-    },
-    dispose: petrinautClient.dispose,
-  };
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const readMockCalls = (path: string): readonly MockBrunchClientToolCall[] => {
-  const absolutePath = resolve(process.cwd(), path);
-  const value: unknown = JSON.parse(readFileSync(absolutePath, "utf8"));
-  if (!isRecord(value) || !Array.isArray(value["calls"])) {
-    throw new Error(
-      `Mock client-tool fixture ${absolutePath} must contain a calls array`,
-    );
-  }
-
-  return value["calls"].map((call, index) => {
-    if (
-      !isRecord(call) ||
-      typeof call["toolName"] !== "string" ||
-      !Object.hasOwn(call, "input") ||
-      !Object.hasOwn(call, "output")
-    ) {
-      throw new Error(
-        `Mock client-tool fixture ${absolutePath} call ${index + 1} must contain toolName, input, and output`,
-      );
-    }
-    return {
-      toolName: call["toolName"],
-      input: call["input"],
-      output: call["output"],
-    };
-  });
-};
-
-const stringFlag = (
-  pi: BrunchPersonaExtensionApi,
-  name: string,
-): string | undefined => {
-  const value = pi.getFlag(name);
-  return typeof value === "string" && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-};
-
-const createConfiguredClientToolHost = (
-  pi: BrunchPersonaExtensionApi,
-): BrunchClientToolHost | undefined => {
-  const mode = stringFlag(pi, TOOL_HOST_FLAG) ?? "none";
-  if (mode === "none") return undefined;
-
-  if (mode === "mock") {
-    const fixturePath = stringFlag(pi, TOOL_MOCKS_FLAG);
-    if (fixturePath === undefined) {
-      throw new Error(
-        `--${TOOL_MOCKS_FLAG} is required when --${TOOL_HOST_FLAG}=mock`,
-      );
-    }
-    return createMockClientToolHost(readMockCalls(fixturePath));
-  }
-
-  if (mode === "real-headless") {
-    const title =
-      stringFlag(pi, HEADLESS_TITLE_FLAG) ??
-      `Brunch persona ${requireConversationId(process.env["PI_SUBAGENT_NAME"])}`;
-    return createRealHeadlessClientToolHost(title);
-  }
-
-  throw new Error(
-    `--${TOOL_HOST_FLAG} must be one of none, mock, or real-headless; received ${mode}`,
-  );
-};
-
 export const createBrunchTurnTool = ({
   conversationId: suppliedConversationId,
   client: suppliedClient,
@@ -461,7 +288,7 @@ export const createBrunchTurnTool = ({
         const toolActivity: BrunchToolActivity[] = [];
         let clientToolRounds = 0;
 
-        while (true) {
+        for (;;) {
           submissionIds.push(currentAdmission.submissionId);
           await onUpdate?.({
             content: [
@@ -658,35 +485,3 @@ export const registerBrunchTurn = (
 ): void => {
   pi.registerTool(createBrunchTurnTool(options));
 };
-
-export default function brunchPersonaTestingExtension(
-  pi: BrunchPersonaExtensionApi,
-): void {
-  pi.registerFlag(TOOL_HOST_FLAG, {
-    type: "string",
-    default: "none",
-    description: "Client-tool host: none, mock, or real-headless",
-  });
-  pi.registerFlag(TOOL_MOCKS_FLAG, {
-    type: "string",
-    description: "Ordered JSON fixture used by the mock client-tool host",
-  });
-  pi.registerFlag(HEADLESS_TITLE_FLAG, {
-    type: "string",
-    description: "Document title used by the real-headless Petrinaut host",
-  });
-
-  let clientToolHost: BrunchClientToolHost | undefined;
-  pi.on("session_start", async () => {
-    await clientToolHost?.dispose?.();
-    clientToolHost = createConfiguredClientToolHost(pi);
-  });
-  pi.on("session_shutdown", async () => {
-    await clientToolHost?.dispose?.();
-    clientToolHost = undefined;
-  });
-
-  registerBrunchTurn(pi, {
-    resolveClientToolHost: () => clientToolHost,
-  });
-}

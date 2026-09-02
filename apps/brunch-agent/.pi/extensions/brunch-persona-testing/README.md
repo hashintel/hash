@@ -1,20 +1,24 @@
 # Brunch persona testing
 
-This directory owns the local Pi extension that drives the production Brunch elicitor as an automated user persona. It records implementation decisions and operating instructions, not execution authority; [`MISSION.md`](../../../MISSION.md) remains the live mission.
+This folder holds the persona policy and operating instructions for the local Pi extension at [`../brunch-persona-testing.ts`](../brunch-persona-testing.ts), which drives the production Brunch elicitor as an automated user persona. It records implementation decisions and operating instructions, not execution authority; the Brunch context root's [`MISSION.md`](../../../../../libs/@hashintel/brunch-agent/MISSION.md) remains the live mission when one exists.
 
 ## Ownership and layout
 
-- [`index.ts`](index.ts) owns Pi registration, Flue identity and turn correlation, client-tool host selection, client-tool resume signals, and the evaluation-side tool trace.
+The harness is a client of this application's composition: it derives Flue identity through the application's identity authority, resumes Brunch through the application's client-tool signal, and reuses the application's headless Petrinaut client. The application therefore owns it, declares its dependencies, and governs it with its own lint, type-check, and unit tests. It consumes reusable case inputs from the Brunch context root's `evaluations/`.
+
+- [`../brunch-persona-testing.ts`](../brunch-persona-testing.ts) is the Pi entry: registration, flags, and client-tool host selection.
+- [`src/evaluations/persona/brunch-turn.ts`](../../../src/evaluations/persona/brunch-turn.ts) owns the `brunch_turn` tool: Flue identity and turn correlation, client-tool resume signals, the evaluation-side tool trace, and rendering.
+- [`src/evaluations/persona/client-tool-hosts.ts`](../../../src/evaluations/persona/client-tool-hosts.ts) owns the mock and real-headless client-tool hosts.
 - [`SYSTEM.md`](SYSTEM.md) owns only the persona's private policy and epistemic behavior.
-- [`apps/brunch-agent/src/ui/chat.tsx`](../../../../../../apps/brunch-agent/src/ui/chat.tsx) owns the independently attachable read-only browser projection.
-- [`apps/brunch-agent/test/brunch-turn.test.ts`](../../../../../../apps/brunch-agent/test/brunch-turn.test.ts) pins the bridge and tool-host contract.
-- [The original spike evidence](../../../docs/evidence/evaluations/live-observable-persona-spike/README.md) records the observed text-only run and proof disposition at the paths used by that run.
-- [`MISSION.next.md`](../../../MISSION.next.md#observability-and-simulation-viewing) owns future observability and simulation-viewing work.
+- [`src/ui/chat.tsx`](../../../src/ui/chat.tsx) owns the independently attachable read-only browser projection.
+- [`test/brunch-turn.test.ts`](../../../test/brunch-turn.test.ts) pins the bridge and tool-host contract.
+- [The original spike evidence](../../../../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/live-observable-persona-spike/README.md) records the observed text-only run and proof disposition at the paths used by that run.
+- [`MISSION.next.md`](../../../../../libs/@hashintel/brunch-agent/MISSION.next.md#observability-and-simulation-viewing) owns future observability and simulation-viewing work.
 
 Reusable interviewee-visible source truth belongs under
-[`evaluations/cases/`](../../../evaluations/cases/), hidden answer keys under
-[`evaluations/oracles/`](../../../evaluations/oracles/), and prompts, fixtures, runners, and
-procedures under [`evaluations/protocols/`](../../../evaluations/protocols/). Vestera is the
+[`evaluations/cases/`](../../../../../libs/@hashintel/brunch-agent/evaluations/cases/), hidden answer keys under
+[`evaluations/oracles/`](../../../../../libs/@hashintel/brunch-agent/evaluations/oracles/), and prompts, fixtures, runners, and
+procedures under [`evaluations/protocols/`](../../../../../libs/@hashintel/brunch-agent/evaluations/protocols/). Vestera is the
 executed exemplar. Industrial-gas VMI, truck-fleet maintenance, semiconductor-fab operations,
 data-centre thermal operations, and pharma cold chain now have full greenfield situation packs,
 opening messages, and prospective ledgers. They remain unvalidated in 6–10-turn runs and are not
@@ -28,7 +32,7 @@ The situation pack, objective, uncertainty, and turn budget are supplied only in
 `brunch_turn` accepts exactly one model-authored field:
 
 ```ts
-brunch_turn({ message: string })
+brunch_turn({ message: string });
 ```
 
 It sends that string as one visible Flue user message. The remaining outbound values are guarded conversation identity, incarnation data, and—only after Brunch itself requests a client-deferred tool—the result signal for that call. The raw pack, objective, budget, persona instructions, host configuration, and tool trace have no automatic path into Brunch.
@@ -69,7 +73,7 @@ The Pi persona is an evaluation-side user actor, not a second Brunch elicitor. I
 `--brunch-tool-host` has three explicit modes:
 
 - `none` is the default. Flue still executes server tools and the Pi result records them. A client-deferred call fails loudly instead of hanging or fabricating a result.
-- `mock` consumes an ordered JSON fixture supplied by `--brunch-tool-mocks <path>`. Every tool name and input must match exactly. Missing, extra, or out-of-order calls fail the admitted turn and block later sends.
+- `mock` consumes an ordered JSON fixture supplied by `--brunch-tool-mocks <path>`, resolved against the working directory. Every tool name and input must match exactly. Missing, extra, or out-of-order calls fail the admitted turn and block later sends.
 - `real-headless` executes `readPetrinautDoc` against the checked-out Petrinaut user guide and executes supported construction calls through the existing headless Petrinaut callbacks. `--brunch-headless-title <title>` controls the in-memory document title.
 
 Selecting a host does not mount tools, set Flue initial data, or change production composition. It services only client-deferred calls the real production agent emits. The normal persona route currently mounts `readPetrinautDoc`; construction tools remain conditional on the production agent's validated-construction mode. `real-headless` is real core callback execution against an in-memory document, not browser UI execution, browser rendering, persistence, or proof of product parity.
@@ -92,10 +96,12 @@ A mock fixture has this shape and should live with the evaluation protocol that 
 
 The final Pi tool details contain every observed server call and every hosted client call with sequence, Flue submission id, tool call id, tool name, executor (`server`, `mock`, or `real-headless`), outcome, input, and output/error. `renderResult` shows a concise `### Tool activity` list beneath `## Brunch`; raw values remain in details and canonical tool activity remains available through the transcript.
 
+Pi's tool API requires TypeBox parameter schemas, so `typebox` is declared here for that Pi-facing boundary only. Brunch's own boundaries remain Valibot.
+
 ## Operating the harness
 
 1. Start the local app with `yarn workspace @apps/brunch-agent dev`.
-2. From this Brunch context root, launch Pi (directly or through Herdr) with a unique `PI_SUBAGENT_NAME`. Choose the persona model and thinking level with Pi's native `--model <provider/model>` and `--thinking <level>` options.
+2. From `apps/brunch-agent`, launch Pi (directly or through Herdr) with a unique `PI_SUBAGENT_NAME`. Choose the persona model and thinking level with Pi's native `--model <provider/model>` and `--thinking <level>` options.
 3. Supply the situation pack inline with the objective and turn budget. The extension treats this launch content as opaque Markdown or plain text and does not parse or validate a pack schema. An `@file` token in a launch task is not expanded into persona context.
    For comparable runs, use only the text below the `---` separator in the case's
    `opening-message.md` as the visible first turn; keep its header, the situation pack, and the
@@ -105,14 +111,14 @@ The final Pi tool details contain every observed server call and every hosted cl
 5. Attach the browser to `http://127.0.0.1:4321/?mode=observe&principal=local&id=<PI_SUBAGENT_NAME>`.
 6. After the run, inspect canonical history with `yarn workspace @apps/brunch-agent transcript -- --principal local --id <PI_SUBAGENT_NAME>`.
 
-The restricted direct launch is:
+The restricted direct launch, run from `apps/brunch-agent`, is:
 
 ```sh
 PI_SUBAGENT_NAME=<unique-conversation-id> pi \
   --model <provider/model> \
   --thinking <level> \
   --no-extensions \
-  --extension .pi/extensions/brunch-persona-testing/index.ts \
+  --extension .pi/extensions/brunch-persona-testing.ts \
   --no-builtin-tools \
   --tools brunch_turn \
   --no-skills \
@@ -128,20 +134,21 @@ For deterministic mocks, replace the last host options with:
 
 ```sh
 --brunch-tool-host mock \
---brunch-tool-mocks evaluations/protocols/<protocol>/client-tools.json
+--brunch-tool-mocks ../../libs/@hashintel/brunch-agent/evaluations/protocols/<protocol>/client-tools.json
 ```
 
 `--no-extensions` plus the one explicit `--extension` prevents dependence on unrelated active Pi extensions. Herdr can forward the same native Pi arguments after `--`; any Herdr companion/state extension is optional orchestration rather than part of the Brunch transport. The persona must never use a parent to obtain domain facts or decide how to answer.
 
 The ordering in steps 4–5 is required by observed behavior. An observer opened before the Flue instance exists remains idle and does not discover later creation. Attaching after first admission catches up existing history and receives later streaming updates. Reloading after creation reconstructs settled messages.
 
-[`evaluations/cases/vestera-scheduling/situation-pack.md`](../../../evaluations/cases/vestera-scheduling/situation-pack.md) is the current exemplar pack. Its Markdown sections are guidance for the persona model, not fields consumed by the extension.
+[`evaluations/cases/vestera-scheduling/situation-pack.md`](../../../../../libs/@hashintel/brunch-agent/evaluations/cases/vestera-scheduling/situation-pack.md) is the current exemplar pack. Its Markdown sections are guidance for the persona model, not fields consumed by the extension.
 
 ## Rejected alternatives and limits
 
 - A nested `persona → elicitor subagent` topology, because it duplicates elicitor authority and bypasses the real boundary.
 - Registering Brunch's tools with Pi, which would expose capabilities to the persona model and move execution to the wrong authority. The host is internal to `brunch_turn` and services only Flue-emitted calls.
 - Injecting tool traces or host instructions into Brunch messages. Flue history is canonical; Pi details are an evaluation-side projection.
+- Keeping the extension in the Brunch context root, which is not a package: it imported application internals across the lib/app boundary, its dependencies were declared elsewhere or nowhere, and no workspace lint or type-check task reached it.
 - `pi-web`, a Herdr webview, PTY scraping, parent-mediated turn relaying, a second server, another model loop, or another transcript store.
 - Reply recovery from the latest history entry, automatic user-message retries, pending-admission persistence, or cross-process adoption before a real consumer requires them.
 

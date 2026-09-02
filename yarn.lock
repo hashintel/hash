@@ -458,6 +458,7 @@ __metadata:
     oxlint-tsgolint: "npm:0.22.1"
     react: "npm:19.2.6"
     react-dom: "npm:19.2.6"
+    typebox: "npm:1.3.7"
     valibot: "npm:1.4.2"
     vite: "npm:8.1.0"
     vitest: "npm:4.1.10"

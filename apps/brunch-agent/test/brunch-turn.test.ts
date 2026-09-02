@@ -9,17 +9,19 @@ import {
 import { describe, expect, test, vi } from "vitest";
 
 import {
-  createBrunchTurnTool,
-  createMockClientToolHost,
-  createRealHeadlessClientToolHost,
-  registerBrunchTurn,
-  type BrunchTurnExtensionApi,
-  type BrunchTurnTool,
-} from "../../../libs/@hashintel/brunch-agent/.pi/extensions/brunch-persona-testing/index.ts";
-import {
   AWAITING_CLIENT,
   CLIENT_TOOL_RESULT_SIGNAL,
 } from "../src/conversation/client-tools";
+import {
+  createBrunchTurnTool,
+  registerBrunchTurn,
+  type BrunchTurnExtensionApi,
+  type BrunchTurnTool,
+} from "../src/evaluations/persona/brunch-turn";
+import {
+  createMockClientToolHost,
+  createRealHeadlessClientToolHost,
+} from "../src/evaluations/persona/client-tool-hosts";
 
 type BrunchFlueClient = Pick<FlueClient, "history" | "read" | "send">;
 
