@@ -339,6 +339,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Organization",
+        titlePlural: "Organizations",
         description:
           "An organization. Organizations are root-level objects that contain user accounts and teams.",
         properties: [
@@ -600,6 +601,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Belongs To Organization",
+        inverse: {
+          title: "Has Member",
+        },
         description: "The organization the user belongs to.",
         properties: [],
       },
@@ -685,6 +689,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Creator",
+        inverse: {
+          title: "Creator Of",
+        },
         description: "The user who created something.",
         properties: [],
       },
@@ -699,6 +706,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "User",
+        titlePlural: "Users",
         description:
           "A user that has access to the resources of an organization.",
         properties: [
@@ -806,6 +814,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Workflow State",
+        titlePlural: "Workflow States",
         description: "A state in a team workflow.",
       },
       webShortname: "linear",
@@ -822,6 +831,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Assignee",
+        inverse: {
+          title: "Assignee Of",
+        },
         description: "The user to whom the issue is assigned to.",
         properties: [],
       },
@@ -921,6 +933,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Associated With Cycle",
+        inverse: {
+          title: "Includes Issue",
+        },
         description: "The cycle that the issue is associated with.",
         properties: [],
       },
@@ -1020,6 +1035,10 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Parent",
+        titlePlural: "Parents",
+        inverse: {
+          title: "Parent Of",
+        },
         description: "The parent of the issue.",
         properties: [],
       },
@@ -1076,6 +1095,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Snoozed By",
+        inverse: {
+          title: "Snoozed",
+        },
         description: "The user who snoozed the issue.",
         properties: [],
       },
@@ -1149,6 +1171,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "State",
+        titlePlural: "States",
         description: "The workflow state that the issue is associated with.",
         properties: [],
       },
@@ -1176,6 +1199,9 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Subscriber",
+        inverse: {
+          title: "Subscribed To",
+        },
         description: "A user who is subscribed to the issue.",
         properties: [],
       },
@@ -1247,6 +1273,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Issue",
+        titlePlural: "Issues",
         description: "An issue.",
         properties: [
           {
@@ -1513,6 +1540,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Attachment",
+        titlePlural: "Attachments",
         description: "Issue attachment (e.g. support ticket, pull request).",
         properties: [
           {

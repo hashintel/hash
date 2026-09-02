@@ -287,6 +287,7 @@ describe("Entity type CRU", () => {
       {
         $id: userType.schema.$id,
         title: userType.schema.title,
+        titlePlural: userType.schema.titlePlural,
         description: userType.schema.description,
         properties: {
           ...userType.schema.properties,
@@ -385,6 +386,7 @@ describe("Entity type CRU", () => {
           ({
             $id: closedEntityType.$id,
             title: closedEntityType.title,
+            titlePlural: closedEntityType.titlePlural,
             description: closedEntityType.description,
             allOf: closedEntityType.allOf,
           }) as ClosedMultiEntityType["allOf"][0],

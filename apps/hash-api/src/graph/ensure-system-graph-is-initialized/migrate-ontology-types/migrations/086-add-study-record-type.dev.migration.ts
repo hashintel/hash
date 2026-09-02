@@ -407,6 +407,9 @@ const migrate: MigrationFunction = async ({
         allOf: [blockProtocolEntityTypes.link.entityTypeId],
         title: "Has Contact",
         description: "A contact for something (an organization, project, etc.)",
+        inverse: {
+          title: "Contact For",
+        },
       },
       migrationState,
       webShortname: "h",

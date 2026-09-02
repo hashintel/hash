@@ -30,6 +30,7 @@ const migrate: MigrationFunction = async ({
     {
       entityTypeDefinition: {
         title: "Actor",
+        titlePlural: "Actors",
         description:
           "Someone or something that can perform actions in the system",
         icon: "/icons/types/user.svg",
