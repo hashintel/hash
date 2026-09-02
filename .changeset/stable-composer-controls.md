@@ -30,12 +30,14 @@ per-session Show transcription in chat action write those turns into the convers
 instead. Keep every session control -- transcription, the microphone toggle, Resume, Reconnect, and
 End -- in the dock, leaving the canvas toolbar untouched. Add `setMicrophoneMuted` to the Voice mode
 controls and a `muted` session phase, so muting stops capture without interrupting what the assistant
-is saying, unlike pausing. Surface voice recovery failures as toasts with privacy-safe diagnostic
-references, and request one-time consent before the host starts the microphone. Mark persisted spoken
-messages and the exact interactive-tool answer completed by Voice with an inline Voice chip ahead of
-the words themselves. Add a backwards-compatible submitted-output prefix slot to interactive-tool
-widgets: opted-in widgets can place Voice provenance inside their submitted-value box, while existing
-widgets retain the trailing fallback.
+is saying, unlike pausing. Add an accessible manual Your turn control that cancels pending Voice
+speech and hands the live microphone turn back to the user without disconnecting the session. Surface
+voice recovery failures as toasts with privacy-safe diagnostic references, and request one-time
+consent before the host starts the microphone. Mark persisted spoken messages and the exact
+interactive-tool answer completed by Voice with an inline Voice chip ahead of the words themselves.
+Add a backwards-compatible submitted-output prefix slot to interactive-tool widgets: opted-in widgets
+can place Voice provenance inside their submitted-value box, while existing widgets retain the
+trailing fallback.
 
 End Voice mode before submitting typed text exactly once through the shared composer, preserving the
 draft if handoff fails. Pause active media before the AI panel closes and reopen the mounted session
