@@ -11,6 +11,7 @@ import type { SelectItem } from "./select";
 import type { Story, StoryDefault } from "@ladle/react";
 
 type SelectProps = React.ComponentProps<typeof Select>;
+type SingleSelectProps = Extract<SelectProps, { multiple?: false }>;
 type Variant = NonNullable<SelectProps["variant"]>;
 type Align = NonNullable<SelectProps["align"]>;
 
@@ -68,7 +69,9 @@ const findItemText = (
 };
 
 const Controlled = (
-  props: Omit<SelectProps, "items"> & { items?: SelectProps["items"] },
+  props: Omit<SingleSelectProps, "items"> & {
+    items?: SingleSelectProps["items"];
+  },
 ) => {
   const { required: _required, ...rest } = props;
   const [value, setValue] = useState<string | null | undefined>(
@@ -78,7 +81,7 @@ const Controlled = (
     return (
       <Select
         {...(rest as Omit<
-          SelectProps,
+          SingleSelectProps,
           "value" | "onChange" | "items" | "required"
         >)}
         required
@@ -99,8 +102,8 @@ const Controlled = (
 };
 
 const ClearableSelect = (
-  props: Omit<SelectProps, "clearable" | "onChange" | "items"> & {
-    items?: SelectProps["items"];
+  props: Omit<SingleSelectProps, "clearable" | "onChange" | "items"> & {
+    items?: SingleSelectProps["items"];
   },
 ) => {
   const { required: _required, ...rest } = props;
@@ -192,7 +195,7 @@ const stateRows: Array<{
   key: string;
   label: string;
   clearable?: boolean;
-  extraProps: Partial<SelectProps>;
+  extraProps: Partial<SingleSelectProps>;
 }> = [
   { key: "disabled", label: "Disabled", extraProps: { disabled: true } },
   { key: "invalid", label: "Invalid", extraProps: { invalid: true } },
@@ -204,7 +207,7 @@ const stateRows: Array<{
     extraProps: {
       placeholder: "Placeholder text...",
       required: true,
-    } as Partial<SelectProps>,
+    } as Partial<SingleSelectProps>,
   },
   {
     key: "placeholder-not-required",
@@ -214,7 +217,7 @@ const stateRows: Array<{
   {
     key: "required",
     label: "Required",
-    extraProps: { required: true } as Partial<SelectProps>,
+    extraProps: { required: true } as Partial<SingleSelectProps>,
   },
   {
     key: "hide-arrow",
@@ -308,9 +311,9 @@ export default {
     size: "md",
     hideArrow: false,
   },
-} satisfies StoryDefault<SelectProps>;
+} satisfies StoryDefault<SingleSelectProps>;
 
-export const Default: Story<SelectProps> = (args) => (
+export const Default: Story<SingleSelectProps> = (args) => (
   <div className={sectionStyle}>
     {variants.map((variant) => (
       <div key={variant} className={groupStyle}>
@@ -372,7 +375,7 @@ export const Default: Story<SelectProps> = (args) => (
   </div>
 );
 
-export const Alignment: Story<SelectProps> = (args) => (
+export const Alignment: Story<SingleSelectProps> = (args) => (
   <div
     style={{
       display: "grid",
@@ -394,7 +397,7 @@ export const Alignment: Story<SelectProps> = (args) => (
   </div>
 );
 
-export const Size: Story<SelectProps> = (args) => (
+export const Size: Story<SingleSelectProps> = (args) => (
   <div
     style={{
       display: "grid",
@@ -497,7 +500,7 @@ const renderColorHalfHeight = (value: string): React.ReactNode => (
   </span>
 );
 
-export const CustomRender: Story<SelectProps> = (args) => {
+export const CustomRender: Story<SingleSelectProps> = (args) => {
   const [valueA, setValueA] = useState<ColorValue | null>("red");
   const [valueB, setValueB] = useState<ColorValue | null>("green");
   const [valueC, setValueC] = useState<ColorValue | null>("blue");
@@ -505,7 +508,7 @@ export const CustomRender: Story<SelectProps> = (args) => {
   const [valueE, setValueE] = useState<ColorValue | null>("red");
   const [valueF, setValueF] = useState<ColorValue | null>("green");
   const spreadArgs = args as Omit<
-    SelectProps,
+    SingleSelectProps,
     "items" | "value" | "onChange" | "required"
   >;
 
@@ -617,7 +620,7 @@ export const CustomRender: Story<SelectProps> = (args) => {
   );
 };
 
-export const Widths: Story<SelectProps> = (args) => (
+export const Widths: Story<SingleSelectProps> = (args) => (
   <div className={sectionStyle}>
     {rowVariants.map((rv) => (
       <div key={rv.label} className={groupStyle}>
