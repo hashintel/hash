@@ -360,7 +360,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       },
       onUpdate: (update) => {
         patchExperiment(experimentId, {
-          status: update.computing ? "running" : "idle",
+          status: update.failed
+            ? "error"
+            : update.computing
+              ? "running"
+              : "idle",
           metricFrames: update.metricFrames,
           latestMetricFramesById: latestFramesById(update.metricFrames),
           progress: update.progress,

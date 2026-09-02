@@ -63,6 +63,9 @@ export type { SweepBatchStatus } from "./sweep-session/batch-registry";
 export { sweepBatchSeed } from "./sweep-session/selection-draws";
 export type { SweepRunDraws } from "./sweep-session/selection-draws";
 
+const isAbortError = (error: unknown): boolean =>
+  error instanceof Error && error.name === "AbortError";
+
 /** Finished batches of one selection, merged. */
 export type SweepCellSnapshot = {
   runsCompleted: number;
@@ -83,6 +86,8 @@ export type SweepSessionUpdate = {
   /** Live progress of the oldest in-flight batch; null when idle. */
   progress: MonteCarloWorkerProgress | null;
   computing: boolean;
+  /** A batch failed; the session computes nothing more for this selection. */
+  failed: boolean;
 };
 
 export type InstantiateSweepBatch = (options: {
@@ -240,11 +245,13 @@ export function createSweepSession(
   let generation = 0;
   let abortCurrent: (() => void) | null = null;
   /**
-   * Background batches run to completion: aborting a started handle through
-   * its signal tears its transports down before the terminal event arrives,
-   * so a disposed session lets them finish and drops their results instead.
+   * Background batches are cancelled through their handle, never through
+   * this signal: aborting a started handle's signal tears its transports
+   * down before the terminal event arrives, while `cancel()` ends the batch
+   * with a `cancelled` event the awaiting code observes.
    */
   const backgroundSignal = new AbortController().signal;
+  const backgroundHandles = new Set<MonteCarloExperiment>();
   /**
    * Generation whose refine loop is between its first batch and going idle;
    * null when the ladder finished or failed. Background batches read this
@@ -317,7 +324,11 @@ export function createSweepSession(
     const inFlight = update.inFlightFrames ?? [];
     // Data on screen for the current selection — cached runs or the first
     // in-flight frames — opens the gate for secondary (surface) sampling.
-    if (snapshot.runsCompleted + (update.inFlightRuns ?? 0) > 0) {
+    if (
+      snapshot.runsCompleted > 0 ||
+      inFlight.length > 0 ||
+      (update.inFlightRuns ?? 0) > 0
+    ) {
       markSelectionStreamed();
     }
     onUpdate({
@@ -331,6 +342,7 @@ export function createSweepSession(
       runTarget: update.runTarget,
       progress: update.progress ?? null,
       computing: update.computing,
+      failed,
     });
   };
 
@@ -393,10 +405,19 @@ export function createSweepSession(
         target,
         abortController.signal,
       );
-    } catch {
-      // Only an abort escapes the draw build, and an abort means a restart
-      // or a dispose already superseded this generation.
+    } catch (error) {
       abortSet.delete(abortEntry);
+      // An abort means a restart or a dispose already superseded this
+      // generation; anything else stops the selection with its reason.
+      if (isStale(loopGeneration) || isAbortError(error)) {
+        return null;
+      }
+      failed = true;
+      onError(
+        error instanceof Error ? error.message : "Failed to draw a batch",
+      );
+      publish({ runTarget: target, computing: false });
+      markSelectionStreamed();
       return null;
     }
 
@@ -471,9 +492,12 @@ export function createSweepSession(
         resolveDone("complete");
         return;
       }
-      if (event.type === "error" && !disposed) {
+      if (event.type === "error" && !disposed && !isStale(loopGeneration)) {
         failed = true;
         onError(event.message);
+        // Nothing more streams for this selection; the surface's waiters
+        // resume and refuse instead of hanging.
+        markSelectionStreamed();
       }
       resolveDone("stopped");
     });
@@ -715,7 +739,9 @@ export function createSweepSession(
       target - snapshot.runsCompleted,
       handle,
     );
+    backgroundHandles.add(handle);
     const { event, frames } = await runExperimentToCompletion(handle);
+    backgroundHandles.delete(handle);
     unregister();
     if (event.type !== "complete" || isDisposed()) {
       return null;
@@ -776,6 +802,7 @@ export function createSweepSession(
     const means = (results: ExperimentCompletion["runResults"]) =>
       groupCellMeans(results, positions.length, runsPerCell);
     const unregister = registry.register("surface", runSeeds.length, handle);
+    backgroundHandles.add(handle);
     const { event, runResults } = await runExperimentToCompletion(handle, {
       // CPU workers report per-run values as each shard completes, so a
       // sharded chunk paints its cells in slices instead of all at once.
@@ -792,6 +819,7 @@ export function createSweepSession(
               }
             },
     });
+    backgroundHandles.delete(handle);
     unregister();
     if (event.type !== "complete" || isDisposed()) {
       return null;
@@ -849,6 +877,9 @@ export function createSweepSession(
           if (snapshot === null) {
             return null;
           }
+          // Read from the cell's merged frames, which also serve the
+          // navigator's cache; the batched path averages per-run terminal
+          // values, which differ only for runs that end at different times.
           const cellMeans = snapshotMeans(snapshot.metricFrames);
           partial[index] = cellMeans;
           onPartial?.([...partial]);
@@ -860,6 +891,10 @@ export function createSweepSession(
       disposed = true;
       generation += 1;
       markSelectionStreamed();
+      for (const handle of backgroundHandles) {
+        handle.cancel();
+      }
+      backgroundHandles.clear();
       registry.clear();
       abortCurrent?.();
       abortCurrent = null;

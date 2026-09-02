@@ -458,6 +458,7 @@ describe("createSweepSession", () => {
     expect(onError).toHaveBeenCalledWith("device lost");
     expect(batches).toHaveLength(1);
     expect(updates.at(-1)!.computing).toBe(false);
+    expect(updates.at(-1)!.failed).toBe(true);
     session.dispose();
   });
 

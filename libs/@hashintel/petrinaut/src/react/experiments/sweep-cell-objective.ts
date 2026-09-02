@@ -4,7 +4,9 @@ import type { MonteCarloUserDefinedMetricFrame } from "@hashintel/petrinaut-core
  * One combination's objective: the metric's value on its last frame that
  * carries samples — a distribution frame reduces to the mean of its bins, a
  * scalar frame to its frame value. A terminating net finishes its runs
- * before `maxTime`, so trailing frames legitimately hold no samples.
+ * before `maxTime`, so trailing frames legitimately hold no samples; runs
+ * that ended earlier are absent from that frame, so for a net whose runs end
+ * at different times the value weights the longest-lived runs.
  */
 export const sweepCellObjective = (
   frames: readonly MonteCarloUserDefinedMetricFrame[],
