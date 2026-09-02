@@ -1,7 +1,7 @@
 import { createListCollection } from "@ark-ui/react/collection";
 import { Portal } from "@ark-ui/react/portal";
 import { Select as ArkSelect } from "@ark-ui/react/select";
-import { useId, useMemo, useRef } from "react";
+import { Fragment, useId, useMemo, useRef } from "react";
 
 import { cx } from "@hashintel/ds-helpers/css";
 
@@ -32,6 +32,12 @@ export type SelectItem<TValue extends string = string> = {
   disabled?: boolean;
 };
 
+export type MultiSelectItem<TValue extends string = string> =
+  SelectItem<TValue> & {
+    /** How selection is indicated for this item in the dropdown. Defaults to `checkbox`. */
+    variant?: "checkbox" | "tick" | "highlight";
+  };
+
 type SelectBaseProps<TValue extends string> = {
   /** An optional placeholder shown when no value is selected */
   placeholder?: string;
@@ -61,11 +67,8 @@ type SelectBaseProps<TValue extends string> = {
   onClick?: React.MouseEventHandler<Element>;
   onKeyDown?: React.KeyboardEventHandler<Element>;
   tabIndex?: number;
-  items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>;
   /** Custom renderer for items in the dropdown. Defaults to the item's `text`. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
   renderItem?: (value: TValue) => React.ReactNode;
-  /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
-  renderSelectedItem?: (value: TValue) => React.ReactNode;
   /** The input ref - this is different to the ref, which is the containing element. This refers instead to a hidden select element (the actual ui uses a button to handle custom styling). Use this to access the internal select state and/or to set focus. */
   inputRef?: React.Ref<HTMLSelectElement>;
   /** Optional custom message for scenarios where there are no items available to show */
@@ -76,20 +79,42 @@ type SelectBaseProps<TValue extends string> = {
 > &
   React.AriaAttributes;
 
+type SelectSingleProps<TValue extends string> = {
+  /** Set to allow selecting multiple values */
+  multiple?: false;
+  maxItems?: never;
+  items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>;
+  /** Custom renderer for the selected value in the trigger. Defaults to `renderItem`, or the item's `text` if neither is provided. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected item is clamped to the default height of select so that it correctly aligns. */
+  renderSelectedItem?: (value: TValue) => React.ReactNode;
+} & (
+  | {
+      required: true;
+      value: NoInfer<TValue>;
+      onChange: (value: NoInfer<TValue>) => void;
+    }
+  | {
+      required?: false;
+      value: NoInfer<TValue> | null | undefined;
+      onChange: (value: NoInfer<TValue> | null | undefined) => void;
+    }
+);
+
+type SelectMultipleProps<TValue extends string> = {
+  /** Set to allow selecting multiple values. The dropdown stays open while selecting, and items indicate selection with a checkbox unless they set their own `variant`. */
+  multiple: true;
+  /** The maximum number of values that can be selected. Once reached, unselected items are disabled until a value is deselected. */
+  maxItems?: number;
+  items: ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>;
+  /** Custom renderer for the selected values in the trigger. Defaults to rendering each selected value with `renderItem` (or the item's `text`), comma-separated. Note that if connectToLeftInput or connectToRightInput the height of the rendered selected items is clamped to the default height of select so that it correctly aligns. */
+  renderSelectedItem?: (values: TValue[]) => React.ReactNode;
+  required?: boolean;
+  value: ReadonlyArray<NoInfer<TValue>>;
+  onChange: (value: Array<NoInfer<TValue>>) => void;
+};
+
 export type SelectProps<TValue extends string = string> =
   SelectBaseProps<TValue> &
-    (
-      | {
-          required: true;
-          value: NoInfer<TValue>;
-          onChange: (value: NoInfer<TValue>) => void;
-        }
-      | {
-          required?: false;
-          value: NoInfer<TValue> | null | undefined;
-          onChange: (value: NoInfer<TValue> | null | undefined) => void;
-        }
-    );
+    (SelectSingleProps<TValue> | SelectMultipleProps<TValue>);
 
 type SelectSlots = ReturnType<typeof selectRecipe>;
 type Prefix =
@@ -156,14 +181,22 @@ function findSelectItem<TValue extends string>(
 }
 
 function mapToMenuItems<TValue extends string>(
-  items: ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>,
+  items: ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>,
   renderItem: (value: TValue) => React.ReactNode,
+  options: {
+    multiple: boolean;
+    /** When defined, values outside the set are disabled (a multi select at `maxItems`) */
+    selectableValues: ReadonlySet<string> | undefined;
+  },
 ): Array<ItemOrGroup<Item>> {
-  const toItem = (it: SelectItem<TValue>): Item => ({
+  const toItem = (it: MultiSelectItem<TValue>): Item => ({
     id: it.value,
     text: renderItem(it.value),
-    disabled: it.disabled,
-    selectedStyle: "tick",
+    disabled:
+      it.disabled ||
+      (options.selectableValues !== undefined &&
+        !options.selectableValues.has(it.value)),
+    selectedStyle: options.multiple ? (it.variant ?? "checkbox") : "tick",
     subItems: undefined,
     onClick: () => {},
   });
@@ -202,6 +235,8 @@ export const Select = <TValue extends string>({
   onKeyDown,
   tabIndex,
   items,
+  multiple,
+  maxItems,
   renderItem,
   renderSelectedItem,
   className,
@@ -235,23 +270,31 @@ export const Select = <TValue extends string>({
   const connectsLeft = connectToLeftInput && variant === "default";
   const connectsRight = connectToRightInput && variant === "default";
 
-  const orphan = useMemo<SelectItem<TValue> | undefined>(() => {
-    if (value == null || value === "" || findSelectItem(items, value)) {
-      return undefined;
+  const selectedValues = useMemo<TValue[]>(() => {
+    if (multiple) {
+      return [...(value as ReadonlyArray<TValue>)];
     }
-    return { value, text: value, disabled: true };
-  }, [items, value]);
+    const single = value as TValue | null | undefined;
+    return single != null && single !== "" ? [single] : [];
+  }, [multiple, value]);
+  const hasSelection = selectedValues.length > 0;
+
+  const orphans = useMemo<Array<SelectItem<TValue>>>(
+    () =>
+      selectedValues
+        .filter((val) => !findSelectItem(items, val))
+        .map((val) => ({ value: val, text: val, disabled: true })),
+    [items, selectedValues],
+  );
 
   const effectiveItems = useMemo<
-    ReadonlyArray<ItemOrGroup<SelectItem<TValue>>>
+    ReadonlyArray<ItemOrGroup<MultiSelectItem<TValue>>>
   >(() => {
-    if (!orphan || (loading && items.length === 0)) {
+    if (orphans.length === 0 || (loading && items.length === 0)) {
       return items;
     }
-    return [orphan, ...items];
-  }, [items, orphan, loading]);
-
-  const selectedItem = findSelectItem(effectiveItems, value) ?? orphan;
+    return [...orphans, ...items];
+  }, [items, orphans, loading]);
 
   const resolvedRenderItem = useMemo<(value: TValue) => React.ReactNode>(
     () =>
@@ -259,11 +302,43 @@ export const Select = <TValue extends string>({
       ((val: TValue) => findSelectItem(effectiveItems, val)?.text ?? val),
     [renderItem, effectiveItems],
   );
-  const resolvedRenderSelectedItem = renderSelectedItem ?? resolvedRenderItem;
 
-  const isOptional = required !== true;
+  const renderSelectedContent = (): React.ReactNode => {
+    if (multiple) {
+      if (renderSelectedItem) {
+        return (renderSelectedItem as (values: TValue[]) => React.ReactNode)(
+          selectedValues,
+        );
+      }
+      return selectedValues.map((val, index) => (
+        <Fragment key={val}>
+          {index > 0 && ", "}
+          {resolvedRenderItem(val)}
+        </Fragment>
+      ));
+    }
+    const selectedValue = selectedValues[0];
+    if (selectedValue === undefined) {
+      return "";
+    }
+    const renderSingle =
+      (renderSelectedItem as
+        | ((value: TValue) => React.ReactNode)
+        | undefined) ?? resolvedRenderItem;
+    return renderSingle(selectedValue);
+  };
+
+  const isOptional = required !== true && !multiple;
+  const atMaxItems =
+    !!multiple && maxItems !== undefined && selectedValues.length >= maxItems;
+  // At maxItems only the currently-selected values stay enabled, so they can be deselected
+  const selectableAtMax = atMaxItems ? selectedValues : undefined;
   const menuItems = useMemo(() => {
-    const mapped = mapToMenuItems(effectiveItems, resolvedRenderItem);
+    const mapped = mapToMenuItems(effectiveItems, resolvedRenderItem, {
+      multiple: !!multiple,
+      selectableValues:
+        selectableAtMax === undefined ? undefined : new Set(selectableAtMax),
+    });
     if (!isOptional || mapped.length === 0) {
       return mapped;
     }
@@ -274,7 +349,14 @@ export const Select = <TValue extends string>({
       onClick: () => {},
     };
     return [noneItem, ...mapped];
-  }, [effectiveItems, isOptional, resolvedRenderItem, noneValue]);
+  }, [
+    effectiveItems,
+    isOptional,
+    resolvedRenderItem,
+    noneValue,
+    multiple,
+    selectableAtMax,
+  ]);
   const collection = useMemo(() => {
     const valueToText = new Map<string, string>();
     for (const entry of effectiveItems) {
@@ -315,10 +397,7 @@ export const Select = <TValue extends string>({
     customRender: !!renderItem || !!renderSelectedItem,
     clampTriggerHeight:
       (!!renderItem || !!renderSelectedItem) && (connectsLeft || connectsRight),
-    willClear:
-      showClear &&
-      clearable.clearable &&
-      (value === null || value === undefined || value === ""),
+    willClear: showClear && clearable.clearable && !hasSelection,
   });
 
   if (readonly) {
@@ -329,7 +408,7 @@ export const Select = <TValue extends string>({
         data-testid={testId}
         {...ariaProps}
       >
-        {selectedItem ? resolvedRenderSelectedItem(selectedItem.value) : ""}
+        {renderSelectedContent()}
       </span>
     );
   }
@@ -337,15 +416,25 @@ export const Select = <TValue extends string>({
   return (
     <ArkSelect.Root
       collection={collection}
-      value={value != null && value !== "" ? [value] : []}
+      value={selectedValues}
+      multiple={multiple}
+      closeOnSelect={!multiple}
       onValueChange={({ value: nextValue }) => {
+        if (multiple) {
+          const next = nextValue as TValue[];
+          if (maxItems !== undefined && next.length > maxItems) {
+            return;
+          }
+          (onChange as (value: TValue[]) => void)(next);
+          return;
+        }
         const next = nextValue[0];
         if (next === noneValue) {
           (onChange as (value: null) => void)(null);
           return;
         }
         if (next !== undefined) {
-          onChange(next as TValue);
+          (onChange as (value: TValue) => void)(next as TValue);
         }
       }}
       disabled={disabled}
@@ -398,10 +487,10 @@ export const Select = <TValue extends string>({
             onBlur={onBlur}
             {...ariaProps}
           >
-            {selectedItem ? (
+            {hasSelection ? (
               <>
                 {(renderItem || renderSelectedItem) && "\u200B"}
-                {resolvedRenderSelectedItem(selectedItem.value)}
+                {renderSelectedContent()}
               </>
             ) : (
               (placeholder ?? "\u200B")
@@ -423,7 +512,7 @@ export const Select = <TValue extends string>({
               }}
               className={cx(
                 classes.clear,
-                (!clearable.clearable || !value) && classes.hideClear,
+                (!clearable.clearable || !hasSelection) && classes.hideClear,
               )}
               aria-label="Clear input"
             >
@@ -455,7 +544,7 @@ export const Select = <TValue extends string>({
             as="Select"
             className={classes.list}
             items={menuItems}
-            selected={value != null && value !== "" ? [value] : []}
+            selected={selectedValues}
             size={size}
             emptyState={
               emptyState ??
