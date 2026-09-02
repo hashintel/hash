@@ -38,6 +38,14 @@ const controlledClient = (
   read: BrunchFlueClient["read"],
 ): BrunchFlueClient => ({ send, read });
 
+const renderTheme = {
+  bold: (text: string) => text,
+  italic: (text: string) => text,
+  strikethrough: (text: string) => text,
+  underline: (text: string) => text,
+  fg: (_color: string, text: string) => text,
+};
+
 describe("brunch_turn", () => {
   test("refuses to register without a usable Herdr child identity", () => {
     expect(() =>
@@ -255,19 +263,51 @@ describe("brunch_turn", () => {
     });
   });
 
-  test("keeps custom TUI rendering within the supplied width", () => {
+  test("renders the two sides of a turn as width-bounded Markdown", () => {
     const tool = createBrunchTurnTool({
       conversationId: "persona-render",
       client: controlledClient(vi.fn(), vi.fn()),
     });
-    const component = tool.renderCall(
+    const callComponent = tool.renderCall(
       { message: "A persona message that exceeds the narrow pane width." },
+      renderTheme,
+    );
+    const resultComponent = tool.renderResult(
       {
-        bold: (text) => text,
-        fg: (_color, text) => text,
+        content: [{ type: "text", text: "The elicitor's reply." }],
+        details: {
+          conversationId: "persona-render",
+          submissionId: "submission-render",
+          status: "elicitor-replied",
+          elicitorText: "The elicitor's reply.",
+        },
       },
+      { isPartial: false },
+      renderTheme,
+      { isError: false },
     );
 
-    expect(component.render(12).every((line) => line.length <= 12)).toBe(true);
+    const callLines = callComponent.render(12);
+    const resultLines = resultComponent.render(12);
+
+    expect(callLines.map((line) => line.trimEnd())).toEqual([
+      "User",
+      "",
+      "A persona",
+      "message that",
+      "exceeds the",
+      "narrow pane",
+      "width.",
+    ]);
+    expect(resultLines.map((line) => line.trimEnd())).toEqual([
+      "Brunch",
+      "",
+      "The",
+      "elicitor's",
+      "reply.",
+    ]);
+    expect(
+      [...callLines, ...resultLines].every((line) => line.length <= 12),
+    ).toBe(true);
   });
 });

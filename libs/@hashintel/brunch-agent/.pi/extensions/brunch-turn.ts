@@ -1,3 +1,8 @@
+import {
+  type Component,
+  Markdown,
+  type MarkdownTheme,
+} from "@earendil-works/pi-tui";
 import { createFlueClient, type FlueClient } from "@flue/sdk";
 import { Type } from "typebox";
 
@@ -38,13 +43,11 @@ interface BrunchTurnResult<
   readonly details: Details;
 }
 
-interface RenderComponent {
-  render(width: number): string[];
-  invalidate(): void;
-}
-
 interface RenderTheme {
   bold(text: string): string;
+  italic(text: string): string;
+  strikethrough(text: string): string;
+  underline(text: string): string;
   fg(color: string, text: string): string;
 }
 
@@ -69,13 +72,13 @@ export interface BrunchTurnTool {
   renderCall(
     parameters: { readonly message: string },
     theme: RenderTheme,
-  ): RenderComponent;
+  ): Component;
   renderResult(
     result: BrunchTurnResult,
     options: { readonly isPartial: boolean },
     theme: RenderTheme,
     context: RenderContext,
-  ): RenderComponent;
+  ): Component;
 }
 
 export interface BrunchTurnExtensionApi {
@@ -87,20 +90,31 @@ interface RegisterBrunchTurnOptions {
   readonly client?: BrunchFlueClient;
 }
 
-const textComponent = (text: string): RenderComponent => ({
-  render: (width) => {
-    const lineWidth = Math.max(1, width);
-    return text.split("\n").flatMap((line) => {
-      if (line.length === 0) return [""];
-      const wrapped: string[] = [];
-      for (let offset = 0; offset < line.length; offset += lineWidth) {
-        wrapped.push(line.slice(offset, offset + lineWidth));
-      }
-      return wrapped;
-    });
-  },
-  invalidate: () => {},
+const markdownTheme = (theme: RenderTheme): MarkdownTheme => ({
+  heading: (text) => theme.fg("mdHeading", text),
+  link: (text) => theme.fg("mdLink", text),
+  linkUrl: (text) => theme.fg("mdLinkUrl", text),
+  code: (text) => theme.fg("mdCode", text),
+  codeBlock: (text) => theme.fg("mdCodeBlock", text),
+  codeBlockBorder: (text) => theme.fg("mdCodeBlockBorder", text),
+  quote: (text) => theme.fg("mdQuote", text),
+  quoteBorder: (text) => theme.fg("mdQuoteBorder", text),
+  hr: (text) => theme.fg("mdHr", text),
+  listBullet: (text) => theme.fg("mdListBullet", text),
+  bold: (text) => theme.bold(text),
+  italic: (text) => theme.italic(text),
+  strikethrough: (text) => theme.strikethrough(text),
+  underline: (text) => theme.underline(text),
 });
+
+const markdownComponent = (
+  heading: "User" | "Brunch",
+  content: string,
+  theme: RenderTheme,
+): Component =>
+  new Markdown(`## ${heading}\n\n${content}`, 0, 0, markdownTheme(theme), {
+    color: (text) => theme.fg("toolOutput", text),
+  });
 
 const resultText = (result: BrunchTurnResult): string =>
   result.content
@@ -221,27 +235,24 @@ export const createBrunchTurnTool = ({
       }
     },
 
-    renderCall(parameters, _theme) {
-      return textComponent(["Persona → Brunch", parameters.message].join("\n"));
+    renderCall(parameters, theme) {
+      return markdownComponent("User", parameters.message, theme);
     },
 
-    renderResult(result, { isPartial }, _theme, context) {
+    renderResult(result, { isPartial }, theme, context) {
       if (context.isError) {
-        return textComponent(`Brunch turn failed\n${resultText(result)}`);
-      }
-
-      if (isPartial || result.details.status === "waiting-for-elicitor") {
-        return textComponent(
-          `Waiting for Brunch · submission ${result.details.submissionId}`,
+        return markdownComponent(
+          "Brunch",
+          `Turn failed\n\n${resultText(result)}`,
+          theme,
         );
       }
 
-      return textComponent(
-        [
-          `Elicitor replied · submission ${result.details.submissionId}`,
-          result.details.elicitorText,
-        ].join("\n"),
-      );
+      if (isPartial || result.details.status === "waiting-for-elicitor") {
+        return markdownComponent("Brunch", resultText(result), theme);
+      }
+
+      return markdownComponent("Brunch", result.details.elicitorText, theme);
     },
   };
 };

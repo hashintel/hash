@@ -56,14 +56,34 @@ The Pi persona is an evaluation-side user actor, not a second Brunch elicitor. I
 ## Operating the harness
 
 1. Start the local app with `yarn workspace @apps/brunch-agent dev`.
-2. Launch the project `brunch-persona` from this Brunch context root with a unique `PI_SUBAGENT_NAME`. Supply the situation pack inline with the objective and turn budget; an `@file` token in a launch task is not expanded into persona context.
-3. Wait until the first `brunch_turn` admission is visible in Pi.
-4. Attach the browser to `http://127.0.0.1:4321/?mode=observe&principal=local&id=<PI_SUBAGENT_NAME>`.
-5. After the run, inspect canonical history with `yarn workspace @apps/brunch-agent transcript -- --principal local --id <PI_SUBAGENT_NAME>`.
+2. Launch the project `brunch-persona` from this Brunch context root with a unique `PI_SUBAGENT_NAME`. Choose the persona model and thinking level at launch with Pi's native `--model <provider/model>` and `--thinking <level>` options; they are deliberately not fixed in the reusable persona definition.
+3. Supply the situation pack inline with the objective and turn budget. The harness treats this launch content as opaque Markdown or plain text and does not parse or validate a pack schema. An `@file` token in a launch task is not expanded into persona context.
+4. Wait until the first `brunch_turn` admission is visible in Pi.
+5. Attach the browser to `http://127.0.0.1:4321/?mode=observe&principal=local&id=<PI_SUBAGENT_NAME>`.
+6. After the run, inspect canonical history with `yarn workspace @apps/brunch-agent transcript -- --principal local --id <PI_SUBAGENT_NAME>`.
 
-The ordering in steps 3–4 is required by observed behavior. An observer opened before the Flue instance exists remains idle and does not discover later creation. Attaching after first admission catches up existing history and receives later streaming updates. Reloading after creation reconstructs settled messages.
+The native Pi arguments for a restricted direct launch are:
 
-The frontmatter in `subagents/brunch-persona.md` restricts the intended project-agent loadout to `brunch_turn`; Herdr may additionally provide `ask_parent` for an orchestration blocker. The persona must not use a parent to obtain domain facts or decide how to answer. A direct Pi launch should disable built-in tools, skills, unrelated extensions, and context-file loading so the supplied pack remains its only situation knowledge.
+```sh
+PI_SUBAGENT_NAME=<unique-conversation-id> pi \
+  --model <provider/model> \
+  --thinking <level> \
+  --no-extensions \
+  --extension .pi/extensions/brunch-turn.ts \
+  --no-builtin-tools \
+  --tools brunch_turn \
+  --no-skills \
+  --no-prompt-templates \
+  --no-context-files \
+  --append-system-prompt .pi/subagents/brunch-persona.md \
+  --approve
+```
+
+The ordering in steps 4–5 is required by observed behavior. An observer opened before the Flue instance exists remains idle and does not discover later creation. Attaching after first admission catches up existing history and receives later streaming updates. Reloading after creation reconstructs settled messages.
+
+The frontmatter in `subagents/brunch-persona.md` restricts the intended project-agent loadout to `brunch_turn`. The persona and bridge do not depend on another Pi extension. Herdr may explicitly add its companion and state extensions to provide `ask_parent` for an orchestration blocker; this is optional orchestration, not part of the Brunch transport. The persona must not use a parent to obtain domain facts or decide how to answer. A direct Pi launch should disable built-in tools, skills, unrelated extensions, and context-file loading so the supplied pack remains its only situation knowledge.
+
+[`evaluations/cases/vestera-scheduling/situation-pack.md`](../evaluations/cases/vestera-scheduling/situation-pack.md) is the current exemplar pack. Its Markdown sections are guidance for the persona model, not fields consumed by the harness.
 
 ## Rejected alternatives
 
