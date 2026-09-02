@@ -125,11 +125,25 @@ Prompting and recognition remain Brunch-owned. The latest `petrinautAiPrompt` is
 
 HASH Graph, Temporal, Redis, HASH API, S3, Kratos, and Petrinaut Optimizer are not current Brunch runtime dependencies and must not be added for symmetry. `@flue/react` remains appropriate for Brunch's local debug UI, and `binding-flue` remains a package even if it is the sole binding. The current host switch is still `yarn dev` versus `yarn dev:brunch`; that fact does not settle the product picker.
 
+#### Mission 4 architecture and interaction decisions
+
+A prompt carries mounted-lifetime invariants. A skill carries the procedures and judgment for a recognizable job. A tool contract carries the semantics and constraints of one executable operation. These are responsibility boundaries, not requirements for matching files or packages.
+
+Tools follow semantic capability authority even when a binding, transport, frontend, or other host layer implements part of the vertical execution path. Crossing ownership does not relocate the tool's meaning: core or plugin policy owns the operation it defines, while binding, transport, and frontend own faithful adaptation, carriage, rendering, reply capture, and execution at their respective boundaries.
+
+A plugin is a contribution bundle, not a symmetric inventory. It contributes only the prompts, skills, tools, and mounting seams earned by its recognizable jobs and executable capabilities. Plugin append prompts are optional, and skill cardinality is earned by distinct jobs and observed routing/context strain—not by package count, operation count, or a requirement that every plugin expose one skill per concern.
+
+Ampcode is the selected conceptual basis. Retain from Five-Register the domain-primary workpiece, single-authoritative-home locality, Flue-native experiments, and explicit distinctions among authored text, parser/schema acceptance, construction execution, semantic correspondence, and stronger behavioral evidence. Do not create a third synthesis. Directives, Recognition, Operations, Coverage, and Verification may classify what elicitation guidance does; they do not define phases, skills, schemas, runtime machinery, or file topology.
+
+Structured-question contract and evidence semantics are core-owned. Bindings adapt the core operation to a substrate, transport carries the affordance and correlated reply, and the frontend renders and collects that reply. Each crossing owns its local fidelity and failure behavior without redefining the question, answer, cancellation, redirect, or evidence semantics.
+
+Mission 4's remaining v3 content repair must strengthen routing for review and workpiece revision, require exactly one focused question after required disclosure when human knowledge is needed, and prevent loading the workpiece template before the workpiece is first created or materially revised. These are content/routing corrections within the selected architecture, not grounds to reopen skill topology.
+
 Mission 4 selected one mounted plugin job skill with core-authored universal elicitation packaged as a lazy resource. Frozen v3 showed independent core-skill activation at 0/3 versus packaged disclosure at 2/3 on the opening case, while both candidates correctly restrained universal disclosure on construct-only/resolvable-review cases. The sole revised review pair bypassed the shared job skill in both candidates, so the protocol verdict remained invalid/both weak rather than validating packaged B across jobs. Keep packaged B because A showed repeated topology-specific strain; do not run v4 by momentum. Independent skill identity re-enters only if a second real plugin or changed framework/model behavior proves reliable cross-skill activation or material duplication/context strain. Evidence remains in [`flue-skill-composition-side-quest-v3/comparison.md`](docs/evidence/evaluations/flue-skill-composition-side-quest-v3/comparison.md).
 
 ### Mission 8 consumed deployment contract
 
-Mission 8 on `ln/fe-1569-brunch-agent-deployment` stopped at the explicit application-to-infrastructure handoff. The application artifact is locally verified but **no remote deploy or acceptance happened**. No confirmed Brunch ECR repository, ECS service/task family, RDS database/user/IAM grant, hosted collector, restricted ingress, deployment owner, AWS credentialed run, real IAM probe, restricted Anthropic turn, cross-host replacement recovery, remote telemetry inspection, rollback, or owner acceptance exists.
+Mission 8 at commit `157730cc5a214dd9c543e8d95c7193a219c48aef` on `ln/fe-1569-brunch-agent-deployment` stopped at the explicit application-to-infrastructure handoff. The application artifact is locally verified but **no remote deploy or acceptance happened**. No confirmed Brunch ECR repository, ECS service/task family, RDS database/user/IAM grant, hosted collector, restricted ingress, deployment owner, AWS credentialed run, real IAM probe, restricted Anthropic turn, cross-host replacement recovery, remote telemetry inspection, rollback, or owner acceptance exists.
 
 FE-1441 remains the deployment/Postgres/rate-limit tracker, while FE-1423 retains the authentication, telemetry, state-versioning/backup, and restart-durability gates. FE-1439's browser-minted UUID demo posture does not discharge FE-1423: caller UUID, CORS, obscurity, and rate limiting are not authentication. Resolve that policy conflict before any restricted-to-public cut.
 
@@ -165,7 +179,7 @@ Old Mission 8 reconciliation:
 | Operational visibility/health | Local application contract landed; hosted inspection still open | Local collector and liveness pass; remote normal/failure/cost correlation, privacy inspection, retention, dashboards, and alerts do not. |
 | Confidence, constraints, fog, stop lines | Reduced to the landed/open gates above | Never call an image or HTTP 200 deployed/durable, never weaken TLS or leak secrets, never infer active-active safety, and stop before unrestricted exposure or false recovery claims. |
 
-Authoritative observed details are in the deployment branch's `docs/evidence/implementations/mission-8-deployment-handoff.md`. This branch imports the application contract and open gates only—not that branch's Mission 4 archive, Mission 8 live-status transition, or an implication of remote success.
+Authoritative observed details are at `157730cc5a214dd9c543e8d95c7193a219c48aef:libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-8-deployment-handoff.md` on `ln/fe-1569-brunch-agent-deployment`. This branch imports the application contract and open gates only—not that branch's Mission 4 archive, Mission 8 live-status transition, or an implication of remote success.
 
 ## Parallel and asynchronous proof tracks
 

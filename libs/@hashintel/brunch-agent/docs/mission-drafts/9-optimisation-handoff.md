@@ -11,7 +11,7 @@ A fresh builder must read these durable sources before deepening this cluster:
 - [`7-bounded-reviewer-revision.md`](7-bounded-reviewer-revision.md) and the eventual accepted Mission 5–7 close evidence — inherited real-path artifacts and proof. Draft promises are not join evidence.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) — accepted workpiece leg, falsified real-model construction, and the parser-valid-empty warning.
 - [`../../../petrinaut-core/src/file-format/serialize-sdcpn.ts`](../../../petrinaut-core/src/file-format/serialize-sdcpn.ts), [`../../../petrinaut-core/src/optimization.ts`](../../../petrinaut-core/src/optimization.ts), and [`../../../petrinaut/docs/optimization.md`](../../../petrinaut/docs/optimization.md) — existing Petrinaut terrain to inspect with the consumers, not a preselected handoff boundary.
-- Deployment branch `ln/fe-1569-brunch-agent-deployment`, especially `libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-8-deployment-handoff.md` — locally verified application contract and explicit application-to-infrastructure stop.
+- Commit `157730cc5a214dd9c543e8d95c7193a219c48aef` on deployment branch `ln/fe-1569-brunch-agent-deployment`, especially `libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-8-deployment-handoff.md` — locally verified application contract and explicit application-to-infrastructure stop.
 - The written Chris/Yannis consumer contract and accepted fixture, once they exist. Their absence is the fog-line, not permission to infer topology from current source.
 
 ## Visible product advance
@@ -100,7 +100,7 @@ Until consumer acceptance, any more detailed readiness list would plan past the 
 
 - Existing Petrinaut serialization, scenario, optimization, and UI contracts are terrain to inspect with Chris and Yannis. Their tests establish only what the current product can represent or execute; they do not establish acceptance, package shape, or experiment credibility.
 - Accepted Mission 5–7 artifacts must provide the exact conversation, bounded workpiece revisions, captures, derivations, mutation trace, revised region, revision disposition, and deployed witness from which Mission 9 broadens. Their eventual archive/evidence paths replace these draft joins.
-- Deployment branch evidence proves a local application artifact only. Remote infrastructure, replacement, real provider/collector behavior, rollback, and acceptance remain open.
+- The pinned Mission 8 handoff proves a local application artifact only. Remote infrastructure, replacement, real provider/collector behavior, rollback, and acceptance remain open.
 - **ORACLE GAP — consumer contract:** record Chris and Yannis' acceptance of all six decisions and one concrete fixture before this draft is cut.
 - **ORACLE GAP — selected complete model:** the consumer question must expose what completeness and credibility mean for this SDCPN; name the exact human or executable oracle only after that question exists.
 - **ORACLE GAP — outer handoff:** the accepted contract must name the witnessed action and observation that distinguish “can begin the experiment” from receipt of an unusable artifact.
