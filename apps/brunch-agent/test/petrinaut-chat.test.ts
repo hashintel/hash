@@ -66,6 +66,7 @@ test("the committed /api/chat door streams a plain Flue agent through server and
       toolName: "readPetrinautDoc",
       input: { doc: "ai-assistant" },
     });
+    expect(result.clientToolCall).not.toHaveProperty("dynamic");
     expect(result.clientToolCall).not.toHaveProperty("providerExecuted");
     expect(result.clientToolOutputsOnInitial).toEqual([]);
     expect(result.initialFinish).toEqual({
@@ -82,6 +83,7 @@ test("the committed /api/chat door streams a plain Flue agent through server and
       type: "tool-input-available",
       toolName: "brunch_ask",
       input: { question: "What outcome should this process reliably produce?" },
+      dynamic: true,
     });
     expect(result.askCall).not.toHaveProperty("providerExecuted");
     expect(result.askToolOutputsBeforeResume).toEqual([]);
