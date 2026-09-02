@@ -1,13 +1,15 @@
 /**
- * The uPlot lifecycle behind the metric timeline: creates the right chart
- * for the current view (time series with an optional heatmap backdrop, or
- * the aggregated-distribution bar chart), streams data into it, and turns
- * pointer scrubbing into frame selections.
+ * The uPlot lifecycle behind the metric timeline: one chart per view shape
+ * and size, content applied once per animation frame (latest wins), the
+ * previous picture crossfaded out on a content change, and pointer
+ * scrubbing turned into frame picks.
  */
 import { useEffect, useRef } from "react";
 import uPlot from "uplot";
 
+import { createCrossfadeOverlay } from "./use-metric-plot/crossfade-overlay";
 import { createDistributionHeatmapPlugin } from "./use-metric-plot/distribution-heatmap";
+import { attachFrameScrubbing } from "./use-metric-plot/frame-scrubbing";
 import {
   chartOptions,
   distributionBarChartOptions,
@@ -15,29 +17,48 @@ import {
 
 import type {
   DistributionView,
+  MetricDisplayMode,
   RunAggregation,
   TimeTrace,
 } from "./shared/distribution-math";
 import type { MetricFrame } from "./shared/metric-frames";
+import type { CrossfadeOverlay } from "./use-metric-plot/crossfade-overlay";
+import type { FramePick } from "./use-metric-plot/frame-scrubbing";
+import type { YCeiling } from "./use-metric-plot/plot-options";
 import type { RefObject } from "react";
 
+export type { FramePick } from "./use-metric-plot/frame-scrubbing";
+
 const UPlot = uPlot;
+/** Below this the axes and labels no longer fit. */
+const MIN_PLOT_HEIGHT = 220;
 
-/** Where on screen a frame was picked, in viewport coordinates. */
-export type FrameSelectPointer = { clientX: number; clientY: number };
+type PlotContent = {
+  frames: readonly MetricFrame[];
+  plotData: uPlot.AlignedData;
+  epoch: string | undefined;
+};
 
-/**
- * How the plot bridges a content change (a sweep selection moving): the old
- * picture is snapshotted into an overlay that persists through the compute
- * gap — dimmed ("dim") or as-is ("hold") — and fades out over ~300 ms once
- * the new content's first frames render. "off" cuts hard.
- */
-export type PlotCrossfade = "dim" | "hold" | "off";
+type MountedPlot = { plot: uPlot; overlay: CrossfadeOverlay };
 
-/** "number" renders no plot; the other two share one uPlot instance. */
-export type MetricDisplayMode = "chart" | "distribution" | "number";
+const applyContent = (
+  { plot, overlay }: MountedPlot,
+  content: PlotContent,
+  hadEpochChange: boolean,
+): void => {
+  // Whether old content is still on screen is read from the plot itself: a
+  // drag crosses several empty epochs before frames arrive, and those must
+  // keep the frozen picture rather than freeze a blank one.
+  if (hadEpochChange && plot.data[0]!.length > 0) {
+    overlay.freeze();
+  }
+  plot.setData(content.plotData);
+  if (content.plotData[0]!.length > 0) {
+    overlay.fadeOut();
+  }
+};
 
-export function useMetricPlot({
+export const useMetricPlot = ({
   chartRootRef,
   size,
   canPlot,
@@ -52,7 +73,6 @@ export function useMetricPlot({
   frames,
   plotData,
   contentEpoch,
-  crossfade = "dim",
   onFrameSelect,
 }: {
   chartRootRef: RefObject<HTMLDivElement | null>;
@@ -69,139 +89,117 @@ export function useMetricPlot({
   frames: readonly MetricFrame[];
   plotData: uPlot.AlignedData;
   /**
-   * Identity of what the data REPRESENTS (a sweep's selection key). When it
+   * Identity of what the frames represent (a sweep's selection key). When it
    * changes, the previous picture crossfades out instead of cutting.
    */
-  contentEpoch?: string;
-  crossfade?: PlotCrossfade;
+  contentEpoch: string | undefined;
   /** Called as the pointer picks (or scrubs across) timeline frames. */
-  onFrameSelect: (frame: MetricFrame, pointer: FrameSelectPointer) => void;
-}): void {
-  const plotRef = useRef<uPlot | null>(null);
-  const latestDataRef = useRef(plotData);
-  const latestFramesRef = useRef(frames);
-  const epochRef = useRef(contentEpoch);
-  /** Highest y ceiling shown by the current view; reset when the view changes. */
-  const yFloorRef = useRef(0);
-  const viewKeyRef = useRef("");
+  onFrameSelect: (pick: FramePick) => void;
+}): void => {
+  const mountedRef = useRef<MountedPlot | null>(null);
+  /** What the plot shows; uPlot callbacks read it at draw and pointer time. */
+  const contentRef = useRef<PlotContent>({
+    frames,
+    plotData,
+    epoch: contentEpoch,
+  });
+  const yCeilingRef = useRef<{ viewKey: string; ceiling: YCeiling }>({
+    viewKey: "",
+    ceiling: { value: 0 },
+  });
+  /**
+   * The animation frame that applies the latest content, and whether an
+   * epoch change waits for it. The change is latched apart from the frame:
+   * a same-epoch tick cancels the frame scheduled for the change, and the
+   * overlay freeze must survive into whichever frame finally runs.
+   */
+  const pendingRef = useRef<{ frame: number | null; epochChange: boolean }>({
+    frame: null,
+    epochChange: false,
+  });
 
+  // Content is tracked at once, so a plot created in the same commit shows
+  // it, and applied once per animation frame, latest wins: a streaming batch
+  // can tick faster than the screen refreshes, and every `setData` redraws
+  // the whole chart, heatmap raster included.
   useEffect(() => {
-    latestDataRef.current = plotData;
-  }, [plotData]);
-
-  useEffect(() => {
-    latestFramesRef.current = frames;
-  }, [frames]);
-
-  useEffect(() => {
-    const viewKey = `${displayMode}|${aggregateRuns}|${runAggregation}|${distributionView}|${timeTrace}`;
-    if (viewKeyRef.current !== viewKey) {
-      viewKeyRef.current = viewKey;
-      yFloorRef.current = 0;
+    const pending = pendingRef.current;
+    pending.epochChange ||= contentEpoch !== contentRef.current.epoch;
+    contentRef.current = { frames, plotData, epoch: contentEpoch };
+    if (pending.frame !== null) {
+      cancelAnimationFrame(pending.frame);
     }
+    pending.frame = requestAnimationFrame(() => {
+      pending.frame = null;
+      const hadEpochChange = pending.epochChange;
+      pending.epochChange = false;
+      const mounted = mountedRef.current;
+      if (mounted) {
+        applyContent(mounted, contentRef.current, hadEpochChange);
+      }
+    });
+    return () => {
+      if (pending.frame !== null) {
+        cancelAnimationFrame(pending.frame);
+        pending.frame = null;
+      }
+    };
+  }, [contentEpoch, frames, plotData]);
+
+  useEffect(() => {
     const root = chartRootRef.current;
     if (!root || !size || !canPlot) {
-      plotRef.current?.destroy();
-      plotRef.current = null;
-      root?.replaceChildren();
       return;
     }
-
+    const viewKey = `${displayMode}|${aggregateRuns}|${runAggregation}|${distributionView}|${timeTrace}`;
+    if (yCeilingRef.current.viewKey !== viewKey) {
+      yCeilingRef.current = { viewKey, ceiling: { value: 0 } };
+    }
+    const height = Math.max(MIN_PLOT_HEIGHT, size.height);
     const isHeatmap =
       displayMode === "chart" &&
       outputType === "distribution" &&
       !aggregateRuns &&
       distributionView === "heatmap";
-
-    plotRef.current?.destroy();
-    root.replaceChildren();
-    const plot = new UPlot(
+    const options =
       displayMode === "distribution"
-        ? distributionBarChartOptions(size.width, Math.max(220, size.height))
-        : chartOptions(
-            size.width,
-            Math.max(220, size.height),
-            outputType,
-            aggregateRuns,
-            runAggregation,
-            distributionView,
-            timeTrace,
-            latestFramesRef,
-            timeDomainStart !== undefined && timeDomainEnd !== undefined
-              ? [timeDomainStart, timeDomainEnd]
-              : undefined,
-            yFloorRef,
-            isHeatmap
-              ? [createDistributionHeatmapPlugin(latestFramesRef, epochRef)]
+        ? distributionBarChartOptions(size.width, height)
+        : chartOptions({
+            width: size.width,
+            height,
+            shape: {
+              outputType,
+              aggregateRuns,
+              runAggregation,
+              distributionView,
+              timeTrace,
+              timeDomain:
+                timeDomainStart !== undefined && timeDomainEnd !== undefined
+                  ? [timeDomainStart, timeDomainEnd]
+                  : undefined,
+            },
+            getFrames: () => contentRef.current.frames,
+            yCeiling: yCeilingRef.current.ceiling,
+            plugins: isHeatmap
+              ? [createDistributionHeatmapPlugin(() => contentRef.current)]
               : [],
-          ),
-      [[], []] as uPlot.AlignedData,
-      root,
-    );
-    plot.setData(latestDataRef.current);
-    plotRef.current = plot;
-
-    // Click-to-inspect only applies to the per-frame timeline, not the
-    // aggregated-distribution bar chart (which has no time axis).
-    if (displayMode !== "chart") {
-      return () => {
-        plotRef.current = null;
-        plot.destroy();
-      };
-    }
-
-    const selectFrameAtPointer = (event: PointerEvent) => {
-      const overRect = plot.over.getBoundingClientRect();
-      const x = Math.min(
-        Math.max(event.clientX - overRect.left, 0),
-        overRect.width,
-      );
-      const idx = plot.posToIdx(x, false);
-      const frame = latestFramesRef.current[idx];
-
-      if (frame) {
-        onFrameSelect(frame, {
-          clientX: event.clientX,
-          clientY: event.clientY,
-        });
-      }
-    };
-    let dragging = false;
-
-    const handlePointerDown = (event: PointerEvent) => {
-      dragging = true;
-      plot.over.setPointerCapture(event.pointerId);
-      selectFrameAtPointer(event);
-    };
-
-    const handlePointerMove = (event: PointerEvent) => {
-      if (dragging) {
-        selectFrameAtPointer(event);
-      }
-    };
-
-    const handlePointerUp = (event: PointerEvent) => {
-      if (!dragging) {
-        return;
-      }
-
-      dragging = false;
-      if (plot.over.hasPointerCapture(event.pointerId)) {
-        plot.over.releasePointerCapture(event.pointerId);
-      }
-    };
-
-    plot.over.addEventListener("pointerdown", handlePointerDown);
-    plot.over.addEventListener("pointermove", handlePointerMove);
-    plot.over.addEventListener("pointerup", handlePointerUp);
-    plot.over.addEventListener("pointercancel", handlePointerUp);
+          });
+    const plot = new UPlot(options, [[], []] as uPlot.AlignedData, root);
+    plot.setData(contentRef.current.plotData);
+    mountedRef.current = { plot, overlay: createCrossfadeOverlay(plot) };
+    // The bar chart has no time axis, so no frame sits under the pointer.
+    const detachScrubbing =
+      displayMode === "chart"
+        ? attachFrameScrubbing(
+            plot,
+            () => contentRef.current.frames,
+            onFrameSelect,
+          )
+        : null;
 
     return () => {
-      plot.over.removeEventListener("pointerdown", handlePointerDown);
-      plot.over.removeEventListener("pointermove", handlePointerMove);
-      plot.over.removeEventListener("pointerup", handlePointerUp);
-      plot.over.removeEventListener("pointercancel", handlePointerUp);
-      plotRef.current = null;
+      detachScrubbing?.();
+      mountedRef.current = null;
       plot.destroy();
     };
   }, [
@@ -218,114 +216,4 @@ export function useMetricPlot({
     timeDomainStart,
     timeTrace,
   ]);
-
-  /**
-   * An epoch change seen but not yet painted. Latched separately from the
-   * scheduled frame: a same-epoch data tick can cancel the epoch-change
-   * run's frame before it fires, and the transition (the overlay freeze)
-   * must survive into whichever frame finally runs.
-   */
-  const pendingEpochChangeRef = useRef(false);
-  const overlayRef = useRef<HTMLCanvasElement | null>(null);
-  const overlayFadingRef = useRef(false);
-  const dataFrameRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    function applyData(hadEpochChange: boolean): void {
-      const plot = plotRef.current;
-      if (!plot) {
-        return;
-      }
-
-      // A new epoch with old content still on the canvas: freeze that picture
-      // into an overlay before the new data repaints under it. "Still on the
-      // canvas" is read from the plot itself (`plot.data` predates the
-      // `setData` below) — a drag crosses several empty epochs before frames
-      // arrive, and those must keep the existing overlay, not blank it.
-      if (hadEpochChange) {
-        const plotShowsContent = plot.data[0]!.length > 0;
-        if (crossfade !== "off" && plotShowsContent) {
-          let overlay = overlayRef.current;
-          if (!overlay || !plot.over.contains(overlay)) {
-            overlay = document.createElement("canvas");
-            overlay.style.position = "absolute";
-            overlay.style.inset = "0";
-            overlay.style.width = "100%";
-            overlay.style.height = "100%";
-            overlay.style.pointerEvents = "none";
-            plot.over.appendChild(overlay);
-            overlayRef.current = overlay;
-          }
-          overlay.width = Math.max(1, Math.round(plot.bbox.width));
-          overlay.height = Math.max(1, Math.round(plot.bbox.height));
-          overlay
-            .getContext("2d")!
-            .drawImage(
-              plot.ctx.canvas,
-              plot.bbox.left,
-              plot.bbox.top,
-              plot.bbox.width,
-              plot.bbox.height,
-              0,
-              0,
-              overlay.width,
-              overlay.height,
-            );
-          overlay.style.transition = "none";
-          overlay.style.display = "block";
-          overlay.style.opacity = crossfade === "dim" ? "0.55" : "1";
-          overlayFadingRef.current = false;
-        }
-      }
-
-      plot.setData(plotData);
-      const hasData = plotData[0]!.length > 0;
-
-      // The new content's first frames are on screen: fade the old picture
-      // out quickly instead of having already cut to the sparse new one.
-      const overlay = overlayRef.current;
-      if (
-        hasData &&
-        overlay !== null &&
-        overlay.style.display !== "none" &&
-        !overlayFadingRef.current
-      ) {
-        overlayFadingRef.current = true;
-        const fadingOverlay = overlay;
-        requestAnimationFrame(() => {
-          fadingOverlay.style.transition = "opacity 300ms ease-out";
-          fadingOverlay.style.opacity = "0";
-        });
-        const hide = () => {
-          fadingOverlay.style.display = "none";
-          fadingOverlay.removeEventListener("transitionend", hide);
-        };
-        fadingOverlay.addEventListener("transitionend", hide);
-      }
-    }
-
-    // The epoch is tracked eagerly (a drag crosses several epochs between
-    // paints), but the data applies once per animation frame, latest wins:
-    // a streaming batch can tick the store faster than the screen refreshes,
-    // and every `setData` redraws the whole chart, heatmap raster included.
-    if (contentEpoch !== epochRef.current) {
-      epochRef.current = contentEpoch;
-      pendingEpochChangeRef.current = true;
-    }
-    if (dataFrameRef.current !== null) {
-      cancelAnimationFrame(dataFrameRef.current);
-    }
-    dataFrameRef.current = requestAnimationFrame(() => {
-      dataFrameRef.current = null;
-      const hadEpochChange = pendingEpochChangeRef.current;
-      pendingEpochChangeRef.current = false;
-      applyData(hadEpochChange);
-    });
-    return () => {
-      if (dataFrameRef.current !== null) {
-        cancelAnimationFrame(dataFrameRef.current);
-        dataFrameRef.current = null;
-      }
-    };
-  }, [contentEpoch, crossfade, plotData]);
-}
+};

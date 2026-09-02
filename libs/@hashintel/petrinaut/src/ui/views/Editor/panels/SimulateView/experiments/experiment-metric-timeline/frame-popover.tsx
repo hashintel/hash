@@ -1,10 +1,7 @@
 /**
  * The click-to-inspect popover: a floating card next to the pointer showing
- * the selected frame's histogram (distribution) or value (scalar). Owns its
- * own placement — measured height, viewport clamping, above/below flip —
- * and outside-click dismissal. The histogram itself is a canvas raster
- * (`frame-popover/bin-histogram-canvas`) so a frame's whole distribution
- * fits the card, however many bins it carries.
+ * the selected frame's histogram (distribution) or value (scalar), placed by
+ * its measured height and dismissed by an outside click.
  */
 import { Portal } from "@ark-ui/react/portal";
 import { useEffect, useRef } from "react";
@@ -22,12 +19,8 @@ import type {
   MetricFrame,
   ScalarMetricFrame,
 } from "./shared/metric-frames";
+import type { PointerPosition } from "./shared/pointer-position";
 import type { CSSProperties, RefObject } from "react";
-
-export type FramePopoverPointer = {
-  clientX: number;
-  clientY: number;
-};
 
 type FramePopoverPosition = {
   x: number;
@@ -111,7 +104,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function popoverPositionFor(
-  pointer: FramePopoverPointer,
+  pointer: PointerPosition,
   popoverHeight: number,
 ): FramePopoverPosition {
   const viewportWidth = window.innerWidth;
@@ -190,16 +183,16 @@ export const FramePopover = ({
 }: {
   frame: MetricFrame;
   /** Where the frame was picked; the popover floats next to it. */
-  pointer: FramePopoverPointer;
+  pointer: PointerPosition;
   /** Pointer-downs inside this element scrub the selection, not dismiss. */
   chartRootRef: RefObject<HTMLDivElement | null>;
   onClose: () => void;
 }) => {
   const portalContainerRef = usePortalContainerRef();
   const popoverRef = useRef<HTMLDivElement>(null);
-  // Placement flips and clamps by the popover's real (border-box) height,
-  // which depends on its content. Until the first measurement arrives the
-  // popover stays hidden, so a wrongly-placed frame is never painted.
+  // Placement flips and clamps by the popover's real (border-box) height;
+  // until the first measurement the popover stays hidden rather than paint
+  // in the wrong place.
   const measuredSize = useElementSize(popoverRef, { box: "border" });
   const position = popoverPositionFor(
     pointer,

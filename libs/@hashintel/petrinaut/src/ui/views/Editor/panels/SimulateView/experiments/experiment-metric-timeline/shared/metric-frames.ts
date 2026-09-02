@@ -1,7 +1,6 @@
 /**
- * Frame types and guards shared by the metric timeline's modules: the
- * union of scalar and distribution frames an experiment streams, plus the
- * value formatting every surface uses.
+ * The frame types the timeline's modules share, and the bin-value summary
+ * the y scale and the heatmap both read, computed once per frames array.
  */
 import type { ExperimentRecord } from "../../../../../../../../react/experiments/context";
 
@@ -13,24 +12,75 @@ export type DistributionMetricFrame = Extract<
 >;
 export type DistributionBins = DistributionMetricFrame["bins"];
 
-export function isScalarMetricFrame(
+export const isScalarMetricFrame = (
   frame: MetricFrame,
-): frame is ScalarMetricFrame {
-  return frame.outputType === "scalar";
-}
+): frame is ScalarMetricFrame => frame.outputType === "scalar";
 
-export function isDistributionMetricFrame(
+export const isDistributionMetricFrame = (
   frame: MetricFrame,
-): frame is DistributionMetricFrame {
-  return frame.outputType === "distribution";
-}
+): frame is DistributionMetricFrame => frame.outputType === "distribution";
 
-export function distributionFramesFrom(
+export const distributionFramesFrom = (
   frames: readonly MetricFrame[],
-): DistributionMetricFrame[] {
-  return frames.filter(isDistributionMetricFrame);
-}
+): DistributionMetricFrame[] => frames.filter(isDistributionMetricFrame);
 
-export function formatNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(3);
-}
+export const formatNumber = (value: number): string =>
+  Number.isInteger(value) ? String(value) : value.toFixed(3);
+
+/**
+ * Distinct bin values are collected up to one more than this, so a consumer
+ * that resolves at most this many can tell "more" from "exactly this many".
+ */
+export const MAX_RESOLVED_BIN_VALUES = 512;
+
+export type BinValueSummary = {
+  /** Lowest and highest bin value over every frame. */
+  min: number;
+  max: number;
+  /** Distinct bin values ascending, capped; see `MAX_RESOLVED_BIN_VALUES`. */
+  distinctValues: readonly number[];
+};
+
+/** `null` when no frame has a bin. */
+export const summarizeBinValues = (
+  frames: readonly { bins: DistributionBins }[],
+): BinValueSummary | null => {
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+  const distinct = new Set<number>();
+  for (const frame of frames) {
+    for (const [value] of frame.bins) {
+      min = Math.min(min, value);
+      max = Math.max(max, value);
+      if (distinct.size <= MAX_RESOLVED_BIN_VALUES) {
+        distinct.add(value);
+      }
+    }
+  }
+  if (!Number.isFinite(min)) {
+    return null;
+  }
+  return {
+    min,
+    max,
+    distinctValues: [...distinct].sort((left, right) => left - right),
+  };
+};
+
+const summaries = new WeakMap<readonly MetricFrame[], BinValueSummary | null>();
+
+/**
+ * `summarizeBinValues` over the distribution frames, computed once per
+ * `frames` identity: a streamed publish is one array, read by the y-scale
+ * range and the heatmap raster alike.
+ */
+export const binValueSummary = (
+  frames: readonly MetricFrame[],
+): BinValueSummary | null => {
+  let summary = summaries.get(frames);
+  if (summary === undefined) {
+    summary = summarizeBinValues(distributionFramesFrom(frames));
+    summaries.set(frames, summary);
+  }
+  return summary;
+};

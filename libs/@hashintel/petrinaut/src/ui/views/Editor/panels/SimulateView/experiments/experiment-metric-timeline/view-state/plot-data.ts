@@ -5,27 +5,27 @@
 import {
   bandValueFromBins,
   distributionBandSeries,
-} from "./shared/distribution-bands";
+} from "../shared/distribution-bands";
 import {
   aggregateDistributionBins,
   applyTimeTrace,
-} from "./shared/distribution-math";
+} from "../shared/distribution-math";
 import {
   isDistributionMetricFrame,
   isScalarMetricFrame,
-} from "./shared/metric-frames";
+} from "../shared/metric-frames";
 
 import type {
   DistributionView,
   RunAggregation,
   TimeTrace,
-} from "./shared/distribution-math";
+} from "../shared/distribution-math";
 import type {
   DistributionBins,
   DistributionMetricFrame,
   MetricFrame,
   ScalarMetricFrame,
-} from "./shared/metric-frames";
+} from "../shared/metric-frames";
 import type uPlot from "uplot";
 
 function buildScalarMetricTimelineData(
@@ -62,8 +62,8 @@ function buildDistributionSingleData(
 function buildDistributionHeatmapData(
   frames: readonly DistributionMetricFrame[],
 ): uPlot.AlignedData {
-  // The raw distribution is painted by the heatmap plugin, so the line series
-  // carries no values — but it still provides the x positions for the chart.
+  // The heatmap plugin paints the distribution; the series only carries the
+  // x positions.
   const time = frames.map((frame) => frame.time);
 
   return [time, time.map(() => null)] as uPlot.AlignedData;
@@ -132,8 +132,4 @@ export function buildDistributionBarData(
   }
 
   return [values, frequencies] as uPlot.AlignedData;
-}
-
-export function createEmptyMetricTimelineData(): uPlot.AlignedData {
-  return [[], []] as uPlot.AlignedData;
 }
