@@ -181,13 +181,14 @@ export const VoiceDock = ({
           <>
             {canTakeTurn && actions.takeTurn && (
               <Button
+                aria-label={voiceSessionActionLabels.takeTurn}
+                iconName="arrowsLeftRight"
                 onClick={() => void actions.takeTurn?.()}
                 size="sm"
+                tooltip={voiceSessionActionLabels.takeTurn}
                 type="button"
-                variant="subtle"
-              >
-                {voiceSessionActionLabels.takeTurn}
-              </Button>
+                variant="ghost"
+              />
             )}
             {phase === "error" ? (
               <Button

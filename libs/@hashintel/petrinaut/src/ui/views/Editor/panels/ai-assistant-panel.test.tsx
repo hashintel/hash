@@ -1114,7 +1114,10 @@ describe("AiAssistantPanel composer submissions", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
-    fireEvent.click(screen.getByRole("button", { name: "Your turn" }));
+    const takeTurnButton = screen.getByRole("button", { name: "Your turn" });
+    expect(takeTurnButton.getAttribute("data-variant")).toBe("ghost");
+    expect(takeTurnButton.querySelector("svg")).not.toBeNull();
+    fireEvent.click(takeTurnButton);
     expect(takeTurn).toHaveBeenCalledOnce();
     fireEvent.click(
       screen.getByRole("button", { name: "Voice playback options" }),
