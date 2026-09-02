@@ -137,7 +137,7 @@ where
     T: Into<std::ffi::OsString> + Clone,
 {
     let mut command = <Cli as clap::CommandFactory>::command();
-    let matches = command.clone().try_get_matches_from(itr)?;
+    let matches = command.try_get_matches_from_mut(itr)?;
 
     if let Some(("fit", fit)) = matches.subcommand()
         && fit.value_source("offline") == Some(clap::parser::ValueSource::CommandLine)
@@ -429,6 +429,10 @@ mod tests {
         let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&root);
 
         assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
+        assert!(
+            error.to_string().contains("Usage: hash-graph-atlas fit"),
+            "{error}"
+        );
     }
 
     #[test]
