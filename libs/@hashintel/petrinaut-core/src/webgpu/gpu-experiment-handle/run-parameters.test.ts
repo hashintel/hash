@@ -87,6 +87,34 @@ describe("deriveRunParameters", () => {
     });
   });
 
+  it("refuses a value that narrows to an infinity in f32", () => {
+    const result = deriveRunParameters(
+      undefined,
+      { ids: ["a"], values: Float64Array.from([1, 1e300]) },
+      2,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      reason:
+        "Per-run value `1e+300` for `a` overflows f32, the widest float WGSL has.",
+    });
+  });
+
+  it("refuses a plan that pins per-run seeds", () => {
+    const result = deriveRunParameters(
+      undefined,
+      { ids: [], values: new Float64Array(0), seeds: [7, 11] },
+      2,
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      reason:
+        "The run plan pins per-run seeds, which the GPU's per-run generator cannot take; pinned-seed batches run on the CPU.",
+    });
+  });
+
   it("refuses per-run shapes the buffer cannot express", () => {
     expect(
       deriveRunParameters([{ seed: 1 }, { seed: 2 }], undefined, 2),

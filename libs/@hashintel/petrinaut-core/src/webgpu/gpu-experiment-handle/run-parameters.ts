@@ -74,7 +74,11 @@ const drawsFromRuns = (
   return { ok: true, ids, values };
 };
 
-/** Validates the draws' count and finiteness and packs them as f32. */
+/**
+ * Validates the draws' count and finiteness — before and after narrowing to
+ * f32, since a finite f64 past ~3.4e38 narrows to an infinity — and packs
+ * them as f32.
+ */
 const packDraws = (
   ids: readonly string[],
   raw: ArrayLike<number | string>,
@@ -100,6 +104,12 @@ const packDraws = (
         reason: `Per-run value \`${value}\` for \`${ids[index % ids.length]}\` is not a finite number, which is all the GPU's f32 buffer can carry.`,
       };
     }
+    if (!Number.isFinite(Math.fround(parsed))) {
+      return {
+        ok: false,
+        reason: `Per-run value \`${value}\` for \`${ids[index % ids.length]}\` overflows f32, the widest float WGSL has.`,
+      };
+    }
     values[index] = parsed;
   }
   return { ok: true, runParameters: { ids, values } };
@@ -110,6 +120,16 @@ export const deriveRunParameters = (
   runPlan: ExperimentRunPlan | undefined,
   runCount: number,
 ): DerivedRunParameters => {
+  // The GPU derives each run's seed from the batch seed and the run's
+  // absolute index (`runner/seeds.ts`); a plan's pinned seeds have nowhere
+  // to go.
+  if (runPlan?.seeds !== undefined) {
+    return {
+      ok: false,
+      reason:
+        "The run plan pins per-run seeds, which the GPU's per-run generator cannot take; pinned-seed batches run on the CPU.",
+    };
+  }
   if (runPlan !== undefined && runPlan.ids.length > 0) {
     return packDraws(runPlan.ids, runPlan.values, runCount);
   }
