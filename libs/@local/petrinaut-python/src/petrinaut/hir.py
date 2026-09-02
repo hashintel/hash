@@ -21,7 +21,8 @@ Malformed HIR — an unknown node kind, a missing field, a foreign version —
 fails pydantic validation (:class:`pydantic.ValidationError`) before
 evaluation starts. Nodes the grammar allows but a deterministic constraint
 cannot evaluate (distributions, UUID generation, ``Math.random()``) raise
-:class:`HirEvaluationError`, as does a value of the wrong shape at run time.
+:class:`HirEvaluationError`, as do a value of the wrong shape, an index that
+is not an integer, and a ``Math`` call with the wrong number of arguments.
 """
 
 from __future__ import annotations
@@ -200,11 +201,11 @@ def _cbrt(value: float) -> float:
 
 
 def _max(*values: float) -> float:
-    return max(values)
+    return max(values) if values else -math.inf  # JS: Math.max() is -Infinity
 
 
 def _min(*values: float) -> float:
-    return min(values)
+    return min(values) if values else math.inf  # JS: Math.min() is Infinity
 
 
 _MATH_FNS: dict[str, Callable[..., float]] = {
@@ -269,12 +270,16 @@ def _truthy(value: Value) -> bool:
 
 
 def _number(value: Value, context: str) -> float:
-    """The value as a number, as JS coerces booleans; anything else is a
-    type error the frontend's typechecker would have refused."""
+    """The value as a JS number: booleans coerce to 0/1, an int too large for
+    a double becomes ±Infinity; anything else is a type error the frontend's
+    typechecker would have refused."""
     if isinstance(value, bool):
         return float(value)
     if isinstance(value, (int, float)):
-        return value
+        try:
+            return float(value)
+        except OverflowError:
+            return math.inf if value > 0 else -math.inf
     raise HirEvaluationError(f"{context} expects a number, got {type(value).__name__}")
 
 
@@ -294,6 +299,8 @@ def _compare(op: str, left: _Ordered, right: _Ordered) -> bool:
 def _range(args: Sequence[float]) -> list[Value]:
     """The scenario ``range(...)`` helper, matching the TypeScript
     implementation (Python-style bounds, fractional steps allowed)."""
+    if not 1 <= len(args) <= 3:
+        raise HirEvaluationError(f"range() takes 1 to 3 arguments, got {len(args)}")
     for argument in args:
         if not math.isfinite(argument):
             raise HirEvaluationError("range() arguments must be finite numbers.")
@@ -302,7 +309,12 @@ def _range(args: Sequence[float]) -> list[Value]:
     step = args[2] if len(args) > 2 else 1
     if step == 0:
         raise HirEvaluationError("range() step must not be zero.")
-    maximum_length = max(0, math.ceil((end - start) / step))
+    span = (end - start) / step
+    if not math.isfinite(span):
+        raise HirEvaluationError(
+            f"range() would produce more than {_MAX_RANGE_LENGTH} elements."
+        )
+    maximum_length = max(0, math.ceil(span))
     if maximum_length > _MAX_RANGE_LENGTH:
         raise HirEvaluationError(
             f"range() would produce {maximum_length} elements, exceeding the "
@@ -362,7 +374,10 @@ class _Evaluator:
                 return target[node.field]
             case m.HirIndexAccess():
                 target = self.eval(node.target)
-                index = int(_number(self.eval(node.index), "An index"))
+                position = _number(self.eval(node.index), "An index")
+                if not math.isfinite(position) or position != int(position):
+                    raise HirEvaluationError(f"Index {position!r} is not an integer")
+                index = int(position)
                 if not isinstance(target, list) or not 0 <= index < len(target):
                     raise HirEvaluationError(f"Index {index} out of range")
                 return target[index]
@@ -411,6 +426,10 @@ class _Evaluator:
                     return _MATH_FNS[fn](*args)
                 except (ValueError, OverflowError):
                     return math.nan
+                except TypeError as error:
+                    raise HirEvaluationError(
+                        f"Math.{fn}() called with {len(args)} argument(s)"
+                    ) from error
             case m.HirRecordLit():
                 return {entry.key: self.eval(entry.value) for entry in node.entries}
             case m.HirArrayLit():
@@ -484,7 +503,7 @@ class _Evaluator:
                 )
             return left_number / right_number
         if op == "%":
-            if right_number == 0:
+            if right_number == 0 or math.isinf(left_number):
                 return math.nan
             # ECMAScript remainder takes the dividend's sign (math.fmod).
             return math.fmod(left_number, right_number)

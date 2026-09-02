@@ -260,3 +260,165 @@ class TestSymbolic:
                     )
                 )
             )
+
+
+SPAN = {"start": 0, "length": 1}
+
+
+def node(kind: str, **fields: Any) -> dict[str, Any]:
+    built: dict[str, Any] = {"kind": kind, "id": 0, "span": SPAN, **fields}
+    if kind == "fieldAccess":
+        built.setdefault("fieldSpan", SPAN)
+    return built
+
+
+def num(value: float) -> dict[str, Any]:
+    return node("numberLit", value=value, raw=repr(value))
+
+
+def ref(name: str) -> dict[str, Any]:
+    return node("scenarioRef", name=name)
+
+
+def parameter_constraint(body: dict[str, Any]) -> ParameterConstraint:
+    return ParameterConstraint.model_validate(
+        {
+            "space": "parameters",
+            "id": "inline",
+            "code": "<inline>",
+            "hir": {
+                "hirVersion": 1,
+                "surface": "scenario-expression",
+                "params": [],
+                "span": SPAN,
+                "body": body,
+            },
+        }
+    )
+
+
+class TestSymbolicAgreesWithEvaluation:
+    """Every translated construct substitutes to the value the evaluator
+    computes; the cases are the ones SymPy gets wrong when handed naively
+    (Piecewise in condition positions, Mod's sign, the complex cube root)."""
+
+    @staticmethod
+    def agree(
+        constraint: ParameterConstraint, assignments: list[dict[str, Any]]
+    ) -> None:
+        symbolic = constraint.to_sympy()
+        for scenario in assignments:
+            point = {
+                symbol: (
+                    sympy.true
+                    if value is True
+                    else sympy.false
+                    if value is False
+                    else value
+                )
+                for name, symbol in symbolic.scenario.items()
+                for value in [scenario[name]]
+            }
+            expected = constraint(scenario)
+            actual = bool(symbolic.expression.subs(point))
+            assert actual is expected, (scenario, symbolic.expression)
+
+    def test_numeric_ternary_inside_a_condition(self) -> None:
+        # ((a > (flag ? b : c)) ? 1 : 2) == 2
+        inner = node(
+            "cond", condition=ref("flag"), thenBranch=ref("b"), elseBranch=ref("c")
+        )
+        outer = node(
+            "cond",
+            condition=node("binary", op=">", left=ref("a"), right=inner),
+            thenBranch=num(1),
+            elseBranch=num(2),
+        )
+        constraint = parameter_constraint(
+            node("binary", op="==", left=outer, right=num(2))
+        )
+        self.agree(
+            constraint,
+            [
+                {"a": 5, "b": 3, "c": 10, "flag": False},
+                {"a": 5, "b": 3, "c": 10, "flag": True},
+                {"a": 0, "b": 3, "c": -1, "flag": True},
+            ],
+        )
+
+    def test_boolean_ternary_under_and(self) -> None:
+        # (flag ? a < 1 : a < 2) && b > 0
+        ternary = node(
+            "cond",
+            condition=ref("flag"),
+            thenBranch=node("binary", op="<", left=ref("a"), right=num(1)),
+            elseBranch=node("binary", op="<", left=ref("a"), right=num(2)),
+        )
+        constraint = parameter_constraint(
+            node(
+                "binary",
+                op="&&",
+                left=ternary,
+                right=node("binary", op=">", left=ref("b"), right=num(0)),
+            )
+        )
+        self.agree(
+            constraint,
+            [
+                {"a": 1.5, "b": 1, "flag": False},
+                {"a": 1.5, "b": 1, "flag": True},
+                {"a": 0.5, "b": -1, "flag": True},
+            ],
+        )
+
+    def test_equality_of_boolean_ternaries(self) -> None:
+        # (turbo ? flag : true) == (1.5 <= rate)   and the same with !=
+        for op in ("==", "!="):
+            left = node(
+                "cond",
+                condition=ref("turbo"),
+                thenBranch=ref("flag"),
+                elseBranch=node("boolLit", value=True),
+            )
+            right = node("binary", op="<=", left=num(1.5), right=ref("rate"))
+            constraint = parameter_constraint(
+                node("binary", op=op, left=left, right=right)
+            )
+            self.agree(
+                constraint,
+                [
+                    {"turbo": False, "flag": False, "rate": 100},
+                    {"turbo": True, "flag": False, "rate": 100},
+                    {"turbo": True, "flag": True, "rate": 1},
+                ],
+            )
+
+    def test_remainder_takes_the_dividends_sign(self) -> None:
+        constraint = parameter_constraint(
+            node(
+                "binary",
+                op="<",
+                left=node("binary", op="%", left=ref("a"), right=num(3)),
+                right=num(0),
+            )
+        )
+        self.agree(constraint, [{"a": -7}, {"a": 7}, {"a": -4.5}, {"a": 6}])
+
+    def test_cube_root_stays_real(self) -> None:
+        constraint = parameter_constraint(
+            node(
+                "binary",
+                op="<",
+                left=node("mathCall", fn="cbrt", args=[ref("a")]),
+                right=num(0),
+            )
+        )
+        self.agree(constraint, [{"a": -8}, {"a": 8}, {"a": -0.749}])
+
+
+class TestStateBinding:
+    def test_a_state_must_be_a_record(self) -> None:
+        bound = parse_constraint(data("stateBound"))
+        assert isinstance(bound, StateConstraint)
+        with pytest.raises(HirEvaluationError, match="state record"):
+            bound([1, 2, 3])  # type: ignore[arg-type]

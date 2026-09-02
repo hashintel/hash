@@ -497,3 +497,77 @@ class TestRejections:
         )
         with pytest.raises(HirEvaluationError, match="boolean"):
             numeric(scenario={})
+
+
+class TestRunTimeShapeErrors:
+    """Well-formed HIR whose values do not fit at run time raises
+    HirEvaluationError, never a bare Python exception."""
+
+    @staticmethod
+    def _node(kind: str, **fields: object) -> dict[str, object]:
+        return {"kind": kind, "id": 0, "span": SPAN, **fields}
+
+    def _num(self, value: float) -> dict[str, object]:
+        return self._node("numberLit", value=value, raw=repr(value))
+
+    def _eval(self, body: dict[str, object], **scenario: float) -> object:
+        return evaluate_hir(
+            {
+                "hirVersion": 1,
+                "surface": "scenario-expression",
+                "params": [],
+                "span": SPAN,
+                "body": body,
+            },
+            scenario=scenario,
+        )
+
+    def test_math_extrema_follow_ecmascript(self) -> None:
+        assert self._eval(self._node("mathCall", fn="max", args=[])) == -math.inf
+        assert self._eval(self._node("mathCall", fn="min", args=[])) == math.inf
+        assert self._eval(self._node("mathCall", fn="max", args=[self._num(5)])) == 5
+
+    def test_math_arity_is_an_evaluation_error(self) -> None:
+        with pytest.raises(HirEvaluationError, match=r"Math\.sqrt"):
+            self._eval(
+                self._node("mathCall", fn="sqrt", args=[self._num(1), self._num(2)])
+            )
+        with pytest.raises(HirEvaluationError, match=r"Math\.atan2"):
+            self._eval(self._node("mathCall", fn="atan2", args=[self._num(1)]))
+
+    def test_non_integer_index_is_an_evaluation_error(self) -> None:
+        array = self._node("arrayLit", elements=[self._num(1), self._num(2)])
+        for index in (math.nan, math.inf, 0.9):
+            with pytest.raises(HirEvaluationError, match="not an integer"):
+                self._eval(
+                    self._node(
+                        "indexAccess",
+                        target=array,
+                        index=self._node("scenarioRef", name="k"),
+                    ),
+                    k=index,
+                )
+
+    def test_range_argument_count(self) -> None:
+        with pytest.raises(HirEvaluationError, match="range"):
+            self._eval(self._node("rangeCall", args=[]))
+        with pytest.raises(HirEvaluationError, match="range"):
+            self._eval(
+                self._node("rangeCall", args=[self._num(-1e308), self._num(1e308)])
+            )
+
+    def test_huge_integers_coerce_like_js_numbers(self) -> None:
+        # An int past the double range is a valid Scalar; JS would read it
+        # as Infinity, and so must the evaluator instead of overflowing.
+        body = self._node(
+            "binary",
+            op="/",
+            left=self._node("scenarioRef", name="a"),
+            right=self._num(2),
+        )
+        assert self._eval(body, a=10**400) == math.inf
+
+    def test_infinite_dividend_remainder_is_nan(self) -> None:
+        inf = self._node("mathCall", fn="exp", args=[self._num(1000)])
+        result = self._eval(self._node("binary", op="%", left=inf, right=self._num(7)))
+        assert isinstance(result, float) and math.isnan(result)
