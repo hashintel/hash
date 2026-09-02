@@ -483,6 +483,11 @@ export class OpenAIRealtimeSession {
   public completeFunctionCall(
     callId: string,
     responseTextInput: readonly string[],
+    {
+      speakResponse = true,
+    }: {
+      readonly speakResponse?: boolean;
+    } = {},
   ): void {
     if (!callId) {
       throw new VoiceError("speech", "invalid-response", "");
@@ -496,7 +501,9 @@ export class OpenAIRealtimeSession {
         output: JSON.stringify({ response_text: responseText }),
       },
     });
-    this.#requestSpeech(responseText, false);
+    if (speakResponse) {
+      this.#requestSpeech(responseText, false);
+    }
   }
 
   public prepareInterviewSpeech(

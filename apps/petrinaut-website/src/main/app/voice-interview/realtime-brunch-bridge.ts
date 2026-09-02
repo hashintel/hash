@@ -20,7 +20,11 @@ interface ChatUpdate {
 }
 
 interface RealtimeBridgeSession {
-  completeFunctionCall(callId: string, responseText: readonly string[]): void;
+  completeFunctionCall(
+    callId: string,
+    responseText: readonly string[],
+    options?: { readonly speakResponse?: boolean },
+  ): void;
   prepareInterviewSpeech(
     request: InterviewSpeechPreparationRequest,
   ): Promise<InterviewSpeechPreparationResult>;
@@ -198,6 +202,7 @@ export class RealtimeBrunchBridge {
     status: "ready",
   };
   #generation = 0;
+  #speechGeneration = 0;
 
   public constructor({
     session,
@@ -253,7 +258,7 @@ export class RealtimeBrunchBridge {
   }
 
   public cancelPendingSpeech(): void {
-    ++this.#generation;
+    ++this.#speechGeneration;
   }
 
   public updateChat(update: ChatUpdate): void {
@@ -541,6 +546,7 @@ export class RealtimeBrunchBridge {
   ): void {
     this.#emit({ type: "speech-delivery-pending" });
     const generation = this.#generation;
+    const speechGeneration = this.#speechGeneration;
     const questionWordCount = source.questionSegment
       ? spokenWordCount(source.questionSegment.text)
       : 0;
@@ -593,13 +599,28 @@ export class RealtimeBrunchBridge {
       if (generation !== this.#generation) {
         return;
       }
+      const preparedSpeech = assemblePreparedInterviewSpeech({
+        preparation,
+        source,
+      });
+      if (speechGeneration !== this.#speechGeneration) {
+        if (delivery.kind === "function-call") {
+          try {
+            this.#session.completeFunctionCall(
+              delivery.callId,
+              source.fullResponseSegments.map(({ text }) => text),
+              { speakResponse: false },
+            );
+          } catch {
+            this.#fail(INVALID_BRIDGE_EVENT);
+          }
+        }
+        return;
+      }
       if (preparation.kind === "prepared") {
         this.#preparedContextCache.set(request.cacheKey, preparation.context);
       }
-      this.#deliverPreparedSpeech(
-        assemblePreparedInterviewSpeech({ preparation, source }).text,
-        delivery,
-      );
+      this.#deliverPreparedSpeech(preparedSpeech.text, delivery);
     });
   }
 

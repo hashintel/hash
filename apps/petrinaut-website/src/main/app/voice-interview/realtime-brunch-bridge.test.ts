@@ -395,6 +395,75 @@ describe("RealtimeBrunchBridge", () => {
     );
   });
 
+  test("completes a function call without speech when preparation is cancelled", async () => {
+    const harness = createHarness();
+    const question = segment("ask-current", "What happens after approval?");
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question],
+      status: "ready",
+    });
+    harness.bridge.start(7);
+    harness.emit(toolDone(7));
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [question],
+      status: "streaming",
+    });
+
+    let finishPreparation:
+      | ((result: InterviewSpeechPreparationResult) => void)
+      | undefined;
+    harness.session.prepareInterviewSpeech.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishPreparation = resolve;
+        }),
+    );
+    const acknowledgement = segment(
+      "acknowledgement",
+      "Thanks. I have recorded that.",
+      "assistant-text",
+    );
+    const nextQuestion = segment(
+      "ask-next",
+      "Who is informed next?",
+      "brunch-ask",
+    );
+    const source = speechSource({
+      context: [acknowledgement],
+      question: nextQuestion,
+    });
+    harness.bridge.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question, ...source.fullResponseSegments],
+      status: "ready",
+    });
+    await vi.waitFor(() =>
+      expect(harness.session.prepareInterviewSpeech).toHaveBeenCalledOnce(),
+    );
+
+    harness.bridge.cancelPendingSpeech();
+    finishPreparation?.({
+      context: "Prepared concise context.",
+      kind: "prepared",
+      sourceSegmentIds: [acknowledgement.id],
+    });
+
+    await vi.waitFor(() =>
+      expect(harness.session.completeFunctionCall).toHaveBeenCalledWith(
+        "call-1",
+        [acknowledgement.text, nextQuestion.text],
+        { speakResponse: false },
+      ),
+    );
+    expect(harness.session.speakPrepared).not.toHaveBeenCalled();
+  });
+
   test("speaks the current canonical turn without replaying history", () => {
     const harness = createHarness();
     const historical = segment(

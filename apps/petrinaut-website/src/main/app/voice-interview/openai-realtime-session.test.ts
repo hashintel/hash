@@ -361,6 +361,28 @@ describe("OpenAIRealtimeSession", () => {
         tools: [],
       },
     });
+
+    const responseCreateCount = sentEvents(channel).filter(
+      ({ type }) => type === "response.create",
+    ).length;
+    harness.session.completeFunctionCall(
+      "call-2",
+      ["Response cancelled before speech."],
+      { speakResponse: false },
+    );
+    expect(sentEvents(channel).at(-1)).toEqual({
+      type: "conversation.item.create",
+      item: {
+        type: "function_call_output",
+        call_id: "call-2",
+        output: JSON.stringify({
+          response_text: ["Response cancelled before speech."],
+        }),
+      },
+    });
+    expect(
+      sentEvents(channel).filter(({ type }) => type === "response.create"),
+    ).toHaveLength(responseCreateCount);
   });
 
   test("renders prepared strings through the verbatim out-of-band audio response", async () => {
