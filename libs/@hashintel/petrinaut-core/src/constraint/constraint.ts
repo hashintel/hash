@@ -17,7 +17,7 @@
  * manifest); this module owns the shape, not the placement. Nothing enforces
  * constraints yet: they are declared, validated, and evaluable.
  *
- * @layerRoot core.constraint
+ * @layerRoot core.constraints
  * @role Boolean conditions over the parameter space or the simulation state, authored as TypeScript, carried as HIR, and shaped once for every consumer
  */
 
