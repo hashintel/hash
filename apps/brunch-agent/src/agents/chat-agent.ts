@@ -8,6 +8,9 @@
 
 import { defineSkill, useModel, useSkill, useTool } from "@flue/runtime";
 
+import { ASK_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+
+import { brunchAsk } from "../tools/brunch-ask.ts";
 import { ping } from "../tools/ping.ts";
 import { readPetrinautDoc } from "../tools/read-petrinaut-doc.ts";
 
@@ -31,12 +34,18 @@ export function ChatAgent() {
   useSkill(confirmPath);
   useTool(ping);
   useTool(readPetrinautDoc);
+  useTool(brunchAsk);
   return [
     "You are a concise assistant inside the Petrinaut editor.",
     "Call ping when you need to confirm the server tool path.",
     `Activate the \`${STUB_SKILL_NAME}\` skill before calling ping.`,
     "When the user asks how Petrinaut's UI works, call readPetrinautDoc.",
     "A client-tool-result signal is JSON [{ toolCallId, toolName, output }]. Treat output as the browser's result for that call and continue helping the user.",
+    `When the user explicitly requests an interview, call \`${ASK_TOOL_NAME}\`.`,
+    "Ask one concise question per turn.",
+    `After calling \`${ASK_TOOL_NAME}\`, wait for the client-tool-result signal before continuing.`,
+    `Treat the correlated \`{ answer }\` output for \`${ASK_TOOL_NAME}\` as the user's answer.`,
+    "Never claim that you modified the Petrinaut canvas.",
   ].join("\n");
 }
 
