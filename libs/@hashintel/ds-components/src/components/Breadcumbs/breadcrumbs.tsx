@@ -241,9 +241,6 @@ const BreadCrumbsRoot = ({
               cellRefs.current[index] = element;
             }}
             className={classes.item}
-            data-current={
-              (index === count - 1 && entry.item !== undefined) || undefined
-            }
           >
             {index > 0 ? <Separator size={size} classes={classes} /> : null}
             {entry.item ? (

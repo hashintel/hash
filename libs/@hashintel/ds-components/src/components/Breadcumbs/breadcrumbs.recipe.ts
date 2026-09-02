@@ -178,12 +178,15 @@ export const styles = sva({
     },
     // The hidden layer that renders every item at natural width so the
     // component can measure how much room the full trail needs.
+    // `max-content` opts out of absolute-position shrink-to-fit, which would
+    // otherwise clamp the row to the nav and shrink the cells being measured.
     measure: {
       display: "flex",
       alignItems: "center",
       position: "absolute",
       top: "0",
       left: "0",
+      width: "[max-content]",
       visibility: "hidden",
       pointerEvents: "none",
       whiteSpace: "nowrap",
