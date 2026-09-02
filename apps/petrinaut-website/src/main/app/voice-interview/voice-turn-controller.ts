@@ -465,10 +465,15 @@ export class VoiceTurnController {
       return;
     }
     if (event.type === "transcript-rejected") {
+      // Duplicate redelivery and overlap with an in-flight answer are
+      // diagnostics only. They may refer to an older transcript, so must not
+      // disturb the current input turn or restore its cancelled speech.
+      if (event.reason === "duplicate" || event.reason === "unavailable") {
+        return;
+      }
+
       // Nothing was submitted, so the interview is unchanged. Silence, noise,
-      // or a transcription failure is surfaced as a recoverable notice; other
-      // rejections (duplicate redelivery, overlap with an in-flight answer)
-      // are diagnostics only.
+      // or a transcription failure is surfaced as a recoverable notice.
       this.#inputTurnPending = false;
       this.#transcriptItemId = null;
       this.#transcriptKey = null;
@@ -477,7 +482,9 @@ export class VoiceTurnController {
       } else {
         this.#update({});
       }
-      this.#bridge.restoreCancelledSpeech();
+      if (this.#snapshot.input !== "paused") {
+        this.#bridge.restoreCancelledSpeech();
+      }
       return;
     }
     if (event.type === "submission-accepted") {

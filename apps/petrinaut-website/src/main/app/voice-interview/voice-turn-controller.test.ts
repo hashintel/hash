@@ -767,7 +767,62 @@ describe("VoiceTurnController", () => {
       lastAnswerDelivery: "pending",
       lastCommittedText: "First answer",
     });
+    expect(harness.bridge.restoreCancelledSpeech).not.toHaveBeenCalled();
   });
+
+  test.each(["duplicate", "unavailable"] as const)(
+    "keeps the active input turn when a transcript is rejected as %s",
+    async (reason) => {
+      const harness = createHarness();
+      await harness.controller.start();
+      harness.emitSession({
+        connectionEpoch: 1,
+        itemId: "item-1",
+        type: "input-speech-started",
+      });
+      harness.emitSession({
+        key: { connectionEpoch: 1, contentIndex: 0, itemId: "item-1" },
+        text: "Current ",
+        type: "partial",
+      });
+
+      harness.emitBridge({ reason, type: "transcript-rejected" });
+      harness.emitSession({
+        key: { connectionEpoch: 1, contentIndex: 0, itemId: "item-1" },
+        text: "answer",
+        type: "completed",
+      });
+
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        input: "listening",
+        inputNotice: "none",
+        partialText: "answer",
+      });
+      expect(harness.bridge.restoreCancelledSpeech).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(["empty", "failed"] as const)(
+    "does not restore rejected speech while paused for %s input",
+    async (reason) => {
+      const harness = createHarness();
+      await harness.controller.start();
+      harness.emitSession({
+        connectionEpoch: 1,
+        itemId: "item-1",
+        type: "input-speech-started",
+      });
+      harness.controller.pause();
+
+      harness.emitBridge({ reason, type: "transcript-rejected" });
+
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        input: "paused",
+        inputNotice: "not-heard",
+      });
+      expect(harness.bridge.restoreCancelledSpeech).not.toHaveBeenCalled();
+    },
+  );
 
   test("clears the not-heard notice when an answer is submitted while paused", async () => {
     const harness = createHarness();
