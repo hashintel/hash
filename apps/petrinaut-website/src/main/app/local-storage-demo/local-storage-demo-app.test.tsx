@@ -5,7 +5,8 @@ import { isValidElement, type ReactNode } from "react";
 import { describe, expect, test, vi } from "vitest";
 
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
-import { getBrunchVoiceMode } from "./local-storage-demo-app";
+import { getBrunchVoiceMode } from "./brunch-voice-mode";
+import * as localStorageDemoAppModule from "./local-storage-demo-app";
 
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
@@ -25,6 +26,14 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
   WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
   definePetrinautAiInteractiveTool: (definition: unknown) => definition,
 }));
+
+describe("local storage demo Fast Refresh boundary", () => {
+  test("keeps the app module free of non-component exports", () => {
+    expect(Object.keys(localStorageDemoAppModule)).toEqual([
+      "LocalStorageDemoApp",
+    ]);
+  });
+});
 
 describe("local storage demo Brunch voice integration", () => {
   test("does not install voice on the generic local chat fallback", () => {

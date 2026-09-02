@@ -670,15 +670,15 @@ describe("AiAssistantContents", () => {
       outputSchema: {
         parse: (raw: unknown) => raw as { answer: string },
       },
-      supportsSubmittedOutputPrefix: true,
+      supportsSubmittedOutputProvenance: true,
       component: ({
         state,
         submittedOutput,
-        submittedOutputPrefix,
+        submittedOutputProvenance,
         toolCallId,
       }) => (
         <span data-testid={`answer-${toolCallId}`}>
-          {state === "submitted" ? submittedOutputPrefix : null}
+          {state === "submitted" ? submittedOutputProvenance : null}
           <span>{`${toolCallId}: ${submittedOutput?.answer}`}</span>
         </span>
       ),
@@ -728,6 +728,8 @@ describe("AiAssistantContents", () => {
     );
     const voiceText = screen.getByText("question-voice: The shift lead");
     expect(voiceProvenance.nextElementSibling).toBe(voiceText);
+    expect(voiceProvenance.textContent).toBe("Submitted by voice");
+    expect(voiceProvenance.querySelector("svg")).toBeNull();
     expect(
       within(screen.getByTestId("answer-question-typed")).queryByTestId(
         "voice-input-provenance",

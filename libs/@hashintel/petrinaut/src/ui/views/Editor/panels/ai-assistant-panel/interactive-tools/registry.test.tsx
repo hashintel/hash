@@ -20,7 +20,7 @@ const hostTool = definePetrinautAiInteractiveTool({
   outputSchema: {
     parse: (raw: unknown) => raw as { approved: boolean },
   },
-  supportsSubmittedOutputPrefix: true,
+  supportsSubmittedOutputProvenance: true,
   component: () => null,
 });
 
@@ -36,7 +36,7 @@ describe("interactive tool registry", () => {
     expect(definition.parseInput({ question: "Ship this change?" })).toEqual({
       question: "Ship this change?",
     });
-    expect(definition.supportsSubmittedOutputPrefix).toBe(true);
+    expect(definition.supportsSubmittedOutputProvenance).toBe(true);
     expect(() => definition.parseInput({ question: 42 })).toThrow(
       "Expected a question",
     );

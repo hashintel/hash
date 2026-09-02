@@ -56,13 +56,13 @@ const confirmationTool = definePetrinautAiInteractiveTool({
   toolName: "confirmOperation",
   inputSchema: z.object({ question: z.string() }),
   outputSchema: z.object({ approved: z.boolean() }),
-  supportsSubmittedOutputPrefix: true,
+  supportsSubmittedOutputProvenance: true,
   component: ({
     input,
     state,
     submit,
     submittedOutput,
-    submittedOutputPrefix,
+    submittedOutputProvenance,
     toolCallId,
   }) =>
     state === "awaiting" ? (
@@ -72,10 +72,10 @@ const confirmationTool = definePetrinautAiInteractiveTool({
         <button onClick={() => submit({ approved: false })}>Decline</button>
       </section>
     ) : (
-      <p>
-        {submittedOutputPrefix}
-        <span>{submittedOutput.approved ? "Approved" : "Declined"}</span>
-      </p>
+      <div>
+        <p>{submittedOutput.approved ? "Approved" : "Declined"}</p>
+        {submittedOutputProvenance}
+      </div>
     ),
 });
 
@@ -96,13 +96,14 @@ checked before Petrinaut calls the AI SDK's `addToolOutput`.
 The component receives a stable `toolCallId` plus a discriminated lifecycle:
 `state: "awaiting"` has no submitted output, while `state: "submitted"`
 includes the validated `submittedOutput`. A tool can set
-`supportsSubmittedOutputPrefix: true` and render `submittedOutputPrefix`
-immediately before its submitted value; Petrinaut uses that slot for inline
-provenance when available. Widgets that omit the opt-in keep the trailing
-provenance fallback. While a submission is in flight, duplicate `submit` calls
-are ignored. An accepted submission stays one-shot; if the AI SDK rejects it,
-the awaiting component can submit again. Once every pending tool call has
-output, the existing AI SDK automatic follow-up runs as usual.
+`supportsSubmittedOutputProvenance: true` and position
+`submittedOutputProvenance` next to its submitted value; Petrinaut uses that
+slot for context-appropriate provenance when available. Widgets that omit the
+opt-in keep the trailing provenance fallback. While a submission is in flight,
+duplicate `submit` calls are ignored. An accepted submission stays one-shot; if
+the AI SDK rejects it, the awaiting component can submit again. Once every
+pending tool call has output, the existing AI SDK automatic follow-up runs as
+usual.
 
 Tool names must be unique within the host registry and must not collide with a
 built-in Petrinaut tool such as `applyAutoLayout`. A dynamic tool call with no

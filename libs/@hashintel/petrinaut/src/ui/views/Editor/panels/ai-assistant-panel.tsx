@@ -1,6 +1,6 @@
 import { useChat } from "@ai-sdk/react";
 import { generateId, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   aiCommandActionInputSchemas,
@@ -33,6 +33,11 @@ import {
 import { VoiceSessionContext } from "../../../../react/voice-session/context";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { AiAssistantContents } from "./ai-assistant-panel/ai-assistant-contents";
+import { DiagnosticsTransportState } from "./ai-assistant-panel/diagnostics-transport-state";
+import {
+  AiAssistantComposerControl,
+  AiAssistantVoiceMode,
+} from "./ai-assistant-panel/host-controls";
 import {
   REVIEW_CHIPS,
   STARTER_CHIPS,
@@ -214,17 +219,14 @@ export const addMappedToolOutput = async ({
 
 const waitForDiagnosticsRefresh = async ({
   consumePendingMutationDiagnosticsVersion,
-  diagnosticsVersionRef,
+  getDiagnosticsVersion,
 }: {
   consumePendingMutationDiagnosticsVersion: () => number | null;
-  diagnosticsVersionRef: { current: number };
+  getDiagnosticsVersion: () => number;
 }) => {
   const pendingVersion = consumePendingMutationDiagnosticsVersion();
 
-  if (
-    pendingVersion === null ||
-    diagnosticsVersionRef.current > pendingVersion
-  ) {
+  if (pendingVersion === null || getDiagnosticsVersion() > pendingVersion) {
     return;
   }
 
@@ -233,7 +235,7 @@ const waitForDiagnosticsRefresh = async ({
 
     const check = () => {
       if (
-        diagnosticsVersionRef.current > pendingVersion ||
+        getDiagnosticsVersion() > pendingVersion ||
         Date.now() >= timeoutAt
       ) {
         resolve();
@@ -297,10 +299,8 @@ export const AiAssistantPanel = ({
   onInitialInteractionModeConsumed?: () => void;
   onInitialMessageConsumed?: () => void;
 }) => {
-  // The wrapped AI transport closes over several refs (diagnostics version,
-  // pending mutation version, diagnostics context) so the transport's
-  // `sendMessages` can read the latest values when it eventually runs. React
-  // Compiler can't prove those reads happen off-render, so we opt out here.
+  // This component coordinates imperative Voice and transport lifecycles in
+  // effects, so it intentionally remains outside compiler memoization.
   "use no memo";
 
   const instance = use(PetrinautInstanceContext);
@@ -364,66 +364,51 @@ export const AiAssistantPanel = ({
     titleRef.current = title;
   }, [title]);
 
-  const diagnosticsContextRef = useRef("No current TypeScript diagnostics.");
-  const diagnosticsVersionRef = useRef(0);
-  const pendingMutationDiagnosticsVersionRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    diagnosticsVersionRef.current += 1;
-  }, [diagnosticsByUri]);
-
-  useEffect(() => {
-    diagnosticsContextRef.current = formatDiagnosticsForAi({
-      definition: petriNetDefinition,
-      diagnosticsByUri,
-    });
-  }, [diagnosticsByUri, petriNetDefinition]);
-
-  /* eslint-disable react-hooks-js/refs -- See the `"use no memo"` directive
-     above: the refs are only read when the wrapped transport runs, never during
-     render. The lint rule can't see that. */
-  const buildWrappedTransport = (transport: typeof aiAssistant.transport) =>
-    // The timing wrapper sits on the outside so reasoning-chunk receipt is
-    // tagged with `Date.now()` even when the inner diagnostics wrapper has
-    // added the post-tool diagnostics context message to the request. Order
-    // matters here only insofar as the timing wrapper consumes the *response*
-    // stream from whatever inner transport produced it — it does not touch
-    // the request side.
-    createReasoningTimingAwareAiTransport(
-      createDiagnosticsAwareAiTransport({
-        getDiagnosticsContext: () => diagnosticsContextRef.current,
-        transport,
-        waitForDiagnosticsRefresh: () =>
-          waitForDiagnosticsRefresh({
-            consumePendingMutationDiagnosticsVersion: () => {
-              const pendingVersion =
-                pendingMutationDiagnosticsVersionRef.current;
-              pendingMutationDiagnosticsVersionRef.current = null;
-              return pendingVersion;
-            },
-            diagnosticsVersionRef,
-          }),
-      }),
-    );
-
-  const [diagnosticsTransportState, setDiagnosticsTransportState] = useState(
-    () => ({
-      source: aiAssistant.transport,
-      transport: buildWrappedTransport(aiAssistant.transport),
-    }),
+  const [diagnosticsTransport] = useState(
+    () => new DiagnosticsTransportState(),
   );
 
   useEffect(() => {
-    if (diagnosticsTransportState.source === aiAssistant.transport) {
-      return;
-    }
+    diagnosticsTransport.incrementDiagnosticsVersion();
+  }, [diagnosticsByUri, diagnosticsTransport]);
 
-    setDiagnosticsTransportState({
-      source: aiAssistant.transport,
-      transport: buildWrappedTransport(aiAssistant.transport),
-    });
-  }, [aiAssistant.transport, diagnosticsTransportState.source]);
-  /* eslint-enable react-hooks-js/refs */
+  useEffect(() => {
+    diagnosticsTransport.setDiagnosticsContext(
+      formatDiagnosticsForAi({
+        definition: petriNetDefinition,
+        diagnosticsByUri,
+      }),
+    );
+  }, [diagnosticsByUri, diagnosticsTransport, petriNetDefinition]);
+
+  const buildWrappedTransport = useCallback(
+    (transport: typeof aiAssistant.transport) =>
+      // The timing wrapper sits on the outside so reasoning-chunk receipt is
+      // tagged with `Date.now()` even when the inner diagnostics wrapper has
+      // added the post-tool diagnostics context message to the request. Order
+      // matters here only insofar as the timing wrapper consumes the *response*
+      // stream from whatever inner transport produced it — it does not touch
+      // the request side.
+      createReasoningTimingAwareAiTransport(
+        createDiagnosticsAwareAiTransport({
+          getDiagnosticsContext: diagnosticsTransport.getDiagnosticsContext,
+          transport,
+          waitForDiagnosticsRefresh: () =>
+            waitForDiagnosticsRefresh({
+              consumePendingMutationDiagnosticsVersion:
+                diagnosticsTransport.consumePendingMutationDiagnosticsVersion,
+              getDiagnosticsVersion:
+                diagnosticsTransport.getDiagnosticsVersion,
+            }),
+        }),
+      ),
+    [diagnosticsTransport],
+  );
+
+  const wrappedDiagnosticsTransport = useMemo(
+    () => buildWrappedTransport(aiAssistant.transport),
+    [aiAssistant.transport, buildWrappedTransport],
+  );
 
   // Stream errors (server returned an error chunk, function timed out, etc.)
   // are otherwise opaque to the user — `useChat` resets `status` to `"ready"`
@@ -526,7 +511,7 @@ export const AiAssistantPanel = ({
       ? {}
       : { id: aiAssistant.conversationId }),
     messages: aiAssistant.messages,
-    transport: diagnosticsTransportState.transport,
+    transport: wrappedDiagnosticsTransport,
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     // Without throttling, every reasoning-delta / text-delta chunk triggers a
     // full re-render of `AiAssistantContents`, and the SDK `structuredClone`s
@@ -606,17 +591,14 @@ export const AiAssistantPanel = ({
 
       if (toolCall.toolName === getNetCompilationErrorsToolName) {
         await waitForDiagnosticsRefresh({
-          consumePendingMutationDiagnosticsVersion: () => {
-            const pendingVersion = pendingMutationDiagnosticsVersionRef.current;
-            pendingMutationDiagnosticsVersionRef.current = null;
-            return pendingVersion;
-          },
-          diagnosticsVersionRef,
+          consumePendingMutationDiagnosticsVersion:
+            diagnosticsTransport.consumePendingMutationDiagnosticsVersion,
+          getDiagnosticsVersion: diagnosticsTransport.getDiagnosticsVersion,
         });
         safelyAddToolOutput(addToolOutput, {
           tool: toolCall.toolName,
           toolCallId: toolCall.toolCallId,
-          output: diagnosticsContextRef.current,
+          output: diagnosticsTransport.getDiagnosticsContext(),
         });
         return;
       }
@@ -719,8 +701,7 @@ export const AiAssistantPanel = ({
           return;
         }
 
-        pendingMutationDiagnosticsVersionRef.current =
-          diagnosticsVersionRef.current;
+        diagnosticsTransport.markMutationPending();
 
         const aiToolCall = {
           toolName,
@@ -743,8 +724,7 @@ export const AiAssistantPanel = ({
         toolCall.input,
       );
 
-      pendingMutationDiagnosticsVersionRef.current =
-        diagnosticsVersionRef.current;
+      diagnosticsTransport.markMutationPending();
 
       const aiToolCall = {
         toolName,
@@ -986,6 +966,7 @@ export const AiAssistantPanel = ({
     }
     if (status === "error") {
       queuedVoiceInputRef.current = null;
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Settle the queued input when the external chat state rejects it.
       setVoiceInputQueued(false);
       queued.reject(new Error("Voice mode could not accept that input."));
       return;
@@ -1122,6 +1103,7 @@ export const AiAssistantPanel = ({
       return;
     }
 
+    // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Consume the host's one-shot initial mode after the panel opens.
     selectInteractionMode(
       initialInteractionMode === "voice" &&
         aiAssistant.renderVoiceMode === undefined
@@ -1143,6 +1125,7 @@ export const AiAssistantPanel = ({
       interactionMode === "voice" &&
       aiAssistant.renderVoiceMode === undefined
     ) {
+      // eslint-disable-next-line react-hooks-js/set-state-in-effect -- Fall back when the host removes Voice support.
       selectInteractionMode("text");
     }
   }, [aiAssistant.renderVoiceMode, interactionMode, selectInteractionMode]);
@@ -1164,9 +1147,11 @@ export const AiAssistantPanel = ({
 
     submittedInitialMessageRef.current = trimmedInitialMessage;
     onInitialMessageConsumed?.();
+    /* eslint-disable react-hooks-js/set-state-in-effect -- Consume the host's one-shot initial message into composer state. */
     setInput("");
     setStreamError(null);
     setStopped(false);
+    /* eslint-enable react-hooks-js/set-state-in-effect */
     stopRequestedRef.current = false;
 
     submitUserText(trimmedInitialMessage);
@@ -1203,13 +1188,14 @@ export const AiAssistantPanel = ({
     stop: stopComposer,
     submitText,
   };
-  /* eslint-disable react-hooks-js/refs -- The public render prop receives
-     stable event callbacks that read their refs only when the host invokes
-     them from an event handler or effect. */
-  const composerControl = aiAssistant.renderComposerControl?.(
-    composerControlContext,
-  );
-  const voiceMode = aiAssistant.renderVoiceMode?.({
+  const composerControl =
+    aiAssistant.renderComposerControl === undefined ? undefined : (
+      <AiAssistantComposerControl
+        context={composerControlContext}
+        renderControl={aiAssistant.renderComposerControl}
+      />
+    );
+  const voiceModeContext: PetrinautAiVoiceModeContext = {
     ...composerControlContext,
     canAcceptVoiceInput: !voiceInputQueued,
     inputMode: interactionMode,
@@ -1219,8 +1205,14 @@ export const AiAssistantPanel = ({
     setInputMode: requestInputMode,
     setVoiceActive,
     submitVoiceInput,
-  });
-  /* eslint-enable react-hooks-js/refs */
+  };
+  const voiceMode =
+    aiAssistant.renderVoiceMode === undefined ? undefined : (
+      <AiAssistantVoiceMode
+        context={voiceModeContext}
+        renderVoiceMode={aiAssistant.renderVoiceMode}
+      />
+    );
 
   return (
     <AiAssistantContents
@@ -1301,8 +1293,7 @@ export const AiAssistantPanel = ({
           return;
         }
 
-        pendingMutationDiagnosticsVersionRef.current =
-          diagnosticsVersionRef.current;
+        diagnosticsTransport.markMutationPending();
 
         void instance.commands.applyAutoLayout().then((result) => {
           safelyAddToolOutput(addToolOutput, {

@@ -13,13 +13,14 @@ import { StrictMode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
+import { loadOpenAIVoiceConfig } from "./load-openai-voice-config";
+import * as voiceInterviewControlModule from "./voice-interview-control";
+import { VoiceInterviewControl } from "./voice-interview-control";
 import {
   acknowledgeVoiceInterviewDisclosure,
   isVoiceInterviewDisclosureAcknowledged,
-  loadOpenAIVoiceConfig,
   VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,
-  VoiceInterviewControl,
-} from "./voice-interview-control";
+} from "./voice-interview-disclosure";
 import { VoiceTurnController } from "./voice-turn-controller";
 
 import type {
@@ -177,6 +178,14 @@ afterEach(() => {
   vi.restoreAllMocks();
   window.localStorage.clear();
   vi.unstubAllGlobals();
+});
+
+describe("voice interview Fast Refresh boundary", () => {
+  test("keeps the control module free of non-component exports", () => {
+    expect(Object.keys(voiceInterviewControlModule)).toEqual([
+      "VoiceInterviewControl",
+    ]);
+  });
 });
 
 describe("voice interview control", () => {

@@ -21,13 +21,13 @@ export type PetrinautAiInteractiveToolWidgetProps<Input, Output> =
       | {
           state: "awaiting";
           submittedOutput?: never;
-          submittedOutputPrefix?: never;
+          submittedOutputProvenance?: never;
         }
       | {
           state: "submitted";
           submittedOutput: Output;
-          /** Optional host-positioned content rendered before the submitted value. */
-          submittedOutputPrefix?: ReactNode;
+          /** Optional host-positioned provenance for the submitted value. */
+          submittedOutputProvenance?: ReactNode;
         }
     );
 
@@ -49,10 +49,9 @@ export type PetrinautAiInteractiveToolDefinition<Input, Output> = {
    */
   fromComposerText?: (params: { input: Input; text: string }) => Output;
   /**
-   * Opt in to positioning Petrinaut-provided provenance inside the widget,
-   * immediately before its submitted output.
+   * Opt in to positioning Petrinaut-provided provenance inside the widget.
    */
-  supportsSubmittedOutputPrefix?: true;
+  supportsSubmittedOutputProvenance?: true;
   /** Inline component shown while awaiting input and after submission. */
   component: ComponentType<
     PetrinautAiInteractiveToolWidgetProps<Input, Output>
@@ -64,7 +63,7 @@ type ErasedInteractiveToolDefinition = {
   parseInput: (value: unknown) => unknown;
   parseOutput: (value: unknown) => unknown;
   fromComposerText?: (params: { input: unknown; text: string }) => unknown;
-  supportsSubmittedOutputPrefix?: true;
+  supportsSubmittedOutputProvenance?: true;
   component: ComponentType<
     PetrinautAiInteractiveToolWidgetProps<unknown, unknown>
   >;
@@ -102,7 +101,8 @@ export const definePetrinautAiInteractiveTool = <Input, Output>(
               }),
             )
         : undefined,
-      supportsSubmittedOutputPrefix: definition.supportsSubmittedOutputPrefix,
+      supportsSubmittedOutputProvenance:
+        definition.supportsSubmittedOutputProvenance,
       component: definition.component as ComponentType<
         PetrinautAiInteractiveToolWidgetProps<unknown, unknown>
       >,

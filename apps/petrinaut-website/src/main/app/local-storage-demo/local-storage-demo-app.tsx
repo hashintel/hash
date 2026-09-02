@@ -18,8 +18,6 @@ import {
   DefaultChatTransport,
   Petrinaut,
   type PetrinautAiMessage,
-  type PetrinautAiVoiceMode,
-  type PetrinautAiVoiceModeContext,
   WalkthroughProvider,
 } from "@hashintel/petrinaut/ui";
 
@@ -28,9 +26,9 @@ import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import {
   loadOpenAIVoiceConfig,
   type OpenAIVoiceConfig,
-  VoiceInterviewControl,
-} from "../voice-interview/voice-interview-control";
+} from "../voice-interview/load-openai-voice-config";
 import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
+import { getBrunchVoiceMode } from "./brunch-voice-mode";
 import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
 import { createBrunchPanelTransport } from "./brunch-panel-transport";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
@@ -100,15 +98,6 @@ const brunchPreviewConfig = resolveBrunchPreviewConfig(
 const brunchHistoryEndpoint = brunchPreviewConfig.isBrunchConfigured
   ? brunchPreviewConfig.chatEndpoint
   : null;
-
-export const getBrunchVoiceMode = (
-  config: OpenAIVoiceConfig | null | undefined,
-): PetrinautAiVoiceMode | undefined =>
-  config
-    ? (context: PetrinautAiVoiceModeContext) => (
-        <VoiceInterviewControl {...context} config={config} />
-      )
-    : undefined;
 
 const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
   createJsonDocHandle({
