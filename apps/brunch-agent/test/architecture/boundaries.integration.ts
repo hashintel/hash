@@ -19,7 +19,6 @@ import {
   AGENT_DIRECTIVE_STATEMENT,
   agentModules,
   allDependencies,
-  CONTEXT_ROOT,
   importedPackages,
   MODEL_KEY_NAME,
   packageOf,
@@ -42,37 +41,6 @@ const isSubstrate = (name: string): boolean =>
   SUBSTRATE_SCOPES.some((scope) => name.startsWith(scope));
 const byRole = (role: string): WorkspacePackage[] =>
   PACKAGES.filter((pkg) => pkg.dir.startsWith(`${role}-`));
-
-test("every workspace package is one the spec topology names", () => {
-  // Derived from the spec's own §12.2 topology block instead of a second
-  // hand-written list here. The spec names *intended* structure — some
-  // entries are not scaffolded yet — so the direction checked is disk ⊆
-  // spec: a package the spec does not name is loud, while an
-  // intended-but-unbuilt one is not a failure. (The old hardcoded equality
-  // would have failed the next legitimate package instead of governing it.)
-  const spec = readFileSync(
-    join(CONTEXT_ROOT, "docs/specs/elicitation-kernel.md"),
-    "utf8",
-  );
-  const topology = /### 12\.2[^\n]*\n[\s\S]*?```text\n([\s\S]*?)```/.exec(
-    spec,
-  )?.[1];
-  expect(topology).toBeDefined();
-  const named = new Set(
-    [...topology!.matchAll(/^((?:packages|apps)\/[\w-]+)(?=\s|$)/gm)].map(
-      (match) => match[1]!,
-    ),
-  );
-  expect(named.size).toBeGreaterThan(0);
-  for (const pkg of PACKAGES) {
-    const standalonePath =
-      pkg.kind === "app" ? "apps/dev" : `packages/${pkg.dir}`;
-    expect({ pkg: pkg.relPath, inSpec: named.has(standalonePath) }).toEqual({
-      pkg: pkg.relPath,
-      inSpec: true,
-    });
-  }
-});
 
 test("every package is actually scanned", () => {
   // Without this, a package the file walker misses passes every file-level

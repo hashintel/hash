@@ -631,7 +631,6 @@ packages/binding-flue      # the Flue binding (implements §10; owns the storage
 packages/transport-aisdk   # validated UI ingress + harness replies → AI SDK wire; no binding/substrate imports
 packages/plugin-gherkin
 packages/plugin-sdcpn      # the SDCPN process-model plugin definition and its slot-assertion proposal type (ADR-0006, ADR-0007)
-packages/plugin-dafny      # stubbed software-correctness / Dafny contribution bundle (FE-1563 topology pressure test)
 packages/plugin-assurance  # renamed 2026-08-10 from plugin-proof-obligations (§13.2)
 apps/dev                   # owns 'use agent' module, app.ts, db.ts, Vite build
 ```

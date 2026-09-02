@@ -80,6 +80,19 @@ Promotion is re-evaluation and conversion, never a rename or wholesale promotion
 
 The always-loaded invariants are: keep exactly one live mission; return every item omitted from a cut to the combined future planning record at full fidelity; remove the consumed draft so it cannot remain duplicate quasi-authority; and compare every affected planning file before and after with no unexplained loss or duplication. A current mission's **Deferred** items belong in that record and must not be silently dropped or superseded.
 
+### Decision integrity across handoffs
+
+These rules exist because Mission 4 lost its design between the owner conversation and production: each handoff summarized the previous summary, an evaluator narrowed an accepted wording, and prompts were then rewritten to satisfy the evaluator. The record is [`docs/evidence/design/mission-4-handoff-failure-analysis-2026-09-02.md`](docs/evidence/design/mission-4-handoff-failure-analysis-2026-09-02.md).
+
+1. **Current-decision promotion.** When the owner accepts a decision that changes the live mission's implementation or proof, amend `MISSION.md` before any further delegation. `MISSION.next.md`, drafts, evidence, ledgers, and transcripts never substitute for current authority.
+2. **Authority amendment before implementation.** The owner reviews and accepts a material recut; that authority change is committed on its own before dependent product or evaluation work begins. Never combine recut, implementation, instrument freeze, or close in one transformation or one commit.
+3. **Authority-preserving handoff.** A handoff that translates accepted semantic content, architecture, interaction policy, proof interpretation, or a frozen instrument names the protected source, each production destination, the permitted semantic deltas, and the unresolved choices. An unlisted semantic delta is a stop condition, not a judgment call. Mechanical corrections inside an owner-approved envelope with stated bounds and stop conditions may be batched without a per-change gate.
+4. **Oracle non-authority.** An oracle may falsify an implementation or a claim; it may not redefine policy, architecture, or interaction semantics. An operationalization stricter than the accepted wording is an owner decision, and prompts are never rewritten to mirror a checker.
+5. **Scoped experimental verdicts.** Every experiment adjudication states which decisions its evidence may update and which remain owner-held. Failure of one implementation mechanism does not select another architecture.
+6. **Rationale before disposal.** Before a workbench or draft holding the only explanation of a surviving decision is deleted, the surviving rationale is preserved under `docs/evidence/` with adopted and superseded portions marked, and the complete artifact is pinned by commit. Do not copy whole stale workbenches forward.
+7. **Status is present tense.** `MISSION.md` Status carries only the current state and pointers; campaign chronology lives in evidence.
+8. **Close by external acceptance.** Where closure, witness acceptance, handoff selection, or a paid ceiling is owner-reserved, an agent prepares the packet and stops. It records acceptance only after the owner has performed that gate.
+
 ## Correctives
 
 - Before adding structure, name the production pressure that requires it.
