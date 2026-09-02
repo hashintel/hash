@@ -66,7 +66,7 @@ use hash_graph_postgres_store::store::{
 };
 use hash_middleware::{
     authentication::{
-        provider::AuthenticationProvider,
+        provider::{AuthenticationProvider, Caller},
         request::{
             ACTOR_ID_HEADER, AuthenticationError, AuthenticationErrorKind, actor_id_from_header,
         },
@@ -86,14 +86,16 @@ use type_system::principal::actor::{ActorId, UserId};
 /// user in the arranged store.
 struct HeaderDelegation;
 
-impl AuthenticationProvider<Option<ActorId>> for HeaderDelegation {
+impl<C> AuthenticationProvider<C> for HeaderDelegation
+where
+    C: Caller,
+{
     fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> impl Future<Output = ControlFlow<Result<Option<ActorId>, Report<AuthenticationError>>>> + Send
-    {
+    ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send {
         core::future::ready(match actor_id_from_header(headers) {
-            Ok(actor) => ControlFlow::Break(Ok(Some(ActorId::User(UserId::new(actor))))),
+            Ok(actor) => ControlFlow::Break(Ok(C::from_actor(ActorId::User(UserId::new(actor))))),
             Err(error) if *error.kind() == AuthenticationErrorKind::MissingDelegatedActor => {
                 ControlFlow::Continue(())
             }
