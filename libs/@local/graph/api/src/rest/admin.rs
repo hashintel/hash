@@ -114,10 +114,16 @@ where
         KRATOS_HTTP_TIMEOUT,
     ));
 
-    let router = probe::router().merge(protected.route_layer(AuthenticationLayer::<_, ActorId> {
-        provider: authentication_provider,
+    #[cfg(feature = "unsafe-dev-endpoints")]
+    let secret_layer = ServiceSecretLayer {
         service_secret: Arc::clone(&service_secret),
         metrics: Arc::clone(&authentication_metrics),
+    };
+
+    let router = probe::router().merge(protected.route_layer(AuthenticationLayer::<_, ActorId> {
+        provider: authentication_provider,
+        service_secret,
+        metrics: authentication_metrics,
         bootstrap_route: auth::is_bootstrap_route,
         caller: core::marker::PhantomData,
     }));
@@ -131,10 +137,7 @@ where
             .route("/data-types", delete(delete_data_types))
             .route("/property-types", delete(delete_property_types))
             .route("/entity-types", delete(delete_entity_types))
-            .route_layer(ServiceSecretLayer {
-                service_secret,
-                metrics: authentication_metrics,
-            }),
+            .route_layer(secret_layer),
     );
 
     router
