@@ -15,10 +15,15 @@ import { createAgentRouter } from "@flue/runtime/routing";
 import { Hono } from "hono";
 
 import { ChatAgent } from "./agents/chat-agent/agent.ts";
+import { healthHandler } from "./health.ts";
 import { assetHandler } from "./http/assets.ts";
 import { agentOwnershipGuard } from "./http/ownership.ts";
 import { createPetrinautChatHandler } from "./http/petrinaut-chat.ts";
-import { CHAT_AGENT_ROUTE, PETRINAUT_CHAT_ROUTE } from "./http/routes.ts";
+import {
+  CHAT_AGENT_ROUTE,
+  HEALTH_ROUTE,
+  PETRINAUT_CHAT_ROUTE,
+} from "./http/routes.ts";
 
 instrument(createOpenTelemetryInstrumentation({ content: false }));
 
@@ -34,6 +39,8 @@ app.route(chatAgentMount, createAgentRouter(ChatAgent));
 app.on(["GET", "POST", "OPTIONS"], PETRINAUT_CHAT_ROUTE, (c) =>
   petrinautChatHandler(c.req.raw),
 );
+
+app.get(HEALTH_ROUTE, healthHandler);
 
 const uiRoot = new URL(
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- import.meta.env is absent when Node executes this module directly.

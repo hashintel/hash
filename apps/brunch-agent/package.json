@@ -7,6 +7,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build && vite build --config vite.client.config.ts",
+    "build:docker": "docker buildx build --tag brunch-agent --file docker/Dockerfile ../../ --load",
     "dev": "vite dev",
     "fix:eslint": "oxlint --fix --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
