@@ -37,6 +37,8 @@ pub(crate) enum TaskDependenciesError {
     PackageList,
     #[display("Failed to serialize the document of: {_0}")]
     Serialize(String),
+    #[display("Failed to read file: {}", _0.display())]
+    ReadFile(PathBuf),
     #[display("Failed to write file: {}", _0.display())]
     WriteFile(PathBuf),
     #[display("Unable to sync task dependencies")]
@@ -56,15 +58,9 @@ struct Named {
 }
 
 #[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct TaskName {
-    full_name: String,
-}
-
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct TaskNamesData {
-    affected_tasks: Items<TaskName>,
+struct TurboConfig {
+    #[serde(default)]
+    tasks: BTreeMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -163,26 +159,46 @@ where
     Ok(response.data)
 }
 
-/// Names of every task turbo knows about, including ones it cannot run.
-async fn task_names(root: &Path) -> Result<Vec<String>, Report<TaskDependenciesError>> {
-    let data: TaskNamesData = query(
-        root,
-        "{ affectedTasks { items { fullName } } }",
-        TaskDependenciesError::TaskNames,
-    )
-    .await?;
-
+/// Every task name declared by the root and the packages.
+///
+/// The names come from the `turbo.json` files rather than from a query: `affectedTasks`
+/// answers with the tasks of the packages a diff touches, which would tie the documents to
+/// the branch they are generated on.
+async fn task_names(
+    root: &Path,
+    packages: &[Package],
+) -> Result<Vec<String>, Report<TaskDependenciesError>> {
     let mut names = BTreeSet::new();
-    for task in &data.affected_tasks.items {
-        let Some((_, name)) = task.full_name.split_once('#') else {
-            return Err(Report::new(TaskDependenciesError::TaskNames)
-                .attach(format!("task name without a package: {}", task.full_name)));
+
+    for package in packages {
+        let path = root.join(&package.path).join("turbo.json");
+        let contents = match fs::read_to_string(&path).await {
+            Ok(contents) => contents,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => {
+                return Err(Report::new(error)
+                    .change_context(TaskDependenciesError::ReadFile(path.clone())));
+            }
         };
-        names.insert(name.to_owned());
+
+        // `turbo.json` allows comments, which serde_json does not.
+        let stripped: String = contents
+            .lines()
+            .filter(|line| !line.trim_start().starts_with("//"))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let config: TurboConfig = serde_json::from_str(&stripped)
+            .change_context_lazy(|| TaskDependenciesError::ReadFile(path.clone()))?;
+
+        // A `package#task` key configures another package's task, it is not a name to run.
+        names.extend(config.tasks.into_keys().filter(|name| !name.contains('#')));
     }
 
     if names.is_empty() {
-        return Err(Report::new(TaskDependenciesError::TaskNames).attach("turbo reported no tasks"));
+        return Err(
+            Report::new(TaskDependenciesError::TaskNames).attach("no turbo.json declares a task")
+        );
     }
 
     Ok(names.into_iter().collect())
@@ -378,16 +394,17 @@ pub(crate) async fn sync_task_dependencies() -> Result<(), Report<[TaskDependenc
     let root = git_root().await?;
     tracing::debug!(?root, "Determined git root");
 
-    let names = task_names(&root).await?;
-    tracing::debug!(count = names.len(), "Found task names");
-
-    let tasks = dry_run(&root, names).await?;
     let packages: PackagesData = query(
         &root,
         "{ packages { items { name path directDependencies { items { name } } } } }",
         TaskDependenciesError::PackageList,
     )
     .await?;
+
+    let names = task_names(&root, &packages.packages.items).await?;
+    tracing::debug!(count = names.len(), "Found task names");
+
+    let tasks = dry_run(&root, names).await?;
 
     // The marker is what separates the tasks turbo runs from the ones it skips; a graph
     // without a single skipped task means it stopped matching.
