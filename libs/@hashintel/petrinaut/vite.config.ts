@@ -11,6 +11,8 @@ const externalDependencies = [
   "react",
   "react-dom",
   "@xyflow/react",
+  "pixi.js",
+  "@pixi/react",
   "@babel/standalone",
   // Pure-CJS dep pulled in transitively by @tanstack/react-form →
   // @tanstack/react-store. Rolldown can't safely transform its
