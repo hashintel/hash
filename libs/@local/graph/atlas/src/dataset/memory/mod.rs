@@ -12,7 +12,8 @@ use zerocopy::{LE, U64};
 
 pub(crate) use self::id::{MemoryEdgeId, MemoryNodeId, MemoryOntologyId};
 use super::{
-    CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, OntologyRowId, TemporalAxes,
+    CANONICAL_DIMENSIONS, Dataset, DatasetOrigin, Edge, Node, Ontology, OntologyRowId,
+    TemporalAxes,
     auxiliary::{Label, OwnedIcon, OwnedLegend},
     card::Card,
 };
@@ -193,6 +194,10 @@ impl Dataset for MemoryDataset {
 
     fn axes(&self) -> Option<TemporalAxes> {
         None
+    }
+
+    fn origin(&self) -> DatasetOrigin {
+        DatasetOrigin::Memory
     }
 
     fn nodes(&self) -> Self::NodeStream<'_> {

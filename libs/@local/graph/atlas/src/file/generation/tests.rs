@@ -12,6 +12,7 @@ use super::{
     StagedGeneration,
 };
 use crate::{
+    dataset::DatasetOrigin,
     file::{
         morton::SEGMENTS,
         repository::{Artifact, Binding, FileName, RepositoryVersion},
@@ -124,6 +125,7 @@ fn repository() -> SaltRepository {
                 embedder: EmbedderFingerprint::new(digest("embedder")),
                 prior: None,
             },
+            dataset: Some(DatasetOrigin::Memory),
             placement: Placement::LandmarkBaseline,
             ranking: RankingOrigin::ConstantColumns,
             evidence: evidence(),

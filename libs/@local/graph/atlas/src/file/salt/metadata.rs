@@ -12,7 +12,7 @@ use core::num::NonZero;
 use hashql_core::id::Id as _;
 
 use crate::{
-    dataset::TemporalAxes,
+    dataset::{DatasetOrigin, TemporalAxes},
     file::{generation::GenerationId, morton::SEGMENTS},
     identity::{NodeRowId, OntologyRowId},
     integrity::Sha256Digest,
@@ -422,6 +422,13 @@ impl From<StabilityBound> for StabilityBoundEvidence {
 pub(crate) struct SaltMetadata {
     pub snapshot: Snapshot,
     pub reproducibility: Reproducibility,
+    /// Where the fit read its rows.
+    ///
+    /// `None` records a generation published before the document carried its source. A writer
+    /// that carries the section always emits a present body, so an unrecorded source stays
+    /// distinguishable from a recorded one.
+    #[serde(default)]
+    pub dataset: Option<DatasetOrigin>,
     pub placement: Placement,
     pub ranking: RankingOrigin,
     pub evidence: Evidence,

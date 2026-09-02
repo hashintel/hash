@@ -10,7 +10,8 @@ use zerocopy::FromBytes as _;
 
 use super::{
     super::{
-        CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, PROJECTOR_DIMENSIONS, TemporalAxes,
+        CANONICAL_DIMENSIONS, Dataset, DatasetOrigin, Edge, Node, Ontology, PROJECTOR_DIMENSIONS,
+        TemporalAxes,
         auxiliary::{Label, OwnedIcon, OwnedLegend},
         card::Card,
     },
@@ -294,6 +295,10 @@ impl Dataset for Fixture {
         None
     }
 
+    fn origin(&self) -> DatasetOrigin {
+        DatasetOrigin::Memory
+    }
+
     fn nodes(&self) -> Self::NodeStream<'_> {
         stream::iter(self.nodes.iter().cloned().map(Ok::<_, !>))
     }
@@ -404,6 +409,33 @@ fn reseal(directory: &Utf8Path, kind: StreamKind, bytes: &[u8]) {
         serde_json::to_vec_pretty(&manifest).expect("the manifest serializes"),
     )
     .expect("the resealed manifest writes back");
+}
+
+#[tokio::test]
+#[cfg_attr(
+    miri,
+    ignore = "tokio's I/O driver calls foreign functions Miri cannot emulate"
+)]
+async fn dump_origin_names_the_manifest_bytes() {
+    let directory = scratch("origin-manifest");
+    Fixture::new()
+        .dump(&directory, options())
+        .await
+        .expect("the fixture dumps cleanly");
+
+    let opened = OfflineDataset::open(&directory).expect("the dump opens whole");
+
+    let document =
+        fs::read(directory.join(Manifest::FILE_NAME)).expect("the dump holds a manifest");
+    let mut hasher = Sha256::new();
+    hasher.update(&document);
+    let expected = hasher.finalize();
+
+    assert_eq!(
+        opened.origin(),
+        DatasetOrigin::Dump { manifest: expected },
+        "the recorded origin should name the manifest document's own bytes"
+    );
 }
 
 #[tokio::test]

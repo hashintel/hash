@@ -14,7 +14,7 @@ use super::{
     },
 };
 use crate::{
-    dataset::TemporalAxes,
+    dataset::{DatasetOrigin, TemporalAxes},
     file::{
         morton::SEGMENTS,
         repository::{Artifact, Binding, RepositoryVersion},
@@ -164,6 +164,7 @@ fn repository() -> SaltRepository {
                 embedder: EmbedderFingerprint::new(digest("embedder contract")),
                 prior: None,
             },
+            dataset: Some(DatasetOrigin::Store),
             placement: Placement::Projector,
             ranking: RankingOrigin::IncidentDegree,
             evidence: evidence(),
@@ -619,6 +620,50 @@ fn a_document_missing_an_assembly_reading_refuses() {
             "the refusal should name the missing field {key}: {error}",
         );
     }
+}
+
+#[test]
+fn a_document_without_the_dataset_section_decodes_as_absent() {
+    let mut document: serde_json::Value =
+        serde_json::to_value(repository()).expect("the repository should serialize");
+    let metadata = document
+        .pointer_mut("/metadata")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the metadata should be an object");
+
+    // The key is physically removed, the shape a generation published
+    // before the fit recorded its source carries.
+    assert!(
+        metadata.remove("dataset").is_some(),
+        "the published shape should carry the dataset section: {metadata:?}",
+    );
+    let decoded: SaltRepository =
+        serde_json::from_value(document.clone()).expect("the older shape should deserialize");
+    assert_eq!(
+        decoded.metadata.dataset, None,
+        "an absent section reads as an unrecorded source rather than as the live store"
+    );
+    let mut expected = repository();
+    expected.metadata.dataset = None;
+    assert_eq!(decoded, expected);
+
+    // The control for the removal itself: a sibling section with no
+    // default refuses, so the decode above passed on the optional
+    // section and not on a tolerated-absence rule covering the
+    // metadata document whole.
+    let metadata = document
+        .pointer_mut("/metadata")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("the metadata should be an object");
+    metadata
+        .remove("ranking")
+        .expect("the published shape should carry the ranking origin");
+    let error = serde_json::from_value::<SaltRepository>(document)
+        .expect_err("a missing undefaulted section should refuse");
+    assert!(
+        error.to_string().contains("ranking"),
+        "the refusal should name the missing section: {error}",
+    );
 }
 
 #[test]

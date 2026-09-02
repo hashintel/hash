@@ -47,7 +47,7 @@ use self::{
     },
 };
 use super::{
-    CANONICAL_DIMENSIONS, Dataset, Edge, Node, Ontology, TemporalAxes,
+    CANONICAL_DIMENSIONS, Dataset, DatasetOrigin, Edge, Node, Ontology, TemporalAxes,
     auxiliary::{Icon, Legend, OwnedIcon, OwnedLegend},
     card::Card,
 };
@@ -316,6 +316,8 @@ fn results<I: Iterator, E>(access: Result<I, E>) -> impl Iterator<Item = Result<
 #[derive(Debug)]
 pub(crate) struct OfflineDataset {
     manifest: Manifest,
+    /// The digest of the manifest document this dump was opened from.
+    manifest_digest: Sha256Digest,
     nodes: PageMap,
     edges: PageMap,
     ontology: PageMap,
@@ -348,6 +350,10 @@ impl OfflineDataset {
         let manifest: Manifest =
             serde_json::from_slice(&document).map_err(OpenDumpError::Document)?;
 
+        let mut hasher = Sha256::new();
+        hasher.update(&document);
+        let manifest_digest = hasher.finalize();
+
         if manifest.machine != Architecture::HOST {
             return Err(OpenDumpError::Machine {
                 found: manifest.machine,
@@ -367,6 +373,7 @@ impl OfflineDataset {
             canonical_embeddings: stream(StreamKind::CanonicalEmbeddings)?,
             card_embeddings: stream(StreamKind::CardEmbeddings)?,
             manifest,
+            manifest_digest,
         };
 
         this.validate_roots()?;
@@ -513,6 +520,12 @@ impl Dataset for OfflineDataset {
 
     fn axes(&self) -> Option<TemporalAxes> {
         self.manifest.axes
+    }
+
+    fn origin(&self) -> DatasetOrigin {
+        DatasetOrigin::Dump {
+            manifest: self.manifest_digest,
+        }
     }
 
     fn nodes(&self) -> Self::NodeStream<'_> {

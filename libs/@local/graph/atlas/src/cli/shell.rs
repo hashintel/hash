@@ -46,9 +46,8 @@ enum Command {
         /// Fit from the dump directory instead of the live store.
         ///
         /// The dump supplies the snapshot and every embedding, so the run reaches neither the
-        /// store nor the embedding provider. Typing a store flag or the provider key beside this
-        /// flag refuses the invocation, while values their environment variables supply stay
-        /// ambient configuration the offline fit ignores.
+        /// store nor the embedding provider, and the store flags and the provider key are read by
+        /// nothing. The generation's metadata records the dump as the fit's source.
         #[arg(long, value_name = "DUMP", value_hint = ValueHint::DirPath)]
         offline: Option<Utf8PathBuf>,
 
@@ -99,8 +98,6 @@ fn fit_source(
     offline: Option<Utf8PathBuf>,
 ) -> FitSource {
     match (offline, openai_api_key) {
-        // A typed key beside `--offline` was refused at parse, so a key here can only be
-        // environment-sourced ambient configuration, which the offline fit ignores.
         (Some(dump), _) => FitSource::Offline(dump),
         (None, Some(openai_api_key)) => FitSource::Live {
             store,
@@ -108,58 +105,6 @@ fn fit_source(
         },
         (None, None) => unreachable!("clap requires the key when `--offline` is absent"),
     }
-}
-
-/// The fit flags `--offline` contradicts when both sides are typed on one invocation: the
-/// provider key and the store connection flags.
-#[cfg(feature = "cli")]
-const OFFLINE_CONFLICTS: [&str; 6] = [
-    "openai_api_key",
-    "user",
-    "password",
-    "host",
-    "port",
-    "database",
-];
-
-/// Parses a command line, refusing a fit invocation that types `--offline` beside a live flag.
-///
-/// The live flags all ride environment variables (`OPENAI_API_KEY`, `HASH_GRAPH_PG_*`), and clap
-/// counts an environment-sourced value as present when it checks conflicts, so a declarative
-/// `conflicts_with` would refuse `fit --offline` on any machine whose standing environment
-/// carries the live configuration. The contradiction worth refusing is the typed one: this
-/// checks each flag's value source and refuses exactly what the operator put on this command
-/// line, while an exported variable stays ambient configuration the offline fit ignores.
-#[cfg(feature = "cli")]
-fn parse<I, T>(itr: I) -> Result<Cli, clap::Error>
-where
-    I: IntoIterator<Item = T>,
-    T: Into<std::ffi::OsString> + Clone,
-{
-    let mut command = <Cli as clap::CommandFactory>::command();
-    let matches = command.try_get_matches_from_mut(itr)?;
-
-    if let Some(("fit", fit)) = matches.subcommand()
-        && fit.value_source("offline") == Some(clap::parser::ValueSource::CommandLine)
-        && let Some(conflict) = OFFLINE_CONFLICTS
-            .into_iter()
-            .find(|id| fit.value_source(id) == Some(clap::parser::ValueSource::CommandLine))
-    {
-        let fit_command = command
-            .find_subcommand_mut("fit")
-            .expect("the fit subcommand exists");
-        let long = fit_command
-            .get_arguments()
-            .find(|argument| argument.get_id().as_str() == conflict)
-            .and_then(clap::Arg::get_long)
-            .expect("every flag `--offline` contradicts is a long flag");
-        return Err(fit_command.error(
-            clap::error::ErrorKind::ArgumentConflict,
-            format!("the argument '--offline <DUMP>' cannot be used with '--{long}'"),
-        ));
-    }
-
-    <Cli as clap::FromArgMatches>::from_arg_matches(&matches)
 }
 
 /// One dashboard-hosted fit's failure, by step.
@@ -301,7 +246,7 @@ async fn fit_on_dashboard(
 #[must_use]
 #[tokio::main]
 pub async fn main() -> std::process::ExitCode {
-    let cli = parse(std::env::args_os()).unwrap_or_else(|error| error.exit());
+    let cli = <Cli as Parser>::parse();
 
     // Placed after parsing so the help and version flags work on an unsupported CPU.
     crate::math::kernel::verify_cpu_baseline();
@@ -393,8 +338,9 @@ pub async fn main() -> std::process::ExitCode {
 #[cfg(all(test, feature = "cli"))]
 mod tests {
     use camino::Utf8PathBuf;
+    use clap::Parser as _;
 
-    use super::{Cli, Command, parse};
+    use super::{Cli, Command};
 
     /// A scratch generation root for one parse, keyed so libtest's shared process cannot collide.
     ///
@@ -411,55 +357,9 @@ mod tests {
     }
 
     #[test]
-    fn offline_with_typed_key() {
-        let root = scratch_root("offline_with_typed_key");
-        let error = parse([
-            "hash-graph-atlas",
-            "fit",
-            "--root",
-            root.as_str(),
-            "--annotations",
-            "corpus.json",
-            "--offline",
-            "dump",
-            "--openai-api-key",
-            "secret",
-        ])
-        .expect_err("a typed key beside `--offline` is a contradiction");
-        let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&root);
-
-        assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
-        assert!(
-            error.to_string().contains("Usage: hash-graph-atlas fit"),
-            "{error}"
-        );
-    }
-
-    #[test]
-    fn offline_with_typed_store_flag() {
-        let root = scratch_root("offline_with_typed_store_flag");
-        let error = parse([
-            "hash-graph-atlas",
-            "fit",
-            "--root",
-            root.as_str(),
-            "--annotations",
-            "corpus.json",
-            "--offline",
-            "dump",
-            "--host",
-            "elsewhere",
-        ])
-        .expect_err("a typed store flag beside `--offline` is a contradiction");
-        let _: Result<(), std::io::Error> = std::fs::remove_dir_all(&root);
-
-        assert_eq!(error.kind(), clap::error::ErrorKind::ArgumentConflict);
-    }
-
-    #[test]
     fn offline_without_live_flags() {
         let root = scratch_root("offline_without_live_flags");
-        let cli = parse([
+        let cli = Cli::try_parse_from([
             "hash-graph-atlas",
             "fit",
             "--root",

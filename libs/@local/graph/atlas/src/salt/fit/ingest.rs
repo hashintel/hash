@@ -29,7 +29,7 @@ use super::{
     stage_rng,
 };
 use crate::{
-    dataset::{Dataset, PROJECTOR_DIMENSIONS, TemporalAxes},
+    dataset::{Dataset, DatasetOrigin, PROJECTOR_DIMENSIONS, TemporalAxes},
     file::{
         array::{ArrayFile, ColumnScalar as _},
         digest_file,
@@ -101,6 +101,8 @@ pub(super) struct CardArtifacts {
 pub(super) struct Ingested {
     /// The bitemporal point the dataset observed.
     pub axes: Option<TemporalAxes>,
+    /// Where the dataset served its rows from.
+    pub origin: DatasetOrigin,
     /// The embedding contract the card render ran under.
     pub fingerprint: EmbedderFingerprint,
     /// Nodes the dataset streamed.
@@ -245,6 +247,7 @@ where
 
         Ok(Ingested {
             axes: self.dataset.axes(),
+            origin: self.dataset.origin(),
             fingerprint: embedder.fingerprint(),
             nodes: node_artifacts.nodes,
             node_types: node_artifacts.types,

@@ -78,6 +78,7 @@ pub(crate) use self::ontology::OntologyIdentity;
 use crate::{
     file::identity::Key,
     identity::{NodeRowId, OntologyRowId},
+    integrity::Sha256Digest,
     math::{AlignedVecN, UnitFraction},
 };
 
@@ -215,6 +216,30 @@ pub(crate) struct Edge<'data, E> {
     pub target_confidence: Option<UnitFraction>,
 }
 
+/// Where one fit read the rows it ran over.
+///
+/// A published generation answers which source produced it, so a map fitted from a dump directory
+/// stays distinguishable from one fitted against the live store long after the run's log has
+/// scrolled away. This is the run's provenance rather than part of its input identity: a faithful
+/// dump carries the same snapshot and the same embedding contract as the store it was taken from,
+/// so a fit over either agrees on every input a generation's derived salts key on.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case", tag = "kind")]
+pub(crate) enum DatasetOrigin {
+    /// The live store served the rows, and the embedding provider produced every card embedding.
+    Store,
+    /// A dump directory served the rows and every embedding.
+    Dump {
+        /// The digest of the dump's manifest document.
+        ///
+        /// The manifest records every stream file's length and whole-file digest, and the reader
+        /// checks both at open, so this one digest names the bytes of the whole dump.
+        manifest: Sha256Digest,
+    },
+    /// A corpus assembled in memory served the rows.
+    Memory,
+}
+
 /// The data one fit runs over, wherever it lives.
 ///
 /// See the [module documentation](self) for the row, snapshot, and type contracts every
@@ -307,6 +332,14 @@ pub(crate) trait Dataset {
     /// temporal history, such as synthetic fixtures, return [`None`].
     #[must_use]
     fn axes(&self) -> Option<TemporalAxes>;
+
+    /// Returns where this dataset's rows come from.
+    ///
+    /// A generation's metadata records the value as its own section, so a reader of a published
+    /// map can tell a fit over the live store from one over a dump. The implementation reports
+    /// its own kind, so no caller can record a source the run did not read.
+    #[must_use]
+    fn origin(&self) -> DatasetOrigin;
 
     /// Opens the node stream.
     ///

@@ -221,6 +221,7 @@ impl Compute {
 
         // Built ahead of placement: the paired-movement draw derives its salt from these exact
         // values, and the seal serializes the same ones.
+        let dataset = ingested.origin;
         let snapshot = ingested.snapshot();
         let reproducibility = ingested.reproducibility(context.config.clone(), prior.as_ref());
         let resolution = VerdictResolution::resolve::<O>(
@@ -302,6 +303,7 @@ impl Compute {
             metadata: SaltMetadata {
                 snapshot,
                 reproducibility,
+                dataset: Some(dataset),
                 placement: placement.kind,
                 ranking,
                 evidence: Evidence {
