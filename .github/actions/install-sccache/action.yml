@@ -13,7 +13,7 @@ runs:
   steps:
     - name: Decrypt credentials
       id: decrypt
-      uses: hashintel/.github/.github/actions/decrypt-secret@583b0468f2033c884bc82281e8f9c48edf1daeb7 # main
+      uses: hashintel/.github/.github/actions/decrypt-secret@db03b98f807376bafb54963f61090600b85125b9 # main
       with:
         encrypted_value: ${{ inputs.encrypted_credentials }}
         encryption_key: ${{ inputs.encryption_key }}
