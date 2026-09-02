@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 
-import { quadTreeLevels } from "../views/Editor/panels/SimulateView/shared/surface-sampling";
 import {
   ContourSurface,
   contourSurfaceKey,
@@ -20,6 +19,20 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const GRID = 11;
+
+/** Corners and centre first, then the rest row-major: a coarse-to-fine feel for the streaming demos. */
+const demoOrder = (size: number): { x: number; y: number }[] => {
+  const cells = Array.from({ length: size * size }, (_, index) => ({
+    x: index % size,
+    y: Math.floor(index / size),
+  }));
+  const last = size - 1;
+  const mid = Math.floor(size / 2);
+  const isSeed = (cell: { x: number; y: number }) =>
+    (cell.x === 0 || cell.x === last || cell.x === mid) &&
+    (cell.y === 0 || cell.y === last || cell.y === mid);
+  return [...cells.filter(isSeed), ...cells.filter((cell) => !isSeed(cell))];
+};
 
 /** The synthetic field every story samples: a bump with a diagonal drift. */
 function fieldValue(x: number, y: number): number {
@@ -120,7 +133,7 @@ const StreamingSurface = () => {
   const [values, setValues] = useState<ContourSurfaceValues>(new Map());
 
   useEffect(() => {
-    const order = quadTreeLevels(GRID, GRID).flat();
+    const order = demoOrder(GRID);
     let index = 0;
     const timer = setInterval(() => {
       if (index >= order.length) {
@@ -200,7 +213,7 @@ const ClickableSurface = () => {
 const RestartingDemo = () => {
   const [values, setValues] = useState<ContourSurfaceValues>(fieldValues());
   useEffect(() => {
-    const order = quadTreeLevels(GRID, GRID).flat();
+    const order = demoOrder(GRID);
     let step = 0;
     const timer = setInterval(() => {
       step += 1;

@@ -17,7 +17,7 @@ import { useEffect, useRef } from "react";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useElementSize } from "../../../../../../../../react/hooks/use-element-size";
-import { formatNumber } from "../shared/metric-frames";
+import { formatNumber } from "../../shared/format-number";
 import {
   columnDensity,
   formatAxisTick,

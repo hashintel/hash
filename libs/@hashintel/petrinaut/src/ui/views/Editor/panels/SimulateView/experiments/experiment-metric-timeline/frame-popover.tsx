@@ -10,9 +10,9 @@ import { Button, usePortalContainerRef } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { useElementSize } from "../../../../../../../react/hooks/use-element-size";
+import { formatNumber } from "../shared/format-number";
 import { BinHistogramCanvas } from "./frame-popover/bin-histogram-canvas";
 import { sampleCountFromBins } from "./shared/distribution-math";
-import { formatNumber } from "./shared/metric-frames";
 
 import type {
   DistributionMetricFrame,

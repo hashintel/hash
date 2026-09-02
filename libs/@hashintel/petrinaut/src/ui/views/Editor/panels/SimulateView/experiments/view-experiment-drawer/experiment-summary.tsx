@@ -11,8 +11,8 @@ import {
   getExperimentElapsedMs,
   isExperimentActive,
 } from "../../../../../../../react/experiments/context";
-import { formatNumber } from "../experiment-metric-timeline/shared/metric-frames";
 import { formatDurationMs } from "../format-duration";
+import { formatNumber } from "../shared/format-number";
 import { ComputeActivity } from "./compute-activity";
 
 const summaryStyle = css({

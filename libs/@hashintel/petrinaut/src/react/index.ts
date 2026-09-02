@@ -67,7 +67,6 @@ export type {
   ExperimentRecord,
   ExperimentsActionsValue,
   ExperimentStatus,
-  ExperimentsActionsValue,
   ExperimentsContextValue,
 } from "./experiments/context";
 export { NotificationsContext } from "./notifications/context";

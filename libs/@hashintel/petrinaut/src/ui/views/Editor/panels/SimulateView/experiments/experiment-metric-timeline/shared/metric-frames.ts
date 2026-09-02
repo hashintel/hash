@@ -24,9 +24,6 @@ export const distributionFramesFrom = (
   frames: readonly MetricFrame[],
 ): DistributionMetricFrame[] => frames.filter(isDistributionMetricFrame);
 
-export const formatNumber = (value: number): string =>
-  Number.isInteger(value) ? String(value) : value.toFixed(3);
-
 /**
  * Distinct bin values are collected up to one more than this, so a consumer
  * that resolves at most this many can tell "more" from "exactly this many".

@@ -12,7 +12,6 @@ import "uplot/dist/uPlot.min.css";
 import { useElementSize } from "../../../../../../react/hooks/use-element-size";
 import { FramePopover } from "./experiment-metric-timeline/frame-popover";
 import { distributionBandLegend } from "./experiment-metric-timeline/shared/distribution-bands";
-import { formatNumber } from "./experiment-metric-timeline/shared/metric-frames";
 import { TimelineControls } from "./experiment-metric-timeline/timeline-controls";
 import { useMetricPlot } from "./experiment-metric-timeline/use-metric-plot";
 import {
@@ -20,6 +19,7 @@ import {
   deriveMetricViewState,
   selectedFrameFrom,
 } from "./experiment-metric-timeline/view-state";
+import { formatNumber } from "./shared/format-number";
 
 import type { MetricFrame } from "./experiment-metric-timeline/shared/metric-frames";
 import type { FrameSelection } from "./experiment-metric-timeline/view-state";
