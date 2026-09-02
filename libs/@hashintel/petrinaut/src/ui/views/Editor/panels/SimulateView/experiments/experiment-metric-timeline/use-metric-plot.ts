@@ -147,13 +147,13 @@ export const useMetricPlot = ({
   }, [contentEpoch, frames, plotData]);
 
   useEffect(() => {
-    const root = chartRootRef.current;
-    if (!root || !size || !canPlot) {
-      return;
-    }
     const viewKey = `${displayMode}|${aggregateRuns}|${runAggregation}|${distributionView}|${timeTrace}`;
     if (yCeilingRef.current.viewKey !== viewKey) {
       yCeilingRef.current = { viewKey, ceiling: { value: 0 } };
+    }
+    const root = chartRootRef.current;
+    if (!root || !size || !canPlot) {
+      return;
     }
     const height = Math.max(MIN_PLOT_HEIGHT, size.height);
     const isHeatmap =
