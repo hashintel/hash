@@ -3,11 +3,14 @@
 ## Current disposition
 
 The real Voice witness has **not** been run and no witness bundle is claimed.
-Sections 1–5 and the supported client-tool portion of section 6 have focused
-automated coverage, but that coverage cannot replace the microphone, handoff,
-unsettled Stop, hard-reload, and network-route witness required for mission
-acceptance. Direct-user Voice attribution has a separate
-[Flue projection blocker](provenance-blocker.md).
+Completed-transcript authority, admission idempotency, half-duplex handoff,
+acknowledged cancellation, exact full-response replay, durable Stop, dormant-ask
+exclusion, and the supported client-tool portion of Voice provenance have
+focused automated coverage. **Repeat question** is separately blocked by the
+lack of a deterministic canonical question marker. Automated coverage cannot
+replace the microphone, handoff, unsettled Stop, hard-reload, and network-route
+witness required for mission acceptance. Direct-user Voice attribution has a
+separate [Flue projection blocker](provenance-blocker.md).
 
 The parent branch still runs canonical hydration once per conversation in a way
 that can overwrite a locally submitted turn. The successor may not fix that
