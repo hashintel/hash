@@ -229,6 +229,81 @@ describe("VoiceTurnController", () => {
     expect(harness.session.cancelOutput).not.toHaveBeenCalled();
   });
 
+  test("clears pre-output capture and only commits fresh post-handoff input", async () => {
+    const harness = createHarness();
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question("ask-late-transcript")],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      itemId: "item-before-output",
+      type: "input-speech-started",
+    });
+    harness.emitSession({
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "item-before-output",
+      },
+      text: "Pre-output partial",
+      type: "partial",
+    });
+    expect(harness.controller.getSnapshot().partialText).toBe(
+      "Pre-output partial",
+    );
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-output",
+      speechRequestId: "speech-output",
+      type: "output-started",
+    });
+    harness.emitSession({
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "item-before-output",
+      },
+      text: "This completed too late.",
+      type: "completed",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      lastCommittedText: "",
+      partialText: "",
+    });
+
+    await harness.controller.takeTurn();
+    harness.emitSession({
+      connectionEpoch: 1,
+      itemId: "item-after-handoff",
+      type: "input-speech-started",
+    });
+    harness.emitSession({
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "item-after-handoff",
+      },
+      text: "Fresh post-handoff answer.",
+      type: "completed",
+    });
+    harness.emitBridge({
+      answer: "Fresh post-handoff answer.",
+      deliveryId: "fresh-delivery",
+      type: "submission-started",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "submitting",
+      lastCommittedText: "Fresh post-handoff answer.",
+      partialText: "",
+    });
+  });
+
   test("hands off an active response once and applies the latest mute preference after cancellation", async () => {
     const harness = createHarness();
     let finishCancellation: (() => void) | undefined;

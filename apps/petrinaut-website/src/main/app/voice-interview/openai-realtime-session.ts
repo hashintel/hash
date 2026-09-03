@@ -811,6 +811,13 @@ export class OpenAIRealtimeSession {
     this.#waitingForResponseTerminal = false;
 
     if (this.#cancelledCanonicalResponseIds.delete(responseId)) {
+      if (this.#speakingResponseId === responseId) {
+        this.#emit({
+          connectionEpoch,
+          responseId,
+          type: "output-interrupted",
+        });
+      }
       this.#emit({
         connectionEpoch,
         responseId,
@@ -910,6 +917,10 @@ export class OpenAIRealtimeSession {
         this.#handleConnectionFailure("invalid-response", "connection");
         return;
       }
+      for (const itemId of this.#acceptedInputItemIds) {
+        this.#playbackOverlappingInputItemIds.add(itemId);
+      }
+      this.#acceptedInputItemIds.clear();
       this.#speakingResponseId = responseId;
       this.#syncMicrophoneTrack();
       const speechRequestId = this.#speechRequestIds.get(responseId);

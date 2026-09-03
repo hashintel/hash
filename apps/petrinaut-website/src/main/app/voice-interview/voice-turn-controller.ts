@@ -657,12 +657,15 @@ export class VoiceTurnController {
       this.#activeSpeechOutputEnded = false;
       this.#activeSpeechResponseId = event.responseId;
       this.#activeSpeechResponseTerminal = false;
+      this.#inputTurnPending = false;
+      this.#transcriptItemId = null;
+      this.#transcriptKey = null;
       if (this.#snapshot.input === "paused") {
         void this.#cancelOutput();
-        this.#update({ output: "interrupted" });
+        this.#update({ output: "interrupted", partialText: "" });
         return;
       }
-      this.#update({ output: "speaking" });
+      this.#update({ output: "speaking", partialText: "" });
       if (
         this.#latencyCorrelationId !== null &&
         event.speechRequestId === this.#ttsSpeechRequestId
