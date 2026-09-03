@@ -1,6 +1,6 @@
 # Mission 4 proof-of-life protocol v2
 
-Status: **freeze candidate authorized for preparation by the owner on 2026-09-03; not frozen or authorized for paid execution until the owner accepts the exact v2 ruler, machine-readable manifest, and cumulative $10 USD ceiling.** V1 remains immutable evidence of an instrument failure: both Vestera attempts stopped after one Orientation question because the persona was asked to apply an evaluator-owned semantic stop category that its isolated context did not define. V2 changes only probe control, the ruler language that describes probe extent, and fresh identities; production elicitor text, cases, models, semantic classifications and thresholds, other slot behavior, replacement rules, and evidence mechanisms remain unchanged.
+Status: **freeze candidate authorized for preparation by the owner on 2026-09-03; not frozen or authorized for paid execution until the owner accepts the exact v2 ruler and machine-readable manifest.** V1 remains immutable evidence of an instrument failure: both Vestera attempts stopped after one Orientation question because the persona was asked to apply an evaluator-owned semantic stop category that its isolated context did not define. V2 changes only probe control, the ruler language that describes probe extent, and fresh identities; production elicitor text, cases, models, semantic classifications and thresholds, other slot behavior, replacement rules, and evidence mechanisms remain unchanged.
 
 ## Claim
 
@@ -73,11 +73,11 @@ Reserve these ids; never reuse an admitted id:
 
 Retain every admitted attempt. Permit the replacement only when the primary is technically invalid under the ruler or, for an interactive slot, technically valid but reaches no Substantive text within budget. A replacement repeats the same frozen inputs and settings under its reserved fresh id. A second invalid or no-Substantive result stops the campaign. Never replace a valid behavioral failure or a full run that reaches substance but fails to emit a recoverable workpiece.
 
-## Paid ceiling and stop rule
+## Logical ceiling and usage reporting
 
 The hard logical ceiling is 10 conversation attempts, 32 visible user submissions to Brunch, 28 persona continuations, and 10 fresh adjudications. Internal Sonnet provider continuations caused by skill/resource calls are metered and reported but are not falsely equated with visible submissions. Normal success is five conversation attempts, approximately 14 Brunch submissions, approximately 12 persona continuations, and five adjudications.
 
-This ceiling is not spending authorization. The non-billable [v2 model and cost preflight](../../../docs/evidence/decisions/mission-4-proof-of-life-v2-preflight-2026-09-03.md) carries forward direct-provider catalog/credential presence and official prices, records the unchanged $3.16 normal and $7.65 worst-case v2 estimates, records $0.636 known rounded v1 persona/adjudicator spend, and leaves the two v1 Sonnet submissions explicitly unreconciled because the available standard API key cannot read organization usage. Before the first v2 model call, reconcile that usage, verify the remaining cumulative $10 USD allowance, and obtain explicit owner acceptance of the frozen v2 instrument and remaining-spend authorization. Exceeding any logical or authorized currency ceiling stops execution.
+The non-billable [v2 model and cost preflight](../../../docs/evidence/decisions/mission-4-proof-of-life-v2-preflight-2026-09-03.md) records the unchanged $3.16 normal and $7.65 worst-case planning estimates, $0.636 known rounded v1 persona/adjudicator spend, and the unavailable v1 Sonnet usage. The owner subsequently [suspended currency gating](../../../docs/evidence/decisions/mission-4-proof-of-life-v2-budget-suspension-2026-09-03.md); v2 has no active USD stop threshold. Retain and report every available usage value. Before the first v2 model call, obtain explicit owner acceptance of the frozen v2 instrument. Exceeding any logical ceiling stops execution.
 
 ## Required mechanism before freeze
 
@@ -126,7 +126,7 @@ The Industrial Gas workpiece, if recovered, is labelled `evaluation-run` and `ha
 4. Recompute every input, oracle, model-facing file, and protocol hash into a machine-readable instrument manifest; verify S3/S4 prompt-string hashes independently.
 5. Run the focused topology, packaging, app, trace, snapshot, construct-only, type, lint, and unit checks at that commit.
 6. Record current prices and normal/worst-case currency estimates.
-7. Obtain explicit owner acceptance of the exact freeze manifest and paid ceiling.
+7. Obtain explicit owner acceptance of the exact freeze manifest; record any active currency gate or its suspension separately.
 8. Commit the freeze alone. Only then admit `m4-pol-v2-vestera-p1`.
 
 Any file or model-setting change after freeze creates a new protocol version; do not patch v2 in place after observing behavior.

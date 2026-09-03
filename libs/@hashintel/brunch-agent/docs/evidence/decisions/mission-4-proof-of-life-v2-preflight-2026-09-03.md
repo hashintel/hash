@@ -2,7 +2,7 @@
 
 Date: 2026-09-03
 
-Status: **non-billable v2 preflight complete; manifest acceptance and paid authorization pending.** No model invocation was made while preparing v2.
+Status: **non-billable v2 preflight complete; manifest acceptance pending and currency gating subsequently suspended by the owner.** No model invocation was made while preparing v2.
 
 ## Unchanged allocation and prices
 
@@ -27,4 +27,4 @@ V1's retained Pi usage displays report $0.044 for the two persona sessions and $
 
 Let **S** be the actual v1 Sonnet spend. The exact remaining allowance under the original cumulative **$10 USD** Mission 4 ceiling is **$9.364 − S**. The standalone v2 worst-case estimate of $7.65 fits only if **S ≤ $1.714**. V2 does not create a second allowance, and this preflight does not replace the unknown with a planning reserve or treat it as zero.
 
-Before any v2 paid call, reconcile S from the Anthropic organization usage or cost report for the two retained submission windows, record it in a superseding spend ledger, and verify that the remaining allowance can cover the next action under the serial stop rule. The exact v2 manifest may be prepared and reviewed meanwhile, but paid authorization remains blocked on that reconciliation as well as owner acceptance of the manifest.
+This unresolved value initially blocked remaining-spend authorization. The owner subsequently suspended currency gating for v2; see [`mission-4-proof-of-life-v2-budget-suspension-2026-09-03.md`](mission-4-proof-of-life-v2-budget-suspension-2026-09-03.md). Reconciliation remains desirable accounting evidence but is no longer an execution gate. Exact manifest acceptance, logical ceilings, serial stop rules, and per-action usage retention remain mandatory.
