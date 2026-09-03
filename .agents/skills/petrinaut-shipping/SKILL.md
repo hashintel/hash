@@ -24,14 +24,15 @@ Run for every touched package, after every increment:
 
 ```sh
 yarn fix:format >/dev/null 2>&1
-npx turbo run test:unit lint:tsc lint:eslint --filter @hashintel/petrinaut --filter @hashintel/petrinaut-core --filter @hashintel/petrinaut-cli --force --output-logs errors-only
+npx turbo run build test:unit lint:tsc lint:eslint --filter @hashintel/petrinaut --filter @hashintel/petrinaut-core --filter @hashintel/petrinaut-cli --force --output-logs errors-only
 yarn lint:format
 ```
 
 - Trim the `--filter`s to the touched packages; add `--filter @apps/petrinaut-website` when it consumes the change.
+- `build` belongs in that list. `test:unit` depends on `^build`, which builds dependencies and not the selected package, so the React Compiler check, the browser-entry check, and the website's Vite build are otherwise never run.
 - Structure changed (new folder, moved module): also `yarn workspace @local/petrinaut-arch-docs lint:arch-docs`, and add the layer declaration the AGENTS.md architecture section calls for.
 - Arch-docs authored content or `content/diagrams/*.d2` changed: `lint:arch-docs` does not compile MDX or render D2. Run the site build once before pushing: `mise x -- yarn exec turbo run build --filter @apps/petrinaut-docs`. D2 labels containing `:` or `[` must be quoted.
-- Python (`apps/petrinaut-opt`, `libs/@local/petrinaut-python`): `uv run pytest` in the package.
+- Python packages go through Turborepo: `npx turbo run test:unit lint:ruff lint:types --filter @apps/petrinaut-opt --filter @local/petrinaut-python --force`. A plain `uv run pytest` skips the end-to-end tests when the CLI bundle is missing, and skips the comparison of regenerated `openapi.json` that `@apps/petrinaut-opt` runs as part of its own `test:unit`.
 - Formatting is oxfmt via the yarn scripts; never run prettier directly. `yarn lint:format` prints its verdict before its final line, so check the exit code rather than the last line of output.
 
 ## Changesets
@@ -55,11 +56,14 @@ User-visible behaviour changes update the user guide in the same PR; new pages n
 
   ```sh
   settled='[length, ([.[] | select(.bucket == "pending")] | length)] | .[0] > 0 and .[1] == 0'
-  until [ "$(gh pr checks NNNN --json bucket --jq "$settled" 2>/dev/null)" = "true" ]; do sleep 60; done
+  for _ in $(seq 60); do
+    [ "$(gh pr checks NNNN --json bucket --jq "$settled" 2>/dev/null)" = "true" ] && break
+    sleep 60
+  done
   gh pr checks NNNN
   ```
 
-  The wait ends once checks exist and none are pending, failures included, so the table below reports them. Anything else, an empty list or a failed call, keeps waiting.
+  The wait ends once checks exist and none are pending, failures included, so the table below reports them. Anything else, an empty list or a failed call, keeps waiting. The loop is bounded and the last call keeps its output, so an expired token or an unreachable API surfaces as an error rather than sleeping for ever.
 
 - Judge failures against the CI bullet in the AGENTS.md conventions (Bench-CI non-blocking, the known flaky check, Vercel-side docs failures) before treating them as caused by the diff.
 - Flip to ready only when checks are green. AI reviewers run at that point; triage their threads rather than leaving them unresolved.
