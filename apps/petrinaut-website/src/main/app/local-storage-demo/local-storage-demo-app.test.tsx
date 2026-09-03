@@ -5,6 +5,8 @@ import { act, cleanup, render } from "@testing-library/react";
 import { isValidElement, type ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/react";
+
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
 import {
   getBrunchVoiceMode,
@@ -184,6 +186,32 @@ describe("local storage demo URL navigation", () => {
     );
 
     expect(onSearchChange).toHaveBeenCalledWith({ subnet: "subnet-2" }, "push");
+  });
+
+  test("leaves history to the library default, so a discrete click pushes", () => {
+    seedStoredNet();
+
+    render(<LocalStorageDemoApp onSearchChange={() => {}} search={{}} />);
+
+    // Constraining this page's policy once made selections replace, which left
+    // the page with no history entries at all and sent the first Back press
+    // off the site. The default keeps drag churn to one entry by replacing
+    // continuing intents, so it needs no host override.
+    expect(mountedNavigation().historyPolicy).toBeUndefined();
+    expect(
+      defaultPetrinautNavigationHistoryPolicy({
+        cause: "user",
+        action: "selection",
+        phase: "discrete",
+      }),
+    ).toBe("push");
+    expect(
+      defaultPetrinautNavigationHistoryPolicy({
+        cause: "user",
+        action: "selection",
+        phase: "continue",
+      }),
+    ).toBe("replace");
   });
 
   test("clears the shared location when a new net replaces the open one", () => {

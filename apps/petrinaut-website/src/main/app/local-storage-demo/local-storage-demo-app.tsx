@@ -16,7 +16,6 @@ import {
 } from "@hashintel/petrinaut-core";
 import {
   CommandRegistryProvider,
-  defaultPetrinautNavigationHistoryPolicy,
   useCommand,
 } from "@hashintel/petrinaut/react";
 import {
@@ -200,16 +199,15 @@ export const LocalStorageDemoApp = ({
   const sentryFeedbackAction = useSentryFeedbackAction();
   const [openAIVoiceConfig, setOpenAIVoiceConfig] =
     useState<OpenAIVoiceConfig | null>();
-  const navigation = useSharedSearchNavigation(search, onSearchChange, {
-    // The editor changes the selection on almost every click, and each shared
-    // write would otherwise be a browser history entry, so Back would take
-    // dozens of presses to leave the page. Scenario and subnet moves are the
-    // locations worth stepping back through.
-    historyPolicy: (intent) =>
-      intent.action === "selection"
-        ? "replace"
-        : defaultPetrinautNavigationHistoryPolicy(intent),
-  });
+  /**
+   * History is left to the library's default on purpose. That default already
+   * replaces rather than pushes while an intent continues, so a drag-select
+   * records one entry instead of one per intermediate selection, and a discrete
+   * click is the only thing that pushes. Making selections replace as well
+   * removed every entry this page can produce, which left the first Back press
+   * leaving the site instead of retracing the net.
+   */
+  const navigation = useSharedSearchNavigation(search, onSearchChange);
 
   /**
    * The location belongs to the net that was open. Petrinaut resets its own
