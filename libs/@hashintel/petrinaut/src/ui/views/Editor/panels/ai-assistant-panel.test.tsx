@@ -10,7 +10,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { useEffect } from "react";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -155,6 +155,29 @@ const SubmitForSecondConversation = ({
 };
 
 const testInstances: ReturnType<typeof createPetrinaut>[] = [];
+
+beforeAll(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  vi.stubGlobal(
+    "PointerEvent",
+    class extends MouseEvent {
+      public readonly pointerType: string;
+
+      public constructor(type: string, init: PointerEventInit = {}) {
+        super(type, init);
+        this.pointerType = init.pointerType ?? "";
+      }
+    },
+  );
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      public disconnect() {}
+      public observe() {}
+      public unobserve() {}
+    },
+  );
+});
 
 const renderTestPanel = ({
   aiAssistant,
@@ -1030,6 +1053,96 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(setInputModeReferences.size).toBe(1);
     expect(setVoiceActiveReferences.size).toBe(1);
     expect(submitVoiceInputReferences.size).toBe(1);
+  });
+
+  test("forwards registered canonical replay controls to the Voice dock", async () => {
+    const readFullResponse = vi.fn();
+    const repeatQuestion = vi.fn();
+    const VoiceMode = (context: PetrinautAiVoiceModeContext) => {
+      const {
+        inputMode,
+        registerVoiceModeControls,
+        reportVoiceSessionState,
+        setVoiceActive,
+      } = context;
+
+      useEffect(() => {
+        if (inputMode !== "voice") {
+          return;
+        }
+        const unregister = registerVoiceModeControls({
+          end: async () => undefined,
+          pause: vi.fn(),
+          readFullResponse,
+          reconnect: vi.fn(),
+          repeatQuestion,
+          resume: vi.fn(),
+          setMicrophoneMuted: vi.fn(),
+        });
+        reportVoiceSessionState({
+          canReadFullResponse: true,
+          canRepeatQuestion: true,
+          errorMessage: null,
+          microphoneLevel: 0,
+          microphoneMuted: false,
+          phase: "listening",
+        });
+        setVoiceActive(true);
+
+        return unregister;
+      }, [
+        inputMode,
+        registerVoiceModeControls,
+        reportVoiceSessionState,
+        setVoiceActive,
+      ]);
+
+      return null;
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderVoiceMode: (context) => <VoiceMode {...context} />,
+        transport: {
+          reconnectToStream: () => Promise.resolve(null),
+          sendMessages: vi.fn(),
+        },
+      },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Start voice mode" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Voice playback options" }),
+    );
+    const readFullResponseItem = await screen.findByRole("menuitem", {
+      name: "Read full response",
+    });
+    fireEvent.pointerMove(readFullResponseItem, { pointerType: "mouse" });
+    await waitFor(() =>
+      expect(readFullResponseItem.hasAttribute("data-highlighted")).toBe(true),
+    );
+    fireEvent.click(readFullResponseItem);
+    await waitFor(() => expect(readFullResponse).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(screen.queryByRole("menu", { hidden: true })).toBeNull(),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Voice playback options" }),
+    );
+    const repeatQuestionItem = await screen.findByRole("menuitem", {
+      name: "Repeat question",
+    });
+    const playbackMenu = screen.getByRole("menu");
+    fireEvent.keyDown(playbackMenu, { key: "ArrowDown" });
+    await waitFor(() =>
+      expect(playbackMenu.getAttribute("aria-activedescendant")).toBe(
+        repeatQuestionItem.id,
+      ),
+    );
+    fireEvent.keyDown(playbackMenu, { key: "Enter" });
+
+    await waitFor(() => expect(repeatQuestion).toHaveBeenCalledOnce());
+    expect(readFullResponse).toHaveBeenCalledOnce();
   });
 
   test("keeps one mounted voice mode when the panel closes and reopens", () => {

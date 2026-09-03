@@ -12,14 +12,21 @@ export const voiceErrorCodes = [
 ] as const;
 
 export type VoiceErrorCode = (typeof voiceErrorCodes)[number];
-export type VoiceOperation = "connection" | "transcription" | "speech";
+export type VoiceOperation =
+  | "connection"
+  | "preparation"
+  | "transcription"
+  | "speech";
 
 export interface VoiceDiagnosticEvent {
   readonly durationMs: number;
   readonly errorCode?: VoiceErrorCode;
+  readonly inputWordCount?: number;
   readonly operation: VoiceOperation;
   readonly outcome: "success" | "failure" | "aborted";
+  readonly outputWordCount?: number;
   readonly requestId: string;
+  readonly sourceSegmentCount?: number;
   readonly stage: "browser" | "playback" | "server";
   readonly status?: number;
 }

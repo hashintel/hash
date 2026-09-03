@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
   OpenAIRealtimeSession,
+  type InterviewSpeechPreparationRequest,
   type OpenAIRealtimeSessionEvent,
 } from "./openai-realtime-session";
 
@@ -38,6 +39,16 @@ const canonicalSegment = (
   partId: id,
   source: "brunch-ask",
   text,
+});
+
+const preparationRequest = (
+  overrides: Partial<InterviewSpeechPreparationRequest> = {},
+): InterviewSpeechPreparationRequest => ({
+  cacheKey: "preparation-cache-key",
+  contextText: ["The batch requires a named approver before release."],
+  contextWordBudget: 12,
+  sourceSegmentIds: ["context-segment-1"],
+  ...overrides,
 });
 
 const createHarness = ({
@@ -329,9 +340,7 @@ describe("OpenAIRealtimeSession", () => {
       },
     ]);
 
-    harness.session.completeFunctionCall("call-1", [
-      canonicalSegment("ask-2", "Who acts next?"),
-    ]);
+    harness.session.completeFunctionCall("call-1", ["Who acts next?"]);
     const [functionOutput, responseCreate] = sentEvents(channel).slice(-2);
     expect(functionOutput).toEqual({
       type: "conversation.item.create",
@@ -351,6 +360,58 @@ describe("OpenAIRealtimeSession", () => {
         tool_choice: "none",
         tools: [],
       },
+    });
+
+    const responseCreateCount = sentEvents(channel).filter(
+      ({ type }) => type === "response.create",
+    ).length;
+    harness.session.completeFunctionCall(
+      "call-2",
+      ["Response cancelled before speech."],
+      { speakResponse: false },
+    );
+    expect(sentEvents(channel).at(-1)).toEqual({
+      type: "conversation.item.create",
+      item: {
+        type: "function_call_output",
+        call_id: "call-2",
+        output: JSON.stringify({
+          response_text: ["Response cancelled before speech."],
+        }),
+      },
+    });
+    expect(
+      sentEvents(channel).filter(({ type }) => type === "response.create"),
+    ).toHaveLength(responseCreateCount);
+  });
+
+  test("renders prepared strings through the verbatim out-of-band audio response", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+
+    harness.session.speakPrepared([
+      "Prepared concise context.",
+      "Which operator confirms the batch?",
+    ]);
+
+    const responseCreate = sentEvents(harness.channels[0]!).at(-1)!;
+    expect(responseCreate).toMatchObject({
+      type: "response.create",
+      response: {
+        conversation: "none",
+        output_modalities: ["audio"],
+        tool_choice: "none",
+        tools: [],
+      },
+    });
+    const response = responseCreate.response as {
+      input: Array<{ content: Array<{ text: string }> }>;
+    };
+    expect(JSON.parse(response.input[0]!.content[0]!.text)).toEqual({
+      response_text: [
+        "Prepared concise context.",
+        "Which operator confirms the batch?",
+      ],
     });
   });
 
@@ -390,6 +451,358 @@ describe("OpenAIRealtimeSession", () => {
       status: "completed",
       type: "response-terminal",
     });
+  });
+
+  test("prepares context with an out-of-band text-only response", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    const request = preparationRequest({
+      contextText: [
+        "The batch requires a named approver.",
+        "Release remains blocked until approval.",
+      ],
+      sourceSegmentIds: ["message-1:text-1", "message-1:text-2"],
+    });
+
+    const preparation = harness.session.prepareInterviewSpeech(request);
+    const responseCreate = sentEvents(channel).at(-1)!;
+    expect(responseCreate).toMatchObject({
+      type: "response.create",
+      response: {
+        conversation: "none",
+        max_output_tokens: 120,
+        metadata: {
+          petrinaut_kind: "speech-preparation",
+          petrinaut_request_id: request.cacheKey,
+        },
+        output_modalities: ["text"],
+        parallel_tool_calls: false,
+        tool_choice: "none",
+        tools: [],
+      },
+    });
+    const response = responseCreate.response as {
+      input: Array<{ content: Array<{ text: string }> }>;
+    };
+    expect(JSON.parse(response.input[0]!.content[0]!.text)).toEqual({
+      context_text: request.contextText,
+      maximum_words: request.contextWordBudget,
+    });
+    expect(response.input[0]!.content[0]!.text).not.toContain("message-1");
+    expect(response.input[0]!.content[0]!.text).not.toContain("fnv1a32");
+    expect(response.input[0]!.content[0]!.text).not.toContain("question");
+
+    channel.receive({
+      response: {
+        id: "response-preparation",
+        metadata: (responseCreate.response as Record<string, unknown>).metadata,
+      },
+      type: "response.created",
+    });
+    channel.receive({
+      delta: "Ignore unrelated output.",
+      response_id: "response-unrelated",
+      type: "response.output_text.delta",
+    });
+    channel.receive({
+      delta: "Approval is required before release.",
+      response_id: "response-preparation",
+      type: "response.output_text.delta",
+    });
+    channel.receive({
+      response: {
+        id: "response-preparation",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    await expect(preparation).resolves.toEqual({
+      context: "Approval is required before release.",
+      kind: "prepared",
+      sourceSegmentIds: request.sourceSegmentIds,
+    });
+    expect(harness.reportDiagnostic).toHaveBeenLastCalledWith({
+      durationMs: 0,
+      inputWordCount: 11,
+      operation: "preparation",
+      outcome: "success",
+      outputWordCount: 5,
+      requestId: "voice-request-2",
+      sourceSegmentCount: 2,
+      stage: "browser",
+    });
+  });
+
+  test.each([
+    ["empty output", "", 12],
+    ["over-budget output", "one two three", 2],
+    ["over-400-character output", "word ".repeat(81), 100],
+    ["Markdown heading", "# Approval is required", 12],
+    ["Markdown list", "- Approval is required", 12],
+    ["JSON fence", "```json\n{}\n```", 12],
+    ["tool syntax", 'continue_interview({"answer":"yes"})', 12],
+  ])("falls back for invalid prepared %s", async (_label, output, budget) => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    const request = preparationRequest({ contextWordBudget: budget });
+    const preparation = harness.session.prepareInterviewSpeech(request);
+    const responseCreate = sentEvents(channel).at(-1)!;
+    channel.receive({
+      response: {
+        id: "response-preparation",
+        metadata: (responseCreate.response as Record<string, unknown>).metadata,
+      },
+      type: "response.created",
+    });
+    if (output) {
+      channel.receive({
+        delta: output,
+        response_id: "response-preparation",
+        type: "response.output_text.delta",
+      });
+    }
+    channel.receive({
+      response: {
+        id: "response-preparation",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    await expect(preparation).resolves.toEqual({
+      kind: "fallback",
+      reason: "invalid-output",
+      sourceSegmentIds: request.sourceSegmentIds,
+    });
+  });
+
+  test("falls back without closing the session after a correlated provider error", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    const request = preparationRequest();
+    const preparation = harness.session.prepareInterviewSpeech(request);
+    const responseCreate = sentEvents(channel).at(-1)!;
+
+    channel.receive({
+      error: {
+        event_id: responseCreate.event_id,
+        message: "private provider detail",
+        type: "server_error",
+      },
+      type: "error",
+    });
+
+    await expect(preparation).resolves.toEqual({
+      kind: "fallback",
+      reason: "provider-error",
+      sourceSegmentIds: request.sourceSegmentIds,
+    });
+    expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
+    expect(JSON.stringify(harness.events)).not.toContain(
+      "private provider detail",
+    );
+  });
+
+  test("interrupts preparation and ignores its late completion", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+    const request = preparationRequest();
+    const preparation = harness.session.prepareInterviewSpeech(request);
+    const responseCreate = sentEvents(channel).at(-1)!;
+    channel.receive({
+      response: {
+        id: "response-preparation",
+        metadata: (responseCreate.response as Record<string, unknown>).metadata,
+      },
+      type: "response.created",
+    });
+
+    harness.session.cancelOutput();
+
+    await expect(preparation).resolves.toEqual({
+      kind: "fallback",
+      reason: "interrupted",
+      sourceSegmentIds: request.sourceSegmentIds,
+    });
+    expect(sentEvents(channel).slice(-1)[0]).toMatchObject({
+      response_id: "response-preparation",
+      type: "response.cancel",
+    });
+    channel.receive({
+      delta: "Late output must be ignored.",
+      response_id: "response-preparation",
+      type: "response.output_text.delta",
+    });
+    channel.receive({
+      response: {
+        id: "response-preparation",
+        output: [],
+        status: "cancelled",
+      },
+      type: "response.done",
+    });
+    expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
+  });
+
+  test("times out preparation after two seconds and cancels late provider work", async () => {
+    vi.useFakeTimers();
+    const harness = createHarness();
+    const connection = harness.session.connect();
+    await vi.runAllTimersAsync();
+    await connection;
+    const channel = harness.channels[0]!;
+    const request = preparationRequest();
+    const preparation = harness.session.prepareInterviewSpeech(request);
+    const responseCreate = sentEvents(channel).at(-1)!;
+    channel.receive({
+      response: {
+        id: "response-preparation",
+        metadata: (responseCreate.response as Record<string, unknown>).metadata,
+      },
+      type: "response.created",
+    });
+
+    await vi.advanceTimersByTimeAsync(2_000);
+
+    await expect(preparation).resolves.toEqual({
+      kind: "fallback",
+      reason: "timeout",
+      sourceSegmentIds: request.sourceSegmentIds,
+    });
+    expect(sentEvents(channel).slice(-1)[0]).toMatchObject({
+      response_id: "response-preparation",
+      type: "response.cancel",
+    });
+    channel.receive({
+      delta: "Late output must be ignored.",
+      response_id: "response-preparation",
+      type: "response.output_text.delta",
+    });
+    channel.receive({
+      response: {
+        id: "response-preparation",
+        output: [],
+        status: "cancelled",
+      },
+      type: "response.done",
+    });
+    expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
+  });
+
+  test("releases a timed-out preparation create so canonical speech can send", async () => {
+    vi.useFakeTimers();
+    const harness = createHarness();
+    const connection = harness.session.connect();
+    await vi.runAllTimersAsync();
+    await connection;
+    const channel = harness.channels[0]!;
+    const request = preparationRequest();
+    const preparation = harness.session.prepareInterviewSpeech(request);
+    const preparationCreate = sentEvents(channel).at(-1)!;
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    await expect(preparation).resolves.toMatchObject({
+      kind: "fallback",
+      reason: "timeout",
+    });
+    harness.session.speakCanonical([
+      canonicalSegment("question-after-timeout", "What happens next?"),
+    ]);
+
+    const responseCreates = sentEvents(channel).filter(
+      ({ type }) => type === "response.create",
+    );
+    expect(responseCreates).toHaveLength(2);
+    expect(responseCreates[1]).toMatchObject({
+      response: { metadata: { petrinaut_kind: "canonical-speech" } },
+    });
+
+    channel.receive({
+      response: {
+        id: "late-preparation-response",
+        metadata: (preparationCreate.response as Record<string, unknown>)
+          .metadata,
+      },
+      type: "response.created",
+    });
+    expect(sentEvents(channel)).toContainEqual(
+      expect.objectContaining({
+        response_id: "late-preparation-response",
+        type: "response.cancel",
+      }),
+    );
+    expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
+  });
+
+  test("rejects preparation metadata for a non-current pending request", async () => {
+    vi.useFakeTimers();
+    const harness = createHarness();
+    const connection = harness.session.connect();
+    await vi.runAllTimersAsync();
+    await connection;
+    const channel = harness.channels[0]!;
+    const firstRequest = preparationRequest({ cacheKey: "first-request" });
+    const secondRequest = preparationRequest({ cacheKey: "second-request" });
+    const firstPreparation =
+      harness.session.prepareInterviewSpeech(firstRequest);
+    const secondPreparation =
+      harness.session.prepareInterviewSpeech(secondRequest);
+
+    channel.receive({
+      response: {
+        id: "mismatched-response",
+        metadata: {
+          petrinaut_kind: "speech-preparation",
+          petrinaut_request_id: secondRequest.cacheKey,
+        },
+      },
+      type: "response.created",
+    });
+    channel.receive({
+      delta: "This output must not be accepted.",
+      response_id: "mismatched-response",
+      type: "response.output_text.delta",
+    });
+    channel.receive({
+      response: {
+        id: "mismatched-response",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    await expect(firstPreparation).resolves.toMatchObject({
+      reason: "timeout",
+    });
+    await expect(secondPreparation).resolves.toMatchObject({
+      reason: "timeout",
+    });
+    expect(harness.localTracks[0]!.stop).not.toHaveBeenCalled();
+  });
+
+  test("settles active preparation during disconnect cleanup", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const request = preparationRequest();
+    const preparation = harness.session.prepareInterviewSpeech(request);
+
+    await harness.session.disconnect();
+
+    await expect(preparation).resolves.toEqual({
+      kind: "fallback",
+      reason: "interrupted",
+      sourceSegmentIds: request.sourceSegmentIds,
+    });
+    expect(harness.localTracks[0]!.stop).toHaveBeenCalledOnce();
   });
 
   test("cancels canonical speech before the response starts", async () => {

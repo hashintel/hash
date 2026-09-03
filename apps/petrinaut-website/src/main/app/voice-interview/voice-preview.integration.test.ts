@@ -5,7 +5,7 @@ import {
   VOICE_REQUEST_ID_HEADER,
   type VoiceDiagnosticEvent,
 } from "../../../voice-diagnostics";
-import { selectCanonicalSpeechSegments } from "./canonical-speech";
+import { selectInterviewSpeech } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import { VoiceTurnController } from "./voice-turn-controller";
@@ -16,12 +16,25 @@ const origin = "https://petrinaut.test";
 const browserOffer = "v=0\r\na=private-browser-sdp\r\n";
 const providerAnswer = "v=0\r\na=private-provider-sdp\r\n";
 const spokenAnswer = "The supervisor approves it.";
-const canonicalReply = "Thanks. I have recorded that.";
-const canonicalQuestion = "Who is informed next?";
+const canonicalReply =
+  "Thanks. I have recorded that the supervisor approves each release before the operations team schedules the batch, and that the quality lead must receive the signed checklist, inspect every exception, preserve the audit record, and notify the manager before any delayed item can move into production.";
+const preparedReply = "Approval recorded.";
+const canonicalQuestion =
+  "Who is informed next: the manager, the quality lead, or both? Choose one.";
+const toolMetadata = "internal-tool-metadata-must-not-be-spoken";
+const toolError = "internal-tool-error-must-not-be-spoken";
+const fallbackReply =
+  "The complete canonical fallback says that rejected batches remain quarantined until an authorized reviewer documents the resolution.";
+const fallbackQuestion =
+  "Who documents the resolution: the manager or the quality lead?";
 const requestIds = [
   "00000000-0000-4000-8000-000000000011",
   "00000000-0000-4000-8000-000000000012",
   "00000000-0000-4000-8000-000000000013",
+  "00000000-0000-4000-8000-000000000014",
+  "00000000-0000-4000-8000-000000000015",
+  "00000000-0000-4000-8000-000000000016",
+  "00000000-0000-4000-8000-000000000017",
 ] as const;
 
 class FakeDataChannel extends EventTarget {
@@ -81,12 +94,24 @@ const responseMessages = [
   ...initialMessages,
   {
     id: "canonical-response-message",
-    parts: [{ state: "done", text: canonicalReply, type: "text" }],
-    role: "assistant",
-  },
-  {
-    id: "next-question-message",
     parts: [
+      { state: "done", text: canonicalReply, type: "text" },
+      {
+        input: { metadata: toolMetadata },
+        output: { result: toolMetadata },
+        state: "output-available",
+        toolCallId: "metadata-tool",
+        toolName: "internal_metadata",
+        type: "dynamic-tool",
+      },
+      {
+        errorText: toolError,
+        input: { metadata: toolMetadata },
+        state: "output-error",
+        toolCallId: "error-tool",
+        toolName: "internal_error",
+        type: "dynamic-tool",
+      },
       {
         input: { question: canonicalQuestion },
         state: "input-available",
@@ -99,8 +124,27 @@ const responseMessages = [
   },
 ] satisfies PetrinautAiMessage[];
 
+const fallbackMessages = [
+  ...responseMessages,
+  {
+    id: "canonical-fallback-message",
+    parts: [
+      { state: "done", text: fallbackReply, type: "text" },
+      {
+        input: { question: fallbackQuestion },
+        state: "input-available",
+        toolCallId: "ask-fallback",
+        toolName: "brunch_ask",
+        type: "dynamic-tool",
+      },
+    ],
+    role: "assistant",
+  },
+] satisfies PetrinautAiMessage[];
+
 describe("controlled voice preview", () => {
   test("bridges one Realtime tool call through Brunch and back to canonical duplex audio", async () => {
+    const responseMessagesSnapshot = structuredClone(responseMessages);
     const diagnostics: VoiceDiagnosticEvent[] = [];
     const reportDiagnostic = (event: VoiceDiagnosticEvent) =>
       diagnostics.push(event);
@@ -217,9 +261,11 @@ describe("controlled voice preview", () => {
       session,
       submitText: submitInterviewAnswer,
     });
+    const initialSpeech = selectInterviewSpeech(initialMessages);
     controller.updateChat({
+      automaticSource: initialSpeech.automaticSource,
       canAcceptInterviewAnswer: true,
-      canonicalSegments: selectCanonicalSpeechSegments(initialMessages),
+      canonicalSegments: [...initialSpeech.canonicalSegments],
       status: "ready",
     });
 
@@ -286,16 +332,74 @@ describe("controlled voice preview", () => {
       output: "waiting-for-tool",
     });
 
+    const pendingSpeech = selectInterviewSpeech(initialMessages);
     controller.updateChat({
+      automaticSource: pendingSpeech.automaticSource,
       canAcceptInterviewAnswer: false,
-      canonicalSegments: selectCanonicalSpeechSegments(initialMessages),
+      canonicalSegments: [...pendingSpeech.canonicalSegments],
       status: "streaming",
     });
+    const responseSpeech = selectInterviewSpeech(responseMessages);
+    expect(responseSpeech.automaticSource).toMatchObject({
+      contextSegments: [{ text: canonicalReply }],
+      questionSegment: { text: canonicalQuestion },
+    });
+    expect(responseSpeech.canonicalSegments.map(({ text }) => text)).toEqual([
+      "What happens after approval?",
+      canonicalReply,
+      canonicalQuestion,
+    ]);
     controller.updateChat({
+      automaticSource: responseSpeech.automaticSource,
       canAcceptInterviewAnswer: true,
-      canonicalSegments: selectCanonicalSpeechSegments(responseMessages),
+      canonicalSegments: [...responseSpeech.canonicalSegments],
       status: "ready",
     });
+
+    const preparationCreate = sentEvents(dataChannel).at(-1)!;
+    expect(preparationCreate).toMatchObject({
+      type: "response.create",
+      response: {
+        metadata: { petrinaut_kind: "speech-preparation" },
+        output_modalities: ["text"],
+      },
+    });
+    const preparationResponse = preparationCreate.response as {
+      input: Array<{ content: Array<{ text: string }> }>;
+      metadata: Record<string, unknown>;
+    };
+    expect(JSON.parse(preparationResponse.input[0]!.content[0]!.text)).toEqual({
+      context_text: [canonicalReply],
+      maximum_words: 50 - canonicalQuestion.trim().split(/\s+/u).length,
+    });
+    expect(JSON.stringify(preparationResponse)).not.toContain(toolMetadata);
+    expect(JSON.stringify(preparationResponse)).not.toContain(toolError);
+    dataChannel.receive({
+      response: {
+        id: "response-prepared-reply",
+        metadata: preparationResponse.metadata,
+      },
+      type: "response.created",
+    });
+    dataChannel.receive({
+      delta: preparedReply,
+      response_id: "response-prepared-reply",
+      type: "response.output_text.delta",
+    });
+    dataChannel.receive({
+      response: {
+        id: "response-prepared-reply",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    await vi.waitFor(() =>
+      expect(sentEvents(dataChannel)).toContainEqual(
+        expect.objectContaining({ type: "conversation.item.create" }),
+      ),
+    );
 
     const [functionOutput, responseCreate] = sentEvents(dataChannel).slice(-2);
     expect(functionOutput).toEqual({
@@ -304,7 +408,7 @@ describe("controlled voice preview", () => {
         type: "function_call_output",
         call_id: "call-1",
         output: JSON.stringify({
-          response_text: [canonicalReply, canonicalQuestion],
+          response_text: [preparedReply, canonicalQuestion],
         }),
       },
     });
@@ -316,6 +420,12 @@ describe("controlled voice preview", () => {
         tools: [],
       },
     });
+    expect(JSON.stringify([functionOutput, responseCreate])).not.toContain(
+      toolMetadata,
+    );
+    expect(JSON.stringify([functionOutput, responseCreate])).not.toContain(
+      toolError,
+    );
 
     authorizeLatestSpeechResponse(dataChannel, "response-canonical-reply");
     dataChannel.receive({
@@ -342,6 +452,116 @@ describe("controlled voice preview", () => {
       srcObject: remoteStream,
     });
     expect(remoteAudio.play).toHaveBeenCalledOnce();
+
+    dataChannel.receive({
+      response_id: "response-canonical-reply",
+      type: "output_audio_buffer.stopped",
+    });
+    dataChannel.receive({
+      response: {
+        id: "response-canonical-reply",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    controller.readFullResponse();
+    await vi.waitFor(() =>
+      expect(sentEvents(dataChannel).at(-1)).toMatchObject({
+        response: {
+          metadata: { petrinaut_kind: "canonical-speech" },
+        },
+        type: "response.create",
+      }),
+    );
+    const replayCreate = sentEvents(dataChannel).at(-1)!;
+    const replayResponse = replayCreate.response as {
+      input: Array<{ content: Array<{ text: string }> }>;
+    };
+    expect(JSON.parse(replayResponse.input[0]!.content[0]!.text)).toEqual({
+      response_text: [canonicalReply, canonicalQuestion],
+    });
+    expect(JSON.stringify(replayCreate)).not.toContain(preparedReply);
+
+    authorizeLatestSpeechResponse(dataChannel, "response-canonical-replay");
+    dataChannel.receive({
+      response_id: "response-canonical-replay",
+      type: "output_audio_buffer.started",
+    });
+    dataChannel.receive({
+      response_id: "response-canonical-replay",
+      type: "output_audio_buffer.stopped",
+    });
+    dataChannel.receive({
+      response: {
+        id: "response-canonical-replay",
+        output: [],
+        status: "completed",
+      },
+      type: "response.done",
+    });
+
+    const canonicalSpeechCountBeforeFallback = sentEvents(dataChannel).filter(
+      (event) =>
+        event.type === "response.create" &&
+        (event.response as { metadata?: { petrinaut_kind?: string } }).metadata
+          ?.petrinaut_kind === "canonical-speech",
+    ).length;
+    const fallbackSpeech = selectInterviewSpeech(fallbackMessages);
+    controller.updateChat({
+      automaticSource: fallbackSpeech.automaticSource,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...fallbackSpeech.canonicalSegments],
+      status: "ready",
+    });
+    const fallbackPreparationCreate = sentEvents(dataChannel).at(-1)!;
+    expect(fallbackPreparationCreate).toMatchObject({
+      response: {
+        metadata: { petrinaut_kind: "speech-preparation" },
+      },
+      type: "response.create",
+    });
+    const fallbackPreparationResponse = fallbackPreparationCreate.response as {
+      input: Array<{ content: Array<{ text: string }> }>;
+      metadata: Record<string, unknown>;
+    };
+    expect(
+      JSON.parse(fallbackPreparationResponse.input[0]!.content[0]!.text),
+    ).toMatchObject({ context_text: [fallbackReply] });
+    dataChannel.receive({
+      response: {
+        id: "response-fallback-preparation",
+        metadata: fallbackPreparationResponse.metadata,
+      },
+      type: "response.created",
+    });
+    dataChannel.receive({
+      response: {
+        id: "response-fallback-preparation",
+        status: "failed",
+      },
+      type: "response.done",
+    });
+
+    await vi.waitFor(() =>
+      expect(
+        sentEvents(dataChannel).filter(
+          (event) =>
+            event.type === "response.create" &&
+            (event.response as { metadata?: { petrinaut_kind?: string } })
+              .metadata?.petrinaut_kind === "canonical-speech",
+        ),
+      ).toHaveLength(canonicalSpeechCountBeforeFallback + 1),
+    );
+    const fallbackAudioCreate = sentEvents(dataChannel).at(-1)!;
+    const fallbackAudioResponse = fallbackAudioCreate.response as {
+      input: Array<{ content: Array<{ text: string }> }>;
+    };
+    expect(
+      JSON.parse(fallbackAudioResponse.input[0]!.content[0]!.text),
+    ).toEqual({ response_text: [fallbackReply, fallbackQuestion] });
+    expect(responseMessages).toEqual(responseMessagesSnapshot);
 
     expect(browserRequests).toEqual([
       {
@@ -378,7 +598,12 @@ describe("controlled voice preview", () => {
       providerAnswer,
       spokenAnswer,
       canonicalReply,
+      preparedReply,
       canonicalQuestion,
+      toolMetadata,
+      toolError,
+      fallbackReply,
+      fallbackQuestion,
       environment.OPENAI_VOICE_API_KEY,
     ]) {
       expect(serializedDiagnostics).not.toContain(privateValue);

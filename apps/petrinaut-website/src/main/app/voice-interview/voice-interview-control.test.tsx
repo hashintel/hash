@@ -213,6 +213,24 @@ describe("voice interview control", () => {
     ).not.toThrow();
   });
 
+  test("registers canonical replay controls with the host", () => {
+    const repeatQuestion = vi.spyOn(
+      VoiceTurnController.prototype,
+      "repeatQuestion",
+    );
+    const readFullResponse = vi.spyOn(
+      VoiceTurnController.prototype,
+      "readFullResponse",
+    );
+    render(<VoiceInterviewHarness />);
+
+    registeredVoiceModeControls?.repeatQuestion?.();
+    registeredVoiceModeControls?.readFullResponse?.();
+
+    expect(repeatQuestion).toHaveBeenCalledOnce();
+    expect(readFullResponse).toHaveBeenCalledOnce();
+  });
+
   test("loads only a schema-valid available server configuration", async () => {
     const fetch = vi.fn<typeof globalThis.fetch>(async () =>
       Response.json({ available: true, connectionTimeoutMs: 15_000 }),

@@ -57,8 +57,12 @@ export type PetrinautAiVoiceModeControls = {
   end: () => Promise<void>;
   /** Pauses microphone capture and active Voice output synchronously. */
   pause: () => void;
+  /** Reads the complete canonical assistant response without rewriting it. */
+  readFullResponse?: () => void;
   /** Re-establishes a session that dropped, keeping the conversation. */
   reconnect: () => void;
+  /** Repeats only the current canonical interview question. */
+  repeatQuestion?: () => void;
   /** Resumes microphone capture after `pause`. */
   resume: () => void;
   /**

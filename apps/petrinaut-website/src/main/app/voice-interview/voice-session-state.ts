@@ -93,6 +93,8 @@ export const toVoiceSessionState = ({
   }
 
   return {
+    canReadFullResponse: snapshot.canReadFullResponse,
+    canRepeatQuestion: snapshot.canRepeatQuestion,
     errorMessage:
       snapshot.connection === "error" ? errorMessageOf(snapshot) : null,
     microphoneMuted:

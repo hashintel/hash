@@ -5,6 +5,8 @@ import { toVoiceSessionState } from "./voice-session-state";
 import type { VoiceTurnSnapshot } from "./voice-turn-controller";
 
 const listeningSnapshot = {
+  canReadFullResponse: true,
+  canRepeatQuestion: true,
   canReviseLastAnswer: false,
   connection: "connected",
   currentQuestion: "What happens after approval?",
@@ -30,6 +32,8 @@ describe("toVoiceSessionState", () => {
 
   test("reports a listening turn with its microphone level", () => {
     expect(mapSnapshot()).toEqual({
+      canReadFullResponse: true,
+      canRepeatQuestion: true,
       errorMessage: null,
       microphoneLevel: 0.24,
       microphoneMuted: false,
