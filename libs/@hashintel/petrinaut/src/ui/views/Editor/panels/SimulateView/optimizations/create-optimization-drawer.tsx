@@ -15,19 +15,23 @@ import {
 import { css } from "@hashintel/ds-helpers/css";
 import {
   PETRINAUT_DEFAULT_SEED,
+  PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL,
   PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS,
   PETRINAUT_OPTIMIZATION_MAX_TRIALS,
   createUserKeyedRecord,
   EMPTY_AD_HOC_STATE,
+  isWebGpuAvailable,
   metricSchema,
   petrinautOptimizationInputSchema,
   adHocOptimizationBindings,
   synthesizeAdHocOptimization,
 } from "@hashintel/petrinaut-core";
+import { isConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { OptimizationsContext } from "../../../../../../react/optimizations/context";
+import { useOptimizationSource } from "../../../../../../react/optimizations/use-optimization-source";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { AdHocScenarioForm } from "../../../../../components/ad-hoc-scenario-form/ad-hoc-scenario-form";
@@ -47,12 +51,18 @@ import {
   getMetricKindIcon,
   MODEL_METRIC_VALUE_PREFIX,
 } from "../metrics/metric-picker-options";
+import { ComputeBackendToggle } from "../shared/compute-backend-toggle";
+import { useGpuAvailability } from "../shared/use-gpu-availability";
 import {
   createOptimizationParameterDraft,
   type OptimizationParameterDraft,
   OptimizationParameterRow,
 } from "./optimization-parameter-row";
 
+import type {
+  ExperimentComputeBackend,
+  ExperimentMetricSpecInput,
+} from "../../../../../../react/experiments/context";
 import type {
   AdHocScenarioState,
   AdHocSynthesisError,
@@ -177,6 +187,7 @@ const directionOptions = [
 ];
 
 const OPTIMIZATION_SAMPLER = "tpe" as const;
+const DEFAULT_SEEDS_PER_TRIAL = 1;
 const AD_HOC_SCENARIO_VALUE = "__adhoc__";
 const AD_HOC_SCENARIO_LABEL = "No scenario";
 const DEFAULT_DT = 0.1;
@@ -363,6 +374,7 @@ function getConfigurationError({
   missingObjectiveMessage,
   direction,
   optimizationSteps,
+  seedsPerTrial,
   dt,
   maxTime,
 }: {
@@ -375,6 +387,7 @@ function getConfigurationError({
   missingObjectiveMessage: string;
   direction: Direction | null;
   optimizationSteps: number | null;
+  seedsPerTrial: number | null;
   dt: number | null;
   maxTime: number | null;
 }): string | null {
@@ -421,6 +434,14 @@ function getConfigurationError({
   ) {
     return `Optimization steps must be an integer between 1 and ${PETRINAUT_OPTIMIZATION_MAX_TRIALS.toLocaleString()}`;
   }
+  if (
+    seedsPerTrial === null ||
+    !Number.isInteger(seedsPerTrial) ||
+    seedsPerTrial < 1 ||
+    seedsPerTrial > PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL
+  ) {
+    return `Runs per step must be an integer between 1 and ${PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL.toLocaleString()}`;
+  }
   if (dt === null || !Number.isFinite(dt) || dt <= 0) {
     return "Time step must be a positive number";
   }
@@ -435,10 +456,10 @@ function getConfigurationError({
     return `Use at most ${PETRINAUT_OPTIMIZATION_MAX_STEPS_PER_TRIAL.toLocaleString()} simulation steps per optimization step`;
   }
   if (
-    simulationStepsPerOptimization * optimizationSteps >
+    simulationStepsPerOptimization * seedsPerTrial * optimizationSteps >
     PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS
   ) {
-    return `Use at most ${PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS.toLocaleString()} simulation steps across the optimization`;
+    return `Use at most ${PETRINAUT_OPTIMIZATION_MAX_TOTAL_STEPS.toLocaleString()} simulation steps across the optimization (time steps × runs per step × optimization steps)`;
   }
   return null;
 }
@@ -453,6 +474,7 @@ export function buildPetrinautOptimizationInput({
   metric,
   direction,
   optimizationSteps,
+  seedsPerTrial,
   dt,
   maxTime,
 }: {
@@ -464,6 +486,7 @@ export function buildPetrinautOptimizationInput({
   metric: Metric;
   direction: Direction;
   optimizationSteps: number;
+  seedsPerTrial: number;
   dt: number;
   maxTime: number;
 }): PetrinautOptimizationInput {
@@ -525,7 +548,7 @@ export function buildPetrinautOptimizationInput({
     },
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
-    execution: { seed: PETRINAUT_DEFAULT_SEED, dt, maxTime },
+    execution: { seed: PETRINAUT_DEFAULT_SEED, dt, maxTime, seedsPerTrial },
     study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
 }
@@ -545,6 +568,7 @@ export function buildAdHocPetrinautOptimizationInput({
   metric,
   direction,
   optimizationSteps,
+  seedsPerTrial,
   dt,
   maxTime,
 }: {
@@ -556,6 +580,7 @@ export function buildAdHocPetrinautOptimizationInput({
   metric: Metric;
   direction: Direction;
   optimizationSteps: number;
+  seedsPerTrial: number;
   dt: number;
   maxTime: number;
 }): PetrinautOptimizationInput {
@@ -573,7 +598,7 @@ export function buildAdHocPetrinautOptimizationInput({
     },
     scenario: { id: scenario.id, parameterBindings },
     objective: { metricId: metric.id, direction },
-    execution: { seed: PETRINAUT_DEFAULT_SEED, dt, maxTime },
+    execution: { seed: PETRINAUT_DEFAULT_SEED, dt, maxTime, seedsPerTrial },
     study: { trials: optimizationSteps, sampler: OPTIMIZATION_SAMPLER },
   });
 }
@@ -588,7 +613,11 @@ export const CreateOptimizationDrawer = ({
   const { extensions, petriNetDefinition, title } = use(SDCPNContext);
   const { requestHirArtifacts } = use(LanguageClientContext);
   const { createOptimization } = use(OptimizationsContext);
-  const { enableAdHocScenarios } = use(UserSettingsContext);
+  const { enableAdHocScenarios, webGpuEnabled } = use(UserSettingsContext);
+  const source = useOptimizationSource();
+  // A remote study runs wherever the service runs, so only a connected
+  // source — trials evaluated in this browser — gets a backend choice.
+  const backendSelectable = source !== null && isConnectedOptimization(source);
   const scenarios = petriNetDefinition.scenarios ?? [];
   const metrics = petriNetDefinition.metrics ?? [];
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -606,6 +635,10 @@ export const CreateOptimizationDrawer = ({
   const [optimizationSteps, setOptimizationSteps] = useState<number | null>(
     100,
   );
+  const [seedsPerTrial, setSeedsPerTrial] = useState<number | null>(
+    DEFAULT_SEEDS_PER_TRIAL,
+  );
+  const [gpuRequested, setGpuRequested] = useState(false);
   const [dt, setDt] = useState<number | null>(DEFAULT_DT);
   const [maxTime, setMaxTime] = useState<number | null>(180);
   const [error, setError] = useState<string | null>(null);
@@ -666,6 +699,42 @@ export const CreateOptimizationDrawer = ({
     );
   };
 
+  // The objective is an expression metric whichever way it is authored, which
+  // the GPU backend cannot compute, so the switch stays disabled with that
+  // reason; the net analysis still runs so the reason names the first
+  // blocker. The gate reads the metric's kind, not its code, so the custom
+  // objective counts before any code is typed.
+  const objectiveMetricForGpu =
+    metricSource === "saved"
+      ? selectedSavedMetric
+      : { id: customMetricId, name: CUSTOM_OBJECTIVE_METRIC_NAME, code: "" };
+  const objectiveMetricSpecs: ExperimentMetricSpecInput[] | null =
+    objectiveMetricForGpu
+      ? [
+          {
+            kind: "expression",
+            id: objectiveMetricForGpu.id,
+            label: objectiveMetricForGpu.name,
+            code: objectiveMetricForGpu.code,
+            sampleRuns: "all",
+            runOutput: { type: "distribution" },
+          },
+        ]
+      : null;
+  const webGpuAvailable = isWebGpuAvailable();
+  const gpu = useGpuAvailability({
+    enabled: open && backendSelectable && webGpuEnabled && webGpuAvailable,
+    sdcpn: petriNetDefinition,
+    extensions,
+    metricSpecs: objectiveMetricSpecs,
+  });
+  // Derived rather than stored, so a net edited into ineligibility after the
+  // switch was flipped neither shows as on nor submits a GPU study.
+  const gpuSelected = gpuRequested && gpu.available;
+  const computeBackend: ExperimentComputeBackend = gpuSelected
+    ? "webgpu"
+    : "cpu";
+
   const resetConfigurationState = (scenario?: Scenario) => {
     setName("Optimization");
     setDrafts(scenario ? createParameterDrafts(scenario) : {});
@@ -674,6 +743,8 @@ export const CreateOptimizationDrawer = ({
     setCustomMetricId(crypto.randomUUID());
     setDirection(null);
     setOptimizationSteps(100);
+    setSeedsPerTrial(DEFAULT_SEEDS_PER_TRIAL);
+    setGpuRequested(false);
     setDt(DEFAULT_DT);
     setMaxTime(180);
     setError(null);
@@ -703,6 +774,7 @@ export const CreateOptimizationDrawer = ({
             missingObjectiveMessage: "Select an objective metric",
             direction,
             optimizationSteps,
+            seedsPerTrial,
             dt,
             maxTime,
           })
@@ -713,6 +785,7 @@ export const CreateOptimizationDrawer = ({
       validationError ||
       direction === null ||
       optimizationSteps === null ||
+      seedsPerTrial === null ||
       dt === null ||
       maxTime === null
     ) {
@@ -783,6 +856,7 @@ export const CreateOptimizationDrawer = ({
             metric,
             direction,
             optimizationSteps,
+            seedsPerTrial,
             dt,
             maxTime,
           })
@@ -795,10 +869,11 @@ export const CreateOptimizationDrawer = ({
             metric,
             direction,
             optimizationSteps,
+            seedsPerTrial,
             dt,
             maxTime,
           });
-      await createOptimization(input);
+      await createOptimization(input, { computeBackend });
       resetState();
       resetMetricForm();
     } catch (submitError) {
@@ -881,6 +956,7 @@ export const CreateOptimizationDrawer = ({
               : "Define the custom objective metric",
           direction,
           optimizationSteps,
+          seedsPerTrial,
           dt,
           maxTime,
         })
@@ -1000,16 +1076,52 @@ export const CreateOptimizationDrawer = ({
                   <TextInput size="sm" value={name} onChange={setName} />
                 </Form.Field>
                 <Form.Row>
-                  <Form.Field label="Optimization steps" size="sm">
-                    <NumberInput
+                  {[
+                    <Form.Field
+                      key="steps"
+                      label="Optimization steps"
                       size="sm"
-                      min={1}
-                      max={PETRINAUT_OPTIMIZATION_MAX_TRIALS}
-                      step={1}
-                      value={optimizationSteps}
-                      onChange={setOptimizationSteps}
-                    />
-                  </Form.Field>
+                    >
+                      <NumberInput
+                        size="sm"
+                        min={1}
+                        max={PETRINAUT_OPTIMIZATION_MAX_TRIALS}
+                        step={1}
+                        value={optimizationSteps}
+                        onChange={setOptimizationSteps}
+                      />
+                    </Form.Field>,
+                    <Form.Field
+                      key="runs"
+                      label="Runs per step"
+                      labelTooltip="Seeded simulations per optimization step. Their final objective values are aggregated into the step's objective."
+                      size="sm"
+                    >
+                      <NumberInput
+                        size="sm"
+                        min={1}
+                        max={PETRINAUT_OPTIMIZATION_MAX_SEEDS_PER_TRIAL}
+                        step={1}
+                        value={seedsPerTrial}
+                        onChange={setSeedsPerTrial}
+                      />
+                    </Form.Field>,
+                    // Only offered where the choice exists: a connected source
+                    // with WebGPU switched on in settings.
+                    ...(backendSelectable && webGpuEnabled && webGpuAvailable
+                      ? [
+                          <Form.Field key="backend" label="Backend" size="sm">
+                            <ComputeBackendToggle
+                              gpu={gpu}
+                              selected={gpuSelected}
+                              onSelectedChange={setGpuRequested}
+                            />
+                          </Form.Field>,
+                        ]
+                      : []),
+                  ]}
+                </Form.Row>
+                <Form.Row>
                   <Form.Field label="Time step" size="sm">
                     <NumberInput
                       size="sm"

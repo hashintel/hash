@@ -112,6 +112,8 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, enableParameterSweeps: value })),
     setEnableOptimizationSurface: (value: boolean) =>
       setState((prev) => ({ ...prev, enableOptimizationSurface: value })),
+    setEnableInBrowserOptimization: (value: boolean) =>
+      setState((prev) => ({ ...prev, enableInBrowserOptimization: value })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,

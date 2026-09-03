@@ -226,7 +226,7 @@ export const SweepSurface = ({
             {
               x: nearestGridIndex(xAxis, sweepSelection?.[xAxis.identifier]),
               y: nearestGridIndex(yAxis, sweepSelection?.[yAxis.identifier]),
-              emphasis: true,
+              kind: "navigation",
             },
           ]}
           onPickFraction={handlePickFraction}

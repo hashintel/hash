@@ -1,3 +1,7 @@
+/**
+ * @layerRoot react.optimizations
+ * @role Tracks optimization runs, folds their event streams into records, and drives a connected study's navigation and live selection
+ */
 import { use, useCallback, useEffect, useRef, useState } from "react";
 
 import {
@@ -7,13 +11,25 @@ import {
   type PetrinautOptimizationEvent,
   type PetrinautOptimizationInput,
 } from "@hashintel/petrinaut-core";
+import {
+  isConnectedOptimization,
+  type PetrinautConnectedOptimization,
+} from "@hashintel/petrinaut-core/optimization";
 
+import {
+  ExperimentsActionsContext,
+  type ExperimentsActionsValue,
+} from "../experiments/context";
 import { useBlockWindowClose } from "../hooks/use-block-window-close";
+import { useLatest } from "../hooks/use-latest";
 import {
   openPetrinautSimulationResource,
   usePetrinautNavigation,
 } from "../navigation";
-import { PetrinautOptimizationContext } from "../optimization-context";
+import {
+  createOptimizationChannel,
+  type OptimizationChannelStudy,
+} from "./channel/create-optimization-channel";
 import {
   type OptimizationBest,
   type OptimizationErrorCategory,
@@ -23,6 +39,13 @@ import {
   OptimizationsContext,
   type OptimizationsContextValue,
 } from "./context";
+import {
+  type ConnectedStudy,
+  type ConnectedStudyOutcome,
+  createConnectedStudy,
+} from "./provider/connected-study";
+import { buildOptimizationSurfaceAxes } from "./surface-grid";
+import { useOptimizationSource } from "./use-optimization-source";
 
 import type { PropsWithChildren } from "react";
 
@@ -293,15 +316,55 @@ const createOptimizationRecord = (
   failedTrials: 0,
   trials: [],
   best: null,
+  computeBackend: "cpu",
+  computeBackendFallbackReason: null,
+  axes: buildOptimizationSurfaceAxes(input),
+  navigation: null,
+  selection: null,
   ...overrides,
 });
 
+/**
+ * A connected source's capability together with the channel it evaluates
+ * trials through. Both die with the connection.
+ */
+type OptimizationConnection = {
+  source: PetrinautConnectedOptimization;
+  capability: PetrinautOptimization;
+  dispose: () => void;
+};
+
+const connectOptimizationSource = (
+  source: PetrinautConnectedOptimization,
+  experimentsActions: React.RefObject<ExperimentsActionsValue>,
+  resolveStudy: (runId: string) => OptimizationChannelStudy | null,
+): OptimizationConnection => {
+  const channel = createOptimizationChannel({
+    runDetachedObjective: (request) =>
+      experimentsActions.current.runDetachedObjective(request),
+    resolveStudy,
+  });
+  const capability = source.connect(channel);
+  return {
+    source,
+    capability,
+    dispose: () => {
+      capability.dispose();
+      channel.dispose();
+    },
+  };
+};
+
 export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
-  const capability = use(PetrinautOptimizationContext);
+  const source = useOptimizationSource();
+  const experimentsActionsRef = useLatest(use(ExperimentsActionsContext));
+  const connectionRef = useRef<OptimizationConnection | null>(null);
   const navigation = usePetrinautNavigation();
   const abortControllersRef = useRef(new Map<string, AbortController>());
   /** Server run ids of active detached runs, keyed by record id. */
   const runIdsRef = useRef(new Map<string, string>());
+  /** The local machinery behind each connected study, keyed by record id. */
+  const studiesRef = useRef(new Map<string, ConnectedStudy>());
   const [optimizations, setOptimizations] = useState<OptimizationRecord[]>([]);
   const selectedOptimizationId =
     navigation.state.simulateResource?.type === "optimization"
@@ -326,11 +389,16 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
 
   useEffect(() => {
     const abortControllers = abortControllersRef.current;
+    const studies = studiesRef.current;
     return () => {
       for (const controller of abortControllers.values()) {
         controller.abort();
       }
       abortControllers.clear();
+      for (const study of studies.values()) {
+        study.dispose();
+      }
+      studies.clear();
     };
   }, []);
 
@@ -368,6 +436,18 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     }
   }, [navigation, optimizations, selectedOptimizationId]);
 
+  const settleStudy = (
+    optimizationId: string,
+    outcome: ConnectedStudyOutcome,
+  ) => {
+    studiesRef.current.get(optimizationId)?.settle(outcome);
+  };
+
+  const disposeStudy = (optimizationId: string) => {
+    studiesRef.current.get(optimizationId)?.dispose();
+    studiesRef.current.delete(optimizationId);
+  };
+
   const markOptimizationCancelled = useCallback(
     (optimizationId: string) => {
       patchOptimization(optimizationId, (current) => ({
@@ -378,6 +458,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
         errorDiagnostics: null,
         connectionState: null,
       }));
+      settleStudy(optimizationId, "cancelled");
     },
     [patchOptimization],
   );
@@ -402,6 +483,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
         errorCategory: classified?.category ?? null,
         errorDiagnostics: classified?.diagnostics ?? null,
       }));
+      settleStudy(optimizationId, "error");
     },
     [patchOptimization],
   );
@@ -458,6 +540,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
             requestedTrials: event.requestedTrials,
             best: event.best ?? current.best,
           }));
+          settleStudy(optimizationId, "complete");
           break;
         case "error":
           patchOptimization(optimizationId, (current) => ({
@@ -480,6 +563,12 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
                 }
               : { status: "error" as const, error: event.message }),
           }));
+          settleStudy(
+            optimizationId,
+            event.code === PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE
+              ? "cancelled"
+              : "error",
+          );
           break;
       }
     },
@@ -683,8 +772,90 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     ],
   );
 
+  /**
+   * The study behind an optimizer run id, for the channel: its requested
+   * backend, and the hooks that follow its trials. The first trial that ran
+   * elsewhere than asked records where, and why, on the record.
+   */
+  const resolveChannelStudy = useCallback(
+    (runId: string): OptimizationChannelStudy | null => {
+      const entry = [...runIdsRef.current].find(
+        ([, knownRunId]) => knownRunId === runId,
+      );
+      const study = entry ? studiesRef.current.get(entry[0]) : undefined;
+      if (!entry || !study) {
+        return null;
+      }
+      const [optimizationId] = entry;
+      return {
+        computeBackend: study.computeBackend,
+        trialStarted: study.trialStarted,
+        trialSettled: (trial, outcome) => {
+          study.trialSettled(trial, outcome);
+          if (outcome.ok && outcome.computeBackendFallbackReason !== null) {
+            const { computeBackend, computeBackendFallbackReason } = outcome;
+            patchOptimization(optimizationId, (current) =>
+              current.computeBackendFallbackReason === null
+                ? { ...current, computeBackend, computeBackendFallbackReason }
+                : current,
+            );
+          }
+        },
+      };
+    },
+    [patchOptimization],
+  );
+
+  /**
+   * The capability behind the source: the remote one as given, or a connected
+   * one wired to the experiments backend on first use and kept while the
+   * source stays the same. Connecting happens on demand rather than in render
+   * so a source never connects twice, and the cleanup below tears the
+   * connection down, with the runs made through it, when the source changes
+   * or the provider unmounts.
+   */
+  const resolveCapability = useCallback((): PetrinautOptimization | null => {
+    if (source === null || !isConnectedOptimization(source)) {
+      return source;
+    }
+    const current = connectionRef.current;
+    if (current?.source === source) {
+      return current.capability;
+    }
+    current?.dispose();
+    const connection = connectOptimizationSource(
+      source,
+      experimentsActionsRef,
+      resolveChannelStudy,
+    );
+    connectionRef.current = connection;
+    return connection.capability;
+  }, [experimentsActionsRef, resolveChannelStudy, source]);
+
+  useEffect(
+    () => () => {
+      const connection = connectionRef.current;
+      if (connection?.source === source) {
+        connection.dispose();
+        connectionRef.current = null;
+        // A connected capability's runs end with its connection: aborting
+        // their attach loops settles each record as cancelled, and the
+        // studies' own batches stop with them.
+        for (const controller of abortControllersRef.current.values()) {
+          controller.abort();
+        }
+        for (const study of studiesRef.current.values()) {
+          study.dispose();
+        }
+        studiesRef.current.clear();
+      }
+    },
+    [source],
+  );
+
   const createOptimization: OptimizationsContextValue["createOptimization"] =
-    async (rawInput) => {
+    async (rawInput, options) => {
+      const capability = resolveCapability();
       if (!capability) {
         throw new Error("Optimization is unavailable");
       }
@@ -692,10 +863,36 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       const input = petrinautOptimizationInputSchema.parse(rawInput);
       const optimizationId = crypto.randomUUID();
       const abortController = new AbortController();
+      const connected = connectionRef.current?.capability === capability;
+      const computeBackend = connected
+        ? (options?.computeBackend ?? "cpu")
+        : "cpu";
+      const study = connected
+        ? createConnectedStudy({
+            optimizationId,
+            input,
+            axes: buildOptimizationSurfaceAxes(input),
+            computeBackend,
+            runDetachedObjective: (request) =>
+              experimentsActionsRef.current.runDetachedObjective(request),
+            onUpdate: (update) => {
+              patchOptimization(optimizationId, (current) => ({
+                ...current,
+                ...update,
+              }));
+            },
+          })
+        : null;
+      if (study) {
+        studiesRef.current.set(optimizationId, study);
+      }
 
       abortControllersRef.current.set(optimizationId, abortController);
       setOptimizations((current) => [
-        createOptimizationRecord(optimizationId, input),
+        createOptimizationRecord(optimizationId, input, {
+          computeBackend,
+          navigation: study?.initialNavigation ?? null,
+        }),
         ...current,
       ]);
       setSelectedOptimizationId(optimizationId);
@@ -729,7 +926,11 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
         }
 
         runIdsRef.current.set(optimizationId, runId);
-        storeActiveRun(runId, input);
+        if (!connected) {
+          // A connected study's run lives in this page; a reload cannot
+          // re-attach to it.
+          storeActiveRun(runId, input);
+        }
         patchOptimization(optimizationId, (current) => ({
           ...current,
           runId,
@@ -769,6 +970,14 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
    * again.
    */
   useEffect(() => {
+    if (source !== null && isConnectedOptimization(source)) {
+      return;
+    }
+    const storedRuns = Object.entries(readStoredActiveRuns());
+    if (storedRuns.length === 0) {
+      return;
+    }
+    const capability = resolveCapability();
     if (!capability) {
       return;
     }
@@ -779,7 +988,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     const runIds = runIdsRef.current;
 
     const startedIds: string[] = [];
-    for (const [runId, storedRun] of Object.entries(readStoredActiveRuns())) {
+    for (const [runId, storedRun] of storedRuns) {
       const parsedInput = petrinautOptimizationInputSchema.safeParse(
         storedRun.input,
       );
@@ -826,7 +1035,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
         current.filter((optimization) => !startedIds.includes(optimization.id)),
       );
     };
-  }, [capability, runAttachLoop]);
+  }, [resolveCapability, runAttachLoop, source]);
 
   /**
    * The run id of a detached record: from the live-loop map while its attach
@@ -849,7 +1058,9 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       removeStoredActiveRun(runId);
       // Stop the detached run server-side; aborting the local attachment
       // below only drops this tab's connection to it.
-      void capability?.cancelOptimizationRun(runId).catch(() => undefined);
+      void resolveCapability()
+        ?.cancelOptimizationRun(runId)
+        .catch(() => undefined);
     }
     abortControllersRef.current.get(optimizationId)?.abort();
     abortControllersRef.current.delete(optimizationId);
@@ -863,12 +1074,20 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     if (runId !== undefined) {
       runIdsRef.current.delete(optimizationId);
       removeStoredActiveRun(runId);
-      void capability?.cancelOptimizationRun(runId).catch(() => undefined);
+      void resolveCapability()
+        ?.cancelOptimizationRun(runId)
+        .catch(() => undefined);
     }
     abortControllersRef.current.get(optimizationId)?.abort();
     abortControllersRef.current.delete(optimizationId);
+    disposeStudy(optimizationId);
     dropOptimizationRecord(optimizationId);
   };
+
+  const setOptimizationNavigation: OptimizationsContextValue["setOptimizationNavigation"] =
+    (optimizationId, patch) => {
+      studiesRef.current.get(optimizationId)?.setNavigation(patch);
+    };
 
   const retryOptimization: OptimizationsContextValue["retryOptimization"] =
     async (optimizationId) => {
@@ -878,7 +1097,9 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
       if (!existing) {
         return null;
       }
-      return createOptimization(existing.input);
+      return createOptimization(existing.input, {
+        computeBackend: existing.computeBackend,
+      });
     };
 
   const selectedOptimization =
@@ -894,6 +1115,7 @@ export const OptimizationsProvider = ({ children }: PropsWithChildren) => {
     createOptimization,
     cancelOptimization,
     removeOptimization,
+    setOptimizationNavigation,
     retryOptimization,
   };
 

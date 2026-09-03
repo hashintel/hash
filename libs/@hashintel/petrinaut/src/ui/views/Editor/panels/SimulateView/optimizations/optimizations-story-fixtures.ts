@@ -2,17 +2,35 @@
  * Fixtures for the optimization stories: a real study manifest over the
  * supply-chain example, deterministic fake trials, and the synthetic
  * objective both the trials and the stories' fake local compute share — so
- * trial rings land on the contour they would on a real study.
+ * trial rings land on the contour they would on a real study. For a
+ * connected study, a navigation at a trial's point and the selection stream
+ * the provider would publish there.
  */
 import { petrinautOptimizationInputSchema } from "@hashintel/petrinaut-core";
 import { supplyChainProfit } from "@hashintel/petrinaut-core/examples";
 
+import {
+  buildOptimizationSurfaceAxes,
+  optimizationAxisPositionFor,
+  optimizationBooleanIdentifiers,
+  optimizationNavigationKey,
+  optimizationNavigationValues,
+} from "../../../../../../react/optimizations/surface-grid";
+
+import type {
+  DetachedObjectiveRequest,
+  ExperimentComputeBackend,
+} from "../../../../../../react/experiments/context";
+import type { SweepCellSnapshot } from "../../../../../../react/experiments/sweep-session";
 import type {
   OptimizationBest,
+  OptimizationNavigation,
   OptimizationRecord,
+  OptimizationSelectionStream,
   OptimizationStatus,
 } from "../../../../../../react/optimizations/context";
 import type {
+  MonteCarloUserDefinedMetricFrame,
   PetrinautOptimizationInput,
   PetrinautOptimizationParameterBinding,
   PetrinautOptimizationTrialEvent,
@@ -231,8 +249,22 @@ export function makeOptimizationRecord(options: {
   trials?: readonly PetrinautOptimizationTrialEvent[];
   best?: OptimizationBest | null;
   status?: OptimizationStatus;
+  computeBackend?: ExperimentComputeBackend;
+  computeBackendFallbackReason?: string | null;
+  /** Set for a connected study; a remote study has neither. */
+  navigation?: OptimizationNavigation | null;
+  selection?: OptimizationSelectionStream | null;
 }): OptimizationRecord {
-  const { input, trials = [], best = null, status = "running" } = options;
+  const {
+    input,
+    trials = [],
+    best = null,
+    status = "running",
+    computeBackend = "cpu",
+    computeBackendFallbackReason = null,
+    navigation = null,
+    selection = null,
+  } = options;
   return {
     id: "optimization-story-1",
     input,
@@ -251,5 +283,183 @@ export function makeOptimizationRecord(options: {
     failedTrials: trials.filter((trial) => trial.state === "failed").length,
     trials,
     best,
+    computeBackend,
+    computeBackendFallbackReason,
+    axes: buildOptimizationSurfaceAxes(input),
+    navigation,
+    selection,
   };
 }
+
+/** The navigation at a trial's parameters, following steps while running. */
+export function navigationAtTrial(
+  input: PetrinautOptimizationInput,
+  trial: PetrinautOptimizationTrialEvent,
+  followTrials = true,
+): OptimizationNavigation {
+  const positions: Record<string, number> = {};
+  for (const axis of buildOptimizationSurfaceAxes(input)) {
+    const value = trial.parameters[axis.identifier];
+    positions[axis.identifier] =
+      typeof value === "number"
+        ? optimizationAxisPositionFor(axis, value)
+        : Math.round(axis.stepCount / 2);
+  }
+  const booleans: Record<string, boolean> = {};
+  for (const identifier of optimizationBooleanIdentifiers(input)) {
+    booleans[identifier] = trial.parameters[identifier] === true;
+  }
+  return { positions, booleans, followTrials };
+}
+
+/** The provider's key for a navigated point. */
+export function navigationKey(
+  input: PetrinautOptimizationInput,
+  navigation: OptimizationNavigation,
+): string {
+  return optimizationNavigationKey(
+    buildOptimizationSurfaceAxes(input),
+    optimizationBooleanIdentifiers(input),
+    navigation,
+  );
+}
+
+/**
+ * Distribution frames of the objective at one point, streamed up to
+ * `frameCount` of the study's time steps: the synthetic profit accrues
+ * linearly over the year, spread across `runs` runs with a jitter that
+ * shrinks as runs accumulate — so a refinement visibly sharpens the band.
+ */
+export function makeObjectiveFrames(
+  input: PetrinautOptimizationInput,
+  values: Readonly<Record<string, number | boolean>>,
+  runs: number,
+  frameCount = 40,
+): MonteCarloUserDefinedMetricFrame[] {
+  const metric = input.model.definition.metrics?.[0];
+  if (!metric) {
+    throw new Error("The study manifest carries no objective metric");
+  }
+  const final = syntheticObjective(values);
+  const { maxTime } = input.execution;
+  const frames: MonteCarloUserDefinedMetricFrame[] = [];
+  for (let index = 0; index <= frameCount; index++) {
+    const fraction = index / frameCount;
+    const time = maxTime * fraction;
+    const mean = final * fraction;
+    const spread = Math.max(1, Math.abs(final) * 0.08 * (0.3 + fraction));
+    const binCount = Math.min(9, 2 + Math.floor(Math.sqrt(runs)));
+    const bins: (readonly [number, number])[] = [];
+    let assigned = 0;
+    for (let bin = 0; bin < binCount; bin++) {
+      const offset = ((bin - (binCount - 1) / 2) / (binCount - 1)) * 2;
+      const weight = Math.exp(-(offset ** 2) * 1.5);
+      const frequency =
+        bin === binCount - 1
+          ? runs - assigned
+          : Math.max(0, Math.round((weight * runs) / binCount));
+      assigned += frequency;
+      if (frequency > 0) {
+        bins.push([
+          Math.round((mean + offset * spread) * 100) / 100,
+          frequency,
+        ]);
+      }
+    }
+    frames.push({
+      metricId: metric.id,
+      label: metric.name,
+      outputType: "distribution",
+      frameNumber: Math.round(time / input.execution.dt),
+      time,
+      bins,
+      value: null,
+      frameValue: null,
+      timeValue: null,
+      runSampleCount: runs,
+      timeSampleCount: runs,
+    });
+  }
+  return frames;
+}
+
+/** The selection stream a connected study publishes at a navigated point. */
+export function makeSelectionStream(options: {
+  input: PetrinautOptimizationInput;
+  navigation: OptimizationNavigation;
+  /** Set while following that step: the key becomes the trial's. */
+  followedTrial?: number;
+  runsCompleted: number;
+  runTarget?: number | null;
+  computing?: boolean;
+  frameCount?: number;
+  /** Why the point could not compute; the stream then stops at `runsCompleted`. */
+  error?: string | null;
+}): OptimizationSelectionStream {
+  const {
+    input,
+    navigation,
+    followedTrial,
+    runsCompleted,
+    runTarget = null,
+    computing = false,
+    frameCount,
+    error = null,
+  } = options;
+  const axes = buildOptimizationSurfaceAxes(input);
+  const booleanIdentifiers = optimizationBooleanIdentifiers(input);
+  const values = optimizationNavigationValues(
+    input,
+    axes,
+    booleanIdentifiers,
+    navigation,
+  );
+  return {
+    key:
+      followedTrial === undefined
+        ? optimizationNavigationKey(axes, booleanIdentifiers, navigation)
+        : `trial:${followedTrial}`,
+    metricFrames: makeObjectiveFrames(
+      input,
+      values,
+      Math.max(1, runsCompleted),
+      frameCount,
+    ),
+    runsCompleted,
+    runTarget,
+    computing,
+    error,
+  };
+}
+
+/**
+ * The stories' local compute: the same synthetic objective the fake trials
+ * used, returned as a single-bin distribution frame after `delayFor` the
+ * batch — so a contour fills in progressively and the trial rings land on
+ * it, at whatever pace the story simulates.
+ */
+export const makeSyntheticObjectiveSampler =
+  (delayFor: (runCount: number) => number) =>
+  (request: DetachedObjectiveRequest): Promise<SweepCellSnapshot | null> => {
+    const objective = syntheticObjective(request.scenarioParameterValues);
+    const frame: MonteCarloUserDefinedMetricFrame = {
+      metricId: request.metric.id,
+      label: request.metric.label,
+      outputType: "distribution",
+      frameNumber: 365,
+      time: 365,
+      bins: [[Math.round(objective * 100) / 100, request.runCount]],
+      value: null,
+      frameValue: null,
+      timeValue: null,
+      runSampleCount: request.runCount,
+      timeSampleCount: request.runCount,
+    };
+    return new Promise((resolve) => {
+      setTimeout(
+        () =>
+          resolve({ runsCompleted: request.runCount, metricFrames: [frame] }),
+        delayFor(request.runCount),
+      );
+    });
+  };

@@ -18,6 +18,7 @@ import type {
   MonteCarloMetricSpec,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
+  ReadableStore,
 } from "@hashintel/petrinaut-core";
 
 export type ExperimentStatus =
@@ -227,6 +228,17 @@ export type ExperimentsContextValue = {
   sampleDetachedObjective: (
     request: DetachedObjectiveRequest,
   ) => Promise<SweepCellSnapshot | null>;
+  /**
+   * Streams one batch of a study's objective at one parameter point on the
+   * requested backend: the in-browser optimizer's trials and the study
+   * drawer's selected-point refinement. Batches queue per `cacheKey` so a
+   * study's trials stay ordered; different studies run side by side. The
+   * returned run never rejects — refusal, failure and cancellation all
+   * settle `completion` with a failed outcome naming the reason.
+   */
+  runDetachedObjective: (
+    request: DetachedObjectiveRunRequest,
+  ) => DetachedObjectiveRun;
 };
 
 /** One local compute batch for an optimization study's objective. */
@@ -246,6 +258,57 @@ export type DetachedObjectiveRequest = {
   maxTime: number;
 };
 
+export type DetachedObjectiveRunRequest = DetachedObjectiveRequest & {
+  /**
+   * Pinned per-run seeds, `runCount` long; CPU only. Absent (and always on
+   * the GPU, which derives every run's seed from `seed`), runs derive their
+   * seeds from `seed`.
+   */
+  runSeeds?: readonly number[];
+  computeBackend: ExperimentComputeBackend;
+  signal?: AbortSignal;
+};
+
+export type DetachedObjectiveRunResult = {
+  runsCompleted: number;
+  metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
+  /** Per-run final metric values; empty on the GPU, which reports no run axis. */
+  runResults: ReadonlyMap<number, Readonly<Record<string, number>>>;
+  /** Where the batch ran. */
+  computeBackend: ExperimentComputeBackend;
+  /** Why the requested backend declined, when the batch ran elsewhere. */
+  computeBackendFallbackReason: string | null;
+};
+
+/**
+ * How a batch ended. A failure carries a reason the user can act on: the
+ * diagnostics of a metric that did not compile, each backend that declined
+ * and why, how many runs errored. `cancelled` marks a batch stopped through
+ * `cancel` or the request's signal, which nobody needs to act on.
+ */
+export type DetachedObjectiveRunOutcome =
+  | ({ readonly ok: true } & DetachedObjectiveRunResult)
+  | {
+      readonly ok: false;
+      readonly reason: string;
+      readonly cancelled: boolean;
+    };
+
+/** One streaming batch for a study's objective at one parameter point. */
+export type DetachedObjectiveRun = {
+  /** Frames so far; replaced as the batch streams, at most every 100 ms. */
+  readonly frames: ReadableStore<readonly MonteCarloUserDefinedMetricFrame[]>;
+  readonly progress: ReadableStore<MonteCarloWorkerProgress | null>;
+  /** Settles on the terminal event; never rejects. */
+  readonly completion: Promise<DetachedObjectiveRunOutcome>;
+  cancel(this: void): void;
+};
+
+const constantStore = <T>(value: T): ReadableStore<T> => ({
+  get: () => value,
+  subscribe: () => () => {},
+});
+
 const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   experiments: [],
   selectedExperimentId: null,
@@ -257,6 +320,16 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   setSweepSelection: () => {},
   sampleSurfaceCells: () => Promise.resolve(null),
   sampleDetachedObjective: () => Promise.resolve(null),
+  runDetachedObjective: () => ({
+    frames: constantStore([]),
+    progress: constantStore(null),
+    completion: Promise.resolve({
+      ok: false,
+      cancelled: false,
+      reason: "Experiments are unavailable",
+    }),
+    cancel: () => {},
+  }),
 };
 
 export const ExperimentsContext = createContext<ExperimentsContextValue>(
@@ -278,6 +351,7 @@ export type ExperimentsActionsValue = Pick<
   | "setSweepSelection"
   | "sampleSurfaceCells"
   | "sampleDetachedObjective"
+  | "runDetachedObjective"
 >;
 
 export const ExperimentsActionsContext = createContext<ExperimentsActionsValue>(

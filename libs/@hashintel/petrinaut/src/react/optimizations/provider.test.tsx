@@ -7,68 +7,49 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   PETRINAUT_OPTIMIZATION_CANCELLED_ERROR_CODE,
-  petrinautOptimizationInputSchema,
   type PetrinautOptimization,
 } from "@hashintel/petrinaut-core";
-import { sirModel } from "@hashintel/petrinaut-core/examples";
+import {
+  type PetrinautConnectedOptimization,
+  resolveTrialScenarioParameterValues,
+} from "@hashintel/petrinaut-core/optimization";
 
+import {
+  ExperimentsActionsContext,
+  type ExperimentsActionsValue,
+} from "../experiments/context";
 import {
   PetrinautNavigationProvider,
   usePetrinautNavigation,
 } from "../navigation";
 import { PetrinautOptimizationContext } from "../optimization-context";
+import { UserSettingsContext } from "../state/user-settings-context";
 import {
   OptimizationsContext,
   type OptimizationsContextValue,
 } from "./context";
+import {
+  completedRunResult,
+  createFakeDetachedObjectiveRuns,
+  distributionFrame,
+} from "./fake-detached-objective-runs.fixtures";
 import { OptimizationsProvider } from "./provider";
+import {
+  sirOptimizationInput,
+  sirOptimizationMetric,
+} from "./sir-optimization-input.fixtures";
+import {
+  buildOptimizationSurfaceAxes,
+  optimizationAxisPositionFor,
+  optimizationAxisValueAt,
+} from "./surface-grid";
 
 import type { PetrinautNavigationState } from "../navigation";
+import type { PropsWithChildren } from "react";
 
-const scenario = sirModel.petriNetDefinition.scenarios?.find(
-  (candidate) => candidate.id === "scenario__seasonal_flu",
-);
-const metric = sirModel.petriNetDefinition.metrics?.find(
-  (candidate) => candidate.id === "metric__infected_fraction",
-);
-if (!scenario || !metric) {
-  throw new Error("The SIR optimization fixtures are incomplete");
-}
-
-const input = petrinautOptimizationInputSchema.parse({
-  kind: "petrinaut-optimization",
-  version: 1,
-  name: "SIR optimization",
-  model: {
-    title: sirModel.title,
-    definition: {
-      ...sirModel.petriNetDefinition,
-      scenarios: [scenario],
-      metrics: [metric],
-    },
-  },
-  scenario: {
-    id: scenario.id,
-    parameterBindings: {
-      population: { kind: "fixed", value: 1_000 },
-      infected_ratio: {
-        kind: "optimize",
-        domain: {
-          kind: "continuous",
-          minimum: 0.001,
-          maximum: 0.2,
-          scale: "log",
-        },
-      },
-    },
-  },
-  objective: {
-    metricId: "metric__infected_fraction",
-    direction: "minimize",
-  },
-  execution: { seed: 1, dt: 1, maxTime: 180 },
-  study: { trials: 2, sampler: "tpe" },
-});
+const input = sirOptimizationInput;
+const metricId = sirOptimizationMetric.id;
+const infectedRatioAxis = buildOptimizationSurfaceAxes(input)[0]!;
 
 const CaptureContext = ({
   onValue,
@@ -86,6 +67,169 @@ const CaptureNavigation = ({
 }) => {
   onValue(usePetrinautNavigation().state);
   return null;
+};
+
+/** Overrides the In-browser optimization setting below the default context. */
+const InBrowserOptimizationSetting = ({
+  enabled,
+  children,
+}: PropsWithChildren<{ enabled: boolean }>) => {
+  const value = use(UserSettingsContext);
+  return (
+    <UserSettingsContext
+      value={{ ...value, enableInBrowserOptimization: enabled }}
+    >
+      {children}
+    </UserSettingsContext>
+  );
+};
+
+/** Routes the provider's detached objective runs to a fake. */
+const ExperimentsActionsOverride = ({
+  runDetachedObjective,
+  children,
+}: PropsWithChildren<{
+  runDetachedObjective: ExperimentsActionsValue["runDetachedObjective"];
+}>) => {
+  const value = use(ExperimentsActionsContext);
+  return (
+    <ExperimentsActionsContext value={{ ...value, runDetachedObjective }}>
+      {children}
+    </ExperimentsActionsContext>
+  );
+};
+
+/**
+ * A connected source whose runs stay quiet until aborted, counting connections
+ * and disposals so tests can observe what the setting gates.
+ */
+const createQuietConnectedSource = () => {
+  const calls = { connect: 0, dispose: 0 };
+  const source: PetrinautConnectedOptimization = {
+    kind: "connected",
+    connect: () => {
+      calls.connect += 1;
+      return {
+        createOptimizationRun: () =>
+          Promise.resolve({ runId: "run-quiet-connected" }),
+        // eslint-disable-next-line require-yield -- the run stays quiet until aborted
+        async *attachOptimizationRun(_runId, options) {
+          options?.onAttached?.();
+          await new Promise<void>((resolve) => {
+            options?.signal?.addEventListener("abort", resolve, {
+              once: true,
+            });
+          });
+        },
+        cancelOptimizationRun: () => Promise.resolve(),
+        dispose: () => {
+          calls.dispose += 1;
+        },
+      };
+    },
+  };
+  return { source, calls };
+};
+
+/**
+ * A connected source whose study evaluates one trial per value through the
+ * channel, in order, then completes — the shape of the in-browser optimizer.
+ */
+const createEvaluatingSource = (infectedRatios: readonly number[]) => {
+  const calls = { connect: 0, dispose: 0 };
+  const source: PetrinautConnectedOptimization = {
+    kind: "connected",
+    connect: (channel) => {
+      calls.connect += 1;
+      return {
+        createOptimizationRun: () =>
+          Promise.resolve({ runId: "run-connected" }),
+        async *attachOptimizationRun(runId, options) {
+          options?.onAttached?.();
+          let seq = 0;
+          for (const [trial, infectedRatio] of infectedRatios.entries()) {
+            const suggestedValues = { infected_ratio: infectedRatio };
+            const outcome = await channel.evaluateTrial({
+              runId,
+              trial,
+              manifest: input,
+              suggestedValues,
+              scenarioParameterValues: resolveTrialScenarioParameterValues(
+                input,
+                suggestedValues,
+              ),
+              seeds: [1, 2, 3],
+              signal: options?.signal ?? new AbortController().signal,
+            });
+            seq += 1;
+            yield {
+              type: "trial",
+              trial,
+              parameters: suggestedValues,
+              objective:
+                outcome.kind === "objective" ? outcome.objective : null,
+              state: outcome.kind === "objective" ? "complete" : "pruned",
+              best: null,
+              seq,
+            };
+          }
+          seq += 1;
+          yield {
+            type: "complete",
+            requestedTrials: infectedRatios.length,
+            completedTrials: infectedRatios.length,
+            prunedTrials: 0,
+            failedTrials: 0,
+            best: null,
+            seq,
+          };
+        },
+        cancelOptimizationRun: () => Promise.resolve(),
+        dispose: () => {
+          calls.dispose += 1;
+        },
+      };
+    },
+  };
+  return { source, calls };
+};
+
+const renderConnectedProvider = ({
+  source,
+  runDetachedObjective,
+  enabled = true,
+}: {
+  source: PetrinautConnectedOptimization;
+  runDetachedObjective: ExperimentsActionsValue["runDetachedObjective"];
+  enabled?: boolean;
+}) => {
+  let latest: OptimizationsContextValue | null = null;
+  const tree = (isEnabled: boolean) => (
+    <InBrowserOptimizationSetting enabled={isEnabled}>
+      <PetrinautOptimizationContext value={source}>
+        <ExperimentsActionsOverride runDetachedObjective={runDetachedObjective}>
+          <OptimizationsProvider>
+            <CaptureContext
+              onValue={(value) => {
+                latest = value;
+              }}
+            />
+          </OptimizationsProvider>
+        </ExperimentsActionsOverride>
+      </PetrinautOptimizationContext>
+    </InBrowserOptimizationSetting>
+  );
+  const { rerender, unmount } = render(tree(enabled));
+  return {
+    getValue: () => {
+      if (!latest) {
+        throw new Error("Optimization context was not captured");
+      }
+      return latest;
+    },
+    setEnabled: (isEnabled: boolean) => rerender(tree(isEnabled)),
+    unmount,
+  };
 };
 
 function renderProvider(capability: PetrinautOptimization) {
@@ -951,5 +1095,353 @@ describe("OptimizationsProvider", () => {
     expect(optimization.connectionState).toBe("streaming");
     expect(optimization.status).toBe("running");
     expect(optimization.error).toBeNull();
+  });
+
+  it("treats a connected source as absent while In-browser optimization is off", async () => {
+    const { source, calls } = createQuietConnectedSource();
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+      enabled: false,
+    });
+
+    await expect(getValue().createOptimization(input)).rejects.toThrow(
+      "Optimization is unavailable",
+    );
+    expect(calls.connect).toBe(0);
+    expect(getValue().optimizations).toHaveLength(0);
+  });
+
+  it("connects and disposes a connected source as In-browser optimization is toggled", async () => {
+    const { source, calls } = createQuietConnectedSource();
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue, setEnabled } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    await act(async () => {
+      await getValue().createOptimization(input);
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("running"),
+    );
+    expect(calls).toEqual({ connect: 1, dispose: 0 });
+    expect(getValue().optimizations[0]?.navigation).toEqual({
+      positions: { infected_ratio: 25 },
+      booleans: {},
+      followTrials: true,
+    });
+    expect(
+      sessionStorage.getItem("petrinaut:active-optimization-runs"),
+      "a run in this page cannot be re-attached to after a reload",
+    ).toBeNull();
+
+    setEnabled(false);
+    expect(calls).toEqual({ connect: 1, dispose: 1 });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("cancelled"),
+    );
+    await expect(getValue().createOptimization(input)).rejects.toThrow(
+      "Optimization is unavailable",
+    );
+
+    setEnabled(true);
+    await act(async () => {
+      await getValue().createOptimization(input);
+    });
+    expect(calls).toEqual({ connect: 2, dispose: 1 });
+  });
+
+  it("does not re-attach stored runs through a connected source", async () => {
+    sessionStorage.setItem(
+      "petrinaut:active-optimization-runs",
+      JSON.stringify({ "run-stale": { input, createdAt: 1 } }),
+    );
+    const { source, calls } = createQuietConnectedSource();
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(calls.connect).toBe(0);
+    expect(getValue().optimizations).toHaveLength(0);
+    expect(
+      sessionStorage.getItem("petrinaut:active-optimization-runs"),
+    ).not.toBeNull();
+  });
+
+  it("uses a remote capability regardless of the In-browser optimization setting", async () => {
+    const capability: PetrinautOptimization = {
+      createOptimizationRun: () => Promise.resolve({ runId: "run-remote" }),
+      async *attachOptimizationRun(_runId, options) {
+        options?.onAttached?.();
+        yield { type: "started", requestedTrials: 2, seq: 1 };
+      },
+      cancelOptimizationRun: () => Promise.resolve(),
+    };
+    let latest: OptimizationsContextValue | null = null;
+    render(
+      <InBrowserOptimizationSetting enabled={false}>
+        <PetrinautOptimizationContext value={capability}>
+          <OptimizationsProvider>
+            <CaptureContext
+              onValue={(value) => {
+                latest = value;
+              }}
+            />
+          </OptimizationsProvider>
+        </PetrinautOptimizationContext>
+      </InBrowserOptimizationSetting>,
+    );
+    const getValue = () => {
+      if (!latest) {
+        throw new Error("Optimization context was not captured");
+      }
+      return latest;
+    };
+
+    await act(async () => {
+      await getValue().createOptimization(input, { computeBackend: "webgpu" });
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.runId).toBe("run-remote"),
+    );
+    // A remote study computes nothing locally: no backend choice, no navigation.
+    expect(getValue().optimizations[0]).toMatchObject({
+      computeBackend: "cpu",
+      navigation: null,
+      selection: null,
+      axes: [expect.objectContaining({ identifier: "infected_ratio" })],
+    });
+  });
+
+  it("evaluates a connected study's trials through runDetachedObjective, following each step, then refines the selection", async () => {
+    const { source, calls } = createEvaluatingSource([0.05, 0.02]);
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue, unmount } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input, {
+        computeBackend: "webgpu",
+      });
+    });
+
+    // Trial 0 runs on the study's backend with its seeds pinned, and the
+    // navigation follows it while its batch streams as the selection.
+    await waitFor(() => expect(fake.runs).toHaveLength(1));
+    expect(fake.runs[0]!.request).toMatchObject({
+      cacheKey: "run-connected",
+      seed: 1,
+      runCount: 3,
+      runSeeds: [1, 2, 3],
+      computeBackend: "webgpu",
+      scenarioParameterValues: { population: 1_000, infected_ratio: 0.05 },
+    });
+    const followedPosition = optimizationAxisPositionFor(
+      infectedRatioAxis,
+      0.05,
+    );
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.selection?.key).toBe("trial:0"),
+    );
+    expect(getValue().optimizations[0]).toMatchObject({
+      computeBackend: "webgpu",
+      computeBackendFallbackReason: null,
+      navigation: {
+        positions: { infected_ratio: followedPosition },
+        followTrials: true,
+      },
+      selection: { key: "trial:0", runTarget: null, computing: true },
+    });
+    const streamed = distributionFrame(metricId, 1, [[0.2, 3]]);
+    fake.runs[0]!.frames.set([streamed]);
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.selection?.metricFrames).toEqual([
+        streamed,
+      ]),
+    );
+
+    // Its outcome reaches Optuna; the first fallback reason lands on the record.
+    fake.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.25, 3]])],
+        runValues: [0.25, 0.25, 0.25],
+        computeBackend: "cpu",
+        fallbackReason: "no adapter",
+      }),
+    );
+    await waitFor(() => expect(fake.runs).toHaveLength(2));
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.trials).toEqual([
+        expect.objectContaining({
+          trial: 0,
+          objective: 0.25,
+          state: "complete",
+        }),
+      ]),
+    );
+    // The record names the backend the trials ran on, not the one asked for.
+    expect(getValue().optimizations[0]).toMatchObject({
+      computeBackend: "cpu",
+      computeBackendFallbackReason: "no adapter",
+    });
+    expect(getValue().optimizations[0]?.selection?.key).toBe("trial:1");
+    expect(
+      getValue().optimizations[0]?.navigation?.positions.infected_ratio,
+    ).toBe(optimizationAxisPositionFor(infectedRatioAxis, 0.02));
+
+    fake.runs[1]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.125, 3]])],
+        runValues: [0.125, 0.125, 0.125],
+      }),
+    );
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.status).toBe("complete"),
+    );
+    expect(getValue().optimizations[0]?.best).toMatchObject({
+      trial: 1,
+      objective: 0.125,
+    });
+
+    // Complete: the selection refines at the followed point, up the ladder.
+    const lastPosition = optimizationAxisPositionFor(infectedRatioAxis, 0.02);
+    await waitFor(() => expect(fake.runs).toHaveLength(3));
+    expect(fake.runs[2]!.request).toMatchObject({
+      cacheKey: optimizationId,
+      computeBackend: "webgpu",
+      seed: 1,
+      runCount: 8,
+      scenarioParameterValues: {
+        population: 1_000,
+        infected_ratio: optimizationAxisValueAt(
+          infectedRatioAxis,
+          lastPosition,
+        ),
+      },
+    });
+    expect(fake.runs[2]!.request.runSeeds).toBeUndefined();
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.selection).toMatchObject({
+        key: `infected_ratio=${lastPosition}`,
+        runsCompleted: 0,
+        runTarget: 8,
+        computing: true,
+      }),
+    );
+    fake.runs[2]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.1, 8]])],
+        runsCompleted: 8,
+      }),
+    );
+    await waitFor(() => expect(fake.runs).toHaveLength(4));
+    expect(fake.runs[3]!.request.runCount).toBe(17);
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.selection).toMatchObject({
+        runsCompleted: 8,
+        runTarget: 25,
+        computing: true,
+      }),
+    );
+
+    // A navigation change cancels the batch in flight and refines the new point.
+    act(() => {
+      getValue().setOptimizationNavigation(optimizationId, {
+        positions: { infected_ratio: 3 },
+      });
+    });
+    expect(fake.runs[3]!.cancelled).toBe(true);
+    await waitFor(() => expect(fake.runs).toHaveLength(5));
+    expect(fake.runs[4]!.request).toMatchObject({
+      runCount: 8,
+      scenarioParameterValues: {
+        infected_ratio: optimizationAxisValueAt(infectedRatioAxis, 3),
+      },
+    });
+    expect(getValue().optimizations[0]?.selection?.key).toBe(
+      "infected_ratio=3",
+    );
+
+    // Removing the study cancels its batches; unmounting disposes the source.
+    act(() => getValue().removeOptimization(optimizationId));
+    expect(fake.runs[4]!.cancelled).toBe(true);
+    expect(getValue().optimizations).toHaveLength(0);
+    expect(calls).toEqual({ connect: 1, dispose: 0 });
+    unmount();
+    expect(calls).toEqual({ connect: 1, dispose: 1 });
+  });
+
+  it("lets a user move stop following while the study runs, refining beside the trials", async () => {
+    const { source } = createEvaluatingSource([0.05, 0.02]);
+    const fake = createFakeDetachedObjectiveRuns();
+    const { getValue } = renderConnectedProvider({
+      source,
+      runDetachedObjective: fake.runDetachedObjective,
+    });
+
+    let optimizationId = "";
+    await act(async () => {
+      optimizationId = await getValue().createOptimization(input);
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.selection?.key).toBe("trial:0"),
+    );
+    expect(fake.runs[0]!.request.computeBackend).toBe("cpu");
+
+    act(() => {
+      getValue().setOptimizationNavigation(optimizationId, {
+        positions: { infected_ratio: 40 },
+      });
+    });
+    await waitFor(() =>
+      expect(getValue().optimizations[0]?.navigation).toEqual({
+        positions: { infected_ratio: 40 },
+        booleans: {},
+        followTrials: false,
+      }),
+    );
+    expect(fake.runs[1]!.request).toMatchObject({
+      cacheKey: optimizationId,
+      computeBackend: "cpu",
+      runCount: 8,
+      scenarioParameterValues: {
+        infected_ratio: optimizationAxisValueAt(infectedRatioAxis, 40),
+      },
+    });
+    expect(getValue().optimizations[0]?.selection?.key).toBe(
+      "infected_ratio=40",
+    );
+
+    // The next trial starts without moving the navigation or the selection.
+    fake.runs[0]!.settle(
+      completedRunResult({
+        metricId,
+        frames: [distributionFrame(metricId, 180, [[0.25, 3]])],
+        runValues: [0.25, 0.25, 0.25],
+      }),
+    );
+    await waitFor(() => expect(fake.runs).toHaveLength(3));
+    expect(fake.runs[2]!.request.cacheKey).toBe("run-connected");
+    expect(getValue().optimizations[0]?.navigation?.positions).toEqual({
+      infected_ratio: 40,
+    });
+    expect(getValue().optimizations[0]?.selection?.key).toBe(
+      "infected_ratio=40",
+    );
+    expect(fake.runs[1]!.cancelled).toBe(false);
   });
 });

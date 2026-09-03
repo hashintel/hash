@@ -32,6 +32,7 @@ import {
   mergeMetricFramesAcrossCells,
   normalizeSweepSelection,
 } from "./parameter-grid";
+import { createThrottle } from "./shared/throttle";
 import { sweepCellObjective } from "./sweep-cell-objective";
 import { createBatchRegistry } from "./sweep-session/batch-registry";
 import {
@@ -46,7 +47,6 @@ import {
   sweepRangeDraws,
   sweepSelectionKey,
 } from "./sweep-session/selection-draws";
-import { createThrottle } from "./sweep-session/throttle";
 
 import type { ExperimentParameterAxis, SweepSelection } from "./parameter-grid";
 import type { SweepBatchStatus } from "./sweep-session/batch-registry";

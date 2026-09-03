@@ -1,17 +1,24 @@
 import { useEffect, useState } from "react";
 
 import { FakeExperimentsProvider } from "../experiments/experiments-story-fixtures";
-import { OptimizationSurface } from "./optimization-surface";
+import {
+  NavigatedOptimizationSurface,
+  OptimizationSurface,
+} from "./optimization-surface";
 import {
   makeOptimizationInput,
   makeOptimizationRecord,
+  makeSelectionStream,
+  makeSyntheticObjectiveSampler,
   makeTrials,
+  navigationAtTrial,
   optimizedBindingSets,
-  syntheticObjective,
 } from "./optimizations-story-fixtures";
 
-import type { DetachedObjectiveRequest } from "../../../../../../react/experiments/context";
-import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
+import type {
+  OptimizationNavigation,
+  OptimizationRecord,
+} from "../../../../../../react/optimizations/context";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 const meta = {
@@ -22,43 +29,6 @@ const meta = {
 export default meta;
 
 type Story = StoryObj<typeof meta>;
-
-/**
- * The stories' local compute: the same synthetic objective the fake trials
- * used, returned as a single-bin distribution frame after `delayFor` the
- * batch — so the contour fills in progressively and the trial rings land on
- * it, at whatever pace the story simulates.
- */
-const makeSyntheticObjectiveSampler =
-  (delayFor: (runCount: number) => number) =>
-  (request: DetachedObjectiveRequest) => {
-    const objective = syntheticObjective(request.scenarioParameterValues);
-    const frame = {
-      metricId: request.metric.id,
-      label: request.metric.label,
-      outputType: "distribution" as const,
-      frameNumber: 365,
-      time: 365,
-      bins: [
-        [Math.round(objective * 100) / 100, request.runCount],
-      ] as (readonly [number, number])[],
-      value: null,
-      frameValue: null,
-      timeValue: null,
-      runSampleCount: request.runCount,
-      timeSampleCount: request.runCount,
-    };
-    return new Promise<{
-      runsCompleted: number;
-      metricFrames: [typeof frame];
-    }>((resolve) => {
-      setTimeout(
-        () =>
-          resolve({ runsCompleted: request.runCount, metricFrames: [frame] }),
-        delayFor(request.runCount),
-      );
-    });
-  };
 
 const sampleSyntheticObjective = makeSyntheticObjectiveSampler(() => 80);
 
@@ -218,4 +188,56 @@ export const ManyParameters: Story = {
       })}
     />
   ),
+};
+
+/**
+ * A connected study's surface: the navigation lives in the drawer's
+ * navigator, so the plot has no sliders of its own, and the navigated cell
+ * takes its value from the provider's selection stream rather than a
+ * refinement of this view's own. Clicking the plot moves the navigation.
+ */
+const NavigatedSurfaceStory = () => {
+  const [navigation, setNavigation] = useState<OptimizationNavigation>(() =>
+    navigationAtTrial(
+      baseInput,
+      completeTrials.trials[completeTrials.best?.trial ?? 0]!,
+      false,
+    ),
+  );
+  const selection = makeSelectionStream({
+    input: baseInput,
+    navigation,
+    runsCompleted: 100,
+  });
+  const optimization = makeOptimizationRecord({
+    input: baseInput,
+    trials: completeTrials.trials,
+    best: completeTrials.best,
+    status: "complete",
+    navigation,
+    selection,
+  });
+
+  return (
+    <FakeExperimentsProvider
+      initialExperiments={[]}
+      overrides={{ sampleDetachedObjective: sampleSyntheticObjective }}
+    >
+      <div style={{ width: 640 }}>
+        <NavigatedOptimizationSurface
+          optimization={optimization}
+          navigation={navigation}
+          selection={selection}
+          onNavigationChange={(patch) =>
+            setNavigation((previous) => ({ ...previous, ...patch }))
+          }
+        />
+      </div>
+    </FakeExperimentsProvider>
+  );
+};
+
+export const Navigated: Story = {
+  name: "Navigated by a connected study",
+  render: () => <NavigatedSurfaceStory />,
 };

@@ -18,7 +18,12 @@ import {
 } from "@hashintel/petrinaut-core";
 
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
-import { OptimizationsContext } from "../../../../../../react/optimizations/context";
+import { PetrinautOptimizationContext } from "../../../../../../react/optimization-context";
+import {
+  type CreateOptimizationOptions,
+  OptimizationsContext,
+  type OptimizationsContextValue,
+} from "../../../../../../react/optimizations/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
 import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { UserSettingsProvider } from "../../../../../../react/state/user-settings-provider";
@@ -36,7 +41,6 @@ import {
 import { createOptimizationParameterDraft } from "./optimization-parameter-row";
 
 import type { LanguageClientContextValue } from "../../../../../../react/lsp/context";
-import type { OptimizationsContextValue } from "../../../../../../react/optimizations/context";
 import type { SDCPNContextValue } from "../../../../../../react/state/sdcpn-context";
 import type { OptimizationParameterDraft } from "./optimization-parameter-row";
 import type {
@@ -46,6 +50,7 @@ import type {
   Scenario,
   SDCPN,
 } from "@hashintel/petrinaut-core";
+import type { PetrinautConnectedOptimization } from "@hashintel/petrinaut-core/optimization";
 import type { ReactNode } from "react";
 
 const { addMetricMock } = vi.hoisted(() => ({ addMetricMock: vi.fn() }));
@@ -137,10 +142,12 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
 
   const Toggle = ({
     "aria-label": ariaLabel,
+    disabled,
     onChange,
     value,
   }: {
     "aria-label": string;
+    disabled?: boolean;
     onChange: (value: boolean) => void;
     value: boolean;
   }) => (
@@ -148,6 +155,7 @@ vi.mock("@hashintel/ds-components", async (importOriginal) => {
       aria-label={ariaLabel}
       type="checkbox"
       checked={value}
+      disabled={disabled}
       onChange={(event) => onChange(event.target.checked)}
     />
   );
@@ -200,20 +208,51 @@ type TestProviderProps = {
   sdcpnContextValue?: SDCPNContextValue;
   /** Turns the Ad-hoc scenarios user setting on for this render. */
   enableAdHocScenarios?: boolean;
+  /** Turns the WebGPU user setting on for this render. */
+  webGpuEnabled?: boolean;
+  /**
+   * Supplies a connected optimizer (with the In-browser optimization setting
+   * on), so the form offers a backend choice.
+   */
+  connectedSource?: boolean;
 };
 
-/** Overrides one user setting below the provider (localStorage is not
+/** A connected source that never runs: the form only asks what kind it is. */
+const connectedSource: PetrinautConnectedOptimization = {
+  kind: "connected",
+  connect: () => ({
+    createOptimizationRun: () => Promise.resolve({ runId: "run-test" }),
+    async *attachOptimizationRun() {
+      yield { type: "started", requestedTrials: 1, seq: 1 };
+    },
+    cancelOptimizationRun: () => Promise.resolve(),
+    dispose: () => {},
+  }),
+};
+
+/** Overrides user settings below the provider (localStorage is not
  * writable in this environment). */
-const AdHocSettingOverride = ({
-  enabled,
+const SettingsOverride = ({
+  enableAdHocScenarios,
+  webGpuEnabled,
+  enableInBrowserOptimization,
   children,
 }: {
-  enabled: boolean;
+  enableAdHocScenarios: boolean;
+  webGpuEnabled: boolean;
+  enableInBrowserOptimization: boolean;
   children: ReactNode;
 }) => {
   const value = use(UserSettingsContext);
   return (
-    <UserSettingsContext value={{ ...value, enableAdHocScenarios: enabled }}>
+    <UserSettingsContext
+      value={{
+        ...value,
+        enableAdHocScenarios,
+        webGpuEnabled,
+        enableInBrowserOptimization,
+      }}
+    >
       {children}
     </UserSettingsContext>
   );
@@ -224,6 +263,8 @@ const TestProviders = ({
   languageClient,
   sdcpnContextValue = sirSdcpnContextValue,
   enableAdHocScenarios = false,
+  webGpuEnabled = false,
+  connectedSource: withConnectedSource = false,
 }: TestProviderProps) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
   const optimizations: OptimizationsContextValue = {
@@ -234,19 +275,28 @@ const TestProviders = ({
     createOptimization,
     cancelOptimization: () => {},
     removeOptimization: () => {},
+    setOptimizationNavigation: () => {},
     retryOptimization: () => Promise.resolve(null),
   };
   const drawer = (
-    <OptimizationsContext value={optimizations}>
-      <SDCPNContext value={sdcpnContextValue}>
-        <UserSettingsProvider>
-          <AdHocSettingOverride enabled={enableAdHocScenarios}>
-            <div ref={portalContainerRef} />
-            <CreateOptimizationDrawer open onClose={() => {}} />
-          </AdHocSettingOverride>
-        </UserSettingsProvider>
-      </SDCPNContext>
-    </OptimizationsContext>
+    <PetrinautOptimizationContext
+      value={withConnectedSource ? connectedSource : null}
+    >
+      <OptimizationsContext value={optimizations}>
+        <SDCPNContext value={sdcpnContextValue}>
+          <UserSettingsProvider>
+            <SettingsOverride
+              enableAdHocScenarios={enableAdHocScenarios}
+              webGpuEnabled={webGpuEnabled}
+              enableInBrowserOptimization={withConnectedSource}
+            >
+              <div ref={portalContainerRef} />
+              <CreateOptimizationDrawer open onClose={() => {}} />
+            </SettingsOverride>
+          </UserSettingsProvider>
+        </SDCPNContext>
+      </OptimizationsContext>
+    </PetrinautOptimizationContext>
   );
 
   return (
@@ -264,6 +314,7 @@ const TestProviders = ({
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 
@@ -478,7 +529,10 @@ describe("CreateOptimizationDrawer", () => {
   it("submits a successfully validated saved metric", async () => {
     const languageClient = makeSuccessfulLanguageClient();
     const createOptimization = vi.fn(
-      async (_input: PetrinautOptimizationInput) => "optimization-saved",
+      async (
+        _input: PetrinautOptimizationInput,
+        _options?: CreateOptimizationOptions,
+      ) => "optimization-saved",
     );
     const savedMetric = sirSdcpnContextValue.petriNetDefinition.metrics?.[0];
     expect(savedMetric).toBeDefined();
@@ -509,7 +563,69 @@ describe("CreateOptimizationDrawer", () => {
       seed: 1234,
       dt: 0.1,
       maxTime: 180,
+      seedsPerTrial: 1,
     });
+    expect(createOptimization.mock.calls[0]![1]).toEqual({
+      computeBackend: "cpu",
+    });
+  });
+
+  it("sends runs per step as the manifest's seeds per trial", async () => {
+    const languageClient = makeSuccessfulLanguageClient();
+    const createOptimization = vi.fn(
+      async (_input: PetrinautOptimizationInput) => "optimization-seeded",
+    );
+    const savedMetric = sirSdcpnContextValue.petriNetDefinition.metrics?.[0];
+    expect(savedMetric).toBeDefined();
+    openConfiguration({ createOptimization, languageClient });
+
+    fireEvent.change(screen.getByLabelText("Runs per step"), {
+      target: { value: "3" },
+    });
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: { value: `${MODEL_METRIC_VALUE_PREFIX}${savedMetric!.id}` },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Optimize infected_ratio" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Maximize" }));
+    fireEvent.click(screen.getByRole("button", { name: /Run/ }));
+
+    await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
+    expect(createOptimization.mock.calls[0]![0].execution.seedsPerTrial).toBe(
+      3,
+    );
+  });
+
+  it("rejects runs per step outside 1..100 before submitting", () => {
+    openConfiguration();
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: {
+          value: `${MODEL_METRIC_VALUE_PREFIX}metric__infected_fraction`,
+        },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Optimize infected_ratio" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Maximize" }));
+
+    fireEvent.change(screen.getByLabelText("Runs per step"), {
+      target: { value: "101" },
+    });
+
+    expect(
+      screen.getByText("Runs per step must be an integer between 1 and 100"),
+    ).toBeTruthy();
+    expect(
+      (screen.getByRole("button", { name: /Run/ }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
   });
 
   it("submits a transient custom metric without persisting it", async () => {
@@ -618,6 +734,7 @@ describe("CreateOptimizationDrawer", () => {
       metric,
       direction: "minimize",
       optimizationSteps: 20,
+      seedsPerTrial: 4,
       dt: 0.5,
       maxTime: 100,
     });
@@ -660,7 +777,12 @@ describe("CreateOptimizationDrawer", () => {
       metricId: metric.id,
       direction: "minimize",
     });
-    expect(input.execution).toEqual({ seed: 1234, dt: 0.5, maxTime: 100 });
+    expect(input.execution).toEqual({
+      seed: 1234,
+      dt: 0.5,
+      maxTime: 100,
+      seedsPerTrial: 4,
+    });
     expect(input.study).toEqual({ trials: 20, sampler: "tpe" });
   });
 
@@ -735,6 +857,7 @@ describe("CreateOptimizationDrawer", () => {
       metric,
       direction: "maximize",
       optimizationSteps: 10,
+      seedsPerTrial: 1,
       dt: 0.5,
       maxTime: 50,
     });
@@ -799,5 +922,93 @@ describe("CreateOptimizationDrawer", () => {
     expect(validateOptimizationParameterDraft(parameter, draft)).toBe(
       "count logarithmic integer ranges require a step of 1",
     );
+  });
+});
+
+describe("CreateOptimizationDrawer backend choice", () => {
+  const openWithWebGpu = (props: TestProviderProps) => {
+    // `isWebGpuAvailable()` only reads `navigator.gpu`, so a bare object is
+    // enough — and spreading the real Navigator would drop its prototype.
+    vi.stubGlobal("navigator", { gpu: {} });
+    openConfiguration(props);
+  };
+
+  it("offers no backend cell while WebGPU is off in settings", () => {
+    openWithWebGpu({ connectedSource: true, webGpuEnabled: false });
+
+    expect(document.querySelector("[data-backend-state]")).toBeNull();
+    expect(screen.queryByText("Backend")).toBeNull();
+  });
+
+  it("offers no backend cell for a remote optimizer, which runs elsewhere", () => {
+    openWithWebGpu({ connectedSource: false, webGpuEnabled: true });
+
+    expect(document.querySelector("[data-backend-state]")).toBeNull();
+  });
+
+  it("offers the cell for a connected optimizer and rules the GPU out for the expression objective", async () => {
+    openWithWebGpu({
+      connectedSource: true,
+      webGpuEnabled: true,
+      languageClient: makeSuccessfulLanguageClient(),
+    });
+
+    expect(screen.getByText("Backend")).toBeTruthy();
+    const savedMetric = sirSdcpnContextValue.petriNetDefinition.metrics?.[0];
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: { value: `${MODEL_METRIC_VALUE_PREFIX}${savedMetric!.id}` },
+      },
+    );
+
+    await waitFor(() => {
+      expect(
+        document
+          .querySelector("[data-backend-state]")
+          ?.getAttribute("data-backend-state"),
+      ).toBe("unavailable");
+    });
+    expect(
+      document.querySelector<HTMLInputElement>(
+        "[data-backend-state] input[type='checkbox']",
+      )!.disabled,
+    ).toBe(true);
+  });
+
+  it("passes the backend as a creation option", async () => {
+    const languageClient = makeSuccessfulLanguageClient();
+    const createOptimization = vi.fn(
+      async (
+        _input: PetrinautOptimizationInput,
+        _options?: CreateOptimizationOptions,
+      ) => "optimization-backend",
+    );
+    const savedMetric = sirSdcpnContextValue.petriNetDefinition.metrics?.[0];
+    openWithWebGpu({
+      connectedSource: true,
+      webGpuEnabled: true,
+      languageClient,
+      createOptimization,
+    });
+
+    fireEvent.change(
+      screen.getByRole("combobox", { name: "Select a metric" }),
+      {
+        target: { value: `${MODEL_METRIC_VALUE_PREFIX}${savedMetric!.id}` },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Optimize infected_ratio" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Maximize" }));
+    fireEvent.click(screen.getByRole("button", { name: /Run/ }));
+
+    await waitFor(() => expect(createOptimization).toHaveBeenCalledOnce());
+    // The switch never left the CPU side: the objective is an expression
+    // metric, which the GPU backend cannot compute.
+    expect(createOptimization.mock.calls[0]![1]).toEqual({
+      computeBackend: "cpu",
+    });
   });
 });
