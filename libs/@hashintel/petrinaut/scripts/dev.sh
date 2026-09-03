@@ -9,4 +9,4 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 . ../../@local/petrinaut-optimizer-client/scripts/optimizer-service.sh
 optimizer_service_parse "$@"
-run_dev_server yarn storybook dev ${OPTIMIZER_FORWARDED[@]+"${OPTIMIZER_FORWARDED[@]}"}
+run_dev_server yarn storybook dev -p "${PORT:-6006}" ${OPTIMIZER_FORWARDED[@]+"${OPTIMIZER_FORWARDED[@]}"}

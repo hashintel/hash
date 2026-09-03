@@ -24,7 +24,9 @@
     "dev": {
       "cache": false,
       "persistent": true,
-      "dependsOn": ["sync:bundle"]
+      "dependsOn": ["sync:bundle"],
+      // The Claude Code preview passes the port to serve on.
+      "env": ["PORT"]
     }
   }
 }
