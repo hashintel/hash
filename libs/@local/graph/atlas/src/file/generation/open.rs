@@ -62,9 +62,11 @@ impl Error for OpenError {
 /// The accessors give the generation's identity, the directory, and the parsed metadata document.
 ///
 /// Opening verifies the document against the generation id. The directory's name is the SHA-256 of
-/// `metadata.json`, so a value of this type names bytes that hash to its id.
-/// [`path_of`](Self::path_of) locates artifact files and their format modules open them. Tooling
-/// verifies the per-file hashes the document records, and opening does not check them.
+/// `metadata.json`. A value of this type therefore names bytes that hash to its id.
+/// [`path_of`](Self::path_of) locates artifact files and their format modules open them. Opening
+/// the generation checks the document alone. The serving open checks the per-file hashes the
+/// document records as it opens each file, through
+/// [`RepositoryFile::verify`](crate::file::repository::RepositoryFile::verify).
 #[derive(Debug, Clone)]
 pub(crate) struct Generation {
     id: GenerationId,

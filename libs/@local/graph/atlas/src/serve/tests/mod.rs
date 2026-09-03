@@ -1,9 +1,9 @@
 //! Serving reads over a real published generation.
 //!
-//! The fixture publishes through the production `fit`, so every artifact the serving surface maps
-//! is the pipeline's own output. Expectations derive from independently opened artifacts and the
-//! schedule laws - fencepost sums, code-column scans, the quad walk - never from the assembly under
-//! test.
+//! The fixture publishes through the production `fit`. Every artifact the serving surface maps is
+//! therefore the pipeline's own output. Expectations derive from independently opened artifacts and
+//! the schedule laws - fencepost sums, code-column scans, the quad walk - never from the assembly
+//! under test.
 #![expect(
     clippy::little_endian_bytes,
     reason = "the expectations spell out the wire contract's little-endian columns"
@@ -87,10 +87,13 @@ use crate::{
     file::{
         WriteInto as _,
         array::ArrayFile,
-        generation::Generation,
+        digest_file,
+        generation::{Generation, StagedGeneration},
         identity::{Key, Row},
         morton::read::MortonFile,
         quad::read::QuadFile,
+        repository::FileName,
+        salt::SaltRepository,
     },
     integrity::{Sha256, Update as _},
     math::{AffinityCurve, AlignedVecN, Bounds2, BoxedVecN, Log2, Vec2, VecN, positive},
@@ -112,7 +115,7 @@ const NODES: usize = 48;
 
 /// The fixture schedule.
 ///
-/// `span = 1`, so the cut rule reads `bucket = z + 1` and the root spans buckets `0..=1`.
+/// `span = 1`. The cut rule therefore reads `bucket = z + 1` and the root spans buckets `0..=1`.
 pub(crate) const FIXTURE_LOD: LodConfig = LodConfig {
     span: Log2::new(1).expect("1 lies below the shift width"),
     max_tile_depth: 3,
@@ -157,8 +160,8 @@ type FixtureNode = CorpusNode<'static, U64<LE>>;
 /// The fit-scale corpus rows.
 ///
 /// Unit-norm pseudo-random representations whose canonical embeddings extend them with zeros,
-/// typed per row by `types`. Every fixture corpus shares this geometry, so the placement
-/// conditioning is one derivation.
+/// typed per row by `types`. Every fixture corpus shares this geometry. The placement
+/// conditioning is therefore one derivation.
 fn fixture_nodes(
     types: impl Fn(usize) -> SmallVec<OntologyRowId, 2>,
 ) -> (
@@ -289,7 +292,7 @@ impl CardEmbedder for HashEmbedder {
 /// The supplied model input of the fixture fit.
 fn fixture_classifier() -> ClassifierInput {
     const ROWS: usize = 4;
-    // Coprime to the dimension, so no two corpus rows repeat.
+    // Coprime to the dimension, hence no two corpus rows repeat.
     const PATTERN: [f32; 13] = [
         -0.75, -0.625, -0.5, -0.375, -0.25, -0.125, 0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75,
     ];
@@ -303,7 +306,7 @@ fn fixture_classifier() -> ClassifierInput {
         *component = value;
     }
     let embeddings: &IdSlice<CardRow, AlignedVecN<CANONICAL_DIMENSIONS>> = IdSlice::from_raw(
-        AlignedVecN::from_slice(storage.as_array()).expect("boxed storage is aligned"),
+        AlignedVecN::from_slice(storage.as_array()).expect("boxed storage aligns"),
     );
 
     let rows: IdVec<CardRow, _> = [
@@ -406,20 +409,72 @@ fn fixture_type_url(row: u64) -> String {
 /// Link entities own ids disjoint from node ids, as the store's would be.
 const EDGE_SEED: u8 = 64;
 
-/// Rewrites a published fixture generation's identity artifacts with store-width ids.
+/// Republishes `generation` under `root` with `edit` applied to a staged copy of its files.
+///
+/// Every published file copies into a fresh staging, `edit` rewrites whichever staged files it
+/// names, and the manifest re-binds each artifact to the digest of its staged bytes before the
+/// staging seals as a new generation. The original generation stays on disk as it was. Open
+/// verifies every file against the digest its manifest records, hence a published file edited in
+/// place fails as corruption. A test that needs a generation whose files are structurally
+/// inconsistent while each is exactly what its manifest records publishes it through here.
+fn republish(
+    root: &GenerationRoot,
+    generation: &Generation,
+    edit: impl FnOnce(&StagedGeneration),
+) -> Generation {
+    let published = {
+        let staging = root.stage().expect("the staging should create");
+        for file in generation.repository().files.files() {
+            std::fs::copy(generation.path_of(&file.name), staging.path_of(&file.name))
+                .expect("a published file should copy into the staging");
+        }
+        edit(&staging);
+
+        // The manifest re-binds through its serialized form. Every binding serializes as its
+        // entry's name and hash, an absent optional binding serializes as null, and the staged
+        // file of an entry's name supplies its hash.
+        let mut document =
+            serde_json::to_value(generation.repository()).expect("the manifest should serialize");
+        let entries = document
+            .get_mut("files")
+            .and_then(serde_json::Value::as_object_mut)
+            .expect("the manifest holds its files object");
+        for entry in entries.values_mut().filter(|entry| !entry.is_null()) {
+            let name: FileName = entry
+                .get("name")
+                .cloned()
+                .map(serde_json::from_value)
+                .expect("an entry names its file")
+                .expect("an entry's name is a file name");
+            let digest = digest_file(staging.path_of(&name)).expect("a staged file should digest");
+            entry["hash"] = serde_json::to_value(digest).expect("a digest should serialize");
+        }
+        let repository: SaltRepository =
+            serde_json::from_value(document).expect("the rebound manifest should deserialize");
+
+        staging
+            .seal(&repository)
+            .expect("the edited staging should seal")
+    };
+
+    root.open(published.id())
+        .expect("the republished generation should open")
+}
+
+/// Republishes a fixture generation with its identity artifacts rewritten to store-width ids.
 ///
 /// Deterministic by row: ontology row `r` keys the uuid derived from [`fixture_type_url`] of `r`,
 /// and node row `r` keys [`entity_id_of`] of `r`. Edge row `r` keys [`entity_id_of`] of
 /// `EDGE_SEED + r`.
 ///
-/// The memory dataset speaks 8-byte positional ids, which the serving open rejects. The rewrite
-/// is the test-lane bridge that gives a fixture generation store-width ids. Open
-/// trusts the metadata document's hash, not per-file digests (tooling verifies those), so the
-/// rewritten artifacts serve.
+/// The memory dataset speaks 8-byte positional ids, and the serving open rejects those. The
+/// rewrite is the test-lane bridge that gives a fixture generation store-width ids. It goes
+/// through [`republish`], hence the rewritten artifacts carry the digests their manifest records
+/// and the returned generation opens verified.
 ///
-/// Display payloads copy through the rewrite row by row, so a dataset's labels and icons survive
-/// the bridge and serve exactly as the production pipeline wrote them.
-fn store_identities(generation: &Generation) {
+/// Display payloads copy through the rewrite row by row. A dataset's labels and icons therefore
+/// survive the bridge and serve exactly as the production pipeline wrote them.
+fn store_identities(root: &GenerationRoot, generation: &Generation) -> Generation {
     use type_system::ontology::id::VersionedUrl;
 
     use crate::{
@@ -438,7 +493,7 @@ fn store_identities(generation: &Generation) {
     }
 
     let files = &generation.repository().files;
-    let rows_of = |name: &crate::file::repository::FileName| {
+    let rows_of = |name: &FileName| {
         IdentityFile::open(generation.path_of(name))
             .expect("the published identity artifact opens")
             .rows()
@@ -460,26 +515,28 @@ fn store_identities(generation: &Generation) {
     let node_payloads = payloads_of(&generation.path_of(&files.node_identities.name()));
     let edge_payloads = payloads_of(&generation.path_of(&files.edge_identities.name()));
 
-    rewrite_identities(
-        &generation.path_of(&files.ontology_identities.name()),
-        &ontology,
-        &ontology_payloads,
-    );
-    rewrite_identities(
-        &generation.path_of(&files.node_identities.name()),
-        &nodes,
-        &node_payloads,
-    );
-    rewrite_identities(
-        &generation.path_of(&files.edge_identities.name()),
-        &edges,
-        &edge_payloads,
-    );
+    republish(root, generation, |staging| {
+        rewrite_identities(
+            &staging.path_of(&files.ontology_identities.name()),
+            &ontology,
+            &ontology_payloads,
+        );
+        rewrite_identities(
+            &staging.path_of(&files.node_identities.name()),
+            &nodes,
+            &node_payloads,
+        );
+        rewrite_identities(
+            &staging.path_of(&files.edge_identities.name()),
+            &edges,
+            &edge_payloads,
+        );
+    })
 }
 
 /// Reads every row's payload bytes out of a published identity artifact.
 ///
-/// The mapping drops when this returns, so the caller can truncate and rewrite the file
+/// The mapping drops when this returns. The caller can therefore truncate and rewrite the file
 /// afterwards.
 fn payloads_of(path: &camino::Utf8Path) -> Vec<Vec<u8>> {
     use crate::file::identity::read::IdentityFile;
@@ -525,7 +582,7 @@ fn rewrite_identities<R, I>(
 
 /// Reopens a published artifact for rewriting.
 ///
-/// Sealing dropped the write permission, so a tamper lifts it before truncating the file.
+/// Sealing dropped the write permission. A tamper therefore lifts it before truncating the file.
 fn recreate_writable(path: &camino::Utf8Path) -> std::fs::File {
     let mut permissions = std::fs::metadata(path)
         .expect("the published artifact should stat")
@@ -557,14 +614,14 @@ pub(crate) async fn publish(name: &str) -> (Generation, Atlas) {
 /// Publishes `dataset` with store-width identities and opens its serving surface.
 async fn publish_dataset(name: &str, dataset: &MemoryDataset) -> (Generation, Atlas) {
     let (root, generation) = fit_dataset(name, dataset).await;
-    store_identities(&generation);
+    let generation = store_identities(&root, &generation);
     let atlas =
         Atlas::open(&root, generation.id(), test_open_options()).expect("the atlas should open");
 
     (generation, atlas)
 }
 
-/// One proof's delivery inputs, owned, so a test can hand assembly a [`View`].
+/// One proof's delivery inputs, owned so that a test can hand assembly a [`View`].
 ///
 /// A view borrows the census and the schedule its scope resolved; production holds both in the
 /// visibility cache entry, and a test holds them here. Binding through [`Bound::view`] runs the
@@ -700,8 +757,8 @@ fn population(morton: &MortonFile, cell: MortonCell) -> u64 {
 
 /// Extracts a subgraph's delivered node rows, in delivered order.
 ///
-/// The subgraphs this resolves deliver fitted rows alone, so an arrival vessel is a fixture
-/// defect rather than a case.
+/// The subgraphs this resolves deliver fitted rows alone. An arrival vessel is therefore a
+/// fixture defect rather than a case.
 pub(crate) fn delivered_row_ids(atlas: &Atlas, subgraph: &LocateSubgraph) -> Vec<NodeRowId> {
     let row_ids = atlas.row_ids();
     subgraph
@@ -718,8 +775,8 @@ pub(crate) fn delivered_row_ids(atlas: &Atlas, subgraph: &LocateSubgraph) -> Vec
 
 /// Unwraps a fitted delivered edge.
 ///
-/// The subgraphs this resolves deliver fitted edges alone, so a delta vessel is a fixture
-/// defect rather than a case.
+/// The subgraphs this resolves deliver fitted edges alone. A delta vessel is therefore a
+/// fixture defect rather than a case.
 pub(crate) fn fitted(edge: ServedEdge) -> crate::serve::neighbourhood::DeliveredEdge {
     match edge {
         ServedEdge::Fitted(edge) => edge,
@@ -778,11 +835,11 @@ pub(crate) fn fixture_row_ids(rows: &ArrayFile) -> Vec<u32> {
 fn extremes(points: &[Vec2], row_ids: &[u32]) -> (Bounds2, Vec<u32>) {
     let corpus = Bounds2::from_points(points.iter().copied()).expect("the fixture holds points");
 
-    // Exact equality is the predicate: an extremum IS one of this column's own values, so a row
-    // attains it bit-for-bit or does not attain it.
+    // Exact equality is the predicate: an extremum is one of this column's own values. A row
+    // therefore attains it bit-for-bit or does not attain it.
     #[expect(
         clippy::float_cmp,
-        reason = "the comparand is drawn from this very column, so bit equality is the intended \
+        reason = "the comparand comes from this column itself, hence bit equality is the intended \
                   test"
     )]
     let mut attaining: Vec<u32> = points
@@ -808,8 +865,8 @@ fn extremes(points: &[Vec2], row_ids: &[u32]) -> (Bounds2, Vec<u32>) {
 /// rows were some cell's whole population, since the root cut delivers one row per occupied cell
 /// and a cell keeping one visible row keeps its representative. Whether any
 /// cell holds nothing but extreme rows is a property of the fitted layout rather than of the
-/// witness, and a layout is target-specific down to the last bit of each coordinate, so a witness
-/// resting on that coincidence has teeth on one target and none on the next.
+/// witness, and a layout is target-specific down to the last bit of each coordinate. A witness
+/// resting on that coincidence therefore has teeth on one target and none on the next.
 ///
 /// Adding the rest of one extreme-bearing cell empties that cell whatever the layout, which takes
 /// the occupied-cell count down by at least one and the delivered count with it. An aggregate read
@@ -843,11 +900,11 @@ pub(crate) fn extremes_vacating_a_root_cell(
     }
     assert!(
         population.len() > 1,
-        "the fixture occupies one root cell, so no mask can vacate one and leave a view"
+        "the fixture occupies one root cell, hence no mask can vacate one and leave a view"
     );
 
-    // Vacating the cell that keeps the fewest visible rows costs the view the least; the cell key
-    // breaks ties, so the choice does not ride a map's iteration order.
+    // Vacating the cell that keeps the fewest visible rows costs the view the least, and the cell
+    // key breaks ties rather than a map's iteration order.
     let survivors = |positions: &[usize]| {
         positions
             .iter()
@@ -877,7 +934,7 @@ pub(crate) fn extremes_vacating_a_root_cell(
         .count();
     assert!(
         remaining < population.len(),
-        "the hidden set empties no root cell, so the count witness would have no teeth"
+        "the hidden set empties no root cell, hence the count witness would have no teeth"
     );
     assert!(remaining > 0, "the hidden set empties every root cell");
 
@@ -887,9 +944,9 @@ pub(crate) fn extremes_vacating_a_root_cell(
 /// Every operator head accounts for exactly the rows its response delivered.
 ///
 /// The wire law is `sum(runs) == delivered` in every response. A client paints from `runs`, reading
-/// bucket `b0 + i` at column offset `sum(runs[..i])`, so a head that overcounts moves every later
-/// bucket's points. The producer asserts the identity when it encodes. This reads the same law back
-/// off the bytes, over the corpus schedule rather than a scope cascade.
+/// bucket `b0 + i` at column offset `sum(runs[..i])`. A head that overcounts therefore moves every
+/// later bucket's points. The producer asserts the identity when it encodes. This reads the same
+/// law back off the bytes, over the corpus schedule rather than a scope cascade.
 ///
 /// The scoped side of the sweep lives in `schedule.rs`, and both reach it through [`head_counts`].
 #[tokio::test]
@@ -958,7 +1015,7 @@ async fn serves_published_tiles() {
         section(&bytes, TYPE_MASK).is_none(),
         "TYPE_MASK is absent without colouring",
     );
-    assert!(section(&bytes, MASS).is_none(), "MASS is reserved-absent");
+    assert!(section(&bytes, MASS).is_none(), "MASS is a reserved key");
 
     // The wire column carries the codec's ids: encode the head of
     // the base order through the independent derivation.
@@ -1256,7 +1313,7 @@ fn open_edge_artifacts(generation: &Generation) -> EdgeArtifacts {
 
 /// Every tile coordinate of the deepest zoom.
 ///
-/// The cut reaches the catch-all bucket, so the grid delivers the whole corpus.
+/// The cut reaches the catch-all bucket. The grid therefore delivers the whole corpus.
 fn full_grid() -> Vec<TileCoordinate> {
     let cells = 1_u32 << FIXTURE_LOD.max_tile_depth;
     (0..cells)
@@ -1308,8 +1365,9 @@ impl EdgesStore for UntouchedStore {
 
 /// A store answering that nothing resolves.
 ///
-/// Every store-derived column reads empty and every completeness flag `false`, so an expectation
-/// built over it pins the envelope and the in-process columns without store-derived content.
+/// Every store-derived column reads empty and every completeness flag `false`. An expectation
+/// built over it therefore pins the envelope and the in-process columns without store-derived
+/// content.
 struct UnresolvedStore;
 
 impl LocateStore for UnresolvedStore {
@@ -1558,7 +1616,7 @@ async fn edges_exclude_partially_delivered_pairs() {
     let (sources, targets, edge_rows) = qualifying_columns(endpoints, &delivered);
     assert!(
         !edge_rows.contains(&crossing),
-        "the crossing edge is excluded from the derivation",
+        "the derivation excludes the crossing edge",
     );
     let columns = wire_columns(&atlas, &sources, &targets, &edge_rows);
     assert_eq!(bytes, expected_edges_bytes(&generation, true, &columns));
@@ -2165,7 +2223,7 @@ fn wire_distance_bits(atlas: &Atlas, from: u32, to: u32) -> u32 {
 
 /// The locate edge cap keeps the nearest partner, proven by hand on the self-loop.
 ///
-/// Row 2's self-loop partner is the source itself at distance zero, so it survives every
+/// Row 2's self-loop partner is the source itself at distance zero. It therefore survives every
 /// nonzero cap, and partner 1's only edge truncates - the partner leaves with its edge and the
 /// source stands alone.
 #[tokio::test]
@@ -2783,8 +2841,8 @@ fn property(name: &str) -> (BaseUrl, super::hydrate::ScalarValue) {
 fn scalar_shapes_parse() {
     use super::hydrate::ScalarValue;
 
-    // The store renders 2.5 and 1.0 with their points, so both read
-    // as doubles; a number beyond i64 falls back to f64 (the wire's
+    // The store renders 2.5 and 1.0 with their points. Both therefore
+    // read as doubles; a number beyond i64 falls back to f64 (the wire's
     // integer is i64 - the scalar-value shapes carry no wider integral form).
     let object = serde_json::from_str(
         r#"{
@@ -2809,8 +2867,8 @@ fn scalar_shapes_parse() {
         ("https://x.test/j/", ScalarValue::Integer(-3)),
         ("https://x.test/n/", ScalarValue::Null),
         ("https://x.test/t/", ScalarValue::String("text".to_owned())),
-        // u64::MAX itself is not an f64, so the fallback rounds to the
-        // nearest double.
+        // u64::MAX itself is not an f64. The fallback therefore rounds to
+        // the nearest double.
         (
             "https://x.test/u/",
             ScalarValue::Float(1.844_674_407_370_955_2e19),
@@ -3299,8 +3357,8 @@ fn source_type_subset_rule() {
 
 /// A proof hiding exactly `hidden` among the atlas's node rows, and no link rows.
 ///
-/// The link mask admits every link row of the generation, so a battery built on this helper varies
-/// the node axis alone.
+/// The link mask admits every link row of the generation. A battery built on this helper therefore
+/// varies the node axis alone.
 pub(crate) fn mask_hiding(atlas: &Atlas, hidden: &[u32]) -> VisibilityProof {
     mask_hiding_rows(atlas, hidden, &[])
 }
@@ -3308,8 +3366,8 @@ pub(crate) fn mask_hiding(atlas: &Atlas, hidden: &[u32]) -> VisibilityProof {
 /// A proof hiding `hidden_nodes` among the atlas's node rows and `hidden_edges` among its link
 /// rows.
 ///
-/// Exclusion over the generation's own domains builds both masks, so the proof differs from the
-/// full-visibility proof in exactly the listed rows.
+/// Exclusion over the generation's own domains builds both masks. The proof therefore differs from
+/// the full-visibility proof in exactly the listed rows.
 fn mask_hiding_rows(atlas: &Atlas, hidden_nodes: &[u32], hidden_edges: &[u32]) -> VisibilityProof {
     VisibilityProof::from_masks(
         domain_mask(atlas.row_ids().len(), hidden_nodes),
@@ -3334,9 +3392,9 @@ fn domain_mask<T: Id>(rows: usize, hidden: &[u32]) -> CompressedBitSet<T> {
 
 /// Folds one `Ended` feed event per seed into a published snapshot over `atlas`.
 ///
-/// The events travel the consumer's own conversion, so the snapshot is the one publication
+/// The events travel the consumer's own conversion. The snapshot is therefore the one publication
 /// serving would read rather than a hand-assembled equivalent. Fixture node row `r` owns seed
-/// `r`, so withdrawing a row is withdrawing its seed.
+/// `r`. Withdrawing a row is therefore withdrawing its seed.
 pub(crate) fn withdrawing(atlas: &Atlas, seeds: &[u8]) -> DeltaSnapshot {
     let mut register = DeltaRegister::new(
         atlas.node_universe(),
@@ -3387,7 +3445,7 @@ fn head_counts(head: &[u8]) -> (u64, Vec<u64>) {
                     .take(count)
                     .collect();
             }
-            11 => panic!("HEAD key 11 is retired: no response carries a fill tail"),
+            11 => panic!("HEAD key 11 belongs to a retired field: no response carries a fill tail"),
             _ => reader.skip(),
         }
     }
@@ -3404,8 +3462,8 @@ fn head_counts(head: &[u8]) -> (u64, Vec<u64>) {
 /// Asserts one tile head accounts for `delivered` points.
 ///
 /// The runs-against-delivered law lives in [`head_counts`], which every head reader calls. This
-/// adds the caller's own count, so a head agreeing with itself but not with the response still
-/// fails.
+/// adds the caller's own count. A head agreeing with itself but not with the response therefore
+/// still fails.
 #[track_caller]
 fn assert_head_delivers(bytes: &[u8], delivered: u64) {
     let (counted, _runs) = head_counts(section(bytes, HEAD).expect("HEAD is present"));
@@ -3510,8 +3568,8 @@ impl CborReader<'_> {
 
     /// Reads one wire float.
     ///
-    /// The profile emits coordinates as CBOR single-precision floats, so the head read consumed the
-    /// four payload bytes as the argument.
+    /// The profile emits coordinates as CBOR single-precision floats. The head read therefore
+    /// consumed the four payload bytes as the argument.
     fn f32(&mut self) -> f32 {
         let (major, bits) = self.read_head();
         assert_eq!(major, 7, "expected a float at {}", self.at);

@@ -8,8 +8,10 @@ use crate::{
         morton::read::OpenMortonError,
         postings::read::OpenPostingsError,
         quad::read::OpenQuadError,
+        repository::IntegrityVerificationError,
         sprs::read::OpenSprsError,
     },
+    identity::{BasePosition, ImportanceRank, NodeRowId},
     morton::Depth,
     salt::{
         adjacency::InvalidAdjacencyFile,
@@ -43,7 +45,7 @@ impl fmt::Display for ArrayKind {
 
 /// The identity domain an identity artifact serves, for error reporting.
 ///
-/// The identity artifacts share one file format, so a failure names which table it hit.
+/// The identity artifacts share one file format. A failure therefore names which table it hit.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum IdentityDomain {
     /// The ontology identity table, joining type rows to type uuids.
@@ -93,6 +95,10 @@ pub enum OpenAtlasError {
         /// The failure.
         error: OpenIdentityError,
     },
+    /// Verifying a published file against the digest the metadata document records failed.
+    ///
+    /// The error names the file and, for a mismatch, both digests.
+    Corruption(IntegrityVerificationError),
     /// An identity file violates the table contract.
     ///
     /// A key width other than the store's fails the open outright. A generation whose ids are not
@@ -103,7 +109,7 @@ pub enum OpenAtlasError {
         /// The violation.
         error: InvalidIdentityFile,
     },
-    /// The recorded schedule exceeds the Morton key width, so no tile grid exists to serve.
+    /// The recorded schedule needs more subdivisions than a 64-bit Morton key resolves.
     Schedule {
         /// The recorded cells-per-tile-axis exponent.
         span_log2: u8,
@@ -133,16 +139,31 @@ pub enum OpenAtlasError {
     /// The rank columns disagree on a sampled position.
     ///
     /// The rank column and its reverse invert each other, a contract the fit pipeline proves
-    /// when it constructs the generation. Open spot-checks a bounded sample of roundtrips, so a
-    /// mispaired or corrupted artifact is refused at open without paging both columns whole.
+    /// when it constructs the generation. A file's recorded digest proves its bytes are the ones
+    /// the fit published and says nothing about whether two files agree with each other. Open
+    /// therefore roundtrips a bounded sample of positions through both columns and refuses a fit
+    /// that published a non-inverse pair.
     RankInverse {
         /// The sampled base position whose roundtrip failed.
-        position: u64,
+        position: BasePosition,
         /// The position's recorded rank.
-        rank: u64,
+        rank: ImportanceRank,
         /// The position the reverse column holds at that rank, absent when the rank lies
         /// outside the domain.
-        roundtrip: Option<u64>,
+        roundtrip: Option<BasePosition>,
+    },
+    /// The row columns disagree on a sampled position.
+    ///
+    /// The position column and its reverse invert each other, the same contract the rank columns
+    /// carry, and open spot-checks both pairs at the same sampled positions.
+    RowInverse {
+        /// The sampled base position whose roundtrip failed.
+        position: BasePosition,
+        /// The node row the position column holds at that position.
+        node: NodeRowId,
+        /// The position the reverse column holds for that node, absent when the node lies
+        /// outside the reverse column's domain.
+        roundtrip: Option<BasePosition>,
     },
     /// The adjacency's node domain contradicts the code column.
     Nodes {
@@ -205,6 +226,12 @@ pub enum OpenAtlasError {
     },
 }
 
+impl From<IntegrityVerificationError> for OpenAtlasError {
+    fn from(error: IntegrityVerificationError) -> Self {
+        Self::Corruption(error)
+    }
+}
+
 impl From<OpenError> for OpenAtlasError {
     fn from(error: OpenError) -> Self {
         Self::Open(error)
@@ -253,60 +280,6 @@ impl From<OpenQuadError> for OpenAtlasError {
     }
 }
 
-/// Writes one wrapped-error arm: a context phrase over its source.
-fn wrapped(fmt: &mut fmt::Formatter<'_>, context: &str, error: &dyn fmt::Display) -> fmt::Result {
-    write!(fmt, "{context}: {error}")
-}
-
-/// Writes the schedule arm: the subdivisions the recorded schedule needs against the key width.
-fn schedule(fmt: &mut fmt::Formatter<'_>, span_log2: u8, max_tile_depth: u8) -> fmt::Result {
-    write!(
-        fmt,
-        "the recorded schedule needs {max_tile_depth} + {span_log2} subdivisions where a 64-bit \
-         Morton key resolves {}",
-        Depth::MAX.get(),
-    )
-}
-
-/// Writes the rank-inverse arm: the sampled roundtrip that failed, with what it found.
-fn rank_inverse(
-    fmt: &mut fmt::Formatter<'_>,
-    position: u64,
-    rank: u64,
-    roundtrip: Option<u64>,
-) -> fmt::Result {
-    match roundtrip {
-        Some(roundtrip) => write!(
-            fmt,
-            "the rank columns are not inverse: position {position} carries rank {rank}, which the \
-             reverse column sends to position {roundtrip}",
-        ),
-        None => write!(
-            fmt,
-            "the rank columns are not inverse: position {position} carries rank {rank}, which \
-             lies outside the rank domain",
-        ),
-    }
-}
-
-/// Writes the base-order arm: the point count each column of the shared order holds.
-fn columns(
-    fmt: &mut fmt::Formatter<'_>,
-    codes: u64,
-    coordinates: u64,
-    rows: u64,
-    ranks: u64,
-    positions: u64,
-    rank_positions: u64,
-) -> fmt::Result {
-    write!(
-        fmt,
-        "the base-order columns disagree on the point count: {codes} codes, {coordinates} \
-         coordinates, {rows} rows, {ranks} ranks, {positions} positions, {rank_positions} rank \
-         positions",
-    )
-}
-
 impl fmt::Display for OpenAtlasError {
     #[expect(
         clippy::too_many_lines,
@@ -317,24 +290,32 @@ impl fmt::Display for OpenAtlasError {
             Self::Unpublished(id) => {
                 write!(fmt, "generation {id} is not published in this root")
             }
-            Self::Open(error) => wrapped(fmt, "the artifact failed to open", error),
-            Self::OpenMorton(error) => wrapped(fmt, "the morton artifact failed to open", error),
-            Self::OpenQuad(error) => wrapped(fmt, "the quad artifact failed to open", error),
+            Self::Open(error) => write!(fmt, "the artifact failed to open: {error}"),
+            Self::OpenMorton(error) => write!(fmt, "the morton artifact failed to open: {error}"),
+            Self::OpenQuad(error) => write!(fmt, "the quad artifact failed to open: {error}"),
             Self::OpenArray { kind, error } => {
                 write!(fmt, "the {kind} artifact failed to open: {error}")
             }
             Self::OpenAdjacency(error) => {
-                wrapped(fmt, "the adjacency artifact failed to open", error)
+                write!(fmt, "the adjacency artifact failed to open: {error}")
             }
-            Self::Adjacency(invalid) => wrapped(
-                fmt,
-                "the adjacency artifact violates the incident-list contract",
-                invalid,
-            ),
+            Self::Adjacency(invalid) => {
+                write!(
+                    fmt,
+                    "the adjacency artifact violates the incident-list contract: {invalid}"
+                )
+            }
             Self::Schedule {
                 span_log2,
                 max_tile_depth,
-            } => schedule(fmt, *span_log2, *max_tile_depth),
+            } => {
+                write!(
+                    fmt,
+                    "the recorded schedule needs {max_tile_depth} + {span_log2} subdivisions \
+                     where a 64-bit Morton key resolves {}",
+                    Depth::MAX.get(),
+                )
+            }
             Self::Shape { kind } => write!(
                 fmt,
                 "the {kind} artifact does not hold the serving contract's shape",
@@ -346,20 +327,51 @@ impl fmt::Display for OpenAtlasError {
                 ranks,
                 positions,
                 rank_positions,
-            } => columns(
-                fmt,
-                *codes,
-                *coordinates,
-                *rows,
-                *ranks,
-                *positions,
-                *rank_positions,
-            ),
-            Self::RankInverse {
+            } => {
+                write!(
+                    fmt,
+                    "the base-order columns disagree on the point count: {codes} codes, \
+                     {coordinates} coordinates, {rows} rows, {ranks} ranks, {positions} \
+                     positions, {rank_positions} rank positions",
+                )
+            }
+            &Self::RankInverse {
                 position,
                 rank,
-                roundtrip,
-            } => rank_inverse(fmt, *position, *rank, *roundtrip),
+                roundtrip: Some(roundtrip),
+            } => write!(
+                fmt,
+                "the rank columns are not inverse: position {position} carries rank {rank}, which \
+                 the reverse column sends to position {roundtrip}",
+            ),
+            &Self::RankInverse {
+                position,
+                rank,
+                roundtrip: None,
+            } => write!(
+                fmt,
+                "the rank columns are not inverse: position {position} carries rank {rank}, which \
+                 lies outside the rank domain",
+            ),
+            &Self::RowInverse {
+                position,
+                node,
+                roundtrip: Some(roundtrip),
+            } => write!(
+                fmt,
+                "the row columns are not inverse: position {position} holds node {node}, which \
+                 the reverse column sends to position {roundtrip}",
+            ),
+            &Self::RowInverse {
+                position,
+                node,
+                roundtrip: None,
+            } => write!(
+                fmt,
+                "the row columns are not inverse: position {position} holds node {node}, which \
+                 lies outside the reverse column's domain",
+            ),
+            Self::Corruption(error) => fmt::Display::fmt(error, fmt),
             Self::Nodes { adjacency, codes } => write!(
                 fmt,
                 "the adjacency spans {adjacency} node rows where the code column holds {codes}",
@@ -377,12 +389,14 @@ impl fmt::Display for OpenAtlasError {
                 "the quadtree root counts {quad} points where the code column holds {codes}",
             ),
             Self::OpenPostings(error) => {
-                wrapped(fmt, "the postings artifact failed to open", error)
+                write!(fmt, "the postings artifact failed to open: {error}")
             }
             Self::Postings(error) => {
-                wrapped(fmt, "the postings artifact violates its contract", error)
+                write!(fmt, "the postings artifact violates its contract: {error}")
             }
-            Self::Closure(error) => wrapped(fmt, "no closure map exists", error),
+            Self::Closure(error) => {
+                write!(fmt, "no closure map exists: {error}")
+            }
             Self::OpenIdentity { domain, error } => {
                 write!(
                     fmt,
@@ -440,11 +454,13 @@ impl Error for OpenAtlasError {
             Self::Closure(cycle) => Some(cycle),
             Self::OpenIdentity { domain: _, error } => Some(error),
             Self::Identity { domain: _, error } => Some(error),
+            Self::Corruption(error) => Some(error),
             Self::Unpublished(_)
             | Self::Schedule { .. }
             | Self::Shape { .. }
             | Self::Columns { .. }
             | Self::RankInverse { .. }
+            | Self::RowInverse { .. }
             | Self::Nodes { .. }
             | Self::Edges { .. }
             | Self::Subtree { .. }

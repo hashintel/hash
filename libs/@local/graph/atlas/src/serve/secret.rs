@@ -15,8 +15,6 @@
 
 use core::{error::Error, fmt};
 
-use zerocopy::IntoBytes as _;
-
 use crate::integrity::{ParseHexError, SecretHexBytes};
 
 /// A wire secret the configured form does not encode.
@@ -98,7 +96,7 @@ impl WireSecret {
     }
 
     /// Views the key bytes.
-    pub(crate) fn as_bytes(&self) -> &[u8] {
+    pub(crate) const fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
 

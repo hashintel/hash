@@ -68,6 +68,7 @@ simple-mermaid            = { workspace = true }
 siphasher                 = { workspace = true }
 smallvec                  = { workspace = true }
 steppe                    = { workspace = true }
+subtle                    = { workspace = true }
 tiktoken-rs               = { workspace = true }
 time                      = { workspace = true }
 tower                     = { workspace = true }

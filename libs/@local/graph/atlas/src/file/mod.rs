@@ -2,12 +2,12 @@
 //!
 //! Artifacts are plain files in a directory, one artifact per file, described by metadata stored
 //! beside them. No container format exists: the filesystem is the container. Publishing a
-//! generation writes every file to a temporary directory, syncs, and renames it into place, so a
-//! generation is either absent or complete. Published files never change, so caching them forever
-//! is safe.
+//! generation writes every file to a temporary directory, syncs, and renames it into place. A
+//! generation is therefore either absent or complete. Published files never change, hence caching
+//! them forever is safe.
 //!
 //! - [`array`](mod@array) is the raw scalar array file: a self-describing 4096-byte header followed
-//!   by the packed elements, so a whole-file mapping yields page-aligned data.
+//!   by the packed elements. A whole-file mapping therefore yields page-aligned data.
 //! - [`attraction`] is the attraction index file: relation group records delimiting ranges of one
 //!   flat edge-record array, both page-aligned regions of one file.
 //! - [`morton`] is the combined-file archetype: a page index in front of the sorted code array it
@@ -39,10 +39,11 @@
 //! Integrity mechanisms layer by cost. Array headers validate by parsing, because the pinned magic
 //! and version make foreign bytes fail to parse. The one structural rule is the file length
 //! equation. The temporary-path-and-rename publish prevents torn writes, and the SHA-256 each
-//! repository file records detects corruption. Tooling verifies that hash on demand, and no load
-//! verifies it. No file carries an internal checksum. Hashing at publish is one streaming pass the
-//! pipeline already makes, and the structure an internal checksum would protect is the directory,
-//! which the filesystem holds.
+//! repository file records detects corruption. The serving open verifies that hash over every file
+//! it maps ([`repository::RepositoryFile::verify`]), one streaming read per file before the format
+//! reader touches it. No file carries an internal checksum. Hashing at publish is one streaming
+//! pass the pipeline already makes, and the structure an internal checksum would protect is the
+//! directory, which the filesystem holds.
 //!
 //! Shapes need no validation because every bit pattern means something. The shape is the longest
 //! nonzero dimension prefix, and a leading zero is the empty array. The single enforcement point is
@@ -74,10 +75,10 @@
 //!
 //! Every mapping covers a whole file and slices at the header size. An array header is exactly 4096
 //! bytes, and every supported page size (4 KiB on `x86_64`, 16 KiB on Apple Silicon, 64 KiB on
-//! `aarch64` distributions) is a multiple of that, so a page-aligned mapping base leaves the data
-//! behind the header aligned for every scalar and SIMD width. Mapping from zero is what makes that
-//! provable. The kernel accepts only page-size-multiple mmap offsets, and 4096 is not one on 16 KiB
-//! pages.
+//! `aarch64` distributions) is a multiple of that. A page-aligned mapping base therefore leaves the
+//! data behind the header aligned for every scalar and SIMD width. Mapping from zero is what makes
+//! that provable. The kernel accepts only page-size-multiple mmap offsets, and 4096 is not one on
+//! 16 KiB pages.
 //!
 //! # Format palette
 //!
@@ -93,8 +94,8 @@
 //! 3. **Parquet**: tabular data with heterogeneous columns that a reader loads once into memory or
 //!    queries analytically. A Parquet file is never mapped. It buys compression and external
 //!    tooling (`DuckDB`, `polars`) over a live atlas - worth real debugging time at a million
-//!    entities - at the cost of decode and the arrow dependency tree in an otherwise lean crate, so
-//!    the choice happens once, at adoption.
+//!    entities - at the cost of decode and the arrow dependency tree in an otherwise lean crate.
+//!    The choice therefore happens once, at adoption.
 //! 4. **rkyv**: pointer-rich structures alone, such as deep recursive graphs, where laying out an
 //!    explicit zerocopy format is unreasonable. An explicit `#[repr(C)]` layout with pinned
 //!    identity is inspectable in a hex dump and carries no schema-evolution machinery, so zerocopy
@@ -107,16 +108,16 @@
 //!
 //! # Combined files
 //!
-//! Parts combine into one file when they derive from one another and mean nothing apart, so a
-//! read always takes them together. A lookup index in front of the array it indexes is the
+//! Parts combine into one file when they derive from one another and mean nothing apart. A read
+//! therefore always takes them together. A lookup index in front of the array it indexes is the
 //! canonical case. Parts that version or get replaced independently stay separate files.
 //!
 //! Layout, derivation, and alignment keep a combined file distinct from a container. Regions are
-//! fields of the kind's own pinned header, so the format needs no generic directory, section table,
-//! or region count. The parts derive from each other and read together, which is what makes them
-//! one artifact rather than two carrying a cross-file consistency invariant. Every array region
-//! starts on a 4096-byte boundary, zero-padded up to it, so the whole-file mapping guarantee above
-//! holds unchanged.
+//! fields of the kind's own pinned header. The format therefore needs no generic directory, section
+//! table, or region count. The parts derive from each other and read together, which is what makes
+//! them one artifact rather than two carrying a cross-file consistency invariant. Every array
+//! region starts on a 4096-byte boundary, zero-padded up to it. The whole-file mapping guarantee
+//! above therefore holds unchanged.
 //!
 //! [`morton`] is the archetype. A small key index in front of the code array means a binary search
 //! faults the index page plus one data page instead of log2(N) scattered pages, and the index
@@ -202,9 +203,10 @@ pub(crate) mod sprs;
 ///
 /// The digest is the SHA-256 of exactly the bytes written, in one pass - the identity the
 /// repository records for the published file. The bound is [`io::Write`] alone: an implementation
-/// that would seal its output by seeking back cannot produce an honest streaming digest, so a value
-/// whose serialization only knows its geometry at the end pre-computes it instead (an array-shaped
-/// artifact knows its own row count and writes header-first through [`array::SizedArrayWriter`]).
+/// that would seal its output by seeking back cannot produce an honest streaming digest. A value
+/// whose serialization only knows its geometry at the end therefore pre-computes it instead (an
+/// array-shaped artifact knows its own row count and writes header-first through
+/// [`array::SizedArrayWriter`]).
 pub(crate) trait WriteInto {
     /// The failure the artifact's serialization can produce.
     type Error;

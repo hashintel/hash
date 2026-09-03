@@ -1,7 +1,8 @@
 //! The open pass.
 //!
 //! Mapping a generation's serving artifacts and validating each format plus their cross-artifact
-//! agreement once, so every read after it trusts its views. The pass is one linear derivation. It
+//! agreement once. Every read after it therefore trusts its views. The pass is one linear
+//! derivation. It verifies each published file against the digest the metadata document records,
 //! maps and types each artifact and proves the artifacts agree on their shared domains. It then
 //! derives the serving state (the schedule, the wire codec and its encoded row column, the frame
 //! extent) and constructs the [`Atlas`] whole - no half-initialized value exists at any point.
@@ -42,8 +43,8 @@ use crate::{
 /// The options one serving open takes.
 ///
 /// Configuration travels as a struct, never constants or bare parameters. The struct has no
-/// default. Every open names its secret explicitly, so no deployment can serve under key material
-/// it never configured.
+/// default. Every open names its secret explicitly. A deployment therefore serves only under key
+/// material it configured.
 #[derive(Debug, Clone)]
 pub(crate) struct OpenOptions {
     /// The server secret behind the wire row-id codec.
@@ -51,19 +52,19 @@ pub(crate) struct OpenOptions {
     /// The keyed permutation derives from it per generation at open.
     ///
     /// Operator contract, unenforced by any binding: the secret must not change for a generation
-    /// that has ever served. Nothing fingerprints the secret, so reopening the same generation
-    /// under a different value re-keys every wire id while client cache identity (authorization
-    /// context, generation, route, canonical query) stays constant. A secret change therefore
-    /// requires a generation rotation and application-cache invalidation.
+    /// that has ever served. Nothing fingerprints the secret. Reopening the same generation under
+    /// a different value therefore re-keys every wire id while client cache identity
+    /// (authorization context, generation, route, canonical query) stays constant. A secret
+    /// change therefore requires a generation rotation and application-cache invalidation.
     pub wire_secret: WireSecret,
 }
 
 /// One generation's serving artifacts, each mapped and validated against its own format.
 ///
-/// The columns share one base order and the archives share the domains that order indexes, so a
-/// value of this type holds artifacts that are individually well-formed and not yet known to agree
-/// with one another. [`Artifacts::agree`] is that second proof, and the serving state derives only
-/// after it holds.
+/// The columns share one base order and the archives share the domains that order indexes. A
+/// value of this type therefore holds artifacts that are individually well-formed and not yet known
+/// to agree with one another. [`Artifacts::agree`] is that second proof, and the serving state
+/// derives only after it holds.
 #[derive(Debug)]
 struct Artifacts {
     quad: QuadFile,
@@ -100,8 +101,8 @@ impl Artifacts {
     fn open(generation: &Generation) -> Result<Self, OpenAtlasError> {
         let files = &generation.repository().files;
 
-        let quad = QuadFile::open(generation.path_of(&files.quad.name()))?;
-        let morton = MortonFile::open(generation.path_of(&files.morton.name()))?;
+        let quad = QuadFile::open(files.quad.file().verify(generation)?)?;
+        let morton = MortonFile::open(files.morton.file().verify(generation)?)?;
         let points: Column<BasePosition, Vec2> =
             open_column(generation, &files.wire_coordinates, ArrayKind::Coordinates)?;
         let rows: Column<BasePosition, NodeRowId> =
@@ -118,9 +119,9 @@ impl Artifacts {
             ArrayKind::RankPositions,
         )?;
         let adjacency =
-            AdjacencyArchive::new(SprsFile::open(generation.path_of(&files.adjacency.name()))?)?;
+            AdjacencyArchive::new(SprsFile::open(files.adjacency.file().verify(generation)?)?)?;
         let postings = PostingsArchive::new(PostingsFile::open(
-            generation.path_of(&files.postings.name()),
+            files.postings.file().verify(generation)?,
         )?)?;
         let ontology_ids = open_identities(
             generation,
@@ -150,15 +151,17 @@ impl Artifacts {
     /// Checks the artifacts agree on every domain they share.
     ///
     /// The morton column's code count is the point domain, the adjacency spans the node and edge
-    /// domains, and the identity tables join to both. The pass checks every shared count once, so
-    /// the read paths index across artifacts without re-validating. The rank pairing gets a
-    /// deterministic bounded sample of roundtrips rather than a full inversion proof, so a
-    /// mispairing outside the sample stays the fit-time contract's to exclude.
+    /// domains, and the identity tables join to both. The pass checks every shared count once.
+    /// The read paths therefore index across artifacts without re-validating. The rank and row
+    /// pairings get a deterministic bounded sample of roundtrips rather than a full inversion
+    /// proof ([`roundtrip`](Self::roundtrip)). A mispairing outside the sample stays the fit-time
+    /// contract's to exclude.
     ///
     /// # Errors
     ///
     /// Returns [`OpenAtlasError::Columns`] when the point-domain columns disagree on a count,
-    /// and [`OpenAtlasError::RankInverse`] when the rank columns disagree on a sampled position.
+    /// and [`OpenAtlasError::RankInverse`] or [`OpenAtlasError::RowInverse`] when a rank or row
+    /// column disagrees with its reverse on a sampled position.
     /// Returns [`OpenAtlasError::Nodes`], [`OpenAtlasError::Edges`],
     /// [`OpenAtlasError::Subtree`], [`OpenAtlasError::Points`], [`OpenAtlasError::Types`],
     /// [`OpenAtlasError::Identities`] or [`OpenAtlasError::EdgeIdentities`] when two artifacts
@@ -183,46 +186,7 @@ impl Artifacts {
             });
         }
 
-        // The rank columns invert each other by the fit pipeline's own construction, and
-        // re-proving that whole contract here would fault every page of both columns at open. A
-        // bounded sample of roundtrips spot-checks the pairing instead: a mispaired or shuffled
-        // artifact almost surely fails a sampled roundtrip, and the spread costs a fixed number
-        // of page faults. The verdict is deterministic for a given generation, and a single
-        // corrupt entry outside the sample stays the fit-time contract's to exclude.
-        if codes > 0 && u32::try_from(codes - 1).is_ok() {
-            const SAMPLES: u64 = 64;
-
-            let ranks = self.ranks.view();
-            let positions_of_rank = self.positions_of_rank.view();
-            let samples = SAMPLES.min(codes);
-            for index in 0..samples {
-                // Evenly spread over the domain, first and last position included.
-                #[expect(
-                    clippy::integer_division,
-                    clippy::integer_division_remainder_used,
-                    reason = "an evenly spaced sample point is the floor of its proportional \
-                              position"
-                )]
-                let at = if samples == 1 {
-                    0
-                } else {
-                    index * (codes - 1) / (samples - 1)
-                };
-                let position = BasePosition::from_u32(
-                    u32::try_from(at).expect("the sampled position lies in the checked domain"),
-                );
-
-                let rank = ranks[position];
-                let roundtrip = positions_of_rank.get(rank).copied();
-                if roundtrip != Some(position) {
-                    return Err(OpenAtlasError::RankInverse {
-                        position: u64::from(position.as_u32()),
-                        rank: u64::from(rank.as_u32()),
-                        roundtrip: roundtrip.map(|found| u64::from(found.as_u32())),
-                    });
-                }
-            }
-        }
+        self.roundtrip(codes)?;
 
         if self.adjacency.rows() != codes {
             return Err(OpenAtlasError::Nodes {
@@ -279,6 +243,73 @@ impl Artifacts {
             return Err(OpenAtlasError::EdgeUniverse {
                 edges: self.adjacency.edges(),
             });
+        }
+
+        Ok(())
+    }
+
+    /// Roundtrips a bounded sample of positions through the rank and row columns and their
+    /// reverses.
+    ///
+    /// The rank column and the position column each invert their reverse by the fit pipeline's own
+    /// construction. A file's recorded digest proves its bytes are the ones the fit published and
+    /// says nothing about whether two files agree with each other. A full inversion proof would
+    /// read both columns of each pair a second time at open. A bounded sample of roundtrips
+    /// spot-checks each pairing instead, and a fit that published a non-inverse pair almost surely
+    /// fails a sampled roundtrip. The sample is evenly spread over the `codes` positions with the
+    /// first and last included. The verdict is deterministic for a given generation, and a single
+    /// wrong entry outside the sample stays the fit-time contract's to exclude.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`OpenAtlasError::RankInverse`] when the reverse rank column does not send a
+    /// sampled position's rank back to that position, and [`OpenAtlasError::RowInverse`] when the
+    /// reverse row column does not send the position's node back to it.
+    fn roundtrip(&self, codes: u64) -> Result<(), OpenAtlasError> {
+        const SAMPLES: u64 = 64;
+
+        if codes == 0 || u32::try_from(codes - 1).is_err() {
+            return Ok(());
+        }
+
+        let ranks = self.ranks.view();
+        let positions_of_rank = self.positions_of_rank.view();
+        let positions_of_row = self.positions_of_row.view();
+        let rows = self.rows.view();
+
+        let samples = SAMPLES.min(codes);
+        for index in 0..samples {
+            #[expect(
+                clippy::integer_division,
+                clippy::integer_division_remainder_used,
+                reason = "an evenly spaced sample point is the floor of its proportional position"
+            )]
+            let at = if samples == 1 {
+                0
+            } else {
+                index * (codes - 1) / (samples - 1)
+            };
+            let position = BasePosition::from_u64(at);
+
+            let rank = ranks[position];
+            let roundtrip = positions_of_rank.get(rank).copied();
+            if roundtrip != Some(position) {
+                return Err(OpenAtlasError::RankInverse {
+                    position,
+                    rank,
+                    roundtrip,
+                });
+            }
+
+            let node = rows[position];
+            let roundtrip = positions_of_row.get(node).copied();
+            if roundtrip != Some(position) {
+                return Err(OpenAtlasError::RowInverse {
+                    position,
+                    node,
+                    roundtrip,
+                });
+            }
         }
 
         Ok(())
@@ -351,11 +382,11 @@ impl Atlas {
             edge_ids,
         } = artifacts;
 
-        // The agreement proof matched the identity rows to the postings' type domain, so every
-        // displayed row seeds the icon memo in domain.
+        // The agreement proof matched the identity rows to the postings' type domain. Every
+        // displayed row therefore seeds the icon memo in domain.
         let closure = ClosureMap::new(&postings, ontology_ids.displayed_rows())?;
 
-        // The row column is the node universe's permutation, so its validated length is the
+        // The row column is the node universe's permutation. Its validated length is therefore the
         // base bound. Edges cross the wire as link-entity identities and need no codec.
         let node_universe = Universe::new(NodeRowId::from_u32(u32::try_from(rows.len()).map_err(
             |_error| OpenAtlasError::Universe {
@@ -364,8 +395,8 @@ impl Atlas {
         )?));
         let node_codec = RowCodec::derive(&wire_secret, id, NODE_LABEL);
 
-        // The wire column maps the validated row column once, so every position-driven gather
-        // reads permuted ids for free.
+        // The wire column maps the validated row column once. Every position-driven gather
+        // therefore reads permuted ids for free.
         let wire_rows = rows
             .view()
             .iter()
@@ -415,7 +446,7 @@ where
     I: Id,
     T: ColumnScalar + FromBytes + KnownLayout,
 {
-    let array = ArrayFile::open(generation.path_of(&binding.name()))
+    let array = ArrayFile::open(binding.file().verify(generation)?)
         .map_err(|error| OpenAtlasError::OpenArray { kind, error })?;
 
     Column::new(array).ok_or(OpenAtlasError::Shape { kind })
@@ -434,7 +465,7 @@ where
     I: Key,
     R: Row,
 {
-    let identities = IdentityFile::open(generation.path_of(&binding.name()))
+    let identities = IdentityFile::open(binding.file().verify(generation)?)
         .map_err(|error| OpenAtlasError::OpenIdentity { domain, error })?;
     IdentityTableArchive::new(identities)
         .map_err(|error| OpenAtlasError::Identity { domain, error })
@@ -443,8 +474,8 @@ where
 /// Derives the tight wire-frame extent of the full point set from the world frame.
 ///
 /// Normalization maps each axis's world minimum and maximum onto the frame edges - values real
-/// points attain - and collapses a zero-extent axis to the frame centre, so the extent is exact
-/// without scanning the coordinate column.
+/// points attain - and collapses a zero-extent axis to the frame centre. The extent is therefore
+/// exact without scanning the coordinate column.
 fn frame_extent(world: Bounds2) -> Bounds2 {
     #[expect(
         clippy::float_cmp,

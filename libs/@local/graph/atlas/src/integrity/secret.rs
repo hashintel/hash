@@ -1,4 +1,4 @@
-use core::{convert::Infallible, fmt, ops::Deref, str::FromStr};
+use core::{convert::Infallible, fmt, str::FromStr};
 
 use zerocopy::IntoBytes as _;
 use zeroize::{Zeroize as _, Zeroizing};
@@ -41,6 +41,14 @@ impl SecretString {
     }
 }
 
+impl PartialEq for SecretString {
+    fn eq(&self, other: &Self) -> bool {
+        subtle::ConstantTimeEq::ct_eq(self.0.as_bytes(), other.0.as_bytes()).into()
+    }
+}
+
+impl Eq for SecretString {}
+
 impl fmt::Debug for SecretString {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_struct("SecretString")
@@ -80,16 +88,7 @@ impl FromStr for SecretString {
 /// renders the secret, never its target.
 ///
 /// Parsing and deserialization accept exactly the canonical lowercase form.
-#[derive(
-    Clone,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    zerocopy::ByteHash,
-    zerocopy::Immutable,
-    zerocopy::KnownLayout,
-)]
+#[derive(Clone, zerocopy::ByteHash, zerocopy::Immutable, zerocopy::KnownLayout)]
 #[repr(transparent)]
 pub(crate) struct SecretHexBytes<const N: usize>(HexBytes<N>);
 
@@ -98,15 +97,26 @@ impl<const N: usize> SecretHexBytes<N> {
     pub(crate) const fn new(bytes: [u8; N]) -> Self {
         Self(HexBytes::new(bytes))
     }
-}
 
-impl<const N: usize> Deref for SecretHexBytes<N> {
-    type Target = HexBytes<N>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
+    /// Returns a reference to the secret bytes.
+    pub(crate) const fn as_bytes(&self) -> &[u8] {
+        self.0.as_ref()
     }
 }
+
+impl<const N: usize> AsRef<[u8]> for SecretHexBytes<N> {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref()
+    }
+}
+
+impl<const N: usize> PartialEq for SecretHexBytes<N> {
+    fn eq(&self, other: &Self) -> bool {
+        subtle::ConstantTimeEq::ct_eq(self.0.as_ref(), other.0.as_ref()).into()
+    }
+}
+
+impl<const N: usize> Eq for SecretHexBytes<N> {}
 
 impl<const N: usize> fmt::Debug for SecretHexBytes<N> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
