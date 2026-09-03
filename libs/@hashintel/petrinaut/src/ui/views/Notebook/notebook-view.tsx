@@ -560,6 +560,10 @@ const NotebookViewContent: React.FC = () => {
       !inCodeEditor
     ) {
       event.preventDefault();
+      // A host app may bind its own ⌘K palette on window; while the notebook
+      // is the active mode its palette wins, so the capture-phase listener
+      // stops the event before the host's bubble-phase one sees it.
+      event.stopPropagation();
       setPaletteOpen((open) => !open);
       return;
     }
@@ -598,8 +602,9 @@ const NotebookViewContent: React.FC = () => {
     }
   });
   useEffect(() => {
-    window.addEventListener("keydown", handleViewShortcut);
-    return () => window.removeEventListener("keydown", handleViewShortcut);
+    window.addEventListener("keydown", handleViewShortcut, true);
+    return () =>
+      window.removeEventListener("keydown", handleViewShortcut, true);
   }, []);
 
   const navigateToNode = (node: NodeRef) => {
