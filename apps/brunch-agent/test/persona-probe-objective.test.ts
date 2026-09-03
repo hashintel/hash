@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 import { describe, expect, test } from "vitest";
@@ -11,6 +12,12 @@ const probeObjective = readFileSync(
 );
 
 describe("Mission 4 persona probe objective", () => {
+  test("matches the complete owner-selected mechanical objective", () => {
+    expect(createHash("sha256").update(probeObjective).digest("hex")).toBe(
+      "27396ce3e6e5ed36aa21adbb00d93129af179535c3fb34accca459733dddaa13",
+    );
+  });
+
   test("uses a mechanical stop owned by the visible turn count", () => {
     expect(probeObjective).toContain(
       "Make exactly three visible user submissions, counting the opening as the first",
