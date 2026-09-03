@@ -443,20 +443,6 @@ export const Select = <TValue extends string>({
     return filtered;
   }, [effectiveItems, searchTerms]);
 
-  const firstVisibleValue = useMemo<TValue | undefined>(() => {
-    for (const entry of visibleItems) {
-      if ("items" in entry) {
-        const first = entry.items.find((it) => !it.disabled);
-        if (first) {
-          return first.value;
-        }
-      } else if (!entry.disabled) {
-        return entry.value;
-      }
-    }
-    return undefined;
-  }, [visibleItems]);
-
   const resolvedRenderItem = useMemo<(value: TValue) => React.ReactNode>(
     () =>
       renderItem ??
@@ -494,6 +480,34 @@ export const Select = <TValue extends string>({
     !!multiple && maxItems !== undefined && selectedValues.length >= maxItems;
   // At maxItems only the currently-selected values stay enabled, so they can be deselected
   const selectableAtMax = atMaxItems ? selectedValues : undefined;
+  const selectableAtMaxSet = useMemo<ReadonlySet<string> | undefined>(
+    () =>
+      selectableAtMax === undefined
+        ? undefined
+        : new Set<string>(selectableAtMax),
+    [selectableAtMax],
+  );
+
+  // The first search match the highlight can land on — must apply the same
+  // effective-disabled rule as the collection (explicit `disabled` plus rows
+  // disabled by `maxItems`), or Enter would target an unselectable row
+  const firstVisibleValue = useMemo<TValue | undefined>(() => {
+    const isEnabled = (it: MultiSelectItem<TValue>) =>
+      !it.disabled &&
+      (selectableAtMaxSet === undefined || selectableAtMaxSet.has(it.value));
+    for (const entry of visibleItems) {
+      if ("items" in entry) {
+        const first = entry.items.find(isEnabled);
+        if (first) {
+          return first.value;
+        }
+      } else if (isEnabled(entry)) {
+        return entry.value;
+      }
+    }
+    return undefined;
+  }, [visibleItems, selectableAtMaxSet]);
+
   const selectOnly = useCallback(
     (val: TValue) => {
       (onChange as (value: TValue[]) => void)([val]);
@@ -508,8 +522,7 @@ export const Select = <TValue extends string>({
       resolvedRenderItem,
       {
         multiple: !!multiple,
-        selectableValues:
-          selectableAtMax === undefined ? undefined : new Set(selectableAtMax),
+        selectableValues: selectableAtMaxSet,
         selectOnly,
       },
     );
@@ -556,7 +569,7 @@ export const Select = <TValue extends string>({
     resolvedRenderItem,
     noneValue,
     multiple,
-    selectableAtMax,
+    selectableAtMaxSet,
     selectOnly,
     showSearch,
     search,
