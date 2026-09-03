@@ -189,6 +189,92 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
   });
 }
 
+type StoryMetricFrame = ExperimentRecord["metricFrames"][number];
+
+/**
+ * A deterministic SIR-ish infected count at `time` for the given parameter
+ * values: one epidemic wave whose height grows with the transmission rate
+ * and whose timing and length grow with the recovery time. Subcritical
+ * parameters (transmission_rate × recovery_days ≤ 1) stay nearly flat, so
+ * moving the navigator visibly reshapes the curve.
+ */
+export function sirInfectedMean(
+  time: number,
+  transmissionRate: number,
+  recoveryDays: number,
+): number {
+  const r0 = transmissionRate * recoveryDays;
+  const attack = Math.max(0, 1 - 1 / Math.max(r0, 1.01));
+  const peak = 350 * attack;
+  const peakTime = 8 + recoveryDays * (1.4 - transmissionRate);
+  const width = 4 + recoveryDays * 0.9;
+  const pulse = Math.exp(-(((time - peakTime) / width) ** 2));
+  return peak * pulse + 10 * attack;
+}
+
+/** A deterministic pseudo-random fraction in [0, 1) that varies by inputs. */
+function storyNoise(a: number, b: number): number {
+  const raw = Math.sin((a + 1) * 374.761 + (b + 1) * 668.265) * 43_758.545;
+  return raw - Math.floor(raw);
+}
+
+/**
+ * One synthetic distribution frame of the "Infected" metric: integer bins
+ * spread around `sirInfectedMean`. More `runs` fill more bins with smoother
+ * frequencies (sampling jitter shrinks as 1/√runs), so a story replaying the
+ * refinement ladder shows distributions sharpening the way a real batch
+ * merge does; a wider `spread` widens the histogram, the way a range
+ * selection's per-run parameter draws do.
+ */
+export function sirInfectedFrame(options: {
+  frameNumber: number;
+  transmissionRate: number;
+  recoveryDays: number;
+  /** Half-width of the run distribution around the mean, in tokens. */
+  spread: number;
+  /** Runs contributing to the frame. */
+  runs: number;
+}): StoryMetricFrame {
+  const { frameNumber, transmissionRate, recoveryDays, spread, runs } = options;
+  const mean = sirInfectedMean(frameNumber, transmissionRate, recoveryDays);
+  const center = Math.round(mean);
+  const sigma = Math.max(1, spread);
+  // Few runs resolve only a few coarse bins; more runs fill the whole ±2σ.
+  const halfWidth = Math.min(
+    Math.round(sigma * 2),
+    Math.max(1, Math.floor(Math.sqrt(runs) * sigma * 0.45)),
+  );
+  const step = Math.max(1, Math.round((2 * halfWidth + 1) / 12));
+  const jitter = 1.6 / Math.sqrt(runs);
+
+  const bins: (readonly [number, number])[] = [];
+  for (let offset = -halfWidth; offset <= halfWidth; offset += step) {
+    const weight = Math.exp(-((offset / sigma) ** 2) * 1.5) * runs;
+    const noise = 1 + jitter * (storyNoise(frameNumber, offset) - 0.5) * 2;
+    const frequency = Math.round(weight * noise);
+    if (frequency > 0 && center + offset >= 0) {
+      bins.push([center + offset, frequency]);
+    }
+  }
+  if (bins.length === 0) {
+    bins.push([Math.max(0, center), runs]);
+  }
+
+  return {
+    metricId: "infected",
+    label: "Infected",
+    outputType: "distribution" as const,
+    frameNumber,
+    time: frameNumber,
+    bins,
+    value: null,
+    frameValue: null,
+    timeValue: null,
+    runSampleCount: runs,
+    timeSampleCount: runs,
+  };
+}
+
 export const oneExperiment = makeExperiment(1);
 
 export const multipleExperiments: ExperimentRecord[] = [
@@ -263,9 +349,18 @@ const createFakeExperiment = (
 export function FakeExperimentsProvider({
   children,
   initialExperiments,
+  overrides,
 }: {
   children: ReactNode;
   initialExperiments: readonly ExperimentRecord[];
+  /**
+   * Per-story replacements for the fake compute callbacks — e.g. a slower
+   * sampler to watch a surface fill in, or one that resolves null to show
+   * the empty state.
+   */
+  overrides?: Partial<
+    Pick<ExperimentsContextValue, "sampleSweepCell" | "sampleDetachedObjective">
+  >;
 }) {
   const [experiments, setExperiments] = useState<readonly ExperimentRecord[]>(
     () => initialExperiments,
@@ -379,8 +474,9 @@ export function FakeExperimentsProvider({
           );
         });
       },
+      ...overrides,
     }),
-    [experiments, selectedExperiment, selectedExperimentId],
+    [experiments, selectedExperiment, selectedExperimentId, overrides],
   );
 
   return <ExperimentsContext value={value}>{children}</ExperimentsContext>;

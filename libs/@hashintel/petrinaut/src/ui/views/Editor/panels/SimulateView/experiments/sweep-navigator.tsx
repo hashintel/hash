@@ -1,33 +1,46 @@
 /**
- * The parameter navigator of a sweep experiment: one slider row per swept
- * parameter, plus a refinement status line. Each slider selects a position
- * range on the parameter's quantized interval — the whole interval by
- * default, collapsible to a single point — and moving it redirects compute to
- * the newly selected region; the metrics below re-stream for it, so this
- * strip lives in the section's sticky band and stays visible while the
- * charts scroll.
+ * The parameter navigator of a sweep: one slider row per swept parameter,
+ * plus a sampling status line. Each slider selects a position range on the
+ * parameter's quantized interval — the whole interval by default,
+ * collapsible to a single point — and committing a move reports the new
+ * selection so the owner can redirect compute to it. In the experiment
+ * drawer this strip lives in the section's sticky band and stays visible
+ * while the charts scroll.
  *
- * Slider moves commit on release: dragging previews the range locally and
- * `setSweepSelection` fires once, so the session cancels at most one batch
- * per gesture rather than one per pixel.
+ * Purely presentational: selection and sampling progress come in as props,
+ * and the only output is `onSelectionChange`. Slider moves commit live —
+ * positions are quantized, so a drag emits one change per step crossed and
+ * compute follows the thumb.
  */
-import { use, useState } from "react";
-
-import { LoadingSpinner, SegmentedControl } from "@hashintel/ds-components";
+import {
+  LoadingSpinner,
+  SegmentedControl,
+  Slider,
+} from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import { axisValueAt } from "../../../../../../react/experiments/parameter-grid";
 import { RangeSlider } from "./sweep-navigator/range-slider";
 
 import type {
-  ExperimentRecord,
-  ExperimentSweepState,
-} from "../../../../../../react/experiments/context";
-import type {
   ExperimentParameterAxis,
   SweepAxisSelection,
+  SweepSelection,
 } from "../../../../../../react/experiments/parameter-grid";
+
+/** Sampling progress shown under the sliders. */
+export type SweepNavigatorStatus = {
+  /** Whether a batch is currently running for the selection. */
+  computing: boolean;
+  /** Runs finished for the selection so far. */
+  runsCompleted: number;
+  /** Runs finished within the currently running batch's target. */
+  runsSampled: number;
+  /** The running batch's run target; null when idle. */
+  runTarget: number | null;
+  /** The selection's full run budget, reached when sampling saturates. */
+  runCount: number;
+};
 
 const navigatorStyle = css({
   display: "flex",
@@ -61,6 +74,10 @@ const readoutStyle = css({
   textAlign: "right",
 });
 
+const pointSliderStyle = css({
+  flex: "1",
+});
+
 const statusStyle = css({
   display: "flex",
   alignItems: "center",
@@ -89,20 +106,18 @@ const AxisControl = ({
   selected: SweepAxisSelection;
   onSelect: (range: SweepAxisSelection) => void;
 }) => {
-  /** Range being dragged; null when the slider mirrors the committed state. */
-  const [draft, setDraft] = useState<[number, number] | null>(null);
-
   const isPoint = selected.from === selected.to;
-  const shown = draft ?? [selected.from, selected.to];
 
-  const commit = (range: [number, number]) => {
-    setDraft(null);
-    onSelect({ from: range[0], to: range[1] });
+  const commitPoint = (position: number) => {
+    if (position !== selected.from || position !== selected.to) {
+      onSelect({ from: position, to: position });
+    }
   };
-
-  /** In point mode both thumbs coincide; the moved end is the new point. */
-  const pointAt = (range: [number, number]): number =>
-    range[0] !== selected.from ? range[0] : range[1];
+  const commitRange = (range: [number, number]) => {
+    if (range[0] !== selected.from || range[1] !== selected.to) {
+      onSelect({ from: range[0], to: range[1] });
+    }
+  };
 
   return (
     <>
@@ -125,38 +140,47 @@ const AxisControl = ({
           }
         }}
       />
-      <RangeSlider
-        min={0}
-        max={axis.stepCount}
-        step={1}
-        value={isPoint && draft === null ? [shown[0], shown[0]] : shown}
-        aria-label={axis.identifier}
-        onChange={(range) => {
-          setDraft(isPoint ? [pointAt(range), pointAt(range)] : range);
-        }}
-        onChangeEnd={(range) => {
-          commit(isPoint ? [pointAt(range), pointAt(range)] : range);
-        }}
-      />
+      {isPoint ? (
+        // A single thumb, not a collapsed RangeSlider: coincident range
+        // thumbs trap the drag on the upper one, which cannot move left.
+        <Slider
+          className={pointSliderStyle}
+          min={0}
+          max={axis.stepCount}
+          step={1}
+          value={selected.from}
+          aria-label={axis.identifier}
+          onChange={commitPoint}
+        />
+      ) : (
+        <RangeSlider
+          min={0}
+          max={axis.stepCount}
+          step={1}
+          value={[selected.from, selected.to]}
+          aria-label={axis.identifier}
+          onChange={commitRange}
+        />
+      )}
       <span className={readoutStyle}>
-        {shown[0] === shown[1]
-          ? formatAxisValue(axisValueAt(axis, shown[0]))
-          : `${formatAxisValue(axisValueAt(axis, shown[0]))} – ${formatAxisValue(
-              axisValueAt(axis, shown[1]),
+        {isPoint
+          ? formatAxisValue(axisValueAt(axis, selected.from))
+          : `${formatAxisValue(axisValueAt(axis, selected.from))} – ${formatAxisValue(
+              axisValueAt(axis, selected.to),
             )}`}
       </span>
     </>
   );
 };
 
-const RefinementStatus = ({
-  sweep,
-  runCount,
+const SamplingStatus = ({
+  selection,
+  status,
 }: {
-  sweep: ExperimentSweepState;
-  runCount: number;
+  selection: SweepSelection;
+  status: SweepNavigatorStatus;
 }) => {
-  const isRange = Object.values(sweep.selection).some(
+  const isRange = Object.values(selection).some(
     (range) => range.from !== range.to,
   );
   const activity = isRange
@@ -165,18 +189,18 @@ const RefinementStatus = ({
 
   return (
     <div className={statusStyle}>
-      {sweep.computing ? (
+      {status.computing ? (
         <>
           <LoadingSpinner size="xs" />
           <span>
-            {sweep.runsSampled} of {sweep.runTarget ?? runCount} runs —{" "}
+            {status.runsSampled} of {status.runTarget ?? status.runCount} runs —{" "}
             {activity}
           </span>
         </>
       ) : (
         <span>
-          {sweep.runsCompleted} of {runCount} runs
-          {sweep.runsCompleted >= runCount ? " — fully sampled" : ""}
+          {status.runsCompleted} of {status.runCount} runs
+          {status.runsCompleted >= status.runCount ? " — fully sampled" : ""}
         </span>
       )}
     </div>
@@ -184,19 +208,19 @@ const RefinementStatus = ({
 };
 
 export const SweepNavigator = ({
-  experiment,
+  axes,
+  selection,
+  status,
+  onSelectionChange,
 }: {
-  experiment: ExperimentRecord;
+  axes: readonly ExperimentParameterAxis[];
+  selection: SweepSelection;
+  status: SweepNavigatorStatus;
+  onSelectionChange: (selection: SweepSelection) => void;
 }) => {
-  const { setSweepSelection } = use(ExperimentsContext);
-  const sweep = experiment.sweep;
-  if (!sweep) {
-    return null;
-  }
-
   return (
     <div className={navigatorStyle}>
-      {experiment.parameterAxes.map((axis) => (
+      {axes.map((axis) => (
         <div className={rowStyle} key={axis.identifier}>
           <span className={nameStyle} title={axis.identifier}>
             {axis.identifier}
@@ -204,21 +228,21 @@ export const SweepNavigator = ({
           <AxisControl
             axis={axis}
             selected={
-              sweep.selection[axis.identifier] ?? {
+              selection[axis.identifier] ?? {
                 from: 0,
                 to: axis.stepCount,
               }
             }
             onSelect={(range) =>
-              setSweepSelection(experiment.id, {
-                ...sweep.selection,
+              onSelectionChange({
+                ...selection,
                 [axis.identifier]: range,
               })
             }
           />
         </div>
       ))}
-      <RefinementStatus sweep={sweep} runCount={experiment.runCount} />
+      <SamplingStatus selection={selection} status={status} />
     </div>
   );
 };

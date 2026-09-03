@@ -319,6 +319,7 @@ const ExperimentMetrics = ({
           >
             <ExperimentMetricTimeline
               frames={frames}
+              timeDomain={[0, experiment.maxTime]}
               displaySize={size}
               onDisplaySizeChange={(nextSize) =>
                 setSizes((previous) => ({
@@ -343,7 +344,8 @@ export const ViewExperimentDrawer = ({
   onClose: () => void;
   experiment: ExperimentRecord | undefined;
 }) => {
-  const { cancelExperiment, removeExperiment } = use(ExperimentsContext);
+  const { cancelExperiment, removeExperiment, setSweepSelection } =
+    use(ExperimentsContext);
 
   if (!open || !experiment) {
     return null;
@@ -383,9 +385,24 @@ export const ViewExperimentDrawer = ({
               tooltip="Only the selected combination computes. Move a control and compute follows it; results for visited combinations are kept."
               // Not collapsible: the navigator lives in the sticky band so it
               // stays usable while the charts below stream.
-              renderStickyBand={() => (
-                <SweepNavigator experiment={experiment} />
-              )}
+              renderStickyBand={() =>
+                experiment.sweep ? (
+                  <SweepNavigator
+                    axes={experiment.parameterAxes}
+                    selection={experiment.sweep.selection}
+                    status={{
+                      computing: experiment.sweep.computing,
+                      runsCompleted: experiment.sweep.runsCompleted,
+                      runsSampled: experiment.sweep.runsSampled,
+                      runTarget: experiment.sweep.runTarget,
+                      runCount: experiment.runCount,
+                    }}
+                    onSelectionChange={(selection) =>
+                      setSweepSelection(experiment.id, selection)
+                    }
+                  />
+                ) : null
+              }
             >
               {null}
             </Section>
