@@ -1,25 +1,31 @@
 {
   "package": "@hashintel/brunch-agent-plugin-sdcpn",
   "dependencies": [
-    "@hashintel/brunch-agent"
+    "@hashintel/brunch-agent",
+    "@hashintel/petrinaut-core"
   ],
   "tasks": {
     "build": [
-      "@hashintel/brunch-agent#build"
+      "@hashintel/brunch-agent#build",
+      "@hashintel/petrinaut-core#build"
     ],
     "fix:eslint": [
       "@hashintel/brunch-agent#build",
+      "@hashintel/petrinaut-core#build",
       "@local/eslint#build"
     ],
     "lint:eslint": [
       "@hashintel/brunch-agent#build",
+      "@hashintel/petrinaut-core#build",
       "@local/eslint#build"
     ],
     "lint:tsc": [
-      "@hashintel/brunch-agent#build"
+      "@hashintel/brunch-agent#build",
+      "@hashintel/petrinaut-core#build"
     ],
     "test:unit": [
-      "@hashintel/brunch-agent#build"
+      "@hashintel/brunch-agent#build",
+      "@hashintel/petrinaut-core#build"
     ]
   }
 }

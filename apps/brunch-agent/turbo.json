@@ -28,6 +28,7 @@
         "codegen",
         "^build",
         "@hashintel/brunch-agent#build",
+        "@hashintel/brunch-agent-plugin-dafny#build",
         "@hashintel/brunch-agent-plugin-gherkin#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build"
       ],

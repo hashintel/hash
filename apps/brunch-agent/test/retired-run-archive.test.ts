@@ -8,7 +8,7 @@ import { promisify } from "node:util";
 import { expect, test } from "vitest";
 
 const execFileAsync = promisify(execFile);
-const repositoryRoot = join(import.meta.dirname, "../../../../../..");
+const repositoryRoot = join(import.meta.dirname, "../../..");
 const brunchRoot = join(repositoryRoot, "libs/@hashintel/brunch-agent");
 const archivePath = join(
   brunchRoot,
