@@ -15,7 +15,7 @@ export default defineConfig({
       formats: ["es"],
     },
     rolldownOptions: {
-      external: ["ai", "valibot"],
+      external: ["@flue/sdk", "ai"],
     },
     sourcemap: true,
   },

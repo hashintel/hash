@@ -23,8 +23,8 @@
     "test:unit": "vitest run"
   },
   "dependencies": {
-    "ai": "6.0.182",
-    "valibot": "1.4.2"
+    "@flue/sdk": "2.0.3",
+    "ai": "6.0.182"
   },
   "devDependencies": {
     "@types/node": "22.18.13",
