@@ -104,6 +104,90 @@ test("exposes the canonical settlement index for Voice correlation", async () =>
   ]);
 });
 
+test("preserves every persisted Voice tool origin across hydration and reopen", async () => {
+  const harness = createObservationHarness({
+    conversation: {
+      conversationId: "conversation-1",
+      settlements: [],
+      messages: [
+        {
+          id: "assistant-voice-tools",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolCallId: "tool-doc-1",
+              toolName: "readPetrinautDoc",
+              state: "output-available",
+              input: { doc: "ai-assistant" },
+              output: { awaiting: "client" },
+            },
+            {
+              type: "dynamic-tool",
+              toolCallId: "tool-doc-2",
+              toolName: "readPetrinautDoc",
+              state: "output-available",
+              input: { doc: "ai-assistant" },
+              output: { awaiting: "client" },
+            },
+          ],
+        },
+        {
+          id: "signal-voice-results",
+          role: "system",
+          purpose: "dispatch",
+          display: "hidden",
+          signal: { tagName: "client-tool-result" },
+          parts: [
+            {
+              type: "text",
+              text: JSON.stringify([
+                {
+                  toolCallId: "tool-doc-1",
+                  toolName: "readPetrinautDoc",
+                  output: "First guide",
+                  source: "voice",
+                },
+                {
+                  toolCallId: "tool-doc-2",
+                  toolName: "readPetrinautDoc",
+                  output: "Second guide",
+                  source: "voice",
+                },
+              ]),
+              state: "done",
+            },
+          ],
+        },
+      ],
+    },
+    offset: "offset-voice",
+    phase: "live",
+    error: undefined,
+  });
+  const firstOpen = renderHook(() =>
+    useFlueChatHistory(harness.clientPromise, "conversation-1"),
+  );
+
+  await waitFor(() => expect(firstOpen.result.current.ready).toBe(true));
+  expect(firstOpen.result.current.messages?.[0]?.metadata).toEqual({
+    source: "voice",
+    voiceToolCallIds: ["tool-doc-1", "tool-doc-2"],
+  });
+  firstOpen.unmount();
+
+  const reopened = renderHook(() =>
+    useFlueChatHistory(harness.clientPromise, "conversation-1"),
+  );
+  await waitFor(() => expect(reopened.result.current.ready).toBe(true));
+  expect(reopened.result.current.messages?.[0]?.metadata).toEqual({
+    source: "voice",
+    voiceToolCallIds: ["tool-doc-1", "tool-doc-2"],
+  });
+});
+
 test("asks nothing of the generic chat route, which keeps no history", () => {
   const { result } = renderHook(() =>
     useFlueChatHistory(null, "conversation-1"),

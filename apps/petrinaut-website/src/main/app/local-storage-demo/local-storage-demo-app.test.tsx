@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, render, waitFor } from "@testing-library/react";
 import { isValidElement, type ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -19,9 +19,23 @@ import {
 
 import type { FlueClient } from "@flue/sdk";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
+import type { PetrinautAiAssistant } from "@hashintel/petrinaut/ui";
 
 const defaultTransportOptions = vi.hoisted(() => ({
   current: null as unknown,
+}));
+const flueClientMock = vi.hoisted(() => ({ current: null as unknown }));
+const renderedPetrinaut = vi.hoisted(() => ({ aiAssistant: null as unknown }));
+
+vi.mock("@flue/sdk", () => ({
+  createFlueClient: () => flueClientMock.current,
+}));
+
+vi.mock("./brunch-preview-config", () => ({
+  resolveBrunchPreviewConfig: () => ({
+    chatEndpoint: "/agents/chat",
+    isBrunchConfigured: true,
+  }),
 }));
 
 const editorProps = vi.hoisted(() => ({
@@ -46,6 +60,7 @@ vi.mock("@hashintel/petrinaut/ui", () => ({
   },
   Petrinaut: (props: Record<string, unknown>) => {
     editorProps.current = props;
+    renderedPetrinaut.aiAssistant = props.aiAssistant;
     return null;
   },
   WalkthroughProvider: ({ children }: { children: ReactNode }) => children,
@@ -108,6 +123,38 @@ describe("local storage demo Brunch voice integration", () => {
 
     expect(failureListener).toHaveBeenCalledWith(admissionError);
     unsubscribe();
+  });
+
+  test("registers no brunch_ask tool in the production Brunch preview", async () => {
+    flueClientMock.current = {
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => ({ phase: "absent" }),
+        refresh: vi.fn(),
+        subscribe: () => () => undefined,
+      }),
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ available: false }),
+      ),
+    );
+
+    const rendered = render(<LocalStorageDemoApp />);
+    await waitFor(() => expect(renderedPetrinaut.aiAssistant).not.toBeNull());
+    const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
+
+    expect(aiAssistant.requestStop).toBeTypeOf("function");
+    expect(aiAssistant.interactiveTools).toEqual([]);
+    expect(
+      aiAssistant.interactiveTools?.some(
+        ({ toolName }) => toolName === "brunch_ask",
+      ),
+    ).toBe(false);
+
+    rendered.unmount();
+    vi.unstubAllGlobals();
   });
 
   test("correlates the existing Brunch transport request", () => {
