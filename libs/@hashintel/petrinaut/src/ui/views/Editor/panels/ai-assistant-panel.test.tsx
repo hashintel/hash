@@ -2117,6 +2117,80 @@ describe("AiAssistantPanel composer submissions", () => {
     });
   });
 
+  test("preserves sibling voice provenance when another tool output rejects", async () => {
+    let latestMessages = [
+      {
+        id: "assistant-voice-questions",
+        parts: [
+          {
+            input: { question: "Who approves it?" },
+            state: "input-available",
+            toolCallId: "voice-question-1",
+            toolName: "answerQuestion",
+            type: "dynamic-tool",
+          },
+          {
+            input: { question: "Who acts next?" },
+            state: "input-available",
+            toolCallId: "voice-question-2",
+            toolName: "answerQuestion",
+            type: "dynamic-tool",
+          },
+        ],
+        role: "assistant",
+      },
+    ] as unknown as PetrinautAiMessage[];
+    const updateMessages = (
+      updater: (messages: PetrinautAiMessage[]) => PetrinautAiMessage[],
+    ) => {
+      latestMessages = updater(latestMessages);
+    };
+    let rejectFirstSubmission: ((reason?: unknown) => void) | undefined;
+    const addToolOutput = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((_resolve, reject) => {
+            rejectFirstSubmission = reject;
+          }),
+      )
+      .mockResolvedValueOnce(undefined);
+
+    const firstSubmission = addMappedToolOutput({
+      addToolOutput,
+      currentMessages: latestMessages,
+      params: {
+        output: { answer: "The shift lead" },
+        tool: "answerQuestion",
+        toolCallId: "voice-question-1",
+      },
+      source: "voice",
+      updateMessages,
+    });
+    const firstSubmissionRejection = expect(firstSubmission).rejects.toThrow(
+      "First voice tool output rejected.",
+    );
+
+    await addMappedToolOutput({
+      addToolOutput,
+      currentMessages: latestMessages,
+      params: {
+        output: { answer: "The release manager" },
+        tool: "answerQuestion",
+        toolCallId: "voice-question-2",
+      },
+      source: "voice",
+      updateMessages,
+    });
+    rejectFirstSubmission?.(new Error("First voice tool output rejected."));
+    await firstSubmissionRejection;
+
+    expect(latestMessages[0]?.metadata).toEqual({
+      source: "voice",
+      voiceToolCallIds: ["voice-question-2"],
+    });
+  });
+
   test("rolls back failed tool provenance before a typed retry", async () => {
     let latestMessages = [
       {

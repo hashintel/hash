@@ -195,6 +195,81 @@ describe("VoiceTurnController", () => {
     });
   });
 
+  test("uses the latest mute preference after turn cancellation", async () => {
+    const harness = createHarness();
+    const source = speechSource();
+    let finishCancellation: (() => void) | undefined;
+    harness.session.cancelOutput.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishCancellation = resolve;
+        }),
+    );
+    harness.controller.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-question",
+      type: "output-started",
+    });
+
+    const handoff = harness.controller.takeTurn();
+    harness.controller.setMicrophoneMuted(true);
+    finishCancellation?.();
+    await handoff;
+
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      microphoneEnabled: false,
+      output: "interrupted",
+    });
+  });
+
+  test("keeps capture closed when unmuted during turn cancellation", async () => {
+    const harness = createHarness();
+    const source = speechSource();
+    let finishCancellation: (() => void) | undefined;
+    harness.session.cancelOutput.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishCancellation = resolve;
+        }),
+    );
+    harness.controller.updateChat({
+      automaticSource: source,
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [...source.fullResponseSegments],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-question",
+      type: "output-started",
+    });
+    harness.controller.setMicrophoneMuted(true);
+
+    const handoff = harness.controller.takeTurn();
+    harness.session.setMicrophoneEnabled.mockClear();
+    harness.controller.setMicrophoneMuted(false);
+
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot().microphoneEnabled).toBe(true);
+
+    finishCancellation?.();
+    await handoff;
+
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledOnce();
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledWith(true);
+  });
+
   test("offers handoff while speech is being prepared for an unanswered question", async () => {
     const harness = createHarness();
     harness.controller.updateChat({

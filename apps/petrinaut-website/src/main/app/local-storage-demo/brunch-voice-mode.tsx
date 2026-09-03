@@ -3,9 +3,7 @@ import {
   type PetrinautAiVoiceModeContext,
 } from "@hashintel/petrinaut/ui";
 
-import {
-  type OpenAIVoiceConfig,
-} from "../voice-interview/load-openai-voice-config";
+import { type OpenAIVoiceConfig } from "../voice-interview/load-openai-voice-config";
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
 
 export const getBrunchVoiceMode = (

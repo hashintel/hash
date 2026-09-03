@@ -11,7 +11,6 @@ import { css } from "@hashintel/ds-helpers/css";
 
 import { reportVoiceDiagnostic } from "../../../voice-diagnostics";
 import { selectInterviewSpeech } from "./canonical-speech";
-import type { OpenAIVoiceConfig } from "./load-openai-voice-config";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import {
@@ -25,6 +24,7 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
+import type { OpenAIVoiceConfig } from "./load-openai-voice-config";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
 
 const disclosureStyle = css({

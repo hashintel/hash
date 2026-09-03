@@ -33,19 +33,19 @@ import {
 import { VoiceSessionContext } from "../../../../react/voice-session/context";
 import { PANEL_MARGIN } from "../../../constants/ui";
 import { AiAssistantContents } from "./ai-assistant-panel/ai-assistant-contents";
-import { DiagnosticsTransportState } from "./ai-assistant-panel/diagnostics-transport-state";
-import {
-  AiAssistantComposerControl,
-  AiAssistantVoiceMode,
-} from "./ai-assistant-panel/host-controls";
 import {
   REVIEW_CHIPS,
   STARTER_CHIPS,
 } from "./ai-assistant-panel/ai-assistant-contents/prompt-chips";
 import { createDiagnosticsAwareAiTransport } from "./ai-assistant-panel/create-diagnostics-aware-ai-transport";
 import { createReasoningTimingAwareAiTransport } from "./ai-assistant-panel/create-reasoning-timing-aware-ai-transport";
+import { DiagnosticsTransportState } from "./ai-assistant-panel/diagnostics-transport-state";
 import { finalizeStreamingMessageParts } from "./ai-assistant-panel/finalize-streaming-message-parts";
 import { formatDiagnosticsForAi } from "./ai-assistant-panel/format-diagnostics-for-ai";
+import {
+  AiAssistantComposerControl,
+  AiAssistantVoiceMode,
+} from "./ai-assistant-panel/host-controls";
 import {
   getInteractiveTool,
   resolveDynamicInteractiveTool,
@@ -230,7 +230,38 @@ export const addMappedToolOutput = async ({
           (message.metadata.voiceToolCallIds?.includes(params.toolCallId) ===
             true ||
             message.metadata.toolCallId === params.toolCallId)
-            ? { ...message, metadata: previousMetadata }
+            ? (() => {
+                const attributionAlreadyPresent =
+                  previousMetadata?.source === "voice" &&
+                  (previousMetadata.voiceToolCallIds?.includes(
+                    params.toolCallId,
+                  ) === true ||
+                    previousMetadata.toolCallId === params.toolCallId);
+                const voiceToolCallIds = [
+                  ...(message.metadata.voiceToolCallIds ?? []),
+                  ...(message.metadata.toolCallId
+                    ? [message.metadata.toolCallId]
+                    : []),
+                ];
+                const remainingVoiceToolCallIds = attributionAlreadyPresent
+                  ? voiceToolCallIds
+                  : voiceToolCallIds.filter(
+                      (toolCallId) => toolCallId !== params.toolCallId,
+                    );
+                if (remainingVoiceToolCallIds.length === 0) {
+                  return { ...message, metadata: previousMetadata };
+                }
+                const { toolCallId: _legacyToolCallId, ...metadata } =
+                  message.metadata;
+
+                return {
+                  ...message,
+                  metadata: {
+                    ...metadata,
+                    voiceToolCallIds: [...new Set(remainingVoiceToolCallIds)],
+                  },
+                };
+              })()
             : message,
         ),
       );
@@ -256,10 +287,7 @@ const waitForDiagnosticsRefresh = async ({
     const timeoutAt = Date.now() + 1_000;
 
     const check = () => {
-      if (
-        getDiagnosticsVersion() > pendingVersion ||
-        Date.now() >= timeoutAt
-      ) {
+      if (getDiagnosticsVersion() > pendingVersion || Date.now() >= timeoutAt) {
         resolve();
         return;
       }
@@ -419,8 +447,7 @@ export const AiAssistantPanel = ({
             waitForDiagnosticsRefresh({
               consumePendingMutationDiagnosticsVersion:
                 diagnosticsTransport.consumePendingMutationDiagnosticsVersion,
-              getDiagnosticsVersion:
-                diagnosticsTransport.getDiagnosticsVersion,
+              getDiagnosticsVersion: diagnosticsTransport.getDiagnosticsVersion,
             }),
         }),
       ),

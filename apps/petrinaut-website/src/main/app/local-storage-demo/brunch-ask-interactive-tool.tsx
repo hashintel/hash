@@ -5,8 +5,8 @@ import {
 } from "@hashintel/brunch-agent/client-tools";
 import { definePetrinautAiInteractiveTool } from "@hashintel/petrinaut/ui";
 
-import { BrunchAskWidget } from "./brunch-ask-widget";
 import { brunchAskFromComposerText } from "./brunch-ask-mapping";
+import { BrunchAskWidget } from "./brunch-ask-widget";
 
 export const brunchAskInteractiveTool = definePetrinautAiInteractiveTool({
   toolName: ASK_TOOL_NAME,

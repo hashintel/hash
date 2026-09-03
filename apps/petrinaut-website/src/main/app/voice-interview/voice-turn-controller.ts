@@ -338,7 +338,9 @@ export class VoiceTurnController {
     ) {
       return;
     }
-    this.#session.setMicrophoneEnabled(!muted);
+    if (!this.#takingTurnPromise) {
+      this.#session.setMicrophoneEnabled(!muted);
+    }
     this.#update({ microphoneEnabled: !muted, microphoneLevel: 0 });
   }
 
@@ -480,8 +482,8 @@ export class VoiceTurnController {
         this.#activeSpeechOutputEnded = false;
         this.#activeSpeechResponseId = null;
         this.#activeSpeechResponseTerminal = false;
-        this.#session.setMicrophoneEnabled(true);
-        this.#update({ microphoneEnabled: true, output: "interrupted" });
+        this.#session.setMicrophoneEnabled(this.#snapshot.microphoneEnabled);
+        this.#update({ output: "interrupted" });
       })
       .catch((error: unknown) => {
         if (generation !== this.#generation) {

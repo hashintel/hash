@@ -12,8 +12,8 @@ import {
 import { StrictMode, useState } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { loadOpenAIVoiceConfig } from "./load-openai-voice-config";
+import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import * as voiceInterviewControlModule from "./voice-interview-control";
 import { VoiceInterviewControl } from "./voice-interview-control";
 import {
