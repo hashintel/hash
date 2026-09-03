@@ -1,11 +1,6 @@
 # Integration spec: the elicitor behind Petrinaut's chat panel
 
-**Ticket**: FE-1433 (the integration-spec issue) · **Decision record**: ADR-0004
-(`docs/adr/0004-in-petrinaut-staging-and-the-monorepo-import.md`) · **Supersedes**:
-`recommendation-demo-vehicle.md` as the September staging plan · **Evidence base**: the
-Petrinaut survey (FE-1358, `research/petrinaut-survey.md`), re-verified against
-`hashintel/hash` source on 2026-08-18 · **Amended**: FE-1506 (stable UI and voice attach
-contract), H-6763 / ADR-0009 (generic composer submission and app-owned voice boundary).
+**Ticket**: FE-1433 (the integration-spec issue) · **Decision record**: ADR-0004 (`docs/adr/0004-in-petrinaut-staging-and-the-monorepo-import.md`) · **Supersedes**: `recommendation-demo-vehicle.md` as the September staging plan · **Evidence base**: the Petrinaut survey (FE-1358, `research/petrinaut-survey.md`), re-verified against `hashintel/hash` source on 2026-08-18 · **Amended**: FE-1506 (stable UI and voice attach contract), H-6763 / ADR-0009 (generic composer submission and app-owned voice boundary), and FE-1574 / Mission 5 (one mounted Flue conversation route and browser AI SDK projection).
 
 ## Problem Statement
 
@@ -20,26 +15,14 @@ storage. The problem is connecting the second to the first without rebuilding ei
 
 ## Solution
 
-The brunch elicitor runs as a **remote server** built on the harness + `binding-flue`. The
-demo site swaps its `aiAssistant.transport` to point at that server; everything else in the
-panel — rendering, the diagnostics decorator, client-side tool execution — is reused as-is.
-The elicitor drives Petrinaut's editor through the **existing UI-executed tool surface**
-(schemas imported from `petrinaut-core`), riding the harness's turn-suspension protocol: a
-turn ends with tool calls pending, the panel executes them, and the outputs return on the next
-dispatch. Sessions, captures, and IRs persist server-side, keyed to an opaque principal the
-site supplies from a localStorage UID. The wire contract is the AI SDK v6 UI-message-stream
-protocol, produced by a new `transport-aisdk` package that translates harness-level parts to
-stream chunks and knows nothing about Flue.
+The Brunch elicitor runs as a **long-running Flue server** built on the harness + `binding-flue`; Mission 5 proves the local same-origin path, while remote deployment remains a separate gate. The demo site derives one guarded `/agents/chat/:instanceId` URL from its opaque principal and logical conversation id, creates a public `@flue/sdk` client for that conversation, and supplies Petrinaut with a browser `ChatTransport` that projects Flue conversation events into the AI SDK rendering contract. Everything else in the panel — rendering, the diagnostics decorator, and client-side tool execution — is reused as-is. The elicitor drives Petrinaut's editor through the **existing UI-executed tool surface** (schemas imported from `petrinaut-core`): a response may end with client tool calls pending, the panel executes them, and one `client-tool-result` signal resumes the owning Flue conversation. Flue history is the canonical conversation record; captures and IRs remain in their own server-side stores.
 
 ## Seams
 
 One primary seam, four supporting ones — all existing except the brunch server's front door,
 which the design needs anyway:
 
-1. **The ChatTransport wire seam** (primary; the contract-test surface): the AI SDK
-   UI-message-stream protocol over HTTP/SSE. Everything brunch-side sits behind it; everything
-   Petrinaut-side sits in front of it. The panel's real behavior is verified once in the
-   adapter spike and frozen as golden fixtures.
+1. **The browser ChatTransport projection seam** (primary; the contract-test surface): `@flue/sdk` owns send, observation, offsets, retry, settlement, and recovery over the mounted Flue route; `transport-aisdk` projects one admitted submission into the finite AI SDK `UIMessageChunk` stream Petrinaut renders. The production-path integration test drives this seam through the real app router without hand-parsing SSE.
 2. **The ask/affordance protocol seam** (`core`'s ask-protocol module, per ADR-0002 N1): the
    external-tool round-trip protocol is tested here, substrate-free.
 3. **The storage port seam** (ADR-0002 N5): the owner key is tested as store-level refusals.
@@ -57,8 +40,7 @@ which the design needs anyway:
 
 The panel and the voice edge attach to Brunch through one stable surface:
 
-1. **Chat stream**: the UI sends `POST /api/chat`; a successful response is an AI SDK v6
-   UI-message stream over HTTP/SSE.
+1. **Conversation transport**: the browser calls `FlueClient.send()` against the guarded `/agents/chat/:instanceId` route, then follows the admitted submission through the SDK. The host-supplied browser `ChatTransport` projects that Flue stream into the finite AI SDK v6 UI-message stream consumed by `useChat`; the stock Petrinaut `/api/chat` route is a separate fallback and never carries Brunch turns.
 2. **Question affordance**: the UI-executed tool is named `brunch_ask`. Its input schema is
    `{ question: non-empty string }`; its submitted output schema is
    `{ answer: non-empty string }`.
@@ -140,18 +122,8 @@ host application under ADR-0009, while reusable Petrinaut and Brunch packages st
 
 **Topology and packaging**
 
-- The elicitor server is a thin host-authored agent (spec §13) around the harness library,
-  deployed remotely; the demo site's same-origin `/api/chat` route reaches that server without
-  routing through the stock Petrinaut assistant or its prompt.
-- Implemented by FE-1436 (the durable AI SDK transport): package `transport-aisdk` is the
-  server end of the ui shell's reply transport. It translates
-  harness-level parts to AI SDK v6 UI-message-stream chunks, using the `ai` package for stream
-  encoding only (no provider use — inference stays on Pi's adapter layer). Depends on `core`,
-  `ai`, and `valibot` for external request validation; never on the binding or Flue. This adds
-  a `transport-*` role prefix to the §12.2
-  vocabulary (the glossary's avoided terms `adapter-*`/`wrapper-*` stay avoided). The
-  implementation and real-panel evidence are recorded in
-  `transport-aisdk-implementation-2026-08-19.md`.
+- The elicitor server is a thin host-authored Flue agent around the harness library. The demo site's same-origin proxy forwards `/agents/chat/*` without changing the Flue protocol; the stock Petrinaut assistant and `/api/chat` prompt remain separate.
+- FE-1436 originally introduced `transport-aisdk` as a server-side AI SDK HTTP adapter. FE-1574 / Mission 5 replaced that door: the package is now the browser-side projection from the public Flue client to Petrinaut's AI SDK rendering contract. Its runtime dependencies are exactly `@flue/sdk` and `ai`; it imports neither `@flue/runtime`, core, a plugin, nor a binding. The app supplies its client-tool catalog, and the package owns the shared `client-tool-result` signal representation.
 - Kernel spec amendments applied with this work, not silently: §12.2 package list gains
   `transport-aisdk` and records the monorepo import (`@hashintel/brunch-agent`, hash
   toolchain replacing the Bun workspace at import time); §13's shipping shape and ADR-0002 N3
