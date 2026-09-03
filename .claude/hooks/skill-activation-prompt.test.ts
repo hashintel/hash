@@ -68,5 +68,17 @@ describe("Skill Activation Snapshots", () => {
     );
   });
 
+  it("activates Petrinaut shipping guidance for Petrinaut work", () => {
+    expect(
+      testSkillActivation("fix the petrinaut simulation engine"),
+    ).toContain("petrinaut-shipping");
+  });
+
+  it("does not activate Petrinaut shipping guidance for a changeset elsewhere", () => {
+    expect(
+      testSkillActivation("add a changeset for the ds-components fix"),
+    ).not.toContain("petrinaut-shipping");
+  });
+
   it("what is the weather today", ({ task }) => createSnapshot(task.name));
 });
