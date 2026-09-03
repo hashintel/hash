@@ -12,7 +12,8 @@ The implementation under test is:
 - `1d99f94475` — Voice submission correlation, canonical response selection, observation-based reopen, and durable Stop;
 - `c92f56a828` — review fixes for canonical history hydration, exact TTS text, content-free lifecycle latency telemetry, Clear behavior, API simplification, and documentation;
 - `68148d5e20` — React-compiler-safe tracker lifecycle and final live-authority corrections;
-- `2c78ce2242` — real Flue admission timing and production-path correlation evidence.
+- `2c78ce2242` — real Flue admission timing and production-path correlation evidence;
+- `6153699ff2` — client-tool-result ordering that keeps the Voice submission pending until its real Flue admission and cancels stale admission waits.
 
 ## Automated verification
 
@@ -33,7 +34,7 @@ The unit results included:
 | Workspace                                      | Test files | Tests |
 | ---------------------------------------------- | ---------: | ----: |
 | `@apps/brunch-agent`                           |         16 |    79 |
-| `@apps/petrinaut-website`                      |         31 |   210 |
+| `@apps/petrinaut-website`                      |         31 |   212 |
 | `@hashintel/petrinaut`                         |         53 |   478 |
 | `@hashintel/brunch-agent`                      |          9 |    77 |
 | `@hashintel/brunch-agent-plugin-sdcpn`         |          2 |     8 |
@@ -43,11 +44,11 @@ The unit results included:
 
 The route-name scan found no `/api/chat` reference in the Brunch transport packages. Remaining live references are the stock Petrinaut fallback route and the Brunch negative tests that assert its removed route returns 404.
 
-The Voice integration holds the finite Flue response stream open and asserts that `submission-admitted` arrives from the real `createFlueChatTransport().onAdmission` callback before composer submission completion. Bridge tests separately cover direct-message and client-tool-result matching, duplicate delivery, stale cancellation, mismatched ids, and submission-id-based canonical response selection.
+The Voice integration holds the finite Flue response stream open and asserts that `submission-admitted` arrives from the real `createFlueChatTransport().onAdmission` callback before composer submission completion. The Voice control tests also prove that a locally completed interactive-tool result remains pending until the subsequent client-tool-result admission and that cancellation releases the one-shot subscription. Bridge tests separately cover direct-message and client-tool-result matching, duplicate delivery, stale cancellation, mismatched ids, and submission-id-based canonical response selection.
 
 ## Human witness still required
 
-Run `yarn dev:brunch` with `ANTHROPIC_API_KEY`, `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and a dedicated `OPENAI_VOICE_API_KEY`, then perform this witness against source commit `2c78ce2242` or a descendant that changes evidence only:
+Run `yarn dev:brunch` with `ANTHROPIC_API_KEY`, `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and a dedicated `OPENAI_VOICE_API_KEY`, then perform this witness against source commit `6153699ff2` or a descendant that changes evidence only:
 
 1. Open one saved net, submit one typed panel turn, and confirm the network ledger contains conversation traffic only under `/agents/chat/:instanceId`.
 2. Start Voice mode, accept the disclosure if required, speak one finalized answer, and confirm exactly one corresponding visible user message.
