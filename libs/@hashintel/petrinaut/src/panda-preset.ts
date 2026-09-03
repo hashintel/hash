@@ -66,6 +66,22 @@ export const petrinautPandaPreset = {
               "0 2px 6px rgba(0, 220, 255, 0.03), 0 -2px 6px rgba(255, 0, 128, 0.045)",
           },
         },
+        /**
+         * Breathing purple glow for the GPU side of the experiment backend
+         * toggle. Both steps repeat the control's inset shadows, because
+         * animating `box-shadow` replaces the whole property and the depth
+         * would otherwise vanish for the duration.
+         */
+        petrinautGpuGlow: {
+          "0%, 100%": {
+            boxShadow:
+              "inset 0 2px 4px rgba(0, 0, 0, 0.05), inset 0 0 0 1px var(--colors-black-a10), 0 0 5px var(--colors-purple-a30), 0 0 11px var(--colors-purple-a15)",
+          },
+          "50%": {
+            boxShadow:
+              "inset 0 2px 4px rgba(0, 0, 0, 0.05), inset 0 0 0 1px var(--colors-black-a10), 0 0 9px var(--colors-purple-a50), 0 0 20px var(--colors-purple-a30)",
+          },
+        },
         petrinautExpand: {
           from: { height: "0", opacity: "0" },
           to: { height: "var(--height)", opacity: "1" },

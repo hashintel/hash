@@ -1,0 +1,50 @@
+---
+title: GPU backend
+description: One invocation per run, WGSL generated from HIR, and why only aggregates come back.
+sidebar_order: 30
+attachTo: core.webgpu
+---
+
+Runs are independent, so the GPU runs **one invocation per run** and steps the
+whole net on the device. WGSL is generated from the net's lowered HIR, the same
+HIR the CPU engine compiles to buffer programs, so dynamics, firing rates and
+transition kernels execute rather than being interpreted per frame.
+
+## Why the API is whole-experiment
+
+A per-frame interface would force a `mapAsync` readback every frame: hundreds of
+microseconds against roughly a microsecond of per-frame work. A GPU path shaped
+like the CPU one would be _slower_ than the CPU. So the host dispatches a chunk of
+frames and results come back as aggregates.
+
+![One experiment through the GPU](@diagrams/gpu-experiment-pipeline.svg)
+
+Two consequences of that shape:
+
+- **Metrics reduce on-device** into a histogram per frame, built in workgroup
+  memory and flushed once per frame. Measured 2x the throughput of hitting global
+  atomics directly, because runs in a workgroup collide on the same bin constantly.
+- **Run state never leaves the device.** The host decodes only each run's place
+  counts and status, so the shader writes those to a compact summary buffer.
+  Reading the full state back needed host-visible memory equal to the state
+  itself, which capped a 3112-byte-per-run net at ~689k runs; the summary is ~16
+  bytes per run.
+
+## A subset engine
+
+The backend is asked, not told: it reports whether it can run a net before the
+experiment starts, and one it declines runs on the CPU with the reason recorded.
+It needs typed places to declare a capacity (buffer sizes must be known up front),
+arcs consuming at most two typed tokens per place, no `string` or `uuid`
+attributes, and metrics that measure place token counts.
+
+A weight-2 pairwise condition is scanned over every pair by combinatorial
+unranking, which preserves the CPU's lexicographic firing order. The pair that
+fires is the lowest-indexed passing one, not the one with the largest rate.
+
+## Results are not seed-identical
+
+WebGPU cannot reproduce the CPU generator, so trajectories differ while
+distributions agree. Continuous dynamics integrate with RK4, which is more
+accurate than the CPU's Euler rather than merely different. Which backend ran an
+experiment is therefore recorded alongside its results.

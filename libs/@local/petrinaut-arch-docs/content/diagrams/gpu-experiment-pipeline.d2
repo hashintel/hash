@@ -1,0 +1,21 @@
+# Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
+direction: right
+
+hir: "lowered HIR\n(same trees the CPU\nengine compiles)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+wgsl: "WGSL generation\n(compile-net-shader)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+device: "GPU device" {
+  style.stroke-dash: 4
+  shader: "shader\n(one invocation per run)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+  histogram: "per-frame histogram\n(workgroup atomics)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+  summary: "per-run summary\n(~16 bytes per run)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+}
+
+frames: "metric frames\n(aggregates only)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+hir -> wgsl
+wgsl -> device.shader: compile + dispatch\na chunk of frames
+device.shader -> device.histogram: each frame
+device.shader -> device.summary: at end
+device.histogram -> frames: one readback
+device.summary -> frames: one readback

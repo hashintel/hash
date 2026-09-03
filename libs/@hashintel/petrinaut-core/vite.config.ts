@@ -26,9 +26,14 @@ export default defineConfig(({ command }) => ({
         // Dependency-free entry: the selection vocabulary alone, for hosts that
         // validate selection in a route or a server function.
         selection: resolve(packageRoot, "src/selection.ts"),
-        // Backend contract and selection. A separate entry so a heavy backend
-        // can be registered without dragging its implementation in with it.
+        // Backend contract and selection. Separate entry so registering the
+        // WebGPU backend does not drag the shader generator in with it: this
+        // holds the contract and the worker-pool backend only.
         experiments: resolve(packageRoot, "src/experiments.ts"),
+        // Experimental WebGPU compute backend. Separate entry: it is opt-in
+        // and carries the whole shader generator, so it must stay out of the
+        // main bundle and load only when a GPU experiment is requested.
+        webgpu: resolve(packageRoot, "src/webgpu.ts"),
         "examples/index": resolve(packageRoot, "src/examples/index.ts"),
         "workers/lsp": resolve(packageRoot, "src/workers/lsp.ts"),
         "workers/monte-carlo": resolve(
