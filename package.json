@@ -36,7 +36,6 @@
     "dev:brunch:panel": "PETRINAUT_WEBSITE_ROOT=\"$PWD/apps/petrinaut-website\" yarn workspace @apps/brunch-agent petrinaut:dev",
     "dev:brunch:server": "yarn workspace @apps/brunch-agent dev",
     "dev:frontend": "CARGO_TERM_PROGRESS_WHEN=never turbo dev --log-order stream --filter '@apps/hash-frontend' --",
-    "dev:petrinaut-optimization": "yarn workspace @apps/petrinaut-website dev:optimization",
     "doc:task-dependencies": "CARGO_TERM_PROGRESS_WHEN=never cargo run --package hash-repo-chores --bin repo-chores-cli -- task-dependencies --logging-console-level warn",
     "fix": "npm-run-all --continue-on-error \"fix:*\"",
     "fix:constraints": "yarn constraints --fix",

@@ -44,10 +44,10 @@ use provider-pattern discovery instead.
 From the repository root, run:
 
 ```sh
-yarn dev:petrinaut-optimization
+turbo run dev --filter @apps/petrinaut-website -- --with-optimizer-service
 ```
 
-This builds and starts the local Petrinaut Opt Docker image, waits for its
+The flag builds and starts the local Petrinaut Opt Docker image, waits for its
 health endpoint, and starts the website with the real optimization provider.
 Open [http://localhost:5173/optimization](http://localhost:5173/optimization).
 Stopping the command also stops and removes its optimizer container.
