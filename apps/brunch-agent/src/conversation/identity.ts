@@ -7,8 +7,6 @@ import {
   type ConversationIdentity,
 } from "@hashintel/brunch-agent-transport-aisdk";
 
-import { LOCAL_UI_PRINCIPAL } from "./payload.ts";
-
 export {
   agentOwnershipHeaders,
   BRUNCH_CONVERSATION_HEADER,

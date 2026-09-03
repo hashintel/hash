@@ -6,6 +6,10 @@ import type {
   RealtimeBridgeErrorCode,
   RealtimeBrunchBridgeEvent,
 } from "./realtime-brunch-bridge";
+import type {
+  PetrinautAiComposerControlContext,
+  PetrinautAiVoiceModeContext,
+} from "@hashintel/petrinaut/ui";
 
 export type VoiceConnectionState =
   | "idle"
@@ -46,8 +50,6 @@ export interface VoiceLatencyEvent {
   readonly questionId: string;
 }
 
-type ChatStatus = "ready" | "submitted" | "streaming" | "error";
-
 interface RealtimeSession {
   cancelOutput(): void;
   connect(): Promise<number>;
@@ -63,9 +65,12 @@ interface RealtimeBridge {
   updateChat(update: ChatUpdate): void;
 }
 
-interface SubmitTextInput {
+type ComposerSubmitTextInput = Parameters<
+  PetrinautAiComposerControlContext["submitText"]
+>[0];
+
+interface SubmitTextInput extends Pick<ComposerSubmitTextInput, "text"> {
   readonly target: "message";
-  readonly text: string;
 }
 
 interface VoiceTurnControllerDependencies {
@@ -79,7 +84,7 @@ interface VoiceTurnControllerDependencies {
 interface ChatUpdate {
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
-  readonly status: ChatStatus;
+  readonly status: PetrinautAiVoiceModeContext["status"];
 }
 
 type SnapshotListener = (snapshot: VoiceTurnSnapshot) => void;

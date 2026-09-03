@@ -939,7 +939,11 @@ export const AiAssistantPanel = ({
     [composerSubmissionStateRef],
   );
 
-  const stopStateRef = useLatest({ status, stop });
+  const stopStateRef = useLatest({
+    requestStop: aiAssistant.requestStop,
+    status,
+    stop,
+  });
 
   const submitVoiceInput = useCallback<
     PetrinautAiVoiceModeContext["submitVoiceInput"]
@@ -1008,13 +1012,30 @@ export const AiAssistantPanel = ({
 
   // Like submitText, stop is exposed to host controls and must stay stable.
   const stopComposer = useCallback(async () => {
-    const { status: currentStatus, stop: stopCurrentResponse } =
-      stopStateRef.current;
+    const {
+      requestStop,
+      status: currentStatus,
+      stop: stopCurrentResponse,
+    } = stopStateRef.current;
     if (currentStatus !== "submitted" && currentStatus !== "streaming") {
       return;
     }
 
     stopRequestedRef.current = true;
+    if (requestStop !== undefined) {
+      try {
+        const result = await requestStop();
+        if (result === "stop-requested") {
+          await stopCurrentResponse();
+        }
+      } catch (caught) {
+        stopRequestedRef.current = false;
+        setStreamError(
+          caught instanceof Error ? caught : new Error(String(caught)),
+        );
+      }
+      return;
+    }
     await stopCurrentResponse();
   }, [stopStateRef]);
 
