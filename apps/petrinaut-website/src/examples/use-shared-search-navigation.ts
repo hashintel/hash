@@ -38,6 +38,20 @@ const mergeSharedSearch = (
 };
 
 /**
+ * The URL-owned fields, cleared, for a host whose document is being replaced.
+ *
+ * Writing an empty search is not enough on its own: the shared projection is
+ * lossy, so a location the URL already renders as empty — a multi-item
+ * selection, for one — leaves the `search` prop unchanged, the merge below
+ * never runs, and the in-memory selection survives into the next document.
+ * Passing this to `onNavigate` clears the location itself and lets the write
+ * to the URL fall out of the usual path.
+ */
+export const withClearedSharedLocation = (
+  current: PetrinautNavigationState,
+): PetrinautNavigationState => mergeSharedSearch(current, {});
+
+/**
  * Navigation controller for pages whose URL carries the shared
  * scenario/subnet/selection subset. The editor navigates more than that
  * (global mode, overlays), so the full location lives in page state and only

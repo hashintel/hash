@@ -243,4 +243,44 @@ describe("local storage demo URL navigation", () => {
 
     expect(onSearchChange).toHaveBeenCalledWith({}, "replace");
   });
+
+  test("clears a multi-item selection the URL never carried", () => {
+    seedStoredNet();
+    const onSearchChange = vi.fn();
+
+    render(<LocalStorageDemoApp onSearchChange={onSearchChange} search={{}} />);
+
+    // A selection of more than one item projects to an empty search, so the
+    // URL is already empty and writing `{}` to it changes no prop. Clearing
+    // only through the URL therefore left this selection in place and carried
+    // ids from the old net into the next one.
+    act(() => {
+      mountedNavigation().onNavigate(
+        (current) => ({
+          ...current,
+          selection: [
+            { type: "place", id: "place-1" },
+            { type: "place", id: "place-2" },
+          ],
+        }),
+        { history: "push", intent: { cause: "user", action: "selection" } },
+      );
+    });
+    expect(mountedNavigation().state.selection).toHaveLength(2);
+
+    act(() => {
+      editorProps.current?.createNewNet?.({
+        petriNetDefinition: {
+          places: [],
+          transitions: [],
+          types: [],
+          parameters: [],
+          differentialEquations: [],
+        },
+        title: "Another net",
+      });
+    });
+
+    expect(mountedNavigation().state.selection).toEqual([]);
+  });
 });
