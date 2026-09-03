@@ -22,6 +22,7 @@ import {
   agentOwnershipHeaders,
   flueConversationIdFrom,
 } from "../src/conversation/identity.ts";
+import { deriveProofTrace } from "../src/evaluations/persona/proof-artifacts.ts";
 import {
   interviewerToolNamesFrom,
   skillResourcePathsFrom,
@@ -341,6 +342,10 @@ try {
     ),
   );
   const resourcePaths = skillResourcePathsFrom(snapshot);
+  const activatedSkillNames = deriveProofTrace(snapshot).events.flatMap(
+    (event) =>
+      event.type === "activate" && event.outcome === "ok" ? [event.name] : [],
+  );
   const assistantText = snapshot.messages
     .flatMap((message) => message.parts)
     .flatMap((part) => (part.type === "text" ? [part.text] : []))
@@ -355,6 +360,7 @@ try {
       placeCount: definition.places.length,
       transitionCount: definition.transitions.length,
       toolNames: interviewerToolNamesFrom(snapshot),
+      activatedSkillNames,
       resourceFilesRead: RUNBOOK_RESOURCE_FILES.filter((resourceFile) =>
         resourcePaths.some((resourcePath) =>
           resourcePath.endsWith(resourceFile),

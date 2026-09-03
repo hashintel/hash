@@ -129,6 +129,9 @@ export interface RegisterBrunchTurnOptions {
   readonly conversationId?: string;
   readonly client?: BrunchFlueClient;
   readonly resolveClientToolHost?: () => BrunchClientToolHost | undefined;
+  readonly retainSnapshot?: (
+    snapshot: FlueConversationSnapshot,
+  ) => void | Promise<void>;
 }
 
 const MAX_CLIENT_TOOL_ROUNDS = 20;
@@ -235,6 +238,7 @@ export const createBrunchTurnTool = ({
   conversationId: suppliedConversationId,
   client: suppliedClient,
   resolveClientToolHost = () => undefined,
+  retainSnapshot,
 }: RegisterBrunchTurnOptions = {}): BrunchTurnTool => {
   const conversationId = requireConversationId(
     suppliedConversationId ?? process.env["PI_SUBAGENT_NAME"],
@@ -306,6 +310,9 @@ export const createBrunchTurnTool = ({
 
           const reply = await client.read(currentAdmission, { signal });
           const snapshot = await client.history({ signal });
+          // Snapshot retention must finish before this canonical submission is advanced or returned.
+          // eslint-disable-next-line no-await-in-loop
+          await retainSnapshot?.(snapshot);
           const pendingClientCalls: BrunchClientToolCall[] = [];
 
           for (const observed of submissionToolParts(

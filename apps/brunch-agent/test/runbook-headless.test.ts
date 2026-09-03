@@ -29,6 +29,7 @@ test("the built ChatAgent reports only the construct-only evidence it reaches", 
       placeCount: number;
       transitionCount: number;
       toolNames: string[];
+      activatedSkillNames: string[];
       resourceFilesRead: string[];
       validationRejections: string[];
       emittedFreeFormPnJson: boolean;
@@ -56,6 +57,8 @@ test("the built ChatAgent reports only the construct-only evidence it reaches", 
     expect(result.toolNames).not.toContain("sweep");
     expect(result.toolNames).not.toContain("brunch_sweep");
     expect(result.toolNames).not.toContain("brunch_ask");
+    expect(result.activatedSkillNames).toEqual(["sdcpn-modelling"]);
+    expect(result.activatedSkillNames).not.toContain("elicitation");
     expect(result.resourceFilesRead).toEqual([
       "references/pn-construction.md",
       "references/checks.md",

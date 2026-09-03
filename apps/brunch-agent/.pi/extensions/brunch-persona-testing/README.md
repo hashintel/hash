@@ -96,6 +96,8 @@ A mock fixture has this shape and should live with the evaluation protocol that 
 
 The final Pi tool details contain every observed server call and every hosted client call with sequence, Flue submission id, tool call id, tool name, executor (`server`, `mock`, or `real-headless`), outcome, input, and output/error. `renderResult` shows a concise `### Tool activity` list beneath `## Brunch`; raw values remain in details and canonical tool activity remains available through the transcript.
 
+When `--brunch-evidence-dir <attempt-directory>` is supplied, every settled `history()` read atomically refreshes `snapshot.json`, `transcript.md`, `trace.json`, and `trace.md` in that directory before `brunch_turn` returns or handles a pending client tool. The snapshot is canonical; transcript and trace are deterministic projections. This retention also occurs before host-none reports an unsupported client-tool suspension.
+
 Pi's tool API requires TypeBox parameter schemas, so `typebox` is declared here for that Pi-facing boundary only. Brunch's own boundaries remain Valibot.
 
 ## Operating the harness
@@ -127,6 +129,7 @@ PI_SUBAGENT_NAME=<unique-conversation-id> pi \
   --append-system-prompt .pi/extensions/brunch-persona-testing/SYSTEM.md \
   --brunch-tool-host real-headless \
   --brunch-headless-title "Persona evaluation" \
+  --brunch-evidence-dir ../../libs/@hashintel/brunch-agent/docs/evidence/evaluations/<campaign>/runs/<attempt-id> \
   --approve
 ```
 

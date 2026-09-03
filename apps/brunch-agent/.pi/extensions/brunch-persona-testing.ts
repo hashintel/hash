@@ -21,6 +21,7 @@ import {
   readMockCalls,
   TOOL_HOST_FLAG,
 } from "../../src/evaluations/persona/client-tool-hosts.ts";
+import { writeProofArtifacts } from "../../src/evaluations/persona/proof-artifacts.ts";
 
 /** The slice of Pi's extension API this entry needs; Pi itself is not a workspace dependency. */
 interface BrunchPersonaExtensionApi extends BrunchTurnExtensionApi {
@@ -41,6 +42,7 @@ interface BrunchPersonaExtensionApi extends BrunchTurnExtensionApi {
 
 const TOOL_MOCKS_FLAG = "brunch-tool-mocks";
 const HEADLESS_TITLE_FLAG = "brunch-headless-title";
+const EVIDENCE_DIRECTORY_FLAG = "brunch-evidence-dir";
 
 const stringFlag = (
   pi: BrunchPersonaExtensionApi,
@@ -97,6 +99,11 @@ export default function brunchPersonaTestingExtension(
     type: "string",
     description: "Document title used by the real-headless Petrinaut host",
   });
+  pi.registerFlag(EVIDENCE_DIRECTORY_FLAG, {
+    type: "string",
+    description:
+      "Directory for canonical snapshot, transcript, and trace files",
+  });
 
   let clientToolHost: BrunchClientToolHost | undefined;
   pi.on("session_start", async () => {
@@ -110,5 +117,11 @@ export default function brunchPersonaTestingExtension(
 
   registerBrunchTurn(pi, {
     resolveClientToolHost: () => clientToolHost,
+    retainSnapshot: async (snapshot) => {
+      const directory = stringFlag(pi, EVIDENCE_DIRECTORY_FLAG);
+      if (directory !== undefined) {
+        await writeProofArtifacts(directory, snapshot);
+      }
+    },
   });
 }

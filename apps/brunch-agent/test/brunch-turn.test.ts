@@ -111,6 +111,37 @@ describe("brunch_turn", () => {
     });
   });
 
+  test("retains each settled canonical snapshot before returning", async () => {
+    const admitted = admission("submission-evidence", "incarnation-evidence");
+    const settledSnapshot = snapshot("submission-evidence", [
+      { type: "text", text: "A retained reply", state: "done" },
+    ]);
+    const retainSnapshot = vi
+      .fn<(value: FlueConversationSnapshot) => Promise<void>>()
+      .mockResolvedValue();
+    const tool = createBrunchTurnTool({
+      conversationId: "persona-evidence",
+      client: controlledClient(
+        vi.fn<BrunchFlueClient["send"]>().mockResolvedValue(admitted),
+        vi
+          .fn<BrunchFlueClient["read"]>()
+          .mockResolvedValue(
+            reply(
+              "submission-evidence",
+              "incarnation-evidence",
+              "A retained reply",
+            ),
+          ),
+        vi.fn<BrunchFlueClient["history"]>().mockResolvedValue(settledSnapshot),
+      ),
+      retainSnapshot,
+    });
+
+    await tool.execute("tool-evidence", { message: "Retain this turn" });
+
+    expect(retainSnapshot).toHaveBeenCalledExactlyOnceWith(settledSnapshot);
+  });
+
   test("sends once, reads the exact admission, and conditions later turns on its uid", async () => {
     const firstAdmission = admission("submission-1", "incarnation-1");
     const secondAdmission = admission("submission-2", "incarnation-1");
