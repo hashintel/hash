@@ -284,13 +284,23 @@ const SearchHighlightSync = ({
   firstVisibleValue: string | undefined;
 }) => {
   const select = useSelectContext();
-  const lastSyncedSearch = useRef("");
+  // Re-sync when the search OR the first match changes (results can arrive
+  // after the query, e.g. loading or onSearch-driven fetches), but not on
+  // plain re-renders — arrow-key navigation must keep its highlight.
+  const lastSynced = useRef<{
+    search: string;
+    firstVisibleValue: string | undefined;
+  }>({ search: "", firstVisibleValue: undefined });
 
   useEffect(() => {
-    if (lastSyncedSearch.current === search) {
+    const last = lastSynced.current;
+    if (
+      last.search === search &&
+      last.firstVisibleValue === firstVisibleValue
+    ) {
       return;
     }
-    lastSyncedSearch.current = search;
+    lastSynced.current = { search, firstVisibleValue };
     if (search === "") {
       return;
     }
