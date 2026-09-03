@@ -118,9 +118,11 @@ The dock exposes **Your turn** while canonical audio owns the turn. That action
 clears pending input and output, waits for the provider's matching
 acknowledgements and response terminal event, and only then opens the
 microphone for fresh capture. Its playback menu offers **Repeat question** and
-**Read full response** once the matching response and audio output have both
-finished. Replay enqueues the exact retained canonical segments and is disabled
-during capture, submission, cancellation, pause, and errors.
+**Read full response**. Full-response replay becomes available once the matching
+response and audio output have both finished, enqueues all exact retained
+canonical segments in order, and is disabled during capture, submission,
+cancellation, pause, and errors. **Repeat question** remains disabled because
+canonical Brunch speech does not yet identify which segment is a question.
 
 The browser sends its SDP offer to this app; the server initializes a trusted
 `gpt-realtime-2` audio-input/audio-output session through OpenAI's unified

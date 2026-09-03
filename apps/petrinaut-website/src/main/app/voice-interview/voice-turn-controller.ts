@@ -452,13 +452,6 @@ export class VoiceTurnController {
     this.#session.speakCanonical([...this.#lastResponseSegments]);
   }
 
-  public repeatQuestion(): void {
-    const question = this.#lastResponseSegments.at(-1);
-    if (!question || !this.#snapshot.canRepeatQuestion) return;
-    this.#update({ output: "waiting-for-tool" });
-    this.#session.speakCanonical([question]);
-  }
-
   /**
    * Hands the turn to the user only after provider cancellation has cleared
    * input and output and the active response has reached a terminal state.
@@ -884,7 +877,7 @@ export class VoiceTurnController {
     this.#snapshot = {
       ...snapshot,
       canReadFullResponse: canReplay && this.#lastResponseSegments.length > 0,
-      canRepeatQuestion: canReplay && this.#lastResponseSegments.length > 0,
+      canRepeatQuestion: false,
       canTakeTurn: this.#canTakeTurn(snapshot),
       canReviseLastAnswer: this.#canReviseLastAnswer(snapshot),
     };
