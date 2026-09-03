@@ -17,6 +17,9 @@ import type {
   PetrinautNavigationState,
 } from "@hashintel/petrinaut/react";
 
+/** The location fields the shared search carries, and therefore owns. */
+type UrlOwnedField = "scenarioId" | "subnetId" | "selection";
+
 /**
  * Overwrites the URL-owned fields of the in-memory location with the current
  * shared search, keeping the fields the URL cannot represent.
@@ -41,7 +44,8 @@ const mergeSharedSearch = (
  * its shared projection is mirrored to the URL — otherwise every control
  * driving a non-shared field would silently snap back.
  *
- * `initialState` seeds the fields the URL does not carry. A controlled host
+ * `initialState` seeds the fields the URL does not carry, and accepts only
+ * those: the URL owns the rest and would overwrite them. A controlled host
  * replaces `PetrinautNavigationProvider`'s own initial state, including the
  * Actual-mode default it applies when a live stream is available, so a page
  * that opens in a non-default mode states that mode here.
@@ -54,7 +58,7 @@ export const useSharedSearchNavigation = (
   ) => void,
   options?: {
     historyPolicy?: PetrinautNavigationHistoryPolicy;
-    initialState?: Partial<PetrinautNavigationState>;
+    initialState?: Partial<Omit<PetrinautNavigationState, UrlOwnedField>>;
   },
 ): PetrinautNavigationController => {
   const [navigationState, setNavigationState] =
@@ -68,11 +72,22 @@ export const useSharedSearchNavigation = (
     );
 
   // Merge external URL changes (Back/Forward, a normalization redirect)
-  // into the in-memory location during render.
+  // into the in-memory location during render. The hook's own write is
+  // suppressed once, when the router delivers it back: the in-memory location
+  // already holds it, and the shared projection cannot represent all of it.
   const [previousSearch, setPreviousSearch] = useState(search);
+  const [writtenSearch, setWrittenSearch] =
+    useState<SharedExampleSearch | null>(null);
   if (!sharedSearchesMatch(search, previousSearch)) {
+    const isOwnWrite =
+      writtenSearch !== null && sharedSearchesMatch(search, writtenSearch);
     setPreviousSearch(search);
-    setNavigationState((current) => mergeSharedSearch(current, search));
+    // Cleared either way, so a later Back or Forward onto the same location
+    // still merges rather than being mistaken for the same echo again.
+    setWrittenSearch(null);
+    if (!isOwnWrite) {
+      setNavigationState((current) => mergeSharedSearch(current, search));
+    }
   }
 
   // Freshest committed location for callbacks that can fire several times
@@ -103,6 +118,11 @@ export const useSharedSearchNavigation = (
       const nextSearch = navigationStateToSharedSearch(next);
       if (!sharedSearchesMatch(nextSearch, latestSearchRef.current)) {
         latestSearchRef.current = nextSearch;
+        // The router delivers this write back as a new `search` prop, and the
+        // merge above must not treat that echo as an external change: the
+        // projection is lossy, so re-merging it would clear a selection of
+        // any size but one.
+        setWrittenSearch(nextSearch);
         onSearchChange(nextSearch, history);
       }
     },

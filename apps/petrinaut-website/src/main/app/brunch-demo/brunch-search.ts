@@ -31,3 +31,18 @@ export const validateBrunchSearch = (
   ...brunchStreamSearchSchema.parse(input),
   ...validateSharedExampleSearch(input),
 });
+
+/**
+ * Replaces the contract part of a Brunch search and carries the stream keys
+ * over. Every other route writes a contract-only search; here the stream keys
+ * name the run, and dropping them would swap the live editor for the
+ * missing-endpoint status page mid-run.
+ */
+export const withBrunchStreamKeys = (
+  current: BrunchRouteSearch,
+  next: SharedExampleSearch,
+): BrunchRouteSearch => ({
+  runId: current.runId,
+  sse: current.sse,
+  ...next,
+});

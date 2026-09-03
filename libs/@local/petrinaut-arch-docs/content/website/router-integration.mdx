@@ -71,10 +71,13 @@ only the contract part.
 
 Every page that mounts Petrinaut does: the editable demo at `/` and
 `/optimization`, the Brunch stream at `/brunch`, and the example pages at
-`/examples/$slug` and `/embed/examples/$slug`. The demo and Brunch pages hold
-their model outside the URL, so a shared link there names a location inside
-whatever net the visitor has open; the example pages name the model in the
-path as well.
+`/examples/$slug` and `/embed/examples/$slug`.
+
+They differ in whether the URL also names the model. The editable demo holds
+its nets in local storage, so a link there names a location inside whatever
+net the visitor has open. `/brunch` names its model with the stream keys it
+carries over, so a copied URL reproduces the run. The example pages name the
+model in the path.
 
 ## What a URL carries, and what it does not
 

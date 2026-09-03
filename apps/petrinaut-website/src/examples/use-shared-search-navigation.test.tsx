@@ -17,7 +17,9 @@ const Probe = ({
   onSearchChange,
   search,
 }: {
-  initialState?: Partial<PetrinautNavigationState>;
+  initialState?: Partial<
+    Omit<PetrinautNavigationState, "scenarioId" | "subnetId" | "selection">
+  >;
   onController: (controller: PetrinautNavigationController) => void;
   onSearchChange: (
     search: SharedExampleSearch,
@@ -107,12 +109,58 @@ describe("useSharedSearchNavigation", () => {
     expect(controller.state.mode).toBe("simulate");
   });
 
-  it("seeds the fields the URL does not carry, letting the URL win over the seed", () => {
+  it("keeps a multi-item selection when the router echoes its own URL write", () => {
+    let controller!: PetrinautNavigationController;
+    const onSearchChange = vi.fn();
+    const view = render(
+      <Probe
+        onController={(value) => {
+          controller = value;
+        }}
+        onSearchChange={onSearchChange}
+        search={{ itemType: "place", itemId: "place-1" }}
+      />,
+    );
+
+    // A second selected item cannot be spelled in the URL, so the write drops
+    // the item entirely. The echo of that write must not be mistaken for an
+    // external change, or it merges the lossy projection back over the
+    // in-memory selection and clears it.
+    act(() => {
+      controller.onNavigate(
+        (current) => ({
+          ...current,
+          selection: [
+            { type: "place", id: "place-1" },
+            { type: "place", id: "place-2" },
+          ],
+        }),
+        { history: "push", intent: { cause: "user", action: "selection" } },
+      );
+    });
+
+    expect(onSearchChange).toHaveBeenCalledWith({}, "push");
+    expect(controller.state.selection).toHaveLength(2);
+
+    view.rerender(
+      <Probe
+        onController={(value) => {
+          controller = value;
+        }}
+        onSearchChange={onSearchChange}
+        search={{}}
+      />,
+    );
+
+    expect(controller.state.selection).toHaveLength(2);
+  });
+
+  it("seeds the fields the URL does not carry, alongside the ones it does", () => {
     let controller!: PetrinautNavigationController;
     const onSearchChange = vi.fn();
     render(
       <Probe
-        initialState={{ mode: "actual", subnetId: "seeded-subnet" }}
+        initialState={{ mode: "actual" }}
         onController={(value) => {
           controller = value;
         }}
@@ -122,9 +170,10 @@ describe("useSharedSearchNavigation", () => {
     );
 
     // A controlled host replaces the provider's initial state, so a page that
-    // opens in a non-default mode has to seed it here.
+    // opens in a non-default mode has to seed it here. The URL-owned fields
+    // still come from the link the visitor opened; the option's type excludes
+    // them rather than accepting a value it would discard.
     expect(controller.state.mode).toBe("actual");
-    // `subnet` is URL-owned, so the link the visitor opened wins.
     expect(controller.state.subnetId).toBe("subnet-from-url");
     expect(onSearchChange).not.toHaveBeenCalled();
   });

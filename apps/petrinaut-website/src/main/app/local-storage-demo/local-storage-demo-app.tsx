@@ -16,6 +16,7 @@ import {
 } from "@hashintel/petrinaut-core";
 import {
   CommandRegistryProvider,
+  defaultPetrinautNavigationHistoryPolicy,
   useCommand,
 } from "@hashintel/petrinaut/react";
 import {
@@ -199,7 +200,26 @@ export const LocalStorageDemoApp = ({
   const sentryFeedbackAction = useSentryFeedbackAction();
   const [openAIVoiceConfig, setOpenAIVoiceConfig] =
     useState<OpenAIVoiceConfig | null>();
-  const navigation = useSharedSearchNavigation(search, onSearchChange);
+  const navigation = useSharedSearchNavigation(search, onSearchChange, {
+    // The editor changes the selection on almost every click, and each shared
+    // write would otherwise be a browser history entry, so Back would take
+    // dozens of presses to leave the page. Scenario and subnet moves are the
+    // locations worth stepping back through.
+    historyPolicy: (intent) =>
+      intent.action === "selection"
+        ? "replace"
+        : defaultPetrinautNavigationHistoryPolicy(intent),
+  });
+
+  /**
+   * The location belongs to the net that was open. Petrinaut resets its own
+   * location per document by keying on the handle id, but that only resets an
+   * uncontrolled location, so the host clears the URL instead and the hook
+   * merges the empty search back over the fields the URL owns.
+   */
+  const clearSharedLocation = () => {
+    onSearchChange({}, "replace");
+  };
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
@@ -314,6 +334,7 @@ export const LocalStorageDemoApp = ({
     });
     setActiveHandle(createActiveHandle(newNet));
     setCurrentNetId(newNet.id);
+    clearSharedLocation();
   };
 
   const loadPetriNet = (petriNetId: string) => {
@@ -342,6 +363,9 @@ export const LocalStorageDemoApp = ({
     }
     setActiveHandle(createActiveHandle(netToLoad));
     setCurrentNetId(petriNetId);
+    if (petriNetId !== currentNetId) {
+      clearSharedLocation();
+    }
   };
 
   const setTitle = (title: string) => {

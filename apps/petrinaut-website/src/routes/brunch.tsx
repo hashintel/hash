@@ -5,7 +5,10 @@ import {
 } from "@tanstack/react-router";
 
 import { BrunchDemoApp } from "../main/app/brunch-demo/brunch-demo-app";
-import { validateBrunchSearch } from "../main/app/brunch-demo/brunch-search";
+import {
+  validateBrunchSearch,
+  withBrunchStreamKeys,
+} from "../main/app/brunch-demo/brunch-search";
 
 function BrunchRoute() {
   const navigate = useNavigate({ from: "/brunch" });
@@ -14,10 +17,11 @@ function BrunchRoute() {
   return (
     <BrunchDemoApp
       onSearchChange={(nextSearch, history) => {
-        // The stream keys identify the run; only the shared location moves.
         void navigate({
           replace: history === "replace",
-          search: { runId: search.runId, sse: search.sse, ...nextSearch },
+          // Applied to the router's own previous search, so two navigations
+          // in one event compose instead of the second reverting the first.
+          search: (previous) => withBrunchStreamKeys(previous, nextSearch),
         });
       }}
       search={search}
