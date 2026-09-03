@@ -3,9 +3,9 @@
 //! A token seals the [`Scope`] that names an authorized view. The scope holds the actor, the filter
 //! digest (the visibility proof's identity, resolved over the filter at bootstrap), and the view
 //! state derived for that proof, the delivery-cut offset `k`. A per-generation key encrypts the
-//! plaintext, and the tag proves this server issued it. The server keeps no token state, because a
-//! renewal reads the sealed state out of the presented token, so a refresh renews authority while
-//! the view stays fixed.
+//! plaintext, and the tag proves this server issued it. The server keeps no token state: a renewal
+//! reads the sealed state out of the presented token. A refresh renews authority while the view
+//! stays fixed.
 //!
 //! The filter travels as its digest. The client holds the filter document itself and re-presents it
 //! when a server-side entry has expired. The sealed digest is the check that the presented document
@@ -21,15 +21,15 @@
 //! scope and the authority's delta epoch, each its own byte-level form - and the trailer is
 //! Poly1305's tag.
 //!
-//! The associated data is the header's own bytes, so both sides authenticate an identical form. The
-//! clear header stays as issued, because a rewritten `issued_at` invalidates the tag.
+//! The associated data is the header's own bytes, the identical form on both sides. The clear
+//! header stays as issued, because a rewritten `issued_at` invalidates the tag.
 //!
 //! # The key
 //!
 //! The key comes from `HKDF-SHA256` over the server secret, with the generation digest as the salt
 //! and the fixed label `atlas.authorization.v1` as the expansion label. RFC 5869 admits a public
-//! and predictable salt, and this one separates generations cryptographically, so a token opens
-//! only under the generation that sealed it. The secret arrives as [`SecretHexBytes`], which fixes
+//! and predictable salt, and this one separates generations cryptographically: a token opens only
+//! under the generation that sealed it. The secret arrives as [`SecretHexBytes`], which fixes
 //! its width by type. The derivation runs once, when this module constructs the authority, and the
 //! authority keeps only the key, never the secret.
 //!
@@ -41,7 +41,7 @@
 //! token issued beside one delta register must not authorize reads over another. The refusal is
 //! the same uniform answer as every other cause, and the client's remedy is the same fresh
 //! manifest, which issues under the held epoch. A process serving with no delta consumer holds the
-//! absent form, so its tokens survive restarts.
+//! absent form, and its tokens survive restarts.
 //!
 //! # The nonce
 //!
@@ -88,7 +88,7 @@ const TAG_BYTES: usize = <<XChaCha20Poly1305 as AeadCore>::TagSize as Unsigned>:
 /// One refused token, by cause.
 ///
 /// The causes are server-side diagnostics. Every variant answers the client with the same uniform
-/// refusal, so a caller learns that it must re-manifest and nothing about why.
+/// refusal. A caller learns that it must re-manifest and nothing about why.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum AuthorityError {
     /// The blob is not this format.
@@ -169,7 +169,7 @@ struct AuthorityHeader {
     /// The wall clock narrows to seconds at this field. Every signature in this module speaks
     /// [`SystemTime`]. Clock agreement between the process that issues and the process that opens
     /// bounds the field's accuracy, and the acceptance window it feeds spans minutes. Truncation
-    /// reads earlier than the instant it records, so a token expires marginally early.
+    /// reads earlier than the instant it records, and a token expires marginally early.
     issued_at: U64<LE>,
     nonce: [u8; NONCE_BYTES],
 }
@@ -311,8 +311,8 @@ impl From<ArchivedActorId> for ActorId {
 ///
 /// The discriminant is the presence and the payload is the digest, one validated field: parsing
 /// admits the two written forms and a tampered discriminant refuses as
-/// [`AuthorityError::Envelope`]. The absent form zeroes its payload bytes, so a filter's
-/// presence never shows in the envelope's length.
+/// [`AuthorityError::Envelope`]. The absent form zeroes its payload bytes, and a filter's presence
+/// never shows in the envelope's length.
 #[derive(
     Debug,
     Copy,
@@ -417,11 +417,11 @@ impl UnboundScope {
 ///
 /// The actor and filter digest name the visibility proof the view answers under. `k` is the
 /// delivery depth the session serves at, resolved at its bootstrap over the occupancy then in
-/// force. A renewal carries `k` forward, so a session keeps one delivery depth rather than
-/// re-optimizing it per request, and a re-bind of the filter digest keeps it unless the new view
-/// resolves coarser, which clamps it down. The carried value is the caller's own earlier
-/// resolution, so delivery depth reflects that caller's own session history and never another
-/// actor's rows.
+/// force. A renewal carries `k` forward: a session keeps one delivery depth rather than
+/// re-optimizing it per request. A re-bind of the filter digest keeps `k` unless the new view
+/// resolves coarser, and a coarser view clamps it down. The carried value is the caller's own
+/// earlier resolution, and delivery depth reflects that caller's own session history and never
+/// another actor's rows.
 ///
 /// The scope is its own byte-level form, with every field a zerocopy type, so issuance seals it
 /// verbatim and an open reads it in place. The filter discriminant is the one validated byte. Every
@@ -471,8 +471,8 @@ impl Scope {
 /// The caller's scope and the authority's delta epoch, sealed as one plaintext.
 ///
 /// Its own byte-level form exactly as [`Scope`] is. The epoch is the authority's rather than the
-/// caller's: issuance stamps the held value and the open refuses any other, so no caller can seal
-/// a scope under an epoch the process does not hold.
+/// caller's: issuance stamps the held value and the open refuses any other. No caller can seal a
+/// scope under an epoch the process does not hold.
 #[derive(
     Debug,
     Copy,
@@ -493,8 +493,8 @@ struct SealedState {
 
 /// One sealed token, the envelope as a type, read in place.
 ///
-/// Every field lies at a fixed offset, so a blob of [`TOKEN_BYTES`] resolves into header,
-/// ciphertext, and trailer in one zerocopy cast, and the cast validates the format version.
+/// Every field lies at a fixed offset: a blob of [`TOKEN_BYTES`] resolves into header, ciphertext,
+/// and trailer in one zerocopy cast. The cast validates the format version.
 #[derive(
     Debug,
     Copy,
@@ -519,7 +519,7 @@ impl SealedAuthority {
 
 /// The token envelope's width, covering the clear header, the sealed state, and the tag.
 ///
-/// Derived from the envelope type itself, so it moves when the layout does.
+/// The value derives from the envelope type itself and moves when the layout does.
 pub(crate) const TOKEN_BYTES: usize = SealedAuthority::SIZE;
 
 /// Issues and opens the authority tokens of one generation.
@@ -527,8 +527,8 @@ pub(crate) const TOKEN_BYTES: usize = SealedAuthority::SIZE;
 /// One value holds the whole judgment context. The generation's sealing key comes from one
 /// derivation at construction, and the acceptance window bounds a token's age. The held delta
 /// epoch binds a token to the register lifetime whose process issued it, and the entropy source
-/// stays behind its own lock, held for the nonce draw alone, so opening never contends with
-/// issuing. A token opens under the authority whose generation sealed it, under the epoch it
+/// stays behind its own lock, held for the nonce draw alone. Opening never contends with issuing.
+/// A token opens under the authority whose generation sealed it, under the epoch it
 /// holds, for the actor it names, and only while its issue time lies inside the window.
 #[derive(Debug)]
 pub(crate) struct TokenAuthority<R> {
@@ -637,8 +637,8 @@ impl<R> TokenAuthority<R> {
     ///
     /// Refuses a token sealed under any delta epoch other than the held one, one whose issue
     /// time is older than the acceptance window at `now`, one dated after `now`, and one naming
-    /// an actor other than `actor`. The tag check comes first, so a rewritten issue time refuses
-    /// as [`AuthorityError::Authentication`] and only an authentic token reaches the epoch, the
+    /// an actor other than `actor`. The open judges the tag first: a rewritten issue time refuses
+    /// as [`AuthorityError::Authentication`], and only an authentic token reaches the epoch, the
     /// window, and the actor comparison.
     ///
     /// # Errors
@@ -743,7 +743,7 @@ mod tests {
     /// The tests the `miri` nextest profile selects.
     ///
     /// The test here derefs an archived actor identifier to the identity it wraps.
-    /// The profile selects by module path, so moving a test in or out of this module is the whole
+    /// The profile selects by module path: moving a test in or out of this module is the whole
     /// edit.
     mod miri {
         use uuid::Uuid;
