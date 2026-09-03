@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import { css, cva } from "@hashintel/ds-helpers/css";
 import {
@@ -7,6 +8,13 @@ import {
   toUuid,
   TYPE_POLICIES,
 } from "@hashintel/petrinaut-core";
+
+import { focusLands } from "../worksheet/focus-flow";
+import { useFocusStops } from "../worksheet/use-focus-stops";
+import { useRowSelection } from "../worksheet/use-row-selection";
+import { useSelectFirstActivation } from "../worksheet/use-select-first";
+
+import type { FocusStop, FocusStopTarget } from "../worksheet/use-focus-stops";
 
 export interface SpreadsheetColumn {
   id: string;
@@ -19,6 +27,7 @@ export type SpreadsheetCellValue = number | boolean | bigint | string;
 export interface SpreadsheetProps {
   columns: SpreadsheetColumn[];
   data: SpreadsheetCellValue[][];
+  /** Omit for a read-only grid. */
   onChange?: (data: SpreadsheetCellValue[][]) => void;
 }
 
@@ -35,6 +44,8 @@ const wrapperStyle = css({
 
 const tableContainerStyle = css({
   position: "relative",
+  flex: "1",
+  minHeight: "[0]",
   borderWidth: "[1px]",
   borderStyle: "solid",
   borderColor: "neutral.bd.subtle",
@@ -131,6 +142,9 @@ const cellContainerStyle = cva({
     borderBottom: "[1px solid {colors.neutral.a05}]",
     padding: "0",
     height: "[28px]",
+    "&:focus-within [data-uuid-overlay]": {
+      display: "flex",
+    },
   },
   variants: {
     isSticky: {
@@ -168,28 +182,24 @@ const editingInputStyle = css({
   boxSizing: "border-box",
 });
 
-const cellButtonStyle = cva({
-  base: {
-    width: "[100%]",
-    height: "[28px]",
-    padding: "[4px 8px]",
-    fontFamily: "mono",
-    fontSize: "xs",
-    backgroundColor: "[transparent]",
-    outlineOffset: "[-2px]",
-    cursor: "default",
-    boxSizing: "border-box",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    display: "flex",
-    alignItems: "center",
-  },
-  variants: {
-    isFocused: {
-      true: { outline: "[2px solid {colors.blue.s50}]" },
-      false: { outline: "none" },
-    },
+const cellButtonStyle = css({
+  width: "[100%]",
+  height: "[28px]",
+  padding: "[4px 8px]",
+  fontFamily: "mono",
+  fontSize: "xs",
+  backgroundColor: "[transparent]",
+  outline: "none",
+  outlineOffset: "[-2px]",
+  cursor: "default",
+  boxSizing: "border-box",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  display: "flex",
+  alignItems: "center",
+  _focus: {
+    outline: "[2px solid {colors.blue.s50}]",
   },
 });
 
@@ -198,18 +208,17 @@ const booleanCellStyle = css({
 });
 
 /**
- * Selected uuid cells expand to the full canonical string, spilling over the
- * neighbouring cells (spreadsheet-style overflow). Pointer events pass
- * through so double-click still opens the editor underneath. Cells in the
- * right half of the table spill leftwards so the overlay is not clipped by
- * the scroll container's edge.
+ * A focused uuid cell shows its full string in an overlay that spills over
+ * the neighbouring cells, revealed by the container's `:focus-within`.
+ * Pointer events pass through to the cell underneath. Cells in the right
+ * half spill leftwards so the scroll container does not clip the overlay.
  */
 const uuidExpandedOverlayStyle = cva({
   base: {
     position: "absolute",
     top: "[0]",
     height: "[28px]",
-    display: "flex",
+    display: "none",
     alignItems: "center",
     padding: "[4px 8px]",
     fontFamily: "mono",
@@ -217,7 +226,6 @@ const uuidExpandedOverlayStyle = cva({
     whiteSpace: "nowrap",
     width: "[max-content]",
     minWidth: "[100%]",
-    // Opaque: the overlay covers neighbouring cell content while expanded.
     backgroundColor: "neutral.s00",
     outline: "[2px solid {colors.blue.s50}]",
     outlineOffset: "[-2px]",
@@ -237,53 +245,61 @@ const getDefaultCellValue = (
 ): SpreadsheetCellValue =>
   column?.type ? defaultTokenAttributeValue(column.type) : 0;
 
-const formatCellValue = (value: SpreadsheetCellValue): string => String(value);
-
 const toCanonicalUuidString = (value: SpreadsheetCellValue): string =>
   formatUuid(typeof value === "bigint" ? value : toUuid(value));
 
-/** Full-fidelity text used to prefill the cell editor. */
-const getCellEditText = (
+/** Columns edited as free text, and whose full value shows in a tooltip. */
+const isTextColumn = (column: SpreadsheetColumn | undefined): boolean =>
+  column?.type === "uuid" || column?.type === "string";
+
+/** The full value: the editor's initial text, and the tooltip. */
+const fullText = (
   column: SpreadsheetColumn | undefined,
   value: SpreadsheetCellValue,
 ): string =>
-  column?.type === "uuid"
-    ? toCanonicalUuidString(value)
-    : formatCellValue(value);
+  column?.type === "uuid" ? toCanonicalUuidString(value) : String(value);
 
-/** Compact text shown in non-editing cells (uuids are truncated). */
-const getCellDisplayText = (
+/** The text of a resting cell; uuids are truncated. */
+const displayText = (
   column: SpreadsheetColumn | undefined,
   value: SpreadsheetCellValue,
 ): string =>
   column?.type === "uuid"
     ? `${toCanonicalUuidString(value).slice(0, 8)}…`
-    : formatCellValue(value);
+    : String(value);
 
-/**
- * Hover tooltip — the full canonical uuid string for uuid cells, and the full
- * value for string cells (which may overflow with an ellipsis).
- */
-const getCellTitle = (
-  column: SpreadsheetColumn | undefined,
-  value: SpreadsheetCellValue,
-): string | undefined => {
-  if (column?.type === "uuid") {
-    return toCanonicalUuidString(value);
-  }
-  if (column?.type === "string") {
-    return String(value);
-  }
-  return undefined;
-};
-
-/** Untyped columns parse like `real` (the per-type behaviour lives in core). */
+/** Untyped columns parse like `real`; the per-type rules live in core. */
 const parseCellValue = (
   column: SpreadsheetColumn | undefined,
   rawValue: string,
 ): SpreadsheetCellValue =>
   TYPE_POLICIES[column?.type ?? "real"].parseEditorText(rawValue);
 
+const targetKey = (target: FocusStopTarget): string =>
+  `${target.stopId}:${target.column}`;
+
+const handled = (event: React.KeyboardEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
+};
+
+const isDeleteKey = (event: React.KeyboardEvent): boolean =>
+  event.key === "Delete" || event.key === "Backspace";
+
+const isTypingKey = (event: React.KeyboardEvent): boolean =>
+  event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
+
+/**
+ * An editable grid of typed cells with a row-number gutter and a sticky
+ * phantom row that becomes a real row on its first edit. Controlled: the
+ * parent owns `data` and receives edits through `onChange`.
+ *
+ * The worksheet focus layer owns movement: the grid is one Tab stop, arrows
+ * walk cells and the gutter, and a move past an edge is offered to the
+ * enclosing `FocusStack`, so sibling grids flow into each other. Clicks are
+ * select-first: the first click selects a cell, a click on the selected cell
+ * opens its editor.
+ */
 export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   columns,
   data,
@@ -292,423 +308,199 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
   const isReadOnly = !onChange;
   const colCount = columns.length;
 
-  // Fully controlled — the parent owns `data` and receives edits via
-  // `onChange`. Selection / focus / editing state is local UI state, clamped
-  // against the current `data` so stale positions are masked rather than
-  // synced via an effect.
-  const tableData = data.length > 0 ? data : [];
-
-  const [selectedRowState, setSelectedRow] = useState<number | null>(null);
-  const [focusedCellState, setFocusedCell] = useState<CellPosition | null>(
-    null,
-  );
   const [editingCellState, setEditingCell] = useState<CellPosition | null>(
     null,
   );
-  const [editingValue, setEditingValue] = useState<string>("");
-  const cellRefs = useRef<Map<string, HTMLElement>>(new Map());
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [editingValue, setEditingValue] = useState("");
+  const targets = useRef<Map<string, HTMLElement>>(new Map());
 
-  const selectedRow =
-    selectedRowState !== null && selectedRowState < tableData.length
-      ? selectedRowState
-      : null;
-  const focusedCell =
-    focusedCellState && focusedCellState.row <= tableData.length
-      ? focusedCellState
-      : null;
+  // A position past the current data is stale: masked rather than synced.
   const editingCell =
-    editingCellState && editingCellState.row <= tableData.length
+    editingCellState && editingCellState.row <= data.length
       ? editingCellState
       : null;
 
-  const createEmptyRow = (): SpreadsheetCellValue[] =>
-    columns.map((column) => getDefaultCellValue(column));
+  const emptyRow = (): SpreadsheetCellValue[] =>
+    columns.map(getDefaultCellValue);
+  const displayRows = isReadOnly ? data : [...data, emptyRow()];
+
+  const stops: FocusStop[] = displayRows.map((_, row) => ({
+    id: String(row),
+    kind: "row",
+    gutter: true,
+  }));
+  const {
+    onKeyDown: onStopsKeyDown,
+    onFocusTarget,
+    tabIndexFor,
+    attach,
+  } = useFocusStops({
+    stops,
+    columnCount: colCount,
+    focusTarget: (target) => focusLands(targets.current.get(targetKey(target))),
+  });
+  const { selectedRow, setFocusedRow } = useRowSelection();
+  const { onPointerDown, shouldActivate } = useSelectFirstActivation();
+
+  const registerTarget =
+    (target: FocusStopTarget) => (element: HTMLElement | null) => {
+      if (element) {
+        targets.current.set(targetKey(target), element);
+      } else {
+        targets.current.delete(targetKey(target));
+      }
+    };
+
+  const focusCell = (row: number, column: number | "gutter"): boolean =>
+    focusLands(targets.current.get(targetKey({ stopId: String(row), column })));
 
   const updateCell = (
     row: number,
     col: number,
     value: SpreadsheetCellValue,
   ) => {
-    let newData: SpreadsheetCellValue[][];
-
-    // If editing the phantom row (last row), create a new actual row
-    if (row === tableData.length) {
-      newData = [...tableData, createEmptyRow()];
-      if (newData[row]) {
-        newData[row][col] = value;
-      }
-    } else {
-      newData = tableData.map((rowData, index) =>
-        index === row ? [...rowData] : rowData,
-      );
-      if (newData[row]) {
-        newData[row][col] = value;
-      }
+    // An edit on the phantom row (index `data.length`) materializes it.
+    const rows = row === data.length ? [...data, emptyRow()] : [...data];
+    const cells = rows[row];
+    if (cells) {
+      rows[row] = cells.map((cell, index) => (index === col ? value : cell));
+      onChange?.(rows);
     }
-
-    onChange?.(newData);
   };
 
   const toggleBooleanCell = (row: number, col: number) => {
-    const currentValue =
-      tableData[row]?.[col] ?? getDefaultCellValue(columns[col]);
-    // Truthiness, not `!== true`: a numerically-encoded 1 must toggle off
-    // like `true` does.
-    updateCell(row, col, !currentValue);
-  };
-
-  const removeRow = (rowIndex: number) => {
-    const newData: SpreadsheetCellValue[][] = tableData.filter(
-      (_, index) => index !== rowIndex,
+    // Truthiness, so a numerically encoded 1 toggles off like `true` does.
+    updateCell(
+      row,
+      col,
+      !(data[row]?.[col] ?? getDefaultCellValue(columns[col])),
     );
-    onChange?.(newData);
-
-    // Select next or previous row after deletion
-    if (newData.length > 0) {
-      if (rowIndex >= newData.length) {
-        setSelectedRow(newData.length - 1);
-        setTimeout(() => {
-          const rowCell = document.querySelector(
-            `td[data-row="${newData.length - 1}"]`,
-          );
-          if (rowCell instanceof HTMLElement) {
-            rowCell.focus();
-          }
-        }, 0);
-      } else {
-        setSelectedRow(rowIndex);
-        setTimeout(() => {
-          const rowCell = document.querySelector(`td[data-row="${rowIndex}"]`);
-          if (rowCell instanceof HTMLElement) {
-            rowCell.focus();
-          }
-        }, 0);
-      }
-    } else {
-      setSelectedRow(null);
-    }
   };
 
-  const handleKeyDown = (
-    event: React.KeyboardEvent,
-    row: number,
-    col: number,
-  ) => {
-    if (isReadOnly) {
-      return;
-    }
+  /** Opens the editor synchronously so the mounted input can take focus. */
+  const startEditing = (row: number, col: number, text: string) => {
+    flushSync(() => {
+      setEditingCell({ row, col });
+      setEditingValue(text);
+    });
+    focusCell(row, col);
+  };
 
-    // Stop propagation for all navigation and delete keys to prevent global handlers
-    if (
-      event.key === "ArrowRight" ||
-      event.key === "ArrowLeft" ||
-      event.key === "ArrowDown" ||
-      event.key === "ArrowUp" ||
-      event.key === "Delete" ||
-      event.key === "Backspace" ||
-      event.key === "Tab"
-    ) {
-      event.stopPropagation();
-    }
+  /** Closes the editor synchronously so the resting cell can take focus. */
+  const closeEditor = (row: number, col: number, commit: boolean) => {
+    flushSync(() => {
+      if (commit) {
+        updateCell(row, col, parseCellValue(columns[col], editingValue));
+      }
+      setEditingCell(null);
+      setEditingValue("");
+    });
+  };
 
-    // If we're editing, only Enter and Tab should exit editing mode
-    if (editingCell && editingCell.row === row && editingCell.col === col) {
+  const onEditingKeyDown =
+    (row: number, col: number): React.KeyboardEventHandler =>
+    (event) => {
       if (event.key === "Enter") {
-        event.preventDefault();
-        const value = parseCellValue(columns[col], editingValue);
-        updateCell(row, col, value);
-        setEditingCell(null);
-        setEditingValue("");
-        setSelectedRow(null);
-
-        // Move to next cell
-        if (col < colCount - 1) {
-          setFocusedCell({ row, col: col + 1 });
-          setTimeout(() => {
-            const nextCell = cellRefs.current.get(`${row}-${col + 1}`);
-            nextCell?.focus();
-          }, 0);
-        } else if (row < tableData.length) {
-          setFocusedCell({ row: row + 1, col: 0 });
-          setTimeout(() => {
-            const nextCell = cellRefs.current.get(`${row + 1}-0`);
-            nextCell?.focus();
-          }, 0);
-        }
-      } else if (event.key === "Tab") {
-        event.preventDefault();
-        const value = parseCellValue(columns[col], editingValue);
-        updateCell(row, col, value);
-        setEditingCell(null);
-        setEditingValue("");
-        setSelectedRow(null);
-
-        if (event.shiftKey) {
-          if (col > 0) {
-            setFocusedCell({ row, col: col - 1 });
-            setTimeout(() => {
-              const prevCell = cellRefs.current.get(`${row}-${col - 1}`);
-              prevCell?.focus();
-            }, 0);
-          } else if (row > 0) {
-            setFocusedCell({ row: row - 1, col: colCount - 1 });
-            setTimeout(() => {
-              const prevCell = cellRefs.current.get(
-                `${row - 1}-${colCount - 1}`,
-              );
-              prevCell?.focus();
-            }, 0);
-          }
-        } else if (col < colCount - 1) {
-          setFocusedCell({ row, col: col + 1 });
-          setTimeout(() => {
-            const nextCell = cellRefs.current.get(`${row}-${col + 1}`);
-            nextCell?.focus();
-          }, 0);
-        } else if (row < tableData.length) {
-          setFocusedCell({ row: row + 1, col: 0 });
-          setTimeout(() => {
-            const nextCell = cellRefs.current.get(`${row + 1}-0`);
-            nextCell?.focus();
-          }, 0);
+        handled(event);
+        closeEditor(row, col, true);
+        // Advance right, wrap to the next row's first cell, or stay put.
+        const moved =
+          col + 1 < colCount ? focusCell(row, col + 1) : focusCell(row + 1, 0);
+        if (!moved) {
+          focusCell(row, col);
         }
       } else if (event.key === "Escape") {
-        event.preventDefault();
-        setEditingCell(null);
-        setEditingValue("");
-        setFocusedCell({ row, col });
-        setTimeout(() => {
-          const cell = cellRefs.current.get(`${row}-${col}`);
-          cell?.focus();
-        }, 0);
+        handled(event);
+        closeEditor(row, col, false);
+        focusCell(row, col);
       }
-      return;
-    }
+    };
 
-    if (columns[col]?.type === "boolean") {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        toggleBooleanCell(row, col);
-        setSelectedRow(null);
-        return;
-      }
-
-      if (event.key === "Delete" || event.key === "Backspace") {
-        event.preventDefault();
-        updateCell(row, col, false);
-        setSelectedRow(null);
-        return;
-      }
-
-      const normalizedKey = event.key.toLowerCase();
-      if (normalizedKey === "t" || normalizedKey === "1") {
-        event.preventDefault();
-        updateCell(row, col, true);
-        setSelectedRow(null);
-        return;
-      }
-      if (normalizedKey === "f" || normalizedKey === "0") {
-        event.preventDefault();
-        updateCell(row, col, false);
-        setSelectedRow(null);
-        return;
-      }
-      // Swallow any other printable key — boolean cells never open the text
-      // editor (but keep shortcuts like Cmd+C working).
-      if (event.key.length === 1 && !event.metaKey && !event.ctrlKey) {
-        event.preventDefault();
-        return;
-      }
-    }
-
-    // Navigation keys when not editing
-    if (event.key === "ArrowRight" && col < colCount - 1) {
-      event.preventDefault();
-      setSelectedRow(null);
-      setFocusedCell({ row, col: col + 1 });
-      setTimeout(() => {
-        const nextCell = cellRefs.current.get(`${row}-${col + 1}`);
-        nextCell?.focus();
-      }, 0);
-    } else if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      if (col > 0) {
-        setSelectedRow(null);
-        setFocusedCell({ row, col: col - 1 });
-        setTimeout(() => {
-          const prevCell = cellRefs.current.get(`${row}-${col - 1}`);
-          prevCell?.focus();
-        }, 0);
-      } else {
-        setFocusedCell(null);
-        setSelectedRow(row);
-        setTimeout(() => {
-          const rowCell = document.querySelector(`td[data-row="${row}"]`);
-          if (rowCell instanceof HTMLElement) {
-            rowCell.focus();
-          }
-        }, 0);
-      }
-    } else if (event.key === "ArrowDown" && row < tableData.length) {
-      event.preventDefault();
-      setSelectedRow(null);
-      setFocusedCell({ row: row + 1, col });
-      setTimeout(() => {
-        const nextCell = cellRefs.current.get(`${row + 1}-${col}`);
-        nextCell?.focus();
-      }, 0);
-    } else if (event.key === "ArrowUp" && row > 0) {
-      event.preventDefault();
-      setSelectedRow(null);
-      setFocusedCell({ row: row - 1, col });
-      setTimeout(() => {
-        const prevCell = cellRefs.current.get(`${row - 1}-${col}`);
-        prevCell?.focus();
-      }, 0);
-    } else if (event.key === "Tab") {
-      event.preventDefault();
-      setSelectedRow(null);
-
-      if (event.shiftKey) {
-        if (col > 0) {
-          setFocusedCell({ row, col: col - 1 });
-          setTimeout(() => {
-            const prevCell = cellRefs.current.get(`${row}-${col - 1}`);
-            prevCell?.focus();
-          }, 0);
-        } else if (row > 0) {
-          setFocusedCell({ row: row - 1, col: colCount - 1 });
-          setTimeout(() => {
-            const prevCell = cellRefs.current.get(`${row - 1}-${colCount - 1}`);
-            prevCell?.focus();
-          }, 0);
-        }
-      } else if (col < colCount - 1) {
-        setFocusedCell({ row, col: col + 1 });
-        setTimeout(() => {
-          const nextCell = cellRefs.current.get(`${row}-${col + 1}`);
-          nextCell?.focus();
-        }, 0);
-      } else if (row < tableData.length) {
-        setFocusedCell({ row: row + 1, col: 0 });
-        setTimeout(() => {
-          const nextCell = cellRefs.current.get(`${row + 1}-0`);
-          nextCell?.focus();
-        }, 0);
-      }
-    } else if (event.key === "Enter") {
-      event.preventDefault();
-      setEditingCell({ row, col });
-      setEditingValue(
-        getCellEditText(
-          columns[col],
-          tableData[row]?.[col] ?? getDefaultCellValue(columns[col]),
-        ),
-      );
-      setTimeout(() => inputRef.current?.focus(), 0);
-    } else if (event.key === "Delete") {
-      event.preventDefault();
-      if (selectedRow !== null) {
-        removeRow(selectedRow);
-      } else {
+  const onCellKeyDown =
+    (
+      row: number,
+      col: number,
+      value: SpreadsheetCellValue,
+    ): React.KeyboardEventHandler =>
+    (event) => {
+      if (event.key === "Enter") {
+        handled(event);
+        startEditing(row, col, fullText(columns[col], value));
+      } else if (isDeleteKey(event)) {
+        handled(event);
         updateCell(row, col, getDefaultCellValue(columns[col]));
-        setEditingCell({ row, col });
-        setEditingValue("");
-        setTimeout(() => inputRef.current?.focus(), 0);
+        startEditing(row, col, "");
+      } else if (isTypingKey(event)) {
+        handled(event);
+        startEditing(row, col, event.key);
+      } else {
+        onStopsKeyDown({ stopId: String(row), column: col })(event);
       }
-    } else if (event.key === "Backspace") {
-      event.preventDefault();
-      updateCell(row, col, getDefaultCellValue(columns[col]));
-      setEditingCell({ row, col });
-      setEditingValue("");
-      setTimeout(() => inputRef.current?.focus(), 0);
-    } else if (
-      !event.ctrlKey &&
-      !event.metaKey &&
-      !event.altKey &&
-      event.key.length === 1
-    ) {
-      event.preventDefault();
-      setEditingCell({ row, col });
-      setEditingValue(event.key);
-      setTimeout(() => inputRef.current?.focus(), 0);
-    } else if (event.key === "Escape") {
-      event.preventDefault();
-      setFocusedCell(null);
-      const cell = cellRefs.current.get(`${row}-${col}`);
-      if (cell) {
-        cell.blur();
-      }
-    }
-  };
+    };
 
-  const handleRowClick = (rowIndex: number) => {
-    setSelectedRow(rowIndex);
-    setFocusedCell(null);
-    setEditingCell(null);
-  };
-
-  const handleRowKeyDown = (event: React.KeyboardEvent, rowIndex: number) => {
-    if (isReadOnly) {
-      return;
-    }
-
-    if (event.key === "Delete" || event.key === "Backspace") {
-      event.preventDefault();
-      event.stopPropagation();
-      removeRow(rowIndex);
-    } else if (event.key === "Enter") {
-      event.preventDefault();
-      event.stopPropagation();
-      setSelectedRow(null);
-      setFocusedCell({ row: rowIndex, col: 0 });
-      setTimeout(() => {
-        const firstCell = cellRefs.current.get(`${rowIndex}-0`);
-        firstCell?.focus();
-      }, 0);
-    } else if (event.key === "ArrowRight") {
-      event.preventDefault();
-      event.stopPropagation();
-      setSelectedRow(null);
-      setFocusedCell({ row: rowIndex, col: 0 });
-      setTimeout(() => {
-        const firstCell = cellRefs.current.get(`${rowIndex}-0`);
-        firstCell?.focus();
-      }, 0);
-    } else if (event.key === "ArrowDown" && rowIndex < tableData.length - 1) {
-      event.preventDefault();
-      event.stopPropagation();
-      setSelectedRow(rowIndex + 1);
-      setFocusedCell(null);
-      setEditingCell(null);
-      const nextRowCell = document.querySelector(
-        `td[data-row="${rowIndex + 1}"]`,
-      );
-      if (nextRowCell instanceof HTMLElement) {
-        nextRowCell.focus();
+  const onBooleanCellKeyDown =
+    (row: number, col: number): React.KeyboardEventHandler =>
+    (event) => {
+      const typed = isTypingKey(event) ? event.key.toLowerCase() : null;
+      if (event.key === "Enter" || event.key === " ") {
+        handled(event);
+        toggleBooleanCell(row, col);
+      } else if (isDeleteKey(event) || typed === "f" || typed === "0") {
+        handled(event);
+        updateCell(row, col, false);
+      } else if (typed === "t" || typed === "1") {
+        handled(event);
+        updateCell(row, col, true);
+      } else if (typed !== null) {
+        // Other printable keys never open a text editor on a boolean cell.
+        handled(event);
+      } else {
+        onStopsKeyDown({ stopId: String(row), column: col })(event);
       }
-    } else if (event.key === "ArrowUp" && rowIndex > 0) {
-      event.preventDefault();
-      event.stopPropagation();
-      setSelectedRow(rowIndex - 1);
-      setFocusedCell(null);
-      setEditingCell(null);
-      const prevRowCell = document.querySelector(
-        `td[data-row="${rowIndex - 1}"]`,
-      );
-      if (prevRowCell instanceof HTMLElement) {
-        prevRowCell.focus();
+    };
+
+  const onGutterKeyDown =
+    (row: number): React.KeyboardEventHandler =>
+    (event) => {
+      if (isDeleteKey(event)) {
+        handled(event);
+        // Rows are index-keyed, so the gutter element stays mounted and the
+        // next row slides under the focus.
+        if (row < data.length) {
+          onChange?.(data.filter((_, index) => index !== row));
+        }
+      } else if (event.key === "Enter") {
+        handled(event);
+        focusCell(row, 0);
+      } else {
+        onStopsKeyDown({ stopId: String(row), column: "gutter" })(event);
       }
-    }
+    };
+
+  const gutterProps = (row: number) => {
+    const target: FocusStopTarget = { stopId: String(row), column: "gutter" };
+    return {
+      ref: registerTarget(target),
+      tabIndex: tabIndexFor(target),
+      onKeyDown: onGutterKeyDown(row),
+      onFocus: () => {
+        onFocusTarget(target);
+        setFocusedRow(row);
+      },
+      onBlur: () => setFocusedRow(null),
+    };
   };
 
   const columnWidth = Math.max(60, 100 / colCount);
 
   return (
     <div className={wrapperStyle}>
-      <div className={tableContainerStyle} style={{ flex: 1, minHeight: 0 }}>
-        <table className={tableStyle}>
+      <div ref={attach} className={tableContainerStyle}>
+        <table
+          className={tableStyle}
+          role="grid"
+          aria-readonly={isReadOnly || undefined}
+        >
           <thead>
             <tr>
               <th aria-label="Row number" className={rowNumberHeaderStyle} />
@@ -727,216 +519,151 @@ export const Spreadsheet: React.FC<SpreadsheetProps> = ({
             </tr>
           </thead>
           <tbody>
-            {(() => {
-              const displayRows = isReadOnly
-                ? tableData
-                : [...tableData, createEmptyRow()];
-              return displayRows.map((row, rowIndex) => {
-                const isPhantomRow =
-                  !isReadOnly && rowIndex === tableData.length;
-                return (
-                  <tr
-                    // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful; cell contents must stay out of the key (string cells are arbitrary-length, and value changes should update the row, not remount it)
-                    key={`row-${rowIndex}`}
-                    className={rowStyle({
+            {displayRows.map((row, rowIndex) => {
+              const isPhantomRow = rowIndex === data.length;
+              const stopId = String(rowIndex);
+              return (
+                <tr
+                  // eslint-disable-next-line react/no-array-index-key -- Row position is stable and meaningful; cell contents must stay out of the key (string cells are arbitrary-length, and value changes should update the row, not remount it)
+                  key={`row-${rowIndex}`}
+                  role="row"
+                  aria-selected={selectedRow === rowIndex}
+                  className={rowStyle({
+                    isSelected: selectedRow === rowIndex,
+                    isSticky: isPhantomRow,
+                  })}
+                >
+                  <td
+                    role="rowheader"
+                    className={rowNumberCellStyle({
                       isSelected: selectedRow === rowIndex,
-                      isSticky: isPhantomRow,
+                      isPhantom: isPhantomRow,
+                      isReadOnly,
                     })}
+                    {...(isReadOnly ? undefined : gutterProps(rowIndex))}
                   >
-                    <td
-                      data-row={rowIndex}
-                      onClick={() => handleRowClick(rowIndex)}
-                      onKeyDown={(event) => handleRowKeyDown(event, rowIndex)}
-                      tabIndex={0}
-                      className={rowNumberCellStyle({
-                        isSelected: selectedRow === rowIndex,
-                        isPhantom: rowIndex === tableData.length,
-                        isReadOnly,
-                      })}
-                    >
-                      {rowIndex === tableData.length ? "" : rowIndex + 1}
-                    </td>
-                    {row.map((value, colIndex) => {
-                      const isEditing =
-                        editingCell?.row === rowIndex &&
-                        editingCell.col === colIndex;
-                      const isFocused =
-                        focusedCell?.row === rowIndex &&
-                        focusedCell.col === colIndex;
-                      return (
-                        <td
-                          // eslint-disable-next-line react/no-array-index-key -- Column position is stable and meaningful
-                          key={`cell-${rowIndex}-${colIndex}`}
-                          className={cellContainerStyle({
-                            isSticky: isPhantomRow,
-                          })}
-                          style={{ width: `${columnWidth}%` }}
-                        >
-                          {isReadOnly ? (
-                            <div
-                              className={readOnlyCellStyle}
-                              title={
-                                isPhantomRow
-                                  ? undefined
-                                  : getCellTitle(columns[colIndex], value)
-                              }
-                              aria-label={
-                                isPhantomRow
-                                  ? undefined
-                                  : getCellTitle(columns[colIndex], value)
-                              }
-                            >
-                              {isPhantomRow
-                                ? ""
-                                : getCellDisplayText(columns[colIndex], value)}
-                            </div>
-                          ) : isEditing ? (
+                    {isPhantomRow ? "" : rowIndex + 1}
+                  </td>
+                  {row.map((value, colIndex) => {
+                    const column = columns[colIndex];
+                    const target: FocusStopTarget = {
+                      stopId,
+                      column: colIndex,
+                    };
+                    const isEditing =
+                      editingCell?.row === rowIndex &&
+                      editingCell.col === colIndex;
+                    // Screen readers get the full value the truncated cell hides.
+                    const title =
+                      isTextColumn(column) && !isPhantomRow
+                        ? fullText(column, value)
+                        : undefined;
+                    return (
+                      <td
+                        // eslint-disable-next-line react/no-array-index-key -- Column position is stable and meaningful
+                        key={`cell-${rowIndex}-${colIndex}`}
+                        role="gridcell"
+                        className={cellContainerStyle({
+                          isSticky: isPhantomRow,
+                        })}
+                        style={{ width: `${columnWidth}%` }}
+                      >
+                        {isReadOnly ? (
+                          <div
+                            className={readOnlyCellStyle}
+                            title={title}
+                            aria-label={title}
+                          >
+                            {displayText(column, value)}
+                          </div>
+                        ) : isEditing ? (
+                          <input
+                            ref={registerTarget(target)}
+                            type={isTextColumn(column) ? "text" : "number"}
+                            step={
+                              isTextColumn(column)
+                                ? undefined
+                                : column?.type === "integer"
+                                  ? 1
+                                  : "any"
+                            }
+                            value={editingValue}
+                            onChange={(event) =>
+                              setEditingValue(event.target.value)
+                            }
+                            onKeyDown={onEditingKeyDown(rowIndex, colIndex)}
+                            onBlur={() => closeEditor(rowIndex, colIndex, true)}
+                            className={editingInputStyle}
+                          />
+                        ) : column?.type === "boolean" ? (
+                          <div
+                            ref={registerTarget(target)}
+                            role="checkbox"
+                            aria-checked={Boolean(value)}
+                            aria-label={column.name}
+                            tabIndex={tabIndexFor(target)}
+                            onFocus={() => onFocusTarget(target)}
+                            onKeyDown={onBooleanCellKeyDown(rowIndex, colIndex)}
+                            onClick={() =>
+                              toggleBooleanCell(rowIndex, colIndex)
+                            }
+                            className={cellButtonStyle}
+                          >
+                            {/* Visual only: the wrapper owns the checkbox role. */}
                             <input
-                              ref={inputRef}
-                              type={
-                                columns[colIndex]?.type === "uuid" ||
-                                columns[colIndex]?.type === "string"
-                                  ? "text"
-                                  : "number"
-                              }
-                              step={
-                                columns[colIndex]?.type === "uuid" ||
-                                columns[colIndex]?.type === "string"
-                                  ? undefined
-                                  : columns[colIndex]?.type === "integer"
-                                    ? 1
-                                    : "any"
-                              }
-                              value={editingValue}
-                              onChange={(event) =>
-                                setEditingValue(event.target.value)
-                              }
-                              onKeyDown={(event) =>
-                                handleKeyDown(event, rowIndex, colIndex)
-                              }
-                              onBlur={() => {
-                                const val = parseCellValue(
-                                  columns[colIndex],
-                                  editingValue,
-                                );
-                                updateCell(rowIndex, colIndex, val);
-                                setEditingCell(null);
-                                setEditingValue("");
-                              }}
-                              className={editingInputStyle}
-                            />
-                          ) : columns[colIndex]?.type === "boolean" ? (
-                            <div
-                              ref={(el) => {
-                                if (el) {
-                                  cellRefs.current.set(
-                                    `${rowIndex}-${colIndex}`,
-                                    el,
-                                  );
-                                } else {
-                                  cellRefs.current.delete(
-                                    `${rowIndex}-${colIndex}`,
-                                  );
-                                }
-                              }}
-                              role="checkbox"
-                              aria-checked={Boolean(value)}
-                              aria-label={columns[colIndex].name}
-                              tabIndex={0}
-                              onFocus={() => {
-                                setFocusedCell({
-                                  row: rowIndex,
-                                  col: colIndex,
-                                });
-                                setSelectedRow(null);
-                              }}
-                              onKeyDown={(event) =>
-                                handleKeyDown(event, rowIndex, colIndex)
-                              }
-                              onClick={() =>
-                                toggleBooleanCell(rowIndex, colIndex)
-                              }
-                              className={cellButtonStyle({ isFocused })}
-                            >
-                              {/* Visual only — the wrapping div owns the
-                                  checkbox role, so hide this from AT to
-                                  avoid double announcement. */}
-                              <input
-                                type="checkbox"
-                                checked={Boolean(value)}
-                                readOnly
-                                tabIndex={-1}
-                                aria-hidden
-                                className={booleanCellStyle}
-                              />
-                            </div>
-                          ) : (
-                            <div
-                              ref={(el) => {
-                                if (el) {
-                                  cellRefs.current.set(
-                                    `${rowIndex}-${colIndex}`,
-                                    el,
-                                  );
-                                } else {
-                                  cellRefs.current.delete(
-                                    `${rowIndex}-${colIndex}`,
-                                  );
-                                }
-                              }}
-                              role="button"
-                              tabIndex={0}
-                              onFocus={() => {
-                                setFocusedCell({
-                                  row: rowIndex,
-                                  col: colIndex,
-                                });
-                                setSelectedRow(null);
-                              }}
-                              onKeyDown={(event) =>
-                                handleKeyDown(event, rowIndex, colIndex)
-                              }
-                              className={cellButtonStyle({ isFocused })}
-                              title={
-                                isPhantomRow
-                                  ? undefined
-                                  : getCellTitle(columns[colIndex], value)
-                              }
-                              // Screen readers announce the truncated text;
-                              // uuid cells need the full canonical string.
-                              aria-label={
-                                isPhantomRow
-                                  ? undefined
-                                  : getCellTitle(columns[colIndex], value)
-                              }
-                            >
-                              {isPhantomRow
-                                ? ""
-                                : getCellDisplayText(columns[colIndex], value)}
-                            </div>
-                          )}
-                          {!isReadOnly &&
-                          !isEditing &&
-                          !isPhantomRow &&
-                          isFocused &&
-                          columns[colIndex]?.type === "uuid" ? (
-                            <span
-                              className={uuidExpandedOverlayStyle({
-                                anchor:
-                                  colIndex >= colCount / 2 ? "right" : "left",
-                              })}
+                              type="checkbox"
+                              checked={Boolean(value)}
+                              readOnly
+                              tabIndex={-1}
                               aria-hidden
-                            >
-                              {toCanonicalUuidString(value)}
-                            </span>
-                          ) : null}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                );
-              });
-            })()}
+                              className={booleanCellStyle}
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            ref={registerTarget(target)}
+                            role="button"
+                            tabIndex={tabIndexFor(target)}
+                            onFocus={() => onFocusTarget(target)}
+                            onKeyDown={onCellKeyDown(rowIndex, colIndex, value)}
+                            onPointerDown={onPointerDown}
+                            onClick={(event) => {
+                              if (shouldActivate(event)) {
+                                startEditing(
+                                  rowIndex,
+                                  colIndex,
+                                  fullText(column, value),
+                                );
+                              }
+                            }}
+                            className={cellButtonStyle}
+                            title={title}
+                            aria-label={title}
+                          >
+                            {isPhantomRow ? "" : displayText(column, value)}
+                          </div>
+                        )}
+                        {!isReadOnly &&
+                        !isEditing &&
+                        !isPhantomRow &&
+                        column?.type === "uuid" ? (
+                          <span
+                            data-uuid-overlay
+                            className={uuidExpandedOverlayStyle({
+                              anchor:
+                                colIndex >= colCount / 2 ? "right" : "left",
+                            })}
+                            aria-hidden
+                          >
+                            {toCanonicalUuidString(value)}
+                          </span>
+                        ) : null}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

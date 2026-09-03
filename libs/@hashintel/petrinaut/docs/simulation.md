@@ -11,6 +11,8 @@ Select a place and open the **State** sub-view in its properties:
 - **Untyped places** -- set a token count (integer).
 - **Typed places** -- define individual tokens with values for each dimension in a spreadsheet editor. Add a row to create a new token. UUID dimensions show a shortened identifier (hover for the full value); when editing, enter a UUID string or any free text -- non-UUID text is converted deterministically to a UUID.
 
+The spreadsheet works like a data grid: it is a single Tab stop, and the arrow keys move between cells. Click a cell to select it and click again (or press Enter, or just start typing) to edit it; Enter commits and moves to the next cell. The row-number column on the left selects whole rows: press Delete there to remove the row, or fill in the empty bottom row to add a token.
+
 <img width="581" height="228" alt="initial-states" src="https://github.com/user-attachments/assets/6ecfad1c-f6cf-47e9-94fc-f068d534307c" />
 
 If no initial marking is set, a place starts empty (zero tokens).
