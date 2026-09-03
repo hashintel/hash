@@ -1,0 +1,28 @@
+import { readFileSync } from "node:fs";
+
+import { describe, expect, test } from "vitest";
+
+const probeObjective = readFileSync(
+  new URL(
+    "../../../libs/@hashintel/brunch-agent/evaluations/protocols/mission-4-proof-of-life-v2/persona-probe-objective.md",
+    import.meta.url,
+  ),
+  "utf8",
+);
+
+describe("Mission 4 persona probe objective", () => {
+  test("uses a mechanical stop owned by the visible turn count", () => {
+    expect(probeObjective).toContain(
+      "Make exactly three visible user submissions, counting the opening as the first",
+    );
+    expect(probeObjective).toContain(
+      "The turn count alone owns the normal stop.",
+    );
+  });
+
+  test("does not ask the isolated persona to apply evaluator categories", () => {
+    expect(probeObjective).not.toMatch(
+      /\b(?:Orientation|Substantive|Battery|pass|fail)\b/iu,
+    );
+  });
+});

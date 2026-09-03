@@ -24,8 +24,10 @@ Current process-model-elicitation assets:
 - `cases/pharma-cold-chain/` and `oracles/pharma-cold-chain/` — a greenfield, explicitly
   synthetic benchmark whose domain spine comes from the logistics/pharma use-case sketch.
 - `oracles/ir-quality-ruler-v1.md` — frozen general IR-quality ruler.
-- `oracles/mission-4-activation-and-restraint-ruler-v1.md` — owner-accepted proof-of-life oracle for Mission 4 capability activation, controlled routing restraint, conditional resource reads, opening dosage, and template timing; accepted on 2026-09-03 but not campaign-frozen.
-- `protocols/mission-4-proof-of-life-v1/` — owner-frozen Mission 4 campaign instrument at `cc9a68497d`, authorized on 2026-09-03 under a $10 USD ceiling and its serial stop rules.
+- `oracles/mission-4-activation-and-restraint-ruler-v1.md` — owner-accepted v1 proof-of-life oracle, retained unchanged with the retired v1 campaign.
+- `oracles/mission-4-activation-and-restraint-ruler-v2.md` — v2 freeze candidate preserving v1's semantic checks while moving first-Substantive detection from the isolated persona to post-settlement adjudication over fixed three-submission probes.
+- `protocols/mission-4-proof-of-life-v1/` — owner-frozen Mission 4 instrument at `cc9a68497d`, retired after both Vestera attempts exposed an undefined persona-side semantic stop; retain unchanged and do not rerun.
+- `protocols/mission-4-proof-of-life-v2/` — owner-authorized freeze candidate replacing only the probe stop with a fixed three-submission bound under fresh ids; paid execution awaits manifest and remaining-spend acceptance.
 - `protocols/prospective-runbook-v1/` — frozen executed Mission 3 control; its runner was retired after evidence capture.
 - `protocols/prospective-runbook-v2/` and `protocols/prospective-runbook-v3/` — frozen failed/invalid Mission 4 attempts retained only because their hashes are part of observed evidence; do not rerun. On 2026-09-02 the owner discarded every campaign design and output after v3 (v4 protocol and evidence, v5 protocol, product-witness-v2); a new evaluation approach replaces them.
 - `protocols/ir-quality-ruler-v1/` — the independent omniscient and cold-review procedures.
