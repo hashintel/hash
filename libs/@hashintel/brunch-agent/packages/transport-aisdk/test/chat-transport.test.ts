@@ -283,7 +283,7 @@ test("keeps caller cancellation distinct from durable abort", async () => {
   ]);
 });
 
-test("surfaces rejected and ambiguous admission without retrying", async () => {
+test("classifies documented rejection and ambiguous admission without retrying", async () => {
   const rejectedSend = vi.fn<FlueClient["send"]>(async () => {
     throw new FlueApiError(403, "");
   });
@@ -305,12 +305,79 @@ test("surfaces rejected and ambiguous admission without retrying", async () => {
 
   await expect(
     createTransport(rejectedSend).sendMessages(options),
-  ).rejects.toThrow("rejected the message before admission (HTTP 403)");
+  ).rejects.toMatchObject({
+    failure: { kind: "rejected", status: 403 },
+    message: "Brunch rejected the message before admission (HTTP 403).",
+    name: "FlueChatAdmissionError",
+  });
   await expect(
     createTransport(ambiguousSend).sendMessages(options),
-  ).rejects.toThrow("may have accepted the message");
+  ).rejects.toMatchObject({
+    failure: { kind: "ambiguous" },
+    message:
+      "Brunch may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.",
+    name: "FlueChatAdmissionError",
+  });
   expect(rejectedSend).toHaveBeenCalledOnce();
   expect(ambiguousSend).toHaveBeenCalledOnce();
+});
+
+test.each([
+  ["server failure", new FlueApiError(500, "")],
+  ["unknown response", new FlueApiError(418, "")],
+] as const)(
+  "treats a %s after request write as ambiguous",
+  async (_label, error) => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw error;
+    });
+    const transport = createFlueChatTransport({
+      client: { send } as Pick<FlueClient, "send"> as FlueClient,
+      clientToolNames: new Set(),
+    });
+
+    await expect(
+      transport.sendMessages(
+        sendOptions([
+          {
+            id: "user-ambiguous",
+            role: "user",
+            parts: [{ type: "text", text: "Do not retry this." }],
+          },
+        ]),
+      ),
+    ).rejects.toMatchObject({
+      failure: { kind: "ambiguous" },
+      name: "FlueChatAdmissionError",
+    });
+    expect(send).toHaveBeenCalledOnce();
+  },
+);
+
+test("classifies an explicit local admission abort without retrying", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new DOMException("cancelled", "AbortError");
+  });
+  const transport = createFlueChatTransport({
+    client: { send } as Pick<FlueClient, "send"> as FlueClient,
+    clientToolNames: new Set(),
+  });
+
+  await expect(
+    transport.sendMessages(
+      sendOptions([
+        {
+          id: "user-aborted",
+          role: "user",
+          parts: [{ type: "text", text: "Cancel locally." }],
+        },
+      ]),
+    ),
+  ).rejects.toMatchObject({
+    failure: { kind: "aborted" },
+    name: "FlueChatAdmissionError",
+  });
+  expect(send).toHaveBeenCalledOnce();
 });
 
 test("reports one admission and its correlated response message", async () => {
@@ -441,9 +508,12 @@ test("replays a stable typed or Voice message with the same idempotency key", as
     return { ...admission, deduplicated: true };
   });
   const wait = vi.fn<FlueClient["wait"]>(async () => undefined);
+  const onAdmission =
+    vi.fn<NonNullable<FlueChatTransportOptions["onAdmission"]>>();
   const transport = createFlueChatTransport({
     client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
     clientToolNames: new Set(),
+    onAdmission,
   });
   const typedTurn = sendOptions([
     {
@@ -466,6 +536,11 @@ test("replays a stable typed or Voice message with the same idempotency key", as
     expect.objectContaining({ idempotencyKey: "ai-sdk:typed-message-1" }),
   );
   expect(admittedTurns).toBe(1);
+  expect(onAdmission).toHaveBeenNthCalledWith(2, {
+    admission: { ...admission, deduplicated: true },
+    kind: "user",
+    messageId: "typed-message-1",
+  });
 
   const voiceTurn = sendOptions([
     {
@@ -508,8 +583,15 @@ test("reports an idempotency conflict as a definite existing admission", async (
         },
       ]),
     ),
-  ).rejects.toThrow(
-    "delivery key already belongs to admitted submission submission-existing",
-  );
+  ).rejects.toMatchObject({
+    failure: {
+      kind: "submission-conflict",
+      status: 409,
+      submissionId: "submission-existing",
+    },
+    message:
+      "The delivery key already belongs to admitted submission submission-existing; the changed payload was not admitted.",
+    name: "FlueChatAdmissionError",
+  });
   expect(send).toHaveBeenCalledOnce();
 });

@@ -6,6 +6,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 import { Button } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
@@ -37,6 +38,10 @@ type SubscribeToAdmission = (
   target: RealtimeBrunchAdmissionTarget,
   listener: (submissionId: AgentSendResult["submissionId"]) => void,
 ) => () => void;
+type SubscribeToAdmissionFailure = (
+  target: RealtimeBrunchAdmissionTarget,
+  listener: (error: FlueChatAdmissionError) => void,
+) => () => void;
 type SubmitInterviewAnswer = ConstructorParameters<
   typeof RealtimeBrunchBridge
 >[0]["submitInterviewAnswer"];
@@ -48,17 +53,20 @@ export const submitVoiceInputWithAdmission = async ({
   resolveInputSubmission,
   submitVoiceInput,
   subscribeToAdmission,
+  subscribeToAdmissionFailure,
 }: {
   readonly input: SubmitInterviewAnswerInput;
   readonly resolveInputSubmission?: ResolveSubmission;
   readonly submitVoiceInput: PetrinautAiVoiceModeContext["submitVoiceInput"];
   readonly subscribeToAdmission?: SubscribeToAdmission;
+  readonly subscribeToAdmissionFailure?: SubscribeToAdmissionFailure;
 }): Promise<SubmitInterviewAnswerResult> => {
   let unsubscribe = () => {};
+  let unsubscribeFromFailure = () => {};
   let removeAbortListener = () => {};
   const cancelled = new Promise<never>((_resolve, reject) => {
     const rejectForAbort = () =>
-      reject(new DOMException("Voice admission cancelled", "AbortError"));
+      reject(new FlueChatAdmissionError({ kind: "aborted" }));
     if (input.signal.aborted) {
       rejectForAbort();
       return;
@@ -68,16 +76,25 @@ export const submitVoiceInputWithAdmission = async ({
       input.signal.removeEventListener("abort", rejectForAbort);
   });
   const admissionObserved =
-    subscribeToAdmission === undefined
+    subscribeToAdmission === undefined &&
+    subscribeToAdmissionFailure === undefined
       ? Promise.resolve()
-      : new Promise<void>((resolve) => {
-          unsubscribe = subscribeToAdmission(
-            input.admissionTarget,
-            (submissionId) => {
-              input.onAdmission(submissionId);
-              resolve();
-            },
-          );
+      : new Promise<void>((resolve, reject) => {
+          if (subscribeToAdmission !== undefined) {
+            unsubscribe = subscribeToAdmission(
+              input.admissionTarget,
+              (submissionId) => {
+                input.onAdmission(submissionId);
+                resolve();
+              },
+            );
+          }
+          if (subscribeToAdmissionFailure !== undefined) {
+            unsubscribeFromFailure = subscribeToAdmissionFailure(
+              input.admissionTarget,
+              reject,
+            );
+          }
         });
   try {
     const [result] = await Promise.race([
@@ -96,6 +113,7 @@ export const submitVoiceInputWithAdmission = async ({
   } finally {
     removeAbortListener();
     unsubscribe();
+    unsubscribeFromFailure();
   }
 };
 
@@ -306,6 +324,7 @@ const AvailableVoiceInterviewControl = ({
   resolveResponseSubmission,
   settlements,
   subscribeToAdmission,
+  subscribeToAdmissionFailure,
 }: {
   config: OpenAIVoiceConfig;
   context: PetrinautAiVoiceModeContext;
@@ -313,6 +332,7 @@ const AvailableVoiceInterviewControl = ({
   resolveResponseSubmission?: ResolveSubmissions;
   settlements?: readonly VoiceSubmissionSettlement[];
   subscribeToAdmission?: SubscribeToAdmission;
+  subscribeToAdmissionFailure?: SubscribeToAdmissionFailure;
 }) => {
   "use no memo";
 
@@ -323,6 +343,7 @@ const AvailableVoiceInterviewControl = ({
     let latestSubmitVoiceInput = context.submitVoiceInput;
     let latestResolveInputSubmission = resolveInputSubmission;
     let latestSubscribeToAdmission = subscribeToAdmission;
+    let latestSubscribeToAdmissionFailure = subscribeToAdmissionFailure;
     const session = new OpenAIRealtimeSession({
       cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
@@ -344,6 +365,7 @@ const AvailableVoiceInterviewControl = ({
           resolveInputSubmission: latestResolveInputSubmission,
           submitVoiceInput: latestSubmitVoiceInput,
           subscribeToAdmission: latestSubscribeToAdmission,
+          subscribeToAdmissionFailure: latestSubscribeToAdmissionFailure,
         }),
     });
     const controller = new VoiceTurnController({
@@ -363,10 +385,14 @@ const AvailableVoiceInterviewControl = ({
           | ((messageId: string) => string | undefined)
           | undefined,
         nextSubscribeToAdmission: SubscribeToAdmission | undefined,
+        nextSubscribeToAdmissionFailure:
+          | SubscribeToAdmissionFailure
+          | undefined,
       ) => {
         latestSubmitVoiceInput = nextSubmitVoiceInput;
         latestResolveInputSubmission = nextResolveInputSubmission;
         latestSubscribeToAdmission = nextSubscribeToAdmission;
+        latestSubscribeToAdmissionFailure = nextSubscribeToAdmissionFailure;
       },
     };
   });
@@ -392,6 +418,7 @@ const AvailableVoiceInterviewControl = ({
       context.submitVoiceInput,
       resolveInputSubmission,
       subscribeToAdmission,
+      subscribeToAdmissionFailure,
     );
     store.controller.updateChat({
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
@@ -415,6 +442,7 @@ const AvailableVoiceInterviewControl = ({
     resolveResponseSubmission,
     settlements,
     subscribeToAdmission,
+    subscribeToAdmissionFailure,
     store,
   ]);
 
@@ -536,6 +564,7 @@ export const VoiceInterviewControl = ({
   resolveResponseSubmission,
   settlements,
   subscribeToAdmission,
+  subscribeToAdmissionFailure,
   ...context
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
@@ -543,6 +572,7 @@ export const VoiceInterviewControl = ({
   readonly resolveResponseSubmission?: ResolveSubmissions;
   readonly settlements?: readonly VoiceSubmissionSettlement[];
   readonly subscribeToAdmission?: SubscribeToAdmission;
+  readonly subscribeToAdmissionFailure?: SubscribeToAdmissionFailure;
 }) => (
   <AvailableVoiceInterviewControl
     key={context.conversationId}
@@ -552,5 +582,6 @@ export const VoiceInterviewControl = ({
     resolveResponseSubmission={resolveResponseSubmission}
     settlements={settlements}
     subscribeToAdmission={subscribeToAdmission}
+    subscribeToAdmissionFailure={subscribeToAdmissionFailure}
   />
 );

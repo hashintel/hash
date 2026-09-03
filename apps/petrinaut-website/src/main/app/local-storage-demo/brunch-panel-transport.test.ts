@@ -1,3 +1,4 @@
+import { FlueApiError } from "@flue/sdk";
 import { expect, test, vi } from "vitest";
 
 import {
@@ -175,4 +176,47 @@ test("settles in-flight submissions before a durable abort can target them", asy
   );
   await expect(rejected).rejects.toThrow("rejected admission");
   await expect(tracker.settleInFlightSubmissions()).resolves.toBeUndefined();
+});
+
+test("publishes a typed admission failure for the exact panel input", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(500, "");
+  });
+  const tracker = new BrunchPanelConversationTracker();
+  const failureListener = vi.fn();
+  tracker.subscribeToAdmissionFailure(
+    { kind: "user", messageId: "voice-realtime:1:item-1:0" },
+    failureListener,
+  );
+  const transport = createBrunchPanelTransport(
+    Promise.resolve({ send } as Pick<FlueClient, "send"> as FlueClient),
+    tracker,
+  );
+
+  const submission = transport.sendMessages({
+    trigger: "submit-message",
+    chatId: "conversation-stable",
+    messageId: undefined,
+    messages: [
+      {
+        id: "voice-realtime:1:item-1:0",
+        role: "user",
+        parts: [{ type: "text", text: "One Voice turn." }],
+      },
+    ],
+    abortSignal: undefined,
+  });
+
+  await expect(submission).rejects.toMatchObject({
+    failure: { kind: "ambiguous" },
+    name: "FlueChatAdmissionError",
+  });
+  expect(failureListener).toHaveBeenCalledOnce();
+  expect(failureListener).toHaveBeenCalledWith(
+    expect.objectContaining({
+      failure: { kind: "ambiguous" },
+      name: "FlueChatAdmissionError",
+    }),
+  );
+  expect(send).toHaveBeenCalledOnce();
 });

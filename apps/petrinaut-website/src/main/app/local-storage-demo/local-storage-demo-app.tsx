@@ -139,6 +139,12 @@ export const getBrunchVoiceMode = (
                     listener(admission.submissionId),
                   )
           }
+          subscribeToAdmissionFailure={
+            tracker === undefined
+              ? undefined
+              : (target, listener) =>
+                  tracker.subscribeToAdmissionFailure(target, listener)
+          }
         />
       )
     : undefined;

@@ -1,3 +1,4 @@
+import { FlueApiError } from "@flue/sdk";
 import { describe, expect, test, vi } from "vitest";
 
 import { createOpenAIRealtimeCallHandler } from "../../../server/voice/openai-realtime-call";
@@ -12,6 +13,7 @@ import {
 import { selectCanonicalSpeechSegments } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
+import { submitVoiceInputWithAdmission } from "./voice-interview-control";
 import { VoiceTurnController } from "./voice-turn-controller";
 
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
@@ -590,5 +592,93 @@ describe("controlled voice preview", () => {
         expect.objectContaining({ type: "submission-accepted" }),
       ),
     );
+  });
+
+  test("surfaces an ambiguous Flue admission through the panel observer without retrying", async () => {
+    const send = vi.fn<FlueClient["send"]>(async () => {
+      throw new FlueApiError(500, "");
+    });
+    const tracker = new BrunchPanelConversationTracker();
+    const transport = createBrunchPanelTransport(
+      Promise.resolve({ send } as Pick<FlueClient, "send"> as FlueClient),
+      tracker,
+    );
+    let realtimeListener:
+      | ((event: OpenAIRealtimeSessionEvent) => void)
+      | undefined;
+    const bridge = new RealtimeBrunchBridge({
+      session: {
+        speakCanonical: vi.fn(),
+        subscribe: (listener) => {
+          realtimeListener = listener;
+          return () => {
+            realtimeListener = undefined;
+          };
+        },
+      },
+      submitInterviewAnswer: (input) =>
+        submitVoiceInputWithAdmission({
+          input,
+          resolveInputSubmission: (messageId) =>
+            tracker.submissionForInput(messageId),
+          submitVoiceInput: async ({ id, text }) => {
+            if (id === undefined) {
+              throw new Error("Voice message identity is required.");
+            }
+            void transport
+              .sendMessages({
+                trigger: "submit-message",
+                chatId: "conversation-1",
+                messageId: undefined,
+                messages: [
+                  {
+                    id,
+                    role: "user",
+                    metadata: { source: "voice" },
+                    parts: [{ type: "text", text }],
+                  },
+                ],
+                abortSignal: input.signal,
+              })
+              .catch(() => undefined);
+            return { kind: "message", messageId: id };
+          },
+          subscribeToAdmission: (target, listener) =>
+            tracker.subscribeToAdmission(target, ({ admission }) =>
+              listener(admission.submissionId),
+            ),
+          subscribeToAdmissionFailure: (target, listener) =>
+            tracker.subscribeToAdmissionFailure(target, listener),
+        }),
+    });
+    const events: RealtimeBrunchBridgeEvent[] = [];
+    bridge.subscribe((event) => events.push(event));
+    bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      status: "ready",
+    });
+    bridge.start(1);
+
+    realtimeListener?.({
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "input-item-ambiguous",
+      },
+      text: spokenAnswer,
+      type: "completed",
+    });
+
+    await vi.waitFor(() =>
+      expect(events).toContainEqual({
+        code: "admission-ambiguous",
+        failure: { kind: "ambiguous" },
+        message:
+          "Brunch may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.",
+        type: "error",
+      }),
+    );
+    expect(send).toHaveBeenCalledOnce();
   });
 });

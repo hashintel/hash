@@ -43,6 +43,42 @@ export interface FlueChatTransportOptions {
   }) => void;
 }
 
+export type FlueChatAdmissionFailure =
+  | { readonly kind: "aborted" }
+  | { readonly kind: "ambiguous" }
+  | { readonly kind: "rejected"; readonly status: number }
+  | {
+      readonly kind: "submission-conflict";
+      readonly status: 409;
+      readonly submissionId: AgentSendResult["submissionId"];
+    };
+
+const admissionFailureMessage = (failure: FlueChatAdmissionFailure): string => {
+  switch (failure.kind) {
+    case "aborted":
+      return "The local chat submission was cancelled.";
+    case "ambiguous":
+      return "Brunch may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.";
+    case "rejected":
+      return `Brunch rejected the message before admission (HTTP ${failure.status}).`;
+    case "submission-conflict":
+      return `The delivery key already belongs to admitted submission ${failure.submissionId}; the changed payload was not admitted.`;
+  }
+};
+
+export class FlueChatAdmissionError extends Error {
+  public readonly failure: FlueChatAdmissionFailure;
+
+  public constructor(
+    failure: FlueChatAdmissionFailure,
+    options?: { readonly cause?: unknown },
+  ) {
+    super(admissionFailureMessage(failure), options);
+    this.name = "FlueChatAdmissionError";
+    this.failure = failure;
+  }
+}
+
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   typeof value === "object" && value !== null && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -129,27 +165,37 @@ const conflictingSubmissionId = (error: FlueApiError): string | null => {
     : null;
 };
 
-const admissionError = (error: unknown): Error => {
-  if (isAbortError(error)) {
-    return error as Error;
+const documentedPreAdmissionStatuses = new Set([
+  400, 401, 403, 404, 405, 409, 415,
+]);
+
+const admissionError = (
+  error: unknown,
+  signal: AbortSignal | undefined,
+): FlueChatAdmissionError => {
+  if (signal?.aborted || isAbortError(error)) {
+    return new FlueChatAdmissionError({ kind: "aborted" }, { cause: error });
   }
   if (error instanceof FlueApiError) {
     const existingSubmissionId = conflictingSubmissionId(error);
     if (existingSubmissionId !== null) {
-      return new Error(
-        `The delivery key already belongs to admitted submission ${existingSubmissionId}; the changed payload was not admitted.`,
+      return new FlueChatAdmissionError(
+        {
+          kind: "submission-conflict",
+          status: 409,
+          submissionId: existingSubmissionId,
+        },
         { cause: error },
       );
     }
-    return new Error(
-      `Brunch rejected the message before admission (HTTP ${error.status}).`,
-      { cause: error },
-    );
+    if (documentedPreAdmissionStatuses.has(error.status)) {
+      return new FlueChatAdmissionError(
+        { kind: "rejected", status: error.status },
+        { cause: error },
+      );
+    }
   }
-  return new Error(
-    "Brunch may have accepted the message, but admission could not be confirmed. Reopen the conversation before trying again.",
-    { cause: error },
-  );
+  return new FlueChatAdmissionError({ kind: "ambiguous" }, { cause: error });
 };
 
 const streamFailureChunk = (
@@ -330,7 +376,7 @@ export const createFlueChatTransport = <
         signal: abortSignal,
       });
     } catch (error) {
-      throw admissionError(error);
+      throw admissionError(error, abortSignal);
     }
     options.onAdmission?.({
       admission,
