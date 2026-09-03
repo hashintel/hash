@@ -1,4 +1,9 @@
+import {
+  CLIENT_TOOL_RESULT_SIGNAL,
+  createFlueChatTransport,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import { SWEEP_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
 import { sweepOutputSchema } from "../brunch-sweep-output";
 
@@ -7,6 +12,7 @@ import type {
   SweepCompletionFailure,
   SweepCompletionReport,
 } from "../brunch-sweep-output";
+import type { FlueClient } from "@flue/sdk";
 import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type { UIMessageChunk } from "ai";
 
@@ -126,26 +132,18 @@ const decorateBrunchStream = (
   );
 };
 
-/**
- * Pin Petrinaut's stock transport to one stable conversation id so reload,
- * client-tool follow-up, and the voice dock share Flue's conversation.
- */
+/** Adapt one mounted Flue conversation to Petrinaut's AI SDK rendering contract. */
 export const createBrunchPanelTransport = (
-  transport: PetrinautAiChatTransport,
-  conversationId: string,
+  clientPromise: Promise<FlueClient>,
 ): PetrinautAiChatTransport => ({
-  reconnectToStream: async (options) => {
-    const stream = await transport.reconnectToStream({
-      ...options,
-      chatId: conversationId,
+  reconnectToStream: async () => null,
+  sendMessages: async (sendOptions) => {
+    const client = await clientPromise;
+    const transport = createFlueChatTransport({
+      client,
+      clientToolNames: new Set([readPetrinautDocToolName]),
+      clientToolResultSignal: CLIENT_TOOL_RESULT_SIGNAL,
     });
-    return stream === null ? null : decorateBrunchStream(stream);
+    return decorateBrunchStream(await transport.sendMessages(sendOptions));
   },
-  sendMessages: async (options) =>
-    decorateBrunchStream(
-      await transport.sendMessages({
-        ...options,
-        chatId: conversationId,
-      }),
-    ),
 });

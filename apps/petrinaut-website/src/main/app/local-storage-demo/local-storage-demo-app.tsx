@@ -3,10 +3,14 @@
  * @role Editable demo shell: nets in local storage, one live document handle
  */
 
+import { createFlueClient } from "@flue/sdk";
 import { produce } from "immer";
 import { useEffect, useMemo, useState } from "react";
 
-import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
+import {
+  agentOwnershipHeaders,
+  flueConversationIdWeb,
+} from "@hashintel/brunch-agent-transport-aisdk";
 import {
   createJsonDocHandle,
   type MinimalNetMetadata,
@@ -106,12 +110,6 @@ const brunchPreviewConfig = resolveBrunchPreviewConfig(
   import.meta.env.VITE_BRUNCH_CHAT_ENDPOINT,
 );
 
-// Only Brunch keeps a conversation to hydrate from; the generic fallback route
-// has no history door.
-const brunchHistoryEndpoint = brunchPreviewConfig.isBrunchConfigured
-  ? brunchPreviewConfig.chatEndpoint
-  : null;
-
 export const getBrunchVoiceMode = (
   config: OpenAIVoiceConfig | null | undefined,
 ): PetrinautAiVoiceMode | undefined =>
@@ -133,10 +131,26 @@ const brunchPrincipal = getOrCreateBrunchPrincipal();
 const stockChatTransport = new DefaultChatTransport({
   api: brunchPreviewConfig.chatEndpoint,
   headers: () => ({
-    [BRUNCH_PRINCIPAL_HEADER]: brunchPrincipal,
     [VOICE_REQUEST_ID_HEADER]: crypto.randomUUID(),
   }),
 });
+
+const createBrunchFlueClient = async (conversationId: string) => {
+  const identity = { conversationId, principalKey: brunchPrincipal };
+  const instanceId = await flueConversationIdWeb(
+    identity.principalKey,
+    identity.conversationId,
+  );
+  const mountUrl = new URL(
+    brunchPreviewConfig.chatEndpoint,
+    window.location.origin,
+  );
+  mountUrl.pathname = `${mountUrl.pathname.replace(/\/+$/u, "")}/${instanceId}`;
+  return createFlueClient({
+    url: mountUrl.href,
+    headers: agentOwnershipHeaders(identity),
+  });
+};
 
 const getStoredSDCPNsForDisplay = (
   storedSDCPNs: Record<string, SDCPNInLocalStorage>,
@@ -252,11 +266,6 @@ export const LocalStorageDemoApp = ({
 
     return () => abortController.abort();
   }, []);
-
-  const brunchVoiceMode = useMemo(
-    () => getBrunchVoiceMode(openAIVoiceConfig),
-    [openAIVoiceConfig],
-  );
 
   // Pick the most recently modified net
   const mostRecentlyModifiedNet =
@@ -397,17 +406,27 @@ export const LocalStorageDemoApp = ({
   const conversationId = currentNetId
     ? getOrCreateBrunchConversationId(currentNetId)
     : null;
+  const flueClientPromise = useMemo(
+    () =>
+      brunchPreviewConfig.isBrunchConfigured && conversationId !== null
+        ? createBrunchFlueClient(conversationId)
+        : null,
+    [conversationId],
+  );
+  const brunchVoiceMode = useMemo(
+    () => getBrunchVoiceMode(openAIVoiceConfig),
+    [openAIVoiceConfig],
+  );
   const flueHistory = useFlueChatHistory(
-    brunchHistoryEndpoint,
+    flueClientPromise,
     conversationId ?? "",
-    brunchPrincipal,
   );
   const petrinautAiChatTransport = useMemo(
     () =>
-      conversationId === null
-        ? createBrunchPanelTransport(stockChatTransport, "")
-        : createBrunchPanelTransport(stockChatTransport, conversationId),
-    [conversationId],
+      flueClientPromise === null
+        ? stockChatTransport
+        : createBrunchPanelTransport(flueClientPromise),
+    [flueClientPromise],
   );
 
   const aiAssistant = useMemo(

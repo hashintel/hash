@@ -2,9 +2,9 @@
  * Local FE-1436 panel launcher.
  *
  * Loads the real hash Petrinaut website config, removes only its incumbent
- * `/api/chat` dev handler, and sends that same-origin route to brunch's
- * committed application server. The real panel, wrappers, and editor stay untouched;
- * hash's tracked checkout stays clean.
+ * `/api/chat` dev handler, and proxies Brunch's mounted Flue route to the
+ * committed application server. The real panel, wrappers, and editor stay
+ * untouched; hash's tracked checkout stays clean.
  */
 
 import { join, resolve } from "node:path";
@@ -44,6 +44,7 @@ export default defineConfig(async (environment) => {
     throw new Error("PETRINAUT_WEBSITE_ROOT is required.");
   }
   const root = resolve(websiteRoot);
+  process.env.VITE_BRUNCH_CHAT_ENDPOINT ??= "/agents/chat";
   // Babel resolves the React compiler plugin from the launched project's cwd,
   // not from the imported config file. Match a native hash launch before the
   // plugin begins transforming the real panel source.
