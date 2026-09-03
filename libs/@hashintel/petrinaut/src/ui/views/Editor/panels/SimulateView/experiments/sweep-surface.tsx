@@ -11,7 +11,7 @@
  * collapses both shown parameters to a point at the clicked position.
  * Rendering itself is `ContourSurface`, which is purely presentational.
  */
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 
 import { Select } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
@@ -32,6 +32,15 @@ import type { ContourSurfaceValues } from "../../../../../components/contour-sur
 
 /** Runs a surface point needs before it appears. */
 const SURFACE_CELL_RUNS = 8;
+
+/**
+ * Cells sampled in flight at once. Each cell instantiates its own small
+ * batch, and most of a cell's wall time is that setup rather than compute —
+ * sampling strictly one at a time filled an 11×11 surface in ~15 s where
+ * four lanes fill it in ~4 s. The lanes pull from one coarse-to-fine queue,
+ * so the early picture keeps its coarse-first shape.
+ */
+const SURFACE_WALK_LANES = 4;
 
 /**
  * Sampled positions per axis on the surface's sub-grid: a subset of the
@@ -111,6 +120,13 @@ export const SweepSurface = ({
   const [metricId, setMetricId] = useState(experiment.metricSpecs[0]?.id ?? "");
   const [cellValues, setCellValues] = useState<ContourSurfaceValues>(new Map());
   const [walkKey, setWalkKey] = useState("");
+  // Resolved cells buffer here and flush once per animation frame: a walk
+  // over a cached slice resolves its cells back to back, and committing each
+  // one re-rendered the drawer subtree dozens of times with no new picture.
+  const pendingCellsRef = useRef<{
+    entries: [string, number][];
+    scheduled: boolean;
+  }>({ entries: [], scheduled: false });
 
   const xAxis = axes.find((axis) => axis.identifier === xAxisId);
   const yAxis = axes.find((axis) => axis.identifier === yAxisId);
@@ -133,6 +149,7 @@ export const SweepSurface = ({
       return;
     }
     const walk: { stale: boolean } = { stale: false };
+    const pendingCells = pendingCellsRef.current;
     // Read through a call so the flow analysis cannot pin the flag to its
     // initial value: cleanup flips it from outside this closure.
     const isWalkStale = () => walk.stale;
@@ -144,46 +161,67 @@ export const SweepSurface = ({
 
     const xPositions = surfacePositions(xAxis);
     const yPositions = surfacePositions(yAxis);
-    const run = async () => {
-      for (const cell of coarseToFineOrder(
-        xPositions.length,
-        yPositions.length,
-      )) {
-        if (isWalkStale()) {
-          return;
-        }
-        const position: Record<string, number> = {
-          [xAxis.identifier]: xPositions[cell.x]!,
-          [yAxis.identifier]: yPositions[cell.y]!,
-        };
-        for (const [identifier, positionText] of fixedEntries) {
-          position[identifier] = Number(positionText);
-        }
+    const queue = coarseToFineOrder(xPositions.length, yPositions.length);
+    let nextCell = 0;
+    const sampleOne = async (cell: { x: number; y: number }) => {
+      const position: Record<string, number> = {
+        [xAxis.identifier]: xPositions[cell.x]!,
+        [yAxis.identifier]: yPositions[cell.y]!,
+      };
+      for (const [identifier, positionText] of fixedEntries) {
+        position[identifier] = Number(positionText);
+      }
 
-        const snapshot = await sampleSweepCell(
-          experimentId,
-          position,
-          SURFACE_CELL_RUNS,
-        );
-        if (isWalkStale()) {
-          return;
-        }
-        if (snapshot) {
-          const value = sweepCellObjective(snapshot.metricFrames, metricId);
-          if (value !== null) {
-            setCellValues((previous) => {
-              const next = new Map(previous);
-              next.set(contourSurfaceKey(cell.x, cell.y), value);
-              return next;
-            });
+      const snapshot = await sampleSweepCell(
+        experimentId,
+        position,
+        SURFACE_CELL_RUNS,
+      );
+      if (isWalkStale() || !snapshot) {
+        return;
+      }
+      const value = sweepCellObjective(snapshot.metricFrames, metricId);
+      if (value === null) {
+        return;
+      }
+      const pending = pendingCells;
+      pending.entries.push([contourSurfaceKey(cell.x, cell.y), value]);
+      if (!pending.scheduled) {
+        pending.scheduled = true;
+        requestAnimationFrame(() => {
+          pending.scheduled = false;
+          const entries = pending.entries.splice(0);
+          if (entries.length === 0) {
+            return;
           }
-        }
+          setCellValues((previous) => {
+            const next = new Map(previous);
+            for (const [key, cellValue] of entries) {
+              next.set(key, cellValue);
+            }
+            return next;
+          });
+        });
       }
     };
-    void run();
+    const lane = async () => {
+      while (!isWalkStale()) {
+        const cell = queue[nextCell];
+        nextCell += 1;
+        if (cell === undefined) {
+          return;
+        }
+        await sampleOne(cell);
+      }
+    };
+    for (let index = 0; index < SURFACE_WALK_LANES; index++) {
+      void lane();
+    }
 
     return () => {
       walk.stale = true;
+      // Entries the flush has not committed belong to the stale walk.
+      pendingCells.entries.length = 0;
     };
   }, [axes, experimentId, metricId, sampleSweepCell, slice, xAxis, yAxis]);
 
@@ -252,6 +290,7 @@ export const SweepSurface = ({
         <ContourSurface
           nx={surfacePositions(xAxis).length}
           ny={surfacePositions(yAxis).length}
+          contentKey={`${xAxisId}|${yAxisId}|${metricId}`}
           values={cellValues}
           onClickFraction={handleClickFraction}
           aria-label="Sweep surface"

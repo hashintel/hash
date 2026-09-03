@@ -19,9 +19,9 @@
  *
  * The session is backend-agnostic: it asks an injected `instantiateBatch` for
  * a `MonteCarloExperiment` per batch and only consumes the handle's stores.
- * A range batch carries per-run parameter values (`runs`), which the WebGPU
- * backend refuses — hosts route those to the CPU worker pool; point batches
- * stay GPU-eligible.
+ * A range batch carries per-run parameter values (`runs`); the CPU pool
+ * applies them per run and the WebGPU backend uploads them to a per-run
+ * parameter buffer, so points and ranges are equally backend-eligible.
  *
  * Determinism: a batch covering runs `[from, target)` derives its base seed
  * as `deriveRunSeed(seed, from)` (the first batch keeps `seed` verbatim), and
@@ -31,6 +31,7 @@
  */
 import { deriveRunSeed } from "@hashintel/petrinaut-core";
 
+import { createCooperativeYielder } from "./cooperative-yield";
 import {
   axisValueAt,
   fullSweepSelection,
@@ -43,7 +44,6 @@ import {
 import type { ExperimentParameterAxis, SweepSelection } from "./parameter-grid";
 import type {
   MonteCarloExperiment,
-  MonteCarloRunConfig,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
 } from "@hashintel/petrinaut-core";
@@ -81,11 +81,11 @@ export type InstantiateSweepBatch = (options: {
    */
   parameterValues: Readonly<Record<string, number>>;
   /**
-   * Per-run parameter values for the batch's runs, present only when some
-   * axis has a non-degenerate range. Backends that bake parameters in cannot
-   * run these; hosts route them to the CPU worker pool at full parallelism.
+   * Per-run parameter draws for the batch's runs, present only when some
+   * axis has a non-degenerate range. The CPU pool applies them per run; the
+   * WebGPU backend reads them from a per-run parameter buffer.
    */
-  runs?: readonly MonteCarloRunConfig[];
+  draws?: SweepRunDraws;
   /** Base seed for this batch (already derived from the batch's run range). */
   seed: number;
   /** Runs this batch adds on top of the selection's finished batches. */
@@ -107,6 +107,13 @@ export type CreateSweepSessionOptions = {
   initialSelection?: SweepSelection;
   instantiateBatch: InstantiateSweepBatch;
   onUpdate: (update: SweepSessionUpdate) => void;
+  /**
+   * Coalesces in-flight publishes: after a leading publish, further store
+   * ticks inside this window fold into one trailing publish. 0 (the
+   * default) publishes on every tick. Terminal publishes (batch end,
+   * saturation, errors) are never delayed.
+   */
+  publishThrottleMs?: number;
   /** A failed batch stops the session; the owner decides how to surface it. */
   onError: (message: string) => void;
 };
@@ -207,21 +214,42 @@ export function sweepSelectionMidValues(
   return values;
 }
 
+/** An error the batch machinery recognizes as a deliberate abort. */
+function abortError(): Error {
+  const error = new Error("The batch was aborted.");
+  error.name = "AbortError";
+  return error;
+}
+
 /**
- * Per-run parameter values for a range selection's batch covering global run
+ * One batch's per-run draws: one column per ranged axis, one typed array of
+ * run-major values. A record per run was the second-largest main-thread cost
+ * of instantiating a million-run batch; the array form is written once and
+ * translated without materializing anything per run.
+ */
+export type SweepRunDraws = {
+  /** The drawn identifiers (ranged axes), in axis order. */
+  identifiers: readonly string[];
+  /** `values[run * identifiers.length + i]` is `identifiers[i]`'s draw. */
+  values: Float64Array;
+};
+
+/**
+ * Per-run parameter draws for a range selection's batch covering global run
  * indices `[from, target)`, or undefined when every axis is a point. Each
  * ranged axis draws continuously inside its selected value interval — the
  * quantized positions bound the interval, they do not grid it — via the
  * axis's own seed-shifted low-discrepancy sequence, prefix-stable in the
  * run index.
  */
-export function sweepRangeRuns(
+export async function sweepRangeDraws(
   seed: number,
   axes: readonly ExperimentParameterAxis[],
   selection: SweepSelection,
   from: number,
   target: number,
-): MonteCarloRunConfig[] | undefined {
+  signal?: { readonly aborted: boolean },
+): Promise<SweepRunDraws | undefined> {
   const ranged = axes
     .map((axis, axisIndex) => {
       const range = selection[axis.identifier] ?? {
@@ -244,18 +272,35 @@ export function sweepRangeRuns(
     return undefined;
   }
 
-  return Array.from({ length: target - from }, (_, localIndex) => {
+  const runCount = target - from;
+  const width = ranged.length;
+  const values = new Float64Array(runCount * width);
+  const yielder = createCooperativeYielder();
+  for (let localIndex = 0; localIndex < runCount; localIndex++) {
+    if (localIndex % 4096 === 0) {
+      // Yielding lets a selection change land mid-build; a superseded batch
+      // must stop here rather than finish millions of draws nobody wants.
+      // Checked independently of the yield, which a hidden document skips.
+      if (signal?.aborted) {
+        throw abortError();
+      }
+      if (yielder.shouldYield()) {
+        await yielder.yieldNow();
+      }
+    }
     const globalIndex = from + localIndex;
-    const parameterValues: Record<string, string> = {};
-    for (const { axis, axisIndex, low, high } of ranged) {
+    for (let column = 0; column < width; column++) {
+      const { axis, axisIndex, low, high } = ranged[column]!;
       const raw =
         low + sweepRunFraction(seed, globalIndex, axisIndex) * (high - low);
-      parameterValues[axis.identifier] = String(
-        axis.integer ? Math.round(raw) : Number(raw.toPrecision(12)),
-      );
+      // `toPrecision(12)` matches what the record form stringified, so a
+      // draw is the same number either way and cached rungs stay valid.
+      values[localIndex * width + column] = axis.integer
+        ? Math.round(raw)
+        : Number(raw.toPrecision(12));
     }
-    return { parameterValues };
-  });
+  }
+  return { identifiers: ranged.map((entry) => entry.axis.identifier), values };
 }
 
 /** The base seed of the batch whose first run has global index `from`. */
@@ -283,6 +328,36 @@ export function createSweepSession(
   const snapshotFor = (key: string): SweepCellSnapshot =>
     cache.get(key) ?? { runsCompleted: 0, metricFrames: [] };
 
+  /**
+   * The last live merge, keyed by both inputs' identities. Progress ticks
+   * re-publish the same frame arrays, and the full re-merge — every cached
+   * frame against every in-flight frame — was the sweep lane's hottest
+   * main-thread cost.
+   */
+  let mergeCache: {
+    cached: readonly MonteCarloUserDefinedMetricFrame[];
+    inFlight: readonly MonteCarloUserDefinedMetricFrame[];
+    result: readonly MonteCarloUserDefinedMetricFrame[];
+  } | null = null;
+
+  const mergeLive = (
+    cached: readonly MonteCarloUserDefinedMetricFrame[],
+    inFlight: readonly MonteCarloUserDefinedMetricFrame[],
+  ): readonly MonteCarloUserDefinedMetricFrame[] => {
+    if (
+      mergeCache === null ||
+      mergeCache.cached !== cached ||
+      mergeCache.inFlight !== inFlight
+    ) {
+      mergeCache = {
+        cached,
+        inFlight,
+        result: mergeMetricFramesAcrossCells([cached, inFlight]),
+      };
+    }
+    return mergeCache.result;
+  };
+
   const publish = (update: {
     inFlightFrames?: readonly MonteCarloUserDefinedMetricFrame[];
     inFlightRuns?: number;
@@ -299,7 +374,7 @@ export function createSweepSession(
       selection,
       metricFrames:
         inFlight.length > 0
-          ? mergeMetricFramesAcrossCells([snapshot.metricFrames, inFlight])
+          ? mergeLive(snapshot.metricFrames, inFlight)
           : snapshot.metricFrames,
       runsSampled: snapshot.runsCompleted + (update.inFlightRuns ?? 0),
       runsCompleted: snapshot.runsCompleted,
@@ -330,23 +405,32 @@ export function createSweepSession(
     const abortController = new AbortController();
     // Until the handle exists, aborting the controller is all a restart can
     // do; instantiation rejects with AbortError and the stale loop exits.
-    abortCurrent = () => {
+    const abortThisBatch = () => {
       abortController.abort();
     };
+    abortCurrent = abortThisBatch;
 
-    const runs = sweepRangeRuns(
-      seed,
-      axes,
-      selection,
-      snapshot.runsCompleted,
-      target,
-    );
+    let draws: SweepRunDraws | undefined;
+    try {
+      draws = await sweepRangeDraws(
+        seed,
+        axes,
+        selection,
+        snapshot.runsCompleted,
+        target,
+        abortController.signal,
+      );
+    } catch {
+      // Only an abort escapes the draw build, and an abort means a restart
+      // or a dispose already superseded this generation.
+      return "stop";
+    }
 
     let handle: MonteCarloExperiment;
     try {
       handle = await instantiateBatch({
         parameterValues: sweepSelectionMidValues(axes, selection),
-        ...(runs === undefined ? {} : { runs }),
+        ...(draws === undefined ? {} : { draws }),
         seed: sweepBatchSeed(seed, snapshot.runsCompleted),
         runCount: target - snapshot.runsCompleted,
         signal: abortController.signal,
@@ -388,8 +472,36 @@ export function createSweepSession(
         computing: true,
       });
     };
-    const offMetrics = handle.metrics.subscribe(publishLive);
-    const offProgress = handle.progress.subscribe(publishLive);
+    // Leading-edge publish with trailing coalescing: with many shards each
+    // message wave fires metrics and progress ticks back to back, and every
+    // one re-rendered the whole drawer.
+    const throttleMs = options.publishThrottleMs ?? 0;
+    // In an object so reads go through a property the narrowing-based lint
+    // treats as opaque: the fields flip inside timer callbacks.
+    const throttle: {
+      timer: ReturnType<typeof setTimeout> | null;
+      pending: boolean;
+    } = { timer: null, pending: false };
+    const publishLiveThrottled = () => {
+      if (throttleMs === 0) {
+        publishLive();
+        return;
+      }
+      if (throttle.timer !== null) {
+        throttle.pending = true;
+        return;
+      }
+      publishLive();
+      throttle.timer = setTimeout(() => {
+        throttle.timer = null;
+        if (throttle.pending) {
+          throttle.pending = false;
+          publishLiveThrottled();
+        }
+      }, throttleMs);
+    };
+    const offMetrics = handle.metrics.subscribe(publishLiveThrottled);
+    const offProgress = handle.progress.subscribe(publishLiveThrottled);
     const offEvents = handle.events.subscribe((event) => {
       if (event.type === "complete") {
         resolveDone("complete");
@@ -414,6 +526,13 @@ export function createSweepSession(
     offMetrics();
     offProgress();
     offEvents();
+    // A trailing tick after the fold would re-merge the batch's frames on
+    // top of a cache that already contains them — double counting.
+    if (throttle.timer !== null) {
+      clearTimeout(throttle.timer);
+      throttle.timer = null;
+    }
+    throttle.pending = false;
 
     if (failed && !isStale(loopGeneration)) {
       // The session idles after a failure; leave the last good frames up
@@ -422,7 +541,11 @@ export function createSweepSession(
     }
     const finishedFrames = handle.metrics.get().frames;
     handle.dispose();
-    abortCurrent = null;
+    // A stale batch finishing late must not disarm the successor generation's
+    // abort hook.
+    if (abortCurrent === abortThisBatch) {
+      abortCurrent = null;
+    }
 
     if (outcome === "complete") {
       // Fold the batch into the cache even when the user has moved on —
@@ -470,8 +593,30 @@ export function createSweepSession(
 
   restart();
 
-  /** Serializes background sampling; one small batch in flight at most. */
-  let backgroundChain: Promise<unknown> = Promise.resolve();
+  /**
+   * Bounds background sampling to a few small batches in flight. Strictly
+   * one at a time made the surface's four sampling lanes an illusion — every
+   * cell serialized here regardless — and most of a cell's wall time is
+   * batch setup rather than compute, so a small overlap pipelines it without
+   * starving the navigator's own batch.
+   */
+  const BACKGROUND_BATCHES_IN_FLIGHT = 4;
+  let backgroundActive = 0;
+  const backgroundWaiters: (() => void)[] = [];
+  const acquireBackgroundSlot = async (): Promise<void> => {
+    if (backgroundActive < BACKGROUND_BATCHES_IN_FLIGHT) {
+      backgroundActive += 1;
+      return;
+    }
+    await new Promise<void>((resolve) => {
+      backgroundWaiters.push(resolve);
+    });
+    backgroundActive += 1;
+  };
+  const releaseBackgroundSlot = (): void => {
+    backgroundActive -= 1;
+    backgroundWaiters.shift()?.();
+  };
 
   const runBackgroundBatch = async (
     position: Readonly<Record<string, number>>,
@@ -555,12 +700,13 @@ export function createSweepSession(
     getCell(position) {
       return cache.get(sweepCellKey(axes, position));
     },
-    sampleCell(position, minRuns) {
-      const next = backgroundChain.then(() =>
-        runBackgroundBatch({ ...position }, minRuns),
-      );
-      backgroundChain = next.catch(() => null);
-      return next;
+    async sampleCell(position, minRuns) {
+      await acquireBackgroundSlot();
+      try {
+        return await runBackgroundBatch({ ...position }, minRuns);
+      } finally {
+        releaseBackgroundSlot();
+      }
     },
     dispose() {
       disposed = true;

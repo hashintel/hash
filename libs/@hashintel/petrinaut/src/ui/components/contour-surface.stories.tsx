@@ -193,6 +193,57 @@ const ClickableSurface = () => {
   );
 };
 
+/**
+ * A walk restart: the surface fills, the caller clears every value (a new
+ * slice), and the plot keeps the previous picture dimmed — with the new
+ * walk's first dots on top — instead of flashing blank, until enough new
+ * samples arrive to interpolate.
+ */
+const RestartingDemo = () => {
+  const [values, setValues] = useState<ContourSurfaceValues>(fieldValues());
+  useEffect(() => {
+    const order = coarseToFineOrder(GRID, GRID);
+    let step = 0;
+    const timer = setInterval(() => {
+      step += 1;
+      const phase = step % 40;
+      if (phase === 0) {
+        setValues(fieldValues());
+      } else if (phase === 20) {
+        // The restart: a new slice begins with nothing sampled.
+        setValues(new Map());
+      } else if (phase > 20) {
+        // One cell on the first ticks — the ghost with the new walk's first
+        // dots — then batches, mirroring a real refill.
+        const refill = order.slice(
+          0,
+          Math.max(phase - 22, 0) * 4 + (phase - 20),
+        );
+        setValues(() => {
+          const next = new Map<string, number>();
+          for (const cell of refill) {
+            next.set(
+              contourSurfaceKey(cell.x, cell.y),
+              fieldValue(cell.x, cell.y) * 0.7,
+            );
+          }
+          return next;
+        });
+      }
+    }, 150);
+    return () => clearInterval(timer);
+  }, []);
+  return (
+    <Frame>
+      <ContourSurface nx={GRID} ny={GRID} values={values} />
+    </Frame>
+  );
+};
+
+export const Restarting: Story = {
+  render: () => <RestartingDemo />,
+};
+
 export const ClickToNavigate: Story = {
   name: "Click to navigate",
   render: () => <ClickableSurface />,

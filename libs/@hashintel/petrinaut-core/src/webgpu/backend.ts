@@ -10,7 +10,7 @@
  * @role Generates a WGSL compute shader from a net's HIR and runs its experiment runs on the GPU
  */
 import { resolveNetParameterValues } from "../parameter-values";
-import { compileNetShader, GPU_HISTOGRAM_BINS } from "./compile-net-shader";
+import { compileNetShader } from "./compile-net-shader";
 import { assessGpuEligibility, formatGpuIneligibility } from "./eligibility";
 import { hirFromArtifacts } from "./hir-from-artifacts";
 import { requestGpuDevice } from "./runner";
@@ -54,12 +54,9 @@ export type GpuBackendRequest = {
   dt: number;
   metrics: readonly GpuMetricSpec[];
   /**
-   * Initial marking, keyed by place id.
-   *
-   * Used to refuse a net whose sampled places already exceed the histogram's
-   * range. Keyed rather than ordered because the caller cannot know
-   * `profile.places` order until this call returns. Optional, so callers that only
-   * want a shader need not supply it.
+   * Initial marking, keyed by place id. Keyed rather than ordered because
+   * the caller cannot know `profile.places` order until this call returns.
+   * Optional, so callers that only want a shader need not supply it.
    */
   initialMarking?: InitialMarking;
   /**
@@ -72,13 +69,29 @@ export type GpuBackendRequest = {
    */
   odeMethod?: GpuOdeMethod;
   framesPerDispatch?: number;
+  /**
+   * Parameters whose value varies per run; the shader reads them from a
+   * per-run buffer instead of baking a literal. See `CompileNetShaderInput`.
+   */
+  runParameters?: readonly string[];
 };
 
 export type GpuBackend = {
   supported: true;
   handle: GpuDeviceHandle;
   shader: CompiledNetShader;
+  /** The compiled profile: derived-capacity places carry their probe slabs. */
   profile: GpuNetProfile;
+  /**
+   * The probe slab per derived-capacity place; empty when every typed place
+   * declares its own. The handle probes at these, then recompiles at what
+   * the probe observed.
+   */
+  derivedCapacities: ReadonlyMap<string, number>;
+  /** Recompiles the shader at different derived slabs; capacities are baked. */
+  recompile: (
+    capacities: ReadonlyMap<string, number>,
+  ) => ReturnType<typeof compileNetShader>;
   framesPerDispatch: number;
   /** Notes that did not prevent use, e.g. user code that fell back to a default. */
   warnings: string[];
@@ -95,19 +108,6 @@ export type GpuBackendUnavailable = {
 /**
  * Prepares the GPU backend for one net, or explains why it is unavailable.
  */
-/**
- * Token count a place's initial marking represents: uncoloured places carry a
- * plain number, typed places an array of token records.
- */
-function initialTokenCount(
-  marking: InitialMarking[string] | undefined,
-): number {
-  if (typeof marking === "number") {
-    return marking;
-  }
-  return Array.isArray(marking) ? marking.length : 0;
-}
-
 export async function requestGpuExperimentBackend(
   request: GpuBackendRequest,
 ): Promise<GpuBackend | GpuBackendUnavailable> {
@@ -120,6 +120,7 @@ export async function requestGpuExperimentBackend(
     metrics,
     odeMethod = "rk4",
     framesPerDispatch = DEFAULT_GPU_FRAMES_PER_DISPATCH,
+    runParameters,
   } = request;
 
   // Net eligibility is checked before touching the GPU: it is the most likely
@@ -140,50 +141,56 @@ export async function requestGpuExperimentBackend(
     extensions?.parameters ?? true,
   );
 
-  const compiled = compileNetShader({
-    sdcpn,
-    profile: eligibility.profile,
-    parameterValues: resolvedParameters,
-    lambdaHir: lowered.lambdas,
-    dynamicsHir: lowered.dynamics,
-    kernelHir: lowered.kernels,
-    dt,
-    framesPerDispatch,
-    metrics,
-    odeMethod,
-    extensions,
+  // A derived-capacity place starts at a generous probe slab: room for four
+  // times its initial tokens, so the probe observes real maxima rather than
+  // overflowing immediately. The handle grows it from there when the probe
+  // still overflows, and shrinks it to the observed maximum for the full
+  // run — see `gpu-experiment-handle.ts`.
+  const probeCapacities = new Map<string, number>();
+  for (const place of eligibility.profile.places) {
+    if (place.capacitySource !== "derived" || !place.colored) {
+      continue;
+    }
+    const marking = request.initialMarking?.[place.id];
+    const initialCount = Array.isArray(marking) ? marking.length : 0;
+    probeCapacities.set(place.id, Math.max(64, 4 * initialCount + 16));
+  }
+
+  /** The profile with concrete slabs for every derived-capacity place. */
+  const profileWith = (
+    capacities: ReadonlyMap<string, number>,
+  ): GpuNetProfile => ({
+    ...eligibility.profile,
+    places: eligibility.profile.places.map((place) =>
+      place.capacitySource === "derived" && place.colored
+        ? { ...place, capacity: capacities.get(place.id) ?? 64 }
+        : place,
+    ),
   });
+
+  const compileWith = (capacities: ReadonlyMap<string, number>) =>
+    compileNetShader({
+      sdcpn,
+      profile: profileWith(capacities),
+      parameterValues: resolvedParameters,
+      lambdaHir: lowered.lambdas,
+      dynamicsHir: lowered.dynamics,
+      kernelHir: lowered.kernels,
+      dt,
+      framesPerDispatch,
+      metrics,
+      odeMethod,
+      extensions,
+      ...(runParameters === undefined ? {} : { runParameters }),
+    });
+
+  const compiled = compileWith(probeCapacities);
   if (!compiled.ok) {
     return {
       supported: false,
       cause: "shader-generation",
       reason: `This net's user code cannot be compiled to a GPU shader: ${compiled.reason}`,
     };
-  }
-
-  // Metrics are reduced on the device into a histogram with one bin per integer
-  // token count, and the shader clamps that index to the top bin. A sampled place
-  // that already starts at or above the ceiling reports the ceiling from frame 0 —
-  // a flat line rather than a trajectory — so refuse instead of producing it.
-  // Counts that climb past the ceiling mid-run cannot be caught here;
-  // `saturatedSamples` reports those after the run.
-  if (request.initialMarking !== undefined) {
-    for (const metric of metrics) {
-      const initialCount = initialTokenCount(
-        request.initialMarking[metric.placeId],
-      );
-      if (initialCount >= GPU_HISTOGRAM_BINS) {
-        const placeName =
-          eligibility.profile.places.find(
-            (place) => place.id === metric.placeId,
-          )?.name ?? metric.placeId;
-        return {
-          supported: false,
-          cause: "net-unsupported",
-          reason: `Place \`${placeName}\` starts with ${initialCount} tokens, and the GPU backend reduces metrics into a histogram of ${GPU_HISTOGRAM_BINS} bins — one per token count — so counts of ${GPU_HISTOGRAM_BINS} or more cannot be told apart.`,
-        };
-      }
-    }
   }
 
   const device = await requestGpuDevice();
@@ -200,7 +207,9 @@ export async function requestGpuExperimentBackend(
     supported: true,
     handle: device.handle,
     shader: compiled.shader,
-    profile: eligibility.profile,
+    profile: profileWith(probeCapacities),
+    derivedCapacities: probeCapacities,
+    recompile: compileWith,
     framesPerDispatch,
     warnings,
   };

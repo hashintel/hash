@@ -27,6 +27,8 @@ import {
 } from "./experiment-metric-timeline/shared/metric-frames";
 import { useMetricPlot } from "./experiment-metric-timeline/use-metric-plot";
 
+export type { PlotCrossfade } from "./experiment-metric-timeline/use-metric-plot";
+
 import type { FramePopoverPointer } from "./experiment-metric-timeline/frame-popover";
 import type {
   DistributionView,
@@ -235,6 +237,8 @@ export const ExperimentMetricTimeline = ({
   onDisplaySizeChange,
   label,
   timeDomain,
+  contentEpoch,
+  crossfade,
 }: {
   frames: readonly MetricFrame[];
   displaySize: MetricSize;
@@ -251,6 +255,12 @@ export const ExperimentMetricTimeline = ({
    * it the axis fits the streamed frames and rescales as they arrive.
    */
   timeDomain?: readonly [number, number];
+  /**
+   * Identity of what the frames represent (a sweep's selection key). A
+   * change crossfades the previous picture out; see `PlotCrossfade`.
+   */
+  contentEpoch?: string;
+  crossfade?: import("./experiment-metric-timeline/use-metric-plot").PlotCrossfade;
 }) => {
   const chartRootRef = useRef<HTMLDivElement>(null);
   const size = useElementSize(chartRootRef, { debounce: 50 });
@@ -355,6 +365,8 @@ export const ExperimentMetricTimeline = ({
     timeDomainEnd,
     frames,
     plotData,
+    ...(contentEpoch === undefined ? {} : { contentEpoch }),
+    ...(crossfade === undefined ? {} : { crossfade }),
     onFrameSelect: (frame, pointer) => {
       setSelectedFrameKey({
         metricId: frame.metricId,

@@ -72,7 +72,7 @@ describe("unrankPair", () => {
 
   it("stays exact in f32, which is all WGSL has", () => {
     // The closed form takes a square root. Simulating f32 rounding at every step
-    // shows it is exact well past the 256-token ceiling the metric histogram
+    // shows it is exact well past any bin ceiling the metric histogram
     // imposes; it first breaks at n = 5793.
     const f32 = Math.fround;
     const unrankF32 = (x: number, n: number): [number, number] => {

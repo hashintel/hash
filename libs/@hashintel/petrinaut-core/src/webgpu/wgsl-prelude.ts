@@ -8,16 +8,14 @@
 /**
  * Counter-based RNG.
  *
- * The CPU engine's generator (`../simulation/engine/seeded-rng.ts`) cannot be
- * reproduced here: it computes `1103515245 * seed` in f64, which exceeds 2^53
- * for all but 0.4% of its seed space, so its stream is V8's rounding behaviour
- * rather than a mathematically defined LCG. Emulating that in WGSL's 32-bit
- * integers is not practical, so this backend uses PCG instead — which is also
- * a far better generator: full 2^32 period per stream against the CPU
- * generator's measured 10,466-step cycle.
+ * The CPU engine's generator (`../simulation/engine/seeded-rng.ts`) is an
+ * exact 31-bit LCG since FE-1499 and could be reproduced in WGSL bit for
+ * bit. This backend deliberately uses PCG instead — a stronger generator,
+ * and keeping the streams distinct makes cross-backend comparisons
+ * statistical by construction rather than accidentally seed-coupled.
  *
- * The consequence is deliberate and must be stated wherever backends are
- * compared: the GPU backend does not reproduce CPU trajectories seed for seed.
+ * The consequence must be stated wherever backends are compared: the GPU
+ * backend does not reproduce CPU trajectories seed for seed, by choice.
  */
 export const WGSL_RNG = `
 // PCG-RXS-M-XS, 32-bit state and output.
@@ -72,15 +70,17 @@ fn sample_lognormal(rng: ptr<function, u32>, mean: f32, deviation: f32) -> f32 {
 /**
  * Firing acceptance test, matching the CPU engine's rule.
  *
- * The CPU path compares `exp(-lambda * elapsed) > u` and skips when true
+ * The CPU path compares `exp(-lambda * dt) > u` and skips when true
  * (`../simulation/monte-carlo/transition-effect.ts`), so firing happens when
- * `exp(-lambda * elapsed) <= u`. A predicate lambda arrives as a boolean and
- * bypasses this entirely rather than going through the CPU's `Infinity`
- * sentinel, which would be a NaN hazard in f32.
+ * `exp(-lambda * dt) <= u` — a memoryless per-frame Bernoulli over the time
+ * step, with the draw consumed whether or not the transition fires. A
+ * predicate lambda arrives as a boolean and bypasses this entirely rather
+ * than going through the CPU's `Infinity` sentinel, which would be a NaN
+ * hazard in f32.
  */
 export const WGSL_FIRING = `
-fn accepts_firing(lambda_value: f32, elapsed_seconds: f32, u: f32) -> bool {
-  let lambda_total = lambda_value * elapsed_seconds;
+fn accepts_firing(lambda_value: f32, window_seconds: f32, u: f32) -> bool {
+  let lambda_total = lambda_value * window_seconds;
   return exp(-lambda_total) <= u;
 }
 `;

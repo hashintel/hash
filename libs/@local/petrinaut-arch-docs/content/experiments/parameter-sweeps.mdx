@@ -36,13 +36,60 @@ selection (a point is a degenerate range). A batch cancelled by a selection
 change is discarded whole; revisiting any earlier selection restores its runs
 and resumes from its cached rung.
 
-Per-run parameter values travel as `ExperimentRequest.runs`, which the
-simulator, the experiment runtime, and the shard slicing already carry. The
-WebGPU backend refuses requests with per-run values — its shader bakes
-parameters in — so the provider routes range batches straight to the CPU
-worker pool; point batches keep the chosen backend. Scenario compilation
-needs one value per parameter, so an initial state derived from a ranged
-parameter holds at the range midpoint while runtime reads vary per run.
+Per-run parameter values travel as `ExperimentRequest.runPlan` — one
+run-major `Float64Array` plus the overridden names, uniform by construction.
+The WebGPU backend converts it straight into its per-run buffer, the CPU
+backend expands it into the engine's per-run configs at the worker-pool
+boundary, and range and point batches walk the same backend selection. The
+record form (`ExperimentRequest.runs`) remains for what a numeric plan
+cannot carry — per-run seeds, markings, non-numeric values — and a batch
+whose translation meets one falls back to it. Scenario compilation needs one
+value per parameter, so an initial state derived from a ranged parameter
+holds at the range midpoint while runtime reads vary per run.
+
+## What a batch costs on the main thread
+
+Everything between a slider commit and the first dispatch runs on the main
+thread: drawing per-run values, translating them through the scenario, and
+building the backend request. At large rungs that work is what the user
+feels — profiled at a 1,000,000-run range batch, the page's two longest
+main-thread tasks (1.16 s and 1.45 s) were batch instantiation, and most of
+that was scenario compilation: `translateRangeRuns` compiles the scenario
+once per run's draws.
+
+Draws are continuous inside the selected interval, so per-draw results
+cannot be cached — almost every assignment is new. What repeats is the
+value-independent half of each compile: type-checking every override and
+initial-state item, building expression contexts, parsing net-parameter
+defaults. `prepareScenarioCompiler` (`compile-scenario.ts`, core) runs that
+half once, and each `compile(values)` call only merges the assignment,
+interprets the override expressions, and coerces the results. The provider
+prepares one compiler per experiment and every consumer — batch midpoints,
+per-run translation, surface sampling — compiles through it.
+
+Per-run translation compiles less still: `compileParameterNumbers` runs the
+parameter steps and skips both the initial state, which per-run translation
+never reads — per-run initial markings do not exist, and a batch's own
+marking comes from its midpoint `compile` — and the string conversion. An
+initial-state error therefore fails the batch, not each of its runs.
+
+Nothing else in the per-run pipeline materializes a record per run either:
+`sweepRangeDraws` writes one typed array of draws, and `translateRangeDraws`
+compares each run's compiled numbers against the base and fills per-name
+`Float64Array` columns, pre-filled with the base value so the uniform layout
+falls out. A million-run batch's plumbing allocates a handful of arrays
+instead of a million records of stringified numbers (each run's scenario
+compile still builds its own small binding records), and the garbage
+collector drops out of the profile's top entries.
+
+What remains is still linear in the run count, so the draw and translation
+loops yield cooperatively (`cooperative-yield.ts`): every few thousand
+iterations they check an 8 ms budget and hand the thread back —
+`scheduler.yield()` where the browser has it, a macrotask elsewhere. The
+loops' total cost is unchanged; no single task holds the main thread through
+it. Measured end to end at the same 1,000,000-run batch, the pipeline's
+blocking went from two tasks of 1.16 s and 1.45 s to 178 ms in total with no
+task over ~130 ms.
 
 ## Determinism
 

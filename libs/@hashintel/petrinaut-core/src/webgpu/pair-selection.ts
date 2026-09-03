@@ -36,8 +36,8 @@ export function pairCount(n: number): number {
  *
  * Closed form rather than a search, so a GPU invocation derives its own pair from
  * a flat index with no loop. Verified exact in f32 for every pair up to n = 4096
- * (first mismatch at n = 5793), which is far above the 256-token ceiling the
- * metric histogram imposes — see `pair-selection.test.ts`.
+ * (first mismatch at n = 5793), which is far above any typed-place capacity the
+ * eligibility gate's per-run state cap admits — see `pair-selection.test.ts`.
  */
 export function unrankPair(x: number, n: number): [number, number] {
   const a = 2 * n - 1;

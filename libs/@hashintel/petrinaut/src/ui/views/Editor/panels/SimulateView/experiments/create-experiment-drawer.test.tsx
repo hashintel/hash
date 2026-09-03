@@ -173,7 +173,8 @@ const TestProviders = ({
   );
 };
 
-/** A coloured net whose places declare no capacity, so the GPU refuses it. */
+/** A coloured net with a `string` attribute, which the GPU refuses. (A
+ * missing capacity no longer refuses — the backend derives one by probing.) */
 const colouredContextValue: SDCPNContextValue = {
   ...sirSdcpnContextValue,
   petriNetDefinition: {
@@ -184,7 +185,7 @@ const colouredContextValue: SDCPNContextValue = {
         name: "Batch",
         iconSlug: "circle",
         displayColor: "#ff8800",
-        elements: [{ elementId: "el__temp", name: "temp", type: "real" }],
+        elements: [{ elementId: "el__tag", name: "tag", type: "string" }],
       },
     ],
     places: sirSdcpnContextValue.petriNetDefinition.places.map((place, index) =>

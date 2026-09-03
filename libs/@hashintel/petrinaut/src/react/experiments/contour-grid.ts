@@ -112,6 +112,115 @@ export function idwRaster(options: {
 }
 
 /**
+ * Incremental inverse-distance weighting over a growing sample list.
+ *
+ * The surface streams one sampled combination at a time and repaints per
+ * sample; recomputing the whole raster is O(raster × samples), which grows
+ * quadratically over a walk (~48M distance evaluations for a full 11×11
+ * grid). Folding only the new samples into persistent weight and value
+ * sums makes each repaint O(raster × new samples) — ~0.8M for the same
+ * walk — with results identical to `idwRaster`.
+ *
+ * `update` expects the previous call's samples to be a prefix of the next
+ * call's (the walk only appends); anything else folds from scratch.
+ */
+export type IdwAccumulator = {
+  update(samples: readonly ContourSample[]): Float64Array;
+  /** Increments whenever `update` changes the raster; a cache key. */
+  readonly version: number;
+};
+
+export function createIdwAccumulator(options: {
+  nx: number;
+  ny: number;
+  width: number;
+  height: number;
+}): IdwAccumulator {
+  const { nx, ny, width, height } = options;
+  const weightSum = new Float64Array(width * height);
+  const valueSum = new Float64Array(width * height);
+  const exact = new Float64Array(width * height);
+  const hasExact = new Uint8Array(width * height);
+  const raster = new Float64Array(width * height);
+  let folded: ContourSample[] = [];
+  let version = 0;
+
+  const reset = () => {
+    weightSum.fill(0);
+    valueSum.fill(0);
+    exact.fill(0);
+    hasExact.fill(0);
+    folded = [];
+  };
+
+  const fold = (sample: ContourSample) => {
+    for (let py = 0; py < height; py++) {
+      // Raster rows run top-to-bottom; grid rows bottom-to-top (y up).
+      const gy = ((height - 1 - py) / Math.max(height - 1, 1)) * (ny - 1);
+      const dy = (sample.y - gy) * (sample.y - gy);
+      for (let px = 0; px < width; px++) {
+        const gx = (px / Math.max(width - 1, 1)) * (nx - 1);
+        const distanceSquared = (sample.x - gx) * (sample.x - gx) + dy;
+        const index = py * width + px;
+        if (distanceSquared < 1e-9) {
+          exact[index] = sample.value;
+          hasExact[index] = 1;
+        } else {
+          const weight = 1 / distanceSquared;
+          weightSum[index]! += weight;
+          valueSum[index]! += weight * sample.value;
+        }
+      }
+    }
+    folded.push(sample);
+  };
+
+  const isPrefix = (samples: readonly ContourSample[]): boolean => {
+    if (samples.length < folded.length) {
+      return false;
+    }
+    for (let index = 0; index < folded.length; index++) {
+      const previous = folded[index]!;
+      const next = samples[index]!;
+      if (
+        previous.x !== next.x ||
+        previous.y !== next.y ||
+        previous.value !== next.value
+      ) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  return {
+    get version() {
+      return version;
+    },
+    update(samples) {
+      if (!isPrefix(samples)) {
+        reset();
+      }
+      const firstNew = folded.length;
+      for (let index = firstNew; index < samples.length; index++) {
+        fold(samples[index]!);
+      }
+      if (samples.length !== firstNew || version === 0) {
+        version += 1;
+        for (let index = 0; index < raster.length; index++) {
+          raster[index] = hasExact[index]
+            ? exact[index]!
+            : weightSum[index]! > 0
+              ? valueSum[index]! / weightSum[index]!
+              : 0;
+        }
+      }
+      return raster;
+    },
+  };
+}
+
+/**
  * Marching squares: the iso-lines of `raster` at `level`, as polyline segments
  * in raster pixel coordinates. Segments rather than joined paths — the canvas
  * strokes them identically and joining buys nothing here.
@@ -239,6 +348,26 @@ export function bluesColor(t: number): string {
   const channel = (i: number): number =>
     Math.round(from[i]! + (to[i]! - from[i]!) * fraction);
   return `rgb(${channel(0)}, ${channel(1)}, ${channel(2)})`;
+}
+
+/**
+ * The Blues ramp as a 256-entry RGB lookup table, for painting the filled
+ * bands as one `ImageData` instead of a `fillRect` and an `rgb(...)` string
+ * parse per raster cell.
+ */
+export function bluesLut(): Uint8ClampedArray {
+  const lut = new Uint8ClampedArray(256 * 3);
+  for (let index = 0; index < 256; index++) {
+    const color = bluesColor(index / 255);
+    const [r = 0, g = 0, b = 0] = color
+      .slice(4, -1)
+      .split(",")
+      .map((channel) => Number(channel.trim()));
+    lut[index * 3] = r;
+    lut[index * 3 + 1] = g;
+    lut[index * 3 + 2] = b;
+  }
+  return lut;
 }
 
 /**

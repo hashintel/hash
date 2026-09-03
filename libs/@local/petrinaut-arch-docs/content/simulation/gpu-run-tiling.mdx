@@ -1,0 +1,93 @@
+---
+title: GPU run tiling
+description: How experiments larger than the device's buffers run as sequential tiles, and what could shrink per-run state next.
+sidebar_order: 32
+attachTo: core.webgpu
+---
+
+The GPU backend holds every run's state in one storage buffer — per-place
+counts, per-transition firing counts, an RNG word, a status, and one slot per
+token of each typed place's declared capacity. State is therefore linear in
+the run count, and it is the capacity term that dominates: a typed place
+stores `capacity × wordsPerToken` words per run whether the tokens exist or
+not.
+
+## The problem
+
+The state buffer was sized for the whole experiment, and an experiment that
+exceeded the device's buffer ceiling — the smaller of
+`maxStorageBufferBindingSize` and `maxBufferSize` — was refused. The same
+refusal hit the dispatch width: one invocation per run, at most
+`maxComputeWorkgroupsPerDimension × 256` invocations per dispatch.
+
+Both limits coupled run count to token capacity. At the WebGPU default limits
+(128 MiB per binding), a net with 4 KB of per-run state capped out near 33k
+runs; raising a capacity to model a larger population made the cap worse. The
+modeler had to trade population size against sample size, and the refusal
+arrived as a message rather than a result.
+
+## The current solution
+
+`runGpuExperiment` splits an oversized experiment into sequential **tiles**.
+`runsPerTile` in `runner.ts` computes how many runs one tile can hold — the
+buffer ceiling divided by the per-run state size, and no wider than one
+dispatch — and the experiment loops over tiles of that size. Only two shapes
+remain unschedulable: a single run larger than the buffer ceiling, and a
+histogram (frames × bins × metrics, independent of run count) that exceeds it.
+
+![One experiment as sequential tiles](@diagrams/gpu-run-tiling.svg)
+
+Three properties make the loop cheap and exact:
+
+- **The histogram merges itself.** Metric bins are sums, and every tile's
+  dispatches `atomicAdd` into the same histogram buffer, so tiling adds no
+  merge step and no extra memory. The buffer is zero-initialised once, at
+  creation.
+- **Seeds come from absolute run indices.** `fillSeedChunk` derives each run's
+  RNG stream from its experiment-wide index while writing to tile-local
+  offsets, so a tiled experiment computes bit-identical results to an untiled
+  one — verified on-device by comparing an 8-tile run of 1000 runs against a
+  single-tile run: frames, final counts and statuses were equal.
+- **Per-tile state is overwritten, not shared.** State, per-run parameters and
+  the summary are sized for one tile; each tile re-seeds them and its summary
+  is decoded into experiment-wide arrays at absolute offsets before the next
+  tile overwrites the buffer.
+
+Streaming changes contract slightly: later tiles re-read frame ranges earlier
+tiles already streamed, and the re-decoded frames carry every tile's samples
+so far. `onFrames` therefore documents that a frame's latest delivery
+supersedes earlier ones, and the experiment handle switches from appending to
+merge-by-frame the first time it sees a re-delivered frame — a single-tile
+experiment keeps the append path unchanged.
+
+Cancellation keeps its chunk-boundary semantics: completed tiles' runs stay
+in the histogram and the summaries, the interrupted tile keeps the frames it
+advanced, and tiles that never started contribute nothing — a tile cancelled
+before its first dispatch is not decoded at all, since the summary buffer
+still holds the previous tile.
+
+The single-tile case is the entire common case, and it compiles to the same
+work as before: one seeding pass, one dispatch loop, one summary readback.
+Measured after the change, the parity harness's three models and a 100k-run
+sweep were unchanged within run-to-run noise, and a 10-million-run sweep —
+untiled, refused before only by the previous sizing — completed in ~32 s.
+
+## Potential future solutions
+
+- **Structural bounds instead of measured ones.** Typed places without
+  declared capacities now derive sizing-only slabs by probing
+  ([GPU capacity calibration](doc:simulation/gpu-capacity-calibration)).
+  P-invariants over the incidence matrix would bound many places from the
+  net's structure instead, replacing the probe where derivable. The same
+  analysis would size metric histograms — see
+  [GPU histogram sizing](doc:simulation/gpu-histogram-sizing).
+- **A shared per-run token arena.** Sizing each place for its own worst case
+  overstates what peaks can coincide: conservation laws mean the sum of
+  per-place maxima usually exceeds the maximum simultaneous total. One arena
+  per run with place-tagged slots would let a single place spike to the arena
+  bound, at the cost of indirection and of preserving the CPU's token
+  enumeration order.
+- **Packed attributes.** f16 reals where tolerable and bit-packed discrete
+  fields halve the dominant term of per-run state; a structure-of-arrays
+  layout would also coalesce loads. Constant factors, but they multiply every
+  other improvement.

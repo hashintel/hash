@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 
+import { dronePatrol } from "../examples/drone-patrol";
 import { probabilisticSatellitesSDCPN } from "../examples/satellites-launcher";
 import { sirModel } from "../examples/sir-model";
 import { compileHirArtifacts } from "../hir";
 import { resolveNetParameterValues } from "../parameter-values";
-import { compileNetShader } from "./compile-net-shader";
+import {
+  compileNetShader,
+  GPU_HISTOGRAM_MAX_BINS,
+  histogramBinCount,
+} from "./compile-net-shader";
 import { assessGpuEligibility } from "./eligibility";
 import { hirFromArtifacts } from "./hir-from-artifacts";
 
@@ -18,11 +23,13 @@ function compileFor(
     metrics = [] as { id: string; placeId: string }[],
     dt = 0.1,
     framesPerDispatch = 300,
+    runParameters,
   }: {
     odeMethod?: GpuOdeMethod;
     metrics?: { id: string; placeId: string }[];
     dt?: number;
     framesPerDispatch?: number;
+    runParameters?: readonly string[];
   } = {},
 ) {
   const eligibility = assessGpuEligibility(sdcpn);
@@ -46,11 +53,64 @@ function compileFor(
     framesPerDispatch,
     metrics,
     odeMethod,
+    ...(runParameters === undefined ? {} : { runParameters }),
   });
 }
 
 const sir = sirModel.petriNetDefinition;
 const satellites = probabilisticSatellitesSDCPN.petriNetDefinition;
+
+describe("per-run parameters", () => {
+  it("reads a swept parameter from the per-run buffer and keeps the rest inlined", () => {
+    const result = compileFor(sir, { runParameters: ["infection_rate"] });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.shader.runParameterIds).toEqual(["infection_rate"]);
+    expect(result.shader.wgsl).toContain(
+      "@group(0) @binding(4) var<storage, read> run_params: array<f32>;",
+    );
+    expect(result.shader.wgsl).toContain(
+      "run_param_0 = run_params[run_index * 1u + 0u];",
+    );
+    // The swept parameter reads the hoisted per-run value...
+    expect(result.shader.wgsl).toContain("run_param_0");
+    // ...while the fixed one stays a literal (recovery_rate defaults to 1).
+    expect(result.shader.wgsl).toContain("1.0");
+  });
+
+  it("lays several swept parameters out run-major in declaration order", () => {
+    const result = compileFor(sir, {
+      runParameters: ["infection_rate", "recovery_rate"],
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.shader.wgsl).toContain(
+      "run_param_0 = run_params[run_index * 2u + 0u];",
+    );
+    expect(result.shader.wgsl).toContain(
+      "run_param_1 = run_params[run_index * 2u + 1u];",
+    );
+  });
+
+  it("declares no per-run binding when nothing varies per run", () => {
+    const result = compileFor(sir);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.shader.runParameterIds).toEqual([]);
+    expect(result.shader.wgsl).not.toContain("run_params");
+  });
+
+  it("refuses a per-run parameter the net does not declare", () => {
+    const result = compileFor(sir, { runParameters: ["not_a_parameter"] });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toContain("not a parameter of this net");
+  });
+});
 
 describe("compileNetShader", () => {
   it("compiles the uncoloured SIR net", () => {
@@ -58,8 +118,8 @@ describe("compileNetShader", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    // 3 counts + 2 x (elapsed + firings) + rng + status.
-    expect(result.shader.stateWordsPerRun).toBe(9);
+    // 3 counts + 2 firings + rng + status.
+    expect(result.shader.stateWordsPerRun).toBe(7);
     expect(result.shader.compiledLambdas).toStrictEqual([
       "transition__infection",
       "transition__recovery",
@@ -75,26 +135,23 @@ describe("compileNetShader", () => {
     // The frame loop must be inside the shader; a host-driven per-frame dispatch
     // would cost more in readback than the work itself.
     expect(result.shader.wgsl).toContain(
-      "for (var frame: u32 = 0u; frame < 300u;",
+      "for (var frame: u32 = 0u; frame < config.chunk_frames;",
     );
   });
 
-  it("commits the generator state only when a transition fires", () => {
-    // This mirrors the CPU engine, where `advance-run.ts` skips the `rngState`
-    // assignment for a transition that does not fire. Holding `u` fixed until it
-    // is consumed makes firing an exponential waiting time; redrawing every frame
-    // would be a Bernoulli trial and fire measurably sooner. Verified against
-    // the CPU engine: redrawing produced a 21% divergence by frame 599.
+  it("consumes the acceptance draw every enabled frame, fired or not", () => {
+    // This mirrors the CPU engine, where `advance-run.ts` commits the run's
+    // RNG state after every transition evaluation ("Every evaluation's
+    // randomness is consumed, fired or not") and the acceptance is a
+    // memoryless per-frame Bernoulli over dt. Holding the draw until it
+    // fires accumulated the hazard over a transition's idle window instead —
+    // structurally divergent for any intermittently enabled net.
     const result = compileFor(sir);
     if (!result.ok) throw new Error(result.reason);
 
-    expect(result.shader.wgsl).toContain("var rng_candidate = rng_state;");
-    expect(result.shader.wgsl).toContain(
-      "let u = rng_next_f32(&rng_candidate);",
-    );
-    expect(result.shader.wgsl).toContain(
-      "if (fires) { rng_state = rng_candidate; }",
-    );
+    expect(result.shader.wgsl).toContain("let u = rng_next_f32(&rng_state);");
+    expect(result.shader.wgsl).not.toContain("rng_candidate");
+    expect(result.shader.wgsl).toContain("accepts_firing");
   });
 
   it("applies removals immediately and additions at end of frame", () => {
@@ -237,11 +294,83 @@ describe("compileNetShader", () => {
  * The host reads a run's RNG state and status out of the state buffer by word
  * offset. Those offsets used to be derived by counting back from
  * `stateWordsPerRun`, which is only correct for a net with no token attributes:
- * the layout is `counts | elapsed | firings | rng | status | tokens`, so on a
+ * the layout is `counts | firings | rng | status | tokens`, so on a
  * typed net the seed landed in a token attribute and the status came out of the
  * token array — leaving every run sharing one RNG stream while reporting
  * confidently. These pin the offsets against the shader's own writes.
  */
+describe("histogram sizing", () => {
+  it("spends the baseline workgroup budget on an unbounded metric", () => {
+    // One metric: floor((16384 − 8) / 4) = 4094 slots, capped at the max.
+    expect(histogramBinCount(1, null)).toBe(GPU_HISTOGRAM_MAX_BINS);
+    expect(histogramBinCount(3, null)).toBe(GPU_HISTOGRAM_MAX_BINS);
+    // Four metrics no longer reach the cap: the min/max reduction's eight
+    // bytes per metric share the budget.
+    expect(histogramBinCount(4, null)).toBe(1022);
+  });
+
+  it("shrinks bins as metrics divide the workgroup budget", () => {
+    expect(histogramBinCount(5, null)).toBe(817);
+    // 17 metrics used to overflow the 16 KB budget at a fixed 256 bins and
+    // fail pipeline creation; now they fit at fewer bins each — histogram
+    // plus the per-metric min/max atomics.
+    expect(histogramBinCount(17, null)).toBe(238);
+    expect(17 * histogramBinCount(17, null) * 4 + 17 * 8).toBeLessThanOrEqual(
+      16384,
+    );
+  });
+
+  it("sizes to the sampled places' count ceiling plus a top bin", () => {
+    expect(histogramBinCount(1, 16)).toBe(17);
+    expect(histogramBinCount(1, 0)).toBe(2);
+    expect(histogramBinCount(1, 100000)).toBe(GPU_HISTOGRAM_MAX_BINS);
+  });
+
+  it("gives an unbounded sampled place the full budget in a compiled shader", () => {
+    const result = compileFor(sir, {
+      metrics: [{ id: "infected", placeId: "place__infected" }],
+    });
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+    expect(result.shader.histogramBins).toBe(GPU_HISTOGRAM_MAX_BINS);
+    expect(result.shader.wgsl).toContain(
+      `const HIST_BINS: u32 = ${GPU_HISTOGRAM_MAX_BINS}u;`,
+    );
+  });
+
+  it("sizes a typed sampled place's bins from its capacity", () => {
+    const result = compileFor(dronePatrol.petriNetDefinition, {
+      metrics: [{ id: "airborne", placeId: "place__airborne" }],
+    });
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+    // Capacity 16 → counts 0..16 plus nothing else representable.
+    expect(result.shader.histogramBins).toBe(17);
+  });
+
+  it("bins through a per-metric window carried as uniforms", () => {
+    const result = compileFor(sir, {
+      metrics: [{ id: "infected", placeId: "place__infected" }],
+    });
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+    // The window lives in the config, so recalibration needs no recompile.
+    expect(result.shader.wgsl).toContain("m0_lo: u32,");
+    expect(result.shader.wgsl).toContain("m0_stride: u32,");
+    expect(result.shader.wgsl).toContain(
+      "(c0 - config.m0_lo) / config.m0_stride",
+    );
+    // Observed range and escape counters, for the calibration loop.
+    expect(result.shader.wgsl).toContain(
+      "@group(0) @binding(5) var<storage, read_write> range: array<atomic<u32>>;",
+    );
+    expect(result.shader.wgsl).toContain("atomicMin(&local_min[0u], c0);");
+  });
+});
+
 describe("state layout offsets", () => {
   /** A typed place with one real attribute, so the layout has token words. */
   const typedNet = (): SDCPN => ({
@@ -357,7 +486,7 @@ describe("typed token consumption", () => {
       throw new Error(compiled.reason);
     }
     const { wgsl } = compiled.shader;
-    const drawIndex = wgsl.indexOf("let u = rng_next_f32(&rng_candidate);");
+    const drawIndex = wgsl.indexOf("let u = rng_next_f32(&rng_state);");
     const scanIndex = wgsl.indexOf("for (var cand_0:");
 
     expect(drawIndex).toBeGreaterThan(-1);

@@ -9,6 +9,7 @@ import { v4 as generateUuid } from "uuid";
 import {
   compileScenario,
   getOwn,
+  prepareScenarioCompiler,
   synthesizeAdHocScenario,
   type CompileScenarioOutcome,
   type InitialMarking,
@@ -45,6 +46,8 @@ import {
   type ExperimentComputeBackend,
   type ExperimentRecord,
   type ExperimentStatus,
+  ExperimentsActionsContext,
+  type ExperimentsActionsValue,
   ExperimentsContext,
   type ExperimentsContextValue,
   isExperimentActive,
@@ -56,6 +59,7 @@ import {
   fullSweepSelection,
   type ExperimentParameterAxis,
 } from "./parameter-grid";
+import { translateRangeDraws } from "./sweep-run-overrides";
 import {
   createSweepSession,
   type SweepSession,
@@ -114,14 +118,27 @@ export function buildSweepAxes(
   return { fixedValues, axes };
 }
 
+/**
+ * The last input/output pair: progress-only publishes reuse the previous
+ * frames array, and rebuilding this map per publish was pure waste.
+ */
+let latestFramesCache: {
+  frames: readonly ExperimentRecord["metricFrames"][number][];
+  latest: Record<string, ExperimentRecord["metricFrames"][number]>;
+} | null = null;
+
 /** Last frame per metric id, the shape the summary cards read. */
 function latestFramesById(
   frames: readonly ExperimentRecord["metricFrames"][number][],
 ): Record<string, ExperimentRecord["metricFrames"][number]> {
+  if (latestFramesCache?.frames === frames) {
+    return latestFramesCache.latest;
+  }
   const latest: Record<string, ExperimentRecord["metricFrames"][number]> = {};
   for (const frame of frames) {
     latest[frame.metricId] = frame;
   }
+  latestFramesCache = { frames, latest };
   return latest;
 }
 
@@ -461,16 +478,38 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       override?: Partial<
         Pick<
           ExperimentRequest,
-          "parameterValues" | "initialMarking" | "seed" | "runCount" | "runs"
+          | "parameterValues"
+          | "initialMarking"
+          | "seed"
+          | "runCount"
+          | "runs"
+          | "runPlan"
         >
       >;
     }) => Promise<ExperimentRequest>;
     compileForValues: (
       swept: Readonly<Record<string, number>>,
     ) => Extract<CompileScenarioOutcome, { ok: true }>;
+    /**
+     * Numbers-only compile for per-run draws: skips the initial state, which
+     * per-run translation never reads (per-run markings do not exist), and
+     * the string conversion, which typed-array plans never want.
+     */
+    compileRunNumbers: (swept: Readonly<Record<string, number>>) => {
+      parameters: Readonly<Record<string, number | boolean>>;
+    };
+    /** Net parameter variable names, for direct-override passthrough. */
+    netParameterVariableNames: ReadonlySet<string>;
   }) => {
-    const { experiment, axes, registrations, buildRequest, compileForValues } =
-      options;
+    const {
+      experiment,
+      axes,
+      registrations,
+      buildRequest,
+      compileForValues,
+      compileRunNumbers,
+      netParameterVariableNames,
+    } = options;
     const experimentId = experiment.id;
     let chosenBackend: ExperimentBackend | null = null;
     /**
@@ -479,11 +518,6 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
      * a sweep whose surface view is never opened spawns nothing extra.
      */
     let backgroundCpuBackend: ExperimentBackend | null = null;
-    /**
-     * Range batches carry per-run parameter values, which the GPU refuses,
-     * so they go straight to the CPU worker pool at full parallelism.
-     */
-    let rangeCpuBackend: ExperimentBackend | null = null;
 
     const onNote = (note: { message: string }) => {
       addNotification({
@@ -500,52 +534,75 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       axes,
       runCount: experiment.runCount,
       seed: experiment.seed,
+      // ~2 publishes per frame at 60fps; the charts cannot show more.
+      publishThrottleMs: 40,
       instantiateBatch: async ({
         parameterValues,
-        runs,
+        draws,
         seed,
         runCount,
         background,
         signal,
       }) => {
         const compiled = compileForValues(parameterValues);
+        // A run's draws are scenario values; the simulation reads net
+        // parameters. Re-evaluate the scenario's overrides at each run's
+        // draws so every backend receives net-keyed per-run values — as a
+        // typed-array plan on the common numeric path, as run records when
+        // a changed value cannot ride one.
+        const translated =
+          draws === undefined
+            ? undefined
+            : await translateRangeDraws({
+                draws,
+                signal,
+                midValues: parameterValues,
+                baseParameters: compileRunNumbers(parameterValues).parameters,
+                compileRunNumbers,
+                netParameterVariableNames,
+              });
         const override = {
           parameterValues: compiled.result.parameterValues,
           initialMarking: compiled.result.initialState,
           seed,
           runCount,
-          ...(runs === undefined ? {} : { runs }),
+          ...(translated === undefined
+            ? {}
+            : translated.kind === "plan"
+              ? { runPlan: translated.plan }
+              : { runs: translated.runs }),
         };
 
-        if (runs !== undefined) {
-          // One stochastic experiment over the selected ranges: full worker
-          // pool, no backend walk — per-run parameter values are CPU-only.
-          rangeCpuBackend ??= createWorkerPoolExperimentBackend({
+        // The surface's background sampling can start before the navigator's
+        // first batch has finished the backend-selection walk. Running the
+        // walk here too would race it: two batches contending for the pool,
+        // both patching the record's backend fields. Background batches
+        // instead go straight to the single-worker CPU lane until a backend
+        // is chosen (and stay there when the choice lands on the CPU).
+        if (background && !chosenBackend) {
+          backgroundCpuBackend ??= createWorkerPoolExperimentBackend({
             createWorker: workerFactoryRef.current,
-            shardCount:
-              shardCountRef.current ?? getDefaultMonteCarloShardCount(),
+            shardCount: 1,
           });
           const request = await buildRequest({
-            needsHirTrees: rangeCpuBackend.needsHirTrees,
+            needsHirTrees: backgroundCpuBackend.needsHirTrees,
             override,
           });
-          const assessment = await rangeCpuBackend.assess(request);
+          const assessment = await backgroundCpuBackend.assess(request);
           if (!assessment.eligible) {
             throw new Error(describeBlockers(assessment.blockers));
           }
-          const instantiated = await assessment.instantiate({
-            signal,
-            onNote,
-          });
+          const instantiated = await assessment.instantiate({ signal, onNote });
           if (!instantiated.ok) {
             throw new Error(describeBlockers(instantiated.blockers));
-          }
-          if (experiment.computeBackend !== "cpu") {
-            patchExperiment(experimentId, { computeBackend: "cpu" });
           }
           return instantiated.handle;
         }
 
+        // Range batches carry per-run parameter values (`runPlan`, or `runs`
+        // for the non-numeric fallback); the GPU backend uploads them to a
+        // per-run buffer, so they walk the same backend selection as point
+        // batches instead of being CPU-only.
         if (!chosenBackend) {
           const selection = await selectExperimentBackend({
             registrations,
@@ -664,6 +721,11 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           swept: Readonly<Record<string, number>>,
         ) => Extract<CompileScenarioOutcome, { ok: true }>)
       | null = null;
+    let compileRunNumbers:
+      | ((swept: Readonly<Record<string, number>>) => {
+          parameters: Readonly<Record<string, number | boolean>>;
+        })
+      | null = null;
 
     if (selectedScenario) {
       const parsedScenarioValues = parseScenarioParameterValues(
@@ -690,21 +752,21 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         places: sdcpn.places,
         types: sdcpn.types,
       });
-      const scenario = selectedScenario;
+      // Prepared once per experiment: a sweep compiles the scenario per
+      // batch and per run's draws, and preparation carries the type checks
+      // and context building those calls would otherwise repeat.
+      const preparedCompiler = prepareScenarioCompiler(
+        selectedScenario,
+        scenarioHir,
+        globalParameters,
+        sdcpn.places,
+        sdcpn.types,
+      );
       compileForValues = (swept) => {
-        const compiled = compileScenario(
-          scenario,
-          scenarioHir,
-          globalParameters,
-          sdcpn.places,
-          sdcpn.types,
-          {
-            scenarioParameterValues: {
-              ...parsedScenarioValues.values,
-              ...swept,
-            },
-          },
-        );
+        const compiled = preparedCompiler.compile({
+          ...parsedScenarioValues.values,
+          ...swept,
+        });
         if (!compiled.ok) {
           throw new Error(
             compiled.errors
@@ -715,6 +777,22 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           );
         }
         return compiled;
+      };
+      compileRunNumbers = (swept) => {
+        const compiled = preparedCompiler.compileParameterNumbers({
+          ...parsedScenarioValues.values,
+          ...swept,
+        });
+        if (!compiled.ok) {
+          throw new Error(
+            compiled.errors
+              .map(
+                (error) => `${error.source}:${error.itemId} ${error.message}`,
+              )
+              .join("\n"),
+          );
+        }
+        return { parameters: compiled.parameters };
       };
 
       const compiledScenario = compileForValues({});
@@ -819,6 +897,31 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         // triple the artifact payload structured-cloned to every shard worker,
         // and only a shader-generating backend reads them. `needsHirTrees` comes
         // from the backend itself, so a new backend cannot be forgotten here.
+        // The artifacts are a pure function of the frozen snapshot, but
+        // every batch built a request — and a sweep builds one per rung per
+        // selection — so the language worker re-lowered the whole net each
+        // time. That round trip was most of the delay between moving a
+        // slider and the first new frames. A failed request is not cached,
+        // so a transient worker error stays retryable.
+        const artifactsMemo = new Map<
+          boolean,
+          ReturnType<typeof requestHirArtifacts>
+        >();
+        const requestArtifactsOnce = (needsHirTrees: boolean) => {
+          const cached = artifactsMemo.get(needsHirTrees);
+          if (cached) {
+            return cached;
+          }
+          const pending = requestHirArtifacts(
+            compiledExperimentSdcpn,
+            experimentExtensions,
+            { includeHir: needsHirTrees },
+          );
+          artifactsMemo.set(needsHirTrees, pending);
+          pending.catch(() => artifactsMemo.delete(needsHirTrees));
+          return pending;
+        };
+
         const buildRequest = async ({
           needsHirTrees,
           override,
@@ -832,11 +935,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             >
           >;
         }): Promise<ExperimentRequest> => {
-          const { artifacts, failures } = await requestHirArtifacts(
-            compiledExperimentSdcpn,
-            experimentExtensions,
-            { includeHir: needsHirTrees },
-          );
+          const { artifacts, failures } =
+            await requestArtifactsOnce(needsHirTrees);
 
           const metricSpecs = input.metricSpecs.map((spec) => {
             if (spec.kind !== "expression") {
@@ -911,13 +1011,19 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
             ),
         });
 
-        if (axes.length > 0 && compileForValues) {
+        if (axes.length > 0 && compileForValues && compileRunNumbers) {
           startSweepSession({
             experiment,
             axes,
             registrations,
             buildRequest,
             compileForValues,
+            compileRunNumbers,
+            netParameterVariableNames: new Set(
+              compiledExperimentSdcpn.parameters.map(
+                (parameter) => parameter.variableName,
+              ),
+            ),
           });
           pendingRegistrationsRef.current.delete(experimentId);
           return;
@@ -1212,22 +1318,37 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     experiments.find((experiment) => experiment.id === selectedExperimentId) ??
     null;
 
+  const stableSetSelectedExperimentId = useStableCallback(
+    setSelectedExperimentId,
+  );
+  const stableCancelExperiment = useStableCallback(cancelExperiment);
+  const stableRemoveExperiment = useStableCallback(removeExperiment);
+
   const contextValue: ExperimentsContextValue = {
     experiments,
     selectedExperimentId,
     selectedExperiment,
-    setSelectedExperimentId,
+    setSelectedExperimentId: stableSetSelectedExperimentId,
     createExperiment: useStableCallback(createExperiment),
-    cancelExperiment: useStableCallback(cancelExperiment),
-    removeExperiment: useStableCallback(removeExperiment),
+    cancelExperiment: stableCancelExperiment,
+    removeExperiment: stableRemoveExperiment,
     setSweepSelection: useStableCallback(setSweepSelection),
     sampleSweepCell: useStableCallback(sampleSweepCell),
     sampleDetachedObjective: useStableCallback(sampleDetachedObjective),
   };
+  // Every callback is identity-stable, so this object never changes and
+  // actions-only consumers sit out the per-publish re-render storm.
+  const [actionsValue] = useState<ExperimentsActionsValue>(() => ({
+    setSelectedExperimentId: stableSetSelectedExperimentId,
+    cancelExperiment: stableCancelExperiment,
+    removeExperiment: stableRemoveExperiment,
+  }));
 
   return (
     <ExperimentsContext.Provider value={contextValue}>
-      {children}
+      <ExperimentsActionsContext.Provider value={actionsValue}>
+        {children}
+      </ExperimentsActionsContext.Provider>
     </ExperimentsContext.Provider>
   );
 };

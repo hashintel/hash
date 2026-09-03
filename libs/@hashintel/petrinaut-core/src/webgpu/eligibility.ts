@@ -54,6 +54,14 @@ export type GpuNetProfile = {
     /** Token *slots* to allocate; 0 for uncoloured places, which store only a count. */
     capacity: number;
     /**
+     * Where the slot count comes from. A declared capacity is the modeler's
+     * own bound, enforced as blocking semantics on both backends. A derived
+     * capacity is a buffer size the backend measures by probing — the
+     * shader detects overflow and the handle grows it, never blocking a
+     * firing the CPU would allow.
+     */
+    capacitySource: "declared" | "derived";
+    /**
      * The place's declared #9177 token limit in its dense runtime form
      * (`PLACE_CAPACITY_UNBOUNDED` when absent). Distinct from `capacity`:
      * an uncoloured place allocates no slots but may still be capped, and
@@ -68,7 +76,11 @@ export type GpuNetProfile = {
   }[];
   /** Whether every place is uncoloured, so per-run state is just counts. */
   uncolouredOnly: boolean;
-  /** Per-run state size in bytes, which bounds how many runs fit in a buffer. */
+  /**
+   * Per-run state size in bytes from *declared* capacities only — derived
+   * slabs are measured later by the probe, so this understates a
+   * derived-capacity net's real footprint.
+   */
   bytesPerRun: number;
 };
 
@@ -89,20 +101,22 @@ function wordsPerToken(realCount: number, discreteCount: number): number {
  * Decides whether `sdcpn` can run on the GPU backend.
  *
  * `maxBytesPerRun` guards against a net whose bounded state is technically
- * finite but too large to hold for a useful number of runs — a place with a
- * capacity of ten million is expressible but not schedulable.
+ * finite but absurd — a declared capacity of ten million. Run tiling absorbs
+ * large per-run state by running fewer runs per tile, so the limit is a
+ * megabyte per run (≥128 runs per tile at the 128 MiB default binding), not
+ * a parallelism target.
  */
 export function assessGpuEligibility(
   sdcpn: SDCPN,
-  { maxBytesPerRun = 4096 }: { maxBytesPerRun?: number } = {},
+  { maxBytesPerRun = 1024 * 1024 }: { maxBytesPerRun?: number } = {},
 ): GpuEligibility {
   const reasons: GpuIneligibilityReason[] = [];
   const typeById = new Map(sdcpn.types.map((type) => [type.id, type]));
   const places: GpuNetProfile["places"] = [];
 
-  // Per-run state always carries: one u32 count per place, one u32 elapsed-frame
-  // counter and one u32 firing count per transition, plus an RNG word and status.
-  let stateWords = sdcpn.places.length + sdcpn.transitions.length * 2 + 2;
+  // Per-run state always carries: one u32 count per place and one u32 firing
+  // count per transition, plus an RNG word and status.
+  let stateWords = sdcpn.places.length + sdcpn.transitions.length + 2;
 
   for (const place of sdcpn.places) {
     const colored = place.colorId !== null;
@@ -128,22 +142,20 @@ export function assessGpuEligibility(
       }
 
       // A coloured place needs a fixed token slot count to live in a buffer.
+      // A declared capacity supplies it; without one the backend derives it
+      // by probing (`gpu-experiment-handle.ts`), so the place is eligible
+      // with a placeholder the compile substitutes.
       const capacity = place.capacity;
-      if (capacity === undefined || capacity === null) {
-        reasons.push({
-          code: "colored-place-without-capacity",
-          itemId: place.id,
-          message: `Place \`${place.name}\` holds typed tokens but has no token capacity. The GPU backend needs a fixed upper bound to size its buffers — set a capacity on this place.`,
-        });
-        continue;
+      const derived = capacity === undefined || capacity === null;
+      if (!derived) {
+        stateWords +=
+          capacity * wordsPerToken(realFields.length, discreteFields.length);
       }
-
-      stateWords +=
-        capacity * wordsPerToken(realFields.length, discreteFields.length);
       places.push({
         id: place.id,
         name: place.name,
-        capacity,
+        capacity: derived ? 0 : capacity,
+        capacitySource: derived ? "derived" : "declared",
         declaredCapacity: normalizePlaceCapacity(place.capacity),
         realFields,
         discreteFields,
@@ -154,6 +166,7 @@ export function assessGpuEligibility(
         id: place.id,
         name: place.name,
         capacity: 0,
+        capacitySource: "declared",
         declaredCapacity: normalizePlaceCapacity(place.capacity),
         realFields: [],
         discreteFields: [],
@@ -198,7 +211,7 @@ export function assessGpuEligibility(
   if (bytesPerRun > maxBytesPerRun) {
     reasons.push({
       code: "state-too-large",
-      message: `One run needs ${bytesPerRun} bytes of GPU state, above the ${maxBytesPerRun}-byte limit. Lower the token capacities to fit more runs on the device.`,
+      message: `One run needs ${bytesPerRun} bytes of GPU state, above the ${maxBytesPerRun}-byte gate the backend schedules within. Lower the declared token capacities.`,
     });
   }
 

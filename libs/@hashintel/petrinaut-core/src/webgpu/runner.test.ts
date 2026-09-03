@@ -2,10 +2,12 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   deriveGpuRunSeed,
+  dispatchChunkFrames,
   describeAllocationFailure,
   describeBufferOverflow,
   fillSeedChunk,
   requestGpuDevice,
+  runsPerTile,
   seedRunsPerChunk,
 } from "./runner";
 
@@ -20,74 +22,74 @@ describe("describeBufferOverflow", () => {
     maxStorageBufferBindingSize: 128 * 1024 * 1024,
     maxBufferSize: 256 * 1024 * 1024,
   };
-  const ADAPTER_LIMITS = {
-    maxStorageBufferBindingSize: 4096 * 1024 * 1024,
-    maxBufferSize: 4096 * 1024 * 1024,
-  };
 
-  const overflowFor = (
-    limits: typeof DEFAULT_LIMITS,
-    { bytesPerRun = 1024, runCount = 304_000 } = {},
-  ) =>
-    describeBufferOverflow({
-      stateBytes: bytesPerRun * runCount,
-      histBytes: 1024,
-      bytesPerRun,
-      runCount,
-      limits,
-    });
-
-  it("refuses on the default limits and fits on the adapter's", () => {
-    // ~311 MB of run state: over the 128 MiB default, far under 4096 MiB.
-    expect(overflowFor(DEFAULT_LIMITS)).toMatch(/Run state needs 311 MB/);
-    expect(overflowFor(ADAPTER_LIMITS)).toBeNull();
+  it("accepts any run count, since tiling absorbs it", () => {
+    // ~311 GB of total run state at 1024 bytes per run: the untiled runner
+    // refused this; the tiled one runs it as sequential tiles.
+    expect(
+      describeBufferOverflow({
+        histBytes: 1024,
+        bytesPerRun: 1024,
+        limits: DEFAULT_LIMITS,
+      }),
+    ).toBeNull();
   });
 
-  it("takes the smaller of the two limits, not just the binding size", () => {
-    // Checking only `maxStorageBufferBindingSize` would pass this, and the
-    // allocation would then fail as a raw WebGPU validation error instead.
-    const cappedAllocation = {
-      maxStorageBufferBindingSize: 4096 * 1024 * 1024,
-      maxBufferSize: 256 * 1024 * 1024,
-    };
-
-    expect(overflowFor(cappedAllocation)).toMatch(/caps a buffer at 268 MB/);
-  });
-
-  it("says how many runs would fit instead of `use fewer runs`", () => {
-    const reason = overflowFor(DEFAULT_LIMITS, {
-      bytesPerRun: 1024,
-      runCount: 304_000,
-    });
-
-    // floor(134217728 / 1024) = 131072.
-    expect(reason).toMatch(
-      /that is 131072 runs; this experiment asked for 304000/,
-    );
+  it("refuses a single run larger than the buffer ceiling", () => {
+    expect(
+      describeBufferOverflow({
+        histBytes: 1024,
+        bytesPerRun: 200 * 1024 * 1024,
+        limits: DEFAULT_LIMITS,
+      }),
+    ).toMatch(/One run's state needs 210 MB/);
   });
 
   it("reports the histogram separately, since fewer runs would not help", () => {
     expect(
       describeBufferOverflow({
-        stateBytes: 1024,
         histBytes: 300 * 1e6,
         bytesPerRun: 1024,
-        runCount: 1,
         limits: DEFAULT_LIMITS,
       }),
     ).toMatch(/Metric histograms need 300 MB/);
   });
+});
+
+describe("runsPerTile", () => {
+  const LIMITS = {
+    maxStorageBufferBindingSize: 128 * 1024 * 1024,
+    maxBufferSize: 256 * 1024 * 1024,
+    maxComputeWorkgroupsPerDimension: 65535,
+  };
+
+  it("takes the smaller of the two buffer limits, not just the binding size", () => {
+    // Checking only `maxStorageBufferBindingSize` would size tiles the
+    // allocation then rejects as a raw WebGPU validation error.
+    const cappedAllocation = {
+      maxStorageBufferBindingSize: 4096 * 1024 * 1024,
+      maxBufferSize: 256 * 1024 * 1024,
+      maxComputeWorkgroupsPerDimension: 10_000_000,
+    };
+
+    expect(runsPerTile({ bytesPerRun: 1024, limits: cappedAllocation })).toBe(
+      Math.floor((256 * 1024 * 1024) / 1024),
+    );
+  });
+
+  it("sizes a tile by memory when state is the binding constraint", () => {
+    // floor(134217728 / 16384) = 8192 runs of 16 KB state each.
+    expect(runsPerTile({ bytesPerRun: 16384, limits: LIMITS })).toBe(8192);
+  });
+
+  it("sizes a tile by dispatch width when runs are small", () => {
+    // 4-byte runs would fit ~33.5M in memory, but one dispatch caps at
+    // 65535 workgroups × 256 invocations = ~16.8M.
+    expect(runsPerTile({ bytesPerRun: 4, limits: LIMITS })).toBe(65535 * 256);
+  });
 
   it("does not divide by zero when a run holds no state", () => {
-    expect(
-      describeBufferOverflow({
-        stateBytes: 300 * 1e6,
-        histBytes: 0,
-        bytesPerRun: 0,
-        runCount: 1,
-        limits: DEFAULT_LIMITS,
-      }),
-    ).toMatch(/that is 0 runs/);
+    expect(runsPerTile({ bytesPerRun: 0, limits: LIMITS })).toBe(65535 * 256);
   });
 });
 
@@ -302,12 +304,12 @@ describe("describeAllocationFailure", () => {
     // Measured: 3112 B/run x 1e6 runs = 2.90 GiB, which fails to allocate as a
     // mappable buffer on an adapter reporting maxBufferSize = 4 GiB.
     expect(reason).toMatch(
-      /^The GPU could not allocate memory for 1000000 runs/,
+      /^The GPU could not allocate memory for a tile of 1000000 runs/,
     );
     expect(reason).toContain("3112 bytes per run");
     expect(reason).toContain("2.90 GiB");
-    // The two things the author can actually change.
-    expect(reason).toMatch(/fewer runs/);
+    // The one thing the author can actually change — run count no longer
+    // matters, since tiling sizes the allocation, not the experiment.
     expect(reason).toMatch(/token capacities/);
   });
 
@@ -320,5 +322,33 @@ describe("describeAllocationFailure", () => {
     });
 
     expect(reason).toContain("Failed to allocate memory for buffer mapping");
+  });
+});
+
+describe("dispatchChunkFrames", () => {
+  it("ramps short chunks first, then holds the configured size", () => {
+    expect(dispatchChunkFrames(1_000, 300)).toEqual([
+      32, 64, 128, 256, 300, 220,
+    ]);
+  });
+
+  it("never exceeds the frame limit or the configured chunk", () => {
+    expect(dispatchChunkFrames(40, 300)).toEqual([32, 8]);
+    expect(dispatchChunkFrames(10, 4)).toEqual([4, 4, 2]);
+  });
+
+  it("covers exactly the frame limit", () => {
+    for (const [limit, per] of [
+      [1, 300],
+      [600, 300],
+      [601, 300],
+      [299, 300],
+    ] as const) {
+      const total = dispatchChunkFrames(limit, per).reduce(
+        (sum, chunk) => sum + chunk,
+        0,
+      );
+      expect(total).toBe(limit);
+    }
   });
 });

@@ -16,10 +16,15 @@ the surface and a cell the navigator visited are the same cell.
 
 While the section is open, the component walks the X×Y grid coarse-to-fine —
 corners and lattice midpoints before their neighbours — requesting eight runs
-per combination through the session's background lane. The lane serializes
-its batches and gives each a single worker, so the navigator's sharded batch
-keeps the cores; a cell the navigator already refined resolves straight from
-cache. Parameters outside the two shown axes stay at the navigator's values,
+per combination through the session's background lane, on four concurrent
+lanes pulling from one queue — and the session matches them with four
+background-batch slots (its lane used to hold one batch in flight, which
+would have serialized the lanes right back). Most of a cell's wall time is
+batch setup rather than compute, so strictly sequential sampling filled an
+11×11 surface in ~15 s where the lanes fill it in ~4 s, and the shared queue
+keeps the early picture coarse-first. Each background batch gets a single
+worker, so the navigator's sharded batch keeps most cores; a cell the
+navigator already refined resolves straight from cache. Parameters outside the two shown axes stay at the navigator's values,
 and changing any of them (or the axes, or the metric) restarts the walk for
 the new slice.
 
@@ -33,6 +38,16 @@ combinations are marked with dots so it stays visible where data actually
 exists. All of that is pure, tested math in
 `react/experiments/contour-grid.ts`; the component only paints it onto a
 canvas, the same imperative-draw idiom the metric charts use.
+
+A walk restart — any slice, axis, or metric change clears the sampled
+values — used to blank the plot until the new walk's first samples resolved,
+which reads as a crash after every slider move. The plot now keeps the
+previous picture up, dimmed to 45%, whenever fewer than three fresh samples
+exist (one or two samples interpolate to a near-uniform wash that says less
+than the old picture does), with the new walk's dots drawn on top. The same
+bridge the metric charts build with a snapshot overlay, built here by
+retaining the last complete-enough field. The `Components / ContourSurface →
+Restarting` story demonstrates the cycle.
 
 ## Eight runs is a sketch
 

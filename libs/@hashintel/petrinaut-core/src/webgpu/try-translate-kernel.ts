@@ -1,9 +1,9 @@
 /**
  * Asks whether a transition kernel's expressions could be translated to WGSL.
  *
- * This is **not** a kernel emitter. The generated shader has nowhere to write
- * output tokens — its fire block only adjusts counts — so no kernel runs on the
- * GPU today whatever this returns.
+ * This is **not** a kernel emitter — `compile-net-shader.ts` emits the real
+ * kernels for typed outputs. This module only predicts translatability for
+ * the Compilation panel, without building a shader.
  *
  * It answers the narrower question the Compilation panel needs: is a kernel held
  * up by the *backend* (slot allocation, still to be built) or by its own *code*

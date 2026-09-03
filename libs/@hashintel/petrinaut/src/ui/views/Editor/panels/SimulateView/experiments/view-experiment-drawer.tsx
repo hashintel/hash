@@ -13,6 +13,7 @@ import { Section, SectionList } from "../../../../../components/section";
 import {
   ExperimentMetricTimeline,
   type MetricSize,
+  type PlotCrossfade,
 } from "./experiment-metric-timeline";
 import { formatDurationMs } from "./format-duration";
 import { SweepNavigator } from "./sweep-navigator";
@@ -48,7 +49,7 @@ const summaryStyle = css({
 
 const summaryGridStyle = css({
   display: "grid",
-  gridTemplateColumns: "[repeat(2, minmax(0, 1fr))]",
+  gridTemplateColumns: "[repeat(3, minmax(0, 1fr))]",
   gap: "3",
 });
 
@@ -78,7 +79,7 @@ const progressBarStyle = css({
   backgroundColor: "neutral.s30",
   borderRadius: "full",
   overflow: "hidden",
-  marginTop: "4",
+  marginTop: "2",
 });
 
 const progressFillStyle = css({
@@ -160,7 +161,7 @@ function formatStatus(experiment: ExperimentRecord): string {
 
 function describeComputeBackend(experiment: ExperimentRecord): string {
   if (experiment.computeBackend === "webgpu") {
-    return "Stepped on the GPU through WebGPU. Results are statistically equivalent to the CPU backend, but not identical for a given seed — the two use different random generators.";
+    return "Stepped on the GPU through WebGPU. Distributions match the CPU backend statistically; individual trajectories differ (different random generators).";
   }
 
   if (experiment.computeBackendFallbackReason !== null) {
@@ -271,14 +272,12 @@ const ExperimentSummary = ({
               : experiment.runCount}
           </span>
         </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Errors</span>
-          <span className={statValueStyle}>{progress?.erroredRuns ?? 0}</span>
-        </div>
-        <div className={statStyle}>
-          <span className={statLabelStyle}>Frame</span>
-          <span className={statValueStyle}>{progress?.frameNumber ?? 0}</span>
-        </div>
+        {(progress?.erroredRuns ?? 0) > 0 ? (
+          <div className={statStyle}>
+            <span className={statLabelStyle}>Errors</span>
+            <span className={statValueStyle}>{progress?.erroredRuns}</span>
+          </div>
+        ) : null}
         <div className={statStyle}>
           <span className={statLabelStyle}>Time</span>
           <span className={statValueStyle}>
@@ -310,46 +309,91 @@ const ExperimentSummary = ({
   );
 };
 
+/**
+ * How the charts bridge a sweep selection change: the previous picture is
+ * snapshotted and persists through the compute gap — dimmed ("dim") or
+ * as-is ("hold") — then fades out over ~300 ms as the new selection's
+ * first frames render. "off" cuts to the empty shells.
+ */
+export type RestreamGhost = PlotCrossfade;
+
 const ExperimentMetrics = ({
   experiment,
+  restreamGhost,
 }: {
   experiment: ExperimentRecord;
+  restreamGhost: RestreamGhost;
 }) => {
   const [sizes, setSizes] = useState<Record<string, MetricSize>>({});
   const metricFrameGroups = groupMetricFramesByMetric(experiment.metricFrames);
-
-  if (metricFrameGroups.length === 0) {
-    return null;
-  }
+  const labelById = new Map(
+    experiment.metricSpecs.map((spec) => [spec.id, spec.label]),
+  );
+  // What the frames represent: a selection change crossfades the previous
+  // picture inside each plot instead of cutting to the sparse new stream.
+  const contentEpoch = JSON.stringify(experiment.sweep?.selection ?? null);
 
   return (
     <div className={metricGridStyle}>
-      {metricFrameGroups.map((frames) => {
-        const latestFrame = frames.at(-1)!;
-        const size = sizes[latestFrame.metricId] ?? "small";
+      {metricFrameGroups.length > 0
+        ? metricFrameGroups.map((frames) => {
+            const latestFrame = frames.at(-1)!;
+            const size = sizes[latestFrame.metricId] ?? "small";
 
-        return (
-          <div
-            key={latestFrame.metricId}
-            className={cx(
-              metricItemStyle,
-              size === "large" && metricItemLargeStyle,
-            )}
-          >
-            <ExperimentMetricTimeline
-              frames={frames}
-              timeDomain={[0, experiment.maxTime]}
-              displaySize={size}
-              onDisplaySizeChange={(nextSize) =>
-                setSizes((previous) => ({
-                  ...previous,
-                  [latestFrame.metricId]: nextSize,
-                }))
-              }
-            />
-          </div>
-        );
-      })}
+            return (
+              <div
+                key={latestFrame.metricId}
+                className={cx(
+                  metricItemStyle,
+                  size === "large" && metricItemLargeStyle,
+                )}
+              >
+                <ExperimentMetricTimeline
+                  frames={frames}
+                  label={labelById.get(latestFrame.metricId)}
+                  timeDomain={[0, experiment.maxTime]}
+                  contentEpoch={contentEpoch}
+                  crossfade={restreamGhost}
+                  displaySize={size}
+                  onDisplaySizeChange={(nextSize) =>
+                    setSizes((previous) => ({
+                      ...previous,
+                      [latestFrame.metricId]: nextSize,
+                    }))
+                  }
+                />
+              </div>
+            );
+          })
+        : // No frames have ever arrived: stable shells per configured
+          // metric, so the first data causes no layout shift.
+          experiment.metricSpecs.map((spec) => {
+            const size = sizes[spec.id] ?? "small";
+            return (
+              <div
+                key={spec.id}
+                className={cx(
+                  metricItemStyle,
+                  size === "large" && metricItemLargeStyle,
+                )}
+              >
+                <ExperimentMetricTimeline
+                  frames={[]}
+                  label={spec.label}
+                  timeDomain={[0, experiment.maxTime]}
+                  contentEpoch={contentEpoch}
+                  crossfade={restreamGhost}
+                  displaySize={size}
+                  onDisplaySizeChange={(nextSize) =>
+                    setSizes((previous) => ({
+                      ...previous,
+                      [spec.id]: nextSize,
+                    }))
+                  }
+                />
+              </div>
+            );
+          })}
     </div>
   );
 };
@@ -358,10 +402,13 @@ export const ViewExperimentDrawer = ({
   open,
   onClose,
   experiment,
+  restreamGhost = "dim",
 }: {
   open: boolean;
   onClose: () => void;
   experiment: ExperimentRecord | undefined;
+  /** Chart behaviour while a sweep restreams; see {@link RestreamGhost}. */
+  restreamGhost?: RestreamGhost;
 }) => {
   const { cancelExperiment, removeExperiment, setSweepSelection } =
     use(ExperimentsContext);
@@ -382,7 +429,7 @@ export const ViewExperimentDrawer = ({
     >
       <Drawer.Header
         title={experiment.name}
-        description="Monte Carlo experiment metrics"
+        description={`${experiment.scenarioName ?? "Default scenario"} · ${experiment.runCount.toLocaleString("en-US")} runs · dt ${experiment.dt}`}
       />
       <Drawer.Body className={drawerBodyStyle}>
         <SectionList>
@@ -431,7 +478,7 @@ export const ViewExperimentDrawer = ({
           {experiment.sweep && experiment.parameterAxes.length >= 2 ? (
             <Section
               title="Surface"
-              tooltip="One metric's final value over two swept parameters, sampled progressively at 8 runs per combination. Click to move the navigator."
+              tooltip="One metric's final value over two swept parameters, with every other parameter held at the middle of its range."
               collapsible
               defaultOpen
               className={fixedSectionStyle}
@@ -439,10 +486,17 @@ export const ViewExperimentDrawer = ({
               <SweepSurface experiment={experiment} />
             </Section>
           ) : null}
-          {experiment.metricFrames.length > 0 ? (
+          {experiment.metricSpecs.length > 0 ? (
             <Section title="Metrics" fillHeight>
               <div className={metricsScrollStyle}>
-                <ExperimentMetrics experiment={experiment} />
+                {/* Keyed so held ghost frames and size choices never leak
+                    from one experiment into another when the drawer swaps
+                    records in place. */}
+                <ExperimentMetrics
+                  key={experiment.id}
+                  experiment={experiment}
+                  restreamGhost={restreamGhost}
+                />
               </div>
             </Section>
           ) : null}

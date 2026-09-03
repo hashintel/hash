@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { DEFAULT_PETRINAUT_EXTENSIONS } from "@hashintel/petrinaut-core";
 import { sirModel } from "@hashintel/petrinaut-core/examples";
@@ -350,6 +350,7 @@ export function FakeExperimentsProvider({
   children,
   initialExperiments,
   overrides,
+  restreamOnSelectionChange = false,
 }: {
   children: ReactNode;
   initialExperiments: readonly ExperimentRecord[];
@@ -361,6 +362,12 @@ export function FakeExperimentsProvider({
   overrides?: Partial<
     Pick<ExperimentsContextValue, "sampleSweepCell" | "sampleDetachedObjective">
   >;
+  /**
+   * Simulates what the real sweep session does on a selection change:
+   * frames clear immediately, then the new selection's distribution streams
+   * back in after a compute gap — the case restream ghosting exists for.
+   */
+  restreamOnSelectionChange?: boolean;
 }) {
   const [experiments, setExperiments] = useState<readonly ExperimentRecord[]>(
     () => initialExperiments,
@@ -372,112 +379,217 @@ export function FakeExperimentsProvider({
     experiments.find((experiment) => experiment.id === selectedExperimentId) ??
     null;
 
-  const value = useMemo<ExperimentsContextValue>(
-    () => ({
-      experiments,
-      selectedExperimentId,
-      selectedExperiment,
-      setSelectedExperimentId,
-      createExperiment: (input) => {
-        const experiment = createFakeExperiment(input);
-        setExperiments((current) => [experiment, ...current]);
-        return Promise.resolve(experiment.id);
-      },
-      cancelExperiment: (experimentId) => {
-        setExperiments((current) =>
-          current.map((experiment) =>
-            experiment.id === experimentId
-              ? { ...experiment, status: "cancelled" }
-              : experiment,
-          ),
-        );
-      },
-      removeExperiment: (experimentId) => {
-        setExperiments((current) =>
-          current.filter((experiment) => experiment.id !== experimentId),
-        );
-      },
-      sampleDetachedObjective: (request) => {
-        // The same synthetic bump as sampleSweepCell, over the study's real
-        // parameter values, so the optimization surface story fills live.
-        const values = Object.values(request.scenarioParameterValues).filter(
-          (entry): entry is number => typeof entry === "number",
-        );
-        const x = values[0] ?? 0;
-        const y = values[1] ?? 0;
-        const objective =
-          100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
-          6 * Math.sin(x * 9) +
-          y / 4;
-        const frame = {
-          metricId: request.metric.id,
-          label: request.metric.label,
-          outputType: "distribution" as const,
-          frameNumber: 45,
-          time: 45,
-          bins: [
-            [Math.round(objective * 100) / 100, request.runCount],
-          ] as (readonly [number, number])[],
-          value: null,
-          frameValue: null,
-          timeValue: null,
-          runSampleCount: request.runCount,
-          timeSampleCount: request.runCount,
-        };
-        return new Promise((resolve) => {
-          setTimeout(
-            () =>
-              resolve({
-                runsCompleted: request.runCount,
-                metricFrames: [frame],
-              }),
-            100,
-          );
-        });
-      },
-      setSweepSelection: (experimentId, selection) => {
-        setExperiments((current) =>
-          current.map((experiment) =>
-            experiment.id === experimentId && experiment.sweep
-              ? { ...experiment, sweep: { ...experiment.sweep, selection } }
-              : experiment,
-          ),
-        );
-      },
-      sampleSweepCell: (_experimentId, position) => {
-        // A synthetic objective surface — a smooth bump — so the story's
-        // contour fills in the way a real sweep's would, walk delay included.
-        // Positions are quantized indices; map them back to values.
-        const x = 0.1 + ((position.transmission_rate ?? 0) / 50) * 0.4;
-        const y = 2 + (position.recovery_days ?? 0);
-        const objective =
-          100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
-          6 * Math.sin(x * 9) +
-          y / 4;
-        const frame = {
-          metricId: "infected",
-          label: "Infected",
-          outputType: "distribution" as const,
-          frameNumber: 45,
-          time: 45,
-          bins: [[Math.round(objective), 8]] as (readonly [number, number])[],
-          value: null,
-          frameValue: null,
-          timeValue: null,
-          runSampleCount: 8,
-          timeSampleCount: 8,
-        };
-        return new Promise((resolve) => {
-          setTimeout(
-            () => resolve({ runsCompleted: 8, metricFrames: [frame] }),
-            120,
-          );
-        });
-      },
-      ...overrides,
-    }),
-    [experiments, selectedExperiment, selectedExperimentId, overrides],
+  /** Cancels the previous fake restream when the selection moves again. */
+  const restreamRef = useRef<{
+    generation: number;
+    timer: ReturnType<typeof setTimeout> | null;
+  }>({ generation: 0, timer: null });
+  useEffect(
+    () => () => {
+      if (restreamRef.current.timer !== null) {
+        clearTimeout(restreamRef.current.timer);
+      }
+    },
+    [],
   );
+
+  const restream = (
+    experimentId: string,
+    selection: Readonly<Record<string, { from: number; to: number }>>,
+  ) => {
+    const generation = ++restreamRef.current.generation;
+    if (restreamRef.current.timer !== null) {
+      clearTimeout(restreamRef.current.timer);
+    }
+    // Selection midpoints in value space, against the sweep fixture's axes.
+    const midpoint = (axis: {
+      identifier: string;
+      min: number;
+      max: number;
+      stepCount: number;
+    }) => {
+      const range = selection[axis.identifier] ?? {
+        from: 0,
+        to: axis.stepCount,
+      };
+      const position = (range.from + range.to) / 2;
+      return axis.min + (position / axis.stepCount) * (axis.max - axis.min);
+    };
+
+    let upTo = 0;
+    const step = () => {
+      if (generation !== restreamRef.current.generation) {
+        return;
+      }
+      upTo = Math.min(46, upTo + 4);
+      setExperiments((current) =>
+        current.map((experiment) => {
+          if (experiment.id !== experimentId || !experiment.sweep) {
+            return experiment;
+          }
+          const transmissionRate = midpoint(
+            experiment.parameterAxes.find(
+              (axis) => axis.identifier === "transmission_rate",
+            ) ?? { identifier: "", min: 0.3, max: 0.3, stepCount: 1 },
+          );
+          const recoveryDays = midpoint(
+            experiment.parameterAxes.find(
+              (axis) => axis.identifier === "recovery_days",
+            ) ?? { identifier: "", min: 8, max: 8, stepCount: 1 },
+          );
+          const runs = upTo < 46 ? 25 : 100;
+          const frames = Array.from({ length: upTo }, (_, frameNumber) =>
+            sirInfectedFrame({
+              frameNumber,
+              transmissionRate,
+              recoveryDays,
+              spread: 9,
+              runs,
+            }),
+          );
+          return {
+            ...experiment,
+            metricFrames: frames,
+            latestMetricFramesById:
+              frames.length > 0 ? { infected: frames.at(-1)! } : {},
+            sweep: {
+              ...experiment.sweep,
+              runsCompleted: runs,
+              runsSampled: runs,
+              runTarget: upTo < 46 ? 100 : null,
+              computing: upTo < 46,
+            },
+          };
+        }),
+      );
+      if (upTo < 46) {
+        restreamRef.current.timer = setTimeout(step, 160);
+      }
+    };
+    // The compute gap: what the charts bridge with the restream ghost.
+    restreamRef.current.timer = setTimeout(step, 900);
+  };
+
+  const value: ExperimentsContextValue = {
+    experiments,
+    selectedExperimentId,
+    selectedExperiment,
+    setSelectedExperimentId,
+    createExperiment: (input) => {
+      const experiment = createFakeExperiment(input);
+      setExperiments((current) => [experiment, ...current]);
+      return Promise.resolve(experiment.id);
+    },
+    cancelExperiment: (experimentId) => {
+      setExperiments((current) =>
+        current.map((experiment) =>
+          experiment.id === experimentId
+            ? { ...experiment, status: "cancelled" }
+            : experiment,
+        ),
+      );
+    },
+    removeExperiment: (experimentId) => {
+      setExperiments((current) =>
+        current.filter((experiment) => experiment.id !== experimentId),
+      );
+    },
+    sampleDetachedObjective: (request) => {
+      // The same synthetic bump as sampleSweepCell, over the study's real
+      // parameter values, so the optimization surface story fills live.
+      const values = Object.values(request.scenarioParameterValues).filter(
+        (entry): entry is number => typeof entry === "number",
+      );
+      const x = values[0] ?? 0;
+      const y = values[1] ?? 0;
+      const objective =
+        100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
+        6 * Math.sin(x * 9) +
+        y / 4;
+      const frame = {
+        metricId: request.metric.id,
+        label: request.metric.label,
+        outputType: "distribution" as const,
+        frameNumber: 45,
+        time: 45,
+        bins: [
+          [Math.round(objective * 100) / 100, request.runCount],
+        ] as (readonly [number, number])[],
+        value: null,
+        frameValue: null,
+        timeValue: null,
+        runSampleCount: request.runCount,
+        timeSampleCount: request.runCount,
+      };
+      return new Promise((resolve) => {
+        setTimeout(
+          () =>
+            resolve({
+              runsCompleted: request.runCount,
+              metricFrames: [frame],
+            }),
+          100,
+        );
+      });
+    },
+    setSweepSelection: (experimentId, selection) => {
+      setExperiments((current) =>
+        current.map((experiment) =>
+          experiment.id === experimentId && experiment.sweep
+            ? restreamOnSelectionChange
+              ? {
+                  ...experiment,
+                  metricFrames: [],
+                  latestMetricFramesById: {},
+                  sweep: {
+                    ...experiment.sweep,
+                    selection,
+                    runsCompleted: 0,
+                    runsSampled: 0,
+                    runTarget: 8,
+                    computing: true,
+                  },
+                }
+              : { ...experiment, sweep: { ...experiment.sweep, selection } }
+            : experiment,
+        ),
+      );
+      if (restreamOnSelectionChange) {
+        restream(experimentId, selection);
+      }
+    },
+    sampleSweepCell: (_experimentId, position) => {
+      // A synthetic objective surface — a smooth bump — so the story's
+      // contour fills in the way a real sweep's would, walk delay included.
+      // Positions are quantized indices; map them back to values.
+      const x = 0.1 + ((position.transmission_rate ?? 0) / 50) * 0.4;
+      const y = 2 + (position.recovery_days ?? 0);
+      const objective =
+        100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
+        6 * Math.sin(x * 9) +
+        y / 4;
+      const frame = {
+        metricId: "infected",
+        label: "Infected",
+        outputType: "distribution" as const,
+        frameNumber: 45,
+        time: 45,
+        bins: [[Math.round(objective), 8]] as (readonly [number, number])[],
+        value: null,
+        frameValue: null,
+        timeValue: null,
+        runSampleCount: 8,
+        timeSampleCount: 8,
+      };
+      return new Promise((resolve) => {
+        setTimeout(
+          () => resolve({ runsCompleted: 8, metricFrames: [frame] }),
+          120,
+        );
+      });
+    },
+    ...overrides,
+  };
 
   return <ExperimentsContext value={value}>{children}</ExperimentsContext>;
 }

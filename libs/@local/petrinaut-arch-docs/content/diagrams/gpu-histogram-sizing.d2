@@ -1,0 +1,29 @@
+# Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
+direction: right
+
+inputs: "shader inputs" {
+  style.stroke-dash: 4
+  metrics: "metric count" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+  ceiling: "sampled places'\ncount ceiling\n(or unbounded)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+}
+
+sizing: "histogramBinCount\nbins = min(1024, 16 KB / (4 × metrics))\nthen min(bins, ceiling + 1)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+window: "metric window (uniforms)\nbin i = lo + i × stride\nfirst attempt anchors on the\ninitial count" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+device: "GPU device" {
+  style.stroke-dash: 4
+  local: "local_hist + local min/max\n(fits 16 KB by construction)" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+  global: "histogram buffer\n+ observed range and\nescape counters" {style.fill: "#f2f2f2"; style.stroke: "#777777"}
+}
+
+decode: "host decode\nvalue = lo + bin × stride" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+calibrate: "escapes?\nreplan window from the\nobserved range and re-run\n(same seeds — converges once)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+
+inputs.metrics -> sizing
+inputs.ceiling -> sizing
+sizing -> device.local: bin count baked into WGSL
+window -> device.local: lo and stride per dispatch
+device.local -> device.global: merged once per frame
+device.global -> decode: chunk + final readbacks
+device.global -> calibrate: observed min/max + escapes
+calibrate -> window: "next attempt's window"

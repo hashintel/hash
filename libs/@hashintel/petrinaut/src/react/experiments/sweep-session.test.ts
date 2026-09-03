@@ -8,11 +8,14 @@ import {
 } from "./sweep-session";
 
 import type { ExperimentParameterAxis } from "./parameter-grid";
-import type { SweepSelection, SweepSessionUpdate } from "./sweep-session";
+import type {
+  SweepRunDraws,
+  SweepSelection,
+  SweepSessionUpdate,
+} from "./sweep-session";
 import type {
   MonteCarloExperiment,
   MonteCarloExperimentEvent,
-  MonteCarloRunConfig,
   MonteCarloUserDefinedMetricFrame,
   MonteCarloWorkerProgress,
 } from "@hashintel/petrinaut-core";
@@ -64,7 +67,7 @@ function frame(
 /** A hand-driven experiment handle: the test decides when batches finish. */
 function makeFakeBatch(request: {
   parameterValues: Readonly<Record<string, number>>;
-  runs?: readonly MonteCarloRunConfig[];
+  draws?: SweepRunDraws;
   seed: number;
   runCount: number;
   background?: boolean;
@@ -264,10 +267,16 @@ describe("createSweepSession", () => {
     expect(request.seed).toBe(42);
     expect(request.runCount).toBe(8);
     expect(request.parameterValues).toEqual({ x: 1, y: 15 });
-    expect(request.runs).toHaveLength(8);
+    expect(request.draws!.identifiers).toEqual(["x", "y"]);
+    expect(request.draws!.values).toHaveLength(16);
 
-    const xDraws = request.runs!.map((run) => Number(run.parameterValues!.x));
-    const yDraws = request.runs!.map((run) => Number(run.parameterValues!.y));
+    const drawColumn = (draws: NonNullable<typeof request.draws>, i: number) =>
+      Array.from(
+        { length: draws.values.length / 2 },
+        (_, run) => draws.values[run * 2 + i]!,
+      );
+    const xDraws = drawColumn(request.draws!, 0);
+    const yDraws = drawColumn(request.draws!, 1);
     // Draws stay inside the selected value intervals and spread across them.
     expect(Math.min(...xDraws)).toBeGreaterThanOrEqual(0);
     expect(Math.max(...xDraws)).toBeLessThanOrEqual(2);
@@ -284,12 +293,10 @@ describe("createSweepSession", () => {
     const second = batches[1]!.request;
     expect(second.runCount).toBe(17);
     expect(second.seed).toBe(sweepBatchSeed(42, 8));
-    expect(second.runs).toHaveLength(17);
+    expect(second.draws!.values).toHaveLength(34);
     // Prefix stability: the second batch continues at global index 8, so its
     // first draw differs from the first batch's first draw.
-    expect(second.runs![0]!.parameterValues!.x).not.toBe(
-      request.runs![0]!.parameterValues!.x,
-    );
+    expect(second.draws!.values[0]).not.toBe(request.draws!.values[0]);
 
     const last = updates.at(-1)!;
     expect(last.runsCompleted).toBe(8);
@@ -301,7 +308,7 @@ describe("createSweepSession", () => {
     await settle();
 
     expect(batches).toHaveLength(1);
-    expect(batches[0]!.request.runs).toBeUndefined();
+    expect(batches[0]!.request.draws).toBeUndefined();
     expect(batches[0]!.request.parameterValues).toEqual({ x: 1, y: 20 });
     session.dispose();
   });
@@ -346,8 +353,8 @@ describe("createSweepSession", () => {
     const resumed = batches.at(-1)!;
     expect(resumed.request.runCount).toBe(17);
     expect(resumed.request.seed).toBe(sweepBatchSeed(42, 8));
-    expect(resumed.request.runs![0]!.parameterValues!.x).toBe(
-      batches[1]!.request.runs![0]!.parameterValues!.x,
+    expect(resumed.request.draws!.values[0]).toBe(
+      batches[1]!.request.draws!.values[0],
     );
     session.dispose();
   });
@@ -391,7 +398,9 @@ describe("createSweepSession", () => {
     const rangeBatch = batches.at(-1)!;
     expect(rangeBatch.request.runCount).toBe(8);
     expect(rangeBatch.request.seed).toBe(42);
-    expect(rangeBatch.request.runs).toHaveLength(8);
+    expect(rangeBatch.request.draws!.values).toHaveLength(
+      8 * rangeBatch.request.draws!.identifiers.length,
+    );
     session.dispose();
   });
 
@@ -411,17 +420,23 @@ describe("createSweepSession", () => {
     session.dispose();
   });
 
-  it("samples background cells up the same seed ladder, one at a time", async () => {
+  it("samples background cells concurrently, bounded to a few in flight", async () => {
     const { session, batches, settle } = makeHarness(100, point(0, 0));
     await settle();
     expect(batches).toHaveLength(1); // the navigator's own first rung
 
-    const first = session.sampleCell({ x: 2, y: 1 }, 8);
-    const second = session.sampleCell({ x: 1, y: 1 }, 8);
+    const cells = [
+      session.sampleCell({ x: 2, y: 1 }, 8),
+      session.sampleCell({ x: 1, y: 1 }, 8),
+      session.sampleCell({ x: 3, y: 1 }, 8),
+      session.sampleCell({ x: 4, y: 1 }, 8),
+      session.sampleCell({ x: 5, y: 1 }, 8),
+    ];
+    await settle();
     await settle();
 
-    // Serialized: the second background batch waits for the first.
-    expect(batches).toHaveLength(2);
+    // Four batches run at once; the fifth waits for a slot.
+    expect(batches).toHaveLength(5);
     expect(batches[1]!.request).toMatchObject({
       parameterValues: { x: 2, y: 20 },
       seed: 42,
@@ -429,15 +444,20 @@ describe("createSweepSession", () => {
       background: true,
     });
 
-    batches[1]!.stream([frame(8, [[5, 8]])]);
-    batches[1]!.complete();
-    await expect(first).resolves.toMatchObject({ runsCompleted: 8 });
+    for (const batch of batches.slice(1, 5)) {
+      batch.stream([frame(8, [[5, 8]])]);
+      batch.complete();
+    }
     await settle();
-
-    expect(batches).toHaveLength(3);
-    batches[2]!.stream([frame(8, [[6, 8]])]);
-    batches[2]!.complete();
-    await expect(second).resolves.toMatchObject({ runsCompleted: 8 });
+    await settle();
+    expect(batches).toHaveLength(6);
+    batches[5]!.stream([frame(8, [[6, 8]])]);
+    batches[5]!.complete();
+    await Promise.all(
+      cells.map((cell) =>
+        expect(cell).resolves.toMatchObject({ runsCompleted: 8 }),
+      ),
+    );
 
     // Sampled cells are readable like navigator-visited ones.
     expect(session.getCell({ x: 2, y: 1 })).toMatchObject({

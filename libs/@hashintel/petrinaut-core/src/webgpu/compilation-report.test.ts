@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { cafeQueue } from "../examples/cafe-queue";
+import { dronePatrol } from "../examples/drone-patrol";
+import * as allExamples from "../examples/index";
 import { probabilisticSatellitesSDCPN } from "../examples/satellites-launcher";
 import { sirModel } from "../examples/sir-model";
 import { compileHirArtifacts } from "../hir";
@@ -21,6 +24,31 @@ function analyze(sdcpn: SDCPN) {
 
 const satellites = probabilisticSatellitesSDCPN.petriNetDefinition;
 
+describe("gpu-ready shipped examples", () => {
+  // The two examples that exist to exercise the GPU out of the box; a
+  // regression that breaks either's eligibility should fail here, not in a
+  // user's hands.
+  it("keeps Café Queue gpu-ready", () => {
+    expect(analyze(cafeQueue.petriNetDefinition).gpuReady).toBe(true);
+  });
+
+  it("keeps Drone Patrol gpu-ready", () => {
+    expect(analyze(dronePatrol.petriNetDefinition).gpuReady).toBe(true);
+  });
+});
+
+/** The satellites net with a `string` attribute, which stays GPU-ineligible. */
+const withStringAttribute: SDCPN = {
+  ...satellites,
+  types: satellites.types.map((type) => ({
+    ...type,
+    elements: [
+      ...type.elements,
+      { elementId: "tag", name: "tag", type: "string" as const },
+    ],
+  })),
+};
+
 describe("analyzeCompilation", () => {
   it("reports an uncoloured net as GPU-ready and keeps the WGSL", () => {
     const report = analyze(sirModel.petriNetDefinition);
@@ -38,11 +66,55 @@ describe("analyzeCompilation", () => {
     ).toHaveLength(2);
   });
 
-  it("does not claim an item is GPU-ready when emission never ran", () => {
-    // The satellites net is refused for missing capacities, so nothing was
-    // emitted. Saying "GPU" here would assert something untested — and this net
-    // in fact fails emission once capacities are added.
+  it("accepts every bundled example except the one multi-place consumer", () => {
+    // With derived capacities, calibrated histogram windows, forwarded
+    // kernel tokens, and the tiling-aware state gate, the only example the
+    // GPU still declines is Production Machines — its \`Start Repair\`
+    // consumes typed tokens from two places, a cross-product enumeration
+    // the shader does not scan yet (the weight > 2 family).
+    // Deliberately exhaustive over the examples namespace: adding an example
+    // MUST extend this matrix, so its GPU verdict is a decision, not an
+    // accident.
+    const readiness = Object.fromEntries(
+      Object.entries(allExamples).map(([name, example]) => {
+        const definition = (
+          example as { petriNetDefinition: typeof satellites }
+        ).petriNetDefinition;
+        return [name, analyze(definition).gpuReady];
+      }),
+    );
+    expect(readiness).toStrictEqual({
+      productionMachines: false,
+      deploymentPipelineSDCPN: true,
+      probabilisticSatellitesSDCPN: true,
+      sirModel: true,
+      cafeQueue: true,
+      dronePatrol: true,
+      supplyChainWithDisruption: true,
+      supplyChainProfit: true,
+    });
+    const production = analyze(
+      allExamples.productionMachines.petriNetDefinition,
+    );
+    expect(production.shaderFailure).toMatch(
+      /consumes typed tokens from 2 places/,
+    );
+  });
+
+  it("reports the satellites example GPU-ready with derived capacities", () => {
+    // Typed places without declared capacities used to be the example's
+    // structural blocker; their slabs now derive by probing, so the whole
+    // net compiles.
     const report = analyze(satellites);
+
+    expect(report.gpuReady).toBe(true);
+    expect(report.eligibilityReasons).toStrictEqual([]);
+  });
+
+  it("does not claim an item is GPU-ready when emission never ran", () => {
+    // A `string` attribute still refuses eligibility, so nothing was emitted.
+    // Saying "GPU" here would assert something untested.
+    const report = analyze(withStringAttribute);
 
     const dynamics = report.items.filter((item) => item.kind === "dynamics");
     expect(dynamics.length).toBeGreaterThan(0);
@@ -55,16 +127,14 @@ describe("analyzeCompilation", () => {
     );
   });
 
-  it("reports the structural blockers for the satellites example", () => {
-    const report = analyze(satellites);
+  it("reports the structural blockers for a string-carrying net", () => {
+    const report = analyze(withStringAttribute);
 
     expect(report.gpuReady).toBe(false);
-    expect(
-      report.eligibilityReasons.map((reason) => reason.code),
-    ).toStrictEqual([
-      "colored-place-without-capacity",
-      "colored-place-without-capacity",
-    ]);
+    for (const reason of report.eligibilityReasons) {
+      expect(reason.code).toBe("unsupported-attribute-type");
+    }
+    expect(report.eligibilityReasons.length).toBeGreaterThan(0);
     // Eligibility failed, so emission never ran — there is nothing to report.
     expect(report.shaderFailure).toBeNull();
     expect(report.wgsl).toBeNull();
@@ -235,10 +305,11 @@ describe("summarizeGpuUnavailability", () => {
   });
 
   it("leads with a structural reason, which is the actionable one", () => {
-    const summary = summarizeGpuUnavailability(analyze(satellites));
+    const summary = summarizeGpuUnavailability(analyze(withStringAttribute));
 
-    expect(summary).toMatch(/holds typed tokens but has no token capacity/);
-    // Two places are uncapped; the tooltip says so without listing both.
+    expect(summary).toMatch(/carries a `string` attribute/);
+    // Two places carry the attribute; the tooltip says so without listing
+    // both.
     expect(summary).toMatch(/\(\+1 more\)$/);
   });
 

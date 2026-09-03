@@ -254,10 +254,9 @@ export function analyzeCompilation({
     }
 
     const hir = netHir.kernels.get(transition.id);
-    // Always `cpu-only` when there is a kernel to run: nothing runs kernels on
-    // the GPU yet. The detail says which kind of blocked it is, because "the
-    // backend cannot write output tokens yet" and "this kernel uses a string
-    // attribute" are the same outcome and completely different work.
+    // The detail says which kind of blocked a kernel is when translation
+    // fails, because "the backend cannot express this" and "this kernel uses
+    // a string attribute" are the same outcome and completely different work.
     const translation =
       hir === undefined
         ? null

@@ -74,7 +74,7 @@ const readoutStyle = css({
   textAlign: "right",
 });
 
-const pointSliderStyle = css({
+const sliderStyle = css({
   flex: "1",
 });
 
@@ -82,6 +82,8 @@ const statusStyle = css({
   display: "flex",
   alignItems: "center",
   gap: "[6px]",
+  // Aligns under the sliders: the 140px name column plus the row gap.
+  paddingLeft: "[148px]",
   fontSize: "xs",
   color: "neutral.s80",
   fontVariantNumeric: "tabular-nums",
@@ -144,7 +146,7 @@ const AxisControl = ({
         // A single thumb, not a collapsed RangeSlider: coincident range
         // thumbs trap the drag on the upper one, which cannot move left.
         <Slider
-          className={pointSliderStyle}
+          className={sliderStyle}
           min={0}
           max={axis.stepCount}
           step={1}
@@ -154,6 +156,7 @@ const AxisControl = ({
         />
       ) : (
         <RangeSlider
+          className={sliderStyle}
           min={0}
           max={axis.stepCount}
           step={1}

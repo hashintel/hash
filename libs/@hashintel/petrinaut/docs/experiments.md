@@ -22,7 +22,7 @@ Experiments live under the **Simulate** [global mode](drawing-a-net.md#global-mo
 With "No scenario" selected, the Scenario section shows the [ad-hoc scenario form](ad-hoc-scenarios.md): define the initial state and parameter values inline for this experiment, without saving a scenario. Left untouched, the experiment runs from the manually-set markings and defaults as before. The experiments table shows "Ad-hoc scenario" in its Scenario column for such runs.
 
 With a scenario selected (and ad-hoc scenarios enabled), the Scenario section shows it through the same form: the scenario parameters take value edits in worksheet style, and a collapsed **Computed state** sub-section underneath previews the exact parameter values and initial tokens each run will start with -- computed only when you open it, and recomputed as you change the values above. The preview sits in its own tinted panel and scrolls as one, so a net with many places leaves the rest of the drawer in reach.
-| **Runs** | `1000` | Positive integer; how many independent simulations to run. For a sweep, this is the run budget **per sampled point**. |
+| **Runs** | `1000` | Positive integer; how many independent simulations to run. For a sweep the field reads **Max runs per selection**: each selection refines progressively (8, 25, 100, … 1000, 5000, …) up to this ceiling, so large budgets — 100,000 on the GPU — sharpen the distribution the longer you stay. |
 | **Time step (dt)** | `0.1` | Same meaning as in single-run simulations (see [Simulation](simulation.md#time-step-dt)). |
 | **Max time (seconds)** | `180` | Each run advances until simulation time reaches this value, then completes. |
 | **Run on GPU** | off | Only shown when **WebGPU** is on under **Settings → Simulation**. Greyed out with the reason on hover when this model cannot run on the GPU. See [Compute backend](#compute-backend-experimental). |
@@ -63,10 +63,10 @@ Flip **Sweep** on any numeric scenario parameter to explore an interval of value
 
 A sweep computes **what you have selected**. The results drawer grows a **Parameters** strip — pinned while you scroll — with one slider per swept parameter. Each slider selects a range on its interval, and starts spanning the whole of it:
 
-- **Range** (the default): Petrinaut runs **one stochastic simulation over the ranges** — every run draws its own value for each ranged parameter, spread across the selected interval — and the metric charts stream the live distribution **over the region**, sharpening exactly like a plain experiment's. Resize a range from either end to focus; compute restarts on the new selection. Range selections run on the CPU at full parallelism (the GPU needs one parameter value per experiment); an initial state that a scenario derives from a ranged parameter holds at the range's midpoint, while the simulation itself reads each run's own value.
+- **Range** (the default): Petrinaut runs **one stochastic simulation over the ranges** — every run draws its own value for each ranged parameter, spread across the selected interval — and the metric charts stream the live distribution **over the region**, sharpening exactly like a plain experiment's. Resize a range from either end to focus; compute restarts on the new selection. Range selections run on the GPU when the net qualifies — each run's parameter draw is uploaded alongside its state — and otherwise on the CPU at full parallelism; an initial state that a scenario derives from a ranged parameter holds at the range's midpoint, while the simulation itself reads each run's own value.
 - **Point**: switch a parameter's control to Point and its slider collapses to a single value. A point refines in escalating batches (8, 25, 100, … up to your run budget), exactly like a plain experiment at that value — including on the GPU.
 
-Move a slider and compute immediately restarts on the new selection, like a raytracer dropping its rays when the camera moves. Every position you have visited keeps its results: narrowing a range, collapsing to a point, or sliding back to an earlier value restores its runs and distributions instantly, and refinement resumes where it left off.
+Move a slider and compute immediately restarts on the new selection, like a raytracer dropping its rays when the camera moves. While the new selection's first results compute, the charts keep the previous selection's picture dimmed rather than going blank, then fade it out quickly as fresh data draws in underneath. Every position you have visited keeps its results: narrowing a range, collapsing to a point, or sliding back to an earlier value restores its runs and distributions instantly, and refinement resumes where it left off.
 
 Every selection uses the same seed sequence (common random numbers), and a run's parameter draw depends only on the experiment's seed and the run's position in the sequence, so differences you see between selections come from the parameters, not from sampling luck — while experiments with different seeds explore their own value sequences.
 
@@ -86,11 +86,11 @@ The switch is greyed out when the current model cannot run on the GPU; hover it 
 
 The GPU backend handles a **subset** of nets, and it tells you when it cannot take one rather than guessing. It needs:
 
-- **fewer than 256 tokens in any place a metric measures.** Metrics are reduced on the device into a histogram with one bin per token count, so counts of 256 or more cannot be told apart. A net whose measured place already starts above that is refused; one that grows past it mid-run warns you that values above 255 are clamped;
-- every place that holds typed tokens to declare a [token capacity](drawing-a-net.md#token-capacity), so buffer sizes are known up front;
+- **token spans that fit the metric histogram.** Metrics are reduced on the device into a histogram whose bins cover a window of counts. The window calibrates itself: a short probe observes each measured place's range, the full run uses that range, and a run that escapes its window is recalibrated and re-run automatically — no refusals or warnings based on absolute counts. Only the _span_ is limited: up to three metrics get 1,024 distinct values each (more metrics share the budget), and a wider span is binned at reduced resolution;
+- typed places to have _measurable_ token counts. A declared [token capacity](drawing-a-net.md#token-capacity) is used directly; without one, a short probe measures each place's real maximum and sizes the buffers from it (growing and re-running automatically if a run later outgrows the estimate). A place whose probe shows rare extreme outliers runs on the CPU instead — sizing every run for the outlier would waste the GPU's memory;
 - no `string` or `uuid` token attributes, which need more than the 32 bits WebGPU offers;
 - **arcs consuming at most two typed tokens per place.** A condition that reads token attributes runs on the GPU at weight 1 and at weight 2 — a pairwise condition like a collision test is scanned over every pair — but not beyond;
-- typed tokens consumed from at most one place per transition, since two would be a product across arcs;
+- typed tokens consumed from at most one place per transition, since two would be a cross-product enumeration across arcs (the one gate a bundled example — Production Machines — still hits);
 - metrics that measure place token counts, without a time aggregation.
 
 When an experiment does not qualify, it runs on the CPU instead and a message explains which requirement was not met. Nothing fails, and you do not need to check in advance. To see the full picture for the net you are editing — including which individual conditions and equations compiled — turn on [Compilation Output](compilation-output.md).
@@ -99,7 +99,7 @@ There is also a ceiling on **run count**, because every run's state lives in one
 
 Two things to know before comparing results:
 
-- **The same seed gives different numbers on the two backends.** They use different random number generators — WebGPU cannot reproduce the CPU one — so the trajectories differ while the distributions agree. On the built-in SIR example the two backends' mean token counts agree to within half a percent. The badge in each experiment's summary records which backend ran it, so results stay attributable after the fact.
+- **The same seed gives different numbers on the two backends.** They deliberately use different random number generators, so the trajectories differ while the distributions agree. On the built-in SIR example the two backends' mean token counts agree to within half a percent. The badge in each experiment's summary records which backend ran it, so results stay attributable after the fact.
 - Continuous dynamics are integrated with a **more accurate method** (Runge-Kutta 4) than the CPU's, so a model with differential equations may show slightly different — better — values, not just different noise.
 - The GPU steps every run to the configured max time, while the CPU stops a run as soon as it can no longer fire anything. So a net that finishes early reports a **higher frame count and simulated time** on the GPU for the same results. Nothing is wrong with either; they just stop counting at different points.
 
@@ -107,15 +107,14 @@ Two things to know before comparing results:
 
 Open an experiment's drawer and its **Summary** section reports:
 
-| Field        | Meaning                                                                                                              |
-| ------------ | -------------------------------------------------------------------------------------------------------------------- |
-| **Status**   | One of the five statuses above.                                                                                      |
-| **Scenario** | The scenario the experiment runs, or `Default`.                                                                      |
-| **Runs**     | How many runs are in flight, and how many have finished.                                                             |
-| **Errors**   | How many individual runs errored. An experiment can complete with some runs errored.                                 |
-| **Frame**    | The frame number reached — the slowest worker's position, so it never runs ahead of the results.                     |
-| **Time**     | Simulated time reached, against the configured maximum. This is model time, not clock time.                          |
-| **Elapsed**  | Clock time the experiment has been simulating. Once it stops, this becomes **Duration** and holds the total it took. |
+| Field        | Meaning                                                                                                                 |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| **Status**   | One of the five statuses above.                                                                                         |
+| **Scenario** | The scenario the experiment runs, or `Default`.                                                                         |
+| **Runs**     | How many runs are in flight, and how many have finished.                                                                |
+| **Errors**   | How many individual runs errored — shown only when at least one has. An experiment can complete with some runs errored. |
+| **Time**     | Simulated time reached, against the configured maximum. This is model time, not clock time.                             |
+| **Elapsed**  | Clock time the experiment has been simulating. Once it stops, this becomes **Duration** and holds the total it took.    |
 
 A badge beside the **Summary** heading shows whether the run used the **CPU** or the **GPU**, and stays visible when the section is collapsed. Hover it for detail — on a CPU-backed experiment that asked for the GPU, the badge explains which requirement the net did not meet.
 
