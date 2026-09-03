@@ -12,9 +12,48 @@ import type {
   SweepCompletionFailure,
   SweepCompletionReport,
 } from "../brunch-sweep-output";
-import type { FlueClient } from "@flue/sdk";
+import type { AgentSendResult, FlueClient } from "@flue/sdk";
 import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type { UIMessageChunk } from "ai";
+
+export class BrunchPanelConversationTracker {
+  public constructor(public readonly conversationId: string | null) {}
+
+  readonly #inputSubmissions = new Map<
+    string,
+    AgentSendResult["submissionId"]
+  >();
+  readonly #responseSubmissions = new Map<
+    string,
+    AgentSendResult["submissionId"]
+  >();
+
+  public recordInput(
+    messageId: string,
+    submissionId: AgentSendResult["submissionId"],
+  ): void {
+    this.#inputSubmissions.set(messageId, submissionId);
+  }
+
+  public recordResponse(
+    messageId: string,
+    submissionId: AgentSendResult["submissionId"],
+  ): void {
+    this.#responseSubmissions.set(messageId, submissionId);
+  }
+
+  public submissionForInput(
+    messageId: string,
+  ): AgentSendResult["submissionId"] | undefined {
+    return this.#inputSubmissions.get(messageId);
+  }
+
+  public submissionForResponse(
+    messageId: string,
+  ): AgentSendResult["submissionId"] | undefined {
+    return this.#responseSubmissions.get(messageId);
+  }
+}
 
 const formatFailure = (failure: SweepCompletionFailure): string => {
   const location =
@@ -135,6 +174,10 @@ const decorateBrunchStream = (
 /** Adapt one mounted Flue conversation to Petrinaut's AI SDK rendering contract. */
 export const createBrunchPanelTransport = (
   clientPromise: Promise<FlueClient>,
+  tracker: BrunchPanelConversationTracker,
+  hooks?: {
+    readonly onAdmission?: (admission: AgentSendResult) => void;
+  },
 ): PetrinautAiChatTransport => ({
   reconnectToStream: async () => null,
   sendMessages: async (sendOptions) => {
@@ -143,6 +186,14 @@ export const createBrunchPanelTransport = (
       client,
       clientToolNames: new Set([readPetrinautDocToolName]),
       clientToolResultSignal: CLIENT_TOOL_RESULT_SIGNAL,
+      onAdmission: ({ admission, kind, messageId }) => {
+        hooks?.onAdmission?.(admission);
+        if (kind === "user") {
+          tracker.recordInput(messageId, admission.submissionId);
+        }
+      },
+      onResponseMessage: ({ messageId, submissionId }) =>
+        tracker.recordResponse(messageId, submissionId),
     });
     return decorateBrunchStream(await transport.sendMessages(sendOptions));
   },

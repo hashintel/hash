@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
@@ -6,13 +6,22 @@ import {
 } from "@hashintel/brunch-agent-transport-aisdk";
 import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
-import type { FlueClient } from "@flue/sdk";
+import type {
+  AgentConversationObservation,
+  AgentConversationObservationPhase,
+  AgentConversationObservationSnapshot,
+  FlueClient,
+  FlueConversationSettlement,
+  FlueConversationState,
+} from "@flue/sdk";
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const projectPetrinautMessages = (
-  snapshot: Awaited<ReturnType<FlueClient["history"]>>,
+  conversation: FlueConversationState,
 ): PetrinautAiMessage[] =>
-  snapshotToUiMessages(snapshot, {
+  // The host owns this narrowing: its configured client-tool catalog is the
+  // same catalog Petrinaut's message type exposes.
+  snapshotToUiMessages(conversation, {
     clientToolNames: new Set([readPetrinautDocToolName]),
     clientToolResultSignal: CLIENT_TOOL_RESULT_SIGNAL,
   }) as PetrinautAiMessage[];
@@ -21,43 +30,85 @@ export const useFlueChatHistory = (
   clientPromise: Promise<FlueClient> | null,
   conversationId: string,
 ): {
+  readonly error: Error | undefined;
+  readonly latestSettlement: FlueConversationSettlement | undefined;
   readonly messages: PetrinautAiMessage[] | undefined;
+  readonly phase: AgentConversationObservationPhase | undefined;
   readonly ready: boolean;
+  readonly refresh: () => void;
 } => {
-  const [loaded, setLoaded] = useState<{
+  const observationRef = useRef<AgentConversationObservation | null>(null);
+  const [observed, setObserved] = useState<{
     readonly conversationId: string;
-    readonly messages: PetrinautAiMessage[];
+    readonly snapshot: AgentConversationObservationSnapshot;
   }>();
+
+  const refresh = useCallback(() => observationRef.current?.refresh(), []);
 
   useEffect(() => {
     if (clientPromise === null || conversationId.length === 0) {
+      observationRef.current = null;
       return;
     }
     let cancelled = false;
-    const load = async (): Promise<void> => {
+    let unsubscribe: (() => void) | undefined;
+    let observation: AgentConversationObservation | undefined;
+    const observe = async (): Promise<void> => {
       try {
         const client = await clientPromise;
-        const snapshot = await client.history();
-        if (!cancelled) {
-          setLoaded({
-            conversationId,
-            messages: projectPetrinautMessages(snapshot),
-          });
-        }
-      } catch {
-        // Leave `loaded` stale so the panel keeps using its localStorage cache.
+        if (cancelled) return;
+        observation = client.observe({ live: "sse" });
+        observationRef.current = observation;
+        const publish = (): void => {
+          if (!cancelled && observation !== undefined) {
+            setObserved({
+              conversationId,
+              snapshot: observation.getSnapshot(),
+            });
+          }
+        };
+        publish();
+        unsubscribe = observation.subscribe(publish);
+      } catch (caught) {
+        if (cancelled) return;
+        setObserved({
+          conversationId,
+          snapshot: {
+            conversation: undefined,
+            offset: undefined,
+            phase: "error",
+            error: caught instanceof Error ? caught : new Error(String(caught)),
+          },
+        });
       }
     };
-    void load();
+    void observe();
     return () => {
       cancelled = true;
+      unsubscribe?.();
+      observation?.close();
+      if (observationRef.current === observation) {
+        observationRef.current = null;
+      }
     };
   }, [clientPromise, conversationId]);
 
-  const ready =
-    conversationId.length > 0 && loaded?.conversationId === conversationId;
+  const snapshot =
+    observed?.conversationId === conversationId ? observed.snapshot : undefined;
+  const conversation = snapshot?.conversation;
+  const absent = snapshot?.phase === "absent";
+  const ready = absent || conversation !== undefined;
   return {
-    messages: ready ? loaded.messages : undefined,
+    error: snapshot?.error,
+    latestSettlement: conversation?.settlements.at(-1),
+    messages:
+      conversation === undefined
+        ? absent
+          ? []
+          : undefined
+        : projectPetrinautMessages(conversation),
+    phase: snapshot?.phase,
     ready,
+    refresh,
   };
 };

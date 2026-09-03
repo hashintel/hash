@@ -1,12 +1,15 @@
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
-
-type ChatStatus = "ready" | "submitted" | "streaming" | "error";
+import type { AgentSendResult } from "@flue/sdk";
+import type {
+  PetrinautAiComposerSubmitTextResult,
+  PetrinautAiVoiceModeContext,
+} from "@hashintel/petrinaut/ui";
 
 interface ChatUpdate {
   readonly canAcceptInterviewAnswer: boolean;
   readonly canonicalSegments: CanonicalSpeechSegment[];
-  readonly status: ChatStatus;
+  readonly status: PetrinautAiVoiceModeContext["status"];
 }
 
 interface RealtimeBridgeSession {
@@ -18,14 +21,19 @@ interface RealtimeBridgeSession {
   subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
 }
 
-interface SubmitInterviewAnswerInput {
+type SubmitVoiceInput = Parameters<
+  PetrinautAiVoiceModeContext["submitVoiceInput"]
+>[0];
+
+type SubmitInterviewAnswerInput = Pick<SubmitVoiceInput, "text"> & {
   readonly id: string;
-  readonly text: string;
-}
+};
 
 type SubmitInterviewAnswerResult =
-  | { readonly kind: "interactive-tool"; readonly toolCallId: string }
-  | { readonly kind: "message"; readonly messageId: string };
+  | Extract<PetrinautAiComposerSubmitTextResult, { kind: "interactive-tool" }>
+  | (Extract<PetrinautAiComposerSubmitTextResult, { kind: "message" }> & {
+      readonly submissionId?: AgentSendResult["submissionId"];
+    });
 
 interface RealtimeBrunchBridgeDependencies {
   readonly session: RealtimeBridgeSession;
@@ -41,6 +49,7 @@ interface ActiveSubmission {
   readonly pendingQuestionId: string | null;
   correlated: boolean;
   sawBusyChatStatus: boolean;
+  submissionId: AgentSendResult["submissionId"] | null;
 }
 
 interface ArgumentStream {
@@ -323,6 +332,7 @@ export class RealtimeBrunchBridge {
       epoch: event.connectionEpoch,
       pendingQuestionId: question?.partId ?? null,
       sawBusyChatStatus: false,
+      submissionId: null,
     };
     this.#emit({ answer, callId: event.callId, type: "submission-started" });
     void this.#submit(event, answer, generation);
@@ -375,6 +385,8 @@ export class RealtimeBrunchBridge {
         this.#fail(INVALID_BRIDGE_EVENT);
         return;
       }
+      active.submissionId =
+        result.kind === "message" ? (result.submissionId ?? null) : null;
       active.correlated = true;
       this.#emit({
         answer,
@@ -401,8 +413,10 @@ export class RealtimeBrunchBridge {
     ) {
       return;
     }
-    const responseSegments = this.#chat.canonicalSegments.filter(
-      ({ id }) => !active.baselineSegmentIds.has(id),
+    const responseSegments = this.#chat.canonicalSegments.filter((segment) =>
+      active.submissionId === null
+        ? !active.baselineSegmentIds.has(segment.id)
+        : segment.submissionId === active.submissionId,
     );
     if (responseSegments.length === 0) {
       return;

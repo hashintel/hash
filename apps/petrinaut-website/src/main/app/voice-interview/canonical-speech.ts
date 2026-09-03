@@ -5,6 +5,7 @@ import {
 
 import { hashCanonicalSpeechText } from "../../../canonical-speech-fingerprint";
 
+import type { AgentSendResult } from "@flue/sdk";
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 export { hashCanonicalSpeechText };
@@ -15,6 +16,7 @@ export interface CanonicalSpeechSegment {
   readonly messageId: string;
   readonly partId: string;
   readonly source: "assistant-text" | "brunch-ask";
+  readonly submissionId?: AgentSendResult["submissionId"];
   readonly text: string;
 }
 
