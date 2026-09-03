@@ -37,12 +37,13 @@
 //! v1 exposes one universe, the node rows. Edges carry their link entity's identity instead of a
 //! wire id of their own. Wire ids never reach the fit pipeline, and no artifact stores one.
 
-use core::{hash::Hasher as _, marker::PhantomData};
+use core::{fmt, hash::Hasher as _, marker::PhantomData};
 
 use hashql_core::id::Id;
 use hkdf::Hkdf;
 use sha2::Sha256;
 use siphasher::sip::SipHasher24;
+use zeroize::Zeroizing;
 
 use super::WireSecret;
 use crate::file::generation::GenerationId;
@@ -175,10 +176,9 @@ impl<'de, I> serde::Deserialize<'de> for WireRow<I> {
 /// caller's [`Universe`] and decoding inverts exactly the image of that universe, answering
 /// [`None`] elsewhere. Both are pure: the mapping never changes while the generation serves, and
 /// only the accepted bound moves as slots allocate.
-#[derive(Debug)]
 pub(crate) struct RowCodec<I> {
     /// The per-round SipHash-2-4 keys.
-    keys: [[u8; 16]; ROUNDS],
+    keys: Zeroizing<[[u8; 16]; ROUNDS]>,
     _marker: PhantomData<I>,
 }
 
@@ -193,15 +193,10 @@ where
     pub(crate) fn derive(secret: &WireSecret, generation: GenerationId, label: &[u8]) -> Self {
         let salt = generation.digest().to_bytes();
 
-        let mut material = [0_u8; 16 * ROUNDS];
+        let mut keys = Zeroizing::new([[0_u8; 16]; ROUNDS]);
         Hkdf::<Sha256>::new(Some(&salt), secret.as_bytes())
-            .expand(label, &mut material)
+            .expand(label, (*keys).as_flattened_mut())
             .expect("128 octets stay within HKDF-SHA256's expansion bound");
-
-        let mut keys = [[0_u8; 16]; ROUNDS];
-        for (key, chunk) in keys.iter_mut().zip(material.as_chunks::<16>().0) {
-            *key = *chunk;
-        }
 
         Self {
             keys,
@@ -235,7 +230,7 @@ where
 
     /// Applies the Feistel network once over the `u32` range.
     fn permute(&self, mut state: u32) -> u32 {
-        for key in &self.keys {
+        for key in &*self.keys {
             let left = state >> HALF_BITS;
             let right = state & HALF_MASK;
             state = (right << HALF_BITS) | (left ^ (round(key, right) & HALF_MASK));
@@ -253,6 +248,14 @@ where
         }
 
         state
+    }
+}
+
+impl<I: fmt::Debug> fmt::Debug for RowCodec<I> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RowCodec")
+            .field("rounds", &ROUNDS)
+            .finish_non_exhaustive()
     }
 }
 

@@ -141,8 +141,13 @@ pub(crate) struct SecretHexBytes<const N: usize>(HexBytes<N>);
 
 impl<const N: usize> SecretHexBytes<N> {
     /// Wraps raw secret bytes.
+    #[cfg(test)] // required by `WireSecret`
     pub(crate) const fn new(bytes: [u8; N]) -> Self {
         Self(HexBytes::new(bytes))
+    }
+
+    pub(crate) const fn zeroed() -> Self {
+        Self(HexBytes::new([0_u8; N]))
     }
 
     /// Returns a reference to the secret bytes.
@@ -163,9 +168,15 @@ impl<const N: usize> SecretHexBytes<N> {
     }
 }
 
-impl<const N: usize> AsRef<[u8]> for SecretHexBytes<N> {
+const impl<const N: usize> AsRef<[u8]> for SecretHexBytes<N> {
     fn as_ref(&self) -> &[u8] {
         self.0.as_ref()
+    }
+}
+
+const impl<const N: usize> AsMut<[u8]> for SecretHexBytes<N> {
+    fn as_mut(&mut self) -> &mut [u8] {
+        self.0.as_mut()
     }
 }
 

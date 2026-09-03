@@ -108,7 +108,7 @@ const _: () = {
     while index < ARTIFACTS.len() {
         let mut ptr = index + 1;
 
-        assert!(ARTIFACTS[0] != METADATA_FILE);
+        assert!(ARTIFACTS[index] != METADATA_FILE);
         while ptr < ARTIFACTS.len() {
             assert!(ARTIFACTS[ptr] != ARTIFACTS[index]);
             ptr += 1;
@@ -118,8 +118,6 @@ const _: () = {
     }
 };
 
-// The served column set, each admitted from exactly its own row domain and element type, so two
-// permutation columns of equal width cannot swap at the write.
 impl WriteAs<Coordinates> for SizedColumn<NodeRowId, Vec2> {}
 impl WriteAs<WireCoordinates> for SizedColumn<BasePosition, Vec2> {}
 impl WriteAs<RankOfPosition> for SizedColumn<BasePosition, ImportanceRank> {}

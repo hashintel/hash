@@ -25,7 +25,10 @@ use hash_graph_postgres_store::store::{
     AsClient, PostgresStorePool, error::StoreError, postgres::query::SelectCompiler,
 };
 use hash_graph_store::{
-    filter::{Filter, protection::PropertyProtectionFilter},
+    filter::{
+        Filter,
+        protection::{PropertyProtectionFilter, PropertyProtectionFilterConfig},
+    },
     pool::StorePool as _,
     subgraph::temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved},
 };
@@ -56,7 +59,7 @@ use crate::{
 
 /// The resolved actor one hydration masks properties for.
 ///
-/// Property protection is a per-actor condition on the graph's read path, so a hydration
+/// Property protection is a per-actor condition on the graph's read path, and a hydration
 /// carries the actor identity the scope's policy resolution produced.
 #[derive(Debug, Copy, Clone)]
 pub(crate) struct MaskingActor {
@@ -64,6 +67,30 @@ pub(crate) struct MaskingActor {
     pub id: ActorId,
     /// Whether the actor is an instance admin, whose reads bypass property protection.
     pub instance_admin: bool,
+}
+
+impl MaskingActor {
+    /// Returns whether `config` masks this actor's reads.
+    ///
+    /// A deployment that protects no property masks nobody, and an instance admin's reads bypass
+    /// protection. Every other actor reads under `config`.
+    #[must_use]
+    pub(crate) fn masked_by(self, config: &PropertyProtectionFilterConfig<'_>) -> bool {
+        !config.is_empty() && !self.instance_admin
+    }
+
+    /// Returns the property protection over this actor's reads, absent when nothing masks.
+    ///
+    /// The protection binds its self-access clause to this actor, and the actor reads its own
+    /// protected properties in full.
+    #[must_use]
+    pub(crate) fn protection<'config, 'rules>(
+        self,
+        config: &'config PropertyProtectionFilterConfig<'rules>,
+    ) -> Option<PropertyProtectionFilter<'config, 'rules>> {
+        self.masked_by(config)
+            .then(|| config.to_property_protection_filter(Some(self.id)))
+    }
 }
 
 /// A detail hydration failed against the store.
@@ -232,13 +259,6 @@ impl GraphDatabaseClient {
             .map_err(|report| DetailError::Connect(report.change_context(StoreError)))
     }
 
-    /// Returns the property protection masking `masking`'s reads, absent when nothing masks.
-    fn protection(&self, masking: MaskingActor) -> Option<PropertyProtectionFilter<'_, '_>> {
-        let config = &self.pool.settings.filter_protection;
-        (!config.is_empty() && !masking.instance_admin)
-            .then(|| config.to_property_protection_filter(Some(masking.id)))
-    }
-
     /// Answers the node half of one locate order.
     ///
     /// Every resolved node reads its resolution flag and direct-type URLs. The source, the first
@@ -270,7 +290,7 @@ impl GraphDatabaseClient {
         let client = connection.as_client();
 
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
-        let protection = self.protection(masking);
+        let protection = masking.protection(&self.pool.settings.filter_protection);
 
         let ((resolved, type_urls), (source_properties, source_properties_complete)) = try_join!(
             read_types(client, ids, &temporal_axes),
@@ -324,7 +344,7 @@ impl GraphDatabaseClient {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
 
         let filter = identity_filter(ids.iter().copied().map(EntityId::from));
-        let protection = self.protection(masking);
+        let protection = masking.protection(&self.pool.settings.filter_protection);
         let mut compiler = SelectCompiler::new(Some(&temporal_axes), false);
         compiler
             .add_filter(&filter)
@@ -420,5 +440,97 @@ impl TypeUrlResolver for GraphDatabaseClient {
         }
 
         Ok(pairs)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use hash_graph_store::filter::{
+        Filter, FilterExpression, Parameter, protection::PropertyProtectionFilterConfig,
+    };
+    use type_system::{
+        knowledge::Entity,
+        principal::actor::{ActorId, UserId},
+    };
+    use uuid::Uuid;
+
+    use super::MaskingActor;
+
+    /// The actor identity `actor` names, an instance admin when `instance_admin`.
+    fn masking(actor: u128, instance_admin: bool) -> MaskingActor {
+        MaskingActor {
+            id: ActorId::User(UserId::new(Uuid::from_u128(actor))),
+            instance_admin,
+        }
+    }
+
+    /// Returns whether `filter` compares against the parameter `actor` anywhere in its tree.
+    fn binds_actor(filter: &Filter<'_, Entity>, actor: Uuid) -> bool {
+        let is_actor = |expression: &FilterExpression<'_, Entity>| {
+            matches!(
+                expression,
+                FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(uuid),
+                    ..
+                } if *uuid == actor
+            )
+        };
+        match filter {
+            Filter::All(filters) | Filter::Any(filters) => {
+                filters.iter().any(|filter| binds_actor(filter, actor))
+            }
+            Filter::Not(filter) => binds_actor(filter, actor),
+            Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => is_actor(lhs) || is_actor(rhs),
+            Filter::Exists { .. }
+            | Filter::Greater(..)
+            | Filter::GreaterOrEqual(..)
+            | Filter::Less(..)
+            | Filter::LessOrEqual(..)
+            | Filter::In(..)
+            | Filter::StartsWith(..)
+            | Filter::EndsWith(..)
+            | Filter::ContainsSegment(..) => false,
+        }
+    }
+
+    /// A deployment that protects no property masks nobody.
+    #[test]
+    fn protection_empty_config() {
+        let config = PropertyProtectionFilterConfig::new();
+
+        assert!(!masking(11, false).masked_by(&config));
+        assert!(masking(11, false).protection(&config).is_none());
+    }
+
+    /// An instance admin reads unmasked under a protecting deployment.
+    #[test]
+    fn protection_instance_admin() {
+        let config = PropertyProtectionFilterConfig::hash_default();
+
+        assert!(!masking(11, true).masked_by(&config));
+        assert!(masking(11, true).protection(&config).is_none());
+    }
+
+    /// A plain actor reads under the deployment's protection, with the self-access clause bound
+    /// to that actor and to no other.
+    #[test]
+    fn protection_plain_actor() {
+        let config = PropertyProtectionFilterConfig::hash_default();
+
+        assert!(masking(11, false).masked_by(&config));
+        let protection = masking(11, false)
+            .protection(&config)
+            .expect("a protecting deployment masks a plain actor");
+        assert!(!protection.is_empty(), "the protection holds no rule");
+        for (_property, filter) in protection.iter() {
+            assert!(
+                binds_actor(filter, Uuid::from_u128(11)),
+                "the rule does not compare against the reading actor: {filter:?}"
+            );
+            assert!(
+                !binds_actor(filter, Uuid::from_u128(12)),
+                "the rule compares against another actor: {filter:?}"
+            );
+        }
     }
 }

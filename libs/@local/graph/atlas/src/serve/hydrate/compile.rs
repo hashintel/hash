@@ -245,7 +245,7 @@ where
     // same filter reaches the same compiler.
     let protected;
     let filter = match filter {
-        Some(filter) if !protection.is_empty() && !policy_components.is_instance_admin() => {
+        Some(filter) if masking.masked_by(protection) => {
             protected =
                 transform_filter(filter.clone(), protection, 0, policy_components.actor_id());
             Some(&protected)

@@ -251,11 +251,19 @@ mod tests {
     use type_system::{
         knowledge::entity::id::{EntityId, EntityUuid},
         ontology::entity_type::EntityTypeUuid,
-        principal::actor_group::WebId,
+        principal::{
+            actor::{ActorId, UserId},
+            actor_group::WebId,
+        },
     };
     use uuid::Uuid;
 
     use super::{DetailColumns, Filter, TypeColumns, TypeUrlColumns, identity_filter};
+
+    /// The reading actor the masked pins bind their self-access clause to.
+    fn reading_actor() -> ActorId {
+        ActorId::User(UserId::new(Uuid::from_u128(11)))
+    }
 
     /// The identity filter over one nil identity, the fixture request.
     fn nil_filter() -> super::Filter<'static, super::Entity> {
@@ -289,14 +297,14 @@ mod tests {
     /// The masked spelling is the subtraction inside `jsonb_each(`, which is the compiler's
     /// column hook firing inside each property subquery. The count is over the masked object
     /// too, because a whole-object count against a masked map would tell an actor how many
-    /// properties were withheld - the enumeration signal the protection exists to close.
+    /// properties were withheld, the enumeration signal the protection exists to close.
     #[test]
-    fn detail_read_masks_both_property_subqueries() {
+    fn detail_masked_both_subqueries() {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
         let filter = nil_filter();
 
         let config = PropertyProtectionFilterConfig::hash_default();
-        let protection = config.to_property_protection_filter(None);
+        let protection = config.to_property_protection_filter(Some(reading_actor()));
 
         let mut masked = SelectCompiler::new(Some(&temporal_axes), false);
         masked
@@ -348,19 +356,21 @@ mod tests {
         insta::assert_snapshot!(types.compile().0);
     }
 
-    /// The rendered masked detail read, pinned under the deployment's default protection with
-    /// no resolved actor.
+    /// The rendered masked detail read, pinned under the deployment's default protection for a
+    /// resolved actor, the form every hydration compiles.
     ///
     /// The CASE conditions grow per protected property without changing the pinned grammar.
-    /// Reviewing a diff, hold it to the masking contract: both property subqueries read the
-    /// masked object.
+    /// Reviewing a diff, hold it to the masking contract. Both property subqueries read the masked
+    /// object. The self-access clause compares the entity against the reading actor's parameter,
+    /// and that comparison is what lets an actor read its own protected properties. A pin without
+    /// an actor masks unconditionally and cannot see that clause regress.
     #[test]
     fn masked_detail_statement_text() {
         let temporal_axes = QueryTemporalAxesUnresolved::live_only().resolve();
         let filter = nil_filter();
 
         let config = PropertyProtectionFilterConfig::hash_default();
-        let protection = config.to_property_protection_filter(None);
+        let protection = config.to_property_protection_filter(Some(reading_actor()));
         let mut detail = SelectCompiler::new(Some(&temporal_axes), false);
         detail
             .add_filter(&filter)

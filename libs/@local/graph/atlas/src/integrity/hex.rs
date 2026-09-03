@@ -153,6 +153,12 @@ const impl<const N: usize> AsRef<[u8]> for HexBytes<N> {
     }
 }
 
+const impl<const N: usize> AsMut<[u8]> for HexBytes<N> {
+    fn as_mut(&mut self) -> &mut [u8] {
+        &mut self.0
+    }
+}
+
 impl<const N: usize> fmt::Debug for HexBytes<N> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "\"{self}\"")

@@ -559,14 +559,14 @@ impl<R> TokenAuthority<R> {
         rng: R,
     ) -> Self {
         let salt = generation.digest().to_bytes();
-        let mut key = [0_u8; KEY_BYTES];
+        let mut key = SecretHexBytes::zeroed();
 
         Hkdf::<Sha256>::new(Some(&salt), secret.as_bytes())
-            .expand(LABEL, &mut key)
+            .expand(LABEL, key.as_mut())
             .expect("the cipher's key size stays within HKDF-SHA256's expansion bound");
 
         Self {
-            key: SecretHexBytes::new(key),
+            key,
             hard,
             epoch: ScopeEpoch::from(epoch),
             rng: Mutex::new(rng),
