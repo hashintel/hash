@@ -20,11 +20,11 @@ While a response is streaming you can:
 - Type your next message in the composer -- it is queued for after the current response ends.
 
 The application embedding Petrinaut may place an additional control beside the message box. For example, a host can offer another way to enter finalized text. Text submitted by that control behaves like text sent with the keyboard: it joins the same conversation and, when an inline question is waiting for an answer, completes that question rather than starting an unrelated message. A host can explicitly submit a separate message instead when the text is a correction or other follow-up that must not answer the pending question.
-If the host offers voice input, a finalized spoken turn is held while an existing response finishes and is submitted when the conversation is ready.
+If the host offers voice input, only a finalized transcript captured while Voice owns the input turn can be submitted. Voice waits while an existing response finishes or yields through the host's handoff control.
 
 If an assistant request fails, Petrinaut shows the error in a brief toast rather than adding it to the conversation. Retry from the composer when the assistant is ready.
 
-Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio.
+Hosts may provide canonical conversation rehydration. In that case, reopening the same assistant shows its settled and stopped turns without resubmitting a message or replaying Voice audio. Voice markers attached to client-tool results survive that history. A direct spoken user message remains in the transcript after reopening, but its **Voice** chip may not be restored by the current Brunch host.
 
 When the Brunch voice preview is enabled and available, an empty composer shows a waveform action
 titled **Start voice mode**. Typing non-whitespace text replaces it with **Send**. The same dynamic
@@ -55,23 +55,29 @@ the session ends, the held turns appear together under a **Voice session · N tu
 finalized answers and canonical Brunch text become chat history; provisional transcription and
 Realtime audio are ephemeral. Finalized spoken user messages carry a small **Voice** chip in front of
 the words themselves, and the exact inline answer completed by speech carries the same chip, so Voice
-provenance remains visible without duplicating an answer.
+provenance remains visible without duplicating an answer while the session is mounted.
 
-The microphone stays on while the interviewer speaks, so speaking naturally interrupts the audio
-and starts listening to you; you do not need to select an interrupt action. Semantic voice detection
-finishes each answer automatically after a natural pause and is tuned to allow longer thinking
-pauses. There is no required done-speaking action.
+Voice is half-duplex. The microphone is closed while the interviewer speaks or the assistant is
+working, which prevents playback from becoming a false answer. Select **Your turn** to interrupt:
+the dock shows the handoff as thinking while it clears pending audio and waits for the provider to
+finish cancellation, then opens a fresh input turn. Audio captured before that completed handoff is
+discarded. Semantic voice detection finishes your answer automatically after a natural pause, so
+there is no required done-speaking action. Duplicate, empty, failed, or unavailable transcripts are
+not submitted; the dock asks you to try again. An overlong answer instead asks for a shorter response.
+Provisional words remain display-only until the provider completes their transcript.
 
-Every session control lives in the dock: **Show transcription in chat** on the left, and on the right
-**Mute microphone** (**Unmute microphone** once muted) beside **End voice mode**. Muting stops
-sending audio without ending the turn, so the assistant plays out whatever it is saying and unmuting
-drops you straight back into the conversation. **Resume voice mode** replaces the microphone action
-while a session is paused, and **Reconnect voice mode** replaces it after a failure. Nothing is added
-to the canvas toolbar. Sending non-empty typed text from the
+Every session control lives in the dock: **Show transcription in chat** and **Voice playback
+options** on the left, and the available handoff, microphone, recovery, and end actions on the right.
+The playback menu offers **Repeat question** and **Read full response** after the matching response
+and speech have both finished. Both replay the exact retained canonical words; they stay unavailable
+during active capture, submission, cancellation, pause, and errors. **Mute microphone** becomes
+**Unmute microphone** once muted, and your latest choice applies when a handoff settles. **Resume voice mode**
+replaces the microphone action while a session is paused, and **Reconnect voice mode** replaces it
+after a failure. Nothing is added to the canvas toolbar. Sending non-empty typed text from the
 composer or first-run prompt ends Voice mode before it sends the message once through the same
 conversation; repeated send actions are ignored while that short handoff completes.
 
-The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the authority on your system. Brunch still chooses every question and interview decision; OpenAI only delivers its words. The question and finalized response shown in the Petrinaut conversation are authoritative. The speech request receives that exact Brunch text in part order; synthesized audio is generated from it but is not a verbatim recording. Interrupting audio does not undo the visible response or change the interview's saved history.
+The interviewer uses a warm, calm, curious, and professionally neutral voice and treats you as the authority on your system. Brunch still chooses every question and interview decision; OpenAI only transcribes your completed input and delivers Brunch's words. The question and finalized response shown in the Petrinaut conversation are authoritative. The speech request receives that exact Brunch text in part order; synthesized audio is generated from it but is not a verbatim recording. Interrupting audio does not undo the visible response or change the interview's saved history.
 
 Closing the AI panel pauses microphone capture and active speech, then hides the dock until you
 reopen the panel. The same mounted session stays paused; choose **Resume voice mode** when you are

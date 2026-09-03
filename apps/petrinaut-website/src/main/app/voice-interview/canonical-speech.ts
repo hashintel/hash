@@ -1,8 +1,3 @@
-import {
-  ASK_TOOL_NAME,
-  parseBrunchAskInput,
-} from "@hashintel/brunch-agent/client-tools";
-
 import { hashCanonicalSpeechText } from "../../../canonical-speech-fingerprint";
 
 import type { AgentSendResult } from "@flue/sdk";
@@ -15,7 +10,7 @@ export interface CanonicalSpeechSegment {
   readonly id: string;
   readonly messageId: string;
   readonly partId: string;
-  readonly source: "assistant-text" | "brunch-ask";
+  readonly source: "assistant-text";
   /**
    * Every Flue submission that wrote to this segment's message: the one that
    * started it plus any client-tool continuation projected back onto it.
@@ -70,29 +65,6 @@ export const selectCanonicalSpeechSegments = (
             part.text,
           ),
         );
-        continue;
-      }
-
-      if (
-        part.type !== "dynamic-tool" ||
-        part.toolName !== ASK_TOOL_NAME ||
-        part.state !== "input-available"
-      ) {
-        continue;
-      }
-
-      try {
-        const input = parseBrunchAskInput(part.input);
-        segments.push(
-          createSegment(
-            message.id,
-            part.toolCallId,
-            "brunch-ask",
-            input.question,
-          ),
-        );
-      } catch {
-        // Malformed tool inputs remain visible as tool errors; they are not spoken.
       }
     }
   }

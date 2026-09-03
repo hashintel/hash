@@ -29,7 +29,11 @@ export const voiceSessionActionLabels = {
   end: "End voice mode",
   mute: "Mute microphone",
   pause: "Pause voice mode",
+  playbackOptions: "Voice playback options",
+  readFullResponse: "Read full response",
   reconnect: "Reconnect voice mode",
+  repeatQuestion: "Repeat question",
   resume: "Resume voice mode",
+  takeTurn: "Your turn",
   unmute: "Unmute microphone",
 } as const;

@@ -45,7 +45,6 @@ import {
   type OpenAIVoiceConfig,
   VoiceInterviewControl,
 } from "../voice-interview/voice-interview-control";
-import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
 import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
 import {
   BrunchPanelConversationTracker,
@@ -549,7 +548,7 @@ export const LocalStorageDemoApp = ({
     () => ({
       ...(conversationId === null ? {} : { conversationId }),
       canClearMessages: flueClientPromise === null,
-      interactiveTools: brunchInteractiveTools,
+      interactiveTools: [],
       transport: petrinautAiChatTransport,
       ...(flueClientPromise === null
         ? {}

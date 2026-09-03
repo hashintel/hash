@@ -89,7 +89,18 @@ disclosure before requesting microphone access. The disclosure also provides a
 microphone check and is remembered in browser storage only after Voice mode
 starts.
 
-When Brunch is selected, typed and finalized spoken turns both enter the same mounted Flue conversation route. **Stop** requests a durable Brunch abort before the panel cancels its local response stream. Closing or speaking over Voice playback only stops local media; it does not alter canonical conversation history. Reopening the same net restores its observed Flue conversation without resubmitting a turn or replaying settled audio.
+When Brunch is selected, typed turns and completed Voice transcripts both enter
+the same mounted Flue conversation route. Each logical turn carries a stable
+delivery key so a replayed request converges on the existing admission instead
+of creating another turn. If admission cannot be confirmed, the UI reports the
+ambiguity and does not retry automatically. **Stop** requests a durable Brunch
+abort before the panel cancels its local response stream. Local playback
+cancellation remains separate and does not alter canonical history. Reopening
+the same net restores its observed Flue conversation without resubmitting a
+turn or replaying settled audio. Voice-origin client-tool results retain their
+markers through Flue history. Direct spoken user turns remain canonical text
+after reopening, but Flue 2.0.3 does not yet expose the caller delivery metadata
+needed to restore their Voice chip.
 
 An active session stays at the end of the transcript. Its compact divider shows
 a waveform and **Connecting**, **Listening**, **Speaking**, **Paused**, or a
@@ -103,24 +114,39 @@ The text composer remains available. Sending typed text ends Voice mode first,
 then submits the draft exactly once through the same conversation; a failed
 handoff restores the draft. Closing the assistant pauses capture and speech
 before hiding it. Reopening preserves the mounted session in **Paused** state.
-**Pause** and **End voice mode** live under **Voice mode actions**, while
-**Resume** or **Reconnect** appears as the primary action when applicable.
+The dock exposes **Your turn** while canonical audio owns the turn. That action
+clears pending input and output, waits for the provider's matching
+acknowledgements and response terminal event, and only then opens the
+microphone for fresh capture. Its playback menu offers **Repeat question** and
+**Read full response** once the matching response and audio output have both
+finished. Replay enqueues the exact retained canonical segments and is disabled
+during capture, submission, cancellation, pause, and errors.
 
 The browser sends its SDP offer to this app; the server initializes a trusted
 `gpt-realtime-2` audio-input/audio-output session through OpenAI's unified
-Realtime call endpoint. The provider key, model, instructions, tools, language,
-and vocabulary policy stay server-side. The session uses semantic VAD with low
-eagerness so natural thinking pauses are less likely to end an answer early.
+Realtime call endpoint. The provider key, model, instructions, language, and
+vocabulary policy stay server-side. Realtime exposes no tools, uses
+`tool_choice: "none"`, and configures semantic VAD to detect an input boundary
+without creating a model response.
 
-Realtime is the disposable media plane: it carries continuous microphone and remote audio, detects complete turns, and handles barge-in. Brunch remains the control plane and sole authority for questions, captures, state, completion, and durable history. The browser bridge accepts only the configured `continue_interview` function, validates and serializes its arguments, rejects duplicate or stale calls, and submits the answer through Petrinaut's shared composer path with pending-question correlation.
+Realtime is the disposable media plane: it carries microphone and remote audio,
+detects complete turns, and transcribes input. Brunch remains the control plane
+and sole authority for questions, captures, state, completion, and durable
+history. The bridge accepts only
+`conversation.item.input_audio_transcription.completed` as an answer, ignores
+model function arguments, and submits the normalized transcript through
+Petrinaut's shared composer path. Connection epoch, item id, and content index
+form its stable identity. Duplicate, empty, failed, unavailable, and over-limit
+transcripts never submit; recoverable failures leave a not-heard or too-long
+notice in the dock. Provisional transcription remains display-only.
 
 The bridge waits for the correlated Brunch turn before returning canonical
-speech segments to Realtime. It then requests audio with tools disabled and
-instructs Realtime to speak only those segments. Generated audio is not a
-verbatim record: canonical Brunch text remains visible and authoritative. The
-microphone stays active while the interviewer speaks and while Brunch is
-working. Speaking over assistant audio interrupts playback automatically;
-WebRTC truncates provider-side unheard audio without changing Brunch history.
+speech segments to Realtime. It instructs Realtime to speak only those
+segments. Generated audio is not a verbatim recording: canonical Brunch text
+remains visible and authoritative. Voice is half-duplex: the physical
+microphone is closed while the interviewer speaks, while Brunch is working, and
+through cancellation. Audio captured before a **Your turn** handoff is
+discarded and cannot become a later answer.
 
 The local Brunch preview reaches the mounted route through its same-origin, protocol-preserving proxy; this does not establish remote authentication or public ingress. Denying microphone permission leaves the text composer available and submits nothing to Brunch. When Voice mode cannot continue, the inline recovery state distinguishes microphone, connection, and other Voice failures, explains the next action, and offers **Reconnect** where appropriate. Sanitized error codes and diagnostic references remain collapsed under **Technical details**.
 

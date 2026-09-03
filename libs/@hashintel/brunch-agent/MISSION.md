@@ -13,6 +13,16 @@ The owner selected **half-duplex turn ownership** on 2026-09-03. While canonical
 
 Sections independent of canonical hydration may proceed. The hard-reload witness is blocked until the parent prevents its once-per-conversation hydration from overwriting a locally submitted turn. Prepare that witness but do not patch the parent defect here.
 
+Sections 1–5 and dormant-ask cleanup are implemented with focused regression
+coverage. Section 6 is complete only for the supported client-tool-result path:
+Flue signals persist each Voice-origin tool-call id beside its output, and
+canonical projection reconstructs multiple surviving origins. Direct spoken
+user attribution is blocked because Flue 2.0.3 projects the generated
+`submissionId` but neither caller metadata nor the caller idempotency key. The
+discarded browser-correlation implementation would have violated the explicit
+second-durable-store stop condition. The focused repository check passes; the
+real witness remains blocked by the parent hydration defect.
+
 The pinned donor-behavior decision record is the [FE-1580 donor matrix](docs/evidence/implementations/mission-5-voice-safety-parity/donor-behavior-matrix.md). Donor PRs are read-only evidence at their named heads; semantic reimplementation is required, never merge or cherry-pick.
 
 ## Imperative
@@ -51,7 +61,7 @@ OpenAI Realtime microphone input
 → agentOwnershipGuard → mounted Brunch ChatAgent
 → submission-correlated canonical response and settlement
 → exact canonical segment queue → visible panel text and TTS
-→ replay controls and durable Voice provenance
+→ replay controls and supported client-tool Voice provenance
 → observe({ live: "sse" }) hydration and reopen
 ```
 
@@ -65,22 +75,22 @@ This mission closes the Voice safety and UX-parity stratum on the parent's route
 
 ### Product-manager litmus
 
-**Release note:** Voice now submits only what the microphone actually transcribed, waits for a safe **Your turn** handoff before listening over Brunch, can replay the exact full response or question, and keeps its Voice attribution after reopening the conversation.
+**Release note:** Voice now submits only what the microphone actually transcribed, waits for a safe **Your turn** handoff before listening over Brunch, and can replay the exact full response or question. Client-tool Voice origins survive canonical reopen; restoring the Voice chip on direct spoken user messages remains blocked on Flue projection support.
 
-**Demo script:** run `yarn dev:brunch` and select the Brunch preview. Speak one answer and see exactly one matching user turn. While Brunch is speaking, confirm the microphone remains closed, choose **Your turn**, wait for the handoff, and speak again. Use the playback menu to read the full response and repeat the question verbatim. Start another turn, press durable **Stop** before settlement, and see a stopped turn rather than a Voice error. After the parent hydration blocker is fixed, hard-reload the settled conversation and confirm the same Voice attribution remains without resubmission or replay.
+**Demo script:** run `yarn dev:brunch` and select the Brunch preview. Speak one answer and see exactly one matching user turn. While Brunch is speaking, confirm the microphone remains closed, choose **Your turn**, wait for the handoff, and speak again. Use the playback menu to read the full response and repeat the question verbatim. Start another turn, press durable **Stop** before settlement, and see a stopped turn rather than a Voice error. After the parent hydration blocker is fixed, hard-reload the settled conversation and confirm the canonical turn remains without resubmission or replay; direct-user Voice-chip restoration additionally waits on the Flue projection seam.
 
-**Previously impossible:** model-generated function arguments rather than completed audio transcription could become the answer; assistant playback could create a false user turn; cancellation could reopen capture before the provider settled; replay controls and durable Voice attribution were incomplete.
+**Previously impossible:** model-generated function arguments rather than completed audio transcription could become the answer; assistant playback could create a false user turn; cancellation could reopen capture before the provider settled; replay controls and multi-origin client-tool Voice attribution were incomplete.
 
-**Completion:** sections 1–6 close when their tests and focused checks pass. Mission acceptance additionally requires the real microphone, handoff, Stop, hard-reload, and same-origin route witness after the parent hydration fix. Mocked or server-only proof cannot substitute for that witness.
+**Completion:** sections 1–5 and the supported portion of section 6 close when their tests and focused checks pass. Direct-user provenance needs the Flue re-entry seam recorded below. Mission acceptance additionally requires the real microphone, handoff, Stop, hard-reload, and same-origin route witness after the parent hydration fix. Mocked or server-only proof cannot substitute for that witness.
 
 1. **Completed-transcript authority and half-duplex ownership.** Realtime session configuration has no tools, no model-created semantic-VAD response, and no automatic interruption policy. Only a unique completed transcript can reach the shared panel submission path. Duplicate, empty, failed, unavailable, stale, playback-overlapping/pre-handoff, and over-limit transcripts do not submit and produce the specified passive or recoverable notice. The microphone remains closed through assistant output and cancellation; **Your turn** opens only a post-barrier input turn. Oracle: transplanted-first cases in `openai-realtime-session.test.ts`, `realtime-brunch-bridge.test.ts`, `voice-turn-controller.test.ts`, `voice-interview-control.test.tsx`, and `voice-preview.integration.test.ts`.
 2. **Idempotent admission.** Typed turns derive a stable key from the AI SDK message id; Voice turns derive it from connection epoch, item id, and content index. A repeated same-payload key converges on the original receipt, including `deduplicated: true`; a 409 `submission_conflict` surfaces the original `submissionId` without admitting another turn. An admission whose outcome cannot be established stays visibly ambiguous and is never automatically retried. Oracle: transport unit tests plus Voice integration tests asserting one admitted submission rather than one `send()` invocation.
 3. **Acknowledged cancellation barrier.** `cancelOutput()` resolves only after input/output buffer clears, matching provider acknowledgements, and all targeted response terminal events. The latest mute preference wins while it settles. Audio captured before the handoff cannot submit afterward. Durable Stop remains a stopped Flue turn rather than a Voice failure. Oracle: donor-adapted session/controller race tests and the unsettled-Stop integration case.
 4. **Canonical replay.** `canReadFullResponse`, `canRepeatQuestion`, `readFullResponse()`, `repeatQuestion()`, and the playback menu retain and enqueue exact canonical segments without a simplifier. Replay enables only after the matching response terminal and output completion and remains disabled during submission, capture, cancellation, pause, and errors. Oracle: canonical speech, controller, panel, and integration tests comparing segment identity and text.
-5. **Durable Voice provenance.** An assistant message may retain multiple `voiceToolCallIds`; one failed sibling origin does not erase successful origins. Attribution survives canonical projection, hydration, and reopen through a supported Flue representation or deterministic reconstruction from durable correlation facts, never through user text. Oracle: snapshot projection, panel provenance, partial-failure, hydration, and reopen tests.
+5. **Durable Voice provenance.** An assistant message may retain multiple `voiceToolCallIds`; one failed sibling origin does not erase successful origins. Persisted Flue client-tool-result signals support deterministic reconstruction after hydration and reopen. Direct spoken user messages remain Voice-attributed only while live because the canonical snapshot omits their caller origin. Re-entry requires a supported Flue user-message metadata/idempotency projection; browser storage and user-text encoding are rejected. Oracle: snapshot projection and panel partial-failure tests for supported origins, plus the [blocker record](docs/evidence/implementations/mission-5-voice-safety-parity/provenance-blocker.md).
 6. **Dormant ask removal.** If still present after restacking, the website does not register `brunchAskInteractiveTool` for Voice and canonical speech does not recognize `"brunch-ask"`. No spoken ask answer can enter a wait state the transport cannot resume. Oracle: registration/canonical-speech negative tests and a repository search showing no mounted Voice `brunch_ask` surface.
 7. **Real witness and same-origin route.** After the parent hydration fix lands, a human performs one microphone turn, explicit interruption/handoff, durable Stop on an unsettled turn, and hard reload of a settled turn. The retained network route summary proves the absolute Flue `streamUrl` remains on the same-origin proxy. Oracle: `witness.md`, sanitized `voice-events.jsonl`, `network-routes.json`, canonical `flue-snapshot.json`, `settlements.json`, commit manifest, and hashes under `docs/evidence/implementations/mission-5-voice-safety-parity/`.
-8. **Focused repository verification and truthful docs.** The requested four-workspace Turbo command passes. `apps/petrinaut-website/README.md` and `libs/@hashintel/petrinaut/docs/ai-assistant.md` describe half-duplex handoff, replay, Stop, transcript rejection, and durable attribution. If the published Petrinaut package changes, exactly one patch changeset covers it. Oracle: the command recorded in the PR and changeset inspection.
+8. **Focused repository verification and truthful docs.** The requested four-workspace Turbo command passes. `apps/petrinaut-website/README.md` and `libs/@hashintel/petrinaut/docs/ai-assistant.md` describe half-duplex handoff, replay, Stop, transcript rejection, and the direct-user attribution limitation. If the published Petrinaut package changes, exactly one patch changeset covers it. Oracle: the command recorded in the PR and changeset inspection.
 
 ## Constraints
 
@@ -113,21 +123,22 @@ This mission closes the Voice safety and UX-parity stratum on the parent's route
 ## Fog-line
 
 - **Parent movement.** Lu owns #9528 and may push more commits. Before each implementation phase, compare the GitHub head and restack this branch; an observed parent change is adopted only through restack, never copied into this branch.
-- **Durable provenance representation.** Inspect the current Flue event/snapshot vocabulary and existing correlation facts before choosing between a supported persisted metadata field and deterministic reconstruction. If neither can preserve multiple origins without a second authority or user-text encoding, stop with the exact missing platform seam.
 - **Conflict normalization.** The installed SDK exposes the 409 contract through `FlueApiError.body: unknown`. Narrow only the documented envelope needed to recover `error.meta.submissionId`; do not create a general error protocol or infer success from prose.
 - **Dormant `brunch_ask`.** Remove or gate only the parent surfaces that remain after the next restack. If Lu has already removed them, record the parent commit and make no duplicate change.
+- **Direct-user Voice provenance.** Flue 2.0.3's canonical user message exposes a generated `submissionId` but not caller metadata or `idempotencyKey`. Re-enter only when a supported durable correlation seam exists or the owner explicitly changes the representation; do not add browser persistence or encode origin in user text.
 - **Hard-reload witness.** Hold proof leaf 7 until the parent's hydration overwrite is fixed. Unit/integration tests for this branch may cover deterministic projection, but they cannot substitute for the blocked real witness.
 
 ## Stop or reorient
 
 Stop and report if the work would require direct Voice `send()`, a second transcript or conversation authority, hand-rolled stream offsets/recovery, automatic retry after ambiguous admission, canonical text rewriting, a live structured-question path, or any excluded parent fix.
 
-Stop if half-duplex handoff cannot guarantee that pre-handoff audio is rejected and post-barrier audio is fresh, or if provider acknowledgements cannot bound `cancelOutput()` without inventing events. Stop if provenance requires visible-text smuggling or a second durable store. Stop if replay can enable before both matching terminal conditions, or if local cancellation invokes durable abort.
+Stop if half-duplex handoff cannot guarantee that pre-handoff audio is rejected and post-barrier audio is fresh, or if provider acknowledgements cannot bound `cancelOutput()` without inventing events. The provenance stop condition has fired for direct spoken user turns: the browser-store implementation was removed and the unsupported leaf is recorded as blocked. Stop if replay can enable before both matching terminal conditions, or if local cancellation invokes durable abort.
 
 Do not manufacture the hard-reload witness while the parent hydration defect remains. Retain the blocker and wait for a new parent head.
 
 ## Deferred
 
 - The real witness and same-origin absolute-`streamUrl` observation wait on the parent hydration fix; once unblocked, they are part of this mission rather than a successor.
+- Direct-user Voice attribution after canonical hydration waits on a supported Flue caller-metadata or idempotency projection seam, or an explicit owner decision to change the durable input representation.
 - Donor retirement waits until this replacement is accepted and each donor owner explicitly approves closure. Do not close #9496, #9500, #9507, or #9512 as an implementation side effect, and never close stakeholder-owned H-6763.
 - Response preparation/simplification, structured questions, Petri-net work, FE-1575, production identity, CORS/remote deployment, and panel migration away from `useChat` remain in their existing owners or the future mission spine.
