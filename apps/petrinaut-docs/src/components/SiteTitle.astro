@@ -95,26 +95,74 @@ import DiffBadges from "./DiffBadges.astro";
       remember("pnd:sidebar", collapsed ? "collapsed" : "expanded");
     });
 
-    /** @param {number} edge Where the pane's trailing edge should land, in px. */
-    const resizeTo = (edge) => {
-      const width = `${Math.round(Math.min(Math.max(edge, 224), 480))}px`;
+    /**
+     * The pane width that puts its trailing edge at `edge`, clamped to the
+     * range the rail stays usable in.
+     *
+     * @param {number} edge In px, from the viewport's inline start.
+     * @returns {number}
+     */
+    const widthFrom = (edge) =>
+      Math.round(Math.min(Math.max(edge, 224), 480));
 
-      root.style.setProperty("--pnd-sidebar-open-width", width);
-      remember("pnd:sidebar-width", width);
+    /** @param {number} width */
+    const applyWidth = (width) => {
+      root.style.setProperty("--pnd-sidebar-open-width", `${width}px`);
+    };
+
+    /** The edge the handle is currently drawn at, in px. */
+    const currentEdge = () => handle.getBoundingClientRect().left + 3;
+
+    /**
+     * Marks a gesture that tracks its own input. `chrome.css` reads this to
+     * drop the toggle's width transitions while it is set: a transition on a
+     * value the pointer is already moving leaves the pane trailing the cursor
+     * by the whole duration.
+     *
+     * @param {boolean} active
+     */
+    const setResizing = (active) => {
+      if (active) {
+        root.dataset.pndResizing = "";
+      } else {
+        delete root.dataset.pndResizing;
+      }
     };
 
     handle.addEventListener("pointerdown", (event) => {
       handle.setPointerCapture(event.pointerId);
+      setResizing(true);
+
+      let width = widthFrom(currentEdge());
+      let frame = 0;
 
       /** @param {PointerEvent} move */
-      const onMove = (move) => resizeTo(move.clientX);
+      const onMove = (move) => {
+        width = widthFrom(move.clientX);
+        // A pointer reports several moves per frame at high polling rates, and
+        // every write invalidates layout for the pane, the content column and
+        // both panels sized from it. One write per frame is all a display can
+        // show anyway.
+        frame ||= requestAnimationFrame(() => {
+          frame = 0;
+          applyWidth(width);
+        });
+      };
 
       handle.addEventListener("pointermove", onMove);
       // `lostpointercapture` covers the cancelled gesture as well as the
       // released one, so the drag cannot outlive the pointer holding it.
       handle.addEventListener(
         "lostpointercapture",
-        () => handle.removeEventListener("pointermove", onMove),
+        () => {
+          handle.removeEventListener("pointermove", onMove);
+          cancelAnimationFrame(frame);
+          applyWidth(width);
+          setResizing(false);
+          // Once per gesture, not once per move: `localStorage` writes
+          // synchronously and a drag produces hundreds of positions.
+          remember("pnd:sidebar-width", `${width}px`);
+        },
         { once: true },
       );
     });
@@ -123,11 +171,25 @@ import DiffBadges from "./DiffBadges.astro";
       const step =
         event.key === "ArrowLeft" ? -16 : event.key === "ArrowRight" ? 16 : 0;
 
-      if (step !== 0) {
-        event.preventDefault();
-        resizeTo(handle.getBoundingClientRect().left + 3 + step);
+      if (step === 0) {
+        return;
       }
+
+      event.preventDefault();
+      // A held arrow key tracks its input as much as a drag does, so it
+      // suppresses the transition the same way rather than chasing each
+      // repeat 200ms behind.
+      setResizing(true);
+
+      const width = widthFrom(currentEdge() + step);
+
+      applyWidth(width);
+      remember("pnd:sidebar-width", `${width}px`);
     });
+
+    // Both, because a key released after focus has moved on fires only `blur`.
+    handle.addEventListener("keyup", () => setResizing(false));
+    handle.addEventListener("blur", () => setResizing(false));
 
     // A gradient cannot ask whether the text fits, so the labels that do not
     // fit are marked here and the fade keys off the mark. Deferred because this

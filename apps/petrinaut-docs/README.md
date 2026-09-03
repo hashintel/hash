@@ -90,30 +90,68 @@ its own `cookie@2.x` without changing hoisting for the rest of the monorepo.
 ## Chrome overrides
 
 [`src/styles/chrome.css`](src/styles/chrome.css), registered as Starlight's
-`customCss`, narrows both side panels to give the content column more width,
-tones down the header, and rounds the corners on markdown images so the embedded
-diagrams match the bordered cards beside them. The left nav takes its own
-`--pnd-sidebar-width` because Starlight sizes both panels from
-`--sl-sidebar-width`, and collapsing the nav has to zero one of them without
-flattening the other. The collapse toggle and resize handle come from
-`components.SiteTitle`, the header's leftmost slot, next to the rail they act
-on — and the fixed header is the one piece of chrome still on screen once the
-nav is gone. Both
-controls remember their state in `localStorage`, restored by a `head` script so
-a collapsed sidebar does not render open and then jump.
+`customCss`, holds the whole of the site's appearance in three parts.
 
-## The code font
+**Tokens.** Starlight's palette and type scale are restated in a flat
+monochrome key: one neutral ramp serving both themes, a header and sidebar that
+share the page background and are divided by hairlines rather than by fills, and
+an accent pointed at the strongest foreground instead of a colour. That last one
+is why removing the blue took no hunting: Starlight routes links, the active nav
+row and the active table-of-contents row through the accent tokens. Links stay
+distinguishable by their underline. Type is 17px on a 1.65 leading with a
+heading scale shorter than Starlight's, so hierarchy comes from weight and space
+rather than size.
 
-Code renders in JetBrains Mono, requested through Astro's font support in
-[`astro.config.mjs`](astro.config.mjs) and emitted by `<Font>` in
-[`src/components/Head.astro`](src/components/Head.astro).
+Colour is left to what carries meaning: the diff badges, the asides, and the
+accents the bundle's own cards paint themselves. Nothing in the bundle is styled
+from here. Its CSS derives everything from `currentColor`, so it follows this
+palette on its own, in both themes and in any other host.
 
-A build downloads one variable file covering weights 400 to 700, subsets it to
-latin, and writes it beside the other assets, so a reader makes no request to a
-font host. The head carries a `preload` link and `font-display: swap`, and Astro
-generates a metric-matched fallback, which is what keeps text from shifting when
-the file arrives. The downloaded originals are cached under `.astro/`, which is
-ignored.
+**Components.** Sidebar and table-of-contents rows as pills, a filled search
+field, flat code frames (through the `--ec-*` variables Expressive Code reads),
+underlined monochrome links, and rounded corners on markdown images so the
+embedded diagrams match the bordered cards beside them.
+
+**The sidebar.** The left nav takes its own `--pnd-sidebar-width` because
+Starlight sizes both panels from `--sl-sidebar-width`, and collapsing the nav has
+to zero one of them without flattening the other. The collapse toggle and resize
+handle come from `components.SiteTitle`, which renders at the header's leading
+edge, next to the rail they act on. The fixed header is also the one piece of chrome
+still on screen once the nav is gone. Both controls remember their state in
+`localStorage`, restored by a `head` script so a collapsed sidebar does not
+render open and then jump.
+
+Collapsing is animated, which is what the shape of those rules is for. The pane
+keeps its box and hides with `visibility` rather than `display: none`, so there
+is something to animate and the rows stay painted for the whole collapse. The
+content column derives its inset as `max(sidebar-width, 2rem)`, so the toggle
+moves one length between two ends instead of jumping between two unrelated
+values. Every box that sizes off the sidebar width or `--sl-content-width`
+transitions on the same curve, otherwise the column separates from the pane it
+is following.
+
+A drag is the opposite case: it already tracks the pointer frame by frame, and a
+transition on top of that makes the pane lag. The handle sets
+`data-pnd-resizing` for the length of a gesture, either a pointer drag or a held
+arrow key, and the transitions do not apply while it is set. The handle keeps a
+6px hit area with a 2px mark that fades in on hover, and writes to
+`localStorage` once on release rather than on every pointer position. All of the
+motion is behind `prefers-reduced-motion`.
+
+## The fonts
+
+Body text renders in Inter and code in JetBrains Mono, both requested through
+Astro's font support in [`astro.config.mjs`](astro.config.mjs) and emitted by
+`<Font>` in [`src/components/Head.astro`](src/components/Head.astro). Inter
+stands in for the grotesque the reference design uses, which is not licensed for
+redistribution.
+
+A build downloads one variable file per family covering weights 400 to 700,
+subsets it to latin, and writes it beside the other assets, so a reader makes no
+request to a font host. The head carries a `preload` link and `font-display:
+swap`, and Astro generates a metric-matched fallback, which is what keeps text
+from shifting when the file arrives. The downloaded originals are cached under
+`.astro/`, which is ignored.
 
 ## Deployment
 

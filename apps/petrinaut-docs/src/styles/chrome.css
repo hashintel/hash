@@ -7,9 +7,390 @@
  * there, so the `:root[data-has-sidebar]` prefixes below are load-bearing
  * specificity, not decoration.
  *
+ * The file runs in three parts: the tokens, which restate Starlight's own
+ * palette and type scale in a flat monochrome key; the component rules that
+ * follow from them; and the sidebar's collapse, resize and motion behaviour.
+ *
  * Every sidebar rule is gated on `[data-has-sidebar]`: the 404 page uses the
  * splash template, which has no sidebar to toggle, resize, or collapse.
  */
+
+/* Tokens ----------------------------------------------------------------- */
+
+:root {
+  /*
+   * One neutral ramp for both themes, matching the scale openai.com uses. The
+   * chrome is monochrome. Colour is left to what carries meaning: the diff
+   * badges, the asides, and the accents the bundle's own cards paint
+   * themselves.
+   */
+  --pnd-gray-0: #fff;
+  --pnd-gray-50: #f9f9f9;
+  --pnd-gray-75: #f3f3f3;
+  --pnd-gray-100: #e8e8e8;
+  --pnd-gray-200: #cdcdcd;
+  --pnd-gray-300: #afafaf;
+  --pnd-gray-400: #8f8f8f;
+  --pnd-gray-500: #5d5d5d;
+  --pnd-gray-600: #414141;
+  --pnd-gray-700: #303030;
+  --pnd-gray-800: #212121;
+  --pnd-gray-900: #181818;
+  --pnd-gray-1000: #000;
+
+  --pnd-radius-sm: 0.375rem;
+  --pnd-radius: 0.625rem;
+  --pnd-radius-lg: 0.875rem;
+
+  --pnd-motion-duration: 200ms;
+  --pnd-motion-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/*
+ * Dark is the default theme (`Page.astro` stamps `data-theme="dark"`), so the
+ * dark values are the unqualified ones and light overrides below.
+ *
+ * Starlight's ramp runs from `--sl-color-white` as the strongest foreground to
+ * `--sl-color-black` as the page background, and inverts both in light mode, so
+ * `--sl-color-white` holds a black value further down. `--sl-color-gray-7` is
+ * only defined for light mode upstream, so dark has to name it or surfaces that
+ * use it fall back to nothing.
+ */
+:root {
+  --sl-color-white: var(--pnd-gray-0);
+  --sl-color-gray-1: var(--pnd-gray-75);
+  --sl-color-gray-2: var(--pnd-gray-200);
+  --sl-color-gray-3: var(--pnd-gray-400);
+  --sl-color-gray-4: var(--pnd-gray-500);
+  --sl-color-gray-5: var(--pnd-gray-700);
+  --sl-color-gray-6: var(--pnd-gray-800);
+  --sl-color-gray-7: var(--pnd-gray-900);
+  --sl-color-black: var(--pnd-gray-1000);
+
+  /* Surfaces that sit on the page background rather than replacing it. */
+  --pnd-surface: var(--pnd-gray-900);
+  --pnd-surface-strong: var(--pnd-gray-800);
+  --pnd-row-hover: var(--pnd-gray-900);
+  --pnd-row-active: var(--pnd-gray-800);
+
+  /*
+   * Monochrome accent. Starlight routes links, the active nav row and the
+   * active table-of-contents row through the accent tokens, so pointing them at
+   * the strongest foreground is what removes the blue without having to find
+   * every rule that used it. Links stay distinguishable by their underline; see
+   * the content section.
+   */
+  --sl-color-accent-low: var(--pnd-surface-strong);
+  --sl-color-accent: var(--sl-color-white);
+  --sl-color-accent-high: var(--sl-color-white);
+  --sl-color-text-accent: var(--sl-color-white);
+  --sl-color-bg-accent: var(--sl-color-white);
+  --sl-color-text-invert: var(--sl-color-black);
+
+  --sl-color-text: var(--sl-color-gray-2);
+  --sl-color-bg-inline-code: var(--pnd-surface-strong);
+
+  /*
+   * Header and sidebar share the page background, so the chrome is one surface
+   * divided by hairlines.
+   */
+  --sl-color-bg-nav: var(--sl-color-bg);
+  --sl-color-bg-sidebar: var(--sl-color-bg);
+  --sl-color-hairline: var(--pnd-gray-800);
+  --sl-color-hairline-light: var(--pnd-gray-700);
+  --sl-color-hairline-shade: var(--pnd-gray-800);
+
+  --sl-color-backdrop-overlay: rgb(0 0 0 / 0.6);
+
+  /* Flat by default. The two lifted surfaces are the search dialog and the
+     mobile table-of-contents dropdown, which need to sit above the page. */
+  --sl-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.25);
+  --sl-shadow-md: 0 1px 2px rgb(0 0 0 / 0.25), 0 8px 24px rgb(0 0 0 / 0.35);
+  --sl-shadow-lg: 0 1px 2px rgb(0 0 0 / 0.3), 0 16px 48px rgb(0 0 0 / 0.45);
+}
+
+:root[data-theme="light"] {
+  --sl-color-white: var(--pnd-gray-1000);
+  --sl-color-gray-1: var(--pnd-gray-900);
+  --sl-color-gray-2: var(--pnd-gray-700);
+  --sl-color-gray-3: var(--pnd-gray-500);
+  --sl-color-gray-4: var(--pnd-gray-400);
+  --sl-color-gray-5: var(--pnd-gray-200);
+  --sl-color-gray-6: var(--pnd-gray-100);
+  --sl-color-gray-7: var(--pnd-gray-75);
+  --sl-color-black: var(--pnd-gray-0);
+
+  --pnd-surface: var(--pnd-gray-50);
+  --pnd-surface-strong: var(--pnd-gray-75);
+  --pnd-row-hover: var(--pnd-gray-50);
+  --pnd-row-active: var(--pnd-gray-75);
+
+  --sl-color-bg-inline-code: var(--pnd-gray-75);
+  --sl-color-hairline: var(--pnd-gray-100);
+  --sl-color-hairline-light: var(--pnd-gray-100);
+  --sl-color-hairline-shade: var(--pnd-gray-100);
+
+  --sl-color-backdrop-overlay: rgb(0 0 0 / 0.3);
+
+  --sl-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06);
+  --sl-shadow-md: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.08);
+  --sl-shadow-lg: 0 1px 2px rgb(0 0 0 / 0.08), 0 16px 48px rgb(0 0 0 / 0.12);
+}
+
+/* Type ------------------------------------------------------------------- */
+
+/*
+ * Starlight composes its own system stack after both of these, so each stays
+ * the fallback. The sans face is requested in `astro.config.mjs` and emitted by
+ * `components/Head.astro`, same as the mono one.
+ */
+:root {
+  --sl-font: var(--pnd-font-sans);
+  --sl-font-mono: var(--pnd-font-mono);
+
+  /*
+   * 17px on a 1.65 leading, and a heading scale shorter than Starlight's, whose
+   * desktop h1 is 42px. Hierarchy comes from weight and space instead of size.
+   */
+  --sl-text-body: 1.0625rem;
+  --sl-line-height: 1.65;
+  --sl-line-height-headings: 1.25;
+  --sl-text-h1: 2rem;
+  --sl-text-h2: 1.5rem;
+  --sl-text-h3: 1.25rem;
+  --sl-text-h4: 1.0625rem;
+  --sl-text-h5: 0.9375rem;
+}
+
+body {
+  letter-spacing: -0.011em;
+}
+
+/* The tightening that reads as deliberate at heading sizes is too much at
+   body size, so the two are set apart rather than inherited. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  letter-spacing: -0.022em;
+}
+
+/* Header ---------------------------------------------------------------- */
+
+.header {
+  border-bottom: 1px solid var(--sl-color-hairline);
+  box-shadow: none;
+}
+
+.site-title {
+  gap: 0.6rem;
+  font-size: var(--sl-text-sm);
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.site-title img {
+  height: 1.5rem;
+}
+
+/* Search --------------------------------------------------------------- */
+
+/*
+ * Filled, with a hairline border and the same radius as the rest of the
+ * chrome.
+ */
+button[data-open-modal] {
+  border-radius: var(--pnd-radius);
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+@media (min-width: 50rem) {
+  button[data-open-modal] {
+    border-color: var(--sl-color-hairline);
+    background-color: var(--pnd-surface);
+    color: var(--sl-color-gray-3);
+  }
+
+  button[data-open-modal]:hover {
+    border-color: var(--sl-color-hairline-light);
+    background-color: var(--pnd-surface-strong);
+    color: var(--sl-color-white);
+  }
+}
+
+button[data-open-modal] > kbd {
+  border-radius: var(--pnd-radius-sm);
+  background-color: transparent;
+  color: var(--sl-color-gray-4);
+}
+
+dialog {
+  border-color: var(--sl-color-hairline-light);
+  border-radius: var(--pnd-radius-lg);
+  background-color: var(--sl-color-bg);
+}
+
+/* Sidebar nav ----------------------------------------------------------- */
+
+/*
+ * Rows are pills: one radius, one hover fill, and an active row that reads by
+ * weight and contrast rather than by a coloured block. Sizes are equal across
+ * levels, and a top-level entry is distinguished by weight.
+ */
+.sidebar-content a,
+.sidebar-content summary {
+  border-radius: var(--pnd-radius-sm);
+  padding-block: 0.3rem;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.sidebar-content a {
+  color: var(--sl-color-gray-3);
+}
+
+.sidebar-content a:hover,
+.sidebar-content a:focus-visible,
+.sidebar-content summary:hover {
+  background-color: var(--pnd-row-hover);
+  color: var(--sl-color-white);
+}
+
+.sidebar-content a[aria-current="page"],
+.sidebar-content a[aria-current="page"]:hover,
+.sidebar-content a[aria-current="page"]:focus {
+  background-color: var(--pnd-row-active);
+  color: var(--sl-color-white);
+  font-weight: 500;
+}
+
+/*
+ * Top-level rows, whether a link or a group's label. Equal in size to their
+ * children: the hierarchy is weight and colour. The colour is restated because
+ * `.sidebar-content a` above outranks Starlight's own `.large`, which would
+ * leave a top-level link muted beside a top-level group.
+ */
+.sidebar-content .large {
+  font-size: var(--sl-text-sm);
+  font-weight: 500;
+  color: var(--sl-color-gray-1);
+}
+
+/* The guides make a deeply nested tree readable, so they stay. They use the
+   lighter hairline: the flat one disappears against a pure-black pane. */
+.sidebar-content ul ul li {
+  border-inline-start-color: var(--sl-color-hairline-light);
+}
+
+.sidebar-content .caret {
+  color: var(--sl-color-gray-4);
+}
+
+/* Thin and monochrome, and only on the pane that scrolls independently of the
+   page. Standard properties only: the `::-webkit-scrollbar` form would swap
+   WebKit's overlay scrollbar for a permanent gutter. */
+.sidebar-pane {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sl-color-gray-5) transparent;
+}
+
+/* On this page ---------------------------------------------------------- */
+
+/*
+ * Sized as a label. Starlight sizes it as a heading, at `--sl-text-h5` in the
+ * strongest foreground, which gave the right-hand column a title competing with
+ * the page's own.
+ */
+.right-sidebar-panel h2 {
+  margin-bottom: 0.75rem;
+  font-size: var(--sl-text-xs);
+  font-weight: 500;
+  color: var(--sl-color-gray-3);
+}
+
+.right-sidebar-panel a {
+  border-radius: var(--pnd-radius-sm);
+  padding-block: 0.3rem;
+  transition: color 120ms ease;
+}
+
+.right-sidebar-panel a[aria-current="true"] {
+  color: var(--sl-color-white);
+  font-weight: 500;
+}
+
+.right-sidebar {
+  border-inline-start: 1px solid var(--sl-color-hairline);
+}
+
+/* Content --------------------------------------------------------------- */
+
+/*
+ * Starlight rules a line between every pair of content panels, which on a
+ * generated page falls directly under the title and reads as a header border.
+ * The space alone separates them.
+ */
+.content-panel + .content-panel {
+  border-top: 0;
+}
+
+/*
+ * Links carry an underline rather than a colour, so they stay visible in a
+ * monochrome palette. The resting colour is one step down from the text, so the
+ * underline does not outweigh the word it marks.
+ */
+.sl-markdown-content a:not(:where(.not-content *)) {
+  text-decoration: underline;
+  text-decoration-color: var(--sl-color-gray-4);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  transition: text-decoration-color 120ms ease;
+}
+
+.sl-markdown-content a:not(:where(.not-content *)):hover {
+  text-decoration-color: currentColor;
+}
+
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+  border-color: var(--sl-color-hairline);
+}
+
+/*
+ * Rendered diagrams arrive as plain markdown images with a white background
+ * baked into the SVG, so they read as cards once their edge matches the layer
+ * cards beside them.
+ */
+.sl-markdown-content img {
+  border: 1px solid var(--sl-color-hairline-light);
+  border-radius: var(--pnd-radius-lg);
+}
+
+/*
+ * Expressive Code declares these on `:root` inside `@layer starlight.components`
+ * and again on the block itself for a code block whose theme differs from the
+ * page's, so both scopes are named here. Layer order settles the first. Only a
+ * rule on the element settles the second.
+ */
+:root,
+.expressive-code {
+  --ec-brdRad: var(--pnd-radius);
+  --ec-brdCol: var(--sl-color-hairline-light);
+  --ec-codeBg: var(--pnd-surface);
+  --ec-frm-edBg: var(--pnd-surface);
+  --ec-frm-trmBg: var(--pnd-surface);
+  --ec-frm-edTabBarBg: var(--pnd-surface-strong);
+  --ec-frm-frameBoxShdCssVal: none;
+  --ec-frm-shdCol: transparent;
+}
+
+/* Sidebar geometry ------------------------------------------------------ */
 
 :root {
   /*
@@ -34,42 +415,44 @@
 /* 50rem is where Starlight turns the mobile drawer into a fixed rail. */
 @media (min-width: 50rem) {
   :root[data-has-sidebar] {
-    --sl-content-inline-start: var(--pnd-sidebar-width);
+    /*
+     * One expression covering both states, so collapsing moves the column
+     * between two ends of a single length. This used to be the pane's width
+     * with a separate 2rem rule for the collapsed state, which is the same
+     * thing to lay out but two unrelated values to animate between. 2rem is
+     * the floor because below 72rem nothing else insets the column from the
+     * edge.
+     */
+    --sl-content-inline-start: max(var(--pnd-sidebar-width), 2rem);
   }
 
   .sidebar-pane {
     width: var(--pnd-sidebar-width);
+    /*
+     * A scroll container with `overflow-y: auto` computes `overflow-x` to
+     * `auto` as well, which flashes a horizontal scrollbar across the whole
+     * collapse as the rows outgrow the narrowing pane.
+     */
+    overflow-x: clip;
   }
 
+  /*
+   * Collapsed, the pane keeps its box so `width` has something to animate, and
+   * `visibility` is what takes it out of the tab order and the accessibility
+   * tree. Transitioning `visibility` holds `visible` for the whole collapse and
+   * flips it at the end, so the rows travel with the pane instead of being
+   * blanked on the first frame. This replaces a `display: none`, which no
+   * transition can survive.
+   */
   :root[data-pnd-sidebar="collapsed"] .sidebar-pane {
-    display: none;
+    visibility: hidden;
+    /*
+     * Zero rather than transparent: the trailing border is a pixel of box that
+     * a `width: 0` pane still reserves, which left an empty hairline column
+     * against the viewport edge.
+     */
+    border-inline-end-width: 0;
   }
-
-  /* Not zero: below 72rem nothing else insets the column from the edge. */
-  :root[data-has-sidebar][data-pnd-sidebar="collapsed"] {
-    --sl-content-inline-start: 2rem;
-  }
-}
-
-/* Code font -------------------------------------------------------------- */
-
-/* Starlight composes its own system stack after this, so it stays the fallback. */
-:root {
-  --sl-font-mono: var(--pnd-font-mono);
-}
-
-/* Header ---------------------------------------------------------------- */
-
-.site-title {
-  gap: 0.6rem;
-  font-size: var(--sl-text-sm);
-  font-weight: 500;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.site-title img {
-  height: 1.5rem;
 }
 
 /* Sidebar controls ------------------------------------------------------ */
@@ -95,16 +478,17 @@
     height: var(--sl-menu-button-size);
     padding: 0;
     border: 0;
-    border-radius: 0.25rem;
+    border-radius: var(--pnd-radius-sm);
     background: none;
     color: var(--sl-color-gray-3);
     cursor: pointer;
+    transition:
+      background-color 120ms ease,
+      color 120ms ease;
   }
 
   .pnd-sidebar-toggle:hover {
-    /* One step lighter than the header's own background, which in dark mode
-       is `--sl-color-gray-6` itself — that value would make hover invisible. */
-    background: var(--sl-color-gray-5);
+    background: var(--pnd-row-active);
     color: var(--sl-color-white);
   }
 
@@ -123,14 +507,101 @@
     touch-action: none;
   }
 
-  .pnd-sidebar-resize:hover,
   .pnd-sidebar-resize:focus-visible {
-    background: var(--sl-color-accent);
     outline: none;
   }
 
+  /*
+   * The hit area stays 6px wide while the mark is 2px, centred on the pane's
+   * own border, so the target is easy to hit and the mark reads as that edge
+   * thickening. Filling all 6px with the accent colour, as this used to, made
+   * the edge jump three pixels wider and change hue when the pointer crossed
+   * it.
+   */
+  .pnd-sidebar-resize::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 2px;
+    width: 2px;
+    background: var(--sl-color-gray-4);
+    opacity: 0;
+    transition: opacity 140ms ease;
+  }
+
+  .pnd-sidebar-resize:hover::after,
+  .pnd-sidebar-resize:focus-visible::after,
+  :root[data-pnd-resizing] .pnd-sidebar-resize::after {
+    background: var(--sl-color-gray-3);
+    opacity: 1;
+  }
+
   :root[data-pnd-sidebar="collapsed"] .pnd-sidebar-resize {
-    display: none;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+/*
+ * The pointer spends a drag outside the 6px strip. Pointer capture keeps the
+ * events coming, but without these the cursor flickers to whatever it is over
+ * and the drag selects the page text it crosses.
+ */
+:root[data-pnd-resizing] {
+  user-select: none;
+}
+
+:root[data-pnd-resizing] * {
+  cursor: col-resize;
+}
+
+/* Sidebar motion -------------------------------------------------------- */
+
+/*
+ * Toggling is a jump between two widths, so it is animated. A drag and a held
+ * arrow key already track their input frame by frame, and a transition on top
+ * of that makes the pane lag behind the pointer. The handle sets
+ * `data-pnd-resizing` for the length of the gesture, and these rules do not
+ * apply while it is set.
+ *
+ * Everything listed sizes off the sidebar width or `--sl-content-width`. They
+ * have to move on the same curve over the same duration, or the content column
+ * tears away from the pane it is following.
+ *
+ * Transitions do not run on an element's first style computation, so a sidebar
+ * restored as collapsed by the head script renders collapsed rather than
+ * animating open on load.
+ */
+@media (prefers-reduced-motion: no-preference) and (min-width: 50rem) {
+  :root:not([data-pnd-resizing]) .sidebar-pane {
+    transition:
+      width var(--pnd-motion-duration) var(--pnd-motion-ease),
+      border-inline-end-width var(--pnd-motion-duration) var(--pnd-motion-ease),
+      visibility var(--pnd-motion-duration) linear;
+  }
+
+  :root:not([data-pnd-resizing]) .main-frame {
+    transition: padding-inline-start var(--pnd-motion-duration)
+      var(--pnd-motion-ease);
+  }
+
+  :root:not([data-pnd-resizing]) .content-panel > .sl-container {
+    transition: max-width var(--pnd-motion-duration) var(--pnd-motion-ease);
+  }
+
+  :root:not([data-pnd-resizing]) .pnd-sidebar-resize {
+    transition:
+      inset-inline-start var(--pnd-motion-duration) var(--pnd-motion-ease),
+      visibility var(--pnd-motion-duration) linear;
+  }
+}
+
+/* 72rem is where the on-this-page column appears and starts sharing the row's
+   width with the content, so both size off `--sl-content-width` from here up. */
+@media (prefers-reduced-motion: no-preference) and (min-width: 72rem) {
+  :root:not([data-pnd-resizing]) .main-pane,
+  :root:not([data-pnd-resizing]) .right-sidebar-container {
+    transition: width var(--pnd-motion-duration) var(--pnd-motion-ease);
   }
 }
 
@@ -188,27 +659,14 @@
       block-size: 0;
       overflow: hidden;
       transition:
-        block-size 220ms ease,
-        content-visibility 220ms allow-discrete;
+        block-size var(--pnd-motion-duration) var(--pnd-motion-ease),
+        content-visibility var(--pnd-motion-duration) allow-discrete;
     }
 
     :root[data-pnd-ready] .sidebar-content details[open]::details-content {
       block-size: auto;
     }
   }
-}
-
-/* Content --------------------------------------------------------------- */
-
-/*
- * Rendered diagrams arrive as plain markdown images with a white background
- * baked into the SVG, so they read as cards once their edge matches the layer
- * cards beside them. Radius and border are `.arch-card`'s own values, which is
- * why the border is a `color-mix` rather than a Starlight hairline token.
- */
-.sl-markdown-content img {
-  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
-  border-radius: 0.5rem;
 }
 
 /* Diff badges ------------------------------------------------------------ */
@@ -247,6 +705,7 @@
 .sidebar-content .sl-badge {
   flex: none;
   padding: 0 0.3rem;
+  border-radius: var(--pnd-radius-sm);
   font-size: 0.6rem;
   line-height: 1.4;
 }
@@ -279,10 +738,13 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.05rem 0.55rem;
-  border: 1px solid var(--sl-color-gray-5);
+  border: 1px solid var(--sl-color-hairline-light);
   border-radius: 999px;
   color: var(--sl-color-gray-2);
   text-decoration: none;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
 }
 
 .pnd-diff-compare .pnd-diff-chip:hover {

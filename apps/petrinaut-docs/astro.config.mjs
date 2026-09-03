@@ -303,11 +303,33 @@ export default defineConfig({
   build: { format: "file" },
 
   /*
-   * One variable file covers every weight the code blocks use, downloaded and
-   * subset at build time so a reader makes no request to a font host. Italic is
-   * left out: no code style in the docs uses it.
+   * One variable file per family covers every weight the site uses, downloaded
+   * and subset at build time so a reader makes no request to a font host.
+   * Italic is left out of both: no style in the docs uses it.
+   *
+   * Inter stands in for the grotesque the reference design uses, which is not
+   * licensed for redistribution. It is the closest freely available match on
+   * the details that carry that look: a tall x-height, flat terminals, and
+   * digits that hold their width.
    */
   fonts: [
+    {
+      provider: fontProviders.fontsource(),
+      name: "Inter",
+      cssVariable: "--pnd-font-sans",
+      weights: ["400 700"],
+      styles: ["normal"],
+      subsets: ["latin"],
+      fallbacks: [
+        "-apple-system",
+        "BlinkMacSystemFont",
+        "Segoe UI",
+        "Roboto",
+        "Helvetica Neue",
+        "Arial",
+        "sans-serif",
+      ],
+    },
     {
       provider: fontProviders.fontsource(),
       name: "JetBrains Mono",
