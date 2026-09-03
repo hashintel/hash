@@ -167,10 +167,16 @@ describe("RealtimeBrunchBridge", () => {
     await vi.waitFor(() =>
       expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
     );
-    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith({
-      id: createRealtimeSubmissionId(7, "call-1"),
-      text: "The supervisor approves it.",
-    });
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        admissionTarget: {
+          kind: "client-tool-result",
+          messageId: "message-ask-current",
+        },
+        id: createRealtimeSubmissionId(7, "call-1"),
+        text: "The supervisor approves it.",
+      }),
+    );
     expect(harness.session.completeFunctionCall).not.toHaveBeenCalled();
 
     harness.bridge.updateChat({
@@ -209,6 +215,76 @@ describe("RealtimeBrunchBridge", () => {
     ]);
   });
 
+  test("emits the real admission before composer submission completes", async () => {
+    const harness = createHarness();
+    let finishSubmission: (() => void) | undefined;
+    harness.submitInterviewAnswer.mockImplementationOnce(async () => {
+      await new Promise<void>((resolve) => {
+        finishSubmission = resolve;
+      });
+      return {
+        kind: "interactive-tool",
+        toolCallId: "ask-current",
+      };
+    });
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [segment("ask-current", "Question")],
+      status: "ready",
+    });
+    harness.bridge.start(7);
+    harness.emit(toolDone(7));
+
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    const submission = harness.submitInterviewAnswer.mock.calls[0]?.[0];
+    expect(submission).toBeDefined();
+    submission?.onAdmission("submission-early");
+    submission?.onAdmission("submission-early");
+
+    expect(harness.events).toEqual([
+      expect.objectContaining({ type: "submission-started" }),
+      {
+        callId: "call-1",
+        submissionId: "submission-early",
+        type: "submission-admitted",
+      },
+    ]);
+
+    finishSubmission?.();
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual(
+        expect.objectContaining({ type: "submission-accepted" }),
+      ),
+    );
+    const question = segment("ask-current", "Question");
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: false,
+      canonicalSegments: [question],
+      status: "streaming",
+    });
+    const unrelated = segment("unrelated", "Do not select this.");
+    const correlated = {
+      ...segment("correlated", "Select this response."),
+      submissionId: "submission-early",
+    };
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question, unrelated, correlated],
+      status: "ready",
+    });
+    expect(harness.session.completeFunctionCall).toHaveBeenCalledWith(
+      "call-1",
+      [correlated],
+    );
+    harness.bridge.stop();
+    submission?.onAdmission("submission-stale");
+    expect(
+      harness.events.filter(({ type }) => type === "submission-admitted"),
+    ).toHaveLength(1);
+  });
+
   test("admits one finalized Realtime answer through Flue once", async () => {
     const harness = createHarness();
     harness.submitInterviewAnswer.mockResolvedValueOnce({
@@ -227,10 +303,16 @@ describe("RealtimeBrunchBridge", () => {
     harness.emit(toolDone(7, '{"answer":"Battery charger workflow"}'));
 
     await vi.waitFor(() =>
-      expect(harness.submitInterviewAnswer).toHaveBeenCalledWith({
-        id: createRealtimeSubmissionId(7, "call-1"),
-        text: "Battery charger workflow",
-      }),
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          admissionTarget: {
+            kind: "user",
+            messageId: createRealtimeSubmissionId(7, "call-1"),
+          },
+          id: createRealtimeSubmissionId(7, "call-1"),
+          text: "Battery charger workflow",
+        }),
+      ),
     );
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: false,
@@ -268,6 +350,34 @@ describe("RealtimeBrunchBridge", () => {
       "submission-settled",
       "canonical-response-ready",
     ]);
+  });
+
+  test("rejects a submission result that disagrees with the transport admission", async () => {
+    const harness = createHarness();
+    harness.submitInterviewAnswer.mockImplementationOnce(async (input) => {
+      input.onAdmission("submission-early");
+      return {
+        kind: "message",
+        messageId: input.id,
+        submissionId: "submission-other",
+      };
+    });
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      status: "ready",
+    });
+    harness.bridge.start(7);
+    harness.emit(toolDone(7));
+
+    await vi.waitFor(() =>
+      expect(harness.events).toContainEqual(
+        expect.objectContaining({
+          code: "interview-correlation",
+          type: "error",
+        }),
+      ),
+    );
   });
 
   test("requires a correlated Brunch busy cycle before accepting new canonical segments", async () => {
@@ -389,10 +499,16 @@ describe("RealtimeBrunchBridge", () => {
     await vi.waitFor(() =>
       expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
     );
-    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith({
-      id: createRealtimeSubmissionId(3, "call-2"),
-      text: "Accepted",
-    });
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        admissionTarget: {
+          kind: "client-tool-result",
+          messageId: "message-ask-current",
+        },
+        id: createRealtimeSubmissionId(3, "call-2"),
+        text: "Accepted",
+      }),
+    );
     expect(harness.events).not.toContainEqual(
       expect.objectContaining({ type: "error" }),
     );

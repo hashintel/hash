@@ -10,10 +10,23 @@ import type {
   SweepCompletionReport,
 } from "../brunch-sweep-output";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
+import type { FlueChatTransportOptions } from "@hashintel/brunch-agent-transport-aisdk";
 import type { PetrinautAiChatTransport } from "@hashintel/petrinaut/ui";
 import type { UIMessageChunk } from "ai";
 
+export type BrunchPanelAdmission = Parameters<
+  NonNullable<FlueChatTransportOptions["onAdmission"]>
+>[0];
+export type BrunchPanelAdmissionTarget = Pick<
+  BrunchPanelAdmission,
+  "kind" | "messageId"
+>;
+
 export class BrunchPanelConversationTracker {
+  readonly #admissionSubscriptions = new Set<{
+    readonly listener: (admission: BrunchPanelAdmission) => void;
+    readonly target: BrunchPanelAdmissionTarget;
+  }>();
   readonly #inputSubmissions = new Map<
     string,
     AgentSendResult["submissionId"]
@@ -23,11 +36,22 @@ export class BrunchPanelConversationTracker {
     AgentSendResult["submissionId"]
   >();
 
-  public recordInput(
-    messageId: string,
-    submissionId: AgentSendResult["submissionId"],
-  ): void {
-    this.#inputSubmissions.set(messageId, submissionId);
+  public recordAdmission(admission: BrunchPanelAdmission): void {
+    if (admission.kind === "user") {
+      this.#inputSubmissions.set(
+        admission.messageId,
+        admission.admission.submissionId,
+      );
+    }
+    for (const subscription of this.#admissionSubscriptions) {
+      if (
+        subscription.target.kind === admission.kind &&
+        subscription.target.messageId === admission.messageId
+      ) {
+        this.#admissionSubscriptions.delete(subscription);
+        subscription.listener(admission);
+      }
+    }
   }
 
   public recordResponse(
@@ -47,6 +71,15 @@ export class BrunchPanelConversationTracker {
     messageId: string,
   ): AgentSendResult["submissionId"] | undefined {
     return this.#responseSubmissions.get(messageId);
+  }
+
+  public subscribeToAdmission(
+    target: BrunchPanelAdmissionTarget,
+    listener: (admission: BrunchPanelAdmission) => void,
+  ): () => void {
+    const subscription = { listener, target };
+    this.#admissionSubscriptions.add(subscription);
+    return () => this.#admissionSubscriptions.delete(subscription);
   }
 }
 
@@ -180,11 +213,9 @@ export const createBrunchPanelTransport = (
     const transport = createFlueChatTransport({
       client,
       clientToolNames: new Set([readPetrinautDocToolName]),
-      onAdmission: ({ admission, kind, messageId }) => {
-        hooks?.onAdmission?.(admission);
-        if (kind === "user") {
-          tracker.recordInput(messageId, admission.submissionId);
-        }
+      onAdmission: (event) => {
+        tracker.recordAdmission(event);
+        hooks?.onAdmission?.(event.admission);
       },
       onResponseMessage: ({ messageId, submissionId }) =>
         tracker.recordResponse(messageId, submissionId),

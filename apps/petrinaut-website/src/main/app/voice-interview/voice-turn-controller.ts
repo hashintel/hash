@@ -424,6 +424,9 @@ export class VoiceTurnController {
       this.#answeredQuestionId = this.#submittingQuestionId;
       this.#submittingQuestionId = null;
       this.#update({ lastAnswerDelivery: "delivered" });
+      return;
+    }
+    if (event.type === "submission-admitted") {
       this.#recordLatency("submission-admitted", event.callId);
       return;
     }
@@ -473,10 +476,7 @@ export class VoiceTurnController {
         this.#ttsSpeechRequestId === null
       ) {
         this.#ttsSpeechRequestId = event.speechRequestId;
-        this.#recordLatency(
-          "first-tts-request",
-          this.#latencyCorrelationId,
-        );
+        this.#recordLatency("first-tts-request", this.#latencyCorrelationId);
       }
       return;
     }
