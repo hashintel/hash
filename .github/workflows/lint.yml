@@ -259,7 +259,7 @@ jobs:
       - name: Validate Task Dependencies
         if: ${{ success() || failure() }}
         run: |
-          mise run doc:task-dependencies
+          turbo run //#doc:task-dependencies
           git add --intent-to-add -- ':(glob)**/docs/task-dependencies.json'
           if ! git --no-pager diff --exit-code --color -- ':(glob)**/docs/task-dependencies.json'; then
             echo ''

@@ -21,6 +21,11 @@ pre-commit:
       glob: "{*/package.json, package.json}"
       run: yarn fix:constraints && yarn fix:yarn-deduplicate
       stage_fixed: true
+    task-dependencies:
+      tags: [backend]
+      glob: "{turbo.json,**/turbo.json,package.json,**/package.json,Cargo.toml,**/Cargo.toml}"
+      # The documents are not among the staged files the command is given, so `stage_fixed` would not pick them up.
+      run: turbo run //#doc:task-dependencies && git add -- ':(glob)**/docs/task-dependencies.json'
     sqlfluff:
       tags: [backend, style]
       glob: "*.sql"

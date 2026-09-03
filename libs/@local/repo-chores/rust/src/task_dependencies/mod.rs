@@ -63,6 +63,12 @@ struct TurboConfig {
     tasks: BTreeMap<String, serde_json::Value>,
 }
 
+/// The task names to plan, and the subset a `turbo.json` declares.
+struct TaskNames {
+    all: Vec<String>,
+    declared: BTreeSet<String>,
+}
+
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Package {
@@ -172,7 +178,8 @@ where
 async fn task_names(
     root: &Path,
     packages: &[Package],
-) -> Result<Vec<String>, Report<TaskDependenciesError>> {
+) -> Result<TaskNames, Report<TaskDependenciesError>> {
+    let mut declared = BTreeSet::new();
     let mut names: BTreeSet<String> = packages
         .iter()
         .flat_map(|package| &package.tasks.items)
@@ -202,8 +209,10 @@ async fn task_names(
             .change_context_lazy(|| TaskDependenciesError::ReadFile(path.clone()))?;
 
         // A `package#task` key configures another package's task, it is not a name to run.
-        names.extend(config.tasks.into_keys().filter(|name| !name.contains('#')));
+        declared.extend(config.tasks.into_keys().filter(|name| !name.contains('#')));
     }
+
+    names.extend(declared.iter().cloned());
 
     if names.is_empty() {
         return Err(
@@ -211,7 +220,10 @@ async fn task_names(
         );
     }
 
-    Ok(names.into_iter().collect())
+    Ok(TaskNames {
+        all: names.into_iter().collect(),
+        declared,
+    })
 }
 
 /// Task names turbo refused to run.
@@ -231,8 +243,13 @@ fn rejected_names(stderr: &str) -> BTreeSet<&str> {
 /// invocation, so rejected names are dropped and the run is retried.
 async fn dry_run(
     root: &Path,
-    mut names: Vec<String>,
+    names: TaskNames,
 ) -> Result<Vec<DryRunTask>, Report<TaskDependenciesError>> {
+    let TaskNames {
+        all: mut names,
+        declared,
+    } = names;
+
     loop {
         let output = Command::new("turbo")
             .arg("run")
@@ -257,7 +274,17 @@ async fn dry_run(
             );
         }
 
-        tracing::warn!(?rejected, "Dropping task names turbo cannot run");
+        // A name that only a `package.json` script carries is a candidate turbo was never
+        // meant to accept; a declared one that nothing implements is a stale declaration.
+        let (stale, scripts): (Vec<&str>, Vec<&str>) =
+            rejected.iter().partition(|name| declared.contains(**name));
+
+        if !stale.is_empty() {
+            tracing::warn!(?stale, "Dropping declared task names no package implements");
+        }
+        if !scripts.is_empty() {
+            tracing::debug!(?scripts, "Dropping task names no turbo.json declares");
+        }
         let planned = names.len();
         names.retain(|name| !rejected.contains(name.as_str()));
 
@@ -413,7 +440,7 @@ pub(crate) async fn sync_task_dependencies() -> Result<(), Report<[TaskDependenc
     .await?;
 
     let names = task_names(&root, &packages.packages.items).await?;
-    tracing::debug!(count = names.len(), "Found task names");
+    tracing::debug!(count = names.all.len(), "Found task names");
 
     let tasks = dry_run(&root, names).await?;
 
