@@ -34,13 +34,15 @@ export function formatShortcutKeys(
   options?: { apple?: boolean },
 ): string[] {
   const column = (options?.apple ?? isApplePlatform()) ? 0 : 1;
-  return shortcut.split("+").map((part) => {
-    const key = part.trim().toLowerCase();
-    return (
-      KEY_LABELS[key]?.[column] ??
-      (key.length === 1
-        ? key.toUpperCase()
-        : key.charAt(0).toUpperCase() + key.slice(1))
+  return shortcut
+    .split("+")
+    .map((part) => part.trim().toLowerCase())
+    .filter((key) => key.length > 0)
+    .map(
+      (key) =>
+        KEY_LABELS[key]?.[column] ??
+        (key.length === 1
+          ? key.toUpperCase()
+          : key.charAt(0).toUpperCase() + key.slice(1)),
     );
-  });
 }

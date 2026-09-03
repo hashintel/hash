@@ -146,6 +146,12 @@ export const CommandPalette = () => {
       style={overlayStyle}
       role="presentation"
       onPointerDown={() => setOpen(false)}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          setOpen(false);
+        }
+      }}
     >
       <div
         role="dialog"
@@ -163,9 +169,7 @@ export const CommandPalette = () => {
             setActiveIndex(0);
           }}
           onKeyDown={(event) => {
-            if (event.key === "Escape") {
-              setOpen(false);
-            } else if (event.key === "ArrowDown") {
+            if (event.key === "ArrowDown") {
               event.preventDefault();
               setActiveIndex(Math.min(active + 1, results.length - 1));
             } else if (event.key === "ArrowUp") {

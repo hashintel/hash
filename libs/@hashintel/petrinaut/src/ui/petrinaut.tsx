@@ -17,7 +17,6 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 
-import { useCommandRegistry } from "../react/commands/command-registry";
 import { PetrinautProvider } from "../react/petrinaut-provider";
 import { Stack } from "./components/stack";
 import { MonacoProvider } from "./monaco/provider";
@@ -139,16 +138,9 @@ export const Petrinaut: FunctionComponent<PetrinautProps> = ({
   navigation,
 }) => {
   const portalContainerRef = useRef<HTMLDivElement>(null);
-  // The host's registry, so the instance's commands land beside the views'.
-  const commandRegistry = useCommandRegistry();
   const instance = useMemo<Instance>(
-    () =>
-      createPetrinaut({
-        document: handle,
-        readonly,
-        commandRegistry: commandRegistry ?? undefined,
-      }),
-    [handle, readonly, commandRegistry],
+    () => createPetrinaut({ document: handle, readonly }),
+    [handle, readonly],
   );
 
   useEffect(() => () => instance.dispose(), [instance]);

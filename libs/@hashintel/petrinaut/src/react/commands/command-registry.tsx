@@ -49,9 +49,11 @@ const subscribeToNothing = () => () => {};
  */
 export function useCommands(): readonly Command[] {
   const registry = use(CommandRegistryContext);
+  const getSnapshot = registry ? registry.list : () => NO_COMMANDS;
   return useSyncExternalStore(
     registry ? registry.subscribe : subscribeToNothing,
-    registry ? registry.list : () => NO_COMMANDS,
+    getSnapshot,
+    getSnapshot,
   );
 }
 

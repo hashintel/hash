@@ -28,4 +28,8 @@ describe("formatShortcutKeys", () => {
     expect(formatShortcutKeys("escape", { apple: false })).toEqual(["Esc"]);
     expect(formatShortcutKeys("f2", { apple: true })).toEqual(["F2"]);
   });
+
+  it("gives no keycaps for an empty shortcut", () => {
+    expect(formatShortcutKeys("", { apple: true })).toEqual([]);
+  });
 });

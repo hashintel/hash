@@ -1,11 +1,10 @@
-import { use, useCallback, useState } from "react";
+import { use } from "react";
 
 import { css, cva, cx } from "@hashintel/ds-helpers/css";
 
 import { usePetrinautMutations } from "../../../../../react";
 import { ActiveNetContext } from "../../../../../react/state/active-net-context";
 import { EditorContext } from "../../../../../react/state/editor-context";
-import { DEFAULT_PROPERTIES_PANEL_WIDTH } from "../../../../../react/state/panel-defaults";
 import { SDCPNContext } from "../../../../../react/state/sdcpn-context";
 import { usePanelTarget } from "../../../../../react/state/use-selection";
 import { UserSettingsContext } from "../../../../../react/state/user-settings-context";
@@ -62,6 +61,7 @@ const glassPanelContentStyle = css({
  */
 export const PropertiesPanel: React.FC = () => {
   const {
+    propertiesPanelWidth,
     setPropertiesPanelWidth,
     isBottomPanelOpen,
     bottomPanelHeight,
@@ -89,19 +89,6 @@ export const PropertiesPanel: React.FC = () => {
   } = usePetrinautMutations();
 
   const panelTarget = usePanelTarget();
-
-  const [panelWidth, setPanelWidthLocal] = useState(
-    DEFAULT_PROPERTIES_PANEL_WIDTH,
-  );
-
-  // Sync panel width with global store
-  const handleResize = useCallback(
-    (newWidth: number) => {
-      setPanelWidthLocal(newWidth);
-      setPropertiesPanelWidth(newWidth);
-    },
-    [setPropertiesPanelWidth],
-  );
 
   const isOpen = panelTarget.kind !== "none";
 
@@ -270,13 +257,13 @@ export const PropertiesPanel: React.FC = () => {
       style={{
         bottom: bottomOffset,
         padding: PANEL_MARGIN,
-        width: panelWidth,
+        width: propertiesPanelWidth,
       }}
       contentClassName={glassPanelContentStyle}
       resizable={{
         edge: "left",
-        size: panelWidth,
-        onResize: handleResize,
+        size: propertiesPanelWidth,
+        onResize: setPropertiesPanelWidth,
         minSize: MIN_PROPERTIES_PANEL_WIDTH,
         maxSize: MAX_PROPERTIES_PANEL_WIDTH,
       }}

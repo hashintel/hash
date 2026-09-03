@@ -1,5 +1,6 @@
 import { use } from "react";
 
+import { usePetrinautCommands } from "../../../react";
 import { useCommand } from "../../../react/commands/command-registry";
 import { EditorContext } from "../../../react/state/editor-context";
 import { UndoRedoContext } from "../../../react/state/undo-redo-context";
@@ -21,6 +22,7 @@ function useEditorCommands(): void {
     setLeftSidebarOpen,
   } = use(EditorContext);
   const undoRedo = use(UndoRedoContext);
+  const { applyAutoLayout } = usePetrinautCommands();
   const mode = useEffectiveGlobalMode();
   const isReadOnly = useIsReadOnly();
   const canEditNet = mode === "edit" && !isReadOnly;
@@ -92,6 +94,16 @@ function useEditorCommands(): void {
     },
     { when: canEditNet },
   );
+  useCommand(
+    {
+      id: "petrinaut.net.auto-layout",
+      label: "Auto-layout the net",
+      category: "Net",
+      keywords: ["arrange", "tidy", "layout"],
+      run: () => void applyAutoLayout(),
+    },
+    { when: canEditNet },
+  );
 
   useCommand({
     id: "petrinaut.search.open",
@@ -103,9 +115,7 @@ function useEditorCommands(): void {
   });
   useCommand({
     id: "petrinaut.left-sidebar.toggle",
-    label: isLeftSidebarOpen
-      ? "Hide the left sidebar"
-      : "Show the left sidebar",
+    label: "Toggle the left sidebar",
     category: "Editor",
     keywords: ["panel"],
     run: () => setLeftSidebarOpen(!isLeftSidebarOpen),

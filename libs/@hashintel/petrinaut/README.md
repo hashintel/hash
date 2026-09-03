@@ -49,9 +49,8 @@ Host components add their own commands with `useCommand(command, { when })`;
 a command leaves the registry when `when` turns false or the component
 unmounts. Outside React, `createCommandRegistry()` and
 `combineCommandRegistries()` from `@hashintel/petrinaut-core` create and merge
-registries, and `createPetrinaut({ commandRegistry })` registers the
-instance's commands. The guide, with a reference palette, lives in the
-architecture docs:
+registries. The guide, with a reference palette, lives in the architecture
+docs:
 [Commands and the palette](https://github.com/hashintel/hash/blob/main/libs/%40local/petrinaut-arch-docs/content/commands/usage-manual.mdx).
 
 ## Storybook

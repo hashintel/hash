@@ -1,6 +1,6 @@
 ---
 title: Usage manual
-description: Creating a command registry, registering commands from React and from the headless instance, merging registries, and rendering a palette.
+description: Creating a command registry, registering commands from React and from plain code, merging registries, and rendering a palette.
 attachTo: core.command-registry
 sidebar_order: 10
 ---
@@ -8,8 +8,8 @@ sidebar_order: 10
 A command is a labelled, argument-free action a person picks from a list:
 "Undo", "Add a place", "Auto-layout the net". The registry in
 `petrinaut-core/src/command-registry/command-registry.ts` holds the current
-set. Petrinaut writes to it from components and from the headless instance;
-the host reads it and renders a palette. Petrinaut ships no palette.
+set. The editor writes to it from components; the host reads it and renders
+a palette. Petrinaut ships no palette.
 
 ![Who writes to the registry and who reads it](@diagrams/command-registry-flow.svg)
 
@@ -49,8 +49,8 @@ interface CommandRegistry extends CommandRegistryView {
 
 Wrap the editor in `CommandRegistryProvider` from `@hashintel/petrinaut/react`,
 the [React bindings](layer:react.commands). Without a `registry` prop the
-provider creates one. `Petrinaut` reads the ambient registry and passes it to
-`createPetrinaut`, so the instance's commands land beside the components'.
+provider creates one. The editor's commands register into whichever registry
+is ambient.
 
 ```tsx
 <CommandRegistryProvider>
@@ -101,21 +101,20 @@ The editor declares its own commands this way in `use-editor-commands.ts`,
 from a null-rendering leaf so their context subscriptions re-render nothing
 else.
 
-## Register from the headless instance
+## Register without React
 
-Code without React registers imperatively and keeps the disposer:
+Plain code registers imperatively and keeps the disposer:
 
 ```ts
 const dispose = registry.register({
-  id: "petrinaut.net.auto-layout",
+  id: "host.net.auto-layout",
   label: "Auto-layout the net",
   run: () => void instance.commands.applyAutoLayout(),
 });
 ```
 
-`createPetrinaut({ document, commandRegistry })` registers the instance's
-commands and disposes them in `instance.dispose()`. A read-only instance
-registers none.
+The editor registers its own auto-layout command from `use-editor-commands.ts`,
+gated on edit mode, so a host embedding the full editor needs none of this.
 
 ## Merge registries
 
@@ -134,9 +133,11 @@ const commands = useCommands();
   commands.map((command) => (
     <button key={command.id} onClick={() => registry?.execute(command.id)}>
       {command.label}
-      {formatShortcutKeys(command.shortcut ?? "").map((key) => (
-        <kbd key={key}>{key}</kbd>
-      ))}
+      {command.shortcut
+        ? formatShortcutKeys(command.shortcut).map((key) => (
+            <kbd key={key}>{key}</kbd>
+          ))
+        : null}
     </button>
   ));
 }

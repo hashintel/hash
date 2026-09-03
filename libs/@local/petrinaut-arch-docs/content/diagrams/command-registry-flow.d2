@@ -15,12 +15,10 @@ registry: "CommandRegistry\ncreateCommandRegistry()" {style.fill: "#dcecff"; sty
 petrinaut: "Petrinaut" {
   style.fill: "#e8e0ff"
   style.stroke: "#7051b5"
-  instance: "createPetrinaut({ commandRegistry })\nauto-layout" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
-  editor: "EditorCommands\nundo, tools, search, panels" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
+  editor: "EditorCommands\nundo, tools, auto-layout, search, panels" {style.fill: "#ffffff"; style.stroke: "#7051b5"}
 }
 
 host.components -> registry: register
-petrinaut.instance -> registry: register
 petrinaut.editor -> registry: register
 registry -> host.palette: "list(), subscribe()"
 host.palette -> registry: "execute(id)"
