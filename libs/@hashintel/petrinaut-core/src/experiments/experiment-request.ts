@@ -1,14 +1,12 @@
 /**
- * What to compute, as serializable data.
+ * What to compute, as plain data.
  *
- * Closed and plain: no worker factory, no GPU options, no abort signal, no
- * callbacks. Anything describing *how* to compute belongs to the backend's
- * construction (`ExperimentBackend`) or to the per-call options of `instantiate`.
- *
- * That rule keeps this from becoming
- * `CreateMonteCarloExperimentConfig | CreateGpuMonteCarloExperimentConfig`, and
- * keeps the request serializable. For an out-of-process backend this object is
- * the request body, which a function-valued field would prevent.
+ * Closed: no worker factory, no GPU options, no abort signal, no callbacks.
+ * Anything describing *how* to compute belongs to the backend's construction
+ * (`ExperimentBackend`) or to the per-call options of `instantiate`. Every
+ * field survives structured cloning, so the request can cross a worker or
+ * process boundary as-is; `runPlan.values` is a `Float64Array`, which JSON
+ * alone does not carry.
  */
 import type { PetrinautExtensionSettings } from "../extensions";
 import type { HirArtifacts } from "../hir-runtime";
@@ -23,12 +21,19 @@ import type { SDCPN } from "../types/sdcpn";
  * Every run carries every id: `values[run * ids.length + i]` is `ids[i]`'s
  * value for `run`, and `values.length` equals `runCount × ids.length`.
  * Backends lay per-run values out in one uniform buffer, so a ragged form
- * is unrepresentable by construction.
+ * is unrepresentable by construction. A boolean parameter rides as `1`/`0`;
+ * a backend feeding the engine turns those back into `"true"`/`"false"`.
  */
 export type ExperimentRunPlan = {
   /** Overridden net parameter variable names, sorted. */
   readonly ids: readonly string[];
   readonly values: Float64Array;
+  /**
+   * Pinned per-run seeds, `runCount` long, for batches whose runs must draw
+   * the same trajectories however they are chunked. Absent, each run's seed
+   * derives from the experiment's seed.
+   */
+  readonly seeds?: readonly number[];
 };
 
 export type ExperimentRequest = {
@@ -42,8 +47,8 @@ export type ExperimentRequest = {
   readonly runCount: number;
   /**
    * Per-run overrides, indexed by global run index; `runs.length` must equal
-   * `runCount` when present. Carries what `runPlan` cannot — per-run seeds,
-   * markings, non-numeric values. At most one of `runs` and `runPlan` may be
+   * `runCount` when present. Carries what `runPlan` cannot — per-run markings
+   * and non-numeric values. At most one of `runs` and `runPlan` may be
    * present.
    */
   readonly runs?: readonly MonteCarloRunConfig[];

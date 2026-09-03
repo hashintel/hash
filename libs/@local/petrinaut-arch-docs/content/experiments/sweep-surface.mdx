@@ -61,6 +61,12 @@ and a wide CPU lane). Parameters outside the two shown axes stay at the
 navigator's values, and changing any of them (or the axes) restarts the
 sampling for the new slice.
 
+The plot is a control in both directions: an orange ring marks the
+navigator's current position on the slice, and a press-drag shows a CSS
+crosshair (positioned in percentages, so pointer moves never repaint the
+field raster) with a live value readout in the caption; releasing collapses
+both shown axes to a point there, exactly as a click does.
+
 ## Rendering sparse data honestly
 
 At any moment most cells are unsampled, so the picture must make sense at
@@ -69,7 +75,7 @@ blobs around the first few samples that converge to the surface as cells
 land; marching squares over that raster draws the iso-lines, and sampled
 combinations are marked with dots so it stays visible where data actually
 exists. All of that is pure, tested math in
-`react/experiments/contour-grid.ts`; the component only paints it onto a
+`ui/components/contour-surface/contour-field.ts`; the component only paints it onto a
 canvas, the same imperative-draw idiom the metric charts use.
 
 A restart — any slice or axis change clears the sampled

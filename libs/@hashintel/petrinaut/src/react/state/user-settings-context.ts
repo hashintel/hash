@@ -78,6 +78,18 @@ export type UserSettings = {
    * only useful when you are debugging why something did not compile.
    */
   showCompilationOutput: boolean;
+  /**
+   * Experimental: offer parameter sweeps. On, every numeric scenario parameter
+   * in the experiment form gets a Sweep toggle that turns its value into an
+   * interval. Off, experiments take fixed values only.
+   */
+  enableParameterSweeps: boolean;
+  /**
+   * Experimental: show the optimization drawer's Surface section, which
+   * recomputes the objective locally over two optimized parameters. Off, a
+   * study drawer runs no compute of its own.
+   */
+  enableOptimizationSurface: boolean;
   subViewPanels: SubViewPanelsSettings;
 };
 
@@ -104,6 +116,8 @@ export type UserSettingsActions = {
   setShowWalkthroughOnInit: (value: boolean) => void;
   setWebGpuEnabled: (value: boolean) => void;
   setShowCompilationOutput: (value: boolean) => void;
+  setEnableParameterSweeps: (value: boolean) => void;
+  setEnableOptimizationSurface: (value: boolean) => void;
   updateSubViewSection: (
     containerName: string,
     sectionId: string,
@@ -136,6 +150,8 @@ export const defaultUserSettings: UserSettings = {
   showWalkthroughOnInit: true,
   webGpuEnabled: false,
   showCompilationOutput: false,
+  enableParameterSweeps: false,
+  enableOptimizationSurface: false,
   subViewPanels: {},
 };
 
@@ -163,6 +179,8 @@ const DEFAULT_CONTEXT_VALUE: UserSettingsContextValue = {
   setShowWalkthroughOnInit: () => {},
   setWebGpuEnabled: () => {},
   setShowCompilationOutput: () => {},
+  setEnableParameterSweeps: () => {},
+  setEnableOptimizationSurface: () => {},
   updateSubViewSection: () => {},
 };
 

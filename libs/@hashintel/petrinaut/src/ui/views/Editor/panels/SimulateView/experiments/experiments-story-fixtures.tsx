@@ -5,6 +5,8 @@ import { sirModel } from "@hashintel/petrinaut-core/examples";
 
 import {
   type CreateExperimentInput,
+  ExperimentsActionsContext,
+  type ExperimentsActionsValue,
   ExperimentsContext,
   type ExperimentRecord,
   type ExperimentsContextValue,
@@ -111,6 +113,7 @@ export function makeExperiment(
             frameNumber: status === "complete" ? 180 : 45,
           }),
     latestMetricFramesById: {},
+    sweepBatches: [],
     parameterAxes: [],
     sweep: null,
     metricFrames: [],
@@ -158,6 +161,7 @@ export function makeParameterSweepExperiment(): ExperimentRecord {
         runOutput: { type: "distribution", binning: "exact" },
       },
     ],
+    sweepBatches: [],
     parameterAxes: [
       {
         identifier: "transmission_rate",
@@ -342,9 +346,56 @@ const createFakeExperiment = (
   progress: null,
   latestMetricFramesById: {},
   metricFrames: [],
+  sweepBatches: [],
   parameterAxes: [],
   sweep: null,
 });
+
+/**
+ * The synthetic objective every fake sampler returns: a smooth bump over the
+ * sweep fixture's parameter values, so a story's contour fills in the way a
+ * real sweep's would. `transmissionRate` and `recoveryDays` are values, not
+ * positions.
+ */
+export function syntheticSweepObjective(
+  transmissionRate: number,
+  recoveryDays: number,
+): number {
+  return (
+    100 *
+      Math.exp(
+        -((transmissionRate - 0.35) ** 2) * 20 -
+          ((recoveryDays - 10) / 14) ** 2,
+      ) +
+    6 * Math.sin(transmissionRate * 9) +
+    recoveryDays / 4
+  );
+}
+
+/**
+ * A fake `sampleSurfaceCells`: one walk delay per chunk, then every cell's
+ * synthetic objective under the "infected" metric. Positions are quantized
+ * indices on the sweep fixture's axes.
+ */
+export function makeFakeSurfaceSampler(
+  delayMs: number,
+): ExperimentsContextValue["sampleSurfaceCells"] {
+  return (_experimentId, positions) =>
+    new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(
+          positions.map((position) => ({
+            infected: Math.round(
+              syntheticSweepObjective(
+                0.1 + ((position.transmission_rate ?? 0) / 50) * 0.4,
+                2 + (position.recovery_days ?? 0),
+              ),
+            ),
+          })),
+        );
+      }, delayMs);
+    });
+}
 
 export function FakeExperimentsProvider({
   children,
@@ -360,12 +411,15 @@ export function FakeExperimentsProvider({
    * the empty state.
    */
   overrides?: Partial<
-    Pick<ExperimentsContextValue, "sampleSweepCell" | "sampleDetachedObjective">
+    Pick<
+      ExperimentsContextValue,
+      "sampleSurfaceCells" | "sampleDetachedObjective"
+    >
   >;
   /**
    * Simulates what the real sweep session does on a selection change:
    * frames clear immediately, then the new selection's distribution streams
-   * back in after a compute gap — the case restream ghosting exists for.
+   * back in after a compute gap.
    */
   restreamOnSelectionChange?: boolean;
 }) {
@@ -466,14 +520,13 @@ export function FakeExperimentsProvider({
         restreamRef.current.timer = setTimeout(step, 160);
       }
     };
-    // The compute gap: what the charts bridge with the restream ghost.
+    // The compute gap the charts bridge with the previous picture.
     restreamRef.current.timer = setTimeout(step, 900);
   };
 
-  const value: ExperimentsContextValue = {
-    experiments,
-    selectedExperimentId,
-    selectedExperiment,
+  // Built once: every callback closes over stable setters and refs, so the
+  // actions context holds still across publishes the way the real one does.
+  const [actions] = useState<ExperimentsActionsValue>(() => ({
     setSelectedExperimentId,
     createExperiment: (input) => {
       const experiment = createFakeExperiment(input);
@@ -493,44 +546,6 @@ export function FakeExperimentsProvider({
       setExperiments((current) =>
         current.filter((experiment) => experiment.id !== experimentId),
       );
-    },
-    sampleDetachedObjective: (request) => {
-      // The same synthetic bump as sampleSweepCell, over the study's real
-      // parameter values, so the optimization surface story fills live.
-      const values = Object.values(request.scenarioParameterValues).filter(
-        (entry): entry is number => typeof entry === "number",
-      );
-      const x = values[0] ?? 0;
-      const y = values[1] ?? 0;
-      const objective =
-        100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
-        6 * Math.sin(x * 9) +
-        y / 4;
-      const frame = {
-        metricId: request.metric.id,
-        label: request.metric.label,
-        outputType: "distribution" as const,
-        frameNumber: 45,
-        time: 45,
-        bins: [
-          [Math.round(objective * 100) / 100, request.runCount],
-        ] as (readonly [number, number])[],
-        value: null,
-        frameValue: null,
-        timeValue: null,
-        runSampleCount: request.runCount,
-        timeSampleCount: request.runCount,
-      };
-      return new Promise((resolve) => {
-        setTimeout(
-          () =>
-            resolve({
-              runsCompleted: request.runCount,
-              metricFrames: [frame],
-            }),
-          100,
-        );
-      });
     },
     setSweepSelection: (experimentId, selection) => {
       setExperiments((current) =>
@@ -558,57 +573,57 @@ export function FakeExperimentsProvider({
         restream(experimentId, selection);
       }
     },
-    sampleSurfaceCells: (_experimentId, positions) =>
-      // The same synthetic bump as sampleSweepCell, one walk delay per chunk.
-      new Promise((resolve) => {
-        setTimeout(() => {
-          resolve(
-            positions.map((position) => {
-              const x = 0.1 + ((position.transmission_rate ?? 0) / 50) * 0.4;
-              const y = 2 + (position.recovery_days ?? 0);
-              const objective =
-                100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
-                6 * Math.sin(x * 9) +
-                y / 4;
-              return { infected: Math.round(objective) };
-            }),
-          );
-        }, 120);
-      }),
-    sampleSweepCell: (_experimentId, position) => {
-      // A synthetic objective surface — a smooth bump — so the story's
-      // contour fills in the way a real sweep's would, walk delay included.
-      // Positions are quantized indices; map them back to values.
-      const x = 0.1 + ((position.transmission_rate ?? 0) / 50) * 0.4;
-      const y = 2 + (position.recovery_days ?? 0);
-      const objective =
-        100 * Math.exp(-((x - 0.35) ** 2) * 20 - ((y - 10) / 14) ** 2) +
-        6 * Math.sin(x * 9) +
-        y / 4;
+    sampleSurfaceCells: makeFakeSurfaceSampler(120),
+    sampleDetachedObjective: (request) => {
+      // The synthetic bump over the study's real parameter values, so the
+      // optimization surface story fills live.
+      const values = Object.values(request.scenarioParameterValues).filter(
+        (entry): entry is number => typeof entry === "number",
+      );
+      const objective = syntheticSweepObjective(values[0] ?? 0, values[1] ?? 0);
       const frame = {
-        metricId: "infected",
-        label: "Infected",
+        metricId: request.metric.id,
+        label: request.metric.label,
         outputType: "distribution" as const,
         frameNumber: 45,
         time: 45,
-        bins: [[Math.round(objective), 8]] as (readonly [number, number])[],
+        bins: [
+          [Math.round(objective * 100) / 100, request.runCount],
+        ] as (readonly [number, number])[],
         value: null,
         frameValue: null,
         timeValue: null,
-        runSampleCount: 8,
-        timeSampleCount: 8,
+        runSampleCount: request.runCount,
+        timeSampleCount: request.runCount,
       };
       return new Promise((resolve) => {
         setTimeout(
-          () => resolve({ runsCompleted: 8, metricFrames: [frame] }),
-          120,
+          () =>
+            resolve({
+              runsCompleted: request.runCount,
+              metricFrames: [frame],
+            }),
+          100,
         );
       });
     },
     ...overrides,
+  }));
+
+  const value: ExperimentsContextValue = {
+    experiments,
+    selectedExperimentId,
+    selectedExperiment,
+    ...actions,
   };
 
-  return <ExperimentsContext value={value}>{children}</ExperimentsContext>;
+  return (
+    <ExperimentsContext value={value}>
+      <ExperimentsActionsContext value={actions}>
+        {children}
+      </ExperimentsActionsContext>
+    </ExperimentsContext>
+  );
 }
 
 export function FakeEditorProvider({

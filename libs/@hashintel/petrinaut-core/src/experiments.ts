@@ -1,16 +1,12 @@
 /**
- * The contract both compute backends satisfy, and the registry that picks one.
+ * The contract every compute backend satisfies, the selection that picks one,
+ * and the worker pool the CPU backend leases from.
  *
- * Backends already produce a `MonteCarloExperiment` that consumers drive without
- * branching. This adds the two things that were hardcoded: asking a backend
- * whether it can run a net, and choosing when one declines.
- *
- * A backend is constructed with its own wiring (a worker factory, an ODE method)
- * and registered as data. A React context provider can therefore build the
- * backends its environment supports and publish the list.
- *
- * Registration carries a deferred `load`. A heavy backend is imported the first
- * time selection reaches it, so it stays out of bundles that never use it.
+ * A backend is constructed with its own wiring (a worker factory, an ODE
+ * method) and registered as data, so a host builds the backends its
+ * environment supports and publishes the list. Registration carries a
+ * deferred `load`: a heavy backend is imported the first time selection
+ * reaches it and stays out of bundles that never use it.
  */
 export type {
   ExperimentAssessment,
@@ -43,4 +39,4 @@ export {
 export {
   createReusableWorkerFactory,
   type ReusableWorkerFactory,
-} from "./simulation/runtime/reusable-worker-factory";
+} from "./simulation/monte-carlo/runtime/reusable-worker-factory";

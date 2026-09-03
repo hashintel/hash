@@ -1,25 +1,19 @@
-import { createMonteCarloExperiment } from "../simulation/monte-carlo/runtime/experiment";
 /**
  * The experiment backend that runs the buffer-ABI engine across Web Workers.
  *
- * Named for the mechanism rather than the silicon. `web-workers` would be wrong
- * in both directions: the same runtime also runs entirely in-thread when metrics
- * are supplied as executable callbacks (`createLocalMonteCarloExperiment`), and a
- * caller-supplied `transport` may be a Node `worker_threads` channel. Its **id**
- * stays `"cpu"`, because that is the axis users choose along, the word the UI
- * already uses ("running on the CPU"), and what `ExperimentRecord.computeBackend`
- * records.
+ * Named for the mechanism rather than the silicon: the same runtime also runs
+ * in-thread, and a caller-supplied transport may be a Node `worker_threads`
+ * channel. Its id is `cpu`, the axis users choose along and what
+ * `ExperimentRecord.computeBackend` records.
  *
- * This is the fallback, so it accepts every net: assessment is unconditionally
- * eligible. Deciding *here* whether a net needs compiled artifacts would restate
- * a rule `build-simulation.ts` already owns, and a second copy of that rule would
- * eventually disagree with the engine. Instead instantiation reports what the
- * engine says, which is the single source of truth.
+ * This is the fallback, so assessment accepts every net; whether a net needs
+ * compiled artifacts is the engine's rule, and instantiation reports what the
+ * engine says rather than restating it.
  */
-import { createUserKeyedRecord } from "../validation/record-keys";
+import { createMonteCarloExperiment } from "../simulation/monte-carlo/runtime/experiment";
+import { expandRunPlan } from "./worker-pool-experiment-backend/expand-run-plan";
 
 import type { WorkerFactory } from "../simulation/api";
-import type { MonteCarloRunConfig } from "../simulation/monte-carlo/types";
 import type {
   ExperimentAssessment,
   ExperimentBlockers,
@@ -30,53 +24,44 @@ import type { ExperimentRequest } from "./experiment-request";
 export const WORKER_POOL_BACKEND_ID = "cpu";
 
 export type WorkerPoolExperimentBackendOptions = {
-  /**
-   * Spawns one simulation worker.
-   *
-   * Bound here rather than passed per request because it is host wiring, not part
-   * of what to compute, the same reason it is absent from `ExperimentRequest`. A
-   * React provider supplies it once for the whole app.
-   */
+  /** Spawns one simulation worker. Host wiring, so bound here rather than carried by the request. */
   createWorker: WorkerFactory;
   /**
-   * How many workers to split runs across.
-   *
-   * Runs are independent and seeds derive from the global run index, so this only
-   * changes how fast an experiment finishes, never what it reports. Defaults to
-   * one per logical core minus one.
+   * How many workers to split runs across. Seeds derive from the global run
+   * index, so this only changes how fast an experiment finishes, never what
+   * it reports. Defaults to one per logical core minus one.
    */
   shardCount?: number;
   batchSize?: number;
 };
 
-/**
- * A run plan as the engine's per-run configs.
- *
- * The engine and the shard slicing speak `MonteCarloRunConfig`; a plan is
- * expanded here, at the last step before the worker pool, so the main-thread
- * pipeline above never materializes a record per run.
- */
-function expandRunPlan(
-  plan: NonNullable<ExperimentRequest["runPlan"]>,
-  runCount: number,
-): MonteCarloRunConfig[] {
-  const width = plan.ids.length;
-  return Array.from({ length: runCount }, (_, run) => {
-    // Net parameter variable names are user-authored: no prototype.
-    const parameterValues = createUserKeyedRecord<string>();
-    for (let index = 0; index < width; index++) {
-      parameterValues[plan.ids[index]!] = String(
-        plan.values[run * width + index],
-      );
-    }
-    return { parameterValues };
-  });
-}
-
-function assess(
+const assess = (
   request: ExperimentRequest,
   options: WorkerPoolExperimentBackendOptions,
-): ExperimentAssessment {
+): ExperimentAssessment => {
+  if (request.runs !== undefined && request.runPlan !== undefined) {
+    return {
+      eligible: false,
+      blockers: [
+        {
+          code: "conflicting-run-overrides",
+          message:
+            "Per-run overrides were given both as `runs` and as a `runPlan`; an experiment takes one or the other.",
+          origin: "configuration",
+        },
+      ],
+    };
+  }
+  const runs =
+    request.runs ??
+    (request.runPlan === undefined
+      ? undefined
+      : expandRunPlan(
+          request.runPlan,
+          request.runCount,
+          request.sdcpn.parameters,
+        ));
+
   return {
     eligible: true,
     notes: [],
@@ -93,11 +78,7 @@ function assess(
           dt: request.dt,
           maxTime: request.maxTime,
           runCount: request.runCount,
-          ...(request.runs !== undefined
-            ? { runs: request.runs }
-            : request.runPlan !== undefined
-              ? { runs: expandRunPlan(request.runPlan, request.runCount) }
-              : {}),
+          ...(runs === undefined ? {} : { runs }),
           metricSpecs: request.metricSpecs,
           ...(request.hirArtifacts === undefined
             ? {}
@@ -123,14 +104,12 @@ function assess(
               : `Web Workers (${options.shardCount} shards)`,
         };
       } catch (error) {
-        // A cancellation is the caller's decision, not a refusal: reporting it
-        // as a blocker would send the selection walk on to the next backend
-        // for an experiment nobody wants any more.
+        // A cancellation is the caller's decision, not a refusal: reported as
+        // a blocker it would send the selection walk on to the next backend.
         if (error instanceof Error && error.name === "AbortError") {
           throw error;
         }
-        // The engine refuses a net whose user code has no compiled artifact, and
-        // it phrases that better than this layer could. Reported as
+        // The engine refuses a net whose user code has no compiled artifact.
         // `configuration` because the fix is to compile, not to edit the net.
         const blockers: ExperimentBlockers = [
           {
@@ -143,19 +122,16 @@ function assess(
       }
     },
   };
-}
+};
 
-export function createWorkerPoolExperimentBackend(
+export const createWorkerPoolExperimentBackend = (
   options: WorkerPoolExperimentBackendOptions,
-): ExperimentBackend {
-  return {
-    id: WORKER_POOL_BACKEND_ID,
-    label: "CPU (Web Workers)",
-    // The engine reads compiled buffer programs, never the HIR trees they came
-    // from, and carrying the trees roughly triples artifact size on a payload
-    // posted to every shard.
-    needsHirTrees: false,
-    isAvailable: () => true,
-    assess: (request) => Promise.resolve(assess(request, options)),
-  };
-}
+): ExperimentBackend => ({
+  id: WORKER_POOL_BACKEND_ID,
+  label: "CPU (Web Workers)",
+  // The engine reads compiled buffer programs, never the HIR trees they came
+  // from, and the trees roughly triple the artifact posted to every shard.
+  needsHirTrees: false,
+  isAvailable: () => true,
+  assess: (request) => Promise.resolve(assess(request, options)),
+});

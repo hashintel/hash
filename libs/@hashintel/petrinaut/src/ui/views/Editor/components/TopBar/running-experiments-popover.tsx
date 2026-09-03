@@ -8,6 +8,7 @@ import {
   isExperimentActive,
   type ExperimentRecord,
 } from "../../../../../react/experiments/context";
+import { experimentProgressPercent } from "../../shared/experiment-progress";
 
 const contentWidthStyle = css({
   width: "[320px]",
@@ -107,15 +108,6 @@ function formatProgress(experiment: ExperimentRecord): string {
   return `${progress.activeRuns} active, ${progress.completedRuns} complete, ${progress.erroredRuns} errors`;
 }
 
-function getProgressPercent(experiment: ExperimentRecord): number {
-  const progress = experiment.progress;
-  if (!progress || experiment.maxTime <= 0) {
-    return 0;
-  }
-
-  return Math.min(100, (progress.time / experiment.maxTime) * 100);
-}
-
 const ExperimentStatusBadge = ({
   status,
 }: {
@@ -188,7 +180,7 @@ export const RunningExperimentsPopover = ({
                         <div
                           className={progressFillStyle}
                           style={{
-                            width: `${getProgressPercent(experiment)}%`,
+                            width: `${experimentProgressPercent(experiment)}%`,
                           }}
                         />
                       </div>

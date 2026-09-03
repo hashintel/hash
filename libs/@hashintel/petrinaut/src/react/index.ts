@@ -57,10 +57,15 @@ export type {
   OptimizationStatus,
   OptimizationsContextValue,
 } from "./optimizations/context";
-export { ExperimentsContext, isExperimentActive } from "./experiments/context";
+export {
+  ExperimentsActionsContext,
+  ExperimentsContext,
+  isExperimentActive,
+} from "./experiments/context";
 export type {
   CreateExperimentInput,
   ExperimentRecord,
+  ExperimentsActionsValue,
   ExperimentStatus,
   ExperimentsContextValue,
 } from "./experiments/context";

@@ -1,8 +1,4 @@
-/**
- * Frame types and guards shared by the metric timeline's modules: the
- * union of scalar and distribution frames an experiment streams, plus the
- * value formatting every surface uses.
- */
+/** The frame types the timeline's modules share. */
 import type { ExperimentRecord } from "../../../../../../../../react/experiments/context";
 
 export type MetricFrame = ExperimentRecord["metricFrames"][number];
@@ -13,24 +9,14 @@ export type DistributionMetricFrame = Extract<
 >;
 export type DistributionBins = DistributionMetricFrame["bins"];
 
-export function isScalarMetricFrame(
+export const isScalarMetricFrame = (
   frame: MetricFrame,
-): frame is ScalarMetricFrame {
-  return frame.outputType === "scalar";
-}
+): frame is ScalarMetricFrame => frame.outputType === "scalar";
 
-export function isDistributionMetricFrame(
+export const isDistributionMetricFrame = (
   frame: MetricFrame,
-): frame is DistributionMetricFrame {
-  return frame.outputType === "distribution";
-}
+): frame is DistributionMetricFrame => frame.outputType === "distribution";
 
-export function distributionFramesFrom(
+export const distributionFramesFrom = (
   frames: readonly MetricFrame[],
-): DistributionMetricFrame[] {
-  return frames.filter(isDistributionMetricFrame);
-}
-
-export function formatNumber(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(3);
-}
+): DistributionMetricFrame[] => frames.filter(isDistributionMetricFrame);

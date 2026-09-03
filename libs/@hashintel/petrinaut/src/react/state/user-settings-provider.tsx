@@ -108,6 +108,10 @@ export const UserSettingsProvider: React.FC<React.PropsWithChildren> = ({
       setState((prev) => ({ ...prev, webGpuEnabled: value })),
     setShowCompilationOutput: (value: boolean) =>
       setState((prev) => ({ ...prev, showCompilationOutput: value })),
+    setEnableParameterSweeps: (value: boolean) =>
+      setState((prev) => ({ ...prev, enableParameterSweeps: value })),
+    setEnableOptimizationSurface: (value: boolean) =>
+      setState((prev) => ({ ...prev, enableOptimizationSurface: value })),
     updateSubViewSection: (
       containerName: string,
       sectionId: string,

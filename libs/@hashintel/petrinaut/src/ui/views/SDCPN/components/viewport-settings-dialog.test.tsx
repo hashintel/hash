@@ -13,6 +13,13 @@ import { defaultUserSettings } from "../../../../react/state/user-settings-conte
  * things that actually decide behaviour: whether WebGPU is offered by default,
  * and the runtime gate the control's `disabled` state is derived from.
  */
+describe("experimental simulation settings", () => {
+  it("keep parameter sweeps and the optimization surface off by default", () => {
+    expect(defaultUserSettings.enableParameterSweeps).toBe(false);
+    expect(defaultUserSettings.enableOptimizationSurface).toBe(false);
+  });
+});
+
 describe("WebGPU setting", () => {
   it("is off by default", () => {
     // The GPU path is a restricted subset engine with a different random

@@ -1,0 +1,55 @@
+---
+title: GPU shader generation
+description: The concerns the WGSL generator is split into, which nets it accepts today, and where String and UUID attributes and multi-place transitions will land.
+sidebar_order: 45
+attachTo: core.webgpu.shader
+---
+
+The WebGPU backend compiles a net into one compute shader and runs every run
+of an experiment as one invocation. The generator is organized by concern so
+that each planned extension lands mostly in one module:
+
+| Concern           | What it emits                                                                                                                                                    | Planned extension                                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Token layout      | The words of a token: `real` attributes as f32, then `integer` and `boolean` words; the slab per typed place sized by its capacity                               | String and UUID attributes (an interned id or 128-bit words per attribute)                                                 |
+| Transition firing | Enablement and the choice of tokens to consume: standard inputs by count, one typed input by walking the token combinations the CPU would walk                   | Several typed input places: a mixed-radix scan over the per-place combination counts, matching the CPU's combination order |
+| Output emission   | Kernel outputs written into the destination slabs at once, their counts folded in at the end of the frame as the CPU applies additions after its transition loop | —                                                                                                                          |
+| Dynamics          | The ODE stages (Euler, RK2, RK4) re-emitting the derivative HIR per stage                                                                                        | —                                                                                                                          |
+| Histograms        | Per-metric window uniforms, workgroup-memory histograms flushed per frame, observed min/max and escape counters                                                  | —                                                                                                                          |
+| Run parameters    | One f32 per (run, per-run parameter) read once into a per-invocation local instead of a literal                                                                  | —                                                                                                                          |
+
+## What runs today
+
+Eligibility refuses a net before compilation when a place carries a `string`
+or `uuid` attribute, when a transition consumes more than two typed tokens
+from one place, or when one run's state exceeds the memory gate. Shader
+generation refuses transitions consuming typed tokens from more than one
+place. The readiness of every example net is pinned in
+`compilation-report.test.ts`; any change to that table is a deliberate
+decision, not a side effect.
+
+## One batch on the GPU
+
+![A GPU batch from lease to frames](@diagrams/gpu-batch-lifecycle.svg)
+
+The WebGPU experiment backend outlives batches and owns a lease-counted
+backend cache: one device, compiled shader and set of learned calibrations
+per setup key. The key covers what shapes the shader (net and artifact
+identity, baked parameter values, metric set, dt, integration method,
+initial marking) and excludes the values of per-run-buffered parameters, so
+range batches across different selections share one backend.
+
+A batch leases the backend, looks up the calibration for its marking, and if
+there is none runs a probe: a prefix of the runs at generous slabs, growing
+the slabs and recompiling on overflow, and planning the histogram windows
+from the observed ranges. The calibration is stored on the backend for the
+next batch with the same marking. Escapes and overflows during the real run
+replan and re-run, updating the stored calibration. See
+[GPU capacity calibration](doc:simulation/gpu-capacity-calibration),
+[GPU histogram sizing](doc:simulation/gpu-histogram-sizing) and
+[GPU run tiling](doc:simulation/gpu-run-tiling) for each mechanism.
+
+Frames stream per tile: a 128-run preview tile first, then full-size tiles,
+each re-delivering the whole time axis cumulatively. The decoded bins carry
+their `binExtent`, so the heatmap paints a stride-2 window bin across the two
+counts it holds.

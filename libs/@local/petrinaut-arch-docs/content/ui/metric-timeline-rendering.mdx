@@ -1,0 +1,60 @@
+---
+title: Metric timeline rendering
+description: How streamed distribution frames become a heatmap that stays honest and calm while batches keep arriving, and how the frame inspector draws a whole distribution in one small box.
+sidebar_order: 50
+attachTo: ui.views.editor.metric-timeline
+---
+
+The timeline is one uPlot instance per metric, owned by `useMetricPlot`. It
+applies streamed data once per animation frame, latest publish wins, because
+a streaming batch can tick the store faster than the screen refreshes and
+every `setData` redraws the chart, heatmap raster included. Axes mount as soon
+as the time domain is known, before any data, so the drawer's layout is
+complete when the first frames land.
+
+## Content changes crossfade
+
+When the frames start representing something else (a sweep selection moved),
+the previous picture is snapshotted onto an overlay canvas, dimmed, and faded
+out once the new content's first frames render. The epoch change is latched
+separately from the scheduled frame: a same-epoch data tick can cancel the
+frame that would have painted the transition, and the transition must survive
+into whichever frame finally runs.
+
+## The heatmap
+
+A distribution metric draws as a density image, one column per frame:
+
+1. **Lattice.** Rows sit at the smallest gap between any two bin values across
+   the whole chart, capped at half the plot's device-pixel height. Values from
+   different frames count, so a value that never shares a frame with a near
+   neighbour still gets its own row.
+2. **Extent splat.** Each bin's count spreads over the rows its extent covers,
+   weighted by overlap. Producers declare the extent on the frame
+   (`binExtent`): a GPU window bin labelled by its middle count, a
+   width-binned CPU bin by its lower edge; exact bins declare nothing and take
+   one lattice step. Nothing is inferred from which values a frame happens to
+   occupy, so a two-mode frame stays two modes. A bin whose extent rounds to
+   nothing at the row scale deposits into its row rather than vanishing.
+3. **Normalize.** Every column scales to its own densest cell, so the darkest
+   cell at each time step is the value most runs had then.
+4. **Ease and settle.** Within one selection each new grid blends with the one
+   on screen (half new, half shown; resampled by value when the lattice
+   moved) and then settles over three 100 ms redraws to the exact target, so
+   a GPU tile or a pipelined rung folding in mixes in instead of snapping and
+   the stream's last delivery ends exact. The baseline is keyed on the content
+   epoch: a new selection starts from its own data.
+5. **Raster.** The grid goes through a 256-entry magma table (zero density
+   transparent, then an alpha floor so sparse bins do not vanish) into one
+   `ImageData`, drawn with one `drawImage` per redraw.
+
+The same colour-ramp raster paints the contour surface's field with the
+Blues ramp; the two views share it in `ui/shared/color-ramp.ts`.
+
+## The frame inspector
+
+Clicking a time step opens a popover with that frame's distribution as a
+canvas raster in a fixed box: adjacent rectangles with no gaps, a value axis
+and a count axis. Bins narrower than a pixel merge into one column drawn at
+samples-per-bin density, so uneven merges do not spike, and a bin with
+samples keeps at least one pixel of height so a long tail stays visible.

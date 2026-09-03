@@ -465,14 +465,20 @@ const realOptimizerGuidanceStyle = css({
  * `/optimization` route. Optimization studies created in Simulate mode run
  * on the local Petrinaut Optimizer container.
  */
+/**
+ * One capability for the story's lifetime: a fresh identity per render
+ * restarts the provider's re-attach effect against a live study.
+ */
+const realOptimizer = realOptimizerEnabled
+  ? createServicePetrinautOptimization({
+      endpoint: () => new URL("/api/petrinaut-opt/", location.href),
+    })
+  : null;
+
 export const WithRealOptimizer: Story = {
   render: () =>
-    realOptimizerEnabled ? (
-      <PetrinautOptimizationContext
-        value={createServicePetrinautOptimization({
-          endpoint: () => new URL("/api/petrinaut-opt/", location.href),
-        })}
-      >
+    realOptimizer ? (
+      <PetrinautOptimizationContext value={realOptimizer}>
         <div style={{ height: "100vh", width: "100vw" }}>
           <PetrinautStoryProvider
             initialTitle={supplyChainProfit.title}

@@ -2,36 +2,28 @@
  * The optimization surface: an Optuna-style filled contour of the study's
  * objective over two optimized parameters, computed locally.
  *
- * The study's own trials arrive with parameter values and objective values,
- * and are drawn as markers (projected onto the two shown axes, the way
- * Optuna's `plot_contour` projects). The interpolated fill comes from points
- * this view computes itself: it walks an X×Y sub-grid of the two shown
- * parameters coarse-to-fine, running the study's frozen model snapshot with
- * its objective metric on a background worker, holding every other optimized
- * parameter at its slider position (initially the best trial's value). One
- * slider per optimized parameter navigates the space; the selected point
- * refines with escalating batches, and the readout streams the objective's
- * mean and median as runs accumulate. Clicking the surface moves the two
- * shown sliders to the clicked position.
- *
- * In a future iteration the optimizer streams its own evaluations back
- * through the same feed; the trial markers are that feed's first form.
+ * The study's trials arrive with parameter and objective values and are
+ * drawn as markers projected onto the two shown axes. The interpolated fill
+ * comes from points this view computes itself: it walks an X×Y sub-grid of
+ * the shown parameters in quad-tree order, running the study's frozen model
+ * with its objective metric on a background worker, holding every other
+ * optimized parameter at its slider position (initially the best trial's
+ * value). The selected point refines with escalating batches, and the
+ * readout streams the objective's mean and median as runs accumulate.
  */
 import { use, useEffect, useRef, useState } from "react";
 
-import { Select, Slider } from "@hashintel/ds-components";
+import { Slider } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
+import { createUserKeyedRecord, getOwn } from "@hashintel/petrinaut-core";
 
-import { ExperimentsContext } from "../../../../../../react/experiments/context";
-import {
-  coarseToFineOrder,
-  sweepCellObjective,
-} from "../../../../../../react/experiments/contour-grid";
+import { ExperimentsActionsContext } from "../../../../../../react/experiments/context";
 import { distributionStats } from "../../../../../../react/experiments/distribution-stats";
 import {
   EXPERIMENT_RUN_LADDER,
   mergeMetricFramesAcrossCells,
 } from "../../../../../../react/experiments/parameter-grid";
+import { sweepCellObjective } from "../../../../../../react/experiments/sweep-cell-objective";
 import { sweepBatchSeed } from "../../../../../../react/experiments/sweep-session";
 import {
   buildOptimizationSurfaceAxes,
@@ -43,6 +35,18 @@ import {
   ContourSurface,
   contourSurfaceKey,
 } from "../../../../../components/contour-surface";
+import { formatAxisValue } from "../shared/format-axis-value";
+import {
+  SurfaceAxisControls,
+  SurfaceCaption,
+  SurfaceFrame,
+} from "../shared/surface-frame";
+import {
+  quadTreeLevels,
+  SURFACE_CELL_RUNS,
+  surfacePositions,
+} from "../shared/surface-sampling";
+import { useSurfaceWalk } from "../shared/use-surface-walk";
 
 import type { ExperimentsContextValue } from "../../../../../../react/experiments/context";
 import type { DistributionStats } from "../../../../../../react/experiments/distribution-stats";
@@ -50,51 +54,12 @@ import type { SweepCellSnapshot } from "../../../../../../react/experiments/swee
 import type { OptimizationRecord } from "../../../../../../react/optimizations/context";
 import type { OptimizationSurfaceAxis } from "../../../../../../react/optimizations/surface-grid";
 import type {
+  ContourSurfaceFraction,
   ContourSurfaceMarker,
-  ContourSurfaceValues,
 } from "../../../../../components/contour-surface";
-
-/** Runs a surface cell needs before its point appears. */
-const SURFACE_CELL_RUNS = 8;
 
 /** Ladder cap for the selected point's local refinement. */
 const SELECTED_POINT_MAX_RUNS = 100;
-
-/** Sampled positions per axis on the surface's sub-grid. */
-const SURFACE_GRID_POSITIONS = 11;
-
-/** Evenly spread quantized positions of `axis` shown on the surface. */
-function surfacePositions(axis: OptimizationSurfaceAxis): number[] {
-  const count = Math.min(SURFACE_GRID_POSITIONS, axis.stepCount + 1);
-  const positions = Array.from({ length: count }, (_, index) =>
-    Math.round((index * axis.stepCount) / (count - 1)),
-  );
-  return [...new Set(positions)];
-}
-
-const surfaceStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "2",
-});
-
-const controlsStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "2",
-  flexWrap: "wrap",
-  "& [data-scope='select']": { width: "[170px]" },
-  // The Select's root insists on min-content width, which overflows the
-  // 170px box over the next label; a long option name fits by ellipsis.
-  "& > div > div": { minWidth: "[0]" },
-});
-
-const controlLabelStyle = css({
-  fontSize: "xs",
-  fontWeight: "medium",
-  color: "neutral.s120",
-  flexShrink: 0,
-});
 
 const sliderRowStyle = css({
   display: "flex",
@@ -126,37 +91,22 @@ const sliderValueStyle = css({
   textAlign: "right",
 });
 
-const captionStyle = css({
-  fontSize: "xs",
-  color: "neutral.s80",
-  fontVariantNumeric: "tabular-nums",
-});
-
 const readoutStyle = css({
   fontSize: "xs",
   color: "neutral.s100",
   fontVariantNumeric: "tabular-nums",
 });
 
-function formatValue(value: number): string {
-  if (Number.isInteger(value)) {
-    return String(value);
-  }
-  const abs = Math.abs(value);
-  return abs !== 0 && (abs < 0.001 || abs >= 10_000)
-    ? value.toExponential(2)
-    : String(Number(value.toPrecision(4)));
-}
-
 /**
  * Brings one cell up to at least `minRuns` locally computed runs, merging
- * batches into `cache`. Everything is passed explicitly so the calling
- * effects can declare honest dependencies.
+ * batches into `cache`. A cell's entry is the promise of its deepest result,
+ * so the walk and the selected point's refinement queue behind each other
+ * instead of both sampling from the same run index.
  */
-async function sampleStudyCell(options: {
+const sampleStudyCell = async (options: {
   sampleDetachedObjective: ExperimentsContextValue["sampleDetachedObjective"];
-  cache: Map<string, SweepCellSnapshot>;
-  optimization: OptimizationRecord;
+  cache: Map<string, Promise<SweepCellSnapshot | null>>;
+  optimization: Pick<OptimizationRecord, "id" | "input">;
   axes: readonly OptimizationSurfaceAxis[];
   xAxisId: string;
   yAxisId: string;
@@ -165,7 +115,7 @@ async function sampleStudyCell(options: {
   xPosition: number;
   yPosition: number;
   minRuns: number;
-}): Promise<SweepCellSnapshot | null> {
+}): Promise<SweepCellSnapshot | null> => {
   const {
     sampleDetachedObjective,
     cache,
@@ -193,7 +143,7 @@ async function sampleStudyCell(options: {
       .map((entry) => entry.split("=") as [string, string]),
   );
 
-  const values: Record<string, number | boolean> = {};
+  const values = createUserKeyedRecord<number | boolean>();
   for (const [identifier, binding] of Object.entries(
     input.scenario.parameterBindings,
   )) {
@@ -214,71 +164,83 @@ async function sampleStudyCell(options: {
   }
 
   const key = `${slice}|x=${xPosition}|y=${yPosition}`;
-  const cached = cache.get(key);
-  if (cached && cached.runsCompleted >= minRuns) {
-    return cached;
-  }
-  const from = cached?.runsCompleted ?? 0;
-  const snapshot = await sampleDetachedObjective({
-    cacheKey: optimization.id,
-    definition: input.model.definition,
-    scenarioId: input.scenario.id,
-    scenarioParameterValues: values,
-    metric: {
-      id: objectiveMetric.id,
-      label: objectiveMetric.name,
-      code: objectiveMetric.code,
-    },
-    seed: sweepBatchSeed(input.execution.seed, from),
-    runCount: minRuns - from,
-    dt: input.execution.dt,
-    maxTime: input.execution.maxTime,
-  });
-  if (!snapshot) {
-    return cached ?? null;
-  }
-  const merged: SweepCellSnapshot = {
-    runsCompleted: minRuns,
-    metricFrames: cached
-      ? mergeMetricFramesAcrossCells([
-          cached.metricFrames,
-          snapshot.metricFrames,
-        ])
-      : snapshot.metricFrames,
-  };
-  cache.set(key, merged);
-  return merged;
-}
+  const pending = cache.get(key);
+  const settled = (async (): Promise<SweepCellSnapshot | null> => {
+    const cached = await pending;
+    if (cached && cached.runsCompleted >= minRuns) {
+      return cached;
+    }
+    const from = cached?.runsCompleted ?? 0;
+    const snapshot = await sampleDetachedObjective({
+      cacheKey: optimization.id,
+      definition: input.model.definition,
+      scenarioId: input.scenario.id,
+      scenarioParameterValues: values,
+      metric: {
+        id: objectiveMetric.id,
+        label: objectiveMetric.name,
+        code: objectiveMetric.code,
+      },
+      seed: sweepBatchSeed(input.execution.seed, from),
+      runCount: minRuns - from,
+      dt: input.execution.dt,
+      maxTime: input.execution.maxTime,
+    });
+    if (!snapshot) {
+      return cached ?? null;
+    }
+    return {
+      runsCompleted: minRuns,
+      metricFrames: cached
+        ? mergeMetricFramesAcrossCells([
+            cached.metricFrames,
+            snapshot.metricFrames,
+          ])
+        : snapshot.metricFrames,
+    };
+  })();
+  cache.set(key, settled);
+  return await settled;
+};
 
 export const OptimizationSurface = ({
   optimization,
 }: {
   optimization: OptimizationRecord;
 }) => {
-  const { sampleDetachedObjective } = use(ExperimentsContext);
+  const { sampleDetachedObjective } = use(ExperimentsActionsContext);
   const input = optimization.input;
   const axes = buildOptimizationSurfaceAxes(input);
+  const metricId = input.objective.metricId;
   const objectiveMetric = input.model.definition.metrics?.find(
-    (metric) => metric.id === input.objective.metricId,
+    (metric) => metric.id === metricId,
   );
 
   const [xAxisId, setXAxisId] = useState(axes[0]?.identifier ?? "");
   const [yAxisId, setYAxisId] = useState(axes[1]?.identifier ?? "");
   const [positions, setPositions] = useState<Record<string, number>>({});
-  const [cellValues, setCellValues] = useState<ContourSurfaceValues>(new Map());
-  const [selectedStats, setSelectedStats] = useState<DistributionStats | null>(
-    null,
+  const [preview, setPreview] = useState<ContourSurfaceFraction | null>(null);
+  /**
+   * The selected point's refinement so far, tagged with its walk: the current
+   * point's stats, and every grid cell a selection has refined within this
+   * walk, so a cell keeps its deeper value after the selection moves on.
+   */
+  const [refined, setRefined] = useState<{
+    walkKey: string;
+    stats: DistributionStats | null;
+    cells: ReadonlyMap<string, number>;
+  } | null>(null);
+  /** Per position tuple, the promise of its deepest merged result. */
+  const cellCacheRef = useRef(
+    new Map<string, Promise<SweepCellSnapshot | null>>(),
   );
-  const [walkKey, setWalkKey] = useState("");
-  /** Finished local batches per position tuple, merged across rungs. */
-  const cellCacheRef = useRef(new Map<string, SweepCellSnapshot>());
 
   const xAxis = axes.find((axis) => axis.identifier === xAxisId);
   const yAxis = axes.find((axis) => axis.identifier === yAxisId);
 
   /** Slider position per axis: explicit, else best trial, else midpoint. */
   const positionOf = (axis: OptimizationSurfaceAxis): number => {
-    const explicit = positions[axis.identifier];
+    const explicit = getOwn(positions, axis.identifier);
     if (explicit !== undefined) {
       return explicit;
     }
@@ -288,12 +250,10 @@ export const OptimizationSurface = ({
       : optimizationAxisMidpoint(axis);
   };
 
-  /**
-   * The off-surface coordinates: slider positions of the other axes, plus
-   * boolean bindings at the best trial's values. Part of the cache key, so a
-   * best-trial change that moves a boolean restarts the walk rather than
-   * silently mixing slices.
-   */
+  // The off-surface coordinates: slider positions of the other axes, plus
+  // boolean bindings at the best trial's values. Part of the walk key, so a
+  // best-trial change that moves a boolean restarts the walk rather than
+  // mixing slices.
   const booleanSlice = Object.entries(input.scenario.parameterBindings)
     .filter(
       (
@@ -313,88 +273,69 @@ export const OptimizationSurface = ({
       .map((axis) => `${axis.identifier}=${positionOf(axis)}`),
     ...booleanSlice,
   ].join("|");
-
-  // A new slice/axes identity restarts the walk; clearing the sampled values
-  // during render (not in an effect) repaints without a stale frame.
-  const nextWalkKey = `${optimization.id}|${xAxisId}|${yAxisId}|${slice}`;
-  if (walkKey !== nextWalkKey) {
-    setWalkKey(nextWalkKey);
-    setCellValues(new Map());
-    setSelectedStats(null);
-  }
+  const walkKey = `${optimization.id}|${xAxisId}|${yAxisId}|${slice}`;
 
   const xSelected = xAxis ? positionOf(xAxis) : 0;
   const ySelected = yAxis ? positionOf(yAxis) : 0;
 
-  // The grid walk: samples the X×Y sub-grid coarse-to-fine on the background
-  // lane, feeding the contour. Restarts when the slice or axes change.
-  useEffect(() => {
-    const axesNow = buildOptimizationSurfaceAxes(optimization.input);
-    const walkXAxis = axesNow.find((axis) => axis.identifier === xAxisId);
-    const walkYAxis = axesNow.find((axis) => axis.identifier === yAxisId);
-    const metricId = optimization.input.objective.metricId;
-    if (!walkXAxis || !walkYAxis || walkXAxis === walkYAxis) {
-      return;
-    }
-    const walk: { stale: boolean } = { stale: false };
-    const isWalkStale = () => walk.stale;
-    const xPositions = surfacePositions(walkXAxis);
-    const yPositions = surfacePositions(walkYAxis);
-
-    const run = async () => {
-      for (const cell of coarseToFineOrder(
-        xPositions.length,
-        yPositions.length,
-      )) {
-        if (isWalkStale()) {
-          return;
-        }
-        const snapshot = await sampleStudyCell({
-          sampleDetachedObjective,
-          cache: cellCacheRef.current,
-          optimization,
-          axes: axesNow,
-          xAxisId,
-          yAxisId,
-          slice,
-          xPosition: xPositions[cell.x]!,
-          yPosition: yPositions[cell.y]!,
-          minRuns: SURFACE_CELL_RUNS,
-        });
-        if (isWalkStale()) {
-          return;
-        }
-        if (snapshot) {
-          const value = sweepCellObjective(snapshot.metricFrames, metricId);
-          if (value !== null) {
-            setCellValues((previous) => {
-              const next = new Map(previous);
-              next.set(contourSurfaceKey(cell.x, cell.y), value);
-              return next;
-            });
-          }
-        }
+  // The sampler is serialised, so one lane of single-cell chunks.
+  const walkValues = useSurfaceWalk<number>({
+    walkKey,
+    lanes: 1,
+    buildWalk: () => {
+      if (!xAxis || !yAxis || xAxis === yAxis) {
+        return null;
       }
-    };
-    void run();
+      const xPositions = surfacePositions(xAxis);
+      const yPositions = surfacePositions(yAxis);
+      return {
+        chunks: quadTreeLevels(xPositions.length, yPositions.length)
+          .flat()
+          .map((cell) => [cell]),
+        sample: (chunk) =>
+          Promise.all(
+            chunk.map(async (cell) => {
+              const snapshot = await sampleStudyCell({
+                sampleDetachedObjective,
+                cache: cellCacheRef.current,
+                optimization,
+                axes,
+                xAxisId,
+                yAxisId,
+                slice,
+                xPosition: xPositions[cell.x]!,
+                yPosition: yPositions[cell.y]!,
+                minRuns: SURFACE_CELL_RUNS,
+              });
+              return snapshot
+                ? sweepCellObjective(snapshot.metricFrames, metricId)
+                : null;
+            }),
+          ),
+      };
+    },
+  });
 
-    return () => {
-      walk.stale = true;
-    };
-  }, [optimization, xAxisId, yAxisId, slice, sampleDetachedObjective]);
-
+  const optimizationId = optimization.id;
   // The selected point's refinement: escalating batches, streaming the
-  // objective's mean/median into the readout.
+  // objective's mean/median into the readout and refreshing its grid cell.
   useEffect(() => {
-    const axesNow = buildOptimizationSurfaceAxes(optimization.input);
-    const walkXAxis = axesNow.find((axis) => axis.identifier === xAxisId);
-    const walkYAxis = axesNow.find((axis) => axis.identifier === yAxisId);
-    const metricId = optimization.input.objective.metricId;
+    // Only the study's identity and input drive the refinement; streamed
+    // trials replace the record without restarting it.
+    const study = { id: optimizationId, input };
+    const walkAxes = buildOptimizationSurfaceAxes(input);
+    const walkXAxis = walkAxes.find((axis) => axis.identifier === xAxisId);
+    const walkYAxis = walkAxes.find((axis) => axis.identifier === yAxisId);
+    const walkMetricId = input.objective.metricId;
     if (!walkXAxis || !walkYAxis || walkXAxis === walkYAxis) {
       return;
     }
-    const refinement: { stale: boolean } = { stale: false };
-    const isRefinementStale = () => refinement.stale;
+    let stale = false;
+    const isStale = () => stale;
+    const xIndex = surfacePositions(walkXAxis).indexOf(xSelected);
+    const yIndex = surfacePositions(walkYAxis).indexOf(ySelected);
+    const cellKey =
+      xIndex === -1 || yIndex === -1 ? null : contourSurfaceKey(xIndex, yIndex);
 
     const run = async () => {
       for (const target of EXPERIMENT_RUN_LADDER) {
@@ -404,8 +345,8 @@ export const OptimizationSurface = ({
         const snapshot = await sampleStudyCell({
           sampleDetachedObjective,
           cache: cellCacheRef.current,
-          optimization,
-          axes: axesNow,
+          optimization: study,
+          axes: walkAxes,
           xAxisId,
           yAxisId,
           slice,
@@ -413,46 +354,45 @@ export const OptimizationSurface = ({
           yPosition: ySelected,
           minRuns: target,
         });
-        if (isRefinementStale()) {
+        if (isStale() || !snapshot) {
           return;
         }
-        if (!snapshot) {
-          return;
-        }
-        setSelectedStats(distributionStats(snapshot.metricFrames, metricId));
-        setCellValues((previous) => {
-          // The selected point is usually also a grid cell; refresh it.
-          const xPositions = surfacePositions(walkXAxis);
-          const yPositions = surfacePositions(walkYAxis);
-          const xIndex = xPositions.indexOf(xSelected);
-          const yIndex = yPositions.indexOf(ySelected);
-          if (xIndex === -1 || yIndex === -1) {
-            return previous;
+        const value = sweepCellObjective(snapshot.metricFrames, walkMetricId);
+        const stats = distributionStats(snapshot.metricFrames, walkMetricId);
+        setRefined((previous) => {
+          const cells = new Map(
+            previous?.walkKey === walkKey ? previous.cells : [],
+          );
+          if (cellKey !== null && value !== null) {
+            cells.set(cellKey, value);
           }
-          const value = sweepCellObjective(snapshot.metricFrames, metricId);
-          if (value === null) {
-            return previous;
-          }
-          const next = new Map(previous);
-          next.set(contourSurfaceKey(xIndex, yIndex), value);
-          return next;
+          return { walkKey, stats, cells };
         });
       }
     };
     void run();
 
     return () => {
-      refinement.stale = true;
+      stale = true;
     };
   }, [
-    optimization,
+    optimizationId,
+    input,
     xAxisId,
     yAxisId,
     slice,
+    walkKey,
     xSelected,
     ySelected,
     sampleDetachedObjective,
   ]);
+
+  const currentRefined = refined?.walkKey === walkKey ? refined : null;
+  // A selected point is usually also a grid cell: its refined value wins.
+  const cellValues =
+    currentRefined && currentRefined.cells.size > 0
+      ? new Map([...walkValues, ...currentRefined.cells])
+      : walkValues;
 
   /** Completed trials projected onto the shown axes, as ring markers. */
   const trialMarkers: ContourSurfaceMarker[] =
@@ -484,45 +424,40 @@ export const OptimizationSurface = ({
     return null;
   }
 
-  const axisOptions = axes.map((axis) => ({
-    value: axis.identifier,
-    text: axis.identifier,
-  }));
-
-  const handleClickFraction = (fractionX: number, fractionY: number) => {
+  const handlePickFraction = (fraction: ContourSurfaceFraction) => {
     if (!xAxis || !yAxis) {
       return;
     }
     setPositions((previous) => ({
       ...previous,
-      [xAxis.identifier]: Math.round(fractionX * xAxis.stepCount),
-      [yAxis.identifier]: Math.round(fractionY * yAxis.stepCount),
+      [xAxis.identifier]: Math.round(fraction.x * xAxis.stepCount),
+      [yAxis.identifier]: Math.round(fraction.y * yAxis.stepCount),
     }));
   };
 
+  /** The axis readout a plot fraction lands on. */
+  const readoutAt = (axis: OptimizationSurfaceAxis, fraction: number): string =>
+    `${axis.identifier} = ${formatAxisValue(
+      optimizationAxisValueAt(axis, Math.round(fraction * axis.stepCount)),
+    )}`;
+
   const direction =
     input.objective.direction === "maximize" ? "Maximize" : "Minimize";
+  const stats = currentRefined?.stats;
+  const totalCells =
+    xAxis && yAxis
+      ? surfacePositions(xAxis).length * surfacePositions(yAxis).length
+      : 0;
 
   return (
-    <div className={surfaceStyle}>
-      <div className={controlsStyle}>
-        <span className={controlLabelStyle}>X</span>
-        <Select
-          size="xs"
-          aria-label="Surface X parameter"
-          items={axisOptions.filter((option) => option.value !== yAxisId)}
-          value={xAxisId}
-          onChange={(value) => setXAxisId(value ?? "")}
-        />
-        <span className={controlLabelStyle}>Y</span>
-        <Select
-          size="xs"
-          aria-label="Surface Y parameter"
-          items={axisOptions.filter((option) => option.value !== xAxisId)}
-          value={yAxisId}
-          onChange={(value) => setYAxisId(value ?? "")}
-        />
-      </div>
+    <SurfaceFrame>
+      <SurfaceAxisControls
+        axes={axes}
+        xAxisId={xAxisId}
+        yAxisId={yAxisId}
+        onXAxisIdChange={setXAxisId}
+        onYAxisIdChange={setYAxisId}
+      />
       {axes.map((axis) => (
         <div className={sliderRowStyle} key={axis.identifier}>
           <span className={sliderNameStyle} title={axis.identifier}>
@@ -542,16 +477,16 @@ export const OptimizationSurface = ({
             }
           />
           <span className={sliderValueStyle}>
-            {formatValue(optimizationAxisValueAt(axis, positionOf(axis)))}
+            {formatAxisValue(optimizationAxisValueAt(axis, positionOf(axis)))}
           </span>
         </div>
       ))}
       <div className={readoutStyle}>
         {direction} {objectiveMetric.name} at selection:{" "}
-        {selectedStats
-          ? `${formatValue(selectedStats.mean)} mean · ${formatValue(
-              selectedStats.median,
-            )} median · ${selectedStats.runs} runs`
+        {stats
+          ? `${formatAxisValue(stats.mean)} mean · ${formatAxisValue(
+              stats.median,
+            )} median · ${stats.runs} runs`
           : "computing…"}
       </div>
       {xAxis && yAxis ? (
@@ -561,14 +496,22 @@ export const OptimizationSurface = ({
           contentKey={`${xAxisId}|${yAxisId}`}
           values={cellValues}
           markers={trialMarkers}
-          onClickFraction={handleClickFraction}
+          onPickFraction={handlePickFraction}
+          onPreviewFraction={setPreview}
           aria-label="Optimization surface"
         />
       ) : null}
-      <span className={captionStyle}>
-        {cellValues.size} locally computed points · rings are the study's trials
-        (best highlighted) · click to navigate
-      </span>
-    </div>
+      <SurfaceCaption
+        preview={
+          preview && xAxis && yAxis
+            ? { x: readoutAt(xAxis, preview.x), y: readoutAt(yAxis, preview.y) }
+            : null
+        }
+        sampledCount={cellValues.size}
+        totalCells={totalCells}
+        runsPerCell={SURFACE_CELL_RUNS}
+        note="rings are the study's trials (best highlighted)"
+      />
+    </SurfaceFrame>
   );
 };

@@ -19,7 +19,11 @@ import {
 } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { axisValueAt } from "../../../../../../react/experiments/parameter-grid";
+import {
+  axisStep,
+  axisValueAt,
+} from "../../../../../../react/experiments/parameter-grid";
+import { formatAxisValue } from "../shared/format-axis-value";
 import { RangeSlider } from "./sweep-navigator/range-slider";
 
 import type {
@@ -87,17 +91,13 @@ const statusStyle = css({
   fontSize: "xs",
   color: "neutral.s80",
   fontVariantNumeric: "tabular-nums",
+  minHeight: "[16px]",
 });
 
-function formatAxisValue(value: number): string {
-  if (Number.isInteger(value)) {
-    return String(value);
-  }
-  const abs = Math.abs(value);
-  return abs !== 0 && (abs < 0.001 || abs >= 10_000)
-    ? value.toExponential(2)
-    : String(Number(value.toPrecision(4)));
-}
+const spinnerSlotStyle = css({
+  display: "inline-flex",
+  "&[data-idle=true]": { visibility: "hidden" },
+});
 
 const AxisControl = ({
   axis,
@@ -167,10 +167,8 @@ const AxisControl = ({
       )}
       <span className={readoutStyle}>
         {isPoint
-          ? formatAxisValue(axisValueAt(axis, selected.from))
-          : `${formatAxisValue(axisValueAt(axis, selected.from))} – ${formatAxisValue(
-              axisValueAt(axis, selected.to),
-            )}`}
+          ? formatAxisValue(axisValueAt(axis, selected.from), axisStep(axis))
+          : `${formatAxisValue(axisValueAt(axis, selected.from), axisStep(axis))} – ${formatAxisValue(axisValueAt(axis, selected.to), axisStep(axis))}`}
       </span>
     </>
   );
@@ -192,14 +190,14 @@ const SamplingStatus = ({
 
   return (
     <div className={statusStyle}>
+      <span className={spinnerSlotStyle} data-idle={!status.computing}>
+        <LoadingSpinner size="xs" />
+      </span>
       {status.computing ? (
-        <>
-          <LoadingSpinner size="xs" />
-          <span>
-            {status.runsSampled} of {status.runTarget ?? status.runCount} runs —{" "}
-            {activity}
-          </span>
-        </>
+        <span>
+          {status.runsSampled} of {status.runTarget ?? status.runCount} runs —{" "}
+          {activity}
+        </span>
       ) : (
         <span>
           {status.runsCompleted} of {status.runCount} runs

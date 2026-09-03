@@ -25,7 +25,7 @@ import {
 } from "@hashintel/petrinaut-core/webgpu";
 
 import {
-  ExperimentsContext,
+  ExperimentsActionsContext,
   type ExperimentMetricSpecInput,
 } from "../../../../../../react/experiments/context";
 import {
@@ -591,10 +591,13 @@ function initialRangeFor(
 const ScenarioParameterRow = ({
   param,
   value,
+  sweepable,
   onChange,
 }: {
   param: ScenarioParameter;
   value: ExperimentParameterInput;
+  /** Whether the parameter may be turned into an interval. */
+  sweepable: boolean;
   onChange: (value: ExperimentParameterInput) => void;
 }) => (
   <div className={paramRowStyle}>
@@ -626,7 +629,7 @@ const ScenarioParameterRow = ({
         placeholder={String(param.default)}
       />
     )}
-    {param.type === "boolean" ? null : (
+    {sweepable && param.type !== "boolean" ? (
       <span className={paramSweepToggleStyle}>
         Sweep
         <Toggle
@@ -640,7 +643,7 @@ const ScenarioParameterRow = ({
           }
         />
       </span>
-    )}
+    ) : null}
   </div>
 );
 
@@ -1066,9 +1069,13 @@ export const CreateExperimentDrawer = ({
   const { petriNetDefinition, extensions } = use(SDCPNContext);
   // Read here, not in ExperimentsProvider: that provider is mounted outside
   // UserSettingsProvider and so cannot see these settings.
-  const { webGpuEnabled, showAnimations, enableAdHocScenarios } =
-    use(UserSettingsContext);
-  const { createExperiment } = use(ExperimentsContext);
+  const {
+    webGpuEnabled,
+    showAnimations,
+    enableAdHocScenarios,
+    enableParameterSweeps,
+  } = use(UserSettingsContext);
+  const { createExperiment } = use(ExperimentsActionsContext);
   const scenarios = petriNetDefinition.scenarios ?? EMPTY_SCENARIOS;
   const [name, setName] = useState(DEFAULT_EXPERIMENT_NAME);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
@@ -1498,6 +1505,7 @@ export const CreateExperimentDrawer = ({
                     <ScenarioParameterRow
                       key={param.identifier}
                       param={param}
+                      sweepable={enableParameterSweeps}
                       value={
                         paramInputs[param.identifier] ?? {
                           mode: "fixed",

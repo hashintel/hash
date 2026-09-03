@@ -55,7 +55,7 @@ function nextIndexCombination(combo: number[], n: number): boolean {
  *
  * The enumeration order is a contract: the engine fires the first passing
  * combination, so a different order changes which tokens a firing consumes
- * and diverges seeded trajectories, and `webgpu/pair-selection.ts` reproduces
+ * and diverges seeded trajectories, and `webgpu/compile-net-shader/pair-selection.ts` reproduces
  * this order on the GPU by combinatorial unranking.
  *
  * The yielded array and its inner arrays are reused between iterations.

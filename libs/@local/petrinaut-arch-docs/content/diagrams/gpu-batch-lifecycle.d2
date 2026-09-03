@@ -1,0 +1,25 @@
+# Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
+direction: down
+
+backend: "WebGPU experiment backend\n(one per experiment session)\nowns the backend cache" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+handle: "GPU experiment handle\n(one per batch)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+cache: "backend cache\nacquire(setup key) · release(evict?)\nlease-counted" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+build: "request backend\ndevice + compiled shader" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+calib: "calibration per marking\nprobe → windows + slab capacities\ngrow and recompile on escape / overflow" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+runner: "runner\ntiles (preview first), dispatch, readback" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+device: "GPU device\nper-run parameter buffers · histograms\nescape / overflow counters" {style.fill: "#fff3d6"; style.stroke: "#b8862b"}
+frames: "histogram frames → metric frames\n[value, count] bins with binExtent" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+stores: "experiment handle stores\n→ sweep session" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+
+backend -> handle: "assess(request).instantiate"
+handle -> cache: "acquire (lease)"
+cache -> build: "miss: build once" {style.stroke-dash: 4}
+cache -> handle: "cached backend + calibrations"
+handle -> calib: "no calibration for this marking" {style.stroke-dash: 4}
+calib -> runner: "probe run" {style.stroke-dash: 4}
+runner -> calib: "escape / overflow → replan" {style.stroke-dash: 4}
+handle -> runner: "run tiles"
+runner -> device: "dispatch / readback"
+runner -> frames: "per tile, cumulative"
+frames -> stores: "onFrames"
+handle -> cache: "release"

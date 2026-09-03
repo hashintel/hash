@@ -8,6 +8,7 @@ import {
   type OptimizationRecord,
   OptimizationsContext,
 } from "../../../../../../react/optimizations/context";
+import { UserSettingsContext } from "../../../../../../react/state/user-settings-context";
 import { Section, SectionList } from "../../../../../components/section";
 import { Table, type TableColumn } from "../../../../../components/table";
 import { OptimizationSurface } from "./optimization-surface";
@@ -75,6 +76,8 @@ const drawerBodyStyle = css({
   paddingTop: "[0]",
   display: "flex",
   flexDirection: "column",
+  // The overlay body scrolls by default; here only the step list may.
+  overflow: "hidden",
 });
 
 const fixedSectionStyle = css({
@@ -332,8 +335,11 @@ export const ViewOptimizationDrawer = ({
 
   const active = isOptimizationActive(optimization);
   const displayedSteps = optimization.trials.slice(-200).reverse();
-  // The surface needs two navigable (non-boolean optimized) parameters.
+  // The surface is experimental, and needs two navigable (non-boolean
+  // optimized) parameters.
+  const { enableOptimizationSurface } = use(UserSettingsContext);
   const surfaceEligible =
+    enableOptimizationSurface &&
     Object.values(optimization.input.scenario.parameterBindings).filter(
       (binding) =>
         binding.kind === "optimize" && binding.domain.kind !== "boolean",
@@ -391,7 +397,10 @@ export const ViewOptimizationDrawer = ({
               defaultOpen
               className={fixedSectionStyle}
             >
-              <OptimizationSurface optimization={optimization} />
+              <OptimizationSurface
+                key={optimization.id}
+                optimization={optimization}
+              />
             </Section>
           ) : null}
           {optimization.trials.length > 0 ? (

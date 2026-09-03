@@ -104,6 +104,7 @@ function compileManifestModel(manifest: PetrinautOptimizationManifest) {
  */
 function createFakeExperimentFactory(
   objectiveForSeed: (seed: number) => number,
+  erroredRuns = 0,
 ) {
   const calls: ExperimentConfig[] = [];
 
@@ -122,8 +123,8 @@ function createFakeExperimentFactory(
       activeRuns: 0,
       advancedRuns: config.runCount,
       allFinished: true,
-      completedRuns: config.runCount,
-      erroredRuns: 0,
+      completedRuns: config.runCount - erroredRuns,
+      erroredRuns,
       frameNumber: 1,
       runCount: config.runCount,
       time: 1,
@@ -566,6 +567,20 @@ describe("createOptimizationProtocol", () => {
       parameterValues: { infected_ratio: 0.1 },
     });
     expect(second).toEqual(first);
+  });
+
+  it("fails a trial whose replicate errored", async () => {
+    const manifest = await createManifest();
+    const { factory } = createFakeExperimentFactory(() => 0.25, 1);
+    const protocol = createOptimizationProtocol({
+      manifest,
+      model: compileManifestModel(manifest),
+      createExperiment: factory,
+    });
+
+    await expect(
+      protocol.evaluate({ parameterValues: { infected_ratio: 0.1 } }),
+    ).rejects.toThrow("1 of 1 optimization replicates failed");
   });
 });
 

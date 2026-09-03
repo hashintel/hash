@@ -92,6 +92,10 @@ kept, and a **Retry** action starts a fresh run with the same settings.
 
 ## The surface view
 
+The surface is experimental and off by default. Turn on **Optimization
+surface** under Simulation in the [settings
+dialog](visual-settings.md#optimization-surface-experimental) to see it.
+
 A study with two or more optimized numeric parameters grows a **Surface**
 section between the best parameters and the step list: an Optuna-style contour
 of the objective over two parameters you pick. The study's own trials appear as rings (the best
@@ -101,9 +105,10 @@ worker, a few runs per point, and the plot fills in coarse shape first.
 
 One slider per optimized parameter navigates the space; parameters not shown
 on the plot hold at their slider position, which starts at the best trial's
-value. Move a slider or **click the plot** and the selected point recomputes
-with escalating batches while the readout streams the objective's mean and
-median. Points you have visited are cached, so returning to them is instant.
+value. Move a slider, or **click or drag on the plot**, and the selected point
+recomputes with escalating batches while the readout streams the objective's
+mean and median. Points you have visited are cached, so returning to them is
+instant.
 
 Log-scale domains slide in log space, and integer domains snap to their step.
 Local points always reflect the model as it was when the study launched, even

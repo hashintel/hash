@@ -69,7 +69,7 @@ function accepts(
 
 const MODEL_BLOCKERS: ExperimentBlockers = [
   {
-    code: "colored-place-without-capacity",
+    code: "unsupported-attribute",
     message: "Place `Space` holds typed tokens but has no token capacity.",
     origin: "model",
     itemId: "p_space",
@@ -191,7 +191,7 @@ describe("selectExperimentBackend", () => {
                   origin: "environment",
                 },
                 {
-                  code: "colored-place-without-capacity",
+                  code: "unsupported-attribute",
                   message: "Place `Space` has no token capacity.",
                   origin: "model",
                 },

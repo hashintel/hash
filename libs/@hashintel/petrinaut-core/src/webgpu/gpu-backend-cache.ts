@@ -19,7 +19,8 @@
  * Devices need explicit destruction, and a cached backend can be leased by
  * several batches at once (the ladder pipelines its rungs), so entries
  * count leases: an entry displaced by a new key — or discarded because its
- * setup proved unsupported — destroys its device once the last lease ends.
+ * setup proved unsupported, its device was lost, or the session ended —
+ * destroys its device once the last lease ends.
  */
 import type { GpuBackend, GpuBackendUnavailable } from "./backend";
 
@@ -49,6 +50,18 @@ export type GpuBackendCache = {
    * destroyed once the entry is both evicted and lease-free.
    */
   release: (backend: GpuBackend, options?: { evict?: boolean }) => void;
+  /**
+   * Removes a leased backend from the cache without ending its leases, for
+   * a device the platform lost: later batches build afresh, and the dead
+   * device is destroyed once the outstanding leases end.
+   */
+  invalidate: (backend: GpuBackend) => void;
+  /**
+   * Evicts whatever is cached, destroying its device once every lease has
+   * ended. The last backend of a session is otherwise kept for a next batch
+   * that never comes.
+   */
+  dispose: () => void;
 };
 
 export function createGpuBackendCache(): GpuBackendCache {
@@ -71,6 +84,9 @@ export function createGpuBackendCache(): GpuBackendCache {
   /* eslint-disable no-param-reassign -- entries are this cache's own
      mutable bookkeeping records */
   const evict = (candidate: CacheEntry) => {
+    if (candidate.evicted) {
+      return;
+    }
     candidate.evicted = true;
     if (entry === candidate) {
       entry = null;
@@ -81,15 +97,20 @@ export function createGpuBackendCache(): GpuBackendCache {
 
   return {
     async acquire(key, build) {
-      if (entry !== null && entry.key === key) {
-        entry.leases += 1;
-        const cached = await entry.promise;
+      // Captured before awaiting: a shared build that settles unsupported is
+      // evicted by the first waiter, so by the time a later waiter resumes
+      // the module-level entry is null or another key's, and the lease it
+      // took belongs to the entry it waited on.
+      const current = entry;
+      if (current !== null && current.key === key) {
+        current.leases += 1;
+        const cached = await current.promise;
         if (cached.supported) {
           return cached;
         }
         // A failed build slipped in concurrently; drop the lease and fall
         // through to a fresh build below.
-        entry.leases -= 1;
+        current.leases -= 1;
       }
 
       const next: CacheEntry = {
@@ -126,6 +147,19 @@ export function createGpuBackendCache(): GpuBackendCache {
         evict(owner);
       } else {
         destroyWhenIdle(owner);
+      }
+    },
+
+    invalidate(backend) {
+      const owner = entryByBackend.get(backend);
+      if (owner) {
+        evict(owner);
+      }
+    },
+
+    dispose() {
+      if (entry !== null) {
+        evict(entry);
       }
     },
   };

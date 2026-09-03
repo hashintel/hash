@@ -1,14 +1,11 @@
 /**
- * Pure statistics over metric frames: reducing a frame's bins to one
- * number, reducing a series over time, and the value range distributions
- * cover — everything the timeline computes but does not draw.
+ * Pure statistics over metric frames — reducing a frame's bins to one
+ * number and reducing a series over time — and the vocabulary of views the
+ * timeline offers over them.
  */
-import { distributionFramesFrom } from "./metric-frames";
-
 import type {
   DistributionBins,
   DistributionMetricFrame,
-  MetricFrame,
 } from "./metric-frames";
 
 export type RunAggregation =
@@ -21,15 +18,17 @@ export type RunAggregation =
   | "p75"
   | "p90";
 
-// Which spread view an unaggregated distribution series uses.
+/** Which spread view an unaggregated distribution series uses. */
 export type DistributionView = "heatmap" | "bands";
 
-// How each frame's plotted value relates to history, when not aggregating the
-// whole series into a single value.
+/** How each frame's plotted value relates to the frames before it. */
 export type TimeTrace = "value" | "minToDate" | "maxToDate";
 
-// How a scalar series is reduced to a single number when aggregating over time.
+/** How a series is reduced to a single value when aggregating over time. */
 export type TimeAggregation = "mean" | "min" | "max" | "sum";
+
+/** "number" shows one aggregate; the other two share one uPlot instance. */
+export type MetricDisplayMode = "chart" | "distribution" | "number";
 
 export function sampleCountFromBins(bins: DistributionBins): number {
   return bins.reduce((sum, [, frequency]) => sum + frequency, 0);
@@ -99,23 +98,6 @@ export function aggregateDistributionBins(
     case "p90":
       return percentileFromBins(bins, 0.9);
   }
-}
-
-/** The [low, high] value range any distribution frame's bins cover. */
-export function binValueRange(
-  frames: readonly MetricFrame[],
-): [number, number] | null {
-  let low: number | null = null;
-  let high: number | null = null;
-
-  for (const frame of distributionFramesFrom(frames)) {
-    for (const [value] of frame.bins) {
-      low = low === null ? value : Math.min(low, value);
-      high = high === null ? value : Math.max(high, value);
-    }
-  }
-
-  return low === null || high === null ? null : [low, high];
 }
 
 export function applyTimeTrace(

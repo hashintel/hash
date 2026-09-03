@@ -145,6 +145,85 @@ describe("createGpuBackendCache", () => {
     expect(builds).toBe(2);
   });
 
+  it("lets a waiter on a shared build that proves unsupported build afresh", async () => {
+    // The first waiter evicts the failed entry; the second must settle its
+    // own lease on that entry, not on whatever the cache holds by then.
+    const cache = createGpuBackendCache();
+    const { backend } = fakeBackend();
+    const results: (GpuBackend | GpuBackendUnavailable)[] = [
+      UNSUPPORTED,
+      backend,
+    ];
+    let builds = 0;
+    const build = () => {
+      builds += 1;
+      return Promise.resolve(results.shift()!);
+    };
+
+    const [first, second] = await Promise.all([
+      cache.acquire("a", build),
+      cache.acquire("a", build),
+    ]);
+
+    expect(first.supported).toBe(false);
+    expect(second).toBe(backend);
+    expect(builds).toBe(2);
+  });
+
+  it("invalidating drops the entry for later batches while the lease keeps its device", async () => {
+    const cache = createGpuBackendCache();
+    const lost = fakeBackend();
+    const fresh = fakeBackend();
+    let target = lost;
+    let builds = 0;
+    const build = () => {
+      builds += 1;
+      return Promise.resolve<GpuBackend>(target.backend);
+    };
+
+    const lease = await cache.acquire("a", build);
+    cache.invalidate(lease as GpuBackend);
+    await flush();
+    expect(lost.destroyCount()).toBe(0);
+
+    target = fresh;
+    expect(await cache.acquire("a", build)).toBe(fresh.backend);
+    expect(builds).toBe(2);
+
+    cache.release(lost.backend);
+    await flush();
+    expect(lost.destroyCount()).toBe(1);
+    expect(fresh.destroyCount()).toBe(0);
+  });
+
+  it("disposing destroys an idle cached backend", async () => {
+    const cache = createGpuBackendCache();
+    const { backend, destroyCount } = fakeBackend();
+
+    const lease = await cache.acquire("a", () => Promise.resolve(backend));
+    cache.release(lease as GpuBackend);
+    await flush();
+    expect(destroyCount()).toBe(0);
+
+    cache.dispose();
+    await flush();
+    expect(destroyCount()).toBe(1);
+  });
+
+  it("disposing waits for a leased backend's last release", async () => {
+    const cache = createGpuBackendCache();
+    const { backend, destroyCount } = fakeBackend();
+
+    const lease = await cache.acquire("a", () => Promise.resolve(backend));
+    cache.dispose();
+    await flush();
+    expect(destroyCount()).toBe(0);
+
+    cache.release(lease as GpuBackend);
+    await flush();
+    expect(destroyCount()).toBe(1);
+  });
+
   it("destroys a backend released without ever entering the cache", () => {
     const cache = createGpuBackendCache();
     const { backend, destroyCount } = fakeBackend();

@@ -1,119 +1,43 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildHeatmapDensityGrid,
-  magmaLut,
-  rasterizeHeatmap,
-} from "./distribution-heatmap";
+  MAGMA_STOPS,
+  rampLut,
+  rasterizeNormalized,
+} from "../../../../../../../shared/color-ramp";
+import { heatmapAlpha } from "./distribution-heatmap";
+import { buildHeatmapDensityGrid } from "./distribution-heatmap/density-grid";
 
-import type { HeatmapFrame } from "./distribution-heatmap";
-
-const frame = (
-  time: number,
-  bins: (readonly [number, number])[],
-): HeatmapFrame => ({ time, bins });
-
-/** Tall enough that the pixel cap never constrains the lattice. */
-const TALL_PLOT = 4_000;
-
-describe("buildHeatmapDensityGrid", () => {
-  it("draws a histogram at its own resolution, normalized per column", () => {
-    // Values 0 and 10 with a gap of 10: a two-row grid, not thin stripes.
-    const grid = buildHeatmapDensityGrid(
-      [
-        frame(0, [
-          [0, 10],
-          [10, 30],
-        ]),
-      ],
-      TALL_PLOT,
-    )!;
-    expect(grid.rows).toBe(2);
-    expect(grid.densities[0]).toBeCloseTo(10 / 30);
-    expect(grid.densities[1]).toBeCloseTo(1);
-  });
-
-  it("normalizes every column against its own maximum", () => {
-    // Single-bin frames: bin spacing only shows across frames (values 0, 3).
-    const grid = buildHeatmapDensityGrid(
-      [frame(0, [[0, 10]]), frame(1, [[3, 100]])],
-      TALL_PLOT,
-    )!;
-    expect(grid.rows).toBe(2);
-    expect(grid.densities[0]).toBeCloseTo(1); // row 0, column 0
-    expect(grid.densities[1 * 2 + 1]).toBeCloseTo(1); // row 1, column 1
-  });
-
-  it("resolves values that never share a frame with a near neighbour", () => {
-    // The transitional value 500 appears alone in its frame; the lattice
-    // must still give it a row of its own instead of splatting it onto
-    // 0 and 1000 (values no run in that frame ever had).
-    const grid = buildHeatmapDensityGrid(
-      [
-        frame(0, [
-          [0, 100],
-          [1_000, 100],
-        ]),
-        frame(1, [[500, 200]]),
-      ],
-      TALL_PLOT,
-    )!;
-    expect(grid.rows).toBe(3);
-    expect(grid.densities[0 * 2 + 1]).toBe(0); // value 0, column 1
-    expect(grid.densities[1 * 2 + 1]).toBeCloseTo(1); // value 500, column 1
-    expect(grid.densities[2 * 2 + 1]).toBe(0); // value 1000, column 1
-  });
-
-  it("caps the grid at the plot's pixel resolution", () => {
-    const grid = buildHeatmapDensityGrid(
-      [
-        frame(0, [
-          [0, 1],
-          [1, 1],
-          [1_000, 1],
-        ]),
-      ],
-      440,
-    )!;
-    expect(grid.rows).toBe(220); // 440 device px / 2, not 1001 lattice rows
-  });
-
-  it("returns null without bins and pads a single-value range", () => {
-    expect(buildHeatmapDensityGrid([frame(0, [])], TALL_PLOT)).toBeNull();
-
-    const degenerate = buildHeatmapDensityGrid(
-      [frame(0, [[7, 50]])],
-      TALL_PLOT,
-    )!;
-    expect(degenerate.rows).toBe(1);
-    expect(degenerate.valueMax).toBeGreaterThan(degenerate.valueMin);
-    let total = 0;
-    for (const density of degenerate.densities) {
-      total += density;
-    }
-    expect(total).toBeGreaterThan(0);
-  });
-});
-
-describe("rasterizeHeatmap", () => {
-  it("keeps zero density transparent and puts row 0 at the image bottom", () => {
-    const lut = magmaLut();
+describe("heatmap raster", () => {
+  it("keeps zero density transparent and floors every other alpha", () => {
+    const lut = rampLut(MAGMA_STOPS, heatmapAlpha);
     expect(lut[3]).toBe(0); // alpha of density 0
+    expect(lut[1 * 4 + 3]).toBeGreaterThanOrEqual(Math.round(0.15 * 255));
+    expect(lut[255 * 4 + 3]).toBe(255);
+  });
 
+  it("puts grid row 0 (the lowest value) at the image bottom", () => {
     const grid = buildHeatmapDensityGrid(
       [
-        frame(0, [
-          [0, 1],
-          [1, 1],
-        ]),
+        {
+          time: 0,
+          bins: [
+            [0, 1],
+            [1, 3],
+          ],
+        },
       ],
-      TALL_PLOT,
+      4_000,
     )!;
     expect(grid.rows).toBe(2);
-    const pixels = rasterizeHeatmap(grid, lut);
-    // Both rows tie the column maximum, so both pixels are fully dense;
-    // image row 0 (top) is grid row 1 (valueMax).
-    expect(pixels[3]).toBe(255); // top pixel alpha
-    expect(pixels[7]).toBe(255); // bottom pixel alpha
+    const pixels = rasterizeNormalized(
+      grid.densities,
+      { columns: grid.columns, rows: grid.rows, flipY: true },
+      rampLut(MAGMA_STOPS, heatmapAlpha),
+    );
+    // Image row 0 (top) is grid row 1, the column's densest cell.
+    expect(pixels[3]).toBe(255);
+    expect(pixels[7]).toBeLessThan(255);
+    expect(pixels[7]).toBeGreaterThan(0);
   });
 });

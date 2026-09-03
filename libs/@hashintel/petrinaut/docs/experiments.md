@@ -59,20 +59,22 @@ Two consequences worth knowing:
 
 ### Parameter sweeps
 
-Flip **Sweep** on any numeric scenario parameter to explore an interval of values instead of one. Set the minimum and the maximum — that is all a sweep declares. Petrinaut quantizes the interval finely (about fifty steps; integer parameters step by whole numbers) so results can be cached and restored per position.
+Parameter sweeps are experimental and off by default. Turn on **Parameter sweeps** under Simulation in the [settings dialog](visual-settings.md#parameter-sweeps-experimental) to get the Sweep toggle.
+
+Flip **Sweep** on any numeric scenario parameter to explore an interval of values instead of one. Set the minimum and the maximum — that is all a sweep declares. Petrinaut quantizes the interval finely (about fifty steps; integer parameters step by whole numbers) so a selection has a stable identity and revisiting one restores its results.
 
 A sweep computes **what you have selected**. The results drawer grows a **Parameters** strip — pinned while you scroll — with one slider per swept parameter. Each slider selects a range on its interval, and starts spanning the whole of it:
 
 - **Range** (the default): Petrinaut runs **one stochastic simulation over the ranges** — every run draws its own value for each ranged parameter, spread across the selected interval — and the metric charts stream the live distribution **over the region**, sharpening exactly like a plain experiment's. Resize a range from either end to focus; compute restarts on the new selection. Range selections run on the GPU when the net qualifies — each run's parameter draw is uploaded alongside its state — and otherwise on the CPU at full parallelism; an initial state that a scenario derives from a ranged parameter holds at the range's midpoint, while the simulation itself reads each run's own value.
 - **Point**: switch a parameter's control to Point and its slider collapses to a single value. A point refines in escalating batches (8, 25, 100, … up to your run budget), exactly like a plain experiment at that value — including on the GPU.
 
-Move a slider and compute immediately restarts on the new selection, like a raytracer dropping its rays when the camera moves. While the new selection's first results compute, the charts keep the previous selection's picture dimmed rather than going blank, then fade it out quickly as fresh data draws in underneath. Every position you have visited keeps its results: narrowing a range, collapsing to a point, or sliding back to an earlier value restores its runs and distributions instantly, and refinement resumes where it left off.
+Move a slider and compute immediately restarts on the new selection, like a raytracer dropping its rays when the camera moves. While the new selection's first results compute, the charts keep the previous selection's picture dimmed rather than going blank, then fade it out quickly as fresh data draws in underneath. Every selection you have computed keeps its results: returning to the same point or the same range restores its runs and distributions instantly, and refinement resumes where it left off. Resizing a range is a new selection and computes afresh.
 
 Every selection uses the same seed sequence (common random numbers), and a run's parameter draw depends only on the experiment's seed and the run's position in the sequence, so differences you see between selections come from the parameters, not from sampling luck — while experiments with different seeds explore their own value sequences.
 
 #### The surface view
 
-A sweep with two or more swept parameters grows a **Surface** section between the parameter strip and the metric charts: a contour plot of one metric's final value over two parameters you pick, with every other parameter held at the middle of its selected range. The plot fills in live and coarse-first — the four corners, then ever finer subdivisions, each level a complete picture (8 runs per point) — and **clicking the surface moves the navigator**: both shown parameters collapse to a point at the clicked position, which then refines with more runs. Your selected point always computes first: the metric charts start streaming before surface sampling begins, and after every slider move the surface waits for the new selection's first frames before continuing. Every metric is measured on the same samples, so switching the shown metric repaints instantly from what was already computed; changing the fixed parameters or the axes restarts the fill for the new slice.
+A sweep with two or more swept parameters grows a **Surface** section between the parameter strip and the metric charts: a contour plot of one metric's final value over two parameters you pick, with every other parameter held at the middle of its selected range. The plot fills in live and coarse-first — the four corners, then ever finer subdivisions, each level a complete picture (8 runs per point) — and **the surface is itself a control**: click, or press and drag with a live crosshair and value readout, and on release both shown parameters collapse to a point there, which then refines with more runs. An orange ring marks where the navigator currently sits. Your selected point always computes first: the metric charts start streaming before surface sampling begins, and after every slider move the surface waits for the new selection's first frames before continuing. Every metric is measured on the same samples, so switching the shown metric repaints instantly from what was already computed; changing the fixed parameters or the axes restarts the fill for the new slice.
 
 The summary, the parameter strip, and the surface hold still at the top of the drawer; the metric charts scroll on their own below them, so the graphs stay in view while you browse the charts.
 
@@ -95,7 +97,7 @@ The GPU backend handles a **subset** of nets, and it tells you when it cannot ta
 
 When an experiment does not qualify, it runs on the CPU instead and a message explains which requirement was not met. Nothing fails, and you do not need to check in advance. To see the full picture for the net you are editing — including which individual conditions and equations compiled — turn on [Compilation Output](compilation-output.md).
 
-There is also a ceiling on **run count**, because every run's state lives in one GPU buffer. How many runs fit depends on your hardware and on how much state a run needs, and Petrinaut asks your GPU for its own limit rather than the minimum every GPU must support — on an Apple M-series machine that is 4 GB rather than 128 MB. If an experiment still exceeds it, the message says how many runs would fit, and that experiment runs on the CPU.
+Run count has no ceiling of its own: runs beyond what your GPU can hold at once execute as sequential tiles. What still falls back to the CPU is a single run whose own state exceeds the device's buffer limits, or a metric histogram too large for the device; the message says which.
 
 Two things to know before comparing results:
 
@@ -122,7 +124,7 @@ A badge beside the **Summary** heading shows whether the run used the **CPU** or
 
 ### Metric charts
 
-Each metric gets a chart of its values over simulation time. A scalar metric draws a line. A distribution metric (one value per run) defaults to a **heatmap**: each time step is a column shaded on a pale-to-dark color ramp, where the darkest cell marks the value most runs had at that moment and paler shades mark rarer values. Shading is relative to each time step on its own, so a moment where runs agree and a moment where they spread out are both readable.
+Each metric gets a chart of its values over simulation time. A scalar metric draws a line. A distribution metric (one value per run) defaults to a **heatmap**: each time step is a column shaded on a pale-to-dark color ramp, where the darkest cell marks the value most runs had at that moment and paler shades mark rarer values. Shading is relative to each time step on its own, so a moment where runs agree and a moment where they spread out are both readable. While results still stream, each update eases into the picture over a few refreshes instead of snapping, so a batch landing or a re-run replacing earlier samples reads as the distribution firming up rather than flashing.
 
 The controls under each chart change what is plotted:
 
@@ -131,7 +133,7 @@ The controls under each chart change what is plotted:
 - **Value / Minimum to date / Maximum to date** plots each time step's own value, or the running minimum or maximum up to that point.
 - **Aggregate over time** collapses the whole series: a scalar-like series becomes a single number, and an unaggregated distribution becomes one histogram whose bar heights are the chosen statistic (average, minimum, maximum, or sum) of each value's frequency over time.
 
-Click (or drag across) a timeline chart to inspect single time steps — a popover shows that moment's exact value or per-value histogram.
+Click (or drag across) a timeline chart to inspect single time steps — a popover shows that moment's exact value, or its whole distribution as a small histogram with value and count axes, however many bins the frame carries.
 
 ### Actions
 
@@ -152,6 +154,8 @@ does not recreate the run.
 A confirmation prompt blocks browser/tab close while any experiment is initializing or running.
 
 ### Notifications
+
+The Summary's progress bar tracks the selected combination (runs sampled over the run budget). While anything computes, a **"N computing"** chip appears beside it — a sweep runs several simulations in parallel (the selection's own batches, surface chunks, cell refinements) — and clicking the chip expands a compact list with each batch's kind and progress. Selection batches are the priority work and sort first.
 
 A small toast appears when an experiment **completes** or **errors**, even if its drawer isn't open. The top-bar **Active experiments** popover (see below) lets you jump to any in-flight experiment from anywhere in the app.
 

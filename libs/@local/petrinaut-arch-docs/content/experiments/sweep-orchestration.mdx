@@ -1,0 +1,84 @@
+---
+title: Sweep orchestration
+description: How a selection change becomes streamed frames, how the surface samples without starving the navigator, and how every computing batch reaches the activity list.
+sidebar_order: 25
+attachTo: react.experiments
+---
+
+A sweep experiment has one orchestrator, the sweep session, and one React
+provider that owns it. The session holds no React; it turns selection changes
+into batches and folds their frames into a per-selection cache. The provider
+turns the session's publishes into experiment records and decides which
+compute backend each batch runs on.
+
+![One selection change, one surface chunk, and the batch list](@diagrams/sweep-orchestration.svg)
+
+## The selection path
+
+A slider commit or a surface drag calls `setSweepSelection` through the
+actions context. The session normalizes the selection, aborts the ladder that
+was computing, and starts the refine ladder for the new selection: batches of
+8, 25, 100, 500 and 1,000 runs, each covering the run range the previous
+rungs left. Rungs are pipelined: as soon as a rung streams its first frames
+the next rung starts, so at most two rungs are live, and folds into the cache
+stay in rung order. Run ranges are disjoint and per-run draws and seeds are
+prefix-stable, which is what makes overlapping rungs sound.
+
+Each rung asks the provider to instantiate a batch. The provider builds an
+`ExperimentRequest` (per-run parameter draws travel as a typed-array plan;
+pinned per-run seeds as run records) and lets the backend selection choose
+between the CPU worker pool and the WebGPU backend the first time; later
+rungs reuse the chosen backend.
+
+Frames come back through the experiment handle's stores. The session merges
+the selection's cached frames with the live rungs' frames and publishes on a
+leading-edge 100 ms throttle: the first frames publish immediately, and while
+a batch streams the record updates about ten times a second. The provider
+writes each publish into the record, which the drawer and its charts read
+from the experiments context.
+
+## The surface path
+
+The surface samples its grid in quad-tree levels (corners first, then each
+level splits every region in two per axis), pulling level-aligned chunks from
+one queue with three lanes in flight. Every chunk goes through
+`sampleSurfaceCells`, which waits for the current selection to have streamed
+its first frames before dispatching: the navigator's point always wins the
+first compute.
+
+The session batches a chunk into one experiment when every cell of the chunk
+shares one initial marking (a cell's parameter values are compiled and the
+markings compared before batching), laying the cells out as per-run draws
+with the same pinned seeds the per-cell ladder would derive, so a cell's value
+does not depend on which chunk sampled it. Cells whose swept parameters shape
+the marking keep the per-cell path. CPU workers report per-run values as each
+shard completes, and the surface paints those partial cells before the chunk
+finishes.
+
+Surface batches use a CPU lane sized to the foreground: one worker while the
+navigator's ladder computes on the CPU pool, a third of the pool per lane once
+the ladder idles or runs on the GPU.
+
+## The batch path
+
+Every batch the session starts, ladder rung or surface chunk, registers in
+the session's batch registry with its handle. Progress ticks refresh a
+snapshot at most every 100 ms and the provider mirrors it into
+`record.sweepBatches`, which the activity list and the top-bar popover read.
+Both show the same progress rule: for a sweep, the selected combination's
+sampled runs over the run budget; otherwise simulated time over the
+experiment's max time.
+
+## Where the pieces live
+
+- The session's private pieces (selection keys and range draws, cell
+  batching, the batch registry, the throttle) sit next to `sweep-session.ts`
+  in [react.experiments.sweep](layer:react.experiments.sweep).
+- The provider's backend lanes, the detached objective sampler used by the
+  optimization surface, experiment creation and record patching sit under
+  `provider/`.
+- Backends and the run plan contract are in
+  [core.experiments](layer:core.experiments); the pooled worker factory in
+  [core.simulation.monte-carlo.runtime](layer:core.simulation.monte-carlo.runtime).
+- The surface's walk and the shared surface shell are described in
+  [The sweep surface](doc:experiments/sweep-surface).

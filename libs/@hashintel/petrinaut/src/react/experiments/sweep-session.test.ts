@@ -2,15 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 
 import { deriveRunSeed } from "@hashintel/petrinaut-core";
 
-import {
-  createSweepSession,
-  sweepBatchSeed,
-  sweepCellKey,
-  sweepCellValues,
-} from "./sweep-session";
+import { createSweepSession, sweepBatchSeed } from "./sweep-session";
+import { sweepCellKey, sweepCellValues } from "./sweep-session/selection-draws";
 
 import type { ExperimentParameterAxis } from "./parameter-grid";
 import type {
+  CreateSweepSessionOptions,
+  SweepBatchStatus,
   SweepRunDraws,
   SweepSelection,
   SweepSessionUpdate,
@@ -199,9 +197,15 @@ function makeFakeBatch(request: {
   };
 }
 
-function makeHarness(runCount: number, initialSelection?: SweepSelection) {
+function makeHarness(
+  runCount: number,
+  initialSelection?: SweepSelection,
+  options: Partial<Pick<CreateSweepSessionOptions, "initialMarkingKey">> = {},
+) {
   const batches: ReturnType<typeof makeFakeBatch>[] = [];
   const updates: SweepSessionUpdate[] = [];
+  /** Every published batch list; the last entry is the live one. */
+  const batchLists: (readonly SweepBatchStatus[])[] = [];
   const onError = vi.fn();
 
   const session = createSweepSession({
@@ -214,7 +218,10 @@ function makeHarness(runCount: number, initialSelection?: SweepSelection) {
       batches.push(batch);
       return Promise.resolve(batch.handle);
     },
+    // Every cell shares one marking unless a test says otherwise.
+    initialMarkingKey: options.initialMarkingKey ?? (() => "shared"),
     onUpdate: (update) => updates.push(update),
+    onBatches: (list) => batchLists.push(list),
     onError,
   });
 
@@ -228,7 +235,14 @@ function makeHarness(runCount: number, initialSelection?: SweepSelection) {
     }
   };
 
-  return { session, batches, updates, onError, settle };
+  return {
+    session,
+    batches,
+    updates,
+    liveBatches: () => batchLists.at(-1) ?? [],
+    onError,
+    settle,
+  };
 }
 
 describe("sweepCellValues / sweepCellKey / sweepBatchSeed", () => {
@@ -444,47 +458,50 @@ describe("createSweepSession", () => {
     expect(onError).toHaveBeenCalledWith("device lost");
     expect(batches).toHaveLength(1);
     expect(updates.at(-1)!.computing).toBe(false);
+    expect(updates.at(-1)!.failed).toBe(true);
     session.dispose();
   });
 
-  it("samples background cells concurrently, bounded to a few in flight", async () => {
-    const { session, batches, settle } = makeHarness(100, point(0, 0));
+  it("samples cells one batch each when their markings differ, streaming each", async () => {
+    // A marking the swept `x` shapes: no two cells of the chunk can share a
+    // batch.
+    const { session, batches, settle } = makeHarness(100, point(0, 0), {
+      initialMarkingKey: (values) => `marking@${values.x}`,
+    });
     await settle();
     expect(batches).toHaveLength(1); // the navigator's own first rung
 
-    const cells = [
-      session.sampleCell({ x: 2, y: 1 }, 8),
-      session.sampleCell({ x: 1, y: 1 }, 8),
-      session.sampleCell({ x: 3, y: 1 }, 8),
-      session.sampleCell({ x: 4, y: 1 }, 8),
-      session.sampleCell({ x: 5, y: 1 }, 8),
-    ];
-    await settle();
+    const partials: (readonly (Readonly<Record<string, number>> | null)[])[] =
+      [];
+    const result = session.sampleCells(
+      [
+        { x: 2, y: 1 },
+        { x: 1, y: 1 },
+      ],
+      8,
+      (cells) => partials.push(cells),
+    );
     await settle();
 
-    // Four batches run at once; the fifth waits for a slot.
-    expect(batches).toHaveLength(5);
+    expect(batches).toHaveLength(3);
     expect(batches[1]!.request).toMatchObject({
       parameterValues: { x: 2, y: 20 },
       seed: 42,
       runCount: 8,
       background: true,
     });
+    expect(batches[1]!.request.draws).toBeUndefined();
+    expect(batches[2]!.request.parameterValues).toEqual({ x: 1, y: 20 });
 
-    for (const batch of batches.slice(1, 5)) {
-      batch.stream([frame(8, [[5, 8]])]);
-      batch.complete();
-    }
+    // Cells resolve independently and each one streams the chunk so far.
+    batches[2]!.stream([frame(8, [[6, 8]])]);
+    batches[2]!.complete();
     await settle();
-    await settle();
-    expect(batches).toHaveLength(6);
-    batches[5]!.stream([frame(8, [[6, 8]])]);
-    batches[5]!.complete();
-    await Promise.all(
-      cells.map((cell) =>
-        expect(cell).resolves.toMatchObject({ runsCompleted: 8 }),
-      ),
-    );
+    expect(partials.at(-1)).toEqual([null, { m: 6 }]);
+
+    batches[1]!.stream([frame(8, [[5, 8]])]);
+    batches[1]!.complete();
+    expect(await result).toEqual([{ m: 5 }, { m: 6 }]);
 
     // Sampled cells are readable like navigator-visited ones.
     expect(session.getCell({ x: 2, y: 1 })).toMatchObject({
@@ -493,17 +510,20 @@ describe("createSweepSession", () => {
     session.dispose();
   });
 
-  it("resolves a sampled cell from cache when it is already deep enough", async () => {
-    const { session, batches, settle } = makeHarness(25, point(0, 0));
+  it("resolves a per-cell sample from cache when it is already deep enough", async () => {
+    // A non-compiling marking keeps the per-cell path.
+    const { session, batches, settle } = makeHarness(25, point(0, 0), {
+      initialMarkingKey: () => null,
+    });
     await settle();
     batches[0]!.stream([frame(8, [[1, 8]])]);
     batches[0]!.complete();
     await settle();
 
     // The navigator already took {x:0,y:0} to 8 runs; sampling it is free.
-    await expect(session.sampleCell({ x: 0, y: 0 }, 8)).resolves.toMatchObject({
-      runsCompleted: 8,
-    });
+    await expect(session.sampleCells([{ x: 0, y: 0 }], 8)).resolves.toEqual([
+      { m: 1 },
+    ]);
     expect(batches.filter((batch) => batch.request.background).length).toBe(0);
     session.dispose();
   });
@@ -520,6 +540,44 @@ describe("createSweepSession", () => {
     });
     expect(session.getCell({ x: 2, y: 1 })).toBeUndefined();
     session.dispose();
+  });
+});
+
+describe("onBatches", () => {
+  it("lists live batches selection-first and drops them as they finish", async () => {
+    const { session, batches, liveBatches, settle } = makeHarness(
+      25,
+      point(0, 0),
+    );
+    await settle();
+    expect(liveBatches()).toMatchObject([
+      { kind: "selection", runCount: 8, completedRuns: 0 },
+    ]);
+
+    void session.sampleCells([{ x: 0, y: 0 }], 2);
+    await settle();
+    expect(liveBatches().map((batch) => batch.kind)).toEqual([
+      "selection",
+      "surface",
+    ]);
+
+    // The pipelined successor joins the list once the first rung streams.
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    await settle();
+    expect(liveBatches().map((batch) => batch.kind)).toEqual([
+      "selection",
+      "selection",
+      "surface",
+    ]);
+
+    batches[0]!.complete();
+    await settle();
+    expect(
+      liveBatches().filter((batch) => batch.kind === "selection"),
+    ).toHaveLength(1);
+
+    session.dispose();
+    expect(liveBatches()).toEqual([]);
   });
 });
 
@@ -676,9 +734,8 @@ describe("sampleCells", () => {
     const harness = makeHarness(1000);
     const resultPromise = harness.session.sampleCells(CELLS, runsPerCell);
     await harness.settle();
-    // batches[0] is the navigator's initial full-space batch; the chunk is
-    // the latest background batch.
-    const chunk = harness.batches.at(-1)!;
+    // The navigator's own full-space batch is the other one.
+    const chunk = harness.batches.find((batch) => batch.request.background)!;
     return { ...harness, chunk, resultPromise };
   }
 
@@ -729,7 +786,7 @@ describe("sampleCells", () => {
       partials.push(cells),
     );
     await harness.settle();
-    const chunk = harness.batches.at(-1)!;
+    const chunk = harness.batches.find((batch) => batch.request.background)!;
 
     // First shard lands: only cell 0's runs are in; cell 1 is still null.
     chunk.setRunResults(
