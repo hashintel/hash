@@ -1,5 +1,6 @@
 //! Cloudflare Access implementation of [`AuthenticationProvider`].
 
+use alloc::sync::Arc;
 use core::ops::ControlFlow;
 
 use error_stack::Report;
@@ -100,21 +101,22 @@ where
     async fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
+    ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
         let Some(token) = headers.get(ACCESS_JWT_HEADER) else {
             return ControlFlow::Continue(());
         };
 
         let Ok(token) = token.to_str() else {
-            return ControlFlow::Break(Err(Report::new(
+            return ControlFlow::Break(Err(Arc::new(Report::new(
                 AuthenticationError::malformed_credential(),
-            )));
+            ))));
         };
 
         ControlFlow::Break(
             self.verify_token(token)
                 .await
-                .map(|user_id| C::from_actor(ActorId::User(user_id))),
+                .map(|user_id| C::from_actor(ActorId::User(user_id)))
+                .map_err(Arc::new),
         )
     }
 }

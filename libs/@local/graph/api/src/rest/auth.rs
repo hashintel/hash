@@ -16,7 +16,7 @@ use hash_graph_authentication::{
 pub use hash_graph_authentication::{
     cloudflare::CloudflareAccessProvider,
     jwt::{JwtValidator, JwtValidatorConfig},
-    kratos::{KratosAdminConfig, KratosSessionConfig},
+    kratos::{KratosAdminConfig, KratosSessionConfig, SessionCacheConfig},
 };
 use hash_graph_authorization::policies::store::PrincipalStore;
 use hash_graph_store::pool::StorePool;
@@ -83,13 +83,18 @@ pub fn build_authentication_provider<S>(
     cloudflare_access: Option<CloudflareAccessConfig>,
     service_secret: String,
     store: &Arc<S>,
+    meter: &opentelemetry::metrics::Meter,
 ) -> ProviderChain<S>
 where
     S: StorePool + Send + Sync,
     for<'p> S::Store<'p>: PrincipalStore,
 {
     (
-        KratosSessionProvider::new(session, StorePoolActorResolver::new(Arc::clone(store))),
+        KratosSessionProvider::new(
+            session,
+            StorePoolActorResolver::new(Arc::clone(store)),
+            meter,
+        ),
         build_operator_provider(cloudflare_access, service_secret, store),
     )
 }
@@ -316,11 +321,11 @@ mod tests {
         fn authenticate(
             &self,
             _headers: &HeaderMap,
-        ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send
+        ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send
         {
-            core::future::ready(ControlFlow::Break(Err(Report::new(
+            core::future::ready(ControlFlow::Break(Err(Arc::new(Report::new(
                 AuthenticationError::new(self.0.clone()),
-            ))))
+            )))))
         }
     }
 

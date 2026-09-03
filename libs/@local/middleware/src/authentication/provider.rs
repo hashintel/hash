@@ -1,5 +1,6 @@
 //! Provider-based request authentication.
 
+use alloc::sync::Arc;
 use core::ops::ControlFlow;
 
 use error_stack::Report;
@@ -79,12 +80,16 @@ impl Caller for Option<ActorId> {
 /// and the chain moves on. Breaking with `Ok` carries the caller the credential verified to, with
 /// `Err` the reason it did not — either way the chain stops, so a rejected credential never falls
 /// through to another provider.
+///
+/// A rejection is handed out shared: one verification may answer several concurrent requests,
+/// and [`Report`] is not [`Clone`], so the [`Arc`] carries the one report to every request it
+/// rejected.
 pub trait AuthenticationProvider<C: Caller>: Send + Sync {
     /// Resolves the credential of a request.
     fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send;
+    ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send;
 }
 
 /// An absent provider recognizes no credential, so the chain moves on.
@@ -96,7 +101,7 @@ where
     async fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
+    ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
         match self {
             Some(provider) => provider.authenticate(headers).await,
             None => ControlFlow::Continue(()),
@@ -114,7 +119,7 @@ where
     async fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
+    ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
         self.0.authenticate(headers).await?;
         self.1.authenticate(headers).await
     }
@@ -141,15 +146,15 @@ where
     fn authenticate(
         &self,
         _headers: &HeaderMap,
-    ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send {
+    ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send {
         core::future::ready(match self {
             Self::NotRecognized => ControlFlow::Continue(()),
             Self::Verified(actor) => ControlFlow::Break(Ok(C::from_actor(*actor))),
-            Self::Rejected => ControlFlow::Break(Err(Report::new(AuthenticationError::new(
-                AuthenticationErrorKind::InvalidSession,
+            Self::Rejected => ControlFlow::Break(Err(Arc::new(Report::new(
+                AuthenticationError::new(AuthenticationErrorKind::InvalidSession),
             )))),
-            Self::Unreachable => ControlFlow::Break(Err(Report::new(AuthenticationError::new(
-                AuthenticationErrorKind::ProviderUnreachable,
+            Self::Unreachable => ControlFlow::Break(Err(Arc::new(Report::new(
+                AuthenticationError::new(AuthenticationErrorKind::ProviderUnreachable),
             )))),
         })
     }
@@ -163,8 +168,8 @@ where
 #[cfg(any(test, feature = "test-utils"))]
 #[track_caller]
 pub fn expect_rejection<C: core::fmt::Debug>(
-    authentication: ControlFlow<Result<C, Report<AuthenticationError>>>,
-) -> Report<AuthenticationError> {
+    authentication: ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>,
+) -> Arc<Report<AuthenticationError>> {
     match authentication {
         ControlFlow::Break(Err(report)) => report,
         ControlFlow::Break(Ok(_)) | ControlFlow::Continue(()) => {
