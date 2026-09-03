@@ -265,10 +265,18 @@ export const createFlueChatTransport = <
               },
             };
           })();
+    const idempotencyKey =
+      messageId === undefined
+        ? `ai-sdk:user:${userMessage!.id}`
+        : `ai-sdk:client-tools:${messageId}:${toolResults
+            .map(({ toolCallId }) => toolCallId)
+            .sort()
+            .join(",")}`;
 
     let admission: AgentSendResult;
     try {
       admission = await options.client.send({
+        idempotencyKey,
         message,
         signal: abortSignal,
       });

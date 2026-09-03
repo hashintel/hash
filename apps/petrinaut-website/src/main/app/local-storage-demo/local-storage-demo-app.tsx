@@ -11,6 +11,7 @@ import {
   agentOwnershipHeaders,
   flueConversationIdWeb,
 } from "@hashintel/brunch-agent-transport-aisdk";
+import { selectRunbookWorkpiece } from "@hashintel/brunch-agent/workpiece";
 import {
   createJsonDocHandle,
   type MinimalNetMetadata,
@@ -50,9 +51,23 @@ import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
 import {
   BrunchPanelConversationTracker,
   createBrunchPanelTransport,
+  createUnavailableBrunchPanelTransport,
 } from "./brunch-panel-transport";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
+import { prepareCrewReservationConversation } from "./prepare-crew-reservation-conversation";
+import {
+  CREW_RESERVATION_CLIENT_TOOL_NAMES,
+  CREW_RESERVATION_CONVERSATION_ID,
+  CREW_RESERVATION_DOCUMENT_ID,
+  isCrewReservationFixtureSelected,
+  preparedCrewReservationNet,
+} from "./prepared-crew-reservation-fixture";
+import {
+  PreparedFixtureBanner,
+  PreparedFixtureSelector,
+} from "./prepared-fixture-banner";
+import { useCrewReservationSettledManifest } from "./use-crew-reservation-settled-manifest";
 import { useFlueChatHistory } from "./use-flue-chat-history";
 import { useLocalStorageAiMessages } from "./use-local-storage-ai-messages";
 import {
@@ -88,6 +103,13 @@ const createDefaultStoredSDCPN = (): SDCPNInLocalStorage => ({
   sdcpn: emptySDCPN,
   lastUpdated: new Date(0).toISOString(),
 });
+
+const preparedCrewReservationStoredSDCPN: SDCPNInLocalStorage = {
+  id: CREW_RESERVATION_DOCUMENT_ID,
+  title: "Prepared final inspection and dispatch",
+  sdcpn: preparedCrewReservationNet,
+  lastUpdated: new Date(0).toISOString(),
+};
 
 /**
  * Creates the localStorage record for a newly created net, keeping the generated
@@ -152,6 +174,9 @@ const createHandle = (net: SDCPNInLocalStorage): PetrinautDocHandle =>
   });
 
 const brunchPrincipal = getOrCreateBrunchPrincipal();
+const crewReservationClientToolNames: ReadonlySet<string> = new Set(
+  CREW_RESERVATION_CLIENT_TOOL_NAMES,
+);
 
 /** Every widget here must answer a tool named in `brunchClientToolNames`. */
 export const brunchInteractiveTools: readonly PetrinautAiInteractiveTool[] = [
@@ -201,7 +226,16 @@ const createConversationTrackerFor = (
 
 const getStoredSDCPNsForDisplay = (
   storedSDCPNs: Record<string, SDCPNInLocalStorage>,
+  crewReservationFixtureSelected: boolean,
 ): Record<string, SDCPNInLocalStorage> => {
+  if (crewReservationFixtureSelected) {
+    return {
+      ...storedSDCPNs,
+      [CREW_RESERVATION_DOCUMENT_ID]:
+        storedSDCPNs[CREW_RESERVATION_DOCUMENT_ID] ??
+        preparedCrewReservationStoredSDCPN,
+    };
+  }
   if (Object.values(storedSDCPNs).length > 0) {
     return storedSDCPNs;
   }
@@ -351,7 +385,26 @@ export const LocalStorageDemoApp = ({
   const { aiMessagesByNetId, setAiMessagesByNetId } =
     useLocalStorageAiMessages();
   const { storedSDCPNs, setStoredSDCPNs } = useLocalStorageSDCPNs();
-  const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(storedSDCPNs);
+  const crewReservationFixtureSelected = isCrewReservationFixtureSelected(
+    window.location.search,
+  );
+  const storedSDCPNsForDisplay = getStoredSDCPNsForDisplay(
+    storedSDCPNs,
+    crewReservationFixtureSelected,
+  );
+
+  useEffect(() => {
+    if (
+      !crewReservationFixtureSelected ||
+      storedSDCPNs[CREW_RESERVATION_DOCUMENT_ID] !== undefined
+    ) {
+      return;
+    }
+    setStoredSDCPNs((previous) => ({
+      ...previous,
+      [CREW_RESERVATION_DOCUMENT_ID]: preparedCrewReservationStoredSDCPN,
+    }));
+  }, [crewReservationFixtureSelected, setStoredSDCPNs, storedSDCPNs]);
 
   useEffect(() => {
     if (!brunchPreviewConfig.isBrunchConfigured) {
@@ -377,10 +430,13 @@ export const LocalStorageDemoApp = ({
       (a, b) =>
         new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime(),
     )[0] ?? null;
+  const initiallySelectedNet = crewReservationFixtureSelected
+    ? storedSDCPNsForDisplay[CREW_RESERVATION_DOCUMENT_ID]
+    : mostRecentlyModifiedNet;
 
   // The net currently selected in the UI.
   const [currentNetId, setCurrentNetId] = useState<string | null>(
-    () => mostRecentlyModifiedNet?.id ?? null,
+    () => initiallySelectedNet?.id ?? null,
   );
 
   // Metadata and persisted SDCPN snapshot for the selected net.
@@ -390,9 +446,7 @@ export const LocalStorageDemoApp = ({
 
   // Live editable document handle for the selected net only.
   const [activeHandle, setActiveHandle] = useState<ActiveHandle | null>(() =>
-    mostRecentlyModifiedNet
-      ? createActiveHandle(mostRecentlyModifiedNet)
-      : null,
+    initiallySelectedNet ? createActiveHandle(initiallySelectedNet) : null,
   );
 
   useEffect(() => {
@@ -419,7 +473,9 @@ export const LocalStorageDemoApp = ({
     });
   }, [activeHandle, setStoredSDCPNs]);
 
-  const existingNets: MinimalNetMetadata[] = Object.values(storedSDCPNs)
+  const existingNets: MinimalNetMetadata[] = Object.values(
+    storedSDCPNsForDisplay,
+  )
     .map((net) => ({
       netId: net.id,
       title: net.title,
@@ -507,16 +563,31 @@ export const LocalStorageDemoApp = ({
     );
   };
 
-  const conversationId = currentNetId
-    ? getOrCreateBrunchConversationId(currentNetId)
-    : null;
-  const flueClientPromise = useMemo(
+  const preparedFixtureIsCurrent =
+    crewReservationFixtureSelected &&
+    currentNetId === CREW_RESERVATION_DOCUMENT_ID;
+  const conversationId =
+    currentNetId === null
+      ? null
+      : preparedFixtureIsCurrent
+        ? CREW_RESERVATION_CONVERSATION_ID
+        : getOrCreateBrunchConversationId(currentNetId);
+  const rawFlueClientPromise = useMemo(
     () =>
       brunchPreviewConfig.isBrunchConfigured && conversationId !== null
         ? createBrunchFlueClient(conversationId)
         : null,
     [conversationId],
   );
+  const flueClientPromise = useMemo(() => {
+    if (rawFlueClientPromise === null || !preparedFixtureIsCurrent) {
+      return rawFlueClientPromise;
+    }
+    return rawFlueClientPromise.then(async (client) => {
+      await prepareCrewReservationConversation(client);
+      return client;
+    });
+  }, [preparedFixtureIsCurrent, rawFlueClientPromise]);
   const conversationTracker = useMemo(
     // Correlation state belongs to one conversation and must not cross a net switch.
     () => createConversationTrackerFor(conversationId),
@@ -525,6 +596,7 @@ export const LocalStorageDemoApp = ({
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
     conversationId ?? "",
+    preparedFixtureIsCurrent ? crewReservationClientToolNames : undefined,
   );
   const brunchVoiceMode = useMemo(
     () =>
@@ -535,15 +607,47 @@ export const LocalStorageDemoApp = ({
       ),
     [conversationTracker, flueHistory.settlements, openAIVoiceConfig],
   );
-  const petrinautAiChatTransport = useMemo(
-    () =>
-      flueClientPromise === null
-        ? stockChatTransport
-        : createBrunchPanelTransport(flueClientPromise, conversationTracker, {
-            onAdmission: flueHistory.refresh,
-          }),
-    [conversationTracker, flueClientPromise, flueHistory.refresh],
-  );
+  const { settledManifest, status: settlementStatus } =
+    useCrewReservationSettledManifest({
+      definition: preparedFixtureIsCurrent ? currentNet?.sdcpn : undefined,
+      enabled: preparedFixtureIsCurrent,
+      history: preparedFixtureIsCurrent ? flueHistory.snapshot : undefined,
+      historyError: preparedFixtureIsCurrent
+        ? flueHistory.error?.message
+        : undefined,
+    });
+  const currentWorkpiece = (() => {
+    if (flueHistory.snapshot === undefined) return undefined;
+    try {
+      return selectRunbookWorkpiece(flueHistory.snapshot)?.content;
+    } catch {
+      return undefined;
+    }
+  })();
+  const petrinautAiChatTransport = useMemo(() => {
+    if (flueClientPromise !== null) {
+      return createBrunchPanelTransport(
+        flueClientPromise,
+        conversationTracker,
+        {
+          ...(preparedFixtureIsCurrent
+            ? { clientToolNames: crewReservationClientToolNames }
+            : {}),
+          onAdmission: flueHistory.refresh,
+        },
+      );
+    }
+    return preparedFixtureIsCurrent
+      ? createUnavailableBrunchPanelTransport(
+          "The prepared fixture requires the mounted Brunch Flue route.",
+        )
+      : stockChatTransport;
+  }, [
+    conversationTracker,
+    flueClientPromise,
+    flueHistory.refresh,
+    preparedFixtureIsCurrent,
+  ]);
 
   const aiAssistant = useMemo(
     () => ({
@@ -628,7 +732,21 @@ export const LocalStorageDemoApp = ({
   }
 
   return (
-    <div style={{ height: "100vh", width: "100vw" }}>
+    <div
+      style={{
+        height: "100vh",
+        position: "relative",
+        width: "100vw",
+      }}
+    >
+      {preparedFixtureIsCurrent && (
+        <PreparedFixtureBanner
+          currentWorkpiece={currentWorkpiece}
+          settledManifest={settledManifest}
+          settlementStatus={settlementStatus}
+        />
+      )}
+      {!preparedFixtureIsCurrent && <PreparedFixtureSelector />}
       <CommandRegistryProvider>
         <WalkthroughProvider steps={walkthroughSteps}>
           <Petrinaut

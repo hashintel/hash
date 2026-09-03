@@ -114,6 +114,7 @@ test("admits one user message and projects a finite per-turn stream", async () =
 
   expect(send).toHaveBeenCalledOnce();
   expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:user:user-1",
     message: { kind: "user", body: "Run the transport tracer." },
     signal: undefined,
   });
@@ -158,6 +159,7 @@ test("admits one client-tool result signal and resumes its assistant id", async 
   );
 
   expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:client-tools:assistant-original:tool-1",
     message: {
       kind: "signal",
       type: "client-tool-result",
@@ -177,6 +179,30 @@ test("admits one client-tool result signal and resumes its assistant id", async 
     type: "start",
     messageId: "assistant-original",
   });
+});
+
+test("derives the same idempotency key for exact AI SDK retries", async () => {
+  const { client, send } = clientWith(completedEvents);
+  const transport = createFlueChatTransport({
+    client,
+    clientToolNames: new Set(),
+  });
+  const options = sendOptions([
+    {
+      id: "stable-user-message",
+      role: "user",
+      parts: [{ type: "text", text: "Admit this once." }],
+    },
+  ]);
+
+  await transport.sendMessages(options);
+  await transport.sendMessages(options);
+
+  expect(send).toHaveBeenCalledTimes(2);
+  expect(send.mock.calls.map(([input]) => input.idempotencyKey)).toEqual([
+    "ai-sdk:user:stable-user-message",
+    "ai-sdk:user:stable-user-message",
+  ]);
 });
 
 test("starts with history-only reconnection", async () => {

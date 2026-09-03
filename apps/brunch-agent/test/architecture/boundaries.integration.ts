@@ -379,13 +379,14 @@ describe("recorded Flue constraints hold by construction (spec §10)", () => {
 });
 
 describe("core auxiliary subpaths stay in their assigned lanes", () => {
-  test("core exposes Flue composition, browser contracts, and storage support as explicit subpaths", () => {
+  test("core exposes Flue composition, browser, storage, and workpiece contracts as explicit subpaths", () => {
     const core = PACKAGES.find((pkg) => pkg.name === CORE)!;
     expect(Object.keys(core.manifest.exports ?? {})).toEqual([
       ".",
       "./client-tools",
       "./flue",
       "./storage",
+      "./workpiece",
     ]);
   });
 
@@ -429,6 +430,8 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
       "Types Flue's public conversation snapshot so the transcript projector can be unit-tested; the import is type-only — no provider key, no socket, no model call, no runtime boot.",
     "apps/brunch-agent/test/petrinaut-chat.integration.ts":
       "Boots the plain Flue chat agent on Flue's node runtime with pi-ai's faux provider, drives the browser ChatTransport against the mounted Flue route over app.fetch, and proves streamed reasoning/text, server tools, client-tool resume, SDK history ownership, SQLite restart, and harness-side idempotent apply-sweep — no provider key, no socket, no extraction model call. Run as a child process by petrinaut-chat.test.ts.",
+    "apps/brunch-agent/test/prepared-workpiece.integration.ts":
+      "Boots the built Flue ChatAgent with pi-ai's faux provider, creates a prepared fixture through one tagged public signal with fixture-scoped initial data, retries its deterministic idempotency key, and proves prepared/model workpiece selection from canonical history — no provider key, socket, or network model call.",
     "apps/brunch-agent/test/proof-artifacts.test.ts":
       "Types Flue's public conversation snapshot so canonical trace derivation, workpiece binding, and atomic evidence retention can be unit-tested against an in-memory fixture — no provider key, no socket, no model call, no runtime boot.",
     "apps/brunch-agent/test/runbook-artifacts.test.ts":
@@ -437,6 +440,8 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
       "Defines the scripted pi-ai faux provider loaded only by the hermetic prospective-runner test — no provider key, no socket, and no network model call.",
     "apps/brunch-agent/test/runbook-headless.integration.ts":
       "Boots the built Flue ChatAgent with pi-ai's faux provider and a headless Petrinaut client to prove validated construct-only tool flow without a provider key, socket, or network model call.",
+    "apps/brunch-agent/test/workpiece.test.ts":
+      "Types Flue's public conversation snapshot so the substrate-neutral workpiece selector and app-owned SHA-256 projection can be unit-tested against in-memory messages — no provider key, no socket, no model call, no runtime boot.",
     "libs/@hashintel/brunch-agent/packages/transport-aisdk/test/chat-transport.test.ts":
       "Types a stubbed public Flue client and stream chunks to prove finite AI SDK projection and client-tool signal admission — no runtime boot, provider key, socket, or model call.",
     "libs/@hashintel/brunch-agent/packages/transport-aisdk/test/transcript.test.ts":
