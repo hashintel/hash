@@ -6,10 +6,12 @@ Automated contract evidence passed on 2026-09-03. The real human Voice witness r
 
 The implementation under test is:
 
-- `e0d7ac6a82` — browser Flue `ChatTransport`, stream projector, history projection, and ownership headers;
-- `f97f5723fa` — typed Petrinaut panel wiring and same-origin Flue proxy;
-- `1411a28158` — removal of the Brunch `/api/chat` route;
-- `3fbf9bc90dc0dc71cde61c5516a05fedee8825b1` — Voice submission correlation, canonical response selection, observation-based reopen, and durable Stop.
+- `525efac51d` — browser Flue `ChatTransport`, stream projector, history projection, and ownership headers;
+- `397a4412e1` — typed Petrinaut panel wiring and same-origin Flue proxy;
+- `afcacac083` — removal of the Brunch `/api/chat` route;
+- `1d99f94475` — Voice submission correlation, canonical response selection, observation-based reopen, and durable Stop;
+- `81028ca471` — review fixes for canonical history hydration, exact TTS text, content-free lifecycle latency telemetry, Clear behavior, API simplification, and documentation;
+- `d24bd78085` — React-compiler-safe tracker lifecycle and final live-authority corrections.
 
 ## Automated verification
 
@@ -30,19 +32,29 @@ The unit results included:
 | Workspace                                      | Test files | Tests |
 | ---------------------------------------------- | ---------: | ----: |
 | `@apps/brunch-agent`                           |         16 |    79 |
-| `@apps/petrinaut-website`                      |         31 |   205 |
-| `@hashintel/petrinaut`                         |         53 |   476 |
+| `@apps/petrinaut-website`                      |         31 |   207 |
+| `@hashintel/petrinaut`                         |         53 |   478 |
 | `@hashintel/brunch-agent`                      |          9 |    77 |
 | `@hashintel/brunch-agent-plugin-sdcpn`         |          2 |     8 |
 | `@hashintel/brunch-agent-transport-aisdk`      |          3 |    14 |
 
-`yarn workspace @local/petrinaut-arch-docs lint:arch-docs` also passed with 62 layers, 297 edges, 613 files, 63 generated pages, and 30 authored pages.
+`yarn install --immutable` passed with the repository's existing peer-dependency warnings. `yarn workspace @local/petrinaut-arch-docs lint:arch-docs` also passed with 62 layers, 297 edges, 613 files, 63 generated pages, and 31 authored pages. The focused ESLint run retained one non-blocking `set-state-in-effect` warning in `voice-interview-control.tsx`.
 
 The route-name scan found no `/api/chat` reference in the Brunch transport packages. Remaining live references are the stock Petrinaut fallback route and the Brunch negative tests that assert its removed route returns 404.
 
 ## Human witness still required
 
-Run `yarn dev:brunch` with the local Brunch preview and Voice credentials, then perform the Mission 5 demo script. Retain sanitized artifacts here:
+Run `yarn dev:brunch` with `ANTHROPIC_API_KEY`, `PETRINAUT_OPENAI_VOICE_ENABLED=true`, and a dedicated `OPENAI_VOICE_API_KEY`, then perform this witness against source commit `d24bd78085` or a descendant that changes evidence only:
+
+1. Open one saved net, submit one typed panel turn, and confirm the network ledger contains conversation traffic only under `/agents/chat/:instanceId`.
+2. Start Voice mode, accept the disclosure if required, speak one finalized answer, and confirm exactly one corresponding visible user message.
+3. Confirm the content-free lifecycle ledger records one ordered admission, first canonical text, settlement, first TTS request, and first TTS audio sequence for the same opaque correlation id.
+4. Compare the ordered canonical Brunch text with the exact `response_text` string array queued for speech. Record only matching hashes, lengths, and the boolean result; do not retain the text.
+5. Interrupt assistant playback by speaking and confirm canonical history is unchanged.
+6. Start another unsettled turn, select **Stop**, and confirm Flue records either an aborted settlement or the documented already-settled race rather than only cancelling the browser stream.
+7. Reload or reopen the same net and confirm canonical messages reappear without a duplicate submission, a replayed tool effect, or Voice audio replay.
+
+Retain these sanitized artifacts here:
 
 1. `witness.md` — date, adjudicator, source/build commit, and observed outcome;
 2. `voice-events.jsonl` — content-free admission, first canonical text, first TTS/audio, interruption, Stop, and settlement timing;
