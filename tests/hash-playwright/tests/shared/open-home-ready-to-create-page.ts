@@ -14,6 +14,10 @@ import type { Page } from "./runtime";
  */
 export const openHomeReadyToCreatePage = async (page: Page) => {
   const user = await getUser(page.request);
+  if (!user) {
+    throw new Error("Cannot create a page without an authenticated user");
+  }
+
   const webId = extractWebIdFromEntityId(user.metadata.recordId.entityId);
 
   const webOwnerFetched = page.waitForResponse((response) => {
