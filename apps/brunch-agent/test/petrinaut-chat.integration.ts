@@ -14,6 +14,7 @@ import { sqlite, start } from "@flue/runtime/node";
 import { createFlueClient, FlueApiError } from "@flue/sdk";
 
 import { ASK_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+import { getLatestNetDefinitionToolName } from "@hashintel/petrinaut-core/ai";
 
 import {
   ACTIVATE_SKILL_TOOL_NAME,
@@ -42,6 +43,58 @@ const principalKey = "principal-mission-1";
 const conversationId = "conversation-mission-1";
 const identity = { principalKey, conversationId };
 const instanceId = flueConversationIdFrom(identity);
+const latestNetDefinitionFixture = {
+  title: "Invoice review conveyor",
+  definition: {
+    places: [
+      {
+        id: "incoming-invoices",
+        name: "Incoming invoices",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 100,
+        y: 100,
+      },
+      {
+        id: "approved-invoices",
+        name: "Approved invoices",
+        colorId: null,
+        dynamicsEnabled: false,
+        differentialEquationId: null,
+        x: 500,
+        y: 100,
+      },
+    ],
+    transitions: [
+      {
+        id: "review-invoice",
+        name: "Review invoice",
+        inputArcs: [
+          { placeId: "incoming-invoices", weight: 1, type: "standard" },
+        ],
+        outputArcs: [{ placeId: "approved-invoices", weight: 1 }],
+        lambdaType: "predicate",
+        lambdaCode: "return true;",
+        transitionKernelCode: "",
+        x: 300,
+        y: 125,
+      },
+    ],
+    types: [],
+    parameters: [],
+    differentialEquations: [],
+    subnets: [],
+    componentInstances: [],
+  },
+  extensions: {
+    colors: false,
+    stochasticity: false,
+    dynamics: false,
+    parameters: false,
+    subnets: false,
+  },
+} as const;
 const dbPath =
   process.env.BRUNCH_CHAT_DB_PATH ??
   (await mkdtemp(join(tmpdir(), "brunch-chat-")));
@@ -142,7 +195,14 @@ try {
       ),
       fauxAssistantMessage(
         [
-          fauxThinking("The ping returned. Read the user guide next."),
+          fauxThinking(
+            "The ping returned. Read the current net and user guide next.",
+          ),
+          fauxToolCall(
+            getLatestNetDefinitionToolName,
+            {},
+            { id: "tool-net-1" },
+          ),
           fauxToolCall(
             READ_PETRINAUT_DOC_TOOL_NAME,
             { doc: "ai-assistant" },
@@ -153,13 +213,18 @@ try {
       ),
       fauxAssistantMessage(
         [
-          fauxThinking("The user explicitly requested an interview."),
+          fauxThinking(
+            "Use the current net context before the first interview question.",
+          ),
           fauxText(
-            "The guide says the assistant can read its own documentation pages.",
+            "The Invoice review conveyor moves Incoming invoices through Review invoice into Approved invoices. The guide says the assistant can read its own documentation pages.",
           ),
           fauxToolCall(
             ASK_TOOL_NAME,
-            { question: "What outcome should this process reliably produce?" },
+            {
+              question:
+                "What should happen when review cannot approve an invoice?",
+            },
             { id: "tool-ask-1" },
           ),
         ],
@@ -168,7 +233,7 @@ try {
       fauxAssistantMessage([
         fauxThinking("Use the correlated client-tool answer."),
         fauxText(
-          "I received your answer: a reliable handoff. The Petrinaut canvas was not modified.",
+          "I received your answer: send it to manual review. The Petrinaut canvas was not modified.",
         ),
       ]),
       fauxAssistantMessage([
@@ -199,7 +264,7 @@ try {
     userMessage.parts = [
       {
         type: "text",
-        text: "Start an interview and run the FE-1435 transport probe.",
+        text: "Interview this Petri net. What does it do?",
       },
     ];
 
@@ -245,6 +310,14 @@ try {
           chunk.type === "tool-input-available" &&
           chunk.toolName === READ_PETRINAUT_DOC_TOOL_NAME,
       ) ?? null;
+    const latestNetDefinitionCall =
+      initialChunks.find(
+        (
+          chunk,
+        ): chunk is Extract<UIMessageChunk, { type: "tool-input-available" }> =>
+          chunk.type === "tool-input-available" &&
+          chunk.toolName === getLatestNetDefinitionToolName,
+      ) ?? null;
 
     const pendingHistoryResponse = await app.fetch(
       new Request(
@@ -263,6 +336,11 @@ try {
     const pendingHistoryClientToolState = pendingHistoryBody.messages
       ?.flatMap((message) => message.parts ?? [])
       .find((part) => part.toolCallId === clientToolCall?.toolCallId)?.state;
+    const pendingHistoryLatestNetDefinitionState = pendingHistoryBody.messages
+      ?.flatMap((message) => message.parts ?? [])
+      .find(
+        (part) => part.toolCallId === latestNetDefinitionCall?.toolCallId,
+      )?.state;
 
     const resumeBody = {
       id: conversationId,
@@ -274,6 +352,13 @@ try {
           id: startChunk?.messageId,
           role: "assistant",
           parts: [
+            {
+              type: `tool-${getLatestNetDefinitionToolName}`,
+              toolCallId: latestNetDefinitionCall?.toolCallId,
+              state: "output-available",
+              input: {},
+              output: latestNetDefinitionFixture,
+            },
             {
               type: `tool-${READ_PETRINAUT_DOC_TOOL_NAME}`,
               toolCallId: clientToolCall?.toolCallId,
@@ -306,6 +391,16 @@ try {
           chunk.type === "tool-input-available" &&
           chunk.toolName === ASK_TOOL_NAME,
       ) ?? null;
+    const askChunkIndex = resumedChunks.findIndex(
+      (chunk) =>
+        chunk.type === "tool-input-available" &&
+        chunk.toolName === ASK_TOOL_NAME,
+    );
+    const resumedTextBeforeAsk = resumedChunks
+      .slice(0, askChunkIndex === -1 ? resumedChunks.length : askChunkIndex)
+      .filter((chunk) => chunk.type === "text-delta")
+      .map((chunk) => chunk.delta)
+      .join("");
     const pendingAskHistoryResponse = await app.fetch(
       new Request(
         `http://brunch.test/api/chat?id=${encodeURIComponent(conversationId)}`,
@@ -339,7 +434,7 @@ try {
               toolCallId: askCall?.toolCallId,
               state: "output-available",
               input: askCall?.input,
-              output: { answer: "A reliable handoff." },
+              output: { answer: "Send it to manual review." },
             },
           ],
         },
@@ -483,13 +578,21 @@ try {
           chunk.type === "tool-output-available" &&
           chunk.toolCallId === clientToolCall?.toolCallId,
       ),
+      latestNetDefinitionCall,
+      latestNetDefinitionOutputsOnInitial: initialChunks.filter(
+        (chunk) =>
+          chunk.type === "tool-output-available" &&
+          chunk.toolCallId === latestNetDefinitionCall?.toolCallId,
+      ),
       initialFinish: initialChunks.at(-1),
       pendingHistoryClientToolState,
+      pendingHistoryLatestNetDefinitionState,
       resumedStatus: resumeResponse.status,
       resumedText: resumedChunks
         .filter((chunk) => chunk.type === "text-delta")
         .map((chunk) => chunk.delta)
         .join(""),
+      resumedTextBeforeAsk,
       resumedFinish: resumedChunks.at(-1),
       askCall,
       askToolOutputsBeforeResume: resumedChunks.filter(
