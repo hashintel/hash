@@ -37,6 +37,11 @@ test("delegates one typed message to the supplied Flue conversation", async () =
     wait,
   } as Pick<FlueClient, "send" | "wait"> as FlueClient;
   const tracker = new BrunchPanelConversationTracker();
+  const admissionListener = vi.fn();
+  tracker.subscribeToAdmission(
+    { kind: "user", messageId: "user-1" },
+    admissionListener,
+  );
   const onAdmission = vi.fn();
   const transport = createBrunchPanelTransport(
     Promise.resolve(client),
@@ -56,6 +61,12 @@ test("delegates one typed message to the supplied Flue conversation", async () =
     ],
     abortSignal: undefined,
   });
+  expect(admissionListener).toHaveBeenCalledOnce();
+  expect(admissionListener).toHaveBeenCalledWith({
+    admission,
+    kind: "user",
+    messageId: "user-1",
+  });
   await stream.pipeTo(new WritableStream());
 
   expect(send).toHaveBeenCalledOnce();
@@ -67,4 +78,59 @@ test("delegates one typed message to the supplied Flue conversation", async () =
   expect(tracker.submissionForResponse("assistant-1")).toBe("submission-1");
   expect(onAdmission).toHaveBeenCalledOnce();
   expect(onAdmission).toHaveBeenCalledWith(admission);
+});
+
+test("matches client-tool admissions once and supports unsubscribe", () => {
+  const admission: AgentSendResult = {
+    streamUrl: "http://brunch.test/stream",
+    offset: "offset-1",
+    submissionId: "submission-1",
+    uid: "uid-1",
+  };
+  const tracker = new BrunchPanelConversationTracker();
+  const matchingListener = vi.fn();
+  const unsubscribedListener = vi.fn();
+  tracker.subscribeToAdmission(
+    {
+      kind: "client-tool-result",
+      messageId: "assistant-question",
+    },
+    matchingListener,
+  );
+  const unsubscribe = tracker.subscribeToAdmission(
+    {
+      kind: "client-tool-result",
+      messageId: "assistant-question",
+    },
+    unsubscribedListener,
+  );
+  unsubscribe();
+
+  tracker.recordAdmission({
+    admission,
+    kind: "user",
+    messageId: "assistant-question",
+  });
+  tracker.recordAdmission({
+    admission,
+    kind: "client-tool-result",
+    messageId: "assistant-other",
+  });
+  expect(matchingListener).not.toHaveBeenCalled();
+
+  const matchedAdmission = {
+    ...admission,
+    submissionId: "submission-tool-result",
+  };
+  const event = {
+    admission: matchedAdmission,
+    kind: "client-tool-result" as const,
+    messageId: "assistant-question",
+  };
+  tracker.recordAdmission(event);
+  tracker.recordAdmission(event);
+
+  expect(matchingListener).toHaveBeenCalledOnce();
+  expect(matchingListener).toHaveBeenCalledWith(event);
+  expect(unsubscribedListener).not.toHaveBeenCalled();
 });

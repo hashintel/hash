@@ -1,6 +1,7 @@
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type { AgentSendResult } from "@flue/sdk";
+import type { FlueChatTransportOptions } from "@hashintel/brunch-agent-transport-aisdk";
 import type {
   PetrinautAiComposerSubmitTextResult,
   PetrinautAiVoiceModeContext,
@@ -24,9 +25,18 @@ interface RealtimeBridgeSession {
 type SubmitVoiceInput = Parameters<
   PetrinautAiVoiceModeContext["submitVoiceInput"]
 >[0];
+type FlueChatAdmission = Parameters<
+  NonNullable<FlueChatTransportOptions["onAdmission"]>
+>[0];
+export type RealtimeBrunchAdmissionTarget = Pick<
+  FlueChatAdmission,
+  "kind" | "messageId"
+>;
 
 type SubmitInterviewAnswerInput = Pick<SubmitVoiceInput, "text"> & {
+  readonly admissionTarget: RealtimeBrunchAdmissionTarget;
   readonly id: string;
+  readonly onAdmission: (submissionId: AgentSendResult["submissionId"]) => void;
 };
 
 type SubmitInterviewAnswerResult =
@@ -47,6 +57,7 @@ interface ActiveSubmission {
   readonly callId: string;
   readonly epoch: number;
   readonly pendingQuestionId: string | null;
+  readonly pendingQuestionMessageId: string | null;
   correlated: boolean;
   sawBusyChatStatus: boolean;
   submissionId: AgentSendResult["submissionId"] | null;
@@ -73,6 +84,11 @@ export type RealtimeBrunchBridgeEvent =
       readonly answer: string;
       readonly callId: string;
       readonly type: "submission-accepted";
+    }
+  | {
+      readonly callId: string;
+      readonly submissionId: AgentSendResult["submissionId"];
+      readonly type: "submission-admitted";
     }
   | {
       readonly callId: string;
@@ -339,6 +355,7 @@ export class RealtimeBrunchBridge {
       correlated: false,
       epoch: event.connectionEpoch,
       pendingQuestionId: question?.partId ?? null,
+      pendingQuestionMessageId: question?.messageId ?? null,
       sawBusyChatStatus: false,
       submissionId: null,
     };
@@ -371,8 +388,44 @@ export class RealtimeBrunchBridge {
     generation: number,
   ): Promise<void> {
     try {
+      const activeAtSubmission = this.#activeSubmission;
+      if (!activeAtSubmission) return;
+      const voiceMessageId = createRealtimeSubmissionId(
+        event.connectionEpoch,
+        event.callId,
+      );
       const result = await this.#submitInterviewAnswer({
-        id: createRealtimeSubmissionId(event.connectionEpoch, event.callId),
+        admissionTarget:
+          activeAtSubmission.pendingQuestionMessageId === null
+            ? { kind: "user", messageId: voiceMessageId }
+            : {
+                kind: "client-tool-result",
+                messageId: activeAtSubmission.pendingQuestionMessageId,
+              },
+        id: voiceMessageId,
+        onAdmission: (submissionId) => {
+          const active = this.#activeSubmission;
+          if (
+            generation !== this.#generation ||
+            !active ||
+            active.callId !== event.callId ||
+            active.epoch !== event.connectionEpoch
+          ) {
+            return;
+          }
+          if (active.submissionId !== null) {
+            if (active.submissionId !== submissionId) {
+              this.#fail(INVALID_BRIDGE_EVENT);
+            }
+            return;
+          }
+          active.submissionId = submissionId;
+          this.#emit({
+            callId: event.callId,
+            submissionId,
+            type: "submission-admitted",
+          });
+        },
         text: answer,
       });
       const active = this.#activeSubmission;
@@ -393,8 +446,17 @@ export class RealtimeBrunchBridge {
         this.#fail(INVALID_BRIDGE_EVENT);
         return;
       }
-      active.submissionId =
+      const resultSubmissionId =
         result.kind === "message" ? (result.submissionId ?? null) : null;
+      if (
+        active.submissionId !== null &&
+        resultSubmissionId !== null &&
+        active.submissionId !== resultSubmissionId
+      ) {
+        this.#fail(INVALID_BRIDGE_EVENT);
+        return;
+      }
+      active.submissionId ??= resultSubmissionId;
       active.correlated = true;
       this.#emit({
         answer,

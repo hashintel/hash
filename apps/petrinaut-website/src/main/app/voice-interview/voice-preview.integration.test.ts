@@ -15,6 +15,7 @@ import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import { VoiceTurnController } from "./voice-turn-controller";
 
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
+import type { RealtimeBrunchBridgeEvent } from "./realtime-brunch-bridge";
 import type { AgentSendResult, FlueClient } from "@flue/sdk";
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
@@ -280,10 +281,16 @@ describe("controlled voice preview", () => {
     });
 
     await vi.waitFor(() =>
-      expect(submitInterviewAnswer).toHaveBeenCalledWith({
-        id: "voice-realtime:1:call-1",
-        text: spokenAnswer,
-      }),
+      expect(submitInterviewAnswer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          admissionTarget: {
+            kind: "client-tool-result",
+            messageId: "initial-question-message",
+          },
+          id: "voice-realtime:1:call-1",
+          text: spokenAnswer,
+        }),
+      ),
     );
     expect(controller.getSnapshot()).toMatchObject({
       input: "submitting",
@@ -405,15 +412,23 @@ describe("controlled voice preview", () => {
       uid: "uid-1",
     };
     const send = vi.fn<FlueClient["send"]>(async () => admission);
-    const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
-      await options?.onEvent?.({
-        type: "submission-settled",
-        conversationId: "conversation-1",
-        submissionId: admission.submissionId,
-        outcome: "completed",
-        position: { batch: 1, index: 0 },
-      });
-    });
+    let settleSubmission: (() => void) | undefined;
+    const wait = vi.fn<FlueClient["wait"]>(
+      async (_admission, options) =>
+        new Promise<void>((resolve) => {
+          settleSubmission = () => {
+            void Promise.resolve(
+              options?.onEvent?.({
+                type: "submission-settled",
+                conversationId: "conversation-1",
+                submissionId: admission.submissionId,
+                outcome: "completed",
+                position: { batch: 1, index: 0 },
+              }),
+            ).then(() => resolve());
+          };
+        }),
+    );
     const client = {
       send,
       wait,
@@ -437,7 +452,16 @@ describe("controlled voice preview", () => {
           };
         },
       },
-      submitInterviewAnswer: async ({ id, text }) => {
+      submitInterviewAnswer: async ({
+        admissionTarget,
+        id,
+        onAdmission,
+        text,
+      }) => {
+        const unsubscribe = tracker.subscribeToAdmission(
+          admissionTarget,
+          ({ admission: admitted }) => onAdmission(admitted.submissionId),
+        );
         const stream = await transport.sendMessages({
           trigger: "submit-message",
           chatId: "conversation-1",
@@ -452,14 +476,20 @@ describe("controlled voice preview", () => {
           ],
           abortSignal: undefined,
         });
-        await stream.pipeTo(new WritableStream());
-        const submissionId = tracker.submissionForInput(id);
-        if (submissionId === undefined) {
-          throw new Error("missing Flue admission");
+        try {
+          await stream.pipeTo(new WritableStream());
+          const submissionId = tracker.submissionForInput(id);
+          if (submissionId === undefined) {
+            throw new Error("missing Flue admission");
+          }
+          return { kind: "message", messageId: id, submissionId };
+        } finally {
+          unsubscribe();
         }
-        return { kind: "message", messageId: id, submissionId };
       },
     });
+    const bridgeEvents: RealtimeBrunchBridgeEvent[] = [];
+    bridge.subscribe((event) => bridgeEvents.push(event));
     bridge.updateChat({
       canAcceptInterviewAnswer: true,
       canonicalSegments: [],
@@ -480,10 +510,27 @@ describe("controlled voice preview", () => {
     realtimeListener?.(finalized);
 
     await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+    await vi.waitFor(() =>
+      expect(bridgeEvents).toContainEqual({
+        callId: "call-1",
+        submissionId: admission.submissionId,
+        type: "submission-admitted",
+      }),
+    );
+    expect(bridgeEvents).not.toContainEqual(
+      expect.objectContaining({ type: "submission-accepted" }),
+    );
     expect(send).toHaveBeenCalledWith({
       message: { kind: "user", body: "The supervisor approves it." },
       signal: undefined,
     });
     expect(admission.streamUrl).toContain("/agents/chat/");
+
+    settleSubmission?.();
+    await vi.waitFor(() =>
+      expect(bridgeEvents).toContainEqual(
+        expect.objectContaining({ type: "submission-accepted" }),
+      ),
+    );
   });
 });

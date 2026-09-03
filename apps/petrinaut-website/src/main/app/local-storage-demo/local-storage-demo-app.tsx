@@ -129,6 +129,14 @@ export const getBrunchVoiceMode = (
           resolveResponseSubmission={(messageId) =>
             tracker?.submissionForResponse(messageId)
           }
+          subscribeToAdmission={
+            tracker === undefined
+              ? undefined
+              : (target, listener) =>
+                  tracker.subscribeToAdmission(target, ({ admission }) =>
+                    listener(admission.submissionId),
+                  )
+          }
         />
       )
     : undefined;
