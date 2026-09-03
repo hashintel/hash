@@ -15,6 +15,13 @@
       "cache": false,
       "dependsOn": ["@rust/hash-repo-chores#build"]
     },
+    "//#sync:turborepo": {
+      "cache": false
+    },
+    "//#doc:task-dependencies": {
+      "cache": false,
+      "dependsOn": ["//#sync:turborepo"]
+    },
     "build": {
       "dependsOn": ["codegen"]
     },

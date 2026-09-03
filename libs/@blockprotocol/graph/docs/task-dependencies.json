@@ -1,0 +1,26 @@
+{
+  "package": "@blockprotocol/graph",
+  "dependencies": [
+    "@blockprotocol/type-system",
+    "@local/eslint",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [
+      "@blockprotocol/type-system#build",
+      "@local/eslint#build"
+    ],
+    "fix:eslint": [
+      "@blockprotocol/type-system#build",
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@blockprotocol/type-system#build",
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@blockprotocol/type-system#build",
+      "@local/eslint#build"
+    ]
+  }
+}

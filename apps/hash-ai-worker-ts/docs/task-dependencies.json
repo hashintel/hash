@@ -1,0 +1,98 @@
+{
+  "package": "@apps/hash-ai-worker-ts",
+  "dependencies": [
+    "@apps/hash-graph",
+    "@blockprotocol/graph",
+    "@blockprotocol/type-system",
+    "@local/advanced-types",
+    "@local/eslint",
+    "@local/hash-backend-utils",
+    "@local/hash-graph-client",
+    "@local/hash-graph-sdk",
+    "@local/hash-isomorphic-utils",
+    "@local/status",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-backend-utils#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build"
+    ],
+    "build:docker": [],
+    "dev": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-backend-utils#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build"
+    ],
+    "fix:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-backend-utils#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build"
+    ],
+    "lint:eslint": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-backend-utils#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build"
+    ],
+    "lint:tsc": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-backend-utils#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build"
+    ],
+    "sentry:sourcemaps": [
+      "@apps/hash-ai-worker-ts#build"
+    ],
+    "start": [
+      "@apps/hash-ai-worker-ts#build",
+      "@apps/hash-graph#start:healthcheck"
+    ],
+    "start:healthcheck": [],
+    "start:test": [
+      "@apps/hash-ai-worker-ts#build",
+      "@apps/hash-graph#start:test:healthcheck"
+    ],
+    "start:test:healthcheck": [],
+    "test:unit": [
+      "@blockprotocol/graph#build",
+      "@blockprotocol/type-system#build",
+      "@local/advanced-types#build",
+      "@local/eslint#build",
+      "@local/hash-backend-utils#build",
+      "@local/hash-graph-client#build",
+      "@local/hash-graph-sdk#build",
+      "@local/hash-isomorphic-utils#build",
+      "@local/status#build"
+    ]
+  }
+}

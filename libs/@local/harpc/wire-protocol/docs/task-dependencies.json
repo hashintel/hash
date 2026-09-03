@@ -1,0 +1,17 @@
+{
+  "package": "@rust/harpc-wire-protocol",
+  "dependencies": [
+    "@rust/error-stack",
+    "@rust/harpc-types"
+  ],
+  "tasks": {
+    "build:cli": [],
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:miri": [],
+    "test:unit": []
+  }
+}

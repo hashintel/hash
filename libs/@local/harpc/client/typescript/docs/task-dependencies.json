@@ -1,0 +1,24 @@
+{
+  "package": "@local/harpc-client",
+  "dependencies": [
+    "@local/eslint",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [
+      "@local/eslint#build"
+    ],
+    "fix:eslint": [
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@local/eslint#build"
+    ],
+    "test:unit": [
+      "@rust/harpc-wire-protocol#build:cli"
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "package": "@local/claude-hooks",
+  "dependencies": [
+    "@local/eslint",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "fix:eslint": [
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@local/eslint#build"
+    ],
+    "test:unit": [
+      "@local/eslint#build"
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "package": "@rust/hash-config",
+  "dependencies": [
+    "@rust/error-stack"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:unit": []
+  }
+}

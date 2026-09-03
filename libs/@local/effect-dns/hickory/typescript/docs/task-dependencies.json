@@ -1,0 +1,24 @@
+{
+  "package": "@local/effect-dns-hickory",
+  "dependencies": [
+    "@local/eslint",
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [
+      "@local/eslint#build"
+    ],
+    "fix:eslint": [
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@local/effect-dns-hickory#build"
+    ],
+    "lint:tsc": [
+      "@local/effect-dns-hickory#build"
+    ],
+    "test:unit": [
+      "@local/effect-dns-hickory#build"
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "package": "@rust/hash-graph-embeddings",
+  "dependencies": [
+    "@rust/darwin-kperf-criterion",
+    "@rust/error-stack",
+    "@rust/hash-graph-types"
+  ],
+  "tasks": {
+    "build:codspeed": [],
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:codspeed": [],
+    "test:miri": [],
+    "test:unit": []
+  }
+}

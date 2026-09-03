@@ -2,7 +2,10 @@ use core::error::Error;
 
 use error_stack::ResultExt as _;
 
-use crate::{sort_package_json::SortPackageJsonError, sync_turborepo::SyncTurborepoError};
+use crate::{
+    sort_package_json::SortPackageJsonError, sync_turborepo::SyncTurborepoError,
+    task_dependencies::TaskDependenciesError,
+};
 
 mod benches;
 mod completions;
@@ -10,6 +13,7 @@ mod dependency_diagram;
 mod lcov;
 mod sort_package_json;
 mod sync_turborepo;
+mod task_dependencies;
 
 /// Subcommand for the program.
 #[derive(Debug, clap::Subcommand)]
@@ -29,6 +33,9 @@ pub(super) enum Subcommand {
     /// Sort package.json files to ensure consistent key ordering.
     #[clap(name = "sort-package-json")]
     SortPackageJson(sort_package_json::Args),
+    /// Write the per-package task dependencies of the turbo task graph.
+    #[clap(name = "task-dependencies")]
+    TaskDependencies,
 }
 
 impl Subcommand {
@@ -47,6 +54,9 @@ impl Subcommand {
             Self::SortPackageJson(args) => Ok(sort_package_json::run(args)
                 .await
                 .change_context(SortPackageJsonError::UnableToSort)?),
+            Self::TaskDependencies => Ok(task_dependencies::run()
+                .await
+                .change_context(TaskDependenciesError::UnableToSync)?),
         }
     }
 }

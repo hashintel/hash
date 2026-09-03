@@ -1,0 +1,7 @@
+{
+  "package": "@local/internal-api-client",
+  "dependencies": [],
+  "tasks": {
+    "build": []
+  }
+}

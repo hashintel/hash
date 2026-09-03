@@ -1,0 +1,31 @@
+{
+  "package": "@rust/hash-graph-benches",
+  "dependencies": [
+    "@apps/hash-graph",
+    "@blockprotocol/type-system-rs",
+    "@rust/error-stack",
+    "@rust/hash-graph-api",
+    "@rust/hash-graph-authorization",
+    "@rust/hash-graph-postgres-store",
+    "@rust/hash-graph-store",
+    "@rust/hash-graph-temporal-versioning",
+    "@rust/hash-graph-test-data",
+    "@rust/hash-graph-type-fetcher",
+    "@rust/hash-repo-chores",
+    "@rust/hash-telemetry"
+  ],
+  "tasks": {
+    "bench:integration": [
+      "@apps/hash-graph#start:healthcheck",
+      "@local/status#build",
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:integration": [
+      "@apps/hash-graph#start:test:healthcheck",
+      "@local/status#build",
+      "@rust/hash-repo-chores#build"
+    ]
+  }
+}

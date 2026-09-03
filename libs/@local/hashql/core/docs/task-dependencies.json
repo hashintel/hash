@@ -1,0 +1,20 @@
+{
+  "package": "@rust/hashql-core",
+  "dependencies": [
+    "@rust/darwin-kperf-criterion",
+    "@rust/hash-codec",
+    "@rust/hashql-diagnostics",
+    "@rust/hashql-macros"
+  ],
+  "tasks": {
+    "build:codspeed": [],
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:codspeed": [],
+    "test:miri": [],
+    "test:unit": []
+  }
+}

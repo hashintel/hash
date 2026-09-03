@@ -1,0 +1,17 @@
+{
+  "package": "@local/petrinaut-python",
+  "dependencies": [
+    "@hashintel/petrinaut-cli"
+  ],
+  "tasks": {
+    "codegen": [
+      "@hashintel/petrinaut-cli#codegen"
+    ],
+    "lint:ruff": [],
+    "lint:types": [],
+    "test:unit": [
+      "@hashintel/petrinaut-cli#build",
+      "@local/petrinaut-python#codegen"
+    ]
+  }
+}

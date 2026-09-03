@@ -1,0 +1,17 @@
+{
+  "package": "@rust/hash-graph-test-data",
+  "dependencies": [
+    "@blockprotocol/type-system-rs",
+    "@rust/error-stack",
+    "@rust/hash-codec",
+    "@rust/hash-graph-store"
+  ],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": [],
+    "test:unit": []
+  }
+}

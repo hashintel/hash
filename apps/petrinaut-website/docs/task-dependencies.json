@@ -1,0 +1,71 @@
+{
+  "package": "@apps/petrinaut-website",
+  "dependencies": [
+    "@hashintel/brunch-agent",
+    "@hashintel/brunch-agent-transport-aisdk",
+    "@hashintel/ds-components",
+    "@hashintel/ds-helpers",
+    "@hashintel/petrinaut",
+    "@hashintel/petrinaut-core",
+    "@local/petrinaut-optimizer-client"
+  ],
+  "tasks": {
+    "build": [
+      "@apps/petrinaut-website#codegen",
+      "@apps/petrinaut-website#examples:generate",
+      "@hashintel/brunch-agent#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@hashintel/petrinaut-core#build",
+      "@local/petrinaut-optimizer-client#build"
+    ],
+    "codegen": [
+      "@hashintel/brunch-agent#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@hashintel/petrinaut-core#build",
+      "@local/petrinaut-optimizer-client#build"
+    ],
+    "dev": [
+      "@apps/petrinaut-website#codegen"
+    ],
+    "examples:generate": [
+      "@hashintel/brunch-agent#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@hashintel/petrinaut-core#build",
+      "@local/petrinaut-optimizer-client#build"
+    ],
+    "fix:eslint": [
+      "@apps/petrinaut-website#codegen",
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@apps/petrinaut-website#codegen",
+      "@local/eslint#build"
+    ],
+    "lint:tsc": [
+      "@apps/petrinaut-website#codegen",
+      "@apps/petrinaut-website#examples:generate",
+      "@hashintel/brunch-agent#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@hashintel/petrinaut-core#build",
+      "@local/petrinaut-optimizer-client#build"
+    ],
+    "test:unit": [
+      "@apps/petrinaut-website#codegen",
+      "@apps/petrinaut-website#examples:generate",
+      "@hashintel/brunch-agent#build",
+      "@hashintel/brunch-agent-transport-aisdk#build",
+      "@hashintel/ds-components#build",
+      "@hashintel/petrinaut#build",
+      "@hashintel/petrinaut-core#build",
+      "@local/petrinaut-optimizer-client#build"
+    ]
+  }
+}

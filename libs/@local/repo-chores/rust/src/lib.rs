@@ -18,3 +18,4 @@ pub(crate) mod dependency_diagram;
 pub(crate) mod lcov;
 pub(crate) mod sort_package_json;
 pub(crate) mod sync_turborepo;
+pub(crate) mod task_dependencies;

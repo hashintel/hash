@@ -1,0 +1,11 @@
+{
+  "package": "@rust/hash-graph-migrations-macros",
+  "dependencies": [],
+  "tasks": {
+    "doc:dependency-diagram": [
+      "@rust/hash-repo-chores#build"
+    ],
+    "fix:clippy": [],
+    "lint:clippy": []
+  }
+}

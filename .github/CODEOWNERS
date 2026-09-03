@@ -12,8 +12,4 @@ LICENSE.md @hashintel/legal
 
 # Turborepo configuration
 turbo.json @hashintel/infra
-
-# Package manifests
-package.json @hashintel/infra
-Cargo.toml @hashintel/infra
-pyproject.toml @hashintel/infra
+task-dependencies.json @hashintel/infra

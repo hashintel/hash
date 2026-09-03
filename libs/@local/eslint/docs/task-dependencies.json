@@ -1,0 +1,15 @@
+{
+  "package": "@local/eslint",
+  "dependencies": [
+    "@local/tsconfig"
+  ],
+  "tasks": {
+    "build": [],
+    "fix:eslint": [
+      "@local/eslint#build"
+    ],
+    "lint:eslint": [
+      "@local/eslint#build"
+    ]
+  }
+}
