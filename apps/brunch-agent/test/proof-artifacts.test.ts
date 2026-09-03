@@ -200,6 +200,41 @@ test("derives canonical proof events in message and part order", () => {
   });
 });
 
+test("retains malformed resource paths in an error trace", () => {
+  const malformedPath = "/.flue/packaged-skills/skill%/references/profile.md";
+  const malformedSnapshot = {
+    ...snapshot,
+    messages: [
+      ...snapshot.messages,
+      {
+        id: "assistant-2",
+        role: "assistant",
+        purpose: "assistant",
+        display: "visible",
+        submissionId: "submission-2",
+        parts: [
+          {
+            type: "dynamic-tool",
+            toolCallId: "read-malformed",
+            toolName: "read_skill_resource",
+            state: "output-error",
+            input: { path: malformedPath },
+            errorText: "invalid path",
+          },
+        ],
+      },
+    ],
+  } as FlueConversationSnapshot;
+
+  expect(deriveProofTrace(malformedSnapshot).events).toContainEqual(
+    expect.objectContaining({
+      type: "read",
+      path: malformedPath,
+      outcome: "error",
+    }),
+  );
+});
+
 test("atomically writes the canonical snapshot and its derived projections", async () => {
   const directory = await mkdtemp(join(tmpdir(), "brunch-proof-"));
   temporaryDirectories.push(directory);

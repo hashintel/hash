@@ -24,11 +24,14 @@ export function skillFromMarkdown(
   }
   const [, frontmatter = "", body = ""] = match;
   const field = (key: string): string => {
-    const line = new RegExp(`^${key}:\\s*(.+)$`, "mu").exec(frontmatter);
-    if (line?.[1] === undefined) {
+    const prefix = `${key}:`;
+    const line = frontmatter
+      .split(/\r?\n/u)
+      .find((candidate) => candidate.startsWith(prefix));
+    if (line === undefined) {
       throw new Error(`SKILL.md frontmatter is missing \`${key}\`.`);
     }
-    return line[1].trim();
+    return line.slice(prefix.length).trim();
   };
   return defineSkill({
     name: field("name"),

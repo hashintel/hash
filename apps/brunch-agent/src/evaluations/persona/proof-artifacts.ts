@@ -74,7 +74,12 @@ const stringInputField = (
 };
 
 const traceResourcePath = (path: string): string => {
-  const decoded = decodeURIComponent(path);
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(path);
+  } catch {
+    return path;
+  }
   const match = /\/packaged-skills\/skill:([^/:]+):[^/]+\/(.+)$/u.exec(decoded);
   return match?.[1] !== undefined && match[2] !== undefined
     ? `${match[1]}/${match[2]}`

@@ -145,6 +145,43 @@ describe("runbook artifact recovery", () => {
     );
   });
 
+  test("does not treat a workpiece question as the first interactive question", () => {
+    const snapshot = {
+      messages: [
+        {
+          id: "a1",
+          role: "assistant",
+          purpose: "assistant",
+          display: "visible",
+          parts: [
+            {
+              type: "text",
+              text: "```runbook-ir\n# Workpiece\n## Open questions\n- Who signs off?\n```",
+              state: "done",
+            },
+            {
+              type: "dynamic-tool",
+              toolCallId: "guidance-profile",
+              toolName: "read_skill_resource",
+              state: "output-available",
+              input: {
+                path: "/.flue/packaged-skills/example/references/profile.md",
+              },
+              output: "ok",
+            },
+          ],
+        },
+      ],
+    } as FlueConversationSnapshot;
+
+    expect(
+      ordinaryElicitationViolationsFrom(snapshot, { hasWorkpiece: true }),
+    ).not.toContainEqual({
+      code: "late-required-resource",
+      detail: "profile.md: after first question",
+    });
+  });
+
   test("requires successful profile and workpiece reads for an ordinary workpiece", () => {
     const snapshot = snapshotWithAssistantText(
       "What process should we model?\n```runbook-ir\n# Workpiece\n```",

@@ -114,6 +114,9 @@ const CONSTRUCTION_RESOURCE_NAMES = new Set([
   "checks.md",
 ]);
 
+const interactiveTextFrom = (text: string): string =>
+  text.replace(/```runbook-ir\s*\n[\s\S]*?```/gu, "");
+
 export const ordinaryElicitationViolationsFrom = (
   snapshot: FlueConversationSnapshot,
   options: { readonly hasWorkpiece: boolean },
@@ -128,10 +131,7 @@ export const ordinaryElicitationViolationsFrom = (
     if (message.purpose === "assistant") {
       const questionCount = message.parts.reduce((count, part) => {
         if (part.type !== "text") return count;
-        const interactiveText = part.text.replace(
-          /```runbook-ir\s*\n[\s\S]*?```/gu,
-          "",
-        );
+        const interactiveText = interactiveTextFrom(part.text);
         return count + (interactiveText.match(/\?/gu)?.length ?? 0);
       }, 0);
       if (questionCount > 1) {
@@ -145,7 +145,10 @@ export const ordinaryElicitationViolationsFrom = (
       position += 1;
       if (message.purpose !== "assistant") continue;
       if (part.type === "text") {
-        if (firstQuestionPosition === undefined && part.text.includes("?")) {
+        if (
+          firstQuestionPosition === undefined &&
+          interactiveTextFrom(part.text).includes("?")
+        ) {
           firstQuestionPosition = position;
         }
         if (
