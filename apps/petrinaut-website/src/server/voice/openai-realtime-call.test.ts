@@ -86,7 +86,7 @@ describe("OpenAI Realtime call handler", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  test("forwards only the SDP and server-owned duplex Realtime policy", async () => {
+  test("forwards only the SDP and server-owned half-duplex Realtime policy", async () => {
     const reportDiagnostic = vi.fn();
     const fetch = vi.fn<typeof globalThis.fetch>(
       async () =>
@@ -131,16 +131,16 @@ describe("OpenAI Realtime call handler", () => {
       type: "realtime",
       model: "gpt-realtime-2",
       output_modalities: ["audio"],
-      tool_choice: "required",
-      tools: [{ name: "continue_interview", type: "function" }],
+      tool_choice: "none",
+      tools: [],
       audio: {
         input: {
           transcription: { model: "gpt-4o-transcribe", language: "en" },
           turn_detection: {
             type: "semantic_vad",
             eagerness: "low",
-            create_response: true,
-            interrupt_response: true,
+            create_response: false,
+            interrupt_response: false,
           },
         },
       },

@@ -50,6 +50,14 @@ const noop = () => {};
 // instead of letting jsdom log a not-implemented error per render.
 beforeAll(() => {
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      public disconnect() {}
+      public observe() {}
+      public unobserve() {}
+    },
+  );
 });
 
 afterEach(() => {
@@ -234,17 +242,23 @@ describe("AiAssistantContents", () => {
     ).not.toBeNull();
   });
 
-  test("keeps the session's controls in the dock", () => {
+  test("keeps handoff and canonical playback controls in the Voice dock", async () => {
     const store = createVoiceSessionStore();
     const actions = {
       end: vi.fn(),
       pause: vi.fn(),
+      readFullResponse: vi.fn(),
       reconnect: vi.fn(),
+      repeatQuestion: vi.fn(),
       resume: vi.fn(),
       setMicrophoneMuted: vi.fn(),
+      takeTurn: vi.fn(),
     };
     store.setActions(actions);
     store.setState({
+      canReadFullResponse: true,
+      canRepeatQuestion: true,
+      canTakeTurn: true,
       errorMessage: null,
       microphoneLevel: 0.4,
       microphoneMuted: false,
@@ -273,9 +287,45 @@ describe("AiAssistantContents", () => {
     fireEvent.click(
       within(dock).getByRole("button", { name: "End voice mode" }),
     );
+    fireEvent.click(within(dock).getByRole("button", { name: "Your turn" }));
 
     expect(actions.setMicrophoneMuted).toHaveBeenCalledWith(true);
     expect(actions.end).toHaveBeenCalledOnce();
+    expect(actions.takeTurn).toHaveBeenCalledOnce();
+
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "Voice playback options" }),
+    );
+    const repeatQuestion = await screen.findByRole("menuitem", {
+      name: "Repeat question",
+    });
+    const repeatMenu = screen.getByRole("menu");
+    fireEvent.keyDown(repeatMenu, { key: "ArrowDown" });
+    await waitFor(() =>
+      expect(repeatMenu.getAttribute("aria-activedescendant")).toBe(
+        repeatQuestion.id,
+      ),
+    );
+    fireEvent.keyDown(repeatMenu, { key: "Enter" });
+    await waitFor(() => expect(actions.repeatQuestion).toHaveBeenCalledOnce());
+
+    fireEvent.click(
+      within(dock).getByRole("button", { name: "Voice playback options" }),
+    );
+    const readFullResponse = await screen.findByRole("menuitem", {
+      name: "Read full response",
+    });
+    const fullResponseMenu = screen.getByRole("menu");
+    fireEvent.keyDown(fullResponseMenu, { key: "End" });
+    await waitFor(() =>
+      expect(fullResponseMenu.getAttribute("aria-activedescendant")).toBe(
+        readFullResponse.id,
+      ),
+    );
+    fireEvent.keyDown(fullResponseMenu, { key: "Enter" });
+    await waitFor(() =>
+      expect(actions.readFullResponse).toHaveBeenCalledOnce(),
+    );
 
     act(() => {
       store.setState({
@@ -292,6 +342,20 @@ describe("AiAssistantContents", () => {
     );
 
     expect(actions.setMicrophoneMuted).toHaveBeenLastCalledWith(false);
+
+    act(() => {
+      store.setState({
+        errorMessage: null,
+        microphoneLevel: 0,
+        microphoneMuted: false,
+        notice: "We didn't catch that. Please try again.",
+        phase: "listening",
+      });
+    });
+    expect(
+      within(dock).getAllByText("We didn't catch that. Please try again."),
+    ).not.toHaveLength(0);
+    expect(dock.getAttribute("data-voice-notice")).toBe("visible");
   });
 
   test("shows a voice recovery failure as a toast", async () => {
@@ -554,7 +618,7 @@ describe("AiAssistantContents", () => {
     ).toBeNull();
   });
 
-  test("marks only the exact submitted interactive-tool answer named by voice metadata", () => {
+  test("marks every submitted interactive-tool answer named by voice metadata", () => {
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
       inputSchema: {
@@ -570,7 +634,10 @@ describe("AiAssistantContents", () => {
     const messages = [
       {
         id: "assistant-questions",
-        metadata: { source: "voice", toolCallId: "question-voice" },
+        metadata: {
+          source: "voice",
+          voiceToolCallIds: ["question-voice-1", "question-voice-2"],
+        },
         role: "assistant",
         parts: [
           {
@@ -585,9 +652,17 @@ describe("AiAssistantContents", () => {
             type: "dynamic-tool",
             toolName: "answerQuestion",
             state: "output-available",
-            toolCallId: "question-voice",
+            toolCallId: "question-voice-1",
             input: { question: "Who approves it?" },
             output: { answer: "The shift lead" },
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "answerQuestion",
+            state: "output-available",
+            toolCallId: "question-voice-2",
+            input: { question: "Who acts next?" },
+            output: { answer: "The dispatcher" },
           },
         ],
       },
@@ -606,13 +681,18 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    expect(
-      within(
-        screen
-          .getByText("question-voice: The shift lead")
-          .closest("[data-tool-call-id]")!,
-      ).getByTestId("voice-input-provenance"),
-    ).not.toBeNull();
+    for (const [toolCallId, answer] of [
+      ["question-voice-1", "The shift lead"],
+      ["question-voice-2", "The dispatcher"],
+    ]) {
+      expect(
+        within(
+          screen
+            .getByText(`${toolCallId}: ${answer}`)
+            .closest("[data-tool-call-id]")!,
+        ).getByTestId("voice-input-provenance"),
+      ).not.toBeNull();
+    }
     expect(
       within(
         screen
@@ -620,7 +700,7 @@ describe("AiAssistantContents", () => {
           .closest("[data-tool-call-id]")!,
       ).queryByTestId("voice-input-provenance"),
     ).toBeNull();
-    expect(screen.getAllByTestId("voice-input-provenance")).toHaveLength(1);
+    expect(screen.getAllByTestId("voice-input-provenance")).toHaveLength(2);
     expect(screen.queryByText("The shift lead", { exact: true })).toBeNull();
     expect(container.querySelectorAll('[data-role="user"]')).toHaveLength(0);
   });

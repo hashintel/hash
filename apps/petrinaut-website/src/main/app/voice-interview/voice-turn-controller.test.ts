@@ -16,10 +16,11 @@ const createHarness = () => {
     | undefined;
   let bridgeListener: ((event: RealtimeBrunchBridgeEvent) => void) | undefined;
   const session = {
-    cancelOutput: vi.fn(),
+    cancelOutput: vi.fn<() => Promise<void>>(async () => undefined),
     connect: vi.fn(async () => ++epoch),
     disconnect: vi.fn(async () => undefined),
     setMicrophoneEnabled: vi.fn(),
+    speakCanonical: vi.fn(),
     subscribe: vi.fn(
       (listener: (event: OpenAIRealtimeSessionEvent) => void) => {
         sessionListener = listener;
@@ -30,6 +31,7 @@ const createHarness = () => {
     ),
   };
   const bridge = {
+    cancelPendingSpeech: vi.fn(),
     start: vi.fn(),
     stop: vi.fn(),
     subscribe: vi.fn((listener: (event: RealtimeBrunchBridgeEvent) => void) => {
@@ -73,7 +75,7 @@ const question = (
   id,
   messageId: `message-${id}`,
   partId: id,
-  source: "brunch-ask",
+  source: "assistant-text",
   text,
 });
 
@@ -84,33 +86,33 @@ describe("VoiceTurnController", () => {
 
     harness.emitBridge({
       answer: "Private finalized answer",
-      callId: "call-opaque",
+      deliveryId: "call-opaque",
       type: "submission-started",
     });
     harness.advanceTime(10);
     harness.emitBridge({
-      callId: "call-opaque",
+      deliveryId: "call-opaque",
       submissionId: "submission-opaque",
       type: "submission-admitted",
     });
     harness.emitBridge({
-      callId: "call-opaque",
+      deliveryId: "call-opaque",
       submissionId: "submission-opaque",
       type: "submission-admitted",
     });
     harness.advanceTime(10);
     harness.emitBridge({
       answer: "Private finalized answer",
-      callId: "call-opaque",
+      deliveryId: "call-opaque",
       type: "submission-accepted",
     });
     harness.emitBridge({
-      callId: "call-opaque",
+      deliveryId: "call-opaque",
       type: "canonical-text-ready",
     });
     harness.advanceTime(10);
     harness.emitBridge({
-      callId: "call-opaque",
+      deliveryId: "call-opaque",
       type: "submission-settled",
     });
     harness.advanceTime(10);
@@ -167,7 +169,7 @@ describe("VoiceTurnController", () => {
 
     await harness.controller.end();
     harness.emitBridge({
-      callId: "call-opaque",
+      deliveryId: "call-opaque",
       type: "submission-settled",
     });
     harness.emitSession(outputStarted);
@@ -199,7 +201,7 @@ describe("VoiceTurnController", () => {
     });
   });
 
-  test("keeps capture active while the interviewer speaks and interrupts automatically", async () => {
+  test("tracks assistant playback without admitting automatic barge-in", async () => {
     const harness = createHarness();
     await harness.controller.start();
 
@@ -222,18 +224,243 @@ describe("VoiceTurnController", () => {
     });
     expect(harness.controller.getSnapshot()).toMatchObject({
       microphoneEnabled: true,
-      output: "interrupted",
+      output: "speaking",
     });
     expect(harness.session.cancelOutput).not.toHaveBeenCalled();
   });
 
-  test("represents submitting and output independently without closing capture", async () => {
+  test("hands off an active response once and applies the latest mute preference after cancellation", async () => {
     const harness = createHarness();
+    let finishCancellation: (() => void) | undefined;
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question("ask-handoff")],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.session.cancelOutput.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finishCancellation = resolve;
+        }),
+    );
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-handoff",
+      speechRequestId: "speech-handoff",
+      type: "output-started",
+    });
+    harness.session.cancelOutput.mockClear();
+
+    expect(harness.controller.getSnapshot().canTakeTurn).toBe(true);
+    const handoff = harness.controller.takeTurn();
+    const repeatedHandoff = harness.controller.takeTurn();
+
+    expect(repeatedHandoff).toBe(handoff);
+    expect(harness.bridge.cancelPendingSpeech).toHaveBeenCalledOnce();
+    expect(harness.session.cancelOutput).toHaveBeenCalledOnce();
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canTakeTurn: false,
+      output: "cancelling",
+    });
+
+    harness.session.setMicrophoneEnabled.mockClear();
+    harness.controller.setMicrophoneMuted(true);
+    harness.controller.setMicrophoneMuted(false);
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot().microphoneEnabled).toBe(true);
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-handoff",
+      type: "output-interrupted",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-handoff",
+      status: "cancelled",
+      type: "response-terminal",
+    });
+    expect(harness.controller.getSnapshot().output).toBe("cancelling");
+
+    finishCancellation?.();
+    await handoff;
+
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledOnce();
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenCalledWith(true);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canTakeTurn: false,
+      microphoneEnabled: true,
+      output: "interrupted",
+    });
+  });
+
+  test("keeps the user turn when cancelled pending speech settles later", async () => {
+    const harness = createHarness();
+    harness.controller.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [question("ask-handoff")],
+      status: "ready",
+    });
+    await harness.controller.start();
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-handoff",
+      speechRequestId: "speech-handoff",
+      type: "output-started",
+    });
+
+    await harness.controller.takeTurn();
+    harness.session.setMicrophoneEnabled.mockClear();
+    harness.emitBridge({
+      deliveryId: "voice-1",
+      segments: [question("ask-late", "Retained late response")],
+      speechCancelled: true,
+      type: "canonical-response-ready",
+    });
+
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalled();
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      input: "listening",
+      microphoneEnabled: true,
+      output: "interrupted",
+    });
+  });
+
+  test("replays exact canonical response segments only after matching audio and response settlement", async () => {
+    const harness = createHarness();
+    const context = question("context", "Approval is required before release.");
+    const nextQuestion = question("ask-replay", "Who approves release?");
     await harness.controller.start();
 
     harness.emitBridge({
+      deliveryId: "voice-1",
+      segments: [context, nextQuestion],
+      type: "canonical-response-ready",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      speechRequestId: "speech-source",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      type: "output-stopped",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: false,
+      canRepeatQuestion: false,
+    });
+    harness.controller.readFullResponse();
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "unrelated-response",
+      status: "completed",
+      type: "response-terminal",
+    });
+    expect(harness.controller.getSnapshot().canRepeatQuestion).toBe(false);
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      status: "completed",
+      type: "response-terminal",
+    });
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: true,
+      canRepeatQuestion: true,
+    });
+
+    harness.controller.repeatQuestion();
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([nextQuestion]);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: false,
+      canRepeatQuestion: false,
+      output: "waiting-for-tool",
+    });
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-replay",
+      speechRequestId: "speech-replay",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-replay",
+      status: "completed",
+      type: "response-terminal",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-replay",
+      type: "output-stopped",
+    });
+    harness.controller.readFullResponse();
+
+    expect(harness.session.speakCanonical).toHaveBeenNthCalledWith(2, [
+      context,
+      nextQuestion,
+    ]);
+  });
+
+  test("disables replay while the user is capturing input", async () => {
+    const harness = createHarness();
+    const segment = question("ask-capture");
+    await harness.controller.start();
+    harness.emitBridge({
+      deliveryId: "voice-1",
+      segments: [segment],
+      type: "canonical-response-ready",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      speechRequestId: "speech-source",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      type: "output-stopped",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-source",
+      status: "completed",
+      type: "response-terminal",
+    });
+    expect(harness.controller.getSnapshot().canRepeatQuestion).toBe(true);
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      itemId: "item-user",
+      type: "input-speech-started",
+    });
+
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: false,
+      canRepeatQuestion: false,
+    });
+  });
+
+  test("keeps capture closed from submission until canonical output settles", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+    harness.session.setMicrophoneEnabled.mockClear();
+
+    harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
+      deliveryId: "call-1",
       type: "submission-started",
     });
     expect(harness.controller.getSnapshot()).toMatchObject({
@@ -243,13 +470,16 @@ describe("VoiceTurnController", () => {
       microphoneEnabled: true,
       output: "waiting-for-tool",
     });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(
+      false,
+    );
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
+      deliveryId: "call-1",
       type: "submission-accepted",
     });
     harness.emitBridge({
-      callId: "call-1",
+      deliveryId: "call-1",
       segments: [question("ask-2", "Who acts next?")],
       type: "canonical-response-ready",
     });
@@ -260,9 +490,33 @@ describe("VoiceTurnController", () => {
       microphoneEnabled: true,
       output: "waiting-for-tool",
     });
-    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalledWith(
-      false,
-    );
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalledWith(true);
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-next",
+      type: "canonical-speech-requested",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-next",
+      speechRequestId: "speech-next",
+      type: "output-started",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-next",
+      status: "completed",
+      type: "response-terminal",
+    });
+    expect(harness.session.setMicrophoneEnabled).not.toHaveBeenCalledWith(true);
+
+    harness.emitSession({
+      connectionEpoch: 1,
+      responseId: "response-next",
+      type: "output-stopped",
+    });
+    expect(harness.session.setMicrophoneEnabled).toHaveBeenLastCalledWith(true);
   });
 
   test("returns to listening after a durably stopped turn without speaking", async () => {
@@ -304,12 +558,12 @@ describe("VoiceTurnController", () => {
     await harness.controller.start();
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
+      deliveryId: "call-1",
       type: "submission-started",
     });
 
     harness.controller.pause();
-    harness.controller.resume();
+    await harness.controller.resume();
 
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "submitting",
@@ -319,11 +573,11 @@ describe("VoiceTurnController", () => {
 
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
+      deliveryId: "call-1",
       type: "submission-accepted",
     });
     harness.emitBridge({
-      callId: "call-1",
+      deliveryId: "call-1",
       segments: [question("ask-2", "Who acts next?")],
       type: "canonical-response-ready",
     });
@@ -344,7 +598,7 @@ describe("VoiceTurnController", () => {
     await harness.controller.start();
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
+      deliveryId: "call-1",
       type: "submission-started",
     });
 
@@ -355,11 +609,11 @@ describe("VoiceTurnController", () => {
     });
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
+      deliveryId: "call-1",
       type: "submission-accepted",
     });
     harness.emitBridge({
-      callId: "call-1",
+      deliveryId: "call-1",
       segments: [question("ask-2", "Who acts next?")],
       type: "canonical-response-ready",
     });
@@ -381,13 +635,13 @@ describe("VoiceTurnController", () => {
     await harness.controller.start();
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
+      deliveryId: "call-1",
       type: "submission-started",
     });
 
     harness.controller.pause();
     harness.emitBridge({
-      callId: "call-1",
+      deliveryId: "call-1",
       segments: [question("ask-2", "Who acts next?")],
       type: "canonical-response-ready",
     });
@@ -399,7 +653,7 @@ describe("VoiceTurnController", () => {
     });
     expect(harness.session.cancelOutput).toHaveBeenCalledTimes(2);
 
-    harness.controller.resume();
+    await harness.controller.resume();
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "listening",
       microphoneEnabled: true,
@@ -434,6 +688,33 @@ describe("VoiceTurnController", () => {
     expect(harness.submitText).not.toHaveBeenCalled();
   });
 
+  test.each(["empty", "failed"] as const)(
+    "reports a recoverable not-heard notice for a %s transcript",
+    async (reason) => {
+      const harness = createHarness();
+      await harness.controller.start();
+      harness.emitSession({
+        connectionEpoch: 1,
+        itemId: "item-1",
+        type: "input-speech-started",
+      });
+      harness.emitSession({
+        key: { connectionEpoch: 1, contentIndex: 0, itemId: "item-1" },
+        text: "Provisional words",
+        type: "partial",
+      });
+
+      harness.emitBridge({ reason, type: "transcript-rejected" });
+
+      expect(harness.controller.getSnapshot()).toMatchObject({
+        input: "listening",
+        inputNotice: "not-heard",
+        partialText: "",
+      });
+      expect(harness.submitText).not.toHaveBeenCalled();
+    },
+  );
+
   test("keeps completed display transcripts until submission and rejects late events", async () => {
     const harness = createHarness();
     await harness.controller.start();
@@ -449,11 +730,11 @@ describe("VoiceTurnController", () => {
     });
     harness.emitBridge({
       answer: "First answer",
-      callId: "call-1",
+      deliveryId: "call-1",
       type: "submission-started",
     });
     harness.emitBridge({
-      callId: "call-1",
+      deliveryId: "call-1",
       segments: [question("ask-2", "Who acts next?")],
       type: "canonical-response-ready",
     });
@@ -539,7 +820,7 @@ describe("VoiceTurnController", () => {
       output: "interrupted",
     });
 
-    harness.controller.resume();
+    await harness.controller.resume();
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "listening",
       microphoneEnabled: true,
@@ -617,7 +898,7 @@ describe("VoiceTurnController", () => {
       output: "idle",
     });
 
-    harness.controller.resume();
+    await harness.controller.resume();
     expect(harness.bridge.start).toHaveBeenCalledWith(1);
     expect(harness.controller.getSnapshot()).toMatchObject({
       input: "listening",
@@ -766,7 +1047,7 @@ describe("VoiceTurnController", () => {
     await harness.controller.start();
     harness.emitBridge({
       answer: "The supervisor approves it.",
-      callId: "call-1",
+      deliveryId: "call-1",
       type: "submission-started",
     });
     harness.emitBridge({
@@ -835,7 +1116,7 @@ describe("VoiceTurnController", () => {
     await bridgeFailure.controller.start();
     bridgeFailure.emitBridge({
       answer: "Pending answer",
-      callId: "call-1",
+      deliveryId: "call-1",
       type: "submission-started",
     });
     bridgeFailure.emitBridge({

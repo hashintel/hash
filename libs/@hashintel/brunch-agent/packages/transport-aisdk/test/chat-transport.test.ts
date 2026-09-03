@@ -427,3 +427,89 @@ test("reports a client-tool continuation against the resumed assistant id", asyn
     submissionId: admission.submissionId,
   });
 });
+
+test("replays a stable typed or Voice message with the same idempotency key", async () => {
+  const seenKeys = new Set<string>();
+  let admittedTurns = 0;
+  const send = vi.fn<FlueClient["send"]>(async (options) => {
+    const key = options.idempotencyKey;
+    if (key === undefined || !seenKeys.has(key)) {
+      admittedTurns += 1;
+      if (key !== undefined) seenKeys.add(key);
+      return admission;
+    }
+    return { ...admission, deduplicated: true };
+  });
+  const wait = vi.fn<FlueClient["wait"]>(async () => undefined);
+  const transport = createFlueChatTransport({
+    client: { send, wait } as Pick<FlueClient, "send" | "wait"> as FlueClient,
+    clientToolNames: new Set(),
+  });
+  const typedTurn = sendOptions([
+    {
+      id: "typed-message-1",
+      role: "user",
+      parts: [{ type: "text", text: "Admit this once." }],
+    },
+  ]);
+
+  const firstStream = await transport.sendMessages(typedTurn);
+  const replayedStream = await transport.sendMessages(typedTurn);
+  await Promise.all([readChunks(firstStream), readChunks(replayedStream)]);
+
+  expect(send).toHaveBeenNthCalledWith(
+    1,
+    expect.objectContaining({ idempotencyKey: "ai-sdk:typed-message-1" }),
+  );
+  expect(send).toHaveBeenNthCalledWith(
+    2,
+    expect.objectContaining({ idempotencyKey: "ai-sdk:typed-message-1" }),
+  );
+  expect(admittedTurns).toBe(1);
+
+  const voiceTurn = sendOptions([
+    {
+      id: "voice-realtime:7:item%2F1:0",
+      role: "user",
+      parts: [{ type: "text", text: "Voice transcript." }],
+    },
+  ]);
+  await readChunks(await transport.sendMessages(voiceTurn));
+  expect(send).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      idempotencyKey: "ai-sdk:voice-realtime:7:item%2F1:0",
+    }),
+  );
+});
+
+test("reports an idempotency conflict as a definite existing admission", async () => {
+  const send = vi.fn<FlueClient["send"]>(async () => {
+    throw new FlueApiError(409, {
+      error: {
+        details: "",
+        message: "The delivery key already names another payload.",
+        meta: { submissionId: "submission-existing" },
+        type: "submission_conflict",
+      },
+    });
+  });
+  const transport = createFlueChatTransport({
+    client: { send } as Pick<FlueClient, "send"> as FlueClient,
+    clientToolNames: new Set(),
+  });
+
+  await expect(
+    transport.sendMessages(
+      sendOptions([
+        {
+          id: "user-conflict",
+          role: "user",
+          parts: [{ type: "text", text: "Changed payload." }],
+        },
+      ]),
+    ),
+  ).rejects.toThrow(
+    "delivery key already belongs to admitted submission submission-existing",
+  );
+  expect(send).toHaveBeenCalledOnce();
+});

@@ -85,6 +85,65 @@ test("uses a recorded browser result even when it is null", () => {
   ]);
 });
 
+test("reconstructs durable voice provenance for each browser result", () => {
+  const snapshot: FlueConversationSnapshot = {
+    ...snapshotWithPendingClientTool,
+    messages: [
+      {
+        ...snapshotWithPendingClientTool.messages[0]!,
+        parts: [
+          ...snapshotWithPendingClientTool.messages[0]!.parts,
+          {
+            type: "dynamic-tool",
+            toolCallId: "tool-doc-2",
+            toolName: "readPetrinautDoc",
+            state: "output-available",
+            input: { doc: "ai-assistant" },
+            output: { awaiting: "client" },
+          },
+        ],
+      },
+      {
+        id: "signal-voice-results",
+        role: "system",
+        purpose: "dispatch",
+        display: "hidden",
+        signal: { tagName: CLIENT_TOOL_RESULT_SIGNAL },
+        parts: [
+          {
+            type: "text",
+            text: JSON.stringify([
+              {
+                toolCallId: "tool-doc-1",
+                toolName: "readPetrinautDoc",
+                output: "First guide",
+                source: "voice",
+              },
+              {
+                toolCallId: "tool-doc-2",
+                toolName: "readPetrinautDoc",
+                output: "Second guide",
+                source: "voice",
+              },
+            ]),
+            state: "done",
+          },
+        ],
+      },
+    ],
+  };
+
+  expect(snapshotToUiMessages(snapshot, projectionOptions)).toEqual([
+    expect.objectContaining({
+      id: "assistant-1",
+      metadata: {
+        source: "voice",
+        voiceToolCallIds: ["tool-doc-1", "tool-doc-2"],
+      },
+    }),
+  ]);
+});
+
 test("keeps Flue data parts on the AI SDK message", () => {
   const snapshot: FlueConversationSnapshot = {
     v: 1,
