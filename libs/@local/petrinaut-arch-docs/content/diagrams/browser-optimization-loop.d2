@@ -1,0 +1,25 @@
+# Hand-written; rendered by the arch-docs build.
+shape: sequence_diagram
+
+provider: Optimizations provider
+capability: Browser capability
+worker: Pyodide worker
+optuna: Optuna (optimizer-core)
+channel: Channel
+experiments: Experiments provider
+
+provider -> capability: createOptimizationRun(manifest)
+capability -> worker: "start { runId, description }"
+worker -> optuna: run_browser_study
+optuna -> worker: ask, suggest values
+worker -> capability: "evaluate { requestId, trial, suggestedValues }"
+capability -> channel: evaluateTrial(request)
+channel -> experiments: "runDetachedObjective (runCount = seeds, seeds pinned on the CPU)"
+experiments -> provider: frames stream into the followed selection
+experiments -> channel: "outcome: the result, or { reason, cancelled } when refused, failed or cancelled"
+channel -> capability: "{ objective, replicates } or { pruned, reason }"
+capability -> worker: "evaluated { requestId, outcome }"
+worker -> optuna: tell
+optuna -> worker: trial event with best
+worker -> capability: "trial { event }"
+capability -> provider: trial event through attachOptimizationRun

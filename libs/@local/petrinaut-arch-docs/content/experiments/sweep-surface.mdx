@@ -112,4 +112,8 @@ its objective as an expression metric, and returns the finished frames. The
 component keeps its own per-position cache and climbs the same run ladder for
 the selected point, streaming the objective's mean and median. The study's
 completed trials draw as projected markers over the locally computed fill —
-the first form of the optimizer streaming its evaluations back.
+the first form of the optimizer streaming its evaluations back. A study run in
+the browser streams its trials into this view as Optuna tells them, and its
+ring follows the record's `navigation` rather than component state, so the
+drawer's Parameters band and the plot move together
+([the browser runtime](doc:optimizer/browser-runtime)).

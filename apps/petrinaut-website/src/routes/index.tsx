@@ -4,6 +4,7 @@ import {
   useSearch,
 } from "@tanstack/react-router";
 
+import { BrowserOptimizationProvider } from "../main/app/browser-optimization-provider";
 import { LocalStorageDemoApp } from "../main/app/local-storage-demo/local-storage-demo-app";
 import {
   localStorageDemoRouteIdentity,
@@ -16,18 +17,20 @@ function IndexRoute() {
   const search = useSearch({ from: "/" });
 
   return (
-    <LocalStorageDemoApp
-      key={localStorageDemoRouteIdentity(search)}
-      onSearchChange={(nextSearch, history) => {
-        void navigate({
-          replace: history === "replace",
-          // Applied to the router's own previous search, so two navigations
-          // in one event compose instead of the second reverting the first.
-          search: (previous) => withBrunchFixtureKey(previous, nextSearch),
-        });
-      }}
-      search={search}
-    />
+    <BrowserOptimizationProvider>
+      <LocalStorageDemoApp
+        key={localStorageDemoRouteIdentity(search)}
+        onSearchChange={(nextSearch, history) => {
+          void navigate({
+            replace: history === "replace",
+            // Applied to the router's own previous search, so two navigations
+            // in one event compose instead of the second reverting the first.
+            search: (previous) => withBrunchFixtureKey(previous, nextSearch),
+          });
+        }}
+        search={search}
+      />
+    </BrowserOptimizationProvider>
   );
 }
 
