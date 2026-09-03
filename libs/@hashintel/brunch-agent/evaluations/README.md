@@ -49,3 +49,7 @@ eight-turn instruction is:
 When an instrument ceases to be supported, archive a short record under
 `docs/archive/evaluations/`, retain its observed output, and remove its executable source rather
 than leaving a live-looking compatibility copy.
+
+## Evidence identity across restacks
+
+A campaign's durable instrument identity is its manifest SHA-256 and ordered path/content hashes. Commit SHAs in manifests and run records are informational execution-time provenance, not primary keys or current-ancestry requirements. After a rebase or Graphite restack, verify content against the accepted manifest and optionally record a patch-equivalent navigation map; do not refreeze solely because commit identities changed, and do not require historical Git objects to remain reachable. If permanent commit retention is genuinely required, name an explicit durable ref or archived bundle.

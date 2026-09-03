@@ -1,8 +1,7 @@
 # ADR-0007: Harness teaching meets plugin content at fixed keys
 
 Date: 2026-08-25
-Status: accepted 2026-08-25 (Lu), with one caveat recorded as decision 9 — the key catalogue of
-decision 2 is a working set that two plugins converge on, not a list frozen by this record
+Status: historical; superseded for current implementation by the final [Mission 4 architecture](../mission-archive/4-core-plugin-elicitation-proof-of-life.md). The fixed-key/YAML/repertoire design below is not the current integration contract; its surviving ownership distinction is expressed by the independent core `elicitation` capability and plugin-owned target-pairing job guidance.
 Amends: [ADR-0006](0006-plugins-per-target-formalism.md), decision 2 (a plugin is no longer one
 Markdown file whose prose is concatenated whole; the machine-read tables become schema-validated
 data and the prose becomes cells under harness-owned keys) and decision 5 (the "later lift" of

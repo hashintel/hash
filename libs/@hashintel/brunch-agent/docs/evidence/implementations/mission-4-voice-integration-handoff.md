@@ -6,16 +6,16 @@ Status: **branch-close reconciliation; no Voice branch was merged or modified.**
 
 ## Compared heads
 
-Mission 4 implementation/evidence head `e42a53bcf9f97702d1e1cc6cf3fc59ecd60a6369` was compared with the current remote Voice stack before closure-only documentation was added:
+After `gt sync && gt restack`, Mission 4's current-ancestry implementation/evidence head is `1d3beb7644f987e0a8c895c5f2c2514ca3e429a3`; it is patch-equivalent to the historical paid-run head `e42a53bcf9f97702d1e1cc6cf3fc59ecd60a6369`. It was compared with the current remote Voice stack before closure-only documentation was added:
 
 | Surface | Head / PR | Observed purpose |
 | --- | --- | --- |
-| Mission 4 | `e42a53bcf9f97702d1e1cc6cf3fc59ecd60a6369` on `ln/fe-1563-redesign-runbook-workpiece` | Package-composed Brunch core capability and SDCPN job skill, production Flue evidence, persona harness |
+| Mission 4 | `1d3beb7644f987e0a8c895c5f2c2514ca3e429a3` on `ln/fe-1563-redesign-runbook-workpiece` | Package-composed Brunch core capability and SDCPN job skill, production Flue evidence, persona harness |
 | Spoken-response optimization | `c7fe8a2e68e8fdc37018b21ec2e9daf4e9ef7c82`, PR [#9496](https://github.com/hashintel/hash/pull/9496) | Voice-optimized Brunch response lifecycle |
 | Temporary Brunch ask shim | `252b9dbb0c77fae8cee45a506f09cac3e20c381c`, PR [#9507](https://github.com/hashintel/hash/pull/9507) | Dynamic client ask and correlated answer history |
 | Voice turn-taking and provenance | `a7b1115228df64f3592037cf2cd316a551d348fe`, PR [#9512](https://github.com/hashintel/hash/pull/9512) | Voice dock, interruption/cancellation, finalized-answer provenance, canonical transcript behavior |
 
-The latest Voice head descends through the temporary ask stack but not through this Mission 4 branch. Their common base is `807fc0481ae3eed147f911d5d4a49ef9031a8afe`, before Mission 4's current app/package restructuring.
+The latest Voice head descends through the temporary ask stack but not through this Mission 4 branch. After Graphite synchronization their common base remains `807fc0481ae3eed147f911d5d4a49ef9031a8afe`, before Mission 4's current app/package restructuring. Mission 4's parent is now `ln/fe-1525-headless-runbook-pn` at `d8c17c37fae80c57d3b22b748a94ab39e96e18ee`; the Voice stack begins from a separate PR based on `main`. Neither stack currently includes the other.
 
 ## Integration rule
 
