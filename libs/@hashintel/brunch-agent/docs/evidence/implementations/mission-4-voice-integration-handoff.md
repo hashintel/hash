@@ -21,6 +21,15 @@ The latest Voice head descends through the temporary ask stack but not through t
 
 Port Voice behavior onto Mission 4's current ownership and file topology; do not resolve conflicts by restoring the Voice branch's older app-local Brunch stub.
 
+A read-only `git merge-tree --write-tree HEAD origin/kah-6800-improve-petrinaut-voice-turn-taking-and-answer-provenance` after the final restack confirmed five direct conflict surfaces:
+
+- modify/delete conflict at the obsolete `apps/brunch-agent/src/agents/chat-agent.ts` path;
+- content conflicts in `apps/brunch-agent/src/conversation/client-tools.ts` and `conversation/ui-stream.ts`;
+- a directory-rename split for the old `apps/brunch-agent/src/tools/` directory, which Mission 4 split by ownership while Voice adds `brunch-ask.ts` there;
+- content conflicts in `apps/brunch-agent/test/petrinaut-chat.integration.ts` and `petrinaut-chat.test.ts`.
+
+`apps/brunch-agent/package.json`, `conversation/transcript.ts`, `test/flue-transcript.test.ts`, `test/petrinaut-chat-result.ts`, and `yarn.lock` merged mechanically in that probe, but still require semantic review. The Petrinaut panel/Voice subtree did not directly conflict because Mission 4 does not modify it. This probe changed no branch or worktree.
+
 | Voice-stack edit location | Current Mission 4 authority | Reconciliation |
 | --- | --- | --- |
 | `apps/brunch-agent/src/agents/chat-agent.ts` | `apps/brunch-agent/src/agents/chat-agent/agent.ts`, `@hashintel/brunch-agent/flue`, and `@hashintel/brunch-agent-plugin-sdcpn/flue` | Preserve `useBrunchAgent()` and `useSdcpnPlugin()`. Mount only the Voice-required client tool and narrowly scoped host instruction in the current composer. Do not restore `confirm-path` or the concise stub prompt. |
