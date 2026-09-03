@@ -12,6 +12,18 @@ Cold-start reads are [`docs/evidence/implementations/mission-4-voice-integration
 
 Make the mounted Flue conversation route the only product door into a Brunch conversation, and make Voice a faithful audio projection of that one canonical conversation. One finalized spoken answer and one typed panel message must both enter the owning Flue conversation through `@flue/sdk` against `/agents/chat/:instanceId`, and the corresponding canonical Brunch response must reach visible text and TTS without another model rewriting the text. Do this now because Mission 4 established the canonical agent composition while two transports still exist to the same conversation: the Voice preview's AI SDK composer path and the server-side `/api/chat` adapter, which admits through a different code path than the SDK does. Routing Voice onto Flue while keeping `/api/chat` for typed text would harden the split into two routes, two ownership rules, and two protocols; the least mechanism is one route, with the AI SDK reduced to the panel's rendering contract behind a host-supplied browser `ChatTransport`.
 
+### Product-manager litmus
+
+Adopted on restack onto the parent spine's 2026-09-03 litmus reframing. A product manager who did not watch the work must be able to notice the advance; the single-route consolidation, the browser `ChatTransport`, the deleted `/api/chat` door, and the repurposed transport package are internal sequencing and must not be presented as the advance.
+
+**Release note:** in the Petrinaut Brunch panel you can type or speak to Brunch in one conversation; what you hear is exactly what Brunch wrote; **Stop** really stops Brunch rather than just hiding its answer; and reopening the panel shows the same conversation you left, without re-sending or replaying anything.
+
+**Demo script (no engineer present), on the deployment posture available at cut time — the local `yarn dev:brunch` pair with the Brunch preview selected:** open the panel and type one message; read the reply. Start Voice mode and speak one answer; see exactly one new user message appear, then see Brunch's reply appear as text and hear the same words read aloud. Speak over it once; playback stops and the text stays. Ask a second question and press **Stop** while Brunch is still working; the conversation shows that turn as stopped, not as an answer. Close the panel and reopen the same conversation: the typed turn, the spoken turn, and the stopped turn are all there exactly as you saw them, nothing replays, and nothing is sent again.
+
+**Previously impossible:** Stop only cancelled the browser request while Brunch kept working, so reopening the panel showed a full answer you had stopped; typed and spoken turns entered Brunch through different doors, so a spoken turn could be held or ordered differently from a typed one.
+
+**Completion:** the mission is complete at the contract stratum below — when a product manager can run this demo script end to end and proof leaf 8's witness bundle records it — not when the first typed or spoken turn crosses the route. The first green typed-panel tracer and the first green Voice tracer are internal milestones.
+
 ### Recut rationale
 
 Inspected at the real boundary on 2026-09-03 (`node_modules/@flue/sdk/docs/reference/streaming-protocol.md`, `packages/transport-aisdk/src/index.ts`, `apps/brunch-agent/src/conversation/ui-stream.ts`, `apps/petrinaut-website/src/main/app/local-storage-demo/brunch-panel-transport.ts`, `node_modules/ai/dist/index.d.ts` `ChatTransport`):
