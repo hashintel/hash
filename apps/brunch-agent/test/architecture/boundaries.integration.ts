@@ -160,17 +160,20 @@ describe("dependency direction", () => {
     }
   });
 
-  test("transports consume their wire encoder only — never core, a binding, or Flue", () => {
+  test("transports consume their wire encoder and the public Flue client only — never core, a binding, or the runtime", () => {
     const transports = byRole("transport");
     expect(transports.length).toBeGreaterThan(0);
     for (const transport of transports) {
-      expect(runtimeDependencies(transport).sort()).toEqual(["ai", "valibot"]);
+      expect(runtimeDependencies(transport).sort()).toEqual([
+        "@flue/sdk",
+        "ai",
+      ]);
       for (const file of sourceFiles(transport).filter((file) =>
         file.path.startsWith(join(transport.path, "src")),
       )) {
         for (const specifier of importedPackages(file)) {
           if (specifier.startsWith("node:")) continue;
-          expect(["ai", "valibot"]).toContain(packageOf(specifier));
+          expect(["@flue/sdk", "ai"]).toContain(packageOf(specifier));
         }
       }
     }
@@ -436,6 +439,12 @@ describe("the HASH smoke is runnable without a model key or a network (spec §12
       "Defines the scripted pi-ai faux provider loaded only by the hermetic prospective-runner test — no provider key, no socket, and no network model call.",
     "apps/brunch-agent/test/runbook-headless.integration.ts":
       "Boots the built Flue ChatAgent with pi-ai's faux provider and a headless Petrinaut client to prove validated construct-only tool flow without a provider key, socket, or network model call.",
+    "libs/@hashintel/brunch-agent/packages/transport-aisdk/test/chat-transport.test.ts":
+      "Types a stubbed public Flue client and stream chunks to prove finite AI SDK projection and client-tool signal admission — no runtime boot, provider key, socket, or model call.",
+    "libs/@hashintel/brunch-agent/packages/transport-aisdk/test/transcript.test.ts":
+      "Types Flue's public conversation snapshot so history can be projected into AI SDK messages without a runtime boot, provider key, socket, or model call.",
+    "libs/@hashintel/brunch-agent/packages/transport-aisdk/test/ui-stream.test.ts":
+      "Types Flue conversation-stream chunks so the finite AI SDK projector can be unit-tested without a runtime boot, provider key, socket, or model call.",
   };
 
   test("no test file carries a live model credential", () => {

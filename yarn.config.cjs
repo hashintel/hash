@@ -332,6 +332,7 @@ function enforceBrunchTransportBoundary({ Yarn }) {
   for (const dependency of Yarn.dependencies()) {
     if (
       !dependency.workspace.ident.startsWith(brunchAgentTransportPrefix) ||
+      dependency.ident === "@flue/sdk" ||
       (dependency.ident !== brunchAgentCore &&
         !dependency.ident.startsWith(`${brunchAgentCore}-`) &&
         !brunchSubstrateScopes.some((scope) =>
