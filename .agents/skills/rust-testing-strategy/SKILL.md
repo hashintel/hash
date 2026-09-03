@@ -65,10 +65,43 @@ metadata:
 ## Test Organization
 
 - Group related tests into appropriate modules
-- Use descriptive test names that explain the test scenario and expected outcome
-- Do not prefix test function names with `test_` (avoid `test::test_name` patterns)
 - Use helper functions to avoid code duplication in tests
 - Consider using parameterized tests for testing similar functionality with different inputs
+
+## Test Naming
+
+A test name is a short label with the shape `<subject>_<case>[_<variant>]`:
+
+- `<subject>` is the operation, type or function under test. It does not repeat the name of the enclosing module, because the test path already carries that.
+- `<case>` is what distinguishes this test from its siblings under the same subject: an operand shape, an input class or a code path.
+- `<variant>` narrows the case further when two tests share one, and is otherwise absent.
+
+The shape buys two things. Tests of one subject share a prefix, so a module's test list reads as a table of subject × case and `cargo nextest run -E 'test(<subject>_)'` selects the family. And the name says what the test covers while the doc comment says what it asserts and why, so neither repeats the other.
+
+What a name never carries:
+
+- A `test_` prefix, an article, a narration verb (`should`, `works`, `correctly`) or a `when`/`with`/`that` clause. The story a sentence-name would tell belongs in the test's doc comment and its assertion messages.
+- More than about six words. Three to five is the norm, and a longer name is a test doing too much, where the fix is one test per case.
+- The rejection, for a negative case. The name is the input class (`ice_invalid_subscript_type`, `rank_positions_short`, `rows_out_of_domain`), with no `err_` prefix or `_err` suffix. An outcome word is the final token only when the case alone is ambiguous (`eq_same_type_accepted`).
+
+Where the shape meets a test framework:
+
+- A property test, or an `rstest` case set, takes its name from the property it tests (`lattice_laws`, `solve_anti_symmetry`, `condensation_is_dag`).
+- Renaming a snapshot test renames the snapshot files derived from its name in the same change.
+
+```rust
+// Before: a sentence, three cases in one test, the outcome in the name.
+async fn rank_pair_tampers_name_their_own_variants() { /* … */ }
+async fn short_node_identity_table_refuses() { /* … */ }
+
+// After: one label per case, the outcome in the doc comment.
+/// Open refuses a reverse rank permutation short of the code column, under `Columns`.
+async fn rank_positions_short() { /* … */ }
+/// Open refuses a reverse rank permutation that is no permutation, under `RankInverse`.
+async fn rank_positions_constant() { /* … */ }
+/// Open refuses a node identity table short of the code column, under `Identities`.
+async fn node_identities_short() { /* … */ }
+```
 
 ## Test Code Quality
 
