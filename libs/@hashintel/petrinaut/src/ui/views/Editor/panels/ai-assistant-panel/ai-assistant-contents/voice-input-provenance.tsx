@@ -13,7 +13,7 @@ const iconStyle = css({
   borderRadius: "full",
   backgroundColor: "blue.a30",
   color: "blue.s110",
-  verticalAlign: "[-2px]",
+  verticalAlign: "middle",
 });
 
 export const VoiceInputProvenance = () => (
