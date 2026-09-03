@@ -96,7 +96,9 @@ A mock fixture has this shape and should live with the evaluation protocol that 
 
 The final Pi tool details contain every observed server call and every hosted client call with sequence, Flue submission id, tool call id, tool name, executor (`server`, `mock`, or `real-headless`), outcome, input, and output/error. `renderResult` shows a concise `### Tool activity` list beneath `## Brunch`; raw values remain in details and canonical tool activity remains available through the transcript.
 
-When `--brunch-evidence-dir <attempt-directory>` is supplied, every settled `history()` read atomically refreshes `snapshot.json`, `transcript.md`, `trace.json`, and `trace.md` in that directory before `brunch_turn` returns or handles a pending client tool. The snapshot is canonical; transcript and trace are deterministic projections. This retention also occurs before host-none reports an unsupported client-tool suspension.
+When `--brunch-evidence-dir <attempt-directory>` is supplied, every settled `history()` read atomically refreshes `snapshot.json`, `transcript.md`, `trace.json`, `trace.md`, any recovered `workpiece.md` plus `workpiece-source.json`, and `manifest.json` in that directory before `brunch_turn` returns or handles a pending client tool. The snapshot is canonical; transcript, trace, and workpiece recovery are deterministic projections. This retention also occurs before host-none reports an unsupported client-tool suspension.
+
+Create the protocol-owned `run.json` in the attempt directory before launch; it is included in `manifest.json` without being interpreted by the harness. After adding `validity.json` or `adjudication.md`, refresh all sibling hashes with `yarn workspace @apps/brunch-agent proof:manifest -- <attempt-directory>`. Temporary files and `manifest.json` itself are excluded from the manifest.
 
 Pi's tool API requires TypeBox parameter schemas, so `typebox` is declared here for that Pi-facing boundary only. Brunch's own boundaries remain Valibot.
 

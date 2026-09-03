@@ -12,6 +12,7 @@
     "lint:eslint": "oxlint --type-aware --type-check --report-unused-disable-directives-severity=error .",
     "lint:tsc": "tsgo --noEmit",
     "petrinaut:dev": "vite dev --config petrinaut-local.vite.config.ts",
+    "proof:manifest": "node --experimental-strip-types src/evaluations/persona/refresh-proof-manifest.ts",
     "runbook:headless": "vite build && node --experimental-strip-types src/evaluations/runbook/construction-run.ts",
     "test:unit": "vitest run --config vitest.config.ts",
     "transcript": "node --experimental-strip-types src/diagnostics/transcript-cli.ts"

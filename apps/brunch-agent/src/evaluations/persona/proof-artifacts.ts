@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, rename, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
 import {
@@ -9,6 +9,7 @@ import {
 
 import { isAwaitingClient } from "../../conversation/client-tools.ts";
 import { formatFlueTranscript } from "../../conversation/transcript.ts";
+import { recoverRunbookWorkpiece } from "../runbook/artifacts.ts";
 
 interface ProofEventBase {
   readonly sequence: number;
@@ -219,12 +220,49 @@ const atomicWrite = async (path: string, content: string): Promise<void> => {
   await rename(temporaryPath, path);
 };
 
+export interface ProofArtifactManifest {
+  readonly algorithm: "sha256";
+  readonly files: readonly {
+    readonly path: string;
+    readonly sha256: string;
+  }[];
+}
+
+export const refreshProofManifest = async (
+  directory: string,
+): Promise<ProofArtifactManifest> => {
+  const names = (await readdir(directory, { withFileTypes: true }))
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        entry.name !== "manifest.json" &&
+        !entry.name.endsWith(".tmp"),
+    )
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right));
+  const files = await Promise.all(
+    names.map(async (name) => ({
+      path: name,
+      sha256: createHash("sha256")
+        .update(await readFile(join(directory, name)))
+        .digest("hex"),
+    })),
+  );
+  const manifest: ProofArtifactManifest = { algorithm: "sha256", files };
+  await atomicWrite(
+    join(directory, "manifest.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+  );
+  return manifest;
+};
+
 export const writeProofArtifacts = async (
   directory: string,
   snapshot: FlueConversationSnapshot,
 ): Promise<void> => {
   await mkdir(directory, { recursive: true });
   const trace = deriveProofTrace(snapshot);
+  const workpiece = recoverRunbookWorkpiece(snapshot);
   await Promise.all([
     atomicWrite(
       join(directory, "snapshot.json"),
@@ -239,5 +277,18 @@ export const writeProofArtifacts = async (
       `${JSON.stringify(trace, null, 2)}\n`,
     ),
     atomicWrite(join(directory, "trace.md"), formatProofTrace(trace)),
+    ...(workpiece === undefined
+      ? []
+      : [
+          atomicWrite(
+            join(directory, "workpiece.md"),
+            `${workpiece.content}\n`,
+          ),
+          atomicWrite(
+            join(directory, "workpiece-source.json"),
+            `${JSON.stringify(workpiece, null, 2)}\n`,
+          ),
+        ]),
   ]);
+  await refreshProofManifest(directory);
 };

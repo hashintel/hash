@@ -88,7 +88,7 @@ No run may begin until focused tests prove all of the following against canonica
 3. Canonical ordering distinguishes a profile/template read before text from one after text in the same turn.
 4. Workpiece recovery records source message id and binds it to the raw snapshot.
 5. Construct-only results expose activated skill names so ruler item 4c is decidable.
-6. A manifest hashes every retained artifact and records source/frozen commit, slot, attempt, models, reasoning settings, host, validity, and stop reason.
+6. A protocol-owned `run.json` records source/frozen commit, slot, attempt, models, reasoning settings, and host; `validity.json` records validity and stop reason; a refreshable manifest hashes both records and every other retained artifact.
 
 Mechanism code may not classify semantic turns or decide pass/fail. The independent adjudicator applies the ruler to the trace and visible text.
 
@@ -104,13 +104,14 @@ Mechanism code may not classify semantic turns or decide pass/fail. The independ
 
 Write each admitted attempt under `docs/evidence/evaluations/mission-4-proof-of-life-v1/runs/<attempt-id>/`:
 
+- `run.json` — protocol-owned attempt identity, source/frozen commit, exact requested/reported models, reasoning settings, host, budgets, and launch time, written before admission;
 - `snapshot.json` — canonical settled `history()` snapshot;
 - `transcript.md` — formatted projection of that snapshot;
 - `trace.json` and `trace.md` — mechanically equivalent ordered events;
 - `validity.json` — mechanical validity and stop reason;
 - `adjudication.md` — fresh-context quoted ruler application when technically usable;
 - `workpiece.md` — only when mechanically recovered from a `runbook-ir` block;
-- `manifest.json` — identities, settings, source/frozen commit, and SHA-256 for every sibling artifact.
+- `manifest.json` — SHA-256 for every sibling artifact; refresh it after adding or changing validity/adjudication records with `yarn workspace @apps/brunch-agent proof:manifest -- <attempt-directory>`.
 
 Campaign root files must include the frozen protocol/instrument manifest, attempt ledger, spend/usage ledger, and final adjudication. Invalid and non-qualifying attempts remain visible in the ledger and are never included in the `3/3` numerator or denominator.
 

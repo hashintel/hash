@@ -1,4 +1,5 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -203,15 +204,29 @@ test("atomically writes the canonical snapshot and its derived projections", asy
   const directory = await mkdtemp(join(tmpdir(), "brunch-proof-"));
   temporaryDirectories.push(directory);
 
+  await writeFile(
+    join(directory, "run.json"),
+    `${JSON.stringify({ attemptId: "attempt-1", slot: "probe" })}\n`,
+  );
   await writeProofArtifacts(directory, snapshot);
 
-  const [snapshotJson, transcript, traceJson, traceMarkdown] =
-    await Promise.all([
-      readFile(join(directory, "snapshot.json"), "utf8"),
-      readFile(join(directory, "transcript.md"), "utf8"),
-      readFile(join(directory, "trace.json"), "utf8"),
-      readFile(join(directory, "trace.md"), "utf8"),
-    ]);
+  const [
+    snapshotJson,
+    transcript,
+    traceJson,
+    traceMarkdown,
+    workpiece,
+    workpieceSourceJson,
+    manifestJson,
+  ] = await Promise.all([
+    readFile(join(directory, "snapshot.json"), "utf8"),
+    readFile(join(directory, "transcript.md"), "utf8"),
+    readFile(join(directory, "trace.json"), "utf8"),
+    readFile(join(directory, "trace.md"), "utf8"),
+    readFile(join(directory, "workpiece.md"), "utf8"),
+    readFile(join(directory, "workpiece-source.json"), "utf8"),
+    readFile(join(directory, "manifest.json"), "utf8"),
+  ]);
 
   expect(JSON.parse(snapshotJson)).toEqual(snapshot);
   expect(transcript).toContain("Help me model this.");
@@ -220,5 +235,28 @@ test("atomically writes the canonical snapshot and its derived projections", asy
   expect(traceMarkdown).toContain("2. turn 1: `activate(sdcpn-modelling, ok)`");
   expect(traceMarkdown).toContain(
     "7. turn 1: `text(hasWorkpiece=true)` — message `assistant-1`",
+  );
+  expect(workpiece).toBe("# Current workpiece\n");
+  expect(JSON.parse(workpieceSourceJson)).toMatchObject({
+    sourceMessageId: "assistant-1",
+  });
+
+  const manifest = JSON.parse(manifestJson) as {
+    files: { path: string; sha256: string }[];
+  };
+  expect(manifest.files.map(({ path }) => path)).toEqual([
+    "run.json",
+    "snapshot.json",
+    "trace.json",
+    "trace.md",
+    "transcript.md",
+    "workpiece-source.json",
+    "workpiece.md",
+  ]);
+  const snapshotEntry = manifest.files.find(
+    ({ path }) => path === "snapshot.json",
+  );
+  expect(snapshotEntry?.sha256).toBe(
+    createHash("sha256").update(snapshotJson).digest("hex"),
   );
 });
