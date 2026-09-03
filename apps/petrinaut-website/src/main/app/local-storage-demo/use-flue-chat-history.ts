@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import {
-  CLIENT_TOOL_RESULT_SIGNAL,
-  snapshotToUiMessages,
-} from "@hashintel/brunch-agent-transport-aisdk";
+import { snapshotToUiMessages } from "@hashintel/brunch-agent-transport-aisdk";
 import { readPetrinautDocToolName } from "@hashintel/petrinaut-core";
 
 import type {
@@ -23,7 +20,6 @@ const projectPetrinautMessages = (
   // same catalog Petrinaut's message type exposes.
   snapshotToUiMessages(conversation, {
     clientToolNames: new Set([readPetrinautDocToolName]),
-    clientToolResultSignal: CLIENT_TOOL_RESULT_SIGNAL,
   }) as PetrinautAiMessage[];
 
 export const useFlueChatHistory = (

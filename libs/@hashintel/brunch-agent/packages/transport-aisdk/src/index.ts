@@ -1,14 +1,14 @@
 import { FlueApiError, FlueExecutionError } from "@flue/sdk";
 import { getToolName, isToolUIPart } from "ai";
 
+import { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
 import { createFlueUiStream } from "./ui-stream";
 
 import type { AgentSendResult, DeliveredMessage, FlueClient } from "@flue/sdk";
 import type { ChatTransport, UIMessage, UIMessageChunk } from "ai";
 
-export const CLIENT_TOOL_RESULT_SIGNAL = "client-tool-result";
-
 export { BRUNCH_CONVERSATION_HEADER, BRUNCH_PRINCIPAL_HEADER } from "./headers";
+export { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
 export {
   agentOwnershipHeaders,
   flueConversationIdWeb,
@@ -31,7 +31,6 @@ export interface ClientToolResult {
 export interface FlueChatTransportOptions {
   readonly client: FlueClient;
   readonly clientToolNames: ReadonlySet<string>;
-  readonly clientToolResultSignal: string;
   readonly onAdmission?: (event: {
     readonly admission: AgentSendResult;
     readonly kind: "client-tool-result" | "user";
@@ -250,8 +249,8 @@ export const createFlueChatTransport = <
             }
             return {
               kind: "signal",
-              type: options.clientToolResultSignal,
-              tagName: options.clientToolResultSignal,
+              type: CLIENT_TOOL_RESULT_SIGNAL,
+              tagName: CLIENT_TOOL_RESULT_SIGNAL,
               body: JSON.stringify(toolResults),
               attributes: {
                 toolCallIds: toolResults

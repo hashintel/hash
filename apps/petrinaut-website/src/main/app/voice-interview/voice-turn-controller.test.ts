@@ -6,9 +6,11 @@ import { VoiceTurnController } from "./voice-turn-controller";
 import type { CanonicalSpeechSegment } from "./canonical-speech";
 import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
 import type { RealtimeBrunchBridgeEvent } from "./realtime-brunch-bridge";
+import type { VoiceLatencyEvent } from "./voice-turn-controller";
 
 const createHarness = () => {
   let epoch = 0;
+  let now = 0;
   let sessionListener:
     | ((event: OpenAIRealtimeSessionEvent) => void)
     | undefined;
@@ -39,14 +41,25 @@ const createHarness = () => {
     updateChat: vi.fn(),
   };
   const submitText = vi.fn(async () => ({ kind: "message" as const }));
-  const controller = new VoiceTurnController({ bridge, session, submitText });
+  const latencyEvents: VoiceLatencyEvent[] = [];
+  const controller = new VoiceTurnController({
+    bridge,
+    now: () => now,
+    onLatencyEvent: (event) => latencyEvents.push(event),
+    session,
+    submitText,
+  });
 
   return {
+    advanceTime: (elapsedMs: number) => {
+      now += elapsedMs;
+    },
     bridge,
     controller,
     emitBridge: (event: RealtimeBrunchBridgeEvent) => bridgeListener?.(event),
     emitSession: (event: OpenAIRealtimeSessionEvent) =>
       sessionListener?.(event),
+    latencyEvents,
     session,
     submitText,
   };
@@ -65,6 +78,92 @@ const question = (
 });
 
 describe("VoiceTurnController", () => {
+  test("records the content-free Voice lifecycle once in causal order", async () => {
+    const harness = createHarness();
+    await harness.controller.start();
+
+    harness.emitBridge({
+      answer: "Private finalized answer",
+      callId: "call-opaque",
+      type: "submission-started",
+    });
+    harness.advanceTime(10);
+    harness.emitBridge({
+      answer: "Private finalized answer",
+      callId: "call-opaque",
+      type: "submission-accepted",
+    });
+    harness.advanceTime(10);
+    harness.emitBridge({
+      callId: "call-opaque",
+      type: "canonical-text-ready",
+    });
+    harness.advanceTime(10);
+    harness.emitBridge({
+      callId: "call-opaque",
+      type: "submission-settled",
+    });
+    harness.advanceTime(10);
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-opaque",
+      type: "canonical-speech-requested",
+    });
+    harness.emitSession({
+      connectionEpoch: 1,
+      speechRequestId: "speech-duplicate",
+      type: "canonical-speech-requested",
+    });
+    harness.advanceTime(10);
+    const outputStarted: OpenAIRealtimeSessionEvent = {
+      connectionEpoch: 1,
+      responseId: "response-opaque",
+      speechRequestId: "speech-opaque",
+      type: "output-started",
+    };
+    harness.emitSession(outputStarted);
+    harness.emitSession(outputStarted);
+
+    expect(harness.latencyEvents).toEqual([
+      {
+        correlationId: "call-opaque",
+        elapsedMs: 10,
+        name: "submission-admitted",
+      },
+      {
+        correlationId: "call-opaque",
+        elapsedMs: 20,
+        name: "first-canonical-text",
+      },
+      {
+        correlationId: "call-opaque",
+        elapsedMs: 30,
+        name: "submission-settled",
+      },
+      {
+        correlationId: "call-opaque",
+        elapsedMs: 40,
+        name: "first-tts-request",
+      },
+      {
+        correlationId: "call-opaque",
+        elapsedMs: 50,
+        name: "first-tts-audio",
+      },
+    ]);
+    expect(JSON.stringify(harness.latencyEvents)).not.toContain(
+      "Private finalized answer",
+    );
+
+    await harness.controller.end();
+    harness.emitBridge({
+      callId: "call-opaque",
+      type: "submission-settled",
+    });
+    harness.emitSession(outputStarted);
+    expect(harness.latencyEvents).toHaveLength(5);
+  });
+
   test("opens a continuous microphone before starting canonical question speech", async () => {
     const harness = createHarness();
     const order: string[] = [];
@@ -97,6 +196,7 @@ describe("VoiceTurnController", () => {
     harness.emitSession({
       connectionEpoch: 1,
       responseId: "response-1",
+      speechRequestId: "speech-1",
       type: "output-started",
     });
     expect(harness.controller.getSnapshot()).toMatchObject({
@@ -380,6 +480,7 @@ describe("VoiceTurnController", () => {
     harness.emitSession({
       connectionEpoch: 1,
       responseId: "response-1",
+      speechRequestId: "speech-1",
       type: "output-started",
     });
 
@@ -407,6 +508,7 @@ describe("VoiceTurnController", () => {
     harness.emitSession({
       connectionEpoch: 1,
       responseId: "response-1",
+      speechRequestId: "speech-1",
       type: "output-started",
     });
 
@@ -490,6 +592,7 @@ describe("VoiceTurnController", () => {
     harness.emitSession({
       connectionEpoch: 1,
       responseId: "response-after-pause",
+      speechRequestId: "speech-after-pause",
       type: "output-started",
     });
 
@@ -509,6 +612,7 @@ describe("VoiceTurnController", () => {
     harness.emitSession({
       connectionEpoch: 1,
       responseId: "stale-response",
+      speechRequestId: "stale-speech",
       type: "output-started",
     });
 

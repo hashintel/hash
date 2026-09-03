@@ -203,6 +203,8 @@ describe("RealtimeBrunchBridge", () => {
     expect(harness.events.map(({ type }) => type)).toEqual([
       "submission-started",
       "submission-accepted",
+      "canonical-text-ready",
+      "submission-settled",
       "canonical-response-ready",
     ]);
   });
@@ -262,6 +264,8 @@ describe("RealtimeBrunchBridge", () => {
     expect(harness.events.map(({ type }) => type)).toEqual([
       "submission-started",
       "submission-accepted",
+      "canonical-text-ready",
+      "submission-settled",
       "canonical-response-ready",
     ]);
   });

@@ -80,6 +80,14 @@ export type RealtimeBrunchBridgeEvent =
       readonly type: "canonical-response-ready";
     }
   | {
+      readonly callId: string;
+      readonly type: "canonical-text-ready";
+    }
+  | {
+      readonly callId: string;
+      readonly type: "submission-settled";
+    }
+  | {
       readonly code: RealtimeBridgeErrorCode;
       readonly message: string;
       readonly type: "error";
@@ -422,6 +430,8 @@ export class RealtimeBrunchBridge {
       return;
     }
 
+    this.#emit({ callId: active.callId, type: "canonical-text-ready" });
+    this.#emit({ callId: active.callId, type: "submission-settled" });
     try {
       this.#session.completeFunctionCall(active.callId, responseSegments);
     } catch {

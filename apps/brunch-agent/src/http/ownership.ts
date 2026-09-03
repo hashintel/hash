@@ -29,7 +29,7 @@ export const agentOwnershipGuard = (mountPrefix: string): MiddlewareHandler => {
       .find((segment) => segment.length > 0);
     if (
       instanceId === undefined ||
-      !ownsFlueInstance(principalKey, conversationId, instanceId)
+      !ownsFlueInstance({ principalKey, conversationId }, instanceId)
     ) {
       return context.json({ error: "forbidden" }, 403);
     }

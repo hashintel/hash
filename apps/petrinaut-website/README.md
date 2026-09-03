@@ -89,12 +89,7 @@ disclosure before requesting microphone access. The disclosure also provides a
 microphone check and is remembered in browser storage only after Voice mode
 starts.
 
-When Brunch is selected, typed and finalized spoken turns both enter the same
-mounted Flue conversation route. **Stop** requests a durable Brunch abort before
-the panel cancels its local response stream. Closing or speaking over Voice
-playback only stops local media; it does not alter canonical conversation
-history. Reopening the same net restores its observed Flue conversation without
-resubmitting a turn or replaying settled audio.
+When Brunch is selected, typed and finalized spoken turns both enter the same mounted Flue conversation route. **Stop** requests a durable Brunch abort before the panel cancels its local response stream. Closing or speaking over Voice playback only stops local media; it does not alter canonical conversation history. Reopening the same net restores its observed Flue conversation without resubmitting a turn or replaying settled audio.
 
 An active session stays at the end of the transcript. Its compact divider shows
 a waveform and **Connecting**, **Listening**, **Speaking**, **Paused**, or a
@@ -117,13 +112,7 @@ Realtime call endpoint. The provider key, model, instructions, tools, language,
 and vocabulary policy stay server-side. The session uses semantic VAD with low
 eagerness so natural thinking pauses are less likely to end an answer early.
 
-Realtime is the disposable media plane: it carries continuous microphone and
-remote audio, detects complete turns, and handles barge-in. Brunch remains the
-control plane and sole authority for questions, captures, state, completion,
-and durable history. The browser bridge accepts only the configured
-`continue_interview` function, validates and serializes its arguments, rejects
-duplicate or stale calls, and submits the answer through Petrinaut's shared
-composer path with pending-question correlation.
+Realtime is the disposable media plane: it carries continuous microphone and remote audio, detects complete turns, and handles barge-in. Brunch remains the control plane and sole authority for questions, captures, state, completion, and durable history. The browser bridge accepts only the configured `continue_interview` function, validates and serializes its arguments, rejects duplicate or stale calls, and submits the answer through Petrinaut's shared composer path with pending-question correlation.
 
 The bridge waits for the correlated Brunch turn before returning canonical
 speech segments to Realtime. It then requests audio with tools disabled and
@@ -133,14 +122,7 @@ microphone stays active while the interviewer speaks and while Brunch is
 working. Speaking over assistant audio interrupts playback automatically;
 WebRTC truncates provider-side unheard audio without changing Brunch history.
 
-The local Brunch preview reaches the mounted route through its same-origin,
-protocol-preserving proxy; this does not establish remote authentication or
-public ingress. Denying microphone permission leaves the text composer
-available and submits nothing to Brunch. When Voice mode cannot continue, the
-inline recovery state distinguishes microphone, connection, and other Voice
-failures, explains the next action, and offers **Reconnect** where appropriate.
-Sanitized error codes and diagnostic references remain collapsed under
-**Technical details**.
+The local Brunch preview reaches the mounted route through its same-origin, protocol-preserving proxy; this does not establish remote authentication or public ingress. Denying microphone permission leaves the text composer available and submits nothing to Brunch. When Voice mode cannot continue, the inline recovery state distinguishes microphone, connection, and other Voice failures, explains the next action, and offers **Reconnect** where appropriate. Sanitized error codes and diagnostic references remain collapsed under **Technical details**.
 
 Realtime connection, transcription, and canonical speech timings use random
 request IDs, and the existing Brunch transport provides its own request

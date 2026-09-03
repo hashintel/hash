@@ -36,7 +36,7 @@ test("delegates one typed message to the supplied Flue conversation", async () =
     send,
     wait,
   } as Pick<FlueClient, "send" | "wait"> as FlueClient;
-  const tracker = new BrunchPanelConversationTracker("conversation-stable");
+  const tracker = new BrunchPanelConversationTracker();
   const onAdmission = vi.fn();
   const transport = createBrunchPanelTransport(
     Promise.resolve(client),

@@ -48,6 +48,8 @@ export type PetrinautAiChatTransport = PetrinautAiTransport;
 export type PetrinautAiStopResult = "already-settled" | "stop-requested";
 
 export type PetrinautAiAssistant = {
+  /** Whether the panel may clear this conversation. Defaults to true. */
+  canClearMessages?: boolean;
   /** Optional host-owned identity; `useChat` generates one when omitted. */
   conversationId?: string;
   /** Host-owned dynamic tools that render inline in the AI conversation. */

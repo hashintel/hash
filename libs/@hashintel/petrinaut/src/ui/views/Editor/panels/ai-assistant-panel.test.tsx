@@ -244,6 +244,86 @@ afterEach(() => {
 });
 
 describe("AiAssistantPanel composer submissions", () => {
+  test("disables Clear when the host owns canonical conversation history", () => {
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: async () => new ReadableStream<UIMessageChunk>(),
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        canClearMessages: false,
+        messages: [
+          {
+            id: "assistant-canonical",
+            role: "assistant",
+            parts: [{ type: "text", text: "Canonical history" }],
+          },
+        ],
+        transport,
+      },
+    });
+
+    expect(
+      screen.getByRole<HTMLButtonElement>("button", {
+        name: "Clear AI chat",
+      }).disabled,
+    ).toBe(true);
+  });
+
+  test("hydrates asynchronous host messages once for each conversation", async () => {
+    const sendMessages = vi.fn<PetrinautAiTransport["sendMessages"]>(
+      async () => new ReadableStream<UIMessageChunk>(),
+    );
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages,
+    };
+    const { rerenderPanel } = renderTestPanel({
+      aiAssistant: {
+        conversationId: "conversation-1",
+        transport,
+      },
+    });
+
+    expect(screen.queryByText("Rehydrated first conversation")).toBeNull();
+
+    rerenderPanel({
+      conversationId: "conversation-1",
+      messages: [
+        {
+          id: "assistant-history-1",
+          role: "assistant",
+          parts: [{ type: "text", text: "Rehydrated first conversation" }],
+        },
+      ],
+      transport,
+    });
+
+    expect(
+      await screen.findByText("Rehydrated first conversation"),
+    ).not.toBeNull();
+    expect(sendMessages).not.toHaveBeenCalled();
+
+    rerenderPanel({
+      conversationId: "conversation-2",
+      messages: [
+        {
+          id: "assistant-history-2",
+          role: "assistant",
+          parts: [{ type: "text", text: "Rehydrated second conversation" }],
+        },
+      ],
+      transport,
+    });
+
+    expect(
+      await screen.findByText("Rehydrated second conversation"),
+    ).not.toBeNull();
+    expect(screen.queryByText("Rehydrated first conversation")).toBeNull();
+    expect(sendMessages).not.toHaveBeenCalled();
+  });
+
   test("invalidates registered Voice controls before typed submit while active publication is pending", async () => {
     const events: string[] = [];
     let finishVoiceEnd: (() => void) | undefined;
