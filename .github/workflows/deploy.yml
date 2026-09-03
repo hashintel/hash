@@ -137,7 +137,7 @@ jobs:
               push:       ["ecr", "ghcr"],
               dockerfile: "apps/petrinaut-opt/docker/Dockerfile",
               context:    ".",
-              paths:      ["apps/petrinaut-opt", "libs/@hashintel/petrinaut-cli", "libs/@hashintel/petrinaut-core", "libs/@local/petrinaut-python"],
+              paths:      ["apps/petrinaut-opt", "libs/@hashintel/petrinaut-cli", "libs/@hashintel/petrinaut-core", "libs/@local/petrinaut-optimizer-core", "libs/@local/petrinaut-python"],
               ecs: [{ service: "petrinaut-opt", cluster: "h-stage-euc1-app", service_name: "h-stage-euc1-app-petrinaut-opt" }]
             },
             {

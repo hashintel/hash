@@ -2,7 +2,7 @@
 
 Python service running Optuna optimization studies over Petrinaut simulations.
 
-- Depends on `@local/petrinaut-python` only; nothing in the service references `petrinaut-cli` directly.
+- Depends on `@local/petrinaut-python` and `@local/petrinaut-optimizer-core`; nothing in the service references `petrinaut-cli` directly. Study construction, suggestion and the trial cap live in the core, shared with the in-browser optimizer; the service adds the HTTP API, the worker thread and telemetry.
 - Experiment and optimization code stays pure: the host owns worker counts, threads, and other OS concerns.
 - Run tests with `uv run pytest` from this directory.
 

@@ -11,18 +11,15 @@ import os
 import threading
 from collections.abc import Callable, Mapping
 from contextlib import suppress
-from datetime import datetime, timezone
-from typing import Any, Literal, TypeAlias, cast
+from typing import Any, cast
 
 import optuna
+import petrinaut_optimizer_core as optimizer_core
 from opentelemetry import context as otel_context
 from opentelemetry import trace
 from opentelemetry.trace import Span, Status, StatusCode
 from petrinaut import (
-    OptimizationBooleanParameter,
     OptimizationDescribeResult,
-    OptimizationFloatParameter,
-    OptimizationIntParameter,
     OptimizationSession,
     PetrinautRunError,
 )
@@ -31,27 +28,16 @@ from src.utils import Phase, set_status
 
 log = logging.getLogger("pn_optimize")
 tracer = trace.get_tracer("pn_optimize")
-optuna.logging.set_verbosity(optuna.logging.WARNING)
 
-SAMPLERS = {
-    "tpe": optuna.samplers.TPESampler,
-    "random": optuna.samplers.RandomSampler,
-}
-DEFAULT_STUDY_NAME = "opt_study"
-# The service-side mirror of the optimization manifest's trial cap; it also
+# The optimization manifest's trial cap, mirrored by the shared core; it also
 # bounds every run's in-memory event log to one frame per trial plus a
 # handful of control frames, even against a study reporting a huge trial count.
-MAX_STUDY_TRIALS = 1000
+MAX_STUDY_TRIALS = optimizer_core.MAX_STUDY_TRIALS
 MAX_STUDY_SECONDS_ENVIRONMENT_VARIABLE = "HASH_PETRINAUT_OPT_MAX_STUDY_SECONDS"
 DEFAULT_MAX_STUDY_SECONDS = 900.0
 _DISCONNECT_POLL_SECONDS = 0.1
 _WORKER_SHUTDOWN_TIMEOUT_SECONDS = 12
 _SENTINEL = object()
-
-Scalar: TypeAlias = int | float | bool
-ParameterDescriptor: TypeAlias = (
-    OptimizationFloatParameter | OptimizationIntParameter | OptimizationBooleanParameter
-)
 
 
 def max_study_seconds_from_environment() -> float:
@@ -73,67 +59,6 @@ def max_study_seconds_from_environment() -> float:
     return value
 
 
-def _parse_description(
-    description: OptimizationDescribeResult,
-) -> tuple[
-    Literal["maximize", "minimize"],
-    str,
-    int,
-    int,
-    tuple[ParameterDescriptor, ...],
-]:
-    """Check the semantic rules the protocol schema cannot express.
-
-    The shape is already proven: the bindings validate every describe result
-    against the CLI's published schema before this sees it. What remains are
-    cross-field rules — bound ordering, log-scale domains, duplicates — and
-    this service's own study limits.
-    """
-    sampler = description.study.sampler.value
-    if sampler not in SAMPLERS:
-        raise ValueError(f"unsupported Optuna sampler: {sampler!r}")
-    n_trials = description.study.trials
-    if n_trials > MAX_STUDY_TRIALS:
-        raise ValueError(
-            f"optimization.describe study.trials must not exceed {MAX_STUDY_TRIALS}"
-        )
-    seed = description.study.seed
-    if seed < 0:
-        raise ValueError(
-            "optimization.describe study.seed must be a non-negative integer"
-        )
-
-    identifiers: set[str] = set()
-    for parameter in description.parameters:
-        identifier = parameter.identifier
-        if identifier in identifiers:
-            raise ValueError(f'duplicate optimization parameter "{identifier}"')
-        identifiers.add(identifier)
-
-        if isinstance(parameter, OptimizationBooleanParameter):
-            continue
-        if not math.isfinite(parameter.minimum) or not math.isfinite(parameter.maximum):
-            raise ValueError(f"{identifier} bounds must be finite numbers")
-        if parameter.minimum >= parameter.maximum:
-            raise ValueError(f"{identifier}.maximum must exceed minimum")
-        if parameter.scale.value == "log" and parameter.minimum <= 0:
-            raise ValueError(f"{identifier}.minimum must be positive for log scale")
-        if (
-            isinstance(parameter, OptimizationIntParameter)
-            and parameter.scale.value == "log"
-            and parameter.step != 1
-        ):
-            raise ValueError(f"{identifier}.step must be 1 for log scale")
-
-    return (
-        description.direction.value,
-        sampler,
-        n_trials,
-        seed,
-        tuple(description.parameters),
-    )
-
-
 class PetrinautOptimizer:
     """Optimize the flat parameter descriptors the bindings report."""
 
@@ -152,51 +77,19 @@ class PetrinautOptimizer:
             if isinstance(raw, OptimizationDescribeResult)
             else OptimizationDescribeResult.model_validate(raw)
         )
-        direction, sampler_name, n_trials, seed, parameters = _parse_description(
-            described
+        self.description = optimizer_core.parse_description(
+            described.model_dump(mode="json")
         )
-
-        self.parameters = parameters
-        self.study_name = f"{DEFAULT_STUDY_NAME}_{datetime.now(tz=timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')}"
-        sampler_options.setdefault("seed", seed)
-        self.sampler = SAMPLERS[sampler_name](**sampler_options)
-        self.direction = direction
-        self.n_trials = n_trials
-        self.study = optuna.create_study(
-            study_name=self.study_name,
-            storage=None,
-            load_if_exists=False,
-            direction=self.direction,
-            sampler=self.sampler,
-        )
+        self.parameters = self.description.parameters
+        self.direction = self.description.direction
+        self.n_trials = self.description.trials
+        self.study = optimizer_core.create_study(self.description, **sampler_options)
         self.pn_model = pn_model
         self.lock = threading.Lock()
 
-    def suggest(self, trial: optuna.Trial) -> dict[str, Scalar]:
+    def suggest(self, trial: optuna.Trial) -> dict[str, optimizer_core.Scalar]:
         """Ask Optuna for each non-fixed scenario parameter the study describes."""
-        values: dict[str, Scalar] = {}
-        for parameter in self.parameters:
-            identifier = parameter.identifier
-            if isinstance(parameter, OptimizationFloatParameter):
-                values[identifier] = trial.suggest_float(
-                    identifier,
-                    parameter.minimum,
-                    parameter.maximum,
-                    log=parameter.scale.value == "log",
-                )
-            elif isinstance(parameter, OptimizationIntParameter):
-                values[identifier] = trial.suggest_int(
-                    identifier,
-                    int(parameter.minimum),
-                    int(parameter.maximum),
-                    step=int(parameter.step),
-                    log=parameter.scale.value == "log",
-                )
-            else:
-                values[identifier] = trial.suggest_categorical(
-                    identifier, [False, True]
-                )
-        return values
+        return optimizer_core.suggest(trial, self.parameters)
 
     def objective(self, trial: optuna.Trial) -> float:
         """Propose one flat parameter set and ask Petrinaut to evaluate it."""
