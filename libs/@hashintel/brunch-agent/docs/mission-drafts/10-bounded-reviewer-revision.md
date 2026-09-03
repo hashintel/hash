@@ -22,7 +22,13 @@ A fresh builder must read these sources before cutting or implementing this clus
 
 ## Visible product advance
 
-Through the deployed Petrinaut/Brunch boundary, a scenario-authorized reviewer selects one operational meaning, challenges or refines it in 3–5 focused turns, inspects the attributed prior and current meaning plus a semantic change account, and sees either:
+**Release note:** a second person corrects the model in conversation and only the relevant part of the net changes.
+
+**Demo script (no engineer present):** open the demo net in the Petrinaut Brunch panel, on the deployment posture named at cut time. As a reviewer who was not the original expert, challenge one modelled fact in a few focused turns. Watch that region of the net update, with the correction attributed to you and the original expert's evidence still visible in the why answer. Confirm the rest of the net did not move. Then ask for a second change you are not entitled to make, or that the evidence does not support, and watch Brunch decline or qualify rather than comply.
+
+**Previously impossible:** changing the net meant regenerating it or hand-editing it, and no one could tell afterwards who had said what.
+
+Through the Petrinaut Brunch panel, a scenario-authorized reviewer selects one operational meaning, challenges or refines it in 3–5 focused turns, inspects the attributed prior and current meaning plus a semantic change account, and sees either:
 
 - a linked SDCPN-region patch with unrelated identities and behavior unchanged;
 - an explicitly justified widening of the impact boundary; or
@@ -31,6 +37,8 @@ Through the deployed Petrinaut/Brunch boundary, a scenario-authorized reviewer s
 The updated why answer retains the original expert evidence, adds the reviewer evidence with attribution, and explains the disposition of prior meaning. Recency by itself never grants overwrite authority.
 
 The broader demonstration portfolio is not yet enumerated. The accepted floor here is the selected FE-1476 review/revise case plus the revision classes named below, not every operational process or every possible correction.
+
+**Completion:** the mission is done when both the accepted correction and a visible refusal or qualification appear in the same demo at the readiness gate below. One successful correction alone is the throughline tracer inside the mission.
 
 ## Contract stratum
 
@@ -81,7 +89,7 @@ One scenario-declared, consequential operational distinction must cross the real
 - updated element → derivation → workpiece revision → original and reviewer evidence provenance; and
 - unchanged ids and behavior outside the declared impact, except where a visible, justified widening is accepted.
 
-The default tracer should be a correction because it proves canonical change. It must be selected so a mistaken overwrite, qualification, coexistence, and conflict treatment would be observably different. One successful correction is only throughline proof; it does not close the class stratum.
+The default tracer should be a correction because it proves canonical change. It must be selected so a mistaken overwrite, qualification, coexistence, and conflict treatment would be observably different. One successful correction is only throughline proof and the first internal milestone; it does not close the class stratum and it is not mission completion, which additionally requires the demo's visible refusal or qualification.
 
 ## Readiness ratchet
 

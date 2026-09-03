@@ -15,9 +15,15 @@
 
 ## Visible product advance
 
-Opening one stable demo fixture resumes its canonical Brunch conversation, current Markdown workpiece, and associated Petrinaut document. Brunch uses realistic conversation evidence to maintain the workpiece, reads the live Petrinaut document through real browser client tools, makes one meaningful supported change, saves the coherent bundle, and a second tab reopens the same saved state and can continue.
+**Release note:** Brunch edits the Petrinaut net you are looking at from the conversation, and your work survives closing the tab.
 
-The fixture may be deliberately prepared. It need not be a complete persona-produced Mission 4 artifact, a promoted quality baseline, or proof of comprehensive provenance. Prepared status, authored material, limitations, and any model-produced updates remain explicit.
+**Demo script (no engineer present):** open the stable demo fixture; the canonical Brunch conversation, current Markdown workpiece, and associated Petrinaut document come back together. Tell Brunch one new realistic thing about the process. Watch the workpiece update and a meaningful change appear in the live net. Save. Open the same fixture in a second tab and continue the conversation from the saved state.
+
+**Previously impossible:** Brunch only produced off-canvas net JSON for manual load; nothing it did touched the live document or survived a reload.
+
+The fixture may be deliberately prepared. It need not be a complete persona-produced Mission 4 artifact, a promoted quality baseline, or proof of comprehensive provenance. Prepared status, authored material, limitations, and any model-produced updates remain explicit, and the demo script says so out loud.
+
+**Completion:** the mission is done when a product manager can run the demo script end to end at the readiness gate below, not when the first browser mutation lands.
 
 ## Contract stratum
 
@@ -61,7 +67,7 @@ For one deliberately prepared fixture:
 4. canonical Petrinaut state is non-empty and visibly corresponds to the selected meaning; and
 5. after save, a second tab opens the same fixture id, observes the same settled conversation/workpiece/document revision, and successfully continues or reads it without duplicate submission or identity drift.
 
-The visible/usable proof artifact is the stable demo URL or fixture selector plus the before/after fixture manifest, exact Flue snapshot, Markdown workpiece revisions, and canonical Petrinaut document revisions. This proves viability, not automatic full-net projection, selected-pair provenance breadth, remote replacement durability, concurrent editing, or Mission 3/4 quality superiority.
+One pass through those five steps is the first internal milestone, not mission completion. The retained oracles are the stable demo URL or fixture selector plus the before/after fixture manifest, exact Flue snapshot, Markdown workpiece revisions, and canonical Petrinaut document revisions; they are evidence for the builder, not the visible advance. This proves viability, not automatic full-net projection, selected-pair provenance breadth, remote replacement durability, concurrent editing, or Mission 3/4 quality superiority.
 
 ## Readiness ratchet
 
@@ -74,7 +80,7 @@ The visible/usable proof artifact is the stable demo URL or fixture selector plu
 
 ### Readiness gate after the new throughline
 
-Before accepting this single-fixture capability, close stale fixture/workpiece/document revision refusal, duplicate tool delivery, read/write failure visibility, unsupported meaning, no-op mutation honesty, partial-save behavior, second-tab rehydration, separate identity integrity, and one negative mutation case. Do not close every consequential-element provenance link, remote task replacement, broad scenario coverage, or repeated automatic projection here; those become Mission 7 or Mission 9 obligations only after this tracer exposes a finite peer set and load-bearing seams.
+This gate is the mission's completion bar: the demo script above must work for the named fixture. Before accepting this single-fixture capability, close stale fixture/workpiece/document revision refusal, duplicate tool delivery, read/write failure visibility, unsupported meaning, no-op mutation honesty, partial-save behavior, second-tab rehydration, separate identity integrity, and one negative mutation case. Do not close every consequential-element provenance link, remote task replacement, broad scenario coverage, or repeated automatic projection here; those become Mission 7 or Mission 9 obligations only after this tracer exposes a finite peer set and load-bearing seams.
 
 ## Candidate evidence and oracles
 

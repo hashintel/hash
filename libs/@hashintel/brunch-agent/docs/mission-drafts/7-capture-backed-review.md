@@ -25,7 +25,13 @@ Mission 4 closed without admitting its full run and therefore retained no source
 
 ## Visible product advance
 
-Through deployed Brunch, a reviewer types the visible name or id of a consequential element in a selected, honestly prebuilt SDCPN and receives:
+**Release note:** ask Brunch why any element in the demo net exists and get back what the expert actually said.
+
+**Demo script (no engineer present):** open the honestly prebuilt demo net in the Petrinaut Brunch panel, on the deployment posture named at cut time (a locally run panel is acceptable; remote durability stays in the readiness gate). Pick any consequential element and type its visible name or id. Read the current workpiece passage that supports it, the prebuilder's rationale including any assumption, default, omission, or loss, and the exact quoted excerpts from the source conversation. Pick the element the demo marks as unsupported and watch Brunch decline rather than improvise.
+
+**Previously impossible:** nothing connected a net element to the conversation evidence behind it; a reviewer had to trust the modeller.
+
+Each answer contains:
 
 1. the current selected Markdown workpiece passage that supports the modelled meaning;
 2. the prebuilder's explicit projection rationale, including consequential assumption, uncertainty, omission, default, or representational loss; and
@@ -36,6 +42,10 @@ The response visibly identifies both the workpiece and SDCPN as prebuilt. It mak
 This is FE-1476 beats 1–3 over one honest pair. The six-beat story is the integrated floor, not the product or demo ceiling; the broader scenario portfolio remains unenumerated and must be named when this draft is cut.
 
 Typing a visible element name or id is the accepted first interaction. Click-to-chat and automatic canvas-selection context are deferred unless textual identification proves ambiguous or burdensome in observed review use.
+
+**Completion:** the mission is done when every consequential element in the demo net either resolves or visibly declines, at the readiness gate below. One resolving element is the throughline tracer inside the mission, not the mission.
+
+**Scope decision, 2026-09-03:** the earlier one-element cut was judged too small under the product-manager litmus. The owner expanded Mission 7 to the whole demo net rather than consolidating it. Folding it into Mission 6 was rejected because it would load the viability tracer with capture durability and delay it. Folding it into Mission 9 was rejected because it would tie explainability, a stakeholder outcome in its own right (FE-1478), to the unproved provider-schema projection route. Expansion is cheap: capture durability and the why route cost the same for one element or all of them, and the extra work is preparing provenance for the rest of the pair. Reverse toward consolidation with Mission 9 only if preparing whole-net provenance by hand proves to be the dominant cost with no mechanism strain, in which case the why route should ride on Mission 9's generated derivations instead.
 
 ## Contract stratum
 
@@ -85,12 +95,12 @@ Actor and authority crossings:
 
 ## Throughline proof floor
 
-At the real deployed product boundary:
+At the real product boundary named at cut time:
 
 1. one consequential visible element in the honestly prebuilt SDCPN resolves from its stable id or unambiguous visible name to the current workpiece passage, prebuilder projection rationale, exact source excerpts, and at least one relevant uncertainty, assumption, omission, default, or loss; and
 2. one deliberately broken or stale link visibly returns unsupported/unavailable without fabricated rationale or evidence.
 
-This floor proves a real capture-backed why route for one element and its honest negative control. It does not close the selected pair's whole provenance stratum, prove automatic projection, establish an observer, type capture semantics, or enumerate the broader scenario portfolio.
+This floor is the first internal milestone: a real capture-backed why route for one element and its honest negative control. It is not mission completion, which is the readiness gate over every consequential element. It does not close the selected pair's whole provenance stratum, prove automatic projection, establish an observer, type capture semantics, or enumerate the broader scenario portfolio.
 
 ## Readiness ratchet
 
@@ -120,7 +130,7 @@ If any inherited item is unavailable at cut time, name it as open inherited clos
 
 ### Readiness gate after the new throughline
 
-Before Mission 7 can ship its selected-pair claim, assess every consequential element and close:
+This gate is Mission 7's completion bar. Before Mission 7 can ship its selected-pair claim, assess every consequential element in the demo net and close:
 
 - resolvable current provenance or an explicit unsupported/unlinked disposition;
 - duplicate ids/names, ambiguous name lookup, stale workpiece revision, stale derivation, deleted/renamed element, missing capture, and mismatched owner;

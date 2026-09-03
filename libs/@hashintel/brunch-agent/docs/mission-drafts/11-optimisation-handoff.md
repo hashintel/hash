@@ -18,6 +18,12 @@ A fresh builder must read these durable sources before deepening this cluster:
 
 ## Visible product advance
 
+**Release note:** Chris and Yannis start an optimisation experiment on a model that came out of Brunch, without asking anyone to reconstruct it.
+
+**Demo script (no engineer present):** the handoff package opens in the form the consumers accepted, carries the scenario, parameters, assumptions, omissions, losses, and limits, and the agreed experiment begins. This mission passes the product-manager litmus by construction because its outcome is an external consumer acting on Brunch output.
+
+**Previously impossible:** no Brunch output had an external consumer.
+
 Mission 11 broadens the proven bounded projection/revision path only across the scenario Chris and Yannis accept for one optimisation question. That same traceable path produces one selected complete SDCPN and a visible/exportable package from which they can begin the agreed experiment.
 
 The known semantic artifact floor is:
@@ -77,7 +83,7 @@ One selected complete SDCPN and the known semantic artifact floor:
 - carry the accepted scenario and parameters with honest assumptions, omissions, losses, and limits; and
 - let them begin the one agreed optimisation experiment at the accepted boundary.
 
-This proves one accepted handoff. It does not prove a generic export package, optimizer integration, result model, repeated-experiment protocol, public release, or broad scenario portfolio.
+This proves one accepted handoff and is also the completion bar, since the consumer's acceptance is the readiness decision. It does not prove a generic export package, optimizer integration, result model, repeated-experiment protocol, public release, or broad scenario portfolio.
 
 ## Readiness ratchet
 

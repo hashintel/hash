@@ -4,6 +4,8 @@ Files in this directory are detailed context repositories for possible future mi
 
 Each planning item has one authoritative planning home across `MISSION.next.md` and these linked drafts. A spine summary is only a pointer. Keep accepted decisions, rejected alternatives and reasons, re-entry conditions, scenario classes, evidence, constraints, fog, stop conditions, risks, assumptions, and named mechanisms in one discoverable home at the precision needed by a cold-start builder.
 
+`Visible product advance` must pass the product-manager litmus defined in [`MISSION.next.md`](../../MISSION.next.md#current-authority-and-accepted-spine): a product manager who did not watch the work must be able to notice that the product materially moved forward. State a release-note sentence, a demo script a product manager can run without an engineer, and what was impossible before. Keep snapshots, manifests, ledgers, negative controls, and engineering sequencing out of this section; they are oracles and throughline hypotheses. `Throughline proof floor` is the first internal milestone, not the completion bar; the mission completes at `Readiness gate after the new throughline`, when the demo script works for the named scenario.
+
 Every draft must begin with the non-authority warning shown in the template. A draft may preserve a visible product hypothesis, contract stratum, provisional throughline, tracer floor, readiness obligations, joins, constraints, fog, stop conditions, evidence, and rejected alternatives. It must not contain `Status`, a final `Imperative`, or a final `Proof`. It may mark an acceptance leaf `ORACLE GAP` only when it also states what must resolve the gap before the cluster can be cut or the leaf claimed.
 
 ## Lifecycle

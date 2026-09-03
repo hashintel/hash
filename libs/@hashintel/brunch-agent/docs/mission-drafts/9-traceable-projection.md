@@ -26,11 +26,19 @@ The accepted bounded workpiece region, Mission 7 pair, derivation representation
 
 ## Visible product advance
 
-Through deployed Brunch, a person requests projection of one bounded, accepted region of the current evidence-backed Markdown workpiece and sees a non-empty, semantically meaningful live SDCPN region appear in Petrinaut. Consequential generated elements carry stable caller-supplied ids and derivations that make Mission 7's why operation resolve back to the current workpiece and its exact retained evidence.
+**Release note:** Brunch builds a recognisable part of the net itself from the conversation, and can still explain every piece it built.
+
+**Demo script (no engineer present):** open the demo workpiece in the Petrinaut Brunch panel, on the deployment posture named at cut time. Ask Brunch to model the named region. Watch a non-empty region appear in the live net that a person who knows the process recognises as the thing that was discussed. Ask why about one of the generated elements and get the workpiece meaning and quoted conversation evidence back, exactly as for the prebuilt net in Mission 7.
+
+**Previously impossible:** every net in the demo was prebuilt by a person; Brunch's only real-model construction attempt produced a parser-valid but empty net.
+
+Consequential generated elements carry stable caller-supplied ids and derivations that make Mission 7's why operation resolve back to the current workpiece and its exact retained evidence.
 
 The region must be visually inspectable and operationally meaningful: it must exercise the canonical coloured type, parameter, place, transition, and arc contracts required by the selected process meaning. A toy place/transition pair, empty net, parser-only artifact, headless-only result, or one successful nested tool call is not the visible advance. Repeat, changed-input, and failure-class obligations harden this line at the readiness gate; they do not define whether the first line exists.
 
-The first in-mission tracer is narrower: repair the provider-visible nested schema path enough for one real model call to emit and apply a single canonical nested input such as `addType.elements`. That tracer retires the Mission 3 blocker; it does not complete Mission 9 or select batching. Next, a bounded core transaction probe must establish rollback, readonly/extensions parity, indexed failure, and honest no-op outcomes before a five-action batch is tried through Flue and the production client path. Mission 9 selects the batch only if that comparison shows a material advantage over per-action tools without weakening feedback, identity, or failure visibility.
+Provider-schema repair, the transaction probe, and the per-action versus batch decision are internal sequencing for this mission and are recorded under the throughline hypothesis below. They are not the advance and must not be presented as progress to a product manager.
+
+**Completion:** the mission is done when a product manager can run the demo script at the readiness gate below, not when the first nested tool call succeeds.
 
 ## Contract stratum
 
@@ -80,6 +88,8 @@ Authority and actor crossings:
 - **Generated element → Mission 7 provenance:** the predecessor why operation consumes the same stable seam. A fixture-specific translation fails the join.
 - **Application → deployed substrate:** workpiece, derivation, Flue conversation, and current net identity must survive the accepted Mission 7/Mission 8 replacement boundary.
 
+Internal sequencing hypothesis: the first in-mission tracer is narrower than the visible advance. Repair the provider-visible nested schema path enough for one real model call to emit and apply a single canonical nested input such as `addType.elements`. That tracer retires the Mission 3 blocker; it does not complete Mission 9 or select batching. Next, a bounded core transaction probe must establish rollback, readonly/extensions parity, indexed failure, and honest no-op outcomes before a five-action batch is tried through Flue and the production client path. Mission 9 selects the batch only if that comparison shows a material advantage over per-action tools without weakening feedback, identity, or failure visibility.
+
 ## Throughline proof floor
 
 The smallest deployed end-to-end proof must observe all of the following:
@@ -89,7 +99,7 @@ The smallest deployed end-to-end proof must observe all of the following:
 3. Every consequential generated element has a stable caller-supplied id and derivation to the current workpiece, evidence references, and projection rationale, including any assumption or loss.
 4. Mission 7's why operation resolves at least one generated element through that derivation.
 
-This floor proves one automatic traceable meaningful region and the positive generated-element provenance link. It does not close repeat/change behavior, schema-class breadth, stale or partial states, repair exhaustion, derivation atomicity, visible failure, full-net generation, arbitrary revision, Mission 10 reviewer authority, an observer, simulation fidelity, or the Mission 11 optimisation package. Those first seven obligations belong to this mission's readiness gate and stratum closure, not to acknowledgment that the working line exists.
+This floor is the first internal milestone, not mission completion: one automatic traceable meaningful region and the positive generated-element provenance link. It does not close repeat/change behavior, schema-class breadth, stale or partial states, repair exhaustion, derivation atomicity, visible failure, full-net generation, arbitrary revision, Mission 10 reviewer authority, an observer, simulation fidelity, or the Mission 11 optimisation package. Those first seven obligations belong to this mission's readiness gate and stratum closure, not to acknowledgment that the working line exists.
 
 ## Readiness ratchet
 
