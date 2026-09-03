@@ -50,12 +50,18 @@ impl fmt::Display for ParseHexError {
 
 impl Error for ParseHexError {}
 
-const fn decode_nibble(byte: u8, index: usize) -> Result<u8, ParseHexError> {
-    match byte {
-        b'0'..=b'9' => Ok(byte - b'0'),
-        b'a'..=b'f' => Ok(byte - b'a' + 10),
-        _ => Err(ParseHexError::Character { index, byte }),
-    }
+/// Decodes one lowercase hexadecimal digit, with an all-ones mask when `byte` is one.
+const fn nibble(byte: u8) -> (u8, u8) {
+    let digit = byte.wrapping_sub(b'0');
+    let alpha = byte.wrapping_sub(b'a');
+
+    let digit_mask = 0_u8.wrapping_sub((digit < 10) as u8);
+    let alpha_mask = 0_u8.wrapping_sub((alpha < 6) as u8);
+
+    (
+        (digit & digit_mask) | ((alpha + 10) & alpha_mask),
+        digit_mask | alpha_mask,
+    )
 }
 
 /// A fixed-width byte string with a canonical lowercase hexadecimal text form.
@@ -95,6 +101,50 @@ impl<const N: usize> HexBytes<N> {
     pub(crate) const fn into_inner(self) -> [u8; N] {
         self.0
     }
+
+    /// Decodes `2 · N` lowercase hexadecimal bytes, validating the whole input in one pass.
+    ///
+    /// Every byte decodes and folds into one validity mask without branching on its value. The
+    /// refused position is located on the error path alone.
+    ///
+    /// # Errors
+    ///
+    /// [`ParseHexError`] for an input other than exactly `2 · N` lowercase hexadecimal characters.
+    pub(super) fn from_encoded_bytes(bytes: &[u8]) -> Result<Self, ParseHexError> {
+        if bytes.len() != N * 2 {
+            return Err(ParseHexError::Length {
+                expected: N * 2,
+                actual: bytes.len(),
+            });
+        }
+
+        let (pairs, _) = bytes.as_chunks::<2>();
+
+        let mut valid = u8::MAX;
+        let decoded: [u8; N] = array::from_fn(|index| {
+            let [high, low] = pairs[index];
+            let (high, high_ok) = nibble(high);
+            let (low, low_ok) = nibble(low);
+
+            valid &= high_ok & low_ok;
+            (high << 4) | low
+        });
+
+        // The mask records that a nibble refused. The error path alone locates it.
+        if valid != u8::MAX {
+            let index = bytes
+                .iter()
+                .position(|&byte| nibble(byte).1 == 0)
+                .expect("a nibble refused");
+
+            return Err(ParseHexError::Character {
+                index,
+                byte: bytes[index],
+            });
+        }
+
+        Ok(Self(decoded))
+    }
 }
 
 const impl<const N: usize> AsRef<[u8]> for HexBytes<N> {
@@ -123,24 +173,7 @@ impl<const N: usize> FromStr for HexBytes<N> {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         let bytes = value.as_bytes();
-        if bytes.len() != N * 2 {
-            return Err(ParseHexError::Length {
-                expected: N * 2,
-                actual: bytes.len(),
-            });
-        }
-
-        let (pairs, _) = bytes.as_chunks::<2>();
-
-        let decoded = array::try_from_fn(|index| {
-            let [high_char, low_char] = pairs[index];
-
-            let high = decode_nibble(high_char, index * 2)?;
-            let low = decode_nibble(low_char, index * 2 + 1)?;
-            Ok((high << 4) | low)
-        })?;
-
-        Ok(Self(decoded))
+        Self::from_encoded_bytes(bytes)
     }
 }
 

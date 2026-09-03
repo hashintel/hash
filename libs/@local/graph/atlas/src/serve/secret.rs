@@ -15,7 +15,7 @@
 
 use core::{error::Error, fmt};
 
-use crate::integrity::{ParseHexError, SecretHexBytes};
+use crate::integrity::{ParseSecretHexError, SecretHexBytes};
 
 /// A wire secret the configured form does not encode.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -88,8 +88,10 @@ impl WireSecret {
     /// ```
     pub(crate) fn from_hex(text: &str) -> Result<Self, WireSecretError> {
         let bytes = text.parse().map_err(|error| match error {
-            ParseHexError::Length { actual, .. } => WireSecretError::Length { characters: actual },
-            ParseHexError::Character { index, .. } => WireSecretError::Digit { position: index },
+            ParseSecretHexError::Length { actual, .. } => {
+                WireSecretError::Length { characters: actual }
+            }
+            ParseSecretHexError::Character { index } => WireSecretError::Digit { position: index },
         })?;
 
         Ok(Self(bytes))
@@ -109,6 +111,12 @@ impl WireSecret {
 impl fmt::Debug for WireSecret {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt.debug_tuple("WireSecret").finish_non_exhaustive()
+    }
+}
+
+impl From<SecretHexBytes<{ Self::BYTES }>> for WireSecret {
+    fn from(bytes: SecretHexBytes<{ Self::BYTES }>) -> Self {
+        Self(bytes)
     }
 }
 

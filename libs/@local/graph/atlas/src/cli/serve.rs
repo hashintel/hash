@@ -22,6 +22,7 @@ use crate::{
     api::{self, problem::IntoProblemLayer},
     device::PinnedDevice,
     file::generation::{CurrentError, GenerationRoot},
+    integrity::SecretHexBytesValueParser,
     serve::{
         Atlas, DeltaCell, DeltaConsumer, DeltaEpoch, DeltaPolling, DeltaRegister, EdgesLimits,
         EmbeddingEnsure, GraphDatabaseClient, LocateLimits, OpenAtlasError, OpenOptions,
@@ -201,9 +202,9 @@ pub struct ServeArgs {
         long,
         env = "HASH_GRAPH_ATLAS_SECRET",
         hide_env_values = true,
-        value_parser = WireSecret::from_hex,
+        value_parser = SecretHexBytesValueParser::<WireSecret, { WireSecret::BYTES }>::new(),
     )]
-    secret: Option<WireSecret>,
+    secret: WireSecret,
 }
 
 /// One serve invocation's failure, by step.
@@ -293,7 +294,7 @@ pub struct ServeCommand {
     root: GenerationRoot,
     device: PinnedDevice,
     limits: ServeLimits,
-    secret: Option<WireSecret>,
+    secret: WireSecret,
     delta: DeltaArgs,
 }
 
@@ -365,7 +366,7 @@ impl ServeCommand {
             .ok_or(ServeError::Missing)?;
 
         let options = OpenOptions {
-            wire_secret: self.secret.ok_or(ServeError::Secret)?,
+            wire_secret: self.secret,
         };
         let atlas =
             Arc::new(Atlas::open(&self.root, generation, options).map_err(ServeError::Open)?);
@@ -466,5 +467,50 @@ impl ServeCommand {
             .layer(HttpTracingLayer::new(|path| path == STATUS_PATH));
 
         Ok(router)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::Args as _;
+
+    use super::ServeArgs;
+
+    /// A key in uppercase hex, the form most key exports and `hexdump` emit.
+    const UPPERCASE: &str = "6AD599A5C17E1FC4D7E2988BD4F3E0367F3C4A35D6DAE135F9A1E0EFC775CE55";
+
+    /// Parses `ServeArgs` from `arguments` and returns the rendered refusal.
+    fn refusal(arguments: &[&str]) -> String {
+        ServeArgs::augment_args(clap::Command::new("serve"))
+            .try_get_matches_from(arguments)
+            .expect_err("an invalid secret refuses")
+            .render()
+            .to_string()
+    }
+
+    /// The rendered refusal names a position and none of the secret's characters.
+    #[track_caller]
+    fn assert_redacted(rendered: &str, secret: &str) {
+        assert!(
+            !rendered.contains(secret),
+            "the whole secret reached the refusal:\n{rendered}"
+        );
+        for character in secret.chars() {
+            assert!(
+                !rendered.contains(&format!("'{character}'")),
+                "a character of the secret reached the refusal:\n{rendered}"
+            );
+        }
+    }
+
+    #[test]
+    fn secret_uppercase() {
+        assert_redacted(&refusal(&["serve", "--secret", UPPERCASE]), UPPERCASE);
+    }
+
+    #[test]
+    fn secret_trailing_newline() {
+        let secret = format!("{}\n", UPPERCASE.to_ascii_lowercase());
+        assert_redacted(&refusal(&["serve", "--secret", &secret]), &secret);
     }
 }

@@ -1,5 +1,6 @@
-use core::{convert::Infallible, fmt, str::FromStr};
+use core::{convert::Infallible, error::Error, fmt, marker::PhantomData, str::FromStr};
 
+use clap::builder::TypedValueParser;
 use zerocopy::IntoBytes as _;
 use zeroize::{Zeroize as _, Zeroizing};
 
@@ -77,6 +78,52 @@ impl FromStr for SecretString {
     }
 }
 
+/// A refused secret encoding, by position and never by byte.
+///
+/// [`ParseHexError`] names the offending byte. A secret's refusal carries no field for it, and no
+/// rendering of a refused secret holds any of the secret's content.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ParseSecretHexError {
+    /// The input contains a number of characters other than the encoded width.
+    Length {
+        /// The number of characters the encoded value occupies.
+        expected: usize,
+        /// The number of characters the input actually contains.
+        actual: usize,
+    },
+    /// The input contains a character outside `0-9` and `a-f`.
+    Character {
+        /// The offset of the offending character within the input.
+        index: usize,
+    },
+}
+
+impl From<ParseHexError> for ParseSecretHexError {
+    fn from(error: ParseHexError) -> Self {
+        match error {
+            ParseHexError::Length { expected, actual } => Self::Length { expected, actual },
+            ParseHexError::Character { index, .. } => Self::Character { index },
+        }
+    }
+}
+
+impl fmt::Display for ParseSecretHexError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Length { expected, actual } => write!(
+                fmt,
+                "the secret contains {actual} characters and its encoding takes {expected}"
+            ),
+            Self::Character { index } => write!(
+                fmt,
+                "the secret contains a character outside 0-9 and a-f at offset {index}"
+            ),
+        }
+    }
+}
+
+impl Error for ParseSecretHexError {}
+
 /// An `N`-byte secret configured in the canonical hexadecimal encoding.
 ///
 /// The bytes zero on drop, and this type's own renderings redact: [`fmt::Debug`] prints the width
@@ -101,6 +148,18 @@ impl<const N: usize> SecretHexBytes<N> {
     /// Returns a reference to the secret bytes.
     pub(crate) const fn as_bytes(&self) -> &[u8] {
         self.0.as_ref()
+    }
+
+    /// Decodes the canonical lowercase hexadecimal encoding of the secret.
+    ///
+    /// # Errors
+    ///
+    /// [`ParseSecretHexError`] for an input other than exactly `2 · N` lowercase hexadecimal
+    /// characters.
+    pub(crate) fn from_encoded_bytes(bytes: &[u8]) -> Result<Self, ParseSecretHexError> {
+        HexBytes::from_encoded_bytes(bytes)
+            .map(Self)
+            .map_err(ParseSecretHexError::from)
     }
 }
 
@@ -140,11 +199,10 @@ impl<const N: usize> Drop for SecretHexBytes<N> {
 }
 
 impl<const N: usize> FromStr for SecretHexBytes<N> {
-    type Err = ParseHexError;
+    type Err = ParseSecretHexError;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
-        let bytes = HexBytes::<N>::from_str(value)?;
-        Ok(Self(bytes))
+        Self::from_encoded_bytes(value.as_bytes())
     }
 }
 
@@ -153,7 +211,77 @@ impl<'de, const N: usize> serde::Deserialize<'de> for SecretHexBytes<N> {
     where
         D: serde::Deserializer<'de>,
     {
-        HexBytes::deserialize(deserializer).map(Self)
+        struct SecretHexVisitor<const N: usize>;
+
+        impl<const N: usize> serde::de::Visitor<'_> for SecretHexVisitor<N> {
+            type Value = SecretHexBytes<N>;
+
+            fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+                write!(fmt, "{} lowercase hexadecimal characters", N * 2)
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                value.parse().map_err(E::custom)
+            }
+        }
+
+        deserializer.deserialize_str(SecretHexVisitor)
+    }
+}
+
+/// A command-line value parser for a secret, refusing without echoing the value.
+///
+/// clap's own adapter for a fallible parse function places the rejected text into the error it
+/// renders. This parser decodes the raw argument bytes itself and renders a
+/// [`ParseSecretHexError`], and the argument's name is the only context the refusal names. `T` is
+/// the domain type the decoded secret converts into.
+#[derive(Debug)]
+pub(crate) struct SecretHexBytesValueParser<T, const N: usize> {
+    _marker: PhantomData<fn() -> (T, SecretHexBytes<N>)>,
+}
+
+impl<T, const N: usize> SecretHexBytesValueParser<T, N> {
+    /// Creates the parser.
+    pub(crate) fn new() -> Self {
+        Self {
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<T, const N: usize> TypedValueParser for SecretHexBytesValueParser<T, N>
+where
+    T: From<SecretHexBytes<N>> + Send + Sync + Clone + 'static,
+{
+    type Value = T;
+
+    fn parse_ref(
+        &self,
+        cmd: &clap::Command,
+        arg: Option<&clap::Arg>,
+        value: &std::ffi::OsStr,
+    ) -> Result<Self::Value, clap::Error> {
+        SecretHexBytes::from_encoded_bytes(value.as_encoded_bytes())
+            .map(T::from)
+            .map_err(|error| {
+                let argument = arg.map_or_else(|| "...".to_owned(), ToString::to_string);
+                clap::Error::raw(
+                    clap::error::ErrorKind::ValueValidation,
+                    format!("invalid value for '{argument}': {error}"),
+                )
+                .with_cmd(cmd)
+            })
+    }
+}
+
+impl<T, const N: usize> Copy for SecretHexBytesValueParser<T, N> {}
+
+impl<T, const N: usize> Clone for SecretHexBytesValueParser<T, N> {
+    fn clone(&self) -> Self {
+        *self
     }
 }
 
@@ -161,7 +289,7 @@ impl<'de, const N: usize> serde::Deserialize<'de> for SecretHexBytes<N> {
 mod tests {
     use core::str::FromStr as _;
 
-    use super::{SecretHexBytes, SecretString};
+    use super::{ParseSecretHexError, SecretHexBytes, SecretString};
 
     /// A key whose adjacent bytes differ, so a partial leak cannot hide inside a repeated run.
     const HEX: &str = "6ad599a5c17e1fc4d7e2988bd4f3e0367f3c4a35d6dae135f9a1e0efc775ce55";
@@ -190,7 +318,7 @@ mod tests {
     /// outside this witness: [`HexBytes`] renders every byte, and a rendering taken through the
     /// deref is what the type documentation covers.
     #[test]
-    fn hex_secrets_redact_both_renderings() {
+    fn hex_secret_renderings() {
         let secret =
             SecretHexBytes::<32>::from_str(HEX).expect("the literal is the canonical form");
 
@@ -200,12 +328,29 @@ mod tests {
 
     /// Neither rendering of a held string encodes its characters.
     #[test]
-    fn string_secrets_redact_both_renderings() {
+    fn string_secret_renderings() {
         const VALUE: &str = "postgres://atlas:hunter2@10.0.0.7:5432/graph";
 
         let secret = SecretString::from_str(VALUE).expect("the conversion cannot fail");
 
         assert_redacted(&format!("{secret:?}"), VALUE);
         assert_redacted(&format!("{secret}"), VALUE);
+    }
+
+    /// A refused secret's error names the offset and none of the input's characters.
+    #[test]
+    fn hex_secret_refusal_uppercase() {
+        let uppercase = HEX.to_ascii_uppercase();
+
+        let error = SecretHexBytes::<32>::from_str(&uppercase).expect_err("uppercase hex refuses");
+        let rendered = error.to_string();
+
+        assert_eq!(error, ParseSecretHexError::Character { index: 1 });
+        for character in uppercase.chars() {
+            assert!(
+                !rendered.contains(&format!("'{character}'")),
+                "a character of the input reached the error: {rendered}"
+            );
+        }
     }
 }
