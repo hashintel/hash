@@ -219,6 +219,7 @@ export {
   createMonteCarloSimulator,
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
+  getDefaultMonteCarloShardCount,
   createSimulation,
   createWorkerTransport,
   deriveRunSeed,

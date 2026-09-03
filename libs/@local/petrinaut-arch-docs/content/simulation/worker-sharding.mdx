@@ -40,3 +40,30 @@ Progress reports the slowest shard's position, so the bar never runs ahead of
 the results behind it.
 
 ![One experiment across worker shards](@diagrams/worker-sharding.svg)
+
+## One protocol, any thread host
+
+The worker side of the protocol is `attachMonteCarloWorker(runtime)`, and a
+runtime is three functions: post a message, receive messages, yield between
+batches. The main-thread side asks only for a `WorkerFactory` returning a
+structural `WorkerLike`. The host also decides **how many**: the experiment is
+pure and defaults to one shard, so the editor passes
+`getDefaultMonteCarloShardCount()` (from `navigator.hardwareConcurrency`) and
+the CLI derives its `--threads` default from `os.availableParallelism()`, both
+leaving one core for the thread that merges shard messages. Each host supplies
+its own pair and everything between them — sharding, seed derivation, the
+metric merge — is shared:
+
+- the **editor** builds workers from a Vite `?worker` import;
+- the **CLI** spawns `worker_threads` from a bundle built beside `cli.js`,
+  adapting Node's `.on("message", value)` events to the `{ data }` envelope the
+  transport expects, and optimization trials run their replicates this way;
+- **tests and source runs** use the in-process worker, the same protocol over a
+  callback loopback on the calling thread.
+
+![How each host provides and talks to its workers](@diagrams/worker-factory.svg)
+
+An experiment may pin every run's seed explicitly (`runs`), which is how
+optimization replicates keep their common-random-numbers contract, and each
+run's final metric values come back per run (`runResults`) alongside the
+aggregated frames — the run axis the frames deliberately give up.

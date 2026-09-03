@@ -27,6 +27,7 @@ export {
   createMonteCarloUserDefinedMetricConfigsFromSpecs,
   createMonteCarloUserDefinedMetric,
   deriveRunSeed,
+  getDefaultMonteCarloShardCount,
 } from "./monte-carlo";
 export type {
   CreateMonteCarloExperimentConfig,
