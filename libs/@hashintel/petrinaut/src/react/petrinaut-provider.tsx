@@ -20,7 +20,6 @@ import type {
 } from "@hashintel/petrinaut-core";
 import type { ReactNode } from "react";
 
-
 export type PetrinautProviderProps = {
   /** The Core instance whose stores the bridges subscribe to. */
   instance: Petrinaut;
