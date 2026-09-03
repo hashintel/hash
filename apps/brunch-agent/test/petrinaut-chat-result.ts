@@ -21,6 +21,15 @@ export interface PetrinautChatResult {
   readonly resumedStatus: number;
   readonly resumedText: string;
   readonly resumedFinish: UIMessageChunk | undefined;
+  readonly askCall: Extract<
+    UIMessageChunk,
+    { type: "tool-input-available" }
+  > | null;
+  readonly askToolOutputsBeforeResume: readonly UIMessageChunk[];
+  readonly pendingHistoryAskState: string | undefined;
+  readonly answerResumeStatus: number;
+  readonly answerResumeText: string;
+  readonly answerResumeFinish: UIMessageChunk | undefined;
   readonly retriedStatus: number;
   readonly retriedResumeStatus: number;
   readonly historyUserEntryCount: number;

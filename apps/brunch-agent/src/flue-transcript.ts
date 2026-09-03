@@ -6,11 +6,25 @@ import {
   type FlueConversationSnapshot,
 } from "@flue/sdk";
 
+import { ASK_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
+
 import {
   CLIENT_TOOL_RESULT_SIGNAL,
   isAwaitingClient,
   providerExecutedFor,
 } from "./client-tool.ts";
+
+type UiMessageToolPart = {
+  readonly toolCallId: string;
+  readonly state: "output-available" | "output-error" | "input-available";
+  readonly input: unknown;
+  readonly output?: unknown;
+  readonly errorText?: string;
+  readonly providerExecuted?: boolean;
+} & (
+  | { readonly type: `tool-${string}` }
+  | { readonly type: "dynamic-tool"; readonly toolName: string }
+);
 
 type UiMessagePart =
   | { readonly type: "text"; readonly text: string; readonly state: "done" }
@@ -29,15 +43,7 @@ type UiMessagePart =
       readonly url: string;
       readonly filename?: string;
     }
-  | {
-      readonly type: `tool-${string}`;
-      readonly toolCallId: string;
-      readonly state: "output-available" | "output-error" | "input-available";
-      readonly input: unknown;
-      readonly output?: unknown;
-      readonly errorText?: string;
-      readonly providerExecuted?: boolean;
-    };
+  | UiMessageToolPart;
 
 const unhandledConversationPart = (part: never): never => {
   throw new Error(`Unhandled Flue conversation part: ${JSON.stringify(part)}`);
@@ -117,9 +123,13 @@ const toolPartFrom = (
     part.state === "output-available"
       ? providerExecutedFor(isAwaitingClient(part.output))
       : undefined;
+  const toolIdentity =
+    part.toolName === ASK_TOOL_NAME
+      ? { type: "dynamic-tool" as const, toolName: part.toolName }
+      : { type: `tool-${part.toolName}` as const };
   if (part.state === "output-error") {
     return {
-      type: `tool-${part.toolName}`,
+      ...toolIdentity,
       toolCallId: part.toolCallId,
       state: "output-error",
       input: part.input,
@@ -129,7 +139,7 @@ const toolPartFrom = (
   }
   if (output !== undefined) {
     return {
-      type: `tool-${part.toolName}`,
+      ...toolIdentity,
       toolCallId: part.toolCallId,
       state: "output-available",
       input: part.input,
@@ -138,7 +148,7 @@ const toolPartFrom = (
     };
   }
   return {
-    type: `tool-${part.toolName}`,
+    ...toolIdentity,
     toolCallId: part.toolCallId,
     state: "input-available",
     input: part.input,
