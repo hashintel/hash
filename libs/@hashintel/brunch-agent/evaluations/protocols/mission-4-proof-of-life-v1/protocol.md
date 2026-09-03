@@ -17,7 +17,7 @@ Grade only with [`../../oracles/mission-4-activation-and-restraint-ruler-v1.md`]
 | Role | Requested configuration | Pre-freeze requirement |
 | --- | --- | --- |
 | Elicitor | `BRUNCH_CHAT_MODEL=claude-sonnet-4-6`, resolving through the production Anthropic provider | Record the provider-reported exact model id and verify the built app uses it. No fallback. |
-| Persona | Pi `--model openai/gpt-5.6-sol --thinking medium`; the selection observed during planning resolved through OpenRouter | Verify that the restricted persona process can resolve this exact requested model. Record requested and provider-reported ids. No fallback. |
+| Persona | Pi `--model openai/gpt-5.6-sol --thinking medium`, using the direct OpenAI provider | Record requested and provider-reported ids. No fallback or router substitution. |
 | Adjudicator | `anthropic/claude-opus-4-6`, high thinking, one fresh context per technically usable attempt | Verify exact availability and record requested/provider-reported ids. No fallback. |
 | Client-tool host | `none` for every slot | Any client-tool suspension is technical invalidity; do not service it with a different host. |
 
@@ -77,7 +77,7 @@ Retain every admitted attempt. Permit the replacement only when the primary is t
 
 The hard logical ceiling is 10 conversation attempts, 32 visible user submissions to Brunch, 28 persona continuations, and 10 fresh adjudications. Internal Sonnet provider continuations caused by skill/resource calls are metered and reported but are not falsely equated with visible submissions. Normal success is five conversation attempts, approximately 14 Brunch submissions, approximately 12 persona continuations, and five adjudications.
 
-This ceiling is not spending authorization. Before the first model call, the unsandboxed operator records current provider prices, estimates normal and worst-case currency cost from this ceiling and the frozen instrument sizes, confirms credentials without exposing them, and obtains explicit owner authorization. Exceeding any logical or authorized currency ceiling stops execution.
+This ceiling is not spending authorization. The non-billable [model and cost preflight](../../../docs/evidence/decisions/mission-4-proof-of-life-preflight-2026-09-03.md) records direct-provider catalog/credential presence, official prices, a $3.16 normal estimate, a $7.65 worst-case planning estimate, and a proposed $10 USD hard campaign ceiling. Before the first model call, obtain explicit owner authorization for the frozen instrument and that currency ceiling. Exceeding any logical or authorized currency ceiling stops execution.
 
 ## Required mechanism before freeze
 
