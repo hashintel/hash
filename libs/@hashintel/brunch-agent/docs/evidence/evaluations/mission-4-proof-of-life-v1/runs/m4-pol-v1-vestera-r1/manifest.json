@@ -1,0 +1,37 @@
+{
+  "algorithm": "sha256",
+  "files": [
+    {
+      "path": "adjudication.md",
+      "sha256": "78b3397534fbe6297f535c819d2fea91a0f10f23622e398f936c07668c487253"
+    },
+    {
+      "path": "run.json",
+      "sha256": "0a6f97f71c2289b210e1cdf567e13e7f93a8bf1da9ad35491381820a0ab520ce"
+    },
+    {
+      "path": "snapshot.json",
+      "sha256": "0f52d2588553e0a6c0e4a22d89deeca6ca060ef2722b8f24d0fa78af1ff0eb3f"
+    },
+    {
+      "path": "trace.json",
+      "sha256": "822ccb490a69396c852bb1f7aa62d71275af9ddbe7312f8b94752f8b3ba827d7"
+    },
+    {
+      "path": "trace.md",
+      "sha256": "8773571dfbc05daf469971cc109cb1ba13670207a96d343f7688999b7d84c6de"
+    },
+    {
+      "path": "transcript.md",
+      "sha256": "7cda86ed457a40eceb2822a5fa633730ff7ddd8e3cec4e6d4e5b05c4d121ad60"
+    },
+    {
+      "path": "usage.json",
+      "sha256": "0c357b13fcc84e93c996bed81654956a0c03047dad3673dc91012c4db8d3ce68"
+    },
+    {
+      "path": "validity.json",
+      "sha256": "f17de5a77e09f1c6178d95fd6306a6317d542ced8677c87f9dc975cf1f6dd1f7"
+    }
+  ]
+}
