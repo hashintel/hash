@@ -16,10 +16,17 @@ export interface PetrinautChatResult {
     { type: "tool-input-available" }
   > | null;
   readonly clientToolOutputsOnInitial: readonly UIMessageChunk[];
+  readonly latestNetDefinitionCall: Extract<
+    UIMessageChunk,
+    { type: "tool-input-available" }
+  > | null;
+  readonly latestNetDefinitionOutputsOnInitial: readonly UIMessageChunk[];
   readonly initialFinish: UIMessageChunk | undefined;
   readonly pendingHistoryClientToolState: string | undefined;
+  readonly pendingHistoryLatestNetDefinitionState: string | undefined;
   readonly resumedStatus: number;
   readonly resumedText: string;
+  readonly resumedTextBeforeAsk: string;
   readonly resumedFinish: UIMessageChunk | undefined;
   readonly askCall: Extract<
     UIMessageChunk,

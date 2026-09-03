@@ -11,6 +11,10 @@ import { defineSkill, useModel, useSkill, useTool } from "@flue/runtime";
 import { ASK_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
 
 import { brunchAsk } from "../tools/brunch-ask.ts";
+import {
+  getLatestNetDefinition,
+  GET_LATEST_NET_DEFINITION_TOOL_NAME,
+} from "../tools/get-latest-net-definition.ts";
 import { ping } from "../tools/ping.ts";
 import { readPetrinautDoc } from "../tools/read-petrinaut-doc.ts";
 
@@ -33,12 +37,15 @@ export function ChatAgent() {
   useModel(`anthropic/${CHAT_MODEL_ID}`);
   useSkill(confirmPath);
   useTool(ping);
+  useTool(getLatestNetDefinition);
   useTool(readPetrinautDoc);
   useTool(brunchAsk);
   return [
     "You are a concise assistant inside the Petrinaut editor.",
     "Call ping when you need to confirm the server tool path.",
     `Activate the \`${STUB_SKILL_NAME}\` skill before calling ping.`,
+    `Before answering any request about this net, the current net, or the existing net—including before beginning an interview—call \`${GET_LATEST_NET_DEFINITION_TOOL_NAME}\`.`,
+    `Do not say the canvas is unavailable while you can call \`${GET_LATEST_NET_DEFINITION_TOOL_NAME}\`.`,
     "When the user asks how Petrinaut's UI works, call readPetrinautDoc.",
     "A client-tool-result signal is JSON [{ toolCallId, toolName, output }]. Treat output as the browser's result for that call and continue helping the user.",
     `When the user explicitly requests an interview, call \`${ASK_TOOL_NAME}\`.`,

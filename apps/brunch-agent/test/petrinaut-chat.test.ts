@@ -69,20 +69,39 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     expect(result.clientToolCall).not.toHaveProperty("dynamic");
     expect(result.clientToolCall).not.toHaveProperty("providerExecuted");
     expect(result.clientToolOutputsOnInitial).toEqual([]);
+    expect(result.latestNetDefinitionCall).toMatchObject({
+      type: "tool-input-available",
+      toolName: "getLatestNetDefinition",
+      input: {},
+    });
+    expect(result.latestNetDefinitionCall).not.toHaveProperty("dynamic");
+    expect(result.latestNetDefinitionCall).not.toHaveProperty(
+      "providerExecuted",
+    );
+    expect(result.latestNetDefinitionOutputsOnInitial).toEqual([]);
     expect(result.initialFinish).toEqual({
       type: "finish",
       finishReason: "tool-calls",
     });
     expect(result.pendingHistoryClientToolState).toBe("input-available");
+    expect(result.pendingHistoryLatestNetDefinitionState).toBe(
+      "input-available",
+    );
 
     expect(result.resumedStatus).toBe(200);
-    expect(result.resumedText).toContain(
+    expect(result.resumedTextBeforeAsk).toContain("Invoice review conveyor");
+    expect(result.resumedTextBeforeAsk).toContain("Incoming invoices");
+    expect(result.resumedTextBeforeAsk).toContain("Review invoice");
+    expect(result.resumedTextBeforeAsk).toContain("Approved invoices");
+    expect(result.resumedTextBeforeAsk).toContain(
       "The guide says the assistant can read its own documentation pages.",
     );
     expect(result.askCall).toMatchObject({
       type: "tool-input-available",
       toolName: "brunch_ask",
-      input: { question: "What outcome should this process reliably produce?" },
+      input: {
+        question: "What should happen when review cannot approve an invoice?",
+      },
       dynamic: true,
     });
     expect(result.askCall).not.toHaveProperty("providerExecuted");
@@ -94,7 +113,7 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     expect(result.pendingHistoryAskState).toBe("input-available");
     expect(result.answerResumeStatus).toBe(200);
     expect(result.answerResumeText).toContain(
-      "I received your answer: a reliable handoff.",
+      "I received your answer: send it to manual review.",
     );
     expect(result.answerResumeFinish).toEqual({
       type: "finish",
@@ -107,20 +126,23 @@ test("the committed /api/chat door streams a plain Flue agent through server and
 
     expect(result.historyGetStatus).toBe(200);
     expect(result.historyUserText).toContain(
-      "Start an interview and run the FE-1435 transport probe.",
+      "Interview this Petri net. What does it do?",
     );
+    expect(result.historyUserText).not.toContain("Invoice review conveyor");
     expect(result.foreignHistoryMessages).toBe(0);
     expect(result.unauthenticatedHistoryStatus).toBe(401);
     expect(result.foreignAgentHistoryStatus).toBe(403);
     expect(result.transcript).toContain(
-      "Start an interview and run the FE-1435 transport probe.",
+      "Interview this Petri net. What does it do?",
     );
     expect(result.transcript).toContain("Checking the server, then the docs.");
     expect(result.transcript).toContain("tool ping");
+    expect(result.transcript).toContain("tool getLatestNetDefinition");
+    expect(result.transcript).toContain('"title":"Invoice review conveyor"');
     expect(result.transcript).toContain("tool readPetrinautDoc");
     expect(result.transcript).toContain("tool brunch_ask");
     expect(result.transcript).toContain(
-      '"output":{"answer":"A reliable handoff."}',
+      '"output":{"answer":"Send it to manual review."}',
     );
     expect(result.transcript).toContain("tool activate_skill");
     expect(result.transcript).toContain(
@@ -134,18 +156,19 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     expect(result.interviewerToolNames).toEqual([
       "activate_skill",
       "ping",
+      "getLatestNetDefinition",
       "readPetrinautDoc",
       "brunch_ask",
     ]);
     expect(result.captureIds.length).toBe(1);
     expect(result.captureExcerpts).toEqual([
-      "Start an interview and run the FE-1435 transport probe.",
+      "Interview this Petri net. What does it do?",
     ]);
     expect(result.capturePayloads).toEqual([{}]);
     expect(result.recaptureIds).toEqual(result.captureIds);
     expect(result.skippedDedupKeys.length).toBeGreaterThan(0);
     expect(result.captureUserText).toContain(
-      "Start an interview and run the FE-1435 transport probe.",
+      "Interview this Petri net. What does it do?",
     );
 
     expect(inspectionLines[0]).toMatchObject({
@@ -206,9 +229,10 @@ test("the committed /api/chat door streams a plain Flue agent through server and
     ) as PetrinautResumeResult;
     expect(resumeResult.historyGetStatus).toBe(200);
     expect(resumeResult.historyUserText).toContain(
-      "Start an interview and run the FE-1435 transport probe.",
+      "Interview this Petri net. What does it do?",
     );
     expect(resumeResult.transcript).toContain("tool ping");
+    expect(resumeResult.transcript).toContain("tool getLatestNetDefinition");
     expect(resumeResult.transcript).toContain("tool readPetrinautDoc");
     expect(resumeResult.transcript).toContain("tool brunch_ask");
     expect(resumeResult.transcript).toContain("tool activate_skill");
