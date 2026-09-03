@@ -51,18 +51,15 @@ User-visible behaviour changes update the user guide in the same PR; new pages n
 ## Draft, CI, ready
 
 - Open the PR as a draft, body per the repo PR template.
-- Watch checks until none are pending, reading the JSON rather than the exit status. `gh pr checks` exits non-zero for three different situations: checks pending, checks failed, and no checks scheduled yet. Gating the loop on that status either ends the wait before CI starts or never ends it once a check fails.
+- Watch checks until the run settles, and decide that in `jq`. Neither the exit status nor a pending count answers it alone: `gh pr checks` exits non-zero when checks are pending, when they failed, and when none are scheduled yet, and with `--json` it prints `[]` before any exist, so a pending count of zero also reads as "finished" on a PR that has not started.
 
   ```sh
-  while :; do
-    pending=$(gh pr checks NNNN --json bucket --jq '[.[] | select(.bucket == "pending")] | length' 2>/dev/null)
-    [ -n "$pending" ] && [ "$pending" -eq 0 ] && break
-    sleep 60
-  done
+  settled='[length, ([.[] | select(.bucket == "pending")] | length)] | .[0] > 0 and .[1] == 0'
+  until [ "$(gh pr checks NNNN --json bucket --jq "$settled" 2>/dev/null)" = "true" ]; do sleep 60; done
   gh pr checks NNNN
   ```
 
-  An empty result means the checks do not exist yet and the loop keeps waiting. A PR that never settles has not started CI at all.
+  The wait ends once checks exist and none are pending, failures included, so the table below reports them. Anything else, an empty list or a failed call, keeps waiting.
 
 - Judge failures against the CI bullet in the AGENTS.md conventions (Bench-CI non-blocking, the known flaky check, Vercel-side docs failures) before treating them as caused by the diff.
 - Flip to ready only when checks are green. AI reviewers run at that point; triage their threads rather than leaving them unresolved.
