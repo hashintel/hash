@@ -55,6 +55,7 @@ import { LeftSideBar } from "./panels/LeftSideBar/panel";
 import { PropertiesPanel } from "./panels/PropertiesPanel/panel";
 import { SimulateView } from "./panels/SimulateView/simulate-view";
 import { SimulationCreationDrawer } from "./simulation-creation-drawer";
+import { EditorCommands } from "./use-editor-commands";
 
 import type { PetrinautAiAssistant } from "../../petrinaut";
 import type { PetrinautAiInputMode } from "../../types/ai-assistant-composer-control";
@@ -461,6 +462,7 @@ export const EditorView = ({
 
   return (
     <>
+      <EditorCommands />
       <ImportErrorDialog
         open={importError !== null}
         onOpenChange={({ open }) => {

@@ -15,6 +15,10 @@ import {
   type SDCPN,
 } from "@hashintel/petrinaut-core";
 import {
+  CommandRegistryProvider,
+  useCommand,
+} from "@hashintel/petrinaut/react";
+import {
   DefaultChatTransport,
   Petrinaut,
   type PetrinautAiMessage,
@@ -24,6 +28,7 @@ import {
 } from "@hashintel/petrinaut/ui";
 
 import { VOICE_REQUEST_ID_HEADER } from "../../../voice-diagnostics";
+import { CommandPalette } from "../command-palette";
 import { useSentryFeedbackAction } from "../sentry-feedback-button";
 import {
   loadOpenAIVoiceConfig,
@@ -149,6 +154,26 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
   netId: net.id,
   fallbackNet: net,
 });
+
+/**
+ * The demo's own palette command, registered beside Petrinaut's: picking it
+ * in the palette starts a fresh net.
+ */
+const DemoCommands = ({
+  createNewNet,
+}: {
+  createNewNet: (params: { petriNetDefinition: SDCPN; title: string }) => void;
+}) => {
+  useCommand({
+    id: "demo.net.new",
+    label: "Create a new empty net",
+    category: "Demo",
+    keywords: ["file"],
+    run: () =>
+      createNewNet({ petriNetDefinition: emptySDCPN, title: "New Process" }),
+  });
+  return null;
+};
 
 /**
  * Local-storage demo shell for Petrinaut.
@@ -399,19 +424,23 @@ export const LocalStorageDemoApp = () => {
 
   return (
     <div style={{ height: "100vh", width: "100vw" }}>
-      <WalkthroughProvider steps={walkthroughSteps}>
-        <Petrinaut
-          aiAssistant={aiAssistant}
-          handle={activeHandle.handle}
-          existingNets={existingNets}
-          createNewNet={createNewNet}
-          loadPetriNet={loadPetriNet}
-          readonly={false}
-          setTitle={setTitle}
-          title={currentNet.title}
-          viewportActions={[sentryFeedbackAction]}
-        />
-      </WalkthroughProvider>
+      <CommandRegistryProvider>
+        <WalkthroughProvider steps={walkthroughSteps}>
+          <Petrinaut
+            aiAssistant={aiAssistant}
+            handle={activeHandle.handle}
+            existingNets={existingNets}
+            createNewNet={createNewNet}
+            loadPetriNet={loadPetriNet}
+            readonly={false}
+            setTitle={setTitle}
+            title={currentNet.title}
+            viewportActions={[sentryFeedbackAction]}
+          />
+        </WalkthroughProvider>
+        <DemoCommands createNewNet={createNewNet} />
+        <CommandPalette />
+      </CommandRegistryProvider>
     </div>
   );
 };

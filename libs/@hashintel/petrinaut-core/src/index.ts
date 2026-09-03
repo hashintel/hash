@@ -74,6 +74,17 @@ export type {
   TransitionLogicAvailability,
 } from "./extensions";
 
+// --- Command registry (palette commands) ---
+export {
+  combineCommandRegistries,
+  createCommandRegistry,
+} from "./command-registry/command-registry";
+export type {
+  Command,
+  CommandRegistry,
+  CommandRegistryView,
+} from "./command-registry/command-registry";
+
 // --- Instance ---
 export { createPetrinaut } from "./instance";
 export type {
