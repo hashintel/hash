@@ -6,9 +6,12 @@ metric defined only for that optimization. Use it when you know the outcome
 you want and want Petrinaut to explore a bounded set of scenario inputs.
 
 Optimizations live under the **Simulate** global mode. The **Optimizations** tab
-is available only when the host application reports that an optimization
-service is configured. A temporary service outage does not hide the tab; a run
-attempted during the outage instead reports an error in its result drawer.
+is available only when the host application provides an optimizer: a remote
+optimization service, or an in-browser optimizer once you turn on the
+experimental **In-browser optimization** setting (see
+[Running in the browser](#running-in-the-browser)). A temporary service outage
+does not hide the tab; a run attempted during the outage instead reports an
+error in its result drawer.
 
 ## Before you start
 
@@ -35,8 +38,17 @@ parameter behind the scenes.
    Petrinaut never picks a scenario automatically. Selecting another scenario
    resets the optimization form for that scenario.
 4. Give the optimization a name and choose its number of optimization steps
-   (between 1 and 1,000), time step (default `0.1`), and maximum simulation
-   time.
+   (between 1 and 1,000), **runs per step** (between 1 and 100, default `1`),
+   time step (default `0.1`), and maximum simulation time. A step's objective
+   is the mean over its runs, so more runs per step give the optimizer a
+   steadier signal on a stochastic model, at the cost of more simulations per
+   step. With the in-browser optimizer and **WebGPU** on in the
+   [settings dialog](visual-settings.md#webgpu-experimental), a **Backend**
+   switch appears next to these fields. For an optimization it stays greyed
+   out, with the reason on hover: the objective is an expression metric, which
+   the GPU backend cannot compute (see
+   [Compute backend](experiments.md#compute-backend-experimental)), so the
+   steps run on the CPU.
 5. In **Parameters**, leave a parameter at its current **Value** or enable
    **Optimize** and enter its search range. At least one parameter must be
    optimized.
@@ -48,10 +60,10 @@ parameter behind the scenes.
      optimization objectives.
 7. Click **Run**.
 
-The metric is evaluated on the final frame of each optimization step's
-simulation. The current model is reduced to an immutable snapshot containing
-the selected scenario and objective metric when the optimization starts. Later
-edits do not change an in-flight run.
+The metric is evaluated on the final frame of each run, and a step's objective
+is the mean over its runs. The current model is reduced to an immutable snapshot
+containing the selected scenario and objective metric when the optimization
+starts. Later edits do not change an in-flight run.
 
 ## Search domains
 
@@ -90,6 +102,28 @@ connection reports how many of the requested trials had completed and includes
 a diagnostic identifier for support. Trials received before the failure are
 kept, and a **Retry** action starts a fresh run with the same settings.
 
+A study that runs in the browser (see [Running in the
+browser](#running-in-the-browser)) shows more, because the machine computing
+it is yours:
+
+- A badge beside the **Summary** heading says where the steps run. It reads
+  **CPU**, because the GPU backend cannot compute an expression objective (see
+  step 4 of [Creating an optimization](#creating-an-optimization)).
+- A **Parameters** band with one slider per optimized numeric parameter and a
+  switch per optimized boolean parameter. While the study runs, **Follow
+  steps** is on: the controls move to each step's values as it is evaluated and
+  the status line reads **Following step N**. Move any control and following
+  stops; the point you picked computes in escalating batches (8, 25, then 100
+  runs) while the line reads **N of M runs — refining**. Turn **Follow steps**
+  back on to rejoin the step in flight.
+- The **Surface** section whenever two or more numeric parameters are
+  optimized, without the Optimization surface setting. The ringed dot is the
+  Parameters band's position, and clicking or dragging the plot moves it.
+- A **Metrics** section with the objective metric's distribution over
+  simulation time at that position: the step being evaluated while following,
+  otherwise the point you picked. It streams again whenever the position
+  changes.
+
 ## The surface view
 
 The surface is experimental and off by default. Turn on **Optimization
@@ -114,14 +148,63 @@ Log-scale domains slide in log space, and integer domains snap to their step.
 Local points always reflect the model as it was when the study launched, even
 if you have edited the net since.
 
+A study that runs in the browser shows the Surface without this setting
+whenever it has two or more optimized numeric parameters, and its sliders are
+the drawer's **Parameters** band (see [Running in the
+browser](#running-in-the-browser)).
+
+## Running in the browser
+
+When the host provides the in-browser optimizer, the whole study runs in your
+tab: the optimizer runs in a background worker, and each optimization step runs
+as a batch of seeded simulations on the same compute backend as your
+experiments.
+
+- Turn it on under **Viewport controls > Settings > Simulation > In-browser
+  optimization** (Experimental). The setting is off by default, and while it is
+  off the **Optimizations** tab stays hidden even though the host provides the
+  in-browser optimizer. Turning the setting off while an in-browser
+  optimization is running cancels it. A remote optimization service is never
+  affected by the setting.
+- The first optimization in a browser downloads the Python runtime and the
+  optimizer packages before its first step starts; the run shows as
+  **Running** with no steps completed while that happens. Later runs reuse the
+  browser's cache.
+- **Runs per step** sets how many seeded simulations each step averages. With
+  WebGPU on, the form also shows the **Backend** switch, but for an
+  optimization it stays greyed out and the steps run on the CPU: the objective
+  is an expression metric, which the GPU backend cannot compute.
+- While the study runs, the drawer follows it: the **Parameters** band moves
+  to each step's values and the **Metrics** section streams the objective
+  metric over that step's runs as they complete. Move a slider, flip a switch,
+  or click the surface to look at any other point at any time — its objective
+  computes in escalating batches on the same backend — and turn **Follow
+  steps** back on to rejoin the study.
+- When a point cannot be computed — the objective metric does not compile,
+  the backend declines the model, or some of its runs fail — the
+  **Parameters** band says why under **Could not compute** and the **Metrics**
+  section stays empty; a step that fails this way is pruned. Moving to another
+  point, or back to this one, tries again.
+- Once the study is finished the controls stay. The point they hold — the last
+  step, or wherever you moved them — refines up to 100 runs, and every point
+  you visit is kept for the record's lifetime, so returning to one is instant.
+  **Cancel** stops the current step and the study; the drawer keeps the
+  received steps and computes again only when you move.
+- Keep the tab open. Closing or reloading the page ends the study, and the
+  record is gone on the next load.
+- Given the same settings, each step of an in-browser optimization runs on the
+  CPU with the same seeds as the optimization service, so it produces the
+  service's objective values and the optimizer proposes the same parameter
+  values, step for step.
+
 ## Connection drops and reloads
 
-An optimization runs on the server, not in your browser tab. If the connection
-drops while you watch one, Petrinaut reconnects automatically and resumes from
-the last result it received — the status shows **(reconnecting…)** while it
-retries, and no trials are lost or double-counted. Only if reconnecting keeps
-failing does the run report a connection error, which keeps the received
-trials and offers **Retry**.
+When the host uses an optimization service, an optimization runs on the server,
+not in your browser tab. If the connection drops while you watch one, Petrinaut
+reconnects automatically and resumes from the last result it received — the
+status shows **(reconnecting…)** while it retries, and no trials are lost or
+double-counted. Only if reconnecting keeps failing does the run report a
+connection error, which keeps the received trials and offers **Retry**.
 
 Reloading or closing the page is different: the page loses its view of a
 still-running optimization. The run itself continues on the server until it

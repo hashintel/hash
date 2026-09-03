@@ -64,6 +64,10 @@ Off by default. Adds a **Sweep** toggle to every numeric scenario parameter in t
 
 Off by default. Adds a **Surface** section to an optimization study with two or more optimized numeric parameters, computed locally on your machine. See [The surface view](optimization.md#the-surface-view).
 
+### In-browser optimization (experimental)
+
+Shown only when the host application provides an optimizer that runs in your browser. Off by default. On, Petrinaut connects that optimizer: the **Optimizations** tab appears under Simulate, each study's steps run on the experiments backend, and the study drawer streams the objective's metrics for the step being evaluated (see [Running in the browser](optimization.md#running-in-the-browser)). Off, the tab stays hidden and any running in-browser optimization is cancelled. A remote optimization service provided by the host is not affected by this setting.
+
 ### Arcs rendering
 
 Choose how arcs are drawn between nodes:
