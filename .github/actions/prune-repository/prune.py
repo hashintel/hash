@@ -43,9 +43,8 @@ EXTRA_DEPENDENCIES: dict[str, list[str]] = {
 # Non-workspace paths required by packages in the *requested* scope.
 # `turbo prune` copies workspace directories and root manifests only.
 REQUESTED_PATHS: dict[str, list[str]] = {
-    # The Brunch context root is deliberately not a workspace, but the
-    # architecture tests in packages/core read its docs, scripts, and agent
-    # contract files
+    # Core's shipped-definition and baseline tests read the non-workspace
+    # context root alongside their plugin task dependencies.
     "@hashintel/brunch-agent": [
         ".config/oxlint/brunch",
         "libs/@hashintel/brunch-agent/AGENTS.md",
@@ -54,12 +53,17 @@ REQUESTED_PATHS: dict[str, list[str]] = {
         "libs/@hashintel/brunch-agent/evaluations",
         "libs/@hashintel/brunch-agent/scripts",
     ],
-    # The app's tests execute evaluation runners and validate committed mission
-    # artifacts; the context root is not a workspace and must be copied explicitly.
+    # The app's tests execute evaluation runners and govern the complete Brunch
+    # composition. Its context root is not a workspace, so copy the docs,
+    # scripts, and agent contract files explicitly.
     "@apps/brunch-agent": [
-        "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless",
-        "libs/@hashintel/brunch-agent/docs/inbox/sdcpn-examples-to-validate",
+        ".config/oxlint/brunch",
+        "libs/@hashintel/brunch-agent/AGENTS.md",
+        "libs/@hashintel/brunch-agent/CONTEXT.md",
+        "libs/@hashintel/brunch-agent/docs",
         "libs/@hashintel/brunch-agent/evaluations",
+        "libs/@hashintel/brunch-agent/scripts",
+        "libs/@hashintel/petrinaut/docs",
     ],
 }
 

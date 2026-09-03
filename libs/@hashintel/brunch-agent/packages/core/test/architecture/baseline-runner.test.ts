@@ -18,7 +18,7 @@ import { pathToFileURL } from "node:url";
 import * as v from "valibot";
 import { afterEach, describe, expect, test } from "vitest";
 
-import { CONTEXT_ROOT, contextRootPresent } from "./workspace";
+import { CONTEXT_ROOT, contextRootPresent } from "./context-root";
 
 import type { StubReply } from "./fixtures/baseline-anthropic-stub";
 

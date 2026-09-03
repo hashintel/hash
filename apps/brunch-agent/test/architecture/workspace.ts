@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url";
 
 /** Resolved through `fileURLToPath` — a raw `URL.pathname` is percent-encoded. */
 export const HASH_ROOT = fileURLToPath(
-  new URL("../../../../../../..", import.meta.url),
+  new URL("../../../..", import.meta.url),
 ).replace(/[/\\]$/, "");
 export const CONTEXT_ROOT = join(HASH_ROOT, "libs/@hashintel/brunch-agent");
 export const REPO_ROOT = CONTEXT_ROOT;

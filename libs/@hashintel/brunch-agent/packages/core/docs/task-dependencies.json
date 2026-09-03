@@ -2,7 +2,6 @@
   "package": "@hashintel/brunch-agent",
   "dependencies": [],
   "tasks": {
-    "baseline:run": [],
     "build": [],
     "fix:eslint": [
       "@local/eslint#build"
@@ -12,6 +11,9 @@
       "@local/eslint#build"
     ],
     "lint:tsc": [],
-    "test:unit": []
+    "test:unit": [
+      "@hashintel/brunch-agent-plugin-gherkin#build",
+      "@hashintel/brunch-agent-plugin-sdcpn#build"
+    ]
   }
 }

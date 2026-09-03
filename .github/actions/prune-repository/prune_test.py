@@ -20,18 +20,31 @@ WEBSITE = "@apps/petrinaut-website"
 
 
 class BrunchRequestedExtras(unittest.TestCase):
-    def test_core_task_graph_adds_the_app_plugins_and_context_paths(self) -> None:
-        expected_workspaces = frozenset({APP, PLUGIN_GHERKIN, PLUGIN_SDCPN})
+    def test_app_task_adds_the_core_plugins_and_context_paths(self) -> None:
+        expected_workspaces = frozenset({CORE, PLUGIN_GHERKIN, PLUGIN_SDCPN})
         expanded = fixpoint_expand(
-            {CORE},
+            {APP},
             {
-                CORE: expected_workspaces,
-                APP: frozenset({CORE}),
+                APP: expected_workspaces,
                 PLUGIN_GHERKIN: frozenset({CORE}),
                 PLUGIN_SDCPN: frozenset({CORE}),
             },
         )
         self.assertTrue(expected_workspaces.issubset(expanded))
+        self.assertEqual(
+            extra_paths_for_requested({APP}),
+            [
+                ".config/oxlint/brunch",
+                "libs/@hashintel/brunch-agent/AGENTS.md",
+                "libs/@hashintel/brunch-agent/CONTEXT.md",
+                "libs/@hashintel/brunch-agent/docs",
+                "libs/@hashintel/brunch-agent/evaluations",
+                "libs/@hashintel/brunch-agent/scripts",
+                "libs/@hashintel/petrinaut/docs",
+            ],
+        )
+
+    def test_core_adds_its_non_workspace_test_fixtures(self) -> None:
         self.assertEqual(
             extra_paths_for_requested({CORE}),
             [
@@ -41,16 +54,6 @@ class BrunchRequestedExtras(unittest.TestCase):
                 "libs/@hashintel/brunch-agent/docs",
                 "libs/@hashintel/brunch-agent/evaluations",
                 "libs/@hashintel/brunch-agent/scripts",
-            ],
-        )
-
-    def test_app_job_adds_its_non_workspace_test_fixtures(self) -> None:
-        self.assertEqual(
-            extra_paths_for_requested({APP}),
-            [
-                "libs/@hashintel/brunch-agent/docs/evidence/evaluations/vestera-runbook-headless",
-                "libs/@hashintel/brunch-agent/docs/inbox/sdcpn-examples-to-validate",
-                "libs/@hashintel/brunch-agent/evaluations",
             ],
         )
 

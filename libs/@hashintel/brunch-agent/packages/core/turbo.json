@@ -12,15 +12,12 @@
       "dependsOn": [
         "codegen",
         "^build",
-        "@apps/brunch-agent#build",
         "@hashintel/brunch-agent-plugin-gherkin#build",
         "@hashintel/brunch-agent-plugin-sdcpn#build"
       ],
       "inputs": [
         "$TURBO_DEFAULT$",
-        "$TURBO_ROOT$/apps/brunch-agent/**",
         "$TURBO_ROOT$/libs/@hashintel/brunch-agent/**",
-        "!$TURBO_ROOT$/apps/brunch-agent/**/{.flue,.turbo,dist,node_modules}/**",
         "!$TURBO_ROOT$/libs/@hashintel/brunch-agent/**/{.flue,.turbo,dist,node_modules}/**"
       ]
     }
