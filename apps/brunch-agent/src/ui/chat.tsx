@@ -165,10 +165,7 @@ export function Chat() {
     if (configuration.mode === "observer-error") return;
 
     let cancelled = false;
-    void flueConversationIdWeb(
-      configuration.principalKey,
-      configuration.conversationId,
-    ).then((instanceId) => {
+    void flueConversationIdWeb(configuration).then((instanceId) => {
       if (cancelled) return;
       setClient(
         createFlueClient({
