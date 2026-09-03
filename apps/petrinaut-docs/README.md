@@ -135,10 +135,14 @@ scrolls beneath it, so text does not meet the header on a hard edge. It runs to
 two heights: the tint over 30px and the blur over 60px. Matching them hid the
 blur completely, because its strongest layers sit at the top, which is exactly
 where the tint is opaque; the stretch below the tint is where a reader actually
-sees content blurred. `backdrop-filter` cannot ramp on its own, so the ramp is
-three stacked layers, each blurring harder than the last and masked to a shorter
-band; each filters what the one beneath it produced, which is what makes the
-blur compound rather than step. The band is positioned against the viewport from
+sees content blurred.
+
+`backdrop-filter` cannot ramp on its own, so the ramp is three layers, all
+anchored under the header and each running to a different depth: 60px at 1px of
+blur, 40px at 2px, 20px at 4px. They overlap towards the header and thin out to
+one at the bottom, so the tallest and weakest is the layer that meets unblurred
+content. Each fades out over its own lower half, so a layer ending reads as a
+soft edge rather than a line across the page. The band is positioned against the viewport from
 `components.SiteTitle`, like the resize handle, and its right inset restates
 Starlight's own width for the on-this-page column since no variable holds it.
 

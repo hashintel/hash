@@ -723,31 +723,40 @@ dialog {
   pointer-events: none;
 }
 
+/*
+ * Every layer is anchored under the header and runs to a different depth, so
+ * the three overlap towards the top and thin out to one at the bottom. Each
+ * fades out over its own lower half, so a layer ending is a soft edge rather
+ * than a line across the content.
+ *
+ * The tallest carries the weakest blur and reaches furthest into the content;
+ * the shortest carries the strongest and stays up against the header.
+ */
 .pnd-content-fade > span {
   position: absolute;
-  inset: 0;
+  inset-block-start: 0;
+  inset-inline: 0;
   display: block;
+  -webkit-mask-image: linear-gradient(to bottom, #000 50%, transparent);
+  mask-image: linear-gradient(to bottom, #000 50%, transparent);
 }
 
 .pnd-content-fade > span:nth-child(1) {
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
-  mask-image: linear-gradient(to bottom, #000, transparent);
+  height: 100%;
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
 }
 
 .pnd-content-fade > span:nth-child(2) {
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 60%);
-  mask-image: linear-gradient(to bottom, #000, transparent 60%);
+  height: 66%;
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
 
 .pnd-content-fade > span:nth-child(3) {
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 30%);
-  mask-image: linear-gradient(to bottom, #000, transparent 30%);
+  height: 33%;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
 /*
