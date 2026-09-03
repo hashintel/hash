@@ -100,7 +100,10 @@ is why removing the blue took no hunting: Starlight routes links, the active nav
 row and the active table-of-contents row through the accent tokens. Links stay
 distinguishable by their underline. Type is 17px on a 1.65 leading with a
 heading scale shorter than Starlight's, so hierarchy comes from weight and space
-rather than size.
+rather than size. Starlight defines `--sl-text-body` but never applies it, so
+the body size is set here or copy stays at the browser default. Blocks sit
+1.5rem apart and a section heading takes 2.25em above it, which is what makes a
+new section read as a break rather than another paragraph.
 
 Colour is left to what carries meaning: the diff badges, the asides, and the
 accents the bundle's own cards paint themselves. Nothing in the bundle is styled
@@ -119,6 +122,22 @@ is there because it carries information: how deep a row sits in the tree. The
 borders that framed the header, the sidebar and the on-this-page column are
 gone. Element borders stay where they separate content from the page: tables,
 code frames, and the markdown images that hold the diagrams.
+
+Both rails and the collapse toggle rest at 70% and come to full strength when
+the pointer or keyboard focus reaches them, over 300ms. The hover target is the
+whole rail, so the reveal does not depend on landing on a row, and the opacity
+sits on each rail's inner element rather than the scrolling pane, which already
+owns a transition for the collapse. `prefers-reduced-transparency` turns the
+whole effect off.
+
+Under the header, over the content column only, a 30px band blurs and tints
+whatever scrolls beneath it, so text does not meet the header on a hard edge.
+`backdrop-filter` cannot ramp on its own, so the ramp is three stacked layers,
+each blurring harder than the last and masked to a shorter band; each filters
+what the one beneath it produced, which is what makes the blur compound rather
+than step. The band is positioned against the viewport from
+`components.SiteTitle`, like the resize handle, and its right inset restates
+Starlight's own width for the on-this-page column since no variable holds it.
 
 **The sidebar.** The left nav takes its own `--pnd-sidebar-width` because
 Starlight sizes both panels from `--sl-sidebar-width`, and collapsing the nav has

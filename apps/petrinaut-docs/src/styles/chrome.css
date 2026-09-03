@@ -44,6 +44,23 @@
 
   --pnd-motion-duration: 200ms;
   --pnd-motion-ease: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* The chrome sits back until it is pointed at. */
+  --pnd-chrome-idle-opacity: 0.7;
+  --pnd-chrome-fade: 300ms;
+
+  /* Height of the blurred band under the header. */
+  --pnd-content-fade-height: 30px;
+}
+
+/*
+ * Transparency is a preference in the same way motion is, so a reader who has
+ * asked for less of it gets the chrome at full strength.
+ */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --pnd-chrome-idle-opacity: 1;
+  }
 }
 
 /*
@@ -161,9 +178,36 @@
   --sl-text-h3: 1.25rem;
   --sl-text-h4: 1.0625rem;
   --sl-text-h5: 0.9375rem;
+
+  /* Starlight's 1rem between blocks is tight under a 1.65 leading. */
+  --sl-content-gap-y: 1.5rem;
 }
 
+/*
+ * A new section needs to read as a break, not as another paragraph. Starlight
+ * gives a heading following body copy 1.5em; at these heading sizes that is
+ * barely more than the gap between two paragraphs.
+ *
+ * Both selectors are needed. A heading that carries an anchor link is wrapped
+ * in `.sl-heading-wrapper`, and the margin lands on the wrapper, so a rule
+ * naming only the heading matches nothing on a generated page.
+ */
+.sl-markdown-content
+  :not(h1, h2, h3, h4, h5, h6, .sl-heading-wrapper)
+  + :is(.sl-heading-wrapper):not(:where(.not-content *)),
+.sl-markdown-content
+  :not(h1, h2, h3, h4, h5, h6, .sl-heading-wrapper)
+  + :is(h1, h2, h3, h4, h5, h6):not(:where(.not-content *)) {
+  margin-top: 2.25em;
+}
+
+/*
+ * Starlight defines `--sl-text-body` but never applies it, so body copy sits at
+ * the browser default until something sets it here. Headings and the chrome are
+ * sized in rem, so this reaches paragraphs, lists and table cells only.
+ */
 body {
+  font-size: var(--sl-text-body);
   letter-spacing: -0.011em;
 }
 
@@ -302,6 +346,42 @@ dialog {
 .sidebar-pane {
   scrollbar-width: thin;
   scrollbar-color: var(--sl-color-gray-5) transparent;
+}
+
+/* Chrome at rest -------------------------------------------------------- */
+
+/*
+ * Both rails rest at `--pnd-chrome-idle-opacity` and come up to full strength
+ * when the pointer or keyboard focus reaches them. The opacity sits on the
+ * inner element of each rail rather than the scrolling pane, which already
+ * owns a transition for the collapse; two `transition` shorthands on one
+ * element would drop whichever lost the cascade.
+ *
+ * The hover target is the whole rail, so the reveal does not depend on landing
+ * on a row.
+ */
+@media (min-width: 50rem) {
+  .sidebar-content {
+    opacity: var(--pnd-chrome-idle-opacity);
+    transition: opacity var(--pnd-chrome-fade) ease;
+  }
+
+  .sidebar-pane:hover .sidebar-content,
+  .sidebar-pane:focus-within .sidebar-content {
+    opacity: 1;
+  }
+}
+
+@media (min-width: 72rem) {
+  .right-sidebar-panel {
+    opacity: var(--pnd-chrome-idle-opacity);
+    transition: opacity var(--pnd-chrome-fade) ease;
+  }
+
+  .right-sidebar:hover .right-sidebar-panel,
+  .right-sidebar:focus-within .right-sidebar-panel {
+    opacity: 1;
+  }
 }
 
 /* On this page ---------------------------------------------------------- */
@@ -480,14 +560,18 @@ dialog {
     background: none;
     color: var(--sl-color-gray-3);
     cursor: pointer;
+    opacity: var(--pnd-chrome-idle-opacity);
     transition:
       background-color 120ms ease,
-      color 120ms ease;
+      color 120ms ease,
+      opacity var(--pnd-chrome-fade) ease;
   }
 
-  .pnd-sidebar-toggle:hover {
+  .pnd-sidebar-toggle:hover,
+  .pnd-sidebar-toggle:focus-visible {
     background: var(--pnd-row-active);
     color: var(--sl-color-white);
+    opacity: 1;
   }
 
   /*
@@ -585,6 +669,12 @@ dialog {
     transition: max-width var(--pnd-motion-duration) var(--pnd-motion-ease);
   }
 
+  :root:not([data-pnd-resizing]) .pnd-content-fade {
+    transition:
+      inset-inline-start var(--pnd-motion-duration) var(--pnd-motion-ease),
+      inset-inline-end var(--pnd-motion-duration) var(--pnd-motion-ease);
+  }
+
   :root:not([data-pnd-resizing]) .pnd-sidebar-resize {
     transition:
       inset-inline-start var(--pnd-motion-duration) var(--pnd-motion-ease),
@@ -598,6 +688,84 @@ dialog {
   :root:not([data-pnd-resizing]) .main-pane,
   :root:not([data-pnd-resizing]) .right-sidebar-container {
     transition: width var(--pnd-motion-duration) var(--pnd-motion-ease);
+  }
+}
+
+/* Content fade ---------------------------------------------------------- */
+
+/*
+ * A band under the header where the content passing beneath it blurs out and
+ * takes on the page colour, so scrolled text does not meet the header on a
+ * hard edge.
+ *
+ * Only over the content: it starts where the content column starts and, once
+ * the on-this-page column exists, stops where that column starts. The right
+ * inset restates Starlight's own width for that column, since there is no
+ * variable holding it.
+ *
+ * `backdrop-filter` cannot ramp on its own, so the ramp is three stacked
+ * layers: each blurs the backdrop harder than the last and is masked to a
+ * shorter band below the header. Each layer filters what the layer beneath it
+ * produced, so the blur compounds towards the top rather than stepping.
+ */
+.pnd-content-fade {
+  position: fixed;
+  inset-block-start: var(--sl-nav-height);
+  inset-inline-start: var(--sl-content-inline-start, 0px);
+  inset-inline-end: 0;
+  height: var(--pnd-content-fade-height);
+  pointer-events: none;
+}
+
+.pnd-content-fade > span {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.pnd-content-fade > span:nth-child(1) {
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
+  mask-image: linear-gradient(to bottom, #000, transparent);
+}
+
+.pnd-content-fade > span:nth-child(2) {
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 66%);
+  mask-image: linear-gradient(to bottom, #000, transparent 66%);
+}
+
+.pnd-content-fade > span:nth-child(3) {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 33%);
+  mask-image: linear-gradient(to bottom, #000, transparent 33%);
+}
+
+/* The colour half of the fade, painted over the blur. */
+.pnd-content-fade::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, var(--sl-color-bg), transparent);
+}
+
+/* 72rem is where the on-this-page column appears beside the content. */
+@media (min-width: 72rem) {
+  .pnd-content-fade {
+    inset-inline-end: max(
+      var(--sl-sidebar-width),
+      calc(
+        var(--sl-sidebar-width) +
+          (
+            100vw - var(--sl-content-inline-start) - var(--sl-content-width) -
+              var(--sl-sidebar-width)
+          ) /
+          2
+      )
+    );
   }
 }
 
