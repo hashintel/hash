@@ -448,6 +448,18 @@ describe("voice interview control", () => {
     expect(screen.getByText("Voice inactive")).not.toBeNull();
   });
 
+  test("does not register Repeat question without a canonical question marker", async () => {
+    render(<VoiceInterviewHarness />);
+
+    await waitFor(() => expect(registeredVoiceModeControls).toBeDefined());
+
+    expect(registeredVoiceModeControls?.readFullResponse).toBeTypeOf(
+      "function",
+    );
+    expect(registeredVoiceModeControls?.takeTurn).toBeTypeOf("function");
+    expect(registeredVoiceModeControls?.repeatQuestion).toBeUndefined();
+  });
+
   test("restarts when Voice is reselected before teardown completes", async () => {
     window.localStorage.setItem(
       VOICE_INTERVIEW_DISCLOSURE_STORAGE_KEY,

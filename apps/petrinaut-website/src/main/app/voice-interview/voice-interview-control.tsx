@@ -457,7 +457,6 @@ const AvailableVoiceInterviewControl = ({
         reconnect: () => {
           void store.controller.reconnect();
         },
-        repeatQuestion: () => store.controller.repeatQuestion(),
         resume: () => {
           void store.controller.resume();
         },

@@ -405,7 +405,7 @@ describe("VoiceTurnController", () => {
     });
   });
 
-  test("replays exact canonical response segments only after matching audio and response settlement", async () => {
+  test("replays exact canonical response segments but does not infer a question from the final segment", async () => {
     const harness = createHarness();
     const context = question("context", "Approval is required before release.");
     const nextQuestion = question("ask-replay", "Who approves release?");
@@ -433,7 +433,6 @@ describe("VoiceTurnController", () => {
       canRepeatQuestion: false,
     });
     harness.controller.readFullResponse();
-    harness.controller.repeatQuestion();
     expect(harness.session.speakCanonical).not.toHaveBeenCalled();
 
     harness.emitSession({
@@ -452,37 +451,14 @@ describe("VoiceTurnController", () => {
     });
     expect(harness.controller.getSnapshot()).toMatchObject({
       canReadFullResponse: true,
-      canRepeatQuestion: true,
-    });
-
-    harness.controller.repeatQuestion();
-    expect(harness.session.speakCanonical).toHaveBeenCalledWith([nextQuestion]);
-    expect(harness.controller.getSnapshot()).toMatchObject({
-      canReadFullResponse: false,
       canRepeatQuestion: false,
-      output: "waiting-for-tool",
     });
 
-    harness.emitSession({
-      connectionEpoch: 1,
-      responseId: "response-replay",
-      speechRequestId: "speech-replay",
-      type: "output-started",
-    });
-    harness.emitSession({
-      connectionEpoch: 1,
-      responseId: "response-replay",
-      status: "completed",
-      type: "response-terminal",
-    });
-    harness.emitSession({
-      connectionEpoch: 1,
-      responseId: "response-replay",
-      type: "output-stopped",
-    });
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+
     harness.controller.readFullResponse();
-
-    expect(harness.session.speakCanonical).toHaveBeenNthCalledWith(2, [
+    expect(harness.session.speakCanonical).toHaveBeenCalledOnce();
+    expect(harness.session.speakCanonical).toHaveBeenCalledWith([
       context,
       nextQuestion,
     ]);
@@ -514,7 +490,10 @@ describe("VoiceTurnController", () => {
       status: "completed",
       type: "response-terminal",
     });
-    expect(harness.controller.getSnapshot().canRepeatQuestion).toBe(true);
+    expect(harness.controller.getSnapshot()).toMatchObject({
+      canReadFullResponse: true,
+      canRepeatQuestion: false,
+    });
 
     harness.emitSession({
       connectionEpoch: 1,
