@@ -22,12 +22,14 @@ import {
   type ScenarioParameter,
 } from "@hashintel/petrinaut-core";
 import {
+  createReusableWorkerFactory,
   createWorkerPoolExperimentBackend,
   selectExperimentBackend,
   WORKER_POOL_BACKEND_ID,
   type ExperimentBackend,
   type ExperimentBackendRegistration,
   type ExperimentRequest,
+  type ReusableWorkerFactory,
 } from "@hashintel/petrinaut-core/experiments";
 import { createMonteCarloWorker } from "@hashintel/petrinaut-core/workers/monte-carlo";
 
@@ -54,6 +56,7 @@ import {
   isTerminalExperimentStatus,
   type DetachedObjectiveRequest,
 } from "./context";
+import { sweepCellObjective } from "./contour-grid";
 import {
   buildParameterAxis,
   fullSweepSelection,
@@ -270,6 +273,40 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   const petriNetDefinitionRef = useLatest(petriNetDefinition);
   const extensionsRef = useLatest(extensions);
   const workerFactoryRef = useLatest(workerFactory ?? createMonteCarloWorker);
+  // One worker pool per provider: batches lease workers instead of spawning
+  // and killing a pool's worth per ladder rung and per surface cell. The
+  // base factory is read at call time, so an injected factory stays live;
+  // changing it drains the old pool below.
+  const reusableWorkerFactoryRef = useRef<ReusableWorkerFactory | null>(null);
+  reusableWorkerFactoryRef.current ??= createReusableWorkerFactory(
+    () => workerFactoryRef.current(),
+    {
+      // A sweep commit releases the whole working set at once: TWO sharded
+      // foreground batches (the ladder pipelines its rungs) plus the surface
+      // lanes. The pool must hold that set or every commit terminates the
+      // overflow and respawns it a moment later.
+      maxIdle:
+        2 * (experimentShardCount ?? getDefaultMonteCarloShardCount()) + 8,
+    },
+  );
+  const reusableWorkerFactory = reusableWorkerFactoryRef.current;
+  // Factory change: flush pooled workers built from the old base factory
+  // (leases in flight finish on it and re-pool; the next lease is fresh).
+  useEffect(() => {
+    const pool = reusableWorkerFactoryRef.current;
+    return () => {
+      pool?.drain();
+    };
+  }, [workerFactory]);
+  // Unmount: shut the pool for good. Handles released by later cleanups (and
+  // in-flight leases finishing afterwards) must terminate their workers
+  // rather than pool them where nothing will ever lease or drain again.
+  useEffect(() => {
+    const pool = reusableWorkerFactoryRef.current;
+    return () => {
+      pool?.dispose();
+    };
+  }, []);
   const shardCountRef = useLatest(experimentShardCount);
   const registrationsRef = useRef(
     new Map<string, ExperimentHandleRegistration>(),
@@ -278,6 +315,20 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     new Map<string, PendingExperimentRegistration>(),
   );
   const sweepSessionsRef = useRef(new Map<string, SweepSession>());
+  /**
+   * Per sweep: compiles a cell's initial marking to a comparable string
+   * (null when that cell's values do not compile). Surface chunks batch many
+   * cells into one experiment only when every cell in the chunk compiles to
+   * the batch's shared marking — checked against the actual cell values, so
+   * a marking the swept parameters shape (even jointly, or only at interior
+   * points) falls back to the per-cell path instead of running wrong.
+   */
+  const surfaceMarkingProbesRef = useRef(
+    new Map<
+      string,
+      (values: Readonly<Record<string, number>>) => string | null
+    >(),
+  );
   /** Serializes detached objective batches on one background worker. */
   const detachedChainRef = useRef<Promise<unknown>>(Promise.resolve());
   const detachedCpuBackendRef = useRef<ExperimentBackend | null>(null);
@@ -297,6 +348,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     >(),
   );
   const [experiments, setExperiments] = useState<ExperimentRecord[]>([]);
+  const experimentsStateRef = useLatest(experiments);
   const selectedExperimentId =
     navigation.state.simulateResource?.type === "experiment"
       ? navigation.state.simulateResource.id
@@ -511,6 +563,15 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       netParameterVariableNames,
     } = options;
     const experimentId = experiment.id;
+    surfaceMarkingProbesRef.current.set(experimentId, (values) => {
+      try {
+        return JSON.stringify(compileForValues(values).result.initialState);
+      } catch {
+        // A cell whose values do not compile cannot join a batch; the
+        // per-cell path surfaces the error the way a plain batch would.
+        return null;
+      }
+    });
     let chosenBackend: ExperimentBackend | null = null;
     /**
      * Surface-sampling batches are 8 tiny runs; on the CPU they get one
@@ -518,6 +579,8 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
      * a sweep whose surface view is never opened spawns nothing extra.
      */
     let backgroundCpuBackend: ExperimentBackend | null = null;
+    /** The same lane, sharded — used whenever the foreground frees the pool. */
+    let backgroundWideCpuBackend: ExperimentBackend | null = null;
 
     const onNote = (note: { message: string }) => {
       addNotification({
@@ -542,6 +605,9 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         seed,
         runCount,
         background,
+        requiresRunResults,
+        foregroundActive,
+        runSeeds,
         signal,
       }) => {
         const compiled = compileForValues(parameterValues);
@@ -561,34 +627,96 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
                 compileRunNumbers,
                 netParameterVariableNames,
               });
+        // Pinned per-run seeds only ride the record form (`runs`); a numeric
+        // plan carries values alone, so a seeded batch converts its plan to
+        // records. Seeded batches are small surface chunks — the record
+        // form's cost is irrelevant at that size.
+        const perRun =
+          translated === undefined
+            ? runSeeds === undefined
+              ? {}
+              : { runs: runSeeds.map((runSeed) => ({ seed: runSeed })) }
+            : translated.kind === "runs"
+              ? {
+                  runs:
+                    runSeeds === undefined
+                      ? translated.runs
+                      : translated.runs.map((run, index) => ({
+                          ...run,
+                          seed: runSeeds[index],
+                        })),
+                }
+              : runSeeds === undefined
+                ? { runPlan: translated.plan }
+                : {
+                    runs: runSeeds.map((runSeed, index) => ({
+                      seed: runSeed,
+                      parameterValues: Object.fromEntries(
+                        translated.plan.ids.map((id, column) => [
+                          id,
+                          String(
+                            translated.plan.values[
+                              index * translated.plan.ids.length + column
+                            ],
+                          ),
+                        ]),
+                      ),
+                    })),
+                  };
         const override = {
           parameterValues: compiled.result.parameterValues,
           initialMarking: compiled.result.initialState,
           seed,
           runCount,
-          ...(translated === undefined
-            ? {}
-            : translated.kind === "plan"
-              ? { runPlan: translated.plan }
-              : { runs: translated.runs }),
+          ...perRun,
         };
 
         // The surface's background sampling can start before the navigator's
         // first batch has finished the backend-selection walk. Running the
         // walk here too would race it: two batches contending for the pool,
         // both patching the record's backend fields. Background batches
-        // instead go straight to the single-worker CPU lane until a backend
-        // is chosen (and stay there when the choice lands on the CPU).
-        if (background && !chosenBackend) {
-          backgroundCpuBackend ??= createWorkerPoolExperimentBackend({
-            createWorker: workerFactoryRef.current,
-            shardCount: 1,
-          });
+        // instead go straight to the CPU lane until a backend is chosen (and
+        // stay there when the choice lands on the CPU). A batch whose
+        // consumer reads per-run values stays there always: only the CPU
+        // workers report `runResults`.
+        //
+        // The lane's WIDTH adapts to foreground pressure: while the
+        // navigator's ladder computes on the CPU pool, a background batch
+        // takes one worker so the sharded foreground keeps the cores; once
+        // the ladder idles — or computes on the GPU, using no CPU workers at
+        // all — the same batch shards across the freed pool. The divisor
+        // mirrors the surface's three concurrent chunks, so the wide lanes
+        // together fill the pool instead of tripling it.
+        if (background && (!chosenBackend || requiresRunResults)) {
+          const cpuForegroundBusy =
+            foregroundActive === true &&
+            (chosenBackend === null ||
+              chosenBackend.id === WORKER_POOL_BACKEND_ID);
+          let laneBackend: ExperimentBackend;
+          if (cpuForegroundBusy) {
+            backgroundCpuBackend ??= createWorkerPoolExperimentBackend({
+              createWorker: reusableWorkerFactory,
+              shardCount: 1,
+            });
+            laneBackend = backgroundCpuBackend;
+          } else {
+            backgroundWideCpuBackend ??= createWorkerPoolExperimentBackend({
+              createWorker: reusableWorkerFactory,
+              shardCount: Math.max(
+                2,
+                Math.floor(
+                  (shardCountRef.current ?? getDefaultMonteCarloShardCount()) /
+                    3,
+                ),
+              ),
+            });
+            laneBackend = backgroundWideCpuBackend;
+          }
           const request = await buildRequest({
-            needsHirTrees: backgroundCpuBackend.needsHirTrees,
+            needsHirTrees: laneBackend.needsHirTrees,
             override,
           });
-          const assessment = await backgroundCpuBackend.assess(request);
+          const assessment = await laneBackend.assess(request);
           if (!assessment.eligible) {
             throw new Error(describeBlockers(assessment.blockers));
           }
@@ -636,7 +764,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
         let batchBackend = chosenBackend;
         if (background && chosenBackend.id === WORKER_POOL_BACKEND_ID) {
           backgroundCpuBackend ??= createWorkerPoolExperimentBackend({
-            createWorker: workerFactoryRef.current,
+            createWorker: reusableWorkerFactory,
             shardCount: 1,
           });
           batchBackend = backgroundCpuBackend;
@@ -1002,7 +1130,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
           load: () =>
             Promise.resolve(
               createWorkerPoolExperimentBackend({
-                createWorker: workerFactoryRef.current,
+                createWorker: reusableWorkerFactory,
                 // The experiment never inspects the host, so the provider — the
                 // piece that knows this is a browser — states the parallelism.
                 shardCount:
@@ -1135,6 +1263,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     if (session) {
       session.dispose();
       sweepSessionsRef.current.delete(experimentId);
+      surfaceMarkingProbesRef.current.delete(experimentId);
       patchExperiment(experimentId, { status: "cancelled" });
       return;
     }
@@ -1147,6 +1276,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
   ) => {
     sweepSessionsRef.current.get(experimentId)?.dispose();
     sweepSessionsRef.current.delete(experimentId);
+    surfaceMarkingProbesRef.current.delete(experimentId);
     disposeExperimentHandle(experimentId);
     setExperiments((prev) =>
       prev.filter((experiment) => experiment.id !== experimentId),
@@ -1174,6 +1304,64 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     sweepSessionsRef.current
       .get(experimentId)
       ?.sampleCell(parameterValues, minRuns) ?? Promise.resolve(null);
+
+  const sampleSurfaceCells: ExperimentsContextValue["sampleSurfaceCells"] =
+    async (experimentId, positions, runsPerCell, onPartial) => {
+      const session = sweepSessionsRef.current.get(experimentId);
+      if (!session || positions.length === 0) {
+        return null;
+      }
+      // The navigator's selection always comes first: hold secondary chunks
+      // until the current selection has streamed its first frames (the gate
+      // re-arms on every selection change), so the metric charts fill before
+      // surface sampling competes for workers.
+      await session.whenSelectionStreamed();
+      // One batch shares one compiled initial marking, so batch only when
+      // every cell in this chunk compiles to the same marking as the first
+      // (checked at the actual cell values — no synthetic probe points).
+      const markingProbe = surfaceMarkingProbesRef.current.get(experimentId);
+      if (markingProbe && positions[0]) {
+        const baseMarking = markingProbe(positions[0]);
+        if (
+          baseMarking !== null &&
+          positions.every((position) => markingProbe(position) === baseMarking)
+        ) {
+          return session.sampleCells(positions, runsPerCell, onPartial);
+        }
+      }
+      // A marking-shaping (or partially non-compiling) chunk keeps the
+      // per-cell path, whose base compile follows each cell; the background
+      // slots bound how many run at once.
+      const experiment = experimentsStateRef.current.find(
+        (candidate) => candidate.id === experimentId,
+      );
+      if (!experiment) {
+        return null;
+      }
+      const metricIds = experiment.metricSpecs.map((spec) => spec.id);
+      // The per-cell path streams too: each resolved cell reports the chunk's
+      // progress so far, index-aligned like the batched path.
+      const partial: (Readonly<Record<string, number>> | null)[] =
+        positions.map(() => null);
+      return Promise.all(
+        positions.map(async (position, index) => {
+          const snapshot = await session.sampleCell(position, runsPerCell);
+          if (!snapshot) {
+            return null;
+          }
+          const values: Record<string, number> = {};
+          for (const metricId of metricIds) {
+            const value = sweepCellObjective(snapshot.metricFrames, metricId);
+            if (value !== null) {
+              values[metricId] = value;
+            }
+          }
+          partial[index] = values;
+          onPartial?.([...partial]);
+          return values;
+        }),
+      );
+    };
 
   const runDetachedObjectiveBatch = async (
     request: DetachedObjectiveRequest,
@@ -1245,7 +1433,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
       }
 
       detachedCpuBackendRef.current ??= createWorkerPoolExperimentBackend({
-        createWorker: workerFactoryRef.current,
+        createWorker: reusableWorkerFactory,
         shardCount: 1,
       });
       const backend = detachedCpuBackendRef.current;
@@ -1334,6 +1522,7 @@ export const ExperimentsProvider: React.FC<ExperimentsProviderProps> = ({
     removeExperiment: stableRemoveExperiment,
     setSweepSelection: useStableCallback(setSweepSelection),
     sampleSweepCell: useStableCallback(sampleSweepCell),
+    sampleSurfaceCells: useStableCallback(sampleSurfaceCells),
     sampleDetachedObjective: useStableCallback(sampleDetachedObjective),
   };
   // Every callback is identity-stable, so this object never changes and

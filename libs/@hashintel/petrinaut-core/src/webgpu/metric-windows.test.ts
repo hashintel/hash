@@ -4,6 +4,7 @@ import {
   anyEscapes,
   planInitialWindows,
   windowsFromObserved,
+  calibrationKey,
 } from "./metric-windows";
 
 describe("planInitialWindows", () => {
@@ -71,5 +72,32 @@ describe("anyEscapes", () => {
     expect(anyEscapes([{ min: 0, max: 9, below: 0, above: 0 }])).toBe(false);
     expect(anyEscapes([{ min: 0, max: 9, below: 1, above: 0 }])).toBe(true);
     expect(anyEscapes([{ min: 0, max: 9, below: 0, above: 2 }])).toBe(true);
+  });
+});
+
+describe("calibrationKey", () => {
+  it("keys by marking and metric set", () => {
+    const base = calibrationKey({
+      placeCounts: [190, 10, 0],
+      metricIds: ["a"],
+    });
+    expect(base).toBe(
+      calibrationKey({ placeCounts: [190, 10, 0], metricIds: ["a"] }),
+    );
+    expect(base).not.toBe(
+      calibrationKey({ placeCounts: [189, 11, 0], metricIds: ["a"] }),
+    );
+    expect(base).not.toBe(
+      calibrationKey({ placeCounts: [190, 10, 0], metricIds: ["a", "b"] }),
+    );
+  });
+
+  it("separates typed markings by their token words and boundaries", () => {
+    const key = (placeTokenWords: Uint32Array[]) =>
+      calibrationKey({ placeCounts: [2], placeTokenWords, metricIds: [] });
+    expect(key([new Uint32Array([1, 2]), new Uint32Array([3])])).not.toBe(
+      key([new Uint32Array([1]), new Uint32Array([2, 3])]),
+    );
+    expect(key([new Uint32Array([1, 2])])).toBe(key([new Uint32Array([1, 2])]));
   });
 });

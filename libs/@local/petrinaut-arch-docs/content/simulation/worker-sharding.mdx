@@ -67,3 +67,21 @@ An experiment may pin every run's seed explicitly (`runs`), which is how
 optimization replicates keep their common-random-numbers contract, and each
 run's final metric values come back per run (`runResults`) alongside the
 aggregated frames — the run axis the frames deliberately give up.
+
+## Workers are leased, not consumed
+
+An experiment terminates its transports on dispose — correct, but a
+parameter sweep instantiates a batch per ladder rung and per surface chunk,
+so a single slider commit used to spawn and kill a pool's worth of workers,
+each new worker re-fetching and re-evaluating the engine module before it
+could simulate. `createReusableWorkerFactory` wraps any `WorkerFactory` with
+an idle pool: it hands out **leases** whose `terminate()` detaches the
+lease's listeners, posts `cancel` to reset the worker (the protocol is
+re-initializable by design — `init` rebuilds the simulator from scratch),
+and returns it to the pool. The pooling is invisible to the transport and
+the runtime, which keep the exact `WorkerFactory` contract; a worker whose
+script errored is never re-pooled, and hosts without `removeEventListener`
+opt out implicitly (a lease that cannot detach its listeners terminates the
+worker for real). The editor's experiments provider holds one pool per
+mount and drains it when the injected factory changes or the provider
+unmounts.

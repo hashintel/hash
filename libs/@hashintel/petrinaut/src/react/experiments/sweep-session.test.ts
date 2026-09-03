@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { deriveRunSeed } from "@hashintel/petrinaut-core";
+
 import {
   createSweepSession,
   sweepBatchSeed,
@@ -71,6 +73,9 @@ function makeFakeBatch(request: {
   seed: number;
   runCount: number;
   background?: boolean;
+  requiresRunResults?: boolean;
+  foregroundActive?: boolean;
+  runSeeds?: readonly number[];
 }) {
   let metricListeners: ((value: {
     frames: readonly MonteCarloUserDefinedMetricFrame[];
@@ -83,6 +88,8 @@ function makeFakeBatch(request: {
   let progress: MonteCarloWorkerProgress | null = null;
   let cancelled = false;
   let started = false;
+  let runResults = new Map<number, Readonly<Record<string, number>>>();
+  let runResultsListeners: (() => void)[] = [];
 
   const handle: MonteCarloExperiment = {
     status: { get: () => "Running", subscribe: () => () => {} },
@@ -101,7 +108,18 @@ function makeFakeBatch(request: {
         };
       },
     },
-    runResults: { get: () => new Map(), subscribe: () => () => {} },
+    runResults: {
+      get: () => runResults,
+      subscribe: (listener) => {
+        const notify = () => listener(runResults);
+        runResultsListeners.push(notify);
+        return () => {
+          runResultsListeners = runResultsListeners.filter(
+            (entry) => entry !== notify,
+          );
+        };
+      },
+    },
     events: {
       subscribe: (listener) => {
         eventListeners.push(listener);
@@ -122,6 +140,12 @@ function makeFakeBatch(request: {
   return {
     request,
     handle,
+    setRunResults(next: ReadonlyMap<number, Readonly<Record<string, number>>>) {
+      runResults = new Map(next);
+      for (const notify of runResultsListeners) {
+        notify();
+      }
+    },
     get cancelled() {
       return cancelled;
     },
@@ -195,10 +219,13 @@ function makeHarness(runCount: number, initialSelection?: SweepSelection) {
   });
 
   const settle = async () => {
-    // Instantiation resolves through microtasks; three flushes cover the chain.
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    // Instantiation resolves through microtasks; the flush count covers the
+    // longest chain (the pipelined loop's startNext -> startRung -> draws ->
+    // instantiate) with headroom, so adding an await does not break every
+    // test again.
+    for (let flush = 0; flush < 12; flush++) {
+      await Promise.resolve();
+    }
   };
 
   return { session, batches, updates, onError, settle };
@@ -493,5 +520,256 @@ describe("createSweepSession", () => {
     });
     expect(session.getCell({ x: 2, y: 1 })).toBeUndefined();
     session.dispose();
+  });
+});
+
+describe("pipelined ladder rungs", () => {
+  it("starts the next rung once the current one streams, before it completes", async () => {
+    const { session, batches, settle } = makeHarness(25, point(0, 0));
+    await settle();
+    expect(batches).toHaveLength(1);
+
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    await settle();
+
+    // Rung 2 (runs 8..24) is already in flight while rung 1 still computes.
+    expect(batches).toHaveLength(2);
+    expect(batches[1]!.started).toBe(true);
+    expect(batches[1]!.request.runCount).toBe(17);
+    expect(batches[1]!.request.seed).toBe(sweepBatchSeed(42, 8));
+    session.dispose();
+  });
+
+  it("folds out-of-order completions in order", async () => {
+    const { session, batches, updates, settle } = makeHarness(25, point(0, 0));
+    await settle();
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    await settle();
+
+    // The successor finishes first; its fold waits for rung 1.
+    batches[1]!.stream([frame(17, [[2, 17]])]);
+    batches[1]!.complete();
+    await settle();
+    expect(updates.at(-1)!.runsCompleted).toBe(0);
+
+    batches[0]!.complete();
+    await settle();
+    expect(updates.at(-1)!.runsCompleted).toBe(25);
+    expect(updates.at(-1)!.computing).toBe(false);
+    session.dispose();
+  });
+
+  it("a selection change aborts both live rungs", async () => {
+    const { session, batches, settle } = makeHarness(25, point(0, 0));
+    await settle();
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    await settle();
+    expect(batches).toHaveLength(2);
+
+    session.setSelection(point(1, 0));
+    await settle();
+
+    expect(batches[0]!.cancelled).toBe(true);
+    expect(batches[1]!.cancelled).toBe(true);
+    // The new selection's own first rung is in flight.
+    expect(batches).toHaveLength(3);
+    expect(batches[2]!.request.parameterValues).toEqual({ x: 1, y: 10 });
+    session.dispose();
+  });
+});
+
+describe("foregroundActive hint", () => {
+  it("marks chunk batches by whether the refine ladder is computing", async () => {
+    const { session, batches, settle } = makeHarness(8, point(0, 0));
+    await settle();
+
+    // The ladder's only rung is in flight: background chunks yield.
+    void session.sampleCells([{ x: 0, y: 0 }], 2);
+    await settle();
+    expect(batches.at(-1)!.request.foregroundActive).toBe(true);
+
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    batches[0]!.complete();
+    await settle();
+
+    // The ladder reached its target and idles: chunks may go wide.
+    void session.sampleCells([{ x: 1, y: 0 }], 2);
+    await settle();
+    expect(batches.at(-1)!.request.foregroundActive).toBe(false);
+  });
+});
+
+describe("whenSelectionStreamed", () => {
+  const trackResolved = (promise: Promise<void>) => {
+    const state = { resolved: false };
+    void promise.then(() => {
+      state.resolved = true;
+    });
+    return state;
+  };
+
+  it("resolves when the current selection streams its first frames", async () => {
+    const { session, batches, settle } = makeHarness(25, point(0, 0));
+    await settle();
+
+    const gate = trackResolved(session.whenSelectionStreamed());
+    await settle();
+    expect(gate.resolved).toBe(false);
+
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    await settle();
+    expect(gate.resolved).toBe(true);
+  });
+
+  it("re-arms on a selection change and resolves for the new selection", async () => {
+    const { session, batches, settle } = makeHarness(25, point(0, 0));
+    await settle();
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    await settle();
+
+    session.setSelection(point(1, 0));
+    await settle();
+    const gate = trackResolved(session.whenSelectionStreamed());
+    await settle();
+    expect(gate.resolved).toBe(false);
+
+    batches.at(-1)!.stream([frame(8, [[2, 8]])]);
+    await settle();
+    expect(gate.resolved).toBe(true);
+  });
+
+  it("resolves immediately for a selection already sampled from cache", async () => {
+    const { session, batches, settle } = makeHarness(8, point(0, 0));
+    await settle();
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    batches[0]!.complete();
+    await settle();
+
+    // Move away and back: the cached selection publishes its runs at once.
+    session.setSelection(point(1, 0));
+    await settle();
+    session.setSelection(point(0, 0));
+    await settle();
+
+    const gate = trackResolved(session.whenSelectionStreamed());
+    await settle();
+    expect(gate.resolved).toBe(true);
+  });
+
+  it("resolves on dispose so waiters never hang", async () => {
+    const { session, settle } = makeHarness(25, point(0, 0));
+    await settle();
+    const gate = trackResolved(session.whenSelectionStreamed());
+    session.dispose();
+    await settle();
+    expect(gate.resolved).toBe(true);
+  });
+});
+
+describe("sampleCells", () => {
+  const CELLS = [
+    { x: 0, y: 0 },
+    { x: 2, y: 1 },
+  ];
+
+  async function sampleTwoCells(runsPerCell: number) {
+    const harness = makeHarness(1000);
+    const resultPromise = harness.session.sampleCells(CELLS, runsPerCell);
+    await harness.settle();
+    // batches[0] is the navigator's initial full-space batch; the chunk is
+    // the latest background batch.
+    const chunk = harness.batches.at(-1)!;
+    return { ...harness, chunk, resultPromise };
+  }
+
+  it("lays every cell out as per-run draws with pinned per-cell seeds", async () => {
+    const { chunk } = await sampleTwoCells(2);
+
+    expect(chunk.request).toMatchObject({
+      parameterValues: { x: 0, y: 10 },
+      seed: 42,
+      runCount: 4,
+      background: true,
+      requiresRunResults: true,
+    });
+    expect(chunk.request.draws?.identifiers).toEqual(["x", "y"]);
+    // Cell values repeated runsPerCell times, in cell order.
+    expect([...chunk.request.draws!.values]).toEqual([
+      0, 10, 0, 10, 2, 20, 2, 20,
+    ]);
+    // Every cell pins the SAME seed sequence — the one the per-cell ladder's
+    // first batch derives — so values are chunk-layout-independent.
+    const cellSeeds = [deriveRunSeed(42, 0), deriveRunSeed(42, 1)];
+    expect(chunk.request.runSeeds).toEqual([...cellSeeds, ...cellSeeds]);
+  });
+
+  it("groups per-run results into index-aligned per-cell means", async () => {
+    const { chunk, resultPromise, settle } = await sampleTwoCells(2);
+
+    chunk.setRunResults(
+      new Map([
+        [0, { m: 1 }],
+        [1, { m: 3 }],
+        [2, { m: 10 }],
+        [3, { m: 20 }],
+      ]),
+    );
+    chunk.stream([frame(4, [[1, 4]])]);
+    chunk.complete();
+    await settle();
+
+    expect(await resultPromise).toEqual([{ m: 2 }, { m: 15 }]);
+  });
+
+  it("streams partial per-cell means as shards complete", async () => {
+    const harness = makeHarness(1000);
+    const partials: (readonly (Readonly<Record<string, number>> | null)[])[] =
+      [];
+    const resultPromise = harness.session.sampleCells(CELLS, 2, (cells) =>
+      partials.push(cells),
+    );
+    await harness.settle();
+    const chunk = harness.batches.at(-1)!;
+
+    // First shard lands: only cell 0's runs are in; cell 1 is still null.
+    chunk.setRunResults(
+      new Map([
+        [0, { m: 1 }],
+        [1, { m: 3 }],
+      ]),
+    );
+    expect(partials.at(-1)).toEqual([{ m: 2 }, null]);
+
+    // Second shard: both cells now carry means.
+    chunk.setRunResults(
+      new Map([
+        [0, { m: 1 }],
+        [1, { m: 3 }],
+        [2, { m: 10 }],
+        [3, { m: 20 }],
+      ]),
+    );
+    expect(partials.at(-1)).toEqual([{ m: 2 }, { m: 15 }]);
+
+    chunk.stream([frame(4, [[1, 4]])]);
+    chunk.complete();
+    await harness.settle();
+    expect(await resultPromise).toEqual([{ m: 2 }, { m: 15 }]);
+  });
+
+  it("returns null for a cell with no finished runs", async () => {
+    const { chunk, resultPromise, settle } = await sampleTwoCells(2);
+
+    chunk.setRunResults(
+      new Map([
+        [0, { m: 1 }],
+        [1, { m: 3 }],
+      ]),
+    );
+    chunk.stream([frame(2, [[1, 2]])]);
+    chunk.complete();
+    await settle();
+
+    expect(await resultPromise).toEqual([{ m: 2 }, null]);
   });
 });
