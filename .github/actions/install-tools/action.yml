@@ -30,7 +30,7 @@ runs:
       continue-on-error: true
       with:
         # renovate: datasource=github-releases depName=jdx/mise
-        version: 2026.7.14
+        version: 2026.8.10
         install_args: --env ci --jobs 1 --locked
       env:
         MISE_VERBOSE: 1
