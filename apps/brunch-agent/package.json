@@ -2,7 +2,7 @@
   "name": "@apps/brunch-agent",
   "version": "0.0.0-private",
   "private": true,
-  "description": "Remote Brunch server, local development loop, and Petrinaut /api/chat door.",
+  "description": "Remote Brunch server and local Petrinaut development loop.",
   "license": "AGPL-3.0",
   "type": "module",
   "scripts": {

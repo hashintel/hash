@@ -1,9 +1,11 @@
-/** Hono middleware: the mounted Flue route enforces the same ownership rule as `/api/chat`. */
+/** Hono middleware for the mounted Flue conversation route. */
 
-import { BRUNCH_PRINCIPAL_HEADER } from "@hashintel/brunch-agent-transport-aisdk/headers";
+import {
+  BRUNCH_CONVERSATION_HEADER,
+  BRUNCH_PRINCIPAL_HEADER,
+} from "@hashintel/brunch-agent-transport-aisdk/headers";
 
 import { ownsFlueInstance } from "../conversation/identity.ts";
-import { BRUNCH_CONVERSATION_HEADER } from "../conversation/payload.ts";
 
 import type { MiddlewareHandler } from "hono";
 

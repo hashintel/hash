@@ -21,13 +21,11 @@ export interface PetrinautChatResult {
   readonly resumedStatus: number;
   readonly resumedText: string;
   readonly resumedFinish: UIMessageChunk | undefined;
-  readonly retriedStatus: number;
-  readonly retriedResumeStatus: number;
   readonly historyUserEntryCount: number;
   readonly historyClientToolResultCount: number;
   readonly historyGetStatus: number;
   readonly historyUserText: string;
-  readonly foreignHistoryMessages: number;
+  readonly legacyRouteStatus: number;
   readonly unauthenticatedHistoryStatus: number;
   readonly foreignAgentHistoryStatus: number;
   readonly transcript: string;
