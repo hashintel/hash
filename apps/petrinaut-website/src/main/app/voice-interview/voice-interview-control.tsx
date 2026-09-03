@@ -20,7 +20,12 @@ import {
   type VoiceTurnSnapshot,
 } from "./voice-turn-controller";
 
+import type { AgentSendResult } from "@flue/sdk";
 import type { PetrinautAiVoiceModeContext } from "@hashintel/petrinaut/ui";
+
+type ResolveSubmission = (
+  messageId: string,
+) => AgentSendResult["submissionId"] | undefined;
 
 export interface OpenAIVoiceConfig {
   readonly available: true;
@@ -225,9 +230,13 @@ const recordLatency = (event: VoiceLatencyEvent): void => {
 const AvailableVoiceInterviewControl = ({
   config,
   context,
+  resolveInputSubmission,
+  resolveResponseSubmission,
 }: {
   config: OpenAIVoiceConfig;
   context: PetrinautAiVoiceModeContext;
+  resolveInputSubmission?: ResolveSubmission;
+  resolveResponseSubmission?: ResolveSubmission;
 }) => {
   "use no memo";
 
@@ -236,6 +245,7 @@ const AvailableVoiceInterviewControl = ({
     // bridge, so these callbacks read what the layout effect below installs
     // rather than what was captured here.
     let latestSubmitVoiceInput = context.submitVoiceInput;
+    let latestResolveInputSubmission = resolveInputSubmission;
     const session = new OpenAIRealtimeSession({
       cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
       connectionTimeoutMs: config.connectionTimeoutMs,
@@ -251,7 +261,21 @@ const AvailableVoiceInterviewControl = ({
     });
     const bridge = new RealtimeBrunchBridge({
       session,
-      submitInterviewAnswer: (input) => latestSubmitVoiceInput(input),
+      submitInterviewAnswer: async (input) => {
+        const result = await latestSubmitVoiceInput(input);
+        if (result.kind !== "message") return result;
+        const submissionId = latestResolveInputSubmission?.(result.messageId);
+        if (
+          latestResolveInputSubmission !== undefined &&
+          submissionId === undefined
+        ) {
+          throw new Error("The Flue admission could not be correlated.");
+        }
+        return {
+          ...result,
+          ...(submissionId === undefined ? {} : { submissionId }),
+        };
+      },
     });
     const controller = new VoiceTurnController({
       bridge,
@@ -266,8 +290,12 @@ const AvailableVoiceInterviewControl = ({
         controller.subscribe(listener),
       updateSubmissionContext: (
         nextSubmitVoiceInput: PetrinautAiVoiceModeContext["submitVoiceInput"],
+        nextResolveInputSubmission:
+          | ((messageId: string) => string | undefined)
+          | undefined,
       ) => {
         latestSubmitVoiceInput = nextSubmitVoiceInput;
+        latestResolveInputSubmission = nextResolveInputSubmission;
       },
     };
   });
@@ -289,10 +317,20 @@ const AvailableVoiceInterviewControl = ({
   } = context;
 
   useLayoutEffect(() => {
-    store.updateSubmissionContext(context.submitVoiceInput);
+    store.updateSubmissionContext(
+      context.submitVoiceInput,
+      resolveInputSubmission,
+    );
     store.controller.updateChat({
       canAcceptInterviewAnswer: context.canAcceptVoiceInput,
-      canonicalSegments: selectCanonicalSpeechSegments(context.messages),
+      canonicalSegments: selectCanonicalSpeechSegments(context.messages).map(
+        (segment) => {
+          const submissionId = resolveResponseSubmission?.(segment.messageId);
+          return submissionId === undefined
+            ? segment
+            : { ...segment, submissionId };
+        },
+      ),
       status: context.status,
     });
   }, [
@@ -300,6 +338,8 @@ const AvailableVoiceInterviewControl = ({
     context.messages,
     context.status,
     context.submitVoiceInput,
+    resolveInputSubmission,
+    resolveResponseSubmission,
     store,
   ]);
 
@@ -412,13 +452,19 @@ const AvailableVoiceInterviewControl = ({
 
 export const VoiceInterviewControl = ({
   config,
+  resolveInputSubmission,
+  resolveResponseSubmission,
   ...context
 }: PetrinautAiVoiceModeContext & {
   readonly config: OpenAIVoiceConfig;
+  readonly resolveInputSubmission?: ResolveSubmission;
+  readonly resolveResponseSubmission?: ResolveSubmission;
 }) => (
   <AvailableVoiceInterviewControl
     key={context.conversationId}
     config={config}
     context={context}
+    resolveInputSubmission={resolveInputSubmission}
+    resolveResponseSubmission={resolveResponseSubmission}
   />
 );

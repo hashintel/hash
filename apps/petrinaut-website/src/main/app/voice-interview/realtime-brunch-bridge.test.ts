@@ -34,15 +34,14 @@ const createHarness = () => {
       };
     }),
   };
-  const submitInterviewAnswer = vi.fn(
-    async (): Promise<
-      | { kind: "interactive-tool"; toolCallId: string }
-      | { kind: "message"; messageId: string }
-    > => ({
-      kind: "interactive-tool",
-      toolCallId: "ask-current",
-    }),
-  );
+  const submitInterviewAnswer = vi.fn<
+    ConstructorParameters<
+      typeof RealtimeBrunchBridge
+    >[0]["submitInterviewAnswer"]
+  >(async () => ({
+    kind: "interactive-tool",
+    toolCallId: "ask-current",
+  }));
   const bridge = new RealtimeBrunchBridge({
     session,
     submitInterviewAnswer,
@@ -126,6 +125,30 @@ describe("RealtimeBrunchBridge", () => {
     ]);
   });
 
+  test("rehydrates the settled Voice turn without resubmission or playback", () => {
+    const harness = createHarness();
+    const settledResponse = {
+      ...segment(
+        "settled-response",
+        "This canonical response was already delivered.",
+        "assistant-text",
+      ),
+      submissionId: "submission-settled",
+    };
+
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [settledResponse],
+      status: "ready",
+    });
+    harness.bridge.start(9);
+
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+    expect(harness.session.speakCanonical).not.toHaveBeenCalled();
+    expect(harness.session.completeFunctionCall).not.toHaveBeenCalled();
+    expect(harness.events).toEqual([]);
+  });
+
   test("streams and validates one tool call, preserves ask correlation, and waits for canonical Brunch output", async () => {
     const harness = createHarness();
     const question = segment("ask-current", "What happens after approval?");
@@ -184,11 +207,12 @@ describe("RealtimeBrunchBridge", () => {
     ]);
   });
 
-  test("uses the first spoken turn to start Brunch when no question exists", async () => {
+  test("admits one finalized Realtime answer through Flue once", async () => {
     const harness = createHarness();
     harness.submitInterviewAnswer.mockResolvedValueOnce({
       kind: "message",
       messageId: "message-kickoff",
+      submissionId: "submission-voice-1",
     });
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: true,
@@ -197,6 +221,7 @@ describe("RealtimeBrunchBridge", () => {
     });
     harness.bridge.start(7);
 
+    harness.emit(toolDone(7, '{"answer":"Battery charger workflow"}'));
     harness.emit(toolDone(7, '{"answer":"Battery charger workflow"}'));
 
     await vi.waitFor(() =>
@@ -210,13 +235,23 @@ describe("RealtimeBrunchBridge", () => {
       canonicalSegments: [],
       status: "submitted",
     });
-    const firstQuestion = segment(
-      "ask-first",
-      "What starts the battery charger workflow?",
-    );
+    const unrelated = {
+      ...segment("unrelated", "Do not speak this response."),
+      submissionId: "submission-other",
+    };
     harness.bridge.updateChat({
       canAcceptInterviewAnswer: true,
-      canonicalSegments: [firstQuestion],
+      canonicalSegments: [unrelated],
+      status: "ready",
+    });
+    expect(harness.session.completeFunctionCall).not.toHaveBeenCalled();
+    const firstQuestion = {
+      ...segment("ask-first", "What starts the battery charger workflow?"),
+      submissionId: "submission-voice-1",
+    };
+    harness.bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [unrelated, firstQuestion],
       status: "ready",
     });
 
