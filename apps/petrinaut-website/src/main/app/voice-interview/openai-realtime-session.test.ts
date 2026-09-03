@@ -249,6 +249,7 @@ describe("OpenAIRealtimeSession", () => {
         {
           connectionEpoch: 1,
           responseId: "response-canonical",
+          speechRequestId: "canonical-1-1",
           type: "output-started",
         },
         {
@@ -354,6 +355,34 @@ describe("OpenAIRealtimeSession", () => {
     });
   });
 
+  test("preserves exact canonical whitespace while rejecting blank speech", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    const channel = harness.channels[0]!;
+
+    harness.session.completeFunctionCall("call-exact", [
+      canonicalSegment("ask-exact", "  Exact Brunch text.\n"),
+    ]);
+
+    expect(sentEvents(channel)[0]).toEqual({
+      type: "conversation.item.create",
+      item: {
+        type: "function_call_output",
+        call_id: "call-exact",
+        output: JSON.stringify({
+          response_text: ["  Exact Brunch text.\n"],
+        }),
+      },
+    });
+    const sentCount = sentEvents(channel).length;
+    expect(() =>
+      harness.session.speakCanonical([
+        canonicalSegment("ask-blank", " \n\t"),
+      ]),
+    ).toThrow();
+    expect(sentEvents(channel)).toHaveLength(sentCount);
+  });
+
   test("queues canonical speech behind an active Realtime response", async () => {
     const harness = createHarness();
     await harness.session.connect();
@@ -368,6 +397,9 @@ describe("OpenAIRealtimeSession", () => {
     ]);
 
     expect(sentEvents(channel)).toEqual([]);
+    expect(harness.events).not.toContainEqual(
+      expect.objectContaining({ type: "canonical-speech-requested" }),
+    );
     channel.receive({
       response: {
         id: "response-active",
@@ -383,6 +415,11 @@ describe("OpenAIRealtimeSession", () => {
       response: {
         metadata: { petrinaut_kind: "canonical-speech" },
       },
+    });
+    expect(harness.events).toContainEqual({
+      connectionEpoch: 1,
+      speechRequestId: "canonical-1-1",
+      type: "canonical-speech-requested",
     });
     expect(harness.events).toContainEqual({
       connectionEpoch: 1,
@@ -707,12 +744,10 @@ describe("OpenAIRealtimeSession", () => {
       type: "response.done",
     });
 
-    expect(harness.events).toEqual([
-      expect.objectContaining({
-        code: "invalid-response",
-        type: "error",
-      }),
-    ]);
+    expect(harness.events.at(-1)).toMatchObject({
+      code: "invalid-response",
+      type: "error",
+    });
     expect(harness.peers[0]!.close).toHaveBeenCalledOnce();
   });
 

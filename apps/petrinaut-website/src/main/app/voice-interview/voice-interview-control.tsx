@@ -218,7 +218,7 @@ const VoiceInterviewDisclosure = ({
 const recordLatency = (event: VoiceLatencyEvent): void => {
   try {
     performance.measure(`voice-interview:${event.name}`, {
-      detail: { questionId: event.questionId },
+      detail: { correlationId: event.correlationId },
       duration: event.elapsedMs,
       start: 0,
     });

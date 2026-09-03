@@ -1,3 +1,5 @@
+import { CLIENT_TOOL_RESULT_SIGNAL } from "./client-tool-result";
+
 import type {
   FlueConversationMessage,
   FlueConversationPart,
@@ -17,7 +19,6 @@ export type UiHistoryMessage = Omit<
 
 export interface SnapshotToUiMessagesOptions {
   readonly clientToolNames: ReadonlySet<string>;
-  readonly clientToolResultSignal: string;
 }
 
 const unhandledConversationPart = (part: never): never => {
@@ -159,7 +160,7 @@ export const snapshotToUiMessages = (
 ): UiHistoryMessage[] => {
   const clientOutputs = clientToolResultsFrom(
     snapshot,
-    options.clientToolResultSignal,
+    CLIENT_TOOL_RESULT_SIGNAL,
   );
   const messages: UiHistoryMessage[] = [];
   for (const message of snapshot.messages) {

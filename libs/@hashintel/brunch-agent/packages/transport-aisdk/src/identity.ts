@@ -5,10 +5,10 @@ export interface ConversationIdentity {
   readonly principalKey: string;
 }
 
-export const identityPayload = (
-  principalKey: string,
-  conversationId: string,
-): Uint8Array => {
+export const identityPayload = ({
+  principalKey,
+  conversationId,
+}: ConversationIdentity): Uint8Array => {
   const encoder = new TextEncoder();
   const principalBytes = encoder.encode(principalKey);
   const conversationBytes = encoder.encode(conversationId);
@@ -28,10 +28,9 @@ const hexFromDigest = (digest: ArrayBuffer): string =>
 
 /** Browser-safe counterpart to the server's synchronous instance-id hash. */
 export const flueConversationIdWeb = async (
-  principalKey: string,
-  conversationId: string,
+  identity: ConversationIdentity,
 ): Promise<string> => {
-  const payload = identityPayload(principalKey, conversationId);
+  const payload = identityPayload(identity);
   const bytes = new ArrayBuffer(payload.byteLength);
   new Uint8Array(bytes).set(payload);
   const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);

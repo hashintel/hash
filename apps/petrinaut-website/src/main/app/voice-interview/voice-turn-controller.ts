@@ -41,13 +41,18 @@ export interface VoiceTurnSnapshot {
 }
 
 export interface VoiceLatencyEvent {
+  readonly correlationId: string;
   readonly elapsedMs: number;
   readonly name:
+    | "submission-admitted"
+    | "submission-settled"
+    | "first-canonical-text"
+    | "first-tts-request"
+    | "first-tts-audio"
     | "question-visible"
     | "question-spoken-started"
     | "question-spoken"
     | "answer-ready";
-  readonly questionId: string;
 }
 
 interface RealtimeSession {
@@ -124,12 +129,15 @@ export class VoiceTurnController {
   #currentQuestionId: string | null = null;
   #generation = 0;
   #inputStateOnResume: Exclude<VoiceInputState, "paused"> | null = null;
+  #latencyCorrelationId: string | null = null;
   #pauseRequested = false;
+  readonly #recordedLatencyEvents = new Set<string>();
   #snapshot = initialSnapshot;
   #submittingQuestionId: string | null = null;
   #teardownPromise: Promise<void> | null = null;
   #transcriptItemId: string | null = null;
   #transcriptKey: string | null = null;
+  #ttsSpeechRequestId: string | null = null;
 
   public constructor({
     bridge,
@@ -229,10 +237,13 @@ export class VoiceTurnController {
     this.#bridgeStarted = false;
     this.#currentQuestionId = null;
     this.#inputStateOnResume = null;
+    this.#latencyCorrelationId = null;
+    this.#recordedLatencyEvents.clear();
     this.#submittingQuestionId = null;
     this.#pauseRequested = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
+    this.#ttsSpeechRequestId = null;
     this.#bridge.stop();
     this.#session.setMicrophoneEnabled(false);
     const teardownPromise = this.#teardownPromise ?? this.#session.disconnect();
@@ -394,9 +405,12 @@ export class VoiceTurnController {
         this.#inputStateOnResume = "submitting";
       }
       this.#answerFinalizedAt = this.#now();
+      this.#latencyCorrelationId = event.callId;
+      this.#recordedLatencyEvents.clear();
       this.#submittingQuestionId = this.#currentQuestionId;
       this.#transcriptItemId = null;
       this.#transcriptKey = null;
+      this.#ttsSpeechRequestId = null;
       this.#update({
         input: paused ? "paused" : "submitting",
         lastAnswerDelivery: "pending",
@@ -410,6 +424,15 @@ export class VoiceTurnController {
       this.#answeredQuestionId = this.#submittingQuestionId;
       this.#submittingQuestionId = null;
       this.#update({ lastAnswerDelivery: "delivered" });
+      this.#recordLatency("submission-admitted", event.callId);
+      return;
+    }
+    if (event.type === "canonical-text-ready") {
+      this.#recordLatency("first-canonical-text", event.callId);
+      return;
+    }
+    if (event.type === "submission-settled") {
+      this.#recordLatency("submission-settled", event.callId);
       return;
     }
     const paused = this.#snapshot.input === "paused";
@@ -444,6 +467,19 @@ export class VoiceTurnController {
     ) {
       return;
     }
+    if (event.type === "canonical-speech-requested") {
+      if (
+        this.#latencyCorrelationId !== null &&
+        this.#ttsSpeechRequestId === null
+      ) {
+        this.#ttsSpeechRequestId = event.speechRequestId;
+        this.#recordLatency(
+          "first-tts-request",
+          this.#latencyCorrelationId,
+        );
+      }
+      return;
+    }
     if (event.type === "output-started") {
       if (this.#snapshot.input === "paused") {
         this.#session.cancelOutput();
@@ -451,6 +487,12 @@ export class VoiceTurnController {
         return;
       }
       this.#update({ output: "speaking" });
+      if (
+        this.#latencyCorrelationId !== null &&
+        event.speechRequestId === this.#ttsSpeechRequestId
+      ) {
+        this.#recordLatency("first-tts-audio", this.#latencyCorrelationId);
+      }
       if (this.#currentQuestionId) {
         this.#recordLatency("question-spoken-started", this.#currentQuestionId);
       }
@@ -518,9 +560,12 @@ export class VoiceTurnController {
     ++this.#generation;
     this.#activeEpoch = null;
     this.#inputStateOnResume = null;
+    this.#latencyCorrelationId = null;
+    this.#recordedLatencyEvents.clear();
     this.#bridgeStarted = false;
     this.#transcriptItemId = null;
     this.#transcriptKey = null;
+    this.#ttsSpeechRequestId = null;
     this.#bridge.stop();
     this.#session.setMicrophoneEnabled(false);
     void this.#session.disconnect();
@@ -541,12 +586,15 @@ export class VoiceTurnController {
     });
   }
 
-  #recordLatency(name: VoiceLatencyEvent["name"], questionId: string): void {
+  #recordLatency(name: VoiceLatencyEvent["name"], correlationId: string): void {
     if (this.#answerFinalizedAt === null) return;
+    const eventKey = `${correlationId}:${name}`;
+    if (this.#recordedLatencyEvents.has(eventKey)) return;
+    this.#recordedLatencyEvents.add(eventKey);
     this.#onLatencyEvent?.({
+      correlationId,
       elapsedMs: Math.max(0, this.#now() - this.#answerFinalizedAt),
       name,
-      questionId,
     });
   }
 

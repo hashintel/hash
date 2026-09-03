@@ -418,7 +418,7 @@ describe("controlled voice preview", () => {
       send,
       wait,
     } as Pick<FlueClient, "send" | "wait"> as FlueClient;
-    const tracker = new BrunchPanelConversationTracker("conversation-1");
+    const tracker = new BrunchPanelConversationTracker();
     const transport = createBrunchPanelTransport(
       Promise.resolve(client),
       tracker,

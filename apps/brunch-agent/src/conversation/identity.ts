@@ -15,24 +15,20 @@ export {
 export { LOCAL_UI_PRINCIPAL } from "./payload.ts";
 export type { ConversationIdentity };
 
-export const flueConversationId = (
-  principalKey: string,
-  conversationId: string,
-): string =>
+export const flueConversationId = (identity: ConversationIdentity): string =>
   createHash("sha256")
-    .update(identityPayload(principalKey, conversationId))
+    .update(identityPayload(identity))
     .digest("hex");
 
 export const flueConversationIdFrom = (
   identity: ConversationIdentity,
-): string => flueConversationId(identity.principalKey, identity.conversationId);
+): string => flueConversationId(identity);
 
 export const ownsFlueInstance = (
-  principalKey: string,
-  conversationId: string,
+  identity: ConversationIdentity,
   instanceId: string,
 ): boolean => {
-  const expected = flueConversationId(principalKey, conversationId);
+  const expected = flueConversationId(identity);
   const expectedBytes = Buffer.from(expected);
   const presentedBytes = Buffer.from(instanceId);
   if (expectedBytes.length !== presentedBytes.length) return false;
