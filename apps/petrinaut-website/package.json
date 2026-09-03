@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "3.0.63",
+    "@flue/sdk": "2.0.3",
     "@hashintel/brunch-agent": "workspace:*",
     "@hashintel/brunch-agent-transport-aisdk": "workspace:*",
     "@hashintel/ds-components": "workspace:*",
