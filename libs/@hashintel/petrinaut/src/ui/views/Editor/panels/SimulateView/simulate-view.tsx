@@ -3,7 +3,7 @@ import { use } from "react";
 import { SegmentedControl } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
-import { PetrinautOptimizationContext } from "../../../../../react/optimization-context";
+import { useOptimizationSource } from "../../../../../react/optimizations/use-optimization-source";
 import {
   EditorContext,
   type SimulateViewMode,
@@ -77,7 +77,7 @@ const views = {
 // -- Component -----------------------------------------------------------------
 
 export const SimulateView = () => {
-  const optimization = use(PetrinautOptimizationContext);
+  const optimization = useOptimizationSource();
   const { simulateViewMode: mode, setSimulateViewMode: setMode } =
     use(EditorContext);
   const visibleModeOptions = modeOptions.filter(

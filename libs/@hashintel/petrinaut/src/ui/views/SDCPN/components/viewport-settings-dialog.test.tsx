@@ -14,9 +14,10 @@ import { defaultUserSettings } from "../../../../react/state/user-settings-conte
  * and the runtime gate the control's `disabled` state is derived from.
  */
 describe("experimental simulation settings", () => {
-  it("keep parameter sweeps and the optimization surface off by default", () => {
+  it("keep parameter sweeps, the optimization surface and in-browser optimization off by default", () => {
     expect(defaultUserSettings.enableParameterSweeps).toBe(false);
     expect(defaultUserSettings.enableOptimizationSurface).toBe(false);
+    expect(defaultUserSettings.enableInBrowserOptimization).toBe(false);
   });
 });
 

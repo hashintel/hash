@@ -30,6 +30,11 @@ export type ContourSurfaceMarker = {
   y: number;
   /** Draw larger and stronger — e.g. a study's best trial. */
   emphasis?: boolean;
+  /**
+   * `navigation` marks where the viewer's controls sit rather than a data
+   * point: a dark ring with a centre dot, distinct from the amber data rings.
+   */
+  kind?: "point" | "navigation";
 };
 
 /** Interpolation lattice points per grid cell. */
@@ -118,6 +123,18 @@ const drawMarkers = (
 ): void => {
   for (const marker of markers) {
     const [x, y] = toPixel(marker.x, marker.y);
+    if (marker.kind === "navigation") {
+      context.beginPath();
+      context.arc(x, y, 6, 0, Math.PI * 2);
+      context.strokeStyle = "rgba(15, 23, 42, 0.9)";
+      context.lineWidth = 1.5;
+      context.stroke();
+      context.beginPath();
+      context.arc(x, y, 1.5, 0, Math.PI * 2);
+      context.fillStyle = "rgba(15, 23, 42, 0.9)";
+      context.fill();
+      continue;
+    }
     context.beginPath();
     context.arc(x, y, marker.emphasis ? 5 : 3.5, 0, Math.PI * 2);
     context.strokeStyle = marker.emphasis

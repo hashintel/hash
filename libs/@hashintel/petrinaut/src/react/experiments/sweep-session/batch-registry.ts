@@ -1,4 +1,4 @@
-import { createThrottle } from "./throttle";
+import { createThrottle } from "../shared/throttle";
 
 import type { MonteCarloExperiment } from "@hashintel/petrinaut-core";
 
