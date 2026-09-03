@@ -224,11 +224,13 @@ export const Multiple: Story = () => {
       </div>
       <div className={groupStyle}>
         <span style={subheadingStyle}>
-          maxItems=2 — unselected items disable once 2 values are selected
+          maxItems=2 + searchable — unselected items disable once 2 values are
+          selected
         </span>
         <Select
           multiple
           maxItems={2}
+          searchable={{ searchable: true, onSearch: noop }}
           items={sampleItems}
           value={capped}
           onChange={setCapped}
