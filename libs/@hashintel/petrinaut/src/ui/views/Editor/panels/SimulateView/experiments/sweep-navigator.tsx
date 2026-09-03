@@ -13,15 +13,12 @@
  */
 import { use, useState } from "react";
 
-import {
-  LoadingSpinner,
-  RangeSlider,
-  SegmentedControl,
-} from "@hashintel/ds-components";
+import { LoadingSpinner, SegmentedControl } from "@hashintel/ds-components";
 import { css } from "@hashintel/ds-helpers/css";
 
 import { ExperimentsContext } from "../../../../../../react/experiments/context";
 import { axisValueAt } from "../../../../../../react/experiments/parameter-grid";
+import { RangeSlider } from "./sweep-navigator/range-slider";
 
 import type {
   ExperimentRecord,
