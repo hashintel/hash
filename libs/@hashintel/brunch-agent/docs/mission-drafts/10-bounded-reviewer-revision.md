@@ -1,4 +1,4 @@
-# Draft Mission 7 — Bounded reviewer revision and scoped patch
+# Draft Mission 10 — Bounded reviewer revision and scoped patch
 
 > Draft cluster only. Not execution authority. Do not implement until this cluster is re-evaluated and cut into `MISSION.md`.
 
@@ -6,7 +6,7 @@
 
 A fresh builder must read these sources before cutting or implementing this cluster:
 
-- [`MISSION.md`](../../MISSION.md) — closure pointer for Mission 4. Mission 4 produced no full-run workpiece candidate; consume only the source/workpiece pair explicitly selected and promoted by Mission 5 or a predecessor addendum.
+- [`MISSION.md`](../../MISSION.md) — closure pointer for Mission 4. Mission 4 produced no full-run workpiece candidate; consume only the source/workpiece pair explicitly selected and promoted by Mission 7 or a predecessor addendum.
 - [`MISSION.next.md`](../../MISSION.next.md) — compact shared frame, standing locks, and current mission joins.
 - [`README.md`](README.md) — durable draft authority, lifecycle, conversion, and oracle-gap rules.
 - [`docs/mission-archive/2-mechanical-capture-sweep.md`](../mission-archive/2-mechanical-capture-sweep.md) — exact-evidence capture, idempotency, Flue-history authority, and model-free scheduling.
@@ -15,7 +15,7 @@ A fresh builder must read these sources before cutting or implementing this clus
 - [`docs/evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md`](../evidence/evaluations/vestera-prospective-baseline-v1/campaign-adjudication.md) — healthy foreground-turn range, costly whole-workpiece synthesis, and observed correction handling.
 - [`packages/core/src/prompts/SYSTEM.md`](../../packages/core/src/prompts/SYSTEM.md), [`packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/SKILL.md), and [`packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md`](../../packages/plugin-sdcpn/src/skills/sdcpn-modelling/templates/workpiece.md) — current foreground lifecycle and workpiece correction behavior.
 - [`apps/brunch-agent/test/petrinaut-chat.test.ts`](../../../../../apps/brunch-agent/test/petrinaut-chat.test.ts), [`apps/brunch-agent/test/headless-petrinaut-client.test.ts`](../../../../../apps/brunch-agent/test/headless-petrinaut-client.test.ts), and [`packages/plugin-sdcpn/src/tools/petrinaut-construction.ts`](../../packages/plugin-sdcpn/src/tools/petrinaut-construction.ts) — current real door, bounded mutation subset, and its limits.
-- [`5-capture-backed-review.md`](5-capture-backed-review.md) and [`6-traceable-projection.md`](6-traceable-projection.md) — provisional inherited artifacts, provenance seam, projection contract, and stable-identity obligations. Re-resolve these joins against accepted close evidence at cut time rather than assuming draft hypotheses landed.
+- [`7-capture-backed-review.md`](7-capture-backed-review.md) and [`9-traceable-projection.md`](9-traceable-projection.md) — provisional inherited artifacts, provenance seam, projection contract, and stable-identity obligations. Re-resolve these joins against accepted close evidence at cut time rather than assuming draft hypotheses landed.
 - Commit `157730cc5a214dd9c543e8d95c7193a219c48aef` on deployment branch `ln/fe-1569-brunch-agent-deployment`, especially `libs/@hashintel/brunch-agent/docs/evidence/implementations/mission-8-deployment-handoff.md` — local application contract and the still-open infrastructure proof that any deployed durability claim must consume.
 
 ## Visible product advance
@@ -87,12 +87,12 @@ The default tracer should be a correction because it proves canonical change. It
 
 This cluster may start only after the prior missions have supplied and accepted:
 
-- Mission 5's honest prebuilt pair, durable exact-evidence provenance, broken-link behavior, and element/workpiece/evidence identity seam;
-- Mission 6's meaningful automatically projected live region, derivation coverage, canonical provider-visible mutation path, repeated-projection identity behavior, and explicit partial/unsupported failure;
+- Mission 7's honest prebuilt pair, durable exact-evidence provenance, broken-link behavior, and element/workpiece/evidence identity seam;
+- Mission 9's meaningful automatically projected live region, derivation coverage, canonical provider-visible mutation path, repeated-projection identity behavior, and explicit partial/unsupported failure;
 - the current workpiece revision and exact source Flue conversation selected at the prior handoff;
 - a deployment boundary that actually persists every state this path consumes across the replacement behavior it claims.
 
-Draft links are not evidence. If Mission 5 or 6 ships a different representation, Mission 7 must consume that actual contract or return here for re-cutting.
+Draft links are not evidence. If Mission 7 or Mission 9 ships a different representation, Mission 10 must consume that actual contract or return here for re-cutting.
 
 ### Readiness gate after the new throughline
 
@@ -110,7 +110,7 @@ For each, record:
 - transcript fallback behavior; and
 - compaction/recovery behavior if the exercised deployed path crosses those boundaries.
 
-These peer obligations close in Mission 7 because Mission 9 consumes a trustworthy final revision rather than becoming the first owner of reviewer-authority semantics. The next owner is Mission 9 only for the selected complete artifact and accepted optimisation handoff. Re-entry gate: Chris/Yannis' accepted consumer contract reveals another revision class or makes a currently deferred durability/identity property load-bearing. Oracle: the new class must be added to the revision oracle and exercised through the deployed panel before Mission 9 may rely on it.
+These peer obligations close in Mission 10 because Mission 11 consumes a trustworthy final revision rather than becoming the first owner of reviewer-authority semantics. The next owner is Mission 11 only for the selected complete artifact and accepted optimisation handoff. Re-entry gate: Chris/Yannis' accepted consumer contract reveals another revision class or makes a currently deferred durability/identity property load-bearing. Oracle: the new class must be added to the revision oracle and exercised through the deployed panel before Mission 11 may rely on it.
 
 Breadth beyond the named classes and accepted scenario portfolio remains unearned.
 
@@ -124,30 +124,30 @@ Breadth beyond the named classes and accepted scenario portfolio remains unearne
 - **ORACLE GAP — successive semantic revision:** no current oracle compares prior workpiece + newly captured evidence against the next revision across all five classes. Before cut, freeze a reviewed fixture set and adjudication rubric that detects lost supported meaning, incorrect authority, unsupported strengthening, conflict collapse, and incorrect disposition.
 - **ORACLE GAP — patch locality and behavior:** no current oracle proves that a semantic revision changes the intended linked region while preserving unrelated ids and behavior. Before cut, define the selected region, explicit allowed impact set, before/after id inventory, semantic expectations, and—where discriminating—a Petrinaut simulation comparison.
 - **ORACLE GAP — outer path:** no current test or artifact witnesses the 3–5-turn scenario portfolio through a remotely deployed Petrinaut/Brunch path. Before claiming the visible advance, record a human witness against the accepted deployment, exact scenario/base revisions, transcript, workpiece diff, mutation trace, before/after net, and refusal output.
-- **ORACLE GAP — durable capture join:** the deployment handoff explicitly leaves the JSON capture store inactive and non-durable. Before this path consumes capture remotely, Mission 5 or this cut must identify and test the durable implementation across the claimed task-replacement boundary.
+- **ORACLE GAP — durable capture join:** the deployment handoff explicitly leaves the JSON capture store inactive and non-durable. Before this path consumes capture remotely, Mission 7 or this cut must identify and test the durable implementation across the claimed task-replacement boundary.
 
 ## Verification approach
 
 - **Inner mechanism:** deterministic tests for authority checks, base-revision refusal, exact evidence references, semantic-diff representation, class disposition, idempotent commit, impact calculation, and canonical mutation validation. Use the frozen class fixtures and revision oracle; parser success cannot substitute for semantic review.
-- **Middle integration/contract:** drive the production `ChatAgent`/AI SDK path from the selected Mission 6 artifact, perform the mechanical settled-range capture and foreground synthesis, apply the patch through the actual browser client-tool callbacks, and compare persisted before/after workpiece, derivation, and net artifacts. Exercise a stale-base attempt and one explicit refusal.
-- **Outer deployed/user-visible:** a named human witness performs each accepted peer class through the deployed panel, including the 3–5-turn correction tracer, and verifies visible attribution, semantic diff, changed region, stable unrelated ids/behavior, updated why answer, and comprehensible refusal/failure. The live mission owns this outer proof; it cannot be delegated to Mission 9.
+- **Middle integration/contract:** drive the production `ChatAgent`/AI SDK path from the selected Mission 9 artifact, perform the mechanical settled-range capture and foreground synthesis, apply the patch through the actual browser client-tool callbacks, and compare persisted before/after workpiece, derivation, and net artifacts. Exercise a stale-base attempt and one explicit refusal.
+- **Outer deployed/user-visible:** a named human witness performs each accepted peer class through the deployed panel, including the 3–5-turn correction tracer, and verifies visible attribution, semantic diff, changed region, stable unrelated ids/behavior, updated why answer, and comprehensible refusal/failure. The live mission owns this outer proof; it cannot be delegated to Mission 11.
 
 ## Inputs and joins
 
-- Upstream source exit: the frozen workpiece, exact source Flue conversation, instrument manifest, and evaluation/adjudication explicitly selected by Mission 5 or a predecessor addendum; Mission 4 itself supplies no full-run candidate.
-- Mission 5: prebuilt workpiece/net pair, current workpiece revision and references, capture evidence references, net-element ids, projection rationale, durability disposition, and the why interaction.
-- Mission 6: selected meaningful region, canonical mutation surface, derivation records, repeat-projection identity evidence, and accepted unsupported/partial behavior.
+- Upstream source exit: the frozen workpiece, exact source Flue conversation, instrument manifest, and evaluation/adjudication explicitly selected by Mission 7 or a predecessor addendum; Mission 4 itself supplies no full-run candidate.
+- Mission 7: prebuilt workpiece/net pair, current workpiece revision and references, capture evidence references, net-element ids, projection rationale, durability disposition, and the why interaction.
+- Mission 9: selected meaningful region, canonical mutation surface, derivation records, repeat-projection identity evidence, and accepted unsupported/partial behavior.
 - Mission 8: consume the actual application contract—fail-closed Postgres Flue state, verified TLS, IAM/static-password paths, content-free OTel, restricted routes, liveness, singleton ownership policy—but do not imply it is deployed. The infrastructure handoff, real RDS/Anthropic/collector/replacement/rollback proof, and owner acceptance remain required before an outer deployed claim.
-- Mission 9: receives only an accepted final workpiece/net/evidence/derivation revision package and the six-beat real-path evidence; its consumer contract may not weaken Mission 7's revision-integrity closure.
+- Mission 11: receives only an accepted final workpiece/net/evidence/derivation revision package and the six-beat real-path evidence; its consumer contract may not weaken Mission 10's revision-integrity closure.
 
 ## Risks and assumptions
 
 - **ASSUMPTION:** bounded foreground synthesis can incorporate 3–5 turns without losing prior meaning or blocking ordinary turns. **Impact if false:** the default revision mechanism is not trustworthy or usable. **Cheapest validation:** run the five frozen class fixtures against prior revision + exact captures and measure phase-boundary latency separately from foreground turns.
 - **ASSUMPTION:** scenario-declared authority is sufficient for the selected review. **Impact if false:** a reviewer may make an unauthorized canonical change or every change may require another owner. **Cheapest validation:** have the scenario owner adjudicate one allowed correction and one cross-boundary refusal before implementation.
-- **ASSUMPTION:** Mission 6's stable ids and derivation neighborhood are sufficient to calculate a bounded impact. **Impact if false:** local revision can cause unrelated churn or require broader context. **Cheapest validation:** dry-run the selected semantic change against the frozen Mission 6 before/after artifact and enumerate the minimal connected impact.
+- **ASSUMPTION:** Mission 9's stable ids and derivation neighborhood are sufficient to calculate a bounded impact. **Impact if false:** local revision can cause unrelated churn or require broader context. **Cheapest validation:** dry-run the selected semantic change against the frozen Mission 9 before/after artifact and enumerate the minimal connected impact.
 - **RISK:** semantic diff reports textual edits while hiding a changed operational claim. **Impact:** a reviewer cannot understand what changed. **Cheapest validation:** cold human comparison against the class fixture's expected preserved/changed meaning.
 - **RISK:** compaction removes the recoverable workpiece or evidence needed by synthesis. **Impact:** stale or transcript-dependent revision. **Cheapest validation:** if the real path crosses compaction, reconstruct the same current revision and evidence references after that boundary; otherwise label the limitation and keep it outside the shipped durability claim.
-- **RISK:** the capture store remains task-local JSON while the service claims replacement durability. **Impact:** reviewer evidence may disappear after acceptance. **Cheapest validation:** inspect the consumed Mission 5/Mission 8 storage contract before cut and refuse remote revision until capture durability is observed.
+- **RISK:** the capture store remains task-local JSON while the service claims replacement durability. **Impact:** reviewer evidence may disappear after acceptance. **Cheapest validation:** inspect the consumed Mission 7/Mission 8 storage contract before cut and refuse remote revision until capture durability is observed.
 
 ## Accepted constraints and guarded invariants
 
@@ -173,14 +173,14 @@ Breadth beyond the named classes and accepted scenario portfolio remains unearne
 
 ## Expected touched paths
 
-Tentative until the Mission 5/6 joins and live UI boundary are inspected:
+Tentative until the Mission 7/9 joins and live UI boundary are inspected:
 
 ```text
 libs/@hashintel/brunch-agent/
 ├── packages/core/src/SYSTEM.md                                      ~ revision/authority conduct if needed
 ├── packages/core/src/evidence/                                     ? generic retained-evidence/revision mechanics only if earned
 ├── packages/plugin-sdcpn/src/skills/sdcpn-modelling/               ~ foreground review and workpiece revision guidance
-├── packages/plugin-sdcpn/src/tools/                                ~ canonical update/patch capability selected by Mission 6
+├── packages/plugin-sdcpn/src/tools/                                ~ canonical update/patch capability selected by Mission 9
 ├── evaluations/oracles/                                            + successive-revision oracle
 ├── evaluations/protocols/                                          + frozen class fixtures/protocol
 └── docs/evidence/evaluations/                                      + observed revision campaign/adjudication
@@ -229,11 +229,11 @@ No path is permission to edit before the cluster is cut. Prefer existing generic
 ## Carried evidence and rejected alternatives
 
 - **Default retained:** one bounded foreground phase-boundary synthesis over the prior workpiece revision and newly mechanically captured reviewer evidence. Whole-workpiece synthesis already has a distinct, higher latency class than ordinary turns; measure it at the boundary rather than moving semantic work into every turn.
-- **Observer/fold rejected by default:** no observer exists on the production path, and the current IR ruler has not tested successive observer revisions. The canonical promotion mechanics and extraction ladder live in [`MISSION.next.md`](../../MISSION.next.md#foreground-revision-and-observer-re-entry). Mission 7 is the decisive strain gate: re-entry is considered only after repeated consequential foreground blocking, loss of prior supported meaning, stale state, unrecoverability, or unavoidable unbounded-history dependence. An admitted observer still may not mutate the net, and its likely short-review barrier is a forced tail sweep/queue flush because the token threshold alone may never fire.
+- **Observer/fold rejected by default:** no observer exists on the production path, and the current IR ruler has not tested successive observer revisions. The canonical promotion mechanics and extraction ladder live in [`MISSION.next.md`](../../MISSION.next.md#foreground-revision-and-observer-re-entry). Mission 10 is the decisive strain gate: re-entry is considered only after repeated consequential foreground blocking, loss of prior supported meaning, stale state, unrecoverability, or unavoidable unbounded-history dependence. An admitted observer still may not mutate the net, and its likely short-review barrier is a forced tail sweep/queue flush because the token threshold alone may never fire.
 - **Recency overwrite rejected:** newer testimony may correct, qualify, coexist with, or conflict with earlier testimony. Time order alone is not authority.
 - **Append-only journal rejected:** it preserves history but leaves excessive cold-reading and canonical-meaning burden; the observed workpiece intent is a maintained current account with retained revision history.
 - **One artifact rejected:** immutable captures and editable semantic workpiece revisions have different lifecycles.
 - **Deterministic typed fold rejected:** Condition 5's typed mapping plus in-loop model judgment caused minute-scale ordinary turns. Re-entry requires evidence that foreground synthesis cannot reliably preserve or classify meaning and that the narrower mechanism fixes the observed failure.
 - **Full regeneration rejected as a visible patch claim:** an implementation may reconsider broader context internally only if the applied diff remains bounded and unrelated identities/behavior are proven stable; otherwise it must report widening or refuse.
-- Mission 3 evidence establishes an accepted, cold-usable workpiece leg and one observed correction, but its construction leg failed 0-for-9 on nested provider-visible shape and produced a vacuous empty net. Mission 6 must retire that risk before this cluster treats patching as available.
-- The v3 Flue composition comparison found packaged universal guidance more reliable for opening elicitation but exposed shared review routing as weak. Mission 4 owns the selected one-job-skill content repair; Mission 7 must consume its actual accepted review route rather than reopen topology by momentum.
+- Mission 3 evidence establishes an accepted, cold-usable workpiece leg and one observed correction, but its construction leg failed 0-for-9 on nested provider-visible shape and produced a vacuous empty net. Mission 9 must retire that risk before this cluster treats patching as available.
+- The v3 Flue composition comparison found packaged universal guidance more reliable for opening elicitation but exposed shared review routing as weak. Mission 4 owns the selected one-job-skill content repair; Mission 10 must consume its actual accepted review route rather than reopen topology by momentum.
