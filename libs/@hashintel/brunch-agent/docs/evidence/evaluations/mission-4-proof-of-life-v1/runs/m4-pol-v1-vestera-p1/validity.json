@@ -1,0 +1,9 @@
+{
+  "status": "valid-no-substantive",
+  "technicallyValid": true,
+  "substantiveTextObserved": false,
+  "qualifiesForFloor": false,
+  "replacementPermitted": true,
+  "stopReason": "Persona stopped after the first elicitor question, which the fresh-context adjudicator classified as Orientation rather than Substantive.",
+  "adjudication": "adjudication.md"
+}

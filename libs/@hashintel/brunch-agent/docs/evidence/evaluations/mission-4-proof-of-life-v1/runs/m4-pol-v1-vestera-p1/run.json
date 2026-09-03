@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "campaign": "mission-4-proof-of-life-v1",
+  "attemptId": "m4-pol-v1-vestera-p1",
+  "slot": "vestera-probe",
+  "runKind": "interactive-probe",
+  "case": "vestera-scheduling",
+  "instrumentCommit": "ce2fbde9d96faaaf52ecf532e1071d3d9e952f1a",
+  "freezeCommit": "cc9a68497d",
+  "executionHead": "297161ac0d",
+  "models": {
+    "elicitor": {
+      "provider": "anthropic",
+      "requested": "claude-sonnet-4-6"
+    },
+    "persona": {
+      "provider": "openai",
+      "requested": "gpt-5.6-sol",
+      "thinking": "medium"
+    },
+    "adjudicator": {
+      "provider": "anthropic",
+      "requested": "claude-opus-4-6",
+      "thinking": "high"
+    }
+  },
+  "clientToolHost": "none",
+  "turnBudget": {
+    "maximum": 3,
+    "stopAfter": "first Substantive elicitor text"
+  },
+  "startedAt": "2026-09-03T08:18:35.436926+00:00"
+}
