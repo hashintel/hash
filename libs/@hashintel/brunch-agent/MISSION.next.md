@@ -1,8 +1,8 @@
 # Brunch future mission spine
 
-> Canonical future-planning spine, shared frame, and backlog index only. This file is not execution authority and authorizes no implementation. [`MISSION.md`](MISSION.md) is currently a closure pointer; a future owner-authorized cut must replace it with the sole live authority. Detailed provisional clusters are context repositories, not missions; re-evaluate and convert one into `MISSION.md` before acting.
+> Canonical future-planning spine, shared frame, and backlog index only. This file is not execution authority and authorizes no implementation. [`MISSION.md`](MISSION.md) is the live Mission 5 authority on this branch. Detailed provisional clusters are context repositories, not missions; re-evaluate and convert one into `MISSION.md` on its own branch before acting.
 
-This spine and its six linked drafts form one future-planning record. Keep each consequential meaning in one authoritative planning home: shared contracts and unallocated concerns live here; mission-specific detail lives in its draft. A spine pointer is not a second contract. Material omitted from a future cut returns to this record at full fidelity, and the consumed draft is removed.
+This spine and its five linked drafts form one future-planning record. Keep each consequential meaning in one authoritative planning home: shared contracts and unallocated concerns live here; mission-specific detail lives in its draft. A spine pointer is not a second contract. Material omitted from a future cut returns to this record at full fidelity, and the consumed draft is removed.
 
 ## Current authority and accepted spine
 
@@ -10,14 +10,14 @@ Mission 4 closed on this branch by owner adjudication on 2026-09-03. The accepte
 
 A future Mission 4 close-out addendum requires its own issue, branch, PR, and mission authority. It may stack on this closed branch and own broader reliability/hardening if warranted, browser parity, fixture/seed promotion contracts, topology-neutral case allocation, contract/readiness sweeps, archive subtraction, and Mission 8 preparation. It also owns the observed S4 report-versus-immediate-ask decision unless a later numbered mission first makes it load-bearing: re-enter only when a real review must continue immediately or repeated gap-only reports create visible friction; preserve S3 restraint while testing S4 activation and asking under a fresh instrument. Its exact issue/name and minimum scope remain owner decisions; do not create another Mission 4 draft.
 
-Two successor missions are now independently cuttable from Mission 4 under separate issue, branch, PR, worktree, and mission authority. Mission 5 retires the Voice transport uncertainty: finalized speech enters canonical Flue directly and canonical Brunch output reaches TTS without the AI SDK chat composer or a secondary generative simplifier. Mission 6 retires the workpiece/projection uncertainty: one deliberately prepared, honestly labelled fixture joins canonical conversation, session history, Markdown workpiece, and Petrinaut document; one browser-backed read/write change saves and resumes across tabs. Neither requires a Mission 4 full-run candidate, and neither is the other's prerequisite.
+Mission 5 is now live on this branch under FE-1574 and owns the direct Voice/Flue transport cut; its full contract lives only in [`MISSION.md`](MISSION.md). Mission 6 remains independently cuttable from Mission 4 under its own issue, branch, PR, worktree, and mission authority: one deliberately prepared, honestly labelled fixture joins canonical conversation, session history, Markdown workpiece, and Petrinaut document; one browser-backed read/write change saves and resumes across tabs. Neither mission requires a Mission 4 full-run candidate, and neither is the other's prerequisite.
 
 The earlier capture-backed provenance, automatic-projection, revision, and optimisation drafts remain later readiness/product advances. They are renumbered around the historical Mission 8 deployment track rather than forcing the two uncertainty-retiring tracers to inherit its unproved remote boundary.
 
 ```text
 M4   closed — core/plugin elicitation pattern accepted; S4 transition and full-run candidate deferred
 M4+  optional successor — broader hardening or source promotion only under separate authority
-M5   direct Voice/Flue — one finalized spoken turn, canonical streamed reply, cancellation, and reopen
+M5   live on this branch — direct Voice/Flue turn, canonical streamed reply, cancellation, and reopen
 M6   resumable fixture tracer — conversation → Markdown workpiece → Petrinaut read/write → cross-tab resume
 M7   capture-backed review — close selected-pair provenance breadth and visible why/refusal
 M8   deployment handoff — historical branch stopped after local application proof, before infrastructure deployment
@@ -29,12 +29,6 @@ M11  optimisation — ship an accepted optimisation handoff after its consumer c
 Every numbered product mission after the proof-of-life exception must pass the **product-manager litmus**: a product manager who did not watch the work must be able to notice that the product materially moved forward. Each mission therefore states, in its draft's visible-product-advance section, a release-note sentence, a demo script a product manager can run without an engineer, and the thing that was impossible before. Snapshots, manifests, event ledgers, and negative controls are oracles that belong in the evidence sections; they are not the visible advance. A mission is complete at its readiness gate, when the demo script works for the named scenario, not at the first green throughline tracer, which is an internal milestone inside the mission. Mission 5 names the Voice/Flue surface; Mission 6 names the stable fixture and browser Petrinaut document; Missions 7, 9, and 10 name the Petrinaut Brunch panel. Because Mission 8 stopped before remote deployment, those panel missions must name the deployment posture available at cut time, and a locally run panel is acceptable for the demo; a product-manager-noticeable claim must never depend on infrastructure that does not exist, while remote durability obligations stay in their readiness gates. Architecture, schema repair, fixtures, evaluation, rehearsal, and spikes may support the advance but cannot be the sole outcome. Parallel work means separate issue, branch, PR, worktree, and mission authority; it never means multiple live missions here.
 
 ## Successor mission précis
-
-### M5 — Speak directly to canonical Brunch
-
-Tracker projection: [FE-1574](https://linear.app/hash/issue/FE-1574/let-voice-speak-through-canonical-brunch-conversations).
-
-A finalized spoken answer enters Flue exactly once and canonical Brunch text streams directly to visible Voice output and TTS, without the AI SDK chat composer or a secondary generative simplifier. This can be cut immediately and independently on the Voice reconciliation worktree. **Visible/usable proof:** [one spoken turn, cancellation, canonical snapshot, and reopen](docs/mission-drafts/5-direct-voice-flue-transport.md#throughline-proof-floor).
 
 ### M6 — Prove the Markdown/workpiece/Petrinaut loop
 
@@ -233,8 +227,7 @@ These tracks may start only under their own issue, branch, PR, and mission autho
 | Track | Join gate under the accepted spine | Does not block |
 | --- | --- | --- |
 | Frozen prospective baseline | The closed Mission 4 branch preserves it unchanged and makes no quality-improvement claim; because Mission 4 produced no full-run candidate, a successor may inspect this observed one-invalid/two-valid Mission 3 range only if it explicitly selects and promotes an eligible source | Mission 7's source selection and provenance-suitability decision, or the optional Mission 4 addendum |
-| Direct Voice/Flue | One finalized spoken turn has one canonical Flue submission and canonical streamed TTS output without AI SDK chat transport or generative simplification | Mission 6 and later product-data work |
-| Resumable fixture viability | One prepared fixture crosses conversation → Markdown workpiece → browser Petrinaut read/write → save/reopen | Mission 5 Voice transport work |
+| Resumable fixture viability | One prepared fixture crosses conversation → Markdown workpiece → browser Petrinaut read/write → save/reopen | The live Mission 5 Voice transport work |
 | Inferential observer fold | Decide before Mission 10 whether observed foreground strain earns promotion; otherwise retain phase-boundary synthesis | Missions 4–9 |
 | Provider-visible nested schema | Mission 6 tests only the least mutation needed by its meaningful fixture; Mission 9 closes the broader canonical projection classes after a crisp blocker or success | Mission 5 and non-construction Voice work |
 | Provenance interaction fixture | Mission 6 establishes minimal fixture identity; freeze the broader derivation fixture before Mission 7 why and Mission 9 automatic projection diverge | Voice work and prepared-fixture viability |
@@ -246,16 +239,15 @@ The deliberately provisional shared-interface names remain `EvidenceBackedWorkpi
 
 ## Detailed provisional clusters
 
-Detailed mission-specific boundaries, tracer floors, readiness ratchets, risks, oracles, and stop conditions live only in these six context repositories:
+Detailed mission-specific boundaries, tracer floors, readiness ratchets, risks, oracles, and stop conditions live only in these five context repositories:
 
-- [Draft Mission 5 — direct Voice over canonical Flue transport](docs/mission-drafts/5-direct-voice-flue-transport.md)
 - [Draft Mission 6 — resumable workpiece-to-Petrinaut fixture tracer](docs/mission-drafts/6-resumable-workpiece-petrinaut-fixture.md)
 - [Draft Mission 7 — capture-backed review](docs/mission-drafts/7-capture-backed-review.md)
 - [Draft Mission 9 — automatic traceable projection](docs/mission-drafts/9-traceable-projection.md)
 - [Draft Mission 10 — bounded reviewer revision](docs/mission-drafts/10-bounded-reviewer-revision.md)
 - [Draft Mission 11 — optimisation handoff](docs/mission-drafts/11-optimisation-handoff.md)
 
-Do not create Mission 4 or Mission 8 drafts. Missions 5 and 6 are parallel, independent next cuts; each must become the sole live root `MISSION.md` in its own worktree. Mission 11 stays deliberately shallow until Chris and Yannis accept input artifacts, one optimisation question, scenario/parameter representation, execution boundary, expected result, and minimum credibility checks.
+Do not create Mission 4 or Mission 8 drafts. Mission 5 is live here; Mission 6 remains an independent next cut that must become the sole live root `MISSION.md` in its own worktree. Mission 11 stays deliberately shallow until Chris and Yannis accept input artifacts, one optimisation question, scenario/parameter representation, execution boundary, expected result, and minimum credibility checks.
 
 ## Unallocated backlog
 
@@ -368,17 +360,13 @@ Working session hypothesis: net id discriminates one Flue conversation per princ
 
 Before claiming long-running provenance, prove panel/transcript/workpiece recovery across real Flue compaction (`compaction-vs-durable-history` / FE-1386). Current recovery scrapes the last `runbook-ir` fence; summary loss would break it. A short rehearsal may avoid compaction only if the handoff declares uncompacted-history dependence. Compaction is history reconstruction, not projection sequencing; control to compact/show summaries waits for evidence.
 
-### Voice
+### Voice after the live transport cut
 
-Direct Voice/Flue transport is now Draft Mission 5 rather than an unallocated integration constraint. The observed remote stack remains `kostandin/fe-1570-voice-optimized-brunch-responses` → `kah-6763-temporary-brunch-ask` → `kah-6800-improve-petrinaut-voice-turn-taking-and-answer-provenance` (PRs #9496, #9507, and #9512), diverging before Mission 4's app/package restructuring. Reconciliation must preserve current `useBrunchAgent()` + `useSdcpnPlugin()` composition and port only the still-needed Voice behavior onto current seams; never restore the older app-local stub agent.
-
-Mission 5 treats the AI SDK UI-message transport and existing Petrinaut assistant as optional consumers, not Voice authority. Voice should use supported Flue `send`/`read`/`observe`/`history`/`abort` semantics directly or through the thinnest authenticated protocol-preserving proxy. Brunch owns canonical response text; Voice owns STT, TTS, interruption/cancellation, finalized-answer provenance, and playback. Provisional transcription/audio remains ephemeral, finalized answers enter canonical Flue history once, and the first tracer speaks canonical output without a secondary generative simplifier. Adapter/UI deletion requires separate consumer proof.
-
-The complete inherited seam map is in [`mission-4-voice-integration-handoff.md`](docs/evidence/implementations/mission-4-voice-integration-handoff.md); the revised cut contract and proof target are in [`5-direct-voice-flue-transport.md`](docs/mission-drafts/5-direct-voice-flue-transport.md).
+The live Mission 5 contract now owns direct Voice/Flue reconciliation, its selected external-PR evidence, and the bounded local tracer. This future record retains only work beyond that cut: deletion of the still-consumed AI SDK adapter or assistant UI requires a separate consumer proof; the structured-question route re-enters only after plain-turn strain and owner acceptance; broader barge-in, long-response, speech-selection, and accessibility quality require observations from the direct route; and trusted remote identity, origin policy, deployment, and spend controls remain release work. The inherited seam map remains in [`mission-4-voice-integration-handoff.md`](docs/evidence/implementations/mission-4-voice-integration-handoff.md).
 
 ### Observability and simulation viewing
 
-Brunch has local content-free OTLP/gRPC export and graceful flush; hosted reachability and real normal/failure attributes remain open. Prove `gen_ai.conversation.id` equals Flue instance id and decide `traceparent` propagation. Keep prompt/response/tool content off until privacy/retention/access policy. Mission 5 needs only tracer latency/tool evidence; broad OTel remains a release gate.
+Brunch has local content-free OTLP/gRPC export and graceful flush; hosted reachability and real normal/failure attributes remain open. Prove `gen_ai.conversation.id` equals Flue instance id and decide `traceparent` propagation. Keep prompt/response/tool content off until privacy/retention/access policy. The live Mission 5 contract owns only its bounded tracer latency evidence; broad OTel remains a release gate.
 
 Simulated-conversation viewing remains evaluation infrastructure, not a protocol rewrite. The
 2026-09-02 [live-observable persona spike](docs/evidence/evaluations/live-observable-persona-spike/README.md)
@@ -407,7 +395,7 @@ Exploded-view net prototypes belong on Petrinaut website host routes, not `:4321
 
 ## Historical 2026-09-02 migration disposition
 
-This section preserves the planning split as it was accepted on 2026-09-02. It is historical evidence, not the current draft inventory or numbering authority; the current six-draft topology is listed above. At that time, the candidate split had one live authority, one compact spine, four provisional drafts, and no Mission 4 or Mission 8 draft. Its source-to-destination ledger was:
+This section preserves the planning split as it was accepted on 2026-09-02. It is historical evidence, not the current draft inventory or numbering authority; the then-current six-draft topology preceded the live Mission 5 cut. At that time, the candidate split had one live authority, one compact spine, four provisional drafts, and no Mission 4 or Mission 8 draft. Its source-to-destination ledger was:
 
 | Previous `MISSION.next.md` section | Surviving planning home | Disposition and consequence |
 | --- | --- | --- |
