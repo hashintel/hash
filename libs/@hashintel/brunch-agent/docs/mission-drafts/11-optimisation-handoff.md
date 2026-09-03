@@ -8,7 +8,7 @@
 
 A fresh builder must read these durable sources before deepening this cluster:
 
-- [`../../MISSION.md`](../../MISSION.md) — current closure pointer. Mission 4 is closed; later accepted mission archives and an owner-authorized live cut become inherited authority before this draft can execute.
+- [`../../MISSION.md`](../../MISSION.md) — live Mission 5 Voice authority on this branch. Mission 4 is closed; later accepted mission archives and an owner-authorized Mission 11 cut become inherited authority before this draft can execute.
 - [`../../MISSION.next.md`](../../MISSION.next.md) and [`README.md`](README.md) — shared frame, standing locks, draft authority, and lifecycle.
 - [`10-bounded-reviewer-revision.md`](10-bounded-reviewer-revision.md) and the eventual accepted Missions 7, 9, and 10 close evidence — inherited real-path artifacts and proof. Draft promises are not join evidence.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) — accepted workpiece leg, falsified real-model construction, and the parser-valid-empty warning.
