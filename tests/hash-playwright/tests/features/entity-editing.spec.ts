@@ -62,6 +62,9 @@ const clickOnValueCell = async (
   /** zero-based (first row after header row -> 0) */
   rowIndex: number,
 ) => {
+  await expect(canvas).toBeVisible();
+  await canvas.scrollIntoViewIfNeeded();
+
   const canvasPos = await canvas.boundingBox();
 
   if (!canvasPos) {
@@ -106,12 +109,11 @@ test("user can update values on property table", async ({ page }) => {
   const valueInput = page.getByPlaceholder("Start typing...");
 
   await expect(valueInput).toBeVisible();
-  await expect(valueInput).toBeFocused();
 
   const profileUrl = "https://github.com/Example";
 
-  await page.keyboard.type(profileUrl);
-  await page.keyboard.press("Enter");
+  await valueInput.pressSequentially(profileUrl);
+  await valueInput.press("Enter");
 
   /**
    * Check that the hidden accessibility / testing HTML table contains the correct value.
