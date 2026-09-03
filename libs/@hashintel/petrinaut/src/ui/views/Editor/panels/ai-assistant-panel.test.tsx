@@ -10,7 +10,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { useEffect } from "react";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, test, vi } from "vitest";
 
 import {
   DEFAULT_PETRINAUT_EXTENSIONS,
@@ -47,6 +47,18 @@ import type { UIMessageChunk } from "ai";
 
 let voiceModeMounts = 0;
 let voiceModeUnmounts = 0;
+
+beforeAll(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      public disconnect() {}
+      public observe() {}
+      public unobserve() {}
+    },
+  );
+});
 
 const emptySDCPN: SDCPN = {
   places: [],
@@ -1146,6 +1158,181 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(screen.getByText("Voice mode open")).not.toBeNull();
     expect(voiceModeMounts).toBe(1);
     expect(voiceModeUnmounts).toBe(0);
+  });
+
+  test("forwards optional host Voice actions to the production dock", async () => {
+    const takeTurn = vi.fn();
+    const repeatQuestion = vi.fn();
+    const readFullResponse = vi.fn();
+    const VoiceMode = ({
+      context,
+      replayAllowed,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+      replayAllowed: boolean;
+    }) => {
+      const { registerVoiceModeControls, reportVoiceSessionState } = context;
+
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: async () => undefined,
+            pause: vi.fn(),
+            readFullResponse,
+            reconnect: vi.fn(),
+            repeatQuestion,
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+            takeTurn,
+          }),
+        [registerVoiceModeControls],
+      );
+      useEffect(() => {
+        reportVoiceSessionState({
+          canReadFullResponse: replayAllowed,
+          canRepeatQuestion: replayAllowed,
+          canTakeTurn: true,
+          errorMessage: null,
+          microphoneLevel: 0,
+          microphoneMuted: false,
+          phase: "speaking",
+        });
+        return () => reportVoiceSessionState(null);
+      }, [replayAllowed, reportVoiceSessionState]);
+
+      return null;
+    };
+    const aiAssistant = (replayAllowed: boolean): PetrinautAiAssistant => ({
+      renderVoiceMode: (context) => (
+        <VoiceMode context={context} replayAllowed={replayAllowed} />
+      ),
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    });
+
+    const rendered = renderTestPanel({ aiAssistant: aiAssistant(true) });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Your turn" }));
+    expect(takeTurn).toHaveBeenCalledOnce();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Voice playback options" }),
+    );
+    const repeatQuestionItem = await screen.findByRole("menuitem", {
+      name: "Repeat question",
+    });
+    expect(repeatQuestionItem.getAttribute("aria-disabled")).not.toBe("true");
+    const repeatQuestionMenu = screen.getByRole("menu");
+    fireEvent.keyDown(repeatQuestionMenu, { key: "ArrowDown" });
+    await waitFor(() =>
+      expect(repeatQuestionMenu.getAttribute("aria-activedescendant")).toBe(
+        repeatQuestionItem.id,
+      ),
+    );
+    fireEvent.keyDown(repeatQuestionMenu, { key: "Enter" });
+    await waitFor(() => expect(repeatQuestion).toHaveBeenCalledOnce());
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Voice playback options" }),
+    );
+    const readFullResponseItem = await screen.findByRole("menuitem", {
+      name: "Read full response",
+    });
+    expect(readFullResponseItem.getAttribute("aria-disabled")).not.toBe("true");
+    const readFullResponseMenu = screen.getByRole("menu");
+    fireEvent.keyDown(readFullResponseMenu, { key: "End" });
+    await waitFor(() =>
+      expect(readFullResponseMenu.getAttribute("aria-activedescendant")).toBe(
+        readFullResponseItem.id,
+      ),
+    );
+    fireEvent.keyDown(readFullResponseMenu, { key: "Enter" });
+    await waitFor(() => expect(readFullResponse).toHaveBeenCalledOnce());
+
+    rendered.rerenderPanel(aiAssistant(false), editorContextValue);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Voice playback options" }),
+    );
+    expect(
+      (
+        await screen.findByRole("menuitem", { name: "Repeat question" })
+      ).getAttribute("aria-disabled"),
+    ).toBe("true");
+    expect(
+      screen
+        .getByRole("menuitem", { name: "Read full response" })
+        .getAttribute("aria-disabled"),
+    ).toBe("true");
+  });
+
+  test("retires missing and unmounted optional host Voice actions", async () => {
+    const VoiceMode = ({
+      context,
+    }: {
+      context: PetrinautAiVoiceModeContext;
+    }) => {
+      const { registerVoiceModeControls, reportVoiceSessionState } = context;
+
+      useEffect(
+        () =>
+          registerVoiceModeControls({
+            end: async () => undefined,
+            pause: vi.fn(),
+            reconnect: vi.fn(),
+            resume: vi.fn(),
+            setMicrophoneMuted: vi.fn(),
+          }),
+        [registerVoiceModeControls],
+      );
+      useEffect(() => {
+        reportVoiceSessionState({
+          canReadFullResponse: true,
+          canRepeatQuestion: true,
+          canTakeTurn: true,
+          errorMessage: null,
+          microphoneLevel: 0,
+          microphoneMuted: false,
+          phase: "speaking",
+        });
+        return () => reportVoiceSessionState(null);
+      }, [reportVoiceSessionState]);
+
+      return null;
+    };
+    const aiAssistant = (mounted: boolean): PetrinautAiAssistant => ({
+      renderVoiceMode: (context) =>
+        mounted ? <VoiceMode context={context} /> : null,
+      transport: {
+        reconnectToStream: () => Promise.resolve(null),
+        sendMessages: vi.fn(),
+      },
+    });
+    const rendered = renderTestPanel({ aiAssistant: aiAssistant(true) });
+
+    expect(screen.queryByRole("button", { name: "Your turn" })).toBeNull();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Voice playback options" }),
+    );
+    expect(
+      (
+        await screen.findByRole("menuitem", { name: "Repeat question" })
+      ).getAttribute("aria-disabled"),
+    ).toBe("true");
+    expect(
+      screen
+        .getByRole("menuitem", { name: "Read full response" })
+        .getAttribute("aria-disabled"),
+    ).toBe("true");
+
+    rendered.rerenderPanel(aiAssistant(false), editorContextValue);
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("region", { name: "Voice session" }),
+      ).toBeNull(),
+    );
   });
 
   test("ends active Voice mode when the unified composer returns to text", () => {
