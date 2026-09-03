@@ -3,18 +3,18 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 
 import {
-  BRUNCH_CONVERSATION_HEADER,
-  BRUNCH_PRINCIPAL_HEADER,
   identityPayload,
-} from "./payload.ts";
+  type ConversationIdentity,
+} from "@hashintel/brunch-agent-transport-aisdk";
 
-import type { ConversationIdentity } from "@hashintel/brunch-agent-transport-aisdk";
+import { LOCAL_UI_PRINCIPAL } from "./payload.ts";
 
 export {
+  agentOwnershipHeaders,
   BRUNCH_CONVERSATION_HEADER,
   BRUNCH_PRINCIPAL_HEADER,
-  LOCAL_UI_PRINCIPAL,
-} from "./payload.ts";
+} from "@hashintel/brunch-agent-transport-aisdk";
+export { LOCAL_UI_PRINCIPAL } from "./payload.ts";
 export type { ConversationIdentity };
 
 export const flueConversationId = (
@@ -40,10 +40,3 @@ export const ownsFlueInstance = (
   if (expectedBytes.length !== presentedBytes.length) return false;
   return timingSafeEqual(expectedBytes, presentedBytes);
 };
-
-export const agentOwnershipHeaders = (
-  identity: ConversationIdentity,
-): Record<string, string> => ({
-  [BRUNCH_PRINCIPAL_HEADER]: identity.principalKey,
-  [BRUNCH_CONVERSATION_HEADER]: identity.conversationId,
-});
