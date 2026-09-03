@@ -113,7 +113,7 @@ This gate is the mission's completion bar: the demo script above must work for t
 - If a realistic prepared conversation/workpiece cannot support one meaningful mutation without richer typed structure, record the exact lookup, identity, or ambiguity strain before adding any schema.
 - If existing per-action provider schemas cannot carry the required nested mutation, reduce to the smallest meaningful supported action only if semantic correspondence survives; otherwise stop with the crisp provider/Flue schema blocker.
 - If coherent save cannot span existing workpiece/document stores, the least fixture-scoped commit marker may publish only after both writes; do not invent distributed transactions before a failure demonstrates the need.
-- If direct browser tool servicing needs a transport abstraction, extract only tool-call/result correlation from the existing AI SDK adapter; do not require the chat UI or duplicate Flue observation.
+- If direct browser tool servicing needs a transport abstraction, extract only tool-call/result correlation from the browser `ChatTransport` in `transport-aisdk` (recut Mission 5); do not require the chat UI or duplicate Flue observation.
 
 ## Accepted constraints and guarded invariants
 
