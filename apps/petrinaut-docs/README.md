@@ -94,8 +94,8 @@ its own `cookie@2.x` without changing hoisting for the rest of the monorepo.
 
 **Tokens.** Starlight's palette and type scale are restated in a flat
 monochrome key: one neutral ramp serving both themes, a header and sidebar that
-share the page background and are divided by hairlines rather than by fills, and
-an accent pointed at the strongest foreground instead of a colour. That last one
+share the page background and carry no divider between them, and an accent
+pointed at the strongest foreground instead of a colour. That last one
 is why removing the blue took no hunting: Starlight routes links, the active nav
 row and the active table-of-contents row through the accent tokens. Links stay
 distinguishable by their underline. Type is 17px on a 1.65 leading with a
@@ -107,10 +107,18 @@ accents the bundle's own cards paint themselves. Nothing in the bundle is styled
 from here. Its CSS derives everything from `currentColor`, so it follows this
 palette on its own, in both themes and in any other host.
 
-**Components.** Sidebar and table-of-contents rows as pills, a filled search
-field, flat code frames (through the `--ec-*` variables Expressive Code reads),
-underlined monochrome links, and rounded corners on markdown images so the
-embedded diagrams match the bordered cards beside them.
+**Components.** Sidebar and table-of-contents rows as pills, flat code frames
+(through the `--ec-*` variables Expressive Code reads), underlined monochrome
+links, and rounded corners on markdown images so the embedded diagrams match the
+bordered cards beside them. Controls read by fill: the search field and the
+diff-build compare chips sit one step off the page background rather than
+carrying an outline.
+
+The sidebar's depth guide is the only rule drawn anywhere in the chrome, and it
+is there because it carries information: how deep a row sits in the tree. The
+borders that framed the header, the sidebar and the on-this-page column are
+gone. Element borders stay where they separate content from the page: tables,
+code frames, and the markdown images that hold the diagrams.
 
 **The sidebar.** The left nav takes its own `--pnd-sidebar-width` because
 Starlight sizes both panels from `--sl-sidebar-width`, and collapsing the nav has

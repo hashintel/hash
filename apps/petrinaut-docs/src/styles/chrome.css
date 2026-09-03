@@ -91,8 +91,9 @@
   --sl-color-bg-inline-code: var(--pnd-surface-strong);
 
   /*
-   * Header and sidebar share the page background, so the chrome is one surface
-   * divided by hairlines.
+   * Header and sidebar share the page background and carry no divider. The only
+   * rule left in the chrome is the sidebar's depth guide, which says something:
+   * how deep a row sits in the tree.
    */
   --sl-color-bg-nav: var(--sl-color-bg);
   --sl-color-bg-sidebar: var(--sl-color-bg);
@@ -180,7 +181,7 @@ h6 {
 /* Header ---------------------------------------------------------------- */
 
 .header {
-  border-bottom: 1px solid var(--sl-color-hairline);
+  border-bottom: 0;
   box-shadow: none;
 }
 
@@ -199,27 +200,26 @@ h6 {
 /* Search --------------------------------------------------------------- */
 
 /*
- * Filled, with a hairline border and the same radius as the rest of the
- * chrome.
+ * Filled rather than outlined, at the same radius as the rest of the chrome.
+ * The fill is what marks it as a control, so hovering deepens the fill instead
+ * of drawing an edge.
  */
 button[data-open-modal] {
   border-radius: var(--pnd-radius);
   transition:
     background-color 140ms ease,
-    border-color 140ms ease,
     color 140ms ease;
 }
 
 @media (min-width: 50rem) {
   button[data-open-modal] {
-    border-color: var(--sl-color-hairline);
+    border-color: transparent;
     background-color: var(--pnd-surface);
     color: var(--sl-color-gray-3);
   }
 
   button[data-open-modal]:hover {
-    border-color: var(--sl-color-hairline-light);
-    background-color: var(--pnd-surface-strong);
+    background-color: var(--sl-color-hairline-light);
     color: var(--sl-color-white);
   }
 }
@@ -283,8 +283,11 @@ dialog {
   color: var(--sl-color-gray-1);
 }
 
-/* The guides make a deeply nested tree readable, so they stay. They use the
-   lighter hairline: the flat one disappears against a pure-black pane. */
+/*
+ * The depth guides are the only rule left in the chrome, and the reason is that
+ * they carry information: how deep a row sits in the tree. They use the lighter
+ * hairline, since the flat one disappears against a pure-black pane.
+ */
 .sidebar-content ul ul li {
   border-inline-start-color: var(--sl-color-hairline-light);
 }
@@ -327,7 +330,7 @@ dialog {
 }
 
 .right-sidebar {
-  border-inline-start: 1px solid var(--sl-color-hairline);
+  border-inline-start: 0;
 }
 
 /* Content --------------------------------------------------------------- */
@@ -428,6 +431,7 @@ dialog {
 
   .sidebar-pane {
     width: var(--pnd-sidebar-width);
+    border-inline-end: 0;
     /*
      * A scroll container with `overflow-y: auto` computes `overflow-x` to
      * `auto` as well, which flashes a horizontal scrollbar across the whole
@@ -446,12 +450,6 @@ dialog {
    */
   :root[data-pnd-sidebar="collapsed"] .sidebar-pane {
     visibility: hidden;
-    /*
-     * Zero rather than transparent: the trailing border is a pixel of box that
-     * a `width: 0` pane still reserves, which left an empty hairline column
-     * against the viewport edge.
-     */
-    border-inline-end-width: 0;
   }
 }
 
@@ -513,10 +511,9 @@ dialog {
 
   /*
    * The hit area stays 6px wide while the mark is 2px, centred on the pane's
-   * own border, so the target is easy to hit and the mark reads as that edge
-   * thickening. Filling all 6px with the accent colour, as this used to, made
-   * the edge jump three pixels wider and change hue when the pointer crossed
-   * it.
+   * trailing edge, so the target is easy to hit and the mark stays thin. With
+   * no divider drawn between the panes, this is the only thing that marks that
+   * edge, and it appears under the pointer that is looking for it.
    */
   .pnd-sidebar-resize::after {
     content: "";
@@ -576,7 +573,6 @@ dialog {
   :root:not([data-pnd-resizing]) .sidebar-pane {
     transition:
       width var(--pnd-motion-duration) var(--pnd-motion-ease),
-      border-inline-end-width var(--pnd-motion-duration) var(--pnd-motion-ease),
       visibility var(--pnd-motion-duration) linear;
   }
 
@@ -737,18 +733,21 @@ dialog {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.05rem 0.55rem;
-  border: 1px solid var(--sl-color-hairline-light);
+  padding: 0.15rem 0.6rem;
+  border: 0;
   border-radius: 999px;
+  /* One step off the page rather than an outline, so the chips separate from
+     the header without adding a line to it. */
+  background: var(--pnd-surface-strong);
   color: var(--sl-color-gray-2);
   text-decoration: none;
   transition:
-    border-color 120ms ease,
+    background-color 120ms ease,
     color 120ms ease;
 }
 
 .pnd-diff-compare .pnd-diff-chip:hover {
-  border-color: var(--sl-color-gray-3);
+  background: var(--sl-color-hairline-light);
   color: var(--sl-color-white);
 }
 
