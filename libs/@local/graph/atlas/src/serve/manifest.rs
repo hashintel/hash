@@ -171,15 +171,15 @@ impl serde::Serialize for BucketCut {
 
 impl Atlas {
     /// Assembles the generation's manifest document under the given request limits.
+    ///
+    /// `deepest_occupied` is the root delivery's deepest occupied bucket, the reading the root
+    /// tile's `HEAD` reports, and zero for an empty view. `scopeSchedule.maxZoom` derives from it
+    /// through the cut rule.
     #[must_use]
     #[expect(
         clippy::min_ident_chars,
         reason = "`k` is the delivery-cut offset's name throughout the density contract"
     )]
-    ///
-    /// `deepest_occupied` is the resolved view's deepest occupied bucket - the scope cascade's
-    /// for a restricted caller, the corpus census's for an operator - and zero for an empty
-    /// view. `scopeSchedule.maxZoom` derives from it through the cut rule.
     pub(crate) fn manifest(
         &self,
         limits: ManifestLimits,

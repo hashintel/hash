@@ -27,6 +27,7 @@ use super::{
     },
     visibility::ProofKind,
 };
+use crate::{math::Bounds2, salt::wire::tile::GlobalHead};
 
 /// A delivery view that does not bind.
 ///
@@ -89,13 +90,12 @@ impl Error for ViewError {}
 pub(crate) struct View<'scope> {
     /// The rows the scope may see.
     proof: &'scope VisibilityProof,
-    /// The corpus-wide census of what [`Self::proof`] admits, resolved with it.
-    census: ViewCensus,
-    /// The scope cascade read at the request's offset, absent under an operator proof.
-    ///
-    /// Absent exactly when the view serves the generation's corpus schedule. Binding established
-    /// that equivalence, so the assembly paths read this one discriminant.
-    cut: Option<ScheduleCut<'scope>>,
+    /// The tight wire-frame extent of the visible set, [`None`] when it is empty.
+    bounds: Option<Bounds2>,
+    /// The root delivery, by the proof kind binding established.
+    root: Root<'scope>,
+    /// The served grid, the catch-all depth the corpus arm clamps an arrival bucket into.
+    grid: Grid,
     /// The view's arrival overlay, taken from the schedule it bound.
     ///
     /// A bound cut merges it into every delivery query, and the corpus assembly reads it
@@ -117,6 +117,20 @@ pub(crate) struct View<'scope> {
     delta: Option<&'scope DeltaSnapshot>,
 }
 
+/// The root delivery of one view, the one discriminant the assembly paths read.
+#[derive(Debug, Copy, Clone)]
+enum Root<'scope> {
+    /// The corpus schedule's root aggregates of an operator proof, read from the artifacts.
+    Corpus {
+        /// The points the corpus schedule's root cut delivers.
+        visible: u64,
+        /// The deepest occupied bucket.
+        min_resolution: u64,
+    },
+    /// A scoped proof's own cascade, read at the request's offset.
+    Scope(ScheduleCut<'scope>),
+}
+
 impl<'scope> View<'scope> {
     /// Binds one resolved scope's delivery inputs at `k`.
     ///
@@ -133,8 +147,8 @@ impl<'scope> View<'scope> {
     ///
     /// # Errors
     ///
-    /// Returns [`ViewError::Contract`] when `proof` and `schedule` pair the wrong variants,
-    /// [`ViewError::Offset`] when an operator proof carries a nonzero `k`, and
+    /// Returns [`ViewError::Contract`] when `proof`, `schedule` and `census` do not all name one
+    /// proof kind, [`ViewError::Offset`] when an operator proof carries a nonzero `k`, and
     /// [`ViewError::Schedule`] when `k` resolves past the key width.
     pub(super) fn bind(
         grid: Grid,
@@ -149,25 +163,52 @@ impl<'scope> View<'scope> {
         cohort: PlacementCohort<'scope>,
         delta: Option<&'scope DeltaSnapshot>,
     ) -> Result<Self, ViewError> {
-        let (cut, overlay) = match (proof.kind(), schedule) {
-            (ProofKind::Corpus, ViewSchedule::Corpus(_)) if k != CutOffset::ZERO => {
+        let (root, overlay) = match (proof.kind(), schedule, census) {
+            (ProofKind::Corpus, ViewSchedule::Corpus(_), ViewCensus::Corpus { .. })
+                if k != CutOffset::ZERO =>
+            {
                 return Err(ViewError::Offset(k));
             }
-            (ProofKind::Corpus, ViewSchedule::Corpus(overlay)) => (None, overlay),
-            (ProofKind::Scope, ViewSchedule::Scope(scope, overlay)) => (
-                Some(scope.cut(overlay, grid, k).map_err(ViewError::Schedule)?),
+            (
+                ProofKind::Corpus,
+                ViewSchedule::Corpus(overlay),
+                ViewCensus::Corpus {
+                    visible,
+                    min_resolution,
+                    bounds: _,
+                },
+            ) => (
+                Root::Corpus {
+                    visible,
+                    min_resolution,
+                },
                 overlay,
             ),
-            (ProofKind::Corpus, ViewSchedule::Scope(..))
-            | (ProofKind::Scope, ViewSchedule::Corpus(_)) => {
+            (ProofKind::Scope, ViewSchedule::Scope(scope, overlay), ViewCensus::Scope { .. }) => (
+                Root::Scope(scope.cut(overlay, grid, k).map_err(ViewError::Schedule)?),
+                overlay,
+            ),
+            (ProofKind::Corpus, ViewSchedule::Corpus(_), ViewCensus::Scope { .. })
+            | (
+                ProofKind::Corpus,
+                ViewSchedule::Scope(..),
+                ViewCensus::Corpus { .. } | ViewCensus::Scope { .. },
+            )
+            | (
+                ProofKind::Scope,
+                ViewSchedule::Corpus(_),
+                ViewCensus::Corpus { .. } | ViewCensus::Scope { .. },
+            )
+            | (ProofKind::Scope, ViewSchedule::Scope(..), ViewCensus::Corpus { .. }) => {
                 return Err(ViewError::Contract);
             }
         };
 
         Ok(Self {
             proof,
-            census,
-            cut,
+            bounds: census.bounds(),
+            root,
+            grid,
             overlay,
             cohort,
             delta,
@@ -212,15 +253,49 @@ impl<'scope> View<'scope> {
         self.proof
     }
 
-    /// Returns the corpus-wide census of what the proof admits.
-    #[must_use]
-    pub(crate) const fn census(&self) -> ViewCensus {
-        self.census
+    /// Returns the root delivery's deepest occupied bucket, zero for an empty view.
+    ///
+    /// The root tile's `HEAD` and the manifest's `scopeSchedule.maxZoom` both read this.
+    pub(crate) fn min_resolution(&self) -> u64 {
+        match self.root {
+            Root::Corpus { min_resolution, .. } => {
+                let arrivals = self
+                    .overlay
+                    .min_resolution(self.grid.deepest())
+                    .map_or(0, |bucket| u64::from(bucket.get()));
+
+                min_resolution.max(arrivals)
+            }
+            Root::Scope(cut) => cut.min_resolution(),
+        }
+    }
+
+    /// Returns the root tile's aggregates over the whole visible set.
+    ///
+    /// The corpus arm adds the overlay's arrivals the root delivers to the census's count, exactly
+    /// as a bound cut folds its own.
+    pub(crate) fn root_head(&self) -> GlobalHead {
+        GlobalHead {
+            visible: match self.root {
+                Root::Corpus { visible, .. } => {
+                    visible
+                        + self
+                            .overlay
+                            .delivered_through(self.grid.cut(0), self.grid.deepest())
+                }
+                Root::Scope(cut) => cut.root_delivered(),
+            },
+            bounds: self.bounds,
+            min_resolution: self.min_resolution(),
+        }
     }
 
     /// Returns the bound scope cut, [`None`] under an operator proof.
     pub(super) const fn cut(&self) -> Option<ScheduleCut<'scope>> {
-        self.cut
+        match self.root {
+            Root::Corpus { .. } => None,
+            Root::Scope(cut) => Some(cut),
+        }
     }
 
     /// Returns the view's arrival overlay.
@@ -238,9 +313,9 @@ impl<'scope> View<'scope> {
     ///
     /// [`ViewRow::Arrival`]: super::schedule::ViewRow::Arrival
     pub(crate) const fn arrivals(&self) -> &'scope IdSlice<ArrivalIndex, ArrivalRow> {
-        match self.cut {
-            Some(cut) => cut.arrivals(),
-            None => self.overlay.arrivals(),
+        match self.root {
+            Root::Scope(cut) => cut.arrivals(),
+            Root::Corpus { .. } => self.overlay.arrivals(),
         }
     }
 

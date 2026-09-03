@@ -15,57 +15,48 @@ use crate::{
 
 /// The corpus-wide census of one visible view.
 ///
-/// The aggregates a root tile publishes about the whole view rather than about its own cell - how
-/// many points the root's schedule delivers, where the visible set lies, and how deep it goes.
-/// Every one of them is a function of the generation's artifacts and the proof alone rather than of
-/// the request, so a scope resolves its census once and every root-tile request under it reads that
-/// census.
+/// The aggregates a root tile publishes about the whole view rather than about its own cell. Every
+/// one of them is a function of the generation's artifacts and the proof alone.
 ///
-/// A hidden point contributes to none of the three, so a scope's census carries no evidence of what
-/// its mask removed.
+/// An operator proof's root delivers under the corpus schedule, whose count and depth the artifacts
+/// answer. A scoped proof's root delivers under its own cascade, and the cascade answers its own
+/// count and depth.
+///
+/// A hidden point adds nothing to the extent, and a scope's census carries no evidence of what its
+/// mask removed.
 ///
 /// The census type differs from [`ViewOccupancy`] on purpose. An occupancy counts occupied *cells*
 /// per depth, the form the delivery-cut policy reads, because the ratified policy may not read row
 /// counts. Row counts and coordinates make a census instead. Two views a policy must not
 /// distinguish can therefore carry different censuses.
-///
-/// The extent carries wire coordinates, so the value is [`PartialEq`] and not [`Eq`]: two censuses
-/// compare equal when their counts and their extents agree.
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub(crate) struct ViewCensus {
-    /// The visible points of the root's cumulative schedule.
-    visible: u64,
-    /// The tight wire-frame extent of the visible set, [`None`] when it is empty.
-    bounds: Option<Bounds2>,
-    /// The deepest bucket holding a visible point.
-    min_resolution: u64,
+pub(crate) enum ViewCensus {
+    /// An operator proof's census, read from the artifacts.
+    Corpus {
+        /// The points the corpus schedule's root cut delivers.
+        visible: u64,
+        /// The generation's tight wire-frame extent, [`None`] when it holds no point.
+        bounds: Option<Bounds2>,
+        /// The deepest occupied bucket.
+        min_resolution: u64,
+    },
+    /// A scoped proof's census, one masked pass over the base column.
+    Scope {
+        /// The tight wire-frame extent of the visible set, [`None`] when it is empty.
+        bounds: Option<Bounds2>,
+    },
 }
 
 impl ViewCensus {
-    /// The census of a view holding no visible point.
-    ///
-    /// [`Walk::visible_census`] answers this for a proof admitting nothing, with zero delivered
-    /// points, an absent extent, and a depth of zero.
+    /// The census of a scoped view holding no visible point.
     #[cfg(test)] // The cache tests pair proofs with the empty view.
-    pub(crate) const EMPTY: Self = Self {
-        visible: 0,
-        bounds: None,
-        min_resolution: 0,
-    };
-
-    /// Returns the visible points of the root's cumulative schedule.
-    pub(crate) const fn visible(self) -> u64 {
-        self.visible
-    }
+    pub(crate) const EMPTY: Self = Self::Scope { bounds: None };
 
     /// Returns the tight wire-frame extent of the visible set, [`None`] when it is empty.
     pub(crate) const fn bounds(self) -> Option<Bounds2> {
-        self.bounds
-    }
-
-    /// Returns the deepest bucket holding a visible point.
-    pub(crate) const fn min_resolution(self) -> u64 {
-        self.min_resolution
+        match self {
+            Self::Corpus { bounds, .. } | Self::Scope { bounds } => bounds,
+        }
     }
 }
 
@@ -98,55 +89,26 @@ impl Walk<'_> {
             .map_or(0, |bucket| bucket as u64)
     }
 
-    /// Censuses the masked view in one pass over the base column.
-    ///
-    /// Per admitted position the pass accumulates:
-    ///
-    /// - the count below the cumulative schedule's prefix,
-    /// - the coordinate's fold into the extent, and
-    /// - the last admitted position, whose bucket is the deepest visible one because the base order
-    ///   is bucket-major.
-    fn masked_census(&self, cut: Depth, positions: &IdSlice<BasePosition, Vec2>) -> ViewCensus {
-        let prefix = self.segment_end(cut);
-        let mut visible = 0_u64;
-        let mut last_admitted = None;
-
-        let bounds = Bounds2::from_points(
-            positions
-                .iter_enumerated()
-                .filter(|&(position, _)| self.admits(position))
-                .inspect(|&(position, _)| {
-                    if position < prefix {
-                        visible += 1;
-                    }
-                    last_admitted = Some(position);
-                })
-                .map(|(_, &point)| point),
-        );
-
-        ViewCensus {
-            visible,
-            bounds,
-            min_resolution: last_admitted.map_or(0, |position| {
-                u64::from(self.morton.bucket_of(position).get())
-            }),
+    /// Censuses the masked view in one pass over the base column, folding every admitted
+    /// coordinate into the extent.
+    fn masked_census(&self, positions: &IdSlice<BasePosition, Vec2>) -> ViewCensus {
+        ViewCensus::Scope {
+            bounds: Bounds2::from_points(
+                positions
+                    .iter_enumerated()
+                    .filter(|&(position, _)| self.admits(position))
+                    .map(|(_, &point)| point),
+            ),
         }
     }
 
     /// Censuses the visible view over the whole corpus.
     ///
-    /// The corpus-wide aggregates the root tile publishes, gathered in one masked pass over the
-    /// base column because they share their cost: computing them apart would filter the same column
-    /// by the same mask once per aggregate for one view. `cut` is the root's cumulative schedule
-    /// bucket, `positions` the base coordinate column, and `bounds` the generation's own extent.
+    /// `cut` is the root's cumulative schedule bucket, `positions` the base coordinate column, and
+    /// `bounds` the generation's own extent, absent exactly when the generation holds no point.
     ///
-    /// An unmasked proof answers from the artifacts alone, where the fencepost prefix is the
-    /// visible count and the generation's own extent is the visible extent, so authority over the
-    /// corpus costs no walk. This is the sole place the two regimes part, and a census reads the
-    /// same way whichever proof produced it.
-    ///
-    /// `bounds` is the generation's extent, absent exactly when the generation holds no point, and
-    /// a masked view's extent is absent whenever the view is empty.
+    /// An operator proof admits every row, and the artifacts hold its census: the fencepost prefix
+    /// is the visible count and the generation's extent is the visible extent.
     pub(crate) fn visible_census(
         &self,
         cut: Depth,
@@ -154,14 +116,14 @@ impl Walk<'_> {
         bounds: Option<Bounds2>,
     ) -> ViewCensus {
         if self.proof.kind() == ProofKind::Corpus {
-            return ViewCensus {
+            return ViewCensus::Corpus {
                 visible: u64::from(self.morton.fenceposts().segment(cut).end.as_u32()),
                 bounds,
                 min_resolution: self.deepest_occupied(),
             };
         }
 
-        self.masked_census(cut, positions)
+        self.masked_census(positions)
     }
 
     /// Aggregates the visible view's Morton occupancy.

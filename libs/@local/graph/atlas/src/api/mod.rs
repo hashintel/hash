@@ -39,7 +39,7 @@ use hash_middleware::authentication::{
 };
 use rand::rngs::SysRng;
 
-use self::{openapi::OpenApiDocument, visibility::Authority};
+use self::{openapi::OpenApiDocument, visibility::ScopeResolver};
 use crate::serve::{
     Atlas, DeltaCell, DeltaEpoch, DensityBand, DensityPolicy, GraphDatabaseClient, ServeLimits,
     VisibilityLimits, authorization::TokenAuthority, hydrate::CachedTypeUrlResolver,
@@ -189,7 +189,7 @@ struct AppState<R> {
     ///
     /// [`None`] for the schedules no offset deepens, where every scope serves the recorded cut.
     density: Option<DensityPolicy>,
-    authority: Authority,
+    scopes: ScopeResolver,
     remote: Arc<GraphDatabaseClient>,
     /// The type-URL resolution the edges trailer reads through, cached for the process's life.
     type_urls: Arc<CachedTypeUrlResolver<Arc<GraphDatabaseClient>>>,
@@ -207,11 +207,11 @@ impl<R> FromRef<AppState<R>> for Arc<TokenAuthority<R>> {
 ///
 /// A visibility proof scopes every corpus-bearing response the router serves, and every request
 /// answers under the scope of the actor it names: `pool` is the store every read goes through and
-/// `visibility` the window the router reuses a resolved scope for. The router serves no request
-/// without an actor, and serves no actor another's rows. The authority token's key derives from the
-/// secret that opened the atlas, and every token seals `epoch`, the serving process's delta epoch,
-/// so a restarted delta register refuses the tokens issued beside its predecessor. The manifest
-/// issues one per fetch, and the data routes refuse without one.
+/// `visibility` the window the router reuses a resolved scope for. Every route requires the actor
+/// the authentication layer resolves, and serves no actor another's rows. The authority token's key
+/// derives from the secret that opened the atlas, and every token seals `epoch`, the serving
+/// process's delta epoch. A restarted delta register refuses the tokens issued beside its
+/// predecessor. The manifest issues one per fetch, and the data routes refuse without one.
 ///
 /// # Panics
 ///
@@ -238,7 +238,7 @@ pub(crate) fn router(
         atlas,
         limits,
         visibility,
-        authority: Authority::new(pool, visibility),
+        scopes: ScopeResolver::new(pool, visibility),
         type_urls: Arc::new(CachedTypeUrlResolver::new(Arc::clone(&details))),
         remote: details,
         delta,

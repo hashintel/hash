@@ -42,7 +42,6 @@ use crate::serve::{
         MaskingActor,
         compile::{ProofError, visibility_proof},
     },
-    schedule::ViewSchedule,
 };
 
 /// The resolution state behind every [`Visibility`].
@@ -52,14 +51,14 @@ use crate::serve::{
 /// One cache and one store handle serve the whole router, so concurrent requests for one scope
 /// resolve once and the held entry answers a returning caller.
 #[derive(Clone)]
-pub(super) struct Authority {
+pub(super) struct ScopeResolver {
     /// The store permission resolution reads through.
     pool: Arc<PostgresStorePool>,
     /// Resolved scopes, held for their reuse window.
     cache: Arc<VisibilityCache>,
 }
 
-impl Authority {
+impl ScopeResolver {
     /// Builds the resolution state over `pool`, holding resolved scopes under `limits`.
     pub(super) fn new(pool: Arc<PostgresStorePool>, limits: VisibilityLimits) -> Self {
         Self {
@@ -69,10 +68,10 @@ impl Authority {
     }
 }
 
-impl core::fmt::Debug for Authority {
+impl core::fmt::Debug for ScopeResolver {
     /// Names the cache without the store handle, which carries no [`Debug`].
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        fmt.debug_struct("Authority")
+        fmt.debug_struct("ScopeResolver")
             .field("cache", &self.cache)
             .finish_non_exhaustive()
     }
@@ -100,18 +99,21 @@ impl Resolved {
         self.entry.occupancy()
     }
 
-    /// Returns the resolved view's deepest occupied bucket, zero for an empty view.
+    /// Binds the resolved scope at `k`, the view the manifest's `scopeSchedule` describes.
     ///
-    /// A restricted scope reads its own cascade's fenceposts and an operator scope the corpus
-    /// census, each the source its root tile's `minResolution` reads, so the manifest's
-    /// `scopeSchedule.maxZoom` derives from the same quantity the wire reports.
-    pub(super) fn deepest_occupied(&self) -> u64 {
-        match self.entry.view_schedule() {
-            ViewSchedule::Corpus(_) => self.entry.census().min_resolution(),
-            ViewSchedule::Scope(schedule, _) => schedule
-                .deepest_occupied()
-                .map_or(0, |bucket| u64::from(bucket.get())),
-        }
+    /// # Errors
+    ///
+    /// As [`View::of`].
+    pub(super) fn view(
+        &self,
+        atlas: &Atlas,
+        #[expect(
+            clippy::min_ident_chars,
+            reason = "`k` is the delivery-cut offset's name throughout the density contract"
+        )]
+        k: CutOffset,
+    ) -> Result<View<'_>, ViewError> {
+        View::of(atlas, &self.entry, k, None)
     }
 }
 
@@ -261,7 +263,7 @@ pub(super) async fn resolve<R>(
     let document = match (filter, document) {
         (Some(_), None) => Some(
             state
-                .authority
+                .scopes
                 .cache
                 .get(&key)
                 .await
@@ -271,12 +273,12 @@ pub(super) async fn resolve<R>(
         (_, document) => document,
     };
 
-    let pool = Arc::clone(&state.authority.pool);
+    let pool = Arc::clone(&state.scopes.pool);
     let atlas = Arc::clone(&state.atlas);
     let cell = Arc::clone(&state.delta);
 
     let entry = state
-        .authority
+        .scopes
         .cache
         .resolve(key, Instant::now(), async move || {
             // The resolution acquires a connection for itself alone, and only a miss reaches here:

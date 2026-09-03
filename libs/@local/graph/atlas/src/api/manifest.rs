@@ -25,7 +25,7 @@ use super::{
     extract::Generation,
     headers,
     problem::{Problem, ProblemType, reject_generation},
-    visibility,
+    visibility::{self, view_problem},
 };
 use crate::{
     file::generation::GenerationId,
@@ -246,11 +246,16 @@ where
                     .unwrap_or_else(|_| unreachable!("hexadecimal is a valid header value")),
             ),
         ],
-        Json(state.atlas.manifest(
-            state.limits.manifest_limits(state.visibility),
-            scope.k,
-            visibility.deepest_occupied(),
-        )),
+        Json(
+            state.atlas.manifest(
+                state.limits.manifest_limits(state.visibility),
+                scope.k,
+                visibility
+                    .view(&state.atlas, scope.k)
+                    .map_err(view_problem)?
+                    .min_resolution(),
+            ),
+        ),
     ))
 }
 

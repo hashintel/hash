@@ -488,6 +488,8 @@ impl<'atlas> Neighbourhood<'atlas> {
         let cohort = view.cohort();
         let ingress = self.delta;
 
+        // A selection the fitted edges already filled admits no arrival edge: `EndpointRank`
+        // orders every `Arrival` below every `Fitted`.
         let arrivals = (!cap.truncated).then(|| {
             let table = view.arrivals();
             let mut map = fast_hash_map();

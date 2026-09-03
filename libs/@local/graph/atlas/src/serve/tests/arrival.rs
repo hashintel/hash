@@ -50,7 +50,7 @@ use crate::{
         },
     },
     serve::{
-        EdgesLimits, LocateRequest, VisibilityProof,
+        EdgesLimits, LocateRequest, ViewCensus, VisibilityProof,
         delta::{
             DeltaEvent, DeltaRegister, DeltaRevision, DeltaSnapshot, PlacementCohort,
             ProjectedArrival,
@@ -613,6 +613,18 @@ async fn corpus_tile_serves_placed_arrival_with_captured_display() {
     assert_eq!(bytes, expected, "the corpus arrival tile is byte-exact");
 }
 
+/// The corpus schedule's root count and depth from the operator proof's census.
+fn corpus_census(atlas: &Atlas) -> (u64, u64) {
+    match atlas.census(&FULL) {
+        ViewCensus::Corpus {
+            visible,
+            min_resolution,
+            ..
+        } => (visible, min_resolution),
+        ViewCensus::Scope { .. } => panic!("the operator proof censuses the corpus"),
+    }
+}
+
 /// The corpus splice, the saturated overlay, and the folded cascade agree byte for byte on
 /// every tile.
 ///
@@ -718,17 +730,24 @@ async fn corpus_saturated_and_folded_arrival_deliveries_agree() {
     let (visible, _, min_resolution) = head_global(section(&root, HEAD).expect("HEAD is present"))
         .expect("the root carries the global aggregates");
 
-    let census = atlas.census(&FULL);
+    let (census_visible, census_resolution) = corpus_census(&atlas);
     let cut = FIXTURE_LOD.span.get();
     assert_eq!(
         visible,
-        census.visible() + u64::from(vacant_bucket <= cut),
+        census_visible + u64::from(vacant_bucket <= cut),
         "the root's visible count folds the delivered arrivals in",
     );
     assert_eq!(
         min_resolution,
-        census.min_resolution().max(u64::from(deepest)),
+        census_resolution.max(u64::from(deepest)),
         "the root's resolution reaches the deepest clamped arrival bucket",
+    );
+    assert_eq!(
+        Bound::resolved(&atlas, &FULL, cohort, CutOffset::ZERO)
+            .view(&atlas)
+            .min_resolution(),
+        min_resolution,
+        "the manifest's maxZoom reads the root's resolution",
     );
 }
 

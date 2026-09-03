@@ -537,8 +537,8 @@ impl ScopeSchedule {
     /// Returns the deepest occupied cascade bucket, [`None`] for an empty view.
     ///
     /// The fencepost pair of a bucket holding a slot differs, so the answer is the deepest
-    /// bucket whose posts part. The cohort arrivals sit outside it, exactly as they sit outside
-    /// the posts.
+    /// bucket whose posts part. Arrivals folded into the build count; an overlay's sit outside
+    /// the posts and outside this answer.
     pub(crate) fn deepest_occupied(&self) -> Option<Depth> {
         Depth::all().rev().find(|&bucket| {
             self.posts[BucketPost::closing(bucket)] > self.posts[BucketPost::opening(bucket)]

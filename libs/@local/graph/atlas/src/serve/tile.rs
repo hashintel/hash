@@ -380,7 +380,6 @@ impl Atlas {
         // which is what binding proved when it paired the proof with its schedule.
         let scope_cut = view.cut();
         let proof = view.proof();
-        let census = view.census();
 
         let walk = Walk::of(self, proof);
         // Every consumer of `node` sits on the operator path (`is_full` is `cut.is_none()`), so a
@@ -430,33 +429,7 @@ impl Atlas {
             });
         }
 
-        // The root publishes the view's own aggregates. The scope resolved the extent once, and the
-        // count and resolution are the schedule's, so a scoped root names its own cascade rather
-        // than the corpus one. The census is position-bounded, so the corpus arm folds the
-        // overlay's delivered count and resolution in here, exactly as a bound cut folds its own.
-        let global = (coordinate.z == 0).then(|| {
-            scope_cut.map_or_else(
-                || {
-                    let overlay = view.overlay();
-                    let deepest = self.grid.deepest();
-                    let arrivals = overlay
-                        .min_resolution(deepest)
-                        .map_or(0, |bucket| u64::from(bucket.get()));
-
-                    GlobalHead {
-                        visible: census.visible()
-                            + overlay.delivered_through(self.grid.cut(0), deepest),
-                        bounds: census.bounds(),
-                        min_resolution: census.min_resolution().max(arrivals),
-                    }
-                },
-                |cut| GlobalHead {
-                    visible: cut.root_delivered(),
-                    bounds: census.bounds(),
-                    min_resolution: cut.min_resolution(),
-                },
-            )
-        });
+        let global = (coordinate.z == 0).then(|| view.root_head());
 
         let palette = Palette::of(&request.query.colored_type_ids);
         let mask_set = (!palette.is_empty()).then(|| self.resolve_masks(&palette));

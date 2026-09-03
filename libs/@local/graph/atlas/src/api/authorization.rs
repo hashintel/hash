@@ -1,4 +1,5 @@
-//! Authority token transport: the `Atlas-Authority` header and its two readings.
+//! The caller and its authority token: the actor extractor, and the `Atlas-Authority` header's two
+//! readings.
 //!
 //! The manifest response issues the token and every data request presents it back in the same
 //! header. The judgment is [`TokenAuthority::open`]'s. Extracting [`Scope`] is the data routes'

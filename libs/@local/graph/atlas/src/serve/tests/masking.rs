@@ -1131,14 +1131,14 @@ async fn masked_root_publishes_the_visible_views_own_census() {
     );
 }
 
-/// The census's unmasked fast path answers exactly what the walk answers.
+/// The census's unmasked fast path answers the extent the walk answers.
 ///
 /// [`Atlas::census`] reads the artifacts for a proof built as the full-visibility value and walks
 /// the base column for a mask. A mask admitting *every* row of the generation is the one input both
-/// regimes must agree on. It therefore pins the fast path against the general one. Both
-/// constructors carry different digests by design, and their censuses may not differ at all.
+/// regimes must agree on. The root count and depth of a masked view belong to its own cascade, and
+/// the saturated memo's agreement with the corpus root is the arrival parity test's claim.
 #[tokio::test]
-async fn unmasked_census_agrees_with_the_walked_one() {
+async fn census_regimes_extent() {
     let (_generation, atlas) = publish("census-regimes").await;
 
     let admits_everything = mask_hiding(&atlas, &[]);
@@ -1147,9 +1147,9 @@ async fn unmasked_census_agrees_with_the_walked_one() {
         "the two proofs are distinct values, so the agreement below is not an identity"
     );
     assert_eq!(
-        atlas.census(&FULL),
-        atlas.census(&admits_everything),
-        "the artifact-read census and the walked census answer the same view"
+        atlas.census(&FULL).bounds(),
+        atlas.census(&admits_everything).bounds(),
+        "the artifact-read census and the walked census answer the same extent"
     );
 }
 
