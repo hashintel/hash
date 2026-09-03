@@ -33,6 +33,67 @@ type SubscribeToAdmission = (
   target: RealtimeBrunchAdmissionTarget,
   listener: (submissionId: AgentSendResult["submissionId"]) => void,
 ) => () => void;
+type SubmitInterviewAnswer = ConstructorParameters<
+  typeof RealtimeBrunchBridge
+>[0]["submitInterviewAnswer"];
+type SubmitInterviewAnswerInput = Parameters<SubmitInterviewAnswer>[0];
+type SubmitInterviewAnswerResult = Awaited<ReturnType<SubmitInterviewAnswer>>;
+
+export const submitVoiceInputWithAdmission = async ({
+  input,
+  resolveInputSubmission,
+  submitVoiceInput,
+  subscribeToAdmission,
+}: {
+  readonly input: SubmitInterviewAnswerInput;
+  readonly resolveInputSubmission?: ResolveSubmission;
+  readonly submitVoiceInput: PetrinautAiVoiceModeContext["submitVoiceInput"];
+  readonly subscribeToAdmission?: SubscribeToAdmission;
+}): Promise<SubmitInterviewAnswerResult> => {
+  let unsubscribe = () => {};
+  let removeAbortListener = () => {};
+  const cancelled = new Promise<never>((_resolve, reject) => {
+    const rejectForAbort = () =>
+      reject(new DOMException("Voice admission cancelled", "AbortError"));
+    if (input.signal.aborted) {
+      rejectForAbort();
+      return;
+    }
+    input.signal.addEventListener("abort", rejectForAbort, { once: true });
+    removeAbortListener = () =>
+      input.signal.removeEventListener("abort", rejectForAbort);
+  });
+  const admissionObserved =
+    subscribeToAdmission === undefined
+      ? Promise.resolve()
+      : new Promise<void>((resolve) => {
+          unsubscribe = subscribeToAdmission(
+            input.admissionTarget,
+            (submissionId) => {
+              input.onAdmission(submissionId);
+              resolve();
+            },
+          );
+        });
+  try {
+    const [result] = await Promise.race([
+      Promise.all([submitVoiceInput(input), admissionObserved]),
+      cancelled,
+    ]);
+    if (result.kind !== "message") return result;
+    const submissionId = resolveInputSubmission?.(result.messageId);
+    if (resolveInputSubmission !== undefined && submissionId === undefined) {
+      throw new Error("The Flue admission could not be correlated.");
+    }
+    return {
+      ...result,
+      ...(submissionId === undefined ? {} : { submissionId }),
+    };
+  } finally {
+    removeAbortListener();
+    unsubscribe();
+  }
+};
 
 export interface OpenAIVoiceConfig {
   readonly available: true;
@@ -271,26 +332,13 @@ const AvailableVoiceInterviewControl = ({
     });
     const bridge = new RealtimeBrunchBridge({
       session,
-      submitInterviewAnswer: async (input) => {
-        const unsubscribe =
-          latestSubscribeToAdmission?.(
-            input.admissionTarget,
-            input.onAdmission,
-          ) ?? (() => {});
-        const result = await latestSubmitVoiceInput(input).finally(unsubscribe);
-        if (result.kind !== "message") return result;
-        const submissionId = latestResolveInputSubmission?.(result.messageId);
-        if (
-          latestResolveInputSubmission !== undefined &&
-          submissionId === undefined
-        ) {
-          throw new Error("The Flue admission could not be correlated.");
-        }
-        return {
-          ...result,
-          ...(submissionId === undefined ? {} : { submissionId }),
-        };
-      },
+      submitInterviewAnswer: (input) =>
+        submitVoiceInputWithAdmission({
+          input,
+          resolveInputSubmission: latestResolveInputSubmission,
+          submitVoiceInput: latestSubmitVoiceInput,
+          subscribeToAdmission: latestSubscribeToAdmission,
+        }),
     });
     const controller = new VoiceTurnController({
       bridge,
