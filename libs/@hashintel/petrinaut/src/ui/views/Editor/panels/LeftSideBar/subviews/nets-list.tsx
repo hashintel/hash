@@ -237,6 +237,14 @@ const NetsListContent: React.FC = () => {
       ) {
         event.preventDefault();
         event.stopPropagation();
+        // Focus a neighbour before the row unmounts, so arrows keep working.
+        const index = stops.findIndex((stop) => stop.id === stopId);
+        const neighbour = stops[index + 1] ?? stops[index - 1];
+        if (neighbour) {
+          focusLands(
+            targets.current.get(targetKey({ stopId: neighbour.id, column: 0 })),
+          );
+        }
         deleteSubnet(stopId);
         return;
       }
