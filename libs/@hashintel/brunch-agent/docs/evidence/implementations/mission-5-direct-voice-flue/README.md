@@ -42,7 +42,7 @@ The unit results included:
 
 `yarn install --immutable` passed with the repository's existing peer-dependency warnings. `yarn workspace @local/petrinaut-arch-docs lint:arch-docs` also passed with 62 layers, 297 edges, 613 files, 63 generated pages, and 31 authored pages. The focused ESLint run retained one non-blocking `set-state-in-effect` warning in `voice-interview-control.tsx`.
 
-The route-name scan found no `/api/chat` reference in the Brunch transport packages. Remaining live references are the stock Petrinaut fallback route and the Brunch negative tests that assert its removed route returns 404.
+The proof-leaf route scan over `apps/brunch-agent`, `packages/`, and the Petrinaut local-storage demo found no production path that sends a Brunch turn through `/api/chat`: its live hits are the stock Petrinaut fallback and negative tests asserting the removed Brunch route returns 404. Current integration and topology references now name `/agents/chat/:instanceId`; archived missions, prior implementation evidence, and historical decision records retain `/api/chat` as provenance for the superseded door.
 
 The Voice integration holds the finite Flue response stream open and asserts that `submission-admitted` arrives from the real `createFlueChatTransport().onAdmission` callback before composer submission completion. The Voice control tests also prove that a locally completed interactive-tool result remains pending until the subsequent client-tool-result admission and that cancellation releases the one-shot subscription. Bridge tests separately cover direct-message and client-tool-result matching, duplicate delivery, stale cancellation, mismatched ids, and submission-id-based canonical response selection.
 
