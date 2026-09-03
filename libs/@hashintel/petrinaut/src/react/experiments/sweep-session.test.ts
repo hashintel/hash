@@ -44,6 +44,7 @@ function makeFakeBatch(request: {
   parameterValues: Readonly<Record<string, number>>;
   seed: number;
   runCount: number;
+  background?: boolean;
 }) {
   let metricListeners: ((value: {
     frames: readonly MonteCarloUserDefinedMetricFrame[];
@@ -55,6 +56,7 @@ function makeFakeBatch(request: {
   let frames: readonly MonteCarloUserDefinedMetricFrame[] = [];
   let progress: MonteCarloWorkerProgress | null = null;
   let cancelled = false;
+  let started = false;
 
   const handle: MonteCarloExperiment = {
     status: { get: () => "Running", subscribe: () => () => {} },
@@ -82,7 +84,9 @@ function makeFakeBatch(request: {
         };
       },
     },
-    start: () => {},
+    start: () => {
+      started = true;
+    },
     cancel: () => {
       cancelled = true;
     },
@@ -95,7 +99,13 @@ function makeFakeBatch(request: {
     get cancelled() {
       return cancelled;
     },
+    get started() {
+      return started;
+    },
     stream(nextFrames: readonly MonteCarloUserDefinedMetricFrame[]) {
+      if (!started) {
+        throw new Error("batch streamed before start()");
+      }
       frames = nextFrames;
       progress = {
         activeRuns: 0,
@@ -112,6 +122,9 @@ function makeFakeBatch(request: {
       }
     },
     complete() {
+      if (!started) {
+        throw new Error("batch completed before start()");
+      }
       for (const listener of eventListeners) {
         listener({
           type: "complete",
@@ -269,6 +282,56 @@ describe("createSweepSession", () => {
     expect(onError).toHaveBeenCalledWith("device lost");
     expect(batches).toHaveLength(1);
     expect(updates.at(-1)!.computing).toBe(false);
+    session.dispose();
+  });
+
+  it("samples background cells up the same seed ladder, one at a time", async () => {
+    const { session, batches, settle } = makeHarness(100);
+    await settle();
+    expect(batches).toHaveLength(1); // the navigator's own first rung
+
+    const first = session.sampleCell({ x: 2, y: 20 }, 8);
+    const second = session.sampleCell({ x: 1, y: 20 }, 8);
+    await settle();
+
+    // Serialized: the second background batch waits for the first.
+    expect(batches).toHaveLength(2);
+    expect(batches[1]!.request).toMatchObject({
+      parameterValues: { x: 2, y: 20 },
+      seed: 42,
+      runCount: 8,
+      background: true,
+    });
+
+    batches[1]!.stream([frame(8, [[5, 8]])]);
+    batches[1]!.complete();
+    await expect(first).resolves.toMatchObject({ runsCompleted: 8 });
+    await settle();
+
+    expect(batches).toHaveLength(3);
+    batches[2]!.stream([frame(8, [[6, 8]])]);
+    batches[2]!.complete();
+    await expect(second).resolves.toMatchObject({ runsCompleted: 8 });
+
+    // Sampled cells are readable like navigator-visited ones.
+    expect(session.getCell({ x: 2, y: 20 })).toMatchObject({
+      runsCompleted: 8,
+    });
+    session.dispose();
+  });
+
+  it("resolves a sampled cell from cache when it is already deep enough", async () => {
+    const { session, batches, settle } = makeHarness(25);
+    await settle();
+    batches[0]!.stream([frame(8, [[1, 8]])]);
+    batches[0]!.complete();
+    await settle();
+
+    // The navigator already took {x:0,y:10} to 8 runs; sampling it is free.
+    await expect(session.sampleCell({ x: 0, y: 10 }, 8)).resolves.toMatchObject(
+      { runsCompleted: 8 },
+    );
+    expect(batches.filter((batch) => batch.request.background).length).toBe(0);
     session.dispose();
   });
 

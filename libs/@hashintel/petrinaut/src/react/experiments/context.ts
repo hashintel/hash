@@ -4,7 +4,7 @@ import type {
   ExperimentParameterAxis,
   ExperimentParameterInput,
 } from "./parameter-grid";
-import type { SweepSelection } from "./sweep-session";
+import type { SweepCellSnapshot, SweepSelection } from "./sweep-session";
 import type {
   AdHocScenarioState,
   MonteCarloExpressionMetricSpec,
@@ -190,6 +190,16 @@ export type ExperimentsContextValue = {
   removeExperiment: (experimentId: string) => void;
   /** Moves a sweep's navigator; compute follows the selection. */
   setSweepSelection: (experimentId: string, selection: SweepSelection) => void;
+  /**
+   * Brings a sweep combination up to at least `minRuns` finished runs on the
+   * background lane, resolving with its snapshot — the surface view's feed.
+   * Resolves null for unknown experiments and disposed sessions.
+   */
+  sampleSweepCell: (
+    experimentId: string,
+    parameterValues: Readonly<Record<string, number>>,
+    minRuns: number,
+  ) => Promise<SweepCellSnapshot | null>;
 };
 
 const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
@@ -201,6 +211,7 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   cancelExperiment: () => {},
   removeExperiment: () => {},
   setSweepSelection: () => {},
+  sampleSweepCell: () => Promise.resolve(null),
 };
 
 export const ExperimentsContext = createContext<ExperimentsContextValue>(

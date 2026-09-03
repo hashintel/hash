@@ -1,0 +1,42 @@
+---
+title: The sweep surface
+description: How the contour view samples its grid without stealing the navigator's compute, and why the interpolation is IDW.
+sidebar_order: 30
+attachTo: react.experiments
+---
+
+The surface view shows one metric's final value over two swept parameters as
+a filled contour, Optuna-style. It is fed by the same combination cache the
+[navigator](doc:experiments/parameter-sweeps) refines — a cell sampled for
+the surface and a cell the navigator visited are the same cell.
+
+![How the surface fills](@diagrams/sweep-surface-feed.svg)
+
+## The view drives the sampling
+
+While the section is open, the component walks the X×Y grid coarse-to-fine —
+corners and lattice midpoints before their neighbours — requesting eight runs
+per combination through the session's background lane. The lane serializes
+its batches and gives each a single worker, so the navigator's sharded batch
+keeps the cores; a cell the navigator already refined resolves straight from
+cache. Parameters outside the two shown axes stay at the navigator's values,
+and changing any of them (or the axes, or the metric) restarts the walk for
+the new slice.
+
+## Rendering sparse data honestly
+
+At any moment most cells are unsampled, so the picture must make sense at
+every stage. Inverse distance weighting over the sampled points gives smooth
+blobs around the first few samples that converge to the surface as cells
+land; marching squares over that raster draws the iso-lines, and sampled
+combinations are marked with dots so it stays visible where data actually
+exists. All of that is pure, tested math in
+`react/experiments/contour-grid.ts`; the component only paints it onto a
+canvas, the same imperative-draw idiom the metric charts use.
+
+## Eight runs is a sketch
+
+A surface cell's value is the mean over eight runs — enough for the shape,
+not for reading precise values. Clicking a region moves the navigator to the
+nearest combination, whose ladder then refines it properly; the deeper result
+flows back into the same cache and the surface repaints with it.

@@ -65,6 +65,10 @@ A sweep never computes its whole grid up front. It computes **the combination yo
 
 Every combination samples the same seed sequence (common random numbers), so differences you see between combinations come from the parameters, not from sampling luck. The GPU backend works for sweeps the same way it does for a plain experiment: the choice is made on the first batch and each later combination reuses it.
 
+#### The surface view
+
+A sweep with two or more swept parameters grows a **Surface** section under the metrics: a contour plot of one metric's final value over two parameters you pick, with every other parameter held at its navigator value. The plot fills in live — combinations are sampled a few at a time (8 runs each), coarse shape first — and **clicking the surface moves the navigator** to the nearest combination, which then refines it with more runs. Changing the fixed parameters, the axes, or the metric restarts the fill for the new slice.
+
 ### Compute backend (experimental)
 
 Experiments run on the CPU unless you ask for the GPU. Switch on **WebGPU** under **Settings → Simulation**, and the Create Experiment drawer gains a **Run on GPU** switch. Running on your graphics hardware is dramatically faster — a 4000-run experiment that takes six seconds on the CPU finishes in a few milliseconds.

@@ -1,0 +1,15 @@
+# Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
+direction: right
+
+surface: "surface view\n(X, Y, metric picks;\nclick moves the navigator)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
+walk: "coarse-to-fine walk\n(corners, midpoints,\nthen the rest)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
+lane: "background lane\n(serialized 8-run batches,\none worker)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+cache: "combination cache\n(shared with the navigator)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+contour: "contour raster\n(IDW + marching squares,\nBlues ramp)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
+
+surface -> walk: slice fixed by the\nnavigator's other axes
+walk -> lane: sampleCell(values, 8)
+lane -> cache: fold batch
+cache -> lane: already deep enough?\nresolve from cache {style.stroke-dash: 4}
+lane -> surface: snapshot per cell
+surface -> contour: objective per cell,\nredrawn as cells land

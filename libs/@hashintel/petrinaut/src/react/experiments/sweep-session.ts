@@ -66,6 +66,11 @@ export type InstantiateSweepBatch = (options: {
   seed: number;
   /** Runs this batch adds on top of the combination's finished batches. */
   runCount: number;
+  /**
+   * A surface-sampling batch rather than the navigator's. Hosts give these a
+   * single worker so the navigator's sharded batch keeps the cores.
+   */
+  background?: boolean;
   signal: AbortSignal;
 }) => Promise<MonteCarloExperiment>;
 
@@ -89,6 +94,21 @@ export type SweepSession = {
   getCell: (
     parameterValues: Readonly<Record<string, number>>,
   ) => SweepCellSnapshot | undefined;
+  /**
+   * Brings a combination up to at least `minRuns` finished runs, off the
+   * navigator's lane — the surface view samples its grid through this.
+   *
+   * Background batches run one at a time on a single worker, so the
+   * navigator's own sharded batch keeps the cores; a cell the navigator has
+   * already refined past `minRuns` resolves immediately from cache. Seeds
+   * follow the same ladder-position rule as navigator batches, so a cell
+   * sampled here and later visited by the navigator resumes the identical
+   * run sequence. Resolves null when the session is disposed first.
+   */
+  sampleCell: (
+    parameterValues: Readonly<Record<string, number>>,
+    minRuns: number,
+  ) => Promise<SweepCellSnapshot | null>;
   dispose: () => void;
 };
 
@@ -166,6 +186,10 @@ export function createSweepSession(
       computing: update.computing,
     });
   };
+
+  // Reads go through a function so the narrowing-based lint cannot claim the
+  // flag is constant: it flips inside closures the checker treats as opaque.
+  const isDisposed = (): boolean => disposed;
 
   /** Whether `loopGeneration` still owns the session's compute slot. */
   const isStale = (loopGeneration: number): boolean =>
@@ -257,6 +281,8 @@ export function createSweepSession(
       resolveDone("stopped");
     };
 
+    handle.start();
+
     const outcome = await batchDone;
     offMetrics();
     offProgress();
@@ -324,6 +350,72 @@ export function createSweepSession(
 
   restart();
 
+  /** Serializes background sampling; one small batch in flight at most. */
+  let backgroundChain: Promise<unknown> = Promise.resolve();
+
+  const runBackgroundBatch = async (
+    values: Record<string, number>,
+    minRuns: number,
+  ): Promise<SweepCellSnapshot | null> => {
+    if (disposed || failed) {
+      return null;
+    }
+    const key = sweepCellKey(axes, values);
+    const snapshot = snapshotFor(key);
+    const target = Math.min(minRuns, runCount);
+    if (snapshot.runsCompleted >= target) {
+      return snapshot;
+    }
+
+    const abortController = new AbortController();
+    let handle: MonteCarloExperiment;
+    try {
+      handle = await instantiateBatch({
+        parameterValues: values,
+        seed: sweepBatchSeed(seed, snapshot.runsCompleted),
+        runCount: target - snapshot.runsCompleted,
+        background: true,
+        signal: abortController.signal,
+      });
+    } catch {
+      // A refused background cell is a hole in the surface, not a failed
+      // sweep; the navigator lane reports real errors.
+      return null;
+    }
+    if (isDisposed()) {
+      handle.dispose();
+      return null;
+    }
+
+    const done = new Promise<boolean>((resolve) => {
+      const offEvents = handle.events.subscribe((event) => {
+        offEvents();
+        resolve(event.type === "complete");
+      });
+    });
+    handle.start();
+    const completed = await done;
+    const frames = handle.metrics.get().frames;
+    handle.dispose();
+
+    if (!completed || isDisposed()) {
+      return null;
+    }
+    const merged: SweepCellSnapshot = {
+      runsCompleted: target,
+      metricFrames: mergeMetricFramesAcrossCells([
+        snapshot.metricFrames,
+        frames,
+      ]),
+    };
+    // The navigator may have refined this cell further while we sampled; the
+    // deeper snapshot wins.
+    if (snapshotFor(key).runsCompleted < target) {
+      cells.set(key, merged);
+    }
+    return snapshotFor(key);
+  };
+
   return {
     setSelection(next) {
       if (disposed) {
@@ -342,6 +434,13 @@ export function createSweepSession(
     },
     getCell(parameterValues) {
       return cells.get(sweepCellKey(axes, parameterValues));
+    },
+    sampleCell(parameterValues, minRuns) {
+      const next = backgroundChain.then(() =>
+        runBackgroundBatch({ ...parameterValues }, minRuns),
+      );
+      backgroundChain = next.catch(() => null);
+      return next;
     },
     dispose() {
       disposed = true;
