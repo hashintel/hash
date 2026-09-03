@@ -115,7 +115,7 @@ jobs:
             {
               package:    "@apps/brunch-agent",
               service:    "brunch-agent",
-              push:       ["ghcr"],
+              push:       ["ecr", "ghcr"],
               dockerfile: "apps/brunch-agent/docker/Dockerfile",
               context:    ".",
               ecs:        []
