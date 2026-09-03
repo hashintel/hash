@@ -14,17 +14,12 @@ export const localPanelListen = {
 
 export const defaultChatOrigin = `http://${localChatListen.host}:${localChatListen.port}`;
 
-export const defaultPanelOrigins = [
-  `http://${localPanelListen.host}:${localPanelListen.port}`,
-  `http://localhost:${localPanelListen.port}`,
-] as const;
-
 export const petrinautLocalServer = (chatOrigin: string) => ({
   ...localPanelListen,
   proxy: {
-    "/api/chat": {
+    "/agents/chat": {
       target: chatOrigin,
-      changeOrigin: true,
+      changeOrigin: false,
     },
   },
 });
