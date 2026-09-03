@@ -15,6 +15,7 @@ import {
   LEFT_SIDEBAR_SUBVIEWS,
   LEFT_SIDEBAR_TREE_SUBVIEWS,
 } from "../../../../constants/ui-subviews";
+import { FocusRoot, FocusStack } from "../../../../worksheet/focus-stack";
 import { searchSubView } from "./subviews/search-panel";
 
 const glassPanelBaseStyle = css({
@@ -170,10 +171,16 @@ export const LeftSideBar: React.FC = () => {
             direction: "backward",
           })}
         >
-          <VerticalSubViewsContainer
-            name="left-sidebar-search"
-            subViews={searchSubViews}
-          />
+          {/* One vertical focus flow joins the search input in the header
+              with the result list below it. */}
+          <FocusRoot>
+            <FocusStack axis="vertical">
+              <VerticalSubViewsContainer
+                name="left-sidebar-search"
+                subViews={searchSubViews}
+              />
+            </FocusStack>
+          </FocusRoot>
         </div>
       </div>
     </GlassPanel>
