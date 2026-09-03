@@ -6,7 +6,7 @@ Show product and design stakeholders how Voice can make a complex Petrinaut
 workflow easier to start. The demo uses the Site 1000 raw-material purchasing
 model as context, but it is a Voice UX story rather than a tour of the model.
 
-Target runtime: 4 minutes 15 seconds, with 30–45 seconds of contingency.
+Target runtime: 4 minutes 40 seconds, with 15 seconds of contingency.
 
 ## Simplified domain story
 
@@ -44,22 +44,23 @@ user's intent.
 - **0:00–0:30 — Frame the problem.** Show the model and explain that the
   underlying process is rich, but a user should not need to structure all of
   it before getting started.
-- **0:30–1:00 — Ground the interview.** Open the assistant, type the exact
+- **0:30–1:15 — Ground the interview.** Open the assistant, type the exact
   kickoff, and let Brunch inspect the live net and ask its first relevant
   interview question.
-- **1:00–1:20 — Enter Voice.** Select Voice, acknowledge the disclosure, and
-  let the status move from Connecting to Listening.
-- **1:20–2:05 — Describe the process.** Answer the first interview question in
+- **1:15–1:55 — Enter Voice.** Select Voice, acknowledge the disclosure, let
+  the status move from Connecting to Listening, and select
+  `Show transcription in chat` before speaking.
+- **1:55–2:40 — Describe the process.** Answer the first interview question in
   ordinary language. Once the answer is finalized, point out its visible text
   and Voice provenance without pausing the flow.
-- **2:05–2:55 — State the decision and constraints.** Let the assistant ask a
+- **2:40–3:30 — State the decision and constraints.** Let the assistant ask a
   narrower follow-up. Explain the purchasing trade-off and the three success
   criteria.
-- **2:55–3:35 — Define one experiment.** Ask to compare the baseline policy
+- **3:30–4:05 — Define one experiment.** Ask to compare the baseline policy
   against fragile supply over two years.
-- **3:35–3:55 — Show recoverability.** Briefly identify mute, repeat question,
+- **4:05–4:20 — Show recoverability.** Briefly identify mute, repeat question,
   read full response, and end controls. Do not demonstrate every control.
-- **3:55–4:15 — Close on the UX value.** Emphasize progressive disclosure:
+- **4:20–4:40 — Close on the UX value.** Emphasize progressive disclosure:
   ground the interview in the live net, speak naturally, inspect the finalized
   answer, then refine the structured model.
 
@@ -100,10 +101,10 @@ ask a question that is relevant to what is already on the canvas.”
 **[Wait for Brunch to inspect the live net and ask its first relevant
 interview question]**
 
-**Assistant, expected question:** “Walk me through the process you want to
-model.”
+**Assistant, expected question:** “How do Sonaflozin and Flowbind move through
+Site 1000’s purchasing process before Sonic Flow production?”
 
-**[1:00 — Select Voice]**
+**[1:15 — Select Voice]**
 
 “Now that Brunch has inspected the model and asked the first interview
 question, I’ll switch to Voice.
@@ -113,10 +114,17 @@ live audio, while Petrinaut keeps the finalized answers in the conversation
 rather than storing the audio. I can check the microphone, give consent, and
 start.”
 
-**[Start Voice; let Connecting change to Listening]**
+**[Give consent and start Voice; let Connecting change to Listening]**
 
 “The dock makes the current state clear. It connects, then tells me when it is
 listening.”
+
+**[Select `Show transcription in chat`]**
+
+“Transcription starts hidden, so I’ll show it in the chat before I answer. Once
+each answer is finalized, its text will remain visible in the conversation.”
+
+**[1:55 — Answer the first question in Voice]**
 
 **Presenter, speaking to Voice:**
 
@@ -133,6 +141,8 @@ without material, while excess stock costs money and may expire.”
 “Once my answer is finalized, it appears as a normal conversation turn. The
 waveform marker shows that this answer came from Voice. I can inspect the exact
 text instead of relying on an invisible audio history.”
+
+**[2:40 — State the decision and constraints]**
 
 **Assistant, expected follow-up:** “What decision should the model help you
 make?”
@@ -157,6 +167,8 @@ planned unit, and keep the expiry rate of each raw material below 5 percent.”
 decision and measurable constraints. I did not need to begin with formulas,
 token types, or a list of forty-five transitions.”
 
+**[3:30 — Define one experiment]**
+
 **Assistant, expected follow-up:** “What would you like to test first?”
 
 **Presenter, speaking to Voice:**
@@ -166,13 +178,13 @@ under fragile supply, where supplier outages are more frequent. Show the effect
 on total policy cost, fill rate, holding cost, late-delivery penalties, and
 supplier switching.”
 
-**[Point briefly to the dock controls]**
+**[4:05 — Point briefly to the dock controls]**
 
 “The dock stays compact while the session is active. I can mute the microphone,
 show or hide transcription, repeat the current question, hear the full
 response, or end Voice without leaving the model.”
 
-**[End Voice; leave finalized conversation visible]**
+**[4:20 — End Voice; leave finalized conversation visible]**
 
 “The intended UX is progressive disclosure: ground the interview in the live
 net, speak naturally, preserve the finalized answer as inspectable text, and
