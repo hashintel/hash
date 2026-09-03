@@ -130,12 +130,15 @@ sits on each rail's inner element rather than the scrolling pane, which already
 owns a transition for the collapse. `prefers-reduced-transparency` turns the
 whole effect off.
 
-Under the header, over the content column only, a 30px band blurs and tints
-whatever scrolls beneath it, so text does not meet the header on a hard edge.
-`backdrop-filter` cannot ramp on its own, so the ramp is three stacked layers,
-each blurring harder than the last and masked to a shorter band; each filters
-what the one beneath it produced, which is what makes the blur compound rather
-than step. The band is positioned against the viewport from
+Under the header, over the content column only, a band blurs and tints whatever
+scrolls beneath it, so text does not meet the header on a hard edge. It runs to
+two heights: the tint over 30px and the blur over 60px. Matching them hid the
+blur completely, because its strongest layers sit at the top, which is exactly
+where the tint is opaque; the stretch below the tint is where a reader actually
+sees content blurred. `backdrop-filter` cannot ramp on its own, so the ramp is
+three stacked layers, each blurring harder than the last and masked to a shorter
+band; each filters what the one beneath it produced, which is what makes the
+blur compound rather than step. The band is positioned against the viewport from
 `components.SiteTitle`, like the resize handle, and its right inset restates
 Starlight's own width for the on-this-page column since no variable holds it.
 

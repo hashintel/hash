@@ -49,8 +49,14 @@
   --pnd-chrome-idle-opacity: 0.7;
   --pnd-chrome-fade: 300ms;
 
-  /* Height of the blurred band under the header. */
+  /*
+   * The band under the header is two heights. The tint runs the shorter one and
+   * the blur the taller, so below the tint there is a stretch where content is
+   * blurred but still visible. Matched heights hid the blur completely: its
+   * strongest layers sit at the top, which is exactly where the tint is opaque.
+   */
   --pnd-content-fade-height: 30px;
+  --pnd-content-blur-height: 60px;
 }
 
 /*
@@ -713,7 +719,7 @@ dialog {
   inset-block-start: var(--sl-nav-height);
   inset-inline-start: var(--sl-content-inline-start, 0px);
   inset-inline-end: 0;
-  height: var(--pnd-content-fade-height);
+  height: var(--pnd-content-blur-height);
   pointer-events: none;
 }
 
@@ -724,31 +730,36 @@ dialog {
 }
 
 .pnd-content-fade > span:nth-child(1) {
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
   -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
   mask-image: linear-gradient(to bottom, #000, transparent);
 }
 
 .pnd-content-fade > span:nth-child(2) {
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 66%);
-  mask-image: linear-gradient(to bottom, #000, transparent 66%);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 60%);
+  mask-image: linear-gradient(to bottom, #000, transparent 60%);
 }
 
 .pnd-content-fade > span:nth-child(3) {
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 33%);
-  mask-image: linear-gradient(to bottom, #000, transparent 33%);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  -webkit-mask-image: linear-gradient(to bottom, #000, transparent 30%);
+  mask-image: linear-gradient(to bottom, #000, transparent 30%);
 }
 
-/* The colour half of the fade, painted over the blur. */
+/*
+ * The colour half, painted over the blur and only over the top of it. Where it
+ * ends the blur carries on alone, which is the part a reader actually sees.
+ */
 .pnd-content-fade::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: var(--pnd-content-fade-height);
   background: linear-gradient(to bottom, var(--sl-color-bg), transparent);
 }
 
