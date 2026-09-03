@@ -6,7 +6,7 @@ Follow the person's thread during conversation and file material into the workpi
 
 ## Recording distinctions
 
-Use the authorship and uncertainty distinctions from `universal-elicitation.md`; do not redeclare them as a Gherkin ontology. This workpiece adds only distinctions the software-behavior/Gherkin pairing requires:
+Use the authorship and uncertainty distinctions from the `elicitation` skill's universal guidance; do not redeclare them as a Gherkin ontology. This workpiece adds only distinctions the software-behavior/Gherkin pairing requires:
 
 - **Behavior status** — Whether an account describes current or proposed behavior, or a discrepancy between them.
 - **Rule and example** — The general behavior and the concrete case illustrating it. A case does not become a rule merely because target text can be written for it.

@@ -25,7 +25,7 @@ Establish enough purpose and context to select one focused next action: the inte
 
 ### Elicit or revise
 
-For a new account, follow one concrete case and re-evaluate the active gap after each useful answer. For an existing account, first locate the disputed or changed material and its consequence for the objective. Use the `elicitation` skill's universal reference and `references/profile.md` for detailed operations and coverage; do not turn their register order into question order.
+For a new account, follow one concrete case and re-evaluate the active gap after each useful answer. For an existing account, first locate the disputed or changed material and its consequence for the objective. Use the `elicitation` skill's universal guidance and `references/profile.md` for detailed operations and coverage; do not turn their register order into question order.
 
 ### Maintain the workpiece
 

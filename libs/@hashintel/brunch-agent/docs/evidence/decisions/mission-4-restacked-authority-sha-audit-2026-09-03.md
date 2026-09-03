@@ -2,7 +2,7 @@
 
 Date: 2026-09-03
 
-Status: **audit complete; the owner-accepted proof-of-life authority recut incorporates the recommended live pointers.** This is provenance and authority-boundary evidence, not an instrument freeze, campaign result, or permission to alter production text.
+Status: **audit complete; the owner-accepted proof-of-life authority recut incorporates the recommended live pointers.** The later owner-accepted inlining repair intentionally changes the protected elicitation skill surface from this audit's baseline and is recorded separately in [`mission-4-inline-universal-elicitation-2026-09-03.md`](mission-4-inline-universal-elicitation-2026-09-03.md). This is provenance and authority-boundary evidence, not an instrument freeze or campaign result.
 
 ## Scope
 

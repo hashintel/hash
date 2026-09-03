@@ -18,7 +18,7 @@ Three run kinds are graded, each entered fresh with no prior conversation:
 | Review entry | The exact selected S3 prompt identified under item 4d | Item 4d (restraint) |
 | Knowledge-gap review entry | The exact selected S4 prompt identified under item 4e | Item 4e (positive complement) |
 
-The accepted interactive floor, per elicitor model, is three valid 4a-gradable runs over three distinct current persona case families: one full conversation with a 6–10-turn budget that emits a recoverable workpiece, and two probes that stop after the first Substantive text. All three must pass items 4a and 5a. Invalid members and valid members with no Substantive text are retained and reported but do not satisfy the floor; the frozen protocol must bound replacement attempts under fresh run ids and stop when the floor cannot be reached within its authorized ceiling. This is cross-case proof of life, not a population reliability estimate.
+The accepted interactive floor, per elicitor model, is three valid 4a-gradable runs over three distinct current persona case families: one full conversation with a 6–10-turn budget that emits a recoverable workpiece, and two probes that stop after the first Substantive text. All three must pass items 4a and 5a. Core's universal guidance is inline in the activated `elicitation` skill; only the conditionally disclosed SDCPN profile requires a resource read. Invalid members and valid members with no Substantive text are retained and reported but do not satisfy the floor; the frozen protocol must bound replacement attempts under fresh run ids and stop when the floor cannot be reached within its authorized ceiling. This is cross-case proof of life, not a population reliability estimate.
 
 Construct-only restraint (item 4c) is observed hermetically through the existing `runbook-headless` test rather than a persona run.
 
@@ -64,9 +64,9 @@ Prohibited proxies: counting `?` characters, sentences, or questions; requiring 
 
 **4b Proof of life across runs.** Report, per elicitor model, the count of 4a passes over graded interactive-entry runs, broken down by case and run extent. Pass only when the accepted floor contains three valid 4a-gradable runs over three distinct case families—one full conversation and two first-Substantive probes—and all three pass 4a. Any failing trace is reported as strain on the accepted topology and is never resolved by changing the topology. This `3/3` threshold supports only the bounded cross-case proof-of-life claim; it is not a reliability estimate.
 
-**4c Construct-only restraint (hermetic).** The `runbook-headless` execution over the checked fixture contains no `activate(elicitation, *)` and no `read(.../elicitation/...)`. The current test asserts the tool names and the two construction resource reads but does not inspect which skill `activate_skill` named; the check requires the result record to carry activated skill names. That is a test extension, not a production change.
+**4c Construct-only restraint (hermetic).** The `runbook-headless` execution over the checked fixture contains no `activate(elicitation, *)`. The current test asserts the tool names and the two construction resource reads but does not inspect which skill `activate_skill` named; the check requires the result record to carry activated skill names. That is a test extension, not a production change.
 
-**4d Review restraint (per review-entry run).** Pass when the response that performs or identifies the requested revision contains no prior `activate(elicitation, *)` and no `read(.../elicitation/...)` anywhere in the run. Fail otherwise, even when the revision itself is correct.
+**4d Review restraint (per review-entry run).** Pass when the response that performs or identifies the requested revision contains no prior `activate(elicitation, *)` anywhere in the run. Fail otherwise, even when the revision itself is correct.
 
 **4e Knowledge-gap review (per knowledge-gap review-entry run).** Pass when `activate(elicitation, ok)` precedes the first Substantive text, and the first Substantive text asks for the missing operational knowledge without asserting either answer. Fail when the response invents the rule or asks without activation. This is the positive complement of 4d and mirrors the skill's own description of when it applies.
 
@@ -74,7 +74,7 @@ The owner selected the v3 side-quest scenario file's exact S3 `prompt` string fo
 
 ## Item 5 checks: routing, dosage, restraint
 
-**5a Required reads before reliance (per interactive-entry run).** Pass when both `read(elicitation/references/universal-elicitation.md, ok)` and `read(sdcpn-modelling/references/profile.md, ok)` precede the first Substantive text. Record which, if either, is missing or late, and the order of the two.
+**5a Conditional profile read before reliance (per interactive-entry run).** Pass when `read(sdcpn-modelling/references/profile.md, ok)` precedes the first Substantive text. Record when it is missing or late. Universal elicitation guidance is supplied by successful `elicitation` activation itself and has no separate read requirement.
 
 **5b Template timing.** Let E be the canonical position of the first `text(*, hasWorkpiece=true)` event. The first successful `read(sdcpn-modelling/templates/workpiece.md, ok)` is **timely** only when it occurs before E in the same turn, **premature** when it occurs in an earlier turn with no workpiece emitted in that turn, **late** when it occurs after E, and **missing** when a workpiece is emitted without a successful read. Premature, late, and missing are findings. Re-reads on later material revision are recorded, not judged. This ordering rule is the evaluator correction accepted by the owner; it changes no production text.
 
@@ -97,7 +97,7 @@ Each graded or invalid run is retained under `docs/evidence/evaluations/<campaig
 ## Owner acceptance recorded 2026-09-03
 
 1. Per elicitor model: one full 6–10-turn conversation plus two first-Substantive probes over three distinct current persona case families; all three valid gradable runs must pass items 4a and 5a.
-2. Orientation text may precede activation. Successful `sdcpn-modelling` then `elicitation` activation and both required reads must precede the first Substantive operational question.
+2. Orientation text may precede activation. Successful `sdcpn-modelling` then `elicitation` activation and the SDCPN profile read must precede the first Substantive operational question.
 3. Items 4d and 4e use the exact S3 and S4 prompt strings identified above as controlled inputs only.
 4. The opening-Battery prohibition determines proof-of-life acceptance. Later-turn dosage in the full conversation is classified and reported without an aggregate pass floor.
-5. The ruler is accepted with the item 5b canonical-order correction. Acceptance supplies the oracle but does not prove the architecture, freeze a protocol, authorize paid calls, accept a handoff candidate, or accept the topology-neutral matrix.
+5. The ruler is accepted with the item 5b canonical-order correction. On the same date, the owner accepted inlining the sole mandatory universal resource into `elicitation/SKILL.md`; the 4c, 4d, and 5a wording above incorporates that semantics-preserving repair. Acceptance supplies the oracle but does not prove the architecture, freeze a protocol, authorize paid calls, accept a handoff candidate, or accept the topology-neutral matrix.

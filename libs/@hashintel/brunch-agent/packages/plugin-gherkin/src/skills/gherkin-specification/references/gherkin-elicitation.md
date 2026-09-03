@@ -1,6 +1,6 @@
 # Software-Behavior and Gherkin Elicitation
 
-This reference adds software-behavior and Gherkin-specific guidance to `universal-elicitation.md`. Apply both under the same registers. The additions below do not restate or replace universal elicitation guidance.
+This reference adds software-behavior and Gherkin-specific guidance to the universal guidance in the `elicitation` skill. Apply both under the same registers. The additions below do not restate or replace universal elicitation guidance.
 
 The registers are not a questionnaire or phase sequence. **Recognition** suggests behavior distinctions that may be present. **Operations** select ways to investigate an active gap. **Coverage** says what a signable behavior account may need. **Verification** checks the current interview and workpiece. Gherkin grammar and document checks live in `gherkin-authoring-and-checks.md`.
 

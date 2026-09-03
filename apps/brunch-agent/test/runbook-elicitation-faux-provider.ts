@@ -7,6 +7,7 @@ import {
 
 const modelId = process.env["BRUNCH_CHAT_MODEL"] ?? "claude-haiku-4-5";
 const skillName = "sdcpn-modelling";
+const elicitationSkillName = "elicitation";
 const violation = process.env["BRUNCH_RUNBOOK_FAUX_VIOLATION"];
 
 const packagedSkillResourcePathFrom = (
@@ -79,6 +80,16 @@ faux.setResponses([
       { stopReason: "toolUse" },
     );
   },
+  fauxAssistantMessage(
+    [
+      fauxToolCall(
+        "activate_skill",
+        { name: elicitationSkillName },
+        { id: "activate-elicitation-skill" },
+      ),
+    ],
+    { stopReason: "toolUse" },
+  ),
   (context: unknown) =>
     fauxAssistantMessage(
       [
@@ -89,23 +100,7 @@ faux.setResponses([
               context,
               violation === "construction-resource"
                 ? "references/pn-construction.md"
-                : "references/universal-elicitation.md",
-            ),
-          },
-          { id: "read-universal-elicitation" },
-        ),
-      ],
-      { stopReason: "toolUse" },
-    ),
-  (context: unknown) =>
-    fauxAssistantMessage(
-      [
-        fauxToolCall(
-          "read_skill_resource",
-          {
-            path: packagedSkillResourcePathFrom(
-              context,
-              "references/profile.md",
+                : "references/profile.md",
             ),
           },
           { id: "read-profile" },

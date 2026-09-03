@@ -108,11 +108,7 @@ const CONSTRUCTION_TOOL_NAMES = new Set([
   "addArc",
 ]);
 const CAPTURE_TOOL_NAMES = new Set(["brunch_ask", "brunch_sweep"]);
-const ORDINARY_RESOURCE_NAMES = new Set([
-  "universal-elicitation.md",
-  "profile.md",
-  "workpiece.md",
-]);
+const ORDINARY_RESOURCE_NAMES = new Set(["profile.md", "workpiece.md"]);
 const CONSTRUCTION_RESOURCE_NAMES = new Set([
   "pn-construction.md",
   "checks.md",
@@ -219,11 +215,6 @@ export const ordinaryElicitationViolationsFrom = (
     }
   };
 
-  requireResourceBefore(
-    "universal-elicitation.md",
-    firstQuestionPosition,
-    "first question",
-  );
   requireResourceBefore("profile.md", firstQuestionPosition, "first question");
   if (options.hasWorkpiece) {
     requireResourceBefore(

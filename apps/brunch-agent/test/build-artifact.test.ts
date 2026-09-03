@@ -111,7 +111,7 @@ describe("the emitted server bundle", () => {
   test("packages the authored skill without the retired filesystem loader", () => {
     expect(bundle).toContain("defineSkill");
     expect(bundle).toContain("sdcpn-modelling");
-    expect(bundle).toContain("Universal Elicitation Reference");
+    expect(bundle).toContain("The registers are addresses, not a procedure");
     expect(bundle).toContain("Operational-Process and SDCPN Elicitation");
     expect(bundle).toContain(
       "Every operational claim has one authoritative home",

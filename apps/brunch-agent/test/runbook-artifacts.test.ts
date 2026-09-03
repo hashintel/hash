@@ -145,7 +145,7 @@ describe("runbook artifact recovery", () => {
     );
   });
 
-  test("requires successful universal, profile, and workpiece reads for an ordinary workpiece", () => {
+  test("requires successful profile and workpiece reads for an ordinary workpiece", () => {
     const snapshot = snapshotWithAssistantText(
       "What process should we model?\n```runbook-ir\n# Workpiece\n```",
     );
@@ -154,10 +154,6 @@ describe("runbook artifact recovery", () => {
       ordinaryElicitationViolationsFrom(snapshot, { hasWorkpiece: true }),
     ).toEqual(
       expect.arrayContaining([
-        {
-          code: "missing-required-resource",
-          detail: "universal-elicitation.md",
-        },
         { code: "missing-required-resource", detail: "profile.md" },
         { code: "missing-required-resource", detail: "workpiece.md" },
       ]),
@@ -178,18 +174,16 @@ describe("runbook artifact recovery", () => {
               text: "What process should we model?",
               state: "done",
             },
-            ...["universal-elicitation.md", "profile.md"].map(
-              (name, index) => ({
-                type: "dynamic-tool" as const,
-                toolCallId: `guidance-${index}`,
-                toolName: "read_skill_resource",
-                state: "output-available" as const,
-                input: {
-                  path: `/.flue/packaged-skills/example/references/${name}`,
-                },
-                output: "ok",
-              }),
-            ),
+            {
+              type: "dynamic-tool" as const,
+              toolCallId: "guidance-profile",
+              toolName: "read_skill_resource",
+              state: "output-available" as const,
+              input: {
+                path: "/.flue/packaged-skills/example/references/profile.md",
+              },
+              output: "ok",
+            },
             {
               type: "text",
               text: "```runbook-ir\n# Workpiece\n```",
@@ -216,10 +210,6 @@ describe("runbook artifact recovery", () => {
       expect.arrayContaining([
         {
           code: "late-required-resource",
-          detail: "universal-elicitation.md: after first question",
-        },
-        {
-          code: "late-required-resource",
           detail: "profile.md: after first question",
         },
         {
@@ -239,19 +229,16 @@ describe("runbook artifact recovery", () => {
           purpose: "assistant",
           display: "visible",
           parts: [
-            ...[
-              ["references", "universal-elicitation.md"],
-              ["references", "profile.md"],
-            ].map(([directory, name], index) => ({
+            {
               type: "dynamic-tool" as const,
-              toolCallId: `guidance-${index}`,
+              toolCallId: "guidance-profile",
               toolName: "read_skill_resource",
               state: "output-available" as const,
               input: {
-                path: `/.flue/packaged-skills/example/${directory}/${name}`,
+                path: "/.flue/packaged-skills/example/references/profile.md",
               },
               output: "ok",
-            })),
+            },
             {
               type: "text",
               text: "What process should we model?",

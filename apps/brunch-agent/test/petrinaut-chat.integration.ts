@@ -158,15 +158,13 @@ try {
       (context) =>
         fauxAssistantMessage(
           [
-            fauxThinking(
-              "Read elicitation teaching from core's skill package.",
-            ),
+            fauxThinking("Read the SDCPN-specific elicitation profile."),
             fauxToolCall(
               READ_SKILL_RESOURCE_TOOL_NAME,
               {
                 path: packagedSkillResourcePathFrom(
                   context,
-                  "references/universal-elicitation.md",
+                  "references/profile.md",
                 ),
               },
               { id: "tool-resource-1" },

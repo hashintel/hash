@@ -1,6 +1,6 @@
 # Operational-Process and SDCPN Elicitation
 
-This reference adds operational-process and SDCPN-specific guidance to `universal-elicitation.md`. Apply both under the same registers. The additions below do not restate or replace universal elicitation guidance.
+This reference adds operational-process and SDCPN-specific guidance to the universal guidance in the `elicitation` skill. Apply both under the same registers. The additions below do not restate or replace universal elicitation guidance.
 
 The registers are not a questionnaire or phase sequence. **Recognition** suggests what may be present. **Operations** select ways to investigate an active gap. **Coverage** says what the operational account may need to explain. **Verification** checks the current interview and workpiece. Petri-net construction mechanics remain in `pn-construction.md` and are not interview vocabulary.
 

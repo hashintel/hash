@@ -27,7 +27,7 @@ Establish enough purpose and context to select one useful behavior thread: who n
 
 ### Elicit or revise behavior
 
-For a new account, follow one concrete example through its starting context, one focal event or action, and observable outcome. Use contrasts and boundary cases to expose the rule it illustrates. For an existing account, first locate the disputed rule, example, or feature narrative and the behavior it changes. Use the `elicitation` skill's universal reference and `references/gherkin-elicitation.md` without turning their registers or the workpiece headings into question order.
+For a new account, follow one concrete example through its starting context, one focal event or action, and observable outcome. Use contrasts and boundary cases to expose the rule it illustrates. For an existing account, first locate the disputed rule, example, or feature narrative and the behavior it changes. Use the `elicitation` skill's universal guidance and `references/gherkin-elicitation.md` without turning their registers or the workpiece headings into question order.
 
 ### Maintain the workpiece
 
