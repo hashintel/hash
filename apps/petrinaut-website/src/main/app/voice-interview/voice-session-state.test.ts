@@ -14,6 +14,7 @@ const listeningSnapshot = {
   errorMessage: "",
   errorRequestId: "",
   input: "listening",
+  inputNotice: "none",
   lastAnswerDelivery: "none",
   lastCommittedText: "",
   microphoneEnabled: true,
