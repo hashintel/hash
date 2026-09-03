@@ -2537,6 +2537,51 @@ describe("AiAssistantPanel composer submissions", () => {
     );
   });
 
+  test("preserves the already-normalized Voice payload at the panel boundary", async () => {
+    const requestMessages: PetrinautAiMessage[][] = [];
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(({ messages }) => {
+        requestMessages.push(structuredClone(messages));
+        return Promise.resolve(
+          streamChunks(textChunks("voice-response", "Voice message accepted")),
+        );
+      }),
+    };
+
+    renderTestPanel({
+      aiAssistant: {
+        renderComposerControl: ({ submitText }) => (
+          <button
+            type="button"
+            onClick={() => {
+              void submitText({
+                id: "voice-realtime:3:item-1:0",
+                source: "voice",
+                text: " Already normalized upstream ",
+              });
+            }}
+          >
+            Submit normalized Voice payload
+          </button>
+        ),
+        transport,
+      },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Submit normalized Voice payload" }),
+    );
+    await screen.findByText("Voice message accepted");
+
+    expect(requestMessages[0]?.at(-1)).toMatchObject({
+      id: "voice-realtime:3:item-1:0",
+      metadata: { source: "voice" },
+      parts: [{ text: " Already normalized upstream ", type: "text" }],
+      role: "user",
+    });
+  });
+
   test("marks the exact pending tool as voice-origin without a user message", async () => {
     const requestMessages: PetrinautAiMessage[][] = [];
     const onMessages = vi.fn();
