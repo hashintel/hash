@@ -1,5 +1,8 @@
 import type { CanonicalSpeechSegment } from "./canonical-speech";
-import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
+import type {
+  OpenAIRealtimeSessionEvent,
+  OpenAIRealtimeTranscriptKey,
+} from "./openai-realtime-session";
 import type { AgentSendResult, FlueConversationSettlement } from "@flue/sdk";
 import type { FlueChatTransportOptions } from "@hashintel/brunch-agent-transport-aisdk";
 import type {
@@ -21,14 +24,6 @@ interface ChatUpdate {
 }
 
 interface RealtimeBridgeSession {
-  completeFunctionCall(
-    callId: string,
-    segments: CanonicalSpeechSegment[],
-  ): void;
-  completeFunctionCallWithoutResponse(
-    callId: string,
-    outcome: Exclude<VoiceSubmissionSettlement["outcome"], "completed">,
-  ): void;
   speakCanonical(segments: CanonicalSpeechSegment[]): void;
   subscribe(listener: (event: OpenAIRealtimeSessionEvent) => void): () => void;
 }
@@ -67,20 +62,12 @@ interface RealtimeBrunchBridgeDependencies {
 interface ActiveSubmission {
   readonly abortController: AbortController;
   readonly baselineSegmentIds: ReadonlySet<string>;
-  readonly callId: string;
-  readonly epoch: number;
-  readonly pendingQuestionId: string | null;
-  readonly pendingQuestionMessageId: string | null;
+  readonly deliveryId: string;
   correlated: boolean;
   firstTextEmitted: boolean;
   sawBusyChatStatus: boolean;
+  speechCancelled: boolean;
   submissionId: AgentSendResult["submissionId"] | null;
-}
-
-interface ArgumentStream {
-  readonly chunks: string[];
-  readonly itemId: string;
-  readonly responseId: string;
 }
 
 export type RealtimeBridgeErrorCode =
@@ -88,42 +75,54 @@ export type RealtimeBridgeErrorCode =
   | "interview-response"
   | "interview-submission";
 
+export type RealtimeTranscriptRejectionReason =
+  | "duplicate"
+  | "empty"
+  | "failed"
+  | "over-limit"
+  | "unavailable";
+
 export type RealtimeBrunchBridgeEvent =
   | {
       readonly answer: string;
-      readonly callId: string;
+      readonly deliveryId: string;
       readonly type: "submission-started";
     }
   | {
       readonly answer: string;
-      readonly callId: string;
+      readonly deliveryId: string;
       readonly type: "submission-accepted";
     }
   | {
-      readonly callId: string;
+      readonly deliveryId: string;
       readonly submissionId: AgentSendResult["submissionId"];
       readonly type: "submission-admitted";
     }
   | {
-      readonly callId: string;
+      readonly deliveryId: string;
       readonly segments: CanonicalSpeechSegment[];
+      readonly speechCancelled?: true;
       readonly type: "canonical-response-ready";
     }
   | {
-      readonly callId: string;
+      readonly deliveryId: string;
       readonly type: "canonical-text-ready";
     }
   | {
-      readonly callId: string;
+      readonly deliveryId: string;
       readonly type: "submission-settled";
     }
   | {
-      readonly callId: string;
+      readonly deliveryId: string;
       readonly outcome: Exclude<
         VoiceSubmissionSettlement["outcome"],
         "completed"
       >;
       readonly type: "submission-stopped";
+    }
+  | {
+      readonly reason: RealtimeTranscriptRejectionReason;
+      readonly type: "transcript-rejected";
     }
   | {
       readonly code: RealtimeBridgeErrorCode;
@@ -137,45 +136,27 @@ const INVALID_BRIDGE_EVENT =
   "The voice response could not be matched to the interview. Reconnect voice or use text instead.";
 const ANSWER_LIMIT = 32_000;
 
-export const createRealtimeSubmissionId = (
-  connectionEpoch: number,
-  callId: string,
-): string => `voice-realtime:${connectionEpoch}:${encodeURIComponent(callId)}`;
+export const createRealtimeSubmissionId = ({
+  connectionEpoch,
+  contentIndex,
+  itemId,
+}: OpenAIRealtimeTranscriptKey): string =>
+  `voice-realtime:${connectionEpoch}:${encodeURIComponent(itemId)}:${contentIndex}`;
 
-const latestPendingQuestion = (
-  segments: CanonicalSpeechSegment[],
-): CanonicalSpeechSegment | undefined =>
-  segments.findLast(({ source }) => source === "brunch-ask");
+const transcriptKeyId = (key: OpenAIRealtimeTranscriptKey): string =>
+  createRealtimeSubmissionId(key);
 
-const parseContinueInterviewArguments = (
-  argumentsJson: string,
-): string | null => {
-  try {
-    const value: unknown = JSON.parse(argumentsJson);
-    if (typeof value !== "object" || value === null || Array.isArray(value)) {
-      return null;
-    }
-    const record = value as Record<string, unknown>;
-    if (Object.keys(record).length !== 1 || typeof record.answer !== "string") {
-      return null;
-    }
-    const answer = record.answer.trim();
-    return answer && Array.from(answer).length <= ANSWER_LIMIT ? answer : null;
-  } catch {
-    return null;
-  }
-};
+const normalizeTranscript = (transcript: string): string =>
+  transcript.trim().replace(/\s+/gu, " ");
 
 export class RealtimeBrunchBridge {
-  readonly #argumentDeltas = new Map<string, ArgumentStream>();
   readonly #listeners = new Set<BridgeListener>();
-  readonly #processedCalls = new Set<string>();
+  readonly #processedTranscripts = new Set<string>();
   readonly #session: RealtimeBridgeSession;
   readonly #submitInterviewAnswer: (
     input: SubmitInterviewAnswerInput,
   ) => Promise<SubmitInterviewAnswerResult>;
   readonly #seenSegmentIds = new Set<string>();
-  readonly #terminalResponseIds = new Set<string>();
   #activeEpoch: number | null = null;
   #activeSubmission: ActiveSubmission | null = null;
   #chat: ChatUpdate = {
@@ -199,26 +180,21 @@ export class RealtimeBrunchBridge {
     return () => this.#listeners.delete(listener);
   }
 
+  public cancelPendingSpeech(): void {
+    if (this.#activeSubmission) {
+      this.#activeSubmission.speechCancelled = true;
+    }
+  }
+
   public start(connectionEpoch: number): void {
     ++this.#generation;
     this.#activeSubmission?.abortController.abort();
     this.#activeEpoch = connectionEpoch;
     this.#activeSubmission = null;
-    this.#argumentDeltas.clear();
-    this.#processedCalls.clear();
+    this.#processedTranscripts.clear();
     this.#seenSegmentIds.clear();
-    this.#terminalResponseIds.clear();
     for (const segment of this.#chat.canonicalSegments) {
       this.#seenSegmentIds.add(segment.id);
-    }
-
-    const question = latestPendingQuestion(this.#chat.canonicalSegments);
-    if (question) {
-      this.#session.speakCanonical(
-        this.#chat.canonicalSegments.filter(
-          ({ messageId }) => messageId === question.messageId,
-        ),
-      );
     }
   }
 
@@ -227,8 +203,7 @@ export class RealtimeBrunchBridge {
     this.#activeSubmission?.abortController.abort();
     this.#activeEpoch = null;
     this.#activeSubmission = null;
-    this.#argumentDeltas.clear();
-    this.#terminalResponseIds.clear();
+    this.#processedTranscripts.clear();
   }
 
   public updateChat(update: ChatUpdate): void {
@@ -276,6 +251,10 @@ export class RealtimeBrunchBridge {
     }
   }
 
+  #rejectTranscript(reason: RealtimeTranscriptRejectionReason): void {
+    this.#emit({ reason, type: "transcript-rejected" });
+  }
+
   #fail(
     message: string,
     code: RealtimeBridgeErrorCode = "interview-correlation",
@@ -283,160 +262,82 @@ export class RealtimeBrunchBridge {
     ++this.#generation;
     this.#activeSubmission?.abortController.abort();
     this.#activeSubmission = null;
-    this.#argumentDeltas.clear();
     this.#emit({ code, message, type: "error" });
   }
 
   #handleSessionEvent(event: OpenAIRealtimeSessionEvent): void {
-    if (
-      !("connectionEpoch" in event) ||
-      event.connectionEpoch !== this.#activeEpoch
-    ) {
+    if (event.type !== "completed" && event.type !== "transcription-failed") {
       return;
     }
-    if (event.type === "response-terminal") {
-      this.#handleResponseTerminal(event);
-      return;
-    }
-    if (
-      event.type !== "tool-arguments-delta" &&
-      event.type !== "tool-arguments-done"
-    ) {
+    if (event.key.connectionEpoch !== this.#activeEpoch) {
       return;
     }
 
-    const responseKey = `${event.connectionEpoch}:${event.responseId}`;
-    if (this.#terminalResponseIds.has(responseKey)) {
+    const keyId = transcriptKeyId(event.key);
+    if (this.#processedTranscripts.has(keyId)) {
+      this.#rejectTranscript("duplicate");
       return;
     }
-    const callKey = `${event.connectionEpoch}:${event.callId}`;
-    if (this.#processedCalls.has(callKey)) {
-      return;
-    }
-    if (event.type === "tool-arguments-delta") {
-      const stream = this.#argumentDeltas.get(callKey);
-      if (!stream && this.#argumentDeltas.size > 0) {
-        this.#processedCalls.add(callKey);
-        this.#fail(INVALID_BRIDGE_EVENT);
-        return;
-      }
-      if (
-        stream &&
-        (stream.itemId !== event.itemId ||
-          stream.responseId !== event.responseId)
-      ) {
-        this.#processedCalls.add(callKey);
-        this.#fail(INVALID_BRIDGE_EVENT);
-        return;
-      }
-      if (stream) {
-        stream.chunks.push(event.delta);
-      } else {
-        this.#argumentDeltas.set(callKey, {
-          chunks: [event.delta],
-          itemId: event.itemId,
-          responseId: event.responseId,
-        });
-      }
-      return;
-    }
+    this.#processedTranscripts.add(keyId);
 
-    this.#processedCalls.add(callKey);
-    const stream = this.#argumentDeltas.get(callKey);
-    if (!stream && this.#argumentDeltas.size > 0) {
-      this.#fail(INVALID_BRIDGE_EVENT);
+    if (event.type === "transcription-failed") {
+      this.#rejectTranscript("failed");
       return;
     }
-    this.#argumentDeltas.delete(callKey);
     if (
       this.#activeSubmission ||
-      event.name !== "continue_interview" ||
-      (stream !== undefined &&
-        (stream.itemId !== event.itemId ||
-          stream.responseId !== event.responseId ||
-          stream.chunks.join("") !== event.arguments))
-    ) {
-      this.#fail(INVALID_BRIDGE_EVENT);
-      return;
-    }
-
-    const answer = parseContinueInterviewArguments(event.arguments);
-    const question = latestPendingQuestion(this.#chat.canonicalSegments);
-    if (
-      !answer ||
       !this.#chat.canAcceptInterviewAnswer ||
-      (!question && this.#chat.status !== "ready")
+      this.#chat.status !== "ready"
     ) {
-      this.#fail(INVALID_BRIDGE_EVENT);
+      this.#rejectTranscript("unavailable");
       return;
     }
 
+    const answer = normalizeTranscript(event.text);
+    if (answer.length === 0) {
+      this.#rejectTranscript("empty");
+      return;
+    }
+    if (Array.from(answer).length > ANSWER_LIMIT) {
+      this.#rejectTranscript("over-limit");
+      return;
+    }
+
+    const deliveryId = createRealtimeSubmissionId(event.key);
     const generation = this.#generation;
     this.#activeSubmission = {
       abortController: new AbortController(),
       baselineSegmentIds: new Set(
         this.#chat.canonicalSegments.map(({ id }) => id),
       ),
-      callId: event.callId,
       correlated: false,
-      epoch: event.connectionEpoch,
+      deliveryId,
       firstTextEmitted: false,
-      pendingQuestionId: question?.partId ?? null,
-      pendingQuestionMessageId: question?.messageId ?? null,
       sawBusyChatStatus: false,
+      speechCancelled: false,
       submissionId: null,
     };
-    this.#emit({ answer, callId: event.callId, type: "submission-started" });
-    void this.#submit(event, answer, generation);
-  }
-
-  #handleResponseTerminal(
-    event: Extract<OpenAIRealtimeSessionEvent, { type: "response-terminal" }>,
-  ): void {
-    const responseKey = `${event.connectionEpoch}:${event.responseId}`;
-    const matchingStreams = [...this.#argumentDeltas].filter(
-      ([, stream]) => stream.responseId === event.responseId,
-    );
-    if (event.status === "completed" && matchingStreams.length > 0) {
-      this.#fail(INVALID_BRIDGE_EVENT);
-      return;
-    }
-
-    for (const [callKey] of matchingStreams) {
-      this.#argumentDeltas.delete(callKey);
-      this.#processedCalls.add(callKey);
-    }
-    this.#terminalResponseIds.add(responseKey);
+    this.#emit({ answer, deliveryId, type: "submission-started" });
+    void this.#submit(answer, deliveryId, generation);
   }
 
   async #submit(
-    event: Extract<OpenAIRealtimeSessionEvent, { type: "tool-arguments-done" }>,
     answer: string,
+    deliveryId: string,
     generation: number,
   ): Promise<void> {
     try {
       const activeAtSubmission = this.#activeSubmission;
       if (!activeAtSubmission) return;
-      const voiceMessageId = createRealtimeSubmissionId(
-        event.connectionEpoch,
-        event.callId,
-      );
       const result = await this.#submitInterviewAnswer({
-        admissionTarget:
-          activeAtSubmission.pendingQuestionMessageId === null
-            ? { kind: "user", messageId: voiceMessageId }
-            : {
-                kind: "client-tool-result",
-                messageId: activeAtSubmission.pendingQuestionMessageId,
-              },
-        id: voiceMessageId,
+        admissionTarget: { kind: "user", messageId: deliveryId },
+        id: deliveryId,
         onAdmission: (submissionId) => {
           const active = this.#activeSubmission;
           if (
             generation !== this.#generation ||
             !active ||
-            active.callId !== event.callId ||
-            active.epoch !== event.connectionEpoch
+            active.deliveryId !== deliveryId
           ) {
             return;
           }
@@ -448,7 +349,7 @@ export class RealtimeBrunchBridge {
           }
           active.submissionId = submissionId;
           this.#emit({
-            callId: event.callId,
+            deliveryId,
             submissionId,
             type: "submission-admitted",
           });
@@ -460,22 +361,15 @@ export class RealtimeBrunchBridge {
       if (
         generation !== this.#generation ||
         !active ||
-        active.callId !== event.callId ||
-        active.epoch !== event.connectionEpoch
+        active.deliveryId !== deliveryId
       ) {
         return;
       }
-      const resultMatchesSubmission =
-        active.pendingQuestionId === null
-          ? result.kind === "message"
-          : result.kind === "interactive-tool" &&
-            result.toolCallId === active.pendingQuestionId;
-      if (!resultMatchesSubmission) {
+      if (result.kind !== "message" || result.messageId !== deliveryId) {
         this.#fail(INVALID_BRIDGE_EVENT);
         return;
       }
-      const resultSubmissionId =
-        result.kind === "message" ? (result.submissionId ?? null) : null;
+      const resultSubmissionId = result.submissionId ?? null;
       if (
         active.submissionId !== null &&
         resultSubmissionId !== null &&
@@ -486,11 +380,7 @@ export class RealtimeBrunchBridge {
       }
       active.submissionId ??= resultSubmissionId;
       active.correlated = true;
-      this.#emit({
-        answer,
-        callId: event.callId,
-        type: "submission-accepted",
-      });
+      this.#emit({ answer, deliveryId, type: "submission-accepted" });
       this.#completeCorrelatedSubmission();
     } catch {
       if (generation === this.#generation) {
@@ -521,7 +411,10 @@ export class RealtimeBrunchBridge {
       // Completed canonical text can land while the turn is still streaming;
       // record that instant separately from settlement.
       active.firstTextEmitted = true;
-      this.#emit({ callId: active.callId, type: "canonical-text-ready" });
+      this.#emit({
+        deliveryId: active.deliveryId,
+        type: "canonical-text-ready",
+      });
     }
     if (this.#chat.status !== "ready") {
       return;
@@ -531,20 +424,26 @@ export class RealtimeBrunchBridge {
       return;
     }
 
-    this.#emit({ callId: active.callId, type: "submission-settled" });
-    try {
-      this.#session.completeFunctionCall(active.callId, responseSegments);
-    } catch {
-      this.#fail(INVALID_BRIDGE_EVENT);
-      return;
+    this.#emit({
+      deliveryId: active.deliveryId,
+      type: "submission-settled",
+    });
+    if (!active.speechCancelled) {
+      try {
+        this.#session.speakCanonical(responseSegments);
+      } catch {
+        this.#fail(INVALID_BRIDGE_EVENT);
+        return;
+      }
     }
     for (const segment of responseSegments) {
       this.#seenSegmentIds.add(segment.id);
     }
     this.#activeSubmission = null;
     this.#emit({
-      callId: active.callId,
+      deliveryId: active.deliveryId,
       segments: responseSegments,
+      ...(active.speechCancelled ? { speechCancelled: true as const } : {}),
       type: "canonical-response-ready",
     });
   }
@@ -563,19 +462,13 @@ export class RealtimeBrunchBridge {
     if (settlement === undefined || settlement.outcome === "completed") {
       return;
     }
-    this.#emit({ callId: active.callId, type: "submission-settled" });
-    try {
-      this.#session.completeFunctionCallWithoutResponse(
-        active.callId,
-        settlement.outcome,
-      );
-    } catch {
-      this.#fail(INVALID_BRIDGE_EVENT);
-      return;
-    }
+    this.#emit({
+      deliveryId: active.deliveryId,
+      type: "submission-settled",
+    });
     this.#activeSubmission = null;
     this.#emit({
-      callId: active.callId,
+      deliveryId: active.deliveryId,
       outcome: settlement.outcome,
       type: "submission-stopped",
     });

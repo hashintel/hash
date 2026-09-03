@@ -3,7 +3,11 @@ import { css, cva } from "@hashintel/ds-helpers/css";
 
 import {
   useVoiceSessionActions,
+  useVoiceSessionCanReadFullResponse,
+  useVoiceSessionCanRepeatQuestion,
+  useVoiceSessionCanTakeTurn,
   useVoiceSessionMicrophoneMuted,
+  useVoiceSessionNotice,
   useVoiceSessionPhase,
 } from "../../../../../../react/voice-session/use-voice-session";
 import { LiveVoiceSessionIndicator } from "../../../components/voice-session-indicator";
@@ -13,6 +17,7 @@ import {
 } from "../../../components/voice-session-labels";
 import { aiFooterMinHeight } from "./footer-height";
 import { MicrophoneIcon } from "./voice-dock/microphone-icon";
+import { VoicePlaybackMenu } from "./voice-dock/playback-menu";
 import { TranscriptionIcon } from "./voice-dock/transcription-icon";
 
 import type { VoiceSessionActions } from "../../../../../../react/voice-session/store";
@@ -100,9 +105,13 @@ const visuallyHiddenStyle = css({
 
 export type VoiceDockProps = {
   actions: VoiceSessionActions | null;
+  canReadFullResponse: boolean;
+  canRepeatQuestion: boolean;
+  canTakeTurn: boolean;
   /** Rendered instead of the live indicator when the caller supplies one. */
   indicator?: ReactNode;
   microphoneMuted: boolean;
+  notice: string | null;
   onTranscriptionToggle: () => void;
   phase: PetrinautAiVoiceSessionPhase;
   /** Whether spoken turns are currently written into the conversation live. */
@@ -117,8 +126,12 @@ export type VoiceDockProps = {
  */
 export const VoiceDock = ({
   actions,
+  canReadFullResponse,
+  canRepeatQuestion,
+  canTakeTurn,
   indicator,
   microphoneMuted,
+  notice,
   onTranscriptionToggle,
   phase,
   transcriptionShown,
@@ -135,33 +148,52 @@ export const VoiceDock = ({
       aria-label="Voice session"
       className={dockStyle}
       data-phase={phase}
+      data-voice-notice={notice ? "visible" : undefined}
       data-testid="ai-voice-dock"
     >
       <span className={sideStyle}>
         {actions !== null && (
-          <Button
-            aria-label={transcriptionLabel}
-            onClick={onTranscriptionToggle}
-            prefix={<TranscriptionIcon />}
-            pressed={transcriptionShown}
-            size="sm"
-            tooltip={transcriptionLabel}
-            type="button"
-            variant="ghost"
-          />
+          <>
+            <Button
+              aria-label={transcriptionLabel}
+              onClick={onTranscriptionToggle}
+              prefix={<TranscriptionIcon />}
+              pressed={transcriptionShown}
+              size="sm"
+              tooltip={transcriptionLabel}
+              type="button"
+              variant="ghost"
+            />
+            <VoicePlaybackMenu
+              actions={actions}
+              canReadFullResponse={canReadFullResponse}
+              canRepeatQuestion={canRepeatQuestion}
+            />
+          </>
         )}
       </span>
 
       <div className={centerStyle}>
         {indicator ?? <LiveVoiceSessionIndicator />}
         <span className={statusStyle({ phase })}>
-          {voiceSessionStatusLabel(phase)}
+          {notice ?? voiceSessionStatusLabel(phase)}
         </span>
       </div>
 
       <span className={`${sideStyle} ${actionsStyle}`}>
         {actions !== null && (
           <>
+            {canTakeTurn && actions.takeTurn && (
+              <Button
+                aria-label={voiceSessionActionLabels.takeTurn}
+                iconName="arrowsLeftRight"
+                onClick={() => void actions.takeTurn?.()}
+                size="sm"
+                tooltip={voiceSessionActionLabels.takeTurn}
+                type="button"
+                variant="ghost"
+              />
+            )}
             {phase === "error" ? (
               <Button
                 aria-label={voiceSessionActionLabels.reconnect}
@@ -216,7 +248,7 @@ export const VoiceDock = ({
         className={visuallyHiddenStyle}
         role="status"
       >
-        {`Voice status: ${voiceSessionStatusLabel(phase)}`}
+        {notice ?? `Voice status: ${voiceSessionStatusLabel(phase)}`}
       </span>
     </section>
   );
@@ -231,7 +263,11 @@ export const LiveVoiceDock = ({
   transcriptionShown: boolean;
 }) => {
   const actions = useVoiceSessionActions();
+  const canReadFullResponse = useVoiceSessionCanReadFullResponse();
+  const canRepeatQuestion = useVoiceSessionCanRepeatQuestion();
+  const canTakeTurn = useVoiceSessionCanTakeTurn();
   const microphoneMuted = useVoiceSessionMicrophoneMuted();
+  const notice = useVoiceSessionNotice();
   const phase = useVoiceSessionPhase();
 
   if (phase === null) {
@@ -241,7 +277,11 @@ export const LiveVoiceDock = ({
   return (
     <VoiceDock
       actions={actions}
+      canReadFullResponse={canReadFullResponse}
+      canRepeatQuestion={canRepeatQuestion}
+      canTakeTurn={canTakeTurn}
       microphoneMuted={microphoneMuted}
+      notice={notice}
       onTranscriptionToggle={onTranscriptionToggle}
       phase={phase}
       transcriptionShown={transcriptionShown}

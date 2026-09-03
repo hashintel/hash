@@ -26,6 +26,7 @@ export interface ClientToolResult {
   readonly toolCallId: string;
   readonly toolName: string;
   readonly output: unknown;
+  readonly source?: "voice";
 }
 
 export interface FlueChatTransportOptions {
@@ -42,6 +43,11 @@ export interface FlueChatTransportOptions {
   }) => void;
 }
 
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
 const completedClientToolResults = (
   messages: readonly UIMessage[],
   assistantMessageId: string,
@@ -53,6 +59,17 @@ const completedClientToolResults = (
   );
   if (assistantMessage === undefined) {
     return [];
+  }
+  const metadata = asRecord(assistantMessage.metadata);
+  const voiceToolCallIds = new Set(
+    Array.isArray(metadata?.voiceToolCallIds)
+      ? metadata.voiceToolCallIds.filter(
+          (toolCallId): toolCallId is string => typeof toolCallId === "string",
+        )
+      : [],
+  );
+  if (typeof metadata?.toolCallId === "string") {
+    voiceToolCallIds.add(metadata.toolCallId);
   }
   return assistantMessage.parts.flatMap((part): ClientToolResult[] => {
     if (!isToolUIPart(part)) return [];
@@ -70,6 +87,9 @@ const completedClientToolResults = (
         toolCallId: part.toolCallId,
         toolName,
         output: part.output,
+        ...(voiceToolCallIds.has(part.toolCallId)
+          ? { source: "voice" as const }
+          : {}),
       },
     ];
   });
@@ -97,11 +117,30 @@ const finalUserMessage = (
 const isAbortError = (error: unknown): boolean =>
   error instanceof Error && error.name === "AbortError";
 
+const conflictingSubmissionId = (error: FlueApiError): string | null => {
+  if (error.status !== 409) return null;
+  const body = asRecord(error.body);
+  const errorBody = asRecord(body?.error);
+  const metadata = asRecord(errorBody?.meta);
+  return errorBody?.type === "submission_conflict" &&
+    typeof metadata?.submissionId === "string" &&
+    metadata.submissionId.length > 0
+    ? metadata.submissionId
+    : null;
+};
+
 const admissionError = (error: unknown): Error => {
   if (isAbortError(error)) {
     return error as Error;
   }
   if (error instanceof FlueApiError) {
+    const existingSubmissionId = conflictingSubmissionId(error);
+    if (existingSubmissionId !== null) {
+      return new Error(
+        `The delivery key already belongs to admitted submission ${existingSubmissionId}; the changed payload was not admitted.`,
+        { cause: error },
+      );
+    }
     return new Error(
       `Brunch rejected the message before admission (HTTP ${error.status}).`,
       { cause: error },
@@ -262,13 +301,31 @@ export const createFlueChatTransport = <
                 toolCallIds: toolResults
                   .map((result) => result.toolCallId)
                   .join(","),
+                ...(toolResults.some(({ source }) => source === "voice")
+                  ? {
+                      voiceToolCallIds: toolResults
+                        .filter(({ source }) => source === "voice")
+                        .map(({ toolCallId }) => toolCallId)
+                        .join(","),
+                    }
+                  : {}),
               },
             };
           })();
+    const idempotencyKey =
+      messageId === undefined
+        ? `ai-sdk:${userMessage!.id}`
+        : `ai-sdk-tool:${messageId}:${toolResults
+            .map(({ toolCallId }) => toolCallId)
+            .join(",")}`;
+    if (Array.from(idempotencyKey).length > 256) {
+      throw new Error("The submitted message identity is too long.");
+    }
 
     let admission: AgentSendResult;
     try {
       admission = await options.client.send({
+        idempotencyKey,
         message,
         signal: abortSignal,
       });

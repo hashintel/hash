@@ -119,10 +119,30 @@ const markVoiceToolOrigin = (
 ): PetrinautAiMessage[] =>
   messages.map((message) =>
     message.id === messageId
-      ? {
-          ...message,
-          metadata: { ...message.metadata, source: "voice", toolCallId },
-        }
+      ? (() => {
+          const previousToolCallIds =
+            message.metadata?.source === "voice"
+              ? [
+                  ...(message.metadata.voiceToolCallIds ?? []),
+                  ...(message.metadata.toolCallId
+                    ? [message.metadata.toolCallId]
+                    : []),
+                ]
+              : [];
+          const { toolCallId: _legacyToolCallId, ...previousMetadata } =
+            message.metadata ?? {};
+
+          return {
+            ...message,
+            metadata: {
+              ...previousMetadata,
+              source: "voice",
+              voiceToolCallIds: [
+                ...new Set([...previousToolCallIds, toolCallId]),
+              ],
+            },
+          };
+        })()
       : message,
   );
 
@@ -211,8 +231,42 @@ export const addMappedToolOutput = async ({
         latestMessages.map((message) =>
           message.id === containingMessage.id &&
           message.metadata?.source === "voice" &&
-          message.metadata.toolCallId === params.toolCallId
-            ? { ...message, metadata: previousMetadata }
+          (message.metadata.voiceToolCallIds?.includes(params.toolCallId) ===
+            true ||
+            message.metadata.toolCallId === params.toolCallId)
+            ? (() => {
+                const attributionAlreadyPresent =
+                  previousMetadata?.source === "voice" &&
+                  (previousMetadata.voiceToolCallIds?.includes(
+                    params.toolCallId,
+                  ) === true ||
+                    previousMetadata.toolCallId === params.toolCallId);
+                const voiceToolCallIds = [
+                  ...(message.metadata.voiceToolCallIds ?? []),
+                  ...(message.metadata.toolCallId
+                    ? [message.metadata.toolCallId]
+                    : []),
+                ];
+                const remainingVoiceToolCallIds = attributionAlreadyPresent
+                  ? voiceToolCallIds
+                  : voiceToolCallIds.filter(
+                      (candidateToolCallId) =>
+                        candidateToolCallId !== params.toolCallId,
+                    );
+                if (remainingVoiceToolCallIds.length === 0) {
+                  return { ...message, metadata: previousMetadata };
+                }
+                const { toolCallId: _legacyToolCallId, ...metadata } =
+                  message.metadata;
+
+                return {
+                  ...message,
+                  metadata: {
+                    ...metadata,
+                    voiceToolCallIds: [...new Set(remainingVoiceToolCallIds)],
+                  },
+                };
+              })()
             : message,
         ),
       );

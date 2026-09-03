@@ -9,10 +9,16 @@ import type { UIMessage } from "ai";
 
 type UiMessagePart = UIMessage["parts"][number];
 
+export interface UiHistoryMessageMetadata {
+  readonly source: "voice";
+  readonly voiceToolCallIds?: readonly string[];
+}
+
 export type UiHistoryMessage = Omit<
-  UIMessage,
+  UIMessage<UiHistoryMessageMetadata>,
   "metadata" | "parts" | "role"
 > & {
+  metadata?: UiHistoryMessageMetadata;
   role: Extract<UIMessage["role"], "assistant" | "user">;
   parts: UiMessagePart[];
 };
@@ -33,11 +39,16 @@ const isFlueDataPart = (
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
+interface ClientToolResult {
+  readonly output: unknown;
+  readonly source?: "voice";
+}
+
 const clientToolResultsFrom = (
   snapshot: Pick<FlueConversationState, "messages">,
   signalName: string,
-): ReadonlyMap<string, unknown> => {
-  const outputsByCallId = new Map<string, unknown>();
+): ReadonlyMap<string, ClientToolResult> => {
+  const resultsByCallId = new Map<string, ClientToolResult>();
   for (const message of snapshot.messages) {
     if (message.purpose !== "dispatch") continue;
     if (message.signal?.tagName !== signalName) continue;
@@ -63,19 +74,22 @@ const clientToolResultsFrom = (
       ) {
         continue;
       }
-      outputsByCallId.set(result.toolCallId, result.output);
+      resultsByCallId.set(result.toolCallId, {
+        output: result.output,
+        ...(result.source === "voice" ? { source: "voice" } : {}),
+      });
     }
   }
-  return outputsByCallId;
+  return resultsByCallId;
 };
 
 const toolPartFrom = (
   part: Extract<FlueConversationPart, { type: "dynamic-tool" }>,
   clientToolNames: ReadonlySet<string>,
-  clientOutputs: ReadonlyMap<string, unknown>,
+  clientResults: ReadonlyMap<string, ClientToolResult>,
 ): UiMessagePart => {
   const isClientTool = clientToolNames.has(part.toolName);
-  const hasClientOutput = clientOutputs.has(part.toolCallId);
+  const hasClientOutput = clientResults.has(part.toolCallId);
   if (part.state === "output-error") {
     return {
       type: `tool-${part.toolName}`,
@@ -95,7 +109,7 @@ const toolPartFrom = (
     };
   }
   const output = isClientTool
-    ? clientOutputs.get(part.toolCallId)
+    ? clientResults.get(part.toolCallId)?.output
     : part.state === "output-available"
       ? part.output
       : undefined;
@@ -121,7 +135,7 @@ const toolPartFrom = (
 const partsFrom = (
   message: FlueConversationMessage,
   options: SnapshotToUiMessagesOptions,
-  clientOutputs: ReadonlyMap<string, unknown>,
+  clientResults: ReadonlyMap<string, ClientToolResult>,
 ): UiMessagePart[] => {
   const parts: UiMessagePart[] = [];
   for (const part of message.parts) {
@@ -134,7 +148,7 @@ const partsFrom = (
       continue;
     }
     if (part.type === "dynamic-tool") {
-      parts.push(toolPartFrom(part, options.clientToolNames, clientOutputs));
+      parts.push(toolPartFrom(part, options.clientToolNames, clientResults));
       continue;
     }
     if (part.type === "file") {
@@ -159,7 +173,7 @@ export const snapshotToUiMessages = (
   snapshot: Pick<FlueConversationState, "messages">,
   options: SnapshotToUiMessagesOptions,
 ): UiHistoryMessage[] => {
-  const clientOutputs = clientToolResultsFrom(
+  const clientResults = clientToolResultsFrom(
     snapshot,
     CLIENT_TOOL_RESULT_SIGNAL,
   );
@@ -180,7 +194,7 @@ export const snapshotToUiMessages = (
     if (message.display !== "visible") continue;
     if (message.purpose !== "user" && message.purpose !== "assistant") continue;
     if (message.role !== "user" && message.role !== "assistant") continue;
-    const parts = partsFrom(message, options, clientOutputs);
+    const parts = partsFrom(message, options, clientResults);
     if (message.role === "user") {
       resumableAssistant = undefined;
       continuationPending = false;
@@ -195,10 +209,27 @@ export const snapshotToUiMessages = (
       continuationPending = false;
       continue;
     }
+    const voiceToolCallIds =
+      message.role === "assistant"
+        ? message.parts.flatMap((part) =>
+            part.type === "dynamic-tool" &&
+            clientResults.get(part.toolCallId)?.source === "voice"
+              ? [part.toolCallId]
+              : [],
+          )
+        : [];
     const projected: UiHistoryMessage = {
       id: message.id,
       role: message.role,
       parts,
+      ...(voiceToolCallIds.length > 0
+        ? {
+            metadata: {
+              source: "voice",
+              voiceToolCallIds,
+            },
+          }
+        : {}),
     };
     messages.push(projected);
     if (message.role === "assistant") {

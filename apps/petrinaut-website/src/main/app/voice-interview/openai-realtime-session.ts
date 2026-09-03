@@ -19,13 +19,6 @@ export interface OpenAIRealtimeTranscriptKey {
   readonly itemId: string;
 }
 
-interface RealtimeToolEventIdentity {
-  readonly callId: string;
-  readonly connectionEpoch: number;
-  readonly itemId: string;
-  readonly responseId: string;
-}
-
 export type OpenAIRealtimeSessionEvent =
   | {
       readonly key: OpenAIRealtimeTranscriptKey;
@@ -74,15 +67,6 @@ export type OpenAIRealtimeSessionEvent =
       readonly status: "cancelled" | "completed" | "failed" | "incomplete";
       readonly type: "response-terminal";
     }
-  | (RealtimeToolEventIdentity & {
-      readonly delta: string;
-      readonly type: "tool-arguments-delta";
-    })
-  | (RealtimeToolEventIdentity & {
-      readonly arguments: string;
-      readonly name: string;
-      readonly type: "tool-arguments-done";
-    })
   | {
       readonly code: VoiceErrorCode;
       readonly message: string;
@@ -192,17 +176,21 @@ const waitForAbort = <Value>(
 };
 
 export class OpenAIRealtimeSession {
+  readonly #acceptedInputItemIds = new Set<string>();
   readonly #dependencies: OpenAIRealtimeSessionDependencies;
   readonly #activeResponseIds = new Set<string>();
   readonly #listeners = new Set<SessionListener>();
   readonly #authorizedResponseIds = new Set<string>();
   readonly #cancelledCanonicalResponseIds = new Set<string>();
   readonly #cancelledSpeechRequestIds = new Set<string>();
+  readonly #cancelOutputAwaitingRequestIds = new Set<string>();
+  readonly #cancelOutputAwaitingResponseIds = new Set<string>();
   readonly #canonicalResponseIds = new Set<string>();
   readonly #canonicalSpeechQueue: CanonicalSpeechRequest[] = [];
   readonly #completedResponseCancelEventIds = new Set<string>();
   readonly #pendingClientEvents = new Map<string, PendingClientEvent>();
   readonly #pendingSpeechRequests = new Map<string, RequestTiming>();
+  readonly #playbackOverlappingInputItemIds = new Set<string>();
   readonly #remoteStreams = new Set<MediaStream>();
   readonly #speechRequestIds = new Map<string, string>();
   readonly #speechTimings = new Map<string, RequestTiming>();
@@ -214,6 +202,10 @@ export class OpenAIRealtimeSession {
   #connected = false;
   #connectedAt: number | null = null;
   #clientEventSequence = 0;
+  #cancelOutputAwaitingInputBufferClear = false;
+  #cancelOutputAwaitingOutputBufferResponseId: string | null = null;
+  #cancelOutputPromise: Promise<void> | null = null;
+  #cancelOutputResolve: (() => void) | null = null;
   #connectionRequestId: string | null = null;
   #dataChannel: RTCDataChannel | null = null;
   #epoch = 0;
@@ -223,9 +215,11 @@ export class OpenAIRealtimeSession {
   #meterHasSample = false;
   #meterLevel = 0;
   #meterSamples: Uint8Array<ArrayBuffer> | null = null;
+  #microphoneRequested = false;
   #microphoneTrack: MediaStreamTrack | null = null;
   #peerConnection: RTCPeerConnection | null = null;
   #remoteAudio: RemoteAudio | null = null;
+  #requireInputSpeechStart = false;
   #responseCreateEventId: string | null = null;
   #responseTerminalSequence = 0;
   #speakingResponseId: string | null = null;
@@ -393,92 +387,75 @@ export class OpenAIRealtimeSession {
   }
 
   public setMicrophoneEnabled(enabled: boolean): void {
-    if (!this.#microphoneTrack) {
-      return;
-    }
-    const isEnabled = enabled && this.#connected;
-    this.#microphoneTrack.enabled = isEnabled;
-    if (isEnabled) {
-      this.#startMeter();
-    } else {
-      this.#stopMeter();
-    }
+    this.#microphoneRequested = enabled && this.#connected;
+    this.#syncMicrophoneTrack();
   }
 
   public speakCanonical(segments: CanonicalSpeechSegment[]): void {
     this.#requestCanonicalSpeech(segments, true);
   }
 
-  public completeFunctionCall(
-    callId: string,
-    segments: CanonicalSpeechSegment[],
-  ): void {
-    if (!callId) {
-      throw new VoiceError("speech", "invalid-response", "");
-    }
-    const responseText = this.#canonicalResponseText(segments);
-    this.#send({
-      type: "conversation.item.create",
-      item: {
-        type: "function_call_output",
-        call_id: callId,
-        output: JSON.stringify({ response_text: responseText }),
-      },
-    });
-    this.#requestCanonicalSpeech(segments, false);
-  }
-
-  /**
-   * Close a Realtime function call whose Brunch turn settled without a reply.
-   * The call output records the settlement so the model does not wait on it,
-   * and no speech is requested: a stopped turn has no canonical text to speak.
-   */
-  public completeFunctionCallWithoutResponse(
-    callId: string,
-    outcome: "aborted" | "failed",
-  ): void {
-    if (!callId) {
-      throw new VoiceError("speech", "invalid-response", "");
-    }
-    this.#send({
-      type: "conversation.item.create",
-      item: {
-        type: "function_call_output",
-        call_id: callId,
-        output: JSON.stringify({ response_text: [], outcome }),
-      },
-    });
-  }
-
-  public cancelOutput(): void {
+  public cancelOutput(): Promise<void> {
     if (!this.#connected || this.#dataChannel?.readyState !== "open") {
-      return;
+      return Promise.resolve();
+    }
+    if (this.#cancelOutputPromise) {
+      return this.#cancelOutputPromise;
     }
 
-    for (const request of this.#canonicalSpeechQueue.splice(0)) {
-      this.#cancelPendingSpeechRequest(request.speechRequestId);
+    const cancelOutputPromise = new Promise<void>((resolve) => {
+      this.#cancelOutputResolve = resolve;
+    });
+    this.#cancelOutputPromise = cancelOutputPromise;
+    this.#cancelOutputAwaitingInputBufferClear = true;
+    this.#cancelOutputAwaitingOutputBufferResponseId = this.#speakingResponseId;
+    this.#requireInputSpeechStart = true;
+    for (const itemId of this.#acceptedInputItemIds) {
+      this.#playbackOverlappingInputItemIds.add(itemId);
     }
+    this.#acceptedInputItemIds.clear();
+    this.#syncMicrophoneTrack();
 
-    if (this.#responseCreateEventId !== null) {
-      const pendingEvent = this.#pendingClientEvents.get(
-        this.#responseCreateEventId,
-      );
-      if (pendingEvent?.kind === "response-create") {
-        this.#cancelledSpeechRequestIds.add(
-          pendingEvent.request.speechRequestId,
+    try {
+      this.#send({ type: "input_audio_buffer.clear" });
+
+      for (const request of this.#canonicalSpeechQueue.splice(0)) {
+        this.#cancelPendingSpeechRequest(request.speechRequestId);
+      }
+
+      if (this.#responseCreateEventId !== null) {
+        const pendingEvent = this.#pendingClientEvents.get(
+          this.#responseCreateEventId,
         );
+        if (pendingEvent?.kind === "response-create") {
+          this.#cancelledSpeechRequestIds.add(
+            pendingEvent.request.speechRequestId,
+          );
+          this.#cancelOutputAwaitingRequestIds.add(
+            pendingEvent.request.speechRequestId,
+          );
+        }
       }
+
+      for (const responseId of this.#canonicalResponseIds) {
+        if (
+          this.#activeResponseIds.has(responseId) &&
+          !this.#cancelledCanonicalResponseIds.has(responseId)
+        ) {
+          this.#cancelOutputAwaitingResponseIds.add(responseId);
+          this.#cancelledCanonicalResponseIds.add(responseId);
+          this.#cancelResponse(responseId);
+        }
+      }
+
+      this.#send({ type: "output_audio_buffer.clear" });
+    } catch {
+      this.#finishOutputCancellation(true);
+      this.#handleConnectionFailure("network", "speech");
     }
 
-    for (const responseId of this.#canonicalResponseIds) {
-      if (
-        this.#activeResponseIds.has(responseId) &&
-        !this.#cancelledCanonicalResponseIds.has(responseId)
-      ) {
-        this.#cancelledCanonicalResponseIds.add(responseId);
-        this.#cancelOutputResponse(responseId);
-      }
-    }
+    this.#finishOutputCancellation();
+    return cancelOutputPromise;
   }
 
   #cancelOutputResponse(responseId: string): void {
@@ -643,6 +620,12 @@ export class OpenAIRealtimeSession {
       this.#handleResponseDone(parsed, connectionEpoch);
       return;
     }
+    if (parsed.type === "input_audio_buffer.cleared") {
+      this.#acceptedInputItemIds.clear();
+      this.#cancelOutputAwaitingInputBufferClear = false;
+      this.#finishOutputCancellation();
+      return;
+    }
     if (parsed.type === "input_audio_buffer.committed") {
       const itemId = nonEmptyString(parsed.item_id);
       if (itemId) this.#startTranscription(itemId);
@@ -651,23 +634,22 @@ export class OpenAIRealtimeSession {
     if (parsed.type === "input_audio_buffer.speech_started") {
       const itemId = nonEmptyString(parsed.item_id);
       if (!itemId || nonNegativeInteger(parsed.audio_start_ms) === null) return;
+      if (this.#speakingResponseId || !this.#microphoneTrack?.enabled) {
+        this.#playbackOverlappingInputItemIds.add(itemId);
+        return;
+      }
+      this.#acceptedInputItemIds.add(itemId);
       this.#emit({
         connectionEpoch,
         itemId,
         type: "input-speech-started",
       });
-      if (this.#speakingResponseId) {
-        this.#emit({
-          connectionEpoch,
-          responseId: this.#speakingResponseId,
-          type: "output-interrupted",
-        });
-      }
       return;
     }
     if (parsed.type === "input_audio_buffer.speech_stopped") {
       const itemId = nonEmptyString(parsed.item_id);
       if (!itemId || nonNegativeInteger(parsed.audio_end_ms) === null) return;
+      if (this.#playbackOverlappingInputItemIds.has(itemId)) return;
       this.#emit({
         connectionEpoch,
         itemId,
@@ -677,13 +659,10 @@ export class OpenAIRealtimeSession {
     }
     if (
       parsed.type === "output_audio_buffer.started" ||
-      parsed.type === "output_audio_buffer.stopped"
+      parsed.type === "output_audio_buffer.stopped" ||
+      parsed.type === "output_audio_buffer.cleared"
     ) {
       this.#handleOutputBufferEvent(parsed, connectionEpoch);
-      return;
-    }
-    if (parsed.type === "response.function_call_arguments.delta") {
-      this.#handleToolEvent(parsed, connectionEpoch);
       return;
     }
     if (
@@ -706,6 +685,9 @@ export class OpenAIRealtimeSession {
     const speechRequestId = nonEmptyString(metadata?.petrinaut_request_id);
     if (metadata?.petrinaut_kind !== "canonical-speech" || !speechRequestId) {
       return;
+    }
+    if (this.#cancelOutputAwaitingRequestIds.delete(speechRequestId)) {
+      this.#cancelOutputAwaitingResponseIds.add(responseId);
     }
     this.#completeResponseCreateEvent(speechRequestId);
     this.#canonicalResponseIds.add(responseId);
@@ -762,6 +744,10 @@ export class OpenAIRealtimeSession {
     ) {
       this.#pendingClientEvents.delete(sourceEventId);
       this.#completedResponseCancelEventIds.delete(sourceEventId);
+      if (pendingEvent?.kind === "response-cancel") {
+        this.#cancelOutputAwaitingResponseIds.delete(pendingEvent.responseId);
+        this.#finishOutputCancellation();
+      }
       return;
     }
 
@@ -780,7 +766,11 @@ export class OpenAIRealtimeSession {
           pendingEvent.request.speechRequestId,
         )
       ) {
+        this.#cancelOutputAwaitingRequestIds.delete(
+          pendingEvent.request.speechRequestId,
+        );
         this.#cancelPendingSpeechRequest(pendingEvent.request.speechRequestId);
+        this.#finishOutputCancellation();
         return;
       }
       this.#canonicalSpeechQueue.unshift(pendingEvent.request);
@@ -815,6 +805,8 @@ export class OpenAIRealtimeSession {
     }
     this.#responseTerminalSequence += 1;
     this.#activeResponseIds.delete(responseId);
+    this.#cancelOutputAwaitingResponseIds.delete(responseId);
+    this.#finishOutputCancellation();
     this.#clearResponseCancelEvents(responseId);
     this.#waitingForResponseTerminal = false;
 
@@ -836,43 +828,9 @@ export class OpenAIRealtimeSession {
         this.#handleConnectionFailure("invalid-response", "connection");
         return;
       }
-      const functionCalls = output
-        .map(asRecord)
-        .filter(
-          (item): item is Record<string, unknown> =>
-            item?.type === "function_call",
-        );
-      if (
-        functionCalls.length > 1 ||
-        (functionCalls.length > 0 && this.#canonicalResponseIds.has(responseId))
-      ) {
+      if (output.some((item) => asRecord(item)?.type === "function_call")) {
         this.#handleConnectionFailure("invalid-response", "connection");
         return;
-      }
-      for (const item of functionCalls) {
-        const argumentsJson = nonEmptyString(item.arguments);
-        const callId = nonEmptyString(item.call_id);
-        const itemId = nonEmptyString(item.id);
-        const name = nonEmptyString(item.name);
-        if (
-          !argumentsJson ||
-          !callId ||
-          !itemId ||
-          !name ||
-          (item.status !== undefined && item.status !== "completed")
-        ) {
-          this.#handleConnectionFailure("invalid-response", "connection");
-          return;
-        }
-        this.#emit({
-          arguments: argumentsJson,
-          callId,
-          connectionEpoch,
-          itemId,
-          name,
-          responseId,
-          type: "tool-arguments-done",
-        });
       }
       this.#emit({
         connectionEpoch,
@@ -941,6 +899,9 @@ export class OpenAIRealtimeSession {
     if (!responseId) return;
     if (event.type === "output_audio_buffer.started") {
       if (this.#cancelledCanonicalResponseIds.has(responseId)) {
+        if (this.#cancelOutputPromise) {
+          this.#cancelOutputAwaitingOutputBufferResponseId = responseId;
+        }
         this.#send({ type: "output_audio_buffer.clear" });
         return;
       }
@@ -950,6 +911,7 @@ export class OpenAIRealtimeSession {
         return;
       }
       this.#speakingResponseId = responseId;
+      this.#syncMicrophoneTrack();
       const speechRequestId = this.#speechRequestIds.get(responseId);
       if (!speechRequestId) {
         this.#handleConnectionFailure("invalid-response", "connection");
@@ -964,35 +926,24 @@ export class OpenAIRealtimeSession {
       return;
     }
     const wasSpeaking = this.#speakingResponseId === responseId;
+    const wasCleared = event.type === "output_audio_buffer.cleared";
     this.#finishSpeech(
       responseId,
-      this.#cancelledCanonicalResponseIds.has(responseId)
+      wasCleared || this.#cancelledCanonicalResponseIds.has(responseId)
         ? "request-aborted"
         : undefined,
     );
     if (wasSpeaking) {
-      this.#emit({ connectionEpoch, responseId, type: "output-stopped" });
+      this.#emit({
+        connectionEpoch,
+        responseId,
+        type: wasCleared ? "output-interrupted" : "output-stopped",
+      });
     }
-  }
-
-  #handleToolEvent(
-    event: Record<string, unknown>,
-    connectionEpoch: number,
-  ): void {
-    const callId = nonEmptyString(event.call_id);
-    const itemId = nonEmptyString(event.item_id);
-    const responseId = nonEmptyString(event.response_id);
-    const outputIndex = nonNegativeInteger(event.output_index);
-    if (!callId || !itemId || !responseId || outputIndex === null) return;
-    if (typeof event.delta !== "string") return;
-    this.#emit({
-      callId,
-      connectionEpoch,
-      delta: event.delta,
-      itemId,
-      responseId,
-      type: "tool-arguments-delta",
-    });
+    if (this.#cancelOutputAwaitingOutputBufferResponseId === responseId) {
+      this.#cancelOutputAwaitingOutputBufferResponseId = null;
+      this.#finishOutputCancellation();
+    }
   }
 
   #handleTranscriptEvent(
@@ -1003,9 +954,30 @@ export class OpenAIRealtimeSession {
     const contentIndex = nonNegativeInteger(event.content_index);
     if (!itemId || contentIndex === null) return;
     const key = { connectionEpoch, contentIndex, itemId };
+    const overlapsPlayback =
+      this.#playbackOverlappingInputItemIds.has(itemId) ||
+      (this.#requireInputSpeechStart &&
+        !this.#acceptedInputItemIds.has(itemId));
+    if (overlapsPlayback) {
+      if (
+        event.type ===
+          "conversation.item.input_audio_transcription.completed" ||
+        event.type === "conversation.item.input_audio_transcription.failed"
+      ) {
+        this.#finishTranscription(
+          itemId,
+          event.type === "conversation.item.input_audio_transcription.failed"
+            ? "invalid-response"
+            : undefined,
+        );
+        this.#acceptedInputItemIds.delete(itemId);
+      }
+      return;
+    }
     this.#startTranscription(itemId);
     if (event.type === "conversation.item.input_audio_transcription.failed") {
       this.#finishTranscription(itemId, "invalid-response");
+      this.#acceptedInputItemIds.delete(itemId);
       this.#emit({ key, type: "transcription-failed" });
       return;
     }
@@ -1018,6 +990,7 @@ export class OpenAIRealtimeSession {
       event.type === "conversation.item.input_audio_transcription.completed"
     ) {
       this.#finishTranscription(itemId);
+      this.#acceptedInputItemIds.delete(itemId);
     }
     this.#emit({
       key,
@@ -1058,7 +1031,31 @@ export class OpenAIRealtimeSession {
     this.#authorizedResponseIds.delete(responseId);
     if (this.#speakingResponseId === responseId) {
       this.#speakingResponseId = null;
+      this.#syncMicrophoneTrack();
     }
+  }
+
+  #finishOutputCancellation(force = false): void {
+    if (
+      !this.#cancelOutputPromise ||
+      (!force &&
+        (this.#cancelOutputAwaitingInputBufferClear ||
+          this.#cancelOutputAwaitingOutputBufferResponseId !== null ||
+          this.#cancelOutputAwaitingRequestIds.size > 0 ||
+          this.#cancelOutputAwaitingResponseIds.size > 0))
+    ) {
+      return;
+    }
+
+    const resolve = this.#cancelOutputResolve;
+    this.#cancelOutputPromise = null;
+    this.#cancelOutputResolve = null;
+    this.#cancelOutputAwaitingInputBufferClear = false;
+    this.#cancelOutputAwaitingOutputBufferResponseId = null;
+    this.#cancelOutputAwaitingRequestIds.clear();
+    this.#cancelOutputAwaitingResponseIds.clear();
+    this.#syncMicrophoneTrack();
+    resolve?.();
   }
 
   #emit(event: OpenAIRealtimeSessionEvent): void {
@@ -1239,6 +1236,23 @@ export class OpenAIRealtimeSession {
     this.#meterFrame = this.#dependencies.requestAnimationFrame(sample);
   }
 
+  #syncMicrophoneTrack(): void {
+    if (!this.#microphoneTrack) {
+      return;
+    }
+    const enabled =
+      this.#microphoneRequested &&
+      this.#connected &&
+      this.#cancelOutputPromise === null &&
+      this.#speakingResponseId === null;
+    this.#microphoneTrack.enabled = enabled;
+    if (enabled) {
+      this.#startMeter();
+    } else {
+      this.#stopMeter();
+    }
+  }
+
   #stopMeter(): void {
     if (this.#meterFrame === null) return;
     this.#dependencies.cancelAnimationFrame(this.#meterFrame);
@@ -1328,13 +1342,17 @@ export class OpenAIRealtimeSession {
       );
     }
     this.#transcriptionTimings.clear();
+    this.#acceptedInputItemIds.clear();
     this.#activeResponseIds.clear();
     this.#cancelledCanonicalResponseIds.clear();
     this.#cancelledSpeechRequestIds.clear();
+    this.#cancelOutputAwaitingRequestIds.clear();
+    this.#cancelOutputAwaitingResponseIds.clear();
     this.#canonicalSpeechQueue.length = 0;
     this.#completedResponseCancelEventIds.clear();
     this.#pendingClientEvents.clear();
     this.#pendingSpeechRequests.clear();
+    this.#playbackOverlappingInputItemIds.clear();
     this.#speechTimings.clear();
     this.#speechRequestIds.clear();
     this.#authorizedResponseIds.clear();
@@ -1342,6 +1360,8 @@ export class OpenAIRealtimeSession {
     this.#responseCreateEventId = null;
     this.#responseTerminalSequence = 0;
     this.#speakingResponseId = null;
+    this.#microphoneRequested = false;
+    this.#requireInputSpeechStart = false;
     this.#waitingForResponseTerminal = false;
     this.#activeEpoch = null;
     this.#connected = false;
@@ -1388,6 +1408,7 @@ export class OpenAIRealtimeSession {
       this.#mediaStream = null;
     }
     this.#microphoneTrack = null;
+    this.#finishOutputCancellation(true);
   }
 
   #waitForDataChannelOpen(

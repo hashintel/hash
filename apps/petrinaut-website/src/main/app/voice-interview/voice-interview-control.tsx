@@ -425,12 +425,17 @@ const AvailableVoiceInterviewControl = ({
       registerVoiceModeControls({
         end: () => store.controller.end(),
         pause: () => store.controller.pause(),
+        readFullResponse: () => store.controller.readFullResponse(),
         reconnect: () => {
           void store.controller.reconnect();
         },
-        resume: () => store.controller.resume(),
+        repeatQuestion: () => store.controller.repeatQuestion(),
+        resume: () => {
+          void store.controller.resume();
+        },
         setMicrophoneMuted: (muted) =>
           store.controller.setMicrophoneMuted(muted),
+        takeTurn: () => store.controller.takeTurn(),
       }),
     [registerVoiceModeControls, store],
   );

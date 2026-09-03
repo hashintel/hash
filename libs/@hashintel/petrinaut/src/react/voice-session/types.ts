@@ -16,10 +16,18 @@ export type PetrinautAiVoiceSessionPhase =
  * effect: it changes at microphone-sampling rate.
  */
 export type PetrinautAiVoiceSessionState = {
+  /** Whether the current canonical assistant response is safe to replay. */
+  canReadFullResponse?: boolean;
+  /** Whether the final segment of the canonical response is safe to repeat. */
+  canRepeatQuestion?: boolean;
+  /** Whether the user can cancel Voice output and start their turn. */
+  canTakeTurn?: boolean;
   errorMessage: string | null;
   /** Whether microphone capture is muted independently of whose turn it is. */
   microphoneMuted: boolean;
   /** Normalized 0–1 input level driving the listening indicator. */
   microphoneLevel: number;
+  /** Recoverable feedback about an utterance which was not submitted. */
+  notice?: string | null;
   phase: PetrinautAiVoiceSessionPhase;
 };
