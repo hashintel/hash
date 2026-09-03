@@ -2,7 +2,7 @@
 
 ## Status
 
-**Live on `ln/fe-1575-resumable-workpiece-petrinaut` from 2026-09-03.** [FE-1575](https://linear.app/hash/issue/FE-1575/resume-one-brunch-workpiece-and-petrinaut-document-across-tabs) is in progress. This authority cut is committed separately before product or evaluation implementation begins. It was recut on restack the same day to carry the product-manager litmus adopted in [`MISSION.next.md`](MISSION.next.md#current-authority-and-accepted-spine) after the first cut: completion is the readiness gate below, not the first green two-tab pass.
+**Live on `ln/fe-1575-resumable-workpiece-petrinaut` from 2026-09-03.** [FE-1575](https://linear.app/hash/issue/FE-1575/resume-one-brunch-workpiece-and-petrinaut-document-across-tabs) is in progress. This authority cut is committed separately before product or evaluation implementation begins. It was recut on restack the same day to carry the product-manager litmus adopted in [`MISSION.next.md`](MISSION.next.md#current-authority-and-accepted-spine) after the first cut: completion is the readiness gate below, not the first green two-tab pass. The owner subsequently accepted the probe-backed prepared-history semantics under [Accepted fixture and boundary crossings](#accepted-fixture-and-boundary-crossings); that amendment must land separately before dependent implementation.
 
 ## Imperative
 
@@ -39,13 +39,17 @@ The first unproved boundary is ordinary Brunch conversation → mounted canonica
 
 Prepare the existing final-inspection / dispatch-crew case as an explicitly test-authored fixture. Its starting workpiece and non-empty net preserve this narrow account: one crew is reserved during final inspection, sign-off releases it, the batch then becomes dispatch-ready, and timing plus failure/recovery remain unresolved. Its prepared material must identify its authorship and must not be presented as a Mission 4 candidate or model-produced evidence.
 
+Deliver the prepared starting workpiece exactly once through Flue's public dispatch surface as a tagged structured signal. Its canonical record must remain `role: system`, `purpose: dispatch`, carry the fixture id, `test-authored` authorship, and non-claims as signal attributes, and preserve the exact Markdown body. This record is prepared revision zero. Later full `runbook-ir` blocks emitted in genuine assistant responses are model-produced revisions; the workpiece resolver selects the latest eligible revision without rewriting Flue's append-only history. This is analogous to last-one-wins selection of extension-contributed artifacts in a Pi raw session log, not permission to overwrite either log.
+
+The disposable production-route probe established the carrier facts: the tagged signal retained its exact body and attributes, an exact idempotent retry converged on the original submission without adding messages, and the snapshot survived process reopen unchanged. The current `ChatAgent` rejected fixture authorship supplied as `initialData` with `400` and created no history; `initialData` is not a substitute for the public workpiece source. A user delivery would impersonate the person, while faux-provider output, hand-authored assistant records, private canonical record types, direct database writes, and a second history store are not preparation routes. The probe's configured Anthropic credential was rejected with `401`, so its separately classified faux assistant response established no model-behavior claim.
+
 Prepare the net with `Batch ready`, `Under final inspection`, `Ready for dispatch`, and `Dispatch crew available` places plus `Start final inspection` and `Sign-off` transitions. Preserve the batch-flow arcs and the return of the crew from sign-off, but deliberately omit the standard input arc that reserves the sole crew when final inspection starts. Use one realistic confirming answer: final inspection consumes the sole available dispatch crew, sign-off returns it, and timing plus recovery remain unknown. The least candidate mutation is one canonical weight-1 standard input arc from `Dispatch crew available` to `Start final inspection`. The exact before/after edge makes the semantic oracle discriminating while avoiding Mission 3's deeply nested schema failure. If that shallow mutation still cannot cross Flue faithfully, stop with the carrier blocker rather than weakening the claim.
 
 ```text
 stable prepared-fixture selector
 → resolve distinct fixture, Petrinaut document, and Flue conversation identities
 → open the prepared non-empty browser document and hydrate canonical Flue history
-→ recover the latest Markdown workpiece revision by source message id plus content hash
+→ recover prepared revision zero from the tagged dispatch record, or the latest eligible assistant revision, by source message id plus content hash
 → submit the realistic crew-reservation confirmation through the production panel door
 → Brunch emits an inspectable full workpiece revision without erasing prior meaning or the remaining unknown
 → SDCPN construction reads that current workpiece and the live browser document
@@ -90,8 +94,8 @@ The mission completes only when the demo script works for this fixture and these
 
 Every final leaf has a discriminating oracle:
 
-1. **The prepared fixture is honest and sufficient for this narrow test.** The committed fixture manifest and a cold-reader adjudication identify its test-authored source, process spine, constrained crew, release policy, quantity context, explicit unknown, prepared net meaning, and non-claims. The reader must do this without transcript archaeology.
-2. **One evidence turn maintains the Markdown workpiece.** A production-agent fixture integration retains the exact Flue snapshot and mechanically recovers the latest `runbook-ir` block with source message id and SHA-256. Before/after adjudication must find the supplied contextual quantity, retained crew/release meaning, retained unsupported context, and no invented fact or hardened unknown.
+1. **The prepared fixture is honest and sufficient for this narrow test.** The committed fixture manifest, raw Flue snapshot, and a cold-reader adjudication identify the prepared workpiece's tagged system/dispatch source, exact test-authored Markdown, process spine, constrained crew, release policy, quantity context, explicit unknown, prepared net meaning, and non-claims. The same inspection distinguishes every later assistant revision as model-produced and must not require transcript archaeology.
+2. **One evidence turn maintains the Markdown workpiece.** A production-agent fixture integration mechanically recovers prepared revision zero from the tagged dispatch record, then selects the latest eligible assistant `runbook-ir` block after the confirming turn, retaining each source message id and SHA-256. Before/after adjudication must find the supplied contextual quantity, retained crew/release meaning, retained unsupported context, and no invented fact or hardened unknown.
 3. **The real browser executes a correlated Petrinaut read and write.** Focused plugin/transport tests prove that `getLatestNetDefinition` and the selected `addArc` schema come mechanically from Petrinaut's canonical contracts, fixture mode advertises only the selected operations, duplicate result delivery does not apply the mutation twice, rejected input remains visible, and a mutation that would change nothing is reported as a no-op rather than as a change. The browser witness must retain tool name, call id, parsed input, execution output, resumed signal, and resulting canonical definition; a headless callback alone does not pass.
 4. **The document change is meaningful rather than merely accepted.** A structural comparison proves there was no standard input arc from `Dispatch crew available` to `Start final inspection` before the turn and exactly one weight-1 arc afterward, while `Sign-off` still returns the crew and the prepared net remains non-empty. The changed workpiece retains the reservation/release meaning and unresolved timing/recovery. Parser/schema acceptance or a disconnected convenience element fails.
 5. **The settled witness cannot bless partial state.** A focused failure test injects history/workpiece-recovery failure, rejected `addArc`, or missing/duplicate result correlation and shows that the prior settled manifest remains selected while the failure and any partial state are inspectable. Do not invent a localStorage failure interface solely to satisfy this leaf.
@@ -110,6 +114,7 @@ Verification proceeds inside-out but closure requires the outer boundary:
 
 - Keep fixture id, Flue conversation id, latest workpiece source/revision, and Petrinaut document id/revision distinct and explicitly linked. One id must not impersonate all lifecycles.
 - Flue history remains the canonical conversation log. Browser message caches and fixture artifacts are projections or evidence, never a second authority.
+- The tagged prepared signal is the only test-authored workpiece source admitted by this fixture. It remains a diagnostic system/dispatch record; latest-revision selection may supersede it with a genuine assistant workpiece but may not mutate, relabel, or hide its authorship.
 - Markdown remains the semantic workpiece. Recover its full latest version; do not introduce a comprehensive typed domain IR to make fixture lookup convenient.
 - Projection consumes the current workpiece. The transcript may establish provenance and help recover that artifact but may not become the primary construction IR.
 - Petrinaut owns canonical schemas, browser validation, mutations, and document state. Brunch imports or mechanically derives those contracts and does not hand-copy their field shapes.
@@ -125,7 +130,6 @@ Verification proceeds inside-out but closure requires the outer boundary:
 
 - Whether the selected shallow `addArc` schema survives the provider-visible Flue carrier and results in exactly one browser mutation without reopening the broader nested-schema problem.
 - The least safe way to expose canonical `getLatestNetDefinition` plus `addArc` in a fixture conversation while retaining the headless-only guard for broader construction.
-- How to prepare canonical Flue history reproducibly without pretending test-authored assistant content was model-produced; the preparation route and authorship must survive in the manifest.
 - Whether the latest `runbook-ir` message id and hash are sufficient workpiece revision identity or the two-tab consumer exposes a need for a separate persisted workpiece artifact.
 - Whether Mantine/localStorage synchronization plus the active `PetrinautDocHandle` is sufficient for the same-browser two-tab witness, and which document hash/revision signal best distinguishes settled from stale state.
 - Whether the known provider-visible nested-schema failure is absent for the selected flat mutation. Do not generalize one success to nested construction classes.
@@ -137,7 +141,7 @@ Resolve these at the named production/browser boundaries. Clarifying prose alone
 
 Stop and surface evidence if:
 
-- fixture preparation requires pretending a Mission 4 candidate exists or hides test-authored/model-authored boundaries;
+- fixture preparation requires pretending a Mission 4 candidate exists, placing prepared text in a user or assistant record, accepting an untagged preparation signal, or otherwise hiding test-authored/model-authored boundaries;
 - the path conflates fixture, conversation, workpiece, and document identities or creates a second canonical conversation history;
 - the agent rereads transcript prose as its primary projection input because the current Markdown workpiece cannot carry the needed meaning;
 - parser/schema acceptance, document non-emptiness, or a disconnected convenience element is offered as semantic correspondence;
