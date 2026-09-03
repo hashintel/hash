@@ -8,7 +8,7 @@
 
 A fresh builder must resolve these authorities and evidence before choosing a mechanism:
 
-- [`../../MISSION.md`](../../MISSION.md) — current closure pointer. Mission 9 may be cut only after Mission 7 validly closes its accepted join and a new owner-authorized mission replaces that pointer as sole execution authority.
+- [`../../MISSION.md`](../../MISSION.md) — live Mission 5 Voice authority on this branch. Mission 9 may be cut only after Mission 7 validly closes its accepted join and a new owner-authorized mission replaces the then-current branch authority.
 - [`../../MISSION.next.md`](../../MISSION.next.md) — compact future spine, FE-1476 floor, cross-mission obligations, standing locks, and current Mission 10 handoff.
 - [`6-resumable-workpiece-petrinaut-fixture.md`](6-resumable-workpiece-petrinaut-fixture.md) and [`7-capture-backed-review.md`](7-capture-backed-review.md) — provisional viability and provenance predecessors. At cut time replace assumptions with their accepted evidence, exact current workpiece/derivation seam, and real browser mutation behavior.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) and [`../evidence/implementations/fe-1525-headless-runbook-pn.md`](../evidence/implementations/fe-1525-headless-runbook-pn.md) — accepted workpiece leg, canonical callback fixture, provider-visible nested-schema failure, vacuous empty-net result, and explicit next-boundary decision.

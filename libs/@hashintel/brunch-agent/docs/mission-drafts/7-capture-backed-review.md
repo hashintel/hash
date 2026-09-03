@@ -8,7 +8,7 @@
 
 A fresh builder must resolve the current repository and the deployment handoff rather than treating this draft as a specification:
 
-- [`../../MISSION.md`](../../MISSION.md) — closure pointer; Mission 4 produced no full-run conversation/workpiece candidate and this draft must not imply otherwise.
+- [`../../MISSION.md`](../../MISSION.md) — live Mission 5 Voice authority on this branch; it supplies no Mission 7 execution authority or conversation/workpiece candidate, and Mission 4 produced no full-run candidate.
 - [`6-resumable-workpiece-petrinaut-fixture.md`](6-resumable-workpiece-petrinaut-fixture.md) — independent viability predecessor. If accepted, its deliberately prepared and honestly labelled fixture may become this mission's selected pair after a separate provenance-suitability decision; a complete persona workpiece is not intrinsically required.
 - [`../../MISSION.next.md`](../../MISSION.next.md) — compact future spine, FE-1476 product frame, shared proof obligations, standing locks, and any later evidence admitted after this draft was written.
 - [`../mission-archive/2-mechanical-capture-sweep.md`](../mission-archive/2-mechanical-capture-sweep.md) — accepted mechanical capture throughline, exact close evidence, empty-payload boundary, conversation identity, and carried flags.

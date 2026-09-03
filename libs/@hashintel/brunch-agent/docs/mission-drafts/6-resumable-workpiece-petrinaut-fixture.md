@@ -5,7 +5,7 @@
 ## Cold-start reads
 
 - [FE-1575](https://linear.app/hash/issue/FE-1575/resume-one-brunch-workpiece-and-petrinaut-document-across-tabs) — tracker projection for this future branch mission; the eventual branch `MISSION.md` remains execution authority.
-- [`../../MISSION.md`](../../MISSION.md) — Mission 4 closure pointer and explicit absence of a full-run candidate.
+- [`../../MISSION.md`](../../MISSION.md) — live Mission 5 Voice authority on this branch; it supplies no Mission 6 execution authority and does not change Mission 4's explicit absence of a full-run candidate.
 - [`../../MISSION.next.md`](../../MISSION.next.md) — shared workpiece, projection, evidence, and product constraints.
 - [`../mission-archive/3-structurally-typed-runbook-to-headless-pn.md`](../mission-archive/3-structurally-typed-runbook-to-headless-pn.md) and [`../evidence/implementations/fe-1525-headless-runbook-pn.md`](../evidence/implementations/fe-1525-headless-runbook-pn.md) — accepted workpiece viability, hermetic callback route, and failed real-model nested-schema carrier.
 - [`../mission-archive/4-core-plugin-elicitation-proof-of-life.md`](../mission-archive/4-core-plugin-elicitation-proof-of-life.md) — accepted core/plugin architecture and exact proof exclusions.
