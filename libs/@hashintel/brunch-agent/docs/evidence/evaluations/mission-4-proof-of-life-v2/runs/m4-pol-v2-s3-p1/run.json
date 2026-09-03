@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "campaign": "mission-4-proof-of-life-v2",
+  "attemptId": "m4-pol-v2-s3-p1",
+  "slot": "s3-review",
+  "runKind": "review-entry",
+  "case": "flue-skill-composition-side-quest-v3/S3",
+  "instrumentCommit": "95954b494308fbba384cc4ce169a813916f164f9",
+  "manifestCommit": "d9ca2fe1498f6484746b2abaaf18973e7abcbeaa",
+  "executionHead": "2430c3fc0f93cbc2c07f24f4e4f4f0b269109c83",
+  "promptSha256": "ff5755c7ffced45741f791d1ec433386ee4052d301d0065dbff46dc8c36de729",
+  "models": {
+    "elicitor": { "provider": "anthropic", "requested": "claude-sonnet-4-6" },
+    "persona": null,
+    "adjudicator": {
+      "provider": "anthropic",
+      "requested": "claude-opus-4-6",
+      "thinking": "high"
+    }
+  },
+  "clientToolHost": "none",
+  "turnBudget": {
+    "visibleUserSubmissions": 1,
+    "normalStop": "through settlement"
+  },
+  "startedAt": "2026-09-03T09:21:20.667514+00:00"
+}
