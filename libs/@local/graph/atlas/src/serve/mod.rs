@@ -174,15 +174,20 @@ const impl Default for ServeLimits {
 /// ```ignore
 /// use std::sync::Arc;
 ///
-/// use crate::serve::{
-///     CutOffset, GenerationRoot, OpenOptions, TileCoordinate, TileLimits, TileQuery, TileRequest,
-///     VisibilityProof, WireSecret,
+/// use crate::{
+///     integrity::SecretHexBytes,
+///     serve::{
+///         CutOffset, GenerationRoot, OpenOptions, TileCoordinate, TileLimits, TileQuery,
+///         TileRequest, VisibilityProof, WireSecret,
+///     },
 /// };
 ///
 /// let root = GenerationRoot::new("/var/atlas/generations")?;
 /// let id = root.current()?.expect("a generation is active");
-/// let secret =
-///     WireSecret::from_hex("6ad599a5c17e1fc4d7e2988bd4f3e0367f3c4a35d6dae135f9a1e0efc775ce55")?;
+/// let secret = WireSecret::from(
+///     "6ad599a5c17e1fc4d7e2988bd4f3e0367f3c4a35d6dae135f9a1e0efc775ce55"
+///         .parse::<SecretHexBytes<{ WireSecret::BYTES }>>()?,
+/// );
 /// let atlas = Arc::new(Atlas::open(
 ///     &root,
 ///     id,

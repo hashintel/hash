@@ -265,6 +265,7 @@ impl From<AuthenticationRejection> for ProblemResponse<'static> {
             AuthenticationRejection::Authentication {
                 ref report,
                 metrics: _,
+                recorded: _,
             } => Problem::from(report.current_context()).into(),
             AuthenticationRejection::Misconfigured => Problem::internal(
                 "`Actor` extracted on a route without the authentication middleware",

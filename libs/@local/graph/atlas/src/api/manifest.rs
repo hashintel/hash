@@ -95,7 +95,7 @@ The wire version the binary envelopes speak, the served variant names, the bucke
      one generation can read different documents, and a client reads its own rather than a shared \
      one. The response is not cached either: the `Atlas-Authority` header carries a fresh \
      authority token the data routes require, valid for `authorityHardSeconds`. Re-fetch at the \
-     `authoritySoftSeconds` cadence, presenting the current token - even expired - in the same \
+     `authorityRefreshSeconds` cadence, presenting the current token - even expired - in the same \
      header: a scoped view's sealed delivery depth carries into the fresh token, so renewing \
      authority does not change the detail a tile carries, and a full-visibility view renews at \
      the corpus cut it serves. There is no separate renewal mode: every request states the view \

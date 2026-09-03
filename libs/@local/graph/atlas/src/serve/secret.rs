@@ -23,8 +23,8 @@ use crate::integrity::SecretHexBytes;
 /// drop, and formatting one for diagnostics is safe by construction: the [`fmt::Debug`] form is
 /// fully redacted.
 ///
-/// [`WireSecret::from_hex`] decodes the configured form - exactly 64 lowercase hexadecimal
-/// characters.
+/// The configured form, exactly 64 lowercase hexadecimal characters, decodes as a
+/// [`SecretHexBytes`] and converts through [`From`].
 #[derive(Clone)]
 pub(crate) struct WireSecret(SecretHexBytes<{ Self::BYTES }>);
 

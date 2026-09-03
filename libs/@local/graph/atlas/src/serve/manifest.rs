@@ -11,16 +11,20 @@ use crate::{file::generation::GenerationId, salt::wire::WIRE_VERSION};
 
 /// The serving limits of the manifest's `limits` block.
 ///
-/// Each value comes from a value the server enforces, so an advertised limit never disagrees with
+/// Each value comes from a value the server enforces, and an advertised limit never disagrees with
 /// enforcement. Request-validation limits let a client validate before sending, and
-/// response-shaping limits say what delivery truncates. The staleness windows say when a held
-/// authority token expires.
+/// response-shaping limits say what delivery truncates. The authority windows say when a client
+/// renews its token and when a held token stops opening.
 ///
-/// A limit belongs here when a correct client's own behaviour depends on it - what it may ask for
-/// and must expect back, and when to refresh - and the block carries nothing a client cannot
-/// act on. The staleness windows are the visibility cache's own pair. A token names a cached scope,
-/// so the token's validity and the entry's are one question and publish as one pair. The cache's
-/// entry capacity governs no client behaviour and stays absent.
+/// A limit belongs here when a correct client's own behaviour depends on it, in the requests it may
+/// send, the responses it must expect, or its refresh cadence, and the block carries nothing a
+/// client cannot act on. The authority windows are the visibility cache's own pair, named for what
+/// a client does with each. `authorityRefreshSeconds` publishes the cache's soft window. An entry
+/// older than that window refreshes asynchronously, and a client re-fetches the manifest at the
+/// same cadence. `authorityHardSeconds` publishes the hard window, which bounds a token's age at
+/// open and a cache entry's age at answer. The windows start at different events, an entry's
+/// resolution and a token's issuance, and share one configured value. The cache's entry capacity
+/// governs no client behaviour and stays absent.
 ///
 /// The windows are safe for publication because a validity bound is discoverable by the party the
 /// bound applies to. The holder of a token reads its issue time from the clear envelope, and
@@ -46,8 +50,9 @@ pub(crate) struct ManifestLimits {
     pub locate_link_properties: u32,
     /// Most entity ids one translate request may carry.
     pub translate_entity_ids: u32,
-    /// The authority token's asynchronous-refresh horizon, seconds.
-    pub authority_soft_seconds: u64,
+    /// The cadence at which a client re-fetches the manifest to renew its authority token,
+    /// seconds.
+    pub authority_refresh_seconds: u64,
     /// The authority token's rejection bound, seconds.
     pub authority_hard_seconds: u64,
 }
@@ -55,9 +60,9 @@ pub(crate) struct ManifestLimits {
 impl ServeLimits {
     /// Derives the manifest's `limits` block from the values the server enforces.
     ///
-    /// The request and response limits come from the handlers' own configuration; the staleness
-    /// windows from `visibility`, the pair the cache enforces. One source per value, so the
-    /// published limits cannot disagree with enforcement.
+    /// The request and response limits come from the handlers' own configuration, and the authority
+    /// windows from `visibility`, the pair the cache enforces. One source per value keeps the
+    /// published limits from disagreeing with enforcement.
     #[must_use]
     pub(crate) const fn manifest_limits(&self, visibility: VisibilityLimits) -> ManifestLimits {
         ManifestLimits {
@@ -68,7 +73,7 @@ impl ServeLimits {
             locate_link_type_ids: self.locate.link_type_ids,
             locate_link_properties: self.locate.link_properties,
             translate_entity_ids: self.translate.entity_ids,
-            authority_soft_seconds: visibility.soft.as_secs(),
+            authority_refresh_seconds: visibility.soft.as_secs(),
             authority_hard_seconds: visibility.hard.as_secs(),
         }
     }
@@ -95,9 +100,9 @@ pub(crate) struct Manifest {
     /// The caller's resolved delivery schedule.
     ///
     /// The delivery-cut offset the accompanying authority token seals, with the cut rule it
-    /// yields. Restricted responses deliver scope-cascade buckets at or below `z + span + k`, so
-    /// this block is the decoder's input for attributing runs to buckets; it varies per caller and
-    /// per session, which is one of the reasons the manifest response is `no-store`.
+    /// yields. Restricted responses deliver scope-cascade buckets at or below `z + span + k`, and
+    /// this block is the decoder's input for attributing runs to buckets. The block varies per
+    /// caller and per session, one of the reasons the manifest response is `no-store`.
     pub scope_schedule: ScopeCutSchedule,
     /// The published serving limits.
     pub limits: ManifestLimits,

@@ -93,13 +93,13 @@ where
     fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send {
+    ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send {
         core::future::ready(match actor_id_from_header(headers) {
             Ok(actor) => ControlFlow::Break(Ok(C::from_actor(ActorId::User(UserId::new(actor))))),
             Err(error) if *error.kind() == AuthenticationErrorKind::MissingDelegatedActor => {
                 ControlFlow::Continue(())
             }
-            Err(error) => ControlFlow::Break(Err(Report::new(error))),
+            Err(error) => ControlFlow::Break(Err(Arc::new(Report::new(error)))),
         })
     }
 }
@@ -431,7 +431,7 @@ async fn route_served_scoped_tile_fixture() {
     let manifest: Value = serde_json::from_slice(&body).expect("the manifest is JSON");
     let token = headers
         .get(AUTHORITY_HEADER)
-        .expect("the manifest mints an authority token")
+        .expect("the manifest issues an authority token")
         .to_str()
         .expect("the token is ASCII")
         .to_owned();

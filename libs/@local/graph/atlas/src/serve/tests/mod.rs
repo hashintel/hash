@@ -1232,7 +1232,7 @@ async fn tile_contract_rejections() {
             "variants": ["plain"],
             "bucketSchedule": { "span": 2, "cut": "z+1", "maxZoom": 3 },
             "scopeSchedule": { "k": 0, "cut": "z+1", "maxZoom": 2 },
-            "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateEdges": 512, "locateProperties": 10, "locateLinkProperties": 10, "locateLinkTypeIds": 5, "translateEntityIds": 1024, "authoritySoftSeconds": 480, "authorityHardSeconds": 600 },
+            "limits": { "coloredTypeIds": 32, "edgesTiles": 256, "locateEdges": 512, "locateProperties": 10, "locateLinkProperties": 10, "locateLinkTypeIds": 5, "translateEntityIds": 1024, "authorityRefreshSeconds": 480, "authorityHardSeconds": 600 },
             // No createdAt: the fixture dataset has no temporal axes.
         }),
     );

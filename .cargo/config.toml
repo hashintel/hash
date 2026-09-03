@@ -1,11 +1,9 @@
 [registries.crates-io]
 protocol = "sparse"
 
-# x86-64 builds assume the x86-64-v3 baseline (AVX2, FMA, BMI2): the atlas math kernels take
-# their fused multiply-add lowering from it, and every workspace binary inherits the requirement.
-# Hardware below the baseline predates 2013. `hash-graph-atlas::verify_cpu_baseline` reads the
-# processor's own feature bits at process entry, so a mismatched machine reports what it lacks.
-# A `RUSTFLAGS` variable in the environment replaces these flags rather than adding to them.
+# x86-64 builds assume the x86-64-v3 baseline (AVX2, FMA, BMI2): this makes sure that `std::simd`
+# doesn't fall back to scalar operations, and it allows us to omit much of the multiversion complexity.
+# x86-64-v3 can also be seen as a sane default, as it has been available since 2013.
 [target.'cfg(target_arch = "x86_64")']
 rustflags = ["-Ctarget-cpu=x86-64-v3"]
 
