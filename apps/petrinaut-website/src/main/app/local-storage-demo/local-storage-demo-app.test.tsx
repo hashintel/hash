@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { act, cleanup, render, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { isValidElement, type ReactNode } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
@@ -9,6 +9,7 @@ import { defaultPetrinautNavigationHistoryPolicy } from "@hashintel/petrinaut/re
 
 import { FlueChatAdmissionError } from "@hashintel/brunch-agent-transport-aisdk";
 
+import { OpenAIRealtimeSession } from "../voice-interview/openai-realtime-session";
 import { VoiceInterviewControl } from "../voice-interview/voice-interview-control";
 import { BrunchPanelConversationTracker } from "./brunch-panel-transport";
 import {
@@ -17,7 +18,10 @@ import {
   requestFlueStop,
 } from "./local-storage-demo-app";
 
-import type { FlueClient } from "@flue/sdk";
+import type {
+  AgentConversationObservationSnapshot,
+  FlueClient,
+} from "@flue/sdk";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 import type { PetrinautAiAssistant } from "@hashintel/petrinaut/ui";
 
@@ -126,6 +130,7 @@ describe("local storage demo Brunch voice integration", () => {
   });
 
   test("registers no brunch_ask tool in the production Brunch preview", async () => {
+    renderedPetrinaut.aiAssistant = null;
     flueClientMock.current = {
       observe: () => ({
         close: vi.fn(),
@@ -154,6 +159,83 @@ describe("local storage demo Brunch voice integration", () => {
     ).toBe(false);
 
     rendered.unmount();
+    vi.unstubAllGlobals();
+  });
+
+  test("keeps durable Flue Stop distinct from local playback cancellation", async () => {
+    renderedPetrinaut.aiAssistant = null;
+    let snapshot: AgentConversationObservationSnapshot = {
+      conversation: {
+        conversationId: "conversation-stop",
+        settlements: [],
+        messages: [],
+      },
+      offset: "offset-before-stop",
+      phase: "live" as const,
+      error: undefined,
+    };
+    const listeners = new Set<() => void>();
+    const localPlaybackCancellation = vi.spyOn(
+      OpenAIRealtimeSession.prototype,
+      "cancelOutput",
+    );
+    const abort = vi.fn(async () => {
+      snapshot = {
+        conversation: {
+          conversationId: "conversation-stop",
+          settlements: [
+            { submissionId: "submission-stop", outcome: "aborted" as const },
+          ],
+          messages: [],
+        },
+        offset: "offset-after-stop",
+        phase: "live" as const,
+        error: undefined,
+      };
+      for (const listener of listeners) listener();
+      return { aborted: true };
+    });
+    flueClientMock.current = {
+      abort,
+      observe: () => ({
+        close: vi.fn(),
+        getSnapshot: () => snapshot,
+        refresh: vi.fn(),
+        subscribe: (listener: () => void) => {
+          listeners.add(listener);
+          return () => listeners.delete(listener);
+        },
+      }),
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof globalThis.fetch>(async () =>
+        Response.json({ available: false }),
+      ),
+    );
+
+    const rendered = render(<LocalStorageDemoApp />);
+    await waitFor(() =>
+      expect(
+        (renderedPetrinaut.aiAssistant as PetrinautAiAssistant).requestStop,
+      ).toBeTypeOf("function"),
+    );
+    const aiAssistant = renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
+
+    await expect(aiAssistant.requestStop?.()).resolves.toBe("stop-requested");
+    expect(abort).toHaveBeenCalledOnce();
+    expect(localPlaybackCancellation).not.toHaveBeenCalled();
+    await waitFor(() => {
+      const currentAssistant =
+        renderedPetrinaut.aiAssistant as PetrinautAiAssistant;
+      const status = currentAssistant.renderComposerControl?.({} as never);
+      if (!status) throw new Error("Expected the Brunch status control.");
+      render(status);
+      expect(screen.getByText("Last Brunch response stopped.")).not.toBeNull();
+    });
+
+    rendered.unmount();
+    localPlaybackCancellation.mockRestore();
     vi.unstubAllGlobals();
   });
 
