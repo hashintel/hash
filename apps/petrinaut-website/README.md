@@ -68,7 +68,7 @@ provides a fake optimizer for isolated UI development.
 | `PETRINAUT_OPENAI_VOICE_ENABLED` | no               | voice API        | Set to `true` to enable voice outside production.          |
 | `PETRINAUT_AI_MODEL`             | no               | `api/chat.ts`    | Overrides the default OpenAI model id.                     |
 | `PETRINAUT_OPT_ORIGIN`           | no               | `vite.config.ts` | Overrides the local optimizer proxy target.                |
-| `VITE_BRUNCH_CHAT_ENDPOINT`      | for voice input  | website          | Full Brunch Petrinaut chat endpoint used by the panel.     |
+| `VITE_BRUNCH_CHAT_ENDPOINT`      | for Brunch       | website          | Base URL of the mounted Brunch Flue route.                 |
 | `VITE_PETRINAUT_OPT_PROVIDER`    | no               | website          | Set to `service` to enable the optimization route.         |
 | `SENTRY_DSN`                     | no               | `vite.config.ts` | Wired into the bundle via `__SENTRY_DSN__` at build time.  |
 
@@ -88,6 +88,13 @@ shows **Stop**. Starting Voice mode opens an inline, versioned consent
 disclosure before requesting microphone access. The disclosure also provides a
 microphone check and is remembered in browser storage only after Voice mode
 starts.
+
+When Brunch is selected, typed and finalized spoken turns both enter the same
+mounted Flue conversation route. **Stop** requests a durable Brunch abort before
+the panel cancels its local response stream. Closing or speaking over Voice
+playback only stops local media; it does not alter canonical conversation
+history. Reopening the same net restores its observed Flue conversation without
+resubmitting a turn or replaying settled audio.
 
 An active session stays at the end of the transcript. Its compact divider shows
 a waveform and **Connecting**, **Listening**, **Speaking**, **Paused**, or a
@@ -116,7 +123,7 @@ control plane and sole authority for questions, captures, state, completion,
 and durable history. The browser bridge accepts only the configured
 `continue_interview` function, validates and serializes its arguments, rejects
 duplicate or stale calls, and submits the answer through Petrinaut's shared
-composer path with pending-`brunch_ask` correlation.
+composer path with pending-question correlation.
 
 The bridge waits for the correlated Brunch turn before returning canonical
 speech segments to Realtime. It then requests audio with tools disabled and
@@ -126,13 +133,14 @@ microphone stays active while the interviewer speaks and while Brunch is
 working. Speaking over assistant audio interrupts playback automatically;
 WebRTC truncates provider-side unheard audio without changing Brunch history.
 
-The Brunch deployment must allow the website origin through its
-`BRUNCH_PETRINAUT_ORIGINS` setting. Denying microphone permission leaves the
-text composer available and submits nothing to Brunch. When Voice mode cannot
-continue, the inline recovery state distinguishes microphone, connection, and
-other Voice failures, explains the next action, and offers **Reconnect** where
-appropriate. Sanitized error codes and diagnostic references remain collapsed
-under **Technical details**.
+The local Brunch preview reaches the mounted route through its same-origin,
+protocol-preserving proxy; this does not establish remote authentication or
+public ingress. Denying microphone permission leaves the text composer
+available and submits nothing to Brunch. When Voice mode cannot continue, the
+inline recovery state distinguishes microphone, connection, and other Voice
+failures, explains the next action, and offers **Reconnect** where appropriate.
+Sanitized error codes and diagnostic references remain collapsed under
+**Technical details**.
 
 Realtime connection, transcription, and canonical speech timings use random
 request IDs, and the existing Brunch transport provides its own request
