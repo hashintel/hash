@@ -497,7 +497,8 @@ export const toToolRenderItem = (
       state === "output-available" &&
       typeof part.toolCallId === "string" &&
       message.metadata?.source === "voice" &&
-      message.metadata.toolCallId === part.toolCallId,
+      (message.metadata.voiceToolCallIds?.includes(part.toolCallId) === true ||
+        message.metadata.toolCallId === part.toolCallId),
     errorText:
       state === "output-error" && typeof part.errorText === "string"
         ? part.errorText
@@ -536,9 +537,7 @@ const InteractiveToolItem = ({
           submit={() => {}}
           submittedOutput={definition.parseOutput(submittedOutput)}
           submittedOutputProvenance={
-            positionsVoiceProvenance ? (
-              <VoiceInputProvenance presentation="caption" />
-            ) : undefined
+            positionsVoiceProvenance ? <VoiceInputProvenance /> : undefined
           }
           toolCallId={tool.id}
         />

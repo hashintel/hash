@@ -23,26 +23,25 @@ describe("Brunch ask Fast Refresh boundary", () => {
 });
 
 describe("Brunch ask widget", () => {
-  test("renders a submitted answer as a user turn with provenance below it", () => {
+  test("renders voice provenance inside the submitted answer bubble", () => {
     render(
       <BrunchAskWidget
         input={{ question: "What can customers do at the ATM?" }}
         state="submitted"
         submit={() => {}}
         submittedOutput={{ answer: "ATM withdrawal." }}
-        submittedOutputProvenance={
-          <span data-testid="answer-provenance">Submitted by voice</span>
-        }
+        submittedOutputProvenance={<span data-testid="answer-provenance" />}
         toolCallId="brunch-ask-1"
       />,
     );
 
     const answerText = screen.getByText("ATM withdrawal.");
-    const answerBubble = answerText.closest('[data-role="user-answer"]')!;
-    const answerTurn = answerBubble.parentElement!;
-    const provenance = within(answerTurn).getByTestId("answer-provenance");
+    const answerBubble = answerText.closest(
+      '[data-role="user-answer"]',
+    ) as HTMLElement;
+    const provenance = within(answerBubble).getByTestId("answer-provenance");
 
-    expect(answerBubble.nextElementSibling).toBe(provenance);
+    expect(provenance.nextElementSibling).toBe(answerText);
   });
 });
 

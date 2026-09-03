@@ -83,16 +83,9 @@ const answerTurnStyle = css({
   justifyContent: "flex-end",
 });
 
-const answerStackStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-end",
+const answerStyle = css({
   maxWidth: "[92%]",
   minWidth: "0",
-  gap: "[3px]",
-});
-
-const answerStyle = css({
   paddingX: "2",
   paddingY: "[6px]",
   borderWidth: "thin",
@@ -133,12 +126,10 @@ export const BrunchAskWidget = ({
       <p className={questionStyle}>{input.question}</p>
       {state === "submitted" ? (
         <div className={answerTurnStyle}>
-          <div className={answerStackStyle}>
-            <p className={answerStyle} data-role="user-answer">
-              {submittedOutput.answer}
-            </p>
+          <p className={answerStyle} data-role="user-answer">
             {submittedOutputProvenance}
-          </div>
+            <span>{submittedOutput.answer}</span>
+          </p>
         </div>
       ) : (
         <form className={formStyle} onSubmit={onSubmit}>

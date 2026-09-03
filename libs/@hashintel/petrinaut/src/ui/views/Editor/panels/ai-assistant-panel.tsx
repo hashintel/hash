@@ -115,10 +115,30 @@ const markVoiceToolOrigin = (
 ): PetrinautAiMessage[] =>
   messages.map((message) =>
     message.id === messageId
-      ? {
-          ...message,
-          metadata: { ...message.metadata, source: "voice", toolCallId },
-        }
+      ? (() => {
+          const previousToolCallIds =
+            message.metadata?.source === "voice"
+              ? [
+                  ...(message.metadata.voiceToolCallIds ?? []),
+                  ...(message.metadata.toolCallId
+                    ? [message.metadata.toolCallId]
+                    : []),
+                ]
+              : [];
+          const { toolCallId: _legacyToolCallId, ...previousMetadata } =
+            message.metadata ?? {};
+
+          return {
+            ...message,
+            metadata: {
+              ...previousMetadata,
+              source: "voice",
+              voiceToolCallIds: [
+                ...new Set([...previousToolCallIds, toolCallId]),
+              ],
+            },
+          };
+        })()
       : message,
   );
 
@@ -207,7 +227,9 @@ export const addMappedToolOutput = async ({
         latestMessages.map((message) =>
           message.id === containingMessage.id &&
           message.metadata?.source === "voice" &&
-          message.metadata.toolCallId === params.toolCallId
+          (message.metadata.voiceToolCallIds?.includes(params.toolCallId) ===
+            true ||
+            message.metadata.toolCallId === params.toolCallId)
             ? { ...message, metadata: previousMetadata }
             : message,
         ),

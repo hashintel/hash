@@ -33,12 +33,11 @@ controls and a `muted` session phase, so muting stops capture without interrupti
 is saying, unlike pausing. Add an accessible manual Your turn control that cancels pending Voice
 speech and hands the live microphone turn back to the user without disconnecting the session. Surface
 voice recovery failures as toasts with privacy-safe diagnostic references, and request one-time
-consent before the host starts the microphone. Mark persisted spoken messages and the exact
-interactive-tool answer completed by Voice with visible provenance. Persisted spoken messages keep an
-inline Voice chip, while Brunch answers render as compact user-turn bubbles with a quiet "Submitted
-by voice" caption. Add a backwards-compatible submitted-output provenance slot to interactive-tool
-widgets: opted-in widgets can position Voice provenance beside their submitted value, while existing
-widgets retain the trailing fallback.
+consent before the host starts the microphone. Mark persisted spoken messages and every
+interactive-tool answer completed by Voice with visible provenance. Persisted spoken messages and
+Brunch answer bubbles use the same compact, icon-only waveform indicator. Add a backwards-compatible
+submitted-output provenance slot to interactive-tool widgets: opted-in widgets can position Voice
+provenance beside their submitted value, while existing widgets retain the trailing fallback.
 
 End Voice mode before submitting typed text exactly once through the shared composer, preserving the
 draft if handoff fails. Pause active media before the AI panel closes and reopen the mounted session

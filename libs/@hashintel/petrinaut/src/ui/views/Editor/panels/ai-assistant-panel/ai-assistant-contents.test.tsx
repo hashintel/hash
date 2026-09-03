@@ -654,6 +654,11 @@ describe("AiAssistantContents", () => {
       spokenText.closest("[data-role]")!,
     ).getByTestId("voice-input-provenance");
     expect(spokenProvenance.nextElementSibling).toBe(spokenText);
+    expect(spokenProvenance.textContent).toBe("");
+    expect(spokenProvenance.getAttribute("aria-label")).toBe(
+      "Submitted by voice",
+    );
+    expect(spokenProvenance.querySelector("svg")).not.toBeNull();
     expect(
       within(
         screen.getByText("Typed follow-up").closest("[data-role]")!,
@@ -661,7 +666,7 @@ describe("AiAssistantContents", () => {
     ).toBeNull();
   });
 
-  test("marks only the exact submitted interactive-tool answer named by voice metadata", () => {
+  test("marks every submitted interactive-tool answer named by voice metadata", () => {
     const hostTool = definePetrinautAiInteractiveTool({
       toolName: "answerQuestion",
       inputSchema: {
@@ -686,7 +691,10 @@ describe("AiAssistantContents", () => {
     const messages = [
       {
         id: "assistant-questions",
-        metadata: { source: "voice", toolCallId: "question-voice" },
+        metadata: {
+          source: "voice",
+          voiceToolCallIds: ["question-voice-1", "question-voice-2"],
+        },
         role: "assistant",
         parts: [
           {
@@ -701,9 +709,17 @@ describe("AiAssistantContents", () => {
             type: "dynamic-tool",
             toolName: "answerQuestion",
             state: "output-available",
-            toolCallId: "question-voice",
+            toolCallId: "question-voice-1",
             input: { question: "Who approves it?" },
             output: { answer: "The shift lead" },
+          },
+          {
+            type: "dynamic-tool",
+            toolName: "answerQuestion",
+            state: "output-available",
+            toolCallId: "question-voice-2",
+            input: { question: "Who acts next?" },
+            output: { answer: "The operator" },
           },
         ],
       },
@@ -722,20 +738,29 @@ describe("AiAssistantContents", () => {
       />,
     );
 
-    const voiceAnswer = screen.getByTestId("answer-question-voice");
-    const voiceProvenance = within(voiceAnswer).getByTestId(
-      "voice-input-provenance",
-    );
-    const voiceText = screen.getByText("question-voice: The shift lead");
-    expect(voiceProvenance.nextElementSibling).toBe(voiceText);
-    expect(voiceProvenance.textContent).toBe("Submitted by voice");
-    expect(voiceProvenance.querySelector("svg")).toBeNull();
+    for (const [toolCallId, answer] of [
+      ["question-voice-1", "The shift lead"],
+      ["question-voice-2", "The operator"],
+    ]) {
+      const voiceAnswer = screen.getByTestId(`answer-${toolCallId}`);
+      const voiceProvenance = within(voiceAnswer).getByTestId(
+        "voice-input-provenance",
+      );
+      const voiceText = screen.getByText(`${toolCallId}: ${answer}`);
+
+      expect(voiceProvenance.nextElementSibling).toBe(voiceText);
+      expect(voiceProvenance.textContent).toBe("");
+      expect(voiceProvenance.getAttribute("aria-label")).toBe(
+        "Submitted by voice",
+      );
+      expect(voiceProvenance.querySelector("svg")).not.toBeNull();
+    }
     expect(
       within(screen.getByTestId("answer-question-typed")).queryByTestId(
         "voice-input-provenance",
       ),
     ).toBeNull();
-    expect(screen.getAllByTestId("voice-input-provenance")).toHaveLength(1);
+    expect(screen.getAllByTestId("voice-input-provenance")).toHaveLength(2);
     expect(screen.queryByText("The shift lead", { exact: true })).toBeNull();
     expect(container.querySelectorAll('[data-role="user"]')).toHaveLength(0);
   });
