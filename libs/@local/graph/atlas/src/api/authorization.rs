@@ -69,11 +69,10 @@ where
                 "`Actor` extracted on a route without the authentication middleware",
                 "the caller's authentication was never resolved",
             )),
-            // The rejection is answered as a `Problem` rather than through the rejection's own
-            // response, so the middleware's rejection counter does not see it.
             Err(AuthenticationRejection::Authentication {
                 metrics: _,
                 ref report,
+                recorded: _,
             }) => Err(report.current_context().into()),
         }
     }
