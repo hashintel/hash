@@ -82,7 +82,6 @@
 
     // Library Features
     allocator_api,
-    array_try_from_fn,
     clone_from_ref,
     clone_to_uninit,
     const_array,

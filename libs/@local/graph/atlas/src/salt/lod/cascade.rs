@@ -5,7 +5,7 @@
 //! `(key, rank)` order.
 
 use core::alloc::Allocator;
-use std::{alloc::Global, collections::HashSet};
+use std::alloc::Global;
 
 use hashql_core::{
     collections::fast_hash_set,
@@ -192,6 +192,8 @@ pub(crate) fn verify_coverage<R: Id>(
     buckets: &IdSlice<R, Depth>,
     deepest: Depth,
 ) -> Result<(), CoverageGap> {
+    use std::collections::HashSet;
+
     assert_eq!(
         keys.len(),
         buckets.len(),

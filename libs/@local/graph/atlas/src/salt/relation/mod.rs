@@ -94,7 +94,7 @@ pub(crate) use crate::salt::policy::ClassProbabilities;
 pub(crate) use crate::salt::policy::RelationPolicy;
 use crate::{
     identity::OntologyRowId,
-    math::{DNonNegative, NonNegative, UnitFraction},
+    math::{DNonNegative, NonNegative},
     salt::policy::CertifiedPolicies,
 };
 
@@ -231,7 +231,9 @@ impl BuildMeasurements {
     /// fraction stays numerically negligible. An instance set without positive mass omits nothing.
     #[must_use]
     #[cfg(any(test, feature = "bench"))]
-    pub(crate) fn omitted_mass_fraction(&self) -> UnitFraction {
+    pub(crate) fn omitted_mass_fraction(&self) -> crate::math::UnitFraction {
+        use crate::math::UnitFraction;
+
         let total = self.retained_mass.get() + self.pruned_mass.get();
 
         if total <= 0.0 {
