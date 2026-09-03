@@ -1,36 +1,41 @@
 //! Wall-time benchmarks for the projector's training backend.
 //!
-//! The training backend decision holds train time as the binding constraint, and the training
-//! schedule's refresh risk is one full-corpus forward per ladder step per cadence tick. Both price
-//! out through the two motions measured here, at the real default architecture (512-wide stem, four
-//! residual blocks, `FiLM` from the width-1 `[eta]` condition), on the CPU and the host-derived
-//! accelerator:
+//! Training is bound by wall time, and so is the choice of its backend. This benchmark compares
+//! that time across the available backends without running full training runs. CI does not run it.
+//! It is a reference for backend decisions and for changes down the line.
+//!
+//! The projector under test is the default `Architecture` (a 512-wide stem, four residual blocks,
+//! and `FiLM` conditioning from the width-1 `[eta]` input). The workload therefore matches
+//! training. Run the benchmark with:
 //!
 //! ```text
 //! cargo bench -p hash-graph-atlas --features bench --bench projector_backend
 //! ```
 //!
-//! - `step` times forward plus backward through the autodiff decorator at training minibatch sizes
-//!   (the per-step cost an epoch budget multiplies). A device sync fences asynchronous backends
-//!   inside the timed region, and batches materialize per iteration, so the measurement prices
-//!   host-to-device transfer as it recurs per training step.
+//! Each group isolates one cost:
+//!
+//! - `step` times forward plus backward through the autodiff decorator at training minibatch sizes.
+//!   An epoch budget multiplies this per-step cost. Every call uploads the host batch to the
+//!   device. The measurement therefore includes host-to-device transfer as training incurs it. A
+//!   device sync inside the timed region makes asynchronous backends comparable.
 //! - `forward` times inference forward at refresh-pass batch sizes. The per-step refresh cost is
 //!   (corpus rows / batch) of these.
 //! - `threads` times one fixed CPU step across rayon pool sizes. The CPU backend's matrix work runs
-//!   on matrixmultiply's own pool (`MATMUL_NUM_THREADS`), so a flat response here is the expected
-//!   reading, kept as the guard on that fact.
-//!
+//!   on matrixmultiply's own pool (`MATMUL_NUM_THREADS`), not rayon's. The expected result is a
+//!   flat response, and this group guards that fact.
 //! - `live/*` times one real training step at the production batch plan over a synthesized corpus,
-//!   phase by phase. Shared `draw` and `assemble`, per-backend `input`, `refresh`, and `step`, and
-//!   CPU-only `forward` and `objective` expose the costs without leaving unconsumed GPU graphs. The
-//!   phase split decomposes the backend decision into burn tensor work, hand-rolled CPU work, and
-//!   the batch pipeline. Each backend's cold first step prints on its own before its timed phases.
-//!   On autotuning backends that number is the warmup story criterion's steady state hides.
+//!   phase by phase: `draw` and `assemble` are shared, `input`, `refresh` and `step` run on every
+//!   backend, and `forward` and `objective` run on the CPU only (the comment in `bench_live_step`
+//!   says why). Each backend's cold first step prints on its own before the timed phases.
 //!
-//! Set `PROJECTOR_BENCH_ROWS` to scale the largest forward batch (default 65536; the full corpus is
-//! ~1M rows, and forward cost is linear in rows past cache scale, so per-row numbers extrapolate).
-//! `PROJECTOR_BENCH_LIVE_ROWS` scales the live corpus (default 65536). Wall time depends on the
-//! host. Compare within one machine, not across.
+//! The environment scales the workload:
+//!
+//! - `PROJECTOR_BENCH_ROWS` scales the largest forward batch (default 65536). A deployed corpus is
+//!   around 1M rows, and forward cost is linear in rows past cache scale, therefore per-row numbers
+//!   extrapolate.
+//! - `PROJECTOR_BENCH_LIVE_ROWS` scales the live corpus (default 65536).
+//!
+//! Wall time depends on the host. Compare within one machine, not across.
 #![expect(
     clippy::decimal_literal_representation,
     clippy::significant_drop_tightening,
@@ -164,8 +169,9 @@ fn bench_live_step(criterion: &mut Criterion) {
     for &device in DEVICES {
         let mut stepper = live::Stepper::build(&fixture, device, SEED);
 
-        // The cold first step carries one-time backend work (autotune,
-        // first allocations) that steady-state sampling hides.
+        // The first step carries one-time backend work (autotune, first allocations) that `burn`
+        // offers no way to run separately. It runs once here and its time prints on its own,
+        // because criterion's steady-state sampling would hide it.
         let cold = Instant::now();
         let _cold_loss: f32 = stepper.step(&batch);
         eprintln!(
@@ -174,10 +180,9 @@ fn bench_live_step(criterion: &mut Criterion) {
             cold.elapsed()
         );
 
-        // Phase iterations run isolated (`PerIteration`), never in
-        // criterion's tight sample loops: an asynchronous backend's
-        // allocator pools per-call buffers, and a loop of corpus-shaped
-        // calls grows the pool faster than the device reclaims it.
+        // Per-iteration batching. The buffers are large, and an asynchronous backend frees them
+        // after the call returns. In criterion's tight sample loop the allocator's pool
+        // would grow faster than the device reclaims it.
         group.bench_function(format!("{device}/input"), |bencher| {
             bencher.iter_batched(
                 || (),
@@ -193,10 +198,10 @@ fn bench_live_step(criterion: &mut Criterion) {
             );
         });
 
-        // These decomposition phases record autodiff graphs no backward consumes. Orphan graphs pin
-        // device buffers until reclamation, which a sampling loop outruns on a pooled asynchronous
-        // device, so the decomposition stays a synchronous-backend instrument. `refresh` and `step`
-        // are the production motions every backend measures.
+        // The backward pass releases the autodiff graph. `forward` and `objective` build one and
+        // never run backward. On the GPU each iteration then holds its graph's buffers until the
+        // allocator gets to them, and a sample loop runs out of memory. The CPU backend frees
+        // synchronously and therefore runs these two phases alone.
         if device == Device::Cpu.pin(0) {
             group.bench_function(format!("{device}/forward"), |bencher| {
                 bencher.iter_batched(
