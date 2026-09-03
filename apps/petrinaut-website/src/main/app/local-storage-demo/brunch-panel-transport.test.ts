@@ -71,6 +71,7 @@ test("delegates one typed message to the supplied Flue conversation", async () =
 
   expect(send).toHaveBeenCalledOnce();
   expect(send).toHaveBeenCalledWith({
+    idempotencyKey: "ai-sdk:user-1",
     message: { kind: "user", body: "Typed tracer." },
     signal: undefined,
   });

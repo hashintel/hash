@@ -1,7 +1,5 @@
 import { describe, expect, test } from "vitest";
 
-import { ASK_TOOL_NAME } from "@hashintel/brunch-agent/client-tools";
-
 import {
   hashCanonicalSpeechText,
   selectCanonicalSpeechSegments,
@@ -90,7 +88,7 @@ describe("canonical speech selection", () => {
     ]);
   });
 
-  test("selects one exact validated brunch_ask question", () => {
+  test("does not treat structured tool input as canonical speech", () => {
     const messages = [
       {
         id: "assistant-ask",
@@ -99,21 +97,21 @@ describe("canonical speech selection", () => {
           {
             type: "dynamic-tool",
             toolCallId: "ask-1",
-            toolName: ASK_TOOL_NAME,
+            toolName: "brunch_ask",
             state: "input-available",
             input: { question: "Which operator confirms the batch?" },
           },
           {
             type: "dynamic-tool",
             toolCallId: "ask-malformed",
-            toolName: ASK_TOOL_NAME,
+            toolName: "brunch_ask",
             state: "input-available",
             input: { question: 42 },
           },
           {
             type: "dynamic-tool",
             toolCallId: "ask-submitted",
-            toolName: ASK_TOOL_NAME,
+            toolName: "brunch_ask",
             state: "output-available",
             input: { question: "Do not repeat an answered question." },
             output: { answer: "Already answered." },
@@ -129,20 +127,7 @@ describe("canonical speech selection", () => {
       },
     ] satisfies PetrinautAiMessage[];
 
-    const selected = select(messages);
-    const contentHash = hashCanonicalSpeechText(
-      "Which operator confirms the batch?",
-    );
-    expect(selected).toEqual([
-      {
-        contentHash,
-        id: `canonical-speech:assistant-ask:ask-1:${contentHash}`,
-        messageId: "assistant-ask",
-        partId: "ask-1",
-        source: "brunch-ask",
-        text: "Which operator confirms the batch?",
-      },
-    ]);
+    expect(select(messages)).toEqual([]);
   });
 
   test("uses stable source identity plus an exact-text fingerprint", () => {
