@@ -3,6 +3,7 @@ import type {
   EntityTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
 
 export type SpecialEntityTypeRecord = {
   isFile: boolean;
@@ -24,6 +25,11 @@ export type EntityTypesContextValue = {
     | null
     | ((entityTypeIds: VersionedUrl[]) => SpecialEntityTypeRecord);
   subgraph: Subgraph<EntityTypeRootType> | null;
+  // the requesting user's permissions on each entity type, keyed by entity type id
+  entityTypePermissions: Record<
+    VersionedUrl,
+    UserPermissionsOnEntityType
+  > | null;
   loading: boolean;
 
   refetch: () => Promise<void>;

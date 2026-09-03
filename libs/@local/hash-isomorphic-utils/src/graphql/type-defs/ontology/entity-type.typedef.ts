@@ -16,6 +16,11 @@ export const entityTypeTypedef = gql`
   scalar Filter
   scalar UserPermissionsOnEntityType
 
+  type EntityTypePermissionsRecord {
+    entityTypeId: VersionedUrl!
+    permissions: UserPermissionsOnEntityType!
+  }
+
   extend type Query {
     queryEntityTypes(
       request: QueryEntityTypesParams!
@@ -39,6 +44,14 @@ export const entityTypeTypedef = gql`
     checkUserPermissionsOnEntityType(
       entityTypeId: VersionedUrl!
     ): UserPermissionsOnEntityType!
+
+    """
+    Check the requesting user's permissions on multiple entity types at once,
+    returning the permissions for each requested type.
+    """
+    checkUserPermissionsOnEntityTypes(
+      entityTypeIds: [VersionedUrl!]!
+    ): [EntityTypePermissionsRecord!]!
   }
 
   input EntityTypeUpdate {
