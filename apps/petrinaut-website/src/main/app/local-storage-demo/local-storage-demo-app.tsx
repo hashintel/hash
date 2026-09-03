@@ -26,6 +26,7 @@ import {
   DefaultChatTransport,
   Petrinaut,
   type PetrinautAiMessage,
+  type PetrinautAiStopResult,
   type PetrinautAiVoiceMode,
   type PetrinautAiVoiceModeContext,
   WalkthroughProvider,
@@ -45,7 +46,10 @@ import {
 } from "../voice-interview/voice-interview-control";
 import { brunchAskInteractiveTool } from "./brunch-ask-interactive-tool";
 import { getOrCreateBrunchConversationId } from "./brunch-conversation-id";
-import { createBrunchPanelTransport } from "./brunch-panel-transport";
+import {
+  BrunchPanelConversationTracker,
+  createBrunchPanelTransport,
+} from "./brunch-panel-transport";
 import { resolveBrunchPreviewConfig } from "./brunch-preview-config";
 import { getOrCreateBrunchPrincipal } from "./brunch-principal";
 import { useFlueChatHistory } from "./use-flue-chat-history";
@@ -112,10 +116,20 @@ const brunchPreviewConfig = resolveBrunchPreviewConfig(
 
 export const getBrunchVoiceMode = (
   config: OpenAIVoiceConfig | null | undefined,
+  tracker?: BrunchPanelConversationTracker,
 ): PetrinautAiVoiceMode | undefined =>
   config
     ? (context: PetrinautAiVoiceModeContext) => (
-        <VoiceInterviewControl {...context} config={config} />
+        <VoiceInterviewControl
+          {...context}
+          config={config}
+          resolveInputSubmission={(messageId) =>
+            tracker?.submissionForInput(messageId)
+          }
+          resolveResponseSubmission={(messageId) =>
+            tracker?.submissionForResponse(messageId)
+          }
+        />
       )
     : undefined;
 
@@ -152,6 +166,14 @@ const createBrunchFlueClient = async (conversationId: string) => {
   });
 };
 
+export const requestFlueStop = async (
+  clientPromise: Promise<ReturnType<typeof createFlueClient>>,
+): Promise<PetrinautAiStopResult> => {
+  const client = await clientPromise;
+  const result = await client.abort();
+  return result.aborted ? "stop-requested" : "already-settled";
+};
+
 const getStoredSDCPNsForDisplay = (
   storedSDCPNs: Record<string, SDCPNInLocalStorage>,
 ): Record<string, SDCPNInLocalStorage> => {
@@ -174,6 +196,64 @@ const createActiveHandle = (net: SDCPNInLocalStorage): ActiveHandle => ({
   netId: net.id,
   fallbackNet: net,
 });
+
+type FlueChatHistory = ReturnType<typeof useFlueChatHistory>;
+
+const errorStatus = (error: Error | undefined): number | undefined => {
+  if (
+    error !== undefined &&
+    "status" in error &&
+    typeof error.status === "number"
+  ) {
+    return error.status;
+  }
+  return undefined;
+};
+
+const BrunchConversationStatus = ({
+  error,
+  latestSettlement,
+  phase,
+  refresh,
+}: Pick<
+  FlueChatHistory,
+  "error" | "latestSettlement" | "phase" | "refresh"
+>) => {
+  if (phase === undefined) return null;
+
+  const label =
+    phase === "loading"
+      ? "Loading Brunch conversation…"
+      : phase === "connecting"
+        ? "Reconnecting to Brunch…"
+        : phase === "absent"
+          ? "New Brunch conversation"
+          : phase === "error"
+            ? errorStatus(error) === 401 || errorStatus(error) === 403
+              ? "Brunch access was denied."
+              : "Brunch conversation unavailable."
+            : phase === "closed"
+              ? "Brunch conversation closed."
+              : latestSettlement?.outcome === "aborted"
+                ? "Last Brunch response stopped."
+                : latestSettlement?.outcome === "failed"
+                  ? "Last Brunch response failed."
+                  : "Brunch conversation ready.";
+
+  return (
+    <span aria-live="polite">
+      {label}
+      {phase === "error" && (
+        <>
+          {" "}
+          <button type="button" onClick={refresh}>
+            Retry
+          </button>
+        </>
+      )}
+    </span>
+  );
+};
 
 /**
  * The demo's own palette command, registered beside Petrinaut's: picking it
@@ -413,9 +493,13 @@ export const LocalStorageDemoApp = ({
         : null,
     [conversationId],
   );
+  const conversationTracker = useMemo(
+    () => new BrunchPanelConversationTracker(conversationId),
+    [conversationId],
+  );
   const brunchVoiceMode = useMemo(
-    () => getBrunchVoiceMode(openAIVoiceConfig),
-    [openAIVoiceConfig],
+    () => getBrunchVoiceMode(openAIVoiceConfig, conversationTracker),
+    [conversationTracker, openAIVoiceConfig],
   );
   const flueHistory = useFlueChatHistory(
     flueClientPromise,
@@ -425,8 +509,10 @@ export const LocalStorageDemoApp = ({
     () =>
       flueClientPromise === null
         ? stockChatTransport
-        : createBrunchPanelTransport(flueClientPromise),
-    [flueClientPromise],
+        : createBrunchPanelTransport(flueClientPromise, conversationTracker, {
+            onAdmission: flueHistory.refresh,
+          }),
+    [conversationTracker, flueClientPromise, flueHistory.refresh],
   );
 
   const aiAssistant = useMemo(
@@ -434,13 +520,31 @@ export const LocalStorageDemoApp = ({
       ...(conversationId === null ? {} : { conversationId }),
       interactiveTools: [brunchAskInteractiveTool],
       transport: petrinautAiChatTransport,
-      messages: flueHistory.ready
-        ? flueHistory.messages
-        : currentNetId
-          ? aiMessagesByNetId[currentNetId]
-          : undefined,
+      ...(flueClientPromise === null
+        ? {}
+        : {
+            requestStop: () => requestFlueStop(flueClientPromise),
+          }),
+      ...(flueClientPromise === null
+        ? {}
+        : {
+            renderComposerControl: () => (
+              <BrunchConversationStatus
+                error={flueHistory.error}
+                latestSettlement={flueHistory.latestSettlement}
+                phase={flueHistory.phase}
+                refresh={flueHistory.refresh}
+              />
+            ),
+          }),
+      messages:
+        flueClientPromise === null
+          ? currentNetId
+            ? aiMessagesByNetId[currentNetId]
+            : undefined
+          : flueHistory.messages,
       onMessages: (messages: PetrinautAiMessage[]) => {
-        if (!currentNetId) {
+        if (!currentNetId || flueClientPromise !== null) {
           return;
         }
 
@@ -450,7 +554,7 @@ export const LocalStorageDemoApp = ({
         }));
       },
       onClearMessages: () => {
-        if (!currentNetId) {
+        if (!currentNetId || flueClientPromise !== null) {
           return;
         }
 
@@ -471,8 +575,12 @@ export const LocalStorageDemoApp = ({
       brunchVoiceMode,
       conversationId,
       currentNetId,
+      flueClientPromise,
+      flueHistory.error,
+      flueHistory.latestSettlement,
       flueHistory.messages,
-      flueHistory.ready,
+      flueHistory.phase,
+      flueHistory.refresh,
       petrinautAiChatTransport,
       setAiMessagesByNetId,
     ],

@@ -364,7 +364,7 @@ try {
 
     const result: PetrinautChatResult = {
       status: 200,
-      messageId: startChunk?.messageId,
+      messageId: startChunk.messageId,
       partIds: initialChunks
         .filter(
           (chunk) =>
@@ -388,7 +388,7 @@ try {
       clientToolOutputsOnInitial: initialChunks.filter(
         (chunk) =>
           chunk.type === "tool-output-available" &&
-          chunk.toolCallId === clientToolCall?.toolCallId,
+          chunk.toolCallId === clientToolCall.toolCallId,
       ),
       initialFinish: initialChunks.at(-1),
       pendingHistoryClientToolState:

@@ -5,11 +5,17 @@ import {
   VOICE_REQUEST_ID_HEADER,
   type VoiceDiagnosticEvent,
 } from "../../../voice-diagnostics";
+import {
+  BrunchPanelConversationTracker,
+  createBrunchPanelTransport,
+} from "../local-storage-demo/brunch-panel-transport";
 import { selectCanonicalSpeechSegments } from "./canonical-speech";
 import { OpenAIRealtimeSession } from "./openai-realtime-session";
 import { RealtimeBrunchBridge } from "./realtime-brunch-bridge";
 import { VoiceTurnController } from "./voice-turn-controller";
 
+import type { OpenAIRealtimeSessionEvent } from "./openai-realtime-session";
+import type { AgentSendResult, FlueClient } from "@flue/sdk";
 import type { PetrinautAiMessage } from "@hashintel/petrinaut/ui";
 
 const origin = "https://petrinaut.test";
@@ -389,5 +395,95 @@ describe("controlled voice preview", () => {
     expect(remoteTrack.stop).toHaveBeenCalledOnce();
     expect(remoteAudio.pause).toHaveBeenCalledOnce();
     expect(peer.close).toHaveBeenCalledOnce();
+  });
+
+  test("admits a Voice turn only through the Flue route", async () => {
+    const admission: AgentSendResult = {
+      streamUrl: "https://petrinaut.test/agents/chat/instance-1",
+      offset: "offset-1",
+      submissionId: "submission-voice-1",
+      uid: "uid-1",
+    };
+    const send = vi.fn<FlueClient["send"]>(async () => admission);
+    const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+      await options?.onEvent?.({
+        type: "submission-settled",
+        conversationId: "conversation-1",
+        submissionId: admission.submissionId,
+        outcome: "completed",
+        position: { batch: 1, index: 0 },
+      });
+    });
+    const client = {
+      send,
+      wait,
+    } as Pick<FlueClient, "send" | "wait"> as FlueClient;
+    const tracker = new BrunchPanelConversationTracker("conversation-1");
+    const transport = createBrunchPanelTransport(
+      Promise.resolve(client),
+      tracker,
+    );
+    let realtimeListener:
+      | ((event: OpenAIRealtimeSessionEvent) => void)
+      | undefined;
+    const bridge = new RealtimeBrunchBridge({
+      session: {
+        completeFunctionCall: vi.fn(),
+        speakCanonical: vi.fn(),
+        subscribe: (listener) => {
+          realtimeListener = listener;
+          return () => {
+            realtimeListener = undefined;
+          };
+        },
+      },
+      submitInterviewAnswer: async ({ id, text }) => {
+        const stream = await transport.sendMessages({
+          trigger: "submit-message",
+          chatId: "conversation-1",
+          messageId: undefined,
+          messages: [
+            {
+              id,
+              role: "user",
+              metadata: { source: "voice" },
+              parts: [{ type: "text", text }],
+            },
+          ],
+          abortSignal: undefined,
+        });
+        await stream.pipeTo(new WritableStream());
+        const submissionId = tracker.submissionForInput(id);
+        if (submissionId === undefined) {
+          throw new Error("missing Flue admission");
+        }
+        return { kind: "message", messageId: id, submissionId };
+      },
+    });
+    bridge.updateChat({
+      canAcceptInterviewAnswer: true,
+      canonicalSegments: [],
+      status: "ready",
+    });
+    bridge.start(1);
+
+    const finalized = {
+      arguments: '{"answer":"The supervisor approves it."}',
+      callId: "call-1",
+      connectionEpoch: 1,
+      itemId: "function-item-1",
+      name: "continue_interview",
+      responseId: "response-1",
+      type: "tool-arguments-done" as const,
+    };
+    realtimeListener?.(finalized);
+    realtimeListener?.(finalized);
+
+    await vi.waitFor(() => expect(send).toHaveBeenCalledOnce());
+    expect(send).toHaveBeenCalledWith({
+      message: { kind: "user", body: "The supervisor approves it." },
+      signal: undefined,
+    });
+    expect(admission.streamUrl).toContain("/agents/chat/");
   });
 });

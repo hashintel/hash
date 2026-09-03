@@ -39,7 +39,7 @@ export interface FlueChatTransportOptions {
   }) => void;
   readonly onResponseMessage?: (event: {
     readonly messageId: string;
-    readonly submissionId: string;
+    readonly submissionId: AgentSendResult["submissionId"];
   }) => void;
 }
 

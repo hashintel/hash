@@ -11,8 +11,10 @@ import { VoiceInterviewControl } from "../voice-interview/voice-interview-contro
 import {
   getBrunchVoiceMode,
   LocalStorageDemoApp,
+  requestFlueStop,
 } from "./local-storage-demo-app";
 
+import type { FlueClient } from "@flue/sdk";
 import type { PetrinautNavigationController } from "@hashintel/petrinaut/react";
 
 const defaultTransportOptions = vi.hoisted(() => ({
@@ -96,6 +98,22 @@ describe("local storage demo Brunch voice integration", () => {
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
     );
   });
+
+  test.each([
+    [true, "stop-requested"],
+    [false, "already-settled"],
+  ] as const)(
+    "maps Flue abort result %s onto the host Stop contract",
+    async (aborted, expected) => {
+      const abort = vi.fn<FlueClient["abort"]>(async () => ({ aborted }));
+      const client = { abort } as Pick<FlueClient, "abort"> as FlueClient;
+
+      await expect(requestFlueStop(Promise.resolve(client))).resolves.toBe(
+        expected,
+      );
+      expect(abort).toHaveBeenCalledOnce();
+    },
+  );
 });
 
 /**

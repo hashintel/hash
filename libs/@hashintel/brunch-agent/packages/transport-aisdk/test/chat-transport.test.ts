@@ -3,6 +3,7 @@ import { expect, test, vi } from "vitest";
 
 import { createFlueChatTransport } from "../src";
 
+import type { FlueChatTransportOptions } from "../src";
 import type {
   AgentSendResult,
   ConversationStreamChunk,
@@ -59,6 +60,8 @@ const clientWith = (
 } => {
   const send = vi.fn<FlueClient["send"]>(async () => admission);
   const wait = vi.fn<FlueClient["wait"]>(async (_admission, options) => {
+    // Preserve protocol order while exercising the stateful projector.
+    // eslint-disable-next-line no-await-in-loop
     for (const event of events) await options?.onEvent?.(event);
   });
   return {
@@ -73,6 +76,8 @@ const readChunks = async (
   const chunks: UIMessageChunk[] = [];
   const reader = stream.getReader();
   for (;;) {
+    // A stream reader is necessarily consumed in sequence.
+    // eslint-disable-next-line no-await-in-loop
     const result = await reader.read();
     if (result.done) return chunks;
     chunks.push(result.value);
@@ -316,8 +321,10 @@ test("surfaces rejected and ambiguous admission without retrying", async () => {
 
 test("reports one admission and its correlated response message", async () => {
   const { client } = clientWith(completedEvents);
-  const onAdmission = vi.fn();
-  const onResponseMessage = vi.fn();
+  const onAdmission =
+    vi.fn<NonNullable<FlueChatTransportOptions["onAdmission"]>>();
+  const onResponseMessage =
+    vi.fn<NonNullable<FlueChatTransportOptions["onResponseMessage"]>>();
   const transport = createFlueChatTransport({
     client,
     clientToolNames: new Set(),

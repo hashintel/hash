@@ -1574,6 +1574,105 @@ describe("AiAssistantPanel composer submissions", () => {
     expect(await screen.findByText("Response stopped")).not.toBeNull();
   });
 
+  test("records a durable Stop before cancelling the local stream", async () => {
+    const localCancellation = vi.fn();
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(
+        ({
+          abortSignal,
+        }: Parameters<PetrinautAiTransport["sendMessages"]>[0]) =>
+          Promise.resolve(
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controller.enqueue({ type: "start-step" });
+                controller.enqueue({ type: "text-start", id: "partial" });
+                controller.enqueue({
+                  type: "text-delta",
+                  id: "partial",
+                  delta: "Durably stopping",
+                });
+                abortSignal?.addEventListener("abort", () => {
+                  localCancellation();
+                  controller.error(new DOMException("Aborted", "AbortError"));
+                });
+              },
+            }),
+          ),
+      ),
+    };
+    const requestStop = vi.fn(async () => "stop-requested" as const);
+
+    renderTestPanel({
+      aiAssistant: { requestStop, transport },
+      initialMessage: "Start durable work",
+    });
+    await screen.findByText("Durably stopping");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+
+    await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
+    await waitFor(() => expect(localCancellation).toHaveBeenCalledOnce());
+    expect(requestStop.mock.invocationCallOrder[0]).toBeLessThan(
+      localCancellation.mock.invocationCallOrder[0]!,
+    );
+    expect(await screen.findByText("Response stopped")).not.toBeNull();
+  });
+
+  test("keeps a response completed before the durable Stop race", async () => {
+    const localCancellation = vi.fn();
+    let streamController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const transport: PetrinautAiTransport = {
+      reconnectToStream: () => Promise.resolve(null),
+      sendMessages: vi.fn(
+        ({
+          abortSignal,
+        }: Parameters<PetrinautAiTransport["sendMessages"]>[0]) =>
+          Promise.resolve(
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                streamController = controller;
+                controller.enqueue({ type: "start-step" });
+                controller.enqueue({ type: "text-start", id: "answer" });
+                controller.enqueue({
+                  type: "text-delta",
+                  id: "answer",
+                  delta: "Completed response",
+                });
+                abortSignal?.addEventListener("abort", localCancellation);
+              },
+            }),
+          ),
+      ),
+    };
+    const requestStop = vi.fn(async () => {
+      streamController?.enqueue({ type: "text-end", id: "answer" });
+      streamController?.enqueue({ type: "finish-step" });
+      streamController?.enqueue({ type: "finish", finishReason: "stop" });
+      streamController?.close();
+      return "already-settled" as const;
+    });
+
+    renderTestPanel({
+      aiAssistant: { requestStop, transport },
+      initialMessage: "Race a completed response",
+    });
+    await screen.findByText("Completed response");
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop AI response" }));
+
+    await waitFor(() => expect(requestStop).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Send message" }),
+      ).toHaveProperty("disabled", true),
+    );
+    expect(localCancellation).not.toHaveBeenCalled();
+    expect(screen.queryByText("Response stopped")).toBeNull();
+  });
+
   test("does not carry an idle host stop into a later incidental abort", async () => {
     let requestCount = 0;
     const transport: PetrinautAiTransport = {

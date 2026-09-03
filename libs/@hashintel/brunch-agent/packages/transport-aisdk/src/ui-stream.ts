@@ -1,8 +1,8 @@
-import type { ConversationStreamChunk } from "@flue/sdk";
+import type { AgentSendResult, ConversationStreamChunk } from "@flue/sdk";
 import type { UIMessageChunk } from "ai";
 
 export interface FlueUiStreamOptions {
-  readonly submissionId: string;
+  readonly submissionId: AgentSendResult["submissionId"];
   readonly clientToolNames: ReadonlySet<string>;
   readonly write: (chunk: UIMessageChunk) => void;
 }
