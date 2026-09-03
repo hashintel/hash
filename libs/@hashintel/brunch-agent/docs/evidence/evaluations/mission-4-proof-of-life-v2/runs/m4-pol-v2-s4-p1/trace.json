@@ -1,0 +1,38 @@
+{
+  "conversationId": "conv_01M1K9DEV53EHY78EF88J4T5K2",
+  "events": [
+    {
+      "type": "user",
+      "turn": 1,
+      "messageId": "entry_direct_c3ViXzAxTTFLOURFVjQ1RFZENlNaREczVzRTSjVH",
+      "text": "Review the described target against the supplied operational account. Stop after the first consequential action. Do not invent an operational rule or mutate a net.\n\nOperational account: a reviewer is reserved while checking a request. Recording approval releases that reviewer. After rejection, the requester has five business days to appeal, and the original reviewer answers case questions raised during an appeal. A reviewer may be assigned to no more than one active review.\nTarget description: StartCheck reserves one AvailableReviewer token. RecordApproval returns it. RecordRejection also returns it immediately. AppealSubmitted carries only the request token and retains no association with the original reviewer.",
+      "sequence": 1
+    },
+    {
+      "type": "activate",
+      "turn": 1,
+      "messageId": "entry_01M1K9DPPWZZ90BT10J31413AH",
+      "toolCallId": "toolu_01WyuSKzHdHaqKGkP49Q1k29",
+      "name": "sdcpn-modelling",
+      "outcome": "ok",
+      "sequence": 2
+    },
+    {
+      "type": "read",
+      "turn": 1,
+      "messageId": "entry_01M1K9DPPWZZ90BT10J31413AH",
+      "toolCallId": "toolu_01N8Gd7QetnP6PV4TgMcgpr3",
+      "path": "sdcpn-modelling/references/checks.md",
+      "outcome": "ok",
+      "sequence": 3
+    },
+    {
+      "type": "text",
+      "turn": 1,
+      "messageId": "entry_01M1K9DPPWZZ90BT10J31413AH",
+      "text": "## Review result — first consequential discrepancy found\n\n**Stopping point:** `RecordRejection` returning the reviewer token immediately.\n\n---\n\n### What the operational account establishes\n\nAfter a rejection the original reviewer must be reachable to answer case questions raised during an appeal. The appeal window is five business days. That means the reviewer cannot be fully released the moment rejection is recorded; they must remain associated with the case at least until the appeal window closes or an appeal is answered.\n\n### What the target does\n\n`RecordRejection` returns the `AvailableReviewer` token immediately, and `AppealSubmitted` carries only the request token with no association to the original reviewer. Together, these two choices permanently discard the reviewer–case link at the point of rejection.\n\n### Why this is consequential\n\n- The reviewer-availability constraint (\"no more than one active review\") depends on accurate reservation. Releasing at rejection re-pools the reviewer before their post-rejection obligation ends, so they could be assigned to a second review while still obligated to answer appeal questions for the first.\n- No downstream structure can reconstruct which reviewer was originally assigned once the token is returned and the association is absent from `AppealSubmitted`. The obligation to answer case questions therefore cannot be enforced by the net.\n- This is not a representation choice or a modelling approximation; it is a structural conflict with an explicitly stated operational rule.\n\n### What is not established here\n\nWhether returning the token should happen at appeal-window expiry, at appeal closure, or at some other point is not fully resolved by the operational account as stated. That is a gap the account would need to fill before a corrected target could be constructed — but establishing it is a separate step, and no answer has been supplied or invented here.\n\n---\n\n**Action taken:** discrepancy reported. No operational rule invented, no net mutated, no further analysis opened.",
+      "hasWorkpiece": false,
+      "sequence": 4
+    }
+  ]
+}
