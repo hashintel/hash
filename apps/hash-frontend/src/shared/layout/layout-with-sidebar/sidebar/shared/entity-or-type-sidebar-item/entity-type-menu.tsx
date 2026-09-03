@@ -8,6 +8,7 @@ import { ArrowUpRightIcon } from "@hashintel/design-system";
 
 import { useEntityTypesContextRequired } from "../../../../../entity-types-context/hooks/use-entity-types-context-required";
 import { useFrozenValue } from "../../../../../frozen";
+import { useUserPermissionsOnEntityType } from "../../../../../use-user-permissions-on-entity-type";
 import { FavoriteMenuItem } from "./shared/favorite-menu-item";
 import { SidebarMenuItem } from "./shared/sidebar-menu-item";
 
@@ -38,9 +39,15 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
 
   const isLinkEntityType = isSpecialEntityTypeLookup?.[entityTypeId]?.isLink;
 
+  // Fetch on mount, not on open, so permission-gated items are already resolved
+  // by the time the menu opens – avoids the list shifting under the cursor
+  const { userPermissions } = useUserPermissionsOnEntityType(entityTypeId);
+
+  const canInstantiate = !!userPermissions?.instantiate;
+
   return (
     <Menu {...bindMenu(popupState)}>
-      {isLinkEntityType ? null : (
+      {isLinkEntityType || !canInstantiate ? null : (
         <SidebarMenuItem
           title={`Create new ${title}`}
           icon={faAdd}
@@ -65,12 +72,15 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
           }, 2000);
         }}
       />
-      <SidebarMenuItem
-        title="Extend this type"
-        icon={<ArrowUpRightIcon sx={{ fontSize: 16 }} />}
-        href={`/new/types/entity-type?extends=${entityTypeId}`}
-        popupState={popupState}
-      />
+      {/* Extending requires permission to instantiate the parent type */}
+      {canInstantiate ? (
+        <SidebarMenuItem
+          title="Extend this type"
+          icon={<ArrowUpRightIcon sx={{ fontSize: 16 }} />}
+          href={`/new/types/entity-type?extends=${entityTypeId}`}
+          popupState={popupState}
+        />
+      ) : null}
       <SidebarMenuItem
         title={`View all ${isLinkEntityType ? `${title} links` : titlePlural}`}
         icon={faList}

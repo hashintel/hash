@@ -1,5 +1,6 @@
 //! Service delegation implementation of [`AuthenticationProvider`].
 
+use alloc::sync::Arc;
 use core::ops::ControlFlow;
 
 use error_stack::Report;
@@ -82,7 +83,7 @@ where
     async fn authenticate(
         &self,
         headers: &HeaderMap,
-    ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
+    ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
         match self.delegated_actor(headers).await {
             ControlFlow::Continue(()) => ControlFlow::Continue(()),
             ControlFlow::Break(Ok(Some(actor_id))) => {
@@ -90,17 +91,17 @@ where
             }
             // The nil UUID names no actor, so the request resolves as an anonymous one does. A
             // chain requiring an actor is missing the delegated actor, not the credential.
-            ControlFlow::Break(Ok(None)) => ControlFlow::Break(
-                C::anonymous()
-                    .map_err(|_error| Report::new(AuthenticationError::missing_delegated_actor())),
-            ),
-            ControlFlow::Break(Err(report)) => ControlFlow::Break(Err(report)),
+            ControlFlow::Break(Ok(None)) => ControlFlow::Break(C::anonymous().map_err(|_error| {
+                Arc::new(Report::new(AuthenticationError::missing_delegated_actor()))
+            })),
+            ControlFlow::Break(Err(report)) => ControlFlow::Break(Err(Arc::new(report))),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use alloc::sync::Arc;
     use core::{assert_matches, ops::ControlFlow};
     use std::collections::HashMap;
 
@@ -156,7 +157,7 @@ mod tests {
     async fn authenticate<C: Caller>(
         provider: &ServiceDelegationProvider<FixedActorResolver>,
         headers: &HeaderMap,
-    ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
+    ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
         provider.authenticate(headers).await
     }
 

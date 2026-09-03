@@ -1,5 +1,6 @@
 //! Resolution of a request's credentials to the acting principal.
 
+use alloc::sync::Arc;
 use core::{
     fmt,
     ops::ControlFlow,
@@ -206,18 +207,15 @@ pub struct AuthenticationError {
     kind: AuthenticationErrorKind,
     /// Whether the error has been logged.
     logged: Atomic<bool>,
-    /// Whether the error has been counted as a rejection.
-    recorded: Atomic<bool>,
 }
 
 impl AuthenticationError {
-    /// Creates the error for `kind`, not yet logged or counted.
+    /// Creates the error for `kind`, not yet logged.
     #[must_use]
     pub const fn new(kind: AuthenticationErrorKind) -> Self {
         Self {
             kind,
             logged: Atomic::<bool>::new(false),
-            recorded: Atomic::<bool>::new(false),
         }
     }
 
@@ -374,35 +372,6 @@ impl AuthenticationError {
 
         true
     }
-
-    /// Ensures the rejection is counted on `metrics`, once per error.
-    ///
-    /// Each error counts once: a later call on a report whose error already counted does
-    /// nothing, so every rejection built over the same report may drop without inflating the
-    /// counter. Returns whether this call was the one that counted.
-    pub(super) fn ensure_rejection_recorded(
-        report: &Report<Self>,
-        metrics: &AuthenticationMetrics,
-    ) -> bool {
-        let this = report.current_context();
-
-        // `Relaxed` is permissible here, as it is only used to avoid double-counting rejections.
-        if this
-            .recorded
-            .compare_exchange(
-                false,
-                true,
-                atomic::Ordering::Relaxed,
-                atomic::Ordering::Relaxed,
-            )
-            .is_err()
-        {
-            return false;
-        }
-
-        metrics.record_rejection(this);
-        true
-    }
 }
 
 impl fmt::Display for AuthenticationError {
@@ -433,13 +402,11 @@ pub async fn resolve_request_actor<P, C>(
     provider: &P,
     headers: &HeaderMap,
     metrics: &AuthenticationMetrics,
-) -> Result<C, Report<AuthenticationError>>
+) -> Result<C, Arc<Report<AuthenticationError>>>
 where
     P: AuthenticationProvider<C>,
     C: Caller,
 {
-    // TODO(BE-755): cache verified credentials so repeated requests do not re-verify against the
-    //               provider and the principal store each time
     match provider.authenticate(headers).await {
         ControlFlow::Break(Ok(caller)) => Ok(caller),
         ControlFlow::Break(Err(report)) => {
@@ -466,7 +433,7 @@ where
             C::anonymous().map_err(|error| {
                 let report = Report::new(error);
                 AuthenticationError::ensure_logged(&report);
-                report
+                Arc::new(report)
             })
         }
     }
@@ -578,12 +545,11 @@ mod tests {
         fn authenticate(
             &self,
             _headers: &HeaderMap,
-        ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send
+        ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send
         {
-            core::future::ready(ControlFlow::Break(Err(Report::new(
-                AuthenticationError::new((self.0)()),
-            )
-            .attach(PROVIDER_DETAIL))))
+            core::future::ready(ControlFlow::Break(Err(Arc::new(
+                Report::new(AuthenticationError::new((self.0)())).attach(PROVIDER_DETAIL),
+            ))))
         }
     }
 
@@ -798,20 +764,6 @@ mod tests {
 
         assert!(AuthenticationError::ensure_logged(&report));
         assert!(!AuthenticationError::ensure_logged(&report));
-    }
-
-    /// The claim is exclusive: the first call counts and every later call reads the taken latch.
-    #[test]
-    fn record_latches() {
-        let report = Report::new(AuthenticationError::missing_credentials());
-        let metrics = test_metrics();
-
-        assert!(AuthenticationError::ensure_rejection_recorded(
-            &report, &metrics
-        ));
-        assert!(!AuthenticationError::ensure_rejection_recorded(
-            &report, &metrics
-        ));
     }
 
     /// The level a rejection is logged at follows its fault domain.

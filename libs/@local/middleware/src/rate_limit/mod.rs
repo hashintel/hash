@@ -727,7 +727,7 @@ where
 /// #     async fn authenticate(
 /// #         &self,
 /// #         _headers: &HeaderMap,
-/// #     ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
+/// #     ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
 /// #         ControlFlow::Continue(())
 /// #     }
 /// # }

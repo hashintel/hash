@@ -25,6 +25,7 @@ pub use self::{
     identity::{KratosAdminConfig, KratosEmailActorResolver},
     session::{
         KratosSessionConfig, KratosSessionProvider, SESSION_COOKIE_NAME, SESSION_TOKEN_HEADER,
+        SessionCacheConfig,
     },
 };
 

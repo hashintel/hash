@@ -18,7 +18,12 @@ pub mod request;
 pub mod service_secret;
 
 use alloc::sync::Arc;
-use core::{future, marker::PhantomData, task};
+use core::{
+    future,
+    marker::PhantomData,
+    sync::atomic::{AtomicBool, Ordering},
+    task,
+};
 
 use axum::{
     extract::{FromRequestParts, OptionalFromRequestParts},
@@ -112,8 +117,9 @@ impl AuthenticationMetrics {
 /// The response a request that failed authentication is answered with.
 ///
 /// A rejection records itself when it drops, whether or not a response was rendered from it,
-/// so no holder logs or counts one. The log and the count are latched on the shared error, so
-/// a rejection cloned or rebuilt over the same report still reaches the log and the meter once.
+/// so no holder logs or counts one. The log latches on the error — shared across the requests
+/// one verification answered — and the count on the request, so every rejected request counts
+/// once.
 #[derive(Clone)]
 pub enum AuthenticationRejection {
     /// The credentials did not resolve to a caller the route admits.
@@ -122,6 +128,8 @@ pub enum AuthenticationRejection {
         report: Arc<Report<AuthenticationError>>,
         /// The instruments the rejection is counted on.
         metrics: Arc<AuthenticationMetrics>,
+        /// Whether this request's rejection has been counted.
+        recorded: Arc<AtomicBool>,
     },
     /// [`AuthenticatedActorId`] was extracted on a route without [`AuthenticationLayer`].
     ///
@@ -147,9 +155,19 @@ impl IntoResponse for AuthenticationRejection {
 impl Drop for AuthenticationRejection {
     fn drop(&mut self) {
         match self {
-            Self::Authentication { report, metrics } => {
+            Self::Authentication {
+                report,
+                metrics,
+                recorded,
+            } => {
                 AuthenticationError::ensure_logged(report);
-                AuthenticationError::ensure_rejection_recorded(report, metrics);
+                // `Relaxed` is permissible here, as it is only used to avoid double-counting.
+                if recorded
+                    .compare_exchange(false, true, Ordering::Relaxed, Ordering::Relaxed)
+                    .is_ok()
+                {
+                    metrics.record_rejection(report.current_context());
+                }
             }
             Self::Misconfigured => {
                 tracing::error!(
@@ -163,21 +181,27 @@ impl Drop for AuthenticationRejection {
 /// The resolved authentication of a request, stored as a request extension, alongside the
 /// metrics the rejections it leads to are recorded on.
 ///
-/// A rejection carries the full report. The [`Arc`] is what lets it live in an extension:
-/// [`Report`] is not [`Clone`], and an extension value has to be.
+/// A rejection carries the full report. An extension value has to be [`Clone`], and [`Report`]
+/// is not — the [`Arc`] is what lets the outcome live here.
 #[derive(Clone)]
 pub(crate) struct ResolvedAuthentication {
     outcome: Result<Option<ActorId>, Arc<Report<AuthenticationError>>>,
     metrics: Arc<AuthenticationMetrics>,
+    /// Whether this request's rejection has been counted.
+    rejection_recorded: Arc<AtomicBool>,
 }
 
 impl ResolvedAuthentication {
     #[cfg(test)]
-    pub(crate) const fn new(
+    pub(crate) fn new(
         outcome: Result<Option<ActorId>, Arc<Report<AuthenticationError>>>,
         metrics: Arc<AuthenticationMetrics>,
     ) -> Self {
-        Self { outcome, metrics }
+        Self {
+            outcome,
+            metrics,
+            rejection_recorded: Arc::new(AtomicBool::new(false)),
+        }
     }
 
     pub(crate) const fn outcome(
@@ -210,6 +234,7 @@ fn service_secret_rejection(
     Some(AuthenticationRejection::Authentication {
         report: Arc::new(report),
         metrics: Arc::clone(metrics),
+        recorded: Arc::new(AtomicBool::new(false)),
     })
 }
 /// Rejects requests that do not carry the service secret.
@@ -294,9 +319,11 @@ fn store_outcome<B>(
         tracing::Span::current().record("actor_entity_uuid", tracing::field::display(actor_id));
     }
 
-    request
-        .extensions_mut()
-        .insert(ResolvedAuthentication { outcome, metrics });
+    request.extensions_mut().insert(ResolvedAuthentication {
+        outcome,
+        metrics,
+        rejection_recorded: Arc::new(AtomicBool::new(false)),
+    });
 }
 
 /// Resolves the request's credentials against the provider chain and rejects the request when
@@ -338,7 +365,7 @@ fn store_outcome<B>(
 /// #     async fn authenticate(
 /// #         &self,
 /// #         _headers: &HeaderMap,
-/// #     ) -> ControlFlow<Result<C, Report<AuthenticationError>>> {
+/// #     ) -> ControlFlow<Result<C, Arc<Report<AuthenticationError>>>> {
 /// #         ControlFlow::Continue(())
 /// #     }
 /// # }
@@ -456,8 +483,7 @@ where
         Either::Left(async move {
             let outcome = resolve_request_actor(&*provider, req.headers(), &metrics)
                 .await
-                .map(Caller::into_actor)
-                .map_err(Arc::new);
+                .map(Caller::into_actor);
 
             let outcome = match outcome {
                 Err(report)
@@ -474,6 +500,7 @@ where
                     return Ok(Err(AuthenticationRejection::Authentication {
                         report,
                         metrics,
+                        recorded: Arc::new(AtomicBool::new(false)),
                     }));
                 }
                 Ok(value) => Ok(value),
@@ -511,18 +538,22 @@ impl<S: Sync> FromRequestParts<S> for AuthenticatedActorId {
             Some(ResolvedAuthentication {
                 outcome: Ok(None),
                 metrics,
+                rejection_recorded,
             }) => Err(AuthenticationRejection::Authentication {
                 report: Arc::new(Report::new(AuthenticationError::new(
                     AuthenticationErrorKind::MissingCredentials,
                 ))),
                 metrics: Arc::clone(metrics),
+                recorded: Arc::clone(rejection_recorded),
             }),
             Some(ResolvedAuthentication {
                 outcome: Err(report),
                 metrics,
+                rejection_recorded,
             }) => Err(AuthenticationRejection::Authentication {
                 report: Arc::clone(report),
                 metrics: Arc::clone(metrics),
+                recorded: Arc::clone(rejection_recorded),
             }),
             None => Err(AuthenticationRejection::Misconfigured),
         })
@@ -549,9 +580,11 @@ impl<S: Sync> OptionalFromRequestParts<S> for AuthenticatedActorId {
             Some(ResolvedAuthentication {
                 outcome: Err(report),
                 metrics,
+                rejection_recorded,
             }) => Err(AuthenticationRejection::Authentication {
                 report: Arc::clone(report),
                 metrics: Arc::clone(metrics),
+                recorded: Arc::clone(rejection_recorded),
             }),
             None => Err(AuthenticationRejection::Misconfigured),
         })
@@ -561,7 +594,7 @@ impl<S: Sync> OptionalFromRequestParts<S> for AuthenticatedActorId {
 #[cfg(test)]
 mod tests {
     use alloc::sync::Arc;
-    use core::{future::Future, marker::PhantomData, ops::ControlFlow};
+    use core::{future::Future, marker::PhantomData, ops::ControlFlow, sync::atomic::AtomicBool};
 
     use axum::{Router, body::Body, routing::get};
     use error_stack::Report;
@@ -661,11 +694,11 @@ mod tests {
         fn authenticate(
             &self,
             _headers: &HeaderMap,
-        ) -> impl Future<Output = ControlFlow<Result<C, Report<AuthenticationError>>>> + Send
+        ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send
         {
-            core::future::ready(ControlFlow::Break(Err(Report::new(
+            core::future::ready(ControlFlow::Break(Err(Arc::new(Report::new(
                 AuthenticationError::missing_delegated_actor(),
-            ))))
+            )))))
         }
     }
 
@@ -1128,6 +1161,7 @@ mod tests {
                 AuthenticationErrorKind::MissingCredentials,
             ))),
             metrics: Arc::clone(&metrics),
+            recorded: Arc::new(AtomicBool::new(false)),
         });
 
         assert_eq!(
@@ -1143,7 +1177,7 @@ mod tests {
         );
     }
 
-    /// A clone copies the [`Arc`]s, so both drops see one error and the count latches on it.
+    /// A clone copies the [`Arc`]s, so both drops see one request cell and the count latches.
     #[test]
     fn cloned_rejection_counts_once() {
         let recorded = RecordedMetrics::new();
@@ -1154,6 +1188,7 @@ mod tests {
                 AuthenticationErrorKind::MissingCredentials,
             ))),
             metrics: Arc::clone(&metrics),
+            recorded: Arc::new(AtomicBool::new(false)),
         };
         let clone = rejection.clone();
         drop(rejection);
@@ -1168,12 +1203,12 @@ mod tests {
                 ],
             ),
             1,
-            "clones share one error, which counts one rejected request"
+            "clones share one request cell, which counts one rejected request"
         );
     }
 
     /// Extractors rebuild a rejection from the report the extension stores, so several
-    /// extractions on one request drop several rejections over one error.
+    /// extractions on one request drop several rejections over one request cell.
     #[test]
     fn rebuilt_rejection_counts_once() {
         let recorded = RecordedMetrics::new();
@@ -1181,14 +1216,17 @@ mod tests {
         let report = Arc::new(Report::new(AuthenticationError::new(
             AuthenticationErrorKind::MissingCredentials,
         )));
+        let request_cell = Arc::new(AtomicBool::new(false));
 
         drop(AuthenticationRejection::Authentication {
             report: Arc::clone(&report),
             metrics: Arc::clone(&metrics),
+            recorded: Arc::clone(&request_cell),
         });
         drop(AuthenticationRejection::Authentication {
             report,
             metrics: Arc::clone(&metrics),
+            recorded: request_cell,
         });
 
         assert_eq!(
@@ -1200,7 +1238,56 @@ mod tests {
                 ],
             ),
             1,
-            "rejections over one report are one rejected request"
+            "rejections over one request cell are one rejected request"
+        );
+    }
+
+    /// A provider handing every request the same shared rejection, as a caching provider does
+    /// for concurrent requests of one credential.
+    struct SharedRejectionProvider(Arc<Report<AuthenticationError>>);
+
+    impl<C: Caller> AuthenticationProvider<C> for SharedRejectionProvider {
+        fn authenticate(
+            &self,
+            _headers: &HeaderMap,
+        ) -> impl Future<Output = ControlFlow<Result<C, Arc<Report<AuthenticationError>>>>> + Send
+        {
+            core::future::ready(ControlFlow::Break(Err(Arc::clone(&self.0))))
+        }
+    }
+
+    #[tokio::test]
+    async fn shared_report_counts_every_request() {
+        let recorded = RecordedMetrics::new();
+        let router = routes().layer(AuthenticationLayer::<_, ActorId> {
+            provider: Arc::new(SharedRejectionProvider(Arc::new(Report::new(
+                AuthenticationError::new(AuthenticationErrorKind::ProviderUnreachable),
+            )))),
+            service_secret: Arc::from(SERVICE_SECRET),
+            metrics: Arc::new(AuthenticationMetrics::new(&recorded.meter())),
+            bootstrap_route: is_bootstrap_route,
+            caller: PhantomData,
+        });
+
+        for _ in 0..2 {
+            let response = router
+                .clone()
+                .oneshot(request("/protected"))
+                .await
+                .expect("the router should respond");
+            assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        }
+
+        assert_eq!(
+            recorded.counter(
+                "hash.authentication.rejections",
+                &[
+                    ("http.response.status_code", "503"),
+                    ("fault_domain", "service"),
+                ],
+            ),
+            2,
+            "each request sharing the report should count its own rejection"
         );
     }
 

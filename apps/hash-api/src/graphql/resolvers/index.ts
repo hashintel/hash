@@ -95,6 +95,7 @@ import {
 import {
   archiveEntityTypeResolver,
   checkUserPermissionsOnEntityTypeResolver,
+  checkUserPermissionsOnEntityTypesResolver,
   createEntityTypeResolver,
   getClosedMultiEntityTypesResolver,
   queryEntityTypesResolver,
@@ -142,6 +143,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     queryEntityTypes: queryEntityTypesResolver,
     searchEntityTypes: searchEntityTypesResolver,
     queryEntityTypeSubgraph: queryEntityTypeSubgraphResolver,
+    checkUserPermissionsOnEntityTypes:
+      checkUserPermissionsOnEntityTypesResolver,
     getClosedMultiEntityTypes: getClosedMultiEntityTypesResolver,
 
     /** Logged in users (who may not have completed signup) */

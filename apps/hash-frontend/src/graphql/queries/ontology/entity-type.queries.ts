@@ -69,3 +69,12 @@ export const checkUserPermissionsOnEntityTypeQuery = gql`
     checkUserPermissionsOnEntityType(entityTypeId: $entityTypeId)
   }
 `;
+
+export const checkUserPermissionsOnEntityTypesQuery = gql`
+  query checkUserPermissionsOnEntityTypes($entityTypeIds: [VersionedUrl!]!) {
+    checkUserPermissionsOnEntityTypes(entityTypeIds: $entityTypeIds) {
+      entityTypeId
+      permissions
+    }
+  }
+`;

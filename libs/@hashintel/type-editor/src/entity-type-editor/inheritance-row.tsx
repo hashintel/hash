@@ -67,7 +67,8 @@ export const InheritanceRow = ({
     name: "links",
   });
 
-  const { entityTypes, linkTypes } = useEntityTypesOptions();
+  const { entityTypes, linkTypes, entityTypePermissions } =
+    useEntityTypesOptions();
 
   const { entityTypesArray, directParents } = useMemo(() => {
     const isLinkType = directParentEntityTypeIds.find((id) => linkTypes[id]);
@@ -106,6 +107,18 @@ export const InheritanceRow = ({
       { $id: linkEntityTypeUrl },
     ],
   });
+
+  // A user can only extend a type they have permission to instantiate. When
+  // permission info is available, hide the types they cannot instantiate.
+  const instantiableEntityTypeOptions = useMemo(() => {
+    if (!entityTypePermissions) {
+      return entityTypeOptions;
+    }
+
+    return entityTypeOptions.filter(
+      (option) => entityTypePermissions[option.$id]?.instantiate,
+    );
+  }, [entityTypeOptions, entityTypePermissions]);
 
   const isReadonly = useIsReadonly();
 
@@ -250,7 +263,7 @@ export const InheritanceRow = ({
             onAdd={addParent}
             onCancel={() => setSelectorVisibility(false)}
             onSearchTextChange={setTypeSelectorSearchText}
-            options={entityTypeOptions}
+            options={instantiableEntityTypeOptions}
             searchText={typeSelectorSearchText}
             sx={{ width: 500 }}
             variant="entity type"
