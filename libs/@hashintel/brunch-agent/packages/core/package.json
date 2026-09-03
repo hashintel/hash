@@ -21,6 +21,10 @@
     "./storage": {
       "types": "./src/storage.ts",
       "import": "./dist/storage.js"
+    },
+    "./workpiece": {
+      "types": "./src/workpiece.ts",
+      "import": "./dist/workpiece.js"
     }
   },
   "scripts": {
