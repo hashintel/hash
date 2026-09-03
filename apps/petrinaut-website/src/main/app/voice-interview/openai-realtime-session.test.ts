@@ -264,6 +264,58 @@ describe("OpenAIRealtimeSession", () => {
     );
   });
 
+  test("rejects an accepted input item whose transcript completes after output starts", async () => {
+    const harness = createHarness();
+    await harness.session.connect();
+    harness.session.setMicrophoneEnabled(true);
+    const channel = harness.channels[0]!;
+
+    channel.receive({
+      audio_start_ms: 80,
+      item_id: "item-before-output",
+      type: "input_audio_buffer.speech_started",
+    });
+    channel.receive({
+      content_index: 0,
+      delta: "This started before output",
+      item_id: "item-before-output",
+      type: "conversation.item.input_audio_transcription.delta",
+    });
+    expect(harness.events).toContainEqual({
+      key: {
+        connectionEpoch: 1,
+        contentIndex: 0,
+        itemId: "item-before-output",
+      },
+      text: "This started before output",
+      type: "partial",
+    });
+
+    harness.session.speakCanonical([
+      canonicalSegment("ask-1", "What happens next?"),
+    ]);
+    authorizeLatestSpeechResponse(channel, "response-canonical");
+    channel.receive({
+      response_id: "response-canonical",
+      type: "output_audio_buffer.started",
+    });
+    channel.receive({
+      content_index: 0,
+      item_id: "item-before-output",
+      transcript: "This completed too late.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
+
+    expect(
+      harness.events.some(
+        (event) =>
+          event.type === "completed" &&
+          event.key.itemId === "item-before-output",
+      ),
+    ).toBe(false);
+    expect(harness.localTracks[0]!.enabled).toBe(false);
+  });
+
   test("restores only the latest microphone preference after playback", async () => {
     const harness = createHarness();
     await harness.session.connect();

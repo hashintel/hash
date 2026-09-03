@@ -160,6 +160,53 @@ describe("RealtimeBrunchBridge", () => {
     expect(JSON.stringify(harness.events)).not.toContain("Fabricated answer");
   });
 
+  test("rejects unfinished input invalidated by output and accepts fresh input", async () => {
+    const harness = createHarness();
+    startReady(harness);
+
+    harness.emit({
+      connectionEpoch: 3,
+      itemId: "item-before-output",
+      type: "input-speech-started",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      responseId: "response-output",
+      speechRequestId: "speech-output",
+      type: "output-started",
+    });
+    harness.emit(
+      completedTranscript(3, "This completed too late.", "item-before-output"),
+    );
+
+    expect(harness.submitInterviewAnswer).not.toHaveBeenCalled();
+    expect(harness.events).toContainEqual({
+      reason: "unavailable",
+      type: "transcript-rejected",
+    });
+
+    harness.emit({
+      connectionEpoch: 3,
+      responseId: "response-output",
+      type: "output-stopped",
+    });
+    harness.emit({
+      connectionEpoch: 3,
+      itemId: "item-after-output",
+      type: "input-speech-started",
+    });
+    harness.emit(completedTranscript(3, "This is fresh.", "item-after-output"));
+    await vi.waitFor(() =>
+      expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce(),
+    );
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledWith(
+      expect.objectContaining({ text: "This is fresh." }),
+    );
+
+    harness.emit(completedTranscript(3, "Stale replay.", "item-before-output"));
+    expect(harness.submitInterviewAnswer).toHaveBeenCalledOnce();
+  });
+
   test("derives stable delivery identity from epoch, item, and content index", () => {
     expect(
       createRealtimeSubmissionId(transcriptKey(12, "item/with spaces", 4)),

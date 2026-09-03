@@ -150,7 +150,9 @@ const normalizeTranscript = (transcript: string): string =>
   transcript.trim().replace(/\s+/gu, " ");
 
 export class RealtimeBrunchBridge {
+  readonly #acceptedInputItemIds = new Set<string>();
   readonly #listeners = new Set<BridgeListener>();
+  readonly #playbackOverlappingInputItemIds = new Set<string>();
   readonly #processedTranscripts = new Set<string>();
   readonly #session: RealtimeBridgeSession;
   readonly #submitInterviewAnswer: (
@@ -165,6 +167,7 @@ export class RealtimeBrunchBridge {
     status: "ready",
   };
   #generation = 0;
+  #outputActive = false;
 
   public constructor({
     session,
@@ -191,7 +194,10 @@ export class RealtimeBrunchBridge {
     this.#activeSubmission?.abortController.abort();
     this.#activeEpoch = connectionEpoch;
     this.#activeSubmission = null;
+    this.#acceptedInputItemIds.clear();
+    this.#playbackOverlappingInputItemIds.clear();
     this.#processedTranscripts.clear();
+    this.#outputActive = false;
     this.#seenSegmentIds.clear();
     for (const segment of this.#chat.canonicalSegments) {
       this.#seenSegmentIds.add(segment.id);
@@ -203,7 +209,10 @@ export class RealtimeBrunchBridge {
     this.#activeSubmission?.abortController.abort();
     this.#activeEpoch = null;
     this.#activeSubmission = null;
+    this.#acceptedInputItemIds.clear();
+    this.#playbackOverlappingInputItemIds.clear();
     this.#processedTranscripts.clear();
+    this.#outputActive = false;
   }
 
   public updateChat(update: ChatUpdate): void {
@@ -266,6 +275,35 @@ export class RealtimeBrunchBridge {
   }
 
   #handleSessionEvent(event: OpenAIRealtimeSessionEvent): void {
+    if (
+      "connectionEpoch" in event &&
+      event.connectionEpoch !== this.#activeEpoch
+    ) {
+      return;
+    }
+    if (event.type === "input-speech-started") {
+      if (this.#outputActive) {
+        this.#playbackOverlappingInputItemIds.add(event.itemId);
+      } else {
+        this.#acceptedInputItemIds.add(event.itemId);
+      }
+      return;
+    }
+    if (event.type === "output-started") {
+      this.#outputActive = true;
+      for (const itemId of this.#acceptedInputItemIds) {
+        this.#playbackOverlappingInputItemIds.add(itemId);
+      }
+      this.#acceptedInputItemIds.clear();
+      return;
+    }
+    if (
+      event.type === "output-stopped" ||
+      event.type === "output-interrupted"
+    ) {
+      this.#outputActive = false;
+      return;
+    }
     if (event.type !== "completed" && event.type !== "transcription-failed") {
       return;
     }
@@ -279,6 +317,12 @@ export class RealtimeBrunchBridge {
       return;
     }
     this.#processedTranscripts.add(keyId);
+    this.#acceptedInputItemIds.delete(event.key.itemId);
+
+    if (this.#playbackOverlappingInputItemIds.has(event.key.itemId)) {
+      this.#rejectTranscript("unavailable");
+      return;
+    }
 
     if (event.type === "transcription-failed") {
       this.#rejectTranscript("failed");

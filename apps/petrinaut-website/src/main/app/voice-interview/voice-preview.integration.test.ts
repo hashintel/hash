@@ -227,6 +227,20 @@ describe("controlled voice preview", () => {
       submitText: vi.fn(async () => ({ kind: "message" as const })),
     });
     await controller.start();
+    dataChannel.receive({
+      audio_start_ms: 200,
+      item_id: "pre-output-item",
+      type: "input_audio_buffer.speech_started",
+    });
+    dataChannel.receive({
+      content_index: 0,
+      delta: "Speech started before output",
+      item_id: "pre-output-item",
+      type: "conversation.item.input_audio_transcription.delta",
+    });
+    expect(controller.getSnapshot().partialText).toBe(
+      "Speech started before output",
+    );
     const initialSegments = selectCanonicalSpeechSegments(initialMessages);
     controller.updateChat({
       canAcceptInterviewAnswer: true,
@@ -238,12 +252,21 @@ describe("controlled voice preview", () => {
       response_id: "response-initial-question",
       type: "output_audio_buffer.started",
     });
+    dataChannel.receive({
+      content_index: 0,
+      item_id: "pre-output-item",
+      transcript: "This completed during assistant playback.",
+      type: "conversation.item.input_audio_transcription.completed",
+    });
     expect(controller.getSnapshot()).toMatchObject({
       canTakeTurn: true,
+      lastCommittedText: "",
       microphoneEnabled: true,
       output: "speaking",
+      partialText: "",
     });
     expect(track.enabled).toBe(false);
+    expect(submitInterviewAnswer).not.toHaveBeenCalled();
 
     const handoff = controller.takeTurn();
     dataChannel.receive({
