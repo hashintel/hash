@@ -24,16 +24,22 @@ const issuePathFrom = (
   path: readonly PropertyKey[],
 ): [v.IssuePathItem, ...v.IssuePathItem[]] | undefined => {
   if (path.length === 0) return undefined;
-  return path.map((key) => ({
-    type: "unknown" as const,
-    origin: "value" as const,
-    input,
-    key,
-    value:
-      typeof key === "string" || typeof key === "number"
-        ? input[key]
-        : undefined,
-  })) as [v.IssuePathItem, ...v.IssuePathItem[]];
+  let current: unknown = input;
+  return path.map((key) => {
+    const parent = current;
+    const value =
+      typeof parent === "object" && parent !== null
+        ? (parent as Record<PropertyKey, unknown>)[key]
+        : undefined;
+    current = value;
+    return {
+      type: "unknown" as const,
+      origin: "value" as const,
+      input: parent,
+      key,
+      value,
+    };
+  }) as [v.IssuePathItem, ...v.IssuePathItem[]];
 };
 
 const canonicalInputFor = (toolName: PetrinautConstructionToolName) => {

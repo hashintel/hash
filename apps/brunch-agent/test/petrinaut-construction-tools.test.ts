@@ -54,4 +54,28 @@ describe("Petrinaut construction tools", () => {
       petrinautAiTools.addArc.inputSchema.safeParse(validArc).success,
     );
   });
+
+  test("retains nested values in canonical validation paths", () => {
+    const addType = toolByName("addType");
+    const invalidElement = {
+      elementId: "speed",
+      name: "speed",
+      type: "not-a-type",
+    };
+    const invalidType = {
+      id: "vehicle",
+      name: "Vehicle",
+      iconSlug: "circle",
+      displayColor: "#808080",
+      elements: [invalidElement],
+    };
+    const result = v.safeParse(addType.input!, invalidType);
+    if (result.success) throw new Error("Expected nested type rejection");
+
+    expect(result.issues[0].path).toMatchObject([
+      { input: invalidType, key: "elements", value: invalidType.elements },
+      { input: invalidType.elements, key: 0, value: invalidElement },
+      { input: invalidElement, key: "type", value: "not-a-type" },
+    ]);
+  });
 });
