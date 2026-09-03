@@ -37,6 +37,7 @@ type SubmitInterviewAnswerInput = Pick<SubmitVoiceInput, "text"> & {
   readonly admissionTarget: RealtimeBrunchAdmissionTarget;
   readonly id: string;
   readonly onAdmission: (submissionId: AgentSendResult["submissionId"]) => void;
+  readonly signal: AbortSignal;
 };
 
 type SubmitInterviewAnswerResult =
@@ -53,6 +54,7 @@ interface RealtimeBrunchBridgeDependencies {
 }
 
 interface ActiveSubmission {
+  readonly abortController: AbortController;
   readonly baselineSegmentIds: ReadonlySet<string>;
   readonly callId: string;
   readonly epoch: number;
@@ -179,6 +181,7 @@ export class RealtimeBrunchBridge {
 
   public start(connectionEpoch: number): void {
     ++this.#generation;
+    this.#activeSubmission?.abortController.abort();
     this.#activeEpoch = connectionEpoch;
     this.#activeSubmission = null;
     this.#argumentDeltas.clear();
@@ -201,6 +204,7 @@ export class RealtimeBrunchBridge {
 
   public stop(): void {
     ++this.#generation;
+    this.#activeSubmission?.abortController.abort();
     this.#activeEpoch = null;
     this.#activeSubmission = null;
     this.#argumentDeltas.clear();
@@ -257,6 +261,7 @@ export class RealtimeBrunchBridge {
     code: RealtimeBridgeErrorCode = "interview-correlation",
   ): void {
     ++this.#generation;
+    this.#activeSubmission?.abortController.abort();
     this.#activeSubmission = null;
     this.#argumentDeltas.clear();
     this.#emit({ code, message, type: "error" });
@@ -348,6 +353,7 @@ export class RealtimeBrunchBridge {
 
     const generation = this.#generation;
     this.#activeSubmission = {
+      abortController: new AbortController(),
       baselineSegmentIds: new Set(
         this.#chat.canonicalSegments.map(({ id }) => id),
       ),
@@ -426,6 +432,7 @@ export class RealtimeBrunchBridge {
             type: "submission-admitted",
           });
         },
+        signal: activeAtSubmission.abortController.signal,
         text: answer,
       });
       const active = this.#activeSubmission;
