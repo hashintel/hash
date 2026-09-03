@@ -1,0 +1,15 @@
+# Hand-written; rendered by the arch-docs build. Palette matches src/emit/d2.ts.
+direction: right
+
+navigator: "sweep navigator\n(sticky parameter strip)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
+session: "sweep session\n(one live combination)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+cache: "combination cache\n(finished batches,\nmerged frames)" {style.fill: "#e8e0ff"; style.stroke: "#7051b5"}
+backend: "chosen backend\n(CPU worker pool\nor WebGPU)" {style.fill: "#dcecff"; style.stroke: "#3676b8"}
+charts: "metric charts\n(stream while batches run)" {style.fill: "#e2f4e8"; style.stroke: "#3d8055"}
+
+navigator -> session: selection change\n(cancel + restart) {style.stroke-dash: 4}
+session -> backend: "batch: runs\n[completed, next rung)"
+backend -> session: frames stream
+session -> cache: fold finished batch
+cache -> session: resume mid-ladder\non revisit {style.stroke-dash: 4}
+session -> charts: cached + in-flight\nframes, merged

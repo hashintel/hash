@@ -15,6 +15,7 @@ import {
   type MetricSize,
 } from "./experiment-metric-timeline";
 import { formatDurationMs } from "./format-duration";
+import { SweepNavigator } from "./sweep-navigator";
 
 /**
  * Which backend ran an experiment.
@@ -126,6 +127,8 @@ function formatStatus(experiment: ExperimentRecord): string {
       return "Initializing";
     case "running":
       return "Running";
+    case "idle":
+      return "Idle";
     case "complete":
       return "Complete";
     case "error":
@@ -373,6 +376,19 @@ export const ViewExperimentDrawer = ({
           >
             <ExperimentSummary experiment={experiment} />
           </Section>
+          {experiment.sweep ? (
+            <Section
+              title="Parameters"
+              tooltip="Only the selected combination computes. Move a control and compute follows it; results for visited combinations are kept."
+              // Not collapsible: the navigator lives in the sticky band so it
+              // stays usable while the charts below stream.
+              renderStickyBand={() => (
+                <SweepNavigator experiment={experiment} />
+              )}
+            >
+              {null}
+            </Section>
+          ) : null}
           {experiment.metricFrames.length > 0 ? (
             <Section title="Metrics" collapsible defaultOpen>
               <ExperimentMetrics experiment={experiment} />

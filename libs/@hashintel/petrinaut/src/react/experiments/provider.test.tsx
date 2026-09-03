@@ -35,7 +35,7 @@ import {
 } from "../notifications/context";
 import { SDCPNContext, type SDCPNContextValue } from "../state/sdcpn-context";
 import { ExperimentsContext, type ExperimentsContextValue } from "./context";
-import { ExperimentsProvider } from "./provider";
+import { buildSweepAxes, ExperimentsProvider } from "./provider";
 
 import type { LanguageClientContextValue } from "../lsp/context";
 import type { PetrinautNavigationState } from "../navigation";
@@ -350,6 +350,55 @@ function renderExperimentsProvider(
     renderResult,
   };
 }
+
+describe("buildSweepAxes", () => {
+  const scenario = {
+    id: "scenario",
+    name: "Scenario",
+    scenarioParameters: [
+      { type: "real" as const, identifier: "beta", default: 0.5 },
+      { type: "integer" as const, identifier: "count", default: 10 },
+    ],
+    parameterOverrides: {},
+    initialState: { type: "per_place" as const, content: {} },
+  };
+
+  it("splits fixed values from sweep axes", () => {
+    const { fixedValues, axes } = buildSweepAxes(scenario, {
+      beta: { mode: "range", min: 0, max: 1, valueCount: 5 },
+      count: { mode: "fixed", value: "12" },
+    });
+
+    expect(fixedValues).toEqual({ count: "12" });
+    expect(axes).toEqual([
+      { identifier: "beta", values: [0, 0.25, 0.5, 0.75, 1] },
+    ]);
+  });
+
+  it("rejects an invalid range with the parameter named", () => {
+    expect(() =>
+      buildSweepAxes(scenario, {
+        beta: { mode: "range", min: 1, max: 0, valueCount: 5 },
+      }),
+    ).toThrow("beta");
+  });
+
+  it("rejects a grid over the combination cap", () => {
+    expect(() =>
+      buildSweepAxes(scenario, {
+        beta: { mode: "range", min: 0, max: 1, valueCount: 21 },
+        count: { mode: "range", min: 0, max: 20, valueCount: 21 },
+      }),
+    ).toThrow("maximum is 200");
+  });
+
+  it("ignores inputs for parameters the scenario does not declare", () => {
+    const { axes } = buildSweepAxes(scenario, {
+      ghost: { mode: "range", min: 0, max: 1, valueCount: 3 },
+    });
+    expect(axes).toEqual([]);
+  });
+});
 
 describe("ExperimentsProvider", () => {
   it("replaces the creation overlay with the created experiment location", async () => {

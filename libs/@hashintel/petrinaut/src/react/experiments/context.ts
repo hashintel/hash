@@ -1,6 +1,11 @@
 import { createContext } from "react";
 
 import type {
+  ExperimentParameterAxis,
+  ExperimentParameterInput,
+} from "./parameter-grid";
+import type { SweepSelection } from "./sweep-session";
+import type {
   AdHocScenarioState,
   MonteCarloExpressionMetricSpec,
   MonteCarloMetricSpec,
@@ -11,6 +16,11 @@ import type {
 export type ExperimentStatus =
   | "initializing"
   | "running"
+  /**
+   * A sweep whose selected combination is saturated: nothing is computing,
+   * but moving the navigator starts computing again. Never terminal.
+   */
+  | "idle"
   | "complete"
   | "error"
   | "cancelled";
@@ -37,13 +47,20 @@ export type ExperimentComputeBackend = "cpu" | "webgpu";
 export type CreateExperimentInput = {
   name: string;
   scenarioId: string | null;
-  scenarioParameterValues: Record<string, string>;
+  /**
+   * Fixed value or sweep range per scenario parameter.
+   *
+   * Any `range` entry turns the experiment into a parameter sweep: the ranges
+   * define a grid, and only the navigator's selected combination computes.
+   */
+  scenarioParameterValues: Record<string, ExperimentParameterInput>;
   /**
    * With no scenario selected, an ad-hoc definition compiles through a
    * scenario generated at experiment start and never persisted. Ignored when
    * `scenarioId` is set.
    */
   adHocScenario?: AdHocScenarioState | null;
+  /** Number of runs per parameter combination. */
   runCount: number;
   seed: number;
   dt: number;
@@ -98,10 +115,37 @@ export type ExperimentRecord = {
    */
   finishedAt: number | null;
   progress: MonteCarloWorkerProgress | null;
+  /**
+   * For a sweep: the *selected combination's* frames (finished batches merged
+   * with the in-flight batch). For a plain experiment: the whole run's frames.
+   */
   metricFrames: readonly MonteCarloUserDefinedMetricFrame[];
   latestMetricFramesById: Readonly<
     Record<string, MonteCarloUserDefinedMetricFrame>
   >;
+  /**
+   * The swept parameters' discrete values; empty for a plain experiment.
+   * Order matches the scenario's parameter order and is the navigator's row
+   * order.
+   */
+  parameterAxes: readonly ExperimentParameterAxis[];
+  /** Live sweep state; null for a plain experiment. */
+  sweep: ExperimentSweepState | null;
+};
+
+/** Navigator-facing state of a sweep experiment. */
+export type ExperimentSweepState = {
+  /** Value index per swept parameter identifier. */
+  selection: SweepSelection;
+  /** Concrete swept values for `selection`. */
+  parameterValues: Readonly<Record<string, number>>;
+  /** Finished runs for the selected combination. */
+  runsCompleted: number;
+  /** Runs contributing to the shown frames, including the in-flight batch. */
+  runsSampled: number;
+  /** Ladder target the in-flight batch climbs to; null when saturated. */
+  runTarget: number | null;
+  computing: boolean;
 };
 
 /** Whether a status is one an experiment can never leave. */
@@ -110,7 +154,11 @@ export function isTerminalExperimentStatus(status: ExperimentStatus): boolean {
 }
 
 export function isExperimentActive(experiment: ExperimentRecord): boolean {
-  return !isTerminalExperimentStatus(experiment.status);
+  // "idle" is deliberately not active: an idle sweep computes nothing, so it
+  // neither blocks closing the window nor keeps elapsed-time tickers running.
+  return (
+    experiment.status === "initializing" || experiment.status === "running"
+  );
 }
 
 /**
@@ -140,6 +188,8 @@ export type ExperimentsContextValue = {
   createExperiment: (input: CreateExperimentInput) => Promise<string>;
   cancelExperiment: (experimentId: string) => void;
   removeExperiment: (experimentId: string) => void;
+  /** Moves a sweep's navigator; compute follows the selection. */
+  setSweepSelection: (experimentId: string, selection: SweepSelection) => void;
 };
 
 const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
@@ -150,6 +200,7 @@ const DEFAULT_CONTEXT_VALUE: ExperimentsContextValue = {
   createExperiment: () => Promise.resolve(""),
   cancelExperiment: () => {},
   removeExperiment: () => {},
+  setSweepSelection: () => {},
 };
 
 export const ExperimentsContext = createContext<ExperimentsContextValue>(

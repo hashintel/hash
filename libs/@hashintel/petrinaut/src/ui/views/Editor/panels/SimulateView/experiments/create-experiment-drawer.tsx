@@ -28,6 +28,15 @@ import {
   ExperimentsContext,
   type ExperimentMetricSpecInput,
 } from "../../../../../../react/experiments/context";
+import {
+  buildParameterRangeValues,
+  countGridCombinations,
+  MAX_EXPERIMENT_COMBINATIONS,
+  WARN_EXPERIMENT_COMBINATIONS,
+  type ExperimentParameterAxis,
+  type ExperimentParameterInput,
+  type ExperimentParameterRangeInput,
+} from "../../../../../../react/experiments/parameter-grid";
 import { useStableCallback } from "../../../../../../react/hooks/use-stable-callback";
 import { LanguageClientContext } from "../../../../../../react/lsp/context";
 import { SDCPNContext } from "../../../../../../react/state/sdcpn-context";
@@ -161,6 +170,36 @@ const paramTypeStyle = css({
   color: "neutral.s80",
   width: "[60px]",
   flexShrink: 0,
+});
+
+const paramSweepToggleStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+  flexShrink: 0,
+  fontSize: "xs",
+  color: "neutral.s80",
+});
+
+const paramRangeStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "[6px]",
+  flex: "1",
+  minWidth: "[0]",
+  "& > *": { flex: "1", minWidth: "[0]" },
+});
+
+const paramRangeCountStyle = css({
+  flex: "[0 0 84px]",
+});
+
+const sweepSummaryStyle = css({
+  fontSize: "xs",
+  color: "neutral.s80",
+  fontVariantNumeric: "tabular-nums",
+  "&[data-tone='warning']": { color: "orange.s100" },
+  "&[data-tone='error']": { color: "red.s100" },
 });
 
 const metricListStyle = css({
@@ -540,25 +579,93 @@ function buildMetricSpecs(
 
 // -- Component ----------------------------------------------------------------
 
+const DEFAULT_RANGE_VALUE_COUNT = 5;
+
+/** The range a parameter starts sweeping with: around its default. */
+function initialRangeFor(
+  param: ScenarioParameter,
+): ExperimentParameterRangeInput {
+  const base = typeof param.default === "number" ? param.default : 0;
+  if (param.type === "ratio") {
+    return {
+      mode: "range",
+      min: 0,
+      max: 1,
+      valueCount: DEFAULT_RANGE_VALUE_COUNT,
+    };
+  }
+  const spread = Math.max(Math.abs(base), 1);
+  const min =
+    param.type === "integer" ? Math.round(base - spread) : base - spread;
+  const max =
+    param.type === "integer" ? Math.round(base + spread) : base + spread;
+  return { mode: "range", min, max, valueCount: DEFAULT_RANGE_VALUE_COUNT };
+}
+
 const ScenarioParameterRow = ({
   param,
   value,
   onChange,
 }: {
   param: ScenarioParameter;
-  value: string;
-  onChange: (value: string) => void;
+  value: ExperimentParameterInput;
+  onChange: (value: ExperimentParameterInput) => void;
 }) => (
   <div className={paramRowStyle}>
     <span className={paramNameStyle}>{param.identifier}</span>
     <span className={paramTypeStyle}>{param.type}</span>
-    <CodeEditor
-      singleLine
-      language="typescript"
-      value={value}
-      onChange={(v) => onChange(v ?? "")}
-      placeholder={String(param.default)}
-    />
+    {value.mode === "range" ? (
+      <div className={paramRangeStyle}>
+        <NumberInput
+          size="sm"
+          aria-label={`${param.identifier} minimum`}
+          step="any"
+          value={Number.isFinite(value.min) ? value.min : null}
+          onChange={(min) => onChange({ ...value, min: min ?? Number.NaN })}
+        />
+        <NumberInput
+          size="sm"
+          aria-label={`${param.identifier} maximum`}
+          step="any"
+          value={Number.isFinite(value.max) ? value.max : null}
+          onChange={(max) => onChange({ ...value, max: max ?? Number.NaN })}
+        />
+        <div className={paramRangeCountStyle}>
+          <NumberInput
+            size="sm"
+            aria-label={`${param.identifier} values`}
+            min={1}
+            value={value.valueCount}
+            onChange={(valueCount) =>
+              onChange({ ...value, valueCount: valueCount ?? 0 })
+            }
+          />
+        </div>
+      </div>
+    ) : (
+      <CodeEditor
+        singleLine
+        language="typescript"
+        value={value.value}
+        onChange={(v) => onChange({ mode: "fixed", value: v ?? "" })}
+        placeholder={String(param.default)}
+      />
+    )}
+    {param.type === "boolean" ? null : (
+      <span className={paramSweepToggleStyle}>
+        Sweep
+        <Toggle
+          size="sm"
+          aria-label={`Sweep ${param.identifier}`}
+          value={value.mode === "range"}
+          onChange={(checked) =>
+            onChange(
+              checked ? initialRangeFor(param) : { mode: "fixed", value: "" },
+            )
+          }
+        />
+      </span>
+    )}
   </div>
 );
 
@@ -992,7 +1099,9 @@ export const CreateExperimentDrawer = ({
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(
     null,
   );
-  const [paramValues, setParamValues] = useState<Record<string, string>>({});
+  const [paramInputs, setParamInputs] = useState<
+    Record<string, ExperimentParameterInput>
+  >({});
   const [adHocState, setAdHocState] = useState<AdHocScenarioState | null>(null);
   const [runCount, setRunCount] = useState(DEFAULT_RUN_COUNT);
   const [seed, setSeed] = useState(DEFAULT_SEED);
@@ -1024,8 +1133,62 @@ export const CreateExperimentDrawer = ({
     metricDrafts.length === 0
       ? "Define at least one metric"
       : metricDiagnosticError;
+  /**
+   * The grid the current range inputs define. `error` carries the first
+   * invalid range or the over-cap message; `null` summary means no parameter
+   * sweeps, i.e. a plain single-combination experiment.
+   */
+  // The ad-hoc worksheet edits fixed values only; a swept parameter keeps its
+  // range and shows as blank there.
+  const fixedParamValues: Record<string, string> = {};
+  for (const [identifier, input] of Object.entries(paramInputs)) {
+    if (input.mode === "fixed") {
+      fixedParamValues[identifier] = input.value;
+    }
+  }
+
+  const sweepSummary = ((): {
+    text: string;
+    tone: "neutral" | "warning" | "error";
+    error: boolean;
+  } | null => {
+    const axes: ExperimentParameterAxis[] = [];
+    for (const param of selectedScenario?.scenarioParameters ?? []) {
+      const input = paramInputs[param.identifier];
+      if (!input || input.mode !== "range") {
+        continue;
+      }
+      const outcome = buildParameterRangeValues(param, input);
+      if (!outcome.ok) {
+        return { text: outcome.error, tone: "error", error: true };
+      }
+      axes.push({ identifier: param.identifier, values: outcome.values });
+    }
+    if (axes.length === 0) {
+      return null;
+    }
+    const combinations = countGridCombinations(axes);
+    if (combinations > MAX_EXPERIMENT_COMBINATIONS) {
+      return {
+        text: `${combinations} combinations — the maximum is ${MAX_EXPERIMENT_COMBINATIONS}`,
+        tone: "error",
+        error: true,
+      };
+    }
+    return {
+      text: `${combinations} combinations × ${runCount === "" ? "?" : runCount} runs each, computed one combination at a time${
+        combinations > WARN_EXPERIMENT_COMBINATIONS
+          ? " — a large grid takes a while to explore"
+          : ""
+      }`,
+      tone: combinations > WARN_EXPERIMENT_COMBINATIONS ? "warning" : "neutral",
+      error: false,
+    };
+  })();
+
   const footerError = error ?? metricFormError;
-  const canRun = !isSubmitting && metricFormError === null;
+  const canRun =
+    !isSubmitting && metricFormError === null && sweepSummary?.error !== true;
 
   // `null` while the drafts are incomplete: the GPU metric gate has nothing to
   // judge yet, and Run is disabled for the same reason.
@@ -1053,7 +1216,7 @@ export const CreateExperimentDrawer = ({
   const resetForm = () => {
     setName(DEFAULT_EXPERIMENT_NAME);
     setSelectedScenarioId(null);
-    setParamValues({});
+    setParamInputs({});
     setAdHocState(null);
     setRunCount(DEFAULT_RUN_COUNT);
     setSeed(DEFAULT_SEED);
@@ -1077,7 +1240,7 @@ export const CreateExperimentDrawer = ({
 
   const handleScenarioChange = (scenarioId: string) => {
     setSelectedScenarioId(scenarioId);
-    setParamValues({});
+    setParamInputs({});
     setError(null);
   };
 
@@ -1153,7 +1316,7 @@ export const CreateExperimentDrawer = ({
           effectiveSelectedScenarioId === NO_SCENARIO_VALUE
             ? null
             : effectiveSelectedScenarioId,
-        scenarioParameterValues: paramValues,
+        scenarioParameterValues: paramInputs,
         adHocScenario:
           enableAdHocScenarios &&
           effectiveSelectedScenarioId === NO_SCENARIO_VALUE
@@ -1202,7 +1365,9 @@ export const CreateExperimentDrawer = ({
             </div>
             <div className={gridStyle}>
               <div className={fieldStyle}>
-                <span className={labelStyle}>Runs</span>
+                <span className={labelStyle}>
+                  {sweepSummary ? "Runs per combination" : "Runs"}
+                </span>
                 <NumberInput
                   size="sm"
                   min={1}
@@ -1343,12 +1508,15 @@ export const CreateExperimentDrawer = ({
                     places: petriNetDefinition.places,
                     types: extensions.colors ? petriNetDefinition.types : [],
                   }}
-                  values={paramValues}
+                  values={fixedParamValues}
                   onValuesChange={(updates) =>
-                    setParamValues((prev) => {
+                    setParamInputs((prev) => {
                       const next = { ...prev };
                       for (const update of updates) {
-                        next[update.identifier] = update.value;
+                        next[update.identifier] = {
+                          mode: "fixed",
+                          value: update.value,
+                        };
                       }
                       return next;
                     })
@@ -1357,19 +1525,34 @@ export const CreateExperimentDrawer = ({
               ) : selectedScenario.scenarioParameters.length === 0 ? (
                 <div className={emptyParamsStyle}>No scenario parameters</div>
               ) : (
-                selectedScenario.scenarioParameters.map((param) => (
-                  <ScenarioParameterRow
-                    key={param.identifier}
-                    param={param}
-                    value={paramValues[param.identifier] ?? ""}
-                    onChange={(v) =>
-                      setParamValues((prev) => ({
-                        ...prev,
-                        [param.identifier]: v,
-                      }))
-                    }
-                  />
-                ))
+                <>
+                  {selectedScenario.scenarioParameters.map((param) => (
+                    <ScenarioParameterRow
+                      key={param.identifier}
+                      param={param}
+                      value={
+                        paramInputs[param.identifier] ?? {
+                          mode: "fixed",
+                          value: "",
+                        }
+                      }
+                      onChange={(v) =>
+                        setParamInputs((prev) => ({
+                          ...prev,
+                          [param.identifier]: v,
+                        }))
+                      }
+                    />
+                  ))}
+                  {sweepSummary ? (
+                    <span
+                      className={sweepSummaryStyle}
+                      data-tone={sweepSummary.tone}
+                    >
+                      {sweepSummary.text}
+                    </span>
+                  ) : null}
+                </>
               )
             ) : enableAdHocScenarios ? (
               // With no scenario, the experiment's Initial State + Parameters
