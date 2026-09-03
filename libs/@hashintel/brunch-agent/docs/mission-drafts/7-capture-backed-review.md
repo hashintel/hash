@@ -4,6 +4,8 @@
 
 ## Cold-start reads
 
+- [FE-1573](https://linear.app/hash/issue/FE-1573/explain-one-prepared-petrinaut-net-from-exact-conversation-evidence) — tracker projection for this future branch mission; it advances stakeholder outcome [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph) without rewriting that record.
+
 A fresh builder must resolve the current repository and the deployment handoff rather than treating this draft as a specification:
 
 - [`../../MISSION.md`](../../MISSION.md) — closure pointer; Mission 4 produced no full-run conversation/workpiece candidate and this draft must not imply otherwise.

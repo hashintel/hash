@@ -4,6 +4,7 @@
 
 ## Cold-start reads
 
+- [FE-1574](https://linear.app/hash/issue/FE-1574/let-voice-speak-through-canonical-brunch-conversations) — tracker projection for this future branch mission; the eventual branch `MISSION.md` remains execution authority.
 - [`../../MISSION.md`](../../MISSION.md) — Mission 4 closure pointer; no live Brunch mission exists.
 - [`../../MISSION.next.md`](../../MISSION.next.md) — shared contracts, parallel-track rules, and current sequencing.
 - [`../evidence/implementations/mission-4-voice-integration-handoff.md`](../evidence/implementations/mission-4-voice-integration-handoff.md) — observed Voice stack, conflict surfaces, and the package-composition invariant.

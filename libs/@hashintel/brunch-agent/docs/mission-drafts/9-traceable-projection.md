@@ -4,6 +4,8 @@
 
 ## Cold-start reads
 
+- [FE-1438](https://linear.app/hash/issue/FE-1438/project-an-evidence-backed-workpiece-into-a-traceable-live-sdcpn) — tracker projection for this future branch mission; the eventual branch `MISSION.md` remains execution authority.
+
 A fresh builder must resolve these authorities and evidence before choosing a mechanism:
 
 - [`../../MISSION.md`](../../MISSION.md) — current closure pointer. Mission 9 may be cut only after Mission 7 validly closes its accepted join and a new owner-authorized mission replaces that pointer as sole execution authority.

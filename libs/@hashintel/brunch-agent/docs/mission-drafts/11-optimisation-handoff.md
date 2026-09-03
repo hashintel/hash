@@ -4,6 +4,8 @@
 
 ## Cold-start reads
 
+- [FE-1503](https://linear.app/hash/issue/FE-1503/hand-one-accepted-sdcpn-to-an-optimisation-experiment) — tracker projection for this future branch mission; the eventual branch `MISSION.md` remains execution authority.
+
 A fresh builder must read these durable sources before deepening this cluster:
 
 - [`../../MISSION.md`](../../MISSION.md) — current closure pointer. Mission 4 is closed; later accepted mission archives and an owner-authorized live cut become inherited authority before this draft can execute.

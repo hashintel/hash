@@ -32,25 +32,37 @@ Every numbered product mission after the proof-of-life exception must produce a 
 
 ### M5 — Speak directly to canonical Brunch
 
+Tracker projection: [FE-1574](https://linear.app/hash/issue/FE-1574/let-voice-speak-through-canonical-brunch-conversations).
+
 A finalized spoken answer enters Flue exactly once and canonical Brunch text streams directly to visible Voice output and TTS, without the AI SDK chat composer or a secondary generative simplifier. This can be cut immediately and independently on the Voice reconciliation worktree. **Visible/usable proof:** [one spoken turn, cancellation, canonical snapshot, and reopen](docs/mission-drafts/5-direct-voice-flue-transport.md#throughline-proof-floor).
 
 ### M6 — Prove the Markdown/workpiece/Petrinaut loop
+
+Tracker projection: [FE-1575](https://linear.app/hash/issue/FE-1575/resume-one-brunch-workpiece-and-petrinaut-document-across-tabs).
 
 One honestly prepared fixture links a canonical conversation, session history, Markdown workpiece, and Petrinaut document; Brunch updates the workpiece, performs one meaningful browser-backed document change, saves, and resumes from a second tab. This can be cut immediately and independently of Voice. **Visible/usable proof:** [stable fixture selector with before/after artifacts and cross-tab continuation](docs/mission-drafts/6-resumable-workpiece-petrinaut-fixture.md#throughline-proof-floor).
 
 ### M7 — Make one prepared pair genuinely explainable
 
+Tracker projection: [FE-1573](https://linear.app/hash/issue/FE-1573/explain-one-prepared-petrinaut-net-from-exact-conversation-evidence), advancing stakeholder outcome [FE-1478](https://linear.app/hash/issue/FE-1478/provide-provenance-from-a-generated-net-back-to-the-requirements-graph).
+
 After M6 proves viability, close exact capture-backed provenance across one selected prepared pair so a reviewer can ask why a visible element exists and receive workpiece meaning, preparation rationale, and exact conversation evidence—or a visible refusal. **Visible/usable proof:** [one real why answer plus one broken-link refusal](docs/mission-drafts/7-capture-backed-review.md#throughline-proof-floor).
 
 ### M9 — Make projection repeatable and traceable
+
+Tracker projection: [FE-1438](https://linear.app/hash/issue/FE-1438/project-an-evidence-backed-workpiece-into-a-traceable-live-sdcpn).
 
 Broaden the viable M6 mutation seam into automatic projection of one meaningful workpiece region, with stable identities and derivations that M7's why route can resolve. Close repeat, changed-input, schema, partial-failure, and semantic-correspondence obligations for the named region rather than a whole-net platform. **Visible/usable proof:** [one automatically projected live region with generated-element provenance](docs/mission-drafts/9-traceable-projection.md#throughline-proof-floor).
 
 ### M10 — Revise meaning without collateral rebuilding
 
+Tracker projection: [FE-1394](https://linear.app/hash/issue/FE-1394/revise-one-traceable-net-region-through-targeted-reviewer-elicitation).
+
 A scenario-authorized reviewer supplies focused new evidence; Brunch preserves prior support, creates an inspectable workpiece revision, and applies a bounded net patch, justified widening, or refusal. **Visible/usable proof:** [one attributed correction with scoped patch and stable unrelated behavior](docs/mission-drafts/10-bounded-reviewer-revision.md#throughline-proof-floor).
 
 ### M11 — Hand an accepted model to optimisation
+
+Tracker projection: [FE-1503](https://linear.app/hash/issue/FE-1503/hand-one-accepted-sdcpn-to-an-optimisation-experiment).
 
 Only after Chris and Yannis define one concrete consumer contract, broaden the proven path to one selected complete SDCPN and deliver the semantic artifact package in the form they accept. **Visible/usable proof:** [the consumers can begin one agreed optimisation experiment from real-path artifacts](docs/mission-drafts/11-optimisation-handoff.md#throughline-proof-floor).
 

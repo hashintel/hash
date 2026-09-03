@@ -4,6 +4,8 @@
 
 ## Cold-start reads
 
+- [FE-1394](https://linear.app/hash/issue/FE-1394/revise-one-traceable-net-region-through-targeted-reviewer-elicitation) — tracker projection for this future branch mission; the eventual branch `MISSION.md` remains execution authority.
+
 A fresh builder must read these sources before cutting or implementing this cluster:
 
 - [`MISSION.md`](../../MISSION.md) — closure pointer for Mission 4. Mission 4 produced no full-run workpiece candidate; consume only the source/workpiece pair explicitly selected and promoted by Mission 7 or a predecessor addendum.
